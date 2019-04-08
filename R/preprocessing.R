@@ -1026,6 +1026,9 @@ SCTransform <- function(
   }
 
   if (return.only.var.genes) {
+    if (verbose) {
+      message("Returning only variable genes for scale.data slot of the output assay")
+    }
     scale.data <- scale.data[top.features, , drop = FALSE]
   }
 
@@ -1049,40 +1052,11 @@ SCTransform <- function(
     verbose = verbose
   )
 
-  # re-scale the residuals
-  # if (do.scale || do.center) {
-  #   if (verbose) {
-  #     if (do.center) {
-  #       message('Center residuals')
-  #     }
-  #     if (do.scale) {
-  #       message('Re-scale residuals')
-  #     }
-  #   }
-  #   scale.data <- FastRowScale(
-  #     mat = scale.data,
-  #     scale = do.scale,
-  #     center = do.center,
-  #     scale_max = Inf,
-  #     display_progress = FALSE
-  #   )
-  #   dimnames(scale.data) <- dimnames(vst.out$y)
-  # }
-
   assay.out <- SetAssayData(
     object = assay.out,
     slot = 'scale.data',
     new.data = scale.data
   )
-
-  #if (return.only.var.genes) {
-  #  if (verbose) {
-  #    message("Output assay will contain only variable genes")
-  #  }
-    #slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
-    #slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
-    #slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
-  #}
 
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
