@@ -27,6 +27,7 @@ loadings matrix.
 
 \item{\code{jackstraw}}{A \code{\link{JackStrawData-class}} object associated with this DimReduc}
 
-\item{\code{misc}}{Utility slot for storing additional data associated with the DimReduc}
+\item{\code{misc}}{Utility slot for storing additional data associated with the DimReduc
+(e.g. the total variance of the PCA)}
 }}
 
