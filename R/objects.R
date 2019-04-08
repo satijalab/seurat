@@ -2,7 +2,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature slotNames
+#' slot<- setMethod new signature slotNames is
 #' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
@@ -5125,6 +5125,19 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         n.calc <- CalcN(object = value)
         names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
         x[[names(x = n.calc)]] <- n.calc
+      }
+      # When removing an Assay, clear out associated DimReducs
+      if (is.null(x = value) && inherits(x = x[[i]], what = 'Assay')) {
+        reducs.assay <- FilterObjects(object = x, classes.keep = 'DimReduc')
+        reducs.assay <- Filter(
+          f = function(dr) {
+            return(DefaultAssay(object = x[[dr]]) == i)
+          },
+          x = reducs.assay
+        )
+        for (dr in reducs.assay) {
+          x[[dr]] <- NULL
+        }
       }
       slot(object = x, name = slot.use)[[i]] <- value
       slot(object = x, name = slot.use) <- Filter(
