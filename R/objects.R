@@ -4398,6 +4398,10 @@ length.DimReduc <- function(x) {
 #' @export
 #' @method levels Seurat
 #'
+#' @examples
+#' # Get the levels of identity classes of a Seurat object
+#' levels(x = pbmc_small)
+#'
 levels.Seurat <- function(x) {
   return(levels(x = Idents(object = x)))
 }
@@ -4405,6 +4409,12 @@ levels.Seurat <- function(x) {
 #' @rdname Idents
 #' @export
 #' @method levels<- Seurat
+#'
+#' @examples
+#' # Reorder identity classes
+#' levels(x = pbmc_small)
+#' levels(x = pbmc_small) <- c('C', 'A', 'B')
+#' levels(x = pbmc_small)
 #'
 "levels<-.Seurat" <- function(x, value) {
   idents <- Idents(object = x)
