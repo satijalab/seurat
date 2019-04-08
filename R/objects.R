@@ -627,7 +627,7 @@ CreateSeuratObject <- function(
   init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
-    X = colnames(x = counts),
+    X = colnames(x = assay.data),
     FUN = ExtractField,
     field = names.field,
     delim = names.delim
@@ -638,9 +638,9 @@ CreateSeuratObject <- function(
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
-    idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
+    idents <- rep.int(x = factor(x = project), times = ncol(x = assay.data))
   }
-  names(x = idents) <- colnames(x = counts)
+  names(x = idents) <- colnames(x = assay.data)
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
@@ -2313,7 +2313,7 @@ Key.Seurat <- function(object, ...) {
 #' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
-  projected <- projected %||% Projected(object = object)
+  projected <- projected %||% !Projected(object = object)
   slot <- ifelse(
     test = projected,
     yes = 'feature.loadings.projected',
@@ -2332,7 +2332,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' # Get the feature loadings for a specified DimReduc in a Seurat object
 #' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
 #'
-Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
+Loadings.Seurat <- function(object, reduction = 'pca', projected = NULL, ...) {
   return(Loadings(object = object[[reduction]], projected = projected, ...))
 }
 

@@ -174,7 +174,7 @@ AddModuleScore <- function(
 #' Averaging is done in non-log space.
 #'
 #' @param object Seurat object
-#' @param assay Which assay to use. Default is all assays.
+#' @param assays Which assays to use. Default is all assays.
 #' @param features Features to analyze. Default is all features in the assay.
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE.
 #' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
@@ -193,7 +193,7 @@ AddModuleScore <- function(
 #'
 AverageExpression <- function(
   object,
-  assay = NULL,
+  assays = NULL,
   features = NULL,
   return.seurat = FALSE,
   add.ident = NULL,
@@ -202,13 +202,14 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object)
+  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  assays <- assays %||% object.assays
   ident.orig <- Idents(object)
   orig.levels <- levels(x = Idents(object))
   ident.new <- c()
-  if (!all(assay %in% names(object@assays))) {
-    assay <- assay[assay %in% names(object@assays)]
-    if (length(assay) == 0) {
+  if (!all(assays %in% object.assays)) {
+    assays <- assays[assays %in% object.assays]
+    if (length(assays) == 0) {
       stop("None of the requested assays are present in the object")
     } else {
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
@@ -224,7 +225,9 @@ AverageExpression <- function(
     Idents(object, cells = rownames(new.data)) <- new.ident
   }
   slot.use <- "data"
-  fxn.average <- function(x) mean(expm1(x))
+  fxn.average <- function(x) {
+    return(mean(x = expm1(x)))
+  }
   if (use.scale) {
     slot.use <- "scale.data"
     fxn.average <- mean
@@ -234,10 +237,10 @@ AverageExpression <- function(
     fxn.average <- mean
   }
   data.return <- list()
-  for (i in 1:length(x = assay)) {
+  for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
       object = object,
-      assay = assay[i],
+      assay = assays[i],
       slot = slot.use
     )
     features.assay <- features
@@ -265,7 +268,7 @@ AverageExpression <- function(
       data.all <- cbind(data.all, data.temp)
       colnames(x = data.all)[ncol(x = data.all)] <- j
       if (verbose) {
-        message(paste("Finished averaging", assay[i], "for cluster", j))
+        message(paste("Finished averaging", assays[i], "for cluster", j))
       }
       if (i == 1) {
         ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
@@ -273,9 +276,8 @@ AverageExpression <- function(
     }
     names(x = ident.new) <- levels(x = Idents(object))
     data.return[[i]] <- data.all
-    names(x = data.return)[i] <- assay[[i]]
+    names(x = data.return)[i] <- assays[[i]]
   }
-
   if (return.seurat) {
     toRet <- CreateSeuratObject(
       counts = data.return[[1]],
@@ -283,24 +285,24 @@ AverageExpression <- function(
       assay = names(x = data.return)[1],
       ...
     )
-
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
       }
     }
-    Idents(toRet, cells = colnames(toRet)) <- ident.new[colnames(toRet)]
-    Idents(toRet) <- factor(
-      x = Idents(toRet),
+    if (DefaultAssay(object = object) %in% names(x = data.return)) {
+      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
+    }
+    Idents(toRet, cells = colnames(x = toRet)) <- ident.new[colnames(x = toRet)]
+    Idents(object = toRet) <- factor(
+      x = Idents(object = toRet),
       levels = as.character(x = orig.levels),
       ordered = TRUE
     )
-
     # finish setting up object if it is to be returned
-    toRet <- NormalizeData(toRet, verbose = verbose)
-    toRet <- ScaleData(toRet, verbose = verbose)
-
+    toRet <- NormalizeData(object = toRet, verbose = verbose)
+    toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
   } else {
     return(data.return)
@@ -485,7 +487,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
   mat <- matrix(data = 0, ncol = n, nrow = n)
   colnames(x = mat) <- rownames(x = mat) <- colnames(x = my.mat)
   for (i in 1:nrow(x = mat)) {
-    for(j in 1:ncol(x = mat)) {
+    for (j in 1:ncol(x = mat)) {
       mat[i,j] <- my.function(my.mat[, i], my.mat[, j], ...)
     }
   }
@@ -875,35 +877,35 @@ MinMax <- function(data, min, max) {
 }
 
 #' Calculate the percentage of all counts that belong to a given set of features
-#' 
-#' This function enables you to easily calculate the percentage of all the counts belonging to a 
-#' subset of the possible features for each cell. This is useful when trying to compute the percentage 
-#' of transcripts that map to mitochondrial genes for example. The calculation here is simply the 
+#'
+#' This function enables you to easily calculate the percentage of all the counts belonging to a
+#' subset of the possible features for each cell. This is useful when trying to compute the percentage
+#' of transcripts that map to mitochondrial genes for example. The calculation here is simply the
 #' column sum of the matrix present in the counts slot for features belonging to the set divided by
-#' the column sum for all features times 100. 
-#' 
+#' the column sum for all features times 100.
+#'
 #' @param object A Seurat object
 #' @param pattern A regex pattern to match features against
 #' @param features A defined feature set. If features provided, will ignore the pattern matching
-#' @param col.name Name in meta.data column to assign. If this is not null, returns a Seurat object 
+#' @param col.name Name in meta.data column to assign. If this is not null, returns a Seurat object
 #' with the proportion of the feature set stored in metadata.
 #' @param assay Assay to use
-#' 
-#' @return Returns a vector with the proportion of the feature set or if md.name is set, returns a 
+#'
+#' @return Returns a vector with the proportion of the feature set or if md.name is set, returns a
 #' Seurat object with the proportion of the feature set stored in metadata.
 #' @importFrom Matrix colSums
 #' @export
-#' 
-#' @examples 
-#' # Calculate the proportion of transcripts mapping to mitochondrial genes 
+#'
+#' @examples
+#' # Calculate the proportion of transcripts mapping to mitochondrial genes
 #' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 #' # system of interest
 #' pbmc_small[["percent.mt"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
-#' 
+#'
 PercentageFeatureSet <- function(
-  object, 
-  pattern = NULL, 
-  features = NULL, 
+  object,
+  pattern = NULL,
+  features = NULL,
   col.name = NULL,
   assay = NULL
 ) {

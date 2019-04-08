@@ -4,14 +4,14 @@
 \alias{AverageExpression}
 \title{Averaged feature expression by identity class}
 \usage{
-AverageExpression(object, assay = NULL, features = NULL,
+AverageExpression(object, assays = NULL, features = NULL,
   return.seurat = FALSE, add.ident = NULL, use.scale = FALSE,
   use.counts = FALSE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{assay}{Which assay to use. Default is all assays.}
+\item{assays}{Which assays to use. Default is all assays.}
 
 \item{features}{Features to analyze. Default is all features in the assay.}
 
