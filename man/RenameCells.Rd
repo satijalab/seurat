@@ -49,12 +49,12 @@ renamed.assay <- RenameCells(
 head(x = colnames(x = renamed.assay))
 
 # Rename cells in a DimReduc
-head(x = colnames(x = pbmc_small[["pca"]]))
+head(x = Cells(x = pbmc_small[["pca"]]))
 renamed.dimreduc <- RenameCells(
     object = pbmc_small[["pca"]],
-    new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
+    new.names = paste0("A_", Cells(x = pbmc_small[["pca"]]))
 )
-head(x = colnames(x = renamed.dimreduc))
+head(x = Cells(x = renamed.dimreduc))
 
 # Rename cells in a Seurat object
 head(x = colnames(x = pbmc_small))

@@ -106,8 +106,7 @@ as.sparse <- function(x, ...) {
 
 #' Get cells present in an object
 #'
-#' @param object An object
-#' @param ... Arguments passed to other methods
+#' @param x An object
 #'
 #' @return A vector of cell names
 #'
@@ -115,10 +114,10 @@ as.sparse <- function(x, ...) {
 #' @export Cells
 #'
 #' @examples
-#' Cells(object = pbmc_small)
+#' Cells(x = pbmc_small)
 #'
-Cells <- function(object, ...) {
-  UseMethod(generic = 'Cells', object = object)
+Cells <- function(x) {
+  UseMethod(generic = 'Cells', object = x)
 }
 
 #' Get SeuratCommands
