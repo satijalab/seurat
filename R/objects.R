@@ -627,7 +627,7 @@ CreateSeuratObject <- function(
   init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
-    X = colnames(x = counts),
+    X = colnames(x = assay.data),
     FUN = ExtractField,
     field = names.field,
     delim = names.delim
@@ -638,9 +638,9 @@ CreateSeuratObject <- function(
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
-    idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
+    idents <- rep.int(x = factor(x = project), times = ncol(x = assay.data))
   }
-  names(x = idents) <- colnames(x = counts)
+  names(x = idents) <- colnames(x = assay.data)
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
