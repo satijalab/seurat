@@ -110,14 +110,14 @@ Idents(object = pbmc_small, cells = 1:4) <- 'a'
 head(x = Idents(object = pbmc_small))
 
 # Can also set idents from a value in object metadata
-pbmc_small$groups <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
-Idents(object = pbmc_small) <- 'groups'
+colnames(x = pbmc_small[[]])
+Idents(object = pbmc_small) <- 'RNA_snn_res.1'
 levels(x = pbmc_small)
 
 # Rename cell identity classes
 # Can provide an arbitrary amount of idents to rename
 levels(x = pbmc_small)
-pbmc_small <- RenameIdents(object = pbmc_small, 'g1' = 'clusterA', 'g2' = 'clusterB')
+pbmc_small <- RenameIdents(object = pbmc_small, '0' = 'A', '2' = 'C')
 levels(x = pbmc_small)
 
 \dontrun{
@@ -127,12 +127,19 @@ head(x = Idents(object = pbmc_small))
 }
 
 # Set cell identity classes using SetIdent
-ident.levels <- levels(x = pbmc_small)
-cells.use <- WhichCells(object = pbmc_small, idents = ident.levels[1])
-pbmc_small <- SetIdent(object = pbmc_small, cells = cells.use, value = 'cluster0')
+cells.use <- WhichCells(object = pbmc_small, idents = '1')
+pbmc_small <- SetIdent(object = pbmc_small, cells = cells.use, value = 'B')
 
 head(x = pbmc_small[[]])
 pbmc_small <- StashIdent(object = pbmc_small, save.name = 'idents')
 head(x = pbmc_small[[]])
+
+# Get the levels of identity classes of a Seurat object
+levels(x = pbmc_small)
+
+# Reorder identity classes
+levels(x = pbmc_small)
+levels(x = pbmc_small) <- c('C', 'A', 'B')
+levels(x = pbmc_small)
 
 }

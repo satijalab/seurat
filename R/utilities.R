@@ -1147,7 +1147,9 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   cell.names <- unlist(
     x = sapply(
       X = 1:length(x = object.list),
-      FUN = function(x) Cells(object = object.list[[x]])
+      FUN = function(x) {
+        return(Cells(x = object.list[[x]]))
+      }
       )
     )
   if (any(duplicated(x = cell.names))) {
@@ -1159,7 +1161,12 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
     }
     object.list <- sapply(
       X = 1:length(x = object.list),
-      FUN = function(x) RenameCells(object = object.list[[x]], new.names = paste0(Cells(object = object.list[[x]]), "_", x))
+      FUN = function(x) {
+        return(RenameCells(
+          object = object.list[[x]],
+          new.names = paste0(Cells(x = object.list[[x]]), "_", x)
+        ))
+      }
     )
   }
   return(object.list)

@@ -33,7 +33,7 @@ This can be either:
    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
 }
 Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
-first merge between reference and query, as the merged object will subsequently contain more cells than was in 
+first merge between reference and query, as the merged object will subsequently contain more cells than was in
 query, and weights will need to be calculated for all cells in the object.}
 
 \item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}

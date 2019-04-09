@@ -2,7 +2,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature slotNames
+#' slot<- setMethod new signature slotNames is
 #' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
@@ -627,7 +627,7 @@ CreateSeuratObject <- function(
   init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
-    X = colnames(x = counts),
+    X = colnames(x = assay.data),
     FUN = ExtractField,
     field = names.field,
     delim = names.delim
@@ -638,9 +638,9 @@ CreateSeuratObject <- function(
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
-    idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
+    idents <- rep.int(x = factor(x = project), times = ncol(x = assay.data))
   }
-  names(x = idents) <- colnames(x = counts)
+  names(x = idents) <- colnames(x = assay.data)
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
@@ -1897,8 +1897,16 @@ as.sparse.matrix <- function(x, ...) {
 #' @rdname Cells
 #' @export
 #'
-Cells.default <- function(object, ...) {
-  return(colnames(x = object))
+Cells.default <- function(x, ...) {
+  return(colnames(x = x))
+}
+
+#' @rdname Cells
+#' @export
+#' @method Cells DimReduc
+#'
+Cells.DimReduc <- function(x, ...) {
+  return(rownames(x = x))
 }
 
 #' @param command Name of the command to pull, pass \code{NULL} to get the names of all commands run
@@ -2313,7 +2321,7 @@ Key.Seurat <- function(object, ...) {
 #' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
-  projected <- projected %||% Projected(object = object)
+  projected <- projected %||% !Projected(object = object)
   slot <- ifelse(
     test = projected,
     yes = 'feature.loadings.projected',
@@ -2332,7 +2340,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' # Get the feature loadings for a specified DimReduc in a Seurat object
 #' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
 #'
-Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
+Loadings.Seurat <- function(object, reduction = 'pca', projected = NULL, ...) {
   return(Loadings(object = object[[reduction]], projected = projected, ...))
 }
 
@@ -3032,12 +3040,12 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
 #'
 #' @examples
 #' # Rename cells in a DimReduc
-#' head(x = colnames(x = pbmc_small[["pca"]]))
+#' head(x = Cells(x = pbmc_small[["pca"]]))
 #' renamed.dimreduc <- RenameCells(
 #'     object = pbmc_small[["pca"]],
-#'     new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
+#'     new.names = paste0("A_", Cells(x = pbmc_small[["pca"]]))
 #' )
-#' head(x = colnames(x = renamed.dimreduc))
+#' head(x = Cells(x = renamed.dimreduc))
 #'
 RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
@@ -4261,7 +4269,7 @@ WriteH5AD.Seurat <- function(
 "[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
   key <- Key(object = x)
   if (missing(x = i)) {
-    i <- 1:ncol(x = x)
+    i <- 1:nrow(x = x)
   }
   if (missing(x = j)) {
     j <- names(x = x)
@@ -4342,10 +4350,7 @@ dim.Assay <- function(x) {
 #' @method dim DimReduc
 #'
 dim.DimReduc <- function(x) {
-  return(c(
-    nrow(x = Loadings(object = x)),
-    nrow(x = Embeddings(object = x))
-  ))
+  return(dim(x = Embeddings(object = x)))
 }
 
 #' @export
@@ -4366,10 +4371,7 @@ dimnames.Assay <- function(x) {
 #' @method dimnames DimReduc
 #'
 dimnames.DimReduc <- function(x) {
-  return(list(
-    rownames(x = Loadings(object = x)),
-    rownames(x = Embeddings(object = x)))
-  )
+  return(dimnames(x = Embeddings(object = x)))
 }
 
 #' @export
@@ -4398,6 +4400,10 @@ length.DimReduc <- function(x) {
 #' @export
 #' @method levels Seurat
 #'
+#' @examples
+#' # Get the levels of identity classes of a Seurat object
+#' levels(x = pbmc_small)
+#'
 levels.Seurat <- function(x) {
   return(levels(x = Idents(object = x)))
 }
@@ -4405,6 +4411,12 @@ levels.Seurat <- function(x) {
 #' @rdname Idents
 #' @export
 #' @method levels<- Seurat
+#'
+#' @examples
+#' # Reorder identity classes
+#' levels(x = pbmc_small)
+#' levels(x = pbmc_small) <- c('C', 'A', 'B')
+#' levels(x = pbmc_small)
 #'
 "levels<-.Seurat" <- function(x, value) {
   idents <- Idents(object = x)
@@ -4734,14 +4746,15 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
 #' @method subset DimReduc
 #'
 subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
-  cells <- colnames(x = x) %iff% cells %||% colnames(x = x)
+  cells <- Cells(x = x) %iff% cells %||% Cells(x = x)
   if (all(is.na(x = cells))) {
-    cells <- colnames(x = x)
+    cells <- Cells(x = x)
   } else if (any(is.na(x = cells))) {
     warning("NAs passed in cells vector, removing NAs")
     cells <- na.omit(object = cells)
   }
-  features <- rownames(x = x) %iff% features %||% rownames(x = x)
+  # features <- rownames(x = x) %iff% features %||% rownames(x = x)
+  features <- rownames(x = Loadings(object = x)) %iff% features %||% rownames(x = Loadings(object = x))
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
     return(x)
   }
@@ -4749,9 +4762,9 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
     new(Class = 'matrix')
   } else {
     if (is.numeric(x = cells)) {
-      cells <- colnames(x = x)[cells]
+      cells <- Cells(x = x)[cells]
     }
-    cells <- intersect(x = cells, y = colnames(x = x))
+    cells <- intersect(x = cells, y = Cells(x = x))
     if (length(x = cells) == 0) {
       stop("Cannot find cell provided", call. = FALSE)
     }
@@ -4828,7 +4841,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (length(x = cells) == 0) {
     stop("No cells found", call. = FALSE)
   }
-  if (all(cells %in% Cells(object = x)) && length(x = cells) == length(x = Cells(object = x))) {
+  if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x))) {
     return(x)
   }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
@@ -4960,11 +4973,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           )
         }
         # Ensure cell order stays the same
-        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+        if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
           for (slot in c('counts', 'data', 'scale.data')) {
             assay.data <- GetAssayData(object = value, slot = slot)
             if (!IsMatrixEmpty(x = assay.data)) {
-              assay.data <- assay.data[, colnames(x = x), drop = FALSE]
+              assay.data <- assay.data[, Cells(x = x), drop = FALSE]
             }
             # Use slot because SetAssayData is being weird
             slot(object = value, name = slot) <- assay.data
@@ -4983,8 +4996,8 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
         }
         # Ensure DimReduc object is in order
-        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
-          slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
+        if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+          slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
         }
         'reductions'
       },
@@ -5032,7 +5045,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
+      if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
@@ -5112,6 +5125,19 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         n.calc <- CalcN(object = value)
         names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
         x[[names(x = n.calc)]] <- n.calc
+      }
+      # When removing an Assay, clear out associated DimReducs
+      if (is.null(x = value) && inherits(x = x[[i]], what = 'Assay')) {
+        reducs.assay <- FilterObjects(object = x, classes.keep = 'DimReduc')
+        reducs.assay <- Filter(
+          f = function(dr) {
+            return(DefaultAssay(object = x[[dr]]) == i)
+          },
+          x = reducs.assay
+        )
+        for (dr in reducs.assay) {
+          x[[dr]] <- NULL
+        }
       }
       slot(object = x, name = slot.use)[[i]] <- value
       slot(object = x, name = slot.use) <- Filter(
@@ -5277,7 +5303,7 @@ setMethod(
       'Number of dimensions:', length(x = object), '\n',
       'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
       'Jackstraw run:', as.logical(x = JS(object = object)), '\n',
-      'Computed using assay:', DefaultAssay(object), '\n'
+      'Computed using assay:', DefaultAssay(object = object), '\n'
     )
   }
 )
