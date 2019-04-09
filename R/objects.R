@@ -118,6 +118,7 @@ JackStrawData <- setClass(
 #' @slot key Key for the DimReduc, must be alphanumerics followed by an underscore
 #' @slot jackstraw A \code{\link{JackStrawData-class}} object associated with this DimReduc
 #' @slot misc Utility slot for storing additional data associated with the DimReduc
+#'       (e.g. the total variance of the PCA)
 #'
 #' @name DimReduc-class
 #' @rdname DimReduc-class
