@@ -4269,7 +4269,7 @@ WriteH5AD.Seurat <- function(
 "[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
   key <- Key(object = x)
   if (missing(x = i)) {
-    i <- 1:ncol(x = x)
+    i <- 1:nrow(x = x)
   }
   if (missing(x = j)) {
     j <- names(x = x)
