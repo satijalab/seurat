@@ -2006,7 +2006,7 @@ Embeddings.DimReduc <- function(object, ...) {
 #' # Get the embeddings from a specific DimReduc in a Seurat object
 #' Embeddings(object = pbmc_small, reduction = "pca")[1:5, 1:5]
 #'
-Embeddings.Seurat <- function(object, reduction, ...) {
+Embeddings.Seurat <- function(object, reduction = 'pca', ...) {
   return(Embeddings(object = object[[reduction]], ...))
 }
 
@@ -3366,7 +3366,7 @@ Stdev.DimReduc <- function(object, ...) {
 #' # Get the standard deviations for each PC from the Seurat object
 #' Stdev(object = pbmc_small, reduction = "pca")
 #'
-Stdev.Seurat <- function(object, reduction, ...) {
+Stdev.Seurat <- function(object, reduction = 'pca', ...) {
   return(Stdev(object = object[[reduction]]))
 }
 
@@ -4176,16 +4176,15 @@ WriteH5AD.Seurat <- function(
 #' @method [ DimReduc
 #'
 "[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
-  key <- Key(object = x)
+  loadings <- Loadings(object = x)
   if (missing(x = i)) {
-    i <- 1:nrow(x = x)
+    i <- 1:nrow(x = loadings)
   }
   if (missing(x = j)) {
     j <- names(x = x)
   } else if (is.numeric(x = j)) {
     j <- names(x = x)[j]
   }
-  loadings <- Loadings(object = x)
   bad.j <- j[!j %in% colnames(x = loadings)]
   j <- j[!j %in% bad.j]
   if (length(x = j) == 0) {
@@ -4267,7 +4266,6 @@ WriteH5AD.Seurat <- function(
 #' @method [[ DimReduc
 #'
 "[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
-  key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:nrow(x = x)
   }

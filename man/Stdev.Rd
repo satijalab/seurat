@@ -10,7 +10,7 @@ Stdev(object, ...)
 
 \method{Stdev}{DimReduc}(object, ...)
 
-\method{Stdev}{Seurat}(object, reduction, ...)
+\method{Stdev}{Seurat}(object, reduction = "pca", ...)
 }
 \arguments{
 \item{object}{An object}
