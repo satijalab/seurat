@@ -244,6 +244,8 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing nearest neighbor graph")
     }
+    nn.ranked <- NNHelper(data = data, k.param = k, method = nn.method)
+    
     nn.ranked <- switch(
       EXPR = nn.method,
       "rann" = {
@@ -462,11 +464,40 @@ FindNeighbors.Seurat <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Run annoy 
+#
+# @param data Data to build the index with
+# @param query A set of data to be queried against data
+# @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
+# "hamming"
+# @param n.trees More trees gives higher precision when querying
+# @param k Number of neighbors
+# @param search.k During the query it will inspect up to search_k nodes which 
+# gives you a run-time tradeoff between better accuracy and speed.
+# @ param include.distance Include the corresponding distances 
+#
+AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k, 
+                    search.k = 100 * k, include.distance = TRUE) {
+  idx <- AnnoyBuildIndex(
+    data = data, 
+    metric = metric,
+    n.trees = n.trees)
+  nn <- AnnoySearch(
+    index = idx, 
+    query = query,
+    k = k,
+    search.k = search.k)
+  return(nn)
+}
 
-AnnoyNN <- function(data, query = NULL, metric = "euclidean", n.trees = 50, k, search.k = 100 * k) {
-  PackageCheck("RcppAnnoy")
+# Build the annoy index
+# 
+# @param data Data to build the index with
+# @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
+# "hamming"
+# @param n.trees More trees gives higher precision when querying
+#
+AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
   f <- ncol(x = data)
-  n <- nrow(x = data)
   a <- switch(
     EXPR = metric,
     "euclidean" =  new(Class = RcppAnnoy::AnnoyEuclidean, f),
@@ -475,17 +506,28 @@ AnnoyNN <- function(data, query = NULL, metric = "euclidean", n.trees = 50, k, s
     "hamming" = new(Class = RcppAnnoy::AnnoyHamming, f),
     stop ("Invalid metric")
   )
-  for (ii in seq(n)) {
+  for (ii in seq(nrow(x = data))) {
     a$addItem(ii - 1, data[ii, ])
   }
   a$build(n.trees)
-  
-  query <- query %||% data
+  return(a)
+}
+
+# Search the annoy index
+#
+# @param Annoy index, build with AnnoyBuildIndex
+# @param query A set of data to be queried against the index
+# @param k Number of neighbors
+# @param search.k During the query it will inspect up to search_k nodes which 
+# gives you a run-time tradeoff between better accuracy and speed.
+# @ param include.distance Include the corresponding distances 
+#
+AnnoySearch <- function(index, query, k, search.k = 100 * k, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   res <- future_lapply(X = 1:n, FUN = function(x) {
-    res <- a$getNNsByVectorList(query[x, ], k, search.k, TRUE)
+    res <- a$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
     if (methods::is(a, "Rcpp_AnnoyAngular")) {
       res$dist <- 0.5 * (res$dist * res$dist)
@@ -494,11 +536,11 @@ AnnoyNN <- function(data, query = NULL, metric = "euclidean", n.trees = 50, k, s
   })
   for (i in 1:n) {
     idx[i, ] <- res[[i]][[1]]
+    if (include.distance)
     dist[i, ] <- res[[i]][[2]]
   }
   return(list(idx = idx, dist = dist))
 }
-
 
 # Group single cells that make up their own cluster in with the cluster they are
 # most connected to.
@@ -546,6 +588,39 @@ GroupSingletons <- function(ids, SNN, verbose) {
     ))
   }
   return(ids)
+}
+
+# Internal helper function to dispatch to various neighbor finding methods
+#
+# @param data Input data
+# @param query Data to query against data
+# @param k Number of nearest neighbors to compute
+# @param method Nearest neighbor method to use: "rann", "annoy"
+# @param ... additional parameters to specific neighbor finding method
+# 
+NNHelper <- function(data, query = data, k, method, ...) {
+  return(
+    switch(
+      EXPR = method,
+      "rann" = {
+        nn2(
+          data = object,
+          query = query,
+          k = k.param,
+          ...
+        )
+      },
+      "annoy" = {
+        AnnoyNN(
+          data = object,
+          query = query,
+          k = k.param,
+          ...
+        )
+      },
+      stop("Invalid method. Please choose one of 'rann', 'annoy'")
+    )
+  )
 }
 
 # Run Leiden clustering algorithm
