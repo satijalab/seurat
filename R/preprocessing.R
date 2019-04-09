@@ -961,13 +961,16 @@ SCTransform <- function(
     }
   }
 
-  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_corrected_umi') %in% names(vst.args))) {
-    warning(paste('the following arguments will be ignored because they are set within this function:', paste(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_corrected_umi'), collapse = ', ')))
+  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(vst.args))) {
+    warning(paste('the following arguments will be ignored because they are set within this function:', 
+                  paste(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 
+                          'return_corrected_umi'), collapse = ', ')))
   }
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
   vst.args[['show_progress']] <- verbose
   vst.args[['return_cell_attr']] <- TRUE
+  vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
   vst.out <- do.call(sctransform::vst, vst.args)
 
