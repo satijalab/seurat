@@ -1868,6 +1868,14 @@ as.sparse.H5Group <- function(x, ...) {
       stop("Invalid H5Group specification for a sparse matrix, missing dataset ", i)
     }
   }
+  if ('h5sparse_shape' %in% hdf5r::h5attr_names(x = x)) {
+    return(sparseMatrix(
+      i = x[['indices']][] + 1,
+      p = x[['indptr']][],
+      x = x[['data']][],
+      dims = rev(x = hdf5r::h5attr(x = x, which = 'h5sparse_shape'))
+    ))
+  }
   return(sparseMatrix(
     i = x[['indices']][] + 1,
     p = x[['indptr']][],
@@ -2638,7 +2646,6 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   }
   if (is(object = file[['X']], class2 = 'H5Group')) {
     x <- as.sparse(x = file[['X']])
-    slot(object = x, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
   } else {
     x <- file[['X']][, ]
   }
