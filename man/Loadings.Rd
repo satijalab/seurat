@@ -13,9 +13,9 @@ Loadings(object, ...)
 
 Loadings(object, ...) <- value
 
-\method{Loadings}{DimReduc}(object, projected = NULL, ...)
+\method{Loadings}{DimReduc}(object, projected = FALSE, ...)
 
-\method{Loadings}{Seurat}(object, reduction = "pca", projected = NULL,
+\method{Loadings}{Seurat}(object, reduction = "pca", projected = FALSE,
   ...)
 
 \method{Loadings}{DimReduc}(object, projected = TRUE, ...) <- value

@@ -2320,8 +2320,8 @@ Key.Seurat <- function(object, ...) {
 #' # Get the feature loadings for a given DimReduc
 #' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
-Loadings.DimReduc <- function(object, projected = NULL, ...) {
-  projected <- projected %||% !Projected(object = object)
+Loadings.DimReduc <- function(object, projected = FALSE, ...) {
+  projected <- projected %||% Projected(object = object)
   slot <- ifelse(
     test = projected,
     yes = 'feature.loadings.projected',
@@ -2340,7 +2340,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' # Get the feature loadings for a specified DimReduc in a Seurat object
 #' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
 #'
-Loadings.Seurat <- function(object, reduction = 'pca', projected = NULL, ...) {
+Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
   return(Loadings(object = object[[reduction]], projected = projected, ...))
 }
 
