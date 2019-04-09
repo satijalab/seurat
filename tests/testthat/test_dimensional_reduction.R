@@ -34,8 +34,8 @@ test_that("pca returns total variance (see #982)", {
   obj <- CreateSeuratObject(counts = dummyexpMat)
 
   # Scale and compute PCA, using RunPCA
-  obj <- ScaleData(object = obj)
-  pca_result <- RunPCA(object = obj, features = rownames(x = obj))
+  obj <- ScaleData(object = obj, verbose = FALSE)
+  pca_result <- suppressWarnings(expr = RunPCA(object = obj, features = rownames(x = obj), verbose = FALSE))
 
   # Using stats::prcomp
   scaled_data <- Seurat::GetAssayData(object = obj, slot = "scale.data")
