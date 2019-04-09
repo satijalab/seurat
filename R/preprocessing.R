@@ -249,6 +249,7 @@ CreateGeneActivityMatrix <- function(
 #' @param kfunc Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
 #' @param nsamples Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"
 #' @param nstarts nstarts value for k-means clustering (for kfunc = "kmeans"). 100 by default
+#' @param seed Sets the random seed
 #' @param verbose Prints the output
 #'
 #' @return The Seurat object with the following demultiplexed information stored in the meta data:
@@ -283,8 +284,10 @@ HTODemux <- function(
   nstarts = 100,
   kfunc = "clara",
   nsamples = 100,
+  seed = 42,
   verbose = TRUE
 ) {
+  set.seed(seed = seed)
   #initial clustering
   assay <- assay %||% DefaultAssay(object = object)
   data <- GetAssayData(object = object, assay = assay)
