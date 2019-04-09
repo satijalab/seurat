@@ -6,10 +6,10 @@
 \usage{
 SCTransform(object, assay = "RNA", new.assay.name = "SCT",
   do.correct.umi = TRUE, variable.features.n = 3000,
-  variable.features.rv.th = 1.3, return.dev.residuals = FALSE,
-  vars.to.regress = NULL, do.scale = FALSE, do.center = TRUE,
+  variable.features.rv.th = 1.3, vars.to.regress = NULL,
+  do.scale = FALSE, do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30),
-  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = FALSE,
+  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = TRUE,
   seed.use = 1448145, verbose = TRUE, ...)
 }
 \arguments{
@@ -27,8 +27,6 @@ ranking by residual variance; default is 3000}
 \item{variable.features.rv.th}{Instead of setting a fixed number of variable features,
 use this residual variance cutoff; this is only used when \code{variable.features.n}
 is set to NULL; default is 1.3}
-
-\item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
 \item{vars.to.regress}{Variables to regress out in a second non-regularized linear
 regression. For example, percent.mito. Default is NULL}
