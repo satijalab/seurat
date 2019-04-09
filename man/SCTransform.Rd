@@ -9,8 +9,9 @@ SCTransform(object, assay = "RNA", new.assay.name = "SCT",
   variable.features.rv.th = 1.3, vars.to.regress = NULL,
   do.scale = FALSE, do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30),
-  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = TRUE,
-  seed.use = 1448145, verbose = TRUE, ...)
+  sqrt(ncol(object[[assay]])/30)), conserve.memory = FALSE,
+  return.only.var.genes = TRUE, seed.use = 1448145, verbose = TRUE,
+  ...)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -38,7 +39,11 @@ regression. For example, percent.mito. Default is NULL}
 \item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 where n is the number of cells}
 
-\item{return.only.var.genes}{If set to TRUE all data matrices in output assay are
+\item{conserve.memory}{If set to TRUE the residual matrix for all genes is never 
+created in full; useful for large data sets, but will take longer to run; 
+this will also set return.only.var.genes to TRUE; default is FALSE}
+
+\item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are
 subset to contain only the variable genes; default is FALSE}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting

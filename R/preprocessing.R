@@ -907,7 +907,10 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 #' where n is the number of cells
-#' @param return.only.var.genes If set to TRUE all data matrices in output assay are
+#' @param conserve.memory If set to TRUE the residual matrix for all genes is never 
+#' created in full; useful for large data sets, but will take longer to run; 
+#' this will also set return.only.var.genes to TRUE; default is FALSE
+#' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
 #' subset to contain only the variable genes; default is FALSE
 #' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
 #' NULL will not set a seed.
@@ -929,6 +932,7 @@ SCTransform <- function(
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30), sqrt(ncol(object[[assay]])/30)),
+  conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
   verbose = TRUE,
@@ -977,7 +981,11 @@ SCTransform <- function(
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(ncol(umi)), sqrt(ncol(umi)))
   
-  if(return.only.var.genes) {
+  if (conserve.memory) {
+    return.only.var.genes <- TRUE
+  }
+  
+  if (conserve.memory) {
     vst.args[['residual_type']] <- 'none'
     vst.out <- do.call(sctransform::vst, vst.args)
     feature.variance <- sctransform::get_residual_var(vst_out = vst.out, 
@@ -1011,7 +1019,7 @@ SCTransform <- function(
     message('Set ', length(x = top.features), ' variable features')
   }
   
-  if(return.only.var.genes) {
+  if(conserve.memory) {
     # actually get the residuals this time
     if (verbose) {
       message("Return only variable features for scale.data slot of the output assay")
@@ -1021,7 +1029,7 @@ SCTransform <- function(
                                             residual_type = residual.type, 
                                             res_clip_range = res.clip.range)
     if (do.correct.umi & residual.type == 'pearson') {
-      vst.out$umi_corrected <- sctransform::correct(vst.out, do_round = TRUE, do_pos = TRUE, show_progress = verbose)
+      vst.out$umi_corrected <- sctransform::correct_counts(vst.out, umi = umi, do_round = TRUE, do_pos = TRUE, show_progress = verbose)
       vst.out$umi_corrected <- as(object = vst.out$umi_corrected, Class = 'dgCMatrix')
     }
   }
@@ -1045,7 +1053,11 @@ SCTransform <- function(
     new.data = log1p(GetAssayData(object = assay.out, slot = 'counts'))
   )
 
-  scale.data <- vst.out$y
+  if (return.only.var.genes & !conserve.memory) {
+    scale.data <- vst.out$y[top.features, ]
+  } else {
+    scale.data <- vst.out$y
+  }
   
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
@@ -1062,7 +1074,7 @@ SCTransform <- function(
     do.scale = do.scale,
     do.center = do.center,
     scale.max = Inf,
-    block.size = 256,
+    block.size = 750,
     min.cells.to.block = 3000,
     verbose = verbose
   )
