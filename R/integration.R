@@ -61,7 +61,7 @@ FindIntegrationAnchors <- function(
   if (any(object.ncells <= max(dims))) {
     bad.obs <- which(x = object.ncells <= max(dims))
     stop("Max dimension too large: objects ", paste(bad.obs, collapse = ", "), " contain fewer than ", max(dims), " cells. \n",
-         "Please specify a maximum dimensions that is less than the number of cells in any ", 
+         "Please specify a maximum dimensions that is less than the number of cells in any ",
          "object (", min(object.ncells), ").")
   }
   if (!is.null(x = assay)) {
@@ -69,7 +69,7 @@ FindIntegrationAnchors <- function(
       stop("If specifying the assay, please specify one assay per object in the object.list")
     }
     object.list <- sapply(
-      X = 1:length(x = object.list), 
+      X = 1:length(x = object.list),
       FUN = function(x) {
         DefaultAssay(object = object.list[[x]]) <- assay[x]
         return(object.list[[x]])
@@ -227,14 +227,19 @@ FindTransferAnchors <- function(
   if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
-  query <- RenameCells(object = query, new.names = paste0(Cells(object = query), "_", "query"))
-  reference <- RenameCells(object = reference, new.names = paste0(Cells(object = reference), "_", "reference"))
+  query <- RenameCells(
+    object = query,
+    new.names = paste0(Cells(x = query), "_", "query")
+  )
+  reference <- RenameCells(
+    object = reference,
+    new.names = paste0(Cells(x = reference), "_", "reference")
+  )
   features <- features %||% VariableFeatures(object = reference)
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   query.assay <- query.assay %||% DefaultAssay(object = query)
   DefaultAssay(object = reference) <- reference.assay
   DefaultAssay(object = query) <- query.assay
-  
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
     if (project.query){
@@ -289,7 +294,7 @@ FindTransferAnchors <- function(
       Loadings(object = combined.ob[["pcaproject"]]) <- old.loadings[, dims]
     }
   }
-  
+
   ## find anchors using CCA
   if (reduction == 'cca') {
     reference <- ScaleData(object = reference, features = features, verbose = FALSE)
@@ -304,7 +309,7 @@ FindTransferAnchors <- function(
       verbose = verbose
     )
   }
-  
+
   if (l2.norm){
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
@@ -357,7 +362,7 @@ FindTransferAnchors <- function(
 #'    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
 #' }
 #' Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
-#' first merge between reference and query, as the merged object will subsequently contain more cells than was in 
+#' first merge between reference and query, as the merged object will subsequently contain more cells than was in
 #' query, and weights will need to be calculated for all cells in the object.
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 #' @param sample.tree Specify the order of integration. If NULL, will compute automatically.
@@ -644,7 +649,7 @@ LocalStruct <- function(
     )
   }
   embeddings <- Embeddings(object = object[[reduction]])[, reduced.dims]
-  
+
   for (i in 1:length(x = ob.list)) {
     ob <- ob.list[[i]]
     ob <- FindVariableFeatures(
@@ -876,7 +881,7 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
-  
+
   if (inherits(x = refdata, what = c("character", "factor"))) {
     if (length(x = refdata) != length(x = reference.cells)) {
       stop(paste0("Please provide a vector that is the same length as the number of reference cells",
@@ -914,7 +919,7 @@ TransferData <- function(
     query <- ScaleData(object = query, features = features, verbose = FALSE)
     query <- RunPCA(object = query, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query[['pca']])
-    
+
     #fill with 0s
     ref.pca <- matrix(
       data = 0,
@@ -937,7 +942,10 @@ TransferData <- function(
     weight.reduction <- paste0(weight.reduction, ".l2")
   }
   if (inherits(x = weight.reduction, what = "DimReduc")) {
-    weight.reduction <- RenameCells(object = weight.reduction, new.names = paste0(Cells(object = weight.reduction), "_query"))
+    weight.reduction <- RenameCells(
+      object = weight.reduction,
+      new.names = paste0(Cells(x = weight.reduction), "_query")
+    )
   } else {
     weight.reduction <- combined.ob[[weight.reduction]]
   }
@@ -1211,7 +1219,7 @@ FilterAnchors <- function(
     k = k.filter,
     eps = eps
   )
-  
+
   anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
   position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
     which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
@@ -1335,7 +1343,7 @@ FindAnchorPairs <- function(
   nn.cells2 <- neighbors$cells2
   cell1.index <- sapply(X = cells1, FUN = function(x) return(which(x == nn.cells1)))
   cell2.index <- sapply(X = cells2, FUN = function(x) return(which(x == nn.cells2)))
-  
+
   ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
   ncell <- ncell[ncell %in% cell1.index]
   anchors <- list()
@@ -1462,7 +1470,7 @@ FindNN <- function(
   dims.cells1.opposite <- dim.data.opposite[cells1, ]
   dims.cells2.self <- dim.data.self[cells2, ]
   dims.cells2.opposite <- dim.data.opposite[cells2, ]
-  
+
   nnaa <- nn2(
     data = dims.cells1.self,
     k = k + 1,
@@ -1676,7 +1684,7 @@ ProjectCellEmbeddings <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-  
+
   reference.data <-  GetAssayData(
     object = reference,
     assay.use = reference.assay,
@@ -1685,7 +1693,7 @@ ProjectCellEmbeddings <- function(
     object = query,
     assay.use = query.assay,
     slot = "data")[features, ]
-  
+
   if (is.null(x = feature.mean)){
     feature.mean <- rowMeans(x = reference.data)
     feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
@@ -1751,14 +1759,14 @@ ScoreAnchors <- function(
   nn.m4 <- ConstructNNMat(nn.idx = neighbors$nnbb$nn.idx[,1:k.score], offset1 = offset, offset2 = offset, dims = c(total.cells, total.cells))
   k.matrix <- nn.m1 + nn.m2 + nn.m3 + nn.m4
   anchor.only <- sparseMatrix(i = anchor.df[, 1], j = anchor.df[, 2], x = 1, dims = c(total.cells, total.cells))
-  
+
   if (do.cpp){
     anchor.matrix <- SNNAnchor(k_matrix = k.matrix, anchor_only = anchor.only)
   } else {
     jaccard.dist <- tcrossprod(x = k.matrix)
     anchor.matrix <- jaccard.dist * anchor.only
   }
-  
+
   anchor.matrix <- as(object = anchor.matrix, Class = "dgTMatrix")
   anchor.new <- data.frame(
     'cell1' = anchor.matrix@i + 1,
@@ -1839,7 +1847,7 @@ TransformDataMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
-  
+
   data.use1 <- t(x = GetAssayData(
     object = object,
     assay = assay,
@@ -1859,7 +1867,7 @@ TransformDataMatrix <- function(
     bv <-  t(weights) %*% integration.matrix
     integrated <- data.use2 - bv
   }
-  
+
   new.expression <- t(rbind(data.use1, integrated))
   new.expression <- new.expression[, colnames(object)]
   new.assay <- new(
