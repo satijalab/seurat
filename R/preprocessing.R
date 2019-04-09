@@ -1029,8 +1029,7 @@ SCTransform <- function(
                                             residual_type = residual.type, 
                                             res_clip_range = res.clip.range)
     if (do.correct.umi & residual.type == 'pearson') {
-      vst.out$umi_corrected <- sctransform::correct_counts(vst.out, umi = umi, do_round = TRUE, do_pos = TRUE, show_progress = verbose)
-      vst.out$umi_corrected <- as(object = vst.out$umi_corrected, Class = 'dgCMatrix')
+      vst.out$umi_corrected <- sctransform::correct_counts(vst.out, umi = umi, show_progress = verbose)
     }
   }
   
