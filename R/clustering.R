@@ -244,29 +244,14 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing nearest neighbor graph")
     }
-    nn.ranked <- NNHelper(data = data, k.param = k, method = nn.method)
-    
-    nn.ranked <- switch(
-      EXPR = nn.method,
-      "rann" = {
-        my.knn <- nn2(
-          data = object,
-          k = k.param,
-          searchtype = 'standard',
-          eps = nn.eps
-        )
-        my.knn$nn.idx
-      },
-      "annoy" = {
-        my.knn <- AnnoyNN(
-          data = object,
-          k = k.param,
-          metric = annoy.metric
-        )
-        my.knn$idx
-      },
-      stop("Unknown nn.method")
-    )
+    nn.ranked <- NNHelper(
+      data = object, 
+      k = k.param, 
+      method = nn.method, 
+      searchtype = "standard", 
+      eps = nn.eps,
+      metric = annoy.metric)
+    nn.ranked <- nn.ranked$nn.idx
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -527,9 +512,9 @@ AnnoySearch <- function(index, query, k, search.k = 100 * k, include.distance = 
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   res <- future_lapply(X = 1:n, FUN = function(x) {
-    res <- a$getNNsByVectorList(query[x, ], k, search.k, include.distance)
+    res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
-    if (methods::is(a, "Rcpp_AnnoyAngular")) {
+    if (methods::is(index, "Rcpp_AnnoyAngular")) {
       res$dist <- 0.5 * (res$dist * res$dist)
     }
     list(res$item + 1, res$distance)
@@ -539,7 +524,7 @@ AnnoySearch <- function(index, query, k, search.k = 100 * k, include.distance = 
     if (include.distance)
     dist[i, ] <- res[[i]][[2]]
   }
-  return(list(idx = idx, dist = dist))
+  return(list(nn.idx = idx, nn.dists = dist))
 }
 
 # Group single cells that make up their own cluster in with the cluster they are
@@ -599,24 +584,18 @@ GroupSingletons <- function(ids, SNN, verbose) {
 # @param ... additional parameters to specific neighbor finding method
 # 
 NNHelper <- function(data, query = data, k, method, ...) {
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
   return(
     switch(
       EXPR = method,
       "rann" = {
-        nn2(
-          data = object,
-          query = query,
-          k = k.param,
-          ...
-        )
+        args <- args[intersect(x = names(x = args), y = names(x = formals(fun = nn2)))]
+        do.call(what = 'nn2', args = args)
       },
       "annoy" = {
-        AnnoyNN(
-          data = object,
-          query = query,
-          k = k.param,
-          ...
-        )
+        args <- args[intersect(x = names(x = args), y = names(x = formals(fun = AnnoyNN)))]
+        do.call(what = 'AnnoyNN', args = args)
       },
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )
