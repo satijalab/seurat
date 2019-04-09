@@ -1867,6 +1867,14 @@ as.sparse.H5Group <- function(x, ...) {
       stop("Invalid H5Group specification for a sparse matrix, missing dataset ", i)
     }
   }
+  if ('h5sparse_shape' %in% hdf5r::h5attr_names(x = x)) {
+    return(sparseMatrix(
+      i = x[['indices']][] + 1,
+      p = x[['indptr']][],
+      x = x[['data']][],
+      dims = rev(x = hdf5r::h5attr(x = x, which = 'h5sparse_shape'))
+    ))
+  }
   return(sparseMatrix(
     i = x[['indices']][] + 1,
     p = x[['indptr']][],
@@ -2628,10 +2636,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     message("Pulling expression matrices and metadata")
   }
   if (is(object = file[['X']], class2 = 'H5Group')) {
-    x <- Matrix::sparseMatrix(i = file[["X"]][["indices"]][],
-                     p = file[["X"]][["indptr"]][],
-                     x = file[["X"]][["data"]][],
-                     dims = hdf5r::h5attr(x = file[['X']], which = 'h5sparse_shape')[c(2, 1)])
+    x <- as.sparse(x = file[['X']])
   } else {
     x <- file[['X']][, ]
   }
@@ -2648,7 +2653,6 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   # Pull raw expression matrix and feature-level metadata
   if (file$exists(name = 'raw.X')) {
     raw <- as.sparse(x = file[['raw.X']])
-    slot(object = raw, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
     raw.var <- file[['raw.var']][]
     rownames(x = raw) <- rownames(x = raw.var) <- raw.var$index
     colnames(x = raw) <- obs$index
