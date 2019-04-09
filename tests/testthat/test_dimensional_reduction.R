@@ -42,7 +42,7 @@ test_that("pca returns total variance (see #982)", {
   prcomp_result <- stats::prcomp(scaled_data, center = FALSE, scale. = FALSE)
 
   # Compare
-  expect_equivalent(slot(object = pca_result[["pca"]], name = "misc")$total_variance,
+  expect_equivalent(slot(object = pca_result[["pca"]], name = "misc")$total.variance,
                     sum(prcomp_result$sdev^2))
 
 })
