@@ -898,7 +898,6 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3
-#' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
 #' @param vars.to.regress Variables to regress out in a second non-regularized linear
 #' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
@@ -923,7 +922,6 @@ SCTransform <- function(
   do.correct.umi = TRUE,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
-  return.dev.residuals = FALSE,
   vars.to.regress = NULL,
   do.scale = FALSE,
   do.center = TRUE,
@@ -972,15 +970,63 @@ SCTransform <- function(
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
-  vst.out <- do.call(sctransform::vst, vst.args)
-
+  
+  residual.type <- vst.args[['residual_type']] %||% 'pearson'
+  res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(ncol(umi)), sqrt(ncol(umi)))
+  
+  if(return.only.var.genes) {
+    vst.args[['residual_type']] <- 'none'
+    vst.out <- do.call(sctransform::vst, vst.args)
+    feature.variance <- sctransform::get_residual_var(vst_out = vst.out, 
+                                                      umi = umi, 
+                                                      residual_type = residual.type, 
+                                                      res_clip_range = res.clip.range)
+    vst.out$gene_attr$residual_variance <- NA_real_
+    vst.out$gene_attr[names(feature.variance), 'residual_variance'] <- feature.variance
+  } else {
+    vst.out <- do.call(sctransform::vst, vst.args)
+    feature.variance <- setNames(
+      object = vst.out$gene_attr$residual_variance,
+      nm = rownames(x = vst.out$gene_attr)
+    )
+  }
+  
   # output will go into new assay
   assay.out <- CreateAssayObject(counts = umi)
-
-  # put corrected umi counts in count slot
-  if (do.correct.umi) {
+  
+  if (verbose) {
+    message('Determine variable features')
+  }
+  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+  if (!is.null(x = variable.features.n)) {
+    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(feature.variance))]
+  } else {
+    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
+  }
+  VariableFeatures(object = assay.out) <- top.features
+  if (verbose) {
+    message('Set ', length(x = top.features), ' variable features')
+  }
+  
+  if(return.only.var.genes) {
+    # actually get the residuals this time
     if (verbose) {
-      message('Placing corrected UMI matrix in counts slot')
+      message("Return only variable features for scale.data slot of the output assay")
+    }
+    vst.out$y <- sctransform::get_residuals(vst_out = vst.out, 
+                                            umi = umi[top.features, ], 
+                                            residual_type = residual.type, 
+                                            res_clip_range = res.clip.range)
+    if (do.correct.umi & residual.type == 'pearson') {
+      vst.out$umi_corrected <- sctransform::correct(vst.out, do_round = TRUE, do_pos = TRUE, show_progress = verbose)
+      vst.out$umi_corrected <- as(object = vst.out$umi_corrected, Class = 'dgCMatrix')
+    }
+  }
+  
+  # put corrected umi counts in count slot
+  if (do.correct.umi & residual.type == 'pearson') {
+    if (verbose) {
+      message('Place corrected count matrix in counts slot')
     }
     assay.out <- SetAssayData(
       object = assay.out,
@@ -996,45 +1042,8 @@ SCTransform <- function(
     new.data = log1p(GetAssayData(object = assay.out, slot = 'counts'))
   )
 
-  # set variable features
-  if (verbose) {
-    message('Determine variable features')
-  }
-  if ('residual_variance' %in% names(x = vst.out$gene_attr)) {
-    feature.variance <- setNames(
-      object = vst.out$gene_attr$residual_variance,
-      nm = rownames(x = vst.out$gene_attr)
-    )
-  } else {
-    feature.variance <- RowVar(vst.out$y)
-    names(x = feature.variance) <- rownames(x = vst.out$y)
-  }
-  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(feature.variance))]
-  } else {
-    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
-  }
-  VariableFeatures(object = assay.out) <- top.features
-  if (verbose) {
-    message('Set ', length(x = top.features), ' variable features')
-  }
-
   scale.data <- vst.out$y
-  if (return.dev.residuals) {
-    if (verbose) {
-      message('Calculate deviance residuals')
-    }
-    scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
-  }
-
-  if (return.only.var.genes) {
-    if (verbose) {
-      message("Returning only variable genes for scale.data slot of the output assay")
-    }
-    scale.data <- scale.data[top.features, , drop = FALSE]
-  }
-
+  
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]
@@ -1067,7 +1076,7 @@ SCTransform <- function(
 
   object[[new.assay.name]] <- assay.out
   if (verbose) {
-    message(paste("Setting default assay to", new.assay.name))
+    message(paste("Set default assay to", new.assay.name))
   }
   DefaultAssay(object = object) <- new.assay.name
   object <- LogSeuratCommand(object = object)
