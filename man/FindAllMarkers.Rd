@@ -6,8 +6,8 @@
 \title{Gene expression markers for all identity classes}
 \usage{
 FindAllMarkers(object, assay = NULL, features = NULL,
-  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
-  min.diff.pct = -Inf, node = NULL, verbose = TRUE,
+  logfc.threshold = 0.25, test.use = "wilcox", slot = "data",
+  min.pct = 0.1, min.diff.pct = -Inf, node = NULL, verbose = TRUE,
   only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1,
   latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
   pseudocount.use = 1, return.thresh = 0.01, ...)
@@ -63,6 +63,9 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  please install DESeq2, using the instructions at
  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }}
+
+\item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
+\code{slot} will be set to "counts"}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
 min.pct cells in either of the two populations. Meant to speed up the function

@@ -45,7 +45,8 @@ FindAllMarkers <- function(
   assay = NULL,
   features = NULL,
   logfc.threshold = 0.25,
-  test.use = "wilcox",
+  test.use = 'wilcox',
+  slot = 'data',
   min.pct = 0.1,
   min.diff.pct = -Inf,
   node = NULL,
@@ -116,6 +117,7 @@ FindAllMarkers <- function(
           features = features,
           logfc.threshold = logfc.threshold,
           test.use = test.use,
+          slot = slot,
           min.pct = min.pct,
           min.diff.pct = min.diff.pct,
           verbose = verbose,
@@ -222,7 +224,8 @@ FindConservedMarkers <- function(
   ident.1,
   ident.2 = NULL,
   grouping.var,
-  assay.type = "RNA",
+  assay.type = 'RNA',
+  slot = 'data',
   meta.method = minimump,
   verbose = TRUE,
   ...
@@ -264,7 +267,7 @@ FindConservedMarkers <- function(
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
     if (verbose) {
-      message(paste0("Testing ", ident.use.1, " vs ", paste(ident.use.2, collapse = ", "), "\n")) 
+      message(paste0("Testing ", ident.use.1, " vs ", paste(ident.use.2, collapse = ", "), "\n"))
     }
     if (any(!ident.use.2 %in% Idents(object = object))) {
       bad.idents <- ident.use.2[!ident.use.2 %in% Idents(object = object)]
@@ -400,7 +403,7 @@ FindMarkers.default <- function(
   cells.2 = NULL,
   features = NULL,
   logfc.threshold = 0.25,
-  test.use = "wilcox",
+  test.use = 'wilcox',
   min.pct = 0.1,
   min.diff.pct = -Inf,
   verbose = TRUE,
@@ -602,10 +605,12 @@ FindMarkers.default <- function(
 #' @param ident.2 A second identity class for comparison; if \code{NULL},
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
-#' @param assay Assay to use in differential expression testing
 #' @param reduction Reduction to use in differential expression testing - will test for DE on cell embeddings
 #' @param group.by Regroup cells into a different identity class prior to performing differential expression (see example)
 #' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
+#' @param assay Assay to use in differential expression testing
+#' @param slot Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
+#' \code{slot} will be set to "counts"
 #'
 #' @importFrom methods is
 #'
@@ -620,7 +625,8 @@ FindMarkers.Seurat <- function(
   group.by = NULL,
   subset.ident = NULL,
   assay = NULL,
-  reduction = NULL, 
+  slot = 'data',
+  reduction = NULL,
   features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
@@ -648,7 +654,7 @@ FindMarkers.Seurat <- function(
   data.slot <- ifelse(
     test = test.use %in% c("negbinom", "poisson", "DESeq2"),
     yes = 'counts',
-    no = 'data'
+    no = slot
   )
   if (is.null(x = reduction)) {
     assay <- assay %||% DefaultAssay(object = object)
