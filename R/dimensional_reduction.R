@@ -68,8 +68,8 @@ JackStraw <- function(
     dims <- length(x = object[[reduction]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  if (dims > ncol(x = object)) {
-    dims <- ncol(x = object)
+  if (dims > nrow(x = object)) {
+    dims <- nrow(x = object)
     warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
   loadings <- Loadings(object = object[[reduction]], projected = FALSE)

@@ -6,7 +6,7 @@
 \usage{
 HTODemux(object, assay = "HTO", positive.quantile = 0.99,
   init = NULL, nstarts = 100, kfunc = "clara", nsamples = 100,
-  verbose = TRUE)
+  seed = 42, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.}
@@ -22,6 +22,8 @@ HTODemux(object, assay = "HTO", positive.quantile = 0.99,
 \item{kfunc}{Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering}
 
 \item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"}
+
+\item{seed}{Sets the random seed}
 
 \item{verbose}{Prints the output}
 }

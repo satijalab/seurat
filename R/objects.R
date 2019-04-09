@@ -1868,6 +1868,14 @@ as.sparse.H5Group <- function(x, ...) {
       stop("Invalid H5Group specification for a sparse matrix, missing dataset ", i)
     }
   }
+  if ('h5sparse_shape' %in% hdf5r::h5attr_names(x = x)) {
+    return(sparseMatrix(
+      i = x[['indices']][] + 1,
+      p = x[['indptr']][],
+      x = x[['data']][],
+      dims = rev(x = hdf5r::h5attr(x = x, which = 'h5sparse_shape'))
+    ))
+  }
   return(sparseMatrix(
     i = x[['indices']][] + 1,
     p = x[['indptr']][],
@@ -2006,7 +2014,7 @@ Embeddings.DimReduc <- function(object, ...) {
 #' # Get the embeddings from a specific DimReduc in a Seurat object
 #' Embeddings(object = pbmc_small, reduction = "pca")[1:5, 1:5]
 #'
-Embeddings.Seurat <- function(object, reduction, ...) {
+Embeddings.Seurat <- function(object, reduction = 'pca', ...) {
   return(Embeddings(object = object[[reduction]], ...))
 }
 
@@ -2320,8 +2328,8 @@ Key.Seurat <- function(object, ...) {
 #' # Get the feature loadings for a given DimReduc
 #' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
-Loadings.DimReduc <- function(object, projected = NULL, ...) {
-  projected <- projected %||% !Projected(object = object)
+Loadings.DimReduc <- function(object, projected = FALSE, ...) {
+  projected <- projected %||% Projected(object = object)
   slot <- ifelse(
     test = projected,
     yes = 'feature.loadings.projected',
@@ -2340,7 +2348,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' # Get the feature loadings for a specified DimReduc in a Seurat object
 #' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
 #'
-Loadings.Seurat <- function(object, reduction = 'pca', projected = NULL, ...) {
+Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
   return(Loadings(object = object[[reduction]], projected = projected, ...))
 }
 
@@ -2638,7 +2646,6 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   }
   if (is(object = file[['X']], class2 = 'H5Group')) {
     x <- as.sparse(x = file[['X']])
-    slot(object = x, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
   } else {
     x <- file[['X']][, ]
   }
@@ -3366,7 +3373,7 @@ Stdev.DimReduc <- function(object, ...) {
 #' # Get the standard deviations for each PC from the Seurat object
 #' Stdev(object = pbmc_small, reduction = "pca")
 #'
-Stdev.Seurat <- function(object, reduction, ...) {
+Stdev.Seurat <- function(object, reduction = 'pca', ...) {
   return(Stdev(object = object[[reduction]]))
 }
 
@@ -4176,16 +4183,15 @@ WriteH5AD.Seurat <- function(
 #' @method [ DimReduc
 #'
 "[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
-  key <- Key(object = x)
+  loadings <- Loadings(object = x)
   if (missing(x = i)) {
-    i <- 1:nrow(x = x)
+    i <- 1:nrow(x = loadings)
   }
   if (missing(x = j)) {
     j <- names(x = x)
   } else if (is.numeric(x = j)) {
     j <- names(x = x)[j]
   }
-  loadings <- Loadings(object = x)
   bad.j <- j[!j %in% colnames(x = loadings)]
   j <- j[!j %in% bad.j]
   if (length(x = j) == 0) {
@@ -4267,7 +4273,6 @@ WriteH5AD.Seurat <- function(
 #' @method [[ DimReduc
 #'
 "[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
-  key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:nrow(x = x)
   }

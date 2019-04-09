@@ -73,7 +73,7 @@ Colors single cells on a dimensional reduction plot according to a 'feature'
 }
 \note{
 For the old \code{do.hover} and \code{do.identify} functionality, please see
-\code{HoverLocator} and \code{FeatureLocator}, respectively.
+\code{HoverLocator} and \code{CellSelector}, respectively.
 }
 \examples{
 FeaturePlot(object = pbmc_small, features = 'PC1')
@@ -81,5 +81,5 @@ FeaturePlot(object = pbmc_small, features = 'PC1')
 }
 \seealso{
 \code{\link{DimPlot}} \code{\link{HoverLocator}}
-\code{\link{FeatureLocator}}
+\code{\link{CellSelector}}
 }
