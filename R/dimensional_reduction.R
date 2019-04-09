@@ -812,7 +812,7 @@ RunPCA.default <- function(
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = npcs, ...)
-    total_variance <- sum(RowVar(t(object)))
+    total.variance <- sum(RowVar(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -825,7 +825,7 @@ RunPCA.default <- function(
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)
-      total_variance <- sum(RowVar(object))
+      total.variance <- sum(RowVar(x = object))
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -838,7 +838,7 @@ RunPCA.default <- function(
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
-      total_variance <- sum(sdev)
+      total.variance <- sum(sdev)
       if (weight.by.var) {
         cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
       } else {
@@ -856,7 +856,7 @@ RunPCA.default <- function(
     assay = assay,
     stdev = sdev,
     key = reduction.key,
-    misc = list(total_variance = total_variance)
+    misc = list(total.variance = total.variance)
   )
   if (verbose) {
     print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
