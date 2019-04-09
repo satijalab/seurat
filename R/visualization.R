@@ -569,11 +569,11 @@ VlnPlot <- function(
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
-#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#' \code{HoverLocator} and \code{CellSelector}, respectively.
 #'
 #' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-#' \code{\link{FeatureLocator}} \code{link{FetchData}}
+#' \code{\link{CellSelector}} \code{link{FetchData}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
@@ -724,11 +724,11 @@ DimPlot <- function(
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
-#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#' \code{HoverLocator} and \code{CellSelector}, respectively.
 #'
 #' @aliases FeatureHeatmap
 #' @seealso \code{\link{DimPlot}} \code{\link{HoverLocator}}
-#' \code{\link{FeatureLocator}}
+#' \code{\link{CellSelector}}
 #'
 #' @examples
 #' FeaturePlot(object = pbmc_small, features = 'PC1')
@@ -2181,15 +2181,19 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#' Feature Locator
+#' Cell selector
 #'
 #' Select points on a scatterplot and get information about them
 #'
 #' @param plot A ggplot2 plot
+#' @param object An optional Seurat object; if passes, will return an object with
+#' the identities of selected cells set to \code{ident}
+#' @param ident An optional new identity class to assign the selected cells
 #' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
 #' recoloring based on selected cells, or using a smooth scatterplot, respectively
 #'
-#' @return The names of the points selected
+#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
+#' a Seurat object with the selected cells identity classes set to \code{ident}
 #'
 #' @importFrom ggplot2 ggplot_build
 #' @export
@@ -2201,15 +2205,34 @@ CustomPalette <- function(
 #' \dontrun{
 #' plot <- DimPlot(object = pbmc_small)
 #' # Follow instructions in the terminal to select points
-#' cells.located <- FeatureLocator(plot = plot)
+#' cells.located <- CellSelector(plot = plot)
 #' cells.located
+#' # Automatically set the identity class of selected cells and return a new Seurat object
+#' pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCells')
 #' }
 #'
-FeatureLocator <- function(plot, ...) {
+CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   located <- PointLocator(plot = plot, ...)
   data <- ggplot_build(plot = plot)$plot$data
-  selected <- data[as.numeric(x = rownames(x = located)), ]
-  return(rownames(x = selected))
+  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
+  if (inherits(x = object, what = 'Seurat')) {
+    if (!all(selected %in% Cells(x = object))) {
+      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+    }
+    Idents(object = object, cells = selected) <- ident
+    return(object)
+  }
+  return(selected)
+}
+
+#' @export
+#'
+FeatureLocator <- function(plot, ...) {
+  .Defunct(
+    new = 'CellSelector',
+    package = 'Seurat',
+    msg = "'FeatureLocator' has been replaced by 'CellSelector'"
+  )
 }
 
 #' Hover Locator
