@@ -344,6 +344,7 @@ CaseMatch <- function(search, match) {
 #' @param s.features A vector of features associated with S phase
 #' @param g2m.features A vector of features associated with G2M phase
 #' @param set.ident If true, sets identity to phase assignments
+#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #' Stashes old identities in 'old.ident'
 #'
 #' @return A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
@@ -369,7 +370,8 @@ CellCycleScoring <- function(
   object,
   s.features,
   g2m.features,
-  set.ident = FALSE
+  set.ident = FALSE,
+  ...
 ) {
   name <- 'Cell Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
@@ -377,7 +379,8 @@ CellCycleScoring <- function(
     object = object,
     features = features,
     name = name,
-    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
+    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1))),
+    ...
   )
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
   cc.scores <- object.cc[[cc.columns]]
