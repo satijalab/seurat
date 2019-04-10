@@ -560,7 +560,6 @@ VlnPlot <- function(
 #' @param ncol Number of columns for display when combining plots
 #' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
-#' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
 #' @importFrom rlang !!
