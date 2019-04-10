@@ -1087,6 +1087,8 @@ SCTransform <- function(
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   assay.out@misc <- list(vst.out = vst.out)
+  # also put gene attributes in meta.features
+  assay.out[[names(x = vst.out$gene_attr)]] <- vst.out$gene_attr
 
   object[[new.assay.name]] <- assay.out
   if (verbose) {

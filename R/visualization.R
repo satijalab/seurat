@@ -1213,16 +1213,17 @@ VariableFeaturePlot <- function(
     stop("'cols' must be of length 2")
   }
   hvf.info <- HVFInfo(object = object, assay = assay)
-  vars <- c(
-    'mean',
-    ifelse(
-      test = 'variance.standardized' %in% colnames(x = hvf.info),
-      yes = 'variance.standardized',
-      no = 'dispersion'
-    )
-  )
+  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
+  vars <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
+                 c('mean', 'variance.standardized'),
+                 c('mean', 'dispersion'),
+                 c('gmean', 'residual_variance'))
+  axis.labels <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
+                        c('Average Expression', 'Standardized Variance'),
+                        c('Average Expression', 'Dispersion'),
+                        c('Geometric Mean of Expression', 'Residual Variance'))
   hvf.info <- hvf.info[, vars]
-  log <- log %||% ('variance.standardized' %in% colnames(x = hvf.info))
+  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
   var.features <- VariableFeatures(object = object, assay = assay)
   var.status <- ifelse(
     test = rownames(x = hvf.info) %in% var.features,
@@ -1235,7 +1236,7 @@ VariableFeaturePlot <- function(
     pt.size = pt.size
   )
   plot <- plot +
-    labs(title = NULL, x = 'Average Expression', y = 'Dispersion') +
+    labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
     scale_color_manual(
       labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
       values = cols
