@@ -4,7 +4,8 @@
 \alias{CellCycleScoring}
 \title{Score cell cycle phases}
 \usage{
-CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE)
+CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE,
+  ...)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -13,7 +14,9 @@ CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE)
 
 \item{g2m.features}{A vector of features associated with G2M phase}
 
-\item{set.ident}{If true, sets identity to phase assignments
+\item{set.ident}{If true, sets identity to phase assignments}
+
+\item{...}{Arguments to be passed to \code{\link{AddModuleScore}}
 Stashes old identities in 'old.ident'}
 }
 \value{
