@@ -1002,9 +1002,6 @@ SCTransform <- function(
     )
   }
 
-  # output will go into new assay
-  assay.out <- CreateAssayObject(counts = umi)
-
   if (verbose) {
     message('Determine variable features')
   }
@@ -1014,7 +1011,6 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  VariableFeatures(object = assay.out) <- top.features
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
@@ -1033,17 +1029,17 @@ SCTransform <- function(
     }
   }
 
-  # put corrected umi counts in count slot
+  # create output assay and put (corrected) umi counts in count slot
   if (do.correct.umi & residual.type == 'pearson') {
     if (verbose) {
       message('Place corrected count matrix in counts slot')
     }
-    assay.out <- SetAssayData(
-      object = assay.out,
-      slot = 'counts',
-      new.data = vst.out$umi_corrected
-    )
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+  } else {
+    assay.out <- CreateAssayObject(counts = umi)
   }
+  # set the variable genes
+  VariableFeatures(object = assay.out) <- top.features
 
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
@@ -1088,7 +1084,8 @@ SCTransform <- function(
   vst.out$y <- NULL
   assay.out@misc <- list(vst.out = vst.out)
   # also put gene attributes in meta.features
-  assay.out[[names(x = vst.out$gene_attr)]] <- vst.out$gene_attr
+  #assay.out[[names(x = vst.out$gene_attr)]] <- vst.out$gene_attr  # use this when Paul has implemented automatic padding
+  assay.out@meta.features <- vst.out$gene_attr  # hacky workaround to make vignettes compile
 
   object[[new.assay.name]] <- assay.out
   if (verbose) {
