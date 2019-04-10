@@ -1125,7 +1125,6 @@ UpdateSeuratObject <- function(object) {
         meta.data = object@meta.data,
         tools = list()
       )
-      return(object)
     }
     if (package_version(x = object@version) >= package_version(x = "3.0.0")) {
       # Run validation
@@ -1148,6 +1147,7 @@ UpdateSeuratObject <- function(object) {
             )
           }
         }
+        object[[assay.name]] <- assay
       }
       for (reduc.name in FilterObjects(object = object, classes.keep = 'DimReduc')) {
         reduc <- object[[reduc.name]]
@@ -1160,6 +1160,7 @@ UpdateSeuratObject <- function(object) {
             )
           }
         }
+        object[[reduc.name]] <- reduc
       }
       message("Object representation is consistent with the most current Seurat version")
       return(object)
