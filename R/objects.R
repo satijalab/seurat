@@ -654,8 +654,10 @@ CreateSeuratObject <- function(
   object[['orig.ident']] <- idents
   # Calculate nCount and nFeature
   n.calc <- CalcN(object = assay.data)
-  names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
-  object[[names(x = n.calc)]] <- n.calc
+  if (!is.null(x = n.calc)) {
+    names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+    object[[names(x = n.calc)]] <- n.calc
+  }
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -4819,8 +4821,10 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   # Recalcualte nCount and nFeature
   for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
     n.calc <- CalcN(object = x[[assay]])
-    names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
-    x[[names(x = n.calc)]] <- n.calc
+    if (!is.null(x = n.calc)) {
+      names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+      x[[names(x = n.calc)]] <- n.calc
+    }
   }
   # Filter metadata to keep nCount and nFeature for assays present
   ncolumns <- grep(
@@ -5066,8 +5070,10 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       # For Assays, run CalcN
       if (inherits(x = value, what = 'Assay')) {
         n.calc <- CalcN(object = value)
-        names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
-        x[[names(x = n.calc)]] <- n.calc
+        if (!is.null(x = n.calc)) {
+          names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
+          x[[names(x = n.calc)]] <- n.calc
+        }
       }
       # When removing an Assay, clear out associated DimReducs
       if (is.null(x = value) && inherits(x = x[[i]], what = 'Assay')) {
@@ -5422,6 +5428,9 @@ Collections <- function(object) {
 #' @importFrom Matrix colSums
 #
 CalcN <- function(object) {
+  if (IsMatrixEmpty(x = GetAssayData(object = object, slot = "counts"))) {
+    return(NULL)
+  }
   return(list(
     nCount = colSums(x = object, slot = 'counts'),
     nFeature = colSums(x = GetAssayData(object = object, slot = 'counts') > 0)
