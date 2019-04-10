@@ -46,6 +46,8 @@ if you are encountering that issue (note that plots may take longer to produce/r
 \item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
 \item{assays}{A vector of assays to pull data from}
+
+\item{...}{Extra parameters passed to \code{DimHeatmap}}
 }
 \value{
 No return value by default. If using fast = FALSE, will return a ggplot object.

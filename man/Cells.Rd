@@ -8,9 +8,9 @@
 \usage{
 Cells(x)
 
-\method{Cells}{default}(x, ...)
+\method{Cells}{default}(x)
 
-\method{Cells}{DimReduc}(x, ...)
+\method{Cells}{DimReduc}(x)
 }
 \arguments{
 \item{x}{An object}

@@ -2199,6 +2199,7 @@ CustomPalette <- function(
 #' @importFrom ggplot2 ggplot_build
 #' @export
 #'
+# @aliases FeatureLocator
 #' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
 #' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
@@ -2226,6 +2227,7 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   return(selected)
 }
 
+#' @rdname CellSelector
 #' @export
 #'
 FeatureLocator <- function(plot, ...) {
