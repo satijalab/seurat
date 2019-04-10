@@ -160,8 +160,8 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
   colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
   l2.dr <- CreateDimReducObject(
     embeddings = l2.norm,
-    loadings = Loadings(object = object[[reduction]]),
-    projected = Loadings(object = object[[reduction]]),
+    loadings = Loadings(object = object[[reduction]], projected = FALSE),
+    projected = Loadings(object = object[[reduction]], projected = TRUE),
     assay = DefaultAssay(object = object),
     stdev = slot(object = object[[reduction]], name = 'stdev'),
     key = new.key,
