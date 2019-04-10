@@ -411,7 +411,7 @@ HTOHeatmap <- function(
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param slot Use non-normalized counts data for plotting
-#' @param ... Ignored
+#' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
 #' @return A ggplot object
 #'
@@ -495,7 +495,7 @@ VlnPlot <- function(
   slot = 'data',
   ...
 ) {
-  plot <- ExIPlot(
+  return(ExIPlot(
     object = object,
     type = 'violin',
     features = features,
@@ -514,8 +514,7 @@ VlnPlot <- function(
     slot = slot,
     combine = combine,
     ...
-  )
-  return(plot)
+  ))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -559,6 +558,7 @@ VlnPlot <- function(
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param ncol Number of columns for display when combining plots
+#' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
 #' @inheritDotParams CombinePlots
 #' @return A ggplot object
@@ -1019,18 +1019,18 @@ FeaturePlot <- function(
       })
       nsplits <- length(x = levels(x = data$split))
       idx <- 1
-      for(i in (length(x = features) * (nsplits - 1) + 1): (length(x = features) * nsplits)) {
+      for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
         plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
         idx <- idx + 1
       }
       idx <- 1
-      for(i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
+      for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
         plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
         idx <- idx + 1
       }
       idx <- 1
       if (length(x = features) == 1) {
-        for(i in 1:length(x = plots)) {
+        for (i in 1:length(x = plots)) {
           plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
           idx <- idx + 1
         }
@@ -1745,13 +1745,9 @@ DotPlot <- function(
 #' @examples
 #' ElbowPlot(object = pbmc_small)
 #'
-ElbowPlot <- function(
-  object,
-  ndims = 20,
-  reduction = 'pca'
-) {
+ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
   data.use <- Stdev(object = object, reduction = reduction)
-  if (length(data.use) == 0) {
+  if (length(x = data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction))
   }
   if (ndims > length(x = data.use)) {
@@ -3059,6 +3055,7 @@ Col2Hex <- function(...) {
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
+# @param ... Extra parameters passed to \code{\link{CombinePlots}}
 #
 #' @importFrom scales hue_pal
 #
@@ -3079,7 +3076,8 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -3143,7 +3141,15 @@ ExIPlot <- function(
     }
   )
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, legend = 'none')
+    combine.args <- list(
+      'plots' = plots,
+      'ncol' = ncol
+    )
+    combine.args <- c(combine.args, list(...))
+    if (!'legend' %in% names(x = combine.args)) {
+      combine.args$legend <- 'none'
+    }
+    plots <- do.call(what = 'CombinePlots', args = combine.args)
   }
   return(plots)
 }
