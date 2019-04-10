@@ -6,15 +6,15 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Calculate module scores for featre expression programs in single cells
+#' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control featre sets.
-#' All analyzed featres are binned based on averaged expression, and the control featres are
+#' subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the control features are
 #' randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Featre expression programs in list
+#' @param features Feature expression programs in list
 #' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
 #' @param nbin Number of bins of aggregate expression levels for all analyzed features
 #' @param ctrl Number of control features selected from the same bin per analyzed feature
