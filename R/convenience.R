@@ -7,6 +7,8 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param ... Extra parameters passed to \code{DimHeatmap}
+#'
 #' @rdname DimHeatmap
 #' @export
 #'

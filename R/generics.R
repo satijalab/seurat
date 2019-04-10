@@ -55,22 +55,14 @@ as.Graph <- function(x, ...) {
 #' @rdname as.loom
 #' @export as.loom
 #'
-as.loom <- function(
-  x,
-  filename = NULL,
-  max.size = '400mb',
-  chunk.dims = NULL,
-  chunk.size = NULL,
-  overwrite = FALSE,
-  verbose = TRUE,
-  ...
-) {
+as.loom <- function(x, ...) {
   UseMethod(generic = 'as.loom', object = x)
 }
 
 #' Convert objects to Seurat objects
 #'
 #' @param x An object to convert to class \code{Seurat}
+#' @param ... Arguments passed to other methods
 #'
 #' @rdname as.Seurat
 #' @export as.Seurat
@@ -82,6 +74,7 @@ as.Seurat <- function(x, ...) {
 #' Convert objects to SingleCellExperiment objects
 #'
 #' @param x An object to convert to class \code{SingleCellExperiment}
+#' @param ... Arguments passed to other methods
 #'
 #' @rdname as.SingleCellExperiment
 #' @export as.SingleCellExperiment
@@ -166,8 +159,6 @@ DefaultAssay <- function(object, ...) {
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
-#'
-#' @aliases SetDimReduction
 #'
 #' @rdname Embeddings
 #' @export Embeddings
@@ -462,8 +453,6 @@ Key <- function(object, ...) {
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
-#'
-#' @aliases SetDimReduction
 #'
 #' @rdname Loadings
 #' @export Loadings

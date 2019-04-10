@@ -39,8 +39,8 @@ regression. For example, percent.mito. Default is NULL}
 \item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 where n is the number of cells}
 
-\item{conserve.memory}{If set to TRUE the residual matrix for all genes is never 
-created in full; useful for large data sets, but will take longer to run; 
+\item{conserve.memory}{If set to TRUE the residual matrix for all genes is never
+created in full; useful for large data sets, but will take longer to run;
 this will also set return.only.var.genes to TRUE; default is FALSE}
 
 \item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are

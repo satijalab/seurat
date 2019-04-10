@@ -18,6 +18,8 @@ as.Seurat(x, ...)
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}
 
+\item{...}{Arguments passed to other methods}
+
 \item{cells}{The name of the dataset within \code{col_attrs} containing cell names}
 
 \item{features}{The name of the dataset within \code{row_attrs} containing feature names}

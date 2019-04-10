@@ -325,7 +325,7 @@ HTODemux <- function(
   #work around so we don't average all the RNA levels which takes time
   average.expression <- AverageExpression(
     object = object,
-    assay = assay,
+    assays = assay,
     verbose = FALSE
   )[[assay]]
   #checking for any cluster with all zero counts for any barcode
@@ -907,8 +907,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 #' where n is the number of cells
-#' @param conserve.memory If set to TRUE the residual matrix for all genes is never 
-#' created in full; useful for large data sets, but will take longer to run; 
+#' @param conserve.memory If set to TRUE the residual matrix for all genes is never
+#' created in full; useful for large data sets, but will take longer to run;
 #' this will also set return.only.var.genes to TRUE; default is FALSE
 #' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
 #' subset to contain only the variable genes; default is FALSE
@@ -967,8 +967,8 @@ SCTransform <- function(
   }
 
   if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(vst.args))) {
-    warning(paste('the following arguments will be ignored because they are set within this function:', 
-                  paste(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 
+    warning(paste('the following arguments will be ignored because they are set within this function:',
+                  paste(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr',
                           'return_corrected_umi'), collapse = ', ')))
   }
   vst.args[['umi']] <- umi
@@ -977,20 +977,20 @@ SCTransform <- function(
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
-  
+
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(ncol(umi)), sqrt(ncol(umi)))
-  
+
   if (conserve.memory) {
     return.only.var.genes <- TRUE
   }
-  
+
   if (conserve.memory) {
     vst.args[['residual_type']] <- 'none'
     vst.out <- do.call(sctransform::vst, vst.args)
-    feature.variance <- sctransform::get_residual_var(vst_out = vst.out, 
-                                                      umi = umi, 
-                                                      residual_type = residual.type, 
+    feature.variance <- sctransform::get_residual_var(vst_out = vst.out,
+                                                      umi = umi,
+                                                      residual_type = residual.type,
                                                       res_clip_range = res.clip.range)
     vst.out$gene_attr$residual_variance <- NA_real_
     vst.out$gene_attr[names(feature.variance), 'residual_variance'] <- feature.variance
@@ -1001,10 +1001,10 @@ SCTransform <- function(
       nm = rownames(x = vst.out$gene_attr)
     )
   }
-  
+
   # output will go into new assay
   assay.out <- CreateAssayObject(counts = umi)
-  
+
   if (verbose) {
     message('Determine variable features')
   }
@@ -1018,21 +1018,21 @@ SCTransform <- function(
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
-  
+
   if(conserve.memory) {
     # actually get the residuals this time
     if (verbose) {
       message("Return only variable features for scale.data slot of the output assay")
     }
-    vst.out$y <- sctransform::get_residuals(vst_out = vst.out, 
-                                            umi = umi[top.features, ], 
-                                            residual_type = residual.type, 
+    vst.out$y <- sctransform::get_residuals(vst_out = vst.out,
+                                            umi = umi[top.features, ],
+                                            residual_type = residual.type,
                                             res_clip_range = res.clip.range)
     if (do.correct.umi & residual.type == 'pearson') {
       vst.out$umi_corrected <- sctransform::correct_counts(vst.out, umi = umi, show_progress = verbose)
     }
   }
-  
+
   # put corrected umi counts in count slot
   if (do.correct.umi & residual.type == 'pearson') {
     if (verbose) {
@@ -1057,7 +1057,7 @@ SCTransform <- function(
   } else {
     scale.data <- vst.out$y
   }
-  
+
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]

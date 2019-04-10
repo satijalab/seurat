@@ -1252,6 +1252,7 @@ as.Graph.matrix <- function(x, ...) {
 #'   \item Assay information will be stored as an HDF5 attribute called \code{assay} at the root level
 #' }
 #'
+#' @inheritParams loomR::create
 #' @param assay Assay to store in loom file
 #'
 #' @rdname as.loom
@@ -1906,7 +1907,7 @@ as.sparse.matrix <- function(x, ...) {
 #' @rdname Cells
 #' @export
 #'
-Cells.default <- function(x, ...) {
+Cells.default <- function(x) {
   return(colnames(x = x))
 }
 
@@ -1914,7 +1915,7 @@ Cells.default <- function(x, ...) {
 #' @export
 #' @method Cells DimReduc
 #'
-Cells.DimReduc <- function(x, ...) {
+Cells.DimReduc <- function(x) {
   return(rownames(x = x))
 }
 
@@ -2981,38 +2982,29 @@ ReorderIdent.Seurat <- function(
     },
     no = Same
   )
-  object <- new(
-    Class = 'Seurat',
-    assays = assays,
-    meta.data = obs,
-    version = packageVersion(pkg = 'Seurat'),
-    project.name = project
+  new.levels <- names(x = rfxn(x = sort(x = tapply(
+    X = data.use,
+    INDEX = Idents(object = object),
+    FUN = afxn
+  ))))
+  new.idents <- factor(
+    x = Idents(object = object),
+    levels = new.levels,
+    ordered = TRUE
   )
-  # Set default assay and identity information
-  DefaultAssay(object = object) <- assay
-  Idents(object = object) <- project
-  # Add dimensional reduction infrom
-  if (scaled && length(x = dim.reducs) >= 1) {
-    for (r in names(x = dim.reducs)) {
-      object[[r]] <- dim.reducs[[r]]
-    }
-  }
-  # Get graph information
-  if (scaled && file$exists(name = 'uns') && file$exists(name = 'uns/neighbors')) {
-    if (verbose) {
-      message("Finding nearest neighbor graph")
-    }
-    graph <- as.sparse(x = file[['uns/neighbors/distances']])
-    colnames(x = graph) <- rownames(x = graph) <- colnames(x = object)
-    method <- ifelse(
-      test = file[['uns/neighbors/params']]$exists(name = 'method'),
-      yes = file[['uns/neighbors/params/method']][],
-      no = 'adata'
+  if (reorder.numeric) {
+    new.idents <- rfxn(x = rank(x = tapply(
+      X = data.use,
+      INDEX = as.numeric(x = new.idents),
+      FUN = mean
+    )))[as.numeric(x = new.idents)]
+    new.idents <- factor(
+      x = new.idents,
+      levels = 1:length(x = new.idents),
+      ordered = TRUE
     )
-    object[[paste(assay, method, sep = '_')]] <- as.Graph(x = graph)
-  } else if (verbose) {
-    message("No nearest-neighbor graph")
   }
+  Idents(object = object) <- new.idents
   return(object)
 }
 
@@ -3168,58 +3160,6 @@ RenameIdents.Seurat <- function(object, ...) {
     }
     Idents(object = object, cells = cells.idents[[i]]) <- ident.pairs[[i]]
   }
-  return(object)
-}
-
-#' @param reverse Reverse ordering
-#' @param afxn Function to evaluate each identity class based on; default is
-#' \code{\link[base]{mean}}
-#' @param reorder.numeric Rename all identity classes to be increasing numbers
-#' starting from 1 (default is FALSE)
-#'
-#' @rdname Idents
-#' @export
-#' @method ReorderIdent Seurat
-#'
-ReorderIdent.Seurat <- function(
-  object,
-  var,
-  reverse = FALSE,
-  afxn = mean,
-  reorder.numeric = FALSE,
-  ...
-) {
-  data.use <- FetchData(object = object, vars = var, ...)[, 1]
-  rfxn <- ifelse(
-    test = reverse,
-    yes = function(x) {
-      return(max(x) + 1 - x)
-    },
-    no = Same
-  )
-  new.levels <- names(x = rfxn(x = sort(x = tapply(
-    X = data.use,
-    INDEX = Idents(object = object),
-    FUN = afxn
-  ))))
-  new.idents <- factor(
-    x = Idents(object = object),
-    levels = new.levels,
-    ordered = TRUE
-  )
-  if (reorder.numeric) {
-    new.idents <- rfxn(x = rank(x = tapply(
-      X = data.use,
-      INDEX = as.numeric(x = new.idents),
-      FUN = mean
-    )))[as.numeric(x = new.idents)]
-    new.idents <- factor(
-      x = new.idents,
-      levels = 1:length(x = new.idents),
-      ordered = TRUE
-    )
-  }
-  Idents(object = object) <- new.idents
   return(object)
 }
 
