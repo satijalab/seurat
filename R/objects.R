@@ -3182,40 +3182,59 @@ RenameIdents.Seurat <- function(object, ...) {
 SetAssayData.Assay <- function(object, slot, new.data, ...) {
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
-    stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
   }
-  if (!IsMatrixEmpty(x = new.data) && !slot %in% c('counts', 'scale.data')) {
+  if (!IsMatrixEmpty(x = new.data)) {
     if (ncol(x = new.data) != ncol(x = object)) {
-      stop("The new data doesn't have the same number of cells as the current data")
+      stop(
+        "The new data doesn't have the same number of cells as the current data",
+        call. = FALSE
+      )
     }
-    num.counts <- nrow(x = GetAssayData(object = object, slot = 'counts'))
-    counts.names <- rownames(x = GetAssayData(object = object, slot = 'counts'))
-    if (num.counts <= 1) {
-      num.counts <- nrow(x = object)
-      counts.names <- rownames(x = object)
-    }
-    if (slot == 'counts' && nrow(x = new.data) != num.counts) {
-      warning("The new data doesn't have the same number of features as the current data")
-    } else if (slot %in% c('data', 'scale.data') && nrow(x = new.data) > num.counts) {
-      warning("Adding more features than present in current data")
+    num.counts <- nrow(x = object)
+    counts.names <- rownames(x = object)
+    if (slot == 'scale.data' && nrow(x = new.data) > num.counts) {
+      warning(
+        "Adding more features than present in current data",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    } else if (slot %in% c('counts', 'data') && nrow(x = new.data) != num.counts) {
+      warning(
+        "The new data doesn't have the same number of features as the current data",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
     if (!all(rownames(x = new.data) %in% counts.names)) {
-      warning("Adding features not currently present in the object")
+      warning(
+        "Adding features not currently present in the object",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
     new.features <- na.omit(object = match(
       x = counts.names,
       table = rownames(x = new.data)
     ))
-    #if (slot == 'scale.data' && nrow(x = new.data) > nrow(x = object)) {
-    #  stop("Cannot add more features than present in current data")
-    #} else if (slot != 'scale.data' && nrow(x = new.data) != nrow(x = object)) {
-    #  stop("The new data doesn't have the same number of features as the current data")
-    #}
     new.cells <- colnames(x = new.data)
     if (!all(new.cells %in% colnames(x = object))) {
-      stop("All cell names must match current cell names")
+      stop(
+        "All cell names must match current cell names",
+        call. = FALSE
+      )
     }
     new.data <- new.data[new.features, colnames(x = object)]
+    if (slot %in% c('counts', 'data') && !all(dim(x = new.data) == dim(x = object))) {
+      stop(
+        "Attempting to add a different number of cells and/or features",
+        call. = FALSE
+      )
+    }
   }
   slot(object = object, name = slot) <- new.data
   return(object)
@@ -4864,20 +4883,39 @@ setMethod(
   definition = function(x, i, ..., value) {
     meta.data <- x[[]]
     feature.names <- rownames(x = meta.data)
+    if (is.data.frame(x = value)) {
+      value <- lapply(
+        X = 1:ncol(x = value),
+        FUN = function(index) {
+          v <- value[[index]]
+          names(x = v) <- rownames(x = value)
+          return(v)
+        }
+      )
+    }
+    err.msg <- "Cannot add more or fewer meta.features information without values being named with feature names"
     if (length(x = i) > 1) {
       # Add multiple bits of feature-level metadata
       value <- rep_len(x = value, length.out = length(x = i))
       for (index in 1:length(x = i)) {
-        meta.data[i[index]] <- value[index]
+        names.intersect <- intersect(x = names(x = value[[index]]), feature.names)
+        if (length(x = names.intersect) > 0) {
+          meta.data[names.intersect, i[index]] <- value[[index]][names.intersect]
+        } else if (length(x = value) %in% c(nrow(x = meta.data), 1) %||% is.null(x = value)) {
+          meta.data[i[index]] <- value[index]
+        } else {
+          stop(err.msg, call. = FALSE)
+        }
       }
     } else {
       # Add a single column to feature-level metadata
+      value <- unlist(x = value)
       if (length(x = intersect(x = names(x = value), y = feature.names)) > 0) {
         meta.data[, i] <- value[feature.names]
       } else if (length(x = value) %in% c(nrow(x = meta.data), 1) || is.null(x = value)) {
         meta.data[, i] <- value
       } else {
-        stop("Cannot add more or fewer meta.features information without values being named with feature names")
+        stop(err.msg, call. = FALSE)
       }
     }
     slot(object = x, name = 'meta.features') <- meta.data
@@ -5206,6 +5244,16 @@ setMethod(
 
 setMethod(
   f = 'show',
+  signature = 'AnchorSet',
+  definition = function(object) {
+    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
+        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
+        "This can be used as input to IntegrateData, TransferLabels, or TransferFeatures.")
+  }
+)
+
+setMethod(
+  f = 'show',
   signature = 'Assay',
   definition = function(object) {
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
@@ -5221,7 +5269,7 @@ setMethod(
     features <- paste0(
       variable,
       ' feature',
-      if (length(x = top.ten) > 1) {'s'}, ":\n"
+      if (length(x = top.ten) != 1) {'s'}, ":\n"
     )
     features <- gsub(pattern = '^\\s+', replacement = '', x = features)
     cat(
@@ -5231,16 +5279,6 @@ setMethod(
       paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n'),
       '\n'
     )
-  }
-)
-
-setMethod(
-  f = 'show',
-  signature = 'AnchorSet',
-  definition = function(object) {
-    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
-        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData, TransferLabels, or TransferFeatures.")
   }
 )
 
