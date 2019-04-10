@@ -2082,14 +2082,11 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
 #'
 HVFInfo.Assay <- function(object, ...) {
-  vars <- c(
-    'mean',
-    if ('variance.standardized' %in% colnames(x = object[[]])) {
-      c('variance', 'variance.standardized')
-    } else {
-      c('dispersion', 'dispersion.scaled')
-    }
-  )
+  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
+  vars <- switch(which(dispersion.names %in% colnames(x = object[[]])),
+                 c('mean', 'variance', 'variance.standardized'),
+                 c('mean', 'dispersion', 'dispersion.scaled'),
+                 c('gmean', 'variance', 'residual_variance'))
   hvf.info <- object[[vars]]
   return(hvf.info)
 }
