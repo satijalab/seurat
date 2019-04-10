@@ -72,6 +72,8 @@ groups in cells.highlight}
 
 \item{ncol}{Number of columns for display when combining plots}
 
+\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
+
 \item{...}{Arguments passed on to \code{CombinePlots}
 \describe{
   \item{plots}{A list of gg objects}

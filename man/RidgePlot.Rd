@@ -37,7 +37,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{slot}{Use non-normalized counts data for plotting}
 
-\item{...}{Ignored}
+\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
 }
 \value{
 A ggplot object
