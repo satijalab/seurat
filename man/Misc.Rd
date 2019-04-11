@@ -3,7 +3,9 @@
 \name{Misc}
 \alias{Misc}
 \alias{Misc<-}
+\alias{Misc.Assay}
 \alias{Misc.Seurat}
+\alias{Misc<-.Assay}
 \alias{Misc<-.Seurat}
 \title{Access miscellaneous data}
 \usage{
@@ -11,7 +13,11 @@ Misc(object, ...)
 
 Misc(object, ...) <- value
 
+\method{Misc}{Assay}(object, slot = NULL, ...)
+
 \method{Misc}{Seurat}(object, slot = NULL, ...)
+
+\method{Misc}{Assay}(object, slot, ...) <- value
 
 \method{Misc}{Seurat}(object, slot, ...) <- value
 }

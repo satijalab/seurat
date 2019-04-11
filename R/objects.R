@@ -2381,6 +2381,17 @@ Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
 #'
 #' @rdname Misc
 #' @export
+#' @method Misc Assay
+#'
+Misc.Assay <- function(object, slot = NULL, ...) {
+  if (is.null(x = slot)) {
+    return(slot(object = object, name = 'misc'))
+  }
+  return(slot(object = object, name = 'misc')[[slot]])
+}
+
+#' @rdname Misc
+#' @export
 #' @method Misc Seurat
 #'
 #' @examples
@@ -2396,6 +2407,22 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 
 #' @rdname Misc
 #' @export
+#' @method Misc<- Assay
+#'
+"Misc<-.Assay" <- function(object, slot, ..., value) {
+  if (slot %in% names(x = Misc(object = object))) {
+    warning("Overwriting miscellanous data for ", slot)
+  }
+  if (is.list(x = value)) {
+    slot(object = object, name = 'misc')[[slot]] <- c(value)
+  } else {
+    slot(object = object, name = 'misc')[[slot]] <- value
+  }
+  return(object)
+}
+
+#' @rdname Misc
+#' @export
 #' @method Misc<- Seurat
 #'
 #' @examples
@@ -2406,7 +2433,11 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)
   }
-  slot(object = object, name = 'misc')[[slot]] <- value
+  if (is.list(x = value)) {
+    slot(object = object, name = 'misc')[[slot]] <- c(value)
+  } else {
+    slot(object = object, name = 'misc')[[slot]] <- value
+  }
   return(object)
 }
 
