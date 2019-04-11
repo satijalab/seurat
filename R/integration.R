@@ -1199,7 +1199,7 @@ FilterAnchors <- function(
   verbose = TRUE
 ) {
   if (verbose) {
-    message("Filtering Anchors")
+    message("Filtering anchors")
   }
   assay <- assay %||% DefaultAssay(object = object)
   features <- features %||% VariableFeatures(object = object)
@@ -1334,7 +1334,7 @@ FindAnchorPairs <- function(
     k.anchor <- min(max.nn)
   }
   if (verbose) {
-    message("Finding mutual nearest neighborhoods")
+    message("Finding anchors")
   }
   if (is.null(x = cells1)) {
     cells1 <- colnames(x = object)
@@ -1759,7 +1759,7 @@ ScoreAnchors <- function(
   anchor.df$cell2 <- anchor.df$cell2 + offset
   # make within dataset df
   if (verbose) {
-    message("Extracting within-dataset neighbors!")
+    message("Extracting within-dataset neighbors")
   }
   total.cells <- offset + length(neighbors$cells2)
   nn.m1 <- ConstructNNMat(nn.idx = neighbors$nnaa$nn.idx[,1:k.score], offset1 = 0, offset2 = 0, dims = c(total.cells, total.cells))
