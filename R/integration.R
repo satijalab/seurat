@@ -556,12 +556,13 @@ IntegrateData <- function(
       assay = new.assay.name,
       slot = 'data'
     )
-    merged.obj <- SetAssayData(
-      object = merged.obj,
-      assay = assay,
-      slot = 'data',
-      new.data = integrated.matrix
-    )
+    # merged.obj <- SetAssayData(
+    #   object = merged.obj,
+    #   assay = assay,
+    #   slot = 'data',
+    #   new.data = integrated.matrix
+    # )
+    merged.obj[[assay]] <- CreateAssayObject(data = integrated.matrix)
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
     object.list[[merge.pair[[2]]]] <- NULL
