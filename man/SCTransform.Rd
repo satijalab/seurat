@@ -7,11 +7,10 @@
 SCTransform(object, assay = "RNA", new.assay.name = "SCT",
   do.correct.umi = TRUE, variable.features.n = 3000,
   variable.features.rv.th = 1.3, vars.to.regress = NULL,
-  do.scale = FALSE, do.center = TRUE,
-  clip.range = c(-sqrt(ncol(object[[assay]])/30),
-  sqrt(ncol(object[[assay]])/30)), conserve.memory = FALSE,
-  return.only.var.genes = TRUE, seed.use = 1448145, verbose = TRUE,
-  ...)
+  do.scale = FALSE, do.center = TRUE, clip.range = c(-sqrt(x = ncol(x
+  = object[[assay]])/30), sqrt(x = ncol(x = object[[assay]])/30)),
+  conserve.memory = FALSE, return.only.var.genes = TRUE,
+  seed.use = 1448145, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
