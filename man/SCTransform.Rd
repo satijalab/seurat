@@ -52,6 +52,12 @@ NULL will not set a seed.}
 
 \item{...}{Additional parameters passed to \code{sctransform::vst}}
 }
+\value{
+Returns a Seurat object with a new assay (named SCT by default) with 
+counts being (corrected) counts, data being log1p(counts), scale.data being 
+pearson residuals; sctransform::vst intermediate results are saved in misc 
+slot of the new assay.
+}
 \description{
 This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
@@ -60,4 +66,8 @@ FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
 scale.data being pearson residuals; sctransform::vst intermediate results are saved
 in misc slot of new assay.
+}
+\examples{
+SCTransform(object = pbmc_small)
+
 }

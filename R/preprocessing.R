@@ -1005,11 +1005,19 @@ SampleUMI <- function(
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
+#' 
+#' @return Returns a Seurat object with a new assay (named SCT by default) with 
+#' counts being (corrected) counts, data being log1p(counts), scale.data being 
+#' pearson residuals; sctransform::vst intermediate results are saved in misc 
+#' slot of the new assay.
 #'
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @export
+#' 
+#' @examples
+#' SCTransform(object = pbmc_small)
 #'
 SCTransform <- function(
   object,
