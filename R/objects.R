@@ -4060,25 +4060,32 @@ WriteH5AD.Seurat <- function(
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom utils .DollarNames
 #' @export
+#' @method .DollarNames JackStrawData
 #'
 ".DollarNames.JackStrawData" <- function(x, pattern = '') {
-  utils:::findMatches(pattern = pattern, values = slotNames(x = x))
+  slotnames <- as.list(x = slotNames(x = x))
+  names(x = slotnames) <- unlist(x = slotnames)
+  return(.DollarNames(x = slotnames, pattern = pattern))
 }
 
 #' @importFrom utils .DollarNames
 #' @export
+#' @method .DollarNames Seurat
 #'
 ".DollarNames.Seurat" <- function(x, pattern = '') {
-  utils:::findMatches(pattern = pattern, values = colnames(x = x[[]]))
+  meta.data <- as.list(x = colnames(x = x[[]]))
+  names(x = meta.data) <- unlist(x = meta.data)
+  return(.DollarNames(x = meta.data, pattern = pattern))
 }
 
 #' @importFrom utils .DollarNames
 #' @export
+#' @method .DollarNames SeuratCommand
 #'
 ".DollarNames.SeuratCommand" <- function(x, pattern = '') {
-  params <- slot(object = x, name = "params")
-  utils:::findMatches(pattern = pattern, names(x = params))
+  return(.DollarNames(x = slot(object = x, name = "params"), pattern = pattern))
 }
 
 #' @export
