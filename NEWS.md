@@ -2,6 +2,15 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.0.0] - 2019-04-16
+### Added
+- New method for identifying anchors across single-cell datasets
+- Parallelization support via future
+
+### Changed
+- Significant code restructuring
+- Changes to the Seurat object class to facilitate multimodal data
+
 ## [2.3.4] - 2018-07-13
 ### Added
 - GetIdent function added to pull identity info
