@@ -1,4 +1,6 @@
 # Tests for functions in data_manipulation.cpp
+# change in random number generation in R3.6, this ensures tests will pass under older and newer Rs
+suppressWarnings(RNGversion(vstr = "3.5.3"))
 set.seed(42)
 library(Matrix)
 
