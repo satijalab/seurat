@@ -112,10 +112,11 @@ Finds markers (differentially expressed genes) for each of the identity classes 
 # Find markers for all clusters
 all.markers <- FindAllMarkers(object = pbmc_small)
 head(x = all.markers)
-
+\dontrun{
 # Pass a value to node as a replacement for FindAllMarkersNode
 pbmc_small <- BuildClusterTree(object = pbmc_small)
 all.markers <- FindAllMarkers(object = pbmc_small, node = 4)
 head(x = all.markers)
+}
 
 }
