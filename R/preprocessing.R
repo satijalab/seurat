@@ -1005,10 +1005,19 @@ SampleUMI <- function(
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
+#' 
+#' @return Returns a Seurat object with a new assay (named SCT by default) with 
+#' counts being (corrected) counts, data being log1p(counts), scale.data being 
+#' pearson residuals; sctransform::vst intermediate results are saved in misc 
+#' slot of the new assay.
 #'
 #' @importFrom stats setNames
+#' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @export
+#' 
+#' @examples
+#' SCTransform(object = pbmc_small)
 #'
 SCTransform <- function(
   object,
@@ -1081,8 +1090,8 @@ SCTransform <- function(
   }
   if (conserve.memory) {
     vst.args[['residual_type']] <- 'none'
-    vst.out <- do.call(what = sctransform::vst, args = vst.args)
-    feature.variance <- sctransform::get_residual_var(
+    vst.out <- do.call(what = 'vst', args = vst.args)
+    feature.variance <- get_residual_var(
       vst_out = vst.out,
       umi = umi,
       residual_type = residual.type,
@@ -1091,7 +1100,7 @@ SCTransform <- function(
     vst.out$gene_attr$residual_variance <- NA_real_
     vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
   } else {
-    vst.out <- do.call(what = sctransform::vst, args = vst.args)
+    vst.out <- do.call(what = 'vst', args = vst.args)
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
       nm = rownames(x = vst.out$gene_attr)
@@ -1114,14 +1123,14 @@ SCTransform <- function(
     if (verbose) {
       message("Return only variable features for scale.data slot of the output assay")
     }
-    vst.out$y <- sctransform::get_residuals(
+    vst.out$y <- get_residuals(
       vst_out = vst.out,
       umi = umi[top.features, ],
       residual_type = residual.type,
       res_clip_range = res.clip.range
     )
     if (do.correct.umi & residual.type == 'pearson') {
-      vst.out$umi_corrected <- sctransform::correct_counts(
+      vst.out$umi_corrected <- correct_counts(
         x = vst.out,
         umi = umi,
         show_progress = verbose
