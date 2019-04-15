@@ -111,7 +111,7 @@ levels(x = pbmc_small)
 
 \dontrun{
 head(x = Idents(object = pbmc_small))
-pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
+pbmc_small <- ReorderIdent(object = pbmc_small, var = 'PC_1')
 head(x = Idents(object = pbmc_small))
 }
 
