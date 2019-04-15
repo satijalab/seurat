@@ -15,6 +15,7 @@ Authors@R: c(
   )
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
     methods,
@@ -77,6 +78,7 @@ Collate:
 RoxygenNote: 6.1.1
 Encoding: UTF-8
 Suggests:
+    loomR,
     testthat,
     hdf5r,
     S4Vectors,
