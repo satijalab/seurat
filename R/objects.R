@@ -749,7 +749,7 @@ DietSeurat <- function(
 #' @export
 #'
 #' @examples
-#' pc1 <- FetchData(object = pbmc_small, vars = 'PC1')
+#' pc1 <- FetchData(object = pbmc_small, vars = 'PC_1')
 #' head(x = pc1)
 #' head(x = FetchData(object = pbmc_small, vars = c('groups', 'ident')))
 #'
@@ -1105,7 +1105,8 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    if (package_version(x = object@version) >= package_version(x = "2.0.0")) {
+    object.version <- package_version(x = object@version)
+    if (object.version >= package_version(x = "2.0.0") && object.version < package_version(x = '3.0.0')) {
       # Run update
       seurat.version <- packageVersion(pkg = "Seurat")
       new.assay <- UpdateAssay(old.assay = object, assay = "RNA")
@@ -2442,7 +2443,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @param cells Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC_1, a
 #' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
 #' @param low.threshold Low cutoff for the parameter (default is -Inf)
@@ -3371,7 +3372,7 @@ Stdev.Seurat <- function(object, reduction = 'pca', ...) {
 #' @param cells A vector of cell names to use as a subset. If NULL
 #' (default), then this list will be computed based on the next three
 #' arguments. Otherwise, will return an object consissting only of these cells
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC_1, a
 #' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
 #' @param low.threshold Low cutoff for the parameter (default is -Inf)
