@@ -55,7 +55,7 @@ Draws a violin plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
 \examples{
-VlnPlot(object = pbmc_small, features = 'PC1')
+VlnPlot(object = pbmc_small, features = 'PC_1')
 VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 
 }

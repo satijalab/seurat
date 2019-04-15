@@ -222,13 +222,13 @@ Key(pbmc_small[["RNA2"]]) <- "rna2_"
 test_that("Fetching keyed variables works", {
   x <- FetchData(object = pbmc_small, vars = c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("rna2_", rownames(x = pbmc_small)[1:5])))
   expect_equal(colnames(x = x), c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("rna2_", rownames(x = pbmc_small)[1:5])))
-  x <- FetchData(object = pbmc_small, vars = c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("PC", 1:5)))
-  expect_equal(colnames(x = x), c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("PC", 1:5)))
+  x <- FetchData(object = pbmc_small, vars = c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("PC_", 1:5)))
+  expect_equal(colnames(x = x), c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("PC_", 1:5)))
 })
 
 test_that("Fetching embeddings/loadings not present returns warning or errors", {
-  expect_warning(FetchData(object = pbmc_small, vars = c("PC1", "PC100")))
-  expect_error(FetchData(object = pbmc_small, vars = "PC100"))
+  expect_warning(FetchData(object = pbmc_small, vars = c("PC_1", "PC_100")))
+  expect_error(FetchData(object = pbmc_small, vars = "PC_100"))
 })
 
 bad.gene <- GetAssayData(object = pbmc_small[["RNA"]], slot = "data")

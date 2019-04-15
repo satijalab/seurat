@@ -20,7 +20,7 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
-    (e.g. the PC1 scores - "PC_1")
+    (e.g. the PC 1 scores - "PC_1")
 }}
 
 \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
@@ -76,7 +76,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \code{HoverLocator} and \code{CellSelector}, respectively.
 }
 \examples{
-FeaturePlot(object = pbmc_small, features = 'PC1')
+FeaturePlot(object = pbmc_small, features = 'PC_1')
 
 }
 \seealso{

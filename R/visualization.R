@@ -418,7 +418,7 @@ HTOHeatmap <- function(
 #' @export
 #'
 #' @examples
-#' RidgePlot(object = pbmc_small, features = 'PC1')
+#' RidgePlot(object = pbmc_small, features = 'PC_1')
 #'
 RidgePlot <- function(
   object,
@@ -473,7 +473,7 @@ RidgePlot <- function(
 #' @seealso \code{\link{FetchData}}
 #'
 #' @examples
-#' VlnPlot(object = pbmc_small, features = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'PC_1')
 #' VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 #'
 VlnPlot <- function(
@@ -694,7 +694,7 @@ DimPlot <- function(
 #'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
 #'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
 #'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
-#'     (e.g. the PC1 scores - "PC_1")
+#'     (e.g. the PC 1 scores - "PC_1")
 #' }
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
@@ -730,7 +730,7 @@ DimPlot <- function(
 #' \code{\link{CellSelector}}
 #'
 #' @examples
-#' FeaturePlot(object = pbmc_small, features = 'PC1')
+#' FeaturePlot(object = pbmc_small, features = 'PC_1')
 #'
 FeaturePlot <- function(
   object,
