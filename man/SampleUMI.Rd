@@ -4,7 +4,7 @@
 \alias{SampleUMI}
 \title{Sample UMI}
 \usage{
-SampleUMI(data, max.umi = 1000, upsample = FALSE, progress.bar = FALSE)
+SampleUMI(data, max.umi = 1000, upsample = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
@@ -13,7 +13,7 @@ SampleUMI(data, max.umi = 1000, upsample = FALSE, progress.bar = FALSE)
 
 \item{upsample}{Upsamples all cells with fewer than max.umi}
 
-\item{progress.bar}{Display the progress bar}
+\item{verbose}{Display the progress bar}
 }
 \value{
 Matrix with downsampled data
@@ -23,8 +23,8 @@ Downsample each cell to a specified number of UMIs. Includes
 an option to upsample cells below specified UMI as well.
 }
 \examples{
-raw_data = as.matrix(x = pbmc_small@raw.data)
-downsampled = SampleUMI(data = raw_data)
+counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
+downsampled = SampleUMI(data = counts)
 head(x = downsampled)
 
 }

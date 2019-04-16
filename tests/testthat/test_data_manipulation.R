@@ -1,4 +1,6 @@
 # Tests for functions in data_manipulation.cpp
+# change in random number generation in R3.6, this ensures tests will pass under older and newer Rs
+suppressWarnings(RNGversion(vstr = "3.5.3"))
 set.seed(42)
 library(Matrix)
 
@@ -95,6 +97,31 @@ test_that("Fast implementation of row scaling returns expected values", {
   expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 
+mat <- as(object = matrix(rnorm(1000), nrow = 10, ncol = 10), Class = "dgCMatrix")
+
+test_that("Row scaling with known stats works", {
+  mat.rowmeans <- rowMeans(x = mat)
+  mat.sd <- apply(X = mat, MARGIN = 1, FUN = sd)
+  expect_equal(
+    t(scale(t(as.matrix(mat)), center = mat.rowmeans, scale = mat.sd)), 
+    FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = TRUE, center = TRUE, scale_max = 10, display_progress = FALSE),
+    check.attributes = FALSE
+  )
+  expect_equal(
+    t(scale(t(as.matrix(mat)), center = FALSE, scale = mat.sd)), 
+    FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = TRUE, center = FALSE, scale_max = 10, display_progress = FALSE),
+    check.attributes = FALSE
+  )
+  expect_equal(
+    t(scale(t(as.matrix(mat)), center = mat.rowmeans, scale = FALSE)), 
+    FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = FALSE, center = TRUE, scale_max = 10, display_progress = FALSE),
+    check.attributes = FALSE
+  )
+  mat.clipped <- FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = FALSE, center = TRUE, scale_max = 0.2, display_progress = FALSE)
+  expect_true(max(mat.clipped, na.rm = T) >= 0.2)
+})
+
+
 # Tests for fast basic stats functions
 # --------------------------------------------------------------------------------
 context("Fast Basic Stats Functions")
@@ -150,3 +177,39 @@ test_that("Fast implementation of LogVMR returns expected values", {
   expect_equal(FastLogVMR(mat, display_progress = F)[10], 10.11755, tolerance = 1e-6)
 })
 
+test_that("Row variance calculations for sparse matrices work", {
+  expect_equal(apply(X = mat, MARGIN = 1, FUN = var), SparseRowVar(mat = mat, display_progress = FALSE), tolerance = 1e-6)
+  expect_equal(apply(X = mat2, MARGIN = 1, FUN = var), SparseRowVar(mat = as(object = mat2, Class = "dgCMatrix"), display_progress = FALSE), tolerance = 1e-6)
+})
+
+# Tests for data structure manipulations
+# --------------------------------------------------------------------------------
+context("Data structure manipulations")
+
+mat <- rsparsematrix(nrow = 10, ncol = 100, density = 0.1)
+mat2 <- rsparsematrix(nrow = 10, ncol = 10, density = 0.1)
+cols.to.replace1 <- 1:10
+cols.to.replace2 <- 10:1
+cols.to.replace3 <- 91:100
+cols.to.replace4 <- c(10, 15, 33, 2, 6, 99, 55, 30, 25, 42)
+
+ReplaceCols <- function(mat, cols, replace){
+  mat[, cols] <- replace
+  return(mat)
+}
+
+test_that("Replacing columns works", {
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace1 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace1, replace = mat2))
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace2 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace2, replace = mat2))
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace3 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace3, replace = mat2))
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace4 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace4, replace = mat2))
+})
+
+test_that("Cpp implementation of row variance is correct", {
+  expect_equal(apply(X = mat, MARGIN = 1, FUN = var), RowVar(as.matrix(mat)))
+  expect_equal(apply(X = merged.mat, MARGIN = 1, FUN = var), RowVar(as.matrix(merged.mat)))
+})

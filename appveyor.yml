@@ -17,9 +17,11 @@ environment:
   global:
     R_ARCH: x64
     USE_RTOOLS: true
+    BIOC_USE_DEVEL: "FALSE"
     _R_CHECK_FORCE_SUGGESTS_: false
     PYTHON: "C:\\Python36-x64"
     RETICULATE_PYTHON: "C:\\Python36-x64"
+    CRAN: "https://cloud.r-project.org"
 
 build_script:
   - travis-tool.sh install_deps

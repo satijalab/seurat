@@ -5,10 +5,11 @@
 \title{Finds markers that are conserved between the two groups}
 \usage{
 FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay.type = "RNA", meta.method = minimump, ...)
+  assay.type = "RNA", slot = "data", meta.method = minimump,
+  verbose = TRUE, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{ident.1}{Identity class to define markers for}
 
@@ -19,8 +20,13 @@ use all other cells for comparison.}
 
 \item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
+\item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
+\code{slot} will be set to "counts"}
+
 \item{meta.method}{method for combining p-values. Should be a function from
 the metap package (NOTE: pass the function, not a string)}
+
+\item{verbose}{Print a progress bar once expression testing begins}
 
 \item{\dots}{parameters to pass to FindMarkers}
 }
@@ -37,11 +43,7 @@ Finds markers that are conserved between the two groups
 \dontrun{
 pbmc_small
 # Create a simulated grouping variable
-pbmc_small@meta.data$groups <- sample(
-  x = c("g1", "g2"),
-  size = length(x = pbmc_small@cell.names),
-  replace = TRUE
-)
+pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
 FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
 }
 
