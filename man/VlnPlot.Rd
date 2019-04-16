@@ -45,7 +45,7 @@ see \code{\link{FetchData}} for more details}
 
 \item{slot}{Use non-normalized counts data for plotting}
 
-\item{...}{Ignored}
+\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
 }
 \value{
 A ggplot object
@@ -55,7 +55,7 @@ Draws a violin plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
 \examples{
-VlnPlot(object = pbmc_small, features = 'PC1')
+VlnPlot(object = pbmc_small, features = 'PC_1')
 VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 
 }

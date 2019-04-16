@@ -2,9 +2,12 @@
 % Please edit documentation in R/visualization.R
 \name{CellSelector}
 \alias{CellSelector}
+\alias{FeatureLocator}
 \title{Cell selector}
 \usage{
 CellSelector(plot, object = NULL, ident = "SelectedCells", ...)
+
+FeatureLocator(plot, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot}

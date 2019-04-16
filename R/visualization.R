@@ -411,14 +411,14 @@ HTOHeatmap <- function(
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param slot Use non-normalized counts data for plotting
-#' @param ... Ignored
+#' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
 #' @return A ggplot object
 #'
 #' @export
 #'
 #' @examples
-#' RidgePlot(object = pbmc_small, features = 'PC1')
+#' RidgePlot(object = pbmc_small, features = 'PC_1')
 #'
 RidgePlot <- function(
   object,
@@ -473,7 +473,7 @@ RidgePlot <- function(
 #' @seealso \code{\link{FetchData}}
 #'
 #' @examples
-#' VlnPlot(object = pbmc_small, features = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'PC_1')
 #' VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 #'
 VlnPlot <- function(
@@ -495,7 +495,7 @@ VlnPlot <- function(
   slot = 'data',
   ...
 ) {
-  plot <- ExIPlot(
+  return(ExIPlot(
     object = object,
     type = 'violin',
     features = features,
@@ -514,8 +514,7 @@ VlnPlot <- function(
     slot = slot,
     combine = combine,
     ...
-  )
-  return(plot)
+  ))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -559,8 +558,8 @@ VlnPlot <- function(
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param ncol Number of columns for display when combining plots
+#' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
-#' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
 #' @importFrom rlang !!
@@ -695,7 +694,7 @@ DimPlot <- function(
 #'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
 #'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
 #'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
-#'     (e.g. the PC1 scores - "PC_1")
+#'     (e.g. the PC 1 scores - "PC_1")
 #' }
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
@@ -731,7 +730,7 @@ DimPlot <- function(
 #' \code{\link{CellSelector}}
 #'
 #' @examples
-#' FeaturePlot(object = pbmc_small, features = 'PC1')
+#' FeaturePlot(object = pbmc_small, features = 'PC_1')
 #'
 FeaturePlot <- function(
   object,
@@ -1019,18 +1018,18 @@ FeaturePlot <- function(
       })
       nsplits <- length(x = levels(x = data$split))
       idx <- 1
-      for(i in (length(x = features) * (nsplits - 1) + 1): (length(x = features) * nsplits)) {
+      for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
         plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
         idx <- idx + 1
       }
       idx <- 1
-      for(i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
+      for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
         plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
         idx <- idx + 1
       }
       idx <- 1
       if (length(x = features) == 1) {
-        for(i in 1:length(x = plots)) {
+        for (i in 1:length(x = plots)) {
           plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
           idx <- idx + 1
         }
@@ -1213,16 +1212,17 @@ VariableFeaturePlot <- function(
     stop("'cols' must be of length 2")
   }
   hvf.info <- HVFInfo(object = object, assay = assay)
-  vars <- c(
-    'mean',
-    ifelse(
-      test = 'variance.standardized' %in% colnames(x = hvf.info),
-      yes = 'variance.standardized',
-      no = 'dispersion'
-    )
-  )
+  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
+  vars <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
+                 c('mean', 'variance.standardized'),
+                 c('mean', 'dispersion'),
+                 c('gmean', 'residual_variance'))
+  axis.labels <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
+                        c('Average Expression', 'Standardized Variance'),
+                        c('Average Expression', 'Dispersion'),
+                        c('Geometric Mean of Expression', 'Residual Variance'))
   hvf.info <- hvf.info[, vars]
-  log <- log %||% ('variance.standardized' %in% colnames(x = hvf.info))
+  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
   var.features <- VariableFeatures(object = object, assay = assay)
   var.status <- ifelse(
     test = rownames(x = hvf.info) %in% var.features,
@@ -1235,7 +1235,7 @@ VariableFeaturePlot <- function(
     pt.size = pt.size
   )
   plot <- plot +
-    labs(title = NULL, x = 'Average Expression', y = 'Dispersion') +
+    labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
     scale_color_manual(
       labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
       values = cols
@@ -1744,13 +1744,9 @@ DotPlot <- function(
 #' @examples
 #' ElbowPlot(object = pbmc_small)
 #'
-ElbowPlot <- function(
-  object,
-  ndims = 20,
-  reduction = 'pca'
-) {
+ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
   data.use <- Stdev(object = object, reduction = reduction)
-  if (length(data.use) == 0) {
+  if (length(x = data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction))
   }
   if (ndims > length(x = data.use)) {
@@ -2198,6 +2194,7 @@ CustomPalette <- function(
 #' @importFrom ggplot2 ggplot_build
 #' @export
 #'
+# @aliases FeatureLocator
 #' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
 #' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
@@ -2225,6 +2222,7 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   return(selected)
 }
 
+#' @rdname CellSelector
 #' @export
 #'
 FeatureLocator <- function(plot, ...) {
@@ -3056,6 +3054,7 @@ Col2Hex <- function(...) {
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
+# @param ... Extra parameters passed to \code{\link{CombinePlots}}
 #
 #' @importFrom scales hue_pal
 #
@@ -3076,7 +3075,8 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -3140,7 +3140,15 @@ ExIPlot <- function(
     }
   )
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, legend = 'none')
+    combine.args <- list(
+      'plots' = plots,
+      'ncol' = ncol
+    )
+    combine.args <- c(combine.args, list(...))
+    if (!'legend' %in% names(x = combine.args)) {
+      combine.args$legend <- 'none'
+    }
+    plots <- do.call(what = 'CombinePlots', args = combine.args)
   }
   return(plots)
 }

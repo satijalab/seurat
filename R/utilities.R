@@ -6,15 +6,15 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Calculate module scores for featre expression programs in single cells
+#' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control featre sets.
-#' All analyzed featres are binned based on averaged expression, and the control featres are
+#' subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the control features are
 #' randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Featre expression programs in list
+#' @param features Feature expression programs in list
 #' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
 #' @param nbin Number of bins of aggregate expression levels for all analyzed features
 #' @param ctrl Number of control features selected from the same bin per analyzed feature
@@ -344,6 +344,7 @@ CaseMatch <- function(search, match) {
 #' @param s.features A vector of features associated with S phase
 #' @param g2m.features A vector of features associated with G2M phase
 #' @param set.ident If true, sets identity to phase assignments
+#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #' Stashes old identities in 'old.ident'
 #'
 #' @return A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
@@ -369,7 +370,8 @@ CellCycleScoring <- function(
   object,
   s.features,
   g2m.features,
-  set.ident = FALSE
+  set.ident = FALSE,
+  ...
 ) {
   name <- 'Cell Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
@@ -377,7 +379,8 @@ CellCycleScoring <- function(
     object = object,
     features = features,
     name = name,
-    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
+    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1))),
+    ...
   )
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
   cc.scores <- object.cc[[cc.columns]]

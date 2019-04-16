@@ -12,6 +12,8 @@ as.SingleCellExperiment(x, ...)
 \arguments{
 \item{x}{An object to convert to class \code{SingleCellExperiment}}
 
+\item{...}{Arguments passed to other methods}
+
 \item{assay}{Assay to convert}
 }
 \description{

@@ -2,6 +2,24 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.0.0] - 2019-04-16
+### Added
+- New method for identifying anchors across single-cell datasets
+- Parallelization support via future
+- Additional method for demultiplexing with MULTIseqDemux
+- Support normalization via sctransform
+- New option for clustering with the Leiden algorithm
+- Support for reading 10X v3 files
+- New function to export Seurat objects for the UCSC cell browser
+- Support for data import from Alevin outputs
+- Imputation of dropped out values via ALRA
+
+### Changed
+- Significant code restructuring
+- Most occurances of "gene(s)" in function names/arguments renamed to "feature(s)"
+- Changes to the Seurat object class to facilitate multimodal data
+- New BlendPlot implementation
+
 ## [2.3.4] - 2018-07-13
 ### Added
 - GetIdent function added to pull identity info

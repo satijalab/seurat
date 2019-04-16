@@ -160,8 +160,8 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
   colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
   l2.dr <- CreateDimReducObject(
     embeddings = l2.norm,
-    loadings = Loadings(object = object[[reduction]]),
-    projected = Loadings(object = object[[reduction]]),
+    loadings = Loadings(object = object[[reduction]], projected = FALSE),
+    projected = Loadings(object = object[[reduction]], projected = TRUE),
     assay = DefaultAssay(object = object),
     stdev = slot(object = object[[reduction]], name = 'stdev'),
     key = new.key,
@@ -812,6 +812,7 @@ RunPCA.default <- function(
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = npcs, ...)
+    total.variance <- sum(RowVar(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -824,6 +825,7 @@ RunPCA.default <- function(
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)
+      total.variance <- sum(RowVar(x = object))
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -836,6 +838,7 @@ RunPCA.default <- function(
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
+      total.variance <- sum(sdev)
       if (weight.by.var) {
         cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
       } else {
@@ -852,7 +855,8 @@ RunPCA.default <- function(
     loadings = feature.loadings,
     assay = assay,
     stdev = sdev,
-    key = reduction.key
+    key = reduction.key,
+    misc = list(total.variance = total.variance)
   )
   if (verbose) {
     print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)

@@ -2,7 +2,6 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{Loadings}
 \alias{Loadings}
-\alias{SetDimReduction}
 \alias{Loadings<-}
 \alias{Loadings.DimReduc}
 \alias{Loadings.Seurat}

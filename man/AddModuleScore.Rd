@@ -2,7 +2,7 @@
 % Please edit documentation in R/utilities.R
 \name{AddModuleScore}
 \alias{AddModuleScore}
-\title{Calculate module scores for featre expression programs in single cells}
+\title{Calculate module scores for feature expression programs in single cells}
 \usage{
 AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
   k = FALSE, assay = NULL, name = "Cluster", seed = 1)
@@ -10,7 +10,7 @@ AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
 \arguments{
 \item{object}{Seurat object}
 
-\item{features}{Featre expression programs in list}
+\item{features}{Feature expression programs in list}
 
 \item{pool}{List of features to check expression levels agains, defaults to \code{rownames(x = object)}}
 
@@ -31,8 +31,8 @@ Returns a Seurat object with module scores added to object meta data
 }
 \description{
 Calculate the average expression levels of each program (cluster) on single cell level,
-subtracted by the aggregated expression of control featre sets.
-All analyzed featres are binned based on averaged expression, and the control featres are
+subtracted by the aggregated expression of control feature sets.
+All analyzed features are binned based on averaged expression, and the control features are
 randomly selected from each bin.
 }
 \examples{

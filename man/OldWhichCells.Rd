@@ -24,7 +24,7 @@ OldWhichCells(object, ...)
 
 \item{cells}{Subset of cell names}
 
-\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
+\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC_1, a
 column name in object@meta.data, etc. Any argument that can be retreived
 using FetchData}
 

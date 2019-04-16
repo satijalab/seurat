@@ -227,6 +227,11 @@ FindTransferAnchors <- function(
   if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
+  if (reduction %in% c('pcaproject', 'pcaqueryproject')) {
+    projected = TRUE
+  } else {
+    projected = FALSE
+  }
   query <- RenameCells(
     object = query,
     new.names = paste0(Cells(x = query), "_", "query")
@@ -326,6 +331,7 @@ FindTransferAnchors <- function(
     k.score = k.score,
     max.features = max.features,
     eps = eps,
+    projected = projected,
     verbose = verbose
   )
   command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
@@ -550,12 +556,13 @@ IntegrateData <- function(
       assay = new.assay.name,
       slot = 'data'
     )
-    merged.obj <- SetAssayData(
-      object = merged.obj,
-      assay = assay,
-      slot = 'data',
-      new.data = integrated.matrix
-    )
+    # merged.obj <- SetAssayData(
+    #   object = merged.obj,
+    #   assay = assay,
+    #   slot = 'data',
+    #   new.data = integrated.matrix
+    # )
+    merged.obj[[assay]] <- CreateAssayObject(data = integrated.matrix)
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
     object.list[[merge.pair[[2]]]] <- NULL
@@ -1192,7 +1199,7 @@ FilterAnchors <- function(
   verbose = TRUE
 ) {
   if (verbose) {
-    message("Filtering Anchors")
+    message("Filtering anchors")
   }
   assay <- assay %||% DefaultAssay(object = object)
   features <- features %||% VariableFeatures(object = object)
@@ -1249,6 +1256,7 @@ FindAnchors <- function(
   k.score = 30,
   max.features = 200,
   eps = 0,
+  projected = FALSE,
   verbose = TRUE
 ) {
   # compute local neighborhoods, use max of k.anchor and k.score if also scoring to avoid
@@ -1279,7 +1287,8 @@ FindAnchors <- function(
       reduction = reduction,
       dims = dims,
       features.per.dim = 100,
-      max.features = max.features
+      max.features = max.features,
+      projected = projected
     )
     object.pair <- FilterAnchors(
       object = object.pair,
@@ -1325,7 +1334,7 @@ FindAnchorPairs <- function(
     k.anchor <- min(max.nn)
   }
   if (verbose) {
-    message("Finding mutual nearest neighborhoods")
+    message("Finding anchors")
   }
   if (is.null(x = cells1)) {
     cells1 <- colnames(x = object)
@@ -1750,7 +1759,7 @@ ScoreAnchors <- function(
   anchor.df$cell2 <- anchor.df$cell2 + offset
   # make within dataset df
   if (verbose) {
-    message("Extracting within-dataset neighbors!")
+    message("Extracting within-dataset neighbors")
   }
   total.cells <- offset + length(neighbors$cells2)
   nn.m1 <- ConstructNNMat(nn.idx = neighbors$nnaa$nn.idx[,1:k.score], offset1 = 0, offset2 = 0, dims = c(total.cells, total.cells))
@@ -1797,24 +1806,26 @@ ScoreAnchors <- function(
 # @param dims Which dimensions to use
 # @param features.per.dim How many features to consider per dimension
 # @param max.features Number of features to return at most
+# @param projected Use projected loadings
 #
 TopDimFeatures <- function(
   object,
   reduction,
   dims = 1:10,
   features.per.dim = 100,
-  max.features = 200
+  max.features = 200,
+  projected = FALSE
 ) {
   dim.reduction <- object[[reduction]]
   max.features <- max(length(x = dims) * 2, max.features)
   num.features <- sapply(X = 1:features.per.dim, FUN = function(y) {
     length(x = unique(x = as.vector(x = sapply(X = dims, FUN = function(x) {
-      unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = y, balanced = TRUE))
+      unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = y, balanced = TRUE, projected = projected))
     }))))
   })
   max.per.pc <- which.max(x = num.features[num.features < max.features])
   features <- unique(x = as.vector(x = sapply(X = dims, FUN = function(x) {
-    unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = max.per.pc, balanced = TRUE))
+    unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = max.per.pc, balanced = TRUE, projected = projected))
   })))
   features <- unique(x = features)
   return(features)

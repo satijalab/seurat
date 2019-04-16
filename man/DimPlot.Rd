@@ -72,14 +72,7 @@ groups in cells.highlight}
 
 \item{ncol}{Number of columns for display when combining plots}
 
-\item{...}{Arguments passed on to \code{CombinePlots}
-\describe{
-  \item{plots}{A list of gg objects}
-  \item{ncol}{Number of columns}
-  \item{legend}{Combine legends into a single legend
-choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
-to leave legends as they are}
-}}
+\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
 }
 \value{
 A ggplot object

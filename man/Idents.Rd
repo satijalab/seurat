@@ -40,9 +40,6 @@ StashIdent(object, save.name, ...)
 
 \method{RenameIdents}{Seurat}(object, ...)
 
-\method{ReorderIdent}{Seurat}(object, var, reverse = FALSE,
-  afxn = mean, reorder.numeric = FALSE, ...)
-
 \method{SetIdent}{Seurat}(object, cells = NULL, value, ...)
 
 \method{StashIdent}{Seurat}(object, save.name = "orig.ident", ...)
@@ -75,14 +72,6 @@ passed on to \code{\link{FetchData}}}
 starting from 1 (default is FALSE)}
 
 \item{x, object}{An object}
-
-\item{reverse}{Reverse ordering}
-
-\item{afxn}{Function to evaluate each identity class based on; default is
-\code{\link[base]{mean}}}
-
-\item{reorder.numeric}{Rename all identity classes to be increasing numbers
-starting from 1 (default is FALSE)}
 }
 \value{
 \code{Idents}: The cell identies
@@ -122,7 +111,7 @@ levels(x = pbmc_small)
 
 \dontrun{
 head(x = Idents(object = pbmc_small))
-pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
+pbmc_small <- ReorderIdent(object = pbmc_small, var = 'PC_1')
 head(x = Idents(object = pbmc_small))
 }
 

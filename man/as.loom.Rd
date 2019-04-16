@@ -5,8 +5,7 @@
 \alias{as.loom.Seurat}
 \title{Convert objects to loom objects}
 \usage{
-as.loom(x, filename = NULL, max.size = "400mb", chunk.dims = NULL,
-  chunk.size = NULL, overwrite = FALSE, verbose = TRUE, ...)
+as.loom(x, ...)
 
 \method{as.loom}{Seurat}(x, assay = NULL, filename = file.path(getwd(),
   paste0(Project(object = x), ".loom")), max.size = "400mb",
@@ -15,6 +14,10 @@ as.loom(x, filename = NULL, max.size = "400mb", chunk.dims = NULL,
 }
 \arguments{
 \item{x}{An object to convert to class \code{loom}}
+
+\item{...}{Ignored for now}
+
+\item{assay}{Assay to store in loom file}
 
 \item{filename}{The name of the new loom file}
 
@@ -28,10 +31,6 @@ may pass a character string (eg. \code{3gb}, \code{1200mb}) or exact value in by
 \item{overwrite}{Overwrite an already existing loom file?}
 
 \item{verbose}{Display a progress bar}
-
-\item{...}{Ignored for now}
-
-\item{assay}{Assay to store in loom file}
 }
 \description{
 Convert objects to loom objects
