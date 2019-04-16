@@ -461,7 +461,7 @@ FindNeighbors.Seurat <- function(
 # @ param include.distance Include the corresponding distances 
 #
 AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k, 
-                    search.k = 100 * k, include.distance = TRUE) {
+                    search.k = -1, include.distance = TRUE) {
   idx <- AnnoyBuildIndex(
     data = data, 
     metric = metric,
@@ -470,7 +470,8 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
     index = idx, 
     query = query,
     k = k,
-    search.k = search.k)
+    search.k = search.k,
+    include.distance = include.distance)
   return(nn)
 }
 
@@ -507,22 +508,24 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # gives you a run-time tradeoff between better accuracy and speed.
 # @ param include.distance Include the corresponding distances 
 #
-AnnoySearch <- function(index, query, k, search.k = 100 * k, include.distance = TRUE) {
+AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
+  convert <- methods::is(index, "Rcpp_AnnoyAngular")
   res <- future_lapply(X = 1:n, FUN = function(x) {
     res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
-    if (methods::is(index, "Rcpp_AnnoyAngular")) {
+    if (convert) {
       res$dist <- 0.5 * (res$dist * res$dist)
     }
     list(res$item + 1, res$distance)
   })
   for (i in 1:n) {
     idx[i, ] <- res[[i]][[1]]
-    if (include.distance)
-    dist[i, ] <- res[[i]][[2]]
+    if (include.distance) {
+      dist[i, ] <- res[[i]][[2]]
+    }
   }
   return(list(nn.idx = idx, nn.dists = dist))
 }
