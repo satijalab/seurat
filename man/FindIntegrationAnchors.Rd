@@ -7,7 +7,7 @@
 FindIntegrationAnchors(object.list = NULL, assay = NULL,
   anchor.features = 2000, scale = TRUE, l2.norm = TRUE,
   dims = 1:30, k.anchor = 5, k.filter = 200, k.score = 30,
-  max.features = 200, eps = 0, verbose = TRUE)
+  max.features = 200, nn.method = "rann", eps = 0, verbose = TRUE)
 }
 \arguments{
 \item{object.list}{A list of objects between which to find anchors for downstream integration.}
@@ -37,6 +37,9 @@ previously scaled the features you want to use for each object in the object.lis
 
 \item{max.features}{The maximum number of features to use when specifying the neighborhood search
 space in the anchor filtering}
+
+\item{nn.method}{Method for nearest neighbor finding. Options include: rann,
+annoy}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
 

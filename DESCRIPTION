@@ -46,6 +46,7 @@ Imports:
     RANN,
     RColorBrewer,
     Rcpp,
+    RcppAnnoy,
     reticulate,
     rlang,
     ROCR,

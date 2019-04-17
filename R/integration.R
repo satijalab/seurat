@@ -28,6 +28,8 @@ NULL
 #' @param k.score How many neighbors (k) to use when scoring anchors
 #' @param max.features The maximum number of features to use when specifying the neighborhood search
 #' space in the anchor filtering
+#' @param nn.method Method for nearest neighbor finding. Options include: rann,
+#' annoy
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param verbose Print progress bars and output
 #'
@@ -49,6 +51,7 @@ FindIntegrationAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
+  nn.method = "rann",
   eps = 0,
   verbose = TRUE
 ) {
@@ -144,6 +147,7 @@ FindIntegrationAnchors <- function(
         k.filter = k.filter,
         k.score = k.score,
         max.features = max.features,
+        nn.method = nn.method,
         eps = eps,
         verbose = verbose
       )
@@ -193,6 +197,8 @@ FindIntegrationAnchors <- function(
 #' @param k.score How many neighbors (k) to use when scoring anchors
 #' @param max.features The maximum number of features to use when specifying the neighborhood search
 #' space in the anchor filtering
+#'@param nn.method Method for nearest neighbor finding. Options include: rann,
+#' annoy
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param approx.pca Use truncated singular value decomposition to approximate PCA
 #' @param verbose Print progress bars and output
@@ -217,6 +223,7 @@ FindTransferAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
+  nn.method = "rann",
   eps = 0,
   approx.pca = TRUE,
   verbose = TRUE
@@ -330,6 +337,7 @@ FindTransferAnchors <- function(
     k.filter = k.filter,
     k.score = k.score,
     max.features = max.features,
+    nn.method = nn.method,
     eps = eps,
     projected = projected,
     verbose = verbose
@@ -1195,6 +1203,7 @@ FilterAnchors <- function(
   integration.name = 'integrated',
   features = NULL,
   k.filter = 200,
+  nn.method = "rann",
   eps = 0,
   verbose = TRUE
 ) {
@@ -1220,10 +1229,11 @@ FilterAnchors <- function(
       object = object[[assay[2]]],
       slot = "data")[features, nn.cells2])),
     MARGIN = 1)
-  nn <- nn2(
+  nn <- NNHelper(
     data = cn.data2[nn.cells2, ],
     query = cn.data1[nn.cells1, ],
     k = k.filter,
+    method = nn.method,
     eps = eps
   )
 
@@ -1255,6 +1265,7 @@ FindAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
+  nn.method = "rann",
   eps = 0,
   projected = FALSE,
   verbose = TRUE
@@ -1272,6 +1283,7 @@ FindAnchors <- function(
     dims = dims,
     reduction = reduction,
     k = k.neighbor,
+    nn.method = nn.method,
     eps = eps,
     verbose = verbose
   )
@@ -1296,6 +1308,7 @@ FindAnchors <- function(
       integration.name = 'integrated',
       features = top.features,
       k.filter = k.filter,
+      nn.method = nn.method,
       eps = eps,
       verbose = verbose
     )
@@ -1449,6 +1462,7 @@ FindNN <- function(
   nn.dims = dims,
   nn.reduction = reduction,
   k = 300,
+  nn.method = "rann",
   eps = 0,
   integration.name = 'integrated',
   verbose = TRUE
@@ -1479,27 +1493,30 @@ FindNN <- function(
   dims.cells1.opposite <- dim.data.opposite[cells1, ]
   dims.cells2.self <- dim.data.self[cells2, ]
   dims.cells2.opposite <- dim.data.opposite[cells2, ]
-
-  nnaa <- nn2(
+  nnaa <- NNHelper(
     data = dims.cells1.self,
     k = k + 1,
+    method = nn.method,
     eps = eps
   )
-  nnab <- nn2(
+  nnab <- NNHelper(
     data = dims.cells2.opposite,
     query = dims.cells1.opposite,
     k = k,
+    method = nn.method,
     eps = eps
   )
-  nnbb <- nn2(
+  nnbb <- NNHelper(
     data = dims.cells2.self,
     k = k + 1,
+    method = nn.method,
     eps = eps
   )
-  nnba <- nn2(
+  nnba <- NNHelper(
     data = dims.cells1.opposite,
     query = dims.cells2.opposite,
     k = k,
+    method = nn.method,
     eps = eps
   )
   object <- SetIntegrationData(
@@ -1521,6 +1538,7 @@ FindWeights <- function(
   features = NULL,
   k = 300,
   sd.weight = 1,
+  nn.method = "rann",
   eps = 0,
   verbose = TRUE,
   cpp = FALSE
@@ -1546,10 +1564,11 @@ FindWeights <- function(
   } else {
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
   }
-  knn_2_2 <- nn2(
+  knn_2_2 <- NNHelper(
     data = data.use[anchors.cells2, ],
     query = data.use,
     k = k + 1,
+    method = nn.method,
     eps = eps
   )
   distances <- knn_2_2$nn.dists[, -1]
