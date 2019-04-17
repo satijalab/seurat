@@ -219,7 +219,8 @@ FindNeighbors.default <- function(
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   if (is.null(x = dim(x = object))) {
     warning(
@@ -301,7 +302,8 @@ FindNeighbors.Assay <- function(
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
@@ -328,11 +330,12 @@ FindNeighbors.dist <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
-  nn.eps = 0,
   nn.method = "rann",
   annoy.metric = "euclidean",
+  nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   return(FindNeighbors(
     object = as.matrix(x = object),
@@ -377,7 +380,8 @@ FindNeighbors.Seurat <- function(
   verbose = TRUE,
   force.recalc = FALSE,
   do.plot = FALSE,
-  graph.name = NULL
+  graph.name = NULL,
+  ...
 ) {
   if (!is.null(x = dims)) {
     assay <- assay %||% DefaultAssay(object = object)
@@ -481,6 +485,7 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
 # @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
 # "hamming"
 # @param n.trees More trees gives higher precision when querying
+#' @importFrom RcppAnnoy AnnoyEuclidean AnnoyAngular AnnoyManhattan AnnoyHamming
 #
 AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
   f <- ncol(x = data)

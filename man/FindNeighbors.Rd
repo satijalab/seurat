@@ -13,22 +13,22 @@ FindNeighbors(object, ...)
 \method{FindNeighbors}{default}(object, distance.matrix = FALSE,
   k.param = 20, compute.SNN = TRUE, prune.SNN = 1/15,
   nn.method = "rann", annoy.metric = "euclidean", nn.eps = 0,
-  verbose = TRUE, force.recalc = FALSE)
+  verbose = TRUE, force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Assay}(object, features = NULL, k.param = 20,
   compute.SNN = TRUE, prune.SNN = 1/15, nn.method = "rann",
   annoy.metric = "euclidean", nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE)
+  force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{dist}(object, k.param = 20, compute.SNN = TRUE,
-  prune.SNN = 1/15, nn.eps = 0, nn.method = "rann",
-  annoy.metric = "euclidean", verbose = TRUE, force.recalc = FALSE)
+  prune.SNN = 1/15, nn.method = "rann", annoy.metric = "euclidean",
+  nn.eps = 0, verbose = TRUE, force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
   assay = NULL, features = NULL, k.param = 20, compute.SNN = TRUE,
   prune.SNN = 1/15, nn.method = "rann", annoy.metric = "euclidean",
   nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL)
+  do.plot = FALSE, graph.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
