@@ -700,16 +700,9 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    # if (!grepl(pattern = "\\/$", x = run)) {
-    #   run <- paste0(run, "/")
-    # }
-    # barcode.loc <- paste0(run, "barcodes.tsv")
     barcode.loc <- file.path(run, 'barcodes.tsv')
-    # gene.loc <- paste0(run, "genes.tsv")
     gene.loc <- file.path(run, 'genes.tsv')
-    # features.loc <- paste0(run, "features.tsv.gz")
     features.loc <- file.path(run, 'features.tsv.gz')
-    # matrix.loc <- paste0(run, "matrix.mtx")
     matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
@@ -754,6 +747,12 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       stringsAsFactors = FALSE
     )
     if (unique.features) {
+      fcols = ncol(x = feature.names)
+      if (fcols < gene.column) {
+        stop(paste0("gene.column was set to ", gene.column,
+                    " but feature.tsv.gz (or genes.tsv) only has ", fcols, " columns.",
+                    " Try setting the gene.column argument to a value <= to ", fcols, "."))
+      }
       rownames(x = data) <- make.unique(names = feature.names[, gene.column])
     }
     # In cell ranger 3.0, a third column specifying the type of data was added
