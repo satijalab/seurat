@@ -24,4 +24,5 @@ test_that("Read10X creates sparse matrix", {
 test_that("Read10X handles missing files properly", {
   expect_error(Read10X("."))
   expect_error(Read10X("./notadir/"))
+  expect_error(Read10X(dname, gene.column = 10))
 })
