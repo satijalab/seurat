@@ -471,8 +471,16 @@ IntegrateData <- function(
       merge.pair <- rev(merge.pair)
       sample.tree[ii, ] <- as.numeric(merge.pair)
     }
-    object.1 <- object.list[[merge.pair[1]]]
-    object.2 <- object.list[[merge.pair[2]]]
+    object.1 <- DietSeurat(
+      object = object.list[[merge.pair[1]]],
+      assay = DefaultAssay(object =  object.list[[merge.pair[1]]]),
+      counts = FALSE
+    )
+    object.2 <- DietSeurat(
+      object = object.list[[merge.pair[2]]],
+      assay = DefaultAssay(object =  object.list[[merge.pair[2]]]),
+      counts = FALSE
+    )
     datasets <- ParseMergePair(sample.tree, ii)
     if (verbose) {
       message(
