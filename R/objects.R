@@ -675,6 +675,10 @@ CreateSeuratObject <- function(
 #' @param scale.data Preserve the scale.data slot for the assays specified
 #' @param features Only keep a subset of features, defaults to all features
 #' @param assays Only keep a subset of assays specified here
+#' @param dimreducs Only keep a subset of DimReducs specified here (if NULL,
+#' remove all DimReducs)
+#' @param graphs Only keep a subset of Graphs specified here (if NULL, remove 
+#' all Graphs)
 #'
 #' @export
 #'
@@ -684,7 +688,9 @@ DietSeurat <- function(
   data = TRUE,
   scale.data = FALSE,
   features = NULL,
-  assays = NULL
+  assays = NULL,
+  dimreducs = NULL,
+  graphs = NULL
 ) {
   assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
   assays <- assays[assays %in% FilterObjects(object = object, classes.keep = 'Assay')]
@@ -712,24 +718,36 @@ DietSeurat <- function(
         }
       } else {
         if (counts) {
-          slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+          if (!is.null(x = features)) {
+            slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+          }
         } else {
           slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
         }
         if (data) {
-          slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
+          if (!is.null(x = features)) {
+            slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
+          }
         } else {
           stop('data = FALSE currently not supported')
           slot(object = object[[assay]], name = 'data') <- new(Class = 'matrix')
         }
         features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
         if (scale.data && length(x = features.scaled) > 0) {
-          slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
+          if (! all(rownames(x = slot(object = object[[assay]], name = 'scale.data')) %in% features.scaled)) {
+            slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
+          }
         } else {
           slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
         }
       }
     }
+  }
+  # remove unspecified DimReducs and Graphs
+  all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
+  objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
+  for (ob in objects.to.remove) {
+    object[[ob]] <- NULL
   }
   return(object)
 }
