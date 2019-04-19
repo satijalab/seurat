@@ -4845,7 +4845,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (length(x = cells) == 0) {
     stop("No cells found", call. = FALSE)
   }
-  if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x))) {
+  if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x)) && is.null(x = features)) {
     return(x)
   }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
