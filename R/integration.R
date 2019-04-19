@@ -119,8 +119,20 @@ FindIntegrationAnchors <- function(
     FUN = function(row) {
       i <- combinations[row, 1]
       j <- combinations[row, 2]
-      object.1 <- object.list[[i]]
-      object.2 <- object.list[[j]]
+      object.1 <- DietSeurat(
+        object = object.list[[i]], 
+        assays = assay[i], 
+        features = anchor.features, 
+        counts = FALSE, 
+        scale.data = TRUE
+      )
+      object.2 <- DietSeurat(
+        object = object.list[[j]], 
+        assays = assay[i], 
+        features = anchor.features, 
+        counts = FALSE, 
+        scale.data = TRUE
+      )
       object.pair <- RunCCA(
         object1 = object.1,
         object2 = object.2,
