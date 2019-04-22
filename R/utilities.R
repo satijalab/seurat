@@ -1178,7 +1178,7 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
 # Call gc() to perform garbage collection
 #
 CheckGC <- function() {
-  if (getOption(x = "seurat.memsafe")) {
+  if (getOption(x = "Seurat.memsafe")) {
     gc(verbose = FALSE)
   }
 }
