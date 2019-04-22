@@ -1550,10 +1550,11 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' Intuitive way of visualizing how feature expression changes across different
 #' identity classes (clusters). The size of the dot encodes the percentage of
-#' cells within a class, while the color encodes the AverageExpression level of
-#' cells within a class (blue is high).
+#' cells within a class, while the color encodes the AverageExpression level 
+#' across all cells within a class (blue is high).
 #'
 #' @param object Seurat object
+#' @param assay Name of assay to use, defaults to the active assay
 #' @param features Input vector of features
 #' @param cols Colors to plot, can pass a single character giving the name of
 #' a palette from \code{RColorBrewer::brewer.pal.info}
@@ -1592,6 +1593,7 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 DotPlot <- function(
   object,
+  assay = NULL, 
   features,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
@@ -1605,6 +1607,8 @@ DotPlot <- function(
   scale.max = NA,
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
