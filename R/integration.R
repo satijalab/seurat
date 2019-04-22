@@ -566,7 +566,7 @@ IntegrateData <- function(
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
     object.list[[merge.pair[[2]]]] <- NULL
-    invisible(x = gc(verbose = FALSE))
+    invisible(x = CheckGC())
   }
   integrated.data <- GetAssayData(
     object = object.list[[as.character(x = ii)]],

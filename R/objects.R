@@ -2751,7 +2751,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     meta.features$highly.variable[is.na(x = meta.features$highly.variable)] <- FALSE
   }
   rm(x.var)
-  gc(verbose = FALSE)
+  CheckGC()
   # Fix metadata colnames
   colnames(x = obs) <- gsub(
     pattern = '_',
@@ -2819,7 +2819,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   }
   Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
   rm(x)
-  gc(verbose = FALSE)
+  CheckGC()
   # Get dimensional reduction information
   # If data isn't scaled, don't bother
   if (scaled && file$exists(name = 'obsm')) {
@@ -2936,7 +2936,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     names(x = dim.reducs) <- gsub(pattern = 'X_', replacement = '', x = embed.reduc)
     # Clean up
     rm(embeddings, loadings)
-    gc(verbose = FALSE)
+    CheckGC()
   } else {
     if (verbose) {
       message("No dimensional reduction information found")
@@ -5172,7 +5172,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         x = slot(object = x, name = slot.use)
       )
     }
-    gc(verbose = FALSE)
+    CheckGC()
     return(x)
   }
 )

@@ -161,7 +161,7 @@ AddModuleScore <- function(
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
   object[[colnames(x = features.scores.use)]] <- features.scores.use
-  gc(verbose = FALSE)
+  CheckGC()
   DefaultAssay(object = object) <- assay.old
   return(object)
 }
@@ -385,7 +385,7 @@ CellCycleScoring <- function(
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
   cc.scores <- object.cc[[cc.columns]]
   rm(object.cc)
-  gc(verbose = FALSE)
+  CheckGC()
   assignments <- apply(
     X = cc.scores,
     MARGIN = 1,
@@ -1173,6 +1173,14 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
     )
   }
   return(object.list)
+}
+
+# Call gc() to perform garbage collection
+#
+CheckGC <- function() {
+  if (getOption(x = "Seurat.memsafe")) {
+    gc(verbose = FALSE)
+  }
 }
 
 # Extract delimiter information from a string.
