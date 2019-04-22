@@ -17,7 +17,7 @@
 "_PACKAGE"
 
 seurat_default_options <- list(
-  seurat.memsafe = TRUE
+  Seurat.memsafe = TRUE
 )
 
 .onLoad <- function(libname, pkgname) {
