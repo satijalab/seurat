@@ -1922,7 +1922,7 @@ ScaleData.default <- function(
     features = features,
     min.cells.to.block = min.cells.to.block
   ))
-  gc(verbose = FALSE)
+  CheckGC()
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
       latent.data <- data.frame(row.names = colnames(x = object))
@@ -1966,7 +1966,7 @@ ScaleData.default <- function(
       )
     }
     dimnames(x = object) <- object.names
-    gc(verbose = FALSE)
+    CheckGC()
   }
   if (verbose) {
     if (do.scale) {
@@ -2002,7 +2002,7 @@ ScaleData.default <- function(
         )
         dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
-        gc(verbose = FALSE)
+        CheckGC()
         return(data.scale)
       }
     )
@@ -2031,7 +2031,7 @@ ScaleData.default <- function(
       dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
       scaled.data[features[my.inds], ] <- data.scale
       rm(data.scale)
-      gc(verbose = FALSE)
+      CheckGC()
       if (verbose) {
         setTxtProgressBar(pb = pb, value = i)
       }
@@ -2042,7 +2042,7 @@ ScaleData.default <- function(
   }
   dimnames(x = scaled.data) <- object.names
   scaled.data[is.na(x = scaled.data)] <- 0
-  gc(verbose = FALSE)
+  CheckGC()
   return(scaled.data)
 }
 
