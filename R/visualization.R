@@ -3120,10 +3120,10 @@ ExIPlot <- function(
     } else {
       cols <- Col2Hex(cols)
     }
-    if (length(x = cols) != length(x = levels(x = split))) {
+    if (length(x = cols) < length(x = levels(x = split))) {
       cols <- Interleave(cols, InvertHex(hexadecimal = cols))
-      cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     }
+    cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
   }
   if (same.y.lims && is.null(x = y.max)) {
