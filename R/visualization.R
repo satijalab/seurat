@@ -3357,7 +3357,7 @@ geom_split_violin <- function(
 #
 InvertHex <- function(hexadecimal) {
   return(vapply(
-    X = hexadecimal,
+    X = toupper(x = hexadecimal),
     FUN = function(hex) {
       hex <- unlist(x = strsplit(
         x = gsub(pattern = '#', replacement = '', x = hex),
