@@ -1761,7 +1761,8 @@ as.Seurat.loom <- function(
 }
 
 #' @param counts name of the SingleCellExperiment assay to store as \code{counts}
-#' @param data name of the SingleCellExperiment assay to slot as \code{data}
+#' @param data name of the SingleCellExperiment assay to slot as \code{data}. 
+#' Set to NULL if only counts are present
 #'
 #' @rdname as.Seurat
 #' @export
@@ -1776,30 +1777,35 @@ as.Seurat.SingleCellExperiment <- function(
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
-  counts <- tryCatch(
-    expr = SummarizedExperiment::assay(x, counts),
-    error = function(e) {
-      stop("No data in provided assay - ", counts)
-    }
-  )
-  data <- tryCatch(
-    expr = SummarizedExperiment::assay(x, data),
-    error = function(e) {
-      stop("No data in provided assay - ", data)
-    }
-  )
   meta.data <- as.data.frame(SummarizedExperiment::colData(x = x))
-  # if cell names are NULL, fill with cell_X
-  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
-    warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
-    cell.names <- paste0("cell_", 1:ncol(x = counts))
-    colnames(x = counts) <- cell.names
-    colnames(x = data) <- cell.names
-    rownames(x = meta.data) <- cell.names
+  mats <- list(counts = counts, data = data)
+  for (m in 1:length(x = mats)) {
+    if (is.null(x = mats[[m]])) next
+    mats[[m]] <- tryCatch(
+      expr = SummarizedExperiment::assay(x, mats[[m]]),
+      error = function(e) {
+        stop("No data in provided assay - ", counts)
+      }
+    )
+    # if cell names are NULL, fill with cell_X
+    if (is.null(x = colnames(x = mats[[m]]))) {
+      warning("The column names of the", names(mats)[m], 
+              " matrix is NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
+      cell.names <- paste0("cell_", 1:ncol(x = mats[[m]]))
+      colnames(x = mats[[m]]) <- cell.names
+      rownames(x = meta.data) <- cell.names
+    }
   }
-  seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-  rownames(x = data) <- rownames(x = seurat.object)
-  seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
+  if (!is.null(x = mats[["counts"]])) {
+    seurat.object <- CreateSeuratObject(counts = mats[["counts"]], meta.data = meta.data)  
+    if (!is.null(x = mats[["data"]])) {
+      rownames(x = mats[["data"]]) <- rownames(x = seurat.object)
+      seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = mats[["data"]])
+    }
+  } else if (!is.null(x = mats[["data"]])) {
+    seurat.object <- CreateSeuratObject(counts = mats[["data"]], meta.data = meta.data)
+    seurat.object <- SetAssayData(object = seurat.object, slot = "counts", new.data = new(Class = "dgCMatrix"))
+  }
   if (length(x = SingleCellExperiment::reducedDimNames(x)) > 0) {
     for (dr in SingleCellExperiment::reducedDimNames(x)) {
       embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)

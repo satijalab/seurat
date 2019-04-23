@@ -34,7 +34,8 @@ as.Seurat(x, ...)
 
 \item{counts}{name of the SingleCellExperiment assay to store as \code{counts}}
 
-\item{data}{name of the SingleCellExperiment assay to slot as \code{data}}
+\item{data}{name of the SingleCellExperiment assay to slot as \code{data}. 
+Set to NULL if only counts are present}
 }
 \description{
 Convert objects to Seurat objects
