@@ -51,7 +51,7 @@ A ggplot object
 \description{
 Intuitive way of visualizing how feature expression changes across different
 identity classes (clusters). The size of the dot encodes the percentage of
-cells within a class, while the color encodes the AverageExpression level 
+cells within a class, while the color encodes the AverageExpression level
 across all cells within a class (blue is high).
 }
 \examples{
