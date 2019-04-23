@@ -3601,6 +3601,17 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #' @method VariableFeatures<- Assay
 #'
 "VariableFeatures<-.Assay" <- function(object, ..., value) {
+  if (any(grepl(pattern = '_', x = value))) {
+    warning(
+      "Feature names cannot have underscores '_', replacing with dashes '-'",
+      call. = FALSE,
+      immediate = TRUE
+    )
+    value <- gsub(pattern = '_', replacement = '-', value = value)
+  }
+  if (!all(value %in% rownames(x = object))) {
+    stop("Not all features in the variable feature vector are in this Assay object", call. = FALSE)
+  }
   slot(object = object, name = 'var.features') <- value
   return(object)
 }
