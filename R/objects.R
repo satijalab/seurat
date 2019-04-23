@@ -3607,12 +3607,22 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
       call. = FALSE,
       immediate = TRUE
     )
-    value <- gsub(pattern = '_', replacement = '-', value = value)
+    value <- gsub(pattern = '_', replacement = '-', x = value)
   }
-  if (!all(value %in% rownames(x = object))) {
-    stop("Not all features in the variable feature vector are in this Assay object", call. = FALSE)
+  value <- split(x = value, f = value %in% rownames(x = object))
+  if (length(x = value[['FALSE']]) > 0) {
+    if (length(x = value[['TRUE']]) == 0) {
+      stop("None of the features provided are in this Assay object", call. = FALSE)
+    } else {
+      warning(
+        "Not all features provided are in this Assay object, removing the following feature(s): ",
+        paste(value[['FALSE']], collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
   }
-  slot(object = object, name = 'var.features') <- value
+  slot(object = object, name = 'var.features') <- value[['TRUE']]
   return(object)
 }
 
