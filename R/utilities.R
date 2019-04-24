@@ -1262,60 +1262,6 @@ LengthCheck <- function(values, cutoff = 0) {
   ))
 }
 
-# Logs a command run, storing the name, timestamp, and argument list. Stores in
-# the Seurat object
-# @param object Name of Seurat object
-#
-# @return returns the Seurat object with command stored
-#
-LogSeuratCommand <- function(object, return.command = FALSE) {
-  time.stamp <- Sys.time()
-  #capture function name
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe() - 1]]))
-  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
-  call.string <- command.name
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  #capture function arguments
-  argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
-  argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
-  argnames <- grep(pattern = "anchorset", x = argnames, invert = TRUE, value = TRUE)
-  argnames <- grep(pattern = "\\.\\.\\.", x = argnames, invert = TRUE, value = TRUE)
-  params <- list()
-  p.env <- parent.frame(n = 1)
-  argnames <- intersect(x = argnames, y = ls(name = p.env))
-  # fill in params list
-  for (arg in argnames) {
-    param_value <- get(x = arg, envir = p.env)
-    #TODO Institute some check of object size?
-    params[[arg]] <- param_value
-  }
-  # check if function works on the Assay and/or the DimReduc Level
-  assay <- params[["assay"]]
-  reduction <- params[["reduction"]]
-  if (class(x = reduction) == 'DimReduc') {
-    reduction = 'DimReduc'
-  }
-  # rename function name to include Assay/DimReduc info
-  if (length(x = assay) == 1) {
-    command.name <- paste(command.name, assay, reduction, sep = '.')
-  }
-  command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
-  command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-  # store results
-  seurat.command <- new(
-    Class = 'SeuratCommand',
-    name = command.name,
-    params = params,
-    time.stamp = time.stamp,
-    call.string = call.string
-  )
-  if (return.command) {
-    return(seurat.command)
-  }
-  object[[command.name]] <- seurat.command
-  return(object)
-}
-
 # Independently shuffle values within each row of a matrix
 #
 # Creates a matrix where correlation structure has been removed, but overall values are the same
