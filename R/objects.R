@@ -1760,8 +1760,12 @@ as.Seurat.loom <- function(
   return(object)
 }
 
-#' @param counts name of the SingleCellExperiment assay to store as \code{counts}
-#' @param data name of the SingleCellExperiment assay to slot as \code{data}
+#' @param counts name of the SingleCellExperiment assay to store as \code{counts};
+#' set to \code{NULL} if only normalized data are present
+#' @param data name of the SingleCellExperiment assay to slot as \code{data}.
+#' Set to NULL if only counts are present
+#' @param assay Name to store expression matrices as
+#' @param project Project name for new Seurat object
 #'
 #' @rdname as.Seurat
 #' @export
@@ -1769,60 +1773,91 @@ as.Seurat.loom <- function(
 #'
 as.Seurat.SingleCellExperiment <- function(
   x,
-  counts = "counts",
-  data = "logcounts",
+  counts = 'counts',
+  data = 'logcounts',
+  assay = 'RNA',
+  project = 'SingleCellExperiment',
   ...
 ) {
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
-    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+    stop(
+      "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object",
+      call. = FALSE
+    )
   }
-  counts <- tryCatch(
-    expr = SummarizedExperiment::assay(x, counts),
-    error = function(e) {
-      stop("No data in provided assay - ", counts)
-    }
-  )
-  data <- tryCatch(
-    expr = SummarizedExperiment::assay(x, data),
-    error = function(e) {
-      stop("No data in provided assay - ", data)
-    }
-  )
-  meta.data <- as.data.frame(SummarizedExperiment::colData(x = x))
-  # if cell names are NULL, fill with cell_X
-  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
-    warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
-    cell.names <- paste0("cell_", 1:ncol(x = counts))
-    colnames(x = counts) <- cell.names
-    colnames(x = data) <- cell.names
-    rownames(x = meta.data) <- cell.names
+  meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
+  # Pull expression matrices
+  mats <- list(counts = counts, data = data)
+  mats <- Filter(f = Negate(f = is.null), x = mats)
+  if (length(x = mats) == 0) {
+    stop("Cannot pass 'NULL' to both 'counts' and 'data'")
   }
-  seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-  rownames(x = data) <- rownames(x = seurat.object)
-  seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
-  if (length(x = SingleCellExperiment::reducedDimNames(x)) > 0) {
-    for (dr in SingleCellExperiment::reducedDimNames(x)) {
+  for (m in 1:length(x = mats)) {
+    # if (is.null(x = mats[[m]])) next
+    mats[[m]] <- tryCatch(
+      expr = SummarizedExperiment::assay(x = x, i = mats[[m]]),
+      error = function(e) {
+        stop("No data in provided assay - ", mats[[m]], call. = FALSE)
+      }
+    )
+    # if cell names are NULL, fill with cell_X
+    if (is.null(x = colnames(x = mats[[m]]))) {
+      warning(
+        "The column names of the",
+        names(x = mats)[m],
+        " matrix is NULL. Setting cell names to cell_columnidx (e.g 'cell_1').",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cell.names <- paste0("cell_", 1:ncol(x = mats[[m]]))
+      colnames(x = mats[[m]]) <- cell.names
+      rownames(x = meta.data) <- cell.names
+    }
+  }
+  assays <- if (is.null(x = mats$counts)) {
+    list(CreateAssayObject(data = mats$data))
+  } else if (is.null(x = mats$data)) {
+    list(CreateAssayObject(counts = mats$counts))
+  } else {
+    a <- CreateAssayObject(counts = mats$counts)
+    a <- SetAssayData(object = a, slot = 'data', new.data = mats$data)
+    list(a)
+  }
+  names(x = assays) <- assay
+  Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
+  # Create the Seurat object
+  object <- new(
+    Class = 'Seurat',
+    assays = assays,
+    meta.data = meta.data,
+    version = packageVersion(pkg = 'Seurat'),
+    project.name = project
+  )
+  DefaultAssay(object = object) <- assay
+  # Get DimReduc information
+  if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
+    for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
       embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
-      if (is.null(rownames(x = embeddings))) {
+      if (is.null(x = rownames(x = embeddings))) {
         rownames(x = embeddings)  <- cell.names
       }
       key <- gsub(
         pattern = "[[:digit:]]",
         replacement = "_",
-        x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr)
-        )[1])
+        x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
+      )
       if (length(x = key) == 0) {
         key <- paste0(dr, "_")
       }
       colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
-      seurat.object[[dr]] <- CreateDimReducObject(
+      object[[dr]] <- CreateDimReducObject(
         embeddings = embeddings,
         key = key,
-        assay = DefaultAssay(object = seurat.object)
+        assay = DefaultAssay(object = object)
       )
     }
   }
-  return(seurat.object)
+  return(object)
 }
 
 #' @param assay Assay to convert
