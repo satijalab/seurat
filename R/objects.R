@@ -1799,7 +1799,6 @@ as.Seurat.SingleCellExperiment <- function(
   if (!is.null(x = mats[["counts"]])) {
     seurat.object <- CreateSeuratObject(counts = mats[["counts"]], meta.data = meta.data)  
     if (!is.null(x = mats[["data"]])) {
-      rownames(x = mats[["data"]]) <- rownames(x = seurat.object)
       seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = mats[["data"]])
     }
   } else if (!is.null(x = mats[["data"]])) {
