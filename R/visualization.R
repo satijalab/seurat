@@ -1550,7 +1550,7 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' Intuitive way of visualizing how feature expression changes across different
 #' identity classes (clusters). The size of the dot encodes the percentage of
-#' cells within a class, while the color encodes the AverageExpression level 
+#' cells within a class, while the color encodes the AverageExpression level
 #' across all cells within a class (blue is high).
 #'
 #' @param object Seurat object
@@ -1593,7 +1593,7 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 DotPlot <- function(
   object,
-  assay = NULL, 
+  assay = NULL,
   features,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
@@ -3114,13 +3114,16 @@ ExIPlot <- function(
     }
     if (is.null(x = cols)) {
       cols <- hue_pal()(length(x = levels(x = idents)))
-    } else if (cols == 'interaction') {
+    } else if (length(x = cols) == 1 && cols == 'interaction') {
       split <- interaction(idents, split)
       cols <- hue_pal()(length(x = levels(x = idents)))
     } else {
       cols <- Col2Hex(cols)
     }
-    cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    if (length(x = cols) < length(x = levels(x = split))) {
+      cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    }
+    cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
   }
   if (same.y.lims && is.null(x = y.max)) {
@@ -3354,13 +3357,13 @@ geom_split_violin <- function(
 #
 InvertHex <- function(hexadecimal) {
   return(vapply(
-    X = hexadecimal,
+    X = toupper(x = hexadecimal),
     FUN = function(hex) {
       hex <- unlist(x = strsplit(
         x = gsub(pattern = '#', replacement = '', x = hex),
         split = ''
       ))
-      key <- unlist(x = strsplit(x = 'FEDCBA9876543210', split = ''))
+      key <- toupper(x = as.hexmode(x = 15:0))
       if (!all(hex %in% key)) {
         stop('All hexadecimal colors must be valid hexidecimal numbers from 0-9 and A-F')
       }

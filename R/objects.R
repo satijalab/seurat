@@ -2939,7 +2939,11 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
       )
     }
     # Properly name dimensional reductions
-    names(x = dim.reducs) <- gsub(pattern = 'X_', replacement = '', x = embed.reduc)
+    names(x = dim.reducs) <- gsub(
+      pattern = 'X_',
+      replacement = '',
+      x = embed.reduc
+    )
     # Clean up
     rm(embeddings, loadings)
     CheckGC()
@@ -2957,7 +2961,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   project <- gsub(
     pattern = '\\.h5ad',
     replacement = '',
-    x = basename(file$filename)
+    x = basename(path = file$filename)
   )
   object <- new(
     Class = 'Seurat',
@@ -3227,6 +3231,18 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
     )
   }
   if (!IsMatrixEmpty(x = new.data)) {
+    if (any(grepl(pattern = '_', x = rownames(x = new.data)))) {
+      warning(
+        "Feature names cannot have underscores ('_'), replacing with dashes ('-')",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      rownames(x = new.data) <- gsub(
+        pattern = '_',
+        replacement = '-',
+        x = rownames(x = new.data)
+      )
+    }
     if (ncol(x = new.data) != ncol(x = object)) {
       stop(
         "The new data doesn't have the same number of cells as the current data",
