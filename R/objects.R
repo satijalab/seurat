@@ -1784,7 +1784,7 @@ as.Seurat.SingleCellExperiment <- function(
     mats[[m]] <- tryCatch(
       expr = SummarizedExperiment::assay(x, mats[[m]]),
       error = function(e) {
-        stop("No data in provided assay - ", counts)
+        stop("No data in provided assay - ", mats[[m]])
       }
     )
     # if cell names are NULL, fill with cell_X
