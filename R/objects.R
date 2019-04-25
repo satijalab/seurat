@@ -378,6 +378,9 @@ CreateAssayObject <- function(
     if (is.null(x = colnames(x = counts))) {
       stop("No cell names (colnames) names present in the input matrix")
     }
+    if (any(rownames(x = counts) == '')) {
+      stop("Feature names of counts matrix cannot be empty", call. = FALSE)
+    }
     if (nrow(x = counts) > 0 && is.null(x = rownames(x = counts))) {
       stop("No feature names (rownames) names present in the input matrix")
     }
@@ -415,6 +418,9 @@ CreateAssayObject <- function(
     }
     if (is.null(x = colnames(x = data))) {
       stop("No cell names (colnames) names present in the input matrix")
+    }
+    if (any(rownames(x = data) == '')) {
+      stop("Feature names of data matrix cannot be empty", call. = FALSE)
     }
     if (nrow(x = data) > 0 && is.null(x = rownames(x = data))) {
       stop("No feature names (rownames) names present in the input matrix")
