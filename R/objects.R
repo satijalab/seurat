@@ -558,9 +558,15 @@ CreateDimReducObject <- function(
     colnames(x = embeddings) <- paste0(key, digits)
   }
   if (!IsMatrixEmpty(x = loadings)) {
+    if (any(rownames(x = loadings) == '')) {
+      stop("Feature names of loadings matrix cannot be empty", call. = FALSE)
+    }
     colnames(x = loadings) <- colnames(x = embeddings)
   }
   if (!IsMatrixEmpty(x = projected)) {
+    if (any(rownames(x = loadings) == '')) {
+      stop("Feature names of projected loadings matrix cannot be empty", call. = FALSE)
+    }
     colnames(x = projected) <- colnames(x = embeddings)
   }
   jackstraw <- jackstraw %||% new(Class = 'JackStrawData')
