@@ -7,8 +7,8 @@
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
   group.bar = TRUE, disp.min = -2.5, disp.max = NULL,
   slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
-  hjust = 0, angle = 45, raster = TRUE, white.lines = TRUE,
-  lines.width = NULL, combine = TRUE)
+  hjust = 0, angle = 45, raster = TRUE, draw.lines = TRUE,
+  lines.width = NULL, group.bar.height = 0.02, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -42,13 +42,15 @@ if \code{slot} is 'scale.data', 6 otherwise}
 some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 if you are encountering that issue (note that plots may take longer to produce/render).}
 
+\item{draw.lines}{Include white lines to separate the groups}
+
 \item{lines.width}{Integer number to adjust the width of the separating white lines. 
 Corresponds to the number of "cells" between each group.}
 
+\item{group.bar.height}{Scale the height of the color bar}
+
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
 when plotting multiple dimensions}
-
-\item{draw.lines}{Include white lines to separate the groups}
 }
 \value{
 A ggplot object

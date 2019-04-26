@@ -191,6 +191,7 @@ DimHeatmap <- function(
 #' @param draw.lines Include white lines to separate the groups
 #' @param lines.width Integer number to adjust the width of the separating white lines. 
 #' Corresponds to the number of "cells" between each group. 
+#' @param group.bar.height Scale the height of the color bar 
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
@@ -221,6 +222,7 @@ DoHeatmap <- function(
   raster = TRUE,
   draw.lines = TRUE,
   lines.width = NULL,
+  group.bar.height = 0.02,
   combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
@@ -302,8 +304,11 @@ DoHeatmap <- function(
       }
       pbuild <- ggplot_build(plot = plot)
       names(x = cols) <- levels(x = group.use2)
-      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
-      y.max <- y.pos + 0.5
+      # scale the height of the bar
+      y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
+      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
+      y.max <- y.pos + group.bar.height * y.range
+      
       plot <- plot + annotation_raster(
         raster = t(x = cols[group.use2]),,
         xmin = -Inf,
