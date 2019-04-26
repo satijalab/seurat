@@ -25,7 +25,9 @@ as.Seurat(x, ...)
 
 \item{features}{The name of the dataset within \code{row_attrs} containing feature names}
 
-\item{normalized}{The name of the dataset within \code{layers} containing the normalized expression matrix}
+\item{normalized}{The name of the dataset within \code{layers} containing the
+normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
+\code{/matrix} as normalized data}
 
 \item{scaled}{The name of the dataset within \code{layers} containing the scaled expression matrix}
 

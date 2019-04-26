@@ -1386,13 +1386,20 @@ as.loom.Seurat <- function(
     meta.feature[VariableFeatures(object = x), 'Selected'] <- 1
     meta.feature[is.na(x = meta.feature$Selected), 'Selected'] <- 0
   }
+  if (IsMatrixEmpty(x = GetAssayData(object = x, slot = 'counts'))) {
+    data <- GetAssayData(object = x, slot = 'data')
+    layers <- NULL
+  } else {
+    data <- GetAssayData(object = x, slot = 'counts') # Raw counts matrix
+    layers = list('norm_data' = GetAssayData(object = x, slot = 'data')) # Add data slot as norm_data
+  }
   # Make the initial loom object
   lfile <- loomR::create(
     filename = filename,
-    data = GetAssayData(object = x, slot = 'counts')[feature.order, cell.order], # Raw counts matrix
+    data = data[feature.order, cell.order],
     feature.attrs = as.list(x = meta.feature), # Feature-level metadata
     cell.attrs = as.list(x = meta.data), # Cell-level metadata
-    layers = list('norm_data' = GetAssayData(object = x)[feature.order, cell.order]), # Add data slot as norm_data
+    layers = layers,
     transpose = TRUE,
     calc.count = FALSE,
     max.size = max.size,
@@ -1507,7 +1514,9 @@ as.loom.Seurat <- function(
 #'
 #' @param cells The name of the dataset within \code{col_attrs} containing cell names
 #' @param features The name of the dataset within \code{row_attrs} containing feature names
-#' @param normalized The name of the dataset within \code{layers} containing the normalized expression matrix
+#' @param normalized The name of the dataset within \code{layers} containing the
+#' normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
+#' \code{/matrix} as normalized data
 #' @param scaled The name of the dataset within \code{layers} containing the scaled expression matrix
 #' @param assay Name of the assay to create
 #' @param verbose Display progress updates
@@ -1548,7 +1557,15 @@ as.Seurat.loom <- function(
   assay <- assay %||% hdf5r::h5attributes(x = x)$assay %||% 'RNA'
   # Read in the counts matrix
   if (verbose) {
-    message("Pulling counts matrix")
+    message(
+      "Pulling ",
+      ifelse(
+        test = normalized == '/matrix',
+        yes = 'normalized data',
+        no = 'counts'
+      )
+      ," matrix"
+    )
   }
   counts <- x$get.sparse(
     dataset = 'matrix',
@@ -1556,12 +1573,25 @@ as.Seurat.loom <- function(
     cell.names = cells,
     verbose = verbose
   )
-  object <- CreateSeuratObject(
-    counts = counts,
-    assay = assay
-  )
+  if (normalized == '/matrix') {
+    assays <- list(CreateAssayObject(data = counts))
+    names(x = assays) <- assay
+    object <- new(
+      Class = 'Seurat',
+      assays = assays,
+      meta.data = data.frame(row.names = colnames(x = assays[[assay]])),
+      version = packageVersion(pkg = 'Seurat'),
+      project.name = 'SeuratProject'
+    )
+    DefaultAssay(object = object) <- assay
+  } else {
+    object <- CreateSeuratObject(
+      counts = counts,
+      assay = assay
+    )
+  }
   # Read in normalized and scaled data
-  if (!is.null(x = normalized)) {
+  if (!is.null(x = normalized) && normalized != '/matrix') {
     normalized <- basename(path = normalized)
     if (!x[['layers']]$exists(name = normalized)) {
       warning(
@@ -1581,7 +1611,7 @@ as.Seurat.loom <- function(
       )
       object <- SetAssayData(object = object, slot = 'data', new.data = norm.data)
     }
-  } else {
+  } else if (normalized != '/matrix') {
     if (verbose) {
       message("No normalized data provided, not adding scaled data")
     }
@@ -1634,22 +1664,24 @@ as.Seurat.loom <- function(
     },
     x = meta.data
   )
-  meta.data <- sapply(
-    X = meta.data,
-    FUN = function(m) {
-      return(x[['col_attrs']][[m]][])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  meta.data <- as.data.frame(x = meta.data)
-  rownames(x = meta.data) <- make.unique(names = x[['col_attrs']][[cells]][])
-  colnames(x = meta.data) <- gsub(
-    pattern = 'orig_ident',
-    replacement = 'orig.ident',
-    x = colnames(x = meta.data)
-  )
-  object[[colnames(x = meta.data)]] <- meta.data
+  if (length(x = meta.data) > 0) {
+    meta.data <- sapply(
+      X = meta.data,
+      FUN = function(m) {
+        return(x[['col_attrs']][[m]][])
+      },
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    meta.data <- as.data.frame(x = meta.data)
+    rownames(x = meta.data) <- make.unique(names = x[['col_attrs']][[cells]][])
+    colnames(x = meta.data) <- gsub(
+      pattern = 'orig_ident',
+      replacement = 'orig.ident',
+      x = colnames(x = meta.data)
+    )
+    object[[colnames(x = meta.data)]] <- meta.data
+  }
   # Set clustering information
   idents <- if (x[['col_attrs']]$exists(name = 'ClusterID')) {
     if (length(x = x[['col_attrs/ClusterID']]$dims) == 1) {
@@ -1700,37 +1732,39 @@ as.Seurat.loom <- function(
     },
     x = meta.features
   )
-  meta.features <- sapply(
-    X = meta.features,
-    FUN = function(m) {
-      return(x[['row_attrs']][[m]][])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  meta.features <- as.data.frame(x = meta.features)
-  rownames(x = meta.features) <- make.unique(names = x[['row_attrs']][[features]][])
-  colnames(x = meta.features) <- gsub(
-    pattern = 'variance_standardized',
-    replacement = 'variance.standardized',
-    x = colnames(x = meta.features)
-  )
-  colnames(x = meta.features) <- gsub(
-    pattern = 'variance_expected',
-    replacement = 'variance.expected',
-    x = colnames(x = meta.features)
-  )
-  colnames(x = meta.features) <- gsub(
-    pattern = 'dispersion_scaled',
-    replacement = 'dispersion.scaled',
-    x = colnames(x = meta.features)
-  )
-  object[[assay]][[colnames(x = meta.features)]] <- meta.features
+  if (length(x = meta.features) > 0) {
+    meta.features <- sapply(
+      X = meta.features,
+      FUN = function(m) {
+        return(x[['row_attrs']][[m]][])
+      },
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    meta.features <- as.data.frame(x = meta.features)
+    rownames(x = meta.features) <- make.unique(names = x[['row_attrs']][[features]][])
+    colnames(x = meta.features) <- gsub(
+      pattern = 'variance_standardized',
+      replacement = 'variance.standardized',
+      x = colnames(x = meta.features)
+    )
+    colnames(x = meta.features) <- gsub(
+      pattern = 'variance_expected',
+      replacement = 'variance.expected',
+      x = colnames(x = meta.features)
+    )
+    colnames(x = meta.features) <- gsub(
+      pattern = 'dispersion_scaled',
+      replacement = 'dispersion.scaled',
+      x = colnames(x = meta.features)
+    )
+    object[[assay]][[colnames(x = meta.features)]] <- meta.features
+  }
   # Look for variable features
   if (x[['row_attrs']]$exists(name = 'Selected')) {
     if (inherits(x = x[['row_attrs/Selected']]$get_type(), what = c('H5T_FLOAT', 'H5T_INTEGER'))) {
       var.features <- which(x = x[['row_attrs/Selected']][] == 1)
-      VariableFeatures(object = object) <- rownames(x = meta.features)[var.features]
+      VariableFeatures(object = object) <- x[['row_attrs']][[features]][var.features]
     } else if (verbose) {
       message("'Selected' must be a dataset of floats or integers, with '1' signifiying variable")
     }
