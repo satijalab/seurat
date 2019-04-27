@@ -1584,7 +1584,7 @@ NormalizeData.default <- function(
           scale.factor = scale.factor,
           verbose = FALSE,
           custom_function = function(x) {
-            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
           },
           margin = margin
           # across = across
@@ -1611,7 +1611,7 @@ NormalizeData.default <- function(
       'CLR' = CustomNormalize(
         data = object,
         custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
         },
         margin = margin,
         verbose = verbose
