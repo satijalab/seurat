@@ -127,13 +127,14 @@ BuildClusterTree <- function(
     if (verbose) {
       message("Reordering identity classes and rebuilding tree")
     }
-    old.ident.order <- sort(x = levels(x = object))
+    old.ident.order <- levels(x = object)
     data.tree <- Tool(object = object, slot = 'BuildClusterTree')
     all.desc <- GetDescendants(tree = data.tree, node = (data.tree$Nnode + 2))
     all.desc <- old.ident.order[all.desc[all.desc <= (data.tree$Nnode + 1)]]
-    levels(x = object) <- all.desc
+    Idents(object = object) <- factor(x = Idents(object = object), levels = all.desc, ordered = TRUE)
     if (reorder.numeric) {
-      Idents(object = object) <- as.integer(x = Idents(object = object))
+      new.levels <- sort(x = unique(x = as.integer(x = Idents(object = object))))
+      Idents(object = object) <- factor(x = as.integer(x = Idents(object = object)), levels = new.levels)
       object[['tree.ident']] <- as.integer(x = Idents(object = object))
     }
     object <- BuildClusterTree(
