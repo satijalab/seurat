@@ -188,6 +188,10 @@ DimHeatmap <- function(
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 #' if you are encountering that issue (note that plots may take longer to produce/render).
+#' @param draw.lines Include white lines to separate the groups
+#' @param lines.width Integer number to adjust the width of the separating white lines. 
+#' Corresponds to the number of "cells" between each group. 
+#' @param group.bar.height Scale the height of the color bar 
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
@@ -216,6 +220,9 @@ DoHeatmap <- function(
   hjust = 0,
   angle = 45,
   raster = TRUE,
+  draw.lines = TRUE,
+  lines.width = NULL,
+  group.bar.height = 0.02,
   combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
@@ -260,6 +267,21 @@ DoHeatmap <- function(
     group.use <- groups.use[, i, drop = TRUE]
     group.use <- factor(x = group.use)
     names(x = group.use) <- cells
+    if (draw.lines) {
+      # create fake cells to serve as the white lines, fill with NAs
+      lines.width <- lines.width %||% ceiling(x = nrow(x = data) * 0.0025)
+      placeholder.cells <- sapply(
+        X = 1:(length(x = levels(x = group.use)) * lines.width), 
+        FUN = function(x) RandomName(length = 20)
+      )
+      placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
+      names(x = placeholder.groups) <- placeholder.cells
+      group.use <- as.vector(x = group.use)
+      names(x = group.use) <- cells
+      group.use <- factor(x = c(group.use, placeholder.groups))
+      na.data <- matrix(data = NA, nrow = length(x = placeholder.cells), ncol = ncol(data), dimnames = list(placeholder.cells, colnames(x = data)))
+      data <- rbind(data, na.data)
+    }
     plot <- SingleRasterMap(
       data = data,
       raster = raster,
@@ -271,13 +293,24 @@ DoHeatmap <- function(
     )
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
+      group.use2 <- sort(x = group.use)
+      if (draw.lines) {
+        na.group <- RandomName(length = 20)
+        levels(x = group.use2) <- c(levels(x = group.use2), na.group)
+        group.use2[placeholder.cells] <- na.group
+        cols <- c(hue_pal()(length(x = levels(x = group.use))), "#FFFFFF")
+      } else {
+        cols <- c(hue_pal()(length(x = levels(x = group.use))))
+      }
       pbuild <- ggplot_build(plot = plot)
-      cols <- hue_pal()(length(x = levels(x = group.use)))
-      names(x = cols) <- levels(x = group.use)
-      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
-      y.max <- y.pos + 0.5
+      names(x = cols) <- levels(x = group.use2)
+      # scale the height of the bar
+      y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
+      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
+      y.max <- y.pos + group.bar.height * y.range
+      
       plot <- plot + annotation_raster(
-        raster = t(x = cols[sort(x = group.use)]),
+        raster = t(x = cols[group.use2]),,
         xmin = -Inf,
         xmax = Inf,
         ymin = y.pos,
@@ -4182,7 +4215,7 @@ SingleRasterMap <- function(
   plot <- ggplot(data = data) +
     my_geom(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-    scale_fill_gradientn(limits = limits, colors = colors) +
+    scale_fill_gradientn(limits = limits, colors = colors, na.value = "white") +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
     WhiteBackground() + NoAxes(keep.text = TRUE)
   if (!is.null(x = group.by)) {
