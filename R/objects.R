@@ -2236,10 +2236,19 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #'
 HVFInfo.Assay <- function(object, ...) {
   dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
-  vars <- switch(which(dispersion.names %in% colnames(x = object[[]])),
-                 c('mean', 'variance', 'variance.standardized'),
-                 c('mean', 'dispersion', 'dispersion.scaled'),
-                 c('gmean', 'variance', 'residual_variance'))
+  which.dispersion <- na.omit(object = match(
+    x = dispersion.names,
+    table = colnames(x = object[[]])
+  ))
+  if (length(x = which.dispersion) < 1) {
+    stop("FindVariableFeatures has not been run for this assay yet", call. = FALSE)
+  }
+  vars <- switch(
+    EXPR = dispersion.names[which.max(x = which.dispersion)],
+    'variance.standardized' = c('mean', 'variance', 'variance.standardized'),
+    'dispersion.scaled' = c('mean', 'dispersion', 'dispersion.scaled'),
+    'residual_variance' = c('gmean', 'variance', 'residual_variance')
+  )
   hvf.info <- object[[vars]]
   return(hvf.info)
 }
