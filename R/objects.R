@@ -3765,6 +3765,9 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #' @method VariableFeatures<- Assay
 #'
 "VariableFeatures<-.Assay" <- function(object, ..., value) {
+  if (length(x = value) == 0) {
+    return(object)
+  }
   if (any(grepl(pattern = '_', x = value))) {
     warning(
       "Feature names cannot have underscores '_', replacing with dashes '-'",
