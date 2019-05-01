@@ -475,19 +475,20 @@ FindMarkers.default <- function(
     stop("No features pass min.diff.pct threshold")
   }
   # gene selection (based on average difference)
+  if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
+    mean.fxn <- function(x) {log(x = mean(x = x) + pseudocount.use)}
+  } else {
+    mean.fxn <- function(x) {log(x = mean(x = expm1(x = x)) + pseudocount.use)}
+  }
   data.1 <- apply(
     X = object[features, cells.1, drop = FALSE],
     MARGIN = 1,
-    FUN = function(x) {
-      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
-    }
+    FUN = mean.fxn
   )
   data.2 <- apply(
     X = object[features, cells.2, drop = FALSE],
     MARGIN = 1,
-    FUN = function(x) {
-      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
-    }
+    FUN = mean.fxn
   )
   total.diff <- (data.1 - data.2)
   features.diff <- if (only.pos) {
