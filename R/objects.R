@@ -3766,6 +3766,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #'
 "VariableFeatures<-.Assay" <- function(object, ..., value) {
   if (length(x = value) == 0) {
+    slot(object = object, name = 'var.features') <- character(length = 0)
     return(object)
   }
   if (any(grepl(pattern = '_', x = value))) {
