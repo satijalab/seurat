@@ -44,7 +44,7 @@ if you are encountering that issue (note that plots may take longer to produce/r
 
 \item{draw.lines}{Include white lines to separate the groups}
 
-\item{lines.width}{Integer number to adjust the width of the separating white lines. 
+\item{lines.width}{Integer number to adjust the width of the separating white lines.
 Corresponds to the number of "cells" between each group.}
 
 \item{group.bar.height}{Scale the height of the color bar}
