@@ -2226,6 +2226,10 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
   ))
 }
 
+#' @param selection.method Which method to pull; choose one from \code{c('sctransform', 'sct')}
+#' or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}
+#' @param status Add variable status to the resulting data.frame
+#'
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
@@ -2234,26 +2238,44 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' # Get the HVF info directly from an Assay object
 #' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
 #'
-HVFInfo.Assay <- function(object, ...) {
-  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
-  which.dispersion <- na.omit(object = match(
-    x = dispersion.names,
-    table = colnames(x = object[[]])
-  ))
-  if (length(x = which.dispersion) < 1) {
-    stop("FindVariableFeatures has not been run for this assay yet", call. = FALSE)
+HVFInfo.Assay <- function(object, selection.method, status = FALSE, ...) {
+  disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
+  if (tolower(x = selection.method) %in% disp.methods) {
+    selection.method <- 'mvp'
   }
-  vars <- switch(
-    EXPR = dispersion.names[which.max(x = which.dispersion)],
-    'variance.standardized' = c('mean', 'variance', 'variance.standardized'),
-    'dispersion.scaled' = c('mean', 'dispersion', 'dispersion.scaled'),
-    'residual_variance' = c('gmean', 'variance', 'residual_variance')
+  selection.method <- switch(
+    EXPR = tolower(x = selection.method),
+    'sctransform' = 'sct',
+    selection.method
   )
-  hvf.info <- object[[vars]]
+  vars <- switch(
+    EXPR = selection.method,
+    'vst' = c('mean', 'variance', 'variance.standardized'),
+    'mvp' = c('mean', 'dispersion', 'dispersion.scaled'),
+    'sct' = c('gmean', 'variance', 'residual_variance'),
+    stop("Unknown method: '", selection.method, "'", call. = FALSE)
+  )
+  tryCatch(
+    expr = hvf.info <- object[[paste(selection.method, vars, sep = '.')]],
+    error = function(e) {
+      stop(
+        "Unable to find highly variable feature information for method '",
+        selection.method,
+        "'",
+        call. = FALSE
+      )
+    }
+  )
+  colnames(x = hvf.info) <- vars
+  if (status) {
+    hvf.info$variable <- object[[paste0(selection.method, '.variable')]]
+  }
   return(hvf.info)
 }
 
 #' @param assay Name of assay to pull highly variable feature information for
+#'
+#' @importFrom tools file_path_sans_ext
 #'
 #' @rdname HVFInfo
 #' @export
@@ -2263,9 +2285,54 @@ HVFInfo.Assay <- function(object, ...) {
 #' # Get the HVF info from a specific Assay in a Seurat object
 #' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
 #'
-HVFInfo.Seurat <- function(object, assay = NULL, ...) {
+HVFInfo.Seurat <- function(
+  object,
+  selection.method = NULL,
+  assay = NULL,
+  status = FALSE,
+  ...
+) {
   assay <- assay %||% DefaultAssay(object = object)
-  return(HVFInfo(object = GetAssay(object = object, assay = assay)))
+  if (is.null(x = selection.method)) {
+    cmds <- apply(
+      X = expand.grid(
+        c('FindVariableFeatures', 'SCTransform'),
+        FilterObjects(object = object, classes.keep = 'Assay')
+      ),
+      MARGIN = 1,
+      FUN = paste,
+      collapse = '.'
+    )
+    find.command <- Command(object = object)[Command(object = object) %in% cmds]
+    if (length(x = find.command) < 1) {
+      stop(
+        "Please run either 'FindVariableFeatures' or 'SCTransform'",
+        call. = FALSE
+      )
+    }
+    find.command <- find.command[length(x = find.command)]
+    test.command <- paste(file_path_sans_ext(x = find.command), assay, sep = '.')
+    find.command <- ifelse(
+      test = test.command %in% Command(object = object),
+      yes = test.command,
+      no = find.command
+    )
+    selection.method <- switch(
+      EXPR = file_path_sans_ext(x = find.command),
+      'FindVariableFeatures' = Command(
+        object = object,
+        command = find.command,
+        value = 'selection.method'
+      ),
+      'SCTransform' = 'sct',
+      stop("Unknown command for finding variable features: '", find.command, "'", call. = FALSE)
+    )
+  }
+  return(HVFInfo(
+    object = GetAssay(object = object, assay = assay),
+    selection.method = selection.method,
+    status = status
+  ))
 }
 
 #' @rdname Idents
@@ -5363,6 +5430,14 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         for (dr in reducs.assay) {
           x[[dr]] <- NULL
         }
+      }
+      # If adding a command, ensure it gets put at the end of the command list
+      if (inherits(x = value, what = 'SeuratCommand')) {
+        slot(object = x, name = slot.use)[[i]] <- NULL
+        slot(object = x, name = slot.use) <- Filter(
+          f = Negate(f = is.null),
+          x = slot(object = x, name = slot.use)
+        )
       }
       slot(object = x, name = slot.use)[[i]] <- value
       slot(object = x, name = slot.use) <- Filter(

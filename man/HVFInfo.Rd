@@ -8,14 +8,20 @@
 \usage{
 HVFInfo(object, ...)
 
-\method{HVFInfo}{Assay}(object, ...)
+\method{HVFInfo}{Assay}(object, selection.method, status = FALSE, ...)
 
-\method{HVFInfo}{Seurat}(object, assay = NULL, ...)
+\method{HVFInfo}{Seurat}(object, selection.method = NULL, assay = NULL,
+  status = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
+
+\item{selection.method}{Which method to pull; choose one from \code{c('sctransform', 'sct')}
+or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}}
+
+\item{status}{Add variable status to the resulting data.frame}
 
 \item{assay}{Name of assay to pull highly variable feature information for}
 }
