@@ -1004,17 +1004,17 @@ SampleUMI <- function(
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
-#' 
-#' @return Returns a Seurat object with a new assay (named SCT by default) with 
-#' counts being (corrected) counts, data being log1p(counts), scale.data being 
-#' pearson residuals; sctransform::vst intermediate results are saved in misc 
+#'
+#' @return Returns a Seurat object with a new assay (named SCT by default) with
+#' counts being (corrected) counts, data being log1p(counts), scale.data being
+#' pearson residuals; sctransform::vst intermediate results are saved in misc
 #' slot of the new assay.
 #'
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' SCTransform(object = pbmc_small)
 #'
@@ -1185,7 +1185,8 @@ SCTransform <- function(
   vst.out$y <- NULL
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   # also put gene attributes in meta.features
-  assay.out[[names(x = vst.out$gene_attr)]] <- vst.out$gene_attr
+  assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
+  assay.out[['sct.variable']] <- rownames(x = assay.out[[]]) %in% top.features
   object[[new.assay.name]] <- assay.out
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
@@ -1278,14 +1279,14 @@ TF.IDF <- function(data, verbose = TRUE) {
 #'   feature values using the observed mean and expected variance (given by the
 #'   fitted line). Feature variance is then calculated on the standardized values
 #'   after clipping to a maximum (see clip.max parameter).}
-#'   \item{mean.var.plot:}{ First, uses a function to calculate average
+#'   \item{mean.var.plot (mvp):}{ First, uses a function to calculate average
 #'   expression (mean.function) and dispersion (dispersion.function) for each
 #'   feature. Next, divides features into num.bin (deafult 20) bins based on
 #'   their average expression, and calculates z-scores for dispersion within
 #'   each bin. The purpose of this is to identify variable features while
 #'   controlling for the strong relationship between variability and average
 #'   expression.}
-#'   \item{dispersion:}{ selects the genes with the highest dispersion values}
+#'   \item{dispersion (disp):}{ selects the genes with the highest dispersion values}
 #' }
 #' @param loess.span (vst method) Loess span parameter used when fitting the
 #' variance-mean relationship
@@ -1356,6 +1357,7 @@ FindVariableFeatures.default <- function(
       vmax = clip.max,
       display_progress = verbose
     )
+    colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   } else {
     if (!inherits(x = mean.function, what = 'function')) {
       stop("'mean.function' must be a function")
@@ -1389,7 +1391,7 @@ FindVariableFeatures.default <- function(
     names(x = feature.dispersion.scaled) <- names(x = feature.mean)
     hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
     rownames(x = hvf.info) <- rownames(x = object)
-    colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+    colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
   }
   return(hvf.info)
 }
@@ -1426,7 +1428,8 @@ FindVariableFeatures.Assay <- function(
   }
   if (selection.method == "vst") {
     data <- GetAssayData(object = object, slot = "counts")
-    if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+    # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+    if (IsMatrixEmpty(x = data)) {
       warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
       data <- GetAssayData(object = object, slot = "data")
     }
@@ -1445,12 +1448,18 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
-  hvf.info <- hvf.info[which(x = hvf.info$mean != 0), ]
+  hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
   if (selection.method == "vst") {
-    hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
+    hvf.info <- hvf.info[order(hvf.info$vst.variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {
-    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+    hvf.info <- hvf.info[order(hvf.info$mvp.dispersion, decreasing = TRUE), , drop = FALSE]
   }
+  selection.method <- switch(
+    EXPR = selection.method,
+    'mvp' = 'mean.var.plot',
+    'disp' = 'dispersion',
+    selection.method
+  )
   top.features <- switch(
     EXPR = selection.method,
     'mean.var.plot' = {
@@ -1463,6 +1472,13 @@ FindVariableFeatures.Assay <- function(
     stop("Unkown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
+  vf.name <- ifelse(
+    test = selection.method == 'vst',
+    yes = 'vst',
+    no = 'mvp'
+  )
+  vf.name <- paste0(vf.name, '.variable')
+  object[[vf.name]] <- rownames(x = object[[]]) %in% top.features
   return(object)
 }
 
