@@ -3821,7 +3821,11 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 #' @export
 #' @method VariableFeatures Assay
 #'
-VariableFeatures.Assay <- function(object, ...) {
+VariableFeatures.Assay <- function(object, selection.method = NULL, ...) {
+  if (!is.null(x = selection.method)) {
+    vf <- HVFInfo(object = object, selection.method = selection.method, status = TRUE)
+    return(rownames(x = vf)[which(x = vf[, "variable"][, 1])])
+  }
   return(slot(object = object, name = 'var.features'))
 }
 
@@ -3831,9 +3835,9 @@ VariableFeatures.Assay <- function(object, ...) {
 #' @export
 #' @method VariableFeatures Seurat
 #'
-VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
+VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
-  return(VariableFeatures(object = object[[assay]]))
+  return(VariableFeatures(object = object[[assay]], selection.method = selection.method))
 }
 
 #' @rdname VariableFeatures
