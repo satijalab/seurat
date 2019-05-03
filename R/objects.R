@@ -2236,7 +2236,7 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #'
 #' @examples
 #' # Get the HVF info directly from an Assay object
-#' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
+#' HVFInfo(object = pbmc_small[["RNA"]], selection.method = 'vst')[1:5, ]
 #'
 HVFInfo.Assay <- function(object, selection.method, status = FALSE, ...) {
   disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
