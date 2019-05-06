@@ -400,6 +400,7 @@ FindConservedMarkers <- function(
 #'
 FindMarkers.default <- function(
   object,
+  slot = "data",
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
@@ -420,7 +421,7 @@ FindMarkers.default <- function(
   features <- features %||% rownames(x = object)
   methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
-    features <- rownames(object)
+    features <- rownames(x = object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
@@ -435,50 +436,52 @@ FindMarkers.default <- function(
   } else if (length(x = cells.2) < min.cells.group) {
     stop("Cell group 2 has fewer than ", min.cells.group, " cells")
   } else if (any(!cells.1 %in% colnames(x = object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.1) %in% colnames(x = object))]
     stop(
       "The following cell names provided to cells.1 are not present: ",
       paste(bad.cells, collapse = ", ")
     )
   } else if (any(!cells.2 %in% colnames(x = object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.2) %in% colnames(x = object))]
     stop(
       "The following cell names provided to cells.2 are not present: ",
       paste(bad.cells, collapse = ", ")
     )
   }
   # feature selection (based on percentages)
-  thresh.min <- 0
-  pct.1 <- round(
-    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
-      length(x = cells.1),
-    digits = 3
-  )
-  pct.2 <- round(
-    x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
-      length(x = cells.2),
-    digits = 3
-  )
-  data.alpha <- cbind(pct.1, pct.2)
-  colnames(x = data.alpha) <- c("pct.1", "pct.2")
-  alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
-  names(x = alpha.min) <- rownames(x = data.alpha)
-  features <- names(x = which(x = alpha.min > min.pct))
-  if (length(x = features) == 0) {
-    stop("No features pass min.pct threshold")
-  }
-  alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-  features <- names(
-    x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
-  )
-  if (length(x = features) == 0) {
-    stop("No features pass min.diff.pct threshold")
+  if (slot != "scale.data") {
+    thresh.min <- 0
+    pct.1 <- round(
+      x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+        length(x = cells.1),
+      digits = 3
+    )
+    pct.2 <- round(
+      x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
+        length(x = cells.2),
+      digits = 3
+    )
+    data.alpha <- cbind(pct.1, pct.2)
+    colnames(x = data.alpha) <- c("pct.1", "pct.2")
+    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
+    names(x = alpha.min) <- rownames(x = data.alpha)
+    features <- names(x = which(x = alpha.min > min.pct))
+    if (length(x = features) == 0) {
+      stop("No features pass min.pct threshold")
+    }
+    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
+    features <- names(
+      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+    )
+    if (length(x = features) == 0) {
+      stop("No features pass min.diff.pct threshold")
+    }
   }
   # gene selection (based on average difference)
-  if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
-    mean.fxn <- function(x) {log(x = mean(x = x) + pseudocount.use)}
-  } else {
+  if (slot == "data") {
     mean.fxn <- function(x) {log(x = mean(x = expm1(x = x)) + pseudocount.use)}
+  } else {
+    mean.fxn <- function(x) {log(x = mean(x = x) + pseudocount.use)}
   }
   data.1 <- apply(
     X = object[features, cells.1, drop = FALSE],
@@ -716,6 +719,7 @@ FindMarkers.Seurat <- function(
   }
   de.results <- FindMarkers(
     object = data.use,
+    slot = data.slot,
     cells.1 = ident.1,
     cells.2 = ident.2,
     features = features,
