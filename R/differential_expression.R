@@ -419,7 +419,7 @@ FindMarkers.default <- function(
   ...
 ) {
   features <- features %||% rownames(x = object)
-  methods.noprefiliter <- c("DESeq2", "zingeR")
+  methods.noprefiliter <- c("DESeq2")
   if (test.use %in% methods.noprefiliter) {
     features <- rownames(x = object)
     min.diff.pct <- -Inf
