@@ -1006,6 +1006,7 @@ Tool <- function(object, ...) {
 #' Get and set variable feature information
 #'
 #' @param object An object
+#' @param selection.method Method used to set variable features
 #' @param ... Arguments passed to other methods
 #'
 #' @rdname VariableFeatures
