@@ -329,6 +329,9 @@ FindConservedMarkers <- function(
 
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
+#' @param counts Count matrix if using scale.data for DE tests. This is used for 
+#' computing pct.1 and pct.2 and for filtering features based on fraction 
+#' expressing 
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -401,9 +404,11 @@ FindConservedMarkers <- function(
 FindMarkers.default <- function(
   object,
   slot = "data",
+  counts = numeric(),
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
+  reduction = NULL,
   logfc.threshold = 0.25,
   test.use = 'wilcox',
   min.pct = 0.1,
@@ -449,15 +454,19 @@ FindMarkers.default <- function(
     )
   }
   # feature selection (based on percentages)
-  if (slot != "scale.data") {
+  data <- object
+  if (slot == "scale.data") {
+    data <- counts
+  }
+  if (is.null(x = reduction)) {
     thresh.min <- 0
     pct.1 <- round(
-      x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+      x = rowSums(x = data[features, cells.1, drop = FALSE] > thresh.min) /
         length(x = cells.1),
       digits = 3
     )
     pct.2 <- round(
-      x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
+      x = rowSums(x = data[features, cells.2, drop = FALSE] > thresh.min) /
         length(x = cells.2),
       digits = 3
     )
@@ -476,32 +485,43 @@ FindMarkers.default <- function(
     if (length(x = features) == 0) {
       stop("No features pass min.diff.pct threshold")
     }
-  }
-  # gene selection (based on average difference)
-  if (slot == "data") {
-    mean.fxn <- function(x) {log(x = mean(x = expm1(x = x)) + pseudocount.use)}
   } else {
-    mean.fxn <- function(x) {log(x = mean(x = x) + pseudocount.use)}
+    data.alpha <- data.frame(
+      pct.1 = rep(x = NA, times = length(x = features)),
+      pct.2 = rep(x = NA, times = length(x = features))
+    )
+  }
+  # feature selection (based on average difference)
+  if (is.null(x = reduction) & slot != "scale.data") {
+    if (slot == "data") {
+      mean.fxn <- function(x) {log(x = mean(x = expm1(x = x)) + pseudocount.use)}
+    } else {
+      mean.fxn <- function(x) {log(x = mean(x = x) + pseudocount.use)}
+    }
+  } else {
+    mean.fxn <- mean
   }
   data.1 <- apply(
-    X = object[features, cells.1, drop = FALSE],
+    X = data[features, cells.1, drop = FALSE],
     MARGIN = 1,
     FUN = mean.fxn
   )
   data.2 <- apply(
-    X = object[features, cells.2, drop = FALSE],
+    X = data[features, cells.2, drop = FALSE],
     MARGIN = 1,
     FUN = mean.fxn
   )
   total.diff <- (data.1 - data.2)
-  features.diff <- if (only.pos) {
-    names(x = which(x = total.diff > logfc.threshold))
-  } else {
-    names(x = which(x = abs(x = total.diff) > logfc.threshold))
-  }
-  features <- intersect(x = features, y = features.diff)
-  if (length(x = features) == 0) {
-    stop("No features pass logfc.threshold threshold")
+  if (is.null(x = reduction) & slot != "scale.data") {
+    features.diff <- if (only.pos) {
+      names(x = which(x = total.diff > logfc.threshold))
+    } else {
+      names(x = which(x = abs(x = total.diff) > logfc.threshold))
+    }
+    features <- intersect(x = features, y = features.diff)
+    if (length(x = features) == 0) {
+      stop("No features pass logfc.threshold threshold")
+    }
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
@@ -587,19 +607,27 @@ FindMarkers.default <- function(
     ),
     stop("Unknown test: ", test.use)
   )
-  de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
-  de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-  de.results$p_val_adj = p.adjust(
-    p = de.results$p_val,method = "bonferroni",
-    n = nrow(object)
-  )
-  if (test.use == "roc") {
-    de.results <- de.results[order(-de.results$power, -de.results$avg_logFC), ]
+  if (is.null(x = reduction)) {
+    diff.col <- ifelse(test = slot == "scale.data" | test.use == 'roc', yes = "avg_diff", no = "avg_logFC")
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
+    if (only.pos) {
+      de.results <- subset(x = de.results, subset = avg_logFC > 0)
+    }
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results$avg_logFC), ]
+    diff.col <- "avg_diff"
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
   }
-  if (only.pos) {
-    de.results <- subset(x = de.results, subset = avg_logFC > 0)
+  if (test.use == "roc") {
+    de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
+  } else {
+    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
+    de.results$p_val_adj = p.adjust(
+      p = de.results$p_val,
+      method = "bonferroni",
+      n = nrow(object)
+    )
   }
   return(de.results)
 }
@@ -717,12 +745,18 @@ FindMarkers.Seurat <- function(
       cells = c(ident.1, ident.2)
     )
   }
+  counts <- numeric()
+  if (data.slot == "scale.data") {
+    counts <-  GetAssayData(object = object[[assay]], slot = "counts")
+  }
   de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
+    counts = counts,
     cells.1 = ident.1,
     cells.2 = ident.2,
     features = features,
+    reduction = reduction,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
@@ -979,6 +1013,7 @@ DiffTTest <- function(
   to.return <- data.frame(p_val,row.names = rownames(x = data.use))
   return(to.return)
 }
+
 
 # Tests for UMI-count based data
 #

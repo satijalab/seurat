@@ -148,9 +148,7 @@ test_that("subset.ident works", {
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, reduction = "pca", verbose = FALSE))
 test_that("reduction works", {
   expect_equal(results[1, "p_val"], 1.664954e-10)
-  expect_equal(results[1, "avg_logFC"], -2.1984069, tolerance = 1e-6)
-  expect_equal(results[1, "pct.1"], 0.167)
-  expect_equal(results[1, "pct.2"], 1.00)
+  expect_equal(results[1, "avg_diff"], -2.810453669, tolerance = 1e-6)
   expect_equal(results[1, "p_val_adj"], 3.163412e-09)
   expect_equal(rownames(x = results)[1], "PC_2")
 })
@@ -169,11 +167,10 @@ test_that("bimod test works", {
 results <- FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "roc", verbose = FALSE)
 test_that("roc test works", {
   expect_equal(nrow(x = results), 201)
-  expect_equal(colnames(x = results), c("myAUC", "avg_diff", "power", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
+  expect_equal(colnames(x = results), c("myAUC", "avg_diff", "power", "pct.1", "pct.2"))
   expect_equal(results["CST3", "myAUC"], 0.018)
   expect_equal(results["CST3", "avg_diff"], -2.552769, tolerance = 1e-6)
   expect_equal(results["CST3", "power"], 0.964)
-  expect_equal(results["CST3", "avg_logFC"], -2.552769, tolerance = 1e-6)
   expect_equal(results["CST3", "pct.1"], 0.306)
   expect_equal(results["CST3", "pct.2"], 1.00)
   expect_equal(rownames(x = results)[1], "LYZ")
