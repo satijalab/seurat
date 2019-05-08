@@ -1059,6 +1059,11 @@ SCTransform <- function(
       stop('latent_var values are not from the set of cell attributes sctransform calculates by default and cannot be found in seurat object meta data')
     }
   }
+  # check for vars.to.regress in meta data
+  if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
+    stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
+  }
+  
   if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
     warning(
       'the following arguments will be ignored because they are set within this function:',
