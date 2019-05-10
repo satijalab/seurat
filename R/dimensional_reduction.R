@@ -892,7 +892,6 @@ RunPCA.Assay <- function(
   reduction.data <- RunPCA(
     object = data.use,
     assay = assay,
-    pc.features = features,
     npcs = npcs,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
