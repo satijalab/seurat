@@ -736,6 +736,7 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
+#' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -778,6 +779,7 @@ FeaturePlot <- function(
   reduction = NULL,
   split.by = NULL,
   shape.by = NULL,
+  slot = 'data',
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -810,7 +812,7 @@ FeaturePlot <- function(
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  data <- FetchData(object = object, vars = c(dims, features), cells = cells)
+  data <- FetchData(object = object, vars = c(dims, features), cells = cells, slot = slot)
   features <- colnames(x = data)[3:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
