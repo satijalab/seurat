@@ -1994,8 +1994,10 @@ ScaleData.default <- function(
           }
         )
         object <- do.call(what = 'cbind', args = object)
-      } else {
+      } else if (is.list(x = object)) {
         object <- do.call(what = 'rbind', args = object)
+      } else {
+        dim(x = object) <- lapply(X = object.names, FUN = length)
       }
     } else {
       object <- lapply(
@@ -2079,8 +2081,10 @@ ScaleData.default <- function(
         }
       )
       scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
-    } else {
+    } else if (is.list(x = scaled.data)) {
       suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    } else {
+      dim(x = scaled.data) <- dim(x = object)
     }
   } else {
     scaled.data <- matrix(
