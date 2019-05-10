@@ -191,14 +191,14 @@ FindAllMarkers <- function(
   return(gde.all)
 }
 
-#' Finds markers that are conserved between the two groups
+#' Finds markers that are conserved between the groups 
 #'
 #' @inheritParams FindMarkers
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
 #' @param grouping.var grouping variable
-#' @param assay.type Type of assay to fetch data for (default is RNA)
+#' @param assay of assay to fetch data for (default is RNA)
 #' @param meta.method method for combining p-values. Should be a function from
 #' the metap package (NOTE: pass the function, not a string)
 #' @param \dots parameters to pass to FindMarkers
@@ -225,14 +225,14 @@ FindConservedMarkers <- function(
   ident.1,
   ident.2 = NULL,
   grouping.var,
-  assay.type = 'RNA',
+  assay = 'RNA',
   slot = 'data',
   meta.method = minimump,
   verbose = TRUE,
   ...
 ) {
   if (class(x = meta.method) != "function") {
-    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
+    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detailed description of the available functions.")
   }
   object.var <- FetchData(object = object, vars = grouping.var)
   object <- SetIdent(
@@ -253,35 +253,44 @@ FindConservedMarkers <- function(
   for (i in 1:num.groups) {
     level.use <- levels.split[i]
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
-    if (!ident.use.1 %in% Idents(object = object)) {
-      stop("Identity: ", ident.1, " not present in group ", level.use)
+    ident.use.1.exists <- ident.use.1 %in% Idents(object = object)
+    if (!all(ident.use.1.exists)) {
+      bad.ids <- ident.1[!ident.use.1.exists]
+      warning("Identity: ", paste(bad.ids, collapse =","), " not present in group ", level.use, 
+              ". Skipping ", level.use, call. = FALSE, immediate. = TRUE)
+      next
     }
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(Idents(object = object)[cells.2]) > 0))
+      ident.2 <- gsub(pattern = paste0("_", level.use), replacement = "", x = ident.use.2)
       if (length(x = ident.use.2) == 0) {
         stop(paste("Only one identity class present:", ident.1))
       }
-    }
-    if (!is.null(x = ident.2)) {
+    } else {
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
     if (verbose) {
-      message(paste0("Testing ", ident.use.1, " vs ", paste(ident.use.2, collapse = ", "), "\n"))
+      message(paste0("Testing group ", level.use, ": (", paste(ident.1, collapse = ", "),  ") vs (", paste(ident.2, collapse = ", "), ")"))
     }
-    if (any(!ident.use.2 %in% Idents(object = object))) {
-      bad.idents <- ident.use.2[!ident.use.2 %in% Idents(object = object)]
-      stop(paste0("The following identities are not present in group ", level.use, ": ", paste(bad.idents, collapse = ", ")))
+    ident.use.2.exists <- ident.use.2 %in% Idents(object = object)
+    if (!all(ident.use.2.exists)) {
+      bad.ids <- ident.2[!ident.use.2.exists]
+      warning("Identity: ", paste(bad.ids, collapse =","), " not present in group ", level.use, 
+              ". Skipping ", level.use, call. = FALSE, immediate. = TRUE)
+      next
     }
     marker.test[[i]] <- FindMarkers(
       object = object,
-      assay.type = assay.type,
+      assay = assay,
       ident.1 = ident.use.1,
       ident.2 = ident.use.2,
       ...
     )
   }
+  names(x = marker.test) <- levels.split
+  marker.test <- Filter(f = Negate(f = is.null), x = marker.test)
   genes.conserved <- Reduce(
     f = intersect,
     x = lapply(
@@ -292,34 +301,38 @@ FindConservedMarkers <- function(
     )
   )
   markers.conserved <- list()
-  for (i in 1:num.groups) {
+  for (i in 1:length(x = marker.test)) {
     markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
     colnames(x = markers.conserved[[i]]) <- paste(
-      levels.split[i],
+      names(marker.test)[i],
       colnames(x = markers.conserved[[i]]),
       sep = "_"
     )
   }
   markers.combined <- Reduce(cbind, markers.conserved)
-  pval.codes <- paste(levels.split, "p_val", sep = "_")
-  markers.combined$max_pval <- apply(
-    X = markers.combined[, pval.codes],
-    MARGIN = 1,
-    FUN = max
-  )
-  combined.pval <- data.frame(cp = apply(
-    X = markers.combined[, pval.codes],
-    MARGIN = 1,
-    FUN = function(x) {
-      return(meta.method(x)$p)
-    }
-  ))
-  colnames(x = combined.pval) <- paste0(
-    as.character(x = formals()$meta.method),
-    "_p_val"
-  )
-  markers.combined <- cbind(markers.combined, combined.pval)
-  markers.combined <- markers.combined[order(markers.combined[, paste0(as.character(x = formals()$meta.method), "_p_val")]), ]
+  pval.codes <- colnames(x = markers.combined)[grepl(pattern = "*_p_val$", x = colnames(x = markers.combined))]
+  if (length(x = pval.codes) > 1) {
+    markers.combined$max_pval <- apply(
+      X = markers.combined[, pval.codes, drop = FALSE],
+      MARGIN = 1,
+      FUN = max
+    )
+    combined.pval <- data.frame(cp = apply(
+      X = markers.combined[, pval.codes, drop = FALSE],
+      MARGIN = 1,
+      FUN = function(x) {
+        return(meta.method(x)$p)
+      }
+    ))
+    colnames(x = combined.pval) <- paste0(
+      as.character(x = formals()$meta.method),
+      "_p_val"
+    )
+    markers.combined <- cbind(markers.combined, combined.pval)
+    markers.combined <- markers.combined[order(markers.combined[, paste0(as.character(x = formals()$meta.method), "_p_val")]), ]
+  } else {
+    warning("Only a single group was tested", call. = FALSE, immediate. = TRUE)
+  }
   return(markers.combined)
 }
 

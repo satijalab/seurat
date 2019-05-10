@@ -2,10 +2,10 @@
 % Please edit documentation in R/differential_expression.R
 \name{FindConservedMarkers}
 \alias{FindConservedMarkers}
-\title{Finds markers that are conserved between the two groups}
+\title{Finds markers that are conserved between the groups}
 \usage{
 FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay.type = "RNA", slot = "data", meta.method = minimump,
+  assay = "RNA", slot = "data", meta.method = minimump,
   verbose = TRUE, ...)
 }
 \arguments{
@@ -18,7 +18,7 @@ use all other cells for comparison.}
 
 \item{grouping.var}{grouping variable}
 
-\item{assay.type}{Type of assay to fetch data for (default is RNA)}
+\item{assay}{of assay to fetch data for (default is RNA)}
 
 \item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 \code{slot} will be set to "counts"}
@@ -37,7 +37,7 @@ associated statistics (p-values within each group and a combined p-value
 percentage of cells expressing the marker, average differences)
 }
 \description{
-Finds markers that are conserved between the two groups
+Finds markers that are conserved between the groups
 }
 \examples{
 \dontrun{
