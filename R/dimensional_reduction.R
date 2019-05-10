@@ -1029,17 +1029,12 @@ RunTSNE.DimReduc <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  tsne.reduction <- RunTSNE(
-    object = object[[, dims]],
-    assay = DefaultAssay(object = object),
-    seed.use = seed.use,
-    tsne.method = tsne.method,
-    add.iter = add.iter,
-    dim.embed = dim.embed,
-    reduction.key = reduction.key,
-    ...
-  )
-  return(tsne.reduction)
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
+  args$object <- args$object[[, args$dims]]
+  args$dims <- NULL
+  args$assay <- DefaultAsssay(object = object)
+  return(do.call(what = 'RunTSNE', args = args))
 }
 
 #' @rdname RunTSNE
@@ -1059,7 +1054,7 @@ RunTSNE.dist <- function(
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
   args$object <- as.matrix(x = args$object)
-  args$is_distance = TRUE
+  args$is_distance <- TRUE
   return(do.call(what = 'RunTSNE', args = args))
 }
 
