@@ -2019,7 +2019,7 @@ VizDimLoadings <- function(
 #' @return A ggplot object
 #'
 #' @importFrom png readPNG
-#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster
+#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
 #'
 #' @export
 #'
@@ -2039,10 +2039,11 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     plot = plot,
     geom = class(x = plot$layers[[1]]$geom)[1]
   )
+  title <- plot$labels$title
   tmpfile <- tempfile(fileext = '.png')
   ggsave(
     filename = tmpfile,
-    plot = plot + NoLegend() + NoAxes(),
+    plot = plot + NoLegend() + NoAxes() + theme(plot.title = element_blank()),
     width = width,
     height = height,
     dpi = dpi
@@ -2053,7 +2054,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     data = plot$data,
     mapping = aes_string(x = xyparams$x, y = xyparams$y)
   ) + geom_blank()
-  blank <- blank + plot$theme
+  blank <- blank + plot$theme + ggtitle(label = title)
   blank <- blank + annotation_raster(
     raster = img,
     xmin = range.values[1],
