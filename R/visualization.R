@@ -813,6 +813,15 @@ FeaturePlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
   data <- FetchData(object = object, vars = c(dims, features), cells = cells, slot = slot)
+  if (ncol(x = data) < 3) {
+    stop(
+      "None of the requested features were found: ",
+      paste(features, collapse = ', '),
+      call. = FALSE
+    )
+  } else if (!all(dims %in% colnames(x = data))) {
+    stop("The dimensions requested were not found", call. = FALSE)
+  }
   features <- colnames(x = data)[3:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
