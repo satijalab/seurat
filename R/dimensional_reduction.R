@@ -1033,7 +1033,7 @@ RunTSNE.DimReduc <- function(
   args <- c(args, list(...))
   args$object <- args$object[[, args$dims]]
   args$dims <- NULL
-  args$assay <- DefaultAsssay(object = object)
+  args$assay <- DefaultAssay(object = object)
   return(do.call(what = 'RunTSNE', args = args))
 }
 
