@@ -830,7 +830,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   meta.vars <- vars[vars %in% colnames(x = object[[]])]
   data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
   # Pull vars from the default assay
-  default.vars <- vars[vars %in% rownames(x = object)]
+  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot))]
   data.fetched <- c(
     data.fetched,
     as.data.frame(x = t(x = as.matrix(x = GetAssayData(

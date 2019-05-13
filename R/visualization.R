@@ -817,6 +817,8 @@ FeaturePlot <- function(
     stop(
       "None of the requested features were found: ",
       paste(features, collapse = ', '),
+      " in slot ",
+      slot,
       call. = FALSE
     )
   } else if (!all(dims %in% colnames(x = data))) {
