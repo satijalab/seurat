@@ -5,7 +5,7 @@
 #' Seurat uses the following [options()] to configure behaviour:
 #'
 #' \itemize{
-#'   \item `seurat.memsafe`: global option to call gc() after many operations.
+#'   \item `Seurat.memsafe`: global option to call gc() after many operations.
 #'   This can be helpful in cleaning up the memory status of the R session and
 #'   prevent use of swap space. However, it does add to the computational overhead
 #'   and setting to FALSE can speed things up if you're working in an environment
