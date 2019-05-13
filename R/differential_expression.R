@@ -731,7 +731,7 @@ FindMarkers.Seurat <- function(
     }
     Idents(object = object) <- group.by
   }
-  if (!is.null(x = assay) & !is.null(x = reduction)) {
+  if (!is.null(x = assay) && !is.null(x = reduction)) {
     stop("Please only specify either assay or reduction.")
   }
   data.slot <- ifelse(
