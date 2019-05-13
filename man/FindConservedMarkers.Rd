@@ -2,10 +2,10 @@
 % Please edit documentation in R/differential_expression.R
 \name{FindConservedMarkers}
 \alias{FindConservedMarkers}
-\title{Finds markers that are conserved between the two groups}
+\title{Finds markers that are conserved between the groups}
 \usage{
 FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay.type = "RNA", slot = "data", meta.method = minimump,
+  assay = "RNA", slot = "data", meta.method = minimump,
   verbose = TRUE, ...)
 }
 \arguments{
@@ -18,7 +18,7 @@ use all other cells for comparison.}
 
 \item{grouping.var}{grouping variable}
 
-\item{assay.type}{Type of assay to fetch data for (default is RNA)}
+\item{assay}{of assay to fetch data for (default is RNA)}
 
 \item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 \code{slot} will be set to "counts"}
@@ -31,13 +31,15 @@ the metap package (NOTE: pass the function, not a string)}
 \item{\dots}{parameters to pass to FindMarkers}
 }
 \value{
-Matrix containing a ranked list of putative conserved markers, and
+data.frame containing a ranked list of putative conserved markers, and
 associated statistics (p-values within each group and a combined p-value
-(such as Fishers combined p-value or others from the MetaDE package),
-percentage of cells expressing the marker, average differences)
+(such as Fishers combined p-value or others from the metap package),
+percentage of cells expressing the marker, average differences). Name of group is appended to each
+associated output column (e.g. CTRL_p_val). If only one group is tested in the grouping.var, max
+and combined p-values are not returned.
 }
 \description{
-Finds markers that are conserved between the two groups
+Finds markers that are conserved between the groups
 }
 \examples{
 \dontrun{

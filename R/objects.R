@@ -2193,7 +2193,7 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
-#' @param slot Specific information to pull (i.e. raw.data, data, scale.data, ...)
+#' @param slot Specific information to pull (i.e. counts, data, scale.data, ...)
 #'
 #' @rdname GetAssayData
 #' @export
