@@ -1518,7 +1518,6 @@ as.loom.Seurat <- function(
 #' normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
 #' \code{/matrix} as normalized data
 #' @param scaled The name of the dataset within \code{layers} containing the scaled expression matrix
-#' @param assay Name of the assay to create
 #' @param verbose Display progress updates
 #'
 #' @importFrom Matrix sparseMatrix
