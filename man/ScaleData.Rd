@@ -10,21 +10,22 @@
 ScaleData(object, ...)
 
 \method{ScaleData}{default}(object, features = NULL,
-  vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
-  use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
-  scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
-  verbose = TRUE, ...)
+  vars.to.regress = NULL, latent.data = NULL, split.by = NULL,
+  model.use = "linear", use.umi = FALSE, do.scale = TRUE,
+  do.center = TRUE, scale.max = 10, block.size = 1000,
+  min.cells.to.block = 3000, verbose = TRUE, ...)
 
 \method{ScaleData}{Assay}(object, features = NULL,
-  vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
+  vars.to.regress = NULL, latent.data = NULL, split.by = NULL,
+  model.use = "linear", use.umi = FALSE, do.scale = TRUE,
+  do.center = TRUE, scale.max = 10, block.size = 1000,
+  min.cells.to.block = 3000, verbose = TRUE, ...)
+
+\method{ScaleData}{Seurat}(object, features = NULL, assay = NULL,
+  vars.to.regress = NULL, split.by = NULL, model.use = "linear",
   use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
   scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
   verbose = TRUE, ...)
-
-\method{ScaleData}{Seurat}(object, features = NULL, assay = NULL,
-  vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
-  do.scale = TRUE, do.center = TRUE, scale.max = 10,
-  block.size = 1000, min.cells.to.block = 3000, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -37,6 +38,9 @@ ScaleData(object, ...)
 RegressOut). For example, nUMI, or percent.mito.}
 
 \item{latent.data}{Extra data to regress out, should be cells x latent data}
+
+\item{split.by}{Name of variable in object metadata or a vector or factor defining
+grouping of cells. See argument \code{f} in \code{\link[base]{split}} for more details}
 
 \item{model.use}{Use a linear model or generalized linear model
 (poisson, negative binomial) for the regression. Options are 'linear'
