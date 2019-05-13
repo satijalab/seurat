@@ -329,9 +329,9 @@ FindConservedMarkers <- function(
 
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
-#' @param counts Count matrix if using scale.data for DE tests. This is used for 
-#' computing pct.1 and pct.2 and for filtering features based on fraction 
-#' expressing 
+#' @param counts Count matrix if using scale.data for DE tests. This is used for
+#' computing pct.1 and pct.2 and for filtering features based on fraction
+#' expressing
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -454,10 +454,11 @@ FindMarkers.default <- function(
     )
   }
   # feature selection (based on percentages)
-  data <- object
-  if (slot == "scale.data") {
-    data <- counts
-  }
+  data <- switch(
+    EXPR = slot,
+    'scale.data' = counts,
+    object
+  )
   if (is.null(x = reduction)) {
     thresh.min <- 0
     pct.1 <- round(
@@ -492,14 +493,18 @@ FindMarkers.default <- function(
     )
   }
   # feature selection (based on average difference)
-  if (is.null(x = reduction) & slot != "scale.data") {
-    if (slot == "data") {
-      mean.fxn <- function(x) {log(x = mean(x = expm1(x = x)) + pseudocount.use)}
-    } else {
-      mean.fxn <- function(x) {log(x = mean(x = x) + pseudocount.use)}
-    }
+  mean.fxn <- if (is.null(x = reduction) && slot != "scale.data") {
+    switch(
+      EXPR = slot,
+      'data' = function(x) {
+        return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+      },
+      function(x) {
+        return(log(x = mean(x = x) + pseudocount.use))
+      }
+    )
   } else {
-    mean.fxn <- mean
+    mean
   }
   data.1 <- apply(
     X = data[features, cells.1, drop = FALSE],
@@ -512,7 +517,7 @@ FindMarkers.default <- function(
     FUN = mean.fxn
   )
   total.diff <- (data.1 - data.2)
-  if (is.null(x = reduction) & slot != "scale.data") {
+  if (is.null(x = reduction) && slot != "scale.data") {
     features.diff <- if (only.pos) {
       names(x = which(x = total.diff > logfc.threshold))
     } else {
@@ -608,7 +613,11 @@ FindMarkers.default <- function(
     stop("Unknown test: ", test.use)
   )
   if (is.null(x = reduction)) {
-    diff.col <- ifelse(test = slot == "scale.data" | test.use == 'roc', yes = "avg_diff", no = "avg_logFC")
+    diff.col <- ifelse(
+      test = slot == "scale.data" || test.use == 'roc',
+      yes = "avg_diff",
+      no = "avg_logFC"
+    )
     de.results[, diff.col] <- total.diff[rownames(x = de.results)]
     de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
     if (only.pos) {
@@ -626,7 +635,7 @@ FindMarkers.default <- function(
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
-      n = nrow(object)
+      n = nrow(x = object)
     )
   }
   return(de.results)
@@ -745,10 +754,11 @@ FindMarkers.Seurat <- function(
       cells = c(ident.1, ident.2)
     )
   }
-  counts <- numeric()
-  if (data.slot == "scale.data") {
-    counts <-  GetAssayData(object = object[[assay]], slot = "counts")
-  }
+  counts <- switch(
+    EXPR = data.slot,
+    'scale.data' = GetAssayData(object = object[[assay]], slot = "counts"),
+    numeric()
+  )
   de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
@@ -1013,7 +1023,6 @@ DiffTTest <- function(
   to.return <- data.frame(p_val,row.names = rownames(x = data.use))
   return(to.return)
 }
-
 
 # Tests for UMI-count based data
 #
