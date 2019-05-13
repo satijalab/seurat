@@ -189,9 +189,9 @@ DimHeatmap <- function(
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 #' if you are encountering that issue (note that plots may take longer to produce/render).
 #' @param draw.lines Include white lines to separate the groups
-#' @param lines.width Integer number to adjust the width of the separating white lines. 
-#' Corresponds to the number of "cells" between each group. 
-#' @param group.bar.height Scale the height of the color bar 
+#' @param lines.width Integer number to adjust the width of the separating white lines.
+#' Corresponds to the number of "cells" between each group.
+#' @param group.bar.height Scale the height of the color bar
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
@@ -271,7 +271,7 @@ DoHeatmap <- function(
       # create fake cells to serve as the white lines, fill with NAs
       lines.width <- lines.width %||% ceiling(x = nrow(x = data) * 0.0025)
       placeholder.cells <- sapply(
-        X = 1:(length(x = levels(x = group.use)) * lines.width), 
+        X = 1:(length(x = levels(x = group.use)) * lines.width),
         FUN = function(x) RandomName(length = 20)
       )
       placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
@@ -308,7 +308,7 @@ DoHeatmap <- function(
       y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
       y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
       y.max <- y.pos + group.bar.height * y.range
-      
+
       plot <- plot + annotation_raster(
         raster = t(x = cols[group.use2]),,
         xmin = -Inf,
@@ -1218,6 +1218,7 @@ FeatureScatter <- function(
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
+#' @inheritParams HVFInfo
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
@@ -1239,29 +1240,33 @@ VariableFeaturePlot <- function(
   cols = c('black', 'red'),
   pt.size = 1,
   log = NULL,
+  selection.method = NULL,
   assay = NULL
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
   }
-  hvf.info <- HVFInfo(object = object, assay = assay)
-  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
-  vars <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
-                 c('mean', 'variance.standardized'),
-                 c('mean', 'dispersion'),
-                 c('gmean', 'residual_variance'))
-  axis.labels <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
-                        c('Average Expression', 'Standardized Variance'),
-                        c('Average Expression', 'Dispersion'),
-                        c('Geometric Mean of Expression', 'Residual Variance'))
-  hvf.info <- hvf.info[, vars]
-  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
-  var.features <- VariableFeatures(object = object, assay = assay)
-  var.status <- ifelse(
-    test = rownames(x = hvf.info) %in% var.features,
-    yes = 'yes',
-    no = 'no'
+  hvf.info <- HVFInfo(
+    object = object,
+    assay = assay,
+    selection.method = selection.method,
+    status = TRUE
+    )
+  var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
+  hvf.info <- hvf.info[, c(1, 3)]
+  axis.labels <- switch(
+    EXPR = colnames(x = hvf.info)[2],
+    'variance.standardized' = c('Average Expression', 'Standardized Variance'),
+    'dispersion.scaled' = c('Average Expression', 'Dispersion'),
+    'residual_variance' = c('Geometric Mean of Expression', 'Residual Variance')
   )
+  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
+  # var.features <- VariableFeatures(object = object, assay = assay)
+  # var.status <- ifelse(
+  #   test = rownames(x = hvf.info) %in% var.features,
+  #   yes = 'yes',
+  #   no = 'no'
+  # )
   plot <- SingleCorPlot(
     data = hvf.info,
     col.by = var.status,
@@ -2014,7 +2019,7 @@ VizDimLoadings <- function(
 #' @return A ggplot object
 #'
 #' @importFrom png readPNG
-#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster
+#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
 #'
 #' @export
 #'
@@ -2034,10 +2039,11 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     plot = plot,
     geom = class(x = plot$layers[[1]]$geom)[1]
   )
+  title <- plot$labels$title
   tmpfile <- tempfile(fileext = '.png')
   ggsave(
     filename = tmpfile,
-    plot = plot + NoLegend() + NoAxes(),
+    plot = plot + NoLegend() + NoAxes() + theme(plot.title = element_blank()),
     width = width,
     height = height,
     dpi = dpi
@@ -2048,7 +2054,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     data = plot$data,
     mapping = aes_string(x = xyparams$x, y = xyparams$y)
   ) + geom_blank()
-  blank <- blank + plot$theme
+  blank <- blank + plot$theme + ggtitle(label = title)
   blank <- blank + annotation_raster(
     raster = img,
     xmin = range.values[1],

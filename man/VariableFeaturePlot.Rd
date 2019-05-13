@@ -7,7 +7,7 @@
 \title{View variable features}
 \usage{
 VariableFeaturePlot(object, cols = c("black", "red"), pt.size = 1,
-  log = NULL, assay = NULL)
+  log = NULL, selection.method = NULL, assay = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,6 +17,9 @@ VariableFeaturePlot(object, cols = c("black", "red"), pt.size = 1,
 \item{pt.size}{Size of the points on the plot}
 
 \item{log}{Plot the x-axis in log scale}
+
+\item{selection.method}{Which method to pull; choose one from \code{c('sctransform', 'sct')}
+or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}}
 
 \item{assay}{Assay to pull variable features from}
 }
