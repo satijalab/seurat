@@ -8,7 +8,7 @@
 FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   cols = c("lightgrey", "blue"), pt.size = NULL, order = FALSE,
   min.cutoff = NA, max.cutoff = NA, reduction = NULL,
-  split.by = NULL, shape.by = NULL, blend = FALSE,
+  split.by = NULL, shape.by = NULL, slot = "data", blend = FALSE,
   blend.threshold = 0.5, label = FALSE, label.size = 4,
   ncol = NULL, combine = TRUE, coord.fixed = FALSE, by.col = TRUE)
 }
@@ -47,6 +47,8 @@ to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells}
+
+\item{slot}{Which slot to pull expression data from?}
 
 \item{blend}{Scale and blend expression values to visualize coexpression of two features}
 

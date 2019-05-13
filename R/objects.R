@@ -770,8 +770,10 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
+  # Get a list of all objects to search through and their keys
   objects.use <- FilterObjects(object = object)
   object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
+  # Find all vars that are keyed
   keyed.vars <- lapply(
     X = object.keys,
     FUN = function(key) {
@@ -824,9 +826,11 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     }
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
+  # Pull vars from object metadata
   meta.vars <- vars[vars %in% colnames(x = object[[]])]
   data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
-  default.vars <- vars[vars %in% rownames(x = object)]
+  # Pull vars from the default assay
+  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot))]
   data.fetched <- c(
     data.fetched,
     as.data.frame(x = t(x = as.matrix(x = GetAssayData(
@@ -834,18 +838,26 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells, drop = FALSE])))
   )
+  # Pull identities
   if ('ident' %in% vars && !'ident' %in% colnames(x = object[[]])) {
     data.fetched[['ident']] <- Idents(object = object)
   }
+  # Try to find ambiguous vars
   fetched <- names(x = data.fetched)
   vars.missing <- setdiff(x = vars, y = fetched)
   if (length(x = vars.missing) > 0) {
+    # Search for vars in alternative assays
     vars.alt <- vector(mode = 'list', length = length(x = vars.missing))
     names(x = vars.alt) <- vars.missing
     for (assay in FilterObjects(object = object, classes.keep = 'Assay')) {
       vars.assay <- Filter(
         f = function(x) {
-          return(x %in% rownames(x = object[[assay]]))
+          features.assay <- rownames(x = GetAssayData(
+            object = object,
+            assay = assay,
+            slot = slot
+          ))
+          return(x %in% features.assay)
         },
         x = vars.missing
       )
@@ -853,6 +865,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
         vars.alt[[var]] <- append(x = vars.alt[[var]], values = assay)
       }
     }
+    # Vars found in multiple alternative assays are truly ambiguous, will not pull
     vars.many <- names(x = Filter(
       f = function(x) {
         return(length(x = x) > 1)
@@ -873,6 +886,8 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       },
       x = vars.alt
     ))
+    # Pull vars found in only one alternative assay
+    # Key this var to highlight that it was found in an alternate assay
     vars.alt <- Filter(
       f = function(x) {
         return(length(x = x) == 1)
@@ -892,7 +907,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       )
       keyed.var <- paste0(Key(object = object[[assay]]), var)
       data.fetched[[keyed.var]] <- as.vector(
-        x = object[[assay]][var, cells]
+        x = GetAssayData(object = object, assay = assay, slot = slot)[var, cells]
       )
       vars <- sub(
         pattern = paste0('^', var, '$'),
@@ -902,6 +917,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     }
     fetched <- names(x = data.fetched)
   }
+  # Name the vars not found in a warning (or error if no vars found)
   m2 <- if (length(x = vars.missing) > 10) {
     paste0(' (10 out of ', length(x = vars.missing), ' shown)')
   } else {
@@ -922,6 +938,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       paste(head(x = vars.missing, n = 10L), collapse = ', ')
     )
   }
+  # Assembled fetched vars in a dataframe
   data.fetched <- as.data.frame(
     x = data.fetched,
     row.names = cells,
