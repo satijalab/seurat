@@ -1556,7 +1556,6 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  # across = "features",
   margin = 1,
   block.size = NULL,
   verbose = TRUE,
@@ -1659,7 +1658,6 @@ NormalizeData.Assay <- function(
   scale.factor = 1e4,
   margin = 1,
   verbose = TRUE,
-  # across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -1696,7 +1694,6 @@ NormalizeData.Seurat <- function(
   scale.factor = 1e4,
   margin = 1,
   verbose = TRUE,
-  # across = "features",
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -1891,12 +1888,12 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
-#' @importFrom future.apply future_lapply
-#'
 #' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
+#' @param split.by Name of variable in object metadata or a vector or factor defining
+#' grouping of cells. See argument \code{f} in \code{\link[base]{split}} for more details
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'
@@ -1915,6 +1912,8 @@ RunALRA.Seurat <- function(
 #' don't block for scaling calculations.
 #' @param verbose Displays a progress bar for scaling procedure
 #'
+#' @importFrom future.apply future_apply
+#'
 #' @rdname ScaleData
 #' @export
 #'
@@ -1923,6 +1922,7 @@ ScaleData.default <- function(
   features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -1938,11 +1938,13 @@ ScaleData.default <- function(
   object <- object[features, , drop = FALSE]
   object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  suppressWarnings(Parenting(
+  suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Assay",
     features = features,
     min.cells.to.block = min.cells.to.block
   ))
+  split.by <- split.by %||% TRUE
+  split.cells <- split(x = colnames(x = object), f = split.by)
   CheckGC()
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
@@ -1963,44 +1965,81 @@ ScaleData.default <- function(
     }
     chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
     if (PlanThreads() > 1) {
-      object <- future_lapply(
-        X = 1:ncol(x = chunk.points),
-        FUN = function(i) {
+      object <- future_apply(
+        X = expand.grid(
+          names(x = split.cells),
+          1:ncol(x = chunk.points),
+          stringsAsFactors = FALSE
+        ),
+        MARGIN = 1,
+        FUN = function(row) {
+          group <- row[[1]]
+          index <- as.numeric(x = row[[2]])
           return(RegressOutMatrix(
-            data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
-            latent.data = latent.data,
+            data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
+            latent.data = latent.data[split.cells[[group]], , drop = FALSE],
+            features.regress = features,
             model.use = model.use,
             use.umi = use.umi,
             verbose = FALSE
           ))
         }
       )
-      object <- do.call(what = 'rbind', args = object)
+      if (length(x = split.cells) > 1) {
+        merge.indices <- lapply(
+          X = 1:length(x = split.cells),
+          FUN = seq.int,
+          to = length(x = object),
+          by = length(x = split.cells)
+        )
+        object <- lapply(
+          X = merge.indices,
+          FUN = function(x) {
+            return(do.call(what = 'rbind', args = object[x]))
+          }
+        )
+        object <- do.call(what = 'cbind', args = object)
+      } else if (is.list(x = object)) {
+        object <- do.call(what = 'rbind', args = object)
+      } else {
+        dim(x = object) <- lapply(X = object.names, FUN = length)
+      }
     } else {
-      object <- RegressOutMatrix(
-        data.expr = object,
-        latent.data = latent.data,
-        features.regress = features,
-        model.use = model.use,
-        use.umi = use.umi,
-        verbose = verbose
+      object <- lapply(
+        X = names(x = split.cells),
+        FUN = function(x) {
+          if (verbose && length(x = split.cells) > 1) {
+            message("Regressing out variables from split ", x)
+          }
+          return(RegressOutMatrix(
+            data.expr = object[, split.cells[[x]], drop = FALSE],
+            latent.data = latent.data[split.cells[[x]], , drop = FALSE],
+            features.regress = features,
+            model.use = model.use,
+            use.umi = use.umi,
+            verbose = verbose
+          ))
+        }
       )
+      object <- do.call(what = 'cbind', args = object)
     }
     dimnames(x = object) <- object.names
     CheckGC()
   }
-  if (verbose) {
-    if (do.scale) {
-      if (do.center) {
-        message("Centering and scaling data matrix")
-      } else {
-        message("Scaling data matrix")
-      }
-    } else {
-      if (do.center) {
-        message("Centering data matrix")
-      }
-    }
+  if (verbose && (do.scale || do.center)) {
+    msg <- paste(
+      na.omit(object = c(
+        ifelse(test = do.center, yes = 'centering', no = NA_character_),
+        ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+      )),
+      collapse = ' and '
+    )
+    msg <- paste0(
+      toupper(x = substr(x = msg, start = 1, stop = 1)),
+      substr(x = msg, start = 2, stop = nchar(x = msg)),
+      ' data matrix'
+    )
+    message(msg)
   }
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
@@ -2010,55 +2049,84 @@ ScaleData.default <- function(
   }
   if (PlanThreads() > 1) {
     blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-    scaled.data <- future_lapply(
-      X = 1:ncol(x = blocks),
-      FUN = function(i) {
-        block <- as.vector(x = blocks[, i])
+    scaled.data <- future_apply(
+      X = expand.grid(
+        names(x = split.cells),
+        1:ncol(x = blocks),
+        stringsAsFactors = FALSE
+      ),
+      MARGIN = 1,
+      FUN = function(row) {
+        group <- row[[1]]
+        block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
         data.scale <- scale.function(
-          mat = object[features[block[1]:block[2]], , drop = FALSE],
+          mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
-        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
+        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
         CheckGC()
         return(data.scale)
       }
     )
-    suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    if (length(x = split.cells) > 1) {
+      merge.indices <- lapply(
+        X = 1:length(x = split.cells),
+        FUN = seq.int,
+        to = length(x = scaled.data),
+        by = length(x = split.cells)
+      )
+      scaled.data <- lapply(
+        X = merge.indices,
+        FUN = function(x) {
+          return(suppressWarnings(expr = do.call(what = 'rbind', args = scaled.data[x])))
+        }
+      )
+      scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
+    } else if (is.list(x = scaled.data)) {
+      suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    } else {
+      dim(x = scaled.data) <- dim(x = object)
+    }
   } else {
     scaled.data <- matrix(
-      data = NA,
+      data = NA_real_,
       nrow = nrow(x = object),
       ncol = ncol(x = object),
       dimnames = object.names
     )
     max.block <- ceiling(x = length(x = features) / block.size)
-    if (verbose) {
-      pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
-    }
-    for (i in 1:max.block) {
-      my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
-      my.inds <- my.inds[my.inds <= length(x = features)]
-      data.scale <- scale.function(
-        mat = object[features[my.inds], , drop = FALSE],
-        scale = do.scale,
-        center = do.center,
-        scale_max = scale.max,
-        display_progress = FALSE
-      )
-      dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
-      scaled.data[features[my.inds], ] <- data.scale
-      rm(data.scale)
-      CheckGC()
+    for (x in names(x = split.cells)) {
       if (verbose) {
-        setTxtProgressBar(pb = pb, value = i)
+        if (length(x = split.cells) > 1 && (do.scale || do.center)) {
+          message(gsub(pattern = 'matrix', replacement = 'from split ', x = msg), x)
+        }
+        pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
       }
-    }
-    if (verbose) {
-      close(con = pb)
+      for (i in 1:max.block) {
+        my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+        my.inds <- my.inds[my.inds <= length(x = features)]
+        data.scale <- scale.function(
+          mat = object[features[my.inds], split.cells[[x]], drop = FALSE],
+          scale = do.scale,
+          center = do.center,
+          scale_max = scale.max,
+          display_progress = FALSE
+        )
+        dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], split.cells[[x]]])
+        scaled.data[features[my.inds], split.cells[[x]]] <- data.scale
+        rm(data.scale)
+        CheckGC()
+        if (verbose) {
+          setTxtProgressBar(pb = pb, value = i)
+        }
+      }
+      if (verbose) {
+        close(con = pb)
+      }
     }
   }
   dimnames(x = scaled.data) <- object.names
@@ -2076,6 +2144,7 @@ ScaleData.Assay <- function(
   features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -2089,7 +2158,9 @@ ScaleData.Assay <- function(
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
-  if (length(features) == 0) features <- rownames(GetAssayData(object = object, slot = slot.use))
+  if (length(x = features) == 0) {
+    features <- rownames(x = GetAssayData(object = object, slot = slot.use))
+  }
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
@@ -2098,6 +2169,7 @@ ScaleData.Assay <- function(
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
+      split.by = split.by,
       model.use = model.use,
       use.umi = use.umi,
       do.scale = do.scale,
@@ -2109,12 +2181,12 @@ ScaleData.Assay <- function(
       ...
     )
   )
-  Parenting(
+  suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Seurat",
     features = features,
     min.cells.to.block = min.cells.to.block,
     use.umi = use.umi
-  )
+  ))
   return(object)
 }
 
@@ -2129,6 +2201,7 @@ ScaleData.Seurat <- function(
   features = NULL,
   assay = NULL,
   vars.to.regress = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -2146,11 +2219,15 @@ ScaleData.Seurat <- function(
   } else {
     latent.data <- NULL
   }
+  if (is.character(x = split.by) && length(x = split.by) == 1) {
+    split.by <- object[[split.by]]
+  }
   assay.data <- ScaleData(
     object = assay.data,
     features = features,
     vars.to.regress = vars.to.regress,
     latent.data = latent.data,
+    split.by = split.by,
     model.use = model.use,
     use.umi = use.umi,
     do.scale = do.scale,

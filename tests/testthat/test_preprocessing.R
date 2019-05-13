@@ -120,6 +120,32 @@ test_that("ScaleData handles zero variance features properly", {
   expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 80], 0)
 })
 
+ng1 <- rep(x = "g1", times = round(x = ncol(x = object) / 2))
+object$group <- c(ng1, rep(x = "g2", times = ncol(x = object) - length(x = ng1)))
+g1 <- subset(x = object, group == "g1")
+g1 <- ScaleData(object = g1, features = rownames(x = g1), verbose = FALSE)
+g2 <- subset(x = object, group == "g2")
+g2 <- ScaleData(object = g2, features = rownames(x = g2), verbose = FALSE)
+object <- ScaleData(object = object, features = rownames(x = object), verbose = FALSE, split.by = "group")
+
+test_that("split.by option works", {
+  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
+               GetAssayData(object = g1, slot = "scale.data"))  
+  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
+               GetAssayData(object = g2, slot = "scale.data"))
+})
+
+g1 <- ScaleData(object = g1, features = rownames(x = g1), vars.to.regress = "nCount_RNA", verbose = FALSE)
+g2 <- ScaleData(object = g2, features = rownames(x = g2), vars.to.regress = "nCount_RNA", verbose = FALSE)
+object <- ScaleData(object = object, features = rownames(x = object), verbose = FALSE, split.by = "group", vars.to.regress = "nCount_RNA")
+test_that("split.by option works with regression", {
+  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
+               GetAssayData(object = g1, slot = "scale.data"))  
+  expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
+               GetAssayData(object = g2, slot = "scale.data"))
+})
+
+
 # Tests for various regression techniques
 context("Regression")
 
