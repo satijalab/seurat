@@ -34,8 +34,8 @@ FindMarkers(object, ...)
 \item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 \code{slot} will be set to "counts"}
 
-\item{counts}{Count matrix if using scale.data for DE tests. This is used for 
-computing pct.1 and pct.2 and for filtering features based on fraction 
+\item{counts}{Count matrix if using scale.data for DE tests. This is used for
+computing pct.1 and pct.2 and for filtering features based on fraction
 expressing}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
