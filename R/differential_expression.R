@@ -750,7 +750,7 @@ FindMarkers.Seurat <- function(
   }
   if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
-  } else if (ident.1 == 'clustertree' || is(object = ident.1, class2 = 'phylo')) {
+  } else if ((length(x = ident.1) == 1 && ident.1[1] == 'clustertree') || is(object = ident.1, class2 = 'phylo')) {
     if (is.null(x = ident.2)) {
       stop("Please pass a node to 'ident.2' to run FindMarkers on a tree")
     }
