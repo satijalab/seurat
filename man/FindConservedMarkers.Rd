@@ -31,10 +31,12 @@ the metap package (NOTE: pass the function, not a string)}
 \item{\dots}{parameters to pass to FindMarkers}
 }
 \value{
-Matrix containing a ranked list of putative conserved markers, and
+data.frame containing a ranked list of putative conserved markers, and
 associated statistics (p-values within each group and a combined p-value
-(such as Fishers combined p-value or others from the MetaDE package),
-percentage of cells expressing the marker, average differences)
+(such as Fishers combined p-value or others from the metap package),
+percentage of cells expressing the marker, average differences). Name of group is appended to each
+associated output column (e.g. CTRL_p_val). If only one group is tested in the grouping.var, max
+and combined p-values are not returned.
 }
 \description{
 Finds markers that are conserved between the groups
