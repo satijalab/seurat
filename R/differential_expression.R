@@ -191,7 +191,7 @@ FindAllMarkers <- function(
   return(gde.all)
 }
 
-#' Finds markers that are conserved between the groups 
+#' Finds markers that are conserved between the groups
 #'
 #' @inheritParams FindMarkers
 #' @param ident.1 Identity class to define markers for
@@ -208,7 +208,7 @@ FindAllMarkers <- function(
 #' (such as Fishers combined p-value or others from the metap package),
 #' percentage of cells expressing the marker, average differences). Name of group is appended to each
 #' associated output column (e.g. CTRL_p_val). If only one group is tested in the grouping.var, max
-#' and combined p-values are not returned. 
+#' and combined p-values are not returned.
 #'
 #' @importFrom metap minimump
 #'
@@ -258,8 +258,16 @@ FindConservedMarkers <- function(
     ident.use.1.exists <- ident.use.1 %in% Idents(object = object)
     if (!all(ident.use.1.exists)) {
       bad.ids <- ident.1[!ident.use.1.exists]
-      warning("Identity: ", paste(bad.ids, collapse =","), " not present in group ", level.use, 
-              ". Skipping ", level.use, call. = FALSE, immediate. = TRUE)
+      warning(
+        "Identity: ",
+        paste(bad.ids, collapse = ", "),
+        " not present in group ",
+        level.use,
+        ". Skipping ",
+        level.use,
+        call. = FALSE,
+        immediate. = TRUE
+      )
       next
     }
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
@@ -274,13 +282,29 @@ FindConservedMarkers <- function(
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
     if (verbose) {
-      message(paste0("Testing group ", level.use, ": (", paste(ident.1, collapse = ", "),  ") vs (", paste(ident.2, collapse = ", "), ")"))
+      message(
+        "Testing group ",
+        level.use,
+        ": (",
+        paste(ident.1, collapse = ", "),
+        ") vs (",
+        paste(ident.2, collapse = ", "),
+        ")"
+      )
     }
     ident.use.2.exists <- ident.use.2 %in% Idents(object = object)
     if (!all(ident.use.2.exists)) {
       bad.ids <- ident.2[!ident.use.2.exists]
-      warning("Identity: ", paste(bad.ids, collapse =","), " not present in group ", level.use, 
-              ". Skipping ", level.use, call. = FALSE, immediate. = TRUE)
+      warning(
+        "Identity: ",
+        paste(bad.ids, collapse = ", "),
+        " not present in group ",
+        level.use,
+        ". Skipping ",
+        level.use,
+        call. = FALSE,
+        immediate. = TRUE
+      )
       next
     }
     marker.test[[i]] <- FindMarkers(
@@ -308,7 +332,7 @@ FindConservedMarkers <- function(
   for (i in 1:length(x = marker.test)) {
     markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
     colnames(x = markers.conserved[[i]]) <- paste(
-      names(marker.test)[i],
+      names(x = marker.test)[i],
       colnames(x = markers.conserved[[i]]),
       sep = "_"
     )
