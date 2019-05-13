@@ -17,7 +17,7 @@ GetAssayData(object, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{slot}{Specific information to pull (i.e. raw.data, data, scale.data, ...)}
+\item{slot}{Specific information to pull (i.e. counts, data, scale.data, ...)}
 
 \item{assay}{Name of assay to pull data from}
 }

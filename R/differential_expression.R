@@ -370,6 +370,9 @@ FindConservedMarkers <- function(
 
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
+#' @param counts Count matrix if using scale.data for DE tests. This is used for
+#' computing pct.1 and pct.2 and for filtering features based on fraction
+#' expressing
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -441,9 +444,12 @@ FindConservedMarkers <- function(
 #'
 FindMarkers.default <- function(
   object,
+  slot = "data",
+  counts = numeric(),
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
+  reduction = NULL,
   logfc.threshold = 0.25,
   test.use = 'wilcox',
   min.pct = 0.1,
@@ -459,9 +465,9 @@ FindMarkers.default <- function(
   ...
 ) {
   features <- features %||% rownames(x = object)
-  methods.noprefiliter <- c("DESeq2", "zingeR")
+  methods.noprefiliter <- c("DESeq2")
   if (test.use %in% methods.noprefiliter) {
-    features <- rownames(object)
+    features <- rownames(x = object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
@@ -476,69 +482,92 @@ FindMarkers.default <- function(
   } else if (length(x = cells.2) < min.cells.group) {
     stop("Cell group 2 has fewer than ", min.cells.group, " cells")
   } else if (any(!cells.1 %in% colnames(x = object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.1) %in% colnames(x = object))]
     stop(
       "The following cell names provided to cells.1 are not present: ",
       paste(bad.cells, collapse = ", ")
     )
   } else if (any(!cells.2 %in% colnames(x = object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.2) %in% colnames(x = object))]
     stop(
       "The following cell names provided to cells.2 are not present: ",
       paste(bad.cells, collapse = ", ")
     )
   }
   # feature selection (based on percentages)
-  thresh.min <- 0
-  pct.1 <- round(
-    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
-      length(x = cells.1),
-    digits = 3
+  data <- switch(
+    EXPR = slot,
+    'scale.data' = counts,
+    object
   )
-  pct.2 <- round(
-    x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
-      length(x = cells.2),
-    digits = 3
-  )
-  data.alpha <- cbind(pct.1, pct.2)
-  colnames(x = data.alpha) <- c("pct.1", "pct.2")
-  alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
-  names(x = alpha.min) <- rownames(x = data.alpha)
-  features <- names(x = which(x = alpha.min > min.pct))
-  if (length(x = features) == 0) {
-    stop("No features pass min.pct threshold")
-  }
-  alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-  features <- names(
-    x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
-  )
-  if (length(x = features) == 0) {
-    stop("No features pass min.diff.pct threshold")
-  }
-  # gene selection (based on average difference)
-  data.1 <- apply(
-    X = object[features, cells.1, drop = FALSE],
-    MARGIN = 1,
-    FUN = function(x) {
-      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  if (is.null(x = reduction)) {
+    thresh.min <- 0
+    pct.1 <- round(
+      x = rowSums(x = data[features, cells.1, drop = FALSE] > thresh.min) /
+        length(x = cells.1),
+      digits = 3
+    )
+    pct.2 <- round(
+      x = rowSums(x = data[features, cells.2, drop = FALSE] > thresh.min) /
+        length(x = cells.2),
+      digits = 3
+    )
+    data.alpha <- cbind(pct.1, pct.2)
+    colnames(x = data.alpha) <- c("pct.1", "pct.2")
+    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
+    names(x = alpha.min) <- rownames(x = data.alpha)
+    features <- names(x = which(x = alpha.min > min.pct))
+    if (length(x = features) == 0) {
+      stop("No features pass min.pct threshold")
     }
+    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
+    features <- names(
+      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+    )
+    if (length(x = features) == 0) {
+      stop("No features pass min.diff.pct threshold")
+    }
+  } else {
+    data.alpha <- data.frame(
+      pct.1 = rep(x = NA, times = length(x = features)),
+      pct.2 = rep(x = NA, times = length(x = features))
+    )
+  }
+  # feature selection (based on average difference)
+  mean.fxn <- if (is.null(x = reduction) && slot != "scale.data") {
+    switch(
+      EXPR = slot,
+      'data' = function(x) {
+        return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+      },
+      function(x) {
+        return(log(x = mean(x = x) + pseudocount.use))
+      }
+    )
+  } else {
+    mean
+  }
+  data.1 <- apply(
+    X = data[features, cells.1, drop = FALSE],
+    MARGIN = 1,
+    FUN = mean.fxn
   )
   data.2 <- apply(
-    X = object[features, cells.2, drop = FALSE],
+    X = data[features, cells.2, drop = FALSE],
     MARGIN = 1,
-    FUN = function(x) {
-      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
-    }
+    FUN = mean.fxn
   )
   total.diff <- (data.1 - data.2)
-  features.diff <- if (only.pos) {
-    names(x = which(x = total.diff > logfc.threshold))
-  } else {
-    names(x = which(x = abs(x = total.diff) > logfc.threshold))
-  }
-  features <- intersect(x = features, y = features.diff)
-  if (length(x = features) == 0) {
-    stop("No features pass logfc.threshold threshold")
+  if (is.null(x = reduction) && slot != "scale.data") {
+    features.diff <- if (only.pos) {
+      names(x = which(x = total.diff > logfc.threshold))
+    } else {
+      names(x = which(x = abs(x = total.diff) > logfc.threshold))
+    }
+    features <- intersect(x = features, y = features.diff)
+    if (length(x = features) == 0) {
+      stop("No features pass logfc.threshold threshold")
+    }
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
@@ -624,19 +653,31 @@ FindMarkers.default <- function(
     ),
     stop("Unknown test: ", test.use)
   )
-  de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
-  de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-  de.results$p_val_adj = p.adjust(
-    p = de.results$p_val,method = "bonferroni",
-    n = nrow(object)
-  )
-  if (test.use == "roc") {
-    de.results <- de.results[order(-de.results$power, -de.results$avg_logFC), ]
+  if (is.null(x = reduction)) {
+    diff.col <- ifelse(
+      test = slot == "scale.data" || test.use == 'roc',
+      yes = "avg_diff",
+      no = "avg_logFC"
+    )
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
+    if (only.pos) {
+      de.results <- subset(x = de.results, subset = avg_logFC > 0)
+    }
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results$avg_logFC), ]
+    diff.col <- "avg_diff"
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
   }
-  if (only.pos) {
-    de.results <- subset(x = de.results, subset = avg_logFC > 0)
+  if (test.use == "roc") {
+    de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
+  } else {
+    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
+    de.results$p_val_adj = p.adjust(
+      p = de.results$p_val,
+      method = "bonferroni",
+      n = nrow(x = object)
+    )
   }
   return(de.results)
 }
@@ -754,11 +795,19 @@ FindMarkers.Seurat <- function(
       cells = c(ident.1, ident.2)
     )
   }
+  counts <- switch(
+    EXPR = data.slot,
+    'scale.data' = GetAssayData(object = object[[assay]], slot = "counts"),
+    numeric()
+  )
   de.results <- FindMarkers(
     object = data.use,
+    slot = data.slot,
+    counts = counts,
     cells.1 = ident.1,
     cells.2 = ident.2,
     features = features,
+    reduction = reduction,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
