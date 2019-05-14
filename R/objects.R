@@ -5713,6 +5713,7 @@ setMethod(
   signature = 'SeuratCommand',
   definition = function(object) {
     params <- slot(object = object, name = "params")
+    params <- params[sapply(X = params, FUN = class) != "function"]
     cat(
       "Command: ", slot(object = object, name = "call.string"), '\n',
       "Time: ", as.character(slot(object = object, name = "time.stamp")), '\n',
