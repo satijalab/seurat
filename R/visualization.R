@@ -3113,6 +3113,7 @@ Col2Hex <- function(...) {
 # @param ... Extra parameters passed to \code{\link{CombinePlots}}
 #
 #' @importFrom scales hue_pal
+#' @importFrom ggplot2 xlab ylab
 #
 ExIPlot <- function(
   object,
@@ -3198,6 +3199,28 @@ ExIPlot <- function(
       ))
     }
   )
+  label.fxn <- switch(
+    EXPR = type,
+    'violin' = ylab,
+    'ridge' = xlab,
+    stop("Unknown ExIPlot type ", type, call. = FALSE)
+  )
+  for (i in 1:length(x = plots)) {
+    key <- paste0(unlist(x = strsplit(x = features[i], split = '_'))[1], '_')
+    obj <- names(x = which(x = Key(object = object) == key))
+    if (length(x = obj) == 1) {
+      if (inherits(x = object[[obj]], what = 'DimReduc')) {
+        plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
+      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+        next
+      } else {
+        warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)
+        plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
+      }
+    } else if (!features[i] %in% rownames(x = object)) {
+      plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
+    }
+  }
   if (combine) {
     combine.args <- list(
       'plots' = plots,
