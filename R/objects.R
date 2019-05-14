@@ -2764,6 +2764,7 @@ OldWhichCells.Seurat <- function(
   ...
 ) {
   # input checking
+  .Deprecated(new = "WhichCells", old = "OldWhichCells")
   if (length(x = subset.name) > 1) {
     stop("subset.name must be a single parameter")
   }
@@ -3696,6 +3697,7 @@ SubsetData.Seurat <- function(
   random.seed = 1,
   ...
 ) {
+  .Deprecated(old = "SubsetData", new = "subset")
   expression <- character(length = 0L)
   if (!is.null(x = subset.name)) {
     sub <- gsub(
