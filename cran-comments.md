@@ -10,7 +10,7 @@
 ## R CMD check results
 There were no ERRORs or WARNINGs
 
-There were 2 NOTEs:
+There were 3 NOTEs:
 
 * checking CRAN incoming feasibility ... NOTE
     Maintainer: ‘Paul Hoffman <nygcSatijalab@nygenome.org>’
@@ -25,6 +25,11 @@ There were 2 NOTEs:
   Package suggested but not available for checking: 'loomR'
 
   This is a suggested package hosted on a custom repository and maintained by us (both the package and repository).
+  
+* checking Rd cross-references ... NOTE
+  Package unavailable to check Rd xrefs: 'loomR'
+  
+  This is a suggested package that we maintain. We have checked the cross references to ensure they link to the correct help pages.
 
 ## Downstream dependencies
 
