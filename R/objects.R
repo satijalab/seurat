@@ -1576,7 +1576,7 @@ as.Seurat.loom <- function(
     message(
       "Pulling ",
       ifelse(
-        test = normalized == '/matrix',
+        test = !is.null(x = normalized) && normalized == '/matrix',
         yes = 'normalized data',
         no = 'counts'
       )
@@ -1589,7 +1589,7 @@ as.Seurat.loom <- function(
     cell.names = cells,
     verbose = verbose
   )
-  if (normalized == '/matrix') {
+  if (!is.null(x = normalized) && normalized == '/matrix') {
     assays <- list(CreateAssayObject(data = counts))
     names(x = assays) <- assay
     object <- new(
@@ -1627,7 +1627,7 @@ as.Seurat.loom <- function(
       )
       object <- SetAssayData(object = object, slot = 'data', new.data = norm.data)
     }
-  } else if (normalized != '/matrix') {
+  } else if (is.null(x = normalized) || normalized != '/matrix') {
     if (verbose) {
       message("No normalized data provided, not adding scaled data")
     }
