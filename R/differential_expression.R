@@ -661,13 +661,12 @@ FindMarkers.default <- function(
     )
     de.results[, diff.col] <- total.diff[rownames(x = de.results)]
     de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-    if (only.pos) {
-      de.results <- subset(x = de.results, subset = avg_logFC > 0)
-    }
   } else {
     diff.col <- "avg_diff"
     de.results[, diff.col] <- total.diff[rownames(x = de.results)]
-    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
+  }
+  if (only.pos) {
+    de.results <- subset(x = de.results, subset = diff.col > 0)
   }
   if (test.use == "roc") {
     de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
