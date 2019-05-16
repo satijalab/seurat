@@ -191,22 +191,24 @@ FindAllMarkers <- function(
   return(gde.all)
 }
 
-#' Finds markers that are conserved between the two groups
+#' Finds markers that are conserved between the groups
 #'
 #' @inheritParams FindMarkers
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
 #' @param grouping.var grouping variable
-#' @param assay.type Type of assay to fetch data for (default is RNA)
+#' @param assay of assay to fetch data for (default is RNA)
 #' @param meta.method method for combining p-values. Should be a function from
 #' the metap package (NOTE: pass the function, not a string)
 #' @param \dots parameters to pass to FindMarkers
 #'
-#' @return Matrix containing a ranked list of putative conserved markers, and
+#' @return data.frame containing a ranked list of putative conserved markers, and
 #' associated statistics (p-values within each group and a combined p-value
-#' (such as Fishers combined p-value or others from the MetaDE package),
-#' percentage of cells expressing the marker, average differences)
+#' (such as Fishers combined p-value or others from the metap package),
+#' percentage of cells expressing the marker, average differences). Name of group is appended to each
+#' associated output column (e.g. CTRL_p_val). If only one group is tested in the grouping.var, max
+#' and combined p-values are not returned.
 #'
 #' @importFrom metap minimump
 #'
@@ -225,14 +227,14 @@ FindConservedMarkers <- function(
   ident.1,
   ident.2 = NULL,
   grouping.var,
-  assay.type = 'RNA',
+  assay = 'RNA',
   slot = 'data',
   meta.method = minimump,
   verbose = TRUE,
   ...
 ) {
   if (class(x = meta.method) != "function") {
-    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
+    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detailed description of the available functions.")
   }
   object.var <- FetchData(object = object, vars = grouping.var)
   object <- SetIdent(
@@ -253,35 +255,70 @@ FindConservedMarkers <- function(
   for (i in 1:num.groups) {
     level.use <- levels.split[i]
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
-    if (!ident.use.1 %in% Idents(object = object)) {
-      stop("Identity: ", ident.1, " not present in group ", level.use)
+    ident.use.1.exists <- ident.use.1 %in% Idents(object = object)
+    if (!all(ident.use.1.exists)) {
+      bad.ids <- ident.1[!ident.use.1.exists]
+      warning(
+        "Identity: ",
+        paste(bad.ids, collapse = ", "),
+        " not present in group ",
+        level.use,
+        ". Skipping ",
+        level.use,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      next
     }
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(Idents(object = object)[cells.2]) > 0))
+      ident.2 <- gsub(pattern = paste0("_", level.use), replacement = "", x = ident.use.2)
       if (length(x = ident.use.2) == 0) {
         stop(paste("Only one identity class present:", ident.1))
       }
-    }
-    if (!is.null(x = ident.2)) {
+    } else {
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
     if (verbose) {
-      message(paste0("Testing ", ident.use.1, " vs ", paste(ident.use.2, collapse = ", "), "\n"))
+      message(
+        "Testing group ",
+        level.use,
+        ": (",
+        paste(ident.1, collapse = ", "),
+        ") vs (",
+        paste(ident.2, collapse = ", "),
+        ")"
+      )
     }
-    if (any(!ident.use.2 %in% Idents(object = object))) {
-      bad.idents <- ident.use.2[!ident.use.2 %in% Idents(object = object)]
-      stop(paste0("The following identities are not present in group ", level.use, ": ", paste(bad.idents, collapse = ", ")))
+    ident.use.2.exists <- ident.use.2 %in% Idents(object = object)
+    if (!all(ident.use.2.exists)) {
+      bad.ids <- ident.2[!ident.use.2.exists]
+      warning(
+        "Identity: ",
+        paste(bad.ids, collapse = ", "),
+        " not present in group ",
+        level.use,
+        ". Skipping ",
+        level.use,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      next
     }
     marker.test[[i]] <- FindMarkers(
       object = object,
-      assay.type = assay.type,
+      assay = assay,
+      slot = slot,
       ident.1 = ident.use.1,
       ident.2 = ident.use.2,
+      verbose = verbose,
       ...
     )
   }
+  names(x = marker.test) <- levels.split
+  marker.test <- Filter(f = Negate(f = is.null), x = marker.test)
   genes.conserved <- Reduce(
     f = intersect,
     x = lapply(
@@ -292,34 +329,38 @@ FindConservedMarkers <- function(
     )
   )
   markers.conserved <- list()
-  for (i in 1:num.groups) {
+  for (i in 1:length(x = marker.test)) {
     markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
     colnames(x = markers.conserved[[i]]) <- paste(
-      levels.split[i],
+      names(x = marker.test)[i],
       colnames(x = markers.conserved[[i]]),
       sep = "_"
     )
   }
   markers.combined <- Reduce(cbind, markers.conserved)
-  pval.codes <- paste(levels.split, "p_val", sep = "_")
-  markers.combined$max_pval <- apply(
-    X = markers.combined[, pval.codes],
-    MARGIN = 1,
-    FUN = max
-  )
-  combined.pval <- data.frame(cp = apply(
-    X = markers.combined[, pval.codes],
-    MARGIN = 1,
-    FUN = function(x) {
-      return(meta.method(x)$p)
-    }
-  ))
-  colnames(x = combined.pval) <- paste0(
-    as.character(x = formals()$meta.method),
-    "_p_val"
-  )
-  markers.combined <- cbind(markers.combined, combined.pval)
-  markers.combined <- markers.combined[order(markers.combined[, paste0(as.character(x = formals()$meta.method), "_p_val")]), ]
+  pval.codes <- colnames(x = markers.combined)[grepl(pattern = "*_p_val$", x = colnames(x = markers.combined))]
+  if (length(x = pval.codes) > 1) {
+    markers.combined$max_pval <- apply(
+      X = markers.combined[, pval.codes, drop = FALSE],
+      MARGIN = 1,
+      FUN = max
+    )
+    combined.pval <- data.frame(cp = apply(
+      X = markers.combined[, pval.codes, drop = FALSE],
+      MARGIN = 1,
+      FUN = function(x) {
+        return(meta.method(x)$p)
+      }
+    ))
+    colnames(x = combined.pval) <- paste0(
+      as.character(x = formals()$meta.method),
+      "_p_val"
+    )
+    markers.combined <- cbind(markers.combined, combined.pval)
+    markers.combined <- markers.combined[order(markers.combined[, paste0(as.character(x = formals()$meta.method), "_p_val")]), ]
+  } else {
+    warning("Only a single group was tested", call. = FALSE, immediate. = TRUE)
+  }
   return(markers.combined)
 }
 
@@ -329,6 +370,9 @@ FindConservedMarkers <- function(
 
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
+#' @param counts Count matrix if using scale.data for DE tests. This is used for
+#' computing pct.1 and pct.2 and for filtering features based on fraction
+#' expressing
 #' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -400,9 +444,12 @@ FindConservedMarkers <- function(
 #'
 FindMarkers.default <- function(
   object,
+  slot = "data",
+  counts = numeric(),
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
+  reduction = NULL,
   logfc.threshold = 0.25,
   test.use = 'wilcox',
   min.pct = 0.1,
@@ -418,9 +465,9 @@ FindMarkers.default <- function(
   ...
 ) {
   features <- features %||% rownames(x = object)
-  methods.noprefiliter <- c("DESeq2", "zingeR")
+  methods.noprefiliter <- c("DESeq2")
   if (test.use %in% methods.noprefiliter) {
-    features <- rownames(object)
+    features <- rownames(x = object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
@@ -435,69 +482,92 @@ FindMarkers.default <- function(
   } else if (length(x = cells.2) < min.cells.group) {
     stop("Cell group 2 has fewer than ", min.cells.group, " cells")
   } else if (any(!cells.1 %in% colnames(x = object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.1) %in% colnames(x = object))]
     stop(
       "The following cell names provided to cells.1 are not present: ",
       paste(bad.cells, collapse = ", ")
     )
   } else if (any(!cells.2 %in% colnames(x = object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.2) %in% colnames(x = object))]
     stop(
       "The following cell names provided to cells.2 are not present: ",
       paste(bad.cells, collapse = ", ")
     )
   }
   # feature selection (based on percentages)
-  thresh.min <- 0
-  pct.1 <- round(
-    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
-      length(x = cells.1),
-    digits = 3
+  data <- switch(
+    EXPR = slot,
+    'scale.data' = counts,
+    object
   )
-  pct.2 <- round(
-    x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
-      length(x = cells.2),
-    digits = 3
-  )
-  data.alpha <- cbind(pct.1, pct.2)
-  colnames(x = data.alpha) <- c("pct.1", "pct.2")
-  alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
-  names(x = alpha.min) <- rownames(x = data.alpha)
-  features <- names(x = which(x = alpha.min > min.pct))
-  if (length(x = features) == 0) {
-    stop("No features pass min.pct threshold")
-  }
-  alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-  features <- names(
-    x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
-  )
-  if (length(x = features) == 0) {
-    stop("No features pass min.diff.pct threshold")
-  }
-  # gene selection (based on average difference)
-  data.1 <- apply(
-    X = object[features, cells.1, drop = FALSE],
-    MARGIN = 1,
-    FUN = function(x) {
-      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  if (is.null(x = reduction)) {
+    thresh.min <- 0
+    pct.1 <- round(
+      x = rowSums(x = data[features, cells.1, drop = FALSE] > thresh.min) /
+        length(x = cells.1),
+      digits = 3
+    )
+    pct.2 <- round(
+      x = rowSums(x = data[features, cells.2, drop = FALSE] > thresh.min) /
+        length(x = cells.2),
+      digits = 3
+    )
+    data.alpha <- cbind(pct.1, pct.2)
+    colnames(x = data.alpha) <- c("pct.1", "pct.2")
+    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
+    names(x = alpha.min) <- rownames(x = data.alpha)
+    features <- names(x = which(x = alpha.min > min.pct))
+    if (length(x = features) == 0) {
+      stop("No features pass min.pct threshold")
     }
+    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
+    features <- names(
+      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+    )
+    if (length(x = features) == 0) {
+      stop("No features pass min.diff.pct threshold")
+    }
+  } else {
+    data.alpha <- data.frame(
+      pct.1 = rep(x = NA, times = length(x = features)),
+      pct.2 = rep(x = NA, times = length(x = features))
+    )
+  }
+  # feature selection (based on average difference)
+  mean.fxn <- if (is.null(x = reduction) && slot != "scale.data") {
+    switch(
+      EXPR = slot,
+      'data' = function(x) {
+        return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+      },
+      function(x) {
+        return(log(x = mean(x = x) + pseudocount.use))
+      }
+    )
+  } else {
+    mean
+  }
+  data.1 <- apply(
+    X = data[features, cells.1, drop = FALSE],
+    MARGIN = 1,
+    FUN = mean.fxn
   )
   data.2 <- apply(
-    X = object[features, cells.2, drop = FALSE],
+    X = data[features, cells.2, drop = FALSE],
     MARGIN = 1,
-    FUN = function(x) {
-      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
-    }
+    FUN = mean.fxn
   )
   total.diff <- (data.1 - data.2)
-  features.diff <- if (only.pos) {
-    names(x = which(x = total.diff > logfc.threshold))
-  } else {
-    names(x = which(x = abs(x = total.diff) > logfc.threshold))
-  }
-  features <- intersect(x = features, y = features.diff)
-  if (length(x = features) == 0) {
-    stop("No features pass logfc.threshold threshold")
+  if (is.null(x = reduction) && slot != "scale.data") {
+    features.diff <- if (only.pos) {
+      names(x = which(x = total.diff > logfc.threshold))
+    } else {
+      names(x = which(x = abs(x = total.diff) > logfc.threshold))
+    }
+    features <- intersect(x = features, y = features.diff)
+    if (length(x = features) == 0) {
+      stop("No features pass logfc.threshold threshold")
+    }
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
@@ -583,19 +653,30 @@ FindMarkers.default <- function(
     ),
     stop("Unknown test: ", test.use)
   )
-  de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
-  de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-  de.results$p_val_adj = p.adjust(
-    p = de.results$p_val,method = "bonferroni",
-    n = nrow(object)
-  )
-  if (test.use == "roc") {
-    de.results <- de.results[order(-de.results$power, -de.results$avg_logFC), ]
+  if (is.null(x = reduction)) {
+    diff.col <- ifelse(
+      test = slot == "scale.data" || test.use == 'roc',
+      yes = "avg_diff",
+      no = "avg_logFC"
+    )
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results$avg_logFC), ]
+    diff.col <- "avg_diff"
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
   }
   if (only.pos) {
-    de.results <- subset(x = de.results, subset = avg_logFC > 0)
+    de.results <- subset(x = de.results, subset = diff.col > 0)
+  }
+  if (test.use == "roc") {
+    de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
+  } else {
+    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
+    de.results$p_val_adj = p.adjust(
+      p = de.results$p_val,
+      method = "bonferroni",
+      n = nrow(x = object)
+    )
   }
   return(de.results)
 }
@@ -649,7 +730,7 @@ FindMarkers.Seurat <- function(
     }
     Idents(object = object) <- group.by
   }
-  if (!is.null(x = assay) & !is.null(x = reduction)) {
+  if (!is.null(x = assay) && !is.null(x = reduction)) {
     stop("Please only specify either assay or reduction.")
   }
   data.slot <- ifelse(
@@ -668,7 +749,7 @@ FindMarkers.Seurat <- function(
   }
   if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
-  } else if (ident.1 == 'clustertree' || is(object = ident.1, class2 = 'phylo')) {
+  } else if ((length(x = ident.1) == 1 && ident.1[1] == 'clustertree') || is(object = ident.1, class2 = 'phylo')) {
     if (is.null(x = ident.2)) {
       stop("Please pass a node to 'ident.2' to run FindMarkers on a tree")
     }
@@ -713,11 +794,19 @@ FindMarkers.Seurat <- function(
       cells = c(ident.1, ident.2)
     )
   }
+  counts <- switch(
+    EXPR = data.slot,
+    'scale.data' = GetAssayData(object = object[[assay]], slot = "counts"),
+    numeric()
+  )
   de.results <- FindMarkers(
     object = data.use,
+    slot = data.slot,
+    counts = counts,
     cells.1 = ident.1,
     cells.2 = ident.2,
     features = features,
+    reduction = reduction,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,

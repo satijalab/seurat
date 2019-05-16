@@ -21,6 +21,9 @@ set for any object in object.list.}
 
 \item{...}{Additional parameters to \code{\link{FindVariableFeatures}}}
 }
+\value{
+A vector of selected features
+}
 \description{
 Choose the features to use when integrating multiple datasets. This function ranks features by
 the number of datasets they appear in, breaking ties by the median rank across datasets. It

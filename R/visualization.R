@@ -188,6 +188,10 @@ DimHeatmap <- function(
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 #' if you are encountering that issue (note that plots may take longer to produce/render).
+#' @param draw.lines Include white lines to separate the groups
+#' @param lines.width Integer number to adjust the width of the separating white lines.
+#' Corresponds to the number of "cells" between each group.
+#' @param group.bar.height Scale the height of the color bar
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
@@ -216,6 +220,9 @@ DoHeatmap <- function(
   hjust = 0,
   angle = 45,
   raster = TRUE,
+  draw.lines = TRUE,
+  lines.width = NULL,
+  group.bar.height = 0.02,
   combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
@@ -260,6 +267,21 @@ DoHeatmap <- function(
     group.use <- groups.use[, i, drop = TRUE]
     group.use <- factor(x = group.use)
     names(x = group.use) <- cells
+    if (draw.lines) {
+      # create fake cells to serve as the white lines, fill with NAs
+      lines.width <- lines.width %||% ceiling(x = nrow(x = data) * 0.0025)
+      placeholder.cells <- sapply(
+        X = 1:(length(x = levels(x = group.use)) * lines.width),
+        FUN = function(x) RandomName(length = 20)
+      )
+      placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
+      names(x = placeholder.groups) <- placeholder.cells
+      group.use <- as.vector(x = group.use)
+      names(x = group.use) <- cells
+      group.use <- factor(x = c(group.use, placeholder.groups))
+      na.data <- matrix(data = NA, nrow = length(x = placeholder.cells), ncol = ncol(data), dimnames = list(placeholder.cells, colnames(x = data)))
+      data <- rbind(data, na.data)
+    }
     plot <- SingleRasterMap(
       data = data,
       raster = raster,
@@ -271,13 +293,24 @@ DoHeatmap <- function(
     )
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
+      group.use2 <- sort(x = group.use)
+      if (draw.lines) {
+        na.group <- RandomName(length = 20)
+        levels(x = group.use2) <- c(levels(x = group.use2), na.group)
+        group.use2[placeholder.cells] <- na.group
+        cols <- c(hue_pal()(length(x = levels(x = group.use))), "#FFFFFF")
+      } else {
+        cols <- c(hue_pal()(length(x = levels(x = group.use))))
+      }
       pbuild <- ggplot_build(plot = plot)
-      cols <- hue_pal()(length(x = levels(x = group.use)))
-      names(x = cols) <- levels(x = group.use)
-      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
-      y.max <- y.pos + 0.5
+      names(x = cols) <- levels(x = group.use2)
+      # scale the height of the bar
+      y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
+      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
+      y.max <- y.pos + group.bar.height * y.range
+
       plot <- plot + annotation_raster(
-        raster = t(x = cols[sort(x = group.use)]),
+        raster = t(x = cols[group.use2]),,
         xmin = -Inf,
         xmax = Inf,
         ymin = y.pos,
@@ -703,6 +736,7 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
+#' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -745,6 +779,7 @@ FeaturePlot <- function(
   reduction = NULL,
   split.by = NULL,
   shape.by = NULL,
+  slot = 'data',
   blend = FALSE,
   blend.threshold = 0.5,
   label = FALSE,
@@ -777,7 +812,18 @@ FeaturePlot <- function(
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  data <- FetchData(object = object, vars = c(dims, features), cells = cells)
+  data <- FetchData(object = object, vars = c(dims, features), cells = cells, slot = slot)
+  if (ncol(x = data) < 3) {
+    stop(
+      "None of the requested features were found: ",
+      paste(features, collapse = ', '),
+      " in slot ",
+      slot,
+      call. = FALSE
+    )
+  } else if (!all(dims %in% colnames(x = data))) {
+    stop("The dimensions requested were not found", call. = FALSE)
+  }
   features <- colnames(x = data)[3:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
@@ -1185,6 +1231,7 @@ FeatureScatter <- function(
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
+#' @inheritParams HVFInfo
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
@@ -1206,29 +1253,33 @@ VariableFeaturePlot <- function(
   cols = c('black', 'red'),
   pt.size = 1,
   log = NULL,
+  selection.method = NULL,
   assay = NULL
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
   }
-  hvf.info <- HVFInfo(object = object, assay = assay)
-  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
-  vars <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
-                 c('mean', 'variance.standardized'),
-                 c('mean', 'dispersion'),
-                 c('gmean', 'residual_variance'))
-  axis.labels <- switch(which(dispersion.names %in% colnames(x = hvf.info)),
-                        c('Average Expression', 'Standardized Variance'),
-                        c('Average Expression', 'Dispersion'),
-                        c('Geometric Mean of Expression', 'Residual Variance'))
-  hvf.info <- hvf.info[, vars]
-  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
-  var.features <- VariableFeatures(object = object, assay = assay)
-  var.status <- ifelse(
-    test = rownames(x = hvf.info) %in% var.features,
-    yes = 'yes',
-    no = 'no'
+  hvf.info <- HVFInfo(
+    object = object,
+    assay = assay,
+    selection.method = selection.method,
+    status = TRUE
+    )
+  var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
+  hvf.info <- hvf.info[, c(1, 3)]
+  axis.labels <- switch(
+    EXPR = colnames(x = hvf.info)[2],
+    'variance.standardized' = c('Average Expression', 'Standardized Variance'),
+    'dispersion.scaled' = c('Average Expression', 'Dispersion'),
+    'residual_variance' = c('Geometric Mean of Expression', 'Residual Variance')
   )
+  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
+  # var.features <- VariableFeatures(object = object, assay = assay)
+  # var.status <- ifelse(
+  #   test = rownames(x = hvf.info) %in% var.features,
+  #   yes = 'yes',
+  #   no = 'no'
+  # )
   plot <- SingleCorPlot(
     data = hvf.info,
     col.by = var.status,
@@ -1550,10 +1601,11 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' Intuitive way of visualizing how feature expression changes across different
 #' identity classes (clusters). The size of the dot encodes the percentage of
-#' cells within a class, while the color encodes the AverageExpression level of
-#' cells within a class (blue is high).
+#' cells within a class, while the color encodes the AverageExpression level
+#' across all cells within a class (blue is high).
 #'
 #' @param object Seurat object
+#' @param assay Name of assay to use, defaults to the active assay
 #' @param features Input vector of features
 #' @param cols Colors to plot, can pass a single character giving the name of
 #' a palette from \code{RColorBrewer::brewer.pal.info}
@@ -1592,6 +1644,7 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 DotPlot <- function(
   object,
+  assay = NULL,
   features,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
@@ -1605,6 +1658,8 @@ DotPlot <- function(
   scale.max = NA,
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
@@ -1977,7 +2032,7 @@ VizDimLoadings <- function(
 #' @return A ggplot object
 #'
 #' @importFrom png readPNG
-#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster
+#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
 #'
 #' @export
 #'
@@ -1997,10 +2052,11 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     plot = plot,
     geom = class(x = plot$layers[[1]]$geom)[1]
   )
+  title <- plot$labels$title
   tmpfile <- tempfile(fileext = '.png')
   ggsave(
     filename = tmpfile,
-    plot = plot + NoLegend() + NoAxes(),
+    plot = plot + NoLegend() + NoAxes() + theme(plot.title = element_blank()),
     width = width,
     height = height,
     dpi = dpi
@@ -2011,7 +2067,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     data = plot$data,
     mapping = aes_string(x = xyparams$x, y = xyparams$y)
   ) + geom_blank()
-  blank <- blank + plot$theme
+  blank <- blank + plot$theme + ggtitle(label = title)
   blank <- blank + annotation_raster(
     raster = img,
     xmin = range.values[1],
@@ -3057,6 +3113,7 @@ Col2Hex <- function(...) {
 # @param ... Extra parameters passed to \code{\link{CombinePlots}}
 #
 #' @importFrom scales hue_pal
+#' @importFrom ggplot2 xlab ylab
 #
 ExIPlot <- function(
   object,
@@ -3110,13 +3167,17 @@ ExIPlot <- function(
     }
     if (is.null(x = cols)) {
       cols <- hue_pal()(length(x = levels(x = idents)))
-    } else if (cols == 'interaction') {
+      cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    } else if (length(x = cols) == 1 && cols == 'interaction') {
       split <- interaction(idents, split)
       cols <- hue_pal()(length(x = levels(x = idents)))
     } else {
       cols <- Col2Hex(cols)
     }
-    cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    if (length(x = cols) < length(x = levels(x = split))) {
+      cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    }
+    cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
   }
   if (same.y.lims && is.null(x = y.max)) {
@@ -3139,6 +3200,28 @@ ExIPlot <- function(
       ))
     }
   )
+  label.fxn <- switch(
+    EXPR = type,
+    'violin' = ylab,
+    'ridge' = xlab,
+    stop("Unknown ExIPlot type ", type, call. = FALSE)
+  )
+  for (i in 1:length(x = plots)) {
+    key <- paste0(unlist(x = strsplit(x = features[i], split = '_'))[1], '_')
+    obj <- names(x = which(x = Key(object = object) == key))
+    if (length(x = obj) == 1) {
+      if (inherits(x = object[[obj]], what = 'DimReduc')) {
+        plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
+      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+        next
+      } else {
+        warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)
+        plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
+      }
+    } else if (!features[i] %in% rownames(x = object)) {
+      plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
+    }
+  }
   if (combine) {
     combine.args <- list(
       'plots' = plots,
@@ -3350,13 +3433,13 @@ geom_split_violin <- function(
 #
 InvertHex <- function(hexadecimal) {
   return(vapply(
-    X = hexadecimal,
+    X = toupper(x = hexadecimal),
     FUN = function(hex) {
       hex <- unlist(x = strsplit(
         x = gsub(pattern = '#', replacement = '', x = hex),
         split = ''
       ))
-      key <- unlist(x = strsplit(x = 'FEDCBA9876543210', split = ''))
+      key <- toupper(x = as.hexmode(x = 15:0))
       if (!all(hex %in% key)) {
         stop('All hexadecimal colors must be valid hexidecimal numbers from 0-9 and A-F')
       }
@@ -4175,7 +4258,7 @@ SingleRasterMap <- function(
   plot <- ggplot(data = data) +
     my_geom(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-    scale_fill_gradientn(limits = limits, colors = colors) +
+    scale_fill_gradientn(limits = limits, colors = colors, na.value = "white") +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
     WhiteBackground() + NoAxes(keep.text = TRUE)
   if (!is.null(x = group.by)) {

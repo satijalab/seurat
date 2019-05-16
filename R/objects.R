@@ -378,6 +378,9 @@ CreateAssayObject <- function(
     if (is.null(x = colnames(x = counts))) {
       stop("No cell names (colnames) names present in the input matrix")
     }
+    if (any(rownames(x = counts) == '')) {
+      stop("Feature names of counts matrix cannot be empty", call. = FALSE)
+    }
     if (nrow(x = counts) > 0 && is.null(x = rownames(x = counts))) {
       stop("No feature names (rownames) names present in the input matrix")
     }
@@ -415,6 +418,9 @@ CreateAssayObject <- function(
     }
     if (is.null(x = colnames(x = data))) {
       stop("No cell names (colnames) names present in the input matrix")
+    }
+    if (any(rownames(x = data) == '')) {
+      stop("Feature names of data matrix cannot be empty", call. = FALSE)
     }
     if (nrow(x = data) > 0 && is.null(x = rownames(x = data))) {
       stop("No feature names (rownames) names present in the input matrix")
@@ -552,9 +558,15 @@ CreateDimReducObject <- function(
     colnames(x = embeddings) <- paste0(key, digits)
   }
   if (!IsMatrixEmpty(x = loadings)) {
+    if (any(rownames(x = loadings) == '')) {
+      stop("Feature names of loadings matrix cannot be empty", call. = FALSE)
+    }
     colnames(x = loadings) <- colnames(x = embeddings)
   }
   if (!IsMatrixEmpty(x = projected)) {
+    if (any(rownames(x = loadings) == '')) {
+      stop("Feature names of projected loadings matrix cannot be empty", call. = FALSE)
+    }
     colnames(x = projected) <- colnames(x = embeddings)
   }
   jackstraw <- jackstraw %||% new(Class = 'JackStrawData')
@@ -758,8 +770,10 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
+  # Get a list of all objects to search through and their keys
   objects.use <- FilterObjects(object = object)
   object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
+  # Find all vars that are keyed
   keyed.vars <- lapply(
     X = object.keys,
     FUN = function(key) {
@@ -812,9 +826,11 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     }
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
+  # Pull vars from object metadata
   meta.vars <- vars[vars %in% colnames(x = object[[]])]
   data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
-  default.vars <- vars[vars %in% rownames(x = object)]
+  # Pull vars from the default assay
+  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot))]
   data.fetched <- c(
     data.fetched,
     as.data.frame(x = t(x = as.matrix(x = GetAssayData(
@@ -822,18 +838,26 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells, drop = FALSE])))
   )
+  # Pull identities
   if ('ident' %in% vars && !'ident' %in% colnames(x = object[[]])) {
     data.fetched[['ident']] <- Idents(object = object)
   }
+  # Try to find ambiguous vars
   fetched <- names(x = data.fetched)
   vars.missing <- setdiff(x = vars, y = fetched)
   if (length(x = vars.missing) > 0) {
+    # Search for vars in alternative assays
     vars.alt <- vector(mode = 'list', length = length(x = vars.missing))
     names(x = vars.alt) <- vars.missing
     for (assay in FilterObjects(object = object, classes.keep = 'Assay')) {
       vars.assay <- Filter(
         f = function(x) {
-          return(x %in% rownames(x = object[[assay]]))
+          features.assay <- rownames(x = GetAssayData(
+            object = object,
+            assay = assay,
+            slot = slot
+          ))
+          return(x %in% features.assay)
         },
         x = vars.missing
       )
@@ -841,6 +865,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
         vars.alt[[var]] <- append(x = vars.alt[[var]], values = assay)
       }
     }
+    # Vars found in multiple alternative assays are truly ambiguous, will not pull
     vars.many <- names(x = Filter(
       f = function(x) {
         return(length(x = x) > 1)
@@ -861,6 +886,8 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       },
       x = vars.alt
     ))
+    # Pull vars found in only one alternative assay
+    # Key this var to highlight that it was found in an alternate assay
     vars.alt <- Filter(
       f = function(x) {
         return(length(x = x) == 1)
@@ -880,7 +907,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       )
       keyed.var <- paste0(Key(object = object[[assay]]), var)
       data.fetched[[keyed.var]] <- as.vector(
-        x = object[[assay]][var, cells]
+        x = GetAssayData(object = object, assay = assay, slot = slot)[var, cells]
       )
       vars <- sub(
         pattern = paste0('^', var, '$'),
@@ -890,6 +917,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     }
     fetched <- names(x = data.fetched)
   }
+  # Name the vars not found in a warning (or error if no vars found)
   m2 <- if (length(x = vars.missing) > 10) {
     paste0(' (10 out of ', length(x = vars.missing), ' shown)')
   } else {
@@ -910,6 +938,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       paste(head(x = vars.missing, n = 10L), collapse = ', ')
     )
   }
+  # Assembled fetched vars in a dataframe
   data.fetched <- as.data.frame(
     x = data.fetched,
     row.names = cells,
@@ -943,6 +972,73 @@ GetIntegrationData <- function(object, integration.name, slot) {
   }
   int.data <- tools[[integration.name]]
   return(slot(object = int.data, name = slot))
+}
+
+#' Log a command
+#'
+#' Logs command run, storing the name, timestamp, and argument list. Stores in
+#' the Seurat object
+#'
+#' @param object Name of Seurat object
+#' @param return.command Return a \link{SeuratCommand} object instead
+#'
+#' @return If \code{return.command}, returns a SeuratCommand object. Otherwise,
+#' returns the Seurat object with command stored
+#'
+#' @export
+#'
+#' @seealso \code{\link{Command}}
+#'
+LogSeuratCommand <- function(object, return.command = FALSE) {
+  time.stamp <- Sys.time()
+  #capture function name
+  which.frame <- sys.nframe() - 1
+  if (which.frame < 1) {
+    stop("'LogSeuratCommand' cannot be called at the top level", call. = FALSE)
+  }
+  command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
+  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
+  call.string <- command.name
+  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  #capture function arguments
+  argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
+  argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
+  argnames <- grep(pattern = "anchorset", x = argnames, invert = TRUE, value = TRUE)
+  argnames <- grep(pattern = "\\.\\.\\.", x = argnames, invert = TRUE, value = TRUE)
+  params <- list()
+  p.env <- parent.frame(n = 1)
+  argnames <- intersect(x = argnames, y = ls(name = p.env))
+  # fill in params list
+  for (arg in argnames) {
+    param_value <- get(x = arg, envir = p.env)
+    #TODO Institute some check of object size?
+    params[[arg]] <- param_value
+  }
+  # check if function works on the Assay and/or the DimReduc Level
+  assay <- params[["assay"]]
+  reduction <- params[["reduction"]]
+  if (class(x = reduction) == 'DimReduc') {
+    reduction = 'DimReduc'
+  }
+  # rename function name to include Assay/DimReduc info
+  if (length(x = assay) == 1) {
+    command.name <- paste(command.name, assay, reduction, sep = '.')
+  }
+  command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
+  command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
+  # store results
+  seurat.command <- new(
+    Class = 'SeuratCommand',
+    name = command.name,
+    params = params,
+    time.stamp = time.stamp,
+    call.string = call.string
+  )
+  if (return.command) {
+    return(seurat.command)
+  }
+  object[[command.name]] <- seurat.command
+  return(object)
 }
 
 #' Set integation data
@@ -1307,13 +1403,20 @@ as.loom.Seurat <- function(
     meta.feature[VariableFeatures(object = x), 'Selected'] <- 1
     meta.feature[is.na(x = meta.feature$Selected), 'Selected'] <- 0
   }
+  if (IsMatrixEmpty(x = GetAssayData(object = x, slot = 'counts'))) {
+    data <- GetAssayData(object = x, slot = 'data')
+    layers <- NULL
+  } else {
+    data <- GetAssayData(object = x, slot = 'counts') # Raw counts matrix
+    layers = list('norm_data' = GetAssayData(object = x, slot = 'data')) # Add data slot as norm_data
+  }
   # Make the initial loom object
   lfile <- loomR::create(
     filename = filename,
-    data = GetAssayData(object = x, slot = 'counts')[feature.order, cell.order], # Raw counts matrix
+    data = data[feature.order, cell.order],
     feature.attrs = as.list(x = meta.feature), # Feature-level metadata
     cell.attrs = as.list(x = meta.data), # Cell-level metadata
-    layers = list('norm_data' = GetAssayData(object = x)[feature.order, cell.order]), # Add data slot as norm_data
+    layers = layers,
     transpose = TRUE,
     calc.count = FALSE,
     max.size = max.size,
@@ -1428,9 +1531,10 @@ as.loom.Seurat <- function(
 #'
 #' @param cells The name of the dataset within \code{col_attrs} containing cell names
 #' @param features The name of the dataset within \code{row_attrs} containing feature names
-#' @param normalized The name of the dataset within \code{layers} containing the normalized expression matrix
+#' @param normalized The name of the dataset within \code{layers} containing the
+#' normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
+#' \code{/matrix} as normalized data
 #' @param scaled The name of the dataset within \code{layers} containing the scaled expression matrix
-#' @param assay Name of the assay to create
 #' @param verbose Display progress updates
 #'
 #' @importFrom Matrix sparseMatrix
@@ -1469,7 +1573,15 @@ as.Seurat.loom <- function(
   assay <- assay %||% hdf5r::h5attributes(x = x)$assay %||% 'RNA'
   # Read in the counts matrix
   if (verbose) {
-    message("Pulling counts matrix")
+    message(
+      "Pulling ",
+      ifelse(
+        test = !is.null(x = normalized) && normalized == '/matrix',
+        yes = 'normalized data',
+        no = 'counts'
+      )
+      ," matrix"
+    )
   }
   counts <- x$get.sparse(
     dataset = 'matrix',
@@ -1477,12 +1589,25 @@ as.Seurat.loom <- function(
     cell.names = cells,
     verbose = verbose
   )
-  object <- CreateSeuratObject(
-    counts = counts,
-    assay = assay
-  )
+  if (!is.null(x = normalized) && normalized == '/matrix') {
+    assays <- list(CreateAssayObject(data = counts))
+    names(x = assays) <- assay
+    object <- new(
+      Class = 'Seurat',
+      assays = assays,
+      meta.data = data.frame(row.names = colnames(x = assays[[assay]])),
+      version = packageVersion(pkg = 'Seurat'),
+      project.name = 'SeuratProject'
+    )
+    DefaultAssay(object = object) <- assay
+  } else {
+    object <- CreateSeuratObject(
+      counts = counts,
+      assay = assay
+    )
+  }
   # Read in normalized and scaled data
-  if (!is.null(x = normalized)) {
+  if (!is.null(x = normalized) && normalized != '/matrix') {
     normalized <- basename(path = normalized)
     if (!x[['layers']]$exists(name = normalized)) {
       warning(
@@ -1502,7 +1627,7 @@ as.Seurat.loom <- function(
       )
       object <- SetAssayData(object = object, slot = 'data', new.data = norm.data)
     }
-  } else {
+  } else if (is.null(x = normalized) || normalized != '/matrix') {
     if (verbose) {
       message("No normalized data provided, not adding scaled data")
     }
@@ -1555,22 +1680,24 @@ as.Seurat.loom <- function(
     },
     x = meta.data
   )
-  meta.data <- sapply(
-    X = meta.data,
-    FUN = function(m) {
-      return(x[['col_attrs']][[m]][])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  meta.data <- as.data.frame(x = meta.data)
-  rownames(x = meta.data) <- make.unique(names = x[['col_attrs']][[cells]][])
-  colnames(x = meta.data) <- gsub(
-    pattern = 'orig_ident',
-    replacement = 'orig.ident',
-    x = colnames(x = meta.data)
-  )
-  object[[colnames(x = meta.data)]] <- meta.data
+  if (length(x = meta.data) > 0) {
+    meta.data <- sapply(
+      X = meta.data,
+      FUN = function(m) {
+        return(x[['col_attrs']][[m]][])
+      },
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    meta.data <- as.data.frame(x = meta.data)
+    rownames(x = meta.data) <- make.unique(names = x[['col_attrs']][[cells]][])
+    colnames(x = meta.data) <- gsub(
+      pattern = 'orig_ident',
+      replacement = 'orig.ident',
+      x = colnames(x = meta.data)
+    )
+    object[[colnames(x = meta.data)]] <- meta.data
+  }
   # Set clustering information
   idents <- if (x[['col_attrs']]$exists(name = 'ClusterID')) {
     if (length(x = x[['col_attrs/ClusterID']]$dims) == 1) {
@@ -1621,37 +1748,39 @@ as.Seurat.loom <- function(
     },
     x = meta.features
   )
-  meta.features <- sapply(
-    X = meta.features,
-    FUN = function(m) {
-      return(x[['row_attrs']][[m]][])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  meta.features <- as.data.frame(x = meta.features)
-  rownames(x = meta.features) <- make.unique(names = x[['row_attrs']][[features]][])
-  colnames(x = meta.features) <- gsub(
-    pattern = 'variance_standardized',
-    replacement = 'variance.standardized',
-    x = colnames(x = meta.features)
-  )
-  colnames(x = meta.features) <- gsub(
-    pattern = 'variance_expected',
-    replacement = 'variance.expected',
-    x = colnames(x = meta.features)
-  )
-  colnames(x = meta.features) <- gsub(
-    pattern = 'dispersion_scaled',
-    replacement = 'dispersion.scaled',
-    x = colnames(x = meta.features)
-  )
-  object[[assay]][[colnames(x = meta.features)]] <- meta.features
+  if (length(x = meta.features) > 0) {
+    meta.features <- sapply(
+      X = meta.features,
+      FUN = function(m) {
+        return(x[['row_attrs']][[m]][])
+      },
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    meta.features <- as.data.frame(x = meta.features)
+    rownames(x = meta.features) <- make.unique(names = x[['row_attrs']][[features]][])
+    colnames(x = meta.features) <- gsub(
+      pattern = 'variance_standardized',
+      replacement = 'variance.standardized',
+      x = colnames(x = meta.features)
+    )
+    colnames(x = meta.features) <- gsub(
+      pattern = 'variance_expected',
+      replacement = 'variance.expected',
+      x = colnames(x = meta.features)
+    )
+    colnames(x = meta.features) <- gsub(
+      pattern = 'dispersion_scaled',
+      replacement = 'dispersion.scaled',
+      x = colnames(x = meta.features)
+    )
+    object[[assay]][[colnames(x = meta.features)]] <- meta.features
+  }
   # Look for variable features
   if (x[['row_attrs']]$exists(name = 'Selected')) {
     if (inherits(x = x[['row_attrs/Selected']]$get_type(), what = c('H5T_FLOAT', 'H5T_INTEGER'))) {
       var.features <- which(x = x[['row_attrs/Selected']][] == 1)
-      VariableFeatures(object = object) <- rownames(x = meta.features)[var.features]
+      VariableFeatures(object = object) <- x[['row_attrs']][[features]][var.features]
     } else if (verbose) {
       message("'Selected' must be a dataset of floats or integers, with '1' signifiying variable")
     }
@@ -1760,8 +1889,12 @@ as.Seurat.loom <- function(
   return(object)
 }
 
-#' @param counts name of the SingleCellExperiment assay to store as \code{counts}
-#' @param data name of the SingleCellExperiment assay to slot as \code{data}
+#' @param counts name of the SingleCellExperiment assay to store as \code{counts};
+#' set to \code{NULL} if only normalized data are present
+#' @param data name of the SingleCellExperiment assay to slot as \code{data}.
+#' Set to NULL if only counts are present
+#' @param assay Name to store expression matrices as
+#' @param project Project name for new Seurat object
 #'
 #' @rdname as.Seurat
 #' @export
@@ -1769,60 +1902,91 @@ as.Seurat.loom <- function(
 #'
 as.Seurat.SingleCellExperiment <- function(
   x,
-  counts = "counts",
-  data = "logcounts",
+  counts = 'counts',
+  data = 'logcounts',
+  assay = 'RNA',
+  project = 'SingleCellExperiment',
   ...
 ) {
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
-    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+    stop(
+      "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object",
+      call. = FALSE
+    )
   }
-  counts <- tryCatch(
-    expr = SummarizedExperiment::assay(x, counts),
-    error = function(e) {
-      stop("No data in provided assay - ", counts)
-    }
-  )
-  data <- tryCatch(
-    expr = SummarizedExperiment::assay(x, data),
-    error = function(e) {
-      stop("No data in provided assay - ", data)
-    }
-  )
-  meta.data <- as.data.frame(SummarizedExperiment::colData(x = x))
-  # if cell names are NULL, fill with cell_X
-  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
-    warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
-    cell.names <- paste0("cell_", 1:ncol(x = counts))
-    colnames(x = counts) <- cell.names
-    colnames(x = data) <- cell.names
-    rownames(x = meta.data) <- cell.names
+  meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
+  # Pull expression matrices
+  mats <- list(counts = counts, data = data)
+  mats <- Filter(f = Negate(f = is.null), x = mats)
+  if (length(x = mats) == 0) {
+    stop("Cannot pass 'NULL' to both 'counts' and 'data'")
   }
-  seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-  rownames(x = data) <- rownames(x = seurat.object)
-  seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
-  if (length(x = SingleCellExperiment::reducedDimNames(x)) > 0) {
-    for (dr in SingleCellExperiment::reducedDimNames(x)) {
+  for (m in 1:length(x = mats)) {
+    # if (is.null(x = mats[[m]])) next
+    mats[[m]] <- tryCatch(
+      expr = SummarizedExperiment::assay(x = x, i = mats[[m]]),
+      error = function(e) {
+        stop("No data in provided assay - ", mats[[m]], call. = FALSE)
+      }
+    )
+    # if cell names are NULL, fill with cell_X
+    if (is.null(x = colnames(x = mats[[m]]))) {
+      warning(
+        "The column names of the",
+        names(x = mats)[m],
+        " matrix is NULL. Setting cell names to cell_columnidx (e.g 'cell_1').",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cell.names <- paste0("cell_", 1:ncol(x = mats[[m]]))
+      colnames(x = mats[[m]]) <- cell.names
+      rownames(x = meta.data) <- cell.names
+    }
+  }
+  assays <- if (is.null(x = mats$counts)) {
+    list(CreateAssayObject(data = mats$data))
+  } else if (is.null(x = mats$data)) {
+    list(CreateAssayObject(counts = mats$counts))
+  } else {
+    a <- CreateAssayObject(counts = mats$counts)
+    a <- SetAssayData(object = a, slot = 'data', new.data = mats$data)
+    list(a)
+  }
+  names(x = assays) <- assay
+  Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
+  # Create the Seurat object
+  object <- new(
+    Class = 'Seurat',
+    assays = assays,
+    meta.data = meta.data,
+    version = packageVersion(pkg = 'Seurat'),
+    project.name = project
+  )
+  DefaultAssay(object = object) <- assay
+  # Get DimReduc information
+  if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
+    for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
       embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
-      if (is.null(rownames(x = embeddings))) {
+      if (is.null(x = rownames(x = embeddings))) {
         rownames(x = embeddings)  <- cell.names
       }
       key <- gsub(
         pattern = "[[:digit:]]",
         replacement = "_",
-        x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr)
-        )[1])
+        x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
+      )
       if (length(x = key) == 0) {
         key <- paste0(dr, "_")
       }
       colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
-      seurat.object[[dr]] <- CreateDimReducObject(
+      object[[dr]] <- CreateDimReducObject(
         embeddings = embeddings,
         key = key,
-        assay = DefaultAssay(object = seurat.object)
+        assay = DefaultAssay(object = object)
       )
     }
   }
-  return(seurat.object)
+  return(object)
 }
 
 #' @param assay Assay to convert
@@ -2046,7 +2210,7 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
-#' @param slot Specific information to pull (i.e. raw.data, data, scale.data, ...)
+#' @param slot Specific information to pull (i.e. counts, data, scale.data, ...)
 #'
 #' @rdname GetAssayData
 #' @export
@@ -2078,25 +2242,56 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
   ))
 }
 
+#' @param selection.method Which method to pull; choose one from \code{c('sctransform', 'sct')}
+#' or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}
+#' @param status Add variable status to the resulting data.frame
+#'
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
 #'
 #' @examples
 #' # Get the HVF info directly from an Assay object
-#' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
+#' HVFInfo(object = pbmc_small[["RNA"]], selection.method = 'vst')[1:5, ]
 #'
-HVFInfo.Assay <- function(object, ...) {
-  dispersion.names <- c('variance.standardized', 'dispersion.scaled', 'residual_variance')
-  vars <- switch(which(dispersion.names %in% colnames(x = object[[]])),
-                 c('mean', 'variance', 'variance.standardized'),
-                 c('mean', 'dispersion', 'dispersion.scaled'),
-                 c('gmean', 'variance', 'residual_variance'))
-  hvf.info <- object[[vars]]
+HVFInfo.Assay <- function(object, selection.method, status = FALSE, ...) {
+  disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
+  if (tolower(x = selection.method) %in% disp.methods) {
+    selection.method <- 'mvp'
+  }
+  selection.method <- switch(
+    EXPR = tolower(x = selection.method),
+    'sctransform' = 'sct',
+    selection.method
+  )
+  vars <- switch(
+    EXPR = selection.method,
+    'vst' = c('mean', 'variance', 'variance.standardized'),
+    'mvp' = c('mean', 'dispersion', 'dispersion.scaled'),
+    'sct' = c('gmean', 'variance', 'residual_variance'),
+    stop("Unknown method: '", selection.method, "'", call. = FALSE)
+  )
+  tryCatch(
+    expr = hvf.info <- object[[paste(selection.method, vars, sep = '.')]],
+    error = function(e) {
+      stop(
+        "Unable to find highly variable feature information for method '",
+        selection.method,
+        "'",
+        call. = FALSE
+      )
+    }
+  )
+  colnames(x = hvf.info) <- vars
+  if (status) {
+    hvf.info$variable <- object[[paste0(selection.method, '.variable')]]
+  }
   return(hvf.info)
 }
 
 #' @param assay Name of assay to pull highly variable feature information for
+#'
+#' @importFrom tools file_path_sans_ext
 #'
 #' @rdname HVFInfo
 #' @export
@@ -2106,9 +2301,54 @@ HVFInfo.Assay <- function(object, ...) {
 #' # Get the HVF info from a specific Assay in a Seurat object
 #' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
 #'
-HVFInfo.Seurat <- function(object, assay = NULL, ...) {
+HVFInfo.Seurat <- function(
+  object,
+  selection.method = NULL,
+  assay = NULL,
+  status = FALSE,
+  ...
+) {
   assay <- assay %||% DefaultAssay(object = object)
-  return(HVFInfo(object = GetAssay(object = object, assay = assay)))
+  if (is.null(x = selection.method)) {
+    cmds <- apply(
+      X = expand.grid(
+        c('FindVariableFeatures', 'SCTransform'),
+        FilterObjects(object = object, classes.keep = 'Assay')
+      ),
+      MARGIN = 1,
+      FUN = paste,
+      collapse = '.'
+    )
+    find.command <- Command(object = object)[Command(object = object) %in% cmds]
+    if (length(x = find.command) < 1) {
+      stop(
+        "Please run either 'FindVariableFeatures' or 'SCTransform'",
+        call. = FALSE
+      )
+    }
+    find.command <- find.command[length(x = find.command)]
+    test.command <- paste(file_path_sans_ext(x = find.command), assay, sep = '.')
+    find.command <- ifelse(
+      test = test.command %in% Command(object = object),
+      yes = test.command,
+      no = find.command
+    )
+    selection.method <- switch(
+      EXPR = file_path_sans_ext(x = find.command),
+      'FindVariableFeatures' = Command(
+        object = object,
+        command = find.command,
+        value = 'selection.method'
+      ),
+      'SCTransform' = 'sct',
+      stop("Unknown command for finding variable features: '", find.command, "'", call. = FALSE)
+    )
+  }
+  return(HVFInfo(
+    object = GetAssay(object = object, assay = assay),
+    selection.method = selection.method,
+    status = status
+  ))
 }
 
 #' @rdname Idents
@@ -2524,6 +2764,7 @@ OldWhichCells.Seurat <- function(
   ...
 ) {
   # input checking
+  .Deprecated(new = "WhichCells", old = "OldWhichCells")
   if (length(x = subset.name) > 1) {
     stop("subset.name must be a single parameter")
   }
@@ -2751,7 +2992,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     meta.features$highly.variable[is.na(x = meta.features$highly.variable)] <- FALSE
   }
   rm(x.var)
-  gc(verbose = FALSE)
+  CheckGC()
   # Fix metadata colnames
   colnames(x = obs) <- gsub(
     pattern = '_',
@@ -2819,7 +3060,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   }
   Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
   rm(x)
-  gc(verbose = FALSE)
+  CheckGC()
   # Get dimensional reduction information
   # If data isn't scaled, don't bother
   if (scaled && file$exists(name = 'obsm')) {
@@ -2933,10 +3174,14 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
       )
     }
     # Properly name dimensional reductions
-    names(x = dim.reducs) <- gsub(pattern = 'X_', replacement = '', x = embed.reduc)
+    names(x = dim.reducs) <- gsub(
+      pattern = 'X_',
+      replacement = '',
+      x = embed.reduc
+    )
     # Clean up
     rm(embeddings, loadings)
-    gc(verbose = FALSE)
+    CheckGC()
   } else {
     if (verbose) {
       message("No dimensional reduction information found")
@@ -2951,7 +3196,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   project <- gsub(
     pattern = '\\.h5ad',
     replacement = '',
-    x = basename(file$filename)
+    x = basename(path = file$filename)
   )
   object <- new(
     Class = 'Seurat',
@@ -3221,6 +3466,18 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
     )
   }
   if (!IsMatrixEmpty(x = new.data)) {
+    if (any(grepl(pattern = '_', x = rownames(x = new.data)))) {
+      warning(
+        "Feature names cannot have underscores ('_'), replacing with dashes ('-')",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      rownames(x = new.data) <- gsub(
+        pattern = '_',
+        replacement = '-',
+        x = rownames(x = new.data)
+      )
+    }
     if (ncol(x = new.data) != ncol(x = object)) {
       stop(
         "The new data doesn't have the same number of cells as the current data",
@@ -3440,6 +3697,7 @@ SubsetData.Seurat <- function(
   random.seed = 1,
   ...
 ) {
+  .Deprecated(old = "SubsetData", new = "subset")
   expression <- character(length = 0L)
   if (!is.null(x = subset.name)) {
     sub <- gsub(
@@ -3581,7 +3839,11 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 #' @export
 #' @method VariableFeatures Assay
 #'
-VariableFeatures.Assay <- function(object, ...) {
+VariableFeatures.Assay <- function(object, selection.method = NULL, ...) {
+  if (!is.null(x = selection.method)) {
+    vf <- HVFInfo(object = object, selection.method = selection.method, status = TRUE)
+    return(rownames(x = vf)[which(x = vf[, "variable"][, 1])])
+  }
   return(slot(object = object, name = 'var.features'))
 }
 
@@ -3591,9 +3853,9 @@ VariableFeatures.Assay <- function(object, ...) {
 #' @export
 #' @method VariableFeatures Seurat
 #'
-VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
+VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
-  return(VariableFeatures(object = object[[assay]]))
+  return(VariableFeatures(object = object[[assay]], selection.method = selection.method))
 }
 
 #' @rdname VariableFeatures
@@ -3601,7 +3863,32 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #' @method VariableFeatures<- Assay
 #'
 "VariableFeatures<-.Assay" <- function(object, ..., value) {
-  slot(object = object, name = 'var.features') <- value
+  if (length(x = value) == 0) {
+    slot(object = object, name = 'var.features') <- character(length = 0)
+    return(object)
+  }
+  if (any(grepl(pattern = '_', x = value))) {
+    warning(
+      "Feature names cannot have underscores '_', replacing with dashes '-'",
+      call. = FALSE,
+      immediate = TRUE
+    )
+    value <- gsub(pattern = '_', replacement = '-', x = value)
+  }
+  value <- split(x = value, f = value %in% rownames(x = object))
+  if (length(x = value[['FALSE']]) > 0) {
+    if (length(x = value[['TRUE']]) == 0) {
+      stop("None of the features provided are in this Assay object", call. = FALSE)
+    } else {
+      warning(
+        "Not all features provided are in this Assay object, removing the following feature(s): ",
+        paste(value[['FALSE']], collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+  slot(object = object, name = 'var.features') <- value[['TRUE']]
   return(object)
 }
 
@@ -4845,7 +5132,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (length(x = cells) == 0) {
     stop("No cells found", call. = FALSE)
   }
-  if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x))) {
+  if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x)) && is.null(x = features)) {
     return(x)
   }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
@@ -5166,13 +5453,21 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           x[[dr]] <- NULL
         }
       }
+      # If adding a command, ensure it gets put at the end of the command list
+      if (inherits(x = value, what = 'SeuratCommand')) {
+        slot(object = x, name = slot.use)[[i]] <- NULL
+        slot(object = x, name = slot.use) <- Filter(
+          f = Negate(f = is.null),
+          x = slot(object = x, name = slot.use)
+        )
+      }
       slot(object = x, name = slot.use)[[i]] <- value
       slot(object = x, name = slot.use) <- Filter(
         f = Negate(f = is.null),
         x = slot(object = x, name = slot.use)
       )
     }
-    gc(verbose = FALSE)
+    CheckGC()
     return(x)
   }
 )
@@ -5420,6 +5715,7 @@ setMethod(
   signature = 'SeuratCommand',
   definition = function(object) {
     params <- slot(object = object, name = "params")
+    params <- params[sapply(X = params, FUN = class) != "function"]
     cat(
       "Command: ", slot(object = object, name = "call.string"), '\n',
       "Time: ", as.character(slot(object = object, name = "time.stamp")), '\n',

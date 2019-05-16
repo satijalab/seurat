@@ -13,7 +13,8 @@ as.Seurat(x, ...)
   ...)
 
 \method{as.Seurat}{SingleCellExperiment}(x, counts = "counts",
-  data = "logcounts", ...)
+  data = "logcounts", assay = "RNA",
+  project = "SingleCellExperiment", ...)
 }
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}
@@ -24,17 +25,23 @@ as.Seurat(x, ...)
 
 \item{features}{The name of the dataset within \code{row_attrs} containing feature names}
 
-\item{normalized}{The name of the dataset within \code{layers} containing the normalized expression matrix}
+\item{normalized}{The name of the dataset within \code{layers} containing the
+normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
+\code{/matrix} as normalized data}
 
 \item{scaled}{The name of the dataset within \code{layers} containing the scaled expression matrix}
 
-\item{assay}{Name of the assay to create}
+\item{assay}{Name to store expression matrices as}
 
 \item{verbose}{Display progress updates}
 
-\item{counts}{name of the SingleCellExperiment assay to store as \code{counts}}
+\item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
+set to \code{NULL} if only normalized data are present}
 
-\item{data}{name of the SingleCellExperiment assay to slot as \code{data}}
+\item{data}{name of the SingleCellExperiment assay to slot as \code{data}.
+Set to NULL if only counts are present}
+
+\item{project}{Project name for new Seurat object}
 }
 \description{
 Convert objects to Seurat objects

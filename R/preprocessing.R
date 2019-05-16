@@ -700,16 +700,9 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    # if (!grepl(pattern = "\\/$", x = run)) {
-    #   run <- paste0(run, "/")
-    # }
-    # barcode.loc <- paste0(run, "barcodes.tsv")
     barcode.loc <- file.path(run, 'barcodes.tsv')
-    # gene.loc <- paste0(run, "genes.tsv")
     gene.loc <- file.path(run, 'genes.tsv')
-    # features.loc <- paste0(run, "features.tsv.gz")
     features.loc <- file.path(run, 'features.tsv.gz')
-    # matrix.loc <- paste0(run, "matrix.mtx")
     matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
@@ -754,6 +747,12 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       stringsAsFactors = FALSE
     )
     if (unique.features) {
+      fcols = ncol(x = feature.names)
+      if (fcols < gene.column) {
+        stop(paste0("gene.column was set to ", gene.column,
+                    " but feature.tsv.gz (or genes.tsv) only has ", fcols, " columns.",
+                    " Try setting the gene.column argument to a value <= to ", fcols, "."))
+      }
       rownames(x = data) <- make.unique(names = feature.names[, gene.column])
     }
     # In cell ranger 3.0, a third column specifying the type of data was added
@@ -1005,17 +1004,17 @@ SampleUMI <- function(
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
-#' 
-#' @return Returns a Seurat object with a new assay (named SCT by default) with 
-#' counts being (corrected) counts, data being log1p(counts), scale.data being 
-#' pearson residuals; sctransform::vst intermediate results are saved in misc 
+#'
+#' @return Returns a Seurat object with a new assay (named SCT by default) with
+#' counts being (corrected) counts, data being log1p(counts), scale.data being
+#' pearson residuals; sctransform::vst intermediate results are saved in misc
 #' slot of the new assay.
 #'
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' SCTransform(object = pbmc_small)
 #'
@@ -1039,9 +1038,6 @@ SCTransform <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (!PackageCheck('sctransform', error = FALSE)) {
-    stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
@@ -1060,6 +1056,11 @@ SCTransform <- function(
       stop('latent_var values are not from the set of cell attributes sctransform calculates by default and cannot be found in seurat object meta data')
     }
   }
+  # check for vars.to.regress in meta data
+  if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
+    stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
+  }
+  
   if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
     warning(
       'the following arguments will be ignored because they are set within this function:',
@@ -1186,7 +1187,8 @@ SCTransform <- function(
   vst.out$y <- NULL
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   # also put gene attributes in meta.features
-  assay.out[[names(x = vst.out$gene_attr)]] <- vst.out$gene_attr
+  assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
+  assay.out[['sct.variable']] <- rownames(x = assay.out[[]]) %in% top.features
   object[[new.assay.name]] <- assay.out
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
@@ -1279,14 +1281,14 @@ TF.IDF <- function(data, verbose = TRUE) {
 #'   feature values using the observed mean and expected variance (given by the
 #'   fitted line). Feature variance is then calculated on the standardized values
 #'   after clipping to a maximum (see clip.max parameter).}
-#'   \item{mean.var.plot:}{ First, uses a function to calculate average
+#'   \item{mean.var.plot (mvp):}{ First, uses a function to calculate average
 #'   expression (mean.function) and dispersion (dispersion.function) for each
 #'   feature. Next, divides features into num.bin (deafult 20) bins based on
 #'   their average expression, and calculates z-scores for dispersion within
 #'   each bin. The purpose of this is to identify variable features while
 #'   controlling for the strong relationship between variability and average
 #'   expression.}
-#'   \item{dispersion:}{ selects the genes with the highest dispersion values}
+#'   \item{dispersion (disp):}{ selects the genes with the highest dispersion values}
 #' }
 #' @param loess.span (vst method) Loess span parameter used when fitting the
 #' variance-mean relationship
@@ -1357,6 +1359,7 @@ FindVariableFeatures.default <- function(
       vmax = clip.max,
       display_progress = verbose
     )
+    colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   } else {
     if (!inherits(x = mean.function, what = 'function')) {
       stop("'mean.function' must be a function")
@@ -1390,7 +1393,7 @@ FindVariableFeatures.default <- function(
     names(x = feature.dispersion.scaled) <- names(x = feature.mean)
     hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
     rownames(x = hvf.info) <- rownames(x = object)
-    colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+    colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
   }
   return(hvf.info)
 }
@@ -1427,7 +1430,8 @@ FindVariableFeatures.Assay <- function(
   }
   if (selection.method == "vst") {
     data <- GetAssayData(object = object, slot = "counts")
-    if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+    # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+    if (IsMatrixEmpty(x = data)) {
       warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
       data <- GetAssayData(object = object, slot = "data")
     }
@@ -1446,12 +1450,18 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
-  hvf.info <- hvf.info[which(x = hvf.info$mean != 0), ]
+  hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
   if (selection.method == "vst") {
-    hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
+    hvf.info <- hvf.info[order(hvf.info$vst.variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {
-    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+    hvf.info <- hvf.info[order(hvf.info$mvp.dispersion, decreasing = TRUE), , drop = FALSE]
   }
+  selection.method <- switch(
+    EXPR = selection.method,
+    'mvp' = 'mean.var.plot',
+    'disp' = 'dispersion',
+    selection.method
+  )
   top.features <- switch(
     EXPR = selection.method,
     'mean.var.plot' = {
@@ -1464,6 +1474,13 @@ FindVariableFeatures.Assay <- function(
     stop("Unkown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
+  vf.name <- ifelse(
+    test = selection.method == 'vst',
+    yes = 'vst',
+    no = 'mvp'
+  )
+  vf.name <- paste0(vf.name, '.variable')
+  object[[vf.name]] <- rownames(x = object[[]]) %in% top.features
   return(object)
 }
 
@@ -1536,7 +1553,6 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  # across = "features",
   margin = 1,
   block.size = NULL,
   verbose = TRUE,
@@ -1585,7 +1601,7 @@ NormalizeData.default <- function(
           scale.factor = scale.factor,
           verbose = FALSE,
           custom_function = function(x) {
-            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
           },
           margin = margin
           # across = across
@@ -1612,7 +1628,7 @@ NormalizeData.default <- function(
       'CLR' = CustomNormalize(
         data = object,
         custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
         },
         margin = margin,
         verbose = verbose
@@ -1639,7 +1655,6 @@ NormalizeData.Assay <- function(
   scale.factor = 1e4,
   margin = 1,
   verbose = TRUE,
-  # across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -1676,7 +1691,6 @@ NormalizeData.Seurat <- function(
   scale.factor = 1e4,
   margin = 1,
   verbose = TRUE,
-  # across = "features",
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -1871,12 +1885,12 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
-#' @importFrom future.apply future_lapply
-#'
 #' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
+#' @param split.by Name of variable in object metadata or a vector or factor defining
+#' grouping of cells. See argument \code{f} in \code{\link[base]{split}} for more details
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'
@@ -1895,6 +1909,8 @@ RunALRA.Seurat <- function(
 #' don't block for scaling calculations.
 #' @param verbose Displays a progress bar for scaling procedure
 #'
+#' @importFrom future.apply future_apply
+#'
 #' @rdname ScaleData
 #' @export
 #'
@@ -1903,6 +1919,7 @@ ScaleData.default <- function(
   features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -1918,12 +1935,14 @@ ScaleData.default <- function(
   object <- object[features, , drop = FALSE]
   object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  suppressWarnings(Parenting(
+  suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Assay",
     features = features,
     min.cells.to.block = min.cells.to.block
   ))
-  gc(verbose = FALSE)
+  split.by <- split.by %||% TRUE
+  split.cells <- split(x = colnames(x = object), f = split.by)
+  CheckGC()
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
       latent.data <- data.frame(row.names = colnames(x = object))
@@ -1943,44 +1962,81 @@ ScaleData.default <- function(
     }
     chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
     if (PlanThreads() > 1) {
-      object <- future_lapply(
-        X = 1:ncol(x = chunk.points),
-        FUN = function(i) {
+      object <- future_apply(
+        X = expand.grid(
+          names(x = split.cells),
+          1:ncol(x = chunk.points),
+          stringsAsFactors = FALSE
+        ),
+        MARGIN = 1,
+        FUN = function(row) {
+          group <- row[[1]]
+          index <- as.numeric(x = row[[2]])
           return(RegressOutMatrix(
-            data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
-            latent.data = latent.data,
+            data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
+            latent.data = latent.data[split.cells[[group]], , drop = FALSE],
+            features.regress = features,
             model.use = model.use,
             use.umi = use.umi,
             verbose = FALSE
           ))
         }
       )
-      object <- do.call(what = 'rbind', args = object)
+      if (length(x = split.cells) > 1) {
+        merge.indices <- lapply(
+          X = 1:length(x = split.cells),
+          FUN = seq.int,
+          to = length(x = object),
+          by = length(x = split.cells)
+        )
+        object <- lapply(
+          X = merge.indices,
+          FUN = function(x) {
+            return(do.call(what = 'rbind', args = object[x]))
+          }
+        )
+        object <- do.call(what = 'cbind', args = object)
+      } else if (is.list(x = object)) {
+        object <- do.call(what = 'rbind', args = object)
+      } else {
+        dim(x = object) <- lapply(X = object.names, FUN = length)
+      }
     } else {
-      object <- RegressOutMatrix(
-        data.expr = object,
-        latent.data = latent.data,
-        features.regress = features,
-        model.use = model.use,
-        use.umi = use.umi,
-        verbose = verbose
+      object <- lapply(
+        X = names(x = split.cells),
+        FUN = function(x) {
+          if (verbose && length(x = split.cells) > 1) {
+            message("Regressing out variables from split ", x)
+          }
+          return(RegressOutMatrix(
+            data.expr = object[, split.cells[[x]], drop = FALSE],
+            latent.data = latent.data[split.cells[[x]], , drop = FALSE],
+            features.regress = features,
+            model.use = model.use,
+            use.umi = use.umi,
+            verbose = verbose
+          ))
+        }
       )
+      object <- do.call(what = 'cbind', args = object)
     }
     dimnames(x = object) <- object.names
-    gc(verbose = FALSE)
+    CheckGC()
   }
-  if (verbose) {
-    if (do.scale) {
-      if (do.center) {
-        message("Centering and scaling data matrix")
-      } else {
-        message("Scaling data matrix")
-      }
-    } else {
-      if (do.center) {
-        message("Centering data matrix")
-      }
-    }
+  if (verbose && (do.scale || do.center)) {
+    msg <- paste(
+      na.omit(object = c(
+        ifelse(test = do.center, yes = 'centering', no = NA_character_),
+        ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+      )),
+      collapse = ' and '
+    )
+    msg <- paste0(
+      toupper(x = substr(x = msg, start = 1, stop = 1)),
+      substr(x = msg, start = 2, stop = nchar(x = msg)),
+      ' data matrix'
+    )
+    message(msg)
   }
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
@@ -1990,60 +2046,89 @@ ScaleData.default <- function(
   }
   if (PlanThreads() > 1) {
     blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-    scaled.data <- future_lapply(
-      X = 1:ncol(x = blocks),
-      FUN = function(i) {
-        block <- as.vector(x = blocks[, i])
+    scaled.data <- future_apply(
+      X = expand.grid(
+        names(x = split.cells),
+        1:ncol(x = blocks),
+        stringsAsFactors = FALSE
+      ),
+      MARGIN = 1,
+      FUN = function(row) {
+        group <- row[[1]]
+        block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
         data.scale <- scale.function(
-          mat = object[features[block[1]:block[2]], , drop = FALSE],
+          mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
-        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
+        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
-        gc(verbose = FALSE)
+        CheckGC()
         return(data.scale)
       }
     )
-    suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    if (length(x = split.cells) > 1) {
+      merge.indices <- lapply(
+        X = 1:length(x = split.cells),
+        FUN = seq.int,
+        to = length(x = scaled.data),
+        by = length(x = split.cells)
+      )
+      scaled.data <- lapply(
+        X = merge.indices,
+        FUN = function(x) {
+          return(suppressWarnings(expr = do.call(what = 'rbind', args = scaled.data[x])))
+        }
+      )
+      scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
+    } else if (is.list(x = scaled.data)) {
+      suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    } else {
+      dim(x = scaled.data) <- dim(x = object)
+    }
   } else {
     scaled.data <- matrix(
-      data = NA,
+      data = NA_real_,
       nrow = nrow(x = object),
       ncol = ncol(x = object),
       dimnames = object.names
     )
     max.block <- ceiling(x = length(x = features) / block.size)
-    if (verbose) {
-      pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
-    }
-    for (i in 1:max.block) {
-      my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
-      my.inds <- my.inds[my.inds <= length(x = features)]
-      data.scale <- scale.function(
-        mat = object[features[my.inds], , drop = FALSE],
-        scale = do.scale,
-        center = do.center,
-        scale_max = scale.max,
-        display_progress = FALSE
-      )
-      dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
-      scaled.data[features[my.inds], ] <- data.scale
-      rm(data.scale)
-      gc(verbose = FALSE)
+    for (x in names(x = split.cells)) {
       if (verbose) {
-        setTxtProgressBar(pb = pb, value = i)
+        if (length(x = split.cells) > 1 && (do.scale || do.center)) {
+          message(gsub(pattern = 'matrix', replacement = 'from split ', x = msg), x)
+        }
+        pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
       }
-    }
-    if (verbose) {
-      close(con = pb)
+      for (i in 1:max.block) {
+        my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+        my.inds <- my.inds[my.inds <= length(x = features)]
+        data.scale <- scale.function(
+          mat = object[features[my.inds], split.cells[[x]], drop = FALSE],
+          scale = do.scale,
+          center = do.center,
+          scale_max = scale.max,
+          display_progress = FALSE
+        )
+        dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], split.cells[[x]]])
+        scaled.data[features[my.inds], split.cells[[x]]] <- data.scale
+        rm(data.scale)
+        CheckGC()
+        if (verbose) {
+          setTxtProgressBar(pb = pb, value = i)
+        }
+      }
+      if (verbose) {
+        close(con = pb)
+      }
     }
   }
   dimnames(x = scaled.data) <- object.names
   scaled.data[is.na(x = scaled.data)] <- 0
-  gc(verbose = FALSE)
+  CheckGC()
   return(scaled.data)
 }
 
@@ -2056,6 +2141,7 @@ ScaleData.Assay <- function(
   features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -2069,7 +2155,9 @@ ScaleData.Assay <- function(
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
-  if (length(features) == 0) features <- rownames(GetAssayData(object = object, slot = slot.use))
+  if (length(x = features) == 0) {
+    features <- rownames(x = GetAssayData(object = object, slot = slot.use))
+  }
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
@@ -2078,6 +2166,7 @@ ScaleData.Assay <- function(
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
+      split.by = split.by,
       model.use = model.use,
       use.umi = use.umi,
       do.scale = do.scale,
@@ -2089,12 +2178,12 @@ ScaleData.Assay <- function(
       ...
     )
   )
-  Parenting(
+  suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Seurat",
     features = features,
     min.cells.to.block = min.cells.to.block,
     use.umi = use.umi
-  )
+  ))
   return(object)
 }
 
@@ -2109,6 +2198,7 @@ ScaleData.Seurat <- function(
   features = NULL,
   assay = NULL,
   vars.to.regress = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -2126,11 +2216,15 @@ ScaleData.Seurat <- function(
   } else {
     latent.data <- NULL
   }
+  if (is.character(x = split.by) && length(x = split.by) == 1) {
+    split.by <- object[[split.by]]
+  }
   assay.data <- ScaleData(
     object = assay.data,
     features = features,
     vars.to.regress = vars.to.regress,
     latent.data = latent.data,
+    split.by = split.by,
     model.use = model.use,
     use.umi = use.umi,
     do.scale = do.scale,

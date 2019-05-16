@@ -531,7 +531,9 @@ NormalizeData <- function(object, ...) {
 #' @export OldWhichCells
 #'
 #' @examples
+#' \dontrun{
 #' OldWhichCells(object = pbmc_small, ident.keep = 2)
+#' }
 #'
 OldWhichCells <- function(object, ...) {
   UseMethod(generic = 'OldWhichCells', object = object)
@@ -726,8 +728,8 @@ RunALRA <- function(object, ...) {
 #' @examples
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[1:40])
-#' pbmc2 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[41:80])
+#' pbmc1 <- subset(pbmc_small, cells = colnames(pbmc_small)[1:40])
+#' pbmc2 <- subset(pbmc_small, cells = colnames(x = pbmc_small)[41:80])
 #' pbmc1[["group"]] <- "group1"
 #' pbmc2[["group"]] <- "group2"
 #' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
@@ -961,8 +963,10 @@ Stdev <- function(object, ...) {
 #' @export SubsetData
 #'
 #' @examples
+#' \dontrun{
 #' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 #' pbmc1
+#' }
 #'
 SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
@@ -1006,6 +1010,7 @@ Tool <- function(object, ...) {
 #' Get and set variable feature information
 #'
 #' @param object An object
+#' @param selection.method Method used to set variable features
 #' @param ... Arguments passed to other methods
 #'
 #' @rdname VariableFeatures

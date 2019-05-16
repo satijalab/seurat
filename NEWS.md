@@ -2,6 +2,24 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.0.1] - 2019-05-16
+### Added
+- Add global option (Seurat.memsafe) to skip gc() calls
+- Restore draw.lines to DoHeatmap, maintain size of color bar with different number of features (#1429)
+- Enable split.by parameter for ScaleData
+- Add slot parameter to FeaturePlot (#1483)
+- Add assay parameter to DotPlot (#1404)
+
+### Changed
+- Fix to color options for VlnPlot with split.by option (#1425)
+- Improvements to conversion functions (loom, SCE)
+- Fix for cluster tree reordering (#1434)
+- Fix PercentageFeatureSet for single feature case
+- Fix to fold change calculation and filtering for other slots in FindMarkers (#1454)
+- Keep title vectorized in AugmentPlot (#1515)
+- Export LogSeuratCommand function
+- Fix for FindConservedMarkers when one ident is missing from a group (#1517)
+
 ## [3.0.0] - 2019-04-16
 ### Added
 - New method for identifying anchors across single-cell datasets

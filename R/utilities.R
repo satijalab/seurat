@@ -161,7 +161,7 @@ AddModuleScore <- function(
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
   object[[colnames(x = features.scores.use)]] <- features.scores.use
-  gc(verbose = FALSE)
+  CheckGC()
   DefaultAssay(object = object) <- assay.old
   return(object)
 }
@@ -385,7 +385,7 @@ CellCycleScoring <- function(
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
   cc.scores <- object.cc[[cc.columns]]
   rm(object.cc)
-  gc(verbose = FALSE)
+  CheckGC()
   assignments <- apply(
     X = cc.scores,
     MARGIN = 1,
@@ -917,7 +917,7 @@ PercentageFeatureSet <- function(
     warning("Both pattern and features provided. Pattern is being ignored.")
   }
   features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
-  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, ])/
+  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, , drop = FALSE])/
     object[[paste0("nCount_", assay)]] * 100
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
@@ -1175,6 +1175,14 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   return(object.list)
 }
 
+# Call gc() to perform garbage collection
+#
+CheckGC <- function() {
+  if (getOption(x = "Seurat.memsafe")) {
+    gc(verbose = FALSE)
+  }
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -1252,60 +1260,6 @@ LengthCheck <- function(values, cutoff = 0) {
     },
     FUN.VALUE = logical(1)
   ))
-}
-
-# Logs a command run, storing the name, timestamp, and argument list. Stores in
-# the Seurat object
-# @param object Name of Seurat object
-#
-# @return returns the Seurat object with command stored
-#
-LogSeuratCommand <- function(object, return.command = FALSE) {
-  time.stamp <- Sys.time()
-  #capture function name
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe() - 1]]))
-  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
-  call.string <- command.name
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  #capture function arguments
-  argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
-  argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
-  argnames <- grep(pattern = "anchorset", x = argnames, invert = TRUE, value = TRUE)
-  argnames <- grep(pattern = "\\.\\.\\.", x = argnames, invert = TRUE, value = TRUE)
-  params <- list()
-  p.env <- parent.frame(n = 1)
-  argnames <- intersect(x = argnames, y = ls(name = p.env))
-  # fill in params list
-  for (arg in argnames) {
-    param_value <- get(x = arg, envir = p.env)
-    #TODO Institute some check of object size?
-    params[[arg]] <- param_value
-  }
-  # check if function works on the Assay and/or the DimReduc Level
-  assay <- params[["assay"]]
-  reduction <- params[["reduction"]]
-  if (class(x = reduction) == 'DimReduc') {
-    reduction = 'DimReduc'
-  }
-  # rename function name to include Assay/DimReduc info
-  if (length(x = assay) == 1) {
-    command.name <- paste(command.name, assay, reduction, sep = '.')
-  }
-  command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
-  command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-  # store results
-  seurat.command <- new(
-    Class = 'SeuratCommand',
-    name = command.name,
-    params = params,
-    time.stamp = time.stamp,
-    call.string = call.string
-  )
-  if (return.command) {
-    return(seurat.command)
-  }
-  object[[command.name]] <- seurat.command
-  return(object)
 }
 
 # Independently shuffle values within each row of a matrix

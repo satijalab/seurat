@@ -566,7 +566,7 @@ IntegrateData <- function(
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
     object.list[[merge.pair[[2]]]] <- NULL
-    invisible(x = gc(verbose = FALSE))
+    invisible(x = CheckGC())
   }
   integrated.data <- GetAssayData(
     object = object.list[[as.character(x = ii)]],
@@ -778,6 +778,8 @@ MixingMetric <- function(
 #' set for any object in object.list.
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
+#' @return A vector of selected features
+#'
 #' @export
 #'
 SelectIntegrationFeatures <- function(
@@ -792,13 +794,13 @@ SelectIntegrationFeatures <- function(
     if (length(x = assay) != length(x = object.list)) {
       stop("If specifying the assay, please specify one assay per object in the object.list")
     }
-    for(ii in length(x = object.list)) {
+    for (ii in length(x = object.list)) {
       DefaultAssay(object = object.list[[ii]]) <- assay[ii]
     }
   } else {
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
-  for(ii in 1:length(x = object.list)) {
+  for (ii in 1:length(x = object.list)) {
     if (length(x = VariableFeatures(object = object.list[[ii]])) == 0) {
       if (verbose) {
         message(paste0("No variable features found for object", ii, " in the object.list. Running FindVariableFeatures ..."))
@@ -811,7 +813,7 @@ SelectIntegrationFeatures <- function(
     FUN = function(x) VariableFeatures(object = object.list[[x]], assay = assay[x]))
   ))
   var.features <- sort(x = table(var.features), decreasing = TRUE)
-  for(i in 1:length(x = object.list)) {
+  for (i in 1:length(x = object.list)) {
     var.features <- var.features[names(x = var.features) %in% rownames(x = object.list[[i]][[assay[i]]])]
   }
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
@@ -820,7 +822,7 @@ SelectIntegrationFeatures <- function(
     feature.ranks <- sapply(X = features, FUN = function(x) {
       ranks <- sapply(X = object.list, FUN = function(y) {
         vf <- VariableFeatures(object = y)
-        if (x %in% vf){
+        if (x %in% vf) {
           return(which(x = x == vf))
         }
         return(NULL)
@@ -833,14 +835,18 @@ SelectIntegrationFeatures <- function(
   tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
     ranks <- sapply(X = object.list, FUN = function(y) {
       vf <- VariableFeatures(object = y)
-      if (x %in% vf){
+      if (x %in% vf) {
         return(which(x = x == vf))
       }
       return(NULL)
     })
     median(x = unlist(x = ranks))
   })
-  features <- c(features, names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features))))
+  features <- c(
+    features,
+    names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
+  )
+  return(features)
 }
 
 #' Transfer Labels

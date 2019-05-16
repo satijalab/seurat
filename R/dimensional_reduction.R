@@ -892,7 +892,6 @@ RunPCA.Assay <- function(
   reduction.data <- RunPCA(
     object = data.use,
     assay = assay,
-    pc.features = features,
     npcs = npcs,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
@@ -1030,17 +1029,13 @@ RunTSNE.DimReduc <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  tsne.reduction <- RunTSNE(
-    object = object[[, dims]],
-    assay = DefaultAssay(object = object),
-    seed.use = seed.use,
-    tsne.method = tsne.method,
-    add.iter = add.iter,
-    dim.embed = dim.embed,
-    reduction.key = reduction.key,
-    ...
-  )
-  return(tsne.reduction)
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
+  args$object <- args$object[[cells, args$dims]]
+  args$dims <- NULL
+  args$cells <- NULL
+  args$assay <- DefaultAssay(object = object)
+  return(do.call(what = 'RunTSNE', args = args))
 }
 
 #' @rdname RunTSNE
@@ -1060,7 +1055,7 @@ RunTSNE.dist <- function(
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
   args$object <- as.matrix(x = args$object)
-  args$is_distance = TRUE
+  args$is_distance <- TRUE
   return(do.call(what = 'RunTSNE', args = args))
 }
 
@@ -1092,6 +1087,7 @@ RunTSNE.Seurat <- function(
   reduction.key = "tSNE_",
   ...
 ) {
+  cells <- cells %||% Cells(x = object)
   tsne.reduction <- if (!is.null(x = distance.matrix)) {
     RunTSNE(
       object = distance.matrix,
@@ -1107,6 +1103,7 @@ RunTSNE.Seurat <- function(
   } else if (!is.null(x = dims)) {
     RunTSNE(
       object = object[[reduction]],
+      cells = cells,
       dims = dims,
       seed.use = seed.use,
       tsne.method = tsne.method,
@@ -1118,7 +1115,7 @@ RunTSNE.Seurat <- function(
     )
   } else if (!is.null(x = features)) {
     RunTSNE(
-      object = as.matrix(x = GetAssayData(object = object)[features, ]),
+      object = as.matrix(x = GetAssayData(object = object)[features, cells]),
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
