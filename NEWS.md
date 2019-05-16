@@ -2,7 +2,7 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [3.0.1] - 2019-05-15
+## [3.0.1] - 2019-05-16
 ### Added
 - Add global option (Seurat.memsafe) to skip gc() calls
 - Restore draw.lines to DoHeatmap, maintain size of color bar with different number of features (#1429)
