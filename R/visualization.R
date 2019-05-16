@@ -782,6 +782,7 @@ FeaturePlot <- function(
   slot = 'data',
   blend = FALSE,
   blend.threshold = 0.5,
+  blend.col=c("#ff0000", "#00ff00"),
   label = FALSE,
   label.size = 4,
   ncol = NULL,
@@ -912,7 +913,7 @@ FeaturePlot <- function(
   ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, dims[2]])))
   if (blend) {
     ncol <- 4
-    color.matrix <- BlendMatrix(col.threshold = blend.threshold)
+    color.matrix <- BlendMatrix(two.colors=blend.col,col.threshold = blend.threshold)
     colors <- list(
       color.matrix[, 1],
       color.matrix[1, ],
@@ -3038,21 +3039,37 @@ BlendMap <- function(color.matrix) {
 #
 #' @importFrom grDevices rgb
 #
-BlendMatrix <- function(n = 10, col.threshold = 0.5) {
+BlendMatrix <- function(two.colors=c("#ff0000", "#00ff00"),n = 10, col.threshold = 0.5) {
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
+  }
+  ramp <- colorRamp(two.colors)
+  R1=ramp(0)[,1]
+  G1=ramp(0)[,2]
+  B1=ramp(0)[,3]
+  
+  R2=ramp(1)[,1]
+  G2=ramp(1)[,2]
+  B2=ramp(1)[,3]
+  
+  weight_color<-function(w1,w2, c1,c2){
+    c1_weight<-1 / (1 + exp(x = -(w1-2 - col.threshold * 10) ))
+    c2_weight<-1 / (1 + exp(x = -(w2-2 - col.threshold * 10)))
+    
+    c_mix<-(c1*(c1_weight)+c2*(c2_weight) )/(c1_weight+c2_weight+0.1)
+    return(c_mix)
   }
   return(outer(
     X = 1:n,
     Y = 1:n,
     FUN = function(i, j) {
-      red <- 1 / (1 + exp(x = -(i - col.threshold * n) / 0.9))
-      green <- 1 / (1 + exp(x = -(j - col.threshold * n) / 0.9))
-      blue <- 0.2
-      alpha <- lapply(X = list(red, green, blue), FUN = '^', 40)
+      red <- weight_color(i,j,R1,R2)
+      green <-weight_color(i,j,G1,G2)
+      blue <- weight_color(i,j,B1,B2)
+      alpha <- lapply(X = list(i, j), FUN = '^',0.5)
       alpha <- Reduce(f = '+', x = alpha)
-      alpha <- 0.99 - 0.1 * exp(x = -alpha / 1)
-      return(rgb(red = red, green = green, blue = blue, alpha = alpha))
+      alpha <- (1 - 0.4 /alpha )*255
+      return(rgb(red = red, green = green, blue = blue, alpha = alpha,  max=255))
     }
   ))
 }
