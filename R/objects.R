@@ -5679,12 +5679,7 @@ setMethod(
       DefaultAssay(object = object),
       paste0('(', nrow(x = object), ' features)')
     )
-    other.assays <- grep(
-      pattern = DefaultAssay(object = object),
-      x = assays,
-      invert = TRUE,
-      value = TRUE
-    )
+    other.assays <- assays[assays != DefaultAssay(object = object)]
     if (length(x = other.assays) > 0) {
       cat(
         '\n',
