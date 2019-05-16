@@ -997,9 +997,9 @@ SampleUMI <- function(
 #' where n is the number of cells
 #' @param conserve.memory If set to TRUE the residual matrix for all genes is never
 #' created in full; useful for large data sets, but will take longer to run;
-#' this will also set return.only.var.genes to TRUE; default is FALSE
+#' this will also set return.only.var.genes to TRUE; default is TRUE
 #' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
-#' subset to contain only the variable genes; default is FALSE
+#' subset to contain only the variable genes; default is TRUE
 #' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
