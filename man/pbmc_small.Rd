@@ -6,14 +6,21 @@
 \title{A small example version of the PBMC dataset}
 \format{A Seurat object with the following slots filled
 \describe{
-  \item{raw.data}{Raw expression data}
-  \item{data}{Normalized expression data}
-  \item{scale.data}{Scaled expression data}
-  \item{var.genes}{Variable genes}
-  \item{dr}{Dimmensional reductions: currently PCA and tSNE}
-  \item{hvg.info}{Information about highly variable genes}
-  \item{cluster.tree}{Cluster tree}
-  \item{calc.params}{Parameters for calculations done thus far}
+  \item{assays}{
+  \itemize{Currently only contains one assay ("RNA" - scRNA-seq expression data)
+  \item{counts - Raw expression data}
+  \item{data - Normalized expression data}
+  \item{scale.data - Scaled expression data}
+  \item{var.features - names of the current features selected as variable}
+  \item{meta.features - Assay level metadata such as mean and variance}
+   }}
+  \item{meta.data}{Cell level metadata}
+  \item{active.assay}{Current default assay}
+  \item{active.ident}{Current default idents}
+  \item{graphs}{Neighbor graphs computed, currently stores the SNN}
+  \item{reductions}{Dimensional reductions: currently PCA and tSNE}
+  \item{version}{Seurat version used to create the object}
+  \item{commands}{Command history}
 }}
 \source{
 https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k

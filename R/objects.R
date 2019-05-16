@@ -1535,7 +1535,6 @@ as.loom.Seurat <- function(
 #' normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
 #' \code{/matrix} as normalized data
 #' @param scaled The name of the dataset within \code{layers} containing the scaled expression matrix
-#' @param assay Name of the assay to create
 #' @param verbose Display progress updates
 #'
 #' @importFrom Matrix sparseMatrix
@@ -1577,7 +1576,7 @@ as.Seurat.loom <- function(
     message(
       "Pulling ",
       ifelse(
-        test = normalized == '/matrix',
+        test = !is.null(x = normalized) && normalized == '/matrix',
         yes = 'normalized data',
         no = 'counts'
       )
@@ -1590,7 +1589,7 @@ as.Seurat.loom <- function(
     cell.names = cells,
     verbose = verbose
   )
-  if (normalized == '/matrix') {
+  if (!is.null(x = normalized) && normalized == '/matrix') {
     assays <- list(CreateAssayObject(data = counts))
     names(x = assays) <- assay
     object <- new(
@@ -1628,7 +1627,7 @@ as.Seurat.loom <- function(
       )
       object <- SetAssayData(object = object, slot = 'data', new.data = norm.data)
     }
-  } else if (normalized != '/matrix') {
+  } else if (is.null(x = normalized) || normalized != '/matrix') {
     if (verbose) {
       message("No normalized data provided, not adding scaled data")
     }
@@ -2765,6 +2764,7 @@ OldWhichCells.Seurat <- function(
   ...
 ) {
   # input checking
+  .Deprecated(new = "WhichCells", old = "OldWhichCells")
   if (length(x = subset.name) > 1) {
     stop("subset.name must be a single parameter")
   }
@@ -3697,6 +3697,7 @@ SubsetData.Seurat <- function(
   random.seed = 1,
   ...
 ) {
+  .Deprecated(old = "SubsetData", new = "subset")
   expression <- character(length = 0L)
   if (!is.null(x = subset.name)) {
     sub <- gsub(
@@ -5714,6 +5715,7 @@ setMethod(
   signature = 'SeuratCommand',
   definition = function(object) {
     params <- slot(object = object, name = "params")
+    params <- params[sapply(X = params, FUN = class) != "function"]
     cat(
       "Command: ", slot(object = object, name = "call.string"), '\n',
       "Time: ", as.character(slot(object = object, name = "time.stamp")), '\n',
