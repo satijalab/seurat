@@ -3167,6 +3167,7 @@ ExIPlot <- function(
     }
     if (is.null(x = cols)) {
       cols <- hue_pal()(length(x = levels(x = idents)))
+      cols <- Interleave(cols, InvertHex(hexadecimal = cols))
     } else if (length(x = cols) == 1 && cols == 'interaction') {
       split <- interaction(idents, split)
       cols <- hue_pal()(length(x = levels(x = idents)))

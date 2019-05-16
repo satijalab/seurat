@@ -1038,9 +1038,6 @@ SCTransform <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (!PackageCheck('sctransform', error = FALSE)) {
-    stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')

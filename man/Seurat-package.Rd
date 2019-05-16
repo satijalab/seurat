@@ -2,11 +2,10 @@
 % Please edit documentation in R/zzz.R
 \docType{package}
 \name{Seurat-package}
-\alias{Seurat}
 \alias{Seurat-package}
 \title{Tools for single-cell genomics}
 \description{
-A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Butler A and Satija R (2017) <doi:10.1101/164889> for more details.
+Tools for single-cell genomics
 }
 \section{Package options}{
 
@@ -14,39 +13,11 @@ A toolkit for quality control, analysis, and exploration of single cell RNA sequ
 Seurat uses the following [options()] to configure behaviour:
 
 \itemize{
-  \item `seurat.memsafe`: global option to call gc() after many operations. 
-  This can be helpful in cleaning up the memory status of the R session and 
+  \item `Seurat.memsafe`: global option to call gc() after many operations.
+  This can be helpful in cleaning up the memory status of the R session and
   prevent use of swap space. However, it does add to the computational overhead
   and setting to FALSE can speed things up if you're working in an environment
   where RAM availabiliy is not a concern.
 }
 }
 
-\seealso{
-Useful links:
-\itemize{
-  \item \url{http://www.satijalab.org/seurat}
-  \item \url{https://github.com/satijalab/seurat}
-  \item Report bugs at \url{https://github.com/satijalab/seurat/issues}
-}
-
-}
-\author{
-\strong{Maintainer}: Paul Hoffman \email{nygcSatijalab@nygenome.org} (0000-0002-7693-8957)
-
-Authors:
-\itemize{
-  \item Rahul Satija \email{rsatija@nygenome.org} (0000-0001-9448-8833)
-  \item Andrew Butler \email{abutler@nygenome.org} (0000-0003-3608-0463)
-  \item Tim Stuart \email{tstuart@nygenome.org} (0000-0002-3044-0897)
-}
-
-Other contributors:
-\itemize{
-  \item Jeff Farrell \email{jfarrell@g.harvard.edu} [contributor]
-  \item Shiwei Zheng \email{szheng@nygenome.org} (0000-0001-6682-6743) [contributor]
-  \item Christoph Hafemeister \email{chafemeister@nygenome.org} (0000-0001-6365-8254) [contributor]
-  \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
-}
-
-}
