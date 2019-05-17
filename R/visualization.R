@@ -783,7 +783,7 @@ FeaturePlot <- function(
   slot = 'data',
   blend = FALSE,
   blend.threshold = 0.5,
-  blend.col=c("#ff0000", "#00ff00"),
+  blend.col = c("#ff0000", "#00ff00"),
   label = FALSE,
   label.size = 4,
   ncol = NULL,
@@ -914,7 +914,10 @@ FeaturePlot <- function(
   ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, dims[2]])))
   if (blend) {
     ncol <- 4
-    color.matrix <- BlendMatrix(two.colors=blend.col,col.threshold = blend.threshold)
+    color.matrix <- BlendMatrix(
+      two.colors = blend.col,
+      col.threshold = blend.threshold
+    )
     colors <- list(
       color.matrix[, 1],
       color.matrix[1, ],
@@ -3041,38 +3044,46 @@ BlendMap <- function(color.matrix) {
 #
 #' @importFrom grDevices rgb
 #
-BlendMatrix <- function(two.colors=c("#ff0000", "#00ff00"),n = 10, col.threshold = 0.5) {
+BlendMatrix <- function(
+  n = 10,
+  col.threshold = 0.5,
+  two.colors=c("#ff0000", "#00ff00")
+) {
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
-  ramp <- colorRamp(two.colors)
-  C1=ramp(0)
-  C2=ramp(1)
-  merge.weight<-min(255/(C1+C2+0.01))
-  weight_color<-function(w1, c1){
-    c1_weight<-1 / (1 + exp(x = -(w1^1.2-3- col.threshold * 10) ))
-
-    return(c1_weight*c1)
+  ramp <- colorRamp(colors = two.colors)
+  C1 <- ramp(x = 0)
+  C2 <- ramp(x = 1)
+  merge.weight <- min(255 / (C1 + C2 + 0.01))
+  weight_color <- function(w1, c1){
+    c1_weight <- 1 / (1 + exp(x = -(w1 ^ 1.2 - 3 - col.threshold * 10)))
+    return(c1_weight * c1)
   }
-  
-  blend_color<-function(i, j) {
-    C1_weight<-weight_color(i,C1)
-    C2_weight<-weight_color(j, C2)
-    C_blend<-(merge.weight*C1_weight+merge.weight*C2_weight)
-    alpha <- lapply(X = list(i, j), FUN = '^',0.5)
+  blend_color <- function(i, j) {
+    C1_weight <- weight_color(w1 = i, c1 = C1)
+    C2_weight <- weight_color(w1 = j, c1 = C2)
+    C_blend <- (merge.weight * C1_weight + merge.weight * C2_weight)
+    alpha <- lapply(X = list(i, j), FUN = '^', 0.5)
     alpha <- Reduce(f = '+', x = alpha)
-    alpha <- (1 - 0.4 /alpha )*255
-    return(rgb(red = C_blend[,1], green = C_blend[,2], blue = C_blend[,3], alpha = alpha,  max=255))
+    alpha <- (1 - 0.4 /alpha ) * 255
+    return(rgb(
+      red = C_blend[, 1],
+      green = C_blend[, 2],
+      blue = C_blend[, 3],
+      alpha = alpha,
+      maxColorValue = 255
+    ))
   }
-  
-blend_matrix<-matrix(nrow = n, ncol = n)
-for (i in 1:n){
-  for (j in 1:n){
-    blend_matrix[i,j]<- blend_color(i,j)
+  blend_matrix <- matrix(nrow = n, ncol = n)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      blend_matrix[i, j] <- blend_color(i = i, j = j)
+    }
   }
+  return(blend_matrix)
 }
-return(blend_matrix)
-}
+
 # Convert R colors to hexadecimal
 #
 # @param ... R colors
