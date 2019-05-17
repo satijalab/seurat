@@ -3044,36 +3044,33 @@ BlendMatrix <- function(two.colors=c("#ff0000", "#00ff00"),n = 10, col.threshold
     stop("col.threshold must be between 0 and 1")
   }
   ramp <- colorRamp(two.colors)
-  R1=ramp(0)[,1]
-  G1=ramp(0)[,2]
-  B1=ramp(0)[,3]
-  
-  R2=ramp(1)[,1]
-  G2=ramp(1)[,2]
-  B2=ramp(1)[,3]
-  
-  weight_color<-function(w1,w2, c1,c2){
-    c1_weight<-1 / (1 + exp(x = -(w1-2 - col.threshold * 10) ))
-    c2_weight<-1 / (1 + exp(x = -(w2-2 - col.threshold * 10)))
-    
-    c_mix<-(c1*(c1_weight)+c2*(c2_weight) )/(c1_weight+c2_weight+0.1)
-    return(c_mix)
-  }
-  return(outer(
-    X = 1:n,
-    Y = 1:n,
-    FUN = function(i, j) {
-      red <- weight_color(i,j,R1,R2)
-      green <-weight_color(i,j,G1,G2)
-      blue <- weight_color(i,j,B1,B2)
-      alpha <- lapply(X = list(i, j), FUN = '^',0.5)
-      alpha <- Reduce(f = '+', x = alpha)
-      alpha <- (1 - 0.4 /alpha )*255
-      return(rgb(red = red, green = green, blue = blue, alpha = alpha,  max=255))
-    }
-  ))
-}
+  C1=ramp(0)
+  C2=ramp(1)
+  merge.weight<-min(255/(C1+C2+0.01))
+  weight_color<-function(w1, c1){
+    c1_weight<-1 / (1 + exp(x = -(w1^1.2-3- col.threshold * 10) ))
 
+    return(c1_weight*c1)
+  }
+  
+  blend_color<-function(i, j) {
+    C1_weight<-weight_color(i,C1)
+    C2_weight<-weight_color(j, C2)
+    C_blend<-(merge.weight*C1_weight+merge.weight*C2_weight)
+    alpha <- lapply(X = list(i, j), FUN = '^',0.5)
+    alpha <- Reduce(f = '+', x = alpha)
+    alpha <- (1 - 0.4 /alpha )*255
+    return(rgb(red = C_blend[,1], green = C_blend[,2], blue = C_blend[,3], alpha = alpha,  max=255))
+  }
+  
+blend_matrix<-matrix(nrow = n, ncol = n)
+for (i in 1:n){
+  for (j in 1:n){
+    blend_matrix[i,j]<- blend_color(i,j)
+  }
+}
+return(blend_matrix)
+}
 # Convert R colors to hexadecimal
 #
 # @param ... R colors
