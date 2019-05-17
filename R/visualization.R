@@ -738,6 +738,7 @@ DimPlot <- function(
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
 #' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
+#' @param blend.col Two colors used for blend expression.
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
@@ -3034,6 +3035,7 @@ BlendMap <- function(color.matrix) {
 #
 # @param n Dimensions of blended matrix (n x n)
 # @param col.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
+# @param two.colors Two colors used for the blend expression.
 #
 # @return An n x n matrix of blended colors
 #
