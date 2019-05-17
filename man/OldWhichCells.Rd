@@ -54,7 +54,9 @@ Returns a list of cells that match a particular set of criteria such as
 identity class, high/low values for particular PCs, ect..
 }
 \examples{
+\dontrun{
 OldWhichCells(object = pbmc_small, ident.keep = 2)
+}
 
 }
 \seealso{

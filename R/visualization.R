@@ -690,10 +690,10 @@ DimPlot <- function(
         plot <- plot + FacetTheme() +
           facet_wrap(
             facets = vars(!!sym(x = split.by)),
-            ncol = if (length(x = group.by) > 1) {
+            ncol = if (length(x = group.by) > 1 || is.null(x = ncol)) {
               length(x = unique(x = data[, split.by]))
             } else {
-              NULL
+              ncol
             }
           )
       }

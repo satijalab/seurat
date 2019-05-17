@@ -5679,12 +5679,7 @@ setMethod(
       DefaultAssay(object = object),
       paste0('(', nrow(x = object), ' features)')
     )
-    other.assays <- grep(
-      pattern = DefaultAssay(object = object),
-      x = assays,
-      invert = TRUE,
-      value = TRUE
-    )
+    other.assays <- assays[assays != DefaultAssay(object = object)]
     if (length(x = other.assays) > 0) {
       cat(
         '\n',
@@ -5979,6 +5974,16 @@ UpdateDimReduction <- function(old.dr, assay){
     misc <- old.dr[[i]]@misc %||% list()
     new.jackstraw <- UpdateJackstraw(old.jackstraw = old.dr[[i]]@jackstraw)
     new.key <- suppressWarnings(expr = UpdateKey(key = old.dr[[i]]@key))
+    colnames(x = cell.embeddings) <- gsub(
+      pattern = old.dr[[i]]@key, 
+      replacement = new.key, 
+      x = colnames(x = cell.embeddings)
+    )
+    colnames(x = feature.loadings) <- gsub(
+      pattern = old.dr[[i]]@key, 
+      replacement = new.key, 
+      x = colnames(x = feature.loadings)
+    )
     new.dr[[i]] <- new(
       Class = 'DimReduc',
       cell.embeddings = as(object = cell.embeddings, Class = 'matrix'),
