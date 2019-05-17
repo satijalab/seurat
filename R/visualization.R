@@ -3056,7 +3056,7 @@ BlendMatrix <- function(
   C1 <- ramp(x = 0)
   C2 <- ramp(x = 1)
   merge.weight <- min(255 / (C1 + C2 + 0.01))
-  weight_color <- function(w1, c1){
+  weight_color <- function(w1, c1) {
     c1_weight <- 1 / (1 + exp(x = -(w1 ^ 1.2 - 3 - col.threshold * 10)))
     return(c1_weight * c1)
   }
