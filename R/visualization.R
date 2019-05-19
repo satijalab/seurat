@@ -3043,6 +3043,7 @@ BlendMap <- function(color.matrix) {
 # @return An n x n matrix of blended colors
 #
 #' @importFrom grDevices rgb
+#' @importFrom grDevices colorRamp
 #
 BlendMatrix <- function(
   n = 10,
