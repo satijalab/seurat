@@ -719,7 +719,8 @@ DimPlot <- function(
 #' Colors single cells on a dimensional reduction plot according to a 'feature'
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
-#' @inheritParams DimPlot
+#' @inheritParams DimPlot 
+#' @inheritParams CombinePlots
 #' @param order Boolean determining whether to plot cells in order of expression. Can be useful if
 #' cells expressing given feature are getting buried.
 #' @param features Vector of features to plot. Features can come from:
@@ -765,6 +766,11 @@ DimPlot <- function(
 #'
 #' @examples
 #' FeaturePlot(object = pbmc_small, features = 'PC_1')
+#' 
+#' # To show a global title on top of the plot grid, use:
+#' FeaturePlot(object = pbmc_small, 
+#'             features = c('PC_1', 'PC_2', 'PC_3', 'PC_4'),
+#'             suptitle = "Principal Components")
 #'
 FeaturePlot <- function(
   object,
@@ -787,7 +793,8 @@ FeaturePlot <- function(
   ncol = NULL,
   combine = TRUE,
   coord.fixed = FALSE,
-  by.col = TRUE
+  by.col = TRUE,
+  suptitle = NULL
 ) {
   no.right <- theme(
     axis.line.y.right = element_blank(),
@@ -1087,7 +1094,8 @@ FeaturePlot <- function(
       plots <- CombinePlots(
         plots = plots,
         ncol = nsplits,
-        legend = legend
+        legend = legend,
+        suptitle = suptitle
       )
     }
     else {
@@ -1095,7 +1103,8 @@ FeaturePlot <- function(
         plots = plots,
         ncol = ncol,
         legend = legend,
-        nrow = split.by %iff% length(x = levels(x = data$split))
+        nrow = split.by %iff% length(x = levels(x = data$split)),
+        suptitle = suptitle
       )
     }
   }
@@ -2115,6 +2124,7 @@ BlueAndRed <- function(k = 50) {
 #' @param legend Combine legends into a single legend
 #' choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
 #' to leave legends as they are
+#' @param suptitle Global title to display on top of plot grid.
 #' @param ... Extra parameters passed to plot_grid
 #'
 #' @return A combined plot
@@ -2140,7 +2150,7 @@ BlueAndRed <- function(k = 50) {
 #'   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 #' )
 #'
-CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
+CombinePlots <- function(plots, ncol = NULL, legend = NULL, suptitle = NULL, ...) {
   plots.combined <- if (length(x = plots) > 1) {
     if (!is.null(x = legend)) {
       if (legend != 'none') {
@@ -2174,6 +2184,17 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
           rel_widths = c(3, 0.3)
         ),
         plots.combined
+      )
+    }
+    if (!is.null(x = suptitle)) {
+      title.gg <- ggplot() + 
+        ggtitle(label = suptitle) +
+        BoldTitle() +
+        theme(plot.title = element_text(hjust = 0.5))
+      plots.combined <- plot_grid(
+        plotlist = list(title.gg, plots.combined),
+        ncol = 1,
+        rel_heights = c(0.05, 1)
       )
     }
     plots.combined

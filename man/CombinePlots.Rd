@@ -4,7 +4,7 @@
 \alias{CombinePlots}
 \title{Combine ggplot2-based plots into a single plot}
 \usage{
-CombinePlots(plots, ncol = NULL, legend = NULL, ...)
+CombinePlots(plots, ncol = NULL, legend = NULL, suptitle = NULL, ...)
 }
 \arguments{
 \item{plots}{A list of gg objects}
@@ -14,6 +14,8 @@ CombinePlots(plots, ncol = NULL, legend = NULL, ...)
 \item{legend}{Combine legends into a single legend
 choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
 to leave legends as they are}
+
+\item{suptitle}{Global title to display on top of plot grid.}
 
 \item{...}{Extra parameters passed to plot_grid}
 }

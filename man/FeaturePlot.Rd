@@ -10,7 +10,8 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   min.cutoff = NA, max.cutoff = NA, reduction = NULL,
   split.by = NULL, shape.by = NULL, slot = "data", blend = FALSE,
   blend.threshold = 0.5, label = FALSE, label.size = 4,
-  ncol = NULL, combine = TRUE, coord.fixed = FALSE, by.col = TRUE)
+  ncol = NULL, combine = TRUE, coord.fixed = FALSE, by.col = TRUE,
+  suptitle = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -65,6 +66,8 @@ different colors and different shapes on cells}
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows.}
+
+\item{suptitle}{Global title to display on top of plot grid.}
 }
 \value{
 A ggplot object
@@ -79,6 +82,11 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 }
 \examples{
 FeaturePlot(object = pbmc_small, features = 'PC_1')
+
+# To show a global title on top of the plot grid, use:
+FeaturePlot(object = pbmc_small, 
+            features = c('PC_1', 'PC_2', 'PC_3', 'PC_4'),
+            suptitle = "Principal Components")
 
 }
 \seealso{
