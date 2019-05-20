@@ -1198,6 +1198,39 @@ SCTransform <- function(
   return(object)
 }
 
+
+#' Calculate pearson residuals of features not in the scale.data
+#' This function calls sctransform::get_residuals.
+#' @param object A seurat object
+#' @param features Name of features to add into the scale.data
+#' @param verbose Whether to print messages and progress bars
+#'
+#' @return Returns a Seurat object containing  pearson residuals of added features in its scale.data
+#' @importFrom sctransform get_residuals 
+#' 
+GetResidual<- function(object, features, verbose = TRUE){
+  if(DefaultAssay(object)!="SCT"){
+    stop("Get Pearson Residual only works on SCT assay")
+  }  
+  
+  new_features<-setdiff(features, rownames(object[["SCT"]]@scale.data))
+  existed_features<-intersect(features, rownames(object[["SCT"]]@scale.data))
+  if ( length(new_features)==0){
+    stop(paste("Pearson residuals of",paste(features,collapse=" "),"existed already.", sep=" "))
+  }
+  if ( length(existed_features)!=0){
+    message(paste("Pearson residuals of",paste(existed_features,collapse=" "),"existed already.", sep=" "))
+  }
+  vst_out<-object[["SCT"]]@misc$vst.out
+  umi<-object[["SCT"]]@counts[new_features,,drop=F]
+  new_residual<-get_residuals(vst_out, umi,residual_type= "pearson",show_progress=verbose)
+  object[["SCT"]]@scale.data<-rbind(object[["SCT"]]@scale.data,new_residual)
+  return(object)
+}
+
+
+
+
 #' Subset a Seurat Object based on the Barcode Distribution Inflection Points
 #'
 #' This convenience function subsets a Seurat object based on calculated inflection points.
