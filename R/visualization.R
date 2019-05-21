@@ -738,7 +738,6 @@ DimPlot <- function(
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
 #' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
-#' @param blend.col Two colors used for blend expression.
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
@@ -772,7 +771,7 @@ FeaturePlot <- function(
   features,
   dims = c(1, 2),
   cells = NULL,
-  cols = c("lightgrey",  "blue"),
+  cols =  ifelse(test = c(blend, blend), yes = c("#ff0000", "#00ff00"), no = c('lightgrey', 'blue')),
   pt.size = NULL,
   order = FALSE,
   min.cutoff = NA,
@@ -783,7 +782,6 @@ FeaturePlot <- function(
   slot = 'data',
   blend = FALSE,
   blend.threshold = 0.5,
-  blend.col = c("#ff0000", "#00ff00"),
   label = FALSE,
   label.size = 4,
   ncol = NULL,
@@ -811,6 +809,9 @@ FeaturePlot <- function(
   }
   if (blend && length(x = features) != 2) {
     stop("Blending feature plots only works with two features")
+  }
+  if (blend && length(x = cols) != 2) {
+    stop("Blending feature plots only works with two colors")
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
@@ -915,7 +916,7 @@ FeaturePlot <- function(
   if (blend) {
     ncol <- 4
     color.matrix <- BlendMatrix(
-      two.colors = blend.col,
+      two.colors = cols,
       col.threshold = blend.threshold
     )
     colors <- list(
@@ -928,8 +929,14 @@ FeaturePlot <- function(
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     if (blend) {
+      features_novalue<-features[colMeans(data.plot[, features])==0]
+      if(length(features_novalue)!=0){
+        stop(features_novalue," has no value")
+      }
+      
       data.plot <- cbind(data.plot[, dims], BlendExpression(data = data.plot[, features[1:2]]))
       features <- colnames(x = data.plot)[3:ncol(x = data.plot)]
+      
     }
     for (j in 1:length(x = features)) {
       feature <- features[j]
