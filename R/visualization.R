@@ -994,9 +994,14 @@ FeaturePlot <- function(
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
+          if (max(data.plot[,feature])<=0 &min(data.plot[,feature])<=0 & max(data.plot[,feature])==min(data.plot[,feature])){
+            cols.grad=cols[1]
+          } else{
+            cols.grad=cols
+          }
           plot <- suppressMessages(
             expr = plot + scale_color_gradientn(
-              colors = cols,
+              colors = cols.grad,
               guide = "colorbar"
             )
           )
