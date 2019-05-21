@@ -1238,7 +1238,15 @@ GetResidual<- function(
     show_progress=verbose
     )
   new_residual<-as.matrix(new_residual)
-  object[[assay]]@scale.data <- rbind(object[[assay]]@scale.data, new_residual)
+  object <- SetAssayData(
+    object = object, 
+    slot = 'scale.data', 
+    new.data = rbind(
+      GetAssayData(object = object, slot = 'scale.data'),
+      new_residual
+    ),
+    assay = assay
+  )
   return(object)
 }
 
