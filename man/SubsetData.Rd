@@ -26,7 +26,7 @@ SubsetData(object, ...)
 (default), then this list will be computed based on the next three
 arguments. Otherwise, will return an object consissting only of these cells}
 
-\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
+\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC_1, a
 column name in object@meta.data, etc. Any argument that can be retreived
 using FetchData}
 
@@ -57,7 +57,9 @@ original object. Takes either a list of cells to use as a subset, or a
 parameter (for example, a gene), to subset on.
 }
 \examples{
+\dontrun{
 pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 pbmc1
+}
 
 }

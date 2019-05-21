@@ -24,7 +24,7 @@ OldWhichCells(object, ...)
 
 \item{cells}{Subset of cell names}
 
-\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
+\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC_1, a
 column name in object@meta.data, etc. Any argument that can be retreived
 using FetchData}
 
@@ -54,7 +54,9 @@ Returns a list of cells that match a particular set of criteria such as
 identity class, high/low values for particular PCs, ect..
 }
 \examples{
+\dontrun{
 OldWhichCells(object = pbmc_small, ident.keep = 2)
+}
 
 }
 \seealso{

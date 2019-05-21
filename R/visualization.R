@@ -23,7 +23,7 @@ NULL
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
 #'
-#' @return A ggplot object
+#' @return No return value by default. If using fast = FALSE, will return a ggplot object.
 #'
 #' @export
 #'
@@ -188,6 +188,10 @@ DimHeatmap <- function(
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 #' if you are encountering that issue (note that plots may take longer to produce/render).
+#' @param draw.lines Include white lines to separate the groups
+#' @param lines.width Integer number to adjust the width of the separating white lines.
+#' Corresponds to the number of "cells" between each group.
+#' @param group.bar.height Scale the height of the color bar
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
@@ -216,6 +220,9 @@ DoHeatmap <- function(
   hjust = 0,
   angle = 45,
   raster = TRUE,
+  draw.lines = TRUE,
+  lines.width = NULL,
+  group.bar.height = 0.02,
   combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
@@ -257,11 +264,34 @@ DoHeatmap <- function(
   # group.use <- factor(x = group.use[cells])
   plots <- vector(mode = 'list', length = ncol(x = groups.use))
   for (i in 1:ncol(x = groups.use)) {
+    data.group <- data
     group.use <- groups.use[, i, drop = TRUE]
     group.use <- factor(x = group.use)
     names(x = group.use) <- cells
+    if (draw.lines) {
+      # create fake cells to serve as the white lines, fill with NAs
+      lines.width <- lines.width %||% ceiling(x = nrow(x = data.group) * 0.0025)
+      placeholder.cells <- sapply(
+        X = 1:(length(x = levels(x = group.use)) * lines.width),
+        FUN = function(x) {
+          return(RandomName(length = 20))
+        }
+      )
+      placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
+      names(x = placeholder.groups) <- placeholder.cells
+      group.use <- as.vector(x = group.use)
+      names(x = group.use) <- cells
+      group.use <- factor(x = c(group.use, placeholder.groups))
+      na.data.group <- matrix(
+        data = NA,
+        nrow = length(x = placeholder.cells),
+        ncol = ncol(x = data.group),
+        dimnames = list(placeholder.cells, colnames(x = data.group))
+      )
+      data.group <- rbind(data.group, na.data.group)
+    }
     plot <- SingleRasterMap(
-      data = data,
+      data = data.group,
       raster = raster,
       disp.min = disp.min,
       disp.max = disp.max,
@@ -271,13 +301,24 @@ DoHeatmap <- function(
     )
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
+      group.use2 <- sort(x = group.use)
+      if (draw.lines) {
+        na.group <- RandomName(length = 20)
+        levels(x = group.use2) <- c(levels(x = group.use2), na.group)
+        group.use2[placeholder.cells] <- na.group
+        cols <- c(hue_pal()(length(x = levels(x = group.use))), "#FFFFFF")
+      } else {
+        cols <- c(hue_pal()(length(x = levels(x = group.use))))
+      }
       pbuild <- ggplot_build(plot = plot)
-      cols <- hue_pal()(length(x = levels(x = group.use)))
-      names(x = cols) <- levels(x = group.use)
-      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
-      y.max <- y.pos + 0.5
+      names(x = cols) <- levels(x = group.use2)
+      # scale the height of the bar
+      y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
+      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
+      y.max <- y.pos + group.bar.height * y.range
+
       plot <- plot + annotation_raster(
-        raster = t(x = cols[sort(x = group.use)]),
+        raster = t(x = cols[group.use2]),,
         xmin = -Inf,
         xmax = Inf,
         ymin = y.pos,
@@ -411,14 +452,14 @@ HTOHeatmap <- function(
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param slot Use non-normalized counts data for plotting
-#' @param ... Ignored
+#' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
 #' @return A ggplot object
 #'
 #' @export
 #'
 #' @examples
-#' RidgePlot(object = pbmc_small, features = 'PC1')
+#' RidgePlot(object = pbmc_small, features = 'PC_1')
 #'
 RidgePlot <- function(
   object,
@@ -462,15 +503,19 @@ RidgePlot <- function(
 #'
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
-#' @param split.by A variable to split the violin plots by
+#' @param split.by A variable to split the violin plots by,
+#' see \code{\link{FetchData}} for more details
 #' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A ggplot object
 #'
 #' @export
 #'
+#' @seealso \code{\link{FetchData}}
+#'
 #' @examples
-#' VlnPlot(object = pbmc_small, features = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'PC_1')
+#' VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 #'
 VlnPlot <- function(
   object,
@@ -491,7 +536,7 @@ VlnPlot <- function(
   slot = 'data',
   ...
 ) {
-  plot <- ExIPlot(
+  return(ExIPlot(
     object = object,
     type = 'violin',
     features = features,
@@ -510,8 +555,7 @@ VlnPlot <- function(
     slot = slot,
     combine = combine,
     ...
-  )
-  return(plot)
+  ))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -532,7 +576,8 @@ VlnPlot <- function(
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
-#' @param split.by Name of a metadata column to split plot by
+#' @param split.by Name of a metadata column to split plot by;
+#' see \code{\link{FetchData}} for more details
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells
@@ -554,8 +599,8 @@ VlnPlot <- function(
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param ncol Number of columns for display when combining plots
+#' @param ... Extra parameters passed on to \code{\link{CombinePlots}}
 #'
-#' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
 #' @importFrom rlang !!
@@ -564,14 +609,15 @@ VlnPlot <- function(
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
-#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#' \code{HoverLocator} and \code{CellSelector}, respectively.
 #'
 #' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-#' \code{\link{FeatureLocator}}
+#' \code{\link{CellSelector}} \code{link{FetchData}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
+#' DimPlot(object = pbmc_small, split.by = 'ident')
 #'
 DimPlot <- function(
   object,
@@ -652,10 +698,10 @@ DimPlot <- function(
         plot <- plot + FacetTheme() +
           facet_wrap(
             facets = vars(!!sym(x = split.by)),
-            ncol = if (length(x = group.by) > 1) {
+            ncol = if (length(x = group.by) > 1 || is.null(x = ncol)) {
               length(x = unique(x = data[, split.by]))
             } else {
-              NULL
+              ncol
             }
           )
       }
@@ -682,12 +728,14 @@ DimPlot <- function(
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
 #' @inheritParams DimPlot
+#' @param order Boolean determining whether to plot cells in order of expression. Can be useful if
+#' cells expressing given feature are getting buried.
 #' @param features Vector of features to plot. Features can come from:
 #' \itemize{
 #'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
 #'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
 #'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
-#'     (e.g. the PC1 scores - "PC_1")
+#'     (e.g. the PC 1 scores - "PC_1")
 #' }
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
@@ -696,12 +744,14 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
+#' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows.
+
 #'
 #' @return A ggplot object
 #'
@@ -715,14 +765,14 @@ DimPlot <- function(
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
-#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#' \code{HoverLocator} and \code{CellSelector}, respectively.
 #'
 #' @aliases FeatureHeatmap
 #' @seealso \code{\link{DimPlot}} \code{\link{HoverLocator}}
-#' \code{\link{FeatureLocator}}
+#' \code{\link{CellSelector}}
 #'
 #' @examples
-#' FeaturePlot(object = pbmc_small, features = 'PC1')
+#' FeaturePlot(object = pbmc_small, features = 'PC_1')
 #'
 FeaturePlot <- function(
   object,
@@ -731,14 +781,15 @@ FeaturePlot <- function(
   cells = NULL,
   cols = c("lightgrey",  "blue"),
   pt.size = NULL,
+  order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
   reduction = NULL,
   split.by = NULL,
   shape.by = NULL,
+  slot = 'data',
   blend = FALSE,
   blend.threshold = 0.5,
-  order = NULL,
   label = FALSE,
   label.size = 4,
   ncol = NULL,
@@ -769,7 +820,18 @@ FeaturePlot <- function(
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  data <- FetchData(object = object, vars = c(dims, features), cells = cells)
+  data <- FetchData(object = object, vars = c(dims, features), cells = cells, slot = slot)
+  if (ncol(x = data) < 3) {
+    stop(
+      "None of the requested features were found: ",
+      paste(features, collapse = ', '),
+      " in slot ",
+      slot,
+      call. = FALSE
+    )
+  } else if (!all(dims %in% colnames(x = data))) {
+    stop("The dimensions requested were not found", call. = FALSE)
+  }
   features <- colnames(x = data)[3:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
@@ -884,6 +946,7 @@ FeaturePlot <- function(
         data = data.plot[, c(dims, feature, shape.by)],
         dims = dims,
         col.by = feature,
+        order = order,
         pt.size = pt.size,
         cols = cols.use,
         shape.by = shape.by,
@@ -1009,18 +1072,18 @@ FeaturePlot <- function(
       })
       nsplits <- length(x = levels(x = data$split))
       idx <- 1
-      for(i in (length(x = features) * (nsplits - 1) + 1): (length(x = features) * nsplits)) {
+      for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
         plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
         idx <- idx + 1
       }
       idx <- 1
-      for(i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
+      for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
         plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
         idx <- idx + 1
       }
       idx <- 1
       if (length(x = features) == 1) {
-        for(i in 1:length(x = plots)) {
+        for (i in 1:length(x = plots)) {
           plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
           idx <- idx + 1
         }
@@ -1176,6 +1239,7 @@ FeatureScatter <- function(
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
+#' @inheritParams HVFInfo
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
@@ -1197,35 +1261,40 @@ VariableFeaturePlot <- function(
   cols = c('black', 'red'),
   pt.size = 1,
   log = NULL,
+  selection.method = NULL,
   assay = NULL
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
   }
-  hvf.info <- HVFInfo(object = object, assay = assay)
-  vars <- c(
-    'mean',
-    ifelse(
-      test = 'variance.standardized' %in% colnames(x = hvf.info),
-      yes = 'variance.standardized',
-      no = 'dispersion'
+  hvf.info <- HVFInfo(
+    object = object,
+    assay = assay,
+    selection.method = selection.method,
+    status = TRUE
     )
+  var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
+  hvf.info <- hvf.info[, c(1, 3)]
+  axis.labels <- switch(
+    EXPR = colnames(x = hvf.info)[2],
+    'variance.standardized' = c('Average Expression', 'Standardized Variance'),
+    'dispersion.scaled' = c('Average Expression', 'Dispersion'),
+    'residual_variance' = c('Geometric Mean of Expression', 'Residual Variance')
   )
-  hvf.info <- hvf.info[, vars]
-  log <- log %||% ('variance.standardized' %in% colnames(x = hvf.info))
-  var.features <- VariableFeatures(object = object, assay = assay)
-  var.status <- ifelse(
-    test = rownames(x = hvf.info) %in% var.features,
-    yes = 'yes',
-    no = 'no'
-  )
+  log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
+  # var.features <- VariableFeatures(object = object, assay = assay)
+  # var.status <- ifelse(
+  #   test = rownames(x = hvf.info) %in% var.features,
+  #   yes = 'yes',
+  #   no = 'no'
+  # )
   plot <- SingleCorPlot(
     data = hvf.info,
     col.by = var.status,
     pt.size = pt.size
   )
   plot <- plot +
-    labs(title = NULL, x = 'Average Expression', y = 'Dispersion') +
+    labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
     scale_color_manual(
       labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
       values = cols
@@ -1540,10 +1609,11 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' Intuitive way of visualizing how feature expression changes across different
 #' identity classes (clusters). The size of the dot encodes the percentage of
-#' cells within a class, while the color encodes the AverageExpression level of
-#' cells within a class (blue is high).
+#' cells within a class, while the color encodes the AverageExpression level
+#' across all cells within a class (blue is high).
 #'
 #' @param object Seurat object
+#' @param assay Name of assay to use, defaults to the active assay
 #' @param features Input vector of features
 #' @param cols Colors to plot, can pass a single character giving the name of
 #' a palette from \code{RColorBrewer::brewer.pal.info}
@@ -1556,7 +1626,8 @@ BarcodeInflectionsPlot <- function(object) {
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param group.by Factor to group the cells by
-#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)
+#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
+#' see \code{\link{FetchData}} for more details
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
@@ -1581,6 +1652,7 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 DotPlot <- function(
   object,
+  assay = NULL,
   features,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
@@ -1594,6 +1666,8 @@ DotPlot <- function(
   scale.max = NA,
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
@@ -1733,13 +1807,9 @@ DotPlot <- function(
 #' @examples
 #' ElbowPlot(object = pbmc_small)
 #'
-ElbowPlot <- function(
-  object,
-  ndims = 20,
-  reduction = 'pca'
-) {
+ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
   data.use <- Stdev(object = object, reduction = reduction)
-  if (length(data.use) == 0) {
+  if (length(x = data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction))
   }
   if (ndims > length(x = data.use)) {
@@ -1970,7 +2040,7 @@ VizDimLoadings <- function(
 #' @return A ggplot object
 #'
 #' @importFrom png readPNG
-#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster
+#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
 #'
 #' @export
 #'
@@ -1990,10 +2060,11 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     plot = plot,
     geom = class(x = plot$layers[[1]]$geom)[1]
   )
+  title <- plot$labels$title
   tmpfile <- tempfile(fileext = '.png')
   ggsave(
     filename = tmpfile,
-    plot = plot + NoLegend() + NoAxes(),
+    plot = plot + NoLegend() + NoAxes() + theme(plot.title = element_blank()),
     width = width,
     height = height,
     dpi = dpi
@@ -2004,7 +2075,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
     data = plot$data,
     mapping = aes_string(x = xyparams$x, y = xyparams$y)
   ) + geom_blank()
-  blank <- blank + plot$theme
+  blank <- blank + plot$theme + ggtitle(label = title)
   blank <- blank + annotation_raster(
     raster = img,
     xmin = range.values[1],
@@ -2170,19 +2241,24 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#' Feature Locator
+#' Cell selector
 #'
 #' Select points on a scatterplot and get information about them
 #'
 #' @param plot A ggplot2 plot
+#' @param object An optional Seurat object; if passes, will return an object with
+#' the identities of selected cells set to \code{ident}
+#' @param ident An optional new identity class to assign the selected cells
 #' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
 #' recoloring based on selected cells, or using a smooth scatterplot, respectively
 #'
-#' @return The names of the points selected
+#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
+#' a Seurat object with the selected cells identity classes set to \code{ident}
 #'
 #' @importFrom ggplot2 ggplot_build
 #' @export
 #'
+# @aliases FeatureLocator
 #' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
 #' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
@@ -2190,15 +2266,35 @@ CustomPalette <- function(
 #' \dontrun{
 #' plot <- DimPlot(object = pbmc_small)
 #' # Follow instructions in the terminal to select points
-#' cells.located <- FeatureLocator(plot = plot)
+#' cells.located <- CellSelector(plot = plot)
 #' cells.located
+#' # Automatically set the identity class of selected cells and return a new Seurat object
+#' pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCells')
 #' }
 #'
-FeatureLocator <- function(plot, ...) {
+CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   located <- PointLocator(plot = plot, ...)
   data <- ggplot_build(plot = plot)$plot$data
-  selected <- data[as.numeric(x = rownames(x = located)), ]
-  return(rownames(x = selected))
+  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
+  if (inherits(x = object, what = 'Seurat')) {
+    if (!all(selected %in% Cells(x = object))) {
+      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+    }
+    Idents(object = object, cells = selected) <- ident
+    return(object)
+  }
+  return(selected)
+}
+
+#' @rdname CellSelector
+#' @export
+#'
+FeatureLocator <- function(plot, ...) {
+  .Defunct(
+    new = 'CellSelector',
+    package = 'Seurat',
+    msg = "'FeatureLocator' has been replaced by 'CellSelector'"
+  )
 }
 
 #' Hover Locator
@@ -3022,8 +3118,10 @@ Col2Hex <- function(...) {
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
+# @param ... Extra parameters passed to \code{\link{CombinePlots}}
 #
 #' @importFrom scales hue_pal
+#' @importFrom ggplot2 xlab ylab
 #
 ExIPlot <- function(
   object,
@@ -3042,7 +3140,8 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -3052,6 +3151,7 @@ ExIPlot <- function(
     no = min(length(x = features), 3)
   )
   data <- FetchData(object = object, vars = features, slot = slot)
+  features <- colnames(x = data)
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
   } else {
@@ -3075,13 +3175,17 @@ ExIPlot <- function(
     }
     if (is.null(x = cols)) {
       cols <- hue_pal()(length(x = levels(x = idents)))
-    } else if (cols == 'interaction') {
+      cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    } else if (length(x = cols) == 1 && cols == 'interaction') {
       split <- interaction(idents, split)
       cols <- hue_pal()(length(x = levels(x = idents)))
     } else {
       cols <- Col2Hex(cols)
     }
-    cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    if (length(x = cols) < length(x = levels(x = split))) {
+      cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    }
+    cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
   }
   if (same.y.lims && is.null(x = y.max)) {
@@ -3104,8 +3208,38 @@ ExIPlot <- function(
       ))
     }
   )
+  label.fxn <- switch(
+    EXPR = type,
+    'violin' = ylab,
+    'ridge' = xlab,
+    stop("Unknown ExIPlot type ", type, call. = FALSE)
+  )
+  for (i in 1:length(x = plots)) {
+    key <- paste0(unlist(x = strsplit(x = features[i], split = '_'))[1], '_')
+    obj <- names(x = which(x = Key(object = object) == key))
+    if (length(x = obj) == 1) {
+      if (inherits(x = object[[obj]], what = 'DimReduc')) {
+        plots[[i]] <- plots[[i]] + label.fxn(label = 'Embeddings Value')
+      } else if (inherits(x = object[[obj]], what = 'Assay')) {
+        next
+      } else {
+        warning("Unknown object type ", class(x = object), immediate. = TRUE, call. = FALSE)
+        plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
+      }
+    } else if (!features[i] %in% rownames(x = object)) {
+      plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
+    }
+  }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, legend = 'none')
+    combine.args <- list(
+      'plots' = plots,
+      'ncol' = ncol
+    )
+    combine.args <- c(combine.args, list(...))
+    if (!'legend' %in% names(x = combine.args)) {
+      combine.args$legend <- 'none'
+    }
+    plots <- do.call(what = 'CombinePlots', args = combine.args)
   }
   return(plots)
 }
@@ -3307,13 +3441,13 @@ geom_split_violin <- function(
 #
 InvertHex <- function(hexadecimal) {
   return(vapply(
-    X = hexadecimal,
+    X = toupper(x = hexadecimal),
     FUN = function(hex) {
       hex <- unlist(x = strsplit(
         x = gsub(pattern = '#', replacement = '', x = hex),
         split = ''
       ))
-      key <- unlist(x = strsplit(x = 'FEDCBA9876543210', split = ''))
+      key <- toupper(x = as.hexmode(x = 15:0))
       if (!all(hex %in% key)) {
         stop('All hexadecimal colors must be valid hexidecimal numbers from 0-9 and A-F')
       }
@@ -3739,9 +3873,14 @@ SingleCorPlot <- function(
 # @param dims A two-length numeric vector with dimensions to use
 # @param pt.size Adjust point size for plotting
 # @param col.by ...
-# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot assigns colors.
-# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.
-# @param order Specify the order of plotting for the idents. This can be useful for crowded plots if points of interest are being buried. Provide either a full list of valid idents or a subset to be plotted last (on top).
+# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot
+# assigns colors.
+# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
+# (that can be pulled with FetchData) allowing for both different colors and different shapes on
+# cells.
+# @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
+# points of interest are being buried. Provide either a full list of valid idents or a subset to be
+# plotted last (on top).
 # @param label Whether to label the clusters
 # @param repel Repel labels
 # @param label.size Sets size of labels
@@ -3804,11 +3943,22 @@ SingleDimPlot <- function(
     cols <- highlight.info$color
   }
   if (!is.null(x = order) && !is.null(x = col.by)) {
-    order <- rev(x = c(
-      order,
-      setdiff(x = unique(x = data[, col.by]), y = order)
-    ))
-    data[, col.by] <- factor(x = data[, col.by], levels = order)
+    if (typeof(x = order) == "logical"){
+      if (order) {
+        data <- data[order(data[, col.by]), ]
+      }
+    } else {
+      order <- rev(x = c(
+        order,
+        setdiff(x = unique(x = data[, col.by]), y = order)
+      ))
+      data[, col.by] <- factor(x = data[, col.by], levels = order)
+      new.order <- order(x = data[, col.by])
+      data <- data[new.order, ]
+      if (length(x = pt.size) == length(x = new.order)) {
+        pt.size <- pt.size[new.order]
+      }
+    }
   }
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
@@ -4116,7 +4266,7 @@ SingleRasterMap <- function(
   plot <- ggplot(data = data) +
     my_geom(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
-    scale_fill_gradientn(limits = limits, colors = colors) +
+    scale_fill_gradientn(limits = limits, colors = colors, na.value = "white") +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
     WhiteBackground() + NoAxes(keep.text = TRUE)
   if (!is.null(x = group.by)) {

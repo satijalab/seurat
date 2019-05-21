@@ -68,8 +68,8 @@ JackStraw <- function(
     dims <- length(x = object[[reduction]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  if (dims > ncol(x = object)) {
-    dims <- ncol(x = object)
+  if (dims > nrow(x = object)) {
+    dims <- nrow(x = object)
     warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
   loadings <- Loadings(object = object[[reduction]], projected = FALSE)
@@ -160,8 +160,8 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
   colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
   l2.dr <- CreateDimReducObject(
     embeddings = l2.norm,
-    loadings = Loadings(object = object[[reduction]]),
-    projected = Loadings(object = object[[reduction]]),
+    loadings = Loadings(object = object[[reduction]], projected = FALSE),
+    projected = Loadings(object = object[[reduction]], projected = TRUE),
     assay = DefaultAssay(object = object),
     stdev = slot(object = object[[reduction]], name = 'stdev'),
     key = new.key,
@@ -554,7 +554,6 @@ RunICA.default <- function(
   return(reduction.data)
 }
 
-
 #' @param features Features to compute ICA on
 #'
 #' @rdname RunICA
@@ -771,7 +770,6 @@ RunLSI.Seurat <- function(
   return(object)
 }
 
-
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
@@ -814,6 +812,7 @@ RunPCA.default <- function(
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = npcs, ...)
+    total.variance <- sum(RowVar(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -826,6 +825,7 @@ RunPCA.default <- function(
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)
+      total.variance <- sum(RowVar(x = object))
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -838,6 +838,7 @@ RunPCA.default <- function(
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
+      total.variance <- sum(sdev)
       if (weight.by.var) {
         cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
       } else {
@@ -854,7 +855,8 @@ RunPCA.default <- function(
     loadings = feature.loadings,
     assay = assay,
     stdev = sdev,
-    key = reduction.key
+    key = reduction.key,
+    misc = list(total.variance = total.variance)
   )
   if (verbose) {
     print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
@@ -890,7 +892,6 @@ RunPCA.Assay <- function(
   reduction.data <- RunPCA(
     object = data.use,
     assay = assay,
-    pc.features = features,
     npcs = npcs,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
@@ -1028,17 +1029,13 @@ RunTSNE.DimReduc <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  tsne.reduction <- RunTSNE(
-    object = object[[, dims]],
-    assay = DefaultAssay(object = object),
-    seed.use = seed.use,
-    tsne.method = tsne.method,
-    add.iter = add.iter,
-    dim.embed = dim.embed,
-    reduction.key = reduction.key,
-    ...
-  )
-  return(tsne.reduction)
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
+  args$object <- args$object[[cells, args$dims]]
+  args$dims <- NULL
+  args$cells <- NULL
+  args$assay <- DefaultAssay(object = object)
+  return(do.call(what = 'RunTSNE', args = args))
 }
 
 #' @rdname RunTSNE
@@ -1055,17 +1052,11 @@ RunTSNE.dist <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  return(RunTSNE(
-    object = as.matrix(x = object),
-    assay = assay,
-    seed.use = seed.use,
-    tsne.method = tsne.method,
-    add.iter = add.iter,
-    dim.embed = dim.embed,
-    reduction.key = reduction.key,
-    is_distance = TRUE,
-    ...
-  ))
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
+  args$object <- as.matrix(x = args$object)
+  args$is_distance <- TRUE
+  return(do.call(what = 'RunTSNE', args = args))
 }
 
 #' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
@@ -1096,6 +1087,7 @@ RunTSNE.Seurat <- function(
   reduction.key = "tSNE_",
   ...
 ) {
+  cells <- cells %||% Cells(x = object)
   tsne.reduction <- if (!is.null(x = distance.matrix)) {
     RunTSNE(
       object = distance.matrix,
@@ -1111,6 +1103,7 @@ RunTSNE.Seurat <- function(
   } else if (!is.null(x = dims)) {
     RunTSNE(
       object = object[[reduction]],
+      cells = cells,
       dims = dims,
       seed.use = seed.use,
       tsne.method = tsne.method,
@@ -1122,7 +1115,7 @@ RunTSNE.Seurat <- function(
     )
   } else if (!is.null(x = features)) {
     RunTSNE(
-      object = as.matrix(x = GetAssayData(object = object)[features, ]),
+      object = as.matrix(x = GetAssayData(object = object)[features, cells]),
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
@@ -1506,6 +1499,10 @@ ScoreJackStraw.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for R-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal

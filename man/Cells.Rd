@@ -3,16 +3,17 @@
 \name{Cells}
 \alias{Cells}
 \alias{Cells.default}
+\alias{Cells.DimReduc}
 \title{Get cells present in an object}
 \usage{
-Cells(object, ...)
+Cells(x)
 
-\method{Cells}{default}(object, ...)
+\method{Cells}{default}(x)
+
+\method{Cells}{DimReduc}(x)
 }
 \arguments{
-\item{object}{An object}
-
-\item{...}{Arguments passed to other methods}
+\item{x}{An object}
 }
 \value{
 A vector of cell names
@@ -21,6 +22,6 @@ A vector of cell names
 Get cells present in an object
 }
 \examples{
-Cells(object = pbmc_small)
+Cells(x = pbmc_small)
 
 }

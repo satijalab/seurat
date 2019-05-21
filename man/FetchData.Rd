@@ -9,7 +9,7 @@ FetchData(object, vars, cells = NULL, slot = "data")
 \arguments{
 \item{object}{Seurat object}
 
-\item{vars}{List of all variables to fetch}
+\item{vars}{List of all variables to fetch, use keyword 'ident' to pull identity classes}
 
 \item{cells}{Cells to collect data for (default is all cells)}
 
@@ -23,7 +23,8 @@ Retreives data (feature expression, PCA scores, metrics, etc.) for a set
 of cells in a Seurat object
 }
 \examples{
-pc1 <- FetchData(object = pbmc_small, vars = 'PC1')
+pc1 <- FetchData(object = pbmc_small, vars = 'PC_1')
 head(x = pc1)
+head(x = FetchData(object = pbmc_small, vars = c('groups', 'ident')))
 
 }

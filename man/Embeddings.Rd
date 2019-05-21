@@ -10,7 +10,7 @@ Embeddings(object, ...)
 
 \method{Embeddings}{DimReduc}(object, ...)
 
-\method{Embeddings}{Seurat}(object, reduction, ...)
+\method{Embeddings}{Seurat}(object, reduction = "pca", ...)
 }
 \arguments{
 \item{object}{An object}

@@ -11,14 +11,16 @@ FindClusters(object, ...)
 \method{FindClusters}{default}(object, modularity.fxn = 1,
   initial.membership = NULL, weights = NULL, node.sizes = NULL,
   resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
-  random.seed = 0, temp.file.location = NULL, edge.file.name = NULL,
-  verbose = TRUE, ...)
+  random.seed = 0, group.singletons = TRUE,
+  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
+  ...)
 
 \method{FindClusters}{Seurat}(object, graph.name = NULL,
   modularity.fxn = 1, initial.membership = NULL, weights = NULL,
   node.sizes = NULL, resolution = 0.8, algorithm = 1, n.start = 10,
-  n.iter = 10, random.seed = 0, temp.file.location = NULL,
-  edge.file.name = NULL, verbose = TRUE, ...)
+  n.iter = 10, random.seed = 0, group.singletons = TRUE,
+  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
+  ...)
 }
 \arguments{
 \item{object}{An object}
@@ -42,6 +44,9 @@ algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
 
 \item{random.seed}{Seed of the random number generator.}
 
+\item{group.singletons}{Group singletons into nearest cluster. If FALSE, assign all singletons to 
+a "singleton" group}
+
 \item{temp.file.location}{Directory where intermediate files will be written.
 Specify the ABSOLUTE path.}
 
@@ -52,8 +57,9 @@ Specify the ABSOLUTE path.}
 \item{graph.name}{Name of graph to use for the clustering algorithm}
 }
 \value{
-Returns a Seurat object and optionally the SNN matrix,
-        object idents have been updated with new cluster info
+Returns a Seurat object where the idents have been updated with new cluster info;
+latest clustering results will be stored in object metadata under 'seurat_clusters'.
+Note that 'seurat_clusters' will be overwritten everytime FindClusters is run
 }
 \description{
 Identify clusters of cells by a shared nearest neighbor (SNN) modularity

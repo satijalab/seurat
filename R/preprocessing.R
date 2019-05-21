@@ -249,6 +249,7 @@ CreateGeneActivityMatrix <- function(
 #' @param kfunc Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
 #' @param nsamples Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"
 #' @param nstarts nstarts value for k-means clustering (for kfunc = "kmeans"). 100 by default
+#' @param seed Sets the random seed
 #' @param verbose Prints the output
 #'
 #' @return The Seurat object with the following demultiplexed information stored in the meta data:
@@ -283,8 +284,10 @@ HTODemux <- function(
   nstarts = 100,
   kfunc = "clara",
   nsamples = 100,
+  seed = 42,
   verbose = TRUE
 ) {
+  set.seed(seed = seed)
   #initial clustering
   assay <- assay %||% DefaultAssay(object = object)
   data <- GetAssayData(object = object, assay = assay)
@@ -322,7 +325,7 @@ HTODemux <- function(
   #work around so we don't average all the RNA levels which takes time
   average.expression <- AverageExpression(
     object = object,
-    assay = assay,
+    assays = assay,
     verbose = FALSE
   )[[assay]]
   #checking for any cluster with all zero counts for any barcode
@@ -697,16 +700,9 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    # if (!grepl(pattern = "\\/$", x = run)) {
-    #   run <- paste0(run, "/")
-    # }
-    # barcode.loc <- paste0(run, "barcodes.tsv")
     barcode.loc <- file.path(run, 'barcodes.tsv')
-    # gene.loc <- paste0(run, "genes.tsv")
     gene.loc <- file.path(run, 'genes.tsv')
-    # features.loc <- paste0(run, "features.tsv.gz")
     features.loc <- file.path(run, 'features.tsv.gz')
-    # matrix.loc <- paste0(run, "matrix.mtx")
     matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
@@ -751,6 +747,12 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       stringsAsFactors = FALSE
     )
     if (unique.features) {
+      fcols = ncol(x = feature.names)
+      if (fcols < gene.column) {
+        stop(paste0("gene.column was set to ", gene.column,
+                    " but feature.tsv.gz (or genes.tsv) only has ", fcols, " columns.",
+                    " Try setting the gene.column argument to a value <= to ", fcols, "."))
+      }
       rownames(x = data) <- make.unique(names = feature.names[, gene.column])
     }
     # In cell ranger 3.0, a third column specifying the type of data was added
@@ -854,7 +856,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     colnames(x = sparse.mat) <- barcodes[]
     sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
     # Split v3 multimodal
-    if (infile$exists(name = paste0(genome, '/features/feature_type'))) {
+    if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
@@ -877,216 +879,6 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   } else{
     return(output)
   }
-}
-
-#' Use regularized negative binomial regression to normalize UMI count data
-#'
-#' This function calls sctransform::vst. The sctransform package is available at
-#' https://github.com/ChristophH/sctransform.
-#' Use this function as an alternative to the NormalizeData,
-#' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-#' called SCT with counts being (corrected) counts, data being log1p(counts),
-#' scale.data being pearson residuals; sctransform::vst intermediate results are saved
-#' in misc slot of new assay.
-#'
-#' @param object A seurat object
-#' @param assay Name of assay to pull the count data from; default is 'RNA'
-#' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
-#' @param variable.features.n Use this many features as variable features after
-#' ranking by residual variance; default is 3000
-#' @param variable.features.rv.th Instead of setting a fixed number of variable features,
-#' use this residual variance cutoff; this is only used when \code{variable.features.n}
-#' is set to NULL; default is 1.3
-#' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
-#' @param vars.to.regress Variables to regress out in a second non-regularized linear
-#' regression. For example, percent.mito. Default is NULL
-#' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
-#' @param do.center Whether to center residuals to have mean zero; default is TRUE
-#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
-#' where n is the number of cells
-#' @param return.only.var.genes If set to TRUE all data matrices in output assay are
-#' subset to contain only the variable genes; default is FALSE
-#' @param verbose Whether to print messages and progress bars
-#' @param ... Additional parameters passed to \code{sctransform::vst}
-#'
-#' @importFrom stats setNames
-#'
-#' @export
-#'
-SCTransform <- function(
-  object,
-  assay = 'RNA',
-  do.correct.umi = TRUE,
-  variable.features.n = 3000,
-  variable.features.rv.th = 1.3,
-  return.dev.residuals = FALSE,
-  vars.to.regress = NULL,
-  do.scale = FALSE,
-  do.center = TRUE,
-  clip.range = c(-sqrt(ncol(object[[assay]])/30), sqrt(ncol(object[[assay]])/30)),
-  return.only.var.genes = FALSE,
-  verbose = TRUE,
-  ...
-) {
-  if (!PackageCheck('sctransform', error = FALSE)) {
-    stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
-  }
-  assay <- assay %||% DefaultAssay(object = object)
-  assay.obj <- GetAssay(object = object, assay = assay)
-  umi <- GetAssayData(object = assay.obj, slot = 'counts')
-  cell.attr <- slot(object = object, name = 'meta.data')
-
-  vst.args <- list(...)
-  # check for batch_var in meta data
-  if ('batch_var' %in% names(vst.args)) {
-    if (!(vst.args[['batch_var']] %in% colnames(cell.attr))) {
-      stop('batch_var not found in seurat object meta data')
-    }
-  }
-
-  # check for latent_var in meta data
-  if ('latent_var' %in% names(vst.args)) {
-    known.attr <- c('umi', 'gene', 'log_umi', 'log_gene', 'umi_per_gene', 'log_umi_per_gene')
-    if (!all(vst.args[['latent_var']] %in% c(colnames(cell.attr), known.attr))) {
-      stop('latent_var values are not from the set of cell attributes sctransform calculates
-           by default and cannot be found in seurat object meta data')
-    }
-  }
-
-  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_corrected_umi') %in% names(vst.args))) {
-    warning(paste('the following arguments will be ignored because they are set within this function:', paste(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_corrected_umi'), collapse = ', ')))
-  }
-  vst.args[['umi']] <- umi
-  vst.args[['cell_attr']] <- cell.attr
-  vst.args[['show_progress']] <- verbose
-  vst.args[['return_cell_attr']] <- TRUE
-  vst.args[['return_corrected_umi']] <- do.correct.umi
-  vst.out <- do.call(sctransform::vst, vst.args)
-
-  # output will go into new assay
-  assay.out <- CreateAssayObject(counts = umi)
-
-  # put corrected umi counts in count slot
-  if (do.correct.umi) {
-    if (verbose) {
-      message('Placing corrected UMI matrix in counts slot')
-    }
-    assay.out <- SetAssayData(
-      object = assay.out,
-      slot = 'counts',
-      new.data = vst.out$umi_corrected
-    )
-  }
-
-  # put log1p transformed counts in data
-  assay.out <- SetAssayData(
-    object = assay.out,
-    slot = 'data',
-    new.data = log1p(GetAssayData(object = assay.out, slot = 'counts'))
-  )
-
-  # set variable features
-  if (verbose) {
-    message('Determine variable features')
-  }
-  if ('residual_variance' %in% names(x = vst.out$gene_attr)) {
-    feature.variance <- setNames(
-      object = vst.out$gene_attr$residual_variance,
-      nm = rownames(x = vst.out$gene_attr)
-    )
-  } else {
-    feature.variance <- RowVar(vst.out$y)
-    names(x = feature.variance) <- rownames(x = vst.out$y)
-  }
-  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:variable.features.n]
-  } else {
-    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
-  }
-  VariableFeatures(object = assay.out) <- top.features
-  if (verbose) {
-    message('Set ', length(x = top.features), ' variable features')
-  }
-
-  scale.data <- vst.out$y
-  if (return.dev.residuals) {
-    if (verbose) {
-      message('Calculate deviance residuals')
-    }
-    scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
-  }
-
-  if (return.only.var.genes) {
-    scale.data <- scale.data[top.features, , drop = FALSE]
-  }
-
-  # clip the residuals
-  scale.data[scale.data < clip.range[1]] <- clip.range[1]
-  scale.data[scale.data > clip.range[2]] <- clip.range[2]
-
-  # 2nd regression
-  scale.data <- ScaleData(
-    scale.data,
-    features = NULL,
-    vars.to.regress = vars.to.regress,
-    latent.data = cell.attr[, vars.to.regress, drop=FALSE],
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = do.scale,
-    do.center = do.center,
-    scale.max = Inf,
-    block.size = 1000,
-    min.cells.to.block = 3000,
-    verbose = verbose
-  )
-
-  # re-scale the residuals
-  # if (do.scale || do.center) {
-  #   if (verbose) {
-  #     if (do.center) {
-  #       message('Center residuals')
-  #     }
-  #     if (do.scale) {
-  #       message('Re-scale residuals')
-  #     }
-  #   }
-  #   scale.data <- FastRowScale(
-  #     mat = scale.data,
-  #     scale = do.scale,
-  #     center = do.center,
-  #     scale_max = Inf,
-  #     display_progress = FALSE
-  #   )
-  #   dimnames(scale.data) <- dimnames(vst.out$y)
-  # }
-
-  assay.out <- SetAssayData(
-    object = assay.out,
-    slot = 'scale.data',
-    new.data = scale.data
-  )
-
-  if (return.only.var.genes) {
-    if (verbose) {
-      message("Output assay will contain only variable genes")
-    }
-    slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
-    slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
-    slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
-  }
-
-  # save vst output (except y) in @misc slot
-  vst.out$y <- NULL
-  assay.out@misc <- list(vst.out = vst.out)
-
-  object[["SCT"]] <- assay.out
-  if (verbose) {
-    message("Setting default assay to SCT")
-  }
-  DefaultAssay(object = object) <- "SCT"
-  object <- LogSeuratCommand(object = object)
-  return(object)
 }
 
 #' Normalize raw data to fractions
@@ -1178,6 +970,234 @@ SampleUMI <- function(
   return(new_data)
 }
 
+#' Use regularized negative binomial regression to normalize UMI count data
+#'
+#' This function calls sctransform::vst. The sctransform package is available at
+#' https://github.com/ChristophH/sctransform.
+#' Use this function as an alternative to the NormalizeData,
+#' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
+#' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
+#' scale.data being pearson residuals; sctransform::vst intermediate results are saved
+#' in misc slot of new assay.
+#'
+#' @param object A seurat object
+#' @param assay Name of assay to pull the count data from; default is 'RNA'
+#' @param new.assay.name Name for the new assay containing the normalized data
+#' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
+#' @param variable.features.n Use this many features as variable features after
+#' ranking by residual variance; default is 3000
+#' @param variable.features.rv.th Instead of setting a fixed number of variable features,
+#' use this residual variance cutoff; this is only used when \code{variable.features.n}
+#' is set to NULL; default is 1.3
+#' @param vars.to.regress Variables to regress out in a second non-regularized linear
+#' regression. For example, percent.mito. Default is NULL
+#' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
+#' @param do.center Whether to center residuals to have mean zero; default is TRUE
+#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
+#' where n is the number of cells
+#' @param conserve.memory If set to TRUE the residual matrix for all genes is never
+#' created in full; useful for large data sets, but will take longer to run;
+#' this will also set return.only.var.genes to TRUE; default is FALSE
+#' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
+#' subset to contain only the variable genes; default is FALSE
+#' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
+#' NULL will not set a seed.
+#' @param verbose Whether to print messages and progress bars
+#' @param ... Additional parameters passed to \code{sctransform::vst}
+#'
+#' @return Returns a Seurat object with a new assay (named SCT by default) with
+#' counts being (corrected) counts, data being log1p(counts), scale.data being
+#' pearson residuals; sctransform::vst intermediate results are saved in misc
+#' slot of the new assay.
+#'
+#' @importFrom stats setNames
+#' @importFrom sctransform vst get_residual_var get_residuals correct_counts
+#'
+#' @export
+#'
+#' @examples
+#' SCTransform(object = pbmc_small)
+#'
+SCTransform <- function(
+  object,
+  assay = 'RNA',
+  new.assay.name = 'SCT',
+  do.correct.umi = TRUE,
+  variable.features.n = 3000,
+  variable.features.rv.th = 1.3,
+  vars.to.regress = NULL,
+  do.scale = FALSE,
+  do.center = TRUE,
+  clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
+  conserve.memory = FALSE,
+  return.only.var.genes = TRUE,
+  seed.use = 1448145,
+  verbose = TRUE,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.obj <- GetAssay(object = object, assay = assay)
+  umi <- GetAssayData(object = assay.obj, slot = 'counts')
+  cell.attr <- slot(object = object, name = 'meta.data')
+  vst.args <- list(...)
+  # check for batch_var in meta data
+  if ('batch_var' %in% names(x = vst.args)) {
+    if (!(vst.args[['batch_var']] %in% colnames(x = cell.attr))) {
+      stop('batch_var not found in seurat object meta data')
+    }
+  }
+  # check for latent_var in meta data
+  if ('latent_var' %in% names(x = vst.args)) {
+    known.attr <- c('umi', 'gene', 'log_umi', 'log_gene', 'umi_per_gene', 'log_umi_per_gene')
+    if (!all(vst.args[['latent_var']] %in% c(colnames(x = cell.attr), known.attr))) {
+      stop('latent_var values are not from the set of cell attributes sctransform calculates by default and cannot be found in seurat object meta data')
+    }
+  }
+  # check for vars.to.regress in meta data
+  if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
+    stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
+  }
+  
+  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
+    warning(
+      'the following arguments will be ignored because they are set within this function:',
+      paste(
+        c(
+          'cell_attr',
+          'show_progress',
+          'return_cell_attr',
+          'return_gene_attr',
+          'return_corrected_umi'
+        ),
+        collapse = ', '
+      ),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  vst.args[['umi']] <- umi
+  vst.args[['cell_attr']] <- cell.attr
+  vst.args[['show_progress']] <- verbose
+  vst.args[['return_cell_attr']] <- TRUE
+  vst.args[['return_gene_attr']] <- TRUE
+  vst.args[['return_corrected_umi']] <- do.correct.umi
+  residual.type <- vst.args[['residual_type']] %||% 'pearson'
+  res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+  if (conserve.memory) {
+    return.only.var.genes <- TRUE
+  }
+  if (conserve.memory) {
+    vst.args[['residual_type']] <- 'none'
+    vst.out <- do.call(what = 'vst', args = vst.args)
+    feature.variance <- get_residual_var(
+      vst_out = vst.out,
+      umi = umi,
+      residual_type = residual.type,
+      res_clip_range = res.clip.range
+    )
+    vst.out$gene_attr$residual_variance <- NA_real_
+    vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
+  } else {
+    vst.out <- do.call(what = 'vst', args = vst.args)
+    feature.variance <- setNames(
+      object = vst.out$gene_attr$residual_variance,
+      nm = rownames(x = vst.out$gene_attr)
+    )
+  }
+  if (verbose) {
+    message('Determine variable features')
+  }
+  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+  if (!is.null(x = variable.features.n)) {
+    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
+  } else {
+    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
+  }
+  if (verbose) {
+    message('Set ', length(x = top.features), ' variable features')
+  }
+  if (conserve.memory) {
+    # actually get the residuals this time
+    if (verbose) {
+      message("Return only variable features for scale.data slot of the output assay")
+    }
+    vst.out$y <- get_residuals(
+      vst_out = vst.out,
+      umi = umi[top.features, ],
+      residual_type = residual.type,
+      res_clip_range = res.clip.range
+    )
+    if (do.correct.umi & residual.type == 'pearson') {
+      vst.out$umi_corrected <- correct_counts(
+        x = vst.out,
+        umi = umi,
+        show_progress = verbose
+      )
+    }
+  }
+  # create output assay and put (corrected) umi counts in count slot
+  if (do.correct.umi & residual.type == 'pearson') {
+    if (verbose) {
+      message('Place corrected count matrix in counts slot')
+    }
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+  } else {
+    assay.out <- CreateAssayObject(counts = umi)
+  }
+  # set the variable genes
+  VariableFeatures(object = assay.out) <- top.features
+  # put log1p transformed counts in data
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+  )
+  if (return.only.var.genes & !conserve.memory) {
+    scale.data <- vst.out$y[top.features, ]
+  } else {
+    scale.data <- vst.out$y
+  }
+  # clip the residuals
+  scale.data[scale.data < clip.range[1]] <- clip.range[1]
+  scale.data[scale.data > clip.range[2]] <- clip.range[2]
+  # 2nd regression
+  scale.data <- ScaleData(
+    scale.data,
+    features = NULL,
+    vars.to.regress = vars.to.regress,
+    latent.data = cell.attr[, vars.to.regress, drop = FALSE],
+    model.use = 'linear',
+    use.umi = FALSE,
+    do.scale = do.scale,
+    do.center = do.center,
+    scale.max = Inf,
+    block.size = 750,
+    min.cells.to.block = 3000,
+    verbose = verbose
+  )
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'scale.data',
+    new.data = scale.data
+  )
+  # save vst output (except y) in @misc slot
+  vst.out$y <- NULL
+  Misc(object = assay.out, slot = 'vst.out') <- vst.out
+  # also put gene attributes in meta.features
+  assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
+  assay.out[['sct.variable']] <- rownames(x = assay.out[[]]) %in% top.features
+  object[[new.assay.name]] <- assay.out
+  if (verbose) {
+    message(paste("Set default assay to", new.assay.name))
+  }
+  DefaultAssay(object = object) <- new.assay.name
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
 #' Subset a Seurat Object based on the Barcode Distribution Inflection Points
 #'
 #' This convenience function subsets a Seurat object based on calculated inflection points.
@@ -1261,14 +1281,14 @@ TF.IDF <- function(data, verbose = TRUE) {
 #'   feature values using the observed mean and expected variance (given by the
 #'   fitted line). Feature variance is then calculated on the standardized values
 #'   after clipping to a maximum (see clip.max parameter).}
-#'   \item{mean.var.plot:}{ First, uses a function to calculate average
+#'   \item{mean.var.plot (mvp):}{ First, uses a function to calculate average
 #'   expression (mean.function) and dispersion (dispersion.function) for each
 #'   feature. Next, divides features into num.bin (deafult 20) bins based on
 #'   their average expression, and calculates z-scores for dispersion within
 #'   each bin. The purpose of this is to identify variable features while
 #'   controlling for the strong relationship between variability and average
 #'   expression.}
-#'   \item{dispersion:}{ selects the genes with the highest dispersion values}
+#'   \item{dispersion (disp):}{ selects the genes with the highest dispersion values}
 #' }
 #' @param loess.span (vst method) Loess span parameter used when fitting the
 #' variance-mean relationship
@@ -1339,6 +1359,7 @@ FindVariableFeatures.default <- function(
       vmax = clip.max,
       display_progress = verbose
     )
+    colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   } else {
     if (!inherits(x = mean.function, what = 'function')) {
       stop("'mean.function' must be a function")
@@ -1372,7 +1393,7 @@ FindVariableFeatures.default <- function(
     names(x = feature.dispersion.scaled) <- names(x = feature.mean)
     hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
     rownames(x = hvf.info) <- rownames(x = object)
-    colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+    colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
   }
   return(hvf.info)
 }
@@ -1409,7 +1430,8 @@ FindVariableFeatures.Assay <- function(
   }
   if (selection.method == "vst") {
     data <- GetAssayData(object = object, slot = "counts")
-    if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+    # if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+    if (IsMatrixEmpty(x = data)) {
       warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
       data <- GetAssayData(object = object, slot = "data")
     }
@@ -1428,12 +1450,18 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
-  hvf.info <- hvf.info[which(x = hvf.info$mean != 0), ]
+  hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
   if (selection.method == "vst") {
-    hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
+    hvf.info <- hvf.info[order(hvf.info$vst.variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {
-    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+    hvf.info <- hvf.info[order(hvf.info$mvp.dispersion, decreasing = TRUE), , drop = FALSE]
   }
+  selection.method <- switch(
+    EXPR = selection.method,
+    'mvp' = 'mean.var.plot',
+    'disp' = 'dispersion',
+    selection.method
+  )
   top.features <- switch(
     EXPR = selection.method,
     'mean.var.plot' = {
@@ -1446,6 +1474,13 @@ FindVariableFeatures.Assay <- function(
     stop("Unkown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
+  vf.name <- ifelse(
+    test = selection.method == 'vst',
+    yes = 'vst',
+    no = 'mvp'
+  )
+  vf.name <- paste0(vf.name, '.variable')
+  object[[vf.name]] <- rownames(x = object[[]]) %in% top.features
   return(object)
 }
 
@@ -1518,7 +1553,6 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  # across = "features",
   margin = 1,
   block.size = NULL,
   verbose = TRUE,
@@ -1567,7 +1601,7 @@ NormalizeData.default <- function(
           scale.factor = scale.factor,
           verbose = FALSE,
           custom_function = function(x) {
-            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
           },
           margin = margin
           # across = across
@@ -1594,7 +1628,7 @@ NormalizeData.default <- function(
       'CLR' = CustomNormalize(
         data = object,
         custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
         },
         margin = margin,
         verbose = verbose
@@ -1621,7 +1655,6 @@ NormalizeData.Assay <- function(
   scale.factor = 1e4,
   margin = 1,
   verbose = TRUE,
-  # across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -1658,7 +1691,6 @@ NormalizeData.Seurat <- function(
   scale.factor = 1e4,
   margin = 1,
   verbose = TRUE,
-  # across = "features",
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -1853,12 +1885,12 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
-#' @importFrom future.apply future_lapply
-#'
 #' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
+#' @param split.by Name of variable in object metadata or a vector or factor defining
+#' grouping of cells. See argument \code{f} in \code{\link[base]{split}} for more details
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'
@@ -1877,6 +1909,8 @@ RunALRA.Seurat <- function(
 #' don't block for scaling calculations.
 #' @param verbose Displays a progress bar for scaling procedure
 #'
+#' @importFrom future.apply future_apply
+#'
 #' @rdname ScaleData
 #' @export
 #'
@@ -1885,6 +1919,7 @@ ScaleData.default <- function(
   features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -1900,12 +1935,14 @@ ScaleData.default <- function(
   object <- object[features, , drop = FALSE]
   object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  suppressWarnings(Parenting(
+  suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Assay",
     features = features,
     min.cells.to.block = min.cells.to.block
   ))
-  gc(verbose = FALSE)
+  split.by <- split.by %||% TRUE
+  split.cells <- split(x = colnames(x = object), f = split.by)
+  CheckGC()
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
       latent.data <- data.frame(row.names = colnames(x = object))
@@ -1923,36 +1960,83 @@ ScaleData.default <- function(
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
-    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = 200)
+    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
     if (PlanThreads() > 1) {
-      object <- future_lapply(
-        X = 1:ncol(x = chunk.points),
-        FUN = function(i) {
+      object <- future_apply(
+        X = expand.grid(
+          names(x = split.cells),
+          1:ncol(x = chunk.points),
+          stringsAsFactors = FALSE
+        ),
+        MARGIN = 1,
+        FUN = function(row) {
+          group <- row[[1]]
+          index <- as.numeric(x = row[[2]])
           return(RegressOutMatrix(
-            data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
-            latent.data = latent.data,
+            data.expr = object[chunk.points[1, index]:chunk.points[2, index], split.cells[[group]], drop = FALSE],
+            latent.data = latent.data[split.cells[[group]], , drop = FALSE],
+            features.regress = features,
             model.use = model.use,
             use.umi = use.umi,
             verbose = FALSE
           ))
         }
       )
-      object <- do.call(what = 'rbind', args = object)
+      if (length(x = split.cells) > 1) {
+        merge.indices <- lapply(
+          X = 1:length(x = split.cells),
+          FUN = seq.int,
+          to = length(x = object),
+          by = length(x = split.cells)
+        )
+        object <- lapply(
+          X = merge.indices,
+          FUN = function(x) {
+            return(do.call(what = 'rbind', args = object[x]))
+          }
+        )
+        object <- do.call(what = 'cbind', args = object)
+      } else if (is.list(x = object)) {
+        object <- do.call(what = 'rbind', args = object)
+      } else {
+        dim(x = object) <- lapply(X = object.names, FUN = length)
+      }
     } else {
-      object <- RegressOutMatrix(
-        data.expr = object,
-        latent.data = latent.data,
-        features.regress = features,
-        model.use = model.use,
-        use.umi = use.umi,
-        verbose = verbose
+      object <- lapply(
+        X = names(x = split.cells),
+        FUN = function(x) {
+          if (verbose && length(x = split.cells) > 1) {
+            message("Regressing out variables from split ", x)
+          }
+          return(RegressOutMatrix(
+            data.expr = object[, split.cells[[x]], drop = FALSE],
+            latent.data = latent.data[split.cells[[x]], , drop = FALSE],
+            features.regress = features,
+            model.use = model.use,
+            use.umi = use.umi,
+            verbose = verbose
+          ))
+        }
       )
+      object <- do.call(what = 'cbind', args = object)
     }
     dimnames(x = object) <- object.names
-    gc(verbose = FALSE)
+    CheckGC()
   }
-  if (verbose) {
-    message("Scaling data matrix")
+  if (verbose && (do.scale || do.center)) {
+    msg <- paste(
+      na.omit(object = c(
+        ifelse(test = do.center, yes = 'centering', no = NA_character_),
+        ifelse(test = do.scale, yes = 'scaling', no = NA_character_)
+      )),
+      collapse = ' and '
+    )
+    msg <- paste0(
+      toupper(x = substr(x = msg, start = 1, stop = 1)),
+      substr(x = msg, start = 2, stop = nchar(x = msg)),
+      ' data matrix'
+    )
+    message(msg)
   }
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
@@ -1962,60 +2046,89 @@ ScaleData.default <- function(
   }
   if (PlanThreads() > 1) {
     blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-    scaled.data <- future_lapply(
-      X = 1:ncol(x = blocks),
-      FUN = function(i) {
-        block <- as.vector(x = blocks[, i])
+    scaled.data <- future_apply(
+      X = expand.grid(
+        names(x = split.cells),
+        1:ncol(x = blocks),
+        stringsAsFactors = FALSE
+      ),
+      MARGIN = 1,
+      FUN = function(row) {
+        group <- row[[1]]
+        block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
         data.scale <- scale.function(
-          mat = object[features[block[1]:block[2]], , drop = FALSE],
+          mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
-        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
+        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
-        gc(verbose = FALSE)
+        CheckGC()
         return(data.scale)
       }
     )
-    suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    if (length(x = split.cells) > 1) {
+      merge.indices <- lapply(
+        X = 1:length(x = split.cells),
+        FUN = seq.int,
+        to = length(x = scaled.data),
+        by = length(x = split.cells)
+      )
+      scaled.data <- lapply(
+        X = merge.indices,
+        FUN = function(x) {
+          return(suppressWarnings(expr = do.call(what = 'rbind', args = scaled.data[x])))
+        }
+      )
+      scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
+    } else if (is.list(x = scaled.data)) {
+      suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    } else {
+      dim(x = scaled.data) <- dim(x = object)
+    }
   } else {
     scaled.data <- matrix(
-      data = NA,
+      data = NA_real_,
       nrow = nrow(x = object),
       ncol = ncol(x = object),
       dimnames = object.names
     )
     max.block <- ceiling(x = length(x = features) / block.size)
-    if (verbose) {
-      pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
-    }
-    for (i in 1:max.block) {
-      my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
-      my.inds <- my.inds[my.inds <= length(x = features)]
-      data.scale <- scale.function(
-        mat = object[features[my.inds], , drop = FALSE],
-        scale = do.scale,
-        center = do.center,
-        scale_max = scale.max,
-        display_progress = FALSE
-      )
-      dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
-      scaled.data[features[my.inds], ] <- data.scale
-      rm(data.scale)
-      gc(verbose = FALSE)
+    for (x in names(x = split.cells)) {
       if (verbose) {
-        setTxtProgressBar(pb = pb, value = i)
+        if (length(x = split.cells) > 1 && (do.scale || do.center)) {
+          message(gsub(pattern = 'matrix', replacement = 'from split ', x = msg), x)
+        }
+        pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
       }
-    }
-    if (verbose) {
-      close(con = pb)
+      for (i in 1:max.block) {
+        my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+        my.inds <- my.inds[my.inds <= length(x = features)]
+        data.scale <- scale.function(
+          mat = object[features[my.inds], split.cells[[x]], drop = FALSE],
+          scale = do.scale,
+          center = do.center,
+          scale_max = scale.max,
+          display_progress = FALSE
+        )
+        dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], split.cells[[x]]])
+        scaled.data[features[my.inds], split.cells[[x]]] <- data.scale
+        rm(data.scale)
+        CheckGC()
+        if (verbose) {
+          setTxtProgressBar(pb = pb, value = i)
+        }
+      }
+      if (verbose) {
+        close(con = pb)
+      }
     }
   }
   dimnames(x = scaled.data) <- object.names
   scaled.data[is.na(x = scaled.data)] <- 0
-  gc(verbose = FALSE)
+  CheckGC()
   return(scaled.data)
 }
 
@@ -2028,6 +2141,7 @@ ScaleData.Assay <- function(
   features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -2041,7 +2155,9 @@ ScaleData.Assay <- function(
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features <- features %||% VariableFeatures(object)
-  if (length(features) == 0) features <- rownames(GetAssayData(object = object, slot = slot.use))
+  if (length(x = features) == 0) {
+    features <- rownames(x = GetAssayData(object = object, slot = slot.use))
+  }
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
@@ -2050,6 +2166,7 @@ ScaleData.Assay <- function(
       features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
+      split.by = split.by,
       model.use = model.use,
       use.umi = use.umi,
       do.scale = do.scale,
@@ -2061,12 +2178,12 @@ ScaleData.Assay <- function(
       ...
     )
   )
-  Parenting(
+  suppressWarnings(expr = Parenting(
     parent.find = "ScaleData.Seurat",
     features = features,
     min.cells.to.block = min.cells.to.block,
     use.umi = use.umi
-  )
+  ))
   return(object)
 }
 
@@ -2081,6 +2198,7 @@ ScaleData.Seurat <- function(
   features = NULL,
   assay = NULL,
   vars.to.regress = NULL,
+  split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -2098,11 +2216,15 @@ ScaleData.Seurat <- function(
   } else {
     latent.data <- NULL
   }
+  if (is.character(x = split.by) && length(x = split.by) == 1) {
+    split.by <- object[[split.by]]
+  }
   assay.data <- ScaleData(
     object = assay.data,
     features = features,
     vars.to.regress = vars.to.regress,
     latent.data = latent.data,
+    split.by = split.by,
     model.use = model.use,
     use.umi = use.umi,
     do.scale = do.scale,

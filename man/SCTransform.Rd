@@ -4,18 +4,20 @@
 \alias{SCTransform}
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
-SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
-  variable.features.n = 3000, variable.features.rv.th = 1.3,
-  return.dev.residuals = FALSE, vars.to.regress = NULL,
-  do.scale = FALSE, do.center = TRUE,
-  clip.range = c(-sqrt(ncol(object[[assay]])/30),
-  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = FALSE,
-  verbose = TRUE, ...)
+SCTransform(object, assay = "RNA", new.assay.name = "SCT",
+  do.correct.umi = TRUE, variable.features.n = 3000,
+  variable.features.rv.th = 1.3, vars.to.regress = NULL,
+  do.scale = FALSE, do.center = TRUE, clip.range = c(-sqrt(x = ncol(x
+  = object[[assay]])/30), sqrt(x = ncol(x = object[[assay]])/30)),
+  conserve.memory = FALSE, return.only.var.genes = TRUE,
+  seed.use = 1448145, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
 
 \item{assay}{Name of assay to pull the count data from; default is 'RNA'}
+
+\item{new.assay.name}{Name for the new assay containing the normalized data}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
@@ -25,8 +27,6 @@ ranking by residual variance; default is 3000}
 \item{variable.features.rv.th}{Instead of setting a fixed number of variable features,
 use this residual variance cutoff; this is only used when \code{variable.features.n}
 is set to NULL; default is 1.3}
-
-\item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
 \item{vars.to.regress}{Variables to regress out in a second non-regularized linear
 regression. For example, percent.mito. Default is NULL}
@@ -38,19 +38,36 @@ regression. For example, percent.mito. Default is NULL}
 \item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 where n is the number of cells}
 
-\item{return.only.var.genes}{If set to TRUE all data matrices in output assay are
+\item{conserve.memory}{If set to TRUE the residual matrix for all genes is never
+created in full; useful for large data sets, but will take longer to run;
+this will also set return.only.var.genes to TRUE; default is FALSE}
+
+\item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are
 subset to contain only the variable genes; default is FALSE}
+
+\item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting
+NULL will not set a seed.}
 
 \item{verbose}{Whether to print messages and progress bars}
 
 \item{...}{Additional parameters passed to \code{sctransform::vst}}
+}
+\value{
+Returns a Seurat object with a new assay (named SCT by default) with
+counts being (corrected) counts, data being log1p(counts), scale.data being
+pearson residuals; sctransform::vst intermediate results are saved in misc
+slot of the new assay.
 }
 \description{
 This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
 Use this function as an alternative to the NormalizeData,
 FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-called SCT with counts being (corrected) counts, data being log1p(counts),
+(named SCT by default) with counts being (corrected) counts, data being log1p(counts),
 scale.data being pearson residuals; sctransform::vst intermediate results are saved
 in misc slot of new assay.
+}
+\examples{
+SCTransform(object = pbmc_small)
+
 }

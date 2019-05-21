@@ -1,23 +1,23 @@
-# Seurat v2.3.4
+# Seurat v3.0.1
 
 ## Test environments
-* local Ubuntu 16.04 and 18.04 installs, R 3.4.4
-* Ubuntu 12.04 (on travis-ci), R 3.5.0
-* macOS 10.12.6 (on travis-ci), R 3.5.0
-* Windows Server 2012 (on AppVeyor), R 3.5.0
-* win-builder (devel, release)
+* local Ubuntu 16.04.6 and 18.04.2 installs, R 3.5.3
+* Ubuntu 14.04.5 (on travis-ci), R 3.6.0
+* macOS 10.13.3 (on travis-ci), R 3.6.0
+* Windows Server 2012 (on AppVeyor), R 3.6.0 Patched
+* win-builder (oldrelease, release, devel)
 
 ## R CMD check results
 There were no ERRORs or WARNINGs
 
-There were 2 NOTEs:
+There were 3 NOTEs:
 
 * checking CRAN incoming feasibility ... NOTE
-  Maintainer: 'Paul Hoffman <seuratpackage@gmail.com>'
-  Suggests or Enhances not in mainstream repositories:
-    loomR
-  Availability using Additional_repositories specification:
-    loomR   yes   https://mojaveazure.github.io/loomR
+    Maintainer: ‘Paul Hoffman <nygcSatijalab@nygenome.org>’
+    Suggests or Enhances not in mainstream repositories:
+        loomR
+    Availability using Additional_repositories specification:
+        loomR   yes   https://mojaveazure.github.io/loomR
 
   The package we suggest, loomR, is currently underdevelopment and not yet available on CRAN. This package is not required for core functionality of Seurat.
 
@@ -25,7 +25,12 @@ There were 2 NOTEs:
   Package suggested but not available for checking: 'loomR'
 
   This is a suggested package hosted on a custom repository and maintained by us (both the package and repository).
+  
+* checking Rd cross-references ... NOTE
+  Package unavailable to check Rd xrefs: 'loomR'
+  
+  This is a suggested package that we maintain. We have checked the cross references to ensure they link to the correct help pages.
 
 ## Downstream dependencies
 
-There are currently no downstream dependencies for this package.
+There is a package that suggests Seurat (clustree), but this update does not impact their functionality.

@@ -6,15 +6,15 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Calculate module scores for featre expression programs in single cells
+#' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control featre sets.
-#' All analyzed featres are binned based on averaged expression, and the control featres are
+#' subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the control features are
 #' randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Featre expression programs in list
+#' @param features Feature expression programs in list
 #' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
 #' @param nbin Number of bins of aggregate expression levels for all analyzed features
 #' @param ctrl Number of control features selected from the same bin per analyzed feature
@@ -119,8 +119,8 @@ AddModuleScore <- function(
   pool <- pool %||% rownames(x = object)
   data.avg <- Matrix::rowMeans(x = assay.data[pool, ])
   data.avg <- data.avg[order(data.avg)]
-  data.cut <- cut_number(x = data.avg, n = nbin, labels = FALSE, right = FALSE)
-  # data.cut <- as.numeric(x = Hmisc::cut2(x = data.avg, m = round(x = length(x = data.avg) / (nbin + 1))))
+  data.cut <- cut_number(x = data.avg + rnorm(n = length(data.avg))/1e30, n = nbin, labels = FALSE, right = FALSE)
+  #data.cut <- as.numeric(x = Hmisc::cut2(x = data.avg, m = round(x = length(x = data.avg) / (nbin + 1))))
   names(x = data.cut) <- names(x = data.avg)
   ctrl.use <- vector(mode = "list", length = cluster.length)
   for (i in 1:cluster.length) {
@@ -161,7 +161,7 @@ AddModuleScore <- function(
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
   object[[colnames(x = features.scores.use)]] <- features.scores.use
-  gc(verbose = FALSE)
+  CheckGC()
   DefaultAssay(object = object) <- assay.old
   return(object)
 }
@@ -174,7 +174,7 @@ AddModuleScore <- function(
 #' Averaging is done in non-log space.
 #'
 #' @param object Seurat object
-#' @param assay Which assay to use. Default is all assays.
+#' @param assays Which assays to use. Default is all assays.
 #' @param features Features to analyze. Default is all features in the assay.
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE.
 #' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
@@ -193,7 +193,7 @@ AddModuleScore <- function(
 #'
 AverageExpression <- function(
   object,
-  assay = NULL,
+  assays = NULL,
   features = NULL,
   return.seurat = FALSE,
   add.ident = NULL,
@@ -202,13 +202,14 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object)
+  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  assays <- assays %||% object.assays
   ident.orig <- Idents(object)
   orig.levels <- levels(x = Idents(object))
   ident.new <- c()
-  if (!all(assay %in% names(object@assays))) {
-    assay <- assay[assay %in% names(object@assays)]
-    if (length(assay) == 0) {
+  if (!all(assays %in% object.assays)) {
+    assays <- assays[assays %in% object.assays]
+    if (length(assays) == 0) {
       stop("None of the requested assays are present in the object")
     } else {
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
@@ -224,7 +225,9 @@ AverageExpression <- function(
     Idents(object, cells = rownames(new.data)) <- new.ident
   }
   slot.use <- "data"
-  fxn.average <- function(x) mean(expm1(x))
+  fxn.average <- function(x) {
+    return(mean(x = expm1(x)))
+  }
   if (use.scale) {
     slot.use <- "scale.data"
     fxn.average <- mean
@@ -234,10 +237,10 @@ AverageExpression <- function(
     fxn.average <- mean
   }
   data.return <- list()
-  for (i in 1:length(x = assay)) {
+  for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
       object = object,
-      assay = assay[i],
+      assay = assays[i],
       slot = slot.use
     )
     features.assay <- features
@@ -265,7 +268,7 @@ AverageExpression <- function(
       data.all <- cbind(data.all, data.temp)
       colnames(x = data.all)[ncol(x = data.all)] <- j
       if (verbose) {
-        message(paste("Finished averaging", assay[i], "for cluster", j))
+        message(paste("Finished averaging", assays[i], "for cluster", j))
       }
       if (i == 1) {
         ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
@@ -273,9 +276,8 @@ AverageExpression <- function(
     }
     names(x = ident.new) <- levels(x = Idents(object))
     data.return[[i]] <- data.all
-    names(x = data.return)[i] <- assay[[i]]
+    names(x = data.return)[i] <- assays[[i]]
   }
-
   if (return.seurat) {
     toRet <- CreateSeuratObject(
       counts = data.return[[1]],
@@ -283,24 +285,24 @@ AverageExpression <- function(
       assay = names(x = data.return)[1],
       ...
     )
-
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
       }
     }
-    Idents(toRet, cells = colnames(toRet)) <- ident.new[colnames(toRet)]
-    Idents(toRet) <- factor(
-      x = Idents(toRet),
+    if (DefaultAssay(object = object) %in% names(x = data.return)) {
+      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
+    }
+    Idents(toRet, cells = colnames(x = toRet)) <- ident.new[colnames(x = toRet)]
+    Idents(object = toRet) <- factor(
+      x = Idents(object = toRet),
       levels = as.character(x = orig.levels),
       ordered = TRUE
     )
-
     # finish setting up object if it is to be returned
-    toRet <- NormalizeData(toRet, verbose = verbose)
-    toRet <- ScaleData(toRet, verbose = verbose)
-
+    toRet <- NormalizeData(object = toRet, verbose = verbose)
+    toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
   } else {
     return(data.return)
@@ -342,6 +344,7 @@ CaseMatch <- function(search, match) {
 #' @param s.features A vector of features associated with S phase
 #' @param g2m.features A vector of features associated with G2M phase
 #' @param set.ident If true, sets identity to phase assignments
+#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #' Stashes old identities in 'old.ident'
 #'
 #' @return A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
@@ -367,7 +370,8 @@ CellCycleScoring <- function(
   object,
   s.features,
   g2m.features,
-  set.ident = FALSE
+  set.ident = FALSE,
+  ...
 ) {
   name <- 'Cell Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
@@ -375,12 +379,13 @@ CellCycleScoring <- function(
     object = object,
     features = features,
     name = name,
-    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
+    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1))),
+    ...
   )
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
   cc.scores <- object.cc[[cc.columns]]
   rm(object.cc)
-  gc(verbose = FALSE)
+  CheckGC()
   assignments <- apply(
     X = cc.scores,
     MARGIN = 1,
@@ -485,7 +490,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
   mat <- matrix(data = 0, ncol = n, nrow = n)
   colnames(x = mat) <- rownames(x = mat) <- colnames(x = my.mat)
   for (i in 1:nrow(x = mat)) {
-    for(j in 1:ncol(x = mat)) {
+    for (j in 1:ncol(x = mat)) {
       mat[i,j] <- my.function(my.mat[, i], my.mat[, j], ...)
     }
   }
@@ -555,7 +560,7 @@ ExpMean <- function(x) {
 ExportToCellbrowser <- function(
   object,
   dir,
-  dataset.name = slot(object = object, name = 'project.name'),
+  dataset.name = Project(object = object),
   reductions = "tsne",
   markers.file = NULL,
   cluster.field = "Cluster",
@@ -874,6 +879,53 @@ MinMax <- function(data, min, max) {
   return(data2)
 }
 
+#' Calculate the percentage of all counts that belong to a given set of features
+#'
+#' This function enables you to easily calculate the percentage of all the counts belonging to a
+#' subset of the possible features for each cell. This is useful when trying to compute the percentage
+#' of transcripts that map to mitochondrial genes for example. The calculation here is simply the
+#' column sum of the matrix present in the counts slot for features belonging to the set divided by
+#' the column sum for all features times 100.
+#'
+#' @param object A Seurat object
+#' @param pattern A regex pattern to match features against
+#' @param features A defined feature set. If features provided, will ignore the pattern matching
+#' @param col.name Name in meta.data column to assign. If this is not null, returns a Seurat object
+#' with the proportion of the feature set stored in metadata.
+#' @param assay Assay to use
+#'
+#' @return Returns a vector with the proportion of the feature set or if md.name is set, returns a
+#' Seurat object with the proportion of the feature set stored in metadata.
+#' @importFrom Matrix colSums
+#' @export
+#'
+#' @examples
+#' # Calculate the proportion of transcripts mapping to mitochondrial genes
+#' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
+#' # system of interest
+#' pbmc_small[["percent.mt"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
+#'
+PercentageFeatureSet <- function(
+  object,
+  pattern = NULL,
+  features = NULL,
+  col.name = NULL,
+  assay = NULL
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!is.null(x = features) && !is.null(x = pattern)) {
+    warning("Both pattern and features provided. Pattern is being ignored.")
+  }
+  features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
+  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, , drop = FALSE])/
+    object[[paste0("nCount_", assay)]] * 100
+  if (!is.null(x = col.name)) {
+    object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
+    return(object)
+  }
+  return(percent.featureset)
+}
+
 #' Stop Cellbrowser web server
 #'
 #' @importFrom reticulate py_module_available
@@ -898,17 +950,6 @@ StopCellbrowser <- function() {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' @importFrom methods as
-#' @importClassesFrom Matrix dgCMatrix
-#'
-#' @rdname as.sparse
-#' @export
-#' @method as.sparse data.frame
-#'
-as.sparse.data.frame <- function(x, ...) {
-  return(as(object = as.matrix(x = x), Class = 'dgCMatrix'))
-}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
@@ -1109,7 +1150,9 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   cell.names <- unlist(
     x = sapply(
       X = 1:length(x = object.list),
-      FUN = function(x) Cells(object = object.list[[x]])
+      FUN = function(x) {
+        return(Cells(x = object.list[[x]]))
+      }
       )
     )
   if (any(duplicated(x = cell.names))) {
@@ -1121,10 +1164,23 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
     }
     object.list <- sapply(
       X = 1:length(x = object.list),
-      FUN = function(x) RenameCells(object = object.list[[x]], new.names = paste0(Cells(object = object.list[[x]]), "_", x))
+      FUN = function(x) {
+        return(RenameCells(
+          object = object.list[[x]],
+          new.names = paste0(Cells(x = object.list[[x]]), "_", x)
+        ))
+      }
     )
   }
   return(object.list)
+}
+
+# Call gc() to perform garbage collection
+#
+CheckGC <- function() {
+  if (getOption(x = "Seurat.memsafe")) {
+    gc(verbose = FALSE)
+  }
 }
 
 # Extract delimiter information from a string.
@@ -1204,60 +1260,6 @@ LengthCheck <- function(values, cutoff = 0) {
     },
     FUN.VALUE = logical(1)
   ))
-}
-
-# Logs a command run, storing the name, timestamp, and argument list. Stores in
-# the Seurat object
-# @param object Name of Seurat object
-#
-# @return returns the Seurat object with command stored
-#
-LogSeuratCommand <- function(object, return.command = FALSE) {
-  time.stamp <- Sys.time()
-  #capture function name
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe() - 1]]))
-  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
-  call.string <- command.name
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  #capture function arguments
-  argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
-  argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
-  argnames <- grep(pattern = "anchorset", x = argnames, invert = TRUE, value = TRUE)
-  argnames <- grep(pattern = "\\.\\.\\.", x = argnames, invert = TRUE, value = TRUE)
-  params <- list()
-  p.env <- parent.frame(n = 1)
-  argnames <- intersect(x = argnames, y = ls(name = p.env))
-  # fill in params list
-  for (arg in argnames) {
-    param_value <- get(x = arg, envir = p.env)
-    #TODO Institute some check of object size?
-    params[[arg]] <- param_value
-  }
-  # check if function works on the Assay and/or the DimReduc Level
-  assay <- params[["assay"]]
-  reduction <- params[["reduction"]]
-  if (class(x = reduction) == 'DimReduc') {
-    reduction = 'DimReduc'
-  }
-  # rename function name to include Assay/DimReduc info
-  if (length(x = assay) == 1) {
-    command.name <- paste(command.name, assay, reduction, sep = '.')
-  }
-  command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
-  command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-  # store results
-  seurat.command <- new(
-    Class = 'SeuratCommand',
-    name = command.name,
-    params = params,
-    time.stamp = time.stamp,
-    call.string = call.string
-  )
-  if (return.command) {
-    return(seurat.command)
-  }
-  object[[command.name]] <- seurat.command
-  return(object)
 }
 
 # Independently shuffle values within each row of a matrix
