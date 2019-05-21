@@ -454,7 +454,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE, ...) {
 #' @param assay Name of the multiplexing assay (HTO by default)
 #' @param quantile The quantile to use for classification
 #' @param autoThresh Whether to perform automated threshold finding to define the best quantile. Default is FALSE
-#' @param maxiter Maximum number of iterations if autoThresh = TRUE. Default is
+#' @param maxiter Maximum number of iterations if autoThresh = TRUE. Default is 5
 #' @param qrange A range of possible quantile values to try if autoThresh = TRUE
 #' @param verbose Prints the output
 #'
@@ -999,7 +999,7 @@ SampleUMI <- function(
 #' created in full; useful for large data sets, but will take longer to run;
 #' this will also set return.only.var.genes to TRUE; default is FALSE
 #' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
-#' subset to contain only the variable genes; default is FALSE
+#' subset to contain only the variable genes; default is TRUE
 #' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
