@@ -2180,7 +2180,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
   assay <- assay %||% DefaultAssay(object = x)
-  cds <- SingleCellExperiment::SingleCellExperiment(assays = list(
+  sce <- SingleCellExperiment::SingleCellExperiment(assays = list(
     counts = GetAssayData(object = x, assay = assay, slot = "counts"),
     logcounts = GetAssayData(object = x, assay = assay, slot = "data")
   ))
