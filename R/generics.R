@@ -36,6 +36,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' Convert objects to CellDataSet objects
 #'
 #' @param x An object to convert to class \code{CellDataSet}
+#' @param ... Arguments passed to other methods
 #'
 #' @rdname as.CellDataSet
 #' @export as.CellDataSet

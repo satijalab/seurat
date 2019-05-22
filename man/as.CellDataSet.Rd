@@ -7,12 +7,16 @@
 \usage{
 as.CellDataSet(x, ...)
 
-\method{as.CellDataSet}{Seurat}(x, assay = NULL, dim.res = NULL, ...)
+\method{as.CellDataSet}{Seurat}(x, assay = NULL, dim.reduc = NULL, ...)
 }
 \arguments{
 \item{x}{An object to convert to class \code{CellDataSet}}
 
+\item{...}{Arguments passed to other methods}
+
 \item{assay}{Assay to convert}
+
+\item{dim.reduc}{Name of DimReduc to set to main reducedDim in cds}
 }
 \description{
 Convert objects to CellDataSet objects
