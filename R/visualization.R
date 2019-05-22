@@ -264,26 +264,34 @@ DoHeatmap <- function(
   # group.use <- factor(x = group.use[cells])
   plots <- vector(mode = 'list', length = ncol(x = groups.use))
   for (i in 1:ncol(x = groups.use)) {
+    data.group <- data
     group.use <- groups.use[, i, drop = TRUE]
     group.use <- factor(x = group.use)
     names(x = group.use) <- cells
     if (draw.lines) {
       # create fake cells to serve as the white lines, fill with NAs
-      lines.width <- lines.width %||% ceiling(x = nrow(x = data) * 0.0025)
+      lines.width <- lines.width %||% ceiling(x = nrow(x = data.group) * 0.0025)
       placeholder.cells <- sapply(
         X = 1:(length(x = levels(x = group.use)) * lines.width),
-        FUN = function(x) RandomName(length = 20)
+        FUN = function(x) {
+          return(RandomName(length = 20))
+        }
       )
       placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
       names(x = placeholder.groups) <- placeholder.cells
       group.use <- as.vector(x = group.use)
       names(x = group.use) <- cells
       group.use <- factor(x = c(group.use, placeholder.groups))
-      na.data <- matrix(data = NA, nrow = length(x = placeholder.cells), ncol = ncol(data), dimnames = list(placeholder.cells, colnames(x = data)))
-      data <- rbind(data, na.data)
+      na.data.group <- matrix(
+        data = NA,
+        nrow = length(x = placeholder.cells),
+        ncol = ncol(x = data.group),
+        dimnames = list(placeholder.cells, colnames(x = data.group))
+      )
+      data.group <- rbind(data.group, na.data.group)
     }
     plot <- SingleRasterMap(
-      data = data,
+      data = data.group,
       raster = raster,
       disp.min = disp.min,
       disp.max = disp.max,

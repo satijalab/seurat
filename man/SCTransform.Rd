@@ -43,7 +43,7 @@ created in full; useful for large data sets, but will take longer to run;
 this will also set return.only.var.genes to TRUE; default is FALSE}
 
 \item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are
-subset to contain only the variable genes; default is FALSE}
+subset to contain only the variable genes; default is TRUE}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting
 NULL will not set a seed.}
