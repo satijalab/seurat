@@ -1021,12 +1021,21 @@ FeaturePlot <- function(
       }
       if (!blend) {
         plot <- plot + guides(color = NULL)
+        cols.grad <- cols
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
+          if (all(data.plot[, feature] == data.plot[, feature][1])) {
+            warning("All cells have the same value (", data.plot[1, feature], ") of ", feature, ".")
+            if (data.plot[1, feature][1] == 0) {
+              cols.grad <- cols[1]
+            } else{
+            cols.grad <- cols
+            }
+          }
           plot <- suppressMessages(
             expr = plot + scale_color_gradientn(
-              colors = cols,
+              colors = cols.grad,
               guide = "colorbar"
             )
           )
