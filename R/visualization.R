@@ -571,7 +571,9 @@ VlnPlot <- function(
 #' @param object Seurat object
 #' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
 #' @param cells Vector of cells to plot (default is all cells)
-#' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
+#' @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
+#' or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+#' By default, ggplot2 assigns colors
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by Name of one or more metadata columns to group (color) cells by
@@ -3075,8 +3077,7 @@ BlendMap <- function(color.matrix) {
 #
 # @return An n x n matrix of blended colors
 #
-#' @importFrom grDevices rgb
-#' @importFrom grDevices colorRamp
+#' @importFrom grDevices rgb colorRamp
 #
 BlendMatrix <- function(
   n = 10,
@@ -3926,8 +3927,9 @@ SingleCorPlot <- function(
 # @param dims A two-length numeric vector with dimensions to use
 # @param pt.size Adjust point size for plotting
 # @param col.by ...
-# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot
-# assigns colors.
+# @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
+# or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+# By default, ggplot2 assigns colors
 # @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
 # (that can be pulled with FetchData) allowing for both different colors and different shapes on
 # cells.
