@@ -11,7 +11,8 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   min.cutoff = NA, max.cutoff = NA, reduction = NULL,
   split.by = NULL, shape.by = NULL, slot = "data", blend = FALSE,
   blend.threshold = 0.5, label = FALSE, label.size = 4,
-  ncol = NULL, combine = TRUE, coord.fixed = FALSE, by.col = TRUE)
+  repel = FALSE, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
+  by.col = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -59,13 +60,15 @@ different colors and different shapes on cells}
 
 \item{label.size}{Sets size of labels}
 
+\item{repel}{Repel labels}
+
 \item{ncol}{Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 
-\item{by.col}{If splitting by a factor, plot the splits per column with the features as rows.}
+\item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 }
 \value{
 A ggplot object

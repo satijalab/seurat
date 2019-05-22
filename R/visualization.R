@@ -752,7 +752,7 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
-#' @param by.col If splitting by a factor, plot the splits per column with the features as rows.
+#' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 
 #'
 #' @return A ggplot object
@@ -794,6 +794,7 @@ FeaturePlot <- function(
   blend.threshold = 0.5,
   label = FALSE,
   label.size = 4,
+  repel = FALSE,
   ncol = NULL,
   combine = TRUE,
   coord.fixed = FALSE,
@@ -841,8 +842,13 @@ FeaturePlot <- function(
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  data <- FetchData(object = object, vars = c(dims, features), cells = cells, slot = slot)
-  if (ncol(x = data) < 3) {
+  data <- FetchData(
+    object = object,
+    vars = c(dims, 'ident', features),
+    cells = cells,
+    slot = slot
+  )
+  if (ncol(x = data) < 4) {
     stop(
       "None of the requested features were found: ",
       paste(features, collapse = ', '),
@@ -853,7 +859,7 @@ FeaturePlot <- function(
   } else if (!all(dims %in% colnames(x = data))) {
     stop("The dimensions requested were not found", call. = FALSE)
   }
-  features <- colnames(x = data)[3:ncol(x = data)]
+  features <- colnames(x = data)[4:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
       return(ifelse(
@@ -889,8 +895,8 @@ FeaturePlot <- function(
     yes = brewer.pal.info[cols, ]$maxcolors,
     no = length(x = cols)
   )
-  data[, 3:ncol(x = data)] <- sapply(
-    X = 3:ncol(x = data),
+  data[, 4:ncol(x = data)] <- sapply(
+    X = 4:ncol(x = data),
     FUN = function(index) {
       data.feature <- as.vector(x = data[, index])
       min.use <- SetQuantile(cutoff = min.cutoff[index - 2], data.feature)
@@ -912,7 +918,7 @@ FeaturePlot <- function(
       return(data.cut)
     }
   )
-  colnames(x = data)[3:ncol(x = data)] <- features
+  colnames(x = data)[4:ncol(x = data)] <- features
   rownames(x = data) <- cells
   data$split <- if (is.null(x = split.by)) {
     RandomName()
@@ -964,7 +970,7 @@ FeaturePlot <- function(
         )
       }
       data.plot <- cbind(data.plot[, dims], BlendExpression(data = data.plot[, features[1:2]]))
-      features <- colnames(x = data.plot)[3:ncol(x = data.plot)]
+      features <- colnames(x = data.plot)[4:ncol(x = data.plot)]
     }
     for (j in 1:length(x = features)) {
       feature <- features[j]
@@ -975,19 +981,26 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       plot <- SingleDimPlot(
-        data = data.plot[, c(dims, feature, shape.by)],
+        data = data.plot[, c(dims, 'ident', feature, shape.by)],
         dims = dims,
         col.by = feature,
         order = order,
         pt.size = pt.size,
         cols = cols.use,
         shape.by = shape.by,
-        label = label,
-        label.size = label.size
+        label = FALSE
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
         theme_cowplot()
+      if (label) {
+        plot <- LabelClusters(
+          plot = plot,
+          id = 'ident',
+          repel = repel,
+          size = label.size
+        )
+      }
       if (length(x = levels(x = data$split)) > 1) {
         plot <- plot + theme(panel.border = element_rect(fill = NA, colour = 'black'))
         plot <- plot + if (i == 1) {
@@ -1023,12 +1036,21 @@ FeaturePlot <- function(
       }
       if (!blend) {
         plot <- plot + guides(color = NULL)
+        cols.grad <- cols
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
+          if (all(data.plot[, feature] == data.plot[, feature][1])) {
+            warning("All cells have the same value (", data.plot[1, feature], ") of ", feature, ".")
+            if (data.plot[1, feature][1] == 0) {
+              cols.grad <- cols[1]
+            } else{
+            cols.grad <- cols
+            }
+          }
           plot <- suppressMessages(
             expr = plot + scale_color_gradientn(
-              colors = cols,
+              colors = cols.grad,
               guide = "colorbar"
             )
           )
@@ -1095,13 +1117,19 @@ FeaturePlot <- function(
     } else {
       split.by %iff% 'none'
     }
-    if (by.col & !is.null(x = split.by)) {
-      plots <- lapply(X = plots, FUN = function(x) {
-        suppressMessages(x +
-        theme_cowplot() + ggtitle("") +
-        scale_y_continuous(sec.axis = dup_axis(name = "")) + no.right
-        )
-      })
+    if (by.col && !is.null(x = split.by) && !blend) {
+      plots <- lapply(
+        X = plots,
+        FUN = function(x) {
+          return(suppressMessages(
+            expr = x +
+              theme_cowplot() +
+              ggtitle("") +
+              scale_y_continuous(sec.axis = dup_axis(name = "")) +
+              no.right
+          ))
+        }
+      )
       nsplits <- length(x = levels(x = data$split))
       idx <- 1
       for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
@@ -1129,8 +1157,7 @@ FeaturePlot <- function(
         ncol = nsplits,
         legend = legend
       )
-    }
-    else {
+    } else {
       plots <- CombinePlots(
         plots = plots,
         ncol = ncol,
@@ -3999,7 +4026,7 @@ SingleDimPlot <- function(
     cols <- highlight.info$color
   }
   if (!is.null(x = order) && !is.null(x = col.by)) {
-    if (typeof(x = order) == "logical"){
+    if (typeof(x = order) == "logical") {
       if (order) {
         data <- data[order(data[, col.by]), ]
       }
