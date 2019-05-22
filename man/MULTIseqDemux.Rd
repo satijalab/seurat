@@ -17,7 +17,7 @@ MULTIseqDemux(object, assay = "HTO", quantile = 0.7,
 
 \item{autoThresh}{Whether to perform automated threshold finding to define the best quantile. Default is FALSE}
 
-\item{maxiter}{Maximum number of iterations if autoThresh = TRUE. Default is}
+\item{maxiter}{Maximum number of iterations if autoThresh = TRUE. Default is 5}
 
 \item{qrange}{A range of possible quantile values to try if autoThresh = TRUE}
 
