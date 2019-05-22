@@ -3949,6 +3949,7 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 #
 #' @importFrom cowplot theme_cowplot
+#' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
 #' scale_color_brewer scale_color_manual element_rect guide_legend
 #'
@@ -4052,7 +4053,7 @@ SingleDimPlot <- function(
     )
   }
   if (!is.null(x = cols)) {
-    plot <- plot + if (length(x = cols) == 1) {
+    plot <- plot + if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
       scale_color_brewer(palette = cols, na.value = na.value)
     } else {
       scale_color_manual(values = cols, na.value = na.value)
