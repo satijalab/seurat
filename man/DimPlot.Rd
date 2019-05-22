@@ -28,7 +28,9 @@ UMAPPlot(object, ...)
 
 \item{cells}{Vector of cells to plot (default is all cells)}
 
-\item{cols}{Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors}
+\item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
+or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+By default, ggplot2 assigns colors}
 
 \item{pt.size}{Adjust point size for plotting}
 
