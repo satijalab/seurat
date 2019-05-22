@@ -810,6 +810,22 @@ FeaturePlot <- function(
   if (blend && length(x = features) != 2) {
     stop("Blending feature plots only works with two features")
   }
+  if (blend) {
+    if (length(x = cols) > 2) {
+      warning(
+        "Blending feature plots only works with two colors; using first two colors",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    } else if (length(x = cols) < 2) {
+      warning(
+        "Blended feature plots require two colors, using default colors",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cols <- c("#ff0000", "#00ff00")
+    }
+  }
   if (blend && length(x = cols) != 2) {
     stop("Blending feature plots only works with two colors")
   }
@@ -929,14 +945,16 @@ FeaturePlot <- function(
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     if (blend) {
-      features_novalue<-features[colMeans(data.plot[, features])==0]
-      if(length(features_novalue)!=0){
-        stop(features_novalue," has no value")
+      no.expression <- features[colMeans(x = data.plot[, features]) == 0]
+      if (length(x = no.expression) != 0) {
+        stop(
+          "The following features have no value: ",
+          paste(no.expression, collapse = ', '),
+          call. = FALSE
+        )
       }
-      
       data.plot <- cbind(data.plot[, dims], BlendExpression(data = data.plot[, features[1:2]]))
       features <- colnames(x = data.plot)[3:ncol(x = data.plot)]
-      
     }
     for (j in 1:length(x = features)) {
       feature <- features[j]
