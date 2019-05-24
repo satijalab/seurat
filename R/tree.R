@@ -50,8 +50,9 @@ BuildClusterTree <- function(
   dims = NULL,
   graph = NULL,
   # do.plot = TRUE,
-  use.counts = FALSE,
-  use.scale = FALSE,
+  slot = 'data',
+  # use.counts = FALSE,
+  # use.scale = FALSE,
   reorder = FALSE,
   reorder.numeric = FALSE,
   verbose = TRUE
@@ -120,8 +121,7 @@ BuildClusterTree <- function(
     data.avg <- AverageExpression(
       object = object,
       features = features,
-      use.counts = use.counts,
-      use.scale = use.scale,
+      slot = slot,
       verbose = verbose
     )[[1]]
     data.dist <- dist(x = t(x = data.avg[features, ]))
@@ -147,8 +147,7 @@ BuildClusterTree <- function(
       features = features,
       dims = dims,
       graph = graph,
-      use.counts = use.counts,
-      use.scale = use.scale,
+      slot = slot,
       reorder = FALSE,
       verbose = verbose
     )
