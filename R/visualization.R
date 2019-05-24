@@ -755,7 +755,9 @@ DimPlot <- function(
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 
 #'
-#' @return A ggplot object
+#' @return Returns a ggplot object if only 1 feature is plotted.
+#' If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}. 
+#' If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
 #'
 #' @importFrom grDevices rgb
 #' @importFrom cowplot theme_cowplot
