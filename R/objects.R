@@ -4786,7 +4786,9 @@ merge.Assay <- function(
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
 #' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-#' that were present in the original objects.
+#' that were present in the original objects. If add.cell.ids isn't specified 
+#' and any cell names are duplicated, cell names will be appended with _X, where 
+#' X is the numeric index of the object in c(x, y). 
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -4829,6 +4831,8 @@ merge.Seurat <- function(
       objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
     }
   }
+  # ensure unique cell names 
+  objects <- CheckDuplicateCellNames(object.list = objects)
   assays <- lapply(
     X = objects,
     FUN = FilterObjects,

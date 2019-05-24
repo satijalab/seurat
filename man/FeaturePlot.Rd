@@ -71,7 +71,9 @@ different colors and different shapes on cells}
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 }
 \value{
-A ggplot object
+Returns a ggplot object if only 1 feature is plotted.
+If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}. 
+If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
 }
 \description{
 Colors single cells on a dimensional reduction plot according to a 'feature'

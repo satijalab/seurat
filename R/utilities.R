@@ -1147,14 +1147,7 @@ CheckDots <- function(..., fxns = NULL) {
 # @return Returns list of objects with duplicate cells renamed to be unique
 #
 CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
-  cell.names <- unlist(
-    x = sapply(
-      X = 1:length(x = object.list),
-      FUN = function(x) {
-        return(Cells(x = object.list[[x]]))
-      }
-      )
-    )
+  cell.names <- unlist(x = lapply(X = object.list, FUN = colnames))
   if (any(duplicated(x = cell.names))) {
     if (stop) {
       stop("Duplicate cell names present across objects provided.")
@@ -1162,7 +1155,7 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
     if (verbose) {
       warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
     }
-    object.list <- sapply(
+    object.list <- lapply(
       X = 1:length(x = object.list),
       FUN = function(x) {
         return(RenameCells(
