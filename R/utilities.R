@@ -244,18 +244,6 @@ AverageExpression <- function(
     )
     Idents(object, cells = rownames(new.data)) <- new.ident
   }
-  # slot.use <- "data"
-  # fxn.average <- function(x) {
-  #   return(mean(x = expm1(x = x)))
-  # }
-  # if (use.scale) {
-  #   slot.use <- "scale.data"
-  #   fxn.average <- mean
-  # }
-  # if (use.counts) {
-  #   slot.use <- "counts"
-  #   fxn.average <- mean
-  # }
   data.return <- list()
   for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(

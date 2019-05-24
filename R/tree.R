@@ -51,8 +51,6 @@ BuildClusterTree <- function(
   graph = NULL,
   # do.plot = TRUE,
   slot = 'data',
-  # use.counts = FALSE,
-  # use.scale = FALSE,
   reorder = FALSE,
   reorder.numeric = FALSE,
   verbose = TRUE
