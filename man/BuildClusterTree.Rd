@@ -5,7 +5,8 @@
 \title{Phylogenetic Analysis of Identity Classes}
 \usage{
 BuildClusterTree(object, features = NULL, dims = NULL, graph = NULL,
-  reorder = FALSE, reorder.numeric = FALSE, verbose = TRUE)
+  use.counts = FALSE, use.scale = FALSE, reorder = FALSE,
+  reorder.numeric = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,6 +18,10 @@ variable genes (\code{VariableFeatures(object = object)})}
 
 \item{graph}{If graph is passed, build tree based on graph connectivity between
 clusters; overrides \code{dims} and \code{features}}
+
+\item{use.counts}{Use count values for feature expression}
+
+\item{use.scale}{Use scaled values for feature expression}
 
 \item{reorder}{Re-order identity classes (factor ordering), according to
 position on the tree. This groups similar classes together which can be

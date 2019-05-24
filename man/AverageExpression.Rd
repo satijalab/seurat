@@ -19,9 +19,9 @@ AverageExpression(object, assays = NULL, features = NULL,
 
 \item{add.ident}{Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).}
 
-\item{use.scale}{Use scaled values for gene expression}
+\item{use.scale}{Use scaled values for feature expression}
 
-\item{use.counts}{Use count values for gene expression}
+\item{use.counts}{Use count values for feature expression}
 
 \item{verbose}{Print messages and show progress bar}
 

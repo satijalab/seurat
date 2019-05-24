@@ -178,8 +178,8 @@ AddModuleScore <- function(
 #' @param features Features to analyze. Default is all features in the assay.
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE.
 #' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
-#' @param use.scale Use scaled values for gene expression
-#' @param use.counts Use count values for gene expression
+#' @param use.scale Use scaled values for feature expression
+#' @param use.counts Use count values for feature expression
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
