@@ -5973,15 +5973,22 @@ UpdateDimReduction <- function(old.dr, assay){
     stdev <- old.dr[[i]]@sdev %||% numeric()
     misc <- old.dr[[i]]@misc %||% list()
     new.jackstraw <- UpdateJackstraw(old.jackstraw = old.dr[[i]]@jackstraw)
-    new.key <- suppressWarnings(expr = UpdateKey(key = old.dr[[i]]@key))
+    old.key <- old.dr[[i]]@key
+    if (length(x = old.key) == 0) {
+      old.key <- gsub(pattern = "(.+?)(([0-9]+).*)", replacement = "\\1",  x = colnames(cell.embeddings)[[1]])
+      if (length(x = old.key) == 0) {
+        old.key <- i
+      }
+    }
+    new.key <- suppressWarnings(expr = UpdateKey(key = old.key))
     colnames(x = cell.embeddings) <- gsub(
-      pattern = old.dr[[i]]@key, 
-      replacement = new.key, 
+      pattern = old.key,
+      replacement = new.key,
       x = colnames(x = cell.embeddings)
     )
     colnames(x = feature.loadings) <- gsub(
-      pattern = old.dr[[i]]@key, 
-      replacement = new.key, 
+      pattern = old.key,
+      replacement = new.key,
       x = colnames(x = feature.loadings)
     )
     new.dr[[i]] <- new(
