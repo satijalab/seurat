@@ -666,7 +666,7 @@ FindMarkers.default <- function(
     de.results[, diff.col] <- total.diff[rownames(x = de.results)]
   }
   if (only.pos) {
-    de.results <- subset(x = de.results, subset = diff.col > 0)
+    de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
   }
   if (test.use == "roc") {
     de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
