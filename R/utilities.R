@@ -1416,11 +1416,10 @@ PercentAbove <- function(x, threshold){
 #
 # @return The number of threads (workers) for the current future plan, or 1 if no workers detected
 #
-#' @importFrom future plan
+#' @importFrom future nbrOfWorkers
 #
 PlanThreads <- function() {
-  nthreads <- eval(expr = formals(fun = plan())$workers)
-  return(nthreads %||% 1)
+  return(nbrOfWorkers())
 }
 
 # Generate a random name
