@@ -23,7 +23,7 @@ NULL
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
-#' @param group.singletons Group singletons into nearest cluster. If FALSE, assign all singletons to 
+#' @param group.singletons Group singletons into nearest cluster. If FALSE, assign all singletons to
 #' a "singleton" group
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
@@ -183,7 +183,17 @@ FindClusters.Seurat <- function(
   colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
   object <- AddMetaData(object = object, metadata = clustering.results)
   Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
-  Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels(x = object)))
+  levels <- levels(x = object)
+  levels <- tryCatch(
+    expr = as.numeric(x = levels),
+    warning = function(...) {
+      return(levels)
+    },
+    error = function(...) {
+      return(levels)
+    }
+  )
+  Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
   object[['seurat_clusters']] <- Idents(object = object)
   object <- LogSeuratCommand(object)
   return(object)
@@ -442,7 +452,7 @@ FindNeighbors.Seurat <- function(
 #
 # @param ids Named vector of cluster ids
 # @param SNN SNN graph used in clustering
-# @param group.singletons Group singletons into nearest cluster. If FALSE, assign all singletons to 
+# @param group.singletons Group singletons into nearest cluster. If FALSE, assign all singletons to
 # a "singleton" group
 #
 # @return Returns Seurat object with all singletons merged with most connected cluster
