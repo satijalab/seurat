@@ -920,6 +920,9 @@ TransferData <- function(
     if (!slot %in% c("counts", "data")) {
       stop("Please specify slot as either 'counts' or 'data'.")
     }
+    if (inherits(x = refdata, what = "matrix")) {
+      refdata <- as(object = refdata, Class = "dgCMatrix")
+    }
     label.transfer <- FALSE
   } else {
     stop(paste0("Please provide either a vector (character or factor) for label transfer or a matrix",
