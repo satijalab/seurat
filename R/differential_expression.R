@@ -154,7 +154,7 @@ FindAllMarkers <- function(
           subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
         )
       } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
-        gde <- gde[order(gde$p_val, -gde$avg_logFC), ]
+        gde <- gde[order(gde$p_val, -gde[, 2]), ]
         gde <- subset(x = gde, subset = p_val < return.thresh)
       }
       if (nrow(x = gde) > 0) {
@@ -167,7 +167,7 @@ FindAllMarkers <- function(
     }
   }
   if ((only.pos) && nrow(x = gde.all) > 0) {
-    return(subset(x = gde.all, subset = avg_logFC > 0))
+    return(subset(x = gde.all, subset = gde.all[, 2] > 0))
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
   if (nrow(x = gde.all) == 0) {
