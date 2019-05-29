@@ -4786,7 +4786,9 @@ merge.Assay <- function(
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
 #' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-#' that were present in the original objects.
+#' that were present in the original objects. If add.cell.ids isn't specified 
+#' and any cell names are duplicated, cell names will be appended with _X, where 
+#' X is the numeric index of the object in c(x, y). 
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -4829,6 +4831,8 @@ merge.Seurat <- function(
       objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
     }
   }
+  # ensure unique cell names 
+  objects <- CheckDuplicateCellNames(object.list = objects)
   assays <- lapply(
     X = objects,
     FUN = FilterObjects,
@@ -5973,15 +5977,22 @@ UpdateDimReduction <- function(old.dr, assay){
     stdev <- old.dr[[i]]@sdev %||% numeric()
     misc <- old.dr[[i]]@misc %||% list()
     new.jackstraw <- UpdateJackstraw(old.jackstraw = old.dr[[i]]@jackstraw)
-    new.key <- suppressWarnings(expr = UpdateKey(key = old.dr[[i]]@key))
+    old.key <- old.dr[[i]]@key
+    if (length(x = old.key) == 0) {
+      old.key <- gsub(pattern = "(.+?)(([0-9]+).*)", replacement = "\\1",  x = colnames(cell.embeddings)[[1]])
+      if (length(x = old.key) == 0) {
+        old.key <- i
+      }
+    }
+    new.key <- suppressWarnings(expr = UpdateKey(key = old.key))
     colnames(x = cell.embeddings) <- gsub(
-      pattern = old.dr[[i]]@key, 
-      replacement = new.key, 
+      pattern = old.key,
+      replacement = new.key,
       x = colnames(x = cell.embeddings)
     )
     colnames(x = feature.loadings) <- gsub(
-      pattern = old.dr[[i]]@key, 
-      replacement = new.key, 
+      pattern = old.key,
+      replacement = new.key,
       x = colnames(x = feature.loadings)
     )
     new.dr[[i]] <- new(
