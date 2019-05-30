@@ -32,6 +32,7 @@ NULL
 #' @importFrom methods new
 #' @importFrom pbapply pblapply pbsapply
 #' @importFrom future.apply future_lapply future_sapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #'
@@ -56,7 +57,7 @@ JackStraw <- function(
   if (reduction != "pca") {
     stop("Only pca for reduction is currently supported")
   }
-  if (verbose && PlanThreads() == 1) {
+  if (verbose && nbrOfWorkers() == 1) {
     my.lapply <- pblapply
     my.sapply <- pbsapply
   } else {

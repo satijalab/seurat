@@ -167,6 +167,7 @@ CalculateBarcodeInflections <- function(
 #' @param downstream Number of bases downstream to consider
 #' @param verbose Print progress/messages
 #'
+#' @importFrom future nbrOfWorkers
 #' @export
 #'
 CreateGeneActivityMatrix <- function(
@@ -218,7 +219,7 @@ CreateGeneActivityMatrix <- function(
   peak.matrix <- as(object = peak.matrix, Class = 'matrix')
   all.features <- unique(x = annotations$new_feature)
 
-  if (PlanThreads() > 1) {
+  if (nbrOfWorkers() > 1) {
     mysapply <- future_sapply
   } else {
     mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
@@ -1588,6 +1589,7 @@ FindVariableFeatures.Seurat <- function(
 }
 
 #' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
@@ -1620,7 +1622,7 @@ NormalizeData.default <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- if (PlanThreads() > 1) {
+  normalized.data <- if (nbrOfWorkers() > 1) {
     norm.function <- switch(
       EXPR = normalization.method,
       'LogNormalize' = LogNormalize,
@@ -1645,7 +1647,7 @@ NormalizeData.default <- function(
     )
     chunk.points <- ChunkPoints(
       dsize = dsize,
-      csize = block.size %||% ceiling(x = dsize / PlanThreads())
+      csize = block.size %||% ceiling(x = dsize / nbrOfWorkers())
     )
     normalized.data <- future_lapply(
       X = 1:ncol(x = chunk.points),
@@ -1944,6 +1946,8 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
+#' @importFrom future nbrOfWorkers
+#'
 #' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
@@ -2020,7 +2024,7 @@ ScaleData.default <- function(
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
     chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
-    if (PlanThreads() > 1) {
+    if (nbrOfWorkers() > 1) {
       object <- future_apply(
         X = expand.grid(
           names(x = split.cells),
@@ -2103,7 +2107,7 @@ ScaleData.default <- function(
     object <- as.matrix(x = object)
     scale.function <- FastRowScale
   }
-  if (PlanThreads() > 1) {
+  if (nbrOfWorkers() > 1) {
     blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
     scaled.data <- future_apply(
       X = expand.grid(
