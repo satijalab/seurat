@@ -436,36 +436,46 @@ GetResidual <- function(object, features, assay = "SCT", verbose = TRUE) {
     x = features,
     y = rownames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
   )
-  existed_features <- intersect(
-    x = features,
-    y = rownames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
-  )
   if (length(x = new_features) == 0) {
-    stop("Pearson residuals of ", paste(features, collapse = " ")," exist already")
+    message("Pearson residuals of input features exist already")
+    return(object)
+  } else{
+    vst_out <- Misc(object = object[[assay]], slot = 'vst.out')
+    diff_features<-setdiff(
+      x=new_features,
+      y=rownames(x = GetAssayData(object = object, assay = assay, slot = "counts"))
+    )
+    intersect_feature<-intersect(
+      x=new_features,
+      y=rownames(x = GetAssayData(object = object, assay = assay, slot = "counts"))
+    )
+    
+    if(length(diff_features)==0){
+      umi <- GetAssayData(object = object, assay = assay, slot = "counts" )[new_features, , drop = FALSE]
+    } else{
+      warning("Those features do not exist in the counts slot: ",paste(diff_features, collapse = " "))
+      umi <- GetAssayData(object = object, assay = assay, slot = "counts" )[intersect_feature, , drop = FALSE]
+    }
+    new_residual <- get_residuals(
+      vst_out = vst_out,
+      umi = umi,
+      residual_type = "pearson",
+      show_progress = verbose
+    )
+    new_residual <- as.matrix(x = new_residual)
+    object <- SetAssayData(
+      object = object,
+      slot = 'scale.data',
+      new.data = rbind(
+        GetAssayData(object = object, slot = 'scale.data', assay = assay),
+        new_residual
+      ),
+      assay = assay
+    )
+    return(object)
   }
-  if (length(x = existed_features) != 0) {
-    message("Pearson residuals of ", paste(existed_features, collapse = " "), "exist already")
-  }
-  vst_out <- Misc(object = object[[assay]], slot = 'vst.out')
-  umi <- GetAssayData(object = object, assay = assay, slot = "counts" )[new_features, , drop = FALSE]
-  new_residual <- get_residuals(
-    vst_out = vst_out,
-    umi = umi,
-    residual_type = "pearson",
-    show_progress = verbose
-  )
-  new_residual <- as.matrix(x = new_residual)
-  object <- SetAssayData(
-    object = object,
-    slot = 'scale.data',
-    new.data = rbind(
-      GetAssayData(object = object, slot = 'scale.data', assay = assay),
-      new_residual
-    ),
-    assay = assay
-  )
-  return(object)
 }
+
 
 #' Normalize raw data
 #'
