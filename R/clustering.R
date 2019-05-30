@@ -12,6 +12,7 @@ NULL
 
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param initial.membership,weights,node.sizes Parameters to pass to the Python leidenalg function.
@@ -59,7 +60,7 @@ FindClusters.default <- function(
   if (tolower(x = algorithm) == "leiden") {
     algorithm <- 4
   }
-  if (PlanThreads() > 1) {
+  if (nbrOfWorkers() > 1) {
     clustering.results <- future_lapply(
       X = resolution,
       FUN = function(r) {
