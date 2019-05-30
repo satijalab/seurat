@@ -441,18 +441,17 @@ GetResidual <- function(object, features, assay = "SCT", verbose = TRUE) {
     return(object)
   } else{
     vst_out <- Misc(object = object[[assay]], slot = 'vst.out')
-    diff_features<-setdiff(
-      x=new_features,
-      y=rownames(x = GetAssayData(object = object, assay = assay, slot = "counts"))
+    diff_features <- setdiff(
+      x = new_features,
+      y = rownames(x = GetAssayData(object = object, assay = assay, slot = "counts"))
     )
-    intersect_feature<-intersect(
-      x=new_features,
-      y=rownames(x = GetAssayData(object = object, assay = assay, slot = "counts"))
+    intersect_feature <- intersect(
+      x = new_features,
+      y = rownames(x = GetAssayData(object = object, assay = assay, slot = "counts"))
     )
-    
-    if(length(diff_features)==0){
+    if (length(x = diff_features) == 0) {
       umi <- GetAssayData(object = object, assay = assay, slot = "counts" )[new_features, , drop = FALSE]
-    } else{
+    } else {
       warning("Those features do not exist in the counts slot: ",paste(diff_features, collapse = " "))
       umi <- GetAssayData(object = object, assay = assay, slot = "counts" )[intersect_feature, , drop = FALSE]
     }
