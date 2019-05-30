@@ -440,7 +440,6 @@ GetResidual <- function(object, features, assay = "SCT", verbose = TRUE) {
     if (verbose) {
       message("Pearson residuals of input features exist already")
     }
-    return(object)
   } else {
     vst_out <- Misc(object = object[[assay]], slot = 'vst.out')
     diff_features <- setdiff(
@@ -473,8 +472,8 @@ GetResidual <- function(object, features, assay = "SCT", verbose = TRUE) {
       ),
       assay = assay
     )
-    return(object)
   }
+  return(object)
 }
 
 
