@@ -920,9 +920,6 @@ TransferData <- function(
     if (!slot %in% c("counts", "data")) {
       stop("Please specify slot as either 'counts' or 'data'.")
     }
-    if (inherits(x = refdata, what = "matrix")) {
-      refdata <- as(object = refdata, Class = "dgCMatrix")
-    }
     label.transfer <- FALSE
   } else {
     stop(paste0("Please provide either a vector (character or factor) for label transfer or a matrix",
@@ -1034,8 +1031,11 @@ TransferData <- function(
       message(paste0("Transfering ", nfeatures, " features onto reference data"))
     }
     new.data <- refdata.anchors %*% weights
-    rownames(new.data) <- rownames(refdata)
-    colnames(new.data) <- query.cells
+    rownames(x = new.data) <- rownames(x = refdata)
+    colnames(x = new.data) <- query.cells
+    if (inherits(x = new.data, what = "Matrix")) {
+      new.data <- as(object = new.data, Class = "dgCMatrix")
+    }
     if (slot == "counts") {
       new.assay <- CreateAssayObject(counts = new.data)
     } else if (slot == "data") {
