@@ -35,6 +35,7 @@ NULL
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @export
 #'
@@ -53,7 +54,7 @@ FindIntegrationAnchors <- function(
   verbose = TRUE
 ) {
   my.lapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
     no = future_lapply
   )
@@ -722,6 +723,7 @@ LocalStruct <- function(
 #' @importFrom RANN nn2
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #' @export
 #'
 MixingMetric <- function(
@@ -735,7 +737,7 @@ MixingMetric <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )

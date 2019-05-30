@@ -990,6 +990,7 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 #
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 # @export
 # @examples
@@ -1004,7 +1005,7 @@ DiffExpTest <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1034,6 +1035,7 @@ DiffExpTest <- function(
 #' @importFrom stats t.test
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 # @export
 #
@@ -1048,7 +1050,7 @@ DiffTTest <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1084,7 +1086,8 @@ DiffTTest <- function(
 #' @importFrom pbapply pbsapply
 #' @importFrom stats var as.formula
 #' @importFrom future.apply future_sapply
-#
+#' @importFrom future nbrOfWorkers
+#' 
 # @export
 #
 # @examples
@@ -1117,7 +1120,7 @@ GLMDETest <- function(
   }
   latent.var.names <- colnames(x = latent.vars)
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1194,6 +1197,7 @@ GLMDETest <- function(
 #' @importFrom pbapply pbsapply
 #' @importFrom stats as.formula glm
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 LRDETest <- function(
   data.use,
@@ -1210,7 +1214,7 @@ LRDETest <- function(
   data.use <- data.use[, rownames(group.info), drop = FALSE]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1511,6 +1515,7 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 #' @importFrom pbapply pbsapply
 #' @importFrom stats wilcox.test
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 # @export
 #
@@ -1532,7 +1537,7 @@ WilcoxDETest <- function(
   group.info[, "group"] <- factor(x = group.info[, "group"])
   data.use <- data.use[, rownames(x = group.info), drop = FALSE]
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
