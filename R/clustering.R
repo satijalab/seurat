@@ -277,7 +277,7 @@ FindNeighbors.default <- function(
   # convert nn.ranked into a Graph
   j <- as.numeric(x = t(x = nn.ranked))
   i <- ((1:length(x = j)) - 1) %/% k.param + 1
-  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1), Class = "Graph")
+  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1, dims = c(nrow(x = object), nrow(x = object))), Class = "Graph")
   rownames(x = nn.matrix) <- rownames(x = object)
   colnames(x = nn.matrix) <- rownames(x = object)
   neighbor.graphs <- list(nn = nn.matrix)
