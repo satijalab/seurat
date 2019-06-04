@@ -266,7 +266,9 @@ DoHeatmap <- function(
   for (i in 1:ncol(x = groups.use)) {
     data.group <- data
     group.use <- groups.use[, i, drop = TRUE]
-    group.use <- factor(x = group.use)
+    if (!is.factor(x = group.use)) {
+      group.use <- factor(x = group.use)
+    }
     names(x = group.use) <- cells
     if (draw.lines) {
       # create fake cells to serve as the white lines, fill with NAs
@@ -278,10 +280,11 @@ DoHeatmap <- function(
         }
       )
       placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
+      group.levels <- levels(x = group.use)
       names(x = placeholder.groups) <- placeholder.cells
       group.use <- as.vector(x = group.use)
       names(x = group.use) <- cells
-      group.use <- factor(x = c(group.use, placeholder.groups))
+      group.use <- factor(x = c(group.use, placeholder.groups), levels = group.levels)
       na.data.group <- matrix(
         data = NA,
         nrow = length(x = placeholder.cells),

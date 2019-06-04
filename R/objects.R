@@ -2000,10 +2000,12 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
   assay <- assay %||% DefaultAssay(object = x)
-  sce <- SingleCellExperiment::SingleCellExperiment(assays = list(
+  assays = list(
     counts = GetAssayData(object = x, assay = assay, slot = "counts"),
     logcounts = GetAssayData(object = x, assay = assay, slot = "data")
-  ))
+  )
+  assays <- assays[sapply(X = assays, FUN = nrow) != 0]
+  sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
