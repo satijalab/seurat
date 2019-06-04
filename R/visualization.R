@@ -904,8 +904,8 @@ FeaturePlot <- function(
     X = 4:ncol(x = data),
     FUN = function(index) {
       data.feature <- as.vector(x = data[, index])
-      min.use <- SetQuantile(cutoff = min.cutoff[index - 2], data.feature)
-      max.use <- SetQuantile(cutoff = max.cutoff[index - 2], data.feature)
+      min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
+      max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
       data.feature[data.feature < min.use] <- min.use
       data.feature[data.feature > max.use] <- max.use
       if (brewer.gran == 2) {
