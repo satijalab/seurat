@@ -2004,7 +2004,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     counts = GetAssayData(object = x, assay = assay, slot = "counts"),
     logcounts = GetAssayData(object = x, assay = assay, slot = "data")
   )
-  assays <- assays[sapply(assays, nrow) != 0]
+  assays <- assays[sapply(X = assays, FUN = nrow) != 0]
   sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
