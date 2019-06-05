@@ -1982,7 +1982,7 @@ RunALRA.Seurat <- function(
 #' don't block for scaling calculations.
 #' @param verbose Displays a progress bar for scaling procedure
 #'
-#' @importFrom future.apply future_apply
+#' @importFrom future.apply future_lapply
 #'
 #' @rdname ScaleData
 #' @export
@@ -2034,15 +2034,16 @@ ScaleData.default <- function(
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
     chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
-    if (nbrOfWorkers() > 1) {
-      object <- future_apply(
-        X = expand.grid(
-          names(x = split.cells),
-          1:ncol(x = chunk.points),
-          stringsAsFactors = FALSE
-        ),
-        MARGIN = 1,
-        FUN = function(row) {
+    if (nbrOfWorkers() > 1) { # TODO: lapply
+      chunks <- expand.grid(
+        names(x = split.cells),
+        1:ncol(x = chunk.points),
+        stringsAsFactors = FALSE
+      )
+      object <- future_lapply(
+        X = 1:nrow(x = chunks),
+        FUN = function(i) {
+          row <- chunks[i, ]
           group <- row[[1]]
           index <- as.numeric(x = row[[2]])
           return(RegressOutMatrix(
@@ -2069,10 +2070,8 @@ ScaleData.default <- function(
           }
         )
         object <- do.call(what = 'cbind', args = object)
-      } else if (is.list(x = object)) {
-        object <- do.call(what = 'rbind', args = object)
       } else {
-        dim(x = object) <- lapply(X = object.names, FUN = length)
+        object <- do.call(what = 'rbind', args = object)
       }
     } else {
       object <- lapply(
@@ -2119,14 +2118,15 @@ ScaleData.default <- function(
   }
   if (nbrOfWorkers() > 1) {
     blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-    scaled.data <- future_apply(
-      X = expand.grid(
-        names(x = split.cells),
-        1:ncol(x = blocks),
-        stringsAsFactors = FALSE
-      ),
-      MARGIN = 1,
-      FUN = function(row) {
+    chunks <- expand.grid(
+      names(x = split.cells),
+      1:ncol(x = blocks),
+      stringsAsFactors = FALSE
+    )
+    scaled.data <- future_lapply(
+      X = 1:nrow(x = chunks),
+      FUN = function(index) {
+        row <- chunks[index, ]
         group <- row[[1]]
         block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
         data.scale <- scale.function(
@@ -2156,10 +2156,8 @@ ScaleData.default <- function(
         }
       )
       scaled.data <- suppressWarnings(expr = do.call(what = 'cbind', args = scaled.data))
-    } else if (is.list(x = scaled.data)) {
-      suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
     } else {
-      dim(x = scaled.data) <- dim(x = object)
+      suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
     }
   } else {
     scaled.data <- matrix(
