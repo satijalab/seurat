@@ -639,7 +639,7 @@ DimPlot <- function(
   label.size = 4,
   repel = FALSE,
   cells.highlight = NULL,
-  cols.highlight = 'red',
+  cols.highlight = '#DE2D26',
   sizes.highlight = 1,
   na.value = 'grey50',
   combine = TRUE,
@@ -3672,8 +3672,8 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   points.located <- points.all[which(x = points.all$pip == 1), ]
   #   If we're recoloring, do the recolor
   if (recolor) {
-    no <- ifelse(test = dark.theme, yes = 'white', no = 'black')
-    points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = no)
+    no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
+    points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
     plot.data$color <- points.all$color
     PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
   }
@@ -3999,7 +3999,7 @@ SingleDimPlot <- function(
   repel = FALSE,
   label.size = 4,
   cells.highlight = NULL,
-  cols.highlight = 'red',
+  cols.highlight = '#DE2D26',
   sizes.highlight = 1,
   na.value = 'grey50'
 ) {
@@ -4021,7 +4021,7 @@ SingleDimPlot <- function(
       cells.all = rownames(x = data),
       sizes.highlight = sizes.highlight %||% pt.size,
       cols.highlight = cols.highlight,
-      col.base = cols[1] %||% 'black',
+      col.base = cols[1] %||% '#C3C3C3',
       pt.size = pt.size
     )
     order <- highlight.info$plot.order
