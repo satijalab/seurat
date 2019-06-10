@@ -266,7 +266,9 @@ DoHeatmap <- function(
   for (i in 1:ncol(x = groups.use)) {
     data.group <- data
     group.use <- groups.use[, i, drop = TRUE]
-    group.use <- factor(x = group.use)
+    if (!is.factor(x = group.use)) {
+      group.use <- factor(x = group.use)
+    }
     names(x = group.use) <- cells
     if (draw.lines) {
       # create fake cells to serve as the white lines, fill with NAs
@@ -278,10 +280,11 @@ DoHeatmap <- function(
         }
       )
       placeholder.groups <- rep(x = levels(x = group.use), times = lines.width)
+      group.levels <- levels(x = group.use)
       names(x = placeholder.groups) <- placeholder.cells
       group.use <- as.vector(x = group.use)
       names(x = group.use) <- cells
-      group.use <- factor(x = c(group.use, placeholder.groups))
+      group.use <- factor(x = c(group.use, placeholder.groups), levels = group.levels)
       na.data.group <- matrix(
         data = NA,
         nrow = length(x = placeholder.cells),
@@ -571,7 +574,9 @@ VlnPlot <- function(
 #' @param object Seurat object
 #' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
 #' @param cells Vector of cells to plot (default is all cells)
-#' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
+#' @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
+#' or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+#' By default, ggplot2 assigns colors
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by Name of one or more metadata columns to group (color) cells by
@@ -750,10 +755,12 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
-#' @param by.col If splitting by a factor, plot the splits per column with the features as rows.
+#' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 
 #'
-#' @return A ggplot object
+#' @return Returns a ggplot object if only 1 feature is plotted.
+#' If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}. 
+#' If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
 #'
 #' @importFrom grDevices rgb
 #' @importFrom cowplot theme_cowplot
@@ -779,7 +786,7 @@ FeaturePlot <- function(
   features,
   dims = c(1, 2),
   cells = NULL,
-  cols = c("lightgrey",  "blue"),
+  cols =  ifelse(test = c(blend, blend), yes = c("#ff0000", "#00ff00"), no = c('lightgrey', 'blue')),
   pt.size = NULL,
   order = FALSE,
   min.cutoff = NA,
@@ -792,6 +799,7 @@ FeaturePlot <- function(
   blend.threshold = 0.5,
   label = FALSE,
   label.size = 4,
+  repel = FALSE,
   ncol = NULL,
   combine = TRUE,
   coord.fixed = FALSE,
@@ -818,10 +826,34 @@ FeaturePlot <- function(
   if (blend && length(x = features) != 2) {
     stop("Blending feature plots only works with two features")
   }
+  if (blend) {
+    if (length(x = cols) > 2) {
+      warning(
+        "Blending feature plots only works with two colors; using first two colors",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    } else if (length(x = cols) < 2) {
+      warning(
+        "Blended feature plots require two colors, using default colors",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cols <- c("#ff0000", "#00ff00")
+    }
+  }
+  if (blend && length(x = cols) != 2) {
+    stop("Blending feature plots only works with two colors")
+  }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  data <- FetchData(object = object, vars = c(dims, features), cells = cells, slot = slot)
-  if (ncol(x = data) < 3) {
+  data <- FetchData(
+    object = object,
+    vars = c(dims, 'ident', features),
+    cells = cells,
+    slot = slot
+  )
+  if (ncol(x = data) < 4) {
     stop(
       "None of the requested features were found: ",
       paste(features, collapse = ', '),
@@ -832,7 +864,7 @@ FeaturePlot <- function(
   } else if (!all(dims %in% colnames(x = data))) {
     stop("The dimensions requested were not found", call. = FALSE)
   }
-  features <- colnames(x = data)[3:ncol(x = data)]
+  features <- colnames(x = data)[4:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
       return(ifelse(
@@ -868,12 +900,12 @@ FeaturePlot <- function(
     yes = brewer.pal.info[cols, ]$maxcolors,
     no = length(x = cols)
   )
-  data[, 3:ncol(x = data)] <- sapply(
-    X = 3:ncol(x = data),
+  data[, 4:ncol(x = data)] <- sapply(
+    X = 4:ncol(x = data),
     FUN = function(index) {
       data.feature <- as.vector(x = data[, index])
-      min.use <- SetQuantile(cutoff = min.cutoff[index - 2], data.feature)
-      max.use <- SetQuantile(cutoff = max.cutoff[index - 2], data.feature)
+      min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
+      max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
       data.feature[data.feature < min.use] <- min.use
       data.feature[data.feature > max.use] <- max.use
       if (brewer.gran == 2) {
@@ -891,7 +923,7 @@ FeaturePlot <- function(
       return(data.cut)
     }
   )
-  colnames(x = data)[3:ncol(x = data)] <- features
+  colnames(x = data)[4:ncol(x = data)] <- features
   rownames(x = data) <- cells
   data$split <- if (is.null(x = split.by)) {
     RandomName()
@@ -920,7 +952,10 @@ FeaturePlot <- function(
   ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, dims[2]])))
   if (blend) {
     ncol <- 4
-    color.matrix <- BlendMatrix(col.threshold = blend.threshold)
+    color.matrix <- BlendMatrix(
+      two.colors = cols,
+      col.threshold = blend.threshold
+    )
     colors <- list(
       color.matrix[, 1],
       color.matrix[1, ],
@@ -931,8 +966,16 @@ FeaturePlot <- function(
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     if (blend) {
+      no.expression <- features[colMeans(x = data.plot[, features]) == 0]
+      if (length(x = no.expression) != 0) {
+        stop(
+          "The following features have no value: ",
+          paste(no.expression, collapse = ', '),
+          call. = FALSE
+        )
+      }
       data.plot <- cbind(data.plot[, dims], BlendExpression(data = data.plot[, features[1:2]]))
-      features <- colnames(x = data.plot)[3:ncol(x = data.plot)]
+      features <- colnames(x = data.plot)[4:ncol(x = data.plot)]
     }
     for (j in 1:length(x = features)) {
       feature <- features[j]
@@ -943,19 +986,26 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       plot <- SingleDimPlot(
-        data = data.plot[, c(dims, feature, shape.by)],
+        data = data.plot[, c(dims, 'ident', feature, shape.by)],
         dims = dims,
         col.by = feature,
         order = order,
         pt.size = pt.size,
         cols = cols.use,
         shape.by = shape.by,
-        label = label,
-        label.size = label.size
+        label = FALSE
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
         theme_cowplot()
+      if (label) {
+        plot <- LabelClusters(
+          plot = plot,
+          id = 'ident',
+          repel = repel,
+          size = label.size
+        )
+      }
       if (length(x = levels(x = data$split)) > 1) {
         plot <- plot + theme(panel.border = element_rect(fill = NA, colour = 'black'))
         plot <- plot + if (i == 1) {
@@ -991,12 +1041,21 @@ FeaturePlot <- function(
       }
       if (!blend) {
         plot <- plot + guides(color = NULL)
+        cols.grad <- cols
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
+          if (all(data.plot[, feature] == data.plot[, feature][1])) {
+            warning("All cells have the same value (", data.plot[1, feature], ") of ", feature, ".")
+            if (data.plot[1, feature][1] == 0) {
+              cols.grad <- cols[1]
+            } else{
+            cols.grad <- cols
+            }
+          }
           plot <- suppressMessages(
             expr = plot + scale_color_gradientn(
-              colors = cols,
+              colors = cols.grad,
               guide = "colorbar"
             )
           )
@@ -1063,13 +1122,19 @@ FeaturePlot <- function(
     } else {
       split.by %iff% 'none'
     }
-    if (by.col & !is.null(x = split.by)) {
-      plots <- lapply(X = plots, FUN = function(x) {
-        suppressMessages(x +
-        theme_cowplot() + ggtitle("") +
-        scale_y_continuous(sec.axis = dup_axis(name = "")) + no.right
-        )
-      })
+    if (by.col && !is.null(x = split.by) && !blend) {
+      plots <- lapply(
+        X = plots,
+        FUN = function(x) {
+          return(suppressMessages(
+            expr = x +
+              theme_cowplot() +
+              ggtitle("") +
+              scale_y_continuous(sec.axis = dup_axis(name = "")) +
+              no.right
+          ))
+        }
+      )
       nsplits <- length(x = levels(x = data$split))
       idx <- 1
       for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
@@ -1097,8 +1162,7 @@ FeaturePlot <- function(
         ncol = nsplits,
         legend = legend
       )
-    }
-    else {
+    } else {
       plots <- CombinePlots(
         plots = plots,
         ncol = ncol,
@@ -3041,28 +3105,50 @@ BlendMap <- function(color.matrix) {
 #
 # @param n Dimensions of blended matrix (n x n)
 # @param col.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
+# @param two.colors Two colors used for the blend expression.
 #
 # @return An n x n matrix of blended colors
 #
-#' @importFrom grDevices rgb
+#' @importFrom grDevices rgb colorRamp
 #
-BlendMatrix <- function(n = 10, col.threshold = 0.5) {
+BlendMatrix <- function(
+  n = 10,
+  col.threshold = 0.5,
+  two.colors=c("#ff0000", "#00ff00")
+) {
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
-  return(outer(
-    X = 1:n,
-    Y = 1:n,
-    FUN = function(i, j) {
-      red <- 1 / (1 + exp(x = -(i - col.threshold * n) / 0.9))
-      green <- 1 / (1 + exp(x = -(j - col.threshold * n) / 0.9))
-      blue <- 0.2
-      alpha <- lapply(X = list(red, green, blue), FUN = '^', 40)
-      alpha <- Reduce(f = '+', x = alpha)
-      alpha <- 0.99 - 0.1 * exp(x = -alpha / 1)
-      return(rgb(red = red, green = green, blue = blue, alpha = alpha))
+  ramp <- colorRamp(colors = two.colors)
+  C1 <- ramp(x = 0)
+  C2 <- ramp(x = 1)
+  merge.weight <- min(255 / (C1 + C2 + 0.01))
+  weight_color <- function(w1, c1) {
+    c1_weight <- 1 / (1 + exp(x = -(w1 ^ 1.2 - 3 - col.threshold * 10)))
+    return(c1_weight * c1)
+  }
+  blend_color <- function(i, j) {
+    C1_weight <- weight_color(w1 = i, c1 = C1)
+    C2_weight <- weight_color(w1 = j, c1 = C2)
+    C_blend <- (merge.weight * C1_weight + merge.weight * C2_weight)
+    alpha <- lapply(X = list(i, j), FUN = '^', 0.5)
+    alpha <- Reduce(f = '+', x = alpha)
+    alpha <- (1 - 0.4 /alpha ) * 255
+    return(rgb(
+      red = C_blend[, 1],
+      green = C_blend[, 2],
+      blue = C_blend[, 3],
+      alpha = alpha,
+      maxColorValue = 255
+    ))
+  }
+  blend_matrix <- matrix(nrow = n, ncol = n)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      blend_matrix[i, j] <- blend_color(i = i, j = j)
     }
-  ))
+  }
+  return(blend_matrix)
 }
 
 # Convert R colors to hexadecimal
@@ -3873,8 +3959,9 @@ SingleCorPlot <- function(
 # @param dims A two-length numeric vector with dimensions to use
 # @param pt.size Adjust point size for plotting
 # @param col.by ...
-# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot
-# assigns colors.
+# @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
+# or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+# By default, ggplot2 assigns colors
 # @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
 # (that can be pulled with FetchData) allowing for both different colors and different shapes on
 # cells.
@@ -3896,6 +3983,7 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 #
 #' @importFrom cowplot theme_cowplot
+#' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
 #' scale_color_brewer scale_color_manual element_rect guide_legend
 #'
@@ -3943,7 +4031,7 @@ SingleDimPlot <- function(
     cols <- highlight.info$color
   }
   if (!is.null(x = order) && !is.null(x = col.by)) {
-    if (typeof(x = order) == "logical"){
+    if (typeof(x = order) == "logical") {
       if (order) {
         data <- data[order(data[, col.by]), ]
       }
@@ -3999,7 +4087,7 @@ SingleDimPlot <- function(
     )
   }
   if (!is.null(x = cols)) {
-    plot <- plot + if (length(x = cols) == 1) {
+    plot <- plot + if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
       scale_color_brewer(palette = cols, na.value = na.value)
     } else {
       scale_color_manual(values = cols, na.value = na.value)

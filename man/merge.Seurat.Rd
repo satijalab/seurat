@@ -42,7 +42,9 @@ counts and potentially the data slots (depending on the merge.data parameter).
 It will also merge the cell-level meta data that was stored with each object
 and preserve the cell identities that were active in the objects pre-merge.
 The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-that were present in the original objects.
+that were present in the original objects. If add.cell.ids isn't specified
+and any cell names are duplicated, cell names will be appended with _X, where
+X is the numeric index of the object in c(x, y).
 }
 \examples{
 # merge two objects

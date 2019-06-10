@@ -174,12 +174,13 @@ AddModuleScore <- function(
 #' Averaging is done in non-log space.
 #'
 #' @param object Seurat object
-#' @param assays Which assays to use. Default is all assays.
-#' @param features Features to analyze. Default is all features in the assay.
-#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE.
-#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
-#' @param use.scale Use scaled values for gene expression
-#' @param use.counts Use count values for gene expression
+#' @param assays Which assays to use. Default is all assays
+#' @param features Features to analyze. Default is all features in the assay
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)
+#' @param slot Slot to use; will be overriden by \code{use.scale} and \code{use.counts}
+#' @param use.scale Use scaled values for feature expression
+#' @param use.counts Use count values for feature expression
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
@@ -197,15 +198,34 @@ AverageExpression <- function(
   features = NULL,
   return.seurat = FALSE,
   add.ident = NULL,
+  slot = 'data',
   use.scale = FALSE,
   use.counts = FALSE,
   verbose = TRUE,
   ...
 ) {
+  if (use.scale) {
+    .Deprecated(msg = "'use.scale' is a deprecated argument, please use the 'slot' argument instead")
+    slot <- 'scale.data'
+  }
+  if (use.counts) {
+    .Deprecated(msg = "'use.counts' is a deprecated argument, please use the 'slot' argument instead")
+    if (use.scale) {
+      warning("Both 'use.scale' and 'use.counts' were set; using counts", call. = FALSE, immediate. = TRUE)
+    }
+    slot <- 'counts'
+  }
+  fxn.average <- switch(
+    EXPR = slot,
+    'data' = function(x) {
+      return(mean(x = expm1(x = x)))
+    },
+    mean
+  )
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
-  ident.orig <- Idents(object)
-  orig.levels <- levels(x = Idents(object))
+  ident.orig <- Idents(object = object)
+  orig.levels <- levels(x = Idents(object = object))
   ident.new <- c()
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
@@ -224,24 +244,12 @@ AverageExpression <- function(
     )
     Idents(object, cells = rownames(new.data)) <- new.ident
   }
-  slot.use <- "data"
-  fxn.average <- function(x) {
-    return(mean(x = expm1(x)))
-  }
-  if (use.scale) {
-    slot.use <- "scale.data"
-    fxn.average <- mean
-  }
-  if (use.counts) {
-    slot.use <- "counts"
-    fxn.average <- mean
-  }
   data.return <- list()
   for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
       object = object,
       assay = assays[i],
-      slot = slot.use
+      slot = slot
     )
     features.assay <- features
     if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
@@ -254,8 +262,9 @@ AverageExpression <- function(
       if (length(x = temp.cells) == 1) {
         data.temp <- (data.use[features.assay, temp.cells])
         # transform data if needed (alternative: apply fxn.average to single value above)
-        if (!(use.scale | use.counts)) { # equivalent: slot.use == "data"
-          data.temp <- expm1(data.temp)
+        # if (!(use.scale | use.counts)) { # equivalent: slot.use == "data"
+        if (slot == 'data') {
+          data.temp <- expm1(x = data.temp)
         }
       }
       if (length(x = temp.cells) > 1 ) {
@@ -1147,14 +1156,7 @@ CheckDots <- function(..., fxns = NULL) {
 # @return Returns list of objects with duplicate cells renamed to be unique
 #
 CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
-  cell.names <- unlist(
-    x = sapply(
-      X = 1:length(x = object.list),
-      FUN = function(x) {
-        return(Cells(x = object.list[[x]]))
-      }
-      )
-    )
+  cell.names <- unlist(x = lapply(X = object.list, FUN = colnames))
   if (any(duplicated(x = cell.names))) {
     if (stop) {
       stop("Duplicate cell names present across objects provided.")
@@ -1162,7 +1164,7 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
     if (verbose) {
       warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
     }
-    object.list <- sapply(
+    object.list <- lapply(
       X = 1:length(x = object.list),
       FUN = function(x) {
         return(RenameCells(
@@ -1408,17 +1410,6 @@ Parenting <- function(parent.find = 'Seurat', ...) {
 #
 PercentAbove <- function(x, threshold){
   return(length(x = x[x > threshold]) / length(x = x))
-}
-
-# Get the number of threads provided by the current plan
-#
-# @return The number of threads (workers) for the current future plan, or 1 if no workers detected
-#
-#' @importFrom future plan
-#
-PlanThreads <- function() {
-  nthreads <- eval(expr = formals(fun = plan())$workers)
-  return(nthreads %||% 1)
 }
 
 # Generate a random name

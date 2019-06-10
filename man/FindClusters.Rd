@@ -44,7 +44,7 @@ algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
 
 \item{random.seed}{Seed of the random number generator.}
 
-\item{group.singletons}{Group singletons into nearest cluster. If FALSE, assign all singletons to 
+\item{group.singletons}{Group singletons into nearest cluster. If FALSE, assign all singletons to
 a "singleton" group}
 
 \item{temp.file.location}{Directory where intermediate files will be written.
