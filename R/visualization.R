@@ -3672,8 +3672,8 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   points.located <- points.all[which(x = points.all$pip == 1), ]
   #   If we're recoloring, do the recolor
   if (recolor) {
-    no <- ifelse(test = dark.theme, yes = 'white', no = 'black')
-    points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = no)
+    no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
+    points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
     plot.data$color <- points.all$color
     PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
   }
