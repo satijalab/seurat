@@ -1963,6 +1963,7 @@ as.Seurat.SingleCellExperiment <- function(
     project.name = project
   )
   DefaultAssay(object = object) <- assay
+  Idents(object = object) <- project
   # Get DimReduc information
   if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
     for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
