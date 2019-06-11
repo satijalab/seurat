@@ -9,8 +9,8 @@
 \usage{
 as.Seurat(x, ...)
 
-\method{as.Seurat}{CellDataSet}(x, counts = "counts", assay = "RNA",
-  ...)
+\method{as.Seurat}{CellDataSet}(x, slot = "counts", assay = "RNA",
+  verbose = TRUE, ...)
 
 \method{as.Seurat}{loom}(x, cells = "CellID", features = "Gene",
   normalized = NULL, scaled = NULL, assay = NULL, verbose = TRUE,
@@ -25,10 +25,11 @@ as.Seurat(x, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
-set to \code{NULL} if only normalized data are present}
+\item{slot}{Slot to store expression data as}
 
 \item{assay}{Name to store expression matrices as}
+
+\item{verbose}{Display progress updates}
 
 \item{cells}{The name of the dataset within \code{col_attrs} containing cell names}
 
@@ -40,7 +41,8 @@ normalized expression matrix; pass \code{/matrix} (with preceeding forward slash
 
 \item{scaled}{The name of the dataset within \code{layers} containing the scaled expression matrix}
 
-\item{verbose}{Display progress updates}
+\item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
+set to \code{NULL} if only normalized data are present}
 
 \item{data}{name of the SingleCellExperiment assay to slot as \code{data}.
 Set to NULL if only counts are present}
