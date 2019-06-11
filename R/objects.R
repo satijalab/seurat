@@ -193,7 +193,7 @@ IntegrationData <- setClass(
 #' @slot params List of parameters used in the command call
 #'
 #' @name SeuratCommand-class
-#' @name SeuratCommand-class
+#' @rdname SeuratCommand-class
 #' @exportClass SeuratCommand
 #'
 SeuratCommand <- setClass(
@@ -4623,6 +4623,44 @@ WriteH5AD.Seurat <- function(
     data.return <- slot(object = x, name = slot.use)[[i]]
   }
   return(data.return)
+}
+
+#' Coerce a SeuratCommand to a list
+#'
+#' @inheritParams base::as.list
+#' @param complete Include slots besides just parameters (eg. call string, name, timestamp)
+#'
+#' @return A list with the parameters and, if \code{complete = TRUE}, the call string, name, and timestamp
+#'
+#' @export
+#' @method as.list SeuratCommand
+#'
+as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
+  cmd <- slot(object = x, name = 'params')
+  if (complete) {
+    cmd <- append(
+      x = cmd,
+      values = sapply(
+        X = grep(
+          pattern = 'params',
+          x = slotNames(x = x),
+          invert = TRUE,
+          value = TRUE
+        ),
+        FUN = slot,
+        object = x,
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ),
+      after = 0
+    )
+  }
+  for (i in 1:length(x = cmd)) {
+    if (is.character(x = cmd[[i]])) {
+      cmd[[i]] <- paste(trimws(x = cmd[[i]]), collapse = ' ')
+    }
+  }
+  return(cmd)
 }
 
 #' @export
