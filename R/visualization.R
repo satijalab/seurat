@@ -649,12 +649,7 @@ DimPlot <- function(
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
-  reduction <- reduction %||% {
-    default.reductions <- c('umap', 'tsne', 'pca')
-    object.reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
-    reduc.use <- min(which(x = default.reductions %in% object.reductions))
-    default.reductions[reduc.use]
-  }
+  reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
@@ -759,7 +754,7 @@ DimPlot <- function(
 
 #'
 #' @return Returns a ggplot object if only 1 feature is plotted.
-#' If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}. 
+#' If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}.
 #' If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
 #'
 #' @importFrom grDevices rgb
@@ -3181,6 +3176,59 @@ Col2Hex <- function(...) {
     alpha = alpha
   )
   return(colors)
+}
+
+# Find the default DimReduc
+#
+# Searches for DimReducs matching 'umap', 'tsne', or 'pca', case-insensitive, and
+# in that order. Priority given to DimReducs matching the DefaultAssay or assay specified
+# (eg. 'pca' for the default assay weights higher than 'umap' for a non-default assay)
+#
+# @param object A Seurat object
+# @param assay Name of assay to use; defaults to the default assay of the object
+#
+# @return The default DimReduc, if possible
+#
+DefaultDimReduc <- function(object, assay = NULL) {
+  assay <- assay %||% DefaultAssay(object = object)
+  drs.use <- c('umap', 'tsne', 'pca')
+  dim.reducs <- FilterObjects(object = object, classes.keep = 'DimReduc')
+  drs.assay <- Filter(
+    f = function(x) {
+      return(DefaultAssay(object = object[[x]]) == assay)
+    },
+    x = dim.reducs
+  )
+  if (length(x = drs.assay) > 0) {
+    index <- lapply(
+      X = drs.use,
+      FUN = grep,
+      x = drs.assay,
+      ignore.case = TRUE
+    )
+    index <- Filter(f = length, x = index)
+    if (length(x = index) > 0) {
+      return(drs.assay[min(index[[1]])])
+    }
+  }
+  index <- lapply(
+    X = drs.use,
+    FUN = grep,
+    x = dim.reducs,
+    ignore.case = TRUE
+  )
+  index <- Filter(f = length, x = index)
+  if (length(x = index) < 1) {
+    stop(
+      "Unable to find a DimReduc matching one of '",
+      paste(drs.use[1:(length(x = drs.use) - 1)], collapse = "', '"),
+      "', or '",
+      drs.use[length(x = drs.use)],
+      "', please specify a dimensional reduction to use",
+      call. = FALSE
+    )
+  }
+  return(dim.reducs[min(index[[1]])])
 }
 
 # Plot feature expression by identity

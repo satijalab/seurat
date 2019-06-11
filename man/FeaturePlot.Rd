@@ -72,7 +72,7 @@ different colors and different shapes on cells}
 }
 \value{
 Returns a ggplot object if only 1 feature is plotted.
-If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}. 
+If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}.
 If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
 }
 \description{
