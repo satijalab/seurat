@@ -7,14 +7,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Flag to skip singleton grouping in `FindClusters`
 - New custom colors for blended `FeaturePlot`s
 - New `GetResidual` function
+- New Seurat/Monocle converters
 
 ### Changed
 - Fix issue where certain assays weren't being shown in the `Seurat` object
 - Fix issue where we weren't updating `DimReduc` object column names
 - Fix line spacers in `DoHeatmap`
 - Fix uninformative labels in `FeaturePlot`
+- Fix unset identities when converting from SCE to Seurat
 - Fix single colors being interpreted as palettes in `SingleDimPlot`
-- Ensure factor levels are always numerically increasing after `FindClusters
+- Ensure factor levels are always numerically increasing after `FindClusters`
+- Better cell highlighting colors for `DimPlot`
 - Fix to `levels<-.Seurat`
 - Add ability to use counts/scaled data in `BuildClusterTree`
 - Minor fix to split `ScaleData`
