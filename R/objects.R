@@ -1349,20 +1349,9 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   }
   # adding dimensionality reduction data to the CDS
   dr.slots <- c("reducedDimS", "reducedDimK", "reducedDimW", "reducedDimA")
-  if (is.null(x = reduction)) {
-    all.drs <- FilterObjects(object = x, classes.keep = "DimReduc")
-    if (length(x = all.drs) == 1) {
-      reduction <- all.drs
-    }
-  } else {
-    for (ii in all.drs) {
-      if (any(dr.slots %in% names(x = slot(object = x[[ii]], name = "misc")))) {
-        reduction <- ii
-      }
-    }
-  }
+  reduction <- reduction %||% DefaultDimReduc(object = object, assay = assay)
   if (!is.null(x = reduction)) {
-    if (tolower(x = reduction) == "tsne") {
+    if (grepl(pattern = 'tsne', x = tolower(x = reduction))) {
       slot(object = cds, name = "dim_reduce_type") <- "tSNE"
       monocle::reducedDimA(cds = cds) <- t(x = Embeddings(object = x[[reduction]]))
     } else {
