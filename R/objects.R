@@ -1349,7 +1349,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
   }
   # adding dimensionality reduction data to the CDS
   dr.slots <- c("reducedDimS", "reducedDimK", "reducedDimW", "reducedDimA")
-  reduction <- reduction %||% DefaultDimReduc(object = object, assay = assay)
+  reduction <- reduction %||% DefaultDimReduc(object = x, assay = assay)
   if (!is.null(x = reduction)) {
     if (grepl(pattern = 'tsne', x = tolower(x = reduction))) {
       slot(object = cds, name = "dim_reduce_type") <- "tSNE"
