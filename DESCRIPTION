@@ -90,4 +90,7 @@ Suggests:
     GenomicRanges,
     GenomeInfoDb,
     IRanges,
-    rtracklayer
+    rtracklayer,
+    monocle,
+    Biobase,
+    VGAM
