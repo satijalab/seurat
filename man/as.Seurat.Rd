@@ -2,11 +2,15 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{as.Seurat}
 \alias{as.Seurat}
+\alias{as.Seurat.CellDataSet}
 \alias{as.Seurat.loom}
 \alias{as.Seurat.SingleCellExperiment}
 \title{Convert objects to Seurat objects}
 \usage{
 as.Seurat(x, ...)
+
+\method{as.Seurat}{CellDataSet}(x, slot = "counts", assay = "RNA",
+  verbose = TRUE, ...)
 
 \method{as.Seurat}{loom}(x, cells = "CellID", features = "Gene",
   normalized = NULL, scaled = NULL, assay = NULL, verbose = TRUE,
@@ -21,6 +25,12 @@ as.Seurat(x, ...)
 
 \item{...}{Arguments passed to other methods}
 
+\item{slot}{Slot to store expression data as}
+
+\item{assay}{Name to store expression matrices as}
+
+\item{verbose}{Display progress updates}
+
 \item{cells}{The name of the dataset within \code{col_attrs} containing cell names}
 
 \item{features}{The name of the dataset within \code{row_attrs} containing feature names}
@@ -30,10 +40,6 @@ normalized expression matrix; pass \code{/matrix} (with preceeding forward slash
 \code{/matrix} as normalized data}
 
 \item{scaled}{The name of the dataset within \code{layers} containing the scaled expression matrix}
-
-\item{assay}{Name to store expression matrices as}
-
-\item{verbose}{Display progress updates}
 
 \item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
 set to \code{NULL} if only normalized data are present}
