@@ -279,3 +279,40 @@ test_that("CustomNormalize works as expected", {
   expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 
+# Tests for SCTransform
+# ------------------------------------------------------------------------------
+object <- suppressWarnings(SCTransform(object = object, verbose = FALSE))
+
+test_that("SCTransform wrapper works as expected", {
+  expect_true("SCT" %in% names(object))
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 13.33038640)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 55.29678, tolerance = 1e6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 11.74404, tolerance = 1e6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 123)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 28)
+  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.detection_rate"], 0.15)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.gmean"], 0.2027364, tolerance = 1e6)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.variance"], 1.025158, tolerance = 1e6)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_mean"], 0.2512783, tolerance = 1e6)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_variance"], 3.551259, tolerance = 1e6)
+})
+
+object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE))
+test_that("SCTransform ncells param works", {
+  expect_true("SCT" %in% names(object))
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 11.834969847)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 55.29678, tolerance = 1e6)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 11.74404, tolerance = 1e6)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 121)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 25)
+  expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.detection_rate"], 0.15)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.gmean"], 0.2027364, tolerance = 1e6)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.variance"], 1.025158, tolerance = 1e6)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_mean"], 0.2512783, tolerance = 1e6)
+  expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_variance"], 3.551259, tolerance = 1e6)
+})
+
