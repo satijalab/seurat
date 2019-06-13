@@ -614,7 +614,7 @@ FindMarkers.default <- function(
                    c(std.arguments,
                      latent.vars = latent.vars)),
     {
-      de.results <- try({do.call(test.use, c(std.arguments, ...))}, silent = TRUE)
+      de.results <- try({do.call(test.use, c(std.arguments, ...), envir = parent.frame(2))}, silent = TRUE)
 
       # This section makes sure that the correct error is raised, the
       if (class(de.results) == "try-error") {
