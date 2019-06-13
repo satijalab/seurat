@@ -84,7 +84,8 @@ FindClusters.default <- function(
             initial.membership = initial.membership,
             weights = weights,
             node.sizes = node.sizes,
-            resolution.parameter = resolution
+            resolution.parameter = resolution,
+            random.seed = random.seed
           )
         } else {
           stop("algorithm not recognised, please specify as an integer or string")
@@ -119,7 +120,8 @@ FindClusters.default <- function(
           initial.membership = initial.membership,
           weights = weights,
           node.sizes = node.sizes,
-          resolution.parameter = r
+          resolution.parameter = r,
+          random.seed = random.seed
         )
       } else {
         stop("algorithm not recognised, please specify as an integer or string")
@@ -518,6 +520,7 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @param resolution.parameter A parameter controlling the coarseness of the clusters
 # for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
 # partition types that accept a resolution parameter)
+# @param random.seed Seed of the random number generator
 #
 # @keywords graph network igraph mvtnorm simulation
 #
@@ -541,7 +544,8 @@ RunLeiden <- function(
   initial.membership = NULL,
   weights = NULL,
   node.sizes = NULL,
-  resolution.parameter = 1
+  resolution.parameter = 1,
+  random.seed = 0
 ) {
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
@@ -564,13 +568,15 @@ RunLeiden <- function(
       leidenalg$RBConfigurationVertexPartition,
       initial_membership = initial.membership,
       weights = weights,
-      resolution_parameter = resolution.parameter
+      resolution_parameter = resolution.parameter,
+      seed = as.integer(random.seed)
     ),
     'ModularityVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$ModularityVertexPartition,
       initial_membership = initial.membership,
-      weights = weights
+      weights = weights,
+      seed = as.integer(random.seed)
     ),
     'RBERVertexPartition' = leidenalg$find_partition(
       snn_graph,
@@ -578,7 +584,8 @@ RunLeiden <- function(
       initial_membership = initial.membership,
       weights = weights,
       node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
+      resolution_parameter = resolution.parameter,
+      seed = as.integer(random.seed)
     ),
     'CPMVertexPartition' = leidenalg$find_partition(
       snn_graph,
@@ -586,7 +593,8 @@ RunLeiden <- function(
       initial_membership = initial.membership,
       weights = weights,
       node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
+      resolution_parameter = resolution.parameter,
+      seed = as.integer(random.seed)
     ),
     'MutableVertexPartition' = leidenalg$find_partition(
       snn_graph,
