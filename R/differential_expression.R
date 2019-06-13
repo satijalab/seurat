@@ -586,72 +586,47 @@ FindMarkers.default <- function(
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
     warning("'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests")
   }
+
+  std.arguments <- list(
+    data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+    cells.1 = cells.1,  cells.2 = cells.2,  verbose = verbose)
+
   de.results <- switch(
     EXPR = test.use,
-    'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
-    ),
-    'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose
-    ),
-    "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose
-    ),
-    stop("Unknown test: ", test.use)
+    'wilcox' = do.call("WilcoxDETest", c(std.arguments, ...)),
+    'bimod' = do.call("DiffExpTest", c(std.arguments, ...)),
+    'roc' = do.call("MarkerTest", std.arguments),
+    't' = do.call("DiffTTest", std.arguments),
+    'negbinom' = do.call("GLMDETest",
+                         c(std.arguments, min.cells = min.cells.feature,
+                           latent.vars = latent.vars,
+                           test.use = test.use)),
+    'poisson' = do.call("GLMDETest",
+                        c(std.arguments, min.cells = min.cells.feature,
+                          latent.vars = latent.vars,
+                          test.use = test.use)),
+    'MAST' = do.call("MASTDETest",
+                     c(std.arguments, min.cells = min.cells.feature,
+                       latent.vars = latent.vars,
+                       test.use = test.use)),
+    "DESeq2" = do.call("DESeq2DETest", std.arguments),
+    "LR" = do.call("LRDETest",
+                   c(std.arguments,
+                     latent.vars = latent.vars)),
+    {
+      de.results <- try({do.call(test.use, c(std.arguments, ...))}, silent = TRUE)
+
+      # This section makes sure that the correct error is raised, the
+      if (class(de.results) == "try-error") {
+        if (grepl(paste0("could not find function.*", test.use), de.results)) {
+          stop("Unknown test: ", test.use)
+        } else {
+          stop(de.results)
+        }
+      }
+
+      de.results
+    }
   )
   if (is.null(x = reduction)) {
     diff.col <- ifelse(
@@ -1087,7 +1062,7 @@ DiffTTest <- function(
 #' @importFrom stats var as.formula
 #' @importFrom future.apply future_sapply
 #' @importFrom future nbrOfWorkers
-#' 
+#'
 # @export
 #
 # @examples
