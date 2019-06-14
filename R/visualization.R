@@ -1739,6 +1739,9 @@ DotPlot <- function(
   } else {
     object[[group.by, drop = TRUE]]
   }
+  if (!is.factor(x = data.features$id)) {
+    data.features$id <- factor(x = data.features$id)
+  }
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
