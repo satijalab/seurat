@@ -969,7 +969,7 @@ FeaturePlot <- function(
           call. = FALSE
         )
       }
-      data.plot <- cbind(data.plot[, dims], BlendExpression(data = data.plot[, features[1:2]]))
+      data.plot <- cbind(data.plot[, c(dims, 'ident')], BlendExpression(data = data.plot[, features[1:2]]))
       features <- colnames(x = data.plot)[4:ncol(x = data.plot)]
     }
     for (j in 1:length(x = features)) {
