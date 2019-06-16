@@ -33,8 +33,20 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   UseMethod(generic = 'AddMetaData', object = object)
 }
 
-#' Convert a matrix (or Matrix) to the Graph class.
+#' Convert objects to CellDataSet objects
+#'
+#' @param x An object to convert to class \code{CellDataSet}
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname as.CellDataSet
+#' @export as.CellDataSet
+#'
+as.CellDataSet <- function(x, ...) {
+  UseMethod(generic = 'as.CellDataSet', object = x)
+}
 
+#' Convert a matrix (or Matrix) to the Graph class.
+#'
 #' @param x The matrix to convert
 #' @param ... Arguments passed to other methods (ignored for now)
 #'

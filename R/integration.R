@@ -35,6 +35,7 @@ NULL
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @export
 #'
@@ -53,7 +54,7 @@ FindIntegrationAnchors <- function(
   verbose = TRUE
 ) {
   my.lapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
     no = future_lapply
   )
@@ -722,6 +723,7 @@ LocalStruct <- function(
 #' @importFrom RANN nn2
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #' @export
 #'
 MixingMetric <- function(
@@ -735,7 +737,7 @@ MixingMetric <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1031,8 +1033,11 @@ TransferData <- function(
       message(paste0("Transfering ", nfeatures, " features onto reference data"))
     }
     new.data <- refdata.anchors %*% weights
-    rownames(new.data) <- rownames(refdata)
-    colnames(new.data) <- query.cells
+    rownames(x = new.data) <- rownames(x = refdata)
+    colnames(x = new.data) <- query.cells
+    if (inherits(x = new.data, what = "Matrix")) {
+      new.data <- as(object = new.data, Class = "dgCMatrix")
+    }
     if (slot == "counts") {
       new.assay <- CreateAssayObject(counts = new.data)
     } else if (slot == "data") {

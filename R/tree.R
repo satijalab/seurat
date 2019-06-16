@@ -28,6 +28,7 @@ NULL
 #' @param reorder.numeric Re-order identity classes according to position on
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @param verbose Show progress updates
+#' @inheritParams AverageExpression
 #'
 #' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'
@@ -49,6 +50,7 @@ BuildClusterTree <- function(
   dims = NULL,
   graph = NULL,
   # do.plot = TRUE,
+  slot = 'data',
   reorder = FALSE,
   reorder.numeric = FALSE,
   verbose = TRUE
@@ -117,6 +119,7 @@ BuildClusterTree <- function(
     data.avg <- AverageExpression(
       object = object,
       features = features,
+      slot = slot,
       verbose = verbose
     )[[1]]
     data.dist <- dist(x = t(x = data.avg[features, ]))
@@ -142,6 +145,7 @@ BuildClusterTree <- function(
       features = features,
       dims = dims,
       graph = graph,
+      slot = slot,
       reorder = FALSE,
       verbose = verbose
     )

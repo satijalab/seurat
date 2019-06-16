@@ -154,7 +154,7 @@ FindAllMarkers <- function(
           subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
         )
       } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
-        gde <- gde[order(gde$p_val, -gde$avg_logFC), ]
+        gde <- gde[order(gde$p_val, -gde[, 2]), ]
         gde <- subset(x = gde, subset = p_val < return.thresh)
       }
       if (nrow(x = gde) > 0) {
@@ -167,7 +167,7 @@ FindAllMarkers <- function(
     }
   }
   if ((only.pos) && nrow(x = gde.all) > 0) {
-    return(subset(x = gde.all, subset = avg_logFC > 0))
+    return(subset(x = gde.all, subset = gde.all[, 2] > 0))
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
   if (nrow(x = gde.all) == 0) {
@@ -391,7 +391,7 @@ FindConservedMarkers <- function(
 #'  each of the cells in cells.2). An AUC value of 0 also means there is perfect
 #'  classification, but in the other direction. A value of 0.5 implies that
 #'  the gene has no predictive power to classify the two groups. Returns a
-#'  'predictive power' (abs(AUC-0.5)) ranked matrix of putative differentially
+#'  'predictive power' (abs(AUC-0.5) * 2) ranked matrix of putative differentially
 #'  expressed genes.
 #'  \item{"t"} : Identify differentially expressed genes between two groups of
 #'  cells using the Student's t-test.
@@ -666,7 +666,7 @@ FindMarkers.default <- function(
     de.results[, diff.col] <- total.diff[rownames(x = de.results)]
   }
   if (only.pos) {
-    de.results <- subset(x = de.results, subset = diff.col > 0)
+    de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
   }
   if (test.use == "roc") {
     de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
@@ -990,6 +990,7 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 #
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 # @export
 # @examples
@@ -1004,7 +1005,7 @@ DiffExpTest <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1034,6 +1035,7 @@ DiffExpTest <- function(
 #' @importFrom stats t.test
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 # @export
 #
@@ -1048,7 +1050,7 @@ DiffTTest <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1084,7 +1086,8 @@ DiffTTest <- function(
 #' @importFrom pbapply pbsapply
 #' @importFrom stats var as.formula
 #' @importFrom future.apply future_sapply
-#
+#' @importFrom future nbrOfWorkers
+#' 
 # @export
 #
 # @examples
@@ -1117,7 +1120,7 @@ GLMDETest <- function(
   }
   latent.var.names <- colnames(x = latent.vars)
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1194,6 +1197,7 @@ GLMDETest <- function(
 #' @importFrom pbapply pbsapply
 #' @importFrom stats as.formula glm
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 LRDETest <- function(
   data.use,
@@ -1210,7 +1214,7 @@ LRDETest <- function(
   data.use <- data.use[, rownames(group.info), drop = FALSE]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -1255,7 +1259,7 @@ LRDETest <- function(
 # value of 0.5 implies that the gene has no predictive power to classify the
 # two groups.
 #
-# @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
+# @return Returns a 'predictive power' (abs(AUC-0.5) * 2) ranked matrix of
 # putative differentially expressed genes.
 #
 # @export
@@ -1511,6 +1515,7 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 #' @importFrom pbapply pbsapply
 #' @importFrom stats wilcox.test
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #
 # @export
 #
@@ -1532,7 +1537,7 @@ WilcoxDETest <- function(
   group.info[, "group"] <- factor(x = group.info[, "group"])
   data.use <- data.use[, rownames(x = group.info), drop = FALSE]
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )

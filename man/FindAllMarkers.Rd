@@ -37,7 +37,7 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  each of the cells in cells.2). An AUC value of 0 also means there is perfect
  classification, but in the other direction. A value of 0.5 implies that
  the gene has no predictive power to classify the two groups. Returns a
- 'predictive power' (abs(AUC-0.5)) ranked matrix of putative differentially
+ 'predictive power' (abs(AUC-0.5) * 2) ranked matrix of putative differentially
  expressed genes.
  \item{"t"} : Identify differentially expressed genes between two groups of
  cells using the Student's t-test.

@@ -5,7 +5,7 @@
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
 SCTransform(object, assay = "RNA", new.assay.name = "SCT",
-  do.correct.umi = TRUE, variable.features.n = 3000,
+  do.correct.umi = TRUE, ncells = NULL, variable.features.n = 3000,
   variable.features.rv.th = 1.3, vars.to.regress = NULL,
   do.scale = FALSE, do.center = TRUE, clip.range = c(-sqrt(x = ncol(x
   = object[[assay]])/30), sqrt(x = ncol(x = object[[assay]])/30)),
@@ -20,6 +20,8 @@ SCTransform(object, assay = "RNA", new.assay.name = "SCT",
 \item{new.assay.name}{Name for the new assay containing the normalized data}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
+
+\item{ncells}{Number of subsampling cells used to build NB regression; default is NULL}
 
 \item{variable.features.n}{Use this many features as variable features after
 ranking by residual variance; default is 3000}
@@ -43,7 +45,7 @@ created in full; useful for large data sets, but will take longer to run;
 this will also set return.only.var.genes to TRUE; default is FALSE}
 
 \item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are
-subset to contain only the variable genes; default is FALSE}
+subset to contain only the variable genes; default is TRUE}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting
 NULL will not set a seed.}

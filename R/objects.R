@@ -193,7 +193,7 @@ IntegrationData <- setClass(
 #' @slot params List of parameters used in the command call
 #'
 #' @name SeuratCommand-class
-#' @name SeuratCommand-class
+#' @rdname SeuratCommand-class
 #' @exportClass SeuratCommand
 #'
 SeuratCommand <- setClass(
@@ -1292,6 +1292,82 @@ AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
   return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
 }
 
+#' @param assay Assay to convert
+#' @param reduction Name of DimReduc to set to main reducedDim in cds
+#'
+#' @rdname as.CellDataSet
+#' @export
+#' @method as.CellDataSet Seurat
+#'
+as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
+  if (!PackageCheck('monocle', error = FALSE)) {
+    stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
+  } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
+    stop("Seurat can only convert to/from Monocle v2.X objects")
+  }
+  assay <- assay %||% DefaultAssay(object = x)
+  # make variables, then run `newCellDataSet`
+  # create cellData counts
+  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
+  # metadata
+  cell.metadata <- x[[]]
+  feature.metadata <- x[[assay]][[]]
+  if (!"gene_short_name" %in% colnames(x = feature.metadata)) {
+    feature.metadata$gene_short_name <- rownames(x = feature.metadata)
+  }
+  pd <- new(Class = "AnnotatedDataFrame", data = cell.metadata)
+  fd <- new(Class = "AnnotatedDataFrame", data = feature.metadata)
+  # Now, determine the expressionFamily
+  if ("monocle" %in% names(x = Misc(object = x))) {
+    expressionFamily <- Misc(object = x, slot = "monocle")[["expressionFamily"]]
+  } else {
+    if (all(counts == floor(x = counts))) {
+      expressionFamily <- VGAM::negbinomial.size()
+    } else if (any(counts < 0)) {
+      expressionFamily <- VGAM::uninormal()
+    } else {
+      expressionFamily <- VGAM::tobit()
+    }
+  }
+  cds <- monocle::newCellDataSet(
+    cellData = counts,
+    phenoData = pd,
+    featureData = fd,
+    expressionFamily = expressionFamily
+  )
+  if ("monocle" %in% names(x = Misc(object = x))) {
+    monocle::cellPairwiseDistances(cds = cds) <- Misc(object = x, slot = "monocle")[["cellPairwiseDistances"]]
+    monocle::minSpanningTree(cds = cds) <- Misc(object = x, slot = "monocle")[["minSpanningTree"]]
+    Biobase::experimentData(cds = cds) <- Misc(object = x, slot = "monocle")[["experimentData"]]
+    Biobase::protocolData(cds = cds) <- Misc(object = x, slot = "monocle")[["protocolData"]]
+    Biobase::classVersion(cds = cds) <- Misc(object = x, slot = "monocle")[["classVersion"]]
+    # no setter methods found for following slots
+    slot(object = cds, name = "lowerDetectionLimit") <- Misc(object = x, slot = "monocle")[["lowerDetectionLimit"]]
+    slot(object = cds, name = "dispFitInfo") <- Misc(object = x, slot = "monocle")[["dispFitInfo"]]
+    slot(object = cds, name = "auxOrderingData") <- Misc(object = x, slot = "monocle")[["auxOrderingData"]]
+    slot(object = cds, name = "auxClusteringData") <- Misc(object = x, slot = "monocle")[["auxClusteringData"]]
+  }
+  # adding dimensionality reduction data to the CDS
+  dr.slots <- c("reducedDimS", "reducedDimK", "reducedDimW", "reducedDimA")
+  reduction <- reduction %||% DefaultDimReduc(object = x, assay = assay)
+  if (!is.null(x = reduction)) {
+    if (grepl(pattern = 'tsne', x = tolower(x = reduction))) {
+      slot(object = cds, name = "dim_reduce_type") <- "tSNE"
+      monocle::reducedDimA(cds = cds) <- t(x = Embeddings(object = x[[reduction]]))
+    } else {
+      slot(object = cds, name = "dim_reduce_type") <- reduction
+      monocle::reducedDimA(cds = cds) <- Loadings(object = x[[reduction]])
+      slot(object = cds, name = "reducedDimS") <- Embeddings(object = x[[reduction]])
+    }
+    for (ii in dr.slots) {
+      if (ii %in% names(x = slot(object = x[[reduction]], name = "misc"))) {
+        slot(object = cds, name = ii) <- slot(object = x[[reduction]], name = "misc")[[ii]]
+      }
+    }
+  }
+  return(cds)
+}
+
 #' @rdname as.Graph
 #' @export
 #' @method as.Graph Matrix
@@ -1498,6 +1574,150 @@ as.loom.Seurat <- function(
   # Store assay
   hdf5r::h5attr(x = lfile, which = 'assay') <- assay
   return(lfile)
+}
+
+
+#' @param slot Slot to store expression data as
+#'
+#' @importFrom utils packageVersion
+#'
+#' @rdname as.Seurat
+#' @export
+#' @method as.Seurat CellDataSet
+#'
+as.Seurat.CellDataSet <- function(
+  x,
+  slot = 'counts',
+  assay = 'RNA',
+  verbose = TRUE,
+  ...
+) {
+  if (!PackageCheck('monocle', error = FALSE)) {
+    stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
+  } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
+    stop("Seurat can only convert to/from Monocle v2.X objects")
+  }
+  slot <- match.arg(arg = slot, choices = c('counts', 'data'))
+  if (verbose) {
+    message("Pulling expression data")
+  }
+  expr <- Biobase::exprs(object = x)
+  if (IsMatrixEmpty(x = expr)) {
+    stop("No data provided in this CellDataSet object", call. = FALSE)
+  }
+  meta.data <- as.data.frame(x = Biobase::pData(object = x))
+  # if cell names are NULL, fill with cell_X
+  if (is.null(x = colnames(x = expr))) {
+    warning(
+      "The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    rownames(x = meta.data) <- colnames(x = expr) <- paste0("cell_", 1:ncol(x = expr))
+  }
+  # Creating the object
+  if (verbose) {
+    message("Building Seurat object")
+  }
+  if (slot == 'data') {
+    assays <- list(CreateAssayObject(data = expr))
+    names(x = assays) <- assay
+    Key(object = assays[[assay]]) <- suppressWarnings(expr = UpdateKey(key = assay))
+    object <- new(
+      Class = 'Seurat',
+      assays = assays,
+      meta.data = meta.data,
+      version = packageVersion(pkg = 'Seurat'),
+      project.name = 'SeuratProject'
+    )
+    DefaultAssay(object = object) <- assay
+  } else {
+    object <- CreateSeuratObject(
+      counts = expr,
+      meta.data = meta.data,
+      assay = assay
+    )
+  }
+  # feature metadata
+  if (verbose) {
+    message("Adding feature-level metadata")
+  }
+  feature.metadata <- Biobase::fData(object = x)
+  object[[assay]][[names(x = feature.metadata)]] <- feature.metadata
+  # mean/dispersion values
+  disp.table <- tryCatch(
+    expr = suppressWarnings(expr = monocle::dispersionTable(cds = x)),
+    error = function(...) {
+      return(NULL)
+    }
+  )
+  if (!is.null(x = disp.table)) {
+    if (verbose) {
+      message("Adding dispersion information")
+    }
+    rownames(x = disp.table) <- disp.table[, 1]
+    disp.table[, 1] <- NULL
+    colnames(x = disp.table) <- paste0('monocle_', colnames(x = disp.table))
+    object[[assay]][[names(x = disp.table)]] <- disp.table
+  } else if (verbose) {
+    message("No dispersion information in CellDataSet object")
+  }
+  # variable features
+  if ("use_for_ordering" %in% colnames(x = feature.metadata)) {
+    if (verbose) {
+      message("Setting variable features")
+    }
+    VariableFeatures(object = object, assay = assay) <- rownames(x = feature.metadata)[which(x = feature.metadata[, "use_for_ordering"])]
+  } else if (verbose) {
+    message("No variable features present")
+  }
+  # add dim reduction
+  dr.name <- slot(object = x, name = "dim_reduce_type")
+  if (length(x = dr.name) > 0) {
+    if (verbose) {
+      message("Adding ", dr.name, " dimensional reduction")
+    }
+    reduced.A <- t(x = slot(object = x, name = 'reducedDimA'))
+    reduced.S <- t(x = slot(object = x, name = 'reducedDimS'))
+    if (IsMatrixEmpty(x = reduced.S)) {
+      embeddings <- reduced.A
+      loadings <- new(Class = 'matrix')
+    } else {
+      embeddings <- reduced.S
+      loadings <- t(x = reduced.A)
+    }
+    rownames(x = embeddings) <- colnames(x = object)
+    misc.dr <- list(
+      reducedDimS = slot(object = x, name = "reducedDimS"),
+      reducedDimK = slot(object = x, name = "reducedDimK"),
+      reducedDimW = slot(object = x, name = "reducedDimW"),
+      reducedDimA = slot(object = x, name = "reducedDimA")
+    )
+    dr <- suppressWarnings(expr = CreateDimReducObject(
+      embeddings = embeddings,
+      loadings = loadings,
+      assay = assay,
+      key = UpdateKey(key = tolower(x = dr.name)),
+      misc = misc.dr
+    ))
+    object[[dr.name]] <- dr
+  } else if (verbose) {
+    message("No dimensional reduction information found")
+  }
+  monocle.specific.info <- list(
+    expressionFamily = slot(object = x, name = "expressionFamily"),
+    lowerDetectionLimit = slot(object = x, name = "lowerDetectionLimit"),
+    dispFitInfo = slot(object = x, name = "dispFitInfo"),
+    cellPairwiseDistances = slot(object = x, name = "cellPairwiseDistances"),
+    minSpanningTree = slot(object = x, name = "minSpanningTree"),
+    auxOrderingData = slot(object = x, name = "auxOrderingData"),
+    auxClusteringData = slot(object = x, name = "auxClusteringData"),
+    experimentData = slot(object = x, name = "experimentData"),
+    protocolData = slot(object = x, name = "protocolData"),
+    classVersion = slot(object = x, name = ".__classVersion__")
+  )
+  Misc(object = object, slot = "monocle")  <- monocle.specific.info
+  return(object)
 }
 
 #' @details
@@ -1963,6 +2183,7 @@ as.Seurat.SingleCellExperiment <- function(
     project.name = project
   )
   DefaultAssay(object = object) <- assay
+  Idents(object = object) <- project
   # Get DimReduc information
   if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
     for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
@@ -2000,10 +2221,12 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
   assay <- assay %||% DefaultAssay(object = x)
-  sce <- SingleCellExperiment::SingleCellExperiment(assays = list(
+  assays = list(
     counts = GetAssayData(object = x, assay = assay, slot = "counts"),
     logcounts = GetAssayData(object = x, assay = assay, slot = "data")
-  ))
+  )
+  assays <- assays[sapply(X = assays, FUN = nrow) != 0]
+  sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
@@ -4622,6 +4845,44 @@ WriteH5AD.Seurat <- function(
   return(data.return)
 }
 
+#' Coerce a SeuratCommand to a list
+#'
+#' @inheritParams base::as.list
+#' @param complete Include slots besides just parameters (eg. call string, name, timestamp)
+#'
+#' @return A list with the parameters and, if \code{complete = TRUE}, the call string, name, and timestamp
+#'
+#' @export
+#' @method as.list SeuratCommand
+#'
+as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
+  cmd <- slot(object = x, name = 'params')
+  if (complete) {
+    cmd <- append(
+      x = cmd,
+      values = sapply(
+        X = grep(
+          pattern = 'params',
+          x = slotNames(x = x),
+          invert = TRUE,
+          value = TRUE
+        ),
+        FUN = slot,
+        object = x,
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ),
+      after = 0
+    )
+  }
+  for (i in 1:length(x = cmd)) {
+    if (is.character(x = cmd[[i]])) {
+      cmd[[i]] <- paste(trimws(x = cmd[[i]]), collapse = ' ')
+    }
+  }
+  return(cmd)
+}
+
 #' @export
 #' @method as.logical JackStrawData
 #'
@@ -4711,12 +4972,10 @@ levels.Seurat <- function(x) {
 #'
 "levels<-.Seurat" <- function(x, value) {
   idents <- Idents(object = x)
-  tryCatch(
-    expr = levels(x = idents) <- value,
-    error = function(e) {
-      stop("NA's generated by missing levels", call. = FALSE)
-    }
-  )
+  if (!all(levels(x = idents) %in% value)) {
+    stop("NA's generated by missing levels", call. = FALSE)
+  }
+  idents <- factor(x = idents, levels = value)
   Idents(object = x) <- idents
   return(x)
 }
@@ -4786,7 +5045,9 @@ merge.Assay <- function(
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
 #' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-#' that were present in the original objects.
+#' that were present in the original objects. If add.cell.ids isn't specified
+#' and any cell names are duplicated, cell names will be appended with _X, where
+#' X is the numeric index of the object in c(x, y).
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -4829,6 +5090,8 @@ merge.Seurat <- function(
       objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
     }
   }
+  # ensure unique cell names
+  objects <- CheckDuplicateCellNames(object.list = objects)
   assays <- lapply(
     X = objects,
     FUN = FilterObjects,
@@ -5679,12 +5942,7 @@ setMethod(
       DefaultAssay(object = object),
       paste0('(', nrow(x = object), ' features)')
     )
-    other.assays <- grep(
-      pattern = DefaultAssay(object = object),
-      x = assays,
-      invert = TRUE,
-      value = TRUE
-    )
+    other.assays <- assays[assays != DefaultAssay(object = object)]
     if (length(x = other.assays) > 0) {
       cat(
         '\n',
@@ -5978,7 +6236,24 @@ UpdateDimReduction <- function(old.dr, assay){
     stdev <- old.dr[[i]]@sdev %||% numeric()
     misc <- old.dr[[i]]@misc %||% list()
     new.jackstraw <- UpdateJackstraw(old.jackstraw = old.dr[[i]]@jackstraw)
-    new.key <- suppressWarnings(expr = UpdateKey(key = old.dr[[i]]@key))
+    old.key <- old.dr[[i]]@key
+    if (length(x = old.key) == 0) {
+      old.key <- gsub(pattern = "(.+?)(([0-9]+).*)", replacement = "\\1",  x = colnames(cell.embeddings)[[1]])
+      if (length(x = old.key) == 0) {
+        old.key <- i
+      }
+    }
+    new.key <- suppressWarnings(expr = UpdateKey(key = old.key))
+    colnames(x = cell.embeddings) <- gsub(
+      pattern = old.key,
+      replacement = new.key,
+      x = colnames(x = cell.embeddings)
+    )
+    colnames(x = feature.loadings) <- gsub(
+      pattern = old.key,
+      replacement = new.key,
+      x = colnames(x = feature.loadings)
+    )
     new.dr[[i]] <- new(
       Class = 'DimReduc',
       cell.embeddings = as(object = cell.embeddings, Class = 'matrix'),

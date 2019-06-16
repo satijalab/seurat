@@ -12,6 +12,7 @@ NULL
 
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param initial.membership,weights,node.sizes Parameters to pass to the Python leidenalg function.
@@ -23,6 +24,8 @@ NULL
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
+#' @param group.singletons Group singletons into nearest cluster. If FALSE, assign all singletons to
+#' a "singleton" group
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
 #' @param edge.file.name Edge file to use as input for modularity optimizer jar.
@@ -42,6 +45,7 @@ FindClusters.default <- function(
   n.start = 10,
   n.iter = 10,
   random.seed = 0,
+  group.singletons = TRUE,
   temp.file.location = NULL,
   edge.file.name = NULL,
   verbose = TRUE,
@@ -56,7 +60,7 @@ FindClusters.default <- function(
   if (tolower(x = algorithm) == "leiden") {
     algorithm <- 4
   }
-  if (PlanThreads() > 1) {
+  if (nbrOfWorkers() > 1) {
     clustering.results <- future_lapply(
       X = resolution,
       FUN = function(r) {
@@ -121,7 +125,7 @@ FindClusters.default <- function(
         stop("algorithm not recognised, please specify as an integer or string")
       }
       names(x = ids) <- colnames(x = object)
-      ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
+      ids <- GroupSingletons(ids = ids, SNN = object, group.singletons = group.singletons, verbose = verbose)
       clustering.results[, paste0("res.", r)] <- factor(x = ids)
     }
   }
@@ -148,6 +152,7 @@ FindClusters.Seurat <- function(
   n.start = 10,
   n.iter = 10,
   random.seed = 0,
+  group.singletons = TRUE,
   temp.file.location = NULL,
   edge.file.name = NULL,
   verbose = TRUE,
@@ -171,6 +176,7 @@ FindClusters.Seurat <- function(
     n.start = n.start,
     n.iter = n.iter,
     random.seed = random.seed,
+    group.singletons = group.singletons,
     temp.file.location = temp.file.location,
     edge.file.name = edge.file.name,
     verbose = verbose
@@ -178,6 +184,17 @@ FindClusters.Seurat <- function(
   colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
   object <- AddMetaData(object = object, metadata = clustering.results)
   Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+  levels <- levels(x = object)
+  levels <- tryCatch(
+    expr = as.numeric(x = levels),
+    warning = function(...) {
+      return(levels)
+    },
+    error = function(...) {
+      return(levels)
+    }
+  )
+  Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
   object[['seurat_clusters']] <- Idents(object = object)
   object <- LogSeuratCommand(object)
   return(object)
@@ -260,7 +277,7 @@ FindNeighbors.default <- function(
   # convert nn.ranked into a Graph
   j <- as.numeric(x = t(x = nn.ranked))
   i <- ((1:length(x = j)) - 1) %/% k.param + 1
-  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1), Class = "Graph")
+  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1, dims = c(nrow(x = object), nrow(x = object))), Class = "Graph")
   rownames(x = nn.matrix) <- rownames(x = object)
   colnames(x = nn.matrix) <- rownames(x = object)
   neighbor.graphs <- list(nn = nn.matrix)
@@ -436,17 +453,23 @@ FindNeighbors.Seurat <- function(
 #
 # @param ids Named vector of cluster ids
 # @param SNN SNN graph used in clustering
+# @param group.singletons Group singletons into nearest cluster. If FALSE, assign all singletons to
+# a "singleton" group
 #
 # @return Returns Seurat object with all singletons merged with most connected cluster
 #
-GroupSingletons <- function(ids, SNN, verbose) {
+GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
   # identify singletons
   singletons <- c()
-  singletons <- names(which(table(ids) == 1))
-  singletons <- intersect(unique(ids), singletons)
+  singletons <- names(x = which(x = table(ids) == 1))
+  singletons <- intersect(x = unique(x = ids), singletons)
+  if (!group.singletons) {
+    ids[which(ids %in% singletons)] <- "singleton"
+    return(ids)
+  }
   # calculate connectivity of singletons to other clusters, add singleton
   # to cluster it is most connected to
-  cluster_names <- as.character(unique(x = ids))
+  cluster_names <- as.character(x = unique(x = ids))
   cluster_names <- setdiff(x = cluster_names, y = singletons)
   connectivity <- vector(mode = "numeric", length = length(x = cluster_names))
   names(x = connectivity) <- cluster_names
