@@ -434,6 +434,19 @@ CreateAssayObject <- function(
     }
     counts <- new(Class = 'matrix')
   }
+  # Ensure row- and column-names are vectors, not arrays
+  if (!is.vector(x = rownames(x = counts))) {
+    rownames(x = counts) <- as.vector(x = rownames(x = counts))
+  }
+  if (!is.vector(x = colnames(x = counts))) {
+    colnames(x = counts) <- as.vector(x = colnames(x = counts))
+  }
+  if (!is.vector(x = rownames(x = data))) {
+    rownames(x = data) <- as.vector(x = rownames(x = data))
+  }
+  if (!is.vector(x = colnames(x = data))) {
+    colnames(x = data) <- as.vector(x = colnames(x = data))
+  }
   if (any(grepl(pattern = '_', x = rownames(x = counts))) || any(grepl(pattern = '_', x = rownames(x = data)))) {
     warning(
       "Feature names cannot have underscores ('_'), replacing with dashes ('-')",
