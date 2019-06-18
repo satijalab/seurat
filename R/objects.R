@@ -3761,6 +3761,12 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
       )
     }
   }
+  if (!is.vector(x = rownames(x = new.data))) {
+    rownames(x = new.data) <- as.vector(x = rownames(x = new.data))
+  }
+  if (!is.vector(x = colnames(x = new.data))) {
+    colnames(x = new.data) <- as.vector(x = colnames(x = new.data))
+  }
   slot(object = object, name = slot) <- new.data
   return(object)
 }
