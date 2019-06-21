@@ -817,11 +817,15 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       header = FALSE,
       stringsAsFactors = FALSE
     )
-    if (any(is.na(feature.names[, gene.column]))) {
-      warning('Some features names are NA. Replacing NA names with ID from the opposite column requested')
-      na_features <- which(is.na(feature.names[, gene.column]))
-      replacement_column <- ifelse(test = gene.column == 2, yes = 1, no = 2)
-      feature.names[na_features, gene.column] <- feature.names[na_features, replacement_column]
+    if (any(is.na(x = feature.names[, gene.column]))) {
+      warning(
+        'Some features names are NA. Replacing NA names with ID from the opposite column requested',
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      na.features <- which(x = is.na(x = feature.names[, gene.column]))
+      replacement.column <- ifelse(test = gene.column == 2, yes = 1, no = 2)
+      feature.names[na.features, gene.column] <- feature.names[na.features, replacement.column]
     }
     if (unique.features) {
       fcols = ncol(x = feature.names)
