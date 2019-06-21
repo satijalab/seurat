@@ -1010,7 +1010,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     stop("'LogSeuratCommand' cannot be called at the top level", call. = FALSE)
   }
   command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
-  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
+  command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
   call.string <- command.name
   command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
   #capture function arguments
