@@ -3206,17 +3206,17 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   # Fix meta feature colnames
   colnames(x = meta.features) <- gsub(
     pattern = 'dispersions_norm',
-    replacement = 'dispersion.scaled',
+    replacement = 'mvp.dispersion.scaled',
     x = colnames(x = meta.features)
   )
   colnames(x = meta.features) <- gsub(
     pattern = 'dispersions',
-    replacement = 'dispersion',
+    replacement = 'mvp.dispersion',
     x = colnames(x = meta.features)
   )
   colnames(x = meta.features) <- gsub(
     pattern = 'means',
-    replacement = 'mean',
+    replacement = 'mvp.mean',
     x = colnames(x = meta.features)
   )
   colnames(x = meta.features) <- gsub(
@@ -3285,7 +3285,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     if (verbose) {
       message("Setting highly variable features")
     }
-    hvf.info <- HVFInfo(object = assays[[assay]])
+    hvf.info <- HVFInfo(object = assays[[assay]], selection.method = 'mvp')
     hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
     means.use <- (hvf.info$mean > 0.1) & (hvf.info$mean < 8)
     dispersions.use <- (hvf.info$dispersion.scaled > 1) & (hvf.info$dispersion.scaled < Inf)
