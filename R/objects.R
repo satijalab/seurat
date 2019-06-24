@@ -853,7 +853,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   )
   # Pull identities
   if ('ident' %in% vars && !'ident' %in% colnames(x = object[[]])) {
-    data.fetched[['ident']] <- Idents(object = object)
+    data.fetched[['ident']] <- Idents(object = object)[cells]
   }
   # Try to find ambiguous vars
   fetched <- names(x = data.fetched)
