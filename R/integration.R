@@ -851,12 +851,18 @@ PrepSCTIntegration <- function(
     }
   )
   if (any(!sct.check)) {
-    stop("Not all assays have been processed with SCTransform.")
+    error.msg <- "The following assays have not been processed with SCTransform: "
+    for(i in 1:length(x = sct.check)) {
+      if(!sct.check[i]) {
+        error.msg <- paste0(error.msg, "object: ", i, " - assay: ", assay[i], ", ")
+      }
+    }
+    error.msg <- gsub(pattern = ", $", replacement = "", x = error.msg)
+    stop(error.msg)
   }
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
-      assay <- sct.assays[i]
       if (is.null(x = sct.clip.range)) {
         obj <- GetResidual(
           object = object.list[[i]],
@@ -876,14 +882,14 @@ PrepSCTIntegration <- function(
       }
       scale.data <- GetAssayData(
         object = obj,
-        assay = assay,
+        assay = assay[i],
         slot = 'scale.data'
       )
       obj <- SetAssayData(
         object = obj,
         slot = 'scale.data',
         new.data = scale.data[features, ],
-        assay = assay
+        assay = assay[i]
       )
     }
   )
