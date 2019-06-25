@@ -1247,6 +1247,16 @@ IsMatrixEmpty <- function(x) {
   return(all(matrix.dims == 0) || matrix.na)
 }
 
+# Check whether an assay has been processed by sctransform
+#
+# @param assay assay to check 
+#
+# @return Boolean
+#
+IsSCT <- function(assay) {
+  return(!is.null(x = Misc(assay, slot = 'vst.out')))
+}
+
 # Check the length of components of a list
 #
 # @param values A list whose components should be checked
