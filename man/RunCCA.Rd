@@ -46,8 +46,6 @@ merge the data matrices also.}
 scale every gene in the dataset which may impose a high memory cost.}
 
 \item{add.cell.id1, add.cell.id2}{Add ...}
-
-\item{use.cpp}{...}
 }
 \value{
 Returns a combined Seurat object with the CCA results stored.

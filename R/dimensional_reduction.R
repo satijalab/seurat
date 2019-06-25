@@ -314,7 +314,6 @@ ProjectDim <- function(
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
 #' @param verbose ...
-#' @param use.cpp ...
 #'
 #' @importFrom irlba irlba
 #'

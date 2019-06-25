@@ -474,12 +474,12 @@ IntegrateData <- function(
     }
     object.1 <- DietSeurat(
       object = object.list[[merge.pair[1]]],
-      assay = DefaultAssay(object =  object.list[[merge.pair[1]]]),
+      assays = DefaultAssay(object =  object.list[[merge.pair[1]]]),
       counts = FALSE
     )
     object.2 <- DietSeurat(
       object = object.list[[merge.pair[2]]],
-      assay = DefaultAssay(object =  object.list[[merge.pair[2]]]),
+      assays = DefaultAssay(object =  object.list[[merge.pair[2]]]),
       counts = FALSE
     )
     datasets <- ParseMergePair(sample.tree, ii)
@@ -866,7 +866,7 @@ PrepSCTIntegration <- function(
       if (is.null(x = sct.clip.range)) {
         obj <- GetResidual(
           object = object.list[[i]],
-          features = features,
+          features = anchor.features,
           assay = assay[i],
           verbose = FALSE
         )
@@ -876,7 +876,7 @@ PrepSCTIntegration <- function(
           assay = assay[i], 
           features = anchor.features, 
           replace.value = TRUE, 
-          clip.range = SCT.clip.range, 
+          clip.range = sct.clip.range, 
           verbose = FALSE
         )
       }
@@ -888,7 +888,7 @@ PrepSCTIntegration <- function(
       obj <- SetAssayData(
         object = obj,
         slot = 'scale.data',
-        new.data = scale.data[features, ],
+        new.data = scale.data[anchor.features, ],
         assay = assay[i]
       )
     }
