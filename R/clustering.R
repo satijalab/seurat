@@ -569,14 +569,14 @@ RunLeiden <- function(
       initial_membership = initial.membership,
       weights = weights,
       resolution_parameter = resolution.parameter,
-      seed = as.integer(random.seed)
+      seed = as.integer(x = random.seed)
     ),
     'ModularityVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$ModularityVertexPartition,
       initial_membership = initial.membership,
       weights = weights,
-      seed = as.integer(random.seed)
+      seed = as.integer(x = random.seed)
     ),
     'RBERVertexPartition' = leidenalg$find_partition(
       snn_graph,
@@ -585,7 +585,7 @@ RunLeiden <- function(
       weights = weights,
       node_sizes = node.sizes,
       resolution_parameter = resolution.parameter,
-      seed = as.integer(random.seed)
+      seed = as.integer(x = random.seed)
     ),
     'CPMVertexPartition' = leidenalg$find_partition(
       snn_graph,
@@ -594,7 +594,7 @@ RunLeiden <- function(
       weights = weights,
       node_sizes = node.sizes,
       resolution_parameter = resolution.parameter,
-      seed = as.integer(random.seed)
+      seed = as.integer(x = random.seed)
     ),
     'MutableVertexPartition' = leidenalg$find_partition(
       snn_graph,
