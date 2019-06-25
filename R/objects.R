@@ -434,6 +434,19 @@ CreateAssayObject <- function(
     }
     counts <- new(Class = 'matrix')
   }
+  # Ensure row- and column-names are vectors, not arrays
+  if (!is.vector(x = rownames(x = counts))) {
+    rownames(x = counts) <- as.vector(x = rownames(x = counts))
+  }
+  if (!is.vector(x = colnames(x = counts))) {
+    colnames(x = counts) <- as.vector(x = colnames(x = counts))
+  }
+  if (!is.vector(x = rownames(x = data))) {
+    rownames(x = data) <- as.vector(x = rownames(x = data))
+  }
+  if (!is.vector(x = colnames(x = data))) {
+    colnames(x = data) <- as.vector(x = colnames(x = data))
+  }
   if (any(grepl(pattern = '_', x = rownames(x = counts))) || any(grepl(pattern = '_', x = rownames(x = data)))) {
     warning(
       "Feature names cannot have underscores ('_'), replacing with dashes ('-')",
@@ -997,7 +1010,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     stop("'LogSeuratCommand' cannot be called at the top level", call. = FALSE)
   }
   command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
-  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
+  command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
   call.string <- command.name
   command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
   #capture function arguments
@@ -3193,17 +3206,17 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   # Fix meta feature colnames
   colnames(x = meta.features) <- gsub(
     pattern = 'dispersions_norm',
-    replacement = 'dispersion.scaled',
+    replacement = 'mvp.dispersion.scaled',
     x = colnames(x = meta.features)
   )
   colnames(x = meta.features) <- gsub(
     pattern = 'dispersions',
-    replacement = 'dispersion',
+    replacement = 'mvp.dispersion',
     x = colnames(x = meta.features)
   )
   colnames(x = meta.features) <- gsub(
     pattern = 'means',
-    replacement = 'mean',
+    replacement = 'mvp.mean',
     x = colnames(x = meta.features)
   )
   colnames(x = meta.features) <- gsub(
@@ -3272,7 +3285,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     if (verbose) {
       message("Setting highly variable features")
     }
-    hvf.info <- HVFInfo(object = assays[[assay]])
+    hvf.info <- HVFInfo(object = assays[[assay]], selection.method = 'mvp')
     hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
     means.use <- (hvf.info$mean > 0.1) & (hvf.info$mean < 8)
     dispersions.use <- (hvf.info$dispersion.scaled > 1) & (hvf.info$dispersion.scaled < Inf)
@@ -3747,6 +3760,12 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
         call. = FALSE
       )
     }
+  }
+  if (!is.vector(x = rownames(x = new.data))) {
+    rownames(x = new.data) <- as.vector(x = rownames(x = new.data))
+  }
+  if (!is.vector(x = colnames(x = new.data))) {
+    colnames(x = new.data) <- as.vector(x = colnames(x = new.data))
   }
   slot(object = object, name = slot) <- new.data
   return(object)
