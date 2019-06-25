@@ -11,21 +11,24 @@
 FindNeighbors(object, ...)
 
 \method{FindNeighbors}{default}(object, distance.matrix = FALSE,
-  k.param = 20, compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0,
+  k.param = 20, compute.SNN = TRUE, prune.SNN = 1/15,
+  nn.method = "rann", annoy.metric = "euclidean", nn.eps = 0,
   verbose = TRUE, force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Assay}(object, features = NULL, k.param = 20,
-  compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  compute.SNN = TRUE, prune.SNN = 1/15, nn.method = "rann",
+  annoy.metric = "euclidean", nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{dist}(object, k.param = 20, compute.SNN = TRUE,
-  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE, ...)
+  prune.SNN = 1/15, nn.method = "rann", annoy.metric = "euclidean",
+  nn.eps = 0, verbose = TRUE, force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
   assay = NULL, features = NULL, k.param = 20, compute.SNN = TRUE,
-  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE, do.plot = FALSE, graph.name = NULL, ...)
+  prune.SNN = 1/15, nn.method = "rann", annoy.metric = "euclidean",
+  nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
+  do.plot = FALSE, graph.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -45,6 +48,12 @@ computing the neighborhood overlap for the SNN construction. Any edges with
 values less than or equal to this will be set to 0 and removed from the SNN
 graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
 prune everything).}
+
+\item{nn.method}{Method for nearest neighbor finding. Options include: rann,
+annoy}
+
+\item{annoy.metric}{Distance metric for annoy. Options include: euclidean,
+cosine, manhattan, and hamming}
 
 \item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
 default of 0.0 implies exact nearest neighbor search}
