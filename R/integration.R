@@ -794,6 +794,102 @@ MixingMetric <- function(
   return(mixing)
 }
 
+#' Prepare an object list that has been run through SCTransform for integration
+#'
+#' @param object.list A list of objects to prep for integration
+#' @param assay vector of assay names (one for each object) that correspond to the assay that 
+#' SCTransform has been run on. If NULL, the current default assay for each object is used.
+#' @param anchor.features Can be either:
+#' \itemize{
+#'   \item{A numeric value. This will call \code{\link{SelectIntegrationFeatures}} to select the
+#'   provided number of features to be used in anchor finding}
+#'   \item{A vector of features to be used as input to the anchor finding process}
+#' }
+#' @param sct.clip.range Numeric of length two specifying the min and max values the Pearson 
+#' residual will be clipped to
+#' @param verbose Display output/messages 
+#'
+#' @return An object list with the \code{scale.data} slots set to the anchor features
+#'
+#' @importFrom pbapply pblapply
+#' @importFrom methods slot slot<-
+#' @importFrom future nbrOfWorkers
+#' @importFrom future.apply future_lapply
+#'
+#' @export
+#'
+PrepSCTIntegration <- function(
+  object.list, 
+  assay = NULL, 
+  anchor.features = 2000, 
+  sct.clip.range = NULL,
+  verbose = TRUE
+) {
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  if (!is.null(x = assay)) {
+    if (length(x = assay) != length(x = object.list)) {
+      stop("If specifying the assay, please specify one assay per object in the object.list")
+    }
+    object.list <- sapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) {
+        DefaultAssay(object = object.list[[x]]) <- assay[x]
+        return(object.list[[x]])
+      }
+    )
+  } else {
+    assay <- sapply(X = object.list, FUN = DefaultAssay)
+  }
+  sct.check <- sapply(
+    X = 1:length(x = object.list),
+    FUN = function(x){
+      IsSCT(assay = object.list[[x]][[assay[x]]])
+    }
+  )
+  if (any(!sct.check)) {
+    stop("Not all assays have been processed with SCTransform.")
+  }
+  object.list <- my.lapply(
+    X = 1:length(x = object.list),
+    FUN = function(i) {
+      assay <- sct.assays[i]
+      if (is.null(x = sct.clip.range)) {
+        obj <- GetResidual(
+          object = object.list[[i]],
+          features = features,
+          assay = assay[i],
+          verbose = FALSE
+        )
+      } else {
+        obj <- GetResidual(
+          object = object.list[[i]], 
+          assay = assay[i], 
+          features = anchor.features, 
+          replace.value = TRUE, 
+          clip.range = SCT.clip.range, 
+          verbose = FALSE
+        )
+      }
+      scale.data <- GetAssayData(
+        object = obj,
+        assay = assay,
+        slot = 'scale.data'
+      )
+      obj <- SetAssayData(
+        object = obj,
+        slot = 'scale.data',
+        new.data = scale.data[features, ],
+        assay = assay
+      )
+    }
+  )
+  return(object.list)
+}
+
 #' Select integration features
 #'
 #' Choose the features to use when integrating multiple datasets. This function ranks features by
