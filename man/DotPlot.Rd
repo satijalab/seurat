@@ -5,13 +5,15 @@
 \alias{SplitDotPlotGG}
 \title{Dot plot visualization}
 \usage{
-DotPlot(object, features, cols = c("lightgrey", "blue"),
+DotPlot(object, assay = NULL, features, cols = c("lightgrey", "blue"),
   col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6,
   group.by = NULL, split.by = NULL, scale.by = "radius",
   scale.min = NA, scale.max = NA, ...)
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{assay}{Name of assay to use, defaults to the active assay}
 
 \item{features}{Input vector of features}
 
@@ -49,8 +51,8 @@ A ggplot object
 \description{
 Intuitive way of visualizing how feature expression changes across different
 identity classes (clusters). The size of the dot encodes the percentage of
-cells within a class, while the color encodes the AverageExpression level of
-cells within a class (blue is high).
+cells within a class, while the color encodes the AverageExpression level
+across all cells within a class (blue is high).
 }
 \examples{
 cd_genes <- c("CD247", "CD3E", "CD9")

@@ -8,14 +8,20 @@
 \usage{
 HVFInfo(object, ...)
 
-\method{HVFInfo}{Assay}(object, ...)
+\method{HVFInfo}{Assay}(object, selection.method, status = FALSE, ...)
 
-\method{HVFInfo}{Seurat}(object, assay = NULL, ...)
+\method{HVFInfo}{Seurat}(object, selection.method = NULL, assay = NULL,
+  status = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
+
+\item{selection.method}{Which method to pull; choose one from \code{c('sctransform', 'sct')}
+or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}}
+
+\item{status}{Add variable status to the resulting data.frame}
 
 \item{assay}{Name of assay to pull highly variable feature information for}
 }
@@ -27,7 +33,7 @@ Get highly variable feature information
 }
 \examples{
 # Get the HVF info directly from an Assay object
-HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
+HVFInfo(object = pbmc_small[["RNA"]], selection.method = 'vst')[1:5, ]
 
 # Get the HVF info from a specific Assay in a Seurat object
 HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]

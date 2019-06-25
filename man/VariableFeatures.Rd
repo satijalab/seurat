@@ -13,9 +13,10 @@ VariableFeatures(object, ...)
 
 VariableFeatures(object, ...) <- value
 
-\method{VariableFeatures}{Assay}(object, ...)
+\method{VariableFeatures}{Assay}(object, selection.method = NULL, ...)
 
-\method{VariableFeatures}{Seurat}(object, assay = NULL, ...)
+\method{VariableFeatures}{Seurat}(object, assay = NULL,
+  selection.method = NULL, ...)
 
 \method{VariableFeatures}{Assay}(object, ...) <- value
 
@@ -27,6 +28,8 @@ VariableFeatures(object, ...) <- value
 \item{...}{Arguments passed to other methods}
 
 \item{value}{A character vector of variable features}
+
+\item{selection.method}{Method used to set variable features}
 
 \item{assay}{Name of assay to pull variable features for}
 }

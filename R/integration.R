@@ -37,6 +37,7 @@ NULL
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #'
 #' @export
 #'
@@ -56,7 +57,7 @@ FindIntegrationAnchors <- function(
   verbose = TRUE
 ) {
   my.lapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
     no = future_lapply
   )
@@ -594,7 +595,7 @@ IntegrateData <- function(
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
     object.list[[merge.pair[[2]]]] <- NULL
-    invisible(x = gc(verbose = FALSE))
+    invisible(x = CheckGC())
   }
   integrated.data <- GetAssayData(
     object = object.list[[as.character(x = ii)]],
@@ -750,6 +751,7 @@ LocalStruct <- function(
 #' @importFrom RANN nn2
 #' @importFrom pbapply pbsapply
 #' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #' @export
 #'
 MixingMetric <- function(
@@ -763,7 +765,7 @@ MixingMetric <- function(
   verbose = TRUE
 ) {
   my.sapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
+    test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
@@ -806,6 +808,8 @@ MixingMetric <- function(
 #' set for any object in object.list.
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
+#' @return A vector of selected features
+#'
 #' @export
 #'
 SelectIntegrationFeatures <- function(
@@ -820,13 +824,13 @@ SelectIntegrationFeatures <- function(
     if (length(x = assay) != length(x = object.list)) {
       stop("If specifying the assay, please specify one assay per object in the object.list")
     }
-    for(ii in length(x = object.list)) {
+    for (ii in length(x = object.list)) {
       DefaultAssay(object = object.list[[ii]]) <- assay[ii]
     }
   } else {
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
-  for(ii in 1:length(x = object.list)) {
+  for (ii in 1:length(x = object.list)) {
     if (length(x = VariableFeatures(object = object.list[[ii]])) == 0) {
       if (verbose) {
         message(paste0("No variable features found for object", ii, " in the object.list. Running FindVariableFeatures ..."))
@@ -839,7 +843,7 @@ SelectIntegrationFeatures <- function(
     FUN = function(x) VariableFeatures(object = object.list[[x]], assay = assay[x]))
   ))
   var.features <- sort(x = table(var.features), decreasing = TRUE)
-  for(i in 1:length(x = object.list)) {
+  for (i in 1:length(x = object.list)) {
     var.features <- var.features[names(x = var.features) %in% rownames(x = object.list[[i]][[assay[i]]])]
   }
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
@@ -848,7 +852,7 @@ SelectIntegrationFeatures <- function(
     feature.ranks <- sapply(X = features, FUN = function(x) {
       ranks <- sapply(X = object.list, FUN = function(y) {
         vf <- VariableFeatures(object = y)
-        if (x %in% vf){
+        if (x %in% vf) {
           return(which(x = x == vf))
         }
         return(NULL)
@@ -861,14 +865,18 @@ SelectIntegrationFeatures <- function(
   tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
     ranks <- sapply(X = object.list, FUN = function(y) {
       vf <- VariableFeatures(object = y)
-      if (x %in% vf){
+      if (x %in% vf) {
         return(which(x = x == vf))
       }
       return(NULL)
     })
     median(x = unlist(x = ranks))
   })
-  features <- c(features, names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features))))
+  features <- c(
+    features,
+    names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
+  )
+  return(features)
 }
 
 #' Transfer Labels
@@ -1053,8 +1061,11 @@ TransferData <- function(
       message(paste0("Transfering ", nfeatures, " features onto reference data"))
     }
     new.data <- refdata.anchors %*% weights
-    rownames(new.data) <- rownames(refdata)
-    colnames(new.data) <- query.cells
+    rownames(x = new.data) <- rownames(x = refdata)
+    colnames(x = new.data) <- query.cells
+    if (inherits(x = new.data, what = "Matrix")) {
+      new.data <- as(object = new.data, Class = "dgCMatrix")
+    }
     if (slot == "counts") {
       new.assay <- CreateAssayObject(counts = new.data)
     } else if (slot == "data") {

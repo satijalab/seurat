@@ -2,39 +2,52 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{as.Seurat}
 \alias{as.Seurat}
+\alias{as.Seurat.CellDataSet}
 \alias{as.Seurat.loom}
 \alias{as.Seurat.SingleCellExperiment}
 \title{Convert objects to Seurat objects}
 \usage{
 as.Seurat(x, ...)
 
+\method{as.Seurat}{CellDataSet}(x, slot = "counts", assay = "RNA",
+  verbose = TRUE, ...)
+
 \method{as.Seurat}{loom}(x, cells = "CellID", features = "Gene",
   normalized = NULL, scaled = NULL, assay = NULL, verbose = TRUE,
   ...)
 
 \method{as.Seurat}{SingleCellExperiment}(x, counts = "counts",
-  data = "logcounts", ...)
+  data = "logcounts", assay = "RNA",
+  project = "SingleCellExperiment", ...)
 }
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}
 
 \item{...}{Arguments passed to other methods}
 
+\item{slot}{Slot to store expression data as}
+
+\item{assay}{Name to store expression matrices as}
+
+\item{verbose}{Display progress updates}
+
 \item{cells}{The name of the dataset within \code{col_attrs} containing cell names}
 
 \item{features}{The name of the dataset within \code{row_attrs} containing feature names}
 
-\item{normalized}{The name of the dataset within \code{layers} containing the normalized expression matrix}
+\item{normalized}{The name of the dataset within \code{layers} containing the
+normalized expression matrix; pass \code{/matrix} (with preceeding forward slash) to store
+\code{/matrix} as normalized data}
 
 \item{scaled}{The name of the dataset within \code{layers} containing the scaled expression matrix}
 
-\item{assay}{Name of the assay to create}
+\item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
+set to \code{NULL} if only normalized data are present}
 
-\item{verbose}{Display progress updates}
+\item{data}{name of the SingleCellExperiment assay to slot as \code{data}.
+Set to NULL if only counts are present}
 
-\item{counts}{name of the SingleCellExperiment assay to store as \code{counts}}
-
-\item{data}{name of the SingleCellExperiment assay to slot as \code{data}}
+\item{project}{Project name for new Seurat object}
 }
 \description{
 Convert objects to Seurat objects

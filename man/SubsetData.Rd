@@ -57,7 +57,9 @@ original object. Takes either a list of cells to use as a subset, or a
 parameter (for example, a gene), to subset on.
 }
 \examples{
+\dontrun{
 pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 pbmc1
+}
 
 }

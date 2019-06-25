@@ -12,8 +12,8 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
   pt.size = NULL, reduction = NULL, group.by = NULL,
   split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
   label.size = 4, repel = FALSE, cells.highlight = NULL,
-  cols.highlight = "red", sizes.highlight = 1, na.value = "grey50",
-  combine = TRUE, ncol = NULL, ...)
+  cols.highlight = "#DE2D26", sizes.highlight = 1,
+  na.value = "grey50", combine = TRUE, ncol = NULL, ...)
 
 PCAPlot(object, ...)
 
@@ -28,7 +28,9 @@ UMAPPlot(object, ...)
 
 \item{cells}{Vector of cells to plot (default is all cells)}
 
-\item{cols}{Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors}
+\item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
+or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+By default, ggplot2 assigns colors}
 
 \item{pt.size}{Adjust point size for plotting}
 

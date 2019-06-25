@@ -4,6 +4,7 @@
 .RDataTmp
 src/*.o
 src/*.so
+src/*.dll
 .DS_Store
 *.pdf
 *.Rproj
