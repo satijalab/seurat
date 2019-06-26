@@ -1456,7 +1456,7 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   }
   mat1.names <- rownames(x = mat1)
   mat2.names <- rownames(x = mat2)
-  if (all(mat1.names == mat2.names)) {
+  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
     new.mat <- cbind(mat1, mat2)
   } else {
     mat1 <- as(object = mat1, Class = "RsparseMatrix")

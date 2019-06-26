@@ -24,6 +24,7 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #' @slot object.list List of objects used to create anchors
 #' @slot reference.cells List of cell names in the reference dataset - needed when performing data
 #' transfer.
+#' @slot reference.objects Position of reference object/s in object.list 
 #' @slot query.cells List of cell names in the query dataset - needed when performing data transfer
 #' @slot anchors The anchor matrix. This contains the cell indices of both anchor pair cells, the
 #' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
@@ -41,6 +42,7 @@ AnchorSet <- setClass(
   slots = list(
     object.list = "list",
     reference.cells = "vector",
+    reference.objects = "vector",
     query.cells = "vector",
     anchors = "ANY",
     offsets = "ANY",
