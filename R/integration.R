@@ -1175,7 +1175,8 @@ PrepSCTIntegration <- function(
   )
   assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
   assay <- rep_len(x = assay, length.out = length(x = object.list))
-  object.list <- sapply(
+  objects.names <- names(x = object.list)
+  object.list <- lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
       DefaultAssay(object = object.list[[i]]) <- assay[i]
@@ -1249,6 +1250,7 @@ PrepSCTIntegration <- function(
     assay <- as.character(x = assays.used[i])
     object.list[[i]] <- LogSeuratCommand(object = object.list[[i]])
   }
+  names(x = object.list) <- objects.names
   return(object.list)
 }
 
