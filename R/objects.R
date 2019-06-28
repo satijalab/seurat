@@ -1259,6 +1259,16 @@ UpdateSeuratObject <- function(object) {
             )
           }
         }
+        VariableFeatures(object = assay) <- gsub(
+          pattern = '_',
+          replacement = '-',
+          x = VariableFeatures(object = assay)
+        )
+        rownames(x = slot(object = assay, name = "meta.features")) <-  gsub(
+          pattern = '_',
+          replacement = '-',
+          x = rownames(x = assay[[]])
+        )
         object[[assay.name]] <- assay
       }
       for (reduc.name in FilterObjects(object = object, classes.keep = 'DimReduc')) {
