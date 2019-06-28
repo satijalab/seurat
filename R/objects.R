@@ -1214,7 +1214,7 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    object.version <- package_version(x = object@version)
+    object.version <- package_version(x = slot(object = object, name = 'version'))
     if (object.version >= package_version(x = "2.0.0") && object.version < package_version(x = '3.0.0')) {
       # Run update
       seurat.version <- packageVersion(pkg = "Seurat")
@@ -1238,7 +1238,7 @@ UpdateSeuratObject <- function(object) {
         tools = list()
       )
     }
-    if (package_version(x = object@version) >= package_version(x = "3.0.0")) {
+    if (package_version(x = object.version) >= package_version(x = "3.0.0")) {
       # Run validation
       message("Validating object structure")
       # Validate object keys
@@ -1259,6 +1259,16 @@ UpdateSeuratObject <- function(object) {
             )
           }
         }
+        VariableFeatures(object = assay) <- gsub(
+          pattern = '_',
+          replacement = '-',
+          x = VariableFeatures(object = assay)
+        )
+        rownames(x = slot(object = assay, name = "meta.features")) <-  gsub(
+          pattern = '_',
+          replacement = '-',
+          x = rownames(x = assay[[]])
+        )
         object[[assay.name]] <- assay
       }
       for (reduc.name in FilterObjects(object = object, classes.keep = 'DimReduc')) {
