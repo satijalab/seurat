@@ -4245,6 +4245,7 @@ WhichCells.Seurat <- function(
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
   }
+  cell.order <- cells
   if (!is.null(x = idents)) {
     set.seed(seed = seed)
     if (any(!idents %in% levels(x = Idents(object = object)))) {
@@ -4320,8 +4321,9 @@ WhichCells.Seurat <- function(
       return(x)
     }
   )
-  cells <- na.omit(object = unlist(x = cells, use.names = FALSE))
-  return(as.character(x = cells))
+  cells <- as.character(x = na.omit(object = unlist(x = cells, use.names = FALSE)))
+  cells <- cells[na.omit(object = match(x = cell.order, table = cells))]
+  return(cells)
 }
 
 #' @note
@@ -5313,6 +5315,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   slot(object = x, name = "data") <- GetAssayData(object = x, slot = "data")[features, cells, drop = FALSE]
   cells.scaled <- colnames(x = GetAssayData(object = x, slot = "scale.data"))
   cells.scaled <- cells.scaled[cells.scaled %in% cells]
+  cells.scaled <- cells.scaled[na.omit(object = match(x = colnames(x = x), table = cells.scaled))]
   features.scaled <- rownames(x = GetAssayData(object = x, slot = 'scale.data'))
   features.scaled <- features.scaled[features.scaled %in% features]
   slot(object = x, name = "scale.data") <- if (length(x = cells.scaled) > 0 && length(x = features.scaled) > 0) {
