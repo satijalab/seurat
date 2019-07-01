@@ -793,6 +793,8 @@ RunPCA.default <- function(
   approx = TRUE,
   ...
 ) {
+  sink(file = stderr(), type = 'output')
+  on.exit(expr = sink(), add = TRUE)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
