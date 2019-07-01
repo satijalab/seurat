@@ -961,6 +961,7 @@ FeaturePlot <- function(
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     if (blend) {
+      features <- features[1:2]
       no.expression <- features[colMeans(x = data.plot[, features]) == 0]
       if (length(x = no.expression) != 0) {
         stop(
@@ -1063,9 +1064,10 @@ FeaturePlot <- function(
       plots[[(length(x = features) * (i - 1)) + j]] <- plot
     }
   }
+
   if (blend) {
     blend.legend <- BlendMap(color.matrix = color.matrix)
-    for (i in 1:length(x = levels(x = data$split))) {
+    for (ii in 1:length(x = levels(x = data$split))) {
       suppressMessages(expr = plots <- append(
         x = plots,
         values = list(
@@ -1073,7 +1075,7 @@ FeaturePlot <- function(
             scale_y_continuous(
               sec.axis = dup_axis(name = ifelse(
                 test = length(x = levels(x = data$split)) > 1,
-                yes = levels(x = data$split)[i],
+                yes = levels(x = data$split)[ii],
                 no = ''
               )),
               expand = c(0, 0)
@@ -1081,7 +1083,7 @@ FeaturePlot <- function(
             labs(
               x = features[1],
               y = features[2],
-              title = if (i == 1) {
+              title = if (ii == 1) {
                 paste('Color threshold:', blend.threshold)
               } else {
                 NULL
@@ -1089,7 +1091,7 @@ FeaturePlot <- function(
             ) +
             no.right
         ),
-        after = 4 * i - 1
+        after = 4 * ii - 1
       ))
     }
   }
