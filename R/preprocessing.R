@@ -495,7 +495,14 @@ GetResidual <- function(
       slot = "scale.data",
       new.data = scale.data[!rownames(x = scale.data) %in% new_features, , drop = FALSE]
     )
-    
+    if (nrow(GetAssayData(object = object, slot = 'scale.data', assay = assay)) == 0 ){
+      object <- SetAssayData(
+        object = object,
+        slot = 'scale.data',
+        new.data = new_residual,
+        assay = assay
+      )
+    } else {
     object <- SetAssayData(
       object = object,
       slot = 'scale.data',
@@ -505,6 +512,7 @@ GetResidual <- function(
       ),
       assay = assay
     )
+    }
   }
   return(object)
 }
