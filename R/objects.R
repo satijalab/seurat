@@ -1214,9 +1214,9 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    object.version <- package_version(x = slot(object = object, name = 'version'))
-    if (object.version >= package_version(x = "2.0.0") && object.version < package_version(x = '3.0.0')) {
+    if (slot(object = object, name = 'version') >= package_version(x = "2.0.0") && slot(object = object, name = 'version') < package_version(x = '3.0.0')) {
       # Run update
+      message("Updating from v2.X to v3.X")
       seurat.version <- packageVersion(pkg = "Seurat")
       new.assay <- UpdateAssay(old.assay = object, assay = "RNA")
       assay.list <- list(new.assay)
@@ -1238,7 +1238,7 @@ UpdateSeuratObject <- function(object) {
         tools = list()
       )
     }
-    if (package_version(x = object.version) >= package_version(x = "3.0.0")) {
+    if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
       message("Validating object structure")
       # Validate object keys
