@@ -434,9 +434,11 @@ FindTransferAnchors <- function(
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
   }
+  slot <- "data"
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = c(reference.assay, query.assay),
+    slot = slot,
     cells1 = colnames(x = reference),
     cells2 = colnames(x = query),
     reduction = reduction,
