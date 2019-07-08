@@ -476,8 +476,8 @@ GetResidual <- function(
       clip.max <- vst_out$arguments$res_clip_range[2]
       clip.min <- vst_out$arguments$res_clip_range[1]
     } else {
-      clip.max <- clip.range[2]
-      clip.min <- clip.range[1]
+      clip.max <- max(clip.range)
+      clip.min <- min(clip.range)
     }
     new_residual <- get_residuals(
       vst_out = vst_out,
