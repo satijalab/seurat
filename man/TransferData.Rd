@@ -11,21 +11,21 @@ TransferData(anchorset, refdata, weight.reduction = "pcaproject",
 \arguments{
 \item{anchorset}{Results from FindTransferAnchors}
 
-\item{refdata}{Data to transfer. Should be either a vector where the names 
-correspond to reference cells, or a matrix, where the column names correspond 
+\item{refdata}{Data to transfer. Should be either a vector where the names
+correspond to reference cells, or a matrix, where the column names correspond
 to the reference cells.}
 
-\item{weight.reduction}{Dimensional reduction to use for the weighting. 
+\item{weight.reduction}{Dimensional reduction to use for the weighting.
 Options are:
 \itemize{
    \item{pcaproject: Use the projected PCA used for anchor building}
    \item{pca: Use an internal PCA on the query only}
    \item{cca: Use the CCA used for anchor building}
-   \item{custom DimReduc: User provided DimReduc object computed on the query 
+   \item{custom DimReduc: User provided DimReduc object computed on the query
    cells}
 }}
 
-\item{l2.norm}{Perform L2 normalization on the cell embeddings after 
+\item{l2.norm}{Perform L2 normalization on the cell embeddings after
 dimensional reduction}
 
 \item{dims}{Number of PCs to use in the weighting procedure}
@@ -43,8 +43,8 @@ dimensional reduction}
 \item{slot}{Slot to store the imputed data}
 }
 \value{
-If refdata is a vector, returns a dataframe with label predictions. 
-If refdata is a matrix, returns an Assay object where the imputed data has 
+If refdata is a vector, returns a dataframe with label predictions.
+If refdata is a matrix, returns an Assay object where the imputed data has
 been stored in the provided slot.
 }
 \description{
