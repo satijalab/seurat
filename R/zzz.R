@@ -18,7 +18,7 @@
 NULL
 
 seurat_default_options <- list(
-  Seurat.memsafe = TRUE
+  Seurat.memsafe = FALSE
 )
 
 .onLoad <- function(libname, pkgname) {

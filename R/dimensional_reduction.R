@@ -286,7 +286,7 @@ ProjectDim <- function(
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
   }
   cell.embeddings <- Embeddings(object = redeuc)
-  new.feature.loadings.full <- FastMatMult(m1 = data.use, m2 = cell.embeddings)
+  new.feature.loadings.full <- data.use %*% cell.embeddings
   rownames(x = new.feature.loadings.full) <- rownames(x = data.use)
   colnames(x = new.feature.loadings.full) <- colnames(x = cell.embeddings)
   Loadings(object = redeuc, projected = TRUE) <- new.feature.loadings.full
@@ -314,7 +314,6 @@ ProjectDim <- function(
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
 #' @param verbose ...
-#' @param use.cpp ...
 #'
 #' @importFrom irlba irlba
 #'
@@ -327,7 +326,6 @@ RunCCA.default <- function(
   standardize = TRUE,
   num.cc = 20,
   verbose = FALSE,
-  use.cpp = TRUE,
   ...
 ) {
   set.seed(seed = 42)
@@ -337,17 +335,7 @@ RunCCA.default <- function(
     object1 <- Standardize(mat = object1, display_progress = FALSE)
     object2 <- Standardize(mat = object2, display_progress = FALSE)
   }
-  if (as.numeric(x = max(dim(x = object1))) * as.numeric(x = max(dim(x = object2))) > .Machine$integer.max) {
-    # if the returned matrix from FastMatMult has more than 2^31-1 entries, throws an error due to
-    # storage of certain attributes as ints, force usage of R version
-    use.cpp <- FALSE
-  }
-  if (use.cpp == TRUE) {
-    mat3 <- FastMatMult(m1 = t(x = object1), m2 = object2)
-  }
-  else {
-    mat3 <- crossprod(x = object1, y = object2)
-  }
+  mat3 <- crossprod(x = object1, y = object2)
   cca.svd <- irlba(A = mat3, nv = num.cc)
   cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
@@ -395,7 +383,6 @@ RunCCA.Seurat <- function(
   add.cell.id1 = NULL,
   add.cell.id2 = NULL,
   verbose = TRUE,
-  use.cpp = TRUE,
   ...
 ) {
   assay1 <- assay1 %||% DefaultAssay(object = object1)
@@ -452,7 +439,6 @@ RunCCA.Seurat <- function(
     standardize = TRUE,
     num.cc = num.cc,
     verbose = verbose,
-    use.cpp = use.cpp
   )
   if (verbose) {
     message("Merging objects")

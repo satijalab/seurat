@@ -40,20 +40,6 @@ test_that("Log Normalization returns expected values", {
   expect_equal(mat.norm[4, 4], mat.norm.r[4, 4])
 })
 
-# Tests for matrix multiply
-# --------------------------------------------------------------------------------
-context("Matrix Multiply")
-
-mat <- as.matrix(mat)
-
-test_that("Fast implementation of matrix multiply returns as expected", {
-  expect_equal(mat %*% mat, FastMatMult(mat, mat))
-  mat[1, 1] <- NA
-  expect_equal(mat %*% mat, FastMatMult(mat, mat))
-  mat[1, 1] <- NaN
-  expect_equal(mat %*% mat, FastMatMult(mat, mat))
-})
-
 # Tests for scaling data
 # --------------------------------------------------------------------------------
 context("Fast Scale Data Functions")
