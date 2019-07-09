@@ -7,9 +7,9 @@
 FindIntegrationAnchors(object.list = NULL, assay = NULL,
   reference = NULL, anchor.features = 2000, scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
-  sct.clip.range = NULL, l2.norm = TRUE, dims = 1:30, k.anchor = 5,
-  k.filter = 200, k.score = 30, max.features = 200,
-  nn.method = "rann", eps = 0, verbose = TRUE)
+  sct.clip.range = NULL, reduction = "cca", l2.norm = TRUE,
+  dims = 1:30, k.anchor = 5, k.filter = 200, k.score = 30,
+  max.features = 200, nn.method = "rann", eps = 0, verbose = TRUE)
 }
 \arguments{
 \item{object.list}{A list of objects between which to find anchors for
@@ -43,6 +43,8 @@ or SCT}
 
 \item{sct.clip.range}{Numeric of length two specifying the min and max values
 the Pearson residual will be clipped to}
+
+\item{reduction}{Dimensional reduction to perform when finding anchors.}
 
 \item{l2.norm}{Perform L2 normalization on the CCA cell embeddings after
 dimensional reduction}
