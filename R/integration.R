@@ -35,6 +35,7 @@ NULL
 #' or SCT
 #' @param sct.clip.range Numeric of length two specifying the min and max values
 #' the Pearson residual will be clipped to
+#' @param reduction Dimensional reduction to perform when finding anchors. 
 #' @param l2.norm Perform L2 normalization on the CCA cell embeddings after
 #' dimensional reduction
 #' @param dims Which dimensions to use from the CCA to specify the neighbor
@@ -65,6 +66,7 @@ FindIntegrationAnchors <- function(
   scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
   sct.clip.range = NULL,
+  reduction = "cca",
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
@@ -166,8 +168,27 @@ FindIntegrationAnchors <- function(
       }
     )
   }
-  reduction <- "cca"
+  nn.reduction <- reduction
+  # if using pca, only need to compute the internal neighborhood structure once
+  # for each dataset
   internal.neighbors <- list()
+  if (nn.reduction == "pca") {
+    if (verbose) {
+      message("Computing within dataset neighborhoods")
+    }
+    k.neighbor <- max(k.anchor, k.score)
+    internal.neighbors <- my.lapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) {
+        NNHelper(
+          data = Embeddings(object = object.list[[x]][[nn.reduction]])[, dims],
+          k = k.neighbor + 1,
+          method = nn.method,
+          eps = eps
+        )
+      }
+    )
+  }
   # determine pairwise combinations
   combinations <- expand.grid(1:length(x = object.list), 1:length(x = object.list))
   combinations <- combinations[combinations$Var1 < combinations$Var2, , drop = FALSE]
@@ -236,7 +257,56 @@ FindIntegrationAnchors <- function(
           reduction.2 <- character()
           object.pair
         },
-        stop("Invalid reduction. Please choose cca.")
+        'pca' = {
+          common.features <- intersect(
+            x = rownames(x = Loadings(object = object.1[["pca"]])),
+            y = rownames(x = Loadings(object = object.2[["pca"]]))
+          )
+          object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
+          projected.embeddings.1<- t(x = GetAssayData(object = object.1, slot = "scale.data")[common.features, ]) %*%
+            Loadings(object = object.2[["pca"]])[common.features, ]
+          object.pair[['projectedpca.1']] <- CreateDimReducObject(
+            embeddings = rbind(projected.embeddings.1, Embeddings(object = object.2[["pca"]])),
+            assay = DefaultAssay(object = object.1),
+            key = "projectedpca1_"
+          )
+          projected.embeddings.2 <- t(x = GetAssayData(object = object.2, slot = "scale.data")[common.features, ]) %*%
+            Loadings(object = object.1[["pca"]])[common.features, ]
+          object.pair[['projectedpca.2']] <- CreateDimReducObject(
+            embeddings = rbind(projected.embeddings.2, Embeddings(object = object.1[["pca"]])),
+            assay = DefaultAssay(object = object.2),
+            key = "projectedpca2_"
+          )
+          object.pair[["pca"]] <- CreateDimReducObject(
+            embeddings = rbind(
+              Embeddings(object = object.1[["pca"]]),
+              Embeddings(object = object.2[["pca"]])),
+            assay = DefaultAssay(object = object.1),
+            key = "pca_"
+          )
+          reduction <- "projectedpca.1"
+          reduction.2 <- "projectedpca.2"
+          if (l2.norm){
+            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- sweep(
+              x = Embeddings(object = object.pair[["projectedpca.1"]]),
+              MARGIN = 2,
+              STATS = apply(X = Embeddings(object = object.pair[["projectedpca.1"]]), MARGIN = 2, FUN = sd),
+              FUN = "/"
+            )
+            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- sweep(
+              x = Embeddings(object = object.pair[["projectedpca.2"]]),
+              MARGIN = 2,
+              STATS = apply(X = Embeddings(object = object.pair[["projectedpca.2"]]), MARGIN = 2, FUN = sd),
+              FUN = "/"
+            )
+            object.pair <- L2Dim(object = object.pair, reduction = "projectedpca.1")
+            object.pair <- L2Dim(object = object.pair, reduction = "projectedpca.2")
+            reduction <- paste0(reduction, ".l2")
+            reduction.2 <- paste0(reduction.2, ".l2")
+          }
+          object.pair
+        },
+        stop("Invalid reduction parameter. Please choose either cca or pca")
       )
       internal.neighbors <- internal.neighbors[c(i, j)]
       anchors <- FindAnchors(
