@@ -404,12 +404,14 @@ FindTransferAnchors <- function(
           query <- GetResidual(query, features = features, verbose = FALSE)
           query[[query.assay]]@scale.data <- query[[query.assay]]@scale.data[features, ]
           query[[query.assay]]@data <- as.sparse(query[[query.assay]]@scale.data)
+          query[[query.assay]]@counts <- query[[query.assay]]@data
           
           if(reference.assay == "SCT"){
           reference <- GetResidual(reference, features = features, verbose = FALSE)
           }
           reference[[reference.assay]]@scale.data <- reference[[reference.assay]]@scale.data[features, ]
           reference[[reference.assay]]@data <- as.sparse(reference[[reference.assay]]@scale.data)
+          reference[[reference.assay]]@counts <- reference[[reference.assay]]@data
           feature.mean <- "SCT"
           slot <- "scale.data"
           }
