@@ -44,7 +44,12 @@ or SCT}
 \item{sct.clip.range}{Numeric of length two specifying the min and max values
 the Pearson residual will be clipped to}
 
-\item{reduction}{Dimensional reduction to perform when finding anchors.}
+\item{reduction}{Dimensional reduction to perform when finding anchors. Can 
+be one of:
+\itemize{
+  \item{cca: Canonical correlation analysis}
+  \item{rpca: Reciprocal PCA}
+}}
 
 \item{l2.norm}{Perform L2 normalization on the CCA cell embeddings after
 dimensional reduction}
