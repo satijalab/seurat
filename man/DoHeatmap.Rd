@@ -62,5 +62,4 @@ Draws a heatmap of single cell feature expression.
 }
 \examples{
 DoHeatmap(object = pbmc_small)
-DoHeatmap(object = pbmc_small, assay='RNA', features=my.genes, group.colors=my.group.colors)
 }
