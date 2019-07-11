@@ -21,6 +21,8 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 
 \item{group.bar}{Add a color bar showing group status for cells}
 
+\item{group.colors}{Vector of colors to use for the color bar}
+
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped); defaults to 2.5
@@ -60,5 +62,5 @@ Draws a heatmap of single cell feature expression.
 }
 \examples{
 DoHeatmap(object = pbmc_small)
-
+DoHeatmap(object = pbmc_small, assay='RNA', features=my.genes, group.colors=my.group.colors)
 }

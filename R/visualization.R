@@ -178,6 +178,7 @@ DimHeatmap <- function(
 #' if \code{slot} is 'scale.data', 6 otherwise
 #' @param group.by A vector of variables to group cells by; pass 'ident' to group by cell identity classes
 #' @param group.bar Add a color bar showing group status for cells
+#' @param group.colors colors to use for the color bar
 #' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay Assay to pull from
 # @param check.plot Check that plotting will finish in a reasonable amount of time
@@ -211,6 +212,7 @@ DoHeatmap <- function(
   cells = NULL,
   group.by = 'ident',
   group.bar = TRUE,
+  group.colors = NULL,
   disp.min = -2.5,
   disp.max = NULL,
   slot = 'scale.data',
@@ -293,6 +295,7 @@ DoHeatmap <- function(
       )
       data.group <- rbind(data.group, na.data.group)
     }
+    lgroup <- length(levels(group.use))
     plot <- SingleRasterMap(
       data = data.group,
       raster = raster,
@@ -300,18 +303,26 @@ DoHeatmap <- function(
       disp.max = disp.max,
       feature.order = features,
       cell.order = names(x = sort(x = group.use)),
-      group.by = group.use
+      group.by = group.use,
+      group.colors = if(group.bar) group.colors[1:lgroup] else NULL
     )
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
+			cols <- c(hue_pal()(length(x = levels(x = group.use))))
+			if(!is.null(group.colors)) {
+				lpassed <- length(group.colors)
+				if(lpassed < lgroup) {
+					stop('group.colors has two few colors: has ', lpassed, ' but needs ', lgroup, '\n')
+				} else {
+					cols <- group.colors[1:lgroup]
+				}
+			}
       group.use2 <- sort(x = group.use)
       if (draw.lines) {
         na.group <- RandomName(length = 20)
         levels(x = group.use2) <- c(levels(x = group.use2), na.group)
         group.use2[placeholder.cells] <- na.group
-        cols <- c(hue_pal()(length(x = levels(x = group.use))), "#FFFFFF")
-      } else {
-        cols <- c(hue_pal()(length(x = levels(x = group.use))))
+        cols <- c(cols, "#FFFFFF")
       }
       pbuild <- ggplot_build(plot = plot)
       names(x = cols) <- levels(x = group.use2)
@@ -4370,7 +4381,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 # @param disp.max Maximum display value (all values above are clipped)
 # @param limits A two-length numeric vector with the limits for colors on the plot
 # @param group.by A vector to group cells by, should be one grouping identity per cell
-#
+# @param group.colors colors to use for the color bar#
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
 #' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend geom_tile
 #
@@ -4383,7 +4394,8 @@ SingleRasterMap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   limits = NULL,
-  group.by = NULL
+  group.by = NULL,
+  group.colors = NULL
 ) {
   data <- MinMax(data = data, min = disp.min, max = disp.max)
   data <- Melt(x = t(x = data))
@@ -4414,6 +4426,10 @@ SingleRasterMap <- function(
       alpha = 0
     ) +
       guides(color = guide_legend(override.aes = list(alpha = 1)))
+    if(!is.null(x = group.colors)) {
+      plot <- plot +
+        scale_color_manual(values=group.colors)
+    }
   }
   return(plot)
 }
