@@ -35,7 +35,12 @@ NULL
 #' or SCT
 #' @param sct.clip.range Numeric of length two specifying the min and max values
 #' the Pearson residual will be clipped to
-#' @param reduction Dimensional reduction to perform when finding anchors. 
+#' @param reduction Dimensional reduction to perform when finding anchors. Can 
+#' be one of:
+#' \itemize{
+#'   \item{cca: Canonical correlation analysis}
+#'   \item{rpca: Reciprocal PCA}
+#' }
 #' @param l2.norm Perform L2 normalization on the CCA cell embeddings after
 #' dimensional reduction
 #' @param dims Which dimensions to use from the CCA to specify the neighbor
@@ -66,7 +71,7 @@ FindIntegrationAnchors <- function(
   scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
   sct.clip.range = NULL,
-  reduction = "cca",
+  reduction = c("cca", "rpca"),
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
@@ -78,6 +83,10 @@ FindIntegrationAnchors <- function(
   verbose = TRUE
 ) {
   normalization.method <- match.arg(arg = normalization.method)
+  reduction <- match.arg(arg = reduction)
+  if (reduction == "rpca") {
+    reduction <- "pca"
+  }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
@@ -173,6 +182,7 @@ FindIntegrationAnchors <- function(
   # for each dataset
   internal.neighbors <- list()
   if (nn.reduction == "pca") {
+    k.filter <- NA
     if (verbose) {
       message("Computing within dataset neighborhoods")
     }
@@ -306,7 +316,7 @@ FindIntegrationAnchors <- function(
           }
           object.pair
         },
-        stop("Invalid reduction parameter. Please choose either cca or pca")
+        stop("Invalid reduction parameter. Please choose either cca or rpca")
       )
       internal.neighbors <- internal.neighbors[c(i, j)]
       anchors <- FindAnchors(
@@ -2170,7 +2180,7 @@ FindWeights <- function(
   if (verbose) {
     message("Finding integration vector weights")
   }
-  if (is.null(reduction) & is.null(features)) {
+  if (is.null(x = reduction) & is.null(x = features)) {
     stop("Need to specify either dimension reduction object or a set of features")
   }
   assay <- assay %||% DefaultAssay(object = object)
