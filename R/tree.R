@@ -17,6 +17,7 @@ NULL
 #' tree is constructed.
 #'
 #' @param object Seurat object
+#' @param assay Assay to use for the analysis.
 #' @param features Genes to use for the analysis. Default is the set of
 #' variable genes (\code{VariableFeatures(object = object)})
 #' @param dims If set, tree is calculated in PCA space; overrides \code{features}
@@ -46,6 +47,7 @@ NULL
 #'
 BuildClusterTree <- function(
   object,
+  assay = NULL,
   features = NULL,
   dims = NULL,
   graph = NULL,
@@ -55,6 +57,7 @@ BuildClusterTree <- function(
   reorder.numeric = FALSE,
   verbose = TRUE
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = graph)) {
     idents <- levels(x = object)
     nclusters <- length(x = idents)
@@ -118,6 +121,7 @@ BuildClusterTree <- function(
     features <- intersect(x = features, y = rownames(x = object))
     data.avg <- AverageExpression(
       object = object,
+      assays = assay,
       features = features,
       slot = slot,
       verbose = verbose
@@ -142,6 +146,7 @@ BuildClusterTree <- function(
     }
     object <- BuildClusterTree(
       object = object,
+      assay = assay,
       features = features,
       dims = dims,
       graph = graph,
