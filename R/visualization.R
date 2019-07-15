@@ -2192,9 +2192,9 @@ BlueAndRed <- function(k = 50) {
 #' @export
 #' 
 #' @examples 
-#' pbmc_small[["tsne_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
-#'     reduction = "tsne", reduction.key = 'tsne_', outlier.sd = 0.5)
-#' DimPlot(pbmc_small, reduction = "tsne_new")
+#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+#'     reduction = "umap", reduction.key = 'umap_', outlier.sd = 0.5)
+#' DimPlot(pbmc_small, reduction = "umap_new")
 #' 
 CollapseEmbeddingOutliers <- function(
   object,
@@ -2232,7 +2232,7 @@ CollapseEmbeddingOutliers <- function(
   }
   reduc <- CreateDimReducObject(
     embeddings = new.embeddings,
-    loadings = Loadings(object[[reduction]]),
+    loadings = Loadings(object = object[[reduction]]),
     assay = slot(object = object[[reduction]], name = "assay.used"),
     key = reduction.key
   )
