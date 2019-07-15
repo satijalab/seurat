@@ -2178,6 +2178,67 @@ BlueAndRed <- function(k = 50) {
   return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
 }
 
+#' Move outliers towards center on dimension reduction plot
+#' 
+#' @param object Seurat object
+#' @param reduction Name of DimReduc to adjust
+#' @param dims Dimensions to visualize
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param outlier.sd Controls the outlier distance
+#' @param reduction.key Key for DimReduc that is returned
+#' 
+#' @return Returns a DimReduc object with the modified embeddings
+#' 
+#' @export
+#' 
+#' @examples 
+#' pbmc_small[["tsne_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+#'     reduction = "tsne", reduction.key = 'tsne_', outlier.sd = 0.5)
+#' DimPlot(pbmc_small, reduction = "tsne_new")
+#' 
+CollapseEmbeddingOutliers <- function(
+  object,
+  reduction = 'umap',
+  dims = 1:2,
+  group.by = 'ident',
+  outlier.sd = 2,
+  reduction.key = 'UMAP_'
+) {
+  embeddings <- Embeddings(object = object[[reduction]])[, dims]
+  idents <- FetchData(object = object, vars = group.by)
+  data.medians <- sapply(X = dims, FUN = function(x) {
+    tapply(X = embeddings[, x], INDEX = idents, FUN = median)
+  })
+  data.sd <- apply(X = data.medians, MARGIN = 2, FUN = sd)
+  data.medians.scale <- as.matrix(x = scale(x = data.medians, center = TRUE, scale = TRUE))
+  data.medians.scale[abs(x = data.medians.scale) < outlier.sd] <- 0
+  data.medians.scale <- sign(x = data.medians.scale) * (abs(x = data.medians.scale) - outlier.sd)
+  data.correct <- sweep(
+    x = data.medians.scale, 
+    MARGIN = 2, 
+    STATS = data.sd,
+    FUN = "*"
+  )
+  data.correct <- data.correct[abs(x = apply(X = data.correct, MARGIN = 1, FUN = min)) > 0, ]
+  new.embeddings <- embeddings
+  for (i in rownames(x = data.correct)) {
+    cells.correct <- rownames(x = idents)[idents[, "ident"] == i]
+    new.embeddings[cells.correct, ] <- sweep(
+      x = new.embeddings[cells.correct,], 
+      MARGIN = 2,
+      STATS = data.correct[i, ],
+      FUN = "-"
+    )
+  }
+  reduc <- CreateDimReducObject(
+    embeddings = new.embeddings,
+    loadings = Loadings(object[[reduction]]),
+    assay = slot(object = object[[reduction]], name = "assay.used"),
+    key = reduction.key
+  )
+  return(reduc)
+}
+
 #' Combine ggplot2-based plots into a single plot
 #'
 #' @param plots A list of gg objects
