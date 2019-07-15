@@ -350,6 +350,7 @@ FindTransferAnchors <- function(
   } else {
     projected = FALSE
   }
+  normalization.method <- match.arg(arg = normalization.method)
   query <- RenameCells(
     object = query,
     new.names = paste0(Cells(x = query), "_", "query")
@@ -397,25 +398,48 @@ FindTransferAnchors <- function(
         if (verbose) {
           message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
         }
-        if(normalization.method == "LogNormalize"){
+        if (normalization.method == "LogNormalize") {
         reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-        } else if(normalization.method == "SCT") {
-          features <- intersect(features, rownames(query))
-          query <- GetResidual(query, features = features, verbose = FALSE)
-          query[[query.assay]]@scale.data <- query[[query.assay]]@scale.data[features, ]
-          query[[query.assay]]@data <- as.sparse(query[[query.assay]]@scale.data)
-          query[[query.assay]]@counts <- query[[query.assay]]@data
-          
-          if(reference.assay == "SCT"){
-          reference <- GetResidual(reference, features = features, verbose = FALSE)
+        } else if (normalization.method == "SCT") {
+          features <- intersect(x = features, y = rownames(x = query))
+          query <- GetResidual(object = query, features = features, verbose = FALSE)
+          query <- SetAssayData(
+            object = query[[query.assay]], 
+            slot = "scale.data", 
+            new.data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
+          )
+          query <- SetAssayData(
+            object = query[[query.assay]]
+            slot = "data",
+            new.data = as(object = GetAssayData(object = query[[query.assay]], slot = "scale.data"), Class = "dgCMatrix")
+          )
+          query <- SetAssayData(
+            object = query[[query.assay]], 
+            slot = "counts", 
+            new.data = GetAssayData(object = query[[query.assay]], slot = "data")
+          )
+          if (reference.assay == "SCT"){
+            reference <- GetResidual(object = reference, features = features, verbose = FALSE)
           }
-          reference[[reference.assay]]@scale.data <- reference[[reference.assay]]@scale.data[features, ]
-          reference[[reference.assay]]@data <- as.sparse(reference[[reference.assay]]@scale.data)
-          reference[[reference.assay]]@counts <- reference[[reference.assay]]@data
+          reference <- SetAssayData(
+            object = reference[[reference.assay]], 
+            slot = "scale.data", 
+            new.data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
+          )
+          reference <- SetAssayData(
+            object = reference[[reference.assay]], 
+            slot = "data", 
+            new.data = as(object = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"), Class = "dgCMatrix")
+          )
+          reference <- SetAssayData(
+            object = reference[[reference.assay]], 
+            slot = "counts", 
+            new.data = GetAssayData(object = reference[[reference.assay]], slot = "data")
+          )
           feature.mean <- "SCT"
           slot <- "scale.data"
-          }
-        reference <- RunPCA(object = reference, npcs = npcs, verbose = FALSE,features = features, approx = approx.pca)
+        }
+        reference <- RunPCA(object = reference, npcs = npcs, verbose = FALSE, features = features, approx = approx.pca)
       }
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
@@ -2323,7 +2347,7 @@ ProjectCellEmbeddings <- function(
     assay.use = query.assay,
     slot = "data")[features, ]
 
-  if (is.null(x = feature.mean)){
+  if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
     feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
     feature.sd[is.na(x = feature.sd)] <- 1
