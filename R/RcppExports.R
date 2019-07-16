@@ -21,10 +21,6 @@ LogNorm <- function(data, scale_factor, display_progress = TRUE) {
     .Call('_Seurat_LogNorm', PACKAGE = 'Seurat', data, scale_factor, display_progress)
 }
 
-FastMatMult <- function(m1, m2) {
-    .Call('_Seurat_FastMatMult', PACKAGE = 'Seurat', m1, m2)
-}
-
 FastRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
     .Call('_Seurat_FastRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
 }

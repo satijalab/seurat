@@ -24,6 +24,7 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #' @slot object.list List of objects used to create anchors
 #' @slot reference.cells List of cell names in the reference dataset - needed when performing data
 #' transfer.
+#' @slot reference.objects Position of reference object/s in object.list 
 #' @slot query.cells List of cell names in the query dataset - needed when performing data transfer
 #' @slot anchors The anchor matrix. This contains the cell indices of both anchor pair cells, the
 #' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
@@ -41,6 +42,7 @@ AnchorSet <- setClass(
   slots = list(
     object.list = "list",
     reference.cells = "vector",
+    reference.objects = "vector",
     query.cells = "vector",
     anchors = "ANY",
     offsets = "ANY",
@@ -700,6 +702,10 @@ CreateSeuratObject <- function(
 #' @param scale.data Preserve the scale.data slot for the assays specified
 #' @param features Only keep a subset of features, defaults to all features
 #' @param assays Only keep a subset of assays specified here
+#' @param dimreducs Only keep a subset of DimReducs specified here (if NULL,
+#' remove all DimReducs)
+#' @param graphs Only keep a subset of Graphs specified here (if NULL, remove 
+#' all Graphs)
 #'
 #' @export
 #'
@@ -709,7 +715,9 @@ DietSeurat <- function(
   data = TRUE,
   scale.data = FALSE,
   features = NULL,
-  assays = NULL
+  assays = NULL,
+  dimreducs = NULL,
+  graphs = NULL
 ) {
   assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
   assays <- assays[assays %in% FilterObjects(object = object, classes.keep = 'Assay')]
@@ -737,24 +745,36 @@ DietSeurat <- function(
         }
       } else {
         if (counts) {
-          slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+          if (!is.null(x = features)) {
+            slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+          }
         } else {
           slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
         }
         if (data) {
-          slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
+          if (!is.null(x = features)) {
+            slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
+          }
         } else {
           stop('data = FALSE currently not supported')
           slot(object = object[[assay]], name = 'data') <- new(Class = 'matrix')
         }
         features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
         if (scale.data && length(x = features.scaled) > 0) {
-          slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
+          if (! all(rownames(x = slot(object = object[[assay]], name = 'scale.data')) %in% features.scaled)) {
+            slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
+          }
         } else {
           slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
         }
       }
     }
+  }
+  # remove unspecified DimReducs and Graphs
+  all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
+  objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
+  for (ob in objects.to.remove) {
+    object[[ob]] <- NULL
   }
   return(object)
 }
@@ -1214,9 +1234,9 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    object.version <- package_version(x = slot(object = object, name = 'version'))
-    if (object.version >= package_version(x = "2.0.0") && object.version < package_version(x = '3.0.0')) {
+    if (slot(object = object, name = 'version') >= package_version(x = "2.0.0") && slot(object = object, name = 'version') < package_version(x = '3.0.0')) {
       # Run update
+      message("Updating from v2.X to v3.X")
       seurat.version <- packageVersion(pkg = "Seurat")
       new.assay <- UpdateAssay(old.assay = object, assay = "RNA")
       assay.list <- list(new.assay)
@@ -1238,7 +1258,7 @@ UpdateSeuratObject <- function(object) {
         tools = list()
       )
     }
-    if (package_version(x = object.version) >= package_version(x = "3.0.0")) {
+    if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
       message("Validating object structure")
       # Validate object keys
