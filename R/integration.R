@@ -296,8 +296,7 @@ FindIntegrationAnchors <- function(
 #' cases where the query dataset has a much larger cell number, but the reference dataset has a
 #' unique assay for transfer.
 #' @param features Features to use for dimensional reduction
-#' @param normalization.method Name of normalization method used: LogNormalize 
-#' or SCT
+#' @param normalization.method Name of normalization method used: LogNormalize or SCT
 #' @param npcs Number of PCs to compute on reference. If null, then use an existing PCA structure in
 #' the reference object
 #' @param l2.norm Perform L2 normalization on the cell embeddings after dimensional reduction
@@ -368,7 +367,7 @@ FindTransferAnchors <- function(
   slot <- "data"
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
-    if (project.query){
+    if (project.query) {
       if (!is.null(x = npcs)) {
         if (verbose) {
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
@@ -404,42 +403,48 @@ FindTransferAnchors <- function(
           features <- intersect(x = features, y = rownames(x = query))
           query <- GetResidual(object = query, features = features, verbose = FALSE)
           query <- SetAssayData(
-            object = query[[query.assay]], 
-            slot = "scale.data", 
+            object = query[[query.assay]],
+            slot = "scale.data",
             new.data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
           )
           query <- SetAssayData(
-            object = query[[query.assay]]
+            object = query[[query.assay]],
             slot = "data",
             new.data = as(object = GetAssayData(object = query[[query.assay]], slot = "scale.data"), Class = "dgCMatrix")
           )
           query <- SetAssayData(
-            object = query[[query.assay]], 
-            slot = "counts", 
+            object = query[[query.assay]],
+            slot = "counts",
             new.data = GetAssayData(object = query[[query.assay]], slot = "data")
           )
-          if (reference.assay == "SCT"){
+          if (reference.assay == "SCT") {
             reference <- GetResidual(object = reference, features = features, verbose = FALSE)
           }
           reference <- SetAssayData(
-            object = reference[[reference.assay]], 
-            slot = "scale.data", 
+            object = reference[[reference.assay]],
+            slot = "scale.data",
             new.data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
           )
           reference <- SetAssayData(
-            object = reference[[reference.assay]], 
-            slot = "data", 
+            object = reference[[reference.assay]],
+            slot = "data",
             new.data = as(object = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"), Class = "dgCMatrix")
           )
           reference <- SetAssayData(
-            object = reference[[reference.assay]], 
-            slot = "counts", 
+            object = reference[[reference.assay]],
+            slot = "counts",
             new.data = GetAssayData(object = reference[[reference.assay]], slot = "data")
           )
           feature.mean <- "SCT"
           slot <- "scale.data"
         }
-        reference <- RunPCA(object = reference, npcs = npcs, verbose = FALSE, features = features, approx = approx.pca)
+        reference <- RunPCA(
+          object = reference,
+          npcs = npcs,
+          verbose = FALSE,
+          features = features,
+          approx = approx.pca
+        )
       }
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
@@ -461,7 +466,6 @@ FindTransferAnchors <- function(
       Loadings(object = combined.ob[["pcaproject"]]) <- old.loadings[, dims]
     }
   }
-
   ## find anchors using CCA
   if (reduction == 'cca') {
     reference <- ScaleData(object = reference, features = features, verbose = FALSE)
@@ -476,8 +480,7 @@ FindTransferAnchors <- function(
       verbose = verbose
     )
   }
-
-  if (l2.norm){
+  if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
   }
@@ -512,7 +515,6 @@ FindTransferAnchors <- function(
   )
   return(anchor.set)
 }
-
 
 #' Integrate data
 #'
@@ -2359,7 +2361,7 @@ ProjectCellEmbeddings <- function(
     slot = "data"
   )[features, ]
   store.names <- dimnames(x = proj.data)
-  if (feature.mean != "SCT"){
+  if (feature.mean != "SCT") {
   proj.data <- FastSparseRowScaleWithKnownStats(
     mat = proj.data,
     mu = feature.mean,
