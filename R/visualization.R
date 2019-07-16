@@ -2192,9 +2192,14 @@ BlueAndRed <- function(k = 50) {
 #' @export
 #' 
 #' @examples 
+#' \dontrun{
+#' pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
+#' pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
+#' DimPlot(pbmc_small, reduction = "umap")
 #' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
 #'     reduction = "umap", reduction.key = 'umap_', outlier.sd = 0.5)
 #' DimPlot(pbmc_small, reduction = "umap_new")
+#' }
 #' 
 CollapseEmbeddingOutliers <- function(
   object,

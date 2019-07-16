@@ -27,8 +27,13 @@ Returns a DimReduc object with the modified embeddings
 Move outliers towards center on dimension reduction plot
 }
 \examples{
-pbmc_small[["tsne_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
-    reduction = "tsne", reduction.key = 'tsne_', outlier.sd = 0.5)
-DimPlot(pbmc_small, reduction = "tsne_new")
+\dontrun{
+pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
+pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
+DimPlot(pbmc_small, reduction = "umap")
+pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+    reduction = "umap", reduction.key = 'umap_', outlier.sd = 0.5)
+DimPlot(pbmc_small, reduction = "umap_new")
+}
 
 }
