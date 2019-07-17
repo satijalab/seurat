@@ -410,7 +410,7 @@ FindTransferAnchors <- function(
           query <- SetAssayData(
             object = query[[query.assay]],
             slot = "data",
-            new.data = as(object = GetAssayData(object = query[[query.assay]], slot = "scale.data"), Class = "dgCMatrix")
+            new.data = as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data"))
           )
           query <- SetAssayData(
             object = query[[query.assay]],
@@ -428,7 +428,7 @@ FindTransferAnchors <- function(
           reference <- SetAssayData(
             object = reference[[reference.assay]],
             slot = "data",
-            new.data = as(object = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"), Class = "dgCMatrix")
+            new.data = as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
           )
           reference <- SetAssayData(
             object = reference[[reference.assay]],
