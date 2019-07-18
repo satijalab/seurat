@@ -663,6 +663,17 @@ IntegrateData <- function(
 
   if (normalization.method == "SCT") {
     vst.set <- list()
+    # merge the SCT scale.data slots and store in unintegrated
+    scale.data <- do.call(
+      what = cbind, 
+      args = lapply(X = object.list, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
+    )
+    unintegrated <- SetAssayData(
+      object = unintegrated, 
+      assay = DefaultAssay(object = object.list[[1]]), 
+      slot = "scale.data", 
+      new.data = scale.data
+    )
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       vst.set[[i]] <- Misc(object = object.list[[i]][[assay]], slot = "vst.out")
@@ -672,7 +683,6 @@ IntegrateData <- function(
     }
     Misc(object = unintegrated[[assay]], slot = "vst.set") <- vst.set
   }
-
   # perform pairwise integration of reference objects
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
@@ -704,6 +714,7 @@ IntegrateData <- function(
           verbose = FALSE
         )
       )
+      reference.integrated[[assay]] <- unintegrated[[assay]]
     }
     return(reference.integrated)
   } else {
