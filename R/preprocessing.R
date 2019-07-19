@@ -525,7 +525,6 @@ GetResidual <- function(
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the data. Default is 1e4
 #' @param verbose Print progress
-#' @param ... Ignored
 #'
 #' @return Returns a matrix with the normalize and log transformed data
 #'
@@ -540,7 +539,7 @@ GetResidual <- function(
 #' mat_norm <- LogNormalize(data = mat)
 #' mat_norm
 #'
-LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE, ...) {
+LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -1011,7 +1010,6 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the result. Default is 1
 #' @param verbose Print progress
-#' @param ... Ignored
 #' @return Returns a matrix with the relative counts
 #'
 #' @import Matrix
@@ -1025,7 +1023,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' mat_norm <- RelativeCounts(data = mat)
 #' mat_norm
 #'
-RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE, ...) {
+RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -1449,6 +1447,7 @@ FindVariableFeatures.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!inherits(x = object, 'Matrix')) {
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
   }
@@ -1570,7 +1569,8 @@ FindVariableFeatures.Assay <- function(
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   object[[names(x = hvf.info)]] <- hvf.info
   hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
@@ -1644,7 +1644,8 @@ FindVariableFeatures.Seurat <- function(
     nfeatures = nfeatures,
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
@@ -1682,6 +1683,7 @@ NormalizeData.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = normalization.method)) {
     return(object)
   }
@@ -1840,6 +1842,7 @@ NormalizeData.Seurat <- function(
 #' @export
 #'
 RunALRA.default <- function(object, k = NULL, q = 10, ...) {
+  CheckDots(...)
   A.norm <- t(x = as.matrix(x = object))
   message("Identifying non-zero values")
   originally.nonzero <- A.norm > 0
@@ -2056,6 +2059,7 @@ ScaleData.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
@@ -2458,7 +2462,6 @@ ClassifyCells <- function(data, q) {
 # @param margin Which way to we normalize. Set 1 for rows (features) or 2 for columns (genes)
 # @parm across Which way to we normalize? Choose form 'cells' or 'features'
 # @param verbose Show progress bar
-# @param ... Ignored
 #
 # @return Returns a matrix with the custom normalization
 #
@@ -2466,7 +2469,7 @@ ClassifyCells <- function(data, q) {
 #' @importFrom pbapply pbapply
 # @import Matrix
 #
-CustomNormalize <- function(data, custom_function, margin, verbose = TRUE, ...) {
+CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -2621,8 +2624,7 @@ RegressOutMatrix <- function(
   features.regress = NULL,
   model.use = NULL,
   use.umi = FALSE,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   # Do we bypass regression and simply return data.expr?
   bypass <- vapply(

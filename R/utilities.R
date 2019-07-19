@@ -1143,6 +1143,13 @@ CheckDots <- function(..., fxns = NULL) {
         call. = FALSE,
         immediate. = TRUE
       )
+      unused.hints <- na.omit(object = sapply(X = unused, FUN = OldParamHints))
+      if (length(x = unused.hints) > 0) {
+        message("Suggested parameter: ", 
+                paste(unused.hints, "instead of", unused, collapse = '; '),
+                "\n"
+        )
+      }
     }
   }
 }
@@ -1336,6 +1343,19 @@ Melt <- function(x) {
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
     vals = unlist(x = x, use.names = FALSE)
   ))
+}
+
+OldParamHints <- function(param) {
+  param.conversion <- c('raw.data' = 'counts', 'min.genes' = 'min.features', 
+    'features.plot' = 'features', 'pc.genes' = 'features', 
+    'do.print' = 'verbose', 'genes.print' = 'nfeatures.print', 
+    'pcs.print' = 'ndims.print', 'pcs.use' = 'dims', 
+    'reduction.use' = 'reduction', 'cells.use' = 'cells', 
+    'do.balanced' = 'balanced', 'display.progress' = 'verbose', 
+    'print.output' = 'verbose', 'dims.use' = 'dims', 
+    'reduction.type' = 'reduction', 'y.log' = 'log', 'cols.use' = 'cols',
+    'assay.use' = 'assay')
+  return(param.conversion[param])
 }
 
 # Check the existence of a package
