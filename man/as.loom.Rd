@@ -16,6 +16,14 @@ as.loom(x, ...)
 \item{x}{An object to convert to class \code{loom}}
 
 \item{assay}{Assay to store in loom file}
+
+\item{filename}{The name of the new loom file}
+
+\item{chunk.dims}{A one- or two-length integer vector of chunksizes for \code{/matrix}, defaults to 'auto' to automatically determine chunksize}
+
+\item{chunk.size}{How many rows of \code{data} should we stream to the loom file at any given time?}
+
+\item{overwrite}{Overwrite an already existing loom file?}
 }
 \description{
 Convert objects to loom objects
