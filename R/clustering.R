@@ -21,6 +21,8 @@ NULL
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
+#' @param method. Method for running leiden (defaults to matrix which is fast for small datasets). 
+#' Enable method = "igraph" to avoid casting large data to a dense matrix.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -41,6 +43,7 @@ FindClusters.default <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
+  method = "matrix",
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -79,7 +82,8 @@ FindClusters.default <- function(
           )
         } else if (algorithm == 4) {
           ids <- RunLeiden(
-            adj_mat = object,
+            object = object,
+            method = method,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             weights = weights,
@@ -101,6 +105,7 @@ FindClusters.default <- function(
   } else {
     clustering.results <- data.frame(row.names = colnames(x = object))
     for (r in resolution) {
+      print(str(object))
       if (algorithm %in% c(1:3)) {
         ids <- RunModularityClustering(
           SNN = object,
@@ -115,7 +120,8 @@ FindClusters.default <- function(
           edge.file.name = edge.file.name)
       } else if (algorithm == 4) {
         ids <- RunLeiden(
-          adj_mat = object,
+          object = object,
+          method = method,
           partition.type = "RBConfigurationVertexPartition",
           initial.membership = initial.membership,
           weights = weights,
@@ -656,13 +662,18 @@ NNHelper <- function(data, query = data, k, method, ...) {
 # @keywords graph network igraph mvtnorm simulation
 #
 #' @importFrom reticulate py_module_available import r_to_py
+#' @importFrom leiden leiden
+#' @importFrom igraph graph_from_adjacency_matrix
+#' @importClassesFrom igraph igraph
+#' @importClassesFrom Matrix dgCMatrix
 #
 # @author Tom Kelly
 #
 # @export
 #
 RunLeiden <- function(
-  adj_mat,
+  object,
+  method = c("matrix", "igraph"),
   partition.type = c(
     'RBConfigurationVertexPartition',
     'ModularityVertexPartition',
@@ -681,74 +692,29 @@ RunLeiden <- function(
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
-  # import python modules with reticulate
-  leidenalg <- import(module = "leidenalg")
-  ig <- import(module = "igraph")
-  # convert matrix input
-  adj_mat <- as.matrix(x = ceiling(x = adj_mat))
-  # convert to python numpy.ndarray, then a list
-  adj_mat_py <- r_to_py(x = adj_mat)
-  adj_mat_py <- adj_mat_py$tolist()
-  # convert graph structure to a Python compatible object
-  snn_graph <- ig$Graph$Adjacency(adj_mat_py)
-  # compute partitions
-  part <- switch(
-    EXPR = partition.type,
-    'RBConfigurationVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$RBConfigurationVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      resolution_parameter = resolution.parameter,
-      seed = as.integer(x = random.seed)
-    ),
-    'ModularityVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$ModularityVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      seed = as.integer(x = random.seed)
-    ),
-    'RBERVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$RBERVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter,
-      seed = as.integer(x = random.seed)
-    ),
-    'CPMVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$CPMVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter,
-      seed = as.integer(x = random.seed)
-    ),
-    'MutableVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$MutableVertexPartition,
-      initial_membership = initial.membership
-    ),
-    'SignificanceVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$SignificanceVertexPartition,
-      initial_membership = initial.membership,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
-    ),
-    'SurpriseVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$SurpriseVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes
-    ),
-    stop("please specify a partition type as a string out of those documented")
+  
+  if(method == "matrix"){
+    #cast to dense (supported by reticulate for numpy.array)
+    input <- as(object, "matrix")
+  } else{
+    #cast to sparse matrix
+    adj_mat <- as(object, "dgCMatrix")
+    #run as igraph object (passes to reticulate)
+    object <- graph_from_adjacency_matrix(adjmatrix = adj_mat)
+  }
+  
+  #run leiden from CRAN package (calls python with reticulate)
+  partition <- leiden(
+    object = object,
+    partition.type = partition.type,
+    initial.membership = initial.membership,
+    weights = weights,
+    node.sizes = node.sizes,
+    resolution.parameter = resolution,
+    random.seed = random.seed
   )
-  return(part$membership + 1)
+  
+  return(partition)
 }
 
 # Runs the modularity optimizer (C++ port of java program ModularityOptimizer.jar)

@@ -10,8 +10,8 @@ FindClusters(object, ...)
 
 \method{FindClusters}{default}(object, modularity.fxn = 1,
   initial.membership = NULL, weights = NULL, node.sizes = NULL,
-  resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
-  random.seed = 0, group.singletons = TRUE,
+  resolution = 0.8, method = "matrix", algorithm = 1, n.start = 10,
+  n.iter = 10, random.seed = 0, group.singletons = TRUE,
   temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
   ...)
 
@@ -55,6 +55,9 @@ Specify the ABSOLUTE path.}
 \item{verbose}{Print output}
 
 \item{graph.name}{Name of graph to use for the clustering algorithm}
+
+\item{method.}{Method for running leiden (defaults to matrix which is fast for small datasets). 
+Enable method = "igraph" to avoid casting large data to a dense matrix.}
 }
 \value{
 Returns a Seurat object where the idents have been updated with new cluster info;
