@@ -702,6 +702,7 @@ IntegrateData <- function(
           verbose = FALSE
         )
       )
+      Misc(object = reference.integrated[[assay]], slot = "vst.set") <- vst.set
     }
     return(reference.integrated)
   } else {
