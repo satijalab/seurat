@@ -88,8 +88,9 @@ FindClusters.default <- function(
             initial.membership = initial.membership,
             weights = weights,
             node.sizes = node.sizes,
-            resolution.parameter = resolution,
-            random.seed = random.seed
+            resolution.parameter = r,
+            random.seed = random.seed,
+            n.iter = n.iter
           )
         } else {
           stop("algorithm not recognised, please specify as an integer or string")
@@ -127,7 +128,8 @@ FindClusters.default <- function(
           weights = weights,
           node.sizes = node.sizes,
           resolution.parameter = r,
-          random.seed = random.seed
+          random.seed = random.seed,
+          n.iter = n.iter
         )
       } else {
         stop("algorithm not recognised, please specify as an integer or string")
@@ -658,14 +660,13 @@ NNHelper <- function(data, query = data, k, method, ...) {
 # for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
 # partition types that accept a resolution parameter)
 # @param random.seed Seed of the random number generator
+# @param n.iter Maximal number of iterations per random start
 #
 # @keywords graph network igraph mvtnorm simulation
 #
 #' @importFrom reticulate py_module_available import r_to_py
 #' @importFrom leiden leiden
 #' @importFrom igraph graph_from_adjacency_matrix
-#' @importClassesFrom igraph igraph
-#' @importClassesFrom Matrix dgCMatrix
 #
 # @author Tom Kelly
 #
@@ -687,7 +688,8 @@ RunLeiden <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution.parameter = 1,
-  random.seed = 0
+  random.seed = 0,
+  n.iter = 10
 ) {
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
@@ -696,22 +698,25 @@ RunLeiden <- function(
   if(method == "matrix"){
     #cast to dense (supported by reticulate for numpy.array)
     input <- as(object, "matrix")
-  } else{
-    #cast to sparse matrix
-    adj_mat <- as(object, "dgCMatrix")
+  } else if(method == "igraph"){
+    #Graph is a sparse dgCMatrix
+    is(object, "dgCMatrix")
     #run as igraph object (passes to reticulate)
-    object <- graph_from_adjacency_matrix(adjmatrix = adj_mat)
+    object <- graph_from_adjacency_matrix(adjmatrix = object)
+  } else {
+    warning("method for leiden must be matrix or igraph")
   }
   
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
     object = object,
-    partition.type = partition.type,
-    initial.membership = initial.membership,
+    partition_type = partition.type,
+    initial_membership = initial.membership,
     weights = weights,
-    node.sizes = node.sizes,
-    resolution.parameter = resolution,
-    random.seed = random.seed
+    node_sizes = node.sizes,
+    resolution_parameter = resolution.parameter,
+    seed = random.seed,
+    n_iterations = n.iter
   )
   
   return(partition)
