@@ -106,7 +106,6 @@ FindClusters.default <- function(
   } else {
     clustering.results <- data.frame(row.names = colnames(x = object))
     for (r in resolution) {
-      print(str(object))
       if (algorithm %in% c(1:3)) {
         ids <- RunModularityClustering(
           SNN = object,
