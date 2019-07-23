@@ -19,6 +19,7 @@ env:
     - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
 
 before_install: 
+  - Rscript -e 'install.packages("leiden", repos = "https://cloud.r-project.org", type = "source")'
   - chmod +x travis_setup.sh
   - ./travis_setup.sh
 
