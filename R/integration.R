@@ -1344,7 +1344,7 @@ PrepSCTIntegration <- function(
       vst_out <- Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out")
       vst_out$cell_attr <- vst_out$cell_attr[Cells(object.list[[i]]),]
       vst_out$cells_step1 <- intersect(vst_out$cells_step1, Cells(object.list[[i]]))
-      Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out") <- vst_out
+      suppressWarnings( Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out") <- vst_out )
       return(object.list[[i]])
     }
   )
