@@ -483,7 +483,9 @@ FindTransferAnchors <- function(
         } else if (normalization.method == "SCT") {
           features <- intersect(x = features, y = rownames(x = query))
           query <- GetResidual(object = query, features = features, verbose = FALSE)
-          query[[query.assay]] <- CreateAssayObject(counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features,]))
+          query[[query.assay]] <- CreateAssayObject(
+            counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
+          )
           query <- SetAssayData(
             object = query,
             slot = "data",
@@ -496,10 +498,12 @@ FindTransferAnchors <- function(
             assay = query.assay,
             new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
           )
-          if (reference.assay == "SCT") {
+          if (IsSCT(assay = reference[[reference.assay]])) {
             reference <- GetResidual(object = reference, features = features, verbose = FALSE)
           }
-          reference[[reference.assay]] <- CreateAssayObject(counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]))
+          reference[[reference.assay]] <- CreateAssayObject(
+            counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
+          )
           reference <- SetAssayData(
             object = reference,
             slot = "data",
@@ -510,7 +514,7 @@ FindTransferAnchors <- function(
             object = reference,
             slot = "scale.data",
             assay = reference.assay, 
-            new.data =  as.matrix( GetAssayData(object = reference[[reference.assay]], slot = "counts"))
+            new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
           )
           feature.mean <- "SCT"
           slot <- "scale.data"
