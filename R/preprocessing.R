@@ -459,6 +459,10 @@ GetResidual <- function(
   } else {
     if (is.null(x = Misc(object[[assay]], slot = 'vst.set'))){
       vst_out <- Misc(object[[assay]], slot = 'vst.out')
+      # filter cells not in the object but in the SCT model
+      vst_out$cell_attr <- vst_out$cell_attr[ Cells(object), ]
+      vst_out$cells_step1 <- intersect(vst_out$cells_step1, Cells(object))
+ 
       object <- GetResidual_VstOut(object, 
                                    assay, 
                                    new_features, 
@@ -481,7 +485,10 @@ GetResidual <- function(
     rownames(new.scale.data) <- new_features
     for (v in 1:length(vst.set)){
       vst_out <- vst.set[[v]]
-      cells.v <- rownames(vst_out$cell_attr)
+      # confirm that cells from SCT model also exist in the integrated object 
+      cells.v <- intersect(rownames(vst_out$cell_attr), Cells(object))
+      vst_out$cell_attr <- vst_out$cell_attr[ cells.v, ]
+      vst_out$cells_step1 <- intersect(vst_out$cells_step1, cells.v)
       object.v <- subset(object, cells = cells.v)  
       object.v <- GetResidual_VstOut(object.v, 
                                      assay, 
