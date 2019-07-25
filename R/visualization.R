@@ -2555,7 +2555,7 @@ HoverLocator <- function(
   #   Set up axis labels here
   #   Also, a bunch of stuff to get axis lines done properly
   xaxis <- list(
-    title = names(x = data.frame())[1],
+    title = names(x = data)[1],
     showgrid = FALSE,
     zeroline = FALSE,
     showline = TRUE
@@ -2580,7 +2580,7 @@ HoverLocator <- function(
   #   Use I() to get plotly to accept the colors from the data as is
   #   Set hoverinfo to 'text' to override the default hover information
   #   rather than append to it
-  plotly::layout(
+  p <- plotly::layout(
     p = plot_ly(
       data = plot.build,
       x = ~x,
@@ -2592,12 +2592,32 @@ HoverLocator <- function(
       text = ~feature
     ),
     xaxis = xaxis,
-    yaxis = yaxis,
+    yaxis = yaxis, 
+    title = plot$labels$title,
     titlefont = title,
     paper_bgcolor = plotbg,
     plot_bgcolor = plotbg,
     ...
   )
+  # add labels 
+  label.layer <- which(x = sapply(
+    X = plot$layers, 
+    FUN = function(x) class(x$geom)[1] == "GeomText")
+  )
+  if (length(x = label.layer) == 1) {
+    p <- plotly::add_annotations(
+      p = p,
+      x = plot$layers[[label.layer]]$data[, 1],
+      y = plot$layers[[label.layer]]$data[, 2],
+      xref = "x",
+      yref = "y",
+      text = plot$layers[[label.layer]]$data[, 3],
+      xanchor = 'right',
+      showarrow = F,
+      font = list(size = plot$layers[[label.layer]]$aes_params$size * 4)
+    ) 
+  }
+  return(p)
 }
 
 #' Label clusters on a ggplot2-based scatter plot
