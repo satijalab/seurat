@@ -1249,6 +1249,13 @@ RunUMAP.Graph <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
+  if (umap.method != 'umap-learn') {
+    warning(
+      "Running UMAP on Graph objects is only supported using the umap-learn method",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   if (!py_module_available(module = 'umap')) {
     stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
   }
