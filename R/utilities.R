@@ -1082,7 +1082,8 @@ L2Norm <- function(mat, MARGIN = 1){
 #
 # @return ...
 #
-#' @importFrom utils argsAnywhere getAnywhere
+# @importFrom utils argsAnywhere getAnywhere
+#' @importFrom utils isS3stdGeneric methods argsAnywhere isS3method
 #
 # @examples
 #
@@ -1094,40 +1095,89 @@ CheckDots <- function(..., fxns = NULL) {
   if (is.null(x = args.names)) {
     stop("No named arguments passed")
   }
-  fxn.args <- lapply(
+  if (length(x = fxns) == 1) {
+    fxns <- list(fxns)
+  }
+  for (f in fxns) {
+    if (!(is.character(x = f) || is.function(x = f))) {
+      stop("CheckDots only works on characters or functions, not ", class(x = f))
+    }
+  }
+  fxn.args <- suppressWarnings(expr = sapply(
     X = fxns,
     FUN = function(x) {
-      if (is.character(x = x)) {
-        if (any(grepl(pattern = 'UseMethod', x = as.character(x = getAnywhere(x = x))))) {
-          x <- paste0(x, '.default')
+      x <- tryCatch(
+        expr = if (isS3stdGeneric(f = x)) {
+          as.character(x = methods(generic.function = x))
+        } else {
+          x
+        },
+        error = function(...) {
+          return(x)
         }
-        x <- argsAnywhere(x = x)
-      }
-      if (is.function(x = x)) {
-        return(names(x = formals(fun = x)))
-      } else {
-        stop("CheckDots only works on characters or functions, not ", class(x = x))
-      }
-    }
-  )
-  if (any(grepl(pattern = '...', x = fxn.args, fixed = TRUE))) {
-    dotted <- grepl(pattern = '...', x = fxn.args, fixed = TRUE)
-    dfxn <- fxns[dotted]
-    if (any(sapply(X = dfxn, FUN = is.character))) {
-      message(
-        "The following functions accept the dots: ",
-        paste(Filter(f = is.character, x = dfxn), collapse = ', ')
       )
-      dfxn <- Filter(f = Negate(f = is.character), x = dfxn)
-      if (length(x = dfxn) > 0) {
+      x <- if (is.character(x = x)) {
+        sapply(X = x, FUN = argsAnywhere, simplify = FALSE, USE.NAMES = TRUE)
+      } else if (length(x = x) <= 1) {
+        list(x)
+      }
+      return(sapply(
+        X = x,
+        FUN = function(f) {
+          return(names(x = formals(fun = f)))
+        },
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  ))
+  fxn.args <- unlist(x = fxn.args, recursive = FALSE)
+  fxn.null <- vapply(X = fxn.args, FUN = is.null, FUN.VALUE = logical(length = 1L))
+  if (all(fxn.null) && !is.null(x = fxns)) {
+    stop("None of the functions passed could be found")
+  } else if (any(fxn.null)) {
+    warning(
+      "The following functions passed could not be found: ",
+      paste(names(x = which(x = fxn.null)), collapse = ', '),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    fxn.args <- Filter(f = Negate(f = is.null), x = fxn.args)
+  }
+  dfxns <- vector(mode = 'logical', length = length(x = fxn.args))
+  names(x = dfxns) <- names(x = fxn.args)
+  for (i in 1:length(x = fxn.args)) {
+    dfxns[i] <- any(grepl(pattern = '...', x = fxn.args[[i]], fixed = TRUE))
+  }
+  if (any(dfxns)) {
+    dfxns <- names(x = which(x = dfxns))
+    if (any(nchar(x = dfxns) > 0)) {
+      fx <- vapply(
+        X = Filter(f = nchar, x = dfxns),
+        FUN = function(x) {
+          if (isS3method(method = x)) {
+            x <- unlist(x = strsplit(x = x, split = '\\.'))
+            x <- x[length(x = x) - 1L]
+          }
+          return(x)
+        },
+        FUN.VALUE = character(length = 1L)
+      )
+      message(
+        "The following functions and any applicable methods accept the dots: ",
+        paste(unique(x = fx), collapse = ', ')
+      )
+      if (any(nchar(x = dfxns) < 1)) {
         message(
-          "In addition, there are ",
-          length(x = dfxn),
-          " unnamed function(s) that accept the dots"
+          "In addition, there is/are ",
+          length(x = Filter(f = Negate(f = nchar), x = dfxns)),
+          " other function(s) that accept(s) the dots"
         )
       }
     } else {
-      message("There are ", length(x = dfxn), ' functions provided that accept the dots')
+      message("There is/are ", length(x = dfxns), 'function(s) that accept(s) the dots')
     }
   } else {
     unused <- Filter(
@@ -1145,9 +1195,10 @@ CheckDots <- function(..., fxns = NULL) {
       )
       unused.hints <- na.omit(object = sapply(X = unused, FUN = OldParamHints))
       if (length(x = unused.hints) > 0) {
-        message("Suggested parameter: ", 
-                paste(unused.hints, "instead of", unused, collapse = '; '),
-                "\n"
+        message(
+          "Suggested parameter: ",
+          paste(unused.hints, "instead of", unused, collapse = '; '),
+          "\n"
         )
       }
     }
@@ -1256,7 +1307,7 @@ IsMatrixEmpty <- function(x) {
 
 # Check whether an assay has been processed by sctransform
 #
-# @param assay assay to check 
+# @param assay assay to check
 #
 # @return Boolean
 #
@@ -1345,16 +1396,36 @@ Melt <- function(x) {
   ))
 }
 
+# Give hints for old paramters and their newer counterparts
+#
+# This is a non-exhaustive list. If your function isn't working properly based
+# on the parameters you give it, please read the documentation for your function
+#
+# @param param A vector of paramters to get hints for
+#
+# @return Parameter hints for the specified paramters
+#
 OldParamHints <- function(param) {
-  param.conversion <- c('raw.data' = 'counts', 'min.genes' = 'min.features', 
-    'features.plot' = 'features', 'pc.genes' = 'features', 
-    'do.print' = 'verbose', 'genes.print' = 'nfeatures.print', 
-    'pcs.print' = 'ndims.print', 'pcs.use' = 'dims', 
-    'reduction.use' = 'reduction', 'cells.use' = 'cells', 
-    'do.balanced' = 'balanced', 'display.progress' = 'verbose', 
-    'print.output' = 'verbose', 'dims.use' = 'dims', 
-    'reduction.type' = 'reduction', 'y.log' = 'log', 'cols.use' = 'cols',
-    'assay.use' = 'assay')
+  param.conversion <- c(
+    'raw.data' = 'counts',
+    'min.genes' = 'min.features',
+    'features.plot' = 'features',
+    'pc.genes' = 'features',
+    'do.print' = 'verbose',
+    'genes.print' = 'nfeatures.print',
+    'pcs.print' = 'ndims.print',
+    'pcs.use' = 'dims',
+    'reduction.use' = 'reduction',
+    'cells.use' = 'cells',
+    'do.balanced' = 'balanced',
+    'display.progress' = 'verbose',
+    'print.output' = 'verbose',
+    'dims.use' = 'dims',
+    'reduction.type' = 'reduction',
+    'y.log' = 'log',
+    'cols.use' = 'cols',
+    'assay.use' = 'assay'
+  )
   return(param.conversion[param])
 }
 
