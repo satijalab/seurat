@@ -463,7 +463,7 @@ GetResidual <- function(
       vst_out$cell_attr <- vst_out$cell_attr[ Cells(object), ]
       vst_out$cells_step1 <- intersect(vst_out$cells_step1, Cells(object))
  
-      object <- GetResidual_VstOut(object, 
+      object <- GetResidualVstOut(object, 
                                    assay, 
                                    new_features, 
                                    vst_out, 
@@ -490,7 +490,7 @@ GetResidual <- function(
       vst_out$cell_attr <- vst_out$cell_attr[ cells.v, ]
       vst_out$cells_step1 <- intersect(vst_out$cells_step1, cells.v)
       object.v <- subset(object, cells = cells.v)  
-      object.v <- GetResidual_VstOut(object.v, 
+      object.v <- GetResidualVstOut(object.v, 
                                      assay, 
                                      new_features, 
                                      vst_out, 
@@ -526,10 +526,9 @@ GetResidual <- function(
 #' @return Returns a Seurat object containing  pearson residuals of added features in its scale.data
 #'
 #' @importFrom sctransform get_residuals
-#'
-#' @export
 
-GetResidual_VstOut <- function(object, 
+
+GetResidualVstOut <- function(object, 
                                assay,
                                new_features, 
                                vst_out, 
