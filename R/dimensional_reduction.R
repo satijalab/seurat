@@ -1123,6 +1123,8 @@ RunTSNE.Seurat <- function(
 }
 
 #' @importFrom reticulate py_module_available py_set_seed import
+#' @importFrom uwot umap
+#' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
 #' @method RunUMAP default
@@ -1131,6 +1133,7 @@ RunTSNE.Seurat <- function(
 RunUMAP.default <- function(
   object,
   assay = NULL,
+  umap.method = "umap-learn",
   n.neighbors = 30L,
   n.components = 2L,
   metric = "correlation",
@@ -1151,36 +1154,65 @@ RunUMAP.default <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!py_module_available(module = 'umap')) {
-    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
-  }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
-  if (typeof(x = n.epochs) == "double") {
-    n.epochs <- as.integer(x = n.epochs)
-  }
-  umap_import <- import(module = "umap", delay_load = TRUE)
-  umap <- umap_import$UMAP(
-    n_neighbors = as.integer(x = n.neighbors),
-    n_components = as.integer(x = n.components),
-    metric = metric,
-    n_epochs = n.epochs,
-    learning_rate = learning.rate,
-    min_dist = min.dist,
-    spread = spread,
-    set_op_mix_ratio = set.op.mix.ratio,
-    local_connectivity = local.connectivity,
-    repulsion_strength = repulsion.strength,
-    negative_sample_rate = negative.sample.rate,
-    a = a,
-    b = b,
-    metric_kwds = metric.kwds,
-    angular_rp_forest = angular.rp.forest,
-    verbose = verbose
+  umap.output <- switch(
+    EXPR = umap.method,
+    'umap-learn' = {
+      if (!py_module_available(module = 'umap')) {
+        stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+      }
+      if (typeof(x = n.epochs) == "double") {
+        n.epochs <- as.integer(x = n.epochs)
+      }
+      umap_import <- import(module = "umap", delay_load = TRUE)
+      umap <- umap_import$UMAP(
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        metric_kwds = metric.kwds,
+        angular_rp_forest = angular.rp.forest,
+        verbose = verbose
+      )
+      umap_output <- umap$fit_transform(as.matrix(x = object))
+    },
+    'uwot' = {
+      if (metric == "correlation") {
+        metric <- "cosine"
+      }
+      umap_output <- umap(
+        X = object,
+        n_threads = nbrOfWorkers(),
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        verbose = verbose
+      )
+    },
+    stop("Unknown umap method: ", umap.method)
   )
-  umap_output <- umap$fit_transform(as.matrix(x = object))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
   rownames(x = umap_output) <- rownames(object)
   umap.reduction <- CreateDimReducObject(
@@ -1200,6 +1232,7 @@ RunUMAP.default <- function(
 RunUMAP.Graph <- function(
   object,
   assay = NULL,
+  umap.method = "umap-learn",
   n.components = 2L,
   metric = "correlation",
   n.epochs = 0L,
@@ -1274,6 +1307,11 @@ RunUMAP.Graph <- function(
 #' @param graph Name of graph on which to run UMAP
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
+#' @param umap.method UMAP implementation to run. Can be
+#' \itemize{
+#'   \item {umap-learn: }{Run the Seurat wrapper of the python umap-learn package}
+#'  \item {uwot: }{Runs umap via the uwot R package}
+#' }
 #' @param n.neighbors This determines the number of neighboring points used in
 #' local approximations of manifold structure. Larger values will result in more
 #' global structure being preserved at the loss of detailed local structure. In
@@ -1336,6 +1374,7 @@ RunUMAP.Seurat <- function(
   features = NULL,
   graph = NULL,
   assay = 'RNA',
+  umap.method = "umap-learn",
   n.neighbors = 30L,
   n.components = 2L,
   metric = "correlation",
@@ -1373,6 +1412,7 @@ RunUMAP.Seurat <- function(
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     assay = assay,
+    umap.method = umap.method,
     n.neighbors = n.neighbors,
     n.components = n.components,
     metric = metric,
