@@ -691,6 +691,9 @@ ReorderIdent <- function(object, var, ...) {
 #' Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 #' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 #'
+#' @note RunALRA and associated functions are being moved to SeuratWrappers;
+#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
@@ -718,6 +721,13 @@ ReorderIdent <- function(object, var, ...) {
 #' }
 #'
 RunALRA <- function(object, ...) {
+  .Deprecated(
+    new = 'SeruatWrappers::RunALRA',
+    msg = paste(
+      'RunALRA and associated functions are being moved to SeuratWrappers;',
+      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
+    )
+  )
   UseMethod(generic = 'RunALRA', object = object)
 }
 
