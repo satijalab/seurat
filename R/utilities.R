@@ -1274,6 +1274,25 @@ LengthCheck <- function(values, cutoff = 0) {
   ))
 }
 
+# Function to map values in a vector `v` as defined in `from`` to the values
+# defined in `to`.
+#
+# @param v     vector of values to map
+# @param from  vector of original values
+# @param to    vector of values to map original values to (should be of equal
+#              length as from)
+# @return      returns vector of mapped values
+#
+MapVals <- function(v, from, to) {
+  if (length(x = from) != length(x = to)) {
+    stop("from and to vectors are not the equal length.")
+  }
+  vals.to.match <- match(x = v, table = from)
+  vals.to.match.idx  <- !is.na(x = vals.to.match)
+  v[vals.to.match.idx] <- to[vals.to.match[vals.to.match.idx]]
+  return(v)
+}
+
 # Independently shuffle values within each row of a matrix
 #
 # Creates a matrix where correlation structure has been removed, but overall values are the same
