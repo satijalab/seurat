@@ -693,11 +693,10 @@ RunLeiden <- function(
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
-  
-  if(method == "matrix"){
+  if (method == "matrix") {
     #cast to dense (supported by reticulate for numpy.array)
     input <- as(object, "matrix")
-  } else if(method == "igraph"){
+  } else if (method == "igraph") {
     #Graph is a sparse dgCMatrix
     is(object, "dgCMatrix")
     #run as igraph object (passes to reticulate)
@@ -705,7 +704,6 @@ RunLeiden <- function(
   } else {
     warning("method for leiden must be matrix or igraph")
   }
-  
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
     object = object,
@@ -717,7 +715,6 @@ RunLeiden <- function(
     seed = random.seed,
     n_iterations = n.iter
   )
-  
   return(partition)
 }
 
