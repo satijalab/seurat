@@ -8,7 +8,9 @@ os:
   - linux
   - osx
 
-r: release
+r:
+  - release
+  - devel
 
 env:
   global:
