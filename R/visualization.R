@@ -178,6 +178,7 @@ DimHeatmap <- function(
 #' if \code{slot} is 'scale.data', 6 otherwise
 #' @param group.by A vector of variables to group cells by; pass 'ident' to group by cell identity classes
 #' @param group.bar Add a color bar showing group status for cells
+#' @param group.colors Colors to use for the color bar
 #' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay Assay to pull from
 # @param check.plot Check that plotting will finish in a reasonable amount of time
@@ -199,7 +200,8 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
+#' ggplot_build aes_string
 #' @export
 #'
 #' @examples
@@ -211,6 +213,7 @@ DoHeatmap <- function(
   cells = NULL,
   group.by = 'ident',
   group.bar = TRUE,
+  group.colors = NULL,
   disp.min = -2.5,
   disp.max = NULL,
   slot = 'scale.data',
@@ -293,6 +296,7 @@ DoHeatmap <- function(
       )
       data.group <- rbind(data.group, na.data.group)
     }
+    lgroup <- length(levels(group.use))
     plot <- SingleRasterMap(
       data = data.group,
       raster = raster,
@@ -304,14 +308,34 @@ DoHeatmap <- function(
     )
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
+      default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
+      cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      if (any(is.na(x = cols))) {
+        cols[is.na(x = cols)] <- default.colors[is.na(x = cols)]
+        cols <- Col2Hex(cols)
+        col.dups <- sort(x = unique(x = which(x = duplicated(x = substr(
+          x = cols,
+          start = 1,
+          stop = 7
+        )))))
+        through <- length(x = default.colors)
+        while (length(x = col.dups) > 0) {
+          pal.max <- length(x = col.dups) + through
+          cols.extra <- hue_pal()(pal.max)[(through + 1):pal.max]
+          cols[col.dups] <- cols.extra
+          col.dups <- sort(x = unique(x = which(x = duplicated(x = substr(
+            x = cols,
+            start = 1,
+            stop = 7
+          )))))
+        }
+      }
       group.use2 <- sort(x = group.use)
       if (draw.lines) {
         na.group <- RandomName(length = 20)
         levels(x = group.use2) <- c(levels(x = group.use2), na.group)
         group.use2[placeholder.cells] <- na.group
-        cols <- c(hue_pal()(length(x = levels(x = group.use))), "#FFFFFF")
-      } else {
-        cols <- c(hue_pal()(length(x = levels(x = group.use))))
+        cols <- c(cols, "#FFFFFF")
       }
       pbuild <- ggplot_build(plot = plot)
       names(x = cols) <- levels(x = group.use2)
@@ -319,15 +343,16 @@ DoHeatmap <- function(
       y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
       y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
       y.max <- y.pos + group.bar.height * y.range
-
-      plot <- plot + annotation_raster(
-        raster = t(x = cols[group.use2]),,
-        xmin = -Inf,
-        xmax = Inf,
-        ymin = y.pos,
-        ymax = y.max
-      ) +
-        coord_cartesian(ylim = c(0, y.max), clip = 'off')
+      plot <- plot +
+        annotation_raster(
+          raster = t(x = cols[group.use2]),
+          xmin = -Inf,
+          xmax = Inf,
+          ymin = y.pos,
+          ymax = y.max
+        ) +
+        coord_cartesian(ylim = c(0, y.max), clip = 'off') +
+        scale_color_manual(values = cols)
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         x.divs <- pbuild$layout$panel_params[[1]]$x.major
@@ -2249,28 +2274,28 @@ BlueAndRed <- function(k = 50) {
 }
 
 #' Move outliers towards center on dimension reduction plot
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction Name of DimReduc to adjust
 #' @param dims Dimensions to visualize
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param outlier.sd Controls the outlier distance
 #' @param reduction.key Key for DimReduc that is returned
-#' 
+#'
 #' @return Returns a DimReduc object with the modified embeddings
-#' 
+#'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
 #' pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
 #' pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
 #' DimPlot(pbmc_small, reduction = "umap")
-#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small,
 #'     reduction = "umap", reduction.key = 'umap_', outlier.sd = 0.5)
 #' DimPlot(pbmc_small, reduction = "umap_new")
 #' }
-#' 
+#'
 CollapseEmbeddingOutliers <- function(
   object,
   reduction = 'umap',
@@ -2289,8 +2314,8 @@ CollapseEmbeddingOutliers <- function(
   data.medians.scale[abs(x = data.medians.scale) < outlier.sd] <- 0
   data.medians.scale <- sign(x = data.medians.scale) * (abs(x = data.medians.scale) - outlier.sd)
   data.correct <- sweep(
-    x = data.medians.scale, 
-    MARGIN = 2, 
+    x = data.medians.scale,
+    MARGIN = 2,
     STATS = data.sd,
     FUN = "*"
   )
@@ -2299,7 +2324,7 @@ CollapseEmbeddingOutliers <- function(
   for (i in rownames(x = data.correct)) {
     cells.correct <- rownames(x = idents)[idents[, "ident"] == i]
     new.embeddings[cells.correct, ] <- sweep(
-      x = new.embeddings[cells.correct,], 
+      x = new.embeddings[cells.correct,],
       MARGIN = 2,
       STATS = data.correct[i, ],
       FUN = "-"
