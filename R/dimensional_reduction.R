@@ -649,6 +649,7 @@ RunLSI.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!is.null(seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -711,7 +712,6 @@ RunLSI.Assay <- function(
   reduction.data <- RunLSI(
     object = data.use,
     assay = assay,
-    features = features,
     n = n,
     reduction.key = reduction.key,
     scale.max = scale.max,
@@ -1151,6 +1151,7 @@ RunUMAP.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!py_module_available(module = 'umap')) {
     stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
   }
@@ -1216,6 +1217,7 @@ RunUMAP.Graph <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
+  CheckDots(...)
   if (!py_module_available(module = 'umap')) {
     stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
   }
@@ -1357,6 +1359,7 @@ RunUMAP.Seurat <- function(
   reduction.key = "UMAP_",
   ...
 ) {
+  CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
@@ -1412,6 +1415,7 @@ ScoreJackStraw.JackStrawData <- function(
   score.thresh = 1e-5,
   ...
 ) {
+  CheckDots(...)
   pAll <- JS(object = object, slot = "empirical.p.values")
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)

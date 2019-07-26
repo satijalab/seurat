@@ -1088,8 +1088,8 @@ L2Norm <- function(mat, MARGIN = 1){
 # @examples
 #
 CheckDots <- function(..., fxns = NULL) {
-  args.names <- names(x = c(...))
-  if (length(x = c(...)) == 0) {
+  args.names <- names(x = list(...))
+  if (length(x = list(...)) == 0) {
     return(invisible(x = NULL))
   }
   if (is.null(x = args.names)) {
@@ -1193,11 +1193,13 @@ CheckDots <- function(..., fxns = NULL) {
         call. = FALSE,
         immediate. = TRUE
       )
-      unused.hints <- na.omit(object = sapply(X = unused, FUN = OldParamHints))
+      unused.hints <- sapply(X = unused, FUN = OldParamHints)
+      names(x = unused.hints) <- unused
+      unused.hints <- na.omit(object = unused.hints)
       if (length(x = unused.hints) > 0) {
         message(
           "Suggested parameter: ",
-          paste(unused.hints, "instead of", unused, collapse = '; '),
+          paste(unused.hints, "instead of", names(x = unused.hints), collapse = '; '),
           "\n"
         )
       }

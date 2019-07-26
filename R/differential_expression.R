@@ -636,20 +636,23 @@ FindMarkers.default <- function(
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
-      verbose = verbose
+      verbose = verbose,
+      ...
     ),
     "DESeq2" = DESeq2DETest(
       data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
-      verbose = verbose
+      verbose = verbose,
+      ...
     ),
     "LR" = LRDETest(
       data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
-      verbose = verbose
+      verbose = verbose,
+      ...
     ),
     stop("Unknown test: ", test.use)
   )

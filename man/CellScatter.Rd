@@ -6,7 +6,7 @@
 \title{Cell-cell scatter plot}
 \usage{
 CellScatter(object, cell1, cell2, features = NULL, highlight = NULL,
-  cols = NULL, pt.size = 1, smooth = FALSE, ...)
+  cols = NULL, pt.size = 1, smooth = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -24,8 +24,6 @@ CellScatter(object, cell1, cell2, features = NULL, highlight = NULL,
 \item{pt.size}{Size of the points on the plot}
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
-
-\item{...}{Ignored for now}
 }
 \value{
 A ggplot object

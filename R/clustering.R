@@ -51,6 +51,7 @@ FindClusters.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
@@ -160,6 +161,7 @@ FindClusters.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
   if (!graph.name %in% names(x = object)) {
     stop("Provided graph.name not present in Seurat object")
@@ -241,6 +243,7 @@ FindNeighbors.default <- function(
   force.recalc = FALSE,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = dim(x = object))) {
     warning(
       "Object should have two dimensions, attempting to coerce to matrix",
@@ -324,6 +327,7 @@ FindNeighbors.Assay <- function(
   force.recalc = FALSE,
   ...
 ) {
+  CheckDots(...)
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
@@ -356,6 +360,7 @@ FindNeighbors.dist <- function(
   force.recalc = FALSE,
   ...
 ) {
+  CheckDots(...)
   return(FindNeighbors(
     object = as.matrix(x = object),
     distance.matrix = TRUE,
@@ -402,6 +407,7 @@ FindNeighbors.Seurat <- function(
   graph.name = NULL,
   ...
 ) {
+  CheckDots(...)
   if (!is.null(x = dims)) {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction]])
