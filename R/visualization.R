@@ -1594,6 +1594,8 @@ PolyFeaturePlot <- function(
 #'
 #' Plots the results of the approximate rank selection process for ALRA.
 #'
+#' @note ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;
+#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
 #'
 #' @param object Seurat object
 #' @param start Index to start plotting singular value spacings from.
@@ -1615,6 +1617,13 @@ PolyFeaturePlot <- function(
 #' @export
 #'
 ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
+  .Deprecated(
+    new = 'SeruatWrappers::ALRAChooseKPlot',
+    msg = paste(
+      'ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;',
+      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
+    )
+  )
   alra.data <- Tool(object = object, slot = 'RunALRA')
   if (is.null(x = alra.data)) {
     stop('RunALRA should be run prior to using this function.')
@@ -2249,28 +2258,28 @@ BlueAndRed <- function(k = 50) {
 }
 
 #' Move outliers towards center on dimension reduction plot
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction Name of DimReduc to adjust
 #' @param dims Dimensions to visualize
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param outlier.sd Controls the outlier distance
 #' @param reduction.key Key for DimReduc that is returned
-#' 
+#'
 #' @return Returns a DimReduc object with the modified embeddings
-#' 
+#'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
 #' pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
 #' pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
 #' DimPlot(pbmc_small, reduction = "umap")
-#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small,
 #'     reduction = "umap", reduction.key = 'umap_', outlier.sd = 0.5)
 #' DimPlot(pbmc_small, reduction = "umap_new")
 #' }
-#' 
+#'
 CollapseEmbeddingOutliers <- function(
   object,
   reduction = 'umap',
@@ -2289,8 +2298,8 @@ CollapseEmbeddingOutliers <- function(
   data.medians.scale[abs(x = data.medians.scale) < outlier.sd] <- 0
   data.medians.scale <- sign(x = data.medians.scale) * (abs(x = data.medians.scale) - outlier.sd)
   data.correct <- sweep(
-    x = data.medians.scale, 
-    MARGIN = 2, 
+    x = data.medians.scale,
+    MARGIN = 2,
     STATS = data.sd,
     FUN = "*"
   )
@@ -2299,7 +2308,7 @@ CollapseEmbeddingOutliers <- function(
   for (i in rownames(x = data.correct)) {
     cells.correct <- rownames(x = idents)[idents[, "ident"] == i]
     new.embeddings[cells.correct, ] <- sweep(
-      x = new.embeddings[cells.correct,], 
+      x = new.embeddings[cells.correct,],
       MARGIN = 2,
       STATS = data.correct[i, ],
       FUN = "-"
@@ -2592,16 +2601,16 @@ HoverLocator <- function(
       text = ~feature
     ),
     xaxis = xaxis,
-    yaxis = yaxis, 
+    yaxis = yaxis,
     title = plot$labels$title,
     titlefont = title,
     paper_bgcolor = plotbg,
     plot_bgcolor = plotbg,
     ...
   )
-  # add labels 
+  # add labels
   label.layer <- which(x = sapply(
-    X = plot$layers, 
+    X = plot$layers,
     FUN = function(x) class(x$geom)[1] == "GeomText")
   )
   if (length(x = label.layer) == 1) {
@@ -2615,7 +2624,7 @@ HoverLocator <- function(
       xanchor = 'right',
       showarrow = F,
       font = list(size = plot$layers[[label.layer]]$aes_params$size * 4)
-    ) 
+    )
   }
   return(p)
 }
