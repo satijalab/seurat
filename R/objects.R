@@ -4329,6 +4329,7 @@ WhichCells.Seurat <- function(
     cells <- rownames(x = data.subset)
   }
   if (invert) {
+    cell.order <- colnames(x = object)
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
   cells <- CellsByIdentities(object = object, cells = cells)
@@ -5897,7 +5898,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData, TransferLabels, or TransferFeatures.")
+        "This can be used as input to IntegrateData or TransferData.")
   }
 )
 

@@ -235,8 +235,34 @@ bad.gene <- GetAssayData(object = pbmc_small[["RNA"]], slot = "data")
 rownames(x = bad.gene)[1] <- paste0("rna_", rownames(x = bad.gene)[1])
 pbmc_small[["RNA"]]@data <- bad.gene
 
-# errors - when key conflicts with feature name
-#
+# Tests for WhichCells
+# ------------------------------------------------------------------------------
 
+test_that("Specifying cells works", {
+  test.cells <- Cells(x = pbmc_small)[1:10]
+  expect_equal(WhichCells(object = pbmc_small, cells = test.cells), test.cells)
+  expect_equal(WhichCells(object = pbmc_small, cells = test.cells, invert = TRUE), setdiff(Cells(x = pbmc_small), test.cells))
+})
+
+test_that("Specifying idents works", {
+  c12 <- WhichCells(object = pbmc_small, idents = c(1, 2))
+  expect_equal(length(x = c12), 44)
+  expect_equal(c12[44], "CTTGATTGATCTTC")
+  expect_equal(c12, WhichCells(object = pbmc_small, idents = 0, invert = TRUE))
+})
+
+test_that("downsample works", {
+  expect_equal(length(x = WhichCells(object = pbmc_small, downsample = 5)), 15)
+  expect_equal(length(x = WhichCells(object = pbmc_small, downsample = 100)), 80)
+})
+
+test_that("passing an expression works", {
+  lyz.pos <- WhichCells(object = pbmc_small, expression = LYZ > 1)
+  expect_true(all(GetAssayData(object = pbmc_small, slot = "data")["LYZ", lyz.pos] > 1))
+  # multiple values in expression
+  lyz.pos <- WhichCells(object = pbmc_small, expression = LYZ > 1 & groups == "g1")
+  expect_equal(length(x = lyz.pos), 30)
+  expect_equal(lyz.pos[30], "CTTGATTGATCTTC")
+})
 
 
