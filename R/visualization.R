@@ -819,6 +819,7 @@ DimPlot <- function(
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
+#' @param sort.cell If TRUE, the positive cells will overlap the negative cells
 
 #'
 #' @return Returns a ggplot object if only 1 feature is plotted.
@@ -866,7 +867,8 @@ FeaturePlot <- function(
   ncol = NULL,
   combine = TRUE,
   coord.fixed = FALSE,
-  by.col = TRUE
+  by.col = TRUE,
+  sort.cell = FALSE
 ) {
   no.right <- theme(
     axis.line.y.right = element_blank(),
@@ -1049,8 +1051,12 @@ FeaturePlot <- function(
       } else {
         cols.use <- NULL
       }
+      data.single <- data.plot[, c(dims, 'ident', feature, shape.by)]
+      if (sort.cell) {
+        data.single <- data.single[order(data.single[, feature]),]
+      }
       plot <- SingleDimPlot(
-        data = data.plot[, c(dims, 'ident', feature, shape.by)],
+        data = data.single,
         dims = dims,
         col.by = feature,
         order = order,
