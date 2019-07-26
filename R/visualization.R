@@ -808,6 +808,8 @@ DimPlot <- function(
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
+#' When blend is TRUE, the first color is for double negative cells, and the second and third colors
+#' are for expression of two features
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
@@ -850,7 +852,7 @@ FeaturePlot <- function(
   features,
   dims = c(1, 2),
   cells = NULL,
-  cols =  ifelse(test = c(blend, blend), yes = c("#ff0000", "#00ff00"), no = c('lightgrey', 'blue')),
+  cols =  unique(ifelse(test = c(blend, blend, blend), yes = c('lightgrey', "#ff0000", "#00ff00"), no = c('lightgrey', 'blue','blue'))),
   pt.size = NULL,
   order = FALSE,
   min.cutoff = NA,
@@ -892,23 +894,23 @@ FeaturePlot <- function(
     stop("Blending feature plots only works with two features")
   }
   if (blend) {
-    if (length(x = cols) > 2) {
+    if (length(x = cols) > 3) {
       warning(
-        "Blending feature plots only works with two colors; using first two colors",
+        "Blending feature plots only works with three colors; using first three colors",
         call. = FALSE,
         immediate. = TRUE
       )
-    } else if (length(x = cols) < 2) {
+    } else if (length(x = cols) < 3) {
       warning(
-        "Blended feature plots require two colors, using default colors",
+        "Blended feature plots require three colors, using default colors",
         call. = FALSE,
         immediate. = TRUE
       )
-      cols <- c("#ff0000", "#00ff00")
+      cols <- c('black', "#ff0000", "#00ff00")
     }
   }
-  if (blend && length(x = cols) != 2) {
-    stop("Blending feature plots only works with two colors")
+  if (blend && length(x = cols) != 3) {
+    stop("Blending feature plots only works with three colors; first one for negative cells")
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
@@ -1018,9 +1020,11 @@ FeaturePlot <- function(
   if (blend) {
     ncol <- 4
     color.matrix <- BlendMatrix(
-      two.colors = cols,
-      col.threshold = blend.threshold
+      two.colors = cols[2:3],
+      col.threshold = blend.threshold,
+      negative.color = cols[1]
     )
+    cols <- cols[2:3]
     colors <- list(
       color.matrix[, 1],
       color.matrix[1, ],
@@ -1115,9 +1119,10 @@ FeaturePlot <- function(
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
-          if (all(data.plot[, feature] == data.plot[, feature][1])) {
-            warning("All cells have the same value (", data.plot[1, feature], ") of ", feature, ".")
-            if (data.plot[1, feature][1] == 0) {
+          unique.feature.exp <- unique(data.plot[, feature])
+          if (length(unique.feature.exp) == 1) {
+            warning("All cells have the same value (", unique.feature.exp, ") of ", feature, ".")
+            if (unique.feature.exp == 0) {
               cols.grad <- cols[1]
             } else{
             cols.grad <- cols
@@ -3283,38 +3288,65 @@ BlendMap <- function(color.matrix) {
 BlendMatrix <- function(
   n = 10,
   col.threshold = 0.5,
-  two.colors=c("#ff0000", "#00ff00")
+  two.colors = c("#ff0000", "#00ff00"),
+  negative.color = "black"
 ) {
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
+  C0 <- colorRamp(colors = negative.color)(1)
   ramp <- colorRamp(colors = two.colors)
   C1 <- ramp(x = 0)
   C2 <- ramp(x = 1)
-  merge.weight <- min(255 / (C1 + C2 + 0.01))
-  weight_color <- function(w1, c1) {
-    c1_weight <- 1 / (1 + exp(x = -(w1 ^ 1.2 - 3 - col.threshold * 10)))
-    return(c1_weight * c1)
+
+  merge.weight <- min(255 / (C1 + C2 +  C0 + 0.01))
+  sigmoid = function(x) {
+    1 / (1 + exp(-x))
   }
-  blend_color <- function(i, j) {
-    C1_weight <- weight_color(w1 = i, c1 = C1)
-    C2_weight <- weight_color(w1 = j, c1 = C2)
-    C_blend <- (merge.weight * C1_weight + merge.weight * C2_weight)
-    alpha <- lapply(X = list(i, j), FUN = '^', 0.5)
-    alpha <- Reduce(f = '+', x = alpha)
-    alpha <- (1 - 0.4 /alpha ) * 255
+  blend_color <- function(i, j, 
+                          col.threshold, n, 
+                          C0, C1, C2, 
+                          merge.weight) {
+    c.min <- sigmoid(5*(1/n - col.threshold))
+    c.max <- sigmoid(5*(1 - col.threshold ))
+    c1_weight <- sigmoid( 5* (i/n - col.threshold) )
+    c2_weight <- sigmoid( 5* (j/n - col.threshold) )
+    c0_weight <-  sigmoid( 5* ((i+j)/(2*n) - col.threshold) )
+    
+    c1_weight <- (c1_weight - c.min) /( c.max - c.min)
+    c2_weight <- (c2_weight - c.min) /( c.max - c.min) 
+    c0_weight <- (c0_weight - c.min) /( c.max - c.min) 
+    
+  
+    C1_length <- sqrt(sum((C1-C0)**2 ))
+    C2_length <- sqrt(sum((C2-C0)**2 ))
+    
+    C1_unit <- (C1 - C0) /C1_length
+    C2_unit <- (C2 - C0) /C2_length
+    
+    C1_weight <- C1_unit*c1_weight
+    C2_weight <- C2_unit*c2_weight
+
+    C_blend <- ( C1_weight*(i-1)*C1_length/(n-1)   + C2_weight*(j-1)*C2_length/(n-1) +  (i-1)*(j-1)*c0_weight*C0/(n-1)**2 + C0)
+
+    C_blend[C_blend > 255] <- 255
+    C_blend[C_blend < 0] <- 0
+    
     return(rgb(
       red = C_blend[, 1],
       green = C_blend[, 2],
       blue = C_blend[, 3],
-      alpha = alpha,
+      alpha = 255,
       maxColorValue = 255
     ))
   }
   blend_matrix <- matrix(nrow = n, ncol = n)
   for (i in 1:n) {
     for (j in 1:n) {
-      blend_matrix[i, j] <- blend_color(i = i, j = j)
+      blend_matrix[i, j] <- blend_color(i = i, j =  j,
+                                        col.threshold = col.threshold, n = n, 
+                                        C0 = C0, C1 = C1, C2 = C2, 
+                                        merge.weight = merge.weight)
     }
   }
   return(blend_matrix)
