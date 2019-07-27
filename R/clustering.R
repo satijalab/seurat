@@ -21,7 +21,7 @@ NULL
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
-#' @param method. Method for running leiden (defaults to matrix which is fast for small datasets). 
+#' @param method Method for running leiden (defaults to matrix which is fast for small datasets). 
 #' Enable method = "igraph" to avoid casting large data to a dense matrix.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
@@ -665,7 +665,8 @@ NNHelper <- function(data, query = data, k, method, ...) {
 #
 #' @importFrom reticulate py_module_available import r_to_py
 #' @importFrom leiden leiden
-#' @importFrom igraph graph_from_adjacency_matrix
+#' @importFrom methods as is
+#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
 # @author Tom Kelly
 #
@@ -693,20 +694,25 @@ RunLeiden <- function(
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
-  if (method == "matrix") {
+  switch(
+    EXPR = method,
     #cast to dense (supported by reticulate for numpy.array)
-    input <- as(object, "matrix")
-  } else if (method == "igraph") {
-    #Graph is a sparse dgCMatrix
-    is(object, "dgCMatrix")
+    "matrix" = input <- as(object, "matrix"),
     #run as igraph object (passes to reticulate)
-    object <- graph_from_adjacency_matrix(adjmatrix = object)
-  } else {
-    warning("method for leiden must be matrix or igraph")
-  }
+    "igraph" = switch(is(object),
+                      #generate igraph if needed (will handle updated snn class)
+                      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+                      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+                      "igraph" = input <- object,
+                      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+                      "list" = input <- graph_from_adj_list(adjlist = object),
+                      stop("SNN object must be a compatible input for igraph")
+                      ),
+    stop("method for leiden must be 'matrix' or 'igraph'")
+  )
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
-    object = object,
+    object = input,
     partition_type = partition.type,
     initial_membership = initial.membership,
     weights = weights,

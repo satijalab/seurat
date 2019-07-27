@@ -34,6 +34,9 @@ FindClusters(object, ...)
 \item{resolution}{Value of the resolution parameter, use a value above
 (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
 
+\item{method}{Method for running leiden (defaults to matrix which is fast for small datasets). 
+Enable method = "igraph" to avoid casting large data to a dense matrix.}
+
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
@@ -55,9 +58,6 @@ Specify the ABSOLUTE path.}
 \item{verbose}{Print output}
 
 \item{graph.name}{Name of graph to use for the clustering algorithm}
-
-\item{method.}{Method for running leiden (defaults to matrix which is fast for small datasets). 
-Enable method = "igraph" to avoid casting large data to a dense matrix.}
 }
 \value{
 Returns a Seurat object where the idents have been updated with new cluster info;
