@@ -1383,6 +1383,8 @@ SCTransform <- function(
   )
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
+  # save clip.range into vst model
+  vst.out$arguments$res_clip_range <- clip.range
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   # also put gene attributes in meta.features
   assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
