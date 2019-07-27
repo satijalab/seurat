@@ -11,6 +11,11 @@ os:
 r:
   - release
   - devel
+  
+matrix:
+  exclude:
+    - r: devel
+      os: osx
 
 env:
   global:
