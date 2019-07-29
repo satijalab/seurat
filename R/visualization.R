@@ -1619,6 +1619,8 @@ PolyFeaturePlot <- function(
 #'
 #' Plots the results of the approximate rank selection process for ALRA.
 #'
+#' @note ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;
+#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
 #'
 #' @param object Seurat object
 #' @param start Index to start plotting singular value spacings from.
@@ -1640,6 +1642,13 @@ PolyFeaturePlot <- function(
 #' @export
 #'
 ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
+  .Deprecated(
+    new = 'SeruatWrappers::ALRAChooseKPlot',
+    msg = paste(
+      'ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;',
+      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
+    )
+  )
   alra.data <- Tool(object = object, slot = 'RunALRA')
   if (is.null(x = alra.data)) {
     stop('RunALRA should be run prior to using this function.')
@@ -2617,16 +2626,16 @@ HoverLocator <- function(
       text = ~feature
     ),
     xaxis = xaxis,
-    yaxis = yaxis, 
+    yaxis = yaxis,
     title = plot$labels$title,
     titlefont = title,
     paper_bgcolor = plotbg,
     plot_bgcolor = plotbg,
     ...
   )
-  # add labels 
+  # add labels
   label.layer <- which(x = sapply(
-    X = plot$layers, 
+    X = plot$layers,
     FUN = function(x) class(x$geom)[1] == "GeomText")
   )
   if (length(x = label.layer) == 1) {
@@ -2640,7 +2649,7 @@ HoverLocator <- function(
       xanchor = 'right',
       showarrow = F,
       font = list(size = plot$layers[[label.layer]]$aes_params$size * 4)
-    ) 
+    )
   }
   return(p)
 }

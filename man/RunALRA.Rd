@@ -52,6 +52,10 @@ error distribution learned from the negative values. Described in
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 }
+\note{
+RunALRA and associated functions are being moved to SeuratWrappers;
+for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
+}
 \examples{
 pbmc_small
 # Example 1: Simple usage, with automatic choice of k.

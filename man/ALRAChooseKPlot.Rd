@@ -24,6 +24,10 @@ spacings of the singular values, and the p-values of the singular values.
 \description{
 Plots the results of the approximate rank selection process for ALRA.
 }
+\note{
+ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;
+for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
+}
 \seealso{
 \code{\link{RunALRA}}
 }
