@@ -34,7 +34,7 @@ FindClusters(object, ...)
 \item{resolution}{Value of the resolution parameter, use a value above
 (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
 
-\item{method}{Method for running leiden (defaults to matrix which is fast for small datasets). 
+\item{method}{Method for running leiden (defaults to matrix which is fast for small datasets).
 Enable method = "igraph" to avoid casting large data to a dense matrix.}
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain

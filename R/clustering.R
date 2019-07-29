@@ -21,7 +21,7 @@ NULL
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
-#' @param method Method for running leiden (defaults to matrix which is fast for small datasets). 
+#' @param method Method for running leiden (defaults to matrix which is fast for small datasets).
 #' Enable method = "igraph" to avoid casting large data to a dense matrix.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
@@ -272,10 +272,10 @@ FindNeighbors.default <- function(
       message("Computing nearest neighbor graph")
     }
     nn.ranked <- NNHelper(
-      data = object, 
-      k = k.param, 
-      method = nn.method, 
-      searchtype = "standard", 
+      data = object,
+      k = k.param,
+      method = nn.method,
+      searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric)
     nn.ranked <- nn.ranked$nn.idx
@@ -478,7 +478,7 @@ FindNeighbors.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Run annoy 
+# Run annoy
 #
 # @param data Data to build the index with
 # @param query A set of data to be queried against data
@@ -486,18 +486,18 @@ FindNeighbors.Seurat <- function(
 # "hamming"
 # @param n.trees More trees gives higher precision when querying
 # @param k Number of neighbors
-# @param search.k During the query it will inspect up to search_k nodes which 
+# @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances 
+# @ param include.distance Include the corresponding distances
 #
-AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k, 
+AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
                     search.k = -1, include.distance = TRUE) {
   idx <- AnnoyBuildIndex(
-    data = data, 
+    data = data,
     metric = metric,
     n.trees = n.trees)
   nn <- AnnoySearch(
-    index = idx, 
+    index = idx,
     query = query,
     k = k,
     search.k = search.k,
@@ -506,7 +506,7 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
 }
 
 # Build the annoy index
-# 
+#
 # @param data Data to build the index with
 # @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
 # "hamming"
@@ -535,9 +535,9 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # @param Annoy index, build with AnnoyBuildIndex
 # @param query A set of data to be queried against the index
 # @param k Number of neighbors
-# @param search.k During the query it will inspect up to search_k nodes which 
+# @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances 
+# @ param include.distance Include the corresponding distances
 #
 AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
@@ -622,7 +622,7 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @param k Number of nearest neighbors to compute
 # @param method Nearest neighbor method to use: "rann", "annoy"
 # @param ... additional parameters to specific neighbor finding method
-# 
+#
 NNHelper <- function(data, query = data, k, method, ...) {
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
@@ -663,9 +663,9 @@ NNHelper <- function(data, query = data, k, method, ...) {
 #
 # @keywords graph network igraph mvtnorm simulation
 #
-#' @importFrom reticulate py_module_available import r_to_py
 #' @importFrom leiden leiden
 #' @importFrom methods as is
+#' @importFrom reticulate py_module_available import r_to_py
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
 # @author Tom Kelly
@@ -700,15 +700,15 @@ RunLeiden <- function(
     "matrix" = input <- as(object, "matrix"),
     #run as igraph object (passes to reticulate)
     "igraph" = switch(
-                      EXPR = is(object),
-                      #generate igraph if needed (will handle updated snn class)
-                      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-                      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-                      "igraph" = input <- object,
-                      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-                      "list" = input <- graph_from_adj_list(adjlist = object),
-                      stop("SNN object must be a compatible input for igraph")
-                      ),
+      EXPR = is(object),
+      #generate igraph if needed (will handle updated snn class)
+      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "igraph" = input <- object,
+      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "list" = input <- graph_from_adj_list(adjlist = object),
+      stop("SNN object must be a compatible input for igraph")
+    ),
     stop("method for leiden must be 'matrix' or 'igraph'")
   )
   #run leiden from CRAN package (calls python with reticulate)
