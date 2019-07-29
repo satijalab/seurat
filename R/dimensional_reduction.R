@@ -1133,10 +1133,10 @@ RunTSNE.Seurat <- function(
 RunUMAP.default <- function(
   object,
   assay = NULL,
-  umap.method = "umap-learn",
+  umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
-  metric = "correlation",
+  metric = 'cosine',
   n.epochs = NULL,
   learning.rate = 1.0,
   min.dist = 0.3,
@@ -1157,6 +1157,16 @@ RunUMAP.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
+  }
+  if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
+    warning(
+      "The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric",
+      "\nTo use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'",
+      "\nThis message will be shown once per session",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    options(Seurat.warn.umap.uwot = FALSE)
   }
   umap.output <- switch(
     EXPR = umap.method,
@@ -1186,13 +1196,18 @@ RunUMAP.default <- function(
         angular_rp_forest = angular.rp.forest,
         verbose = verbose
       )
-      umap_output <- umap$fit_transform(as.matrix(x = object))
+      umap$fit_transform(as.matrix(x = object))
     },
     'uwot' = {
-      if (metric == "correlation") {
-        metric <- "cosine"
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
       }
-      umap_output <- umap(
+      umap(
         X = object,
         n_threads = nbrOfWorkers(),
         n_neighbors = as.integer(x = n.neighbors),
@@ -1211,12 +1226,12 @@ RunUMAP.default <- function(
         verbose = verbose
       )
     },
-    stop("Unknown umap method: ", umap.method)
+    stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
-  colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
-  rownames(x = umap_output) <- rownames(object)
+  colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
+  rownames(x = umap.output) <- rownames(x = object)
   umap.reduction <- CreateDimReducObject(
-    embeddings = umap_output,
+    embeddings = umap.output,
     key = reduction.key,
     assay = assay
   )
@@ -1232,9 +1247,9 @@ RunUMAP.default <- function(
 RunUMAP.Graph <- function(
   object,
   assay = NULL,
-  umap.method = "umap-learn",
+  umap.method = 'umap-learn',
   n.components = 2L,
-  metric = "correlation",
+  metric = 'correlation',
   n.epochs = 0L,
   learning.rate = 1,
   min.dist = 0.3,
@@ -1315,9 +1330,9 @@ RunUMAP.Graph <- function(
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
 #' @param umap.method UMAP implementation to run. Can be
-#' \itemize{
-#'   \item {umap-learn: }{Run the Seurat wrapper of the python umap-learn package}
-#'  \item {uwot: }{Runs umap via the uwot R package}
+#' \describe{
+#'   \item{\code{uwot}:}{Runs umap via the uwot R package}
+#'   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 #' }
 #' @param n.neighbors This determines the number of neighboring points used in
 #' local approximations of manifold structure. Larger values will result in more
@@ -1381,10 +1396,10 @@ RunUMAP.Seurat <- function(
   features = NULL,
   graph = NULL,
   assay = 'RNA',
-  umap.method = "umap-learn",
+  umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
-  metric = "correlation",
+  metric = 'cosine',
   n.epochs = NULL,
   learning.rate = 1,
   min.dist = 0.3,
@@ -1399,8 +1414,8 @@ RunUMAP.Seurat <- function(
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
   verbose = TRUE,
-  reduction.name = "umap",
-  reduction.key = "UMAP_",
+  reduction.name = 'umap',
+  reduction.key = 'UMAP_',
   ...
 ) {
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
