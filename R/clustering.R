@@ -699,7 +699,8 @@ RunLeiden <- function(
     #cast to dense (supported by reticulate for numpy.array)
     "matrix" = input <- as(object, "matrix"),
     #run as igraph object (passes to reticulate)
-    "igraph" = switch(is(object),
+    "igraph" = switch(
+                      EXPR = is(object),
                       #generate igraph if needed (will handle updated snn class)
                       "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
                       "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
