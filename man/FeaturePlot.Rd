@@ -5,14 +5,14 @@
 \alias{FeatureHeatmap}
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
-FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
-  cols = ifelse(test = c(blend, blend), yes = c("#ff0000", "#00ff00"), no
-  = c("lightgrey", "blue")), pt.size = NULL, order = FALSE,
+FeaturePlot(object, features, dims = c(1, 2), cells = NULL, cols = if
+  (blend) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
+  c("lightgrey", "blue") }, pt.size = NULL, order = FALSE,
   min.cutoff = NA, max.cutoff = NA, reduction = NULL,
   split.by = NULL, shape.by = NULL, slot = "data", blend = FALSE,
   blend.threshold = 0.5, label = FALSE, label.size = 4,
   repel = FALSE, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
-  by.col = TRUE)
+  by.col = TRUE, sort.cell = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -31,7 +31,13 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
 
 \item{cols}{The two colors to form the gradient over. Provide as string vector with
 the first color corresponding to low values, the second to high. Also accepts a Brewer
-color scale or vector of colors. Note: this will bin the data into number of colors provided.}
+color scale or vector of colors. Note: this will bin the data into number of colors provided.
+When blend is \code{TRUE}, takes anywhere from 1-3 colors:
+\describe{
+  \item{1 color:}{Treated as color for double-negatives, will use default colors 2 and 3 for per-feature expression}
+  \item{2 colors:}{Treated as colors for per-feature expression, will use default color 1 for double-negatives}
+  \item{3+ colors:}{First color used for double-negatives, colors 2 and 3 used for per-feature expression, all others ignored}
+}}
 
 \item{pt.size}{Adjust point size for plotting}
 
@@ -64,11 +70,13 @@ different colors and different shapes on cells}
 
 \item{ncol}{Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+\item{combine}{Combine plots into a single gg object; note that if \code{TRUE}; themeing will not work when plotting multiple features}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
+
+\item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
 }
 \value{
 Returns a ggplot object if only 1 feature is plotted.
