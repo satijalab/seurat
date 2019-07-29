@@ -657,7 +657,6 @@ ColorDimSplit <- function(
   return(DimPlot(object = object, cols = colors.use, ...))
 }
 
-
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -833,8 +832,12 @@ DimPlot <- function(
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
-#' When blend is \code{TRUE}, the first color is for double negative cells, and the second and
-#' third colors are for expression of two features
+#' When blend is \code{TRUE}, takes anywhere from 1-3 colors:
+#' \describe{
+#'   \item{1 color:}{Treated as color for double-negatives, will use default colors 2 and 3 for per-feature expression}
+#'   \item{2 colors:}{Treated as colors for per-feature expression, will use default color 1 for double-negatives}
+#'   \item{3+ colors:}{First color used for double-negatives, colors 2 and 3 used for per-feature expression, all others ignored}
+#' }
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
@@ -900,6 +903,8 @@ FeaturePlot <- function(
   by.col = TRUE,
   sort.cell = FALSE
 ) {
+  # Set a theme to remove right-hand Y axis lines
+  # Also sets right-hand Y axis text label formatting
   no.right <- theme(
     axis.line.y.right = element_blank(),
     axis.ticks.y.right = element_blank(),
@@ -910,17 +915,16 @@ FeaturePlot <- function(
       margin = margin(r = 7)
     )
   )
-  if (is.null(reduction)) {
-    default_order <- c('umap', 'tsne', 'pca')
-    reducs <- which(default_order %in% names(object@reductions))
-    reduction <- default_order[reducs[1]]
-  }
+  # Get the DimReduc to use
+  reduction <- reduction %||% DefaultDimReduc(object = object)
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
   }
+  # Figure out blending stuff
   if (blend && length(x = features) != 2) {
     stop("Blending feature plots only works with two features")
   }
+  # Set color scheme for blended FeaturePlots
   if (blend) {
     default.colors <- eval(expr = formals(fun = FeaturePlot)$cols)
     cols <- switch(
@@ -965,14 +969,17 @@ FeaturePlot <- function(
   if (blend && length(x = cols) != 3) {
     stop("Blending feature plots only works with three colors; first one for negative cells")
   }
+  # Name the reductions
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
+  # Get plotting data
   data <- FetchData(
     object = object,
     vars = c(dims, 'ident', features),
     cells = cells,
     slot = slot
   )
+  # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
     stop(
       "None of the requested features were found: ",
@@ -985,6 +992,7 @@ FeaturePlot <- function(
     stop("The dimensions requested were not found", call. = FALSE)
   }
   features <- colnames(x = data)[4:ncol(x = data)]
+  # Determine cutoffs
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
       return(ifelse(
@@ -1020,6 +1028,7 @@ FeaturePlot <- function(
     yes = brewer.pal.info[cols, ]$maxcolors,
     no = length(x = cols)
   )
+  # Apply cutoffs
   data[, 4:ncol(x = data)] <- sapply(
     X = 4:ncol(x = data),
     FUN = function(index) {
@@ -1045,6 +1054,7 @@ FeaturePlot <- function(
   )
   colnames(x = data)[4:ncol(x = data)] <- features
   rownames(x = data) <- cells
+  # Figure out splits (FeatureHeatmap)
   data$split <- if (is.null(x = split.by)) {
     RandomName()
   } else {
@@ -1057,9 +1067,11 @@ FeaturePlot <- function(
   if (!is.factor(x = data$split)) {
     data$split <- factor(x = data$split)
   }
+  # Set shaping variable
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
+  # Make list of plots
   plots <- vector(
     mode = "list",
     length = ifelse(
@@ -1068,8 +1080,10 @@ FeaturePlot <- function(
       no = length(x = features) * length(x = levels(x = data$split))
     )
   )
+  # Apply common limits
   xlims <- c(floor(x = min(data[, dims[1]])), ceiling(x = max(data[, dims[1]])))
   ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, dims[2]])))
+  # Set blended colors
   if (blend) {
     ncol <- 4
     color.matrix <- BlendMatrix(
@@ -1084,9 +1098,12 @@ FeaturePlot <- function(
       as.vector(x = color.matrix)
     )
   }
+  # Make the plots
   for (i in 1:length(x = levels(x = data$split))) {
+    # Figre out which split we're working with
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
+    # Blend expression values
     if (blend) {
       features <- features[1:2]
       no.expression <- features[colMeans(x = data.plot[, features]) == 0]
@@ -1100,8 +1117,10 @@ FeaturePlot <- function(
       data.plot <- cbind(data.plot[, c(dims, 'ident')], BlendExpression(data = data.plot[, features[1:2]]))
       features <- colnames(x = data.plot)[4:ncol(x = data.plot)]
     }
+    # Make per-feature plots
     for (j in 1:length(x = features)) {
       feature <- features[j]
+      # Get blended colors
       if (blend) {
         cols.use <- as.numeric(x = as.character(x = data.plot[, feature])) + 1
         cols.use <- colors[[j]][sort(x = unique(x = cols.use))]
@@ -1112,6 +1131,7 @@ FeaturePlot <- function(
       if (sort.cell) {
         data.single <- data.single[order(data.single[, feature]),]
       }
+      # Make the plot
       plot <- SingleDimPlot(
         data = data.single,
         dims = dims,
@@ -1125,6 +1145,7 @@ FeaturePlot <- function(
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
         theme_cowplot()
+      # Add labels
       if (label) {
         plot <- LabelClusters(
           plot = plot,
@@ -1133,13 +1154,16 @@ FeaturePlot <- function(
           size = label.size
         )
       }
+      # Make FeatureHeatmaps look nice(ish)
       if (length(x = levels(x = data$split)) > 1) {
         plot <- plot + theme(panel.border = element_rect(fill = NA, colour = 'black'))
+        # Add title
         plot <- plot + if (i == 1) {
           labs(title = feature)
         } else {
           labs(title = NULL)
         }
+        # Add second axis
         if (j == length(x = features) && !blend) {
           suppressMessages(
             expr = plot <- plot +
@@ -1147,6 +1171,7 @@ FeaturePlot <- function(
               no.right
           )
         }
+        # Remove left Y axis
         if (j != 1) {
           plot <- plot + theme(
             axis.line.y = element_blank(),
@@ -1155,6 +1180,7 @@ FeaturePlot <- function(
             axis.title.y.left = element_blank()
           )
         }
+        # Remove bottom X axis
         if (i != length(x = levels(x = data$split))) {
           plot <- plot + theme(
             axis.line.x = element_blank(),
@@ -1166,6 +1192,7 @@ FeaturePlot <- function(
       } else {
         plot <- plot + labs(title = feature)
       }
+      # Add colors scale for normal FeaturePlots
       if (!blend) {
         plot <- plot + guides(color = NULL)
         cols.grad <- cols
@@ -1189,13 +1216,18 @@ FeaturePlot <- function(
           )
         }
       }
+      # Add coord_fixed
       if (coord.fixed) {
         plot <- plot + coord_fixed()
       }
+      # I'm not sure why, but sometimes the damn thing fails without this
+      # Thanks ggplot2
       plot <- plot
+      # Place the plot
       plots[[(length(x = features) * (i - 1)) + j]] <- plot
     }
   }
+  # Add blended color key
   if (blend) {
     blend.legend <- BlendMap(color.matrix = color.matrix)
     for (ii in 1:length(x = levels(x = data$split))) {
@@ -1226,7 +1258,9 @@ FeaturePlot <- function(
       ))
     }
   }
+  # Remove NULL plots
   plots <- Filter(f = Negate(f = is.null), x = plots)
+  # Combine the plots
   if (combine) {
     if (is.null(x = ncol)) {
       ncol <- 2
@@ -1250,6 +1284,7 @@ FeaturePlot <- function(
     } else {
       split.by %iff% 'none'
     }
+    # Transpose the FeatureHeatmap matrix (not applicable for blended FeaturePlots)
     if (by.col && !is.null(x = split.by) && !blend) {
       plots <- lapply(
         X = plots,

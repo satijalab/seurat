@@ -32,8 +32,12 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL, cols = if
 \item{cols}{The two colors to form the gradient over. Provide as string vector with
 the first color corresponding to low values, the second to high. Also accepts a Brewer
 color scale or vector of colors. Note: this will bin the data into number of colors provided.
-When blend is \code{TRUE}, the first color is for double negative cells, and the second and
-third colors are for expression of two features}
+When blend is \code{TRUE}, takes anywhere from 1-3 colors:
+\describe{
+  \item{1 color:}{Treated as color for double-negatives, will use default colors 2 and 3 for per-feature expression}
+  \item{2 colors:}{Treated as colors for per-feature expression, will use default color 1 for double-negatives}
+  \item{3+ colors:}{First color used for double-negatives, colors 2 and 3 used for per-feature expression, all others ignored}
+}}
 
 \item{pt.size}{Adjust point size for plotting}
 
