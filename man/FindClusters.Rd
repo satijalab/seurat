@@ -10,8 +10,8 @@ FindClusters(object, ...)
 
 \method{FindClusters}{default}(object, modularity.fxn = 1,
   initial.membership = NULL, weights = NULL, node.sizes = NULL,
-  resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
-  random.seed = 0, group.singletons = TRUE,
+  resolution = 0.8, method = "matrix", algorithm = 1, n.start = 10,
+  n.iter = 10, random.seed = 0, group.singletons = TRUE,
   temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
   ...)
 
@@ -33,6 +33,9 @@ FindClusters(object, ...)
 
 \item{resolution}{Value of the resolution parameter, use a value above
 (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
+
+\item{method}{Method for running leiden (defaults to matrix which is fast for small datasets).
+Enable method = "igraph" to avoid casting large data to a dense matrix.}
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM

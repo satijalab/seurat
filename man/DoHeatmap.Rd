@@ -5,10 +5,11 @@
 \title{Feature expression heatmap}
 \usage{
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
-  group.bar = TRUE, disp.min = -2.5, disp.max = NULL,
-  slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
-  hjust = 0, angle = 45, raster = TRUE, draw.lines = TRUE,
-  lines.width = NULL, group.bar.height = 0.02, combine = TRUE)
+  group.bar = TRUE, group.colors = NULL, disp.min = -2.5,
+  disp.max = NULL, slot = "scale.data", assay = NULL, label = TRUE,
+  size = 5.5, hjust = 0, angle = 45, raster = TRUE,
+  draw.lines = TRUE, lines.width = NULL, group.bar.height = 0.02,
+  combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,6 +21,8 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 \item{group.by}{A vector of variables to group cells by; pass 'ident' to group by cell identity classes}
 
 \item{group.bar}{Add a color bar showing group status for cells}
+
+\item{group.colors}{Colors to use for the color bar}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
