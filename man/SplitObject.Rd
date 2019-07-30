@@ -4,15 +4,13 @@
 \alias{SplitObject}
 \title{Splits object into a list of subsetted objects.}
 \usage{
-SplitObject(object, split.by = "ident", ...)
+SplitObject(object, split.by = "ident")
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{split.by}{Attribute for splitting. Default is "ident". Currently
 only supported for class-level (i.e. non-quantitative) attributes.}
-
-\item{...}{Ignored}
 }
 \value{
 A named list of Seurat objects, each containing a subset of cells
