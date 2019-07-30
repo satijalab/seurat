@@ -204,6 +204,7 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(..., 'CreateSeruatObject')
   if (use.scale) {
     .Deprecated(msg = "'use.scale' is a deprecated argument, please use the 'slot' argument instead")
     slot <- 'scale.data'
@@ -382,6 +383,7 @@ CellCycleScoring <- function(
   set.ident = FALSE,
   ...
 ) {
+  CheckDots(..., fxns = 'AddModuleScore')
   name <- 'Cell Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
   object.cc <- AddModuleScore(
@@ -495,6 +497,7 @@ CollapseSpeciesExpressionMatrix <- function(
 #' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 #'
 CustomDistance <- function(my.mat, my.function, ...) {
+  CheckDots(..., fxns = my.function)
   n <- ncol(x = my.mat)
   mat <- matrix(data = 0, ncol = n, nrow = n)
   colnames(x = mat) <- rownames(x = mat) <- colnames(x = my.mat)
@@ -1530,7 +1533,7 @@ Parenting <- function(parent.find = 'Seurat', ...) {
 #
 # @return Returns the percentage of `x` values above the given threshold
 #
-PercentAbove <- function(x, threshold){
+PercentAbove <- function(x, threshold) {
   return(length(x = x[x > threshold]) / length(x = x))
 }
 
@@ -1547,6 +1550,7 @@ PercentAbove <- function(x, threshold){
 # @seealso \code{\link{sample}}
 #
 RandomName <- function(length = 5L, ...) {
+  CheckDots(..., fxns = 'sample')
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
