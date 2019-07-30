@@ -150,7 +150,7 @@ JackStraw <- function(
 #'
 #' @export
 #'
-L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
+L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL) {
   l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
   if(is.null(new.dr)){
     new.dr <- paste0(reduction, ".l2")
@@ -183,6 +183,7 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
 #' @export
 #'
 L2CCA <- function(object, ...){
+  CheckDots(..., fxns = 'L2Dim')
   return(L2Dim(object = object, reduction = "cca", ...))
 }
 
@@ -313,7 +314,7 @@ ProjectDim <- function(
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
-#' @param verbose ...
+#' @param verbose Show progress messages
 #'
 #' @importFrom irlba irlba
 #'
@@ -385,6 +386,7 @@ RunCCA.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(..., fxns = 'merge')
   assay1 <- assay1 %||% DefaultAssay(object = object1)
   assay2 <- assay2 %||% DefaultAssay(object = object2)
   if (assay1 != assay2) {
@@ -514,6 +516,7 @@ RunICA.default <- function(
   seed.use = 42,
   ...
 ) {
+  CheckDots(..., fxns = ica.function)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -583,7 +586,6 @@ RunICA.Assay <- function(
   )
   return(reduction.data)
 }
-
 
 #' @param reduction.name dimensional reduction name
 #'
@@ -795,6 +797,7 @@ RunPCA.default <- function(
 ) {
   sink(file = stderr(), type = 'output')
   on.exit(expr = sink(), add = TRUE)
+  CheckDots(..., fxns = c('irlba', 'prcomp'))
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -971,6 +974,7 @@ RunTSNE.matrix <- function(
   reduction.key = "tSNE_",
   ...
 ) {
+  CheckDots(..., fxns = c('Rtsne', 'fftRtsne', 'tsne'))
   set.seed(seed = seed.use)
   tsne.data <- switch(
     EXPR = tsne.method,
@@ -1155,9 +1159,6 @@ RunUMAP.default <- function(
   ...
 ) {
   CheckDots(...)
-  if (!py_module_available(module = 'umap')) {
-    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
-  }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
@@ -1547,6 +1548,7 @@ ScoreJackStraw.Seurat <- function(
     ...
   )
   if (do.plot) {
+    CheckDots(..., fxns = 'JackStrawPlot')
     suppressWarnings(expr = print(JackStrawPlot(
       object = object,
       reduction = reduction,
@@ -1665,6 +1667,7 @@ fftRtsne <- function(X,
   df = 1.0,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = data_path)) {
     data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
   }
@@ -1685,18 +1688,17 @@ fftRtsne <- function(X,
   ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
   if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
     version_number <- '1.1.0'
-  }else if(grepl(pattern = '= t-SNE v1.0', x = ft.out[1])){
+  } else if (grepl(pattern = '= t-SNE v1.0', x = ft.out[1])) {
     version_number <- '1.0'
-  }else{
+  } else {
     message("First line of fast_tsne output is")
     message(ft.out[1])
     stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
-
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
-  if (version_number == '1.0' && df !=1.0) {
+  if (version_number == '1.0' && df != 1.0) {
     stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
@@ -1862,7 +1864,7 @@ JackRandom <- function(
 #
 # @return returns the l2-norm.
 #
-L2Norm <- function(vec){
+L2Norm <- function(vec) {
   a <- sqrt(x = sum(vec ^ 2))
   if (a == 0) {
     a <- .05
