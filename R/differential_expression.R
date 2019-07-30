@@ -584,7 +584,14 @@ FindMarkers.default <- function(
   }
   # perform DE
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
-    warning("'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests")
+    warning(
+      "'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  if (!test.use %in% c('wilcox', 'MAST', 'DESeq2')) {
+    CheckDots(...)
   }
   de.results <- switch(
     EXPR = test.use,
@@ -651,8 +658,7 @@ FindMarkers.default <- function(
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
-      verbose = verbose,
-      ...
+      verbose = verbose
     ),
     stop("Unknown test: ", test.use)
   )
@@ -929,6 +935,7 @@ DESeq2DETest <- function(
   if (!PackageCheck('DESeq2', error = FALSE)) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
+  CheckDots(..., fxns = 'DESeq2::results')
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
@@ -1090,7 +1097,7 @@ DiffTTest <- function(
 #' @importFrom stats var as.formula
 #' @importFrom future.apply future_sapply
 #' @importFrom future nbrOfWorkers
-#' 
+#'
 # @export
 #
 # @examples
@@ -1207,8 +1214,7 @@ LRDETest <- function(
   cells.1,
   cells.2,
   latent.vars = NULL,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
@@ -1336,6 +1342,7 @@ MASTDETest <- function(
   if (!PackageCheck('MAST', error = FALSE)) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
+  CheckDots(..., fxns = 'MAST::zlm')
   if (length(x = latent.vars) > 0) {
     latent.vars <- scale(x = latent.vars)
   }
@@ -1534,6 +1541,7 @@ WilcoxDETest <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(..., fxns = 'wilcox.test')
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
