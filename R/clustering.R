@@ -21,6 +21,8 @@ NULL
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
+#' @param method Method for running leiden (defaults to matrix which is fast for small datasets).
+#' Enable method = "igraph" to avoid casting large data to a dense matrix.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -41,6 +43,7 @@ FindClusters.default <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
+  method = "matrix",
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -79,13 +82,15 @@ FindClusters.default <- function(
           )
         } else if (algorithm == 4) {
           ids <- RunLeiden(
-            adj_mat = object,
+            object = object,
+            method = method,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             weights = weights,
             node.sizes = node.sizes,
-            resolution.parameter = resolution,
-            random.seed = random.seed
+            resolution.parameter = r,
+            random.seed = random.seed,
+            n.iter = n.iter
           )
         } else {
           stop("algorithm not recognised, please specify as an integer or string")
@@ -115,13 +120,15 @@ FindClusters.default <- function(
           edge.file.name = edge.file.name)
       } else if (algorithm == 4) {
         ids <- RunLeiden(
-          adj_mat = object,
+          object = object,
+          method = method,
           partition.type = "RBConfigurationVertexPartition",
           initial.membership = initial.membership,
           weights = weights,
           node.sizes = node.sizes,
           resolution.parameter = r,
-          random.seed = random.seed
+          random.seed = random.seed,
+          n.iter = n.iter
         )
       } else {
         stop("algorithm not recognised, please specify as an integer or string")
@@ -265,10 +272,10 @@ FindNeighbors.default <- function(
       message("Computing nearest neighbor graph")
     }
     nn.ranked <- NNHelper(
-      data = object, 
-      k = k.param, 
-      method = nn.method, 
-      searchtype = "standard", 
+      data = object,
+      k = k.param,
+      method = nn.method,
+      searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric)
     nn.ranked <- nn.ranked$nn.idx
@@ -471,7 +478,7 @@ FindNeighbors.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Run annoy 
+# Run annoy
 #
 # @param data Data to build the index with
 # @param query A set of data to be queried against data
@@ -479,18 +486,18 @@ FindNeighbors.Seurat <- function(
 # "hamming"
 # @param n.trees More trees gives higher precision when querying
 # @param k Number of neighbors
-# @param search.k During the query it will inspect up to search_k nodes which 
+# @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances 
+# @ param include.distance Include the corresponding distances
 #
-AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k, 
+AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
                     search.k = -1, include.distance = TRUE) {
   idx <- AnnoyBuildIndex(
-    data = data, 
+    data = data,
     metric = metric,
     n.trees = n.trees)
   nn <- AnnoySearch(
-    index = idx, 
+    index = idx,
     query = query,
     k = k,
     search.k = search.k,
@@ -499,7 +506,7 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
 }
 
 # Build the annoy index
-# 
+#
 # @param data Data to build the index with
 # @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
 # "hamming"
@@ -528,9 +535,9 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # @param Annoy index, build with AnnoyBuildIndex
 # @param query A set of data to be queried against the index
 # @param k Number of neighbors
-# @param search.k During the query it will inspect up to search_k nodes which 
+# @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances 
+# @ param include.distance Include the corresponding distances
 #
 AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
@@ -615,7 +622,7 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @param k Number of nearest neighbors to compute
 # @param method Nearest neighbor method to use: "rann", "annoy"
 # @param ... additional parameters to specific neighbor finding method
-# 
+#
 NNHelper <- function(data, query = data, k, method, ...) {
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
@@ -652,17 +659,22 @@ NNHelper <- function(data, query = data, k, method, ...) {
 # for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
 # partition types that accept a resolution parameter)
 # @param random.seed Seed of the random number generator
+# @param n.iter Maximal number of iterations per random start
 #
 # @keywords graph network igraph mvtnorm simulation
 #
+#' @importFrom leiden leiden
+#' @importFrom methods as is
 #' @importFrom reticulate py_module_available import r_to_py
+#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
 # @author Tom Kelly
 #
 # @export
 #
 RunLeiden <- function(
-  adj_mat,
+  object,
+  method = c("matrix", "igraph"),
   partition.type = c(
     'RBConfigurationVertexPartition',
     'ModularityVertexPartition',
@@ -676,79 +688,41 @@ RunLeiden <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution.parameter = 1,
-  random.seed = 0
+  random.seed = 0,
+  n.iter = 10
 ) {
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
-  # import python modules with reticulate
-  leidenalg <- import(module = "leidenalg")
-  ig <- import(module = "igraph")
-  # convert matrix input
-  adj_mat <- as.matrix(x = ceiling(x = adj_mat))
-  # convert to python numpy.ndarray, then a list
-  adj_mat_py <- r_to_py(x = adj_mat)
-  adj_mat_py <- adj_mat_py$tolist()
-  # convert graph structure to a Python compatible object
-  snn_graph <- ig$Graph$Adjacency(adj_mat_py)
-  # compute partitions
-  part <- switch(
-    EXPR = partition.type,
-    'RBConfigurationVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$RBConfigurationVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      resolution_parameter = resolution.parameter,
-      seed = as.integer(x = random.seed)
+  switch(
+    EXPR = method,
+    #cast to dense (supported by reticulate for numpy.array)
+    "matrix" = input <- as(object, "matrix"),
+    #run as igraph object (passes to reticulate)
+    "igraph" = switch(
+      EXPR = is(object),
+      #generate igraph if needed (will handle updated snn class)
+      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "igraph" = input <- object,
+      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "list" = input <- graph_from_adj_list(adjlist = object),
+      stop("SNN object must be a compatible input for igraph")
     ),
-    'ModularityVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$ModularityVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      seed = as.integer(x = random.seed)
-    ),
-    'RBERVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$RBERVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter,
-      seed = as.integer(x = random.seed)
-    ),
-    'CPMVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$CPMVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter,
-      seed = as.integer(x = random.seed)
-    ),
-    'MutableVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$MutableVertexPartition,
-      initial_membership = initial.membership
-    ),
-    'SignificanceVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$SignificanceVertexPartition,
-      initial_membership = initial.membership,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
-    ),
-    'SurpriseVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$SurpriseVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes
-    ),
-    stop("please specify a partition type as a string out of those documented")
+    stop("method for leiden must be 'matrix' or 'igraph'")
   )
-  return(part$membership + 1)
+  #run leiden from CRAN package (calls python with reticulate)
+  partition <- leiden(
+    object = input,
+    partition_type = partition.type,
+    initial_membership = initial.membership,
+    weights = weights,
+    node_sizes = node.sizes,
+    resolution_parameter = resolution.parameter,
+    seed = random.seed,
+    n_iterations = n.iter
+  )
+  return(partition)
 }
 
 # Runs the modularity optimizer (C++ port of java program ModularityOptimizer.jar)
