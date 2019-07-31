@@ -565,6 +565,74 @@ VlnPlot <- function(
 # Dimensional reduction plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Color dimensional reduction plot by tree split
+#'
+#' Returns a DimPlot colored based on whether the cells fall in clusters
+#' to the left or to the right of a node split in the cluster tree.
+#'
+#' @param object Seurat object
+#' @param node Node in cluster tree on which to base the split
+#' @param left.color Color for the left side of the split
+#' @param right.color Color for the right side of the split
+#' @param other.color Color for all other cells
+#' @inheritDotParams DimPlot -object
+#'
+#' @return Returns a DimPlot
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
+#' PlotClusterTree(pbmc_small)
+#' ColorDimSplit(pbmc_small, node = 5)
+#'
+ColorDimSplit <- function(
+  object,
+  node,
+  left.color = 'red',
+  right.color = 'blue',
+  other.color = 'grey50',
+  ...
+) {
+  tree <- Tool(object = object, slot = "BuildClusterTree")
+  split <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
+  all.children <- sort(x = tree$edge[, 2][! tree$edge[, 2] %in% tree$edge[, 1]])
+  left.group <- DFT(tree = tree, node = split[1], only.children = TRUE)
+  right.group <- DFT(tree = tree, node = split[2], only.children = TRUE)
+  if (any(is.na(x = left.group))) {
+    left.group <- split[1]
+  }
+  if (any(is.na(x = right.group))) {
+    right.group <- split[2]
+  }
+  left.group <- MapVals(v = left.group, from = all.children, to = tree$tip.label)
+  right.group <- MapVals(v = right.group, from = all.children, to = tree$tip.label)
+  remaining.group <- setdiff(x = tree$tip.label, y = c(left.group, right.group))
+  left.cells <- WhichCells(object = object, ident = left.group)
+  right.cells <- WhichCells(object = object, ident = right.group)
+  remaining.cells <- WhichCells(object = object, ident = remaining.group)
+  object <- SetIdent(
+    object = object,
+    cells = left.cells,
+    value = "Left Split"
+  )
+  object <- SetIdent(
+    object = object,
+    cells = right.cells,
+    value = "Right Split"
+  )
+  object <- SetIdent(
+    object = object,
+    cells = remaining.cells,
+    value = "Not in Split"
+  )
+  levels(x = object) <- c("Left Split", "Right Split", "Not in Split")
+  colors.use = c(left.color, right.color, other.color)
+  return(DimPlot(object = object, cols = colors.use, ...))
+}
+
+
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -1526,6 +1594,8 @@ PolyFeaturePlot <- function(
 #'
 #' Plots the results of the approximate rank selection process for ALRA.
 #'
+#' @note ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;
+#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
 #'
 #' @param object Seurat object
 #' @param start Index to start plotting singular value spacings from.
@@ -1547,6 +1617,13 @@ PolyFeaturePlot <- function(
 #' @export
 #'
 ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
+  .Deprecated(
+    new = 'SeruatWrappers::ALRAChooseKPlot',
+    msg = paste(
+      'ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;',
+      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
+    )
+  )
   alra.data <- Tool(object = object, slot = 'RunALRA')
   if (is.null(x = alra.data)) {
     stop('RunALRA should be run prior to using this function.')
@@ -2181,28 +2258,28 @@ BlueAndRed <- function(k = 50) {
 }
 
 #' Move outliers towards center on dimension reduction plot
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction Name of DimReduc to adjust
 #' @param dims Dimensions to visualize
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param outlier.sd Controls the outlier distance
 #' @param reduction.key Key for DimReduc that is returned
-#' 
+#'
 #' @return Returns a DimReduc object with the modified embeddings
-#' 
+#'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
 #' pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
 #' pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
 #' DimPlot(pbmc_small, reduction = "umap")
-#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small, 
+#' pbmc_small[["umap_new"]] <- CollapseEmbeddingOutliers(pbmc_small,
 #'     reduction = "umap", reduction.key = 'umap_', outlier.sd = 0.5)
 #' DimPlot(pbmc_small, reduction = "umap_new")
 #' }
-#' 
+#'
 CollapseEmbeddingOutliers <- function(
   object,
   reduction = 'umap',
@@ -2221,8 +2298,8 @@ CollapseEmbeddingOutliers <- function(
   data.medians.scale[abs(x = data.medians.scale) < outlier.sd] <- 0
   data.medians.scale <- sign(x = data.medians.scale) * (abs(x = data.medians.scale) - outlier.sd)
   data.correct <- sweep(
-    x = data.medians.scale, 
-    MARGIN = 2, 
+    x = data.medians.scale,
+    MARGIN = 2,
     STATS = data.sd,
     FUN = "*"
   )
@@ -2231,7 +2308,7 @@ CollapseEmbeddingOutliers <- function(
   for (i in rownames(x = data.correct)) {
     cells.correct <- rownames(x = idents)[idents[, "ident"] == i]
     new.embeddings[cells.correct, ] <- sweep(
-      x = new.embeddings[cells.correct,], 
+      x = new.embeddings[cells.correct,],
       MARGIN = 2,
       STATS = data.correct[i, ],
       FUN = "-"
@@ -2487,7 +2564,7 @@ HoverLocator <- function(
   #   Set up axis labels here
   #   Also, a bunch of stuff to get axis lines done properly
   xaxis <- list(
-    title = names(x = data.frame())[1],
+    title = names(x = data)[1],
     showgrid = FALSE,
     zeroline = FALSE,
     showline = TRUE
@@ -2512,7 +2589,7 @@ HoverLocator <- function(
   #   Use I() to get plotly to accept the colors from the data as is
   #   Set hoverinfo to 'text' to override the default hover information
   #   rather than append to it
-  plotly::layout(
+  p <- plotly::layout(
     p = plot_ly(
       data = plot.build,
       x = ~x,
@@ -2525,11 +2602,31 @@ HoverLocator <- function(
     ),
     xaxis = xaxis,
     yaxis = yaxis,
+    title = plot$labels$title,
     titlefont = title,
     paper_bgcolor = plotbg,
     plot_bgcolor = plotbg,
     ...
   )
+  # add labels
+  label.layer <- which(x = sapply(
+    X = plot$layers,
+    FUN = function(x) class(x$geom)[1] == "GeomText")
+  )
+  if (length(x = label.layer) == 1) {
+    p <- plotly::add_annotations(
+      p = p,
+      x = plot$layers[[label.layer]]$data[, 1],
+      y = plot$layers[[label.layer]]$data[, 2],
+      xref = "x",
+      yref = "y",
+      text = plot$layers[[label.layer]]$data[, 3],
+      xanchor = 'right',
+      showarrow = F,
+      font = list(size = plot$layers[[label.layer]]$aes_params$size * 4)
+    )
+  }
+  return(p)
 }
 
 #' Label clusters on a ggplot2-based scatter plot

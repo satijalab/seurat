@@ -483,38 +483,38 @@ FindTransferAnchors <- function(
         } else if (normalization.method == "SCT") {
           features <- intersect(x = features, y = rownames(x = query))
           query <- GetResidual(object = query, features = features, verbose = FALSE)
-          query <- SetAssayData(
-            object = query[[query.assay]],
-            slot = "scale.data",
-            new.data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
+          query[[query.assay]] <- CreateAssayObject(
+            counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
           )
           query <- SetAssayData(
-            object = query[[query.assay]],
+            object = query,
             slot = "data",
-            new.data = as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data"))
+            assay = query.assay,
+            new.data = GetAssayData(object = query[[query.assay]], slot = "counts")
           )
           query <- SetAssayData(
-            object = query[[query.assay]],
-            slot = "counts",
-            new.data = GetAssayData(object = query[[query.assay]], slot = "data")
+            object = query,
+            slot = "scale.data",
+            assay = query.assay,
+            new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
           )
-          if (reference.assay == "SCT") {
+          if (IsSCT(assay = reference[[reference.assay]])) {
             reference <- GetResidual(object = reference, features = features, verbose = FALSE)
           }
-          reference <- SetAssayData(
-            object = reference[[reference.assay]],
-            slot = "scale.data",
-            new.data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
+          reference[[reference.assay]] <- CreateAssayObject(
+            counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
           )
           reference <- SetAssayData(
-            object = reference[[reference.assay]],
+            object = reference,
             slot = "data",
-            new.data = as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+            assay = reference.assay, 
+            new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
           )
           reference <- SetAssayData(
-            object = reference[[reference.assay]],
-            slot = "counts",
-            new.data = GetAssayData(object = reference[[reference.assay]], slot = "data")
+            object = reference,
+            slot = "scale.data",
+            assay = reference.assay, 
+            new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
           )
           feature.mean <- "SCT"
           slot <- "scale.data"

@@ -4329,6 +4329,7 @@ WhichCells.Seurat <- function(
     cells <- rownames(x = data.subset)
   }
   if (invert) {
+    cell.order <- colnames(x = object)
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
   cells <- CellsByIdentities(object = object, cells = cells)
