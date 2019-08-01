@@ -739,7 +739,7 @@ DimPlot <- function(
   ncol = NULL,
   ...
 ) {
-  CheckDots(..., 'CombinePlots')
+  CheckDots(..., fxns = 'CombinePlots')
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -2448,7 +2448,7 @@ CollapseEmbeddingOutliers <- function(
 #' )
 #'
 CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
-  CheckDots(..., 'plot_grid')
+  CheckDots(..., fxns = 'plot_grid')
   plots.combined <- if (length(x = plots) > 1) {
     if (!is.null(x = legend)) {
       if (legend != 'none') {
@@ -2625,7 +2625,6 @@ HoverLocator <- function(
   dark.theme = FALSE,
   ...
 ) {
-  CheckDots(..., 'plotly::layout')
   #   Use GGpointToBase because we already have ggplot objects
   #   with colors (which are annoying in plotly)
   plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
@@ -2814,7 +2813,6 @@ LabelClusters <- function(
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
-  CheckDots(..., fxns = geom.use)
   plot <- plot + geom.use(
     data = labels.loc,
     mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
@@ -2878,7 +2876,6 @@ LabelPoints <- function(
       message("When using repel, set xnudge and ynudge to 0 for optimal results")
     }
   }
-  CheckDots(..., fxns = geom.use)
   plot <- plot + geom.use(
     mapping = aes_string(x = xynames$x, y = xynames$y, label = 'labels'),
     data = label.data,
@@ -2955,7 +2952,6 @@ SeuratTheme <- function() {
 #' p + DarkTheme(legend.position = 'none')
 #'
 DarkTheme <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   #   Some constants for easier changing in the future
   black.background <- element_rect(fill = 'black')
   black.background.no.border <- element_rect(fill = 'black', size = 0)
@@ -3020,7 +3016,6 @@ FontSize <- function(
   main = NULL,
   ...
 ) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   font.size <- theme(
     # Set font sizes
     axis.text.x = element_text(size = x.text),
@@ -3053,7 +3048,6 @@ FontSize <- function(
 #' p + NoAxes()
 #'
 NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   blank <- element_blank()
   no.axes.theme <- theme(
     # Remove the axis elements
@@ -3100,7 +3094,6 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
 #' p + NoLegend()
 #'
 NoLegend <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   no.legend.theme <- theme(
     # Remove the legend
     legend.position = 'none',
@@ -3127,7 +3120,6 @@ NoLegend <- function(...) {
 #' p + NoGrid()
 #'
 NoGrid <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   no.grid.theme <- theme(
     # Set grid lines to blank
     panel.grid.major = element_blank(),
@@ -3148,7 +3140,6 @@ NoGrid <- function(...) {
 #' @aliases SeuratAxes
 #'
 SeuratAxes <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   axes.theme <- theme(
     # Set axis things
     axis.title = element_text(face = 'bold', color = '#990000', size = 16),
@@ -3181,7 +3172,6 @@ SpatialTheme <- function(...) {
 #' @aliases RestoreLegend
 #'
 RestoreLegend <- function(..., position = 'right') {
-  CheckDots(..., fxns = 'ggplot2::theme')
   restored.theme <- theme(
     # Restore legend position
     legend.position = 'right',
@@ -3201,7 +3191,6 @@ RestoreLegend <- function(..., position = 'right') {
 #' @aliases RotatedAxis
 #'
 RotatedAxis <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   rotated.theme <- theme(
     # Rotate X axis text
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -3221,7 +3210,6 @@ RotatedAxis <- function(...) {
 #' @aliases BoldTitle
 #'
 BoldTitle <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   bold.theme <- theme(
     # Make the title bold
     plot.title = element_text(size = 20, face = 'bold'),
@@ -3241,7 +3229,6 @@ BoldTitle <- function(...) {
 #' @aliases WhiteBackground
 #'
 WhiteBackground <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   white.rect = element_rect(fill = 'white')
   white.theme <- theme(
     # Make the plot, panel, and legend key backgrounds white
@@ -3691,7 +3678,6 @@ ExIPlot <- function(
 # @aliases FacetTheme
 #
 FacetTheme <- function(...) {
-  CheckDots(..., fxns = 'ggplot2::theme')
   return(theme(
     strip.background = element_blank(),
     strip.text = element_text(face = 'bold'),

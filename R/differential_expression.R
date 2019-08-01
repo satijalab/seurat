@@ -1342,7 +1342,6 @@ MASTDETest <- function(
   if (!PackageCheck('MAST', error = FALSE)) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
-  CheckDots(..., fxns = 'MAST::zlm')
   if (length(x = latent.vars) > 0) {
     latent.vars <- scale(x = latent.vars)
   }
@@ -1541,7 +1540,6 @@ WilcoxDETest <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., fxns = 'wilcox.test')
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"

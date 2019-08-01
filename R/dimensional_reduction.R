@@ -386,7 +386,6 @@ RunCCA.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., fxns = 'merge')
   assay1 <- assay1 %||% DefaultAssay(object = object1)
   assay2 <- assay2 %||% DefaultAssay(object = object2)
   if (assay1 != assay2) {
@@ -797,7 +796,6 @@ RunPCA.default <- function(
 ) {
   sink(file = stderr(), type = 'output')
   on.exit(expr = sink(), add = TRUE)
-  CheckDots(..., fxns = c('irlba', 'prcomp'))
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -974,7 +972,6 @@ RunTSNE.matrix <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  CheckDots(..., fxns = c('Rtsne', 'fftRtsne', 'tsne'))
   set.seed(seed = seed.use)
   tsne.data <- switch(
     EXPR = tsne.method,
