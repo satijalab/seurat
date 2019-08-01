@@ -30,7 +30,7 @@ and mean 0}
 
 \item{num.cc}{Number of canonical vectors to calculate}
 
-\item{verbose}{...}
+\item{verbose}{Show progress messages}
 
 \item{assay1, assay2}{Assays to pull from in the first and second objects, respectively}
 

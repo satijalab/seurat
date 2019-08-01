@@ -8,7 +8,7 @@
 DotPlot(object, assay = NULL, features, cols = c("lightgrey", "blue"),
   col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6,
   group.by = NULL, split.by = NULL, scale.by = "radius",
-  scale.min = NA, scale.max = NA, ...)
+  scale.min = NA, scale.max = NA)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -42,8 +42,6 @@ see \code{\link{FetchData}} for more details}
 \item{scale.min}{Set lower limit for scaling, use NA for default}
 
 \item{scale.max}{Set upper limit for scaling, use NA for default}
-
-\item{...}{Ignored}
 }
 \value{
 A ggplot object

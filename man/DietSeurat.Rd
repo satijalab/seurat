@@ -23,7 +23,7 @@ DietSeurat(object, counts = TRUE, data = TRUE, scale.data = FALSE,
 \item{dimreducs}{Only keep a subset of DimReducs specified here (if NULL,
 remove all DimReducs)}
 
-\item{graphs}{Only keep a subset of Graphs specified here (if NULL, remove 
+\item{graphs}{Only keep a subset of Graphs specified here (if NULL, remove
 all Graphs)}
 }
 \description{

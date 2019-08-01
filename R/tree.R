@@ -51,7 +51,6 @@ BuildClusterTree <- function(
   features = NULL,
   dims = NULL,
   graph = NULL,
-  # do.plot = TRUE,
   slot = 'data',
   reorder = FALSE,
   reorder.numeric = FALSE,
@@ -314,6 +313,7 @@ GetRightDescendants <- function(tree, node) {
 # PlotClusterTree(object = pbmc_small)
 #
 MergeNode <- function(object, node.use, rebuild.tree = FALSE, ...) {
+  CheckDots(..., fxns = 'BuldClusterTree')
   object.tree <- object@cluster.tree[[1]]
   node.children <- DFT(
     tree = object.tree,

@@ -150,7 +150,7 @@ JackStraw <- function(
 #'
 #' @export
 #'
-L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
+L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL) {
   l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
   if(is.null(new.dr)){
     new.dr <- paste0(reduction, ".l2")
@@ -183,6 +183,7 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
 #' @export
 #'
 L2CCA <- function(object, ...){
+  CheckDots(..., fxns = 'L2Dim')
   return(L2Dim(object = object, reduction = "cca", ...))
 }
 
@@ -313,7 +314,7 @@ ProjectDim <- function(
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
-#' @param verbose ...
+#' @param verbose Show progress messages
 #'
 #' @importFrom irlba irlba
 #'
@@ -514,6 +515,7 @@ RunICA.default <- function(
   seed.use = 42,
   ...
 ) {
+  CheckDots(..., fxns = ica.function)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -584,7 +586,6 @@ RunICA.Assay <- function(
   return(reduction.data)
 }
 
-
 #' @param reduction.name dimensional reduction name
 #'
 #' @rdname RunICA
@@ -649,6 +650,7 @@ RunLSI.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!is.null(seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -711,7 +713,6 @@ RunLSI.Assay <- function(
   reduction.data <- RunLSI(
     object = data.use,
     assay = assay,
-    features = features,
     n = n,
     reduction.key = reduction.key,
     scale.max = scale.max,
@@ -1154,6 +1155,7 @@ RunUMAP.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
@@ -1264,6 +1266,7 @@ RunUMAP.Graph <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
+  CheckDots(...)
   if (umap.method != 'umap-learn') {
     warning(
       "Running UMAP on Graph objects is only supported using the umap-learn method",
@@ -1418,6 +1421,7 @@ RunUMAP.Seurat <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
+  CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
@@ -1474,6 +1478,7 @@ ScoreJackStraw.JackStrawData <- function(
   score.thresh = 1e-5,
   ...
 ) {
+  CheckDots(...)
   pAll <- JS(object = object, slot = "empirical.p.values")
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -1540,6 +1545,7 @@ ScoreJackStraw.Seurat <- function(
     ...
   )
   if (do.plot) {
+    CheckDots(..., fxns = 'JackStrawPlot')
     suppressWarnings(expr = print(JackStrawPlot(
       object = object,
       reduction = reduction,
@@ -1658,6 +1664,7 @@ fftRtsne <- function(X,
   df = 1.0,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = data_path)) {
     data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
   }
@@ -1678,18 +1685,17 @@ fftRtsne <- function(X,
   ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
   if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
     version_number <- '1.1.0'
-  }else if(grepl(pattern = '= t-SNE v1.0', x = ft.out[1])){
+  } else if (grepl(pattern = '= t-SNE v1.0', x = ft.out[1])) {
     version_number <- '1.0'
-  }else{
+  } else {
     message("First line of fast_tsne output is")
     message(ft.out[1])
     stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
-
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
-  if (version_number == '1.0' && df !=1.0) {
+  if (version_number == '1.0' && df != 1.0) {
     stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
@@ -1855,7 +1861,7 @@ JackRandom <- function(
 #
 # @return returns the l2-norm.
 #
-L2Norm <- function(vec){
+L2Norm <- function(vec) {
   a <- sqrt(x = sum(vec ^ 2))
   if (a == 0) {
     a <- .05

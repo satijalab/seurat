@@ -620,6 +620,7 @@ ColorDimSplit <- function(
   other.color = 'grey50',
   ...
 ) {
+  CheckDots(..., fxns = 'DimPlot')
   tree <- Tool(object = object, slot = "BuildClusterTree")
   split <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
   all.children <- sort(x = tree$edge[, 2][! tree$edge[, 2] %in% tree$edge[, 1]])
@@ -738,6 +739,7 @@ DimPlot <- function(
   ncol = NULL,
   ...
 ) {
+  CheckDots(..., fxns = 'CombinePlots')
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -1351,7 +1353,6 @@ FeaturePlot <- function(
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
 #' @param highlight Features to highlight
-#'
 #' @return A ggplot object
 #'
 #' @export
@@ -1369,8 +1370,7 @@ CellScatter <- function(
   highlight = NULL,
   cols = NULL,
   pt.size = 1,
-  smooth = FALSE,
-  ...
+  smooth = FALSE
 ) {
   features <- features %||% rownames(x = object)
   data <- FetchData(
@@ -1384,8 +1384,7 @@ CellScatter <- function(
     cols = cols,
     pt.size = pt.size,
     rows.highlight = highlight,
-    smooth = smooth,
-    ...
+    smooth = smooth
   )
   return(plot)
 }
@@ -1409,7 +1408,6 @@ CellScatter <- function(
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
-#' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
@@ -1432,8 +1430,7 @@ FeatureScatter <- function(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
-  slot = 'data',
-  ...
+  slot = 'data'
 ) {
   cells <- cells %||% colnames(x = object)
   group.by <- group.by %||% Idents(object = object)[cells]
@@ -1867,7 +1864,6 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
-#' @param ... Ignored
 #'
 #' @return A ggplot object
 #'
@@ -1899,8 +1895,7 @@ DotPlot <- function(
   split.by = NULL,
   scale.by = 'radius',
   scale.min = NA,
-  scale.max = NA,
-  ...
+  scale.max = NA
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -2166,7 +2161,6 @@ JackStrawPlot <- function(
 #' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
-
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
@@ -2174,7 +2168,6 @@ PlotClusterTree <- function(object, ...) {
   plot.phylo(x = data.tree, direction = "downwards", ...)
   nodelabels()
 }
-
 
 #' Visualize Dimensional Reduction genes
 #'
@@ -2185,11 +2178,13 @@ PlotClusterTree <- function(object, ...) {
 #' @param dims Number of dimensions to display
 #' @param nfeatures Number of genes to display
 #' @param col Color of points to use
-#' @param projected Use reduction values for full dataset (i.e. projected dimensional reduction values)
-#' @param balanced Return an equal number of genes with + and - scores. If FALSE (default), returns the top genes ranked by the scores absolute values
+#' @param projected Use reduction values for full dataset (i.e. projected
+#' dimensional reduction values)
+#' @param balanced Return an equal number of genes with + and - scores. If
+#' FALSE (default), returns the top genes ranked by the scores absolute values
 #' @param ncol Number of columns to display
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
-#' @param ... Ignored
+#' @param combine Combine plots into a single gg object; note that if TRUE;
+#' themeing will not work when plotting multiple features
 #'
 #' @return A ggplot object
 #'
@@ -2209,8 +2204,7 @@ VizDimLoadings <- function(
   projected = FALSE,
   balanced = FALSE,
   ncol = NULL,
-  combine = TRUE,
-  ...
+  combine = TRUE
 ) {
   if (is.null(x = ncol)) {
     ncol <- 2
@@ -2454,6 +2448,7 @@ CollapseEmbeddingOutliers <- function(
 #' )
 #'
 CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
+  CheckDots(..., fxns = 'plot_grid')
   plots.combined <- if (length(x = plots) > 1) {
     if (!is.null(x = legend)) {
       if (legend != 'none') {
@@ -2720,7 +2715,7 @@ HoverLocator <- function(
       yref = "y",
       text = plot$layers[[label.layer]]$data[, 3],
       xanchor = 'right',
-      showarrow = F,
+      showarrow = FALSE,
       font = list(size = plot$layers[[label.layer]]$aes_params$size * 4)
     )
   }
@@ -3944,6 +3939,7 @@ PlotBuild <- function(data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Take advantage of functions as first class objects
   #   to dynamically choose normal vs smooth scatterplot
   myplot <- ifelse(test = smooth, yes = smoothScatter, no = plot)
+  CheckDots(..., fxns = myplot)
   if (dark.theme) {
     par(bg = 'black')
     axes = FALSE
@@ -4189,7 +4185,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
-#' @importFrom MASS kde2d
+# #' @importFrom MASS kde2d
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
@@ -4203,8 +4199,7 @@ SingleCorPlot <- function(
   smooth = FALSE,
   rows.highlight = NULL,
   legend.title = NULL,
-  na.value = 'grey50',
-  ...
+  na.value = 'grey50'
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
