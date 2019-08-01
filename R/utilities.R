@@ -1190,11 +1190,16 @@ CheckDots <- function(..., fxns = NULL) {
       x = args.names
     )
     if (length(x = unused) > 0) {
-      warning(
-        "The following arguments are not used: ",
-        paste(unused, collapse = ', '),
-        call. = FALSE,
-        immediate. = TRUE
+      msg <- paste0(
+        "The following arguments are not used: ", 
+        paste(unused, collapse = ', ')
+      )
+      switch(
+        EXPR = getOption(x = "Seurat.checkdots"),
+        "warn" = warning(msg, call. = FALSE, immediate. = TRUE),
+        "stop" = stop(msg),
+        "silent" = NULL,
+        stop("Invalid Seurat.checkdots option. Please choose one of warn, stop, silent")
       )
       unused.hints <- sapply(X = unused, FUN = OldParamHints)
       names(x = unused.hints) <- unused
