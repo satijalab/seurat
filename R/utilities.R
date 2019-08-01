@@ -204,7 +204,7 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., 'CreateSeruatObject')
+  CheckDots(..., fxns = 'CreateSeuratObject')
   if (use.scale) {
     .Deprecated(msg = "'use.scale' is a deprecated argument, please use the 'slot' argument instead")
     slot <- 'scale.data'
