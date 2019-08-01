@@ -1785,21 +1785,45 @@ NormalizeData.Seurat <- function(
 #' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
 #' @param q  The number of additional power iterations in randomized SVD when
 #' computing rank k approximation. By default, q=10.
+#' @param quantile.prob The quantile probability to use when calculating threshold. 
+#' By default, quantile.prob = 0.001.
+#' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
+#' installed from https://github.com/KlugerLab/rpca-mkl.
+#' @param mkl.seed Only relevant if use.mkl=T. Set the seed for the random
+#' generator for the Intel MKL implementation of SVD. Any number <0 will
+#' use the current timestamp. If use.mkl=F, set the seed using
+#' set.seed() function as usual.
 #'
 #' @rdname RunALRA
 #' @export
 #'
-RunALRA.default <- function(object, k = NULL, q = 10, ...) {
+RunALRA.default <- function(
+  object, 
+  k = NULL, 
+  q = 10, 
+  quantile.prob = 0.001, 
+  use.mkl = F, mkl.seed=-1, 
+  ...
+) {
   A.norm <- t(x = as.matrix(x = object))
   message("Identifying non-zero values")
   originally.nonzero <- A.norm > 0
   message("Computing Randomized SVD")
-  fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
+  if(use.mkl){
+    fastDecomp.noc <- setNames(vector("list", 3), c("u", "d", "v"))
+    fastPCAOut <- fastPCA(inputMatrix = A.norm, k=k, its=q, l=(k+10), seed=mkl.seed)
+    fastDecomp.noc$u <- fastPCAOut$U
+    fastDecomp.noc$v <- fastPCAOut$V
+    fastDecomp.noc$d <- diag(fastPCAOut$S)
+  } else {
+    fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
+  }
   A.norm.rank.k <- fastDecomp.noc$u[, 1:k] %*%
     diag(x = fastDecomp.noc$d[1:k]) %*%
     t(x = fastDecomp.noc$v[,1:k])
-  message("Find most negative values of each gene")
-  A.norm.rank.k.mins <- abs(x = apply(X = A.norm.rank.k, MARGIN = 2, FUN = min))
+  message(sprintf("Find the %f quantile of each gene", quantile.prob))
+  # A.norm.rank.k.mins <- abs(x = apply(X = A.norm.rank.k, MARGIN = 2, FUN = min))
+  A.norm.rank.k.mins <- abs(apply(A.norm.rank.k,2,FUN=function(x) quantile(x,quantile.prob)))
   message("Thresholding by the most negative value of each gene")
   A.norm.rank.k.cor <- replace(
     x = A.norm.rank.k,
@@ -1813,7 +1837,7 @@ RunALRA.default <- function(object, k = NULL, q = 10, ...) {
   sigma.2 <- apply(X = A.norm, MARGIN = 2, FUN = sd.nonzero)
   mu.1 <- colSums(x = A.norm.rank.k.cor) / colSums(x = !!A.norm.rank.k.cor)
   mu.2 <- colSums(x = A.norm) / colSums(x = !!A.norm)
-  toscale <- !is.na(x = sigma.1) & !is.na(x = sigma.2)
+  toscale <- !is.na(sigma.1) & !is.na(sigma.2) & !(sigma.1 == 0 & sigma.2 == 0) & !(sigma.1 == 0)
   message(sprintf(fmt = "Scaling all except for %d columns", sum(!toscale)))
   sigma.1.2 <- sigma.2 / sigma.1
   toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
@@ -1866,8 +1890,9 @@ RunALRA.default <- function(object, k = NULL, q = 10, ...) {
 #' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #'
 #' @importFrom rsvd rsvd
+#' @importFrom fastRPCA fastPCA
 #' @importFrom Matrix Matrix
-#' @importFrom stats pnorm sd
+#' @importFrom stats sd
 #'
 #' @rdname RunALRA
 #' @export
@@ -1877,12 +1902,14 @@ RunALRA.Seurat <- function(
   object,
   k = NULL,
   q = 10,
+  quantile.prob = 0.001, 
+  use.mkl = F, mkl.seed=-1,
   assay = NULL,
   slot = "data",
   setDefaultAssay = TRUE,
   genes.use = NULL,
   K = NULL,
-  p.val.th = 1e-10,
+  thresh=6,
   noise.start = NULL,
   q.k = 2,
   k.only = FALSE,
@@ -1925,18 +1952,24 @@ RunALRA.Seurat <- function(
       stop("There need to be at least 5 singular values considered noise")
     }
     noise.svals <- noise.start:K
-    rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
-    diffs <- diff(x = rsvd.out$d)
-    pvals <- pnorm(
-      q = diffs,
-      mean = mean(x = diffs[noise.svals - 1]),
-      sd = sd(x = diffs[noise.svals - 1])
-    )
-    k <- max(which(x = pvals < p.val.th))
+    if(use.mkl){
+      L <- min(K+10, min(dim(x = data.used)))
+      rsvd.out <- setNames(vector("list", 3), c("u", "d", "v"))
+      fastPCAOut <- fastPCA(inputMatrix = as.matrix(x = data.used), k = K, its = q.k, l = L, seed = mkl.seed)
+      rsvd.out$u <- fastPCAOut$U
+      rsvd.out$v <- fastPCAOut$V
+      rsvd.out$d <- diag(fastPCAOut$S)
+    } else {
+      rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
+    }
+    diffs <- rsvd.out$d[1:(length(rsvd.out$d)-1)] - rsvd.out$d[2:length(rsvd.out$d)]
+    mu <- mean(diffs[noise.svals-1])
+    sigma <- sd(diffs[noise.svals-1])
+    num_of_sds <- (diffs-mu)/sigma
+    k <- max (which(num_of_sds > thresh))
     alra.info[["d"]] <- rsvd.out$d
     alra.info[["k"]] <- k
     alra.info[["diffs"]] <- diffs
-    alra.info[["pvals"]] <- pvals
     Tool(object = object) <- alra.info
   }
   if (k.only) {
@@ -1945,7 +1978,9 @@ RunALRA.Seurat <- function(
   }
   message("Rank k = ", k)
   # Perform ALRA on data.used
-  output.alra <- RunALRA(object = data.used, k = k, q = q)
+  output.alra <- RunALRA(
+    object = data.used, k = k, q = q, quantile.prob = quantile.prob, use.mkl = use.mkl, mkl.seed=mkl.seed
+  )
   # Save ALRA data in object@assay
   data.alra <- Matrix(data = t(x = output.alra), sparse = TRUE)
   rownames(x = data.alra) <- genes.use

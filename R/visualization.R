@@ -1551,7 +1551,6 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
   }
   d <- alra.data[["d"]]
   diffs <- alra.data[["diffs"]]
-  pvals <- alra.data[["pvals"]]
   k <- alra.data[["k"]]
   if (start == 0) {
     start <- floor(x = k / 2)
@@ -1568,7 +1567,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
     theme_cowplot() +
     scale_x_continuous(breaks = breaks) +
     labs(x = NULL, y = 's_i', title = 'Singular values')
-  ggdata <- data.frame(x = 2:length(x = d), y = diffs)[-(1:(start - 1)), ]
+  ggdata <- data.frame(x = 1:(length(x = d)-1), y = diffs)[-(1:(start - 1)), ]
   gg2 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
     geom_point(size = 1) +
     geom_line(size = 0.5) +
@@ -1576,14 +1575,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
     theme_cowplot() +
     scale_x_continuous(breaks = breaks) +
     labs(x = NULL, y = 's_{i} - s_{i-1}', title = 'Singular value spacings')
-  ggdata <- data.frame(x = 2:length(x = d), y = pvals)
-  gg3 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
-    geom_point(size = 1) +
-    geom_vline(xintercept = k + 1) +
-    theme_cowplot() +
-    scale_x_continuous(breaks = breaks) +
-    labs(x = NULL, y = 'p.val', title = 'Singular value spacing p-values')
-  plots <- list(spectrum = gg1, spacings = gg2, pvals = gg3)
+  plots <- list(spectrum = gg1, spacings = gg2)
   if (combine) {
     plots <- CombinePlots(plots = plots)
   }
