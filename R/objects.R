@@ -3828,7 +3828,7 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
         call. = FALSE
       )
     }
-    new.data <- new.data[new.features, colnames(x = object)]
+    new.data <- new.data[new.features, colnames(x = object), drop = FALSE]
     if (slot %in% c('counts', 'data') && !all(dim(x = new.data) == dim(x = object))) {
       stop(
         "Attempting to add a different number of cells and/or features",
