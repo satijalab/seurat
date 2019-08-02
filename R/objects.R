@@ -466,6 +466,25 @@ CreateAssayObject <- function(
       x = rownames(x = data)
     )
   }
+  if (any(grepl(pattern = '|', x = rownames(x = counts), fixed = TRUE)) || any(grepl(pattern = '|', x = rownames(x = data), fixed = TRUE))) {
+    warning(
+      "Feature names cannot have pipe characters ('|'), replacing iwth dashes ('-')",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    rownames(x = counts) <- gsub(
+      pattern = '|',
+      replacement = '-',
+      x = rownames(x = counts),
+      fixed = TRUE
+    )
+    rownames(x = data) <- gsub(
+      pattern = '|',
+      replacement = '-',
+      x = rownames(x = data),
+      fixed = TRUE
+    )
+  }
   # Initialize meta.features
   init.meta.features <- data.frame(row.names = rownames(x = data))
   assay <- new(
@@ -1266,7 +1285,7 @@ UpdateSeuratObject <- function(object) {
         Key(object = object[[ko]]) <- UpdateKey(key = Key(object = object[[ko]]))
       }
       # Check feature names
-      message("Ensuring feature names don't have underscores")
+      message("Ensuring feature names don't have underscores or pipes")
       for (assay.name in FilterObjects(object = object, classes.keep = 'Assay')) {
         assay <- object[[assay.name]]
         for (slot in c('counts', 'data', 'scale.data')) {
@@ -1276,6 +1295,12 @@ UpdateSeuratObject <- function(object) {
               replacement = '-',
               x = rownames(x = slot(object = assay, name = slot))
             )
+            rownames(x = slot(object = assay, name = slot)) <- gsub(
+              pattern = '|',
+              replacement = '-',
+              x = rownames(x = slot(object = assay, name = slot)),
+              fixed = TRUE
+            )
           }
         }
         VariableFeatures(object = assay) <- gsub(
@@ -1283,10 +1308,22 @@ UpdateSeuratObject <- function(object) {
           replacement = '-',
           x = VariableFeatures(object = assay)
         )
+        VariableFEatures(object = assay) <- gsub(
+          pattern = '|',
+          replacement = '-',
+          x = VariableFeatures(object = assay),
+          fixed = TRUE
+        )
         rownames(x = slot(object = assay, name = "meta.features")) <-  gsub(
           pattern = '_',
           replacement = '-',
           x = rownames(x = assay[[]])
+        )
+        rownames(x = slot(object = assay, name = "meta.features")) <-  gsub(
+          pattern = '|',
+          replacement = '-',
+          x = rownames(x = assay[[]]),
+          fixed = TRUE
         )
         object[[assay.name]] <- assay
       }
@@ -1298,6 +1335,12 @@ UpdateSeuratObject <- function(object) {
               pattern = '_',
               replacement = '-',
               x = rownames(x = slot(object = reduc, name = slot))
+            )
+            rownames(x = slot(object = reduc, name = slot)) <- gsub(
+              pattern = '_',
+              replacement = '-',
+              x = rownames(x = slot(object = reduc, name = slot)),
+              fixed = TRUE
             )
           }
         }
