@@ -1811,7 +1811,7 @@ RunALRA.default <- function(
   message("Computing Randomized SVD")
   if(use.mkl){
     fastDecomp.noc <- setNames(vector("list", 3), c("u", "d", "v"))
-    fastPCAOut <- fastPCA(inputMatrix = A.norm, k=k, its=q, l=(k+10), seed=mkl.seed)
+    fastPCAOut <- fastRPCA::fastPCA(inputMatrix = A.norm, k=k, its=q, l=(k+10), seed=mkl.seed)
     fastDecomp.noc$u <- fastPCAOut$U
     fastDecomp.noc$v <- fastPCAOut$V
     fastDecomp.noc$d <- diag(fastPCAOut$S)
@@ -1954,7 +1954,7 @@ RunALRA.Seurat <- function(
     if(use.mkl){
       L <- min(K+10, min(dim(x = data.used)))
       rsvd.out <- setNames(vector("list", 3), c("u", "d", "v"))
-      fastPCAOut <- fastPCA(inputMatrix = as.matrix(x = data.used), k = K, its = q.k, l = L, seed = mkl.seed)
+      fastPCAOut <- fastRPCA::fastPCA(inputMatrix = as.matrix(x = data.used), k = K, its = q.k, l = L, seed = mkl.seed)
       rsvd.out$u <- fastPCAOut$U
       rsvd.out$v <- fastPCAOut$V
       rsvd.out$d <- diag(fastPCAOut$S)
