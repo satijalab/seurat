@@ -468,7 +468,7 @@ CreateAssayObject <- function(
   }
   if (any(grepl(pattern = '|', x = rownames(x = counts), fixed = TRUE)) || any(grepl(pattern = '|', x = rownames(x = data), fixed = TRUE))) {
     warning(
-      "Feature names cannot have pipe characters ('|'), replacing iwth dashes ('-')",
+      "Feature names cannot have pipe characters ('|'), replacing with dashes ('-')",
       call. = FALSE,
       immediate. = TRUE
     )
@@ -1308,7 +1308,7 @@ UpdateSeuratObject <- function(object) {
           replacement = '-',
           x = VariableFeatures(object = assay)
         )
-        VariableFEatures(object = assay) <- gsub(
+        VariableFeatures(object = assay) <- gsub(
           pattern = '|',
           replacement = '-',
           x = VariableFeatures(object = assay),
