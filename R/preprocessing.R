@@ -1890,7 +1890,6 @@ RunALRA.default <- function(
 #' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #'
 #' @importFrom rsvd rsvd
-#' @importFrom fastRPCA fastPCA
 #' @importFrom Matrix Matrix
 #' @importFrom stats sd
 #'
