@@ -24,7 +24,7 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #' @slot object.list List of objects used to create anchors
 #' @slot reference.cells List of cell names in the reference dataset - needed when performing data
 #' transfer.
-#' @slot reference.objects Position of reference object/s in object.list 
+#' @slot reference.objects Position of reference object/s in object.list
 #' @slot query.cells List of cell names in the query dataset - needed when performing data transfer
 #' @slot anchors The anchor matrix. This contains the cell indices of both anchor pair cells, the
 #' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
@@ -466,6 +466,25 @@ CreateAssayObject <- function(
       x = rownames(x = data)
     )
   }
+  if (any(grepl(pattern = '|', x = rownames(x = counts), fixed = TRUE)) || any(grepl(pattern = '|', x = rownames(x = data), fixed = TRUE))) {
+    warning(
+      "Feature names cannot have pipe characters ('|'), replacing with dashes ('-')",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    rownames(x = counts) <- gsub(
+      pattern = '|',
+      replacement = '-',
+      x = rownames(x = counts),
+      fixed = TRUE
+    )
+    rownames(x = data) <- gsub(
+      pattern = '|',
+      replacement = '-',
+      x = rownames(x = data),
+      fixed = TRUE
+    )
+  }
   # Initialize meta.features
   init.meta.features <- data.frame(row.names = rownames(x = data))
   assay <- new(
@@ -704,7 +723,7 @@ CreateSeuratObject <- function(
 #' @param assays Only keep a subset of assays specified here
 #' @param dimreducs Only keep a subset of DimReducs specified here (if NULL,
 #' remove all DimReducs)
-#' @param graphs Only keep a subset of Graphs specified here (if NULL, remove 
+#' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
 #' all Graphs)
 #'
 #' @export
@@ -1111,7 +1130,6 @@ SetIntegrationData <- function(object, integration.name, slot, new.data) {
 #' @param object Seurat object
 #' @param split.by Attribute for splitting. Default is "ident". Currently
 #' only supported for class-level (i.e. non-quantitative) attributes.
-#' @param ... Ignored
 #'
 #' @return A named list of Seurat objects, each containing a subset of cells
 #' from the original object.
@@ -1125,7 +1143,7 @@ SetIntegrationData <- function(object, integration.name, slot, new.data) {
 #' pbmc_small <- AddMetaData(object = pbmc_small, metadata = groups, col.name = "group")
 #' obj.list <- SplitObject(pbmc_small, split.by = "group")
 #'
-SplitObject <- function(object, split.by = "ident", ...) {
+SplitObject <- function(object, split.by = "ident") {
   if (split.by == 'ident') {
     groupings <- Idents(object = object)
   } else {
@@ -1267,7 +1285,7 @@ UpdateSeuratObject <- function(object) {
         Key(object = object[[ko]]) <- UpdateKey(key = Key(object = object[[ko]]))
       }
       # Check feature names
-      message("Ensuring feature names don't have underscores")
+      message("Ensuring feature names don't have underscores or pipes")
       for (assay.name in FilterObjects(object = object, classes.keep = 'Assay')) {
         assay <- object[[assay.name]]
         for (slot in c('counts', 'data', 'scale.data')) {
@@ -1277,6 +1295,12 @@ UpdateSeuratObject <- function(object) {
               replacement = '-',
               x = rownames(x = slot(object = assay, name = slot))
             )
+            rownames(x = slot(object = assay, name = slot)) <- gsub(
+              pattern = '|',
+              replacement = '-',
+              x = rownames(x = slot(object = assay, name = slot)),
+              fixed = TRUE
+            )
           }
         }
         VariableFeatures(object = assay) <- gsub(
@@ -1284,10 +1308,22 @@ UpdateSeuratObject <- function(object) {
           replacement = '-',
           x = VariableFeatures(object = assay)
         )
+        VariableFeatures(object = assay) <- gsub(
+          pattern = '|',
+          replacement = '-',
+          x = VariableFeatures(object = assay),
+          fixed = TRUE
+        )
         rownames(x = slot(object = assay, name = "meta.features")) <-  gsub(
           pattern = '_',
           replacement = '-',
           x = rownames(x = assay[[]])
+        )
+        rownames(x = slot(object = assay, name = "meta.features")) <-  gsub(
+          pattern = '|',
+          replacement = '-',
+          x = rownames(x = assay[[]]),
+          fixed = TRUE
         )
         object[[assay.name]] <- assay
       }
@@ -1299,6 +1335,12 @@ UpdateSeuratObject <- function(object) {
               pattern = '_',
               replacement = '-',
               x = rownames(x = slot(object = reduc, name = slot))
+            )
+            rownames(x = slot(object = reduc, name = slot)) <- gsub(
+              pattern = '_',
+              replacement = '-',
+              x = rownames(x = slot(object = reduc, name = slot)),
+              fixed = TRUE
             )
           }
         }
@@ -1343,6 +1385,7 @@ AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
 #' @method as.CellDataSet Seurat
 #'
 as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
+  CheckDots(...)
   if (!PackageCheck('monocle', error = FALSE)) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
@@ -1423,6 +1466,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
 #' g <- as.Graph(x = mat)
 #'
 as.Graph.Matrix <- function(x, ...) {
+  CheckDots(...)
   x <- as.sparse(x = x)
   if (is.null(x = rownames(x = x))) {
     stop("Please provide rownames to the matrix before converting to a Graph.")
@@ -1445,6 +1489,7 @@ as.Graph.Matrix <- function(x, ...) {
 #' g <- as.Graph(x = mat)
 #'
 as.Graph.matrix <- function(x, ...) {
+  CheckDots(...)
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
@@ -1497,6 +1542,7 @@ as.loom.Seurat <- function(
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR from GitHub before converting to a loom object")
   }
+  CheckDots(..., fxns = 'loomR::create')
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
@@ -1619,7 +1665,6 @@ as.loom.Seurat <- function(
   return(lfile)
 }
 
-
 #' @param slot Slot to store expression data as
 #'
 #' @importFrom utils packageVersion
@@ -1635,6 +1680,7 @@ as.Seurat.CellDataSet <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!PackageCheck('monocle', error = FALSE)) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   } else if (packageVersion(pkg = 'monocle') >= package_version(x = '2.99.0')) {
@@ -1822,6 +1868,7 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   # Shouldn't be necessary
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR")
@@ -2171,6 +2218,7 @@ as.Seurat.SingleCellExperiment <- function(
   project = 'SingleCellExperiment',
   ...
 ) {
+  CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop(
       "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object",
@@ -2260,6 +2308,7 @@ as.Seurat.SingleCellExperiment <- function(
 #' @method as.SingleCellExperiment Seurat
 #'
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
+  CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
@@ -2288,6 +2337,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
 #' @method as.sparse data.frame
 #'
 as.sparse.data.frame <- function(x, ...) {
+  CheckDots(...)
   return(as(object = as.matrix(x = x), Class = 'dgCMatrix'))
 }
 
@@ -2299,6 +2349,7 @@ as.sparse.data.frame <- function(x, ...) {
 #' @method as.sparse H5Group
 #'
 as.sparse.H5Group <- function(x, ...) {
+  CheckDots(...)
   for (i in c('data', 'indices', 'indptr')) {
     if (!x$exists(name = i) || !is(object = x[[i]], class2 = 'H5D')) {
       stop("Invalid H5Group specification for a sparse matrix, missing dataset ", i)
@@ -2327,6 +2378,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @method as.sparse Matrix
 #'
 as.sparse.Matrix <- function(x, ...) {
+  CheckDots(...)
   return(as(object = x, Class = 'dgCMatrix'))
 }
 
@@ -2361,6 +2413,7 @@ Cells.DimReduc <- function(x) {
 #' @method Command Seurat
 #'
 Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
+  CheckDots(...)
   commands <- slot(object = object, name = "commands")
   if (is.null(x = command)) {
     return(names(x = commands))
@@ -2384,6 +2437,7 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 #' @method DefaultAssay DimReduc
 #'
 DefaultAssay.DimReduc <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'assay.used'))
 }
 
@@ -2396,6 +2450,7 @@ DefaultAssay.DimReduc <- function(object, ...) {
 #' DefaultAssay(object = pbmc_small)
 #'
 DefaultAssay.Seurat <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'active.assay'))
 }
 
@@ -2403,6 +2458,7 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' @method DefaultAssay<- DimReduc
 #'
 "DefaultAssay<-.DimReduc" <- function(object, ..., value) {
+  CheckDots(...)
   slot(object = object, name = 'assay.used') <- value
   return(object)
 }
@@ -2421,6 +2477,7 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' DefaultAssay(object = pbmc_small)
 #'
 "DefaultAssay<-.Seurat" <- function(object, ..., value) {
+  CheckDots(...)
   if (!value %in% names(x = slot(object = object, name = 'assays'))) {
     stop("Cannot find assay ", value)
   }
@@ -2437,6 +2494,7 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' Embeddings(object = pbmc_small[["pca"]])[1:5, 1:5]
 #'
 Embeddings.DimReduc <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'cell.embeddings'))
 }
 
@@ -2464,6 +2522,7 @@ Embeddings.Seurat <- function(object, reduction = 'pca', ...) {
 #' GetAssay(object = pbmc_small, assay = "RNA")
 #'
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
+  CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   if (!assay %in% object.assays) {
@@ -2487,6 +2546,7 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
 #' GetAssayData(object = pbmc_small[["RNA"]], slot = "data")[1:5,1:5]
 #'
 GetAssayData.Assay <- function(object, slot = 'data', ...) {
+  CheckDots(...)
   return(slot(object = object, name = slot))
 }
 
@@ -2501,6 +2561,7 @@ GetAssayData.Assay <- function(object, slot = 'data', ...) {
 #' GetAssayData(object = pbmc_small, assay = "RNA", slot = "data")[1:5,1:5]
 #'
 GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
+  CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   return(GetAssayData(
     object = GetAssay(object = object, assay = assay),
@@ -2521,6 +2582,7 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' HVFInfo(object = pbmc_small[["RNA"]], selection.method = 'vst')[1:5, ]
 #'
 HVFInfo.Assay <- function(object, selection.method, status = FALSE, ...) {
+  CheckDots(...)
   disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
   if (tolower(x = selection.method) %in% disp.methods) {
     selection.method <- 'mvp'
@@ -2574,6 +2636,7 @@ HVFInfo.Seurat <- function(
   status = FALSE,
   ...
 ) {
+  CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   if (is.null(x = selection.method)) {
     cmds <- apply(
@@ -2622,6 +2685,7 @@ HVFInfo.Seurat <- function(
 #' @method Idents Seurat
 #'
 Idents.Seurat <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'active.ident'))
 }
 
@@ -2633,6 +2697,7 @@ Idents.Seurat <- function(object, ...) {
 #' @method Idents<- Seurat
 #'
 "Idents<-.Seurat" <- function(object, cells = NULL, drop = FALSE, ..., value) {
+  CheckDots(...)
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
@@ -2684,6 +2749,7 @@ Idents.Seurat <- function(object, ...) {
 #' @method JS DimReduc
 #'
 JS.DimReduc <- function(object, slot = NULL, ...) {
+  CheckDots(...)
   jackstraw <- slot(object = object, name = 'jackstraw')
   if (!is.null(x = slot)) {
     jackstraw <- JS(object = jackstraw, slot = slot)
@@ -2696,6 +2762,7 @@ JS.DimReduc <- function(object, slot = NULL, ...) {
 #' @method JS JackStrawData
 #'
 JS.JackStrawData <- function(object, slot, ...) {
+  CheckDots(...)
   slot <- switch(
     EXPR = slot,
     'empirical' = 'empirical.p.values',
@@ -2712,6 +2779,7 @@ JS.JackStrawData <- function(object, slot, ...) {
 #' @method JS<- DimReduc
 #'
 "JS<-.DimReduc" <- function(object, slot = NULL, ..., value) {
+  CheckDots(...)
   if (inherits(x = value, what = 'JackStrawData')) {
     slot(object = object, name = 'jackstraw') <- value
   } else if (is.null(x = NULL)) {
@@ -2727,6 +2795,7 @@ JS.JackStrawData <- function(object, slot, ...) {
 #' @method JS<- JackStrawData
 #'
 "JS<-.JackStrawData" <- function(object, slot, ..., value) {
+  CheckDots(...)
   slot <- switch(
     EXPR = slot,
     'empirical' = 'empirical.p.values',
@@ -2748,6 +2817,7 @@ JS.JackStrawData <- function(object, slot, ...) {
 #' Key(object = pbmc_small[["RNA"]])
 #'
 Key.Assay <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'key'))
 }
 
@@ -2760,6 +2830,7 @@ Key.Assay <- function(object, ...) {
 #' Key(object = pbmc_small[["pca"]])
 #'
 Key.DimReduc <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'key'))
 }
 
@@ -2772,6 +2843,7 @@ Key.DimReduc <- function(object, ...) {
 #' Key(object = pbmc_small)
 #'
 Key.Seurat <- function(object, ...) {
+  CheckDots(...)
   keyed.objects <- FilterObjects(object = object)
   return(sapply(
     X = keyed.objects,
@@ -2791,6 +2863,7 @@ Key.Seurat <- function(object, ...) {
 #' Key(object = pbmc_small[["RNA"]])
 #'
 "Key<-.Assay" <- function(object, ..., value) {
+  CheckDots(...)
   slot(object = object, name = 'key') <- value
   return(object)
 }
@@ -2805,6 +2878,7 @@ Key.Seurat <- function(object, ...) {
 #' Key(object = pbmc_small[["pca"]])
 #'
 "Key<-.DimReduc" <- function(object, ..., value) {
+  CheckDots(...)
   old.key <- Key(object = object)
   slots <- Filter(
     f = function(x) {
@@ -2838,6 +2912,7 @@ Key.Seurat <- function(object, ...) {
 #' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
 Loadings.DimReduc <- function(object, projected = FALSE, ...) {
+  CheckDots(...)
   projected <- projected %||% Projected(object = object)
   slot <- ifelse(
     test = projected,
@@ -2872,6 +2947,7 @@ Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
 #' Loadings(object = pbmc_small[["pca"]]) <- new.loadings
 #'
 "Loadings<-.DimReduc" <- function(object, projected = TRUE, ..., value) {
+  CheckDots(...)
   slot.use <- ifelse(
     test = projected,
     yes = 'feature.loadings.projected',
@@ -2891,6 +2967,7 @@ Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
 #' @method Misc Assay
 #'
 Misc.Assay <- function(object, slot = NULL, ...) {
+  CheckDots(...)
   if (is.null(x = slot)) {
     return(slot(object = object, name = 'misc'))
   }
@@ -2906,6 +2983,7 @@ Misc.Assay <- function(object, slot = NULL, ...) {
 #' Misc(object = pbmc_small, slot = "example")
 #'
 Misc.Seurat <- function(object, slot = NULL, ...) {
+  CheckDots(...)
   if (is.null(x = slot)) {
     return(slot(object = object, name = 'misc'))
   }
@@ -2917,6 +2995,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @method Misc<- Assay
 #'
 "Misc<-.Assay" <- function(object, slot, ..., value) {
+  CheckDots(...)
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)
   }
@@ -2937,6 +3016,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' Misc(object = pbmc_small, slot = "example") <- "testing_misc"
 #'
 "Misc<-.Seurat" <- function(object, slot, ..., value) {
+  CheckDots(...)
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)
   }
@@ -3137,6 +3217,7 @@ OldWhichCells.Seurat <- function(
 #' @method Project Seurat
 #'
 Project.Seurat <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'project.name'))
 }
 
@@ -3145,6 +3226,7 @@ Project.Seurat <- function(object, ...) {
 #' @method Project<- Seurat
 #'
 "Project<-.Seurat" <- function(object, ..., value) {
+  CheckDots(...)
   slot(object = object, name = 'project.name') <- as.character(x = value)
   return(object)
 }
@@ -3157,6 +3239,7 @@ Project.Seurat <- function(object, ...) {
 #' @method ReadH5AD character
 #'
 ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
+  CheckDots(...)
   if (!PackageCheck('hdf5r', error = FALSE)) {
     stop("Please install hdf5r' for h5ad capabilities")
   }
@@ -3178,6 +3261,7 @@ ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
 #' @method ReadH5AD H5File
 #'
 ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
+  CheckDots(...)
   # Pull assay data
   # If X is an H5D, assume scaled
   # Otherwise, if file$exists(name = 'raw'), assume X is normalized
@@ -3567,6 +3651,7 @@ ReorderIdent.Seurat <- function(
 #' head(x = colnames(x = renamed.assay))
 #'
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
+  CheckDots(...)
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) <= 1) {
@@ -3591,6 +3676,7 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
 #' head(x = Cells(x = renamed.dimreduc))
 #'
 RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
+  CheckDots(...)
   old.data <- Embeddings(object = object)
   rownames(x = old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
@@ -3622,6 +3708,7 @@ RenameCells.Seurat <- function(
   for.merge = FALSE,
   ...
 ) {
+  CheckDots(...)
   if (missing(x = add.cell.id) && missing(x = new.names)) {
     stop("One of 'add.cell.id' and 'new.names' must be set")
   }
@@ -3723,6 +3810,7 @@ RenameIdents.Seurat <- function(object, ...) {
 #' new.assay <- SetAssayData(object = pbmc_small[["RNA"]], slot = "counts", new.data = count.data)
 #'
 SetAssayData.Assay <- function(object, slot, new.data, ...) {
+  CheckDots(...)
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
     stop(
@@ -3783,7 +3871,7 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
         call. = FALSE
       )
     }
-    new.data <- new.data[new.features, colnames(x = object)]
+    new.data <- new.data[new.features, colnames(x = object), drop = FALSE]
     if (slot %in% c('counts', 'data') && !all(dim(x = new.data) == dim(x = object))) {
       stop(
         "Attempting to add a different number of cells and/or features",
@@ -3825,6 +3913,7 @@ SetAssayData.Seurat <- function(
   assay = NULL,
   ...
 ) {
+  CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   object[[assay]] <- SetAssayData(object = object[[assay]], slot = slot, new.data = new.data)
   return(object)
@@ -3847,6 +3936,7 @@ SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
   #  ') <- ',
   #  deparse(expr = substitute(expr = value))
   #)
+  CheckDots(...)
   Idents(object = object, cells = cells) <- value
   return(object)
 }
@@ -3868,6 +3958,7 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
     deparse(expr = substitute(expr = object)),
     ')'
   )
+  CheckDots(...)
   object[[save.name]] <- Idents(object = object)
   return(object)
 }
@@ -3881,6 +3972,7 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
 #' Stdev(object = pbmc_small[["pca"]])
 #'
 Stdev.DimReduc <- function(object, ...) {
+  CheckDots(...)
   return(slot(object = object, name = 'stdev'))
 }
 
@@ -3895,6 +3987,7 @@ Stdev.DimReduc <- function(object, ...) {
 #' Stdev(object = pbmc_small, reduction = "pca")
 #'
 Stdev.Seurat <- function(object, reduction = 'pca', ...) {
+  CheckDots(...)
   return(Stdev(object = object[[reduction]]))
 }
 
@@ -4063,6 +4156,7 @@ SubsetData.Seurat <- function(
 #' Tool(object = pbmc_small)
 #'
 Tool.Seurat <- function(object, slot = NULL, ...) {
+  CheckDots(...)
   if (is.null(x = slot)) {
     return(names(x = slot(object = object, name = 'tools')))
   }
@@ -4080,6 +4174,7 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 #' Tool(object = pbmc_small) <- sample.tool.output
 #' }
 "Tool<-.Seurat" <- function(object, ..., value) {
+  CheckDots(...)
   calls <- as.character(x = sys.calls())
   calls <- lapply(
     X = strsplit(x = calls, split = '(', fixed = TRUE),
@@ -4112,6 +4207,7 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 #' @method VariableFeatures Assay
 #'
 VariableFeatures.Assay <- function(object, selection.method = NULL, ...) {
+  CheckDots(...)
   if (!is.null(x = selection.method)) {
     vf <- HVFInfo(object = object, selection.method = selection.method, status = TRUE)
     return(rownames(x = vf)[which(x = vf[, "variable"][, 1])])
@@ -4126,6 +4222,7 @@ VariableFeatures.Assay <- function(object, selection.method = NULL, ...) {
 #' @method VariableFeatures Seurat
 #'
 VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NULL, ...) {
+  CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   return(VariableFeatures(object = object[[assay]], selection.method = selection.method))
 }
@@ -4135,6 +4232,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @method VariableFeatures<- Assay
 #'
 "VariableFeatures<-.Assay" <- function(object, ..., value) {
+  CheckDots(...)
   if (length(x = value) == 0) {
     slot(object = object, name = 'var.features') <- character(length = 0)
     return(object)
@@ -4171,6 +4269,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @method VariableFeatures<- Seurat
 #'
 "VariableFeatures<-.Seurat" <- function(object, assay = NULL, ..., value) {
+  CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   VariableFeatures(object = object[[assay]]) <- value
   return(object)
@@ -4196,6 +4295,7 @@ WhichCells.Assay <- function(
   invert = FALSE,
   ...
 ) {
+  CheckDots(...)
   cells <- cells %||% colnames(x = object)
   if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
     key.pattern <- paste0('^', Key(object = object))
@@ -4261,6 +4361,7 @@ WhichCells.Seurat <- function(
   seed = 1,
   ...
 ) {
+  CheckDots(...)
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
@@ -4329,6 +4430,7 @@ WhichCells.Seurat <- function(
     cells <- rownames(x = data.subset)
   }
   if (invert) {
+    cell.order <- colnames(x = object)
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
   cells <- CellsByIdentities(object = object, cells = cells)
@@ -4375,6 +4477,7 @@ WriteH5AD.Seurat <- function(
   if (!PackageCheck('hdf5r', error = FALSE)) {
     stop("Please install hdf5r to enable h5ad functionality")
   }
+  CheckDots(...)
   if (file.exists(file) && !overwrite) {
     stop("Output file exists, not overwriting")
   }
@@ -4907,6 +5010,7 @@ WriteH5AD.Seurat <- function(
 #' @method as.list SeuratCommand
 #'
 as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
+  CheckDots(...)
   cmd <- slot(object = x, name = 'params')
   if (complete) {
     cmd <- append(
@@ -4938,6 +5042,7 @@ as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
 #' @method as.logical JackStrawData
 #'
 as.logical.JackStrawData <- function(x, ...) {
+  CheckDots(...)
   empP <- JS(object = x, slot = 'empirical')
   return(!(all(dim(x = empP) == 0) || all(is.na(x = empP))))
 }
@@ -5042,6 +5147,7 @@ merge.Assay <- function(
   merge.data = TRUE,
   ...
 ) {
+  CheckDots(...)
   assays <- c(x, y)
   if (!is.null(x = add.cell.ids)) {
     for (i in 1:length(assays)) {
@@ -5056,7 +5162,7 @@ merge.Assay <- function(
       mat1 = merged.counts,
       mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "counts")
     )
-    if (length(Key(object = assays[[i]]) > 0)){
+    if (length(Key(object = assays[[i]]) > 0)) {
       keys[i] <- Key(object = assays[[i]])
     }
   }
@@ -5132,6 +5238,7 @@ merge.Seurat <- function(
   project = "SeuratProject",
   ...
 ) {
+  CheckDots(...)
   objects <- c(x, y)
   if (!is.null(x = add.cell.ids)) {
     if (length(x = add.cell.ids) != length(x = objects)) {
@@ -5252,6 +5359,7 @@ names.Seurat <- function(x) {
 #' @method print DimReduc
 #'
 print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...) {
+  CheckDots(...)
   loadings <- Loadings(object = x, projected = projected)
   nfeatures <- min(nfeatures, nrow(x = loadings))
   if (ncol(x = loadings) == 0) {
@@ -5300,6 +5408,7 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
 #' @method subset Assay
 #'
 subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
+  CheckDots(...)
   cells <- cells %||% colnames(x = x)
   if (all(is.na(x = cells))) {
     cells <- colnames(x = x)
@@ -5352,6 +5461,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
 #' @method subset DimReduc
 #'
 subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
+  CheckDots(...)
   cells <- Cells(x = x) %iff% cells %||% Cells(x = x)
   if (all(is.na(x = cells))) {
     cells <- Cells(x = x)

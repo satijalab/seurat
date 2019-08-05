@@ -35,7 +35,7 @@ NULL
 #' or SCT
 #' @param sct.clip.range Numeric of length two specifying the min and max values
 #' the Pearson residual will be clipped to
-#' @param reduction Dimensional reduction to perform when finding anchors. Can 
+#' @param reduction Dimensional reduction to perform when finding anchors. Can
 #' be one of:
 #' \itemize{
 #'   \item{cca: Canonical correlation analysis}
@@ -509,13 +509,13 @@ FindTransferAnchors <- function(
           reference <- SetAssayData(
             object = reference,
             slot = "data",
-            assay = reference.assay, 
+            assay = reference.assay,
             new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
           )
           reference <- SetAssayData(
             object = reference,
             slot = "scale.data",
-            assay = reference.assay, 
+            assay = reference.assay,
             new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
           )
           feature.mean <- "SCT"
@@ -715,6 +715,7 @@ IntegrateData <- function(
         )
       )
       reference.integrated[[assay]] <- unintegrated[[assay]]
+      Misc(object = reference.integrated[[assay]], slot = "vst.set") <- vst.set
     }
     return(reference.integrated)
   } else {
@@ -1356,6 +1357,18 @@ PrepSCTIntegration <- function(
       call. = FALSE
     )
   }
+  
+  object.list <- lapply(
+    X = 1:length(x = object.list),
+    FUN = function(i) {
+      vst_out <- Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out")
+      vst_out$cell_attr <- vst_out$cell_attr[Cells(x = object.list[[i]]), ]
+      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = Cells(x = object.list[[i]]))
+      suppressWarnings(expr = Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out") <- vst_out)
+      return(object.list[[i]])
+    }
+  )
+  
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -2164,7 +2177,7 @@ FindNN <- function(
     if (nrow(x = unique(x = object[[grouping.var]])) != 2) {
       stop("Number of groups in grouping.var not equal to 2.")
     }
-    groups <- names(x = sort(x = table(... = object[[grouping.var]]), decreasing = TRUE))
+    groups <- names(x = sort(x = table(object[[grouping.var]]), decreasing = TRUE))
     cells1 <- colnames(x = object)[object[[grouping.var]] == groups[[1]]]
     cells2 <- colnames(x = object)[object[[grouping.var]] == groups[[2]]]
   }

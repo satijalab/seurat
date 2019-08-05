@@ -7,7 +7,7 @@
 \usage{
 FeatureScatter(object, feature1, feature2, cells = NULL,
   group.by = NULL, cols = NULL, pt.size = 1, shape.by = NULL,
-  span = NULL, smooth = FALSE, slot = "data", ...)
+  span = NULL, smooth = FALSE, slot = "data")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,8 +33,6 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
 
 \item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
-
-\item{...}{Ignored for now}
 }
 \value{
 A ggplot object
