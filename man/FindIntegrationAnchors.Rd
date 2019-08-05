@@ -5,29 +5,58 @@
 \title{Find integration anchors}
 \usage{
 FindIntegrationAnchors(object.list = NULL, assay = NULL,
-  anchor.features = 2000, scale = TRUE, l2.norm = TRUE,
-  dims = 1:30, k.anchor = 5, k.filter = 200, k.score = 30,
-  max.features = 200, eps = 0, verbose = TRUE)
+  reference = NULL, anchor.features = 2000, scale = TRUE,
+  normalization.method = c("LogNormalize", "SCT"),
+  sct.clip.range = NULL, reduction = c("cca", "rpca"),
+  l2.norm = TRUE, dims = 1:30, k.anchor = 5, k.filter = 200,
+  k.score = 30, max.features = 200, nn.method = "rann", eps = 0,
+  verbose = TRUE)
 }
 \arguments{
-\item{object.list}{A list of objects between which to find anchors for downstream integration.}
+\item{object.list}{A list of objects between which to find anchors for
+downstream integration.}
 
-\item{assay}{A vector of assay names specifying which assay to use when constructing anchors. If
-NULL, the current default assay for each object is used.}
+\item{assay}{A vector of assay names specifying which assay to use when
+constructing anchors. If NULL, the current default assay for each object is
+used.}
+
+\item{reference}{A vector specifying the object/s to be used as a reference
+during integration. If NULL (default), all pairwise anchors are found (no
+reference/s). If not NULL, the corresponding objects in \code{object.list}
+will be used as references. When using a set of specified references, anchors
+are first found between each query and each reference. The references are
+then integrated through pairwise integration. Each query is then mapped to
+the integrated reference.}
 
 \item{anchor.features}{Can be either:
 \itemize{
-  \item{A numeric value. This will call \code{\link{SelectIntegrationFeatures}} to select the
-  provided number of features to be used in anchor finding}
+  \item{A numeric value. This will call \code{\link{SelectIntegrationFeatures}}
+  to select the provided number of features to be used in anchor finding}
   \item{A vector of features to be used as input to the anchor finding process}
 }}
 
-\item{scale}{Whether or not to scale the features provided. Only set to FALSE if you have
-previously scaled the features you want to use for each object in the object.list}
+\item{scale}{Whether or not to scale the features provided. Only set to FALSE
+if you have previously scaled the features you want to use for each object in
+the object.list}
 
-\item{l2.norm}{Perform L2 normalization on the CCA cell embeddings after dimensional reduction}
+\item{normalization.method}{Name of normalization method used: LogNormalize
+or SCT}
 
-\item{dims}{Which dimensions to use from the CCA to specify the neighbor search space}
+\item{sct.clip.range}{Numeric of length two specifying the min and max values
+the Pearson residual will be clipped to}
+
+\item{reduction}{Dimensional reduction to perform when finding anchors. Can
+be one of:
+\itemize{
+  \item{cca: Canonical correlation analysis}
+  \item{rpca: Reciprocal PCA}
+}}
+
+\item{l2.norm}{Perform L2 normalization on the CCA cell embeddings after
+dimensional reduction}
+
+\item{dims}{Which dimensions to use from the CCA to specify the neighbor
+search space}
 
 \item{k.anchor}{How many neighbors (k) to use when picking anchors}
 
@@ -35,8 +64,11 @@ previously scaled the features you want to use for each object in the object.lis
 
 \item{k.score}{How many neighbors (k) to use when scoring anchors}
 
-\item{max.features}{The maximum number of features to use when specifying the neighborhood search
-space in the anchor filtering}
+\item{max.features}{The maximum number of features to use when specifying the
+neighborhood search space in the anchor filtering}
+
+\item{nn.method}{Method for nearest neighbor finding. Options include: rann,
+annoy}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
 

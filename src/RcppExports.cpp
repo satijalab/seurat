@@ -81,18 +81,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// FastMatMult
-Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2);
-RcppExport SEXP _Seurat_FastMatMult(SEXP m1SEXP, SEXP m2SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type m1(m1SEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type m2(m2SEXP);
-    rcpp_result_gen = Rcpp::wrap(FastMatMult(m1, m2));
-    return rcpp_result_gen;
-END_RCPP
-}
 // FastRowScale
 Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale, bool center, double scale_max, bool display_progress);
 RcppExport SEXP _Seurat_FastRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
@@ -367,7 +355,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
     {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 3},
-    {"_Seurat_FastMatMult", (DL_FUNC) &_Seurat_FastMatMult, 2},
     {"_Seurat_FastRowScale", (DL_FUNC) &_Seurat_FastRowScale, 5},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 5},

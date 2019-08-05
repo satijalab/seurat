@@ -29,9 +29,10 @@ Returns a vector of values representing the entropy metric from each
 bootstrapped iteration.
 }
 \description{
-Here we compute a measure of how well mixed a composite dataset is. To compute, we first examine
-the local neighborhood for each cell (looking at max.k neighbors) and determine for each group
-(could be the dataset after integration) the k nearest neighbor and what rank that neighbor was
-in the overall neighborhood. We then take the median across all groups as the mixing metric per
-cell.
+Here we compute a measure of how well mixed a composite dataset is. To
+compute, we first examine the local neighborhood for each cell (looking at
+max.k neighbors) and determine for each group (could be the dataset after
+integration) the k nearest neighbor and what rank that neighbor was in the
+overall neighborhood. We then take the median across all groups as the mixing
+metric per cell.
 }
