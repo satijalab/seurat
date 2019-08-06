@@ -663,16 +663,6 @@ IntegrateData <- function(
   if (normalization.method == "SCT") {
     vst.set <- list()
     # merge the SCT scale.data slots and store in unintegrated
-    scale.data <- do.call(
-      what = cbind, 
-      args = lapply(X = object.list, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
-    )
-    unintegrated <- SetAssayData(
-      object = unintegrated, 
-      assay = DefaultAssay(object = object.list[[1]]), 
-      slot = "scale.data", 
-      new.data = scale.data
-    )
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       object.list[[i]][[assay]] <- CreateAssayObject(

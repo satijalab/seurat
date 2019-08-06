@@ -5190,7 +5190,7 @@ merge.Assay <- function(
       new.data = merged.data
     )
   }
-  # merge SCT assay misc vst info
+  # merge SCT assay misc vst info and scale.data
   if (all(IsSCT(assay = assays))) {
     vst.set.new <- list()
     idx <- 1
@@ -5207,6 +5207,15 @@ merge.Assay <- function(
       }
     }
     Misc(object = combined.assay, slot = "vst.set") <- vst.set.new
+    scale.data <- do.call(
+      what = cbind, 
+      args = lapply(X = assays, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
+    )
+    combined.assay <- SetAssayData(
+      object = combined.assay, 
+      slot = "scale.data", 
+      new.data = scale.data
+    )
   }
   return(combined.assay)
 }
