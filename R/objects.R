@@ -320,6 +320,20 @@ seurat <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' List Assay objects
+#' 
+#' Lists the names of \code{\link{Assay}} objects present in 
+#' a Seurat object.
+#' 
+#' @param object A Seurat object
+#' @return Returns a character vector
+#' @export
+#' @examples 
+#' Assays(object = pbmc_small)
+Assays <- function(object) {
+  return(FilterObjects(object = object, classes.keep = 'Assay'))
+}
+
 #' Create an Assay object
 #'
 #' Create an Assay object from a feature (e.g. gene) expression matrix. The
@@ -3581,6 +3595,20 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     message("No nearest-neighbor graph")
   }
   return(object)
+}
+
+#' List DimReduc objects
+#' 
+#' Lists the names of \code{\link{DimReduc}} objects present in 
+#' a Seurat object.
+#' 
+#' @param object A Seurat object
+#' @return Returns a character vector
+#' @export
+#' @examples 
+#' Reductions(object = pbmc_small)
+Reductions <- function(object) {
+  return(FilterObjects(object = object, classes.keep = 'DimReduc'))
 }
 
 #' @param reverse Reverse ordering
