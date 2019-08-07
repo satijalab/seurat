@@ -320,18 +320,22 @@ seurat <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' List Assay objects
+#' Pull Assays or assay names
 #' 
 #' Lists the names of \code{\link{Assay}} objects present in 
-#' a Seurat object.
+#' a Seurat object. If slot is provided, pulls specified Assay object.
 #' 
 #' @param object A Seurat object
+#' @param slot Name of Assay to return
 #' @return Returns a character vector
 #' @export
 #' @examples 
 #' Assays(object = pbmc_small)
-Assays <- function(object) {
-  return(FilterObjects(object = object, classes.keep = 'Assay'))
+Assays <- function(object, slot = NULL) {
+  if (is.null(x = slot)) {
+    return(FilterObjects(object = object, classes.keep = 'Assay'))
+  }
+  return(slot(object = object, name = 'assays')[[slot]])
 }
 
 #' Create an Assay object
@@ -3597,18 +3601,22 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   return(object)
 }
 
-#' List DimReduc objects
+#' Pull DimReducs or DimReduc names
 #' 
 #' Lists the names of \code{\link{DimReduc}} objects present in 
-#' a Seurat object.
+#' a Seurat object. If slot is provided, pulls specified DimReduc object.
 #' 
 #' @param object A Seurat object
+#' @param slot Name of DimReduc
 #' @return Returns a character vector
 #' @export
 #' @examples 
 #' Reductions(object = pbmc_small)
-Reductions <- function(object) {
-  return(FilterObjects(object = object, classes.keep = 'DimReduc'))
+Reductions <- function(object, slot = NULL) {
+  if (is.null(x = slot)) {
+    return(FilterObjects(object = object, classes.keep = 'DimReduc'))
+  }
+  return(slot(object = object, name = 'reductions')[[slot]])
 }
 
 #' @param reverse Reverse ordering

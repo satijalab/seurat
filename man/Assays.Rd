@@ -2,19 +2,21 @@
 % Please edit documentation in R/objects.R
 \name{Assays}
 \alias{Assays}
-\title{List Assay objects}
+\title{Pull Assays or assay names}
 \usage{
-Assays(object)
+Assays(object, slot = NULL)
 }
 \arguments{
 \item{object}{A Seurat object}
+
+\item{slot}{Name of Assay to return}
 }
 \value{
 Returns a character vector
 }
 \description{
 Lists the names of \code{\link{Assay}} objects present in 
-a Seurat object.
+a Seurat object. If slot is provided, pulls specified Assay object.
 }
 \examples{
 Assays(object = pbmc_small)

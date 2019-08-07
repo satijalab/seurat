@@ -2,19 +2,21 @@
 % Please edit documentation in R/objects.R
 \name{Reductions}
 \alias{Reductions}
-\title{List DimReduc objects}
+\title{Pull DimReducs or DimReduc names}
 \usage{
-Reductions(object)
+Reductions(object, slot = NULL)
 }
 \arguments{
 \item{object}{A Seurat object}
+
+\item{slot}{Name of DimReduc}
 }
 \value{
 Returns a character vector
 }
 \description{
 Lists the names of \code{\link{DimReduc}} objects present in 
-a Seurat object.
+a Seurat object. If slot is provided, pulls specified DimReduc object.
 }
 \examples{
 Reductions(object = pbmc_small)
