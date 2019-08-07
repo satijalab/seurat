@@ -784,6 +784,11 @@ RunICA <- function(object, ...) {
 #'
 #' For details about stored LSI calculation parameters, see
 #' \code{PrintLSIParams}.
+#' 
+#' @note RunLSI is being moved to Signac. Equivalent functionality can be 
+#' achieved via the \code{Signac::RunTFIDF} and \code{Signac::RunSVD} functions; 
+#' for more information on Signac, please see 
+#' \url{https://github.com/timoast/Signac}
 #'
 #' @param object Seurat object
 #' @param ... Arguments passed to other methods
@@ -792,6 +797,14 @@ RunICA <- function(object, ...) {
 #' @export RunLSI
 #'
 RunLSI <- function(object, ...) {
+  .Deprecated(
+    new = 'Signac::RunTFIDF',
+    msg = paste(
+      "RunLSI is being moved to Signac. Equivalent functionality can be", 
+      "achieved via the Signac::RunTFIDF and Signac::RunSVD functions; for",
+      "more information on Signac, please see https://github.com/timoast/Signac"
+    )
+  )
   UseMethod(generic = "RunLSI", object = object)
 }
 
