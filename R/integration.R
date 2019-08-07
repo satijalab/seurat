@@ -662,7 +662,6 @@ IntegrateData <- function(
   )
   if (normalization.method == "SCT") {
     vst.set <- list()
-    # merge the SCT scale.data slots and store in unintegrated
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       object.list[[i]][[assay]] <- CreateAssayObject(
@@ -1192,7 +1191,6 @@ PairwiseIntegrateReference <- function(
         paste(datasets$object1, collapse = " ")
       )
     }
-
     merged.obj <- merge(x = object.1, y = object.2, merge.data = TRUE)
     if (verbose) {
       message("Extracting anchors for merged samples")

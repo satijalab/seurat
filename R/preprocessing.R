@@ -2593,6 +2593,9 @@ GetResidualVstOut <- function(
       " features do not exist in the counts slot: ", 
       paste(diff_features, collapse = " ")
     )
+    if (length(x = intersect_feature) == 0) {
+      return(object)
+    }
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[intersect_feature, , drop = FALSE]
   }
   if (is.null(x = clip.range)) {

@@ -5303,6 +5303,30 @@ merge.Seurat <- function(
         ))
       }
     )
+    if (all(IsSCT(assay = assays.merge))) {
+      scaled.features <- unique(x = unlist(x = lapply(
+        X = assays.merge, 
+        FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
+      ))
+      for (ob in 1:length(x = objects)) {
+        if (assay %in% FilterObjects(object = objects[[ob]], classes.keep = "Assay")) {
+          objects[[ob]] <- suppressWarnings(GetResidual(object = objects[[ob]], features = scaled.features, assay = assay, verbose = FALSE))
+          assays.merge[[ob]] <- objects[[ob]][[assay]]
+        }
+      }
+      # handle case where some features aren't in counts and can't be retrieved with 
+      # GetResidual - take intersection
+      scaled.features <- names(x = which(x = table(x = unlist(x = lapply(
+        X = assays.merge, 
+        FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
+      )) == length(x = assays.merge)))
+      for (a in 1:length(x = assays.merge)) {
+        assays.merge[[a]] <- SetAssayData(
+          object = assays.merge[[a]], 
+          slot = "scale.data", 
+          new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+      }
+    }
     merged.assay <- merge(
       x = assays.merge[[1]],
       y = assays.merge[2:length(x = assays.merge)],
