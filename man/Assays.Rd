@@ -12,12 +12,14 @@ Assays(object, slot = NULL)
 \item{slot}{Name of Assay to return}
 }
 \value{
-Returns a character vector
+If \code{slot} is \code{NULL}, the names of all \code{Assay} objects
+in this Seurat object. Otherwise, the \code{Assay} object specified
 }
 \description{
-Lists the names of \code{\link{Assay}} objects present in 
+Lists the names of \code{\link{Assay}} objects present in
 a Seurat object. If slot is provided, pulls specified Assay object.
 }
 \examples{
 Assays(object = pbmc_small)
+
 }
