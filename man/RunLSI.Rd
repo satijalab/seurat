@@ -48,7 +48,7 @@ For details about stored LSI calculation parameters, see
 }
 \note{
 RunLSI is being moved to Signac. Equivalent functionality can be 
-achieved via the \code{Signac::RunTFIDF} and \code{Signac::RunSVD} functions; 
+achieved via the \code{\link[Signac]{RunTFIDF}} and \code{\link[Signac]{RunSVD}} functions; 
 for more information on Signac, please see 
 \url{https://github.com/timoast/Signac}
 }
