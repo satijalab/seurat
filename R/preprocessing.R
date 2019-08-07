@@ -437,6 +437,7 @@ GetResidual <- function(
   object, 
   features, 
   assay = "SCT",  
+  umi.assay = "RNA",
   clip.range = NULL,
   replace.value = FALSE,
   verbose = TRUE
@@ -464,7 +465,8 @@ GetResidual <- function(
       vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = Cells(x = object))
       object <- GetResidualVstOut(
         object = object, 
-        assay = assay,
+        assay = assay, 
+        umi.assay = umi.assay,
         new_features = new_features,
         vst_out = vst_out,
         clip.range = clip.range, 
@@ -1306,7 +1308,7 @@ SCTransform <- function(
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   # save clip.range into vst model
-  vst.out$arguments$res_clip_range <- clip.range
+  vst.out$arguments$sct.clip.range <- clip.range
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   # also put gene attributes in meta.features
   assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
@@ -2567,6 +2569,7 @@ FindThresh <- function(call.list) {
 GetResidualVstOut <- function(
   object, 
   assay,
+  umi.assay,
   new_features, 
   vst_out, 
   clip.range,
@@ -2581,18 +2584,18 @@ GetResidualVstOut <- function(
     y = rownames(x = vst_out$model_pars_fit)
   )
   if (length(x = diff_features) == 0) {
-    umi <- GetAssayData(object = object, assay = "RNA", slot = "counts" )[new_features, , drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[new_features, , drop = FALSE]
   } else {
     warning(
       "The following ", length(x = diff_features), 
       " features do not exist in the counts slot: ", 
       paste(diff_features, collapse = " ")
     )
-    umi <- GetAssayData(object = object, assay = "RNA", slot = "counts" )[intersect_feature, , drop = FALSE]
+    umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[intersect_feature, , drop = FALSE]
   }
   if (is.null(x = clip.range)) {
-    clip.max <- max(vst_out$arguments$res_clip_range)
-    clip.min <- min(vst_out$arguments$res_clip_range)
+    clip.max <- max(vst_out$arguments$sct.clip.range)
+    clip.min <- min(vst_out$arguments$sct.clip.range)
   } else {
     clip.max <- max(clip.range)
     clip.min <- min(clip.range)
@@ -2605,6 +2608,8 @@ GetResidualVstOut <- function(
     show_progress = verbose
   )
   new_residual <- as.matrix(x = new_residual)
+  # centered data
+  new_residual <- new_residual - rowMeans(new_residual)
   # remove genes from the scale.data if genes are part of new_features
   scale.data <- GetAssayData(object = object, assay = assay, slot = "scale.data")
   object <- SetAssayData(
