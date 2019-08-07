@@ -2596,8 +2596,13 @@ GetResidualVstOut <- function(
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[intersect_feature, , drop = FALSE]
   }
   if (is.null(x = clip.range)) {
+    if(length(vst_out$arguments$sct.clip.range)!=0 ){
     clip.max <- max(vst_out$arguments$sct.clip.range)
     clip.min <- min(vst_out$arguments$sct.clip.range)
+    } else{
+      clip.max <- max(vst_out$arguments$res_clip_range)
+      clip.min <- min(vst_out$arguments$res_clip_range)
+    }
   } else {
     clip.max <- max(clip.range)
     clip.min <- min(clip.range)
