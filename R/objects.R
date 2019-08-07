@@ -321,19 +321,34 @@ seurat <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Pull Assays or assay names
-#' 
-#' Lists the names of \code{\link{Assay}} objects present in 
+#'
+#' Lists the names of \code{\link{Assay}} objects present in
 #' a Seurat object. If slot is provided, pulls specified Assay object.
-#' 
+#'
 #' @param object A Seurat object
 #' @param slot Name of Assay to return
-#' @return Returns a character vector
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Assay} objects
+#' in this Seurat object. Otherwise, the \code{Assay} object specified
+#'
 #' @export
-#' @examples 
+#'
+#' @examples
 #' Assays(object = pbmc_small)
+#'
 Assays <- function(object, slot = NULL) {
+  assays <- FilterObjects(object = object, classes.keep = 'Assay')
   if (is.null(x = slot)) {
-    return(FilterObjects(object = object, classes.keep = 'Assay'))
+    return(assays)
+  }
+  if (!slot %in% assays) {
+    warning(
+      "Cannot find an assay of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   return(slot(object = object, name = 'assays')[[slot]])
 }
@@ -1109,6 +1124,39 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   }
   object[[command.name]] <- seurat.command
   return(object)
+}
+
+#' Pull DimReducs or DimReduc names
+#'
+#' Lists the names of \code{\link{DimReduc}} objects present in
+#' a Seurat object. If slot is provided, pulls specified DimReduc object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of DimReduc
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{DimReduc} objects
+#' in this Seurat object. Otherwise, the \code{DimReduc} object requested
+#'
+#' @export
+#'
+#' @examples
+#' Reductions(object = pbmc_small)
+#'
+Reductions <- function(object, slot = NULL) {
+  reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
+  if (is.null(x = slot)) {
+    return(reductions)
+  }
+  if (!slot %in% reductions) {
+    warning(
+      "Cannot find a DimReduc of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'reductions')[[slot]])
 }
 
 #' Set integation data
@@ -3599,24 +3647,6 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     message("No nearest-neighbor graph")
   }
   return(object)
-}
-
-#' Pull DimReducs or DimReduc names
-#' 
-#' Lists the names of \code{\link{DimReduc}} objects present in 
-#' a Seurat object. If slot is provided, pulls specified DimReduc object.
-#' 
-#' @param object A Seurat object
-#' @param slot Name of DimReduc
-#' @return Returns a character vector
-#' @export
-#' @examples 
-#' Reductions(object = pbmc_small)
-Reductions <- function(object, slot = NULL) {
-  if (is.null(x = slot)) {
-    return(FilterObjects(object = object, classes.keep = 'DimReduc'))
-  }
-  return(slot(object = object, name = 'reductions')[[slot]])
 }
 
 #' @param reverse Reverse ordering
