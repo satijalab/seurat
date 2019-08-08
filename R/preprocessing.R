@@ -482,6 +482,25 @@ GetResidual <- function(
       assay = assay, 
       slot = "scale.data"
     )
+    
+    vst_set_genes <-  sapply(1:length(vst.set), function(x) rownames(vst.set[[x]]$model_pars_fit))
+    vst_set_genes <- Reduce(intersect, vst_set_genes)
+    diff_features <- setdiff(
+      x = new_features,
+      y = vst_set_genes
+    )
+    if (diff_features !=0){
+      warning(
+        "The following ", length(x = diff_features), 
+        " features do not exist in all SCT models: ", 
+        paste(diff_features, collapse = " ")
+      )
+    }
+    new_features <- intersect(
+      x = new_features,
+      y = vst_set_genes
+    )
+    if (length(new_features) != 0){
     object <- SetAssayData(
       object = object, 
       assay = assay, 
@@ -497,9 +516,11 @@ GetResidual <- function(
       vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
       vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
       object.v <- subset(x = object, cells = cells.v)  
+
       object.v <- GetResidualVstOut(
         object = object.v, 
         assay = assay, 
+        umi.assay = umi.assay,
         new_features = new_features, 
         vst_out = vst_out, 
         clip.range = clip.range, 
@@ -516,7 +537,9 @@ GetResidual <- function(
       slot = "scale.data",
       new.data = new.scale.data
     )
+    
     }
+  }
   }
   return(object)
 }
@@ -2588,11 +2611,13 @@ GetResidualVstOut <- function(
   if (length(x = diff_features) == 0) {
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[new_features, , drop = FALSE]
   } else {
+
     warning(
       "The following ", length(x = diff_features), 
       " features do not exist in the counts slot: ", 
       paste(diff_features, collapse = " ")
     )
+
     if (length(x = intersect_feature) == 0) {
       return(object)
     }
