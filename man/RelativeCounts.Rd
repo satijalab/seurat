@@ -4,7 +4,7 @@
 \alias{RelativeCounts}
 \title{Normalize raw data to fractions}
 \usage{
-RelativeCounts(data, scale.factor = 1, verbose = TRUE, ...)
+RelativeCounts(data, scale.factor = 1, verbose = TRUE)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
@@ -12,8 +12,6 @@ RelativeCounts(data, scale.factor = 1, verbose = TRUE, ...)
 \item{scale.factor}{Scale the result. Default is 1}
 
 \item{verbose}{Print progress}
-
-\item{...}{Ignored}
 }
 \value{
 Returns a matrix with the relative counts

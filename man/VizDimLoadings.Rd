@@ -6,7 +6,7 @@
 \usage{
 VizDimLoadings(object, dims = 1:5, nfeatures = 30, col = "blue",
   reduction = "pca", projected = FALSE, balanced = FALSE,
-  ncol = NULL, combine = TRUE, ...)
+  ncol = NULL, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,15 +19,16 @@ VizDimLoadings(object, dims = 1:5, nfeatures = 30, col = "blue",
 
 \item{reduction}{Reduction technique to visualize results for}
 
-\item{projected}{Use reduction values for full dataset (i.e. projected dimensional reduction values)}
+\item{projected}{Use reduction values for full dataset (i.e. projected
+dimensional reduction values)}
 
-\item{balanced}{Return an equal number of genes with + and - scores. If FALSE (default), returns the top genes ranked by the scores absolute values}
+\item{balanced}{Return an equal number of genes with + and - scores. If
+FALSE (default), returns the top genes ranked by the scores absolute values}
 
 \item{ncol}{Number of columns to display}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
-\item{...}{Ignored}
+\item{combine}{Combine plots into a single gg object; note that if TRUE;
+themeing will not work when plotting multiple features}
 }
 \value{
 A ggplot object

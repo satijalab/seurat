@@ -584,7 +584,14 @@ FindMarkers.default <- function(
   }
   # perform DE
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
-    warning("'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests")
+    warning(
+      "'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  if (!test.use %in% c('wilcox', 'MAST', 'DESeq2')) {
+    CheckDots(...)
   }
 
   std.arguments <- list(
@@ -593,29 +600,53 @@ FindMarkers.default <- function(
 
   de.results <- switch(
     EXPR = test.use,
-    'wilcox' = do.call("WilcoxDETest", c(std.arguments, ...)),
-    'bimod' = do.call("DiffExpTest", c(std.arguments, ...)),
-    'roc' = do.call("MarkerTest", std.arguments),
-    't' = do.call("DiffTTest", std.arguments),
-    'negbinom' = do.call("GLMDETest",
-                         c(std.arguments, min.cells = min.cells.feature,
-                           latent.vars = latent.vars,
-                           test.use = test.use)),
-    'poisson' = do.call("GLMDETest",
-                        c(std.arguments, min.cells = min.cells.feature,
-                          latent.vars = latent.vars,
-                          test.use = test.use)),
-    'MAST' = do.call("MASTDETest",
-                     c(std.arguments, min.cells = min.cells.feature,
-                       latent.vars = latent.vars,
-                       test.use = test.use)),
-    "DESeq2" = do.call("DESeq2DETest", std.arguments),
-    "LR" = do.call("LRDETest",
-                   c(std.arguments,
-                     latent.vars = latent.vars)),
+    'wilcox' = do.call(what = "WilcoxDETest", args = c(std.arguments, ...)),
+    'bimod' = do.call(what = "DiffExpTest", args = c(std.arguments, ...)),
+    'roc' = do.call(what = "MarkerTest", args = std.arguments),
+    't' = do.call(what = "DiffTTest", args = std.arguments),
+    'negbinom' = do.call(
+      what = "GLMDETest",
+      args = c(
+        std.arguments,
+        min.cells = min.cells.feature,
+        latent.vars = latent.vars,
+        test.use = test.use
+      )
+    ),
+    'poisson' = do.call(
+      what = "GLMDETest",
+      args = c(
+        std.arguments,
+        min.cells = min.cells.feature,
+        latent.vars = latent.vars,
+        test.use = test.use
+      )
+    ),
+    'MAST' = do.call(
+      what = "MASTDETest",
+      args = c(
+        std.arguments,
+        min.cells = min.cells.feature,
+        latent.vars = latent.vars,
+        test.use = test.use
+      )
+    ),
+    "DESeq2" = do.call(what = "DESeq2DETest", args = std.arguments),
+    "LR" = do.call(
+      what = "LRDETest",
+      args = c(std.arguments, latent.vars = latent.vars)
+    ),
     {
-      de.results <- try({do.call(test.use, c(std.arguments, ...), envir = parent.frame(2))}, silent = TRUE)
-
+      de.results <- try(
+        expr = {
+          do.call(
+            what = test.use,
+            args = c(std.arguments, ...),
+            envir = parent.frame(2)
+          )
+         },
+        silent = TRUE
+      )
       # This section makes sure that the correct error is raised, the
       if (class(de.results) == "try-error") {
         if (grepl(paste0("could not find function.*", test.use), de.results)) {
@@ -901,6 +932,7 @@ DESeq2DETest <- function(
   if (!PackageCheck('DESeq2', error = FALSE)) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
+  CheckDots(..., fxns = 'DESeq2::results')
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
@@ -1179,8 +1211,7 @@ LRDETest <- function(
   cells.1,
   cells.2,
   latent.vars = NULL,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
