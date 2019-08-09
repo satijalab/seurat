@@ -1741,7 +1741,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
     theme_cowplot() +
     scale_x_continuous(breaks = breaks) +
     labs(x = NULL, y = 's_i', title = 'Singular values')
-  ggdata <- data.frame(x = 1:(length(x = d)-1), y = diffs)[-(1:(start - 1)), ]
+  ggdata <- data.frame(x = 1:(length(x = d) - 1), y = diffs)[-(1:(start - 1)), ]
   gg2 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
     geom_point(size = 1) +
     geom_line(size = 0.5) +
