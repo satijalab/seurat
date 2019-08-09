@@ -696,6 +696,13 @@ CreateSeuratObject <- function(
   names.delim = "_",
   meta.data = NULL
 ) {
+  if (!is.null(x = meta.data)) {
+    if (is.null(x = rownames(x = meta.data))) {
+      stop("Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
+    } if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
+      stop("Not all cells present in both metadata and counts")
+    }
+  }
   assay.data <- CreateAssayObject(
     counts = counts,
     min.cells = min.cells,
