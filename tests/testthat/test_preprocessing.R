@@ -36,6 +36,14 @@ test_that("Filtering handled properly", {
   expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
+test_that("Metadata check errors correctly", {
+  pbmc.md <- pbmc_small[[]]
+  pbmc.md.norownames <- as.matrix(pbmc.md)
+  rownames(pbmc.md.norownames) <- NULL
+  expect_error(CreateSeuratObject(counts = pbmc.test, meta.data = pbmc.md[1:10,]), "Not all cells in counts present in metadata")
+  expect_error(CreateSeuratObject(counts = pbmc.test, meta.data = pbmc.md.norownames),
+               "Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
+})
 
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
