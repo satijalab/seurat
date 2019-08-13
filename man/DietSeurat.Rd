@@ -5,7 +5,7 @@
 \title{Slim down a Seurat object}
 \usage{
 DietSeurat(object, counts = TRUE, data = TRUE, scale.data = FALSE,
-  features = NULL, assays = NULL)
+  features = NULL, assays = NULL, dimreducs = NULL, graphs = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,6 +19,12 @@ DietSeurat(object, counts = TRUE, data = TRUE, scale.data = FALSE,
 \item{features}{Only keep a subset of features, defaults to all features}
 
 \item{assays}{Only keep a subset of assays specified here}
+
+\item{dimreducs}{Only keep a subset of DimReducs specified here (if NULL,
+remove all DimReducs)}
+
+\item{graphs}{Only keep a subset of Graphs specified here (if NULL, remove
+all Graphs)}
 }
 \description{
 Keep only certain aspects of the Seurat object. Can be useful in functions that utilize merge as

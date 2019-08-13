@@ -16,8 +16,8 @@ SelectIntegrationFeatures(object.list, nfeatures = 2000, assay = NULL,
 
 \item{verbose}{Print messages}
 
-\item{fvf.nfeatures}{nfeatures for FindVariableFeatures. Used if VariableFeatures have not been
-set for any object in object.list.}
+\item{fvf.nfeatures}{nfeatures for FindVariableFeatures. Used if
+VariableFeatures have not been set for any object in object.list.}
 
 \item{...}{Additional parameters to \code{\link{FindVariableFeatures}}}
 }
@@ -25,7 +25,7 @@ set for any object in object.list.}
 A vector of selected features
 }
 \description{
-Choose the features to use when integrating multiple datasets. This function ranks features by
-the number of datasets they appear in, breaking ties by the median rank across datasets. It
-returns the highest features by this ranking.
+Choose the features to use when integrating multiple datasets. This function
+ranks features by the number of datasets they appear in, breaking ties by the
+median rank across datasets. It returns the highest features by this ranking.
 }

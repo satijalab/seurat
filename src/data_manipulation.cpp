@@ -123,13 +123,6 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   return data;
 }
 
-// [[Rcpp::export]]
-Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2){
-  Eigen::MatrixXd m3 = m1 * m2;
-  return(m3);
-}
-
-
 /* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R.
    Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 

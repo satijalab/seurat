@@ -4,12 +4,14 @@
 \alias{BuildClusterTree}
 \title{Phylogenetic Analysis of Identity Classes}
 \usage{
-BuildClusterTree(object, features = NULL, dims = NULL, graph = NULL,
-  slot = "data", reorder = FALSE, reorder.numeric = FALSE,
-  verbose = TRUE)
+BuildClusterTree(object, assay = NULL, features = NULL, dims = NULL,
+  graph = NULL, slot = "data", reorder = FALSE,
+  reorder.numeric = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{assay}{Assay to use for the analysis.}
 
 \item{features}{Genes to use for the analysis. Default is the set of
 variable genes (\code{VariableFeatures(object = object)})}
