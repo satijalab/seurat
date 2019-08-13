@@ -38,7 +38,7 @@ Imports:
     KernSmooth,
     lmtest,
     MASS,
-    Matrix (>= 1.2.14),
+    Matrix (>= 1.2-14),
     metap,
     pbapply,
     plotly,
