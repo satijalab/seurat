@@ -1322,6 +1322,12 @@ IsMatrixEmpty <- function(x) {
 # @return Boolean
 #
 IsSCT <- function(assay) {
+  if (is.list(x = assay)) {
+    sct.check <- lapply(X = assay, FUN = function(x) {
+      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')))
+    })
+    return(unlist(x = sct.check))
+  }
   return(!is.null(x = Misc(assay, slot = 'vst.out')))
 }
 
