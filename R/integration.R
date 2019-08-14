@@ -129,12 +129,6 @@ FindIntegrationAnchors <- function(
     sct.check <- sapply(
       X = 1:length(x = object.list),
       FUN = function(x) {
-        # check that assay was produced by SCTransform
-        if (!IsSCT(assay = object.list[[x]][[assay[x]]])) {
-          stop("Object ", x, " assay - ", assay[x], " was not produced by ",
-          "SCTransform. Please check that the correct assay is specified (or ",
-          "is the default assay).")
-        }
         sct.cmd <- grep(
           pattern = 'PrepSCTIntegration',
           x = Command(object = object.list[[x]]),
@@ -246,14 +240,22 @@ FindIntegrationAnchors <- function(
         scale.data = TRUE,
         dimreducs = reduction
       )
+      
+      # suppress key duplication warning
+      suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[assay[i]]])
+      DefaultAssay(object = object.1) <- "ToIntegrate"
+      object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
+      suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[assay[j]]])
+      DefaultAssay(object = object.2) <- "ToIntegrate"
+      object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
       object.pair <- switch(
         EXPR = reduction,
         'cca' = {
           object.pair <- RunCCA(
             object1 = object.1,
             object2 = object.2,
-            assay1 = assay[i],
-            assay2 = assay[j],
+            assay1 = "ToIntegrate",
+            assay2 = "ToIntegrate",
             features = anchor.features,
             num.cc = max(dims),
             renormalize = FALSE,
@@ -322,7 +324,7 @@ FindIntegrationAnchors <- function(
       internal.neighbors <- internal.neighbors[c(i, j)]
       anchors <- FindAnchors(
         object.pair = object.pair,
-        assay = c(assay[i], assay[j]),
+        assay = c("ToIntegrate", "ToIntegrate"),
         slot = slot,
         cells1 = colnames(x = object.1),
         cells2 = colnames(x = object.2),
@@ -658,19 +660,15 @@ IntegrateData <- function(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
   )
-
   if (normalization.method == "SCT") {
     vst.set <- list()
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
-      vst.set[[i]] <- Misc(object = object.list[[i]][[assay]], slot = "vst.out")
       object.list[[i]][[assay]] <- CreateAssayObject(
         data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
       )
     }
-    Misc(object = unintegrated[[assay]], slot = "vst.set") <- vst.set
   }
-
   # perform pairwise integration of reference objects
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
@@ -702,7 +700,7 @@ IntegrateData <- function(
           verbose = FALSE
         )
       )
-      Misc(object = reference.integrated[[assay]], slot = "vst.set") <- vst.set
+      reference.integrated[[assay]] <- unintegrated[[assay]]
     }
     return(reference.integrated)
   } else {
@@ -1193,7 +1191,6 @@ PairwiseIntegrateReference <- function(
         paste(datasets$object1, collapse = " ")
       )
     }
-
     merged.obj <- merge(x = object.1, y = object.2, merge.data = TRUE)
     if (verbose) {
       message("Extracting anchors for merged samples")
@@ -1319,7 +1316,14 @@ PrepSCTIntegration <- function(
   sct.check <- vapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
-      return(IsSCT(assay = object.list[[i]][[assay[i]]]))
+      sct.check <- IsSCT(assay = object.list[[i]][[assay[i]]])
+      if (!sct.check) {
+        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) && 
+            Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
+          sct.check <- TRUE
+        }
+      }
+      return(sct.check)
     },
     FUN.VALUE = logical(length = 1L),
     USE.NAMES = FALSE
@@ -1359,6 +1363,9 @@ PrepSCTIntegration <- function(
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
+      if (!IsSCT(assay = object.list[[i]][[assay[i]]])) {
+        return(object.list[[i]])
+      }
       obj <- if (is.null(x = sct.clip.range)) {
         GetResidual(
           object = object.list[[i]],
