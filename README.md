@@ -19,6 +19,12 @@ Improvements and new features will be added on a regular basis, please contact s
 
 Version History
 
+August 16, 2019
+* Version 3.1
+* Changes:
+  * Support for SCTransform integration workflows
+  * Integration speed ups: reference-based integration + reciprocal PCA
+
 April 12, 2019
 * Version 3.0
 * Changes:
