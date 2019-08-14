@@ -316,3 +316,15 @@ test_that("SCTransform ncells param works", {
   expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_variance"], 3.551259, tolerance = 1e6)
 })
 
+suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
+object[["SCT"]] <- SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], slot = "scale.data")[1:100, ])
+object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
+test_that("GetResidual works", {
+  expect_equal(dim(GetAssayData(object = object[["SCT"]], slot = "scale.data")), c(220, 80))
+  expect_equal(
+    GetAssayData(object = object[["SCT"]], slot = "scale.data"),
+    GetAssayData(object = object[["SCT_SAVE"]], slot = "scale.data")
+  )
+  expect_warning(GetResidual(object, features = "asd"))
+})
+
