@@ -190,7 +190,8 @@ FindClusters.Seurat <- function(
     group.singletons = group.singletons,
     temp.file.location = temp.file.location,
     edge.file.name = edge.file.name,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
   object <- AddMetaData(object = object, metadata = clustering.results)
@@ -346,7 +347,8 @@ FindNeighbors.Assay <- function(
     annoy.metric = annoy.metric,
     nn.eps = nn.eps,
     verbose = verbose,
-    force.recalc = force.recalc
+    force.recalc = force.recalc,
+    ...
   )
   return(neighbor.graphs)
 }
@@ -379,6 +381,7 @@ FindNeighbors.dist <- function(
     annoy.metric = annoy.metric,
     verbose = verbose,
     force.recalc = force.recalc,
+    ...
   ))
 }
 
@@ -432,6 +435,7 @@ FindNeighbors.Seurat <- function(
       nn.eps = nn.eps,
       verbose = verbose,
       force.recalc = force.recalc,
+      ...
     )
   } else {
     assay <- assay %||% DefaultAssay(object = object)
@@ -446,7 +450,8 @@ FindNeighbors.Seurat <- function(
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      ...
     )
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
