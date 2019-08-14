@@ -4587,7 +4587,7 @@ SingleExIPlot <- function(
         names(x = labels) <- labels
       }
     } else {
-      labels <- unique(x = as.vector(x = data$ident))
+      labels <- levels(x = droplevels(data$ident))
     }
     plot <- plot + scale_fill_manual(values = cols, labels = labels)
   }
