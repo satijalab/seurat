@@ -2443,11 +2443,11 @@ ProjectCellEmbeddings <- function(
 
   reference.data <-  GetAssayData(
     object = reference,
-    assay.use = reference.assay,
+    assay = reference.assay,
     slot = "data")[features, ]
   query.data <- GetAssayData(
     object = query,
-    assay.use = query.assay,
+    assay = query.assay,
     slot = "data")[features, ]
 
   if (is.null(x = feature.mean)) {
@@ -2462,7 +2462,7 @@ ProjectCellEmbeddings <- function(
     slot = "data"
   )[features, ]
   store.names <- dimnames(x = proj.data)
-  if (feature.mean != "SCT") {
+  if (is.numeric(x = feature.mean) && feature.mean != "SCT") {
   proj.data <- FastSparseRowScaleWithKnownStats(
     mat = proj.data,
     mu = feature.mean,
