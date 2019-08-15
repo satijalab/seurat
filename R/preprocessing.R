@@ -1641,7 +1641,7 @@ NormalizeData.default <- function(
       'LogNormalize' = LogNormalize,
       'CLR' = CustomNormalize,
       'RC' = RelativeCounts,
-      stop("Unkown normalization method: ", normalization.method)
+      stop("Unknown normalization method: ", normalization.method)
     )
     if (normalization.method != 'CLR') {
       margin <- 2
