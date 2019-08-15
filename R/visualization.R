@@ -2448,7 +2448,6 @@ CollapseEmbeddingOutliers <- function(
 #' )
 #'
 CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
-  CheckDots(..., fxns = 'plot_grid')
   plots.combined <- if (length(x = plots) > 1) {
     if (!is.null(x = legend)) {
       if (legend != 'none') {
