@@ -1754,7 +1754,12 @@ NormalizeData.default <- function(
         clr_function <- function(x) {
           return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
         }
-        args <- list(data = data, scale.factor = scale.factor, verbose = FALSE, custom_function = clr_function, margin = margin)
+        args <- list(
+          data = data,
+          scale.factor = scale.factor,
+          verbose = FALSE,
+          custom_function = clr_function, margin = margin
+        )
         args <- args[names(x = formals(fun = norm.function))]
         return(do.call(
           what = norm.function,
