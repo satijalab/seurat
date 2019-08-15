@@ -1746,19 +1746,24 @@ NormalizeData.default <- function(
       X = 1:ncol(x = chunk.points),
       FUN = function(i) {
         block <- chunk.points[, i]
-        return(norm.function(
-          data = if (margin == 1) {
-            object[block[1]:block[2], , drop = FALSE]
-          } else {
-            object[, block[1]:block[2], drop = FALSE]
-          },
+        data <- if (margin == 1) {
+          object[block[1]:block[2], , drop = FALSE]
+        } else {
+          object[, block[1]:block[2], drop = FALSE]
+        }
+        clr_function <- function(x) {
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
+        }
+        args <- list(
+          data = data,
           scale.factor = scale.factor,
           verbose = FALSE,
-          custom_function = function(x) {
-            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x)))))
-          },
-          margin = margin
-          # across = across
+          custom_function = clr_function, margin = margin
+        )
+        args <- args[names(x = formals(fun = norm.function))]
+        return(do.call(
+          what = norm.function,
+          args = args
         ))
       }
     )
