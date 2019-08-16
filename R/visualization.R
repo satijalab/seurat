@@ -434,18 +434,9 @@ HTOHeatmap <- function(
   doublets <- which(object[[global.classification]] == 'Doublet')
   doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
   heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
-  if (length(x = doublets) > 0) {
-    Idents(object = object, cells = doublets) <- 'Multiplet'
-  }
-  Idents(object = object) <- factor(
-    x = Idents(object = object),
-    levels = c(singlet.ids, 'Multiplet', 'Negative')
-  )
   object <- ScaleData(object = object, assay = assay, verbose = FALSE)
-  if (!is.null(x = singlet.names)) {
-    levels(x = object) <- c(singlet.names, 'Multiplet', 'Negative')
-  }
   data <- FetchData(object = object, vars = singlet.ids)
+  Idents(object = object) <- factor(x = classification[, 1], levels = heatmap.levels)
   plot <- SingleRasterMap(
     data = data,
     raster = raster,
@@ -1146,7 +1137,8 @@ FeaturePlot <- function(
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
-        theme_cowplot()
+        theme_cowplot() + 
+        theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
         plot <- LabelClusters(
@@ -4280,7 +4272,7 @@ SingleCorPlot <- function(
       plot <- plot + guides(color = FALSE)
     }
   }
-  plot <- plot + theme_cowplot()
+  plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
   return(plot)
 }
 
@@ -4541,7 +4533,8 @@ SingleExIPlot <- function(
     mapping = aes_string(x = x, y = y, fill = fill)[c(2, 3, 1)]
   ) +
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
-    theme_cowplot()
+    theme_cowplot() +
+    theme(plot.title = element_text(hjust = 0.5))
   plot <- do.call(what = '+', args = list(plot, geom))
   plot <- plot + if (log) {
     log.scale
@@ -4579,7 +4572,7 @@ SingleExIPlot <- function(
         names(x = labels) <- labels
       }
     } else {
-      labels <- unique(x = as.vector(x = data$ident))
+      labels <- levels(x = droplevels(data$ident))
     }
     plot <- plot + scale_fill_manual(values = cols, labels = labels)
   }

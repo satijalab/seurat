@@ -55,7 +55,8 @@ UMAPPlot <- function(object, ...) {
 # @rdname DimPlot
 #
 SpecificDimPlot <- function(object, ...) {
-  name <- as.character(x = sys.calls()[[1]])[1]
+  funs <- sys.calls()
+  name <- as.character(x = funs[[length(x = funs) - 1]])[1]
   name <- tolower(x = gsub(pattern = 'Plot', replacement = '', x = name))
   args <- list('object' = object)
   args <- c(args, list(...))

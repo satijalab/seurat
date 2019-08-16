@@ -320,6 +320,39 @@ seurat <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Pull Assays or assay names
+#'
+#' Lists the names of \code{\link{Assay}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Assay object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Assay to return
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Assay} objects
+#' in this Seurat object. Otherwise, the \code{Assay} object specified
+#'
+#' @export
+#'
+#' @examples
+#' Assays(object = pbmc_small)
+#'
+Assays <- function(object, slot = NULL) {
+  assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  if (is.null(x = slot)) {
+    return(assays)
+  }
+  if (!slot %in% assays) {
+    warning(
+      "Cannot find an assay of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'assays')[[slot]])
+}
+
 #' Create an Assay object
 #'
 #' Create an Assay object from a feature (e.g. gene) expression matrix. The
@@ -663,6 +696,13 @@ CreateSeuratObject <- function(
   names.delim = "_",
   meta.data = NULL
 ) {
+  if (!is.null(x = meta.data)) {
+    if (is.null(x = rownames(x = meta.data))) {
+      stop("Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
+    } else if (length(x = setdiff(x = colnames(x = counts), y = rownames(x = meta.data)))) {
+      stop("Not all cells in counts present in metadata")
+    }
+  }
   assay.data <- CreateAssayObject(
     counts = counts,
     min.cells = min.cells,
@@ -1091,6 +1131,39 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   }
   object[[command.name]] <- seurat.command
   return(object)
+}
+
+#' Pull DimReducs or DimReduc names
+#'
+#' Lists the names of \code{\link{DimReduc}} objects present in
+#' a Seurat object. If slot is provided, pulls specified DimReduc object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of DimReduc
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{DimReduc} objects
+#' in this Seurat object. Otherwise, the \code{DimReduc} object requested
+#'
+#' @export
+#'
+#' @examples
+#' Reductions(object = pbmc_small)
+#'
+Reductions <- function(object, slot = NULL) {
+  reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
+  if (is.null(x = slot)) {
+    return(reductions)
+  }
+  if (!slot %in% reductions) {
+    warning(
+      "Cannot find a DimReduc of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'reductions')[[slot]])
 }
 
 #' Set integation data
@@ -5183,11 +5256,38 @@ merge.Assay <- function(
       )
     }
     # only keep cells that made it through counts filtering params
-    merged.data <- merged.data[, colnames(combined.assay)]
+    merged.data <- merged.data[, colnames(x = combined.assay)]
     combined.assay <- SetAssayData(
       object = combined.assay,
       slot = "data",
       new.data = merged.data
+    )
+  }
+  # merge SCT assay misc vst info and scale.data
+  if (all(IsSCT(assay = assays))) {
+    vst.set.new <- list()
+    idx <- 1
+    for (i in 1:length(x = assays)) {
+      vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
+      if (!is.null(x = vst.set.old)) {
+        for (j in 1:length(x = vst.set.old)) {
+          vst.set.new[[idx]] <- vst.set.old[[j]]
+          idx <- idx + 1
+        }
+      } else if (!is.null(x = Misc(object = assays[[i]], slot = "vst.out"))) {
+        vst.set.new[[idx]] <- Misc(object = assays[[i]], slot = "vst.out")
+        idx <- idx + 1
+      }
+    }
+    Misc(object = combined.assay, slot = "vst.set") <- vst.set.new
+    scale.data <- do.call(
+      what = cbind, 
+      args = lapply(X = assays, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
+    )
+    combined.assay <- SetAssayData(
+      object = combined.assay, 
+      slot = "scale.data", 
+      new.data = scale.data
     )
   }
   return(combined.assay)
@@ -5276,6 +5376,30 @@ merge.Seurat <- function(
         ))
       }
     )
+    if (all(IsSCT(assay = assays.merge))) {
+      scaled.features <- unique(x = unlist(x = lapply(
+        X = assays.merge, 
+        FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
+      ))
+      for (ob in 1:length(x = objects)) {
+        if (assay %in% FilterObjects(object = objects[[ob]], classes.keep = "Assay")) {
+          objects[[ob]] <- suppressWarnings(GetResidual(object = objects[[ob]], features = scaled.features, assay = assay, verbose = FALSE))
+          assays.merge[[ob]] <- objects[[ob]][[assay]]
+        }
+      }
+      # handle case where some features aren't in counts and can't be retrieved with 
+      # GetResidual - take intersection
+      scaled.features <- names(x = which(x = table(x = unlist(x = lapply(
+        X = assays.merge, 
+        FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
+      )) == length(x = assays.merge)))
+      for (a in 1:length(x = assays.merge)) {
+        assays.merge[[a]] <- SetAssayData(
+          object = assays.merge[[a]], 
+          slot = "scale.data", 
+          new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+      }
+    }
     merged.assay <- merge(
       x = assays.merge[[1]],
       y = assays.merge[2:length(x = assays.merge)],
