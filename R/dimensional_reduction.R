@@ -776,6 +776,7 @@ RunLSI.Seurat <- function(
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
+#' @importFrom utils capture.output
 #'
 #' @rdname RunPCA
 #' @export
@@ -794,8 +795,6 @@ RunPCA.default <- function(
   approx = TRUE,
   ...
 ) {
-  sink(file = stderr(), type = 'output')
-  on.exit(expr = sink(), add = TRUE)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -849,7 +848,12 @@ RunPCA.default <- function(
     misc = list(total.variance = total.variance)
   )
   if (verbose) {
-    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+    msg <- capture.output(print(
+      x = reduction.data,
+      dims = ndims.print,
+      nfeatures = nfeatures.print
+    ))
+    message(paste(msg, collapse = '\n'))
   }
   return(reduction.data)
 }
