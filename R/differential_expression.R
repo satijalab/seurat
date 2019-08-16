@@ -252,6 +252,7 @@ FindConservedMarkers <- function(
   }
   marker.test <- list()
   # do marker tests
+  ident.2.save <- ident.2
   for (i in 1:num.groups) {
     level.use <- levels.split[i]
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
@@ -270,6 +271,7 @@ FindConservedMarkers <- function(
       )
       next
     }
+    ident.2 <- ident.2.save
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
