@@ -1841,11 +1841,13 @@ NormalizeData.Seurat <- function(
 #' @param quantile.prob The quantile probability to use when calculating threshold.
 #' By default, quantile.prob = 0.001.
 #' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
-#' installed from https://github.com/KlugerLab/rpca-mkl.
-#' @param mkl.seed Only relevant if use.mkl=T. Set the seed for the random
+#' installed from https://github.com/KlugerLab/rpca-mkl. \strong{Note}: this requires
+#' the \href{https://github.com/satijalab/SeuratWrappers}{SeuratWrappers} implementation
+#' of \code{RunALRA}
+#' @param mkl.seed Only relevant if \code{use.mkl = TRUE}. Set the seed for the random
 #' generator for the Intel MKL implementation of SVD. Any number <0 will
-#' use the current timestamp. If use.mkl=F, set the seed using
-#' set.seed() function as usual.
+#' use the current timestamp. If \code{use.mkl = FALSE}, set the seed using
+#' \code{\link{set.seed}()} function as usual.
 #'
 #' @rdname RunALRA
 #' @export
@@ -1865,28 +1867,19 @@ RunALRA.default <- function(
   originally.nonzero <- A.norm > 0
   message("Computing Randomized SVD")
   if (use.mkl) {
-    fastDecomp.noc <- setNames(
-      object = vector(mode = "list", length = 3),
-      nm = c("u", "d", "v")
+    warning(
+      "Using the Intel MKL-based implementation of SVD requires RunALRA from SeuratWrappers\n",
+      "For more details, see https://github.com/satijalab/seurat-wrappers\n",
+      "Continuing with standard SVD implementation",
+      call. = FALSE,
+      immediate. = TRUE
     )
-    fastPCAOut <- fastRPCA::fastPCA(
-      inputMatrix = A.norm,
-      k = k,
-      its = q,
-      l = (k + 10),
-      seed = mkl.seed
-    )
-    fastDecomp.noc$u <- fastPCAOut$U
-    fastDecomp.noc$v <- fastPCAOut$V
-    fastDecomp.noc$d <- diag(x = fastPCAOut$S)
-  } else {
-    fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
   }
+  fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
   A.norm.rank.k <- fastDecomp.noc$u[, 1:k] %*%
     diag(x = fastDecomp.noc$d[1:k]) %*%
     t(x = fastDecomp.noc$v[,1:k])
   message(sprintf("Find the %f quantile of each gene", quantile.prob))
-  # A.norm.rank.k.mins <- abs(x = apply(X = A.norm.rank.k, MARGIN = 2, FUN = min))
   A.norm.rank.k.mins <- abs(x = apply(
     X = A.norm.rank.k,
     MARGIN = 2,
@@ -1961,7 +1954,7 @@ RunALRA.default <- function(
 #'
 #' @importFrom rsvd rsvd
 #' @importFrom Matrix Matrix
-#' @importFrom stats sd
+#' @importFrom stats sd setNames quantile
 #'
 #' @rdname RunALRA
 #' @export
@@ -2022,25 +2015,16 @@ RunALRA.Seurat <- function(
       stop("There need to be at least 5 singular values considered noise")
     }
     noise.svals <- noise.start:K
-    if(use.mkl){
-      L <- min(K + 10, min(dim(x = data.used)))
-      rsvd.out <- setNames(
-        object = vector(mode = "list", length = 3),
-        nm = c("u", "d", "v")
+    if (use.mkl) {
+      warning(
+        "Using the Intel MKL-based implementation of SVD requires RunALRA from SeuratWrappers\n",
+        "For more details, see https://github.com/satijalab/seurat-wrappers\n",
+        "Continuing with standard SVD implementation",
+        call. = FALSE,
+        immediate. = TRUE
       )
-      fastPCAOut <- fastRPCA::fastPCA(
-        inputMatrix = as.matrix(x = data.used),
-        k = K,
-        its = q.k,
-        l = L,
-        seed = mkl.seed
-      )
-      rsvd.out$u <- fastPCAOut$U
-      rsvd.out$v <- fastPCAOut$V
-      rsvd.out$d <- diag(x = fastPCAOut$S)
-    } else {
-      rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
     }
+    rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
     diffs <- rsvd.out$d[1:(length(x = rsvd.out$d)-1)] - rsvd.out$d[2:length(x = rsvd.out$d)]
     mu <- mean(x = diffs[noise.svals - 1])
     sigma <- sd(x = diffs[noise.svals - 1])
