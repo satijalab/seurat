@@ -434,18 +434,9 @@ HTOHeatmap <- function(
   doublets <- which(object[[global.classification]] == 'Doublet')
   doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
   heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
-  if (length(x = doublets) > 0) {
-    Idents(object = object, cells = doublets) <- 'Multiplet'
-  }
-  Idents(object = object) <- factor(
-    x = Idents(object = object),
-    levels = c(singlet.ids, 'Multiplet', 'Negative')
-  )
   object <- ScaleData(object = object, assay = assay, verbose = FALSE)
-  if (!is.null(x = singlet.names)) {
-    levels(x = object) <- c(singlet.names, 'Multiplet', 'Negative')
-  }
   data <- FetchData(object = object, vars = singlet.ids)
+  Idents(object = object) <- factor(x = classification[, 1], levels = heatmap.levels)
   plot <- SingleRasterMap(
     data = data,
     raster = raster,
