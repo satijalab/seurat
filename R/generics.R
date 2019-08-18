@@ -786,8 +786,8 @@ RunICA <- function(object, ...) {
 #' \code{PrintLSIParams}.
 #' 
 #' @note RunLSI is being moved to Signac. Equivalent functionality can be 
-#' achieved via the \code{\link[Signac]{RunTFIDF}} and \code{\link[Signac]{RunSVD}} functions; 
-#' for more information on Signac, please see 
+#' achieved via the Signac::RunTFIDF and Signac::RunSVD functions; 
+#' for more information on Signac, please see
 #' \url{https://github.com/timoast/Signac}
 #'
 #' @param object Seurat object
