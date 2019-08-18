@@ -1874,7 +1874,7 @@ NormalizeData.Seurat <- function(
 #' By default, quantile.prob = 0.001.
 #' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
 #' installed from https://github.com/KlugerLab/rpca-mkl. \strong{Note}: this requires
-#' the \href{https://github.com/satijalab/SeuratWrappers}{SeuratWrappers} implementation
+#' the \href{https://github.com/satijalab/seurat-wrappers}{SeuratWrappers} implementation
 #' of \code{RunALRA}
 #' @param mkl.seed Only relevant if \code{use.mkl = TRUE}. Set the seed for the random
 #' generator for the Intel MKL implementation of SVD. Any number <0 will
@@ -1978,10 +1978,10 @@ RunALRA.default <- function(
 #' @param genes.use genes to impute
 #' @param K Number of singular values to compute when choosing k. Must be less
 #' than the smallest dimension of the matrix. Default 100 or smallest dimension.
-#' @param p.val.th  The threshold for ''significance'' when choosing k. Default 1e-10.
-#' @param noise.start  Index for which all smaller singular values are considered noise.
+#' @param thresh The threshold for ''significance'' when choosing k. Default 1e-10.
+#' @param noise.start Index for which all smaller singular values are considered noise.
 #' Default K - 20.
-#' @param q.k  Number of additional power iterations when choosing k. Default 2.
+#' @param q.k Number of additional power iterations when choosing k. Default 2.
 #' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #'
 #' @importFrom rsvd rsvd
@@ -2004,7 +2004,7 @@ RunALRA.Seurat <- function(
   setDefaultAssay = TRUE,
   genes.use = NULL,
   K = NULL,
-  thresh=6,
+  thresh = 6,
   noise.start = NULL,
   q.k = 2,
   k.only = FALSE,
