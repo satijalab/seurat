@@ -6,3 +6,4 @@
 appveyor.yml
 cran-comments.md
 travis_setup.sh
+CODE_OF_CONDUCT.md
