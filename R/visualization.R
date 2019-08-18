@@ -1300,13 +1300,13 @@ FeaturePlot <- function(
       }
       idx <- 1
       for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
-        plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
+        plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
         idx <- idx + 1
       }
       idx <- 1
       if (length(x = features) == 1) {
         for (i in 1:length(x = plots)) {
-          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
+          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
           idx <- idx + 1
         }
       }
