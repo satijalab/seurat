@@ -17,10 +17,10 @@ GetResidual(object, features, assay = "SCT", umi.assay = "RNA",
 \item{umi.assay}{Name of the assay of the seurat object containing UMI matrix and the default is
 RNA}
 
-\item{clip.range}{Numeric of length two specifying the min and max values the Pearson residual 
+\item{clip.range}{Numeric of length two specifying the min and max values the Pearson residual
 will be clipped to}
 
-\item{replace.value}{Recalculate residuals for all features, even if they are already present. 
+\item{replace.value}{Recalculate residuals for all features, even if they are already present.
 Useful if you want to change the clip.range.}
 
 \item{verbose}{Whether to print messages and progress bars}
