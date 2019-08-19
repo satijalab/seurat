@@ -925,10 +925,15 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot))]
   data.fetched <- c(
     data.fetched,
-    as.data.frame(x = t(x = as.matrix(x = GetAssayData(
-      object = object,
-      slot = slot
-    )[default.vars, cells, drop = FALSE])))
+    tryCatch(
+      expr = as.data.frame(x = t(x = as.matrix(x = GetAssayData(
+        object = object,
+        slot = slot
+      )[default.vars, cells, drop = FALSE]))),
+      error = function(...) {
+        return(NULL)
+      }
+    )
   )
   # Pull identities
   if ('ident' %in% vars && !'ident' %in% colnames(x = object[[]])) {
@@ -5281,12 +5286,12 @@ merge.Assay <- function(
     }
     Misc(object = combined.assay, slot = "vst.set") <- vst.set.new
     scale.data <- do.call(
-      what = cbind, 
+      what = cbind,
       args = lapply(X = assays, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
     )
     combined.assay <- SetAssayData(
-      object = combined.assay, 
-      slot = "scale.data", 
+      object = combined.assay,
+      slot = "scale.data",
       new.data = scale.data
     )
   }
@@ -5378,7 +5383,7 @@ merge.Seurat <- function(
     )
     if (all(IsSCT(assay = assays.merge))) {
       scaled.features <- unique(x = unlist(x = lapply(
-        X = assays.merge, 
+        X = assays.merge,
         FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
       ))
       for (ob in 1:length(x = objects)) {
@@ -5387,16 +5392,16 @@ merge.Seurat <- function(
           assays.merge[[ob]] <- objects[[ob]][[assay]]
         }
       }
-      # handle case where some features aren't in counts and can't be retrieved with 
+      # handle case where some features aren't in counts and can't be retrieved with
       # GetResidual - take intersection
       scaled.features <- names(x = which(x = table(x = unlist(x = lapply(
-        X = assays.merge, 
+        X = assays.merge,
         FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
       )) == length(x = assays.merge)))
       for (a in 1:length(x = assays.merge)) {
         assays.merge[[a]] <- SetAssayData(
-          object = assays.merge[[a]], 
-          slot = "scale.data", 
+          object = assays.merge[[a]],
+          slot = "scale.data",
           new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
       }
     }
