@@ -33,4 +33,4 @@ There were 3 NOTEs:
 
 ## Downstream dependencies
 
-There is a package that suggests Seurat (clustree), but this update does not impact their functionality.
+There are three packages that suggest Seurat: BisqueRNA, clustreen, and iCellR; this update does not impact their functionality.
