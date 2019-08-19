@@ -318,8 +318,8 @@ FindConservedMarkers <- function(
       verbose = verbose,
       ...
     )
+    names(x = marker.test)[i] <- levels.split[i]
   }
-  names(x = marker.test) <- levels.split
   marker.test <- Filter(f = Negate(f = is.null), x = marker.test)
   genes.conserved <- Reduce(
     f = intersect,
