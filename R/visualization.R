@@ -434,18 +434,9 @@ HTOHeatmap <- function(
   doublets <- which(object[[global.classification]] == 'Doublet')
   doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
   heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
-  if (length(x = doublets) > 0) {
-    Idents(object = object, cells = doublets) <- 'Multiplet'
-  }
-  Idents(object = object) <- factor(
-    x = Idents(object = object),
-    levels = c(singlet.ids, 'Multiplet', 'Negative')
-  )
   object <- ScaleData(object = object, assay = assay, verbose = FALSE)
-  if (!is.null(x = singlet.names)) {
-    levels(x = object) <- c(singlet.names, 'Multiplet', 'Negative')
-  }
   data <- FetchData(object = object, vars = singlet.ids)
+  Idents(object = object) <- factor(x = classification[, 1], levels = heatmap.levels)
   plot <- SingleRasterMap(
     data = data,
     raster = raster,
@@ -1146,7 +1137,8 @@ FeaturePlot <- function(
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
-        theme_cowplot()
+        theme_cowplot() + 
+        theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
         plot <- LabelClusters(
@@ -1308,13 +1300,13 @@ FeaturePlot <- function(
       }
       idx <- 1
       for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
-        plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
+        plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
         idx <- idx + 1
       }
       idx <- 1
       if (length(x = features) == 1) {
         for (i in 1:length(x = plots)) {
-          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
+          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
           idx <- idx + 1
         }
       }
@@ -1725,7 +1717,6 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
   }
   d <- alra.data[["d"]]
   diffs <- alra.data[["diffs"]]
-  pvals <- alra.data[["pvals"]]
   k <- alra.data[["k"]]
   if (start == 0) {
     start <- floor(x = k / 2)
@@ -1742,7 +1733,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
     theme_cowplot() +
     scale_x_continuous(breaks = breaks) +
     labs(x = NULL, y = 's_i', title = 'Singular values')
-  ggdata <- data.frame(x = 2:length(x = d), y = diffs)[-(1:(start - 1)), ]
+  ggdata <- data.frame(x = 1:(length(x = d) - 1), y = diffs)[-(1:(start - 1)), ]
   gg2 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
     geom_point(size = 1) +
     geom_line(size = 0.5) +
@@ -1750,14 +1741,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
     theme_cowplot() +
     scale_x_continuous(breaks = breaks) +
     labs(x = NULL, y = 's_{i} - s_{i-1}', title = 'Singular value spacings')
-  ggdata <- data.frame(x = 2:length(x = d), y = pvals)
-  gg3 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
-    geom_point(size = 1) +
-    geom_vline(xintercept = k + 1) +
-    theme_cowplot() +
-    scale_x_continuous(breaks = breaks) +
-    labs(x = NULL, y = 'p.val', title = 'Singular value spacing p-values')
-  plots <- list(spectrum = gg1, spacings = gg2, pvals = gg3)
+  plots <- list(spectrum = gg1, spacings = gg2)
   if (combine) {
     plots <- CombinePlots(plots = plots)
   }
@@ -4288,7 +4272,7 @@ SingleCorPlot <- function(
       plot <- plot + guides(color = FALSE)
     }
   }
-  plot <- plot + theme_cowplot()
+  plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
   return(plot)
 }
 
@@ -4549,7 +4533,8 @@ SingleExIPlot <- function(
     mapping = aes_string(x = x, y = y, fill = fill)[c(2, 3, 1)]
   ) +
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
-    theme_cowplot()
+    theme_cowplot() +
+    theme(plot.title = element_text(hjust = 0.5))
   plot <- do.call(what = '+', args = list(plot, geom))
   plot <- plot + if (log) {
     log.scale
