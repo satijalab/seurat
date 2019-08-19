@@ -33,6 +33,7 @@ This can be either:
 \itemize{
    \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
    \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
+   \item{A vector of Dimreduc objects, specifying the object to use for each object in the integration}
    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
 }
 Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
