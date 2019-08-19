@@ -243,11 +243,15 @@ FindIntegrationAnchors <- function(
       # suppress key duplication warning
       suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[assay[i]]])
       DefaultAssay(object = object.1) <- "ToIntegrate"
-      slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
+      if (reduction %in% Reductions(object = object.1)) {
+        slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
+      }
       object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
       suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[assay[j]]])
       DefaultAssay(object = object.2) <- "ToIntegrate"
-      slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
+      if (reduction %in% Reductions(object = object.2)) {
+        slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
+      }      
       object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
       object.pair <- switch(
         EXPR = reduction,
