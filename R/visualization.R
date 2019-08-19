@@ -1137,7 +1137,7 @@ FeaturePlot <- function(
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
-        theme_cowplot() + 
+        theme_cowplot() +
         theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
@@ -4193,6 +4193,13 @@ SingleCorPlot <- function(
     x = colnames(x = data),
     fixed = TRUE
   )
+  if (ncol(x = data) < 2) {
+    msg <- "Too few variables passed"
+    if (ncol(x = data) == 1) {
+      msg <- paste0(msg, ', only have ', colnames(x = data)[1])
+    }
+    stop(msg, call. = FALSE)
+  }
   plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
