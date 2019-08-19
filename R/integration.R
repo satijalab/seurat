@@ -616,6 +616,7 @@ FindTransferAnchors <- function(
 #' @param weight.reduction Dimension reduction to use when calculating anchor weights.
 #' This can be either:
 #' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
 #'    \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
 #'    \item{A vector of Dimreduc objects, specifying the object to use for each object in the integration}
 #'    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
