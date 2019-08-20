@@ -699,8 +699,17 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     if (is.null(x = rownames(x = meta.data))) {
       stop("Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
-    } else if (length(x = setdiff(x = colnames(x = counts), y = rownames(x = meta.data)))) {
-      stop("Not all cells in counts present in metadata")
+    } 
+    if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
+      warning("Some cells in meta.data not present in provided counts matrix.")
+      meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
+    }
+    if (class(x = meta.data) == "data.frame") {
+      new.meta.data <- data.frame(row.names = colnames(x = counts))
+      for (ii in 1:ncol(x = meta.data)) {
+        new.meta.data[rownames(x = meta.data), colnames(x = meta.data)[ii]] <- meta.data[, ii, drop = FALSE]
+      }
+      meta.data <- new.meta.data
     }
   }
   assay.data <- CreateAssayObject(

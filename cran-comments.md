@@ -1,10 +1,10 @@
-# Seurat v3.0.2
+# Seurat v3.1.0
 
 ## Test environments
 * local Ubuntu 16.04.6 and 18.04.2 installs, R 3.5.3
-* Ubuntu 14.04.5 (on travis-ci), R 3.6.0
-* macOS 10.13.3 (on travis-ci), R 3.6.0
-* Windows Server 2012 (on AppVeyor), R 3.6.0 Patched
+* Ubuntu 16.04.6 (on travis-ci), R 3.6.1
+* macOS 10.13.3 (on travis-ci), R 3.6.1
+* Windows Server 2012 R2 (on AppVeyor), R 3.6.1 Patched
 * win-builder (oldrelease, release, devel)
 
 ## R CMD check results
@@ -33,4 +33,4 @@ There were 3 NOTEs:
 
 ## Downstream dependencies
 
-There is a package that suggests Seurat (clustree), but this update does not impact their functionality.
+There are three packages that suggest Seurat: BisqueRNA, clustreen, and iCellR; this update does not impact their functionality.

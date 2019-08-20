@@ -3,7 +3,8 @@
 [![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat)
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat)
 
-# Seurat v3.0.2
+# Seurat v3.1.0
+
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
 
@@ -18,6 +19,12 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 Improvements and new features will be added on a regular basis, please contact seuratpackage@gmail.com with any questions or if you would like to contribute
 
 Version History
+
+August 20, 2019
+* Version 3.1
+* Changes:
+  * Support for SCTransform integration workflows
+  * Integration speed ups: reference-based integration + reciprocal PCA
 
 April 12, 2019
 * Version 3.0

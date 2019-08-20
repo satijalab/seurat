@@ -32,7 +32,7 @@ By default, quantile.prob = 0.001.}
 
 \item{use.mkl}{Use the Intel MKL based implementation of SVD. Needs to be
 installed from https://github.com/KlugerLab/rpca-mkl. \strong{Note}: this requires
-the \href{https://github.com/satijalab/SeuratWrappers}{SeuratWrappers} implementation
+the \href{https://github.com/satijalab/seurat-wrappers}{SeuratWrappers} implementation
 of \code{RunALRA}}
 
 \item{mkl.seed}{Only relevant if \code{use.mkl = TRUE}. Set the seed for the random
@@ -51,14 +51,14 @@ use the current timestamp. If \code{use.mkl = FALSE}, set the seed using
 \item{K}{Number of singular values to compute when choosing k. Must be less
 than the smallest dimension of the matrix. Default 100 or smallest dimension.}
 
+\item{thresh}{The threshold for ''significance'' when choosing k. Default 1e-10.}
+
 \item{noise.start}{Index for which all smaller singular values are considered noise.
 Default K - 20.}
 
 \item{q.k}{Number of additional power iterations when choosing k. Default 2.}
 
 \item{k.only}{If TRUE, only computes optimal k WITHOUT performing ALRA}
-
-\item{p.val.th}{The threshold for ''significance'' when choosing k. Default 1e-10.}
 }
 \description{
 Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
