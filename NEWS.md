@@ -2,9 +2,10 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [3.1.0] - 2019-08-16
+## [3.1.0] - 2019-08-20
 ### Added
-- New `PrepSCTIntegration` function to facilitate integration after `SCTransform`
+- New `PrepSCTIntegrati
+- on` function to facilitate integration after `SCTransform`
 - Reference-based integration with the `reference` parameter in `FindIntegrationAnchors`
 - Reciprocal PCA as a `reduction` option in `FindIntegrationAnchors`
 - New `CollapseEmbeddingOutliers` function
