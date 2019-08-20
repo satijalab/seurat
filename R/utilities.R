@@ -204,6 +204,7 @@ AverageExpression <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(..., fxns = 'CreateSeuratObject')
   if (use.scale) {
     .Deprecated(msg = "'use.scale' is a deprecated argument, please use the 'slot' argument instead")
     slot <- 'scale.data'
@@ -382,6 +383,7 @@ CellCycleScoring <- function(
   set.ident = FALSE,
   ...
 ) {
+  CheckDots(..., fxns = 'AddModuleScore')
   name <- 'Cell Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
   object.cc <- AddModuleScore(
@@ -495,6 +497,7 @@ CollapseSpeciesExpressionMatrix <- function(
 #' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 #'
 CustomDistance <- function(my.mat, my.function, ...) {
+  CheckDots(..., fxns = my.function)
   n <- ncol(x = my.mat)
   mat <- matrix(data = 0, ncol = n, nrow = n)
   colnames(x = mat) <- rownames(x = mat) <- colnames(x = my.mat)
@@ -1082,52 +1085,102 @@ L2Norm <- function(mat, MARGIN = 1){
 #
 # @return ...
 #
-#' @importFrom utils argsAnywhere getAnywhere
+# @importFrom utils argsAnywhere getAnywhere
+#' @importFrom utils isS3stdGeneric methods argsAnywhere isS3method
 #
 # @examples
 #
 CheckDots <- function(..., fxns = NULL) {
-  args.names <- names(x = c(...))
-  if (length(x = c(...)) == 0) {
+  args.names <- names(x = list(...))
+  if (length(x = list(...)) == 0) {
     return(invisible(x = NULL))
   }
   if (is.null(x = args.names)) {
     stop("No named arguments passed")
   }
-  fxn.args <- lapply(
+  if (length(x = fxns) == 1) {
+    fxns <- list(fxns)
+  }
+  for (f in fxns) {
+    if (!(is.character(x = f) || is.function(x = f))) {
+      stop("CheckDots only works on characters or functions, not ", class(x = f))
+    }
+  }
+  fxn.args <- suppressWarnings(expr = sapply(
     X = fxns,
     FUN = function(x) {
-      if (is.character(x = x)) {
-        if (any(grepl(pattern = 'UseMethod', x = as.character(x = getAnywhere(x = x))))) {
-          x <- paste0(x, '.default')
+      x <- tryCatch(
+        expr = if (isS3stdGeneric(f = x)) {
+          as.character(x = methods(generic.function = x))
+        } else {
+          x
+        },
+        error = function(...) {
+          return(x)
         }
-        x <- argsAnywhere(x = x)
-      }
-      if (is.function(x = x)) {
-        return(names(x = formals(fun = x)))
-      } else {
-        stop("CheckDots only works on characters or functions, not ", class(x = x))
-      }
-    }
-  )
-  if (any(grepl(pattern = '...', x = fxn.args, fixed = TRUE))) {
-    dotted <- grepl(pattern = '...', x = fxn.args, fixed = TRUE)
-    dfxn <- fxns[dotted]
-    if (any(sapply(X = dfxn, FUN = is.character))) {
-      message(
-        "The following functions accept the dots: ",
-        paste(Filter(f = is.character, x = dfxn), collapse = ', ')
       )
-      dfxn <- Filter(f = Negate(f = is.character), x = dfxn)
-      if (length(x = dfxn) > 0) {
+      x <- if (is.character(x = x)) {
+        sapply(X = x, FUN = argsAnywhere, simplify = FALSE, USE.NAMES = TRUE)
+      } else if (length(x = x) <= 1) {
+        list(x)
+      }
+      return(sapply(
+        X = x,
+        FUN = function(f) {
+          return(names(x = formals(fun = f)))
+        },
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  ))
+  fxn.args <- unlist(x = fxn.args, recursive = FALSE)
+  fxn.null <- vapply(X = fxn.args, FUN = is.null, FUN.VALUE = logical(length = 1L))
+  if (all(fxn.null) && !is.null(x = fxns)) {
+    stop("None of the functions passed could be found")
+  } else if (any(fxn.null)) {
+    warning(
+      "The following functions passed could not be found: ",
+      paste(names(x = which(x = fxn.null)), collapse = ', '),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    fxn.args <- Filter(f = Negate(f = is.null), x = fxn.args)
+  }
+  dfxns <- vector(mode = 'logical', length = length(x = fxn.args))
+  names(x = dfxns) <- names(x = fxn.args)
+  for (i in 1:length(x = fxn.args)) {
+    dfxns[i] <- any(grepl(pattern = '...', x = fxn.args[[i]], fixed = TRUE))
+  }
+  if (any(dfxns)) {
+    dfxns <- names(x = which(x = dfxns))
+    if (any(nchar(x = dfxns) > 0)) {
+      fx <- vapply(
+        X = Filter(f = nchar, x = dfxns),
+        FUN = function(x) {
+          if (isS3method(method = x)) {
+            x <- unlist(x = strsplit(x = x, split = '\\.'))
+            x <- x[length(x = x) - 1L]
+          }
+          return(x)
+        },
+        FUN.VALUE = character(length = 1L)
+      )
+      message(
+        "The following functions and any applicable methods accept the dots: ",
+        paste(unique(x = fx), collapse = ', ')
+      )
+      if (any(nchar(x = dfxns) < 1)) {
         message(
-          "In addition, there are ",
-          length(x = dfxn),
-          " unnamed function(s) that accept the dots"
+          "In addition, there is/are ",
+          length(x = Filter(f = Negate(f = nchar), x = dfxns)),
+          " other function(s) that accept(s) the dots"
         )
       }
     } else {
-      message("There are ", length(x = dfxn), ' functions provided that accept the dots')
+      message("There is/are ", length(x = dfxns), 'function(s) that accept(s) the dots')
     }
   } else {
     unused <- Filter(
@@ -1137,12 +1190,27 @@ CheckDots <- function(..., fxns = NULL) {
       x = args.names
     )
     if (length(x = unused) > 0) {
-      warning(
-        "The following arguments are not used: ",
-        paste(unused, collapse = ', '),
-        call. = FALSE,
-        immediate. = TRUE
+      msg <- paste0(
+        "The following arguments are not used: ", 
+        paste(unused, collapse = ', ')
       )
+      switch(
+        EXPR = getOption(x = "Seurat.checkdots"),
+        "warn" = warning(msg, call. = FALSE, immediate. = TRUE),
+        "stop" = stop(msg),
+        "silent" = NULL,
+        stop("Invalid Seurat.checkdots option. Please choose one of warn, stop, silent")
+      )
+      unused.hints <- sapply(X = unused, FUN = OldParamHints)
+      names(x = unused.hints) <- unused
+      unused.hints <- na.omit(object = unused.hints)
+      if (length(x = unused.hints) > 0) {
+        message(
+          "Suggested parameter: ",
+          paste(unused.hints, "instead of", names(x = unused.hints), collapse = '; '),
+          "\n"
+        )
+      }
     }
   }
 }
@@ -1247,6 +1315,22 @@ IsMatrixEmpty <- function(x) {
   return(all(matrix.dims == 0) || matrix.na)
 }
 
+# Check whether an assay has been processed by sctransform
+#
+# @param assay assay to check
+#
+# @return Boolean
+#
+IsSCT <- function(assay) {
+  if (is.list(x = assay)) {
+    sct.check <- lapply(X = assay, FUN = function(x) {
+      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')))
+    })
+    return(unlist(x = sct.check))
+  }
+  return(!is.null(x = Misc(assay, slot = 'vst.out')))
+}
+
 # Check the length of components of a list
 #
 # @param values A list whose components should be checked
@@ -1262,6 +1346,25 @@ LengthCheck <- function(values, cutoff = 0) {
     },
     FUN.VALUE = logical(1)
   ))
+}
+
+# Function to map values in a vector `v` as defined in `from`` to the values
+# defined in `to`.
+#
+# @param v     vector of values to map
+# @param from  vector of original values
+# @param to    vector of values to map original values to (should be of equal
+#              length as from)
+# @return      returns vector of mapped values
+#
+MapVals <- function(v, from, to) {
+  if (length(x = from) != length(x = to)) {
+    stop("from and to vectors are not the equal length.")
+  }
+  vals.to.match <- match(x = v, table = from)
+  vals.to.match.idx  <- !is.na(x = vals.to.match)
+  v[vals.to.match.idx] <- to[vals.to.match[vals.to.match.idx]]
+  return(v)
 }
 
 # Independently shuffle values within each row of a matrix
@@ -1326,6 +1429,39 @@ Melt <- function(x) {
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
     vals = unlist(x = x, use.names = FALSE)
   ))
+}
+
+# Give hints for old paramters and their newer counterparts
+#
+# This is a non-exhaustive list. If your function isn't working properly based
+# on the parameters you give it, please read the documentation for your function
+#
+# @param param A vector of paramters to get hints for
+#
+# @return Parameter hints for the specified paramters
+#
+OldParamHints <- function(param) {
+  param.conversion <- c(
+    'raw.data' = 'counts',
+    'min.genes' = 'min.features',
+    'features.plot' = 'features',
+    'pc.genes' = 'features',
+    'do.print' = 'verbose',
+    'genes.print' = 'nfeatures.print',
+    'pcs.print' = 'ndims.print',
+    'pcs.use' = 'dims',
+    'reduction.use' = 'reduction',
+    'cells.use' = 'cells',
+    'do.balanced' = 'balanced',
+    'display.progress' = 'verbose',
+    'print.output' = 'verbose',
+    'dims.use' = 'dims',
+    'reduction.type' = 'reduction',
+    'y.log' = 'log',
+    'cols.use' = 'cols',
+    'assay.use' = 'assay'
+  )
+  return(param.conversion[param])
 }
 
 # Check the existence of a package
@@ -1408,7 +1544,7 @@ Parenting <- function(parent.find = 'Seurat', ...) {
 #
 # @return Returns the percentage of `x` values above the given threshold
 #
-PercentAbove <- function(x, threshold){
+PercentAbove <- function(x, threshold) {
   return(length(x = x[x > threshold]) / length(x = x))
 }
 
@@ -1425,6 +1561,7 @@ PercentAbove <- function(x, threshold){
 # @seealso \code{\link{sample}}
 #
 RandomName <- function(length = 5L, ...) {
+  CheckDots(..., fxns = 'sample')
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
@@ -1444,19 +1581,23 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   if (inherits(x = mat2, what = "data.frame")) {
     mat2 <- as.matrix(x = mat2)
   }
-  mat1 <- as(object = mat1, Class = "RsparseMatrix")
-  mat2 <- as(object = mat2, Class = "RsparseMatrix")
   mat1.names <- rownames(x = mat1)
   mat2.names <- rownames(x = mat2)
-  all.names <- union(x = mat1.names, y = mat2.names)
-  new.mat <- RowMergeMatrices(
-    mat1 = mat1,
-    mat2 = mat2,
-    mat1_rownames = mat1.names,
-    mat2_rownames = mat2.names,
-    all_rownames = all.names
-  )
-  rownames(x = new.mat) <- make.unique(names = all.names)
+  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
+    new.mat <- cbind(mat1, mat2)
+  } else {
+    mat1 <- as(object = mat1, Class = "RsparseMatrix")
+    mat2 <- as(object = mat2, Class = "RsparseMatrix")
+    all.names <- union(x = mat1.names, y = mat2.names)
+    new.mat <- RowMergeMatrices(
+      mat1 = mat1,
+      mat2 = mat2,
+      mat1_rownames = mat1.names,
+      mat2_rownames = mat2.names,
+      all_rownames = all.names
+    )
+    rownames(x = new.mat) <- make.unique(names = all.names)
+  }
   colnames(x = new.mat) <- make.unique(names = c(
     colnames(x = mat1),
     colnames(x = mat2)

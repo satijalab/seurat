@@ -252,6 +252,7 @@ FindConservedMarkers <- function(
   }
   marker.test <- list()
   # do marker tests
+  ident.2.save <- ident.2
   for (i in 1:num.groups) {
     level.use <- levels.split[i]
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
@@ -270,6 +271,7 @@ FindConservedMarkers <- function(
       )
       next
     }
+    ident.2 <- ident.2.save
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
@@ -316,8 +318,8 @@ FindConservedMarkers <- function(
       verbose = verbose,
       ...
     )
+    names(x = marker.test)[i] <- levels.split[i]
   }
-  names(x = marker.test) <- levels.split
   marker.test <- Filter(f = Negate(f = is.null), x = marker.test)
   genes.conserved <- Reduce(
     f = intersect,
@@ -584,7 +586,14 @@ FindMarkers.default <- function(
   }
   # perform DE
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
-    warning("'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests")
+    warning(
+      "'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  if (!test.use %in% c('wilcox', 'MAST', 'DESeq2')) {
+    CheckDots(...)
   }
   de.results <- switch(
     EXPR = test.use,
@@ -636,13 +645,15 @@ FindMarkers.default <- function(
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
-      verbose = verbose
+      verbose = verbose,
+      ...
     ),
     "DESeq2" = DESeq2DETest(
       data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
-      verbose = verbose
+      verbose = verbose,
+      ...
     ),
     "LR" = LRDETest(
       data.use = object[features, c(cells.1, cells.2), drop = FALSE],
@@ -926,6 +937,7 @@ DESeq2DETest <- function(
   if (!PackageCheck('DESeq2', error = FALSE)) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
+  CheckDots(..., fxns = 'DESeq2::results')
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
@@ -1087,7 +1099,7 @@ DiffTTest <- function(
 #' @importFrom stats var as.formula
 #' @importFrom future.apply future_sapply
 #' @importFrom future nbrOfWorkers
-#' 
+#'
 # @export
 #
 # @examples
@@ -1204,8 +1216,7 @@ LRDETest <- function(
   cells.1,
   cells.2,
   latent.vars = NULL,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   group.info[cells.1, "group"] <- "Group1"

@@ -2,6 +2,36 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.1.0] - 2019-08-20
+### Added
+- New `PrepSCTIntegrati
+- on` function to facilitate integration after `SCTransform`
+- Reference-based integration with the `reference` parameter in `FindIntegrationAnchors`
+- Reciprocal PCA as a `reduction` option in `FindIntegrationAnchors`
+- New `CollapseEmbeddingOutliers` function
+- Enable `FindTransferAnchors` after `SCTransform`
+- Added back `ColorDimSplit` functionality
+- Include a code of conduct
+- Added uwot support as new default UMAP method
+- Added `CheckDots` to catch unused parameters and suggest updated names
+- `Reductions` and `Assays` assays functions to list stored DimReducs and Assays
+
+### Changed
+- Fix regex in `LogSeuratCommand`
+- Check for NAs in feature names in `Read10X`
+- Prevent dimnames for counts/data/scale.data matrices from being arrays
+- Updates `ReadH5AD` to distinguish FVF methods
+- Fixes to UpdateSeuratObject for v2 objects
+- Sink all output from stdout to stderr
+- Fix to scale.data cell ordering after subsetting 
+- Enable `Assay` specification in `BuildClusterTree`
+- Fix `FeaturePlot` when using both `blend` and `split.by`
+- Fix to `WhichCells` when passing `cells` and `invert`
+- Fix to `HoverLocator` labels and title
+- Ensure features names don't contain pipes (`|`)
+- Deprecation of `RunLSI` and `RunALRA`
+- Fix legend bug when sorting in `ExIPlot`
+
 ## [3.0.2] - 2019-06-07
 ### Added
 - Flag to skip singleton grouping in `FindClusters`

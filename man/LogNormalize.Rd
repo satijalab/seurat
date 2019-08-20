@@ -4,7 +4,7 @@
 \alias{LogNormalize}
 \title{Normalize raw data}
 \usage{
-LogNormalize(data, scale.factor = 10000, verbose = TRUE, ...)
+LogNormalize(data, scale.factor = 10000, verbose = TRUE)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
@@ -12,8 +12,6 @@ LogNormalize(data, scale.factor = 10000, verbose = TRUE, ...)
 \item{scale.factor}{Scale the data. Default is 1e4}
 
 \item{verbose}{Print progress}
-
-\item{...}{Ignored}
 }
 \value{
 Returns a matrix with the normalize and log transformed data

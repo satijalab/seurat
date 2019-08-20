@@ -36,6 +36,13 @@ test_that("Filtering handled properly", {
   expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
+test_that("Metadata check errors correctly", {
+  pbmc.md <- pbmc_small[[]]
+  pbmc.md.norownames <- as.matrix(pbmc.md)
+  rownames(pbmc.md.norownames) <- NULL
+  expect_error(CreateSeuratObject(counts = pbmc.test, meta.data = pbmc.md.norownames),
+               "Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
+})
 
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
@@ -314,5 +321,17 @@ test_that("SCTransform ncells param works", {
   expect_equal(object[["SCT"]][[]]["MS4A1", "sct.variance"], 1.025158, tolerance = 1e6)
   expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_mean"], 0.2512783, tolerance = 1e6)
   expect_equal(object[["SCT"]][[]]["MS4A1", "sct.residual_variance"], 3.551259, tolerance = 1e6)
+})
+
+suppressWarnings(object[["SCT_SAVE"]] <- object[["SCT"]])
+object[["SCT"]] <- SetAssayData(object = object[["SCT"]], slot = "scale.data", new.data = GetAssayData(object = object[["SCT"]], slot = "scale.data")[1:100, ])
+object <- GetResidual(object = object, features = rownames(x = object), verbose = FALSE)
+test_that("GetResidual works", {
+  expect_equal(dim(GetAssayData(object = object[["SCT"]], slot = "scale.data")), c(220, 80))
+  expect_equal(
+    GetAssayData(object = object[["SCT"]], slot = "scale.data"),
+    GetAssayData(object = object[["SCT_SAVE"]], slot = "scale.data")
+  )
+  expect_warning(GetResidual(object, features = "asd"))
 })
 

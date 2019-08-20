@@ -10,24 +10,48 @@ NULL
 #'
 #' Finds the integration anchors
 #'
-#' @param object.list A list of objects between which to find anchors for downstream integration.
-#' @param assay A vector of assay names specifying which assay to use when constructing anchors. If
-#' NULL, the current default assay for each object is used.
+#' @param object.list A list of objects between which to find anchors for
+#' downstream integration.
+#' @param assay A vector of assay names specifying which assay to use when
+#' constructing anchors. If NULL, the current default assay for each object is
+#' used.
+#' @param reference A vector specifying the object/s to be used as a reference
+#' during integration. If NULL (default), all pairwise anchors are found (no
+#' reference/s). If not NULL, the corresponding objects in \code{object.list}
+#' will be used as references. When using a set of specified references, anchors
+#' are first found between each query and each reference. The references are
+#' then integrated through pairwise integration. Each query is then mapped to
+#' the integrated reference.
 #' @param anchor.features Can be either:
 #' \itemize{
-#'   \item{A numeric value. This will call \code{\link{SelectIntegrationFeatures}} to select the
-#'   provided number of features to be used in anchor finding}
+#'   \item{A numeric value. This will call \code{\link{SelectIntegrationFeatures}}
+#'   to select the provided number of features to be used in anchor finding}
 #'   \item{A vector of features to be used as input to the anchor finding process}
 #' }
-#' @param scale Whether or not to scale the features provided. Only set to FALSE if you have
-#' previously scaled the features you want to use for each object in the object.list
-#' @param l2.norm Perform L2 normalization on the CCA cell embeddings after dimensional reduction
-#' @param dims Which dimensions to use from the CCA to specify the neighbor search space
+#' @param scale Whether or not to scale the features provided. Only set to FALSE
+#' if you have previously scaled the features you want to use for each object in
+#' the object.list
+#' @param normalization.method Name of normalization method used: LogNormalize
+#' or SCT
+#' @param sct.clip.range Numeric of length two specifying the min and max values
+#' the Pearson residual will be clipped to
+#' @param reduction Dimensional reduction to perform when finding anchors. Can
+#' be one of:
+#' \itemize{
+#'   \item{cca: Canonical correlation analysis}
+#'   \item{rpca: Reciprocal PCA}
+#' }
+#' @param l2.norm Perform L2 normalization on the CCA cell embeddings after
+#' dimensional reduction
+#' @param dims Which dimensions to use from the CCA to specify the neighbor
+#' search space
 #' @param k.anchor How many neighbors (k) to use when picking anchors
 #' @param k.filter How many neighbors (k) to use when filtering anchors
 #' @param k.score How many neighbors (k) to use when scoring anchors
-#' @param max.features The maximum number of features to use when specifying the neighborhood search
-#' space in the anchor filtering
+#' @param max.features The maximum number of features to use when specifying the
+#' neighborhood search space in the anchor filtering
+#' @param nn.method Method for nearest neighbor finding. Options include: rann,
+#' annoy
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param verbose Print progress bars and output
 #'
@@ -42,27 +66,38 @@ NULL
 FindIntegrationAnchors <- function(
   object.list = NULL,
   assay = NULL,
+  reference = NULL,
   anchor.features = 2000,
   scale = TRUE,
+  normalization.method = c("LogNormalize", "SCT"),
+  sct.clip.range = NULL,
+  reduction = c("cca", "rpca"),
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
   k.filter = 200,
   k.score = 30,
   max.features = 200,
+  nn.method = "rann",
   eps = 0,
   verbose = TRUE
 ) {
+  normalization.method <- match.arg(arg = normalization.method)
+  reduction <- match.arg(arg = reduction)
+  if (reduction == "rpca") {
+    reduction <- "pca"
+  }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
     no = future_lapply
   )
-  object.ncells <- sapply(X = object.list, FUN = function(x) dim(x)[2])
+  object.ncells <- sapply(X = object.list, FUN = function(x) dim(x = x)[2])
   if (any(object.ncells <= max(dims))) {
     bad.obs <- which(x = object.ncells <= max(dims))
-    stop("Max dimension too large: objects ", paste(bad.obs, collapse = ", "), " contain fewer than ", max(dims), " cells. \n",
-         "Please specify a maximum dimensions that is less than the number of cells in any ",
+    stop("Max dimension too large: objects ", paste(bad.obs, collapse = ", "),
+         " contain fewer than ", max(dims), " cells. \n Please specify a",
+         " maximum dimensions that is less than the number of cells in any ",
          "object (", min(object.ncells), ").")
   }
   if (!is.null(x = assay)) {
@@ -80,9 +115,45 @@ FindIntegrationAnchors <- function(
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
   object.list <- CheckDuplicateCellNames(object.list = object.list)
-  if (is.numeric(x = anchor.features)) {
+
+  slot <- "data"
+  if (normalization.method == "SCT") {
+    slot <- "scale.data"
+    scale <- FALSE
+    if (is.numeric(x = anchor.features)) {
+      stop("Please specify the anchor.features to be used. The expected ",
+      "workflow for integratinge assays produced by SCTransform is ",
+      "SelectIntegrationFeatures -> PrepSCTIntegration -> ",
+      "FindIntegrationAnchors.")
+    }
+    sct.check <- sapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) {
+        sct.cmd <- grep(
+          pattern = 'PrepSCTIntegration',
+          x = Command(object = object.list[[x]]),
+          value = TRUE
+        )
+        # check assay has gone through PrepSCTIntegration
+        if (!any(grepl(pattern = "PrepSCTIntegration", x = Command(object = object.list[[x]]))) ||
+            Command(object = object.list[[x]], command = sct.cmd, value = "assay") != assay[x]) {
+          stop("Object ", x, " assay - ", assay[x], " has not been processed ",
+          "by PrepSCTIntegration. Please run PrepSCTIntegration prior to ",
+          "FindIntegrationAnchors if using assays generated by SCTransform.", call. = FALSE)
+        }
+        # check that the correct features are being used
+        if (all(Command(object = object.list[[x]], command = sct.cmd, value = "anchor.features") != anchor.features)) {
+          stop("Object ", x, " assay - ", assay[x], " was processed using a ",
+          "different feature set than in PrepSCTIntegration. Please rerun ",
+          "PrepSCTIntegration with the same anchor.features for all objects in ",
+          "the object.list.", call. = FALSE)
+        }
+      }
+    )
+  }
+  if (is.numeric(x = anchor.features) && normalization.method != "SCT") {
     if (verbose) {
-      message(paste("Computing", anchor.features, "integration features"))
+      message("Computing ", anchor.features, " integration features")
     }
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -101,50 +172,177 @@ FindIntegrationAnchors <- function(
       }
     )
   }
+  nn.reduction <- reduction
+  # if using pca, only need to compute the internal neighborhood structure once
+  # for each dataset
+  internal.neighbors <- list()
+  if (nn.reduction == "pca") {
+    k.filter <- NA
+    if (verbose) {
+      message("Computing within dataset neighborhoods")
+    }
+    k.neighbor <- max(k.anchor, k.score)
+    internal.neighbors <- my.lapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) {
+        NNHelper(
+          data = Embeddings(object = object.list[[x]][[nn.reduction]])[, dims],
+          k = k.neighbor + 1,
+          method = nn.method,
+          eps = eps
+        )
+      }
+    )
+  }
   # determine pairwise combinations
   combinations <- expand.grid(1:length(x = object.list), 1:length(x = object.list))
   combinations <- combinations[combinations$Var1 < combinations$Var2, , drop = FALSE]
   # determine the proper offsets for indexing anchors
   objects.ncell <- sapply(X = object.list, FUN = ncol)
   offsets <- as.vector(x = cumsum(x = c(0, objects.ncell)))[1:length(x = object.list)]
-  if (verbose) {
-    message("Finding all pairwise anchors")
+  if (is.null(x = reference)) {
+    # case for all pairwise, leave the combinations matrix the same
+    if (verbose) {
+      message("Finding all pairwise anchors")
+    }
+  } else {
+    reference <- unique(x = sort(x = reference))
+    if (max(reference) > length(x = object.list)) {
+      stop('Error: requested reference object ', max(reference), " but only ",
+           length(x = object.list), " objects provided")
+    }
+    # modify the combinations matrix to retain only R-R and R-Q comparisons
+    if (verbose) {
+      message("Finding anchors between all query and reference datasets")
+      ok.rows <- (combinations$Var1 %in% reference) | (combinations$Var2 %in% reference)
+      combinations <- combinations[ok.rows, ]
+    }
   }
-  reduction <- "cca"
-  # determine all pairwise anchors
+  # determine all anchors
   all.anchors <- my.lapply(
     X = 1:nrow(x = combinations),
     FUN = function(row) {
       i <- combinations[row, 1]
       j <- combinations[row, 2]
-      object.1 <- object.list[[i]]
-      object.2 <- object.list[[j]]
-      object.pair <- RunCCA(
-        object1 = object.1,
-        object2 = object.2,
-        assay1 = assay[i],
-        assay2 = assay[j],
+      object.1 <- DietSeurat(
+        object = object.list[[i]],
+        assays = assay[i],
         features = anchor.features,
-        num.cc = max(dims),
-        renormalize = FALSE,
-        rescale = FALSE,
-        verbose = verbose
+        counts = FALSE,
+        scale.data = TRUE,
+        dimreducs = reduction
       )
-      if (l2.norm){
-        object.pair <- L2Dim(object = object.pair, reduction = reduction)
-        reduction <- paste0(reduction, ".l2")
+      object.2 <- DietSeurat(
+        object = object.list[[j]],
+        assays = assay[j],
+        features = anchor.features,
+        counts = FALSE,
+        scale.data = TRUE,
+        dimreducs = reduction
+      )
+      # suppress key duplication warning
+      suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[assay[i]]])
+      DefaultAssay(object = object.1) <- "ToIntegrate"
+      if (reduction %in% Reductions(object = object.1)) {
+        slot(object = object.1[[reduction]], name = "assay.used") <- "ToIntegrate"
       }
+      object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
+      suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[assay[j]]])
+      DefaultAssay(object = object.2) <- "ToIntegrate"
+      if (reduction %in% Reductions(object = object.2)) {
+        slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
+      }      
+      object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
+      object.pair <- switch(
+        EXPR = reduction,
+        'cca' = {
+          object.pair <- RunCCA(
+            object1 = object.1,
+            object2 = object.2,
+            assay1 = "ToIntegrate",
+            assay2 = "ToIntegrate",
+            features = anchor.features,
+            num.cc = max(dims),
+            renormalize = FALSE,
+            rescale = FALSE,
+            verbose = verbose
+          )
+          if (l2.norm){
+            object.pair <- L2Dim(object = object.pair, reduction = reduction)
+            reduction <- paste0(reduction, ".l2")
+            nn.reduction <- reduction
+          }
+          reduction.2 <- character()
+          object.pair
+        },
+        'pca' = {
+          common.features <- intersect(
+            x = rownames(x = Loadings(object = object.1[["pca"]])),
+            y = rownames(x = Loadings(object = object.2[["pca"]]))
+          )
+          object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
+          projected.embeddings.1<- t(x = GetAssayData(object = object.1, slot = "scale.data")[common.features, ]) %*%
+            Loadings(object = object.2[["pca"]])[common.features, ]
+          object.pair[['projectedpca.1']] <- CreateDimReducObject(
+            embeddings = rbind(projected.embeddings.1, Embeddings(object = object.2[["pca"]])),
+            assay = DefaultAssay(object = object.1),
+            key = "projectedpca1_"
+          )
+          projected.embeddings.2 <- t(x = GetAssayData(object = object.2, slot = "scale.data")[common.features, ]) %*%
+            Loadings(object = object.1[["pca"]])[common.features, ]
+          object.pair[['projectedpca.2']] <- CreateDimReducObject(
+            embeddings = rbind(projected.embeddings.2, Embeddings(object = object.1[["pca"]])),
+            assay = DefaultAssay(object = object.2),
+            key = "projectedpca2_"
+          )
+          object.pair[["pca"]] <- CreateDimReducObject(
+            embeddings = rbind(
+              Embeddings(object = object.1[["pca"]]),
+              Embeddings(object = object.2[["pca"]])),
+            assay = DefaultAssay(object = object.1),
+            key = "pca_"
+          )
+          reduction <- "projectedpca.1"
+          reduction.2 <- "projectedpca.2"
+          if (l2.norm){
+            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- sweep(
+              x = Embeddings(object = object.pair[["projectedpca.1"]]),
+              MARGIN = 2,
+              STATS = apply(X = Embeddings(object = object.pair[["projectedpca.1"]]), MARGIN = 2, FUN = sd),
+              FUN = "/"
+            )
+            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- sweep(
+              x = Embeddings(object = object.pair[["projectedpca.2"]]),
+              MARGIN = 2,
+              STATS = apply(X = Embeddings(object = object.pair[["projectedpca.2"]]), MARGIN = 2, FUN = sd),
+              FUN = "/"
+            )
+            object.pair <- L2Dim(object = object.pair, reduction = "projectedpca.1")
+            object.pair <- L2Dim(object = object.pair, reduction = "projectedpca.2")
+            reduction <- paste0(reduction, ".l2")
+            reduction.2 <- paste0(reduction.2, ".l2")
+          }
+          object.pair
+        },
+        stop("Invalid reduction parameter. Please choose either cca or rpca")
+      )
+      internal.neighbors <- internal.neighbors[c(i, j)]
       anchors <- FindAnchors(
         object.pair = object.pair,
-        assay = c(assay[i], assay[j]),
+        assay = c("ToIntegrate", "ToIntegrate"),
+        slot = slot,
         cells1 = colnames(x = object.1),
         cells2 = colnames(x = object.2),
+        internal.neighbors = internal.neighbors,
         reduction = reduction,
+        reduction.2 = reduction.2,
+        nn.reduction = nn.reduction,
         dims = dims,
         k.anchor = k.anchor,
         k.filter = k.filter,
         k.score = k.score,
         max.features = max.features,
+        nn.method = nn.method,
         eps = eps,
         verbose = verbose
       )
@@ -159,6 +357,7 @@ FindIntegrationAnchors <- function(
   command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
   anchor.set <- new(Class = "AnchorSet",
                     object.list = object.list,
+                    reference.objects = reference %||% seq_along(object.list),
                     anchors = all.anchors,
                     offsets = offsets,
                     anchor.features = anchor.features,
@@ -185,6 +384,7 @@ FindIntegrationAnchors <- function(
 #' cases where the query dataset has a much larger cell number, but the reference dataset has a
 #' unique assay for transfer.
 #' @param features Features to use for dimensional reduction
+#' @param normalization.method Name of normalization method used: LogNormalize or SCT
 #' @param npcs Number of PCs to compute on reference. If null, then use an existing PCA structure in
 #' the reference object
 #' @param l2.norm Perform L2 normalization on the cell embeddings after dimensional reduction
@@ -194,6 +394,8 @@ FindIntegrationAnchors <- function(
 #' @param k.score How many neighbors (k) to use when scoring anchors
 #' @param max.features The maximum number of features to use when specifying the neighborhood search
 #' space in the anchor filtering
+#'@param nn.method Method for nearest neighbor finding. Options include: rann,
+#' annoy
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param approx.pca Use truncated singular value decomposition to approximate PCA
 #' @param verbose Print progress bars and output
@@ -206,6 +408,7 @@ FindIntegrationAnchors <- function(
 FindTransferAnchors <- function(
   reference,
   query,
+  normalization.method = c("LogNormalize", "SCT"),
   reference.assay = NULL,
   query.assay = NULL,
   reduction = "pcaproject",
@@ -218,6 +421,7 @@ FindTransferAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
+  nn.method = "rann",
   eps = 0,
   approx.pca = TRUE,
   verbose = TRUE
@@ -233,6 +437,7 @@ FindTransferAnchors <- function(
   } else {
     projected = FALSE
   }
+  normalization.method <- match.arg(arg = normalization.method)
   query <- RenameCells(
     object = query,
     new.names = paste0(Cells(x = query), "_", "query")
@@ -246,9 +451,11 @@ FindTransferAnchors <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   DefaultAssay(object = reference) <- reference.assay
   DefaultAssay(object = query) <- query.assay
+  feature.mean <- NULL
+  slot <- "data"
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
-    if (project.query){
+    if (project.query) {
       if (!is.null(x = npcs)) {
         if (verbose) {
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
@@ -278,13 +485,60 @@ FindTransferAnchors <- function(
         if (verbose) {
           message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
         }
+        if (normalization.method == "LogNormalize") {
         reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-        reference <- RunPCA(object = reference, npcs = npcs, verbose = FALSE,features = features, approx = approx.pca)
+        } else if (normalization.method == "SCT") {
+          features <- intersect(x = features, y = rownames(x = query))
+          query <- GetResidual(object = query, features = features, verbose = FALSE)
+          query[[query.assay]] <- CreateAssayObject(
+            counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
+          )
+          query <- SetAssayData(
+            object = query,
+            slot = "data",
+            assay = query.assay,
+            new.data = GetAssayData(object = query[[query.assay]], slot = "counts")
+          )
+          query <- SetAssayData(
+            object = query,
+            slot = "scale.data",
+            assay = query.assay,
+            new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
+          )
+          if (IsSCT(assay = reference[[reference.assay]])) {
+            reference <- GetResidual(object = reference, features = features, verbose = FALSE)
+          }
+          reference[[reference.assay]] <- CreateAssayObject(
+            counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
+          )
+          reference <- SetAssayData(
+            object = reference,
+            slot = "data",
+            assay = reference.assay,
+            new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
+          )
+          reference <- SetAssayData(
+            object = reference,
+            slot = "scale.data",
+            assay = reference.assay,
+            new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
+          )
+          feature.mean <- "SCT"
+          slot <- "scale.data"
+        }
+        reference <- RunPCA(
+          object = reference,
+          npcs = npcs,
+          verbose = FALSE,
+          features = features,
+          approx = approx.pca
+        )
       }
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
         query = query,
         dims = dims,
+        feature.mean = feature.mean,
         verbose = verbose
       )
       ref.pca <- Embeddings(object = reference[["pca"]])[, dims]
@@ -300,7 +554,6 @@ FindTransferAnchors <- function(
       Loadings(object = combined.ob[["pcaproject"]]) <- old.loadings[, dims]
     }
   }
-
   ## find anchors using CCA
   if (reduction == 'cca') {
     reference <- ScaleData(object = reference, features = features, verbose = FALSE)
@@ -315,22 +568,25 @@ FindTransferAnchors <- function(
       verbose = verbose
     )
   }
-
-  if (l2.norm){
+  if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
   }
+  slot <- "data"
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = c(reference.assay, query.assay),
+    slot = slot,
     cells1 = colnames(x = reference),
     cells2 = colnames(x = query),
     reduction = reduction,
+    internal.neighbors = list(NULL, NULL),
     dims = dims,
     k.anchor = k.anchor,
     k.filter = k.filter,
     k.score = k.score,
     max.features = max.features,
+    nn.method = nn.method,
     eps = eps,
     projected = projected,
     verbose = verbose
@@ -348,13 +604,14 @@ FindTransferAnchors <- function(
   return(anchor.set)
 }
 
-
 #' Integrate data
 #'
-#' Integrates the data
+#' Perform dataset integration using a pre-computed anchorset
 #'
 #' @param anchorset Results from FindIntegrationAnchors
 #' @param new.assay.name Name for the new assay containing the integrated data
+#' @param normalization.method Name of normalization method used: LogNormalize
+#' or SCT
 #' @param features Vector of features to use when computing the PCA to determine the weights. Only set
 #' if you want a different set from those used in the anchor finding process
 #' @param features.to.integrate Vector of features to integrate. By default, will use the features
@@ -366,6 +623,7 @@ FindTransferAnchors <- function(
 #' \itemize{
 #'    \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
 #'    \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
+#'    \item{A vector of Dimreduc objects, specifying the object to use for each object in the integration}
 #'    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
 #' }
 #' Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
@@ -385,6 +643,7 @@ FindTransferAnchors <- function(
 IntegrateData <- function(
   anchorset,
   new.assay.name = "integrated",
+  normalization.method = c("LogNormalize", "SCT"),
   features = NULL,
   features.to.integrate = NULL,
   dims = 1:30,
@@ -397,212 +656,124 @@ IntegrateData <- function(
   eps = 0,
   verbose = TRUE
 ) {
-  object.list <- slot(object = anchorset, name = "object.list")
-  anchors <- slot(object = anchorset, name = "anchors")
-  offsets <- slot(object = anchorset, name = "offsets")
+  normalization.method <- match.arg(arg = normalization.method)
+  reference.datasets <- slot(object = anchorset, name = 'reference.objects')
+  object.list <- slot(object = anchorset, name = 'object.list')
+  anchors <- slot(object = anchorset, name = 'anchors')
+  ref <- object.list[reference.datasets]
   features <- features %||% slot(object = anchorset, name = "anchor.features")
-  features.to.integrate <- features.to.integrate %||% features
-  objects.ncell <- sapply(X = object.list, FUN = ncol)
-  if (!is.null(x = weight.reduction)) {
-    if (length(x = weight.reduction) == 1 | inherits(x = weight.reduction, what = "DimReduc")) {
-      if (length(x = object.list) == 2) {
-        weight.reduction <- list(NULL, weight.reduction)
-      } else if (inherits(x = weight.reduction, what = "character")) {
-        weight.reduction <- rep(x = weight.reduction, times = length(x = object.list))
-      } else {
-        stop("Invalid input for weight.reduction. Please specify either the names of the dimension",
-             "reduction for each object in the list or provide DimReduc objects.")
-      }
-    }
-    if (length(x = weight.reduction) != length(x = object.list)) {
-      stop("Please specify a dimension reduction for each object, or one dimension reduction to be used for all objects")
-    }
-    available.reductions <- lapply(X = object.list, FUN = FilterObjects, classes.keep = 'DimReduc')
-    for (ii in 1:length(x = weight.reduction)) {
-      if (ii == 1 & is.null(x = weight.reduction[[ii]])) next
-      if (!inherits(x = weight.reduction[[ii]], what = "DimReduc")) {
-        if (!weight.reduction[[ii]] %in% available.reductions[[ii]]) {
-          stop("Requested dimension reduction (", weight.reduction[[ii]], ") is not present in object ", ii)
-        }
-      }
-    }
-  }
-  if (is.null(x = sample.tree)) {
-    similarity.matrix <- CountAnchors(
-      anchor.df = anchors,
-      offsets = offsets,
-      obj.lengths = objects.ncell
-    )
-    sample.tree <- BuildSampleTree(similarity.matrix = similarity.matrix)
-  }
-  cellnames.list <- list()
-  for (ii in 1:length(x = object.list)) {
-    cellnames.list[[ii]] <- colnames(x = object.list[[ii]])
-  }
   unintegrated <- merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
   )
-  names(x = object.list) <- as.character(-(1:length(x = object.list)))
-  for (ii in 1:nrow(x = sample.tree)) {
-    merge.pair <- as.character(x = sample.tree[ii, ])
-    length1 <- ncol(x = object.list[[merge.pair[1]]])
-    length2 <- ncol(x = object.list[[merge.pair[2]]])
-    if (!(preserve.order) & (length2 > length1)) {
-      merge.pair <- rev(merge.pair)
-      sample.tree[ii, ] <- as.numeric(merge.pair)
-    }
-    object.1 <- object.list[[merge.pair[1]]]
-    object.2 <- object.list[[merge.pair[2]]]
-    datasets <- ParseMergePair(sample.tree, ii)
-    if (verbose) {
-      message(
-        "Merging dataset ",
-        paste(datasets$object2, collapse = " "),
-        " into ",
-        paste(datasets$object1, collapse = " ")
+  if (normalization.method == "SCT") {
+    vst.set <- list()
+    for (i in 1:length(x = object.list)) {
+      assay <- DefaultAssay(object = object.list[[i]])
+      object.list[[i]][[assay]] <- CreateAssayObject(
+        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
       )
     }
-    cells1 <- colnames(x = object.1)
-    cells2 <- colnames(x = object.2)
-    merged.obj <- merge(x = object.1, y = object.2, merge.data = TRUE)
-    if (verbose) {
-      message("Extracting anchors for merged samples")
-    }
-    filtered.anchors <- anchors[anchors$dataset1 %in% datasets$object1 & anchors$dataset2 %in% datasets$object2, ]
-    cell1.name <- sapply(X = 1:nrow(x = filtered.anchors), FUN = function(x) {
-      cellnames.list[[filtered.anchors$dataset1[x]]][filtered.anchors$cell1[x]]
-    })
-    cell2.name <- sapply(X = 1:nrow(x = filtered.anchors), FUN = function(x) {
-      cellnames.list[[filtered.anchors$dataset2[x]]][filtered.anchors$cell2[x]]
-    })
-    cell1.offset <- sapply(
-      X = 1:length(x = cell1.name),
-      FUN = function(x) {
-        return(which(cells1 == cell1.name[x]))
-      }
-    )
-    cell2.offset <- sapply(
-      X = 1:length(x = cell2.name),
-      FUN = function(x) {
-        return(which(cells2 == cell2.name[x]))
-      }
-    )
-    filtered.anchors.new <- filtered.anchors
-    filtered.anchors.new[, 1] <- cell1.offset
-    filtered.anchors.new[, 2] <- cell2.offset
-    integration.name <- "integrated"
-    merged.obj <- SetIntegrationData(
-      object = merged.obj,
-      integration.name = integration.name,
-      slot = 'anchors',
-      new.data = filtered.anchors.new
-    )
-    merged.obj <- SetIntegrationData(
-      object = merged.obj,
-      integration.name = integration.name,
-      slot = 'neighbors',
-      new.data = list('cells1' = cells1, 'cells2' = cells2)
-    )
-    merged.obj <- FindIntegrationMatrix(
-      object = merged.obj,
-      integration.name = integration.name,
-      features.integrate = features.to.integrate,
-      verbose = verbose
-    )
-    assay <- DefaultAssay(object = merged.obj)
-    if (is.null(weight.reduction) | (as.numeric(merge.pair[[2]]) > 0)) {
-      merged.obj <- ScaleData(
-        object = merged.obj,
-        features = features,
-        verbose = FALSE
+  }
+  # perform pairwise integration of reference objects
+  reference.integrated <- PairwiseIntegrateReference(
+    anchorset = anchorset,
+    new.assay.name = new.assay.name,
+    normalization.method = normalization.method,
+    features = features,
+    features.to.integrate = features.to.integrate,
+    dims = dims,
+    k.weight = k.weight,
+    weight.reduction = weight.reduction,
+    sd.weight = sd.weight,
+    sample.tree = sample.tree,
+    preserve.order = preserve.order,
+    do.cpp = do.cpp,
+    eps = eps,
+    verbose = verbose
+  )
+
+  if (length(x = reference.datasets) == length(x = object.list)) {
+    if (normalization.method == "SCT") {
+      reference.integrated <- SetAssayData(
+        object = reference.integrated,
+        assay = new.assay.name,
+        slot = "scale.data",
+        new.data = ScaleData(
+          object = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "scale.data"),
+          do.scale = FALSE,
+          do.center = TRUE,
+          verbose = FALSE
+        )
       )
-      merged.obj <- RunPCA(
-        object = merged.obj,
-        npcs = max(dims),
-        verbose = FALSE,
-        features = features
-      )
-      dr.weights <- merged.obj[['pca']]
-    } else {
-      dataset.id <- -(as.numeric(merge.pair[[2]]))
-      dr <- weight.reduction[[dataset.id]]
-      if (inherits(x = dr, what = "DimReduc")) {
-        dr.weights <- dr
-      } else {
-        dr.weights <- object.2[[dr]]
-      }
+      reference.integrated[[assay]] <- unintegrated[[assay]]
     }
-    merged.obj <- FindWeights(
-      object = merged.obj,
-      integration.name = integration.name,
-      reduction = dr.weights,
-      cpp = do.cpp,
+    return(reference.integrated)
+  } else {
+    active.assay <- DefaultAssay(object = ref[[1]])
+    reference.integrated[[active.assay]] <- NULL
+    reference.integrated[[active.assay]] <- CreateAssayObject(
+      data = GetAssayData(
+        object = reference.integrated[[new.assay.name]],
+        slot = 'data'
+      )
+    )
+    DefaultAssay(object = reference.integrated) <- active.assay
+    reference.integrated[[new.assay.name]] <- NULL
+    VariableFeatures(object = reference.integrated) <- features
+    # Extract the query objects (if any) and map to reference
+    integrated.data <- MapQuery(
+      anchorset = anchorset,
+      reference = reference.integrated,
+      new.assay.name = new.assay.name,
+      normalization.method = normalization.method,
+      features = features,
+      features.to.integrate = features.to.integrate,
       dims = dims,
-      k = k.weight,
+      k.weight = k.weight,
+      weight.reduction = weight.reduction,
       sd.weight = sd.weight,
+      sample.tree = sample.tree,
+      preserve.order = preserve.order,
+      do.cpp = do.cpp,
       eps = eps,
       verbose = verbose
     )
-    merged.obj <- TransformDataMatrix(
-      object = merged.obj,
-      new.assay.name = new.assay.name,
-      features.to.integrate = features.to.integrate,
-      integration.name = integration.name,
-      do.cpp = do.cpp,
-      verbose = verbose
+
+    # Construct final assay object
+    integrated.assay <- CreateAssayObject(
+      data = integrated.data
     )
-    integrated.matrix <- GetAssayData(
-      object = merged.obj,
-      assay = new.assay.name,
-      slot = 'data'
+    if (normalization.method == "SCT") {
+      integrated.assay <- SetAssayData(
+        object = integrated.assay,
+        slot = "scale.data",
+        new.data =  ScaleData(
+          object = GetAssayData(object = integrated.assay, slot = "data"),
+          do.scale = FALSE,
+          do.center = TRUE,
+          verbose = FALSE
+        )
+      )
+      integrated.assay <- SetAssayData(
+        object = integrated.assay,
+        slot = "data",
+        new.data = GetAssayData(object = integrated.assay, slot = "scale.data")
+      )
+    }
+    unintegrated[[new.assay.name]] <- integrated.assay
+    unintegrated <- SetIntegrationData(
+      object = unintegrated,
+      integration.name = "Integration",
+      slot = "anchors",
+      new.data = anchors
     )
-    # merged.obj <- SetAssayData(
-    #   object = merged.obj,
-    #   assay = assay,
-    #   slot = 'data',
-    #   new.data = integrated.matrix
-    # )
-    merged.obj[[assay]] <- CreateAssayObject(data = integrated.matrix)
-    object.list[[as.character(x = ii)]] <- merged.obj
-    object.list[[merge.pair[[1]]]] <- NULL
-    object.list[[merge.pair[[2]]]] <- NULL
-    invisible(x = CheckGC())
+    DefaultAssay(object = unintegrated) <- new.assay.name
+    VariableFeatures(object = unintegrated) <- features
+    unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+    unintegrated <- LogSeuratCommand(object = unintegrated)
+    return(unintegrated)
   }
-  integrated.data <- GetAssayData(
-    object = object.list[[as.character(x = ii)]],
-    assay = assay,
-    slot = 'data'
-  )
-  integrated.data <- integrated.data[, colnames(x = unintegrated)]
-  new.assay <- new(
-    Class = 'Assay',
-    counts =  new(Class = "dgCMatrix"),
-    data = integrated.data,
-    scale.data = matrix(),
-    var.features = vector(),
-    meta.features = data.frame(row.names = rownames(x = integrated.data)),
-    misc = NULL
-  )
-  unintegrated[[new.assay.name]] <- new.assay
-  # "unintegrated" now contains the integrated assay
-  DefaultAssay(object = unintegrated) <- new.assay.name
-  VariableFeatures(object = unintegrated) <- features
-  unintegrated <- SetIntegrationData(
-    object = unintegrated,
-    integration.name = "Integration",
-    slot = "anchors",
-    new.data = anchors
-  )
-  unintegrated <- SetIntegrationData(
-    object = unintegrated,
-    integration.name = "Integration",
-    slot = "sample.tree",
-    new.data = sample.tree
-  )
-  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
-  unintegrated <- LogSeuratCommand(object = unintegrated)
-  return(unintegrated)
 }
 
 #' Calculate the local structure preservation metric
@@ -700,13 +871,120 @@ LocalStruct <- function(
   return(local.struct)
 }
 
+#' Map queries to reference
+#'
+#' Map query objects onto assembled reference dataset
+#'
+#' @param anchorset Anchorset found by FindIntegrationAnchors
+#' @param reference Pre-integrated reference dataset to map query datasets to
+#' @param new.assay.name Name for the new assay containing the integrated data
+#' @param normalization.method Name of normalization method used: LogNormalize
+#' or SCT
+#' @param features Vector of features to use when computing the PCA to determine the weights. Only set
+#' if you want a different set from those used in the anchor finding process
+#' @param features.to.integrate Vector of features to integrate. By default, will use the features
+#' used in anchor finding.
+#' @param dims Number of PCs to use in the weighting procedure
+#' @param k.weight Number of neighbors to consider when weighting
+#' @param weight.reduction Dimension reduction to use when calculating anchor weights.
+#' This can be either:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
+#'    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
+#' }
+#' Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
+#' first merge between reference and query, as the merged object will subsequently contain more cells than was in
+#' query, and weights will need to be calculated for all cells in the object.
+#' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
+#' @param sample.tree Specify the order of integration. If NULL, will compute automatically.
+#' @param preserve.order Do not reorder objects based on size for each pairwise integration.
+#' @param do.cpp Run cpp code where applicable
+#' @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
+#' @param verbose Print progress bars and output
+#'
+#' @return Returns an integrated matrix
+#'
+MapQuery <- function(
+  anchorset,
+  reference,
+  new.assay.name = "integrated",
+  normalization.method = c("LogNormalize", "SCT"),
+  features = NULL,
+  features.to.integrate = NULL,
+  dims = 1:30,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
+  do.cpp = TRUE,
+  eps = 0,
+  verbose = TRUE
+) {
+  normalization.method <- match.arg(arg = normalization.method)
+  reference.datasets <- slot(object = anchorset, name = 'reference.objects')
+  object.list <- slot(object = anchorset, name = 'object.list')
+  anchors <- slot(object = anchorset, name = 'anchors')
+  features <- features %||% slot(object = anchorset, name = "anchor.features")
+  features.to.integrate <- features.to.integrate %||% features
+  cellnames.list <- list()
+  for (ii in 1:length(x = object.list)) {
+    cellnames.list[[ii]] <- colnames(x = object.list[[ii]])
+  }
+  if (length(x = reference.datasets) == length(x = object.list)) {
+    query.datasets <- NULL
+  } else {
+    query.datasets <- setdiff(x = seq_along(along.with = object.list), y = reference.datasets)
+  }
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  query.corrected <- my.lapply(
+    X = query.datasets,
+    FUN = function(dataset1) {
+      if (verbose) {
+        message("Integrating dataset ", dataset1, " with reference dataset")
+      }
+      filtered.anchors <- anchors[anchors$dataset1 %in% reference.datasets & anchors$dataset2 == dataset1, ]
+      integrated <- RunIntegration(
+        filtered.anchors = filtered.anchors,
+        reference = reference,
+        query = object.list[[dataset1]],
+        new.assay.name = new.assay.name,
+        normalization.method = normalization.method,
+        cellnames.list = cellnames.list,
+        features.to.integrate = features.to.integrate,
+        weight.reduction = weight.reduction,
+        features = features,
+        dims = dims,
+        do.cpp = do.cpp,
+        k.weight = k.weight,
+        sd.weight = sd.weight,
+        eps = eps,
+        verbose = verbose
+      )
+      return(integrated)
+    }
+  )
+  reference.integrated <- GetAssayData(
+    object = reference,
+    slot = 'data'
+  )[features.to.integrate, ]
+  all.integrated <- do.call(cbind, c(reference.integrated, query.corrected))
+  return(all.integrated)
+}
+
 #' Calculates a mixing metric
 #'
-#' Here we compute a measure of how well mixed a composite dataset is. To compute, we first examine
-#' the local neighborhood for each cell (looking at max.k neighbors) and determine for each group
-#' (could be the dataset after integration) the k nearest neighbor and what rank that neighbor was
-#' in the overall neighborhood. We then take the median across all groups as the mixing metric per
-#' cell.
+#' Here we compute a measure of how well mixed a composite dataset is. To
+#' compute, we first examine the local neighborhood for each cell (looking at
+#' max.k neighbors) and determine for each group (could be the dataset after
+#' integration) the k nearest neighbor and what rank that neighbor was in the
+#' overall neighborhood. We then take the median across all groups as the mixing
+#' metric per cell.
 #'
 #' @param object Seurat object
 #' @param grouping.var Grouping variable for dataset
@@ -766,18 +1044,387 @@ MixingMetric <- function(
   return(mixing)
 }
 
+#' Pairwise dataset integration
+#'
+#' Used for reference construction
+#'
+#' @param anchorset Results from FindIntegrationAnchors
+#' @param new.assay.name Name for the new assay containing the integrated data
+#' @param normalization.method Name of normalization method used: LogNormalize
+#' or SCT
+#' @param features Vector of features to use when computing the PCA to determine
+#' the weights. Only set if you want a different set from those used in the
+#' anchor finding process
+#' @param features.to.integrate Vector of features to integrate. By default,
+#' will use the features used in anchor finding.
+#' @param dims Number of PCs to use in the weighting procedure
+#' @param k.weight Number of neighbors to consider when weighting
+#' @param weight.reduction Dimension reduction to use when calculating anchor
+#' weights. This can be either:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in
+#'    all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to
+#'    use for each object to be integrated}
+#'    \item{NULL, in which case a new PCA will be calculated and used to
+#'    calculate anchor weights}
+#' }
+#' Note that, if specified, the requested dimension reduction will only be used
+#' for calculating anchor weights in the first merge between reference and
+#' query, as the merged object will subsequently contain more cells than was in
+#' query, and weights will need to be calculated for all cells in the object.
+#' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
+#' @param sample.tree Specify the order of integration. If NULL, will compute
+#' automatically.
+#' @param preserve.order Do not reorder objects based on size for each pairwise
+#' integration.
+#' @param do.cpp Run cpp code where applicable
+#' @param eps Error bound on the neighbor finding algorithm (from
+#' \code{\link{RANN}})
+#' @param verbose Print progress bars and output
+#'
+#' @return Returns a Seurat object with a new integrated Assay
+#'
+PairwiseIntegrateReference <- function(
+  anchorset,
+  new.assay.name = "integrated",
+  normalization.method = c("LogNormalize", "SCT"),
+  features = NULL,
+  features.to.integrate = NULL,
+  dims = 1:30,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
+  do.cpp = TRUE,
+  eps = 0,
+  verbose = TRUE
+) {
+  object.list <- slot(object = anchorset, name = "object.list")
+  reference.objects <- slot(object = anchorset, name = "reference.objects")
+  features <- features %||% slot(object = anchorset, name = "anchor.features")
+  features.to.integrate <- features.to.integrate %||% features
+  if (length(x = reference.objects) == 1) {
+    ref.obj <- object.list[[reference.objects]]
+    ref.obj[[new.assay.name]] <- CreateAssayObject(
+      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ]
+    )
+    DefaultAssay(object = ref.obj) <- new.assay.name
+    return(ref.obj)
+  }
+  anchors <- slot(object = anchorset, name = "anchors")
+  offsets <- slot(object = anchorset, name = "offsets")
+  objects.ncell <- sapply(X = object.list, FUN = ncol)
+  if (!is.null(x = weight.reduction)) {
+    if (length(x = weight.reduction) == 1 | inherits(x = weight.reduction, what = "DimReduc")) {
+      if (length(x = object.list) == 2) {
+        weight.reduction <- list(NULL, weight.reduction)
+      } else if (inherits(x = weight.reduction, what = "character")) {
+        weight.reduction <- rep(x = weight.reduction, times = length(x = object.list))
+      } else {
+        stop("Invalid input for weight.reduction. Please specify either the names of the dimension",
+             "reduction for each object in the list or provide DimReduc objects.")
+      }
+    }
+    if (length(x = weight.reduction) != length(x = object.list)) {
+      stop("Please specify a dimension reduction for each object, or one dimension reduction to be used for all objects")
+    }
+    available.reductions <- lapply(X = object.list, FUN = FilterObjects, classes.keep = 'DimReduc')
+    for (ii in 1:length(x = weight.reduction)) {
+      if (ii == 1 & is.null(x = weight.reduction[[ii]])) next
+      if (!inherits(x = weight.reduction[[ii]], what = "DimReduc")) {
+        if (!weight.reduction[[ii]] %in% available.reductions[[ii]]) {
+          stop("Requested dimension reduction (", weight.reduction[[ii]], ") is not present in object ", ii)
+        }
+        weight.reduction[[ii]] <- object.list[[ii]][[weight.reduction[[ii]]]]
+      }
+    }
+  }
+  if (is.null(x = sample.tree)) {
+    similarity.matrix <- CountAnchors(
+      anchor.df = anchors,
+      offsets = offsets,
+      obj.lengths = objects.ncell
+    )
+    similarity.matrix <- similarity.matrix[reference.objects, reference.objects]
+    sample.tree <- BuildSampleTree(similarity.matrix = similarity.matrix)
+    sample.tree <- AdjustSampleTree(x = sample.tree, reference.objects = reference.objects)
+  }
+  cellnames.list <- list()
+  for (ii in 1:length(x = object.list)) {
+    cellnames.list[[ii]] <- colnames(x = object.list[[ii]])
+  }
+  unintegrated <- merge(
+    x = object.list[[reference.objects[[1]]]],
+    y = object.list[reference.objects[2:length(x = reference.objects)]]
+  )
+  names(x = object.list) <- as.character(-(1:length(x = object.list)))
+  if (verbose & (length(x = reference.objects) != length(x = object.list))) {
+    message("Building integrated reference")
+  }
+  for (ii in 1:nrow(x = sample.tree)) {
+    merge.pair <- as.character(x = sample.tree[ii, ])
+    length1 <- ncol(x = object.list[[merge.pair[1]]])
+    length2 <- ncol(x = object.list[[merge.pair[2]]])
+    if (!(preserve.order) & (length2 > length1)) {
+      merge.pair <- rev(x = merge.pair)
+      sample.tree[ii, ] <- as.numeric(merge.pair)
+    }
+    object.1 <- DietSeurat(
+      object = object.list[[merge.pair[1]]],
+      assays = DefaultAssay(object =  object.list[[merge.pair[1]]]),
+      counts = FALSE
+    )
+    object.2 <- DietSeurat(
+      object = object.list[[merge.pair[2]]],
+      assays = DefaultAssay(object =  object.list[[merge.pair[2]]]),
+      counts = FALSE
+    )
+    # suppress key duplication warning
+    suppressWarnings(object.1[["ToIntegrate"]] <- object.1[[DefaultAssay(object = object.1)]])
+    DefaultAssay(object = object.1) <- "ToIntegrate"
+    object.1 <- DietSeurat(object = object.1, assays = "ToIntegrate")
+    suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[DefaultAssay(object = object.2)]])
+    DefaultAssay(object = object.2) <- "ToIntegrate"
+    object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate")
+
+    datasets <- ParseMergePair(sample.tree, ii)
+    if (verbose) {
+      message(
+        "Merging dataset ",
+        paste(datasets$object2, collapse = " "),
+        " into ",
+        paste(datasets$object1, collapse = " ")
+      )
+    }
+    merged.obj <- merge(x = object.1, y = object.2, merge.data = TRUE)
+    if (verbose) {
+      message("Extracting anchors for merged samples")
+    }
+    filtered.anchors <- anchors[anchors$dataset1 %in% datasets$object1 & anchors$dataset2 %in% datasets$object2, ]
+    integrated.matrix <- RunIntegration(
+      filtered.anchors = filtered.anchors,
+      normalization.method = normalization.method,
+      reference = object.1,
+      query = object.2,
+      cellnames.list = cellnames.list,
+      new.assay.name = new.assay.name,
+      features.to.integrate = features.to.integrate,
+      features = features,
+      dims = dims,
+      weight.reduction = weight.reduction,
+      do.cpp = do.cpp,
+      k.weight = k.weight,
+      sd.weight = sd.weight,
+      eps = eps,
+      verbose = verbose
+    )
+    integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
+    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
+    DefaultAssay(object = merged.obj) <- new.assay.name
+    object.list[[as.character(x = ii)]] <- merged.obj
+    object.list[[merge.pair[[1]]]] <- NULL
+    object.list[[merge.pair[[2]]]] <- NULL
+    invisible(x = CheckGC())
+  }
+  integrated.data <- GetAssayData(
+    object = object.list[[as.character(x = ii)]],
+    assay = new.assay.name,
+    slot = 'data'
+  )
+  integrated.data <- integrated.data[, colnames(x = unintegrated)]
+  new.assay <- new(
+    Class = 'Assay',
+    counts =  new(Class = "dgCMatrix"),
+    data = integrated.data,
+    scale.data = matrix(),
+    var.features = vector(),
+    meta.features = data.frame(row.names = rownames(x = integrated.data)),
+    misc = NULL
+  )
+  unintegrated[[new.assay.name]] <- new.assay
+  # "unintegrated" now contains the integrated assay
+  DefaultAssay(object = unintegrated) <- new.assay.name
+  VariableFeatures(object = unintegrated) <- features
+  if (normalization.method == "SCT"){
+    unintegrated[[new.assay.name]] <- SetAssayData(
+      object = unintegrated[[new.assay.name]],
+      slot = "scale.data",
+      new.data = as.matrix(x = GetAssayData(object = unintegrated[[new.assay.name]], slot = "data"))
+    )
+  }
+  unintegrated <- SetIntegrationData(
+    object = unintegrated,
+    integration.name = "Integration",
+    slot = "anchors",
+    new.data = anchors
+  )
+  unintegrated <- SetIntegrationData(
+    object = unintegrated,
+    integration.name = "Integration",
+    slot = "sample.tree",
+    new.data = sample.tree
+  )
+  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+  unintegrated <- LogSeuratCommand(object = unintegrated)
+  return(unintegrated)
+}
+
+#' Prepare an object list that has been run through SCTransform for integration
+#'
+#' @param object.list A list of objects to prep for integration
+#' @param assay Name or vector of assay names (one for each object) that correspond
+#' to the assay that SCTransform has been run on. If NULL, the current default
+#' assay for each object is used.
+#' @param anchor.features Can be either:
+#' \itemize{
+#'   \item{A numeric value. This will call \code{\link{SelectIntegrationFeatures}}
+#'   to select the provided number of features to be used in anchor finding}
+#'   \item{A vector of features to be used as input to the anchor finding
+#'   process}
+#' }
+#' @param sct.clip.range Numeric of length two specifying the min and max values
+#' the Pearson residual will be clipped to
+#' @param verbose Display output/messages
+#'
+#' @return An object list with the \code{scale.data} slots set to the anchor
+#' features
+#'
+#' @importFrom pbapply pblapply
+#' @importFrom methods slot slot<-
+#' @importFrom future nbrOfWorkers
+#' @importFrom future.apply future_lapply
+#'
+#' @export
+#'
+PrepSCTIntegration <- function(
+  object.list,
+  assay = NULL,
+  anchor.features = 2000,
+  sct.clip.range = NULL,
+  verbose = TRUE
+) {
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
+  assay <- rep_len(x = assay, length.out = length(x = object.list))
+  objects.names <- names(x = object.list)
+  object.list <- lapply(
+    X = 1:length(x = object.list),
+    FUN = function(i) {
+      DefaultAssay(object = object.list[[i]]) <- assay[i]
+      return(object.list[[i]])
+    }
+  )
+  sct.check <- vapply(
+    X = 1:length(x = object.list),
+    FUN = function(i) {
+      sct.check <- IsSCT(assay = object.list[[i]][[assay[i]]])
+      if (!sct.check) {
+        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) && 
+            Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
+          sct.check <- TRUE
+        }
+      }
+      return(sct.check)
+    },
+    FUN.VALUE = logical(length = 1L),
+    USE.NAMES = FALSE
+  )
+  if (!all(sct.check)) {
+    stop(
+      "The following assays have not been processed with SCTransform:\n",
+      paste(
+        ' object:',
+        which(x = !sct.check, useNames = FALSE),
+        '- assay:',
+        assay[!sct.check],
+        collapse = '\n'
+      ),
+      call. = FALSE
+    )
+  }
+  
+  object.list <- lapply(
+    X = 1:length(x = object.list),
+    FUN = function(i) {
+      vst_out <- Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out")
+      vst_out$cell_attr <- vst_out$cell_attr[Cells(x = object.list[[i]]), ]
+      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = Cells(x = object.list[[i]]))
+      suppressWarnings(expr = Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out") <- vst_out)
+      return(object.list[[i]])
+    }
+  )
+  
+  if (is.numeric(x = anchor.features)) {
+    anchor.features <- SelectIntegrationFeatures(
+      object.list = object.list,
+      nfeatures = anchor.features,
+      verbose = verbose
+    )
+  }
+  object.list <- my.lapply(
+    X = 1:length(x = object.list),
+    FUN = function(i) {
+      if (!IsSCT(assay = object.list[[i]][[assay[i]]])) {
+        return(object.list[[i]])
+      }
+      obj <- if (is.null(x = sct.clip.range)) {
+        GetResidual(
+          object = object.list[[i]],
+          features = anchor.features,
+          assay = assay[i],
+          verbose = FALSE
+        )
+      } else {
+        GetResidual(
+          object = object.list[[i]],
+          assay = assay[i],
+          features = anchor.features,
+          replace.value = TRUE,
+          clip.range = sct.clip.range,
+          verbose = FALSE
+        )
+      }
+      scale.data <- GetAssayData(
+        object = obj,
+        assay = assay[i],
+        slot = 'scale.data'
+      )
+      obj <- SetAssayData(
+        object = obj,
+        slot = 'scale.data',
+        new.data = scale.data[anchor.features, ],
+        assay = assay[i]
+      )
+      return(obj)
+    }
+  )
+  assays.used <- assay
+  for (i in 1:length(x = object.list)) {
+    assay <- as.character(x = assays.used[i])
+    object.list[[i]] <- LogSeuratCommand(object = object.list[[i]])
+  }
+  names(x = object.list) <- objects.names
+  return(object.list)
+}
+
 #' Select integration features
 #'
-#' Choose the features to use when integrating multiple datasets. This function ranks features by
-#' the number of datasets they appear in, breaking ties by the median rank across datasets. It
-#' returns the highest features by this ranking.
+#' Choose the features to use when integrating multiple datasets. This function
+#' ranks features by the number of datasets they appear in, breaking ties by the
+#' median rank across datasets. It returns the highest features by this ranking.
 #'
 #' @param object.list List of seurat objects
 #' @param nfeatures Number of features to return
 #' @param assay Name of assay from which to pull the variable features.
 #' @param verbose Print messages
-#' @param fvf.nfeatures nfeatures for FindVariableFeatures. Used if VariableFeatures have not been
-#' set for any object in object.list.
+#' @param fvf.nfeatures nfeatures for FindVariableFeatures. Used if
+#' VariableFeatures have not been set for any object in object.list.
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
 #' @return A vector of selected features
@@ -856,16 +1503,20 @@ SelectIntegrationFeatures <- function(
 #' Transfers the labels
 #'
 #' @param anchorset Results from FindTransferAnchors
-#' @param refdata Data to transfer. Should be either a vector where the names correspond to
-#' reference cells, or a matrix, where the column names correspond to the reference cells.
-#' @param weight.reduction Dimensional reduction to use for the weighting. Options are:
+#' @param refdata Data to transfer. Should be either a vector where the names
+#' correspond to reference cells, or a matrix, where the column names correspond
+#' to the reference cells.
+#' @param weight.reduction Dimensional reduction to use for the weighting.
+#' Options are:
 #' \itemize{
 #'    \item{pcaproject: Use the projected PCA used for anchor building}
 #'    \item{pca: Use an internal PCA on the query only}
 #'    \item{cca: Use the CCA used for anchor building}
-#'    \item{custom DimReduc: User provided DimReduc object computed on the query cells}
+#'    \item{custom DimReduc: User provided DimReduc object computed on the query
+#'    cells}
 #' }
-#' @param l2.norm Perform L2 normalization on the cell embeddings after dimensional reduction
+#' @param l2.norm Perform L2 normalization on the cell embeddings after
+#' dimensional reduction
 #' @param dims Number of PCs to use in the weighting procedure
 #' @param k.weight Number of neighbors to consider when weighting
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
@@ -874,8 +1525,9 @@ SelectIntegrationFeatures <- function(
 #' @param verbose Print progress bars and output
 #' @param slot Slot to store the imputed data
 #'
-#' @return If refdata is a vector, returns a dataframe with label predictions. If refdata is a
-#' matrix, returns an Assay object where the imputed data has been stored in the provided slot.
+#' @return If refdata is a vector, returns a dataframe with label predictions.
+#' If refdata is a matrix, returns an Assay object where the imputed data has
+#' been stored in the provided slot.
 #'
 #' @export
 #'
@@ -1065,8 +1717,9 @@ TransferData <- function(
 # @param offsets size of each dataset in anchor dataframe
 # @param obj.length Vector of object lengths
 #
-# @return Anchor dataframe with additional columns corresponding to the dataset of each cell
-#
+# @return Anchor dataframe with additional columns corresponding to the dataset
+# of each cell
+
 AddDatasetID <- function(
   anchor.df,
   offsets,
@@ -1087,6 +1740,24 @@ AddDatasetID <- function(
   return(anchor.df)
 }
 
+# Adjust sample tree to only include given reference objects
+#
+# @param x A sample tree
+# @param reference.objects a sorted list of reference object IDs
+#
+AdjustSampleTree <- function(x, reference.objects) {
+  for (i in 1:nrow(x = x)) {
+    obj.id <- -(x[i, ])
+    if (obj.id[[1]] > 0) {
+      x[i, 1] <- -(reference.objects[[obj.id[[1]]]])
+    }
+    if (obj.id[[2]] > 0) {
+      x[i, 2] <- -(reference.objects[[obj.id[[2]]]])
+    }
+  }
+  return(x)
+}
+
 # Add info to anchor matrix
 #
 # @param object Seurat object
@@ -1094,8 +1765,9 @@ AddDatasetID <- function(
 # @param annotation Name in metadata to annotate anchors with
 # @param object.list List of objects using in FindIntegrationAnchors call
 #
-# @return Returns the anchor dataframe with additional columns for annotation metadata
-#
+# @return Returns the anchor dataframe with additional columns for annotation
+# metadata
+
 AnnotateAnchors <- function(
   object,
   toolname = "integrated",
@@ -1170,11 +1842,13 @@ ConstructNNMat <- function(nn.idx, offset1, offset2, dims) {
 
 # Count anchors between all datasets
 #
-# Counts anchors between each dataset and scales based on total number of cells in the datasets
+# Counts anchors between each dataset and scales based on total number of cells
+# in the datasets
 #
 # @param anchor.df Matrix of anchors
-# @param offsets Dataset sizes in anchor matrix. Used to identify boundaries of each dataset in
-# matrix, so that total pairwise anchors between all datasets can be counted
+# @param offsets Dataset sizes in anchor matrix. Used to identify boundaries of
+# each dataset in matrix, so that total pairwise anchors between all datasets
+# can be counted
 #
 # @return Returns a similarity matrix
 #
@@ -1203,9 +1877,11 @@ CountAnchors <- function(
 FilterAnchors <- function(
   object,
   assay = NULL,
+  slot = "data",
   integration.name = 'integrated',
   features = NULL,
   k.filter = 200,
+  nn.method = "rann",
   eps = 0,
   verbose = TRUE
 ) {
@@ -1224,17 +1900,18 @@ FilterAnchors <- function(
   cn.data1 <- L2Norm(
     mat = as.matrix(x = t(x = GetAssayData(
       object = object[[assay[1]]],
-      slot = "data")[features, nn.cells1])),
+      slot = slot)[features, nn.cells1])),
     MARGIN = 1)
   cn.data2 <- L2Norm(
     mat = as.matrix(x = t(x = GetAssayData(
       object = object[[assay[2]]],
-      slot = "data")[features, nn.cells2])),
+      slot = slot)[features, nn.cells2])),
     MARGIN = 1)
-  nn <- nn2(
+  nn <- NNHelper(
     data = cn.data2[nn.cells2, ],
     query = cn.data1[nn.cells1, ],
     k = k.filter,
+    method = nn.method,
     eps = eps
   )
 
@@ -1258,14 +1935,19 @@ FilterAnchors <- function(
 FindAnchors <- function(
   object.pair,
   assay,
+  slot,
   cells1,
   cells2,
+  internal.neighbors,
   reduction,
+  reduction.2 = character(),
+  nn.reduction = reduction,
   dims = 1:10,
   k.anchor = 5,
   k.filter = 200,
   k.score = 30,
   max.features = 200,
+  nn.method = "rann",
   eps = 0,
   projected = FALSE,
   verbose = TRUE
@@ -1280,9 +1962,13 @@ FindAnchors <- function(
     object = object.pair,
     cells1 = cells1,
     cells2 = cells2,
+    internal.neighbors = internal.neighbors,
     dims = dims,
     reduction = reduction,
+    reduction.2 = reduction.2,
+    nn.reduction = nn.reduction,
     k = k.neighbor,
+    nn.method = nn.method,
     eps = eps,
     verbose = verbose
   )
@@ -1304,9 +1990,11 @@ FindAnchors <- function(
     object.pair <- FilterAnchors(
       object = object.pair,
       assay = assay,
+      slot = slot,
       integration.name = 'integrated',
       features = top.features,
       k.filter = k.filter,
+      nn.method = nn.method,
       eps = eps,
       verbose = verbose
     )
@@ -1454,12 +2142,15 @@ FindNN <- function(
   object,
   cells1 = NULL,
   cells2 = NULL,
+  internal.neighbors,
   grouping.var = NULL,
   dims = 1:10,
   reduction = "cca.l2",
+  reduction.2 = character(),
   nn.dims = dims,
   nn.reduction = reduction,
   k = 300,
+  nn.method = "rann",
   eps = 0,
   integration.name = 'integrated',
   verbose = TRUE
@@ -1477,42 +2168,68 @@ FindNN <- function(
     if (nrow(x = unique(x = object[[grouping.var]])) != 2) {
       stop("Number of groups in grouping.var not equal to 2.")
     }
-    groups <- names(x = sort(x = table(... = object[[grouping.var]]), decreasing = TRUE))
+    groups <- names(x = sort(x = table(object[[grouping.var]]), decreasing = TRUE))
     cells1 <- colnames(x = object)[object[[grouping.var]] == groups[[1]]]
     cells2 <- colnames(x = object)[object[[grouping.var]] == groups[[2]]]
   }
   if (verbose) {
     message("Finding neighborhoods")
   }
-  dim.data.self <- Embeddings(object = object[[nn.reduction]])[ ,nn.dims]
-  dim.data.opposite <- Embeddings(object = object[[reduction]])[ ,dims]
-  dims.cells1.self <- dim.data.self[cells1, ]
-  dims.cells1.opposite <- dim.data.opposite[cells1, ]
-  dims.cells2.self <- dim.data.self[cells2, ]
-  dims.cells2.opposite <- dim.data.opposite[cells2, ]
+  if (!is.null(x = internal.neighbors[[1]])) {
+    nnaa <- internal.neighbors[[1]]
+    nnbb <- internal.neighbors[[2]]
+  } else {
+    dim.data.self <- Embeddings(object = object[[nn.reduction]])[ ,nn.dims]
+    dims.cells1.self <- dim.data.self[cells1, ]
+    dims.cells2.self <- dim.data.self[cells2, ]
+    nnaa <- NNHelper(
+      data = dims.cells1.self,
+      k = k + 1,
+      method = nn.method,
+      eps = eps
+    )
+    nnbb <- NNHelper(
+      data = dims.cells2.self,
+      k = k + 1,
+      method = nn.method,
+      eps = eps
+    )
+  }
+  if (length(x = reduction.2) > 0) {
+    nnab <- NNHelper(
+      data = Embeddings(object = object[[reduction.2]])[cells2, ],
+      query = Embeddings(object = object[[reduction.2]])[cells1, ],
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
+    nnba <- NNHelper(
+      data = Embeddings(object = object[[reduction]])[cells1, ],
+      query = Embeddings(object = object[[reduction]])[cells2, ],
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
+  } else {
+    dim.data.opposite <- Embeddings(object = object[[reduction]])[ ,dims]
+    dims.cells1.opposite <- dim.data.opposite[cells1, ]
+    dims.cells2.opposite <- dim.data.opposite[cells2, ]
+    nnab <- NNHelper(
+      data = dims.cells2.opposite,
+      query = dims.cells1.opposite,
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
+    nnba <- NNHelper(
+      data = dims.cells1.opposite,
+      query = dims.cells2.opposite,
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
+  }
 
-  nnaa <- nn2(
-    data = dims.cells1.self,
-    k = k + 1,
-    eps = eps
-  )
-  nnab <- nn2(
-    data = dims.cells2.opposite,
-    query = dims.cells1.opposite,
-    k = k,
-    eps = eps
-  )
-  nnbb <- nn2(
-    data = dims.cells2.self,
-    k = k + 1,
-    eps = eps
-  )
-  nnba <- nn2(
-    data = dims.cells1.opposite,
-    query = dims.cells2.opposite,
-    k = k,
-    eps = eps
-  )
   object <- SetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -1532,6 +2249,7 @@ FindWeights <- function(
   features = NULL,
   k = 300,
   sd.weight = 1,
+  nn.method = "rann",
   eps = 0,
   verbose = TRUE,
   cpp = FALSE
@@ -1539,7 +2257,7 @@ FindWeights <- function(
   if (verbose) {
     message("Finding integration vector weights")
   }
-  if (is.null(reduction) & is.null(features)) {
+  if (is.null(x = reduction) & is.null(x = features)) {
     stop("Need to specify either dimension reduction object or a set of features")
   }
   assay <- assay %||% DefaultAssay(object = object)
@@ -1557,10 +2275,11 @@ FindWeights <- function(
   } else {
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
   }
-  knn_2_2 <- nn2(
+  knn_2_2 <- NNHelper(
     data = data.use[anchors.cells2, ],
     query = data.use,
     k = k + 1,
+    method = nn.method,
     eps = eps
   )
   distances <- knn_2_2$nn.dists[, -1]
@@ -1615,6 +2334,30 @@ FindWeights <- function(
     new.data = weights
   )
   return(object)
+}
+
+
+# Work out the anchor cell offsets for given set of cells in anchor list
+#
+# @param anchors A dataframe of anchors, from AnchorSet object
+# @param dataset Dataset number (1 or 2)
+# @param cell Cell number (1 or 2)
+# @param cellnames.list List of cell names in all objects
+# @param cellnames list of cell names for only the object in question
+#
+# @return Returns a list of offsets
+#
+GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
+  cell.id <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    cellnames.list[[anchors[, dataset+3][x]]][anchors[, cell][x]]
+  })
+  cell.offset <- sapply(
+    X = 1:length(x = cell.id),
+    FUN = function(x) {
+      return(which(x = cellnames == cell.id[x]))
+    }
+  )
+  return(cell.offset)
 }
 
 # Convert nearest neighbor information to a sparse matrix
@@ -1707,14 +2450,14 @@ ProjectCellEmbeddings <- function(
 
   reference.data <-  GetAssayData(
     object = reference,
-    assay.use = reference.assay,
+    assay = reference.assay,
     slot = "data")[features, ]
   query.data <- GetAssayData(
     object = query,
-    assay.use = query.assay,
+    assay = query.assay,
     slot = "data")[features, ]
 
-  if (is.null(x = feature.mean)){
+  if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
     feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
     feature.sd[is.na(x = feature.sd)] <- 1
@@ -1726,12 +2469,14 @@ ProjectCellEmbeddings <- function(
     slot = "data"
   )[features, ]
   store.names <- dimnames(x = proj.data)
+  if (is.numeric(x = feature.mean) && feature.mean != "SCT") {
   proj.data <- FastSparseRowScaleWithKnownStats(
     mat = proj.data,
     mu = feature.mean,
     sigma = feature.sd,
     display_progress = FALSE
   )
+  }
   dimnames(x = proj.data) <- store.names
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = proj.data))
@@ -1753,6 +2498,158 @@ ProjectCellEmbeddings <- function(
 ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
   return((x - quantile(x = x, probs = lower)) /
            (quantile(x = x, probs = upper) - quantile(x = x, probs = lower)))
+}
+
+# Run integration between a reference and query object
+#
+# Should only be called from within another function
+#
+# @param filtered.anchors A dataframe containing only anchors between reference and query
+# @param reference A reference object
+# @param query A query object
+# @param cellnames.list List of all cell names in all objects to be integrated
+# @param new.assay.name Name for the new assay containing the integrated data
+# @param features Vector of features to use when computing the PCA to determine the weights. Only set
+# if you want a different set from those used in the anchor finding process
+# @param features.to.integrate Vector of features to integrate. By default, will use the features
+# used in anchor finding.
+# @param dims Number of PCs to use in the weighting procedure
+# @param k.weight Number of neighbors to consider when weighting
+# @param weight.reduction Dimension reduction to use when calculating anchor weights.
+# This can be either:
+# \itemize{
+#    \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
+#    \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
+#    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
+# }
+# Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
+# first merge between reference and query, as the merged object will subsequently contain more cells than was in
+# query, and weights will need to be calculated for all cells in the object.
+# @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
+# @param sample.tree Specify the order of integration. If NULL, will compute automatically.
+# @param do.cpp Run cpp code where applicable
+# @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
+# @param verbose Print progress bars and output
+#
+RunIntegration <- function(
+  filtered.anchors,
+  normalization.method,
+  reference,
+  query,
+  cellnames.list,
+  new.assay.name,
+  features.to.integrate,
+  weight.reduction,
+  features,
+  dims,
+  do.cpp,
+  k.weight,
+  sd.weight,
+  eps,
+  verbose
+) {
+  cells1 <- colnames(x = reference)
+  cells2 <- colnames(x = query)
+  merged.obj <- merge(x = reference, y = query, merge.data = TRUE)
+  cell1.offset <- GetCellOffsets(
+    anchors = filtered.anchors,
+    dataset = 1,
+    cell = 1,
+    cellnames.list = cellnames.list,
+    cellnames = cells1
+  )
+  cell2.offset <- GetCellOffsets(
+    anchors = filtered.anchors,
+    dataset = 2,
+    cell = 2,
+    cellnames.list = cellnames.list,
+    cellnames = cells2
+  )
+  filtered.anchors[, 1] <- cell1.offset
+  filtered.anchors[, 2] <- cell2.offset
+  integration.name <- "integrated"
+  merged.obj <- SetIntegrationData(
+    object = merged.obj,
+    integration.name = integration.name,
+    slot = 'anchors',
+    new.data = filtered.anchors
+  )
+  merged.obj <- SetIntegrationData(
+    object = merged.obj,
+    integration.name = integration.name,
+    slot = 'neighbors',
+    new.data = list('cells1' = cells1, 'cells2' = cells2)
+  )
+  merged.obj <- FindIntegrationMatrix(
+    object = merged.obj,
+    integration.name = integration.name,
+    features.integrate = features.to.integrate,
+    verbose = verbose
+  )
+  assay <- DefaultAssay(object = merged.obj)
+  if (is.null(x = weight.reduction)) {
+    if (normalization.method == "SCT"){
+      # recenter residuals
+      centered.resids <- ScaleData(
+        object = GetAssayData(object = merged.obj, assay = assay, slot = "data"),
+        do.scale = FALSE,
+        do.center = TRUE,
+        verbose = FALSE
+      )
+      merged.obj[["pca"]] <- RunPCA(
+        object = centered.resids[features, ],
+        assay = assay,
+        npcs = max(dims),
+        verbose = FALSE,
+        features = features
+      )
+    } else {
+      merged.obj <- ScaleData(
+        object = merged.obj,
+        features = features,
+        verbose = FALSE
+      )
+      merged.obj <- RunPCA(
+        object = merged.obj,
+        npcs = max(dims),
+        verbose = FALSE,
+        features = features
+      )
+    }
+    dr.weights <- merged.obj[['pca']]
+  } else {
+    dr <- weight.reduction[[2]]
+    if (inherits(x = dr, what = "DimReduc")) {
+      dr.weights <- dr
+    } else {
+      dr.weights <- query[[dr]]
+    }
+  }
+  merged.obj <- FindWeights(
+    object = merged.obj,
+    integration.name = integration.name,
+    reduction = dr.weights,
+    cpp = do.cpp,
+    dims = dims,
+    k = k.weight,
+    sd.weight = sd.weight,
+    eps = eps,
+    verbose = verbose
+  )
+  merged.obj <- TransformDataMatrix(
+    object = merged.obj,
+    new.assay.name = new.assay.name,
+    features.to.integrate = features.to.integrate,
+    integration.name = integration.name,
+    do.cpp = do.cpp,
+    verbose = verbose
+  )
+  integrated.matrix <- GetAssayData(
+    object = merged.obj,
+    assay = new.assay.name,
+    slot = 'data'
+  )
+  return(integrated.matrix[, cells2])
 }
 
 ScoreAnchors <- function(

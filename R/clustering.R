@@ -21,6 +21,8 @@ NULL
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
+#' @param method Method for running leiden (defaults to matrix which is fast for small datasets).
+#' Enable method = "igraph" to avoid casting large data to a dense matrix.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -41,6 +43,7 @@ FindClusters.default <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
+  method = "matrix",
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -51,6 +54,7 @@ FindClusters.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
@@ -79,12 +83,15 @@ FindClusters.default <- function(
           )
         } else if (algorithm == 4) {
           ids <- RunLeiden(
-            adj_mat = object,
+            object = object,
+            method = method,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
             weights = weights,
             node.sizes = node.sizes,
-            resolution.parameter = resolution
+            resolution.parameter = r,
+            random.seed = random.seed,
+            n.iter = n.iter
           )
         } else {
           stop("algorithm not recognised, please specify as an integer or string")
@@ -114,12 +121,15 @@ FindClusters.default <- function(
           edge.file.name = edge.file.name)
       } else if (algorithm == 4) {
         ids <- RunLeiden(
-          adj_mat = object,
+          object = object,
+          method = method,
           partition.type = "RBConfigurationVertexPartition",
           initial.membership = initial.membership,
           weights = weights,
           node.sizes = node.sizes,
-          resolution.parameter = r
+          resolution.parameter = r,
+          random.seed = random.seed,
+          n.iter = n.iter
         )
       } else {
         stop("algorithm not recognised, please specify as an integer or string")
@@ -158,6 +168,7 @@ FindClusters.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
   if (!graph.name %in% names(x = object)) {
     stop("Provided graph.name not present in Seurat object")
@@ -179,7 +190,8 @@ FindClusters.Seurat <- function(
     group.singletons = group.singletons,
     temp.file.location = temp.file.location,
     edge.file.name = edge.file.name,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
   object <- AddMetaData(object = object, metadata = clustering.results)
@@ -210,6 +222,10 @@ FindClusters.Seurat <- function(
 #' values less than or equal to this will be set to 0 and removed from the SNN
 #' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
 #' prune everything).
+#' @param nn.method Method for nearest neighbor finding. Options include: rann,
+#' annoy
+#' @param annoy.metric Distance metric for annoy. Options include: euclidean,
+#' cosine, manhattan, and hamming
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
@@ -228,11 +244,14 @@ FindNeighbors.default <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = 'rann',
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = dim(x = object))) {
     warning(
       "Object should have two dimensions, attempting to coerce to matrix",
@@ -256,12 +275,14 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing nearest neighbor graph")
     }
-    my.knn <- nn2(
+    nn.ranked <- NNHelper(
       data = object,
       k = k.param,
-      searchtype = 'standard',
-      eps = nn.eps)
-    nn.ranked <- my.knn$nn.idx
+      method = nn.method,
+      searchtype = "standard",
+      eps = nn.eps,
+      metric = annoy.metric)
+    nn.ranked <- nn.ranked$nn.idx
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -307,11 +328,14 @@ FindNeighbors.Assay <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = 'rann',
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   ...
 ) {
+  CheckDots(...)
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
   neighbor.graphs <- FindNeighbors(
@@ -319,9 +343,12 @@ FindNeighbors.Assay <- function(
     k.param = k.param,
     compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
     nn.eps = nn.eps,
     verbose = verbose,
-    force.recalc = force.recalc
+    force.recalc = force.recalc,
+    ...
   )
   return(neighbor.graphs)
 }
@@ -335,11 +362,14 @@ FindNeighbors.dist <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = "rann",
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   ...
 ) {
+  CheckDots(...)
   return(FindNeighbors(
     object = as.matrix(x = object),
     distance.matrix = TRUE,
@@ -347,6 +377,8 @@ FindNeighbors.dist <- function(
     compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
     verbose = verbose,
     force.recalc = force.recalc,
     ...
@@ -376,6 +408,8 @@ FindNeighbors.Seurat <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = "rann",
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
@@ -383,6 +417,7 @@ FindNeighbors.Seurat <- function(
   graph.name = NULL,
   ...
 ) {
+  CheckDots(...)
   if (!is.null(x = dims)) {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction]])
@@ -395,9 +430,12 @@ FindNeighbors.Seurat <- function(
       k.param = k.param,
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
+      nn.method = nn.method,
+      annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      ...
     )
   } else {
     assay <- assay %||% DefaultAssay(object = object)
@@ -408,9 +446,12 @@ FindNeighbors.Seurat <- function(
       k.param = k.param,
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
+      nn.method = nn.method,
+      annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      ...
     )
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
@@ -447,6 +488,89 @@ FindNeighbors.Seurat <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Run annoy
+#
+# @param data Data to build the index with
+# @param query A set of data to be queried against data
+# @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
+# "hamming"
+# @param n.trees More trees gives higher precision when querying
+# @param k Number of neighbors
+# @param search.k During the query it will inspect up to search_k nodes which
+# gives you a run-time tradeoff between better accuracy and speed.
+# @ param include.distance Include the corresponding distances
+#
+AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
+                    search.k = -1, include.distance = TRUE) {
+  idx <- AnnoyBuildIndex(
+    data = data,
+    metric = metric,
+    n.trees = n.trees)
+  nn <- AnnoySearch(
+    index = idx,
+    query = query,
+    k = k,
+    search.k = search.k,
+    include.distance = include.distance)
+  return(nn)
+}
+
+# Build the annoy index
+#
+# @param data Data to build the index with
+# @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
+# "hamming"
+# @param n.trees More trees gives higher precision when querying
+#' @importFrom RcppAnnoy AnnoyEuclidean AnnoyAngular AnnoyManhattan AnnoyHamming
+#
+AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
+  f <- ncol(x = data)
+  a <- switch(
+    EXPR = metric,
+    "euclidean" =  new(Class = RcppAnnoy::AnnoyEuclidean, f),
+    "cosine" = new(Class = RcppAnnoy::AnnoyAngular, f),
+    "manhattan" = new(Class = RcppAnnoy::AnnoyManhattan, f),
+    "hamming" = new(Class = RcppAnnoy::AnnoyHamming, f),
+    stop ("Invalid metric")
+  )
+  for (ii in seq(nrow(x = data))) {
+    a$addItem(ii - 1, data[ii, ])
+  }
+  a$build(n.trees)
+  return(a)
+}
+
+# Search the annoy index
+#
+# @param Annoy index, build with AnnoyBuildIndex
+# @param query A set of data to be queried against the index
+# @param k Number of neighbors
+# @param search.k During the query it will inspect up to search_k nodes which
+# gives you a run-time tradeoff between better accuracy and speed.
+# @ param include.distance Include the corresponding distances
+#
+AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
+  n <- nrow(x = query)
+  idx <- matrix(nrow = n,  ncol = k)
+  dist <- matrix(nrow = n, ncol = k)
+  convert <- methods::is(index, "Rcpp_AnnoyAngular")
+  res <- future_lapply(X = 1:n, FUN = function(x) {
+    res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
+    # Convert from Angular to Cosine distance
+    if (convert) {
+      res$dist <- 0.5 * (res$dist * res$dist)
+    }
+    list(res$item + 1, res$distance)
+  })
+  for (i in 1:n) {
+    idx[i, ] <- res[[i]][[1]]
+    if (include.distance) {
+      dist[i, ] <- res[[i]][[2]]
+    }
+  }
+  return(list(nn.idx = idx, nn.dists = dist))
+}
 
 # Group single cells that make up their own cluster in with the cluster they are
 # most connected to.
@@ -502,6 +626,33 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
   return(ids)
 }
 
+# Internal helper function to dispatch to various neighbor finding methods
+#
+# @param data Input data
+# @param query Data to query against data
+# @param k Number of nearest neighbors to compute
+# @param method Nearest neighbor method to use: "rann", "annoy"
+# @param ... additional parameters to specific neighbor finding method
+#
+NNHelper <- function(data, query = data, k, method, ...) {
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
+  return(
+    switch(
+      EXPR = method,
+      "rann" = {
+        args <- args[intersect(x = names(x = args), y = names(x = formals(fun = nn2)))]
+        do.call(what = 'nn2', args = args)
+      },
+      "annoy" = {
+        args <- args[intersect(x = names(x = args), y = names(x = formals(fun = AnnoyNN)))]
+        do.call(what = 'AnnoyNN', args = args)
+      },
+      stop("Invalid method. Please choose one of 'rann', 'annoy'")
+    )
+  )
+}
+
 # Run Leiden clustering algorithm
 #
 # Implements the Leiden clustering algorithm in R using reticulate
@@ -518,17 +669,23 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @param resolution.parameter A parameter controlling the coarseness of the clusters
 # for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
 # partition types that accept a resolution parameter)
+# @param random.seed Seed of the random number generator
+# @param n.iter Maximal number of iterations per random start
 #
 # @keywords graph network igraph mvtnorm simulation
 #
+#' @importFrom leiden leiden
+#' @importFrom methods as is
 #' @importFrom reticulate py_module_available import r_to_py
+#' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
 # @author Tom Kelly
 #
 # @export
 #
 RunLeiden <- function(
-  adj_mat,
+  object,
+  method = c("matrix", "igraph"),
   partition.type = c(
     'RBConfigurationVertexPartition',
     'ModularityVertexPartition',
@@ -541,75 +698,42 @@ RunLeiden <- function(
   initial.membership = NULL,
   weights = NULL,
   node.sizes = NULL,
-  resolution.parameter = 1
+  resolution.parameter = 1,
+  random.seed = 0,
+  n.iter = 10
 ) {
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
-  # import python modules with reticulate
-  leidenalg <- import(module = "leidenalg")
-  ig <- import(module = "igraph")
-  # convert matrix input
-  adj_mat <- as.matrix(x = ceiling(x = adj_mat))
-  # convert to python numpy.ndarray, then a list
-  adj_mat_py <- r_to_py(x = adj_mat)
-  adj_mat_py <- adj_mat_py$tolist()
-  # convert graph structure to a Python compatible object
-  snn_graph <- ig$Graph$Adjacency(adj_mat_py)
-  # compute partitions
-  part <- switch(
-    EXPR = partition.type,
-    'RBConfigurationVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$RBConfigurationVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      resolution_parameter = resolution.parameter
+  switch(
+    EXPR = method,
+    #cast to dense (supported by reticulate for numpy.array)
+    "matrix" = input <- as(object, "matrix"),
+    #run as igraph object (passes to reticulate)
+    "igraph" = switch(
+      EXPR = is(object),
+      #generate igraph if needed (will handle updated snn class)
+      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "igraph" = input <- object,
+      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
+      "list" = input <- graph_from_adj_list(adjlist = object),
+      stop("SNN object must be a compatible input for igraph")
     ),
-    'ModularityVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$ModularityVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights
-    ),
-    'RBERVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$RBERVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
-    ),
-    'CPMVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$CPMVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
-    ),
-    'MutableVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$MutableVertexPartition,
-      initial_membership = initial.membership
-    ),
-    'SignificanceVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$SignificanceVertexPartition,
-      initial_membership = initial.membership,
-      node_sizes = node.sizes,
-      resolution_parameter = resolution.parameter
-    ),
-    'SurpriseVertexPartition' = leidenalg$find_partition(
-      snn_graph,
-      leidenalg$SurpriseVertexPartition,
-      initial_membership = initial.membership,
-      weights = weights,
-      node_sizes = node.sizes
-    ),
-    stop("please specify a partition type as a string out of those documented")
+    stop("method for leiden must be 'matrix' or 'igraph'")
   )
-  return(part$membership + 1)
+  #run leiden from CRAN package (calls python with reticulate)
+  partition <- leiden(
+    object = input,
+    partition_type = partition.type,
+    initial_membership = initial.membership,
+    weights = weights,
+    node_sizes = node.sizes,
+    resolution_parameter = resolution.parameter,
+    seed = random.seed,
+    n_iterations = n.iter
+  )
+  return(partition)
 }
 
 # Runs the modularity optimizer (C++ port of java program ModularityOptimizer.jar)

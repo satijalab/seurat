@@ -8,12 +8,14 @@
 \usage{
 RunALRA(object, ...)
 
-\method{RunALRA}{default}(object, k = NULL, q = 10, ...)
+\method{RunALRA}{default}(object, k = NULL, q = 10,
+  quantile.prob = 0.001, use.mkl = FALSE, mkl.seed = -1, ...)
 
-\method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
-  slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
-  K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
-  k.only = FALSE, ...)
+\method{RunALRA}{Seurat}(object, k = NULL, q = 10,
+  quantile.prob = 0.001, use.mkl = FALSE, mkl.seed = -1,
+  assay = NULL, slot = "data", setDefaultAssay = TRUE,
+  genes.use = NULL, K = NULL, thresh = 6, noise.start = NULL,
+  q.k = 2, k.only = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -24,6 +26,19 @@ RunALRA(object, ...)
 
 \item{q}{The number of additional power iterations in randomized SVD when
 computing rank k approximation. By default, q=10.}
+
+\item{quantile.prob}{The quantile probability to use when calculating threshold.
+By default, quantile.prob = 0.001.}
+
+\item{use.mkl}{Use the Intel MKL based implementation of SVD. Needs to be
+installed from https://github.com/KlugerLab/rpca-mkl. \strong{Note}: this requires
+the \href{https://github.com/satijalab/seurat-wrappers}{SeuratWrappers} implementation
+of \code{RunALRA}}
+
+\item{mkl.seed}{Only relevant if \code{use.mkl = TRUE}. Set the seed for the random
+generator for the Intel MKL implementation of SVD. Any number <0 will
+use the current timestamp. If \code{use.mkl = FALSE}, set the seed using
+\code{\link{set.seed}()} function as usual.}
 
 \item{assay}{Assay to use}
 
@@ -36,7 +51,7 @@ computing rank k approximation. By default, q=10.}
 \item{K}{Number of singular values to compute when choosing k. Must be less
 than the smallest dimension of the matrix. Default 100 or smallest dimension.}
 
-\item{p.val.th}{The threshold for ''significance'' when choosing k. Default 1e-10.}
+\item{thresh}{The threshold for ''significance'' when choosing k. Default 1e-10.}
 
 \item{noise.start}{Index for which all smaller singular values are considered noise.
 Default K - 20.}
@@ -51,6 +66,10 @@ Computes the k-rank approximation to A_norm and adjusts it according to the
 error distribution learned from the negative values. Described in
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+}
+\note{
+RunALRA and associated functions are being moved to SeuratWrappers;
+for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
 }
 \examples{
 pbmc_small

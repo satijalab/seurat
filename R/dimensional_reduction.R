@@ -150,7 +150,7 @@ JackStraw <- function(
 #'
 #' @export
 #'
-L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
+L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL) {
   l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
   if(is.null(new.dr)){
     new.dr <- paste0(reduction, ".l2")
@@ -183,6 +183,7 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
 #' @export
 #'
 L2CCA <- function(object, ...){
+  CheckDots(..., fxns = 'L2Dim')
   return(L2Dim(object = object, reduction = "cca", ...))
 }
 
@@ -286,7 +287,7 @@ ProjectDim <- function(
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
   }
   cell.embeddings <- Embeddings(object = redeuc)
-  new.feature.loadings.full <- FastMatMult(m1 = data.use, m2 = cell.embeddings)
+  new.feature.loadings.full <- data.use %*% cell.embeddings
   rownames(x = new.feature.loadings.full) <- rownames(x = data.use)
   colnames(x = new.feature.loadings.full) <- colnames(x = cell.embeddings)
   Loadings(object = redeuc, projected = TRUE) <- new.feature.loadings.full
@@ -313,8 +314,7 @@ ProjectDim <- function(
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
-#' @param verbose ...
-#' @param use.cpp ...
+#' @param verbose Show progress messages
 #'
 #' @importFrom irlba irlba
 #'
@@ -327,7 +327,6 @@ RunCCA.default <- function(
   standardize = TRUE,
   num.cc = 20,
   verbose = FALSE,
-  use.cpp = TRUE,
   ...
 ) {
   set.seed(seed = 42)
@@ -337,17 +336,7 @@ RunCCA.default <- function(
     object1 <- Standardize(mat = object1, display_progress = FALSE)
     object2 <- Standardize(mat = object2, display_progress = FALSE)
   }
-  if (as.numeric(x = max(dim(x = object1))) * as.numeric(x = max(dim(x = object2))) > .Machine$integer.max) {
-    # if the returned matrix from FastMatMult has more than 2^31-1 entries, throws an error due to
-    # storage of certain attributes as ints, force usage of R version
-    use.cpp <- FALSE
-  }
-  if (use.cpp == TRUE) {
-    mat3 <- FastMatMult(m1 = t(x = object1), m2 = object2)
-  }
-  else {
-    mat3 <- crossprod(x = object1, y = object2)
-  }
+  mat3 <- crossprod(x = object1, y = object2)
   cca.svd <- irlba(A = mat3, nv = num.cc)
   cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
@@ -395,7 +384,6 @@ RunCCA.Seurat <- function(
   add.cell.id1 = NULL,
   add.cell.id2 = NULL,
   verbose = TRUE,
-  use.cpp = TRUE,
   ...
 ) {
   assay1 <- assay1 %||% DefaultAssay(object = object1)
@@ -452,7 +440,6 @@ RunCCA.Seurat <- function(
     standardize = TRUE,
     num.cc = num.cc,
     verbose = verbose,
-    use.cpp = use.cpp
   )
   if (verbose) {
     message("Merging objects")
@@ -528,6 +515,7 @@ RunICA.default <- function(
   seed.use = 42,
   ...
 ) {
+  CheckDots(..., fxns = ica.function)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -598,7 +586,6 @@ RunICA.Assay <- function(
   return(reduction.data)
 }
 
-
 #' @param reduction.name dimensional reduction name
 #'
 #' @rdname RunICA
@@ -663,6 +650,7 @@ RunLSI.default <- function(
   verbose = TRUE,
   ...
 ) {
+  CheckDots(...)
   if (!is.null(seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -725,7 +713,6 @@ RunLSI.Assay <- function(
   reduction.data <- RunLSI(
     object = data.use,
     assay = assay,
-    features = features,
     n = n,
     reduction.key = reduction.key,
     scale.max = scale.max,
@@ -789,6 +776,7 @@ RunLSI.Seurat <- function(
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
+#' @importFrom utils capture.output
 #'
 #' @rdname RunPCA
 #' @export
@@ -860,7 +848,12 @@ RunPCA.default <- function(
     misc = list(total.variance = total.variance)
   )
   if (verbose) {
-    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+    msg <- capture.output(print(
+      x = reduction.data,
+      dims = ndims.print,
+      nfeatures = nfeatures.print
+    ))
+    message(paste(msg, collapse = '\n'))
   }
   return(reduction.data)
 }
@@ -1135,6 +1128,8 @@ RunTSNE.Seurat <- function(
 }
 
 #' @importFrom reticulate py_module_available py_set_seed import
+#' @importFrom uwot umap
+#' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
 #' @method RunUMAP default
@@ -1143,9 +1138,10 @@ RunTSNE.Seurat <- function(
 RunUMAP.default <- function(
   object,
   assay = NULL,
+  umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
-  metric = "correlation",
+  metric = 'cosine',
   n.epochs = NULL,
   learning.rate = 1.0,
   min.dist = 0.3,
@@ -1163,40 +1159,85 @@ RunUMAP.default <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!py_module_available(module = 'umap')) {
-    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
-  }
+  CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
-  if (typeof(x = n.epochs) == "double") {
-    n.epochs <- as.integer(x = n.epochs)
+  if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
+    warning(
+      "The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric",
+      "\nTo use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'",
+      "\nThis message will be shown once per session",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    options(Seurat.warn.umap.uwot = FALSE)
   }
-  umap_import <- import(module = "umap", delay_load = TRUE)
-  umap <- umap_import$UMAP(
-    n_neighbors = as.integer(x = n.neighbors),
-    n_components = as.integer(x = n.components),
-    metric = metric,
-    n_epochs = n.epochs,
-    learning_rate = learning.rate,
-    min_dist = min.dist,
-    spread = spread,
-    set_op_mix_ratio = set.op.mix.ratio,
-    local_connectivity = local.connectivity,
-    repulsion_strength = repulsion.strength,
-    negative_sample_rate = negative.sample.rate,
-    a = a,
-    b = b,
-    metric_kwds = metric.kwds,
-    angular_rp_forest = angular.rp.forest,
-    verbose = verbose
+  umap.output <- switch(
+    EXPR = umap.method,
+    'umap-learn' = {
+      if (!py_module_available(module = 'umap')) {
+        stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+      }
+      if (typeof(x = n.epochs) == "double") {
+        n.epochs <- as.integer(x = n.epochs)
+      }
+      umap_import <- import(module = "umap", delay_load = TRUE)
+      umap <- umap_import$UMAP(
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        metric_kwds = metric.kwds,
+        angular_rp_forest = angular.rp.forest,
+        verbose = verbose
+      )
+      umap$fit_transform(as.matrix(x = object))
+    },
+    'uwot' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      umap(
+        X = object,
+        n_threads = nbrOfWorkers(),
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        verbose = verbose
+      )
+    },
+    stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
-  umap_output <- umap$fit_transform(as.matrix(x = object))
-  colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
-  rownames(x = umap_output) <- rownames(object)
+  colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
+  rownames(x = umap.output) <- rownames(x = object)
   umap.reduction <- CreateDimReducObject(
-    embeddings = umap_output,
+    embeddings = umap.output,
     key = reduction.key,
     assay = assay
   )
@@ -1212,8 +1253,9 @@ RunUMAP.default <- function(
 RunUMAP.Graph <- function(
   object,
   assay = NULL,
+  umap.method = 'umap-learn',
   n.components = 2L,
-  metric = "correlation",
+  metric = 'correlation',
   n.epochs = 0L,
   learning.rate = 1,
   min.dist = 0.3,
@@ -1228,6 +1270,14 @@ RunUMAP.Graph <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
+  CheckDots(...)
+  if (umap.method != 'umap-learn') {
+    warning(
+      "Running UMAP on Graph objects is only supported using the umap-learn method",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   if (!py_module_available(module = 'umap')) {
     stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
   }
@@ -1286,6 +1336,11 @@ RunUMAP.Graph <- function(
 #' @param graph Name of graph on which to run UMAP
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
+#' @param umap.method UMAP implementation to run. Can be
+#' \describe{
+#'   \item{\code{uwot}:}{Runs umap via the uwot R package}
+#'   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
+#' }
 #' @param n.neighbors This determines the number of neighboring points used in
 #' local approximations of manifold structure. Larger values will result in more
 #' global structure being preserved at the loss of detailed local structure. In
@@ -1348,9 +1403,10 @@ RunUMAP.Seurat <- function(
   features = NULL,
   graph = NULL,
   assay = 'RNA',
+  umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
-  metric = "correlation",
+  metric = 'cosine',
   n.epochs = NULL,
   learning.rate = 1,
   min.dist = 0.3,
@@ -1365,10 +1421,11 @@ RunUMAP.Seurat <- function(
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
   verbose = TRUE,
-  reduction.name = "umap",
-  reduction.key = "UMAP_",
+  reduction.name = 'umap',
+  reduction.key = 'UMAP_',
   ...
 ) {
+  CheckDots(...)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
@@ -1385,6 +1442,7 @@ RunUMAP.Seurat <- function(
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     assay = assay,
+    umap.method = umap.method,
     n.neighbors = n.neighbors,
     n.components = n.components,
     metric = metric,
@@ -1424,6 +1482,7 @@ ScoreJackStraw.JackStrawData <- function(
   score.thresh = 1e-5,
   ...
 ) {
+  CheckDots(...)
   pAll <- JS(object = object, slot = "empirical.p.values")
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -1490,6 +1549,7 @@ ScoreJackStraw.Seurat <- function(
     ...
   )
   if (do.plot) {
+    CheckDots(..., fxns = 'JackStrawPlot')
     suppressWarnings(expr = print(JackStrawPlot(
       object = object,
       reduction = reduction,
@@ -1608,6 +1668,7 @@ fftRtsne <- function(X,
   df = 1.0,
   ...
 ) {
+  CheckDots(...)
   if (is.null(x = data_path)) {
     data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
   }
@@ -1628,18 +1689,17 @@ fftRtsne <- function(X,
   ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
   if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
     version_number <- '1.1.0'
-  }else if(grepl(pattern = '= t-SNE v1.0', x = ft.out[1])){
+  } else if (grepl(pattern = '= t-SNE v1.0', x = ft.out[1])) {
     version_number <- '1.0'
-  }else{
+  } else {
     message("First line of fast_tsne output is")
     message(ft.out[1])
     stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
-
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
-  if (version_number == '1.0' && df !=1.0) {
+  if (version_number == '1.0' && df != 1.0) {
     stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
@@ -1805,7 +1865,7 @@ JackRandom <- function(
 #
 # @return returns the l2-norm.
 #
-L2Norm <- function(vec){
+L2Norm <- function(vec) {
   a <- sqrt(x = sum(vec ^ 2))
   if (a == 0) {
     a <- .05
