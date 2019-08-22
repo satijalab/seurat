@@ -938,6 +938,33 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
+#' Regroup idents based on meta.data info
+#' 
+#' For cells in each ident, set a new identity based on the most common value 
+#' of a specified metadata column.
+#' 
+#' @param object Seurat object
+#' @param metadata Name of metadata column
+#' @return A Seurat object with the active idents regrouped
+#' 
+#' @export
+#' 
+#' @examples 
+#' pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
+#' 
+RegroupIdents <- function(object, metadata) {
+  for (ii in levels(x = object)) {
+    ident.cells <- WhichCells(object = object, idents = ii)
+    if (length(x = ident.cells) == 0) next
+    new.ident <- names(x = which.max(x = table(object[[metadata]][ident.cells, ])))
+    if (is.null(x = new.ident)) {
+      stop("Cluster ", ii, " contains only cells with NA values in the '", metadata, "' metadata column.")
+    }
+    Idents(object = object, cells = ident.cells) <- new.ident
+  }
+  return(object)
+}
+
 #' Stop Cellbrowser web server
 #'
 #' @importFrom reticulate py_module_available
