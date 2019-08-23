@@ -1130,7 +1130,6 @@ RunTSNE.Seurat <- function(
 #' @importFrom reticulate py_module_available py_set_seed import
 #' @importFrom uwot umap
 #' @importFrom future nbrOfWorkers
-#' @importFrom methods is
 #'
 #' @rdname RunUMAP
 #' @method RunUMAP default
@@ -1236,7 +1235,7 @@ RunUMAP.default <- function(
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
-  if (is(object = object, class2 = 'dist')) {
+  if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
   } else {
     rownames(x = umap.output) <- rownames(x = object)
