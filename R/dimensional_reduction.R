@@ -1130,7 +1130,7 @@ RunTSNE.Seurat <- function(
 #' @importFrom reticulate py_module_available py_set_seed import
 #' @importFrom uwot umap
 #' @importFrom future nbrOfWorkers
-#' @importFrom methods is as
+#' @importFrom methods is
 #'
 #' @rdname RunUMAP
 #' @method RunUMAP default
@@ -1164,9 +1164,6 @@ RunUMAP.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
-  }
-  if (is(object = object, class2 = 'dist')) {
-    object <- as(object = object, Class = 'matrix')
   }
   if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
     warning(
@@ -1239,7 +1236,11 @@ RunUMAP.default <- function(
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
-  rownames(x = umap.output) <- rownames(x = object)
+  if (is(object = object, class2 = 'dist')) {
+    rownames(x = umap.output) <- attr(x = object, "Labels")
+  } else {
+    rownames(x = umap.output) <- rownames(x = object)
+  }
   umap.reduction <- CreateDimReducObject(
     embeddings = umap.output,
     key = reduction.key,
