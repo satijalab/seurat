@@ -1130,6 +1130,7 @@ RunTSNE.Seurat <- function(
 #' @importFrom reticulate py_module_available py_set_seed import
 #' @importFrom uwot umap
 #' @importFrom future nbrOfWorkers
+#' @importFrom methods is as
 #'
 #' @rdname RunUMAP
 #' @method RunUMAP default
@@ -1163,6 +1164,9 @@ RunUMAP.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
+  }
+  if (is(object = object, class2 = 'dist')) {
+    object <- as(object = object, Class = 'matrix')
   }
   if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
     warning(
