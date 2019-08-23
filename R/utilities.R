@@ -939,23 +939,25 @@ PercentageFeatureSet <- function(
 }
 
 #' Regroup idents based on meta.data info
-#' 
-#' For cells in each ident, set a new identity based on the most common value 
+#'
+#' For cells in each ident, set a new identity based on the most common value
 #' of a specified metadata column.
-#' 
+#'
 #' @param object Seurat object
 #' @param metadata Name of metadata column
 #' @return A Seurat object with the active idents regrouped
-#' 
+#'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
-#' 
+#'
 RegroupIdents <- function(object, metadata) {
   for (ii in levels(x = object)) {
     ident.cells <- WhichCells(object = object, idents = ii)
-    if (length(x = ident.cells) == 0) next
+    if (length(x = ident.cells) == 0) {
+      next
+    }
     new.ident <- names(x = which.max(x = table(object[[metadata]][ident.cells, ])))
     if (is.null(x = new.ident)) {
       stop("Cluster ", ii, " contains only cells with NA values in the '", metadata, "' metadata column.")
@@ -1218,7 +1220,7 @@ CheckDots <- function(..., fxns = NULL) {
     )
     if (length(x = unused) > 0) {
       msg <- paste0(
-        "The following arguments are not used: ", 
+        "The following arguments are not used: ",
         paste(unused, collapse = ', ')
       )
       switch(
