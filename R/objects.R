@@ -699,7 +699,7 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     if (is.null(x = rownames(x = meta.data))) {
       stop("Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
-    } 
+    }
     if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
       warning("Some cells in meta.data not present in provided counts matrix.")
       meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
@@ -3319,13 +3319,22 @@ Project.Seurat <- function(object, ...) {
 }
 
 #' @param assay Name of assay to store
+#' @param layers Slot to store layers as; choose from 'counts' or 'data'; pass
+#' \code{FALSE} to not pull layers; may pass one value of 'counts' or 'data' for
+#' each layer in the H5AD file, must be in order
 #' @param verbose Show progress updates
 #'
 #' @rdname h5ad
 #' @export
 #' @method ReadH5AD character
 #'
-ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
+ReadH5AD.character <- function(
+  file,
+  assay = 'RNA',
+  layers = 'data',
+  verbose = TRUE,
+  ...
+) {
   CheckDots(...)
   if (!PackageCheck('hdf5r', error = FALSE)) {
     stop("Please install hdf5r' for h5ad capabilities")
@@ -3347,7 +3356,13 @@ ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
 #' @export
 #' @method ReadH5AD H5File
 #'
-ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
+ReadH5AD.H5File <- function(
+  file,
+  assay = 'RNA',
+  layers = 'data',
+  verbose = TRUE,
+  ...
+) {
   CheckDots(...)
   # Pull assay data
   # If X is an H5D, assume scaled
@@ -3666,6 +3681,52 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     object[[paste(assay, method, sep = '_')]] <- as.Graph(x = graph)
   } else if (verbose) {
     message("No nearest-neighbor graph")
+  }
+  # Add layers
+  if (isFALSE(x = layers)) {
+    if (verbose) {
+      message("Not pulling layers")
+    }
+  } else if (file$exists(name = 'layers')) {
+    file.layers <- names(x = file[['layers']])
+    layers <- rep_len(
+      x = tolower(x = layers),
+      length.out = length(x = file.layers)
+    )
+    if (!all(layers %in% c('counts', 'data'))) {
+      stop("'layers' must be either 'counts' or 'data'", call. = FALSE)
+    }
+    names(x = layers) <- file.layers
+    for (layer in file.layers) {
+      layer.dest <- layers[[layer]]
+      if (verbose) {
+        message(
+          "Reading ",
+          layer,
+          " into new assay, putting data into ",
+          layer.dest
+        )
+      }
+      layer.data <- if (inherits(x = file[['layers']][[layer]], what = 'H5Group')) {
+        as.sparse(x = file[['layers']][[layer]])
+      } else {
+        file[['layers']][[layer]][, ]
+      }
+      dimnames(x = layer.data) <- dimnames(x = object)
+      layer.assay <- switch(
+        EXPR = layer.dest,
+        'counts' = CreateAssayObject(
+          counts = layer.data,
+          min.cells = -1,
+          min.features = -1
+        ),
+        'data' = CreateAssayObject(data = layer.data),
+        stop("Unknown layer destination: ", layer.data, call. = FALSE)
+      )
+      object[[layer]] <- layer.assay
+    }
+  } else if (verbose) {
+    message("No additional layers found")
   }
   return(object)
 }
