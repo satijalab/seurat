@@ -12,9 +12,11 @@ ReadH5AD(file, ...)
 
 WriteH5AD(object, ...)
 
-\method{ReadH5AD}{character}(file, assay = "RNA", verbose = TRUE, ...)
+\method{ReadH5AD}{character}(file, assay = "RNA", layers = "data",
+  verbose = TRUE, ...)
 
-\method{ReadH5AD}{H5File}(file, assay = "RNA", verbose = TRUE, ...)
+\method{ReadH5AD}{H5File}(file, assay = "RNA", layers = "data",
+  verbose = TRUE, ...)
 
 \method{WriteH5AD}{Seurat}(object, file, assay = NULL, graph = NULL,
   verbose = TRUE, overwrite = FALSE, ...)
@@ -27,6 +29,10 @@ WriteH5AD(object, ...)
 \item{object}{An object}
 
 \item{assay}{Name of assay to store}
+
+\item{layers}{Slot to store layers as; choose from 'counts' or 'data'; pass
+\code{FALSE} to not pull layers; may pass one value of 'counts' or 'data' for
+each layer in the H5AD file, must be in order}
 
 \item{verbose}{Show progress updates}
 
