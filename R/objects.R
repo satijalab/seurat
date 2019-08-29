@@ -1117,6 +1117,9 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   # fill in params list
   for (arg in argnames) {
     param_value <- get(x = arg, envir = p.env)
+    if (class(x = param_value) == "Seurat") {
+      next
+    }
     #TODO Institute some check of object size?
     params[[arg]] <- param_value
   }
