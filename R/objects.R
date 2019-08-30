@@ -3346,7 +3346,12 @@ ReadH5AD.character <- function(
     stop("Unable to find input H5AD file ", file)
   }
   hfile <- hdf5r::h5file(filename = file, mode = 'r')
-  object <- ReadH5AD(file = hfile, assay = assay, verbose = verbose)
+  object <- ReadH5AD(
+    file = hfile,
+    assay = assay,
+    layers = layers,
+    verbose = verbose,
+  )
   hfile$close_all()
   return(object)
 }
