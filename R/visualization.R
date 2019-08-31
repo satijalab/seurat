@@ -3522,28 +3522,45 @@ DefaultDimReduc <- function(object, assay = NULL) {
 #
 GuideProteinPlot <- function(object, 
                              guide.id = NULL, 
-                             protein.id = NULL,
-                             #rna.id = 
+                             feature.id = NULL,
                              nt.guide.id = "NTg5", 
                              slot = "data", 
                              guide.assay.name = "GDO", 
-                             protein.assay.name = "Pearson_blg",
-                             #rna.assay.name = 
+                             feature.assay.name = "Pearson_blg",
                              guide.class = "guide_ID",
                              k.roll.median = 181) {
   
-  guide.counts = t(GetAssayData(object, slot = slot, assay = guide.assay.name))
-  protein.counts = t(GetAssayData(object, slot = slot, assay = protein.assay.name))
-  counts = as.data.frame(cbind(guide.counts, protein.counts))
+  if( k.roll.median %% 2 == 0){
+    stop("k.roll median needs to be an odd number.")
+  }
+  
+  else(
+    if (is.null(guide.id)  == TRUE){
+      stop("No guide ID not specified." ) 
+    }
+    else {
+      if (is.null(feature.id) == TRUE){
+        stop("No feature ID not specified." ) 
+      }
+      else {
+        
+        guide.counts = t(GetAssayData(object, slot = slot, assay = guide.assay.name))
+        feature.counts = t(GetAssayData(object, slot = slot, assay = feature.assay.name))
+        counts = as.data.frame(cbind(guide.counts, feature.counts))  
+      }
+    }
+  )
   
   ordered.counts = counts[order(counts[,guide.id],counts[,nt.guide.id], decreasing = TRUE),]
   cells.use = Cells(x = object)[which(object[[guide.class]][, 1] %in% c(guide.id, nt.guide.id))]
-  df = ordered.counts[rownames(ordered.counts)[rownames(ordered.counts) %in% cells.use], c(guide.id, protein.id)]
+  df = ordered.counts[rownames(ordered.counts)[rownames(ordered.counts) %in% cells.use], c(guide.id, feature.id)]
   
-  roll.median = as.data.frame(rollmedian(df[,protein.id], k = k.roll.median, fill = numeric(0),align = c("center", "left", "right")))
+  
+  roll.median = as.data.frame(rollmedian(df[,feature.id], k = k.roll.median, fill = numeric(0),align = c("center", "left", "right")))
+  
   colnames(roll.median)[1] <- "rollmedian"
   roll.median$number <- 1:nrow(roll.median)
-  roll.median$name <- "protein rolling median"
+  roll.median$name <- "feature rolling median"
   
   df$number <- 1:nrow(df)
   df.melt = melt(df, id.vars = "number")
@@ -3551,11 +3568,11 @@ GuideProteinPlot <- function(object,
   p <- ggplot(df.melt, aes(y = value, x= number)) +
     geom_point(aes(fill = factor(variable)), shape = 21, size = 2.5, stroke = 0, alpha = 1/3) +
     geom_line(data = roll.median, aes(y = rollmedian, x = number, color = name)) + 
-    scale_fill_manual(values=c("darkgoldenrod2", "slategray3"), labels=c(paste0("Guide: ", guide.id), paste0("Protein: ", protein.id)))+
+    scale_fill_manual(values=c("darkgoldenrod2", "slategray3"), labels=c(paste0("Guide: ", guide.id), paste(feature.assay.name, sep = "_", feature.id)))+
     scale_color_manual(values = "black", name = "") +
     theme_classic() +
     xlab(label = "Ordered Cells") +
-    ylab(label = "Normalized Guide-Protein Counts") +
+    ylab(label = "Normalized Guide-Feature Counts") +
     labs(fill = c("")) +
     theme(axis.title = element_text(size = 12, face = "bold"), legend.text = element_text(size = 12, face = "bold"))
   
