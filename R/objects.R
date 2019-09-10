@@ -3503,7 +3503,9 @@ ReadH5AD.H5File <- function(
   }
   names(x = assays) <- assay
   # Add meta feature information
-  assays[[assay]][[names(x = meta.features)]] <- meta.features
+  if (ncol(x = meta.features) > 0) {
+    assays[[assay]][[names(x = meta.features)]] <- meta.features
+  }
   # Add highly variable feature information
   if ('highly.variable' %in% colnames(x = assays[[assay]][[]])) {
     if (verbose) {
