@@ -1162,7 +1162,6 @@ RunUMAP.default <- function(
   CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
-    py_set_seed(seed = seed.use)
   }
   if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
     warning(
@@ -1179,6 +1178,9 @@ RunUMAP.default <- function(
     'umap-learn' = {
       if (!py_module_available(module = 'umap')) {
         stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+      }
+      if (!is.null(x = seed.use)) {
+        py_set_seed(seed = seed.use)
       }
       if (typeof(x = n.epochs) == "double") {
         n.epochs <- as.integer(x = n.epochs)
