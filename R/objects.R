@@ -3350,7 +3350,7 @@ ReadH5AD.character <- function(
     file = hfile,
     assay = assay,
     layers = layers,
-    verbose = verbose,
+    verbose = verbose
   )
   hfile$close_all()
   return(object)
@@ -3503,7 +3503,9 @@ ReadH5AD.H5File <- function(
   }
   names(x = assays) <- assay
   # Add meta feature information
-  assays[[assay]][[names(x = meta.features)]] <- meta.features
+  if (ncol(x = meta.features) > 0) {
+    assays[[assay]][[names(x = meta.features)]] <- meta.features
+  }
   # Add highly variable feature information
   if ('highly.variable' %in% colnames(x = assays[[assay]][[]])) {
     if (verbose) {
@@ -3529,27 +3531,40 @@ ReadH5AD.H5File <- function(
       message("Pulling cell embeddings")
     }
     # Pull cell embeddings
-    embed.reduc <- file[['obsm']]$get_type()$get_cpd_labels()
-    embed.n <- sapply(
-      X = file[['obsm']]$get_type()$describe()$cpd_types,
-      FUN = '[[',
-      'array_dims'
-    )
-    names(x = embed.n) <- embed.reduc
-    ncells <- file[['obsm']]$dims
-    embeddings <- lapply(
-      X = embed.reduc,
-      FUN = function(r) {
-        return(t(x = vapply(
-          X = 1:ncells,
-          FUN = function(i) {
-            return(file[['obsm']][i][[r]])
-          },
-          FUN.VALUE = numeric(length = embed.n[[r]])
-        )))
-      }
-    )
-    names(x = embeddings) <- embed.reduc
+    if (inherits(x = file[['obsm']], what = 'H5Group')) {
+      embed.reduc <- names(x = file[['obsm']])
+      embeddings <- sapply(
+        X = embed.reduc,
+        FUN = function(x) {
+          return(t(x = file[['obsm']][[x]][, ]))
+        },
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      )
+    } else {
+      embed.reduc <- file[['obsm']]$get_type()$get_cpd_labels()
+      embed.n <- sapply(
+        X = file[['obsm']]$get_type()$describe()$cpd_types,
+        FUN = '[[',
+        'array_dims'
+      )
+      names(x = embed.n) <- embed.reduc
+      ncells <- file[['obsm']]$dims
+      embeddings <- lapply(
+        X = embed.reduc,
+        FUN = function(r) {
+          return(t(x = vapply(
+            X = 1:ncells,
+            FUN = function(i) {
+              return(file[['obsm']][i][[r]])
+            },
+            FUN.VALUE = numeric(length = embed.n[[r]])
+          )))
+        }
+      )
+      names(x = embeddings) <- embed.reduc
+    }
+    # Set cell names for embeddings matrices
     for (i in 1:length(x = embeddings)) {
       rownames(x = embeddings[[i]]) <- colnames(x = assays[[assay]])
     }
@@ -3558,26 +3573,38 @@ ReadH5AD.H5File <- function(
       if (verbose) {
         message("Pulling feature loadings")
       }
-      load.reduc <- file[['varm']]$get_type()$get_cpd_labels()
-      load.n <- sapply(
-        X = file[['varm']]$get_type()$describe()$cpd_types,
-        FUN = '[[',
-        'array_dims'
-      )
-      names(x = load.n) <- load.reduc
-      nfeatures <- file[['varm']]$dims
-      loadings <- lapply(
-        X = load.reduc,
-        FUN = function(r) {
-          return(t(x = vapply(
-            X = 1:nfeatures,
-            FUN = function(i) {
-              return(file[['varm']][i][[r]])
-            },
-            FUN.VALUE = numeric(length = load.n[[load.reduc]])
-          )))
-        }
-      )
+      if (inherits(x = file[['varm']], what = 'H5Group')) {
+        load.reduc <- names(x = file[['varm']])
+        loadings <- sapply(
+          X = load.reduc,
+          FUN = function(x) {
+            return(t(x = file[['varm']][[x]][, ]))
+          },
+          simplify = FALSE,
+          USE.NAMES = TRUE
+        )
+      } else {
+        load.reduc <- file[['varm']]$get_type()$get_cpd_labels()
+        load.n <- sapply(
+          X = file[['varm']]$get_type()$describe()$cpd_types,
+          FUN = '[[',
+          'array_dims'
+        )
+        names(x = load.n) <- load.reduc
+        nfeatures <- file[['varm']]$dims
+        loadings <- lapply(
+          X = load.reduc,
+          FUN = function(r) {
+            return(t(x = vapply(
+              X = 1:nfeatures,
+              FUN = function(i) {
+                return(file[['varm']][i][[r]])
+              },
+              FUN.VALUE = numeric(length = load.n[[load.reduc]])
+            )))
+          }
+        )
+      }
       match.ind <- lapply(
         X = gsub(pattern = 's$', replacement = '', x = tolower(x = load.reduc)),
         FUN = grep,
