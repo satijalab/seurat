@@ -92,6 +92,10 @@ AddModuleScore <- function(
     features <- lapply(
       X = features,
       FUN = function(x) {
+        missing.features <- setdiff(x = x, y = rownames(x = object))
+        if (length(x = missing.features) > 0) {
+          warning("The following features are not present in the object: ", paste(missing.features, collapse = ", "), call. = F)
+        }
         return(intersect(x = x, y = rownames(x = object)))
       }
     )
