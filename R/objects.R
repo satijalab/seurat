@@ -3350,7 +3350,8 @@ ReadH5AD.character <- function(
     file = hfile,
     assay = assay,
     layers = layers,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   hfile$close_all()
   return(object)
