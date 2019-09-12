@@ -973,7 +973,8 @@ MapQuery <- function(
     object = reference,
     slot = 'data'
   )[features.to.integrate, ]
-  all.integrated <- do.call(cbind, c(reference.integrated, query.corrected))
+  query.corrected[[length(x = query.corrected) + 1]] <- reference.integrated
+  all.integrated <- do.call(cbind, query.corrected)
   return(all.integrated)
 }
 
