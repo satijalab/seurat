@@ -7,8 +7,40 @@
 #'   \item{s.genes}{Genes associated with S-phase}
 #'   \item{g2m.genes}{Genes associated with G2M-phase}
 #' }
-#' @source http://science.sciencemag.org/content/352/6282/189
+#' @source \url{http://science.sciencemag.org/content/352/6282/189}
+#'
 "cc.genes"
+
+#' Cell cycle genes: 2019 update
+#'
+#' A list of genes used in cell-cycle regression, updated with 2019 symbols
+#'
+#' @section Updated symbols:
+#' The following symbols were updated from \code{\link{cc.genes}}
+#' \describe{
+#'   \item{s.genes}{
+#'     \itemize{
+#'       \item \emph{MLF1IP}: \emph{CENPU}
+#'     }
+#'   }
+#'   \item{g2m.genes}{
+#'     \itemize{
+#'       \item \emph{FAM64A}: \emph{PICALM}
+#'       \item \emph{HN1}: \emph{JPT}
+#'     }
+#'   }
+#' }
+#'
+#' @format A list of two vectors
+#' \describe{
+#'   \item{s.genes}{Genes associated with S-phase}
+#'   \item{g2m.genes}{Genes associated with G2M-phase}
+#' }
+#' @source \url{http://science.sciencemag.org/content/352/6282/189}
+#'
+#' @seealso \code{\link{cc.genes}}
+#'
+"cc.genes.updated.2019"
 
 #' A small example version of the PBMC dataset
 #'
@@ -32,5 +64,6 @@
 #'   \item{version}{Seurat version used to create the object}
 #'   \item{commands}{Command history}
 #' }
-#' @source https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k
+#' @source \url{https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k}
+#'
 "pbmc_small"
