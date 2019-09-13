@@ -806,6 +806,128 @@ ExpVar <- function(x) {
   return(log1p(x = var(x = expm1(x = x))))
 }
 
+#' Get updated synonyms for gene symbols
+#'
+#' Find current gene symbols based on old or alias symbols using the gene
+#' names database from the HUGO Gene Nomenclature Committee (HGNC)
+#'
+#' @details For each symbol passed, we query the HGNC gene names database for
+#' current symbols that have the provided symbol as either an alias
+#' (\code{alias_symbol}) or old (\code{prev_symbol}) symbol. All other queries
+#' are \strong{not} supported.
+#'
+#' @note This function requires internet access
+#'
+#' @param symbols A vector of gene symbols
+#' @param timeout Time to wait before cancelling query in seconds
+#' @param several.ok Allow several current gene sybmols for each provided symbol
+#' @param verbose Show a progress bar depicting search progress
+#' @param ... Extra parameters passed to \code{\link[httr]{GET}}
+#'
+#' @return For \code{GeneSymbolThesarus}, if \code{several.ok}, a named list
+#' where each entry is the current symbol found for each symbol provided and the
+#' names are the provided symbols. Otherwise, a named vector with the same information.
+#'
+#' @source \url{https://www.genenames.org/} \url{http://rest.genenames.org/}
+#'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom httr GET accept_json timeout status_code content
+#'
+#' @rdname UpdateSymbolList
+#' @name UpdateSymbolList
+#'
+#' @export
+#'
+#' @seealso \code{\link[httr]{GET}}
+#'
+#' @examples
+#' \dontrun{
+#' GeneSybmolThesarus(symbols = c("FAM64A"))
+#' }
+#'
+GeneSymbolThesarus <- function(
+  symbols,
+  timeout = 10,
+  several.ok = FALSE,
+  verbose = TRUE,
+  ...
+) {
+  db.url <- 'http://rest.genenames.org/fetch'
+  search.types <- c('alias_symbol', 'prev_symbol')
+  synonyms <- vector(mode = 'list', length = length(x = symbols))
+  not.found <- vector(mode = 'logical', length = length(x = symbols))
+  multiple.found <- vector(mode = 'logical', length = length(x = symbols))
+  names(x = multiple.found) <- names(x = not.found) <- names(x = synonyms) <- symbols
+  if (verbose) {
+    pb <- txtProgressBar(max = length(x = symbols), style = 3, file = stderr())
+  }
+  for (symbol in symbols) {
+    sym.syn <- character()
+    for (type in search.types) {
+      response <- GET(
+        url = paste(db.url, type, symbol, sep = '/'),
+        config = c(accept_json(), timeout(seconds = timeout)),
+        ...
+      )
+      if (!identical(x = status_code(x = response), y = 200L)) {
+        next
+      }
+      response <- content(x = response)
+      if (response$response$numFound != 1) {
+        if (response$response$numFound > 1) {
+          warning(
+            "Multiple hits found for ",
+            symbol,
+            " as ",
+            type,
+            ", skipping",
+            call. = FALSE,
+            immediate. = TRUE
+          )
+        }
+        next
+      }
+      sym.syn <- c(sym.syn, response$response$docs[[1]]$symbol)
+    }
+    not.found[symbol] <- length(x = sym.syn) < 1
+    multiple.found[symbol] <- length(x = sym.syn) > 1
+    if (length(x = sym.syn) == 1 || (length(x = sym.syn) > 1 && several.ok)) {
+      synonyms[[symbol]] <- sym.syn
+    }
+    if (verbose) {
+      setTxtProgressBar(pb = pb, value = pb$getVal() + 1)
+    }
+  }
+  if (verbose) {
+    close(con = pb)
+  }
+  if (sum(not.found) > 0) {
+    warning(
+      "The following symbols had no synonyms: ",
+      paste(names(x = which(x = not.found)), collapse = ', '),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  if (sum(multiple.found) > 0) {
+    msg <- paste(
+      "The following symbols had multiple synonyms:",
+      paste(names(x = which(x = multiple.found)), sep = ', ')
+    )
+    if (several.ok) {
+      message(msg)
+      message("Including anyways")
+    } else {
+      warning(msg, call. = FALSE, immediate. = TRUE)
+    }
+  }
+  synonyms <- Filter(f = Negate(f = is.null), x = synonyms)
+  if (!several.ok) {
+    synonyms <- unlist(x = synonyms)
+  }
+  return(synonyms)
+}
+
 #' Calculate the variance to mean ratio of logged values
 #'
 #' Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
@@ -990,6 +1112,52 @@ StopCellbrowser <- function() {
   } else {
     stop("The `cellbrowser` package is not available in the Python used by R's reticulate")
   }
+}
+
+#' @rdname UpdateSymbolList
+#'
+#' @return For \code{UpdateSymbolList}, \code{symbols} with updated symbols from
+#' HGNC's gene names database
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' UpdateSymbolList(symbols = cc.genes$s.genes)
+#' }
+#'
+UpdateSymbolList <- function(
+  symbols,
+  timeout = 10,
+  several.ok = FALSE,
+  verbose = TRUE,
+  ...
+) {
+  new.symbols <- suppressWarnings(expr = GeneSymbolThesarus(
+    symbols = symbols,
+    timeout = timeout,
+    several.ok = several.ok,
+    verbose = verbose,
+    ...
+  ))
+  if (length(x = new.symbols) < 1) {
+    warning("No updated symbols found", call. = FALSE, immediate. = TRUE)
+  } else {
+    if (verbose) {
+      message("Found updated symbols for ", length(x = new.symbols), " symbols")
+      x <- sapply(X = new.symbols, FUN = paste, collapse = ', ')
+      message(paste(names(x = x), x, sep = ' -> ', collapse = '\n'))
+    }
+    for (sym in names(x = new.symbols)) {
+      index <- which(x = symbols == sym)
+      symbols <- append(
+        x = symbols[-index],
+        values = new.symbols[[sym]],
+        after = index - 1
+      )
+    }
+  }
+  return(symbols)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
