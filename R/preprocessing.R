@@ -186,6 +186,11 @@ CreateGeneActivityMatrix <- function(
     stop("Please install rtracklayer from Bioconductor.")
   }
 
+  # Fix peaks starting at index 0 by switching to index 1
+  # otherwise GenomicRanges::distanceToNearest will not work 
+  rownames(peak.matrix) <- gsub(rownames(peak.matrix), pattern = ":0-", replacement = ":1-")
+  dimnames(peak.matrix)[[1]] <- gsub(dimnames(peak.matrix)[[1]], pattern = ":0-", replacement = ":1-")
+  
   # convert peak matrix to GRanges object
   peak.df <- rownames(x = peak.matrix)
   peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
@@ -196,7 +201,11 @@ CreateGeneActivityMatrix <- function(
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-  GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
+  
+  # GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
+  # Useless here, might provoke errors for custom annotation with 
+  # chromosome names not starting with "chr"
+  # GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
   gtf.genes <- gtf[gtf$type == 'gene']
 
   # Extend definition up/downstream
@@ -209,6 +218,11 @@ CreateGeneActivityMatrix <- function(
   keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
   peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
   gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
+  
+  # Some GTF rows will not have gene_name attribute
+  # Replace it by gene_id attribute
+  gene.ids$gene_name[is.na(gene.ids$gene_name)] = gene.ids$gene_id[is.na(gene.ids$gene_name)]
+  
   peak.ids$gene.name <- gene.ids$gene_name
   peak.ids <- as.data.frame(x = peak.ids)
   peak.ids$peak <- paste0(peak.ids$seqnames, ":", peak.ids$start, "-", peak.ids$end)
