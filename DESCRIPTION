@@ -33,6 +33,7 @@ Imports:
     graphics,
     grDevices,
     grid,
+    httr,
     ica,
     igraph,
     irlba,
