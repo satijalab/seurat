@@ -5,7 +5,7 @@
 \title{Calculate module scores for feature expression programs in single cells}
 \usage{
 AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
-  k = FALSE, assay = NULL, name = "Cluster", seed = 1)
+  k = FALSE, assay = NULL, name = "Cluster", seed = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -25,6 +25,8 @@ AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
 \item{name}{Name for the expression programs}
 
 \item{seed}{Set a random seed}
+
+\item{...}{Extra parameters passed to \code{\link{UpdateSymbolList}}}
 }
 \value{
 Returns a Seurat object with module scores added to object meta data

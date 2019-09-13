@@ -22,10 +22,10 @@ NULL
 #' @param assay Name of assay to use
 #' @param name Name for the expression programs
 #' @param seed Set a random seed
+#' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
 #' @return Returns a Seurat object with module scores added to object meta data
 #'
-# @importFrom Hmisc cut2
 #' @importFrom ggplot2 cut_number
 #' @importFrom Matrix rowMeans colMeans
 #'
@@ -70,7 +70,8 @@ AddModuleScore <- function(
   k = FALSE,
   assay = NULL,
   name = 'Cluster',
-  seed = 1
+  seed = 1,
+  ...
 ) {
   set.seed(seed = seed)
   assay.old <- DefaultAssay(object = object)
@@ -94,7 +95,39 @@ AddModuleScore <- function(
       FUN = function(x) {
         missing.features <- setdiff(x = x, y = rownames(x = object))
         if (length(x = missing.features) > 0) {
-          warning("The following features are not present in the object: ", paste(missing.features, collapse = ", "), call. = F)
+          warning(
+            "The following features are not present in the object: ",
+            paste(missing.features, collapse = ", "),
+            ", attempting to find updated synonyms",
+            call. = FALSE,
+            immediate. = TRUE
+          )
+          tryCatch(
+            expr = {
+              updated.features <- UpdateSymbolList(symbols = missing.features, ...)
+              names(x = updated.features) <- missing.features
+              for (miss in names(x = updated.features)) {
+                index <- which(x == miss)
+                x[index] <- updated.features[miss]
+              }
+            },
+            error = function(...) {
+              warning(
+                "Could not reach HGNC's gene names database",
+                call. = FALSE,
+                immediate. = TRUE
+              )
+            }
+          )
+          missing.features <- setdiff(x = x, y = rownames(x = object))
+          if (length(x = missing.features) > 0) {
+            warning(
+              "The following features are still not present in the object: ",
+              paste(missing.features, collapse = ", "),
+              call. = FALSE,
+              immediate. = TRUE
+            )
+          }
         }
         return(intersect(x = x, y = rownames(x = object)))
       }
