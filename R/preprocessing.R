@@ -220,7 +220,7 @@ CreateGeneActivityMatrix <- function(
   # Some GTF rows will not have gene_name attribute
   # Replace it by gene_id attribute
   gene.ids$gene_name[is.na(gene.ids$gene_name)] <- gene.ids$gene_id[is.na(gene.ids$gene_name)]
-  
+
   peak.ids$gene.name <- gene.ids$gene_name
   peak.ids <- as.data.frame(x = peak.ids)
   peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
