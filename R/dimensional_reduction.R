@@ -1235,7 +1235,11 @@ RunUMAP.default <- function(
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
-  rownames(x = umap.output) <- rownames(x = object)
+  if (inherits(x = object, what = 'dist')) {
+    rownames(x = umap.output) <- attr(x = object, "Labels")
+  } else {
+    rownames(x = umap.output) <- rownames(x = object)
+  }
   umap.reduction <- CreateDimReducObject(
     embeddings = umap.output,
     key = reduction.key,

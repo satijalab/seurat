@@ -68,5 +68,10 @@ SpecificDimPlot <- function(object, ...) {
   )
   reduc <- grep(pattern = DefaultAssay(object = object), x = reduc, value = TRUE)
   args$reduction <- ifelse(test = length(x = reduc) == 1, yes = reduc, no = name)
-  return(do.call(what = 'DimPlot', args = args))
+  tryCatch(
+    expr = return(do.call(what = 'DimPlot', args = args)),
+    error = function(e) {
+      stop(e)
+    }
+  )
 }
