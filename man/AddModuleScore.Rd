@@ -5,7 +5,8 @@
 \title{Calculate module scores for feature expression programs in single cells}
 \usage{
 AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
-  k = FALSE, assay = NULL, name = "Cluster", seed = 1, ...)
+  k = FALSE, assay = NULL, name = "Cluster", seed = 1,
+  search = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -25,6 +26,10 @@ AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
 \item{name}{Name for the expression programs}
 
 \item{seed}{Set a random seed}
+
+\item{search}{Search for symbol synonyms for features in \code{features} that
+don't match features in \code{object}? Searches the HGNC's gene names database;
+see \code{\link{UpdateSymbolList}} for more details}
 
 \item{...}{Extra parameters passed to \code{\link{UpdateSymbolList}}}
 }

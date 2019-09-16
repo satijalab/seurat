@@ -22,6 +22,9 @@ NULL
 #' @param assay Name of assay to use
 #' @param name Name for the expression programs
 #' @param seed Set a random seed
+#' @param search Search for symbol synonyms for features in \code{features} that
+#' don't match features in \code{object}? Searches the HGNC's gene names database;
+#' see \code{\link{UpdateSymbolList}} for more details
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
 #' @return Returns a Seurat object with module scores added to object meta data
@@ -71,6 +74,7 @@ AddModuleScore <- function(
   assay = NULL,
   name = 'Cluster',
   seed = 1,
+  search = TRUE,
   ...
 ) {
   set.seed(seed = seed)
@@ -98,35 +102,41 @@ AddModuleScore <- function(
           warning(
             "The following features are not present in the object: ",
             paste(missing.features, collapse = ", "),
-            ", attempting to find updated synonyms",
+            ifelse(
+              test = search,
+              yes = ", attempting to find updated synonyms",
+              no = "Not searching for symbol synonyms"
+            ),
             call. = FALSE,
             immediate. = TRUE
           )
-          tryCatch(
-            expr = {
-              updated.features <- UpdateSymbolList(symbols = missing.features, ...)
-              names(x = updated.features) <- missing.features
-              for (miss in names(x = updated.features)) {
-                index <- which(x == miss)
-                x[index] <- updated.features[miss]
+          if (search) {
+            tryCatch(
+              expr = {
+                updated.features <- UpdateSymbolList(symbols = missing.features, ...)
+                names(x = updated.features) <- missing.features
+                for (miss in names(x = updated.features)) {
+                  index <- which(x == miss)
+                  x[index] <- updated.features[miss]
+                }
+              },
+              error = function(...) {
+                warning(
+                  "Could not reach HGNC's gene names database",
+                  call. = FALSE,
+                  immediate. = TRUE
+                )
               }
-            },
-            error = function(...) {
+            )
+            missing.features <- setdiff(x = x, y = rownames(x = object))
+            if (length(x = missing.features) > 0) {
               warning(
-                "Could not reach HGNC's gene names database",
+                "The following features are still not present in the object: ",
+                paste(missing.features, collapse = ", "),
                 call. = FALSE,
                 immediate. = TRUE
               )
             }
-          )
-          missing.features <- setdiff(x = x, y = rownames(x = object))
-          if (length(x = missing.features) > 0) {
-            warning(
-              "The following features are still not present in the object: ",
-              paste(missing.features, collapse = ", "),
-              call. = FALSE,
-              immediate. = TRUE
-            )
           }
         }
         return(intersect(x = x, y = rownames(x = object)))
