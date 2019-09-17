@@ -10,7 +10,7 @@
   \item{g2m.genes}{Genes associated with G2M-phase}
 }}
 \source{
-http://science.sciencemag.org/content/352/6282/189
+\url{http://science.sciencemag.org/content/352/6282/189}
 }
 \usage{
 cc.genes
