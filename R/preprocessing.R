@@ -489,7 +489,7 @@ GetResidual <- function(
       x = new_features,
       y = vst_set_genes
     )
-    if (length(diff_features) !=0){
+    if (length(x = diff_features) !=0) {
       warning(
         "The following ", length(x = diff_features),
         " features do not exist in all SCT models: ",
