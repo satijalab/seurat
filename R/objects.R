@@ -77,6 +77,7 @@ Assay <- setClass(
     data = 'AnyMatrix',
     scale.data = 'matrix',
     key = 'character',
+    assay.orig = 'character',
     var.features = 'vector',
     meta.features = 'data.frame',
     misc = 'ANY'
@@ -133,6 +134,7 @@ DimReduc <- setClass(
     feature.loadings = 'matrix',
     feature.loadings.projected = 'matrix',
     assay.used = 'character',
+    global = 'logical',
     stdev = 'numeric',
     key = 'character',
     jackstraw = 'JackStrawData',
@@ -152,7 +154,10 @@ DimReduc <- setClass(
 #'
 Graph <- setClass(
   Class = 'Graph',
-  contains = "dgCMatrix"
+  contains = "dgCMatrix",
+  slots = list(
+    assay.used = 'character'
+  )
 )
 
 #' The IntegrationData Class
@@ -203,6 +208,7 @@ SeuratCommand <- setClass(
   slots = c(
     name = 'character',
     time.stamp = 'POSIXct',
+    assay.used = 'character',
     call.string = 'character',
     params = 'ANY'
   )
@@ -539,6 +545,7 @@ CreateAssayObject <- function(
 #' @param stdev Standard deviation (if applicable) for the dimensional reduction
 #' @param key A character string to facilitate looking up features from a
 #' specific DimReduc
+#' @param global Specify this as a global reduction (useful for visualizations)
 #' @param jackstraw Results from the JackStraw function
 #' @param misc list for the user to store any additional information associated
 #' with the dimensional reduction
@@ -565,6 +572,7 @@ CreateDimReducObject <- function(
   assay = NULL,
   stdev = numeric(),
   key = NULL,
+  global = FALSE,
   jackstraw = NULL,
   misc = list()
 ) {
@@ -643,6 +651,7 @@ CreateDimReducObject <- function(
     feature.loadings = loadings,
     feature.loadings.projected = projected,
     assay.used = assay,
+    global = global,
     stdev = stdev,
     key = key,
     jackstraw = jackstraw,
@@ -1369,6 +1378,16 @@ UpdateSeuratObject <- function(object) {
     if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
       message("Validating object structure")
+      # Update object slots
+      message("Updating object slots")
+      for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
+        object[[obj]] <- UpdateSlots(object = object[[obj]])
+      }
+      for (cmd in Command(object = object)) {
+        slot(object = object, name = 'commands')[[cmd]] <- UpdateSlots(
+          object = Command(object = object, command = cmd)
+        )
+      }
       # Validate object keys
       message("Ensuring keys are in the proper strucutre")
       for (ko in FilterObjects(object = object)) {
@@ -2524,11 +2543,37 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 
 #' @rdname DefaultAssay
 #' @export
+#' @method DefaultAssay Assay
+#'
+DefaultAssay.Assay <- function(object, ...) {
+  return(tryCatch(
+    expr = slot(object = object, name = 'assay.orig'),
+    error = function(...) {
+      return(character(length = 0L))
+    }
+  ))
+}
+
+#' @rdname DefaultAssay
+#' @export
 #' @method DefaultAssay DimReduc
 #'
 DefaultAssay.DimReduc <- function(object, ...) {
   CheckDots(...)
   return(slot(object = object, name = 'assay.used'))
+}
+
+#' @rdname DefaultAssay
+#' @export
+#' @method DefaultAssay Graph
+#'
+DefaultAssay.Graph <- function(object, ...) {
+  return(tryCatch(
+    expr = slot(object = object, name = 'assay.used'),
+    error = function(...) {
+      return(character(length = 0L))
+    }
+  ))
 }
 
 #' @rdname DefaultAssay
@@ -2544,11 +2589,42 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.assay'))
 }
 
+#' @rdname DefaultAssay
+#' @export
+#' @method DefaultAssay SeuratCommand
+#'
+DefaultAssay.SeuratCommand <- function(object, ...) {
+  return(tryCatch(
+    expr = slot(object = object, name = 'assay.used'),
+    error = function(...) {
+      return(character(length = 0L))
+    }
+  ))
+}
+
+#' @export
+#' @method DefaultAssay<- Assay
+#'
+"DefaultAssay<-.Assay" <- function(object, ..., value) {
+  object <- UpdateSlots(object = object)
+  slot(object = object, name = 'assay.orig') <- value
+  return(object)
+}
+
 #' @export
 #' @method DefaultAssay<- DimReduc
 #'
 "DefaultAssay<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
+  slot(object = object, name = 'assay.used') <- value
+  return(object)
+}
+
+#' @export
+#' @method DefaultAssay<- Graph
+#'
+"DefaultAssay<-.Graph" <- function(object, ..., value) {
+  object <- UpdateSlots(object = object)
   slot(object = object, name = 'assay.used') <- value
   return(object)
 }
@@ -5223,6 +5299,18 @@ as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
 }
 
 #' @export
+#' @method as.logical DimReduc
+#'
+as.logical.DimReduc <- function(x, ...) {
+  return(tryCatch(
+    expr = slot(object = x, name = 'global'),
+    error = function(...) {
+      return(FALSE)
+    }
+  ))
+}
+
+#' @export
 #' @method as.logical JackStrawData
 #'
 as.logical.JackStrawData <- function(x, ...) {
@@ -6505,7 +6593,8 @@ CellsByIdentities <- function(object, cells = NULL) {
 FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
   slots <- na.omit(object = Filter(
     f = function(x) {
-      return(class(x = slot(object = object, name = x)) == 'list')
+      sobj <- slot(object = object, name = x)
+      return(is.list(x = sobj) && !is.data.frame(x = sobj) && !is.package_version(x = sobj))
     },
     x = slotNames(x = object)
   ))
@@ -6724,6 +6813,31 @@ UpdateKey <- function(key) {
     )
     return(new.key)
   }
+}
+
+# Update slots in an object
+#
+# @param object An object to update
+#
+# @return \code{object} with the latest slot definitions
+#
+UpdateSlots <- function(object) {
+  object.list <- sapply(
+    X = slotNames(x = object),
+    FUN = function(x) {
+      return(tryCatch(
+        expr = slot(object = object, name = x),
+        error = function(...) {
+          return(NULL)
+        }
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  object.list <- Filter(f = Negate(f = is.null), x = object.list)
+  object.list <- c('Class' = class(x = object)[1], object.list)
+  return(do.call(what = 'new', args = object.list))
 }
 
 # Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty
