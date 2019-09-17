@@ -14,7 +14,7 @@ RunUMAP(object, ...)
   n.epochs = NULL, learning.rate = 1, min.dist = 0.3, spread = 1,
   set.op.mix.ratio = 1, local.connectivity = 1L,
   repulsion.strength = 1, negative.sample.rate = 5, a = NULL,
-  b = NULL, seed.use = 42, metric.kwds = NULL,
+  b = NULL, uwot.sgd = FALSE, seed.use = 42, metric.kwds = NULL,
   angular.rp.forest = FALSE, reduction.key = "UMAP_", verbose = TRUE,
   ...)
 
@@ -22,8 +22,9 @@ RunUMAP(object, ...)
   umap.method = "umap-learn", n.components = 2L,
   metric = "correlation", n.epochs = 0L, learning.rate = 1,
   min.dist = 0.3, spread = 1, repulsion.strength = 1,
-  negative.sample.rate = 5L, a = NULL, b = NULL, seed.use = 42L,
-  metric.kwds = NULL, verbose = TRUE, reduction.key = "UMAP_", ...)
+  negative.sample.rate = 5L, a = NULL, b = NULL, uwot.sgd = FALSE,
+  seed.use = 42L, metric.kwds = NULL, verbose = TRUE,
+  reduction.key = "UMAP_", ...)
 
 \method{RunUMAP}{Seurat}(object, dims = NULL, reduction = "pca",
   features = NULL, graph = NULL, assay = "RNA",
@@ -31,9 +32,10 @@ RunUMAP(object, ...)
   metric = "cosine", n.epochs = NULL, learning.rate = 1,
   min.dist = 0.3, spread = 1, set.op.mix.ratio = 1,
   local.connectivity = 1L, repulsion.strength = 1,
-  negative.sample.rate = 5L, a = NULL, b = NULL, seed.use = 42L,
-  metric.kwds = NULL, angular.rp.forest = FALSE, verbose = TRUE,
-  reduction.name = "umap", reduction.key = "UMAP_", ...)
+  negative.sample.rate = 5L, a = NULL, b = NULL, uwot.sgd = FALSE,
+  seed.use = 42L, metric.kwds = NULL, angular.rp.forest = FALSE,
+  verbose = TRUE, reduction.name = "umap", reduction.key = "UMAP_",
+  ...)
 }
 \arguments{
 \item{object}{An object}
@@ -99,6 +101,8 @@ right adjoint functor.}
 \item{b}{More specific parameters controlling the embedding. If NULL, these values are set
 automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 right adjoint functor.}
+
+\item{uwot.sgd}{Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}

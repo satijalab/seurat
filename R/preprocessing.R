@@ -489,7 +489,7 @@ GetResidual <- function(
       x = new_features,
       y = vst_set_genes
     )
-    if (diff_features !=0){
+    if (length(x = diff_features) !=0) {
       warning(
         "The following ", length(x = diff_features),
         " features do not exist in all SCT models: ",
@@ -535,9 +535,11 @@ GetResidual <- function(
       object = object,
       assay = assay,
       slot = "scale.data",
-      new.data = new.scale.data
+      new.data = rbind(
+        GetAssayData(object = object, slot = 'scale.data', assay = assay),
+        new.scale.data
+      )
     )
-
     }
   }
   }
