@@ -105,7 +105,7 @@ AddModuleScore <- function(
             ifelse(
               test = search,
               yes = ", attempting to find updated synonyms",
-              no = "Not searching for symbol synonyms"
+              no = ", not searching for symbol synonyms"
             ),
             call. = FALSE,
             immediate. = TRUE
@@ -430,7 +430,6 @@ CellCycleScoring <- function(
   set.ident = FALSE,
   ...
 ) {
-  CheckDots(..., fxns = 'AddModuleScore')
   name <- 'Cell Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
   object.cc <- AddModuleScore(
