@@ -23,7 +23,7 @@
   \item{commands}{Command history}
 }}
 \source{
-https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k
+\url{https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k}
 }
 \usage{
 pbmc_small
