@@ -356,6 +356,15 @@ GetAssayData <- function(object, ...) {
   UseMethod(generic = 'GetAssayData', object = object)
 }
 
+#' Get image data
+#'
+#' @rdname GetImage
+#' @export GetImage
+#'
+GetImage <- function(objet, ...) {
+  UseMethod(generic = 'GetImage', object = object)
+}
+
 #' Get highly variable feature information
 #'
 #' @param object An object
@@ -784,9 +793,9 @@ RunICA <- function(object, ...) {
 #'
 #' For details about stored LSI calculation parameters, see
 #' \code{PrintLSIParams}.
-#' 
-#' @note RunLSI is being moved to Signac. Equivalent functionality can be 
-#' achieved via the Signac::RunTFIDF and Signac::RunSVD functions; 
+#'
+#' @note RunLSI is being moved to Signac. Equivalent functionality can be
+#' achieved via the Signac::RunTFIDF and Signac::RunSVD functions;
 #' for more information on Signac, please see
 #' \url{https://github.com/timoast/Signac}
 #'
@@ -800,7 +809,7 @@ RunLSI <- function(object, ...) {
   .Deprecated(
     new = 'Signac::RunTFIDF',
     msg = paste(
-      "RunLSI is being moved to Signac. Equivalent functionality can be", 
+      "RunLSI is being moved to Signac. Equivalent functionality can be",
       "achieved via the Signac::RunTFIDF and Signac::RunSVD functions; for",
       "more information on Signac, please see https://github.com/timoast/Signac"
     )

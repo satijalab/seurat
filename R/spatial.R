@@ -103,6 +103,26 @@ Read10xSpatial <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @rdname GetImage
+#' @method GetImage SpatialAssay
+#' @export
+#'
+GetImage.SpatialAssay <- function(object, ...) {
+  return(slot(object = object, name = 'image'))
+}
+
+#' @rdname GetImage
+#' @method GetImage Seurat
+#' @export
+#'
+GetImage.Seurat <- function(object, assay = NULL, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
+    stop("GetImage works only with SpatialAssay objects", call. = FALSE)
+  }
+  return(GetImage(object = object[[assay]]))
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
