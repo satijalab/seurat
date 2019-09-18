@@ -132,6 +132,7 @@ GetImage.Seurat <- function(object, assay = NULL, ...) {
 
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates SpatialAssay
+#' @export
 #'
 GetTissueCoordinates.SpatialAssay <- function(object, ...) {
   cols.use <- c('scaled_imagerow', 'scaled_imagecol')
@@ -140,6 +141,7 @@ GetTissueCoordinates.SpatialAssay <- function(object, ...) {
 
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates Seurat
+#' @export
 #'
 GetTissueCoordinates.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
