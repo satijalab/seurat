@@ -5958,49 +5958,49 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
     }
     # Figure out where to store data
-    slot.use <- switch(
-      EXPR = as.character(x = class(x = value))[1],
-      'Assay' = {
-        # Ensure we have the same number of cells
-        if (ncol(x = value) != ncol(x = x)) {
-          stop(
-            "Cannot add a different number of cells than already present",
-            call. = FALSE
-          )
-        }
-        # Ensure cell order stays the same
-        if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
-          for (slot in c('counts', 'data', 'scale.data')) {
-            assay.data <- GetAssayData(object = value, slot = slot)
-            if (!IsMatrixEmpty(x = assay.data)) {
-              assay.data <- assay.data[, Cells(x = x), drop = FALSE]
-            }
-            # Use slot because SetAssayData is being weird
-            slot(object = value, name = slot) <- assay.data
+    slot.use <- if (inherits(x = value, what = 'Assay')) {
+      # Ensure we have the same number of cells
+      if (ncol(x = value) != ncol(x = x)) {
+        stop(
+          "Cannot add a different number of cells than already present",
+          call. = FALSE
+        )
+      }
+      # Ensure cell order stays the same
+      if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+        for (slot in c('counts', 'data', 'scale.data')) {
+          assay.data <- GetAssayData(object = value, slot = slot)
+          if (!IsMatrixEmpty(x = assay.data)) {
+            assay.data <- assay.data[, Cells(x = x), drop = FALSE]
           }
+          # Use slot because SetAssayData is being weird
+          slot(object = value, name = slot) <- assay.data
         }
-        'assays'
-      },
-      'Graph' = 'graphs',
-      'DimReduc' = {
-        # All DimReducs must be associated with an Assay
-        if (is.null(x = DefaultAssay(object = value))) {
-          stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
-        }
-        # Ensure Assay that DimReduc is associated with is present in the Seurat object
-        if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
-          stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
-        }
-        # Ensure DimReduc object is in order
-        if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
-          slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
-        }
-        'reductions'
-      },
-      'SeuratCommand' = 'commands',
-      'NULL' = slot.use,
+      }
+      'assays'
+    } else if (inherits(x = value, what = 'Graph')) {
+      'graphs'
+    } else if (inherits(x = value, what = 'DimReduc')) {
+      # All DimReducs must be associated with an Assay
+      if (is.null(x = DefaultAssay(object = value))) {
+        stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
+      }
+      # Ensure Assay that DimReduc is associated with is present in the Seurat object
+      if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
+        stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+      }
+      # Ensure DimReduc object is in order
+      if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+        slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
+      }
+      'reductions'
+    } else if (inherits(x = value, what = 'SeuratCommand')) {
+      'commands'
+    } else if (is.null(x = value)) {
+      slot.use
+    } else {
       'meta.data'
-    )
+    }
     if (slot.use == 'meta.data') {
       # Add data to object metadata
       meta.data <- x[[]]
