@@ -106,6 +106,190 @@ Read10xSpatial <- function(
  return(object)
 }
 
+# for plotting the tissue image
+geom_spatial <-  function(mapping = NULL,
+                         data = NULL,
+                         stat = "identity",
+                         position = "identity",
+                         na.rm = FALSE,
+                         show.legend = NA,
+                         inherit.aes = FALSE,
+                         ...) {
+  
+  GeomCustom <- ggproto(
+    "GeomCustom",
+    Geom,
+    setup_data = function(self, data, params) {
+      data <- ggproto_parent(Geom, self)$setup_data(data, params)
+      data
+    },
+    
+    draw_group = function(data, panel_scales, coord) {
+      vp <- grid::viewport(x=data$x, y=data$y)
+      g <- grid::editGrob(data$grob[[1]], vp=vp)
+      ggplot2:::ggname("geom_spatial", g)
+    },
+    
+    required_aes = c("grob","x","y")
+    
+  )
+  
+  layer(
+    geom = GeomCustom,
+    mapping = mapping,
+    data = data,
+    stat = stat,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+
+SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
+
+SingleSpatialPlot <- function(
+  data,
+  image.tibble,
+  pt.size = NULL,
+  col.by = NULL,
+  na.value = 'grey50'
+) {
+  pt.size <- pt.size %||% AutoPointSize(data = data)
+  
+  if (!is.data.frame(x = data)) {
+    data <- as.data.frame(x = data)
+  }
+  if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
+    warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
+    col.by <- NULL
+  }
+  
+  plot <- ggplot(data = data) +
+    geom_spatial(data=image.tibble, aes(grob=grob), x=0.5, y=0.5)+
+    geom_point(
+      mapping = aes_string(
+        x = colnames(x = data)[2],
+        y = colnames(x = data)[1],
+        color = col.by %iff% paste0("`", col.by, "`")
+        ),
+      size = pt.size
+    ) +
+    xlim(0,image.tibble$image_width)+
+    ylim(image.tibble$image_height,0)+
+    coord_cartesian(expand=FALSE)+
+    # guides(color = guide_legend(override.aes = list(size = 3))) +
+    labs(color = NULL)
+
+  #plot <- plot + theme_cowplot()
+   plot <- plot + theme_void()
+
+  return(plot)
+}
+
+SpatialFeaturePlot <- function(
+  object,
+  features,
+  slot = 'data',
+  min.cutoff = NA,
+  max.cutoff = NA,
+  ncol = NULL,
+  combine = TRUE
+) {
+ 
+  data <- FetchData(object = object,
+                    vars = features,
+                    slot = slot)
+  
+  features <- colnames(x = data)
+  
+  # # Determine cutoffs
+  # min.cutoff <- mapply(
+  #   FUN = function(cutoff, feature) {
+  #     return(ifelse(
+  #       test = is.na(x = cutoff),
+  #       yes = min(data[, feature]),
+  #       no = cutoff
+  #     ))
+  #   },
+  #   cutoff = min.cutoff,
+  #   feature = features
+  # )
+  # max.cutoff <- mapply(
+  #   FUN = function(cutoff, feature) {
+  #     return(ifelse(
+  #       test = is.na(x = cutoff),
+  #       yes = max(data[, feature]),
+  #       no = cutoff
+  #     ))
+  #   },
+  #   cutoff = max.cutoff,
+  #   feature = features
+  # )
+  # check.lengths <- unique(x = vapply(
+  #   X = list(features, min.cutoff, max.cutoff),
+  #   FUN = length,
+  #   FUN.VALUE = numeric(length = 1)
+  # ))
+  # if (length(x = check.lengths) != 1) {
+  #   stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+  # }
+  # # brewer.gran <- ifelse(
+  # #   test = length(x = cols) == 1,
+  # #   yes = brewer.pal.info[cols, ]$maxcolors,
+  # #   no = length(x = cols)
+  # # )
+  # brewer.gran <- 100
+  # # Apply cutoffs
+  # data <- sapply(
+  #   X = 1:ncol(x = data),
+  #   FUN = function(index) {
+  #     data.feature <- as.vector(x = data[, index])
+  #     min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
+  #     max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
+  #     data.feature[data.feature < min.use] <- min.use
+  #     data.feature[data.feature > max.use] <- max.use
+  #     if (brewer.gran == 2) {
+  #       return(data.feature)
+  #     }
+  #     data.cut <- if (all(data.feature == 0)) {
+  #       0
+  #     }
+  #     else {
+  #       as.numeric(x = as.factor(x = cut(
+  #         x = as.numeric(x = data.feature),
+  #         breaks = brewer.gran
+  #       )))
+  #     }
+  #     return(data.cut)
+  #   }
+  # )
+  colnames(x = data) <- features
+  rownames(x = data) <- colnames(object)
+  
+  plots <- vector(
+    mode = "list",
+    length(features)
+  )
+  
+  for (i in 1:length(x = features)) {
+      feature <- features[i]
+      plot <- SingleSpatialPlot(
+        data = cbind(GetTissueCoordinates(object = object), data[, features, drop = FALSE]),
+        image.tibble = GetImage(object = object),
+        #pt.size = pt.size,
+        col.by = feature
+      )
+      plot <- plot + scale_color_gradientn(colours = SpatialColors(100))
+      plots[[i]] <- plot
+  }
+  if (combine) {
+    plots <- CombinePlots(plots = plots, ncol = ncol)
+  }
+  return(plots)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
