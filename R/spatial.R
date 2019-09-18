@@ -9,9 +9,29 @@ NULL
 # Class definitions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom tibble tibble
+#'
+setOldClass(Classes = 'tibble')
+
+SpatialAssay <- setClass(
+  Class = 'SpatialAssay',
+  contains = 'Assay',
+  slots = list(
+    'image' = 'tibble',
+    'scale.factors' = 'list',
+    'tissue.positions' = 'data.frame'
+  )
+)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+CreateSpatialAssayObject <- function(
+  ...
+) {
+  ''
+}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics

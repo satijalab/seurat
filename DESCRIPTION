@@ -59,6 +59,7 @@ Imports:
     sctransform (>= 0.2.0),
     SDMTools,
     stats,
+    tibble,
     tools,
     tsne,
     utils,
@@ -78,6 +79,7 @@ Collate:
     'integration.R'
     'objects.R'
     'preprocessing.R'
+    'spatial.R'
     'tree.R'
     'utilities.R'
     'zzz.R'

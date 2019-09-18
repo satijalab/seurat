@@ -386,7 +386,10 @@ CreateAssayObject <- function(
   counts,
   data,
   min.cells = 0,
-  min.features = 0
+  min.features = 0,
+  image = NULL,
+  scale.factors = NULL,
+  tissue.positions = NULL
 ) {
   if (missing(x = counts) && missing(x = data)) {
     stop("Must provide either 'counts' or 'data'")
@@ -520,13 +523,26 @@ CreateAssayObject <- function(
   }
   # Initialize meta.features
   init.meta.features <- data.frame(row.names = rownames(x = data))
-  assay <- new(
-    Class = 'Assay',
-    counts = counts,
-    data = data,
-    scale.data = new(Class = 'matrix'),
-    meta.features = init.meta.features
+  # Figure out which class to create
+  object.list <- list(
+    'counts' = counts,
+    'data' = data,
+    'scale.data' = new(Class = 'matrix'),
+    'meta.features' = init.meta.features
   )
+  object.list$Class <- ifelse(
+    test = any(sapply(X = c(image, scale.factors, tissue.positions), FUN = is.null)),
+    yes = 'Assay',
+    no = 'SpatialAssay'
+  )
+  assay <- do.call(what = 'new', args = object.list)
+  # assay <- new(
+  #   Class = 'Assay',
+  #   counts = counts,
+  #   data = data,
+  #   scale.data = new(Class = 'matrix'),
+  #   meta.features = init.meta.features
+  # )
   return(assay)
 }
 

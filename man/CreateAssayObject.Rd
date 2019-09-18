@@ -4,7 +4,8 @@
 \alias{CreateAssayObject}
 \title{Create an Assay object}
 \usage{
-CreateAssayObject(counts, data, min.cells = 0, min.features = 0)
+CreateAssayObject(counts, data, min.cells = 0, min.features = 0,
+  image = NULL, scale.factors = NULL, tissue.positions = NULL)
 }
 \arguments{
 \item{counts}{Unnormalized data such as raw counts or TPMs}
