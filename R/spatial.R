@@ -101,6 +101,7 @@ Read10xSpatial <- function(
    names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
    object[[names(x = n.calc)]] <- n.calc
  }
+ Idents(object = object) <- "SeuratProject"
  return(object)
 }
 
