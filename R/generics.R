@@ -365,6 +365,15 @@ GetImage <- function(object, ...) {
   UseMethod(generic = 'GetImage', object = object)
 }
 
+#' Get tissue coordinates
+#'
+#' @rdname GetTissueCoordinates
+#' @export GetTissueCoordinates
+#'
+GetTissueCoordinates <- function(object, ...) {
+  UseMethod(generic = 'GetTissueCoordinates', object = object)
+}
+
 #' Get highly variable feature information
 #'
 #' @param object An object

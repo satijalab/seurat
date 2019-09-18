@@ -129,6 +129,25 @@ GetImage.Seurat <- function(object, assay = NULL, ...) {
   return(GetImage(object = object[[assay]]))
 }
 
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates SpatialAssay
+#'
+GetTissueCoordinates.SpatialAssay <- function(object, ...) {
+  cols.use <- c('scaled_imagerow', 'scaled_imagecol')
+  return(slot(object = object, name = 'tissue.positions')[, cols.use, drop = FALSE])
+}
+
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates Seurat
+#'
+GetTissueCoordinates.Seurat <- function(object, assay = NULL, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
+    stop("GetTissueCoordinates works only with SpatialAssay objects", call. = FALSE)
+  }
+  return(GetTissueCoordinates(object = object[[assay]]))
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

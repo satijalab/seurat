@@ -6,7 +6,7 @@
 \alias{GetImage.Seurat}
 \title{Get image data}
 \usage{
-GetImage(objet, ...)
+GetImage(object, ...)
 
 \method{GetImage}{SpatialAssay}(object, ...)
 
