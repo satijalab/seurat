@@ -11,13 +11,13 @@ NULL
 
 #' @importFrom tibble tibble
 #'
-setOldClass(Classes = 'tibble')
+setOldClass(Classes = 'tbl_df')
 
 SpatialAssay <- setClass(
   Class = 'SpatialAssay',
   contains = 'Assay',
   slots = list(
-    'image' = 'tibble',
+    'image' = 'tbl_df',
     'scale.factors' = 'list',
     'tissue.positions' = 'data.frame'
   )
