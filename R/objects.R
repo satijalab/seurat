@@ -530,11 +530,12 @@ CreateAssayObject <- function(
     'scale.data' = new(Class = 'matrix'),
     'meta.features' = init.meta.features
   )
-  object.list$Class <- ifelse(
-    test = any(sapply(X = c(image, scale.factors, tissue.positions), FUN = is.null)),
-    yes = 'Assay',
-    no = 'SpatialAssay'
-  )
+  if (any(sapply(X = c(image, scale.factors, tissue.positions), FUN = is.null))) {
+    object.list$Class <- 'Assay'
+  } else {
+    object.list <- c(object.list, 'image' = image, 'scale.factors' = scale.factors, 'tissue.positions' = tissue.positions)
+    object.list$Class <- 'SpatialAssay'
+  }
   assay <- do.call(what = 'new', args = object.list)
   # assay <- new(
   #   Class = 'Assay',
