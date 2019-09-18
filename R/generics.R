@@ -361,7 +361,7 @@ GetAssayData <- function(object, ...) {
 #' @rdname GetImage
 #' @export GetImage
 #'
-GetImage <- function(objet, ...) {
+GetImage <- function(object, ...) {
   UseMethod(generic = 'GetImage', object = object)
 }
 
