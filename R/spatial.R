@@ -78,7 +78,8 @@ Read10xSpatial <- function(
   image$image_width <- width
   # Filter for only spots under tissue if TRUE (default)
   if (filter_matrix) {
-    tissue.positions <- tissue.positions %>% filter(tissue == 1)
+    tissue.positions <- tissue.positions %>% 
+		dplyr::filter(tissue == 1)
   }
   assays <- list(CreateAssayObject(
     counts = a,
