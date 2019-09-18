@@ -96,6 +96,11 @@ Read10xSpatial <- function(
     project.name = "SeuratProject"
   )
  DefaultAssay(object = object) <- assay
+ n.calc <- CalcN(object = assays[[1]])
+ if (!is.null(x = n.calc)) {
+   names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+   object[[names(x = n.calc)]] <- n.calc
+ }
  return(object)
 }
 
