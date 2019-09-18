@@ -6547,10 +6547,17 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
   object.classes <- sapply(
     X = slots.objects,
     FUN = function(i) {
-      return(class(x = object[[i]]))
+      return(inherits(x = object[[i]], what = classes.keep))
     }
   )
-  object.classes <- object.classes[object.classes %in% classes.keep]
+  object.classes <- which(x = object.classes, useNames = TRUE)
+  # object.classes <- sapply(
+  #   X = slots.objects,
+  #   FUN = function(i) {
+  #     return(class(x = object[[i]]))
+  #   }
+  # )
+  # object.classes <- object.classes[object.classes %in% classes.keep]
   return(names(x = object.classes))
 }
 
