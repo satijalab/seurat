@@ -246,6 +246,7 @@ SpatialDimPlot <- function(
 SpatialFeaturePlot <- function(
   object,
   features,
+  spatial = NULL,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
@@ -256,7 +257,13 @@ SpatialFeaturePlot <- function(
   data <- FetchData(object = object,
                     vars = features,
                     slot = slot)
-
+  spatial = spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
+  if (length(x = spatial) != 1) {
+    stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
+  }
+  if (!inherits(x = object[[spatial]], what = 'SpatialAssay')) {
+    stop("Assay ", spatial, " is not a SpatialAssay", call. = FALSE)
+  }
   features <- colnames(x = data)
   # # Determine cutoffs
   # min.cutoff <- mapply(
@@ -329,8 +336,11 @@ SpatialFeaturePlot <- function(
   for (i in 1:length(x = features)) {
       feature <- features[i]
       plot <- SingleSpatialPlot(
-        data = cbind(GetTissueCoordinates(object = object), data[, features, drop = FALSE]),
-        image.tibble = GetImage(object = object),
+        data = cbind(
+          GetTissueCoordinates(object = object, assay = spatial),
+          data[, features, drop = FALSE]
+        ),
+        image.tibble = GetImage(object = object, assay = spatial),
         #pt.size = pt.size,
         col.by = feature
       )
