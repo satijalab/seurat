@@ -9,8 +9,6 @@ NULL
 # Class definitions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom tibble tibble
-#'
 setOldClass(Classes = 'tbl_df')
 
 SpatialAssay <- setClass(
@@ -27,7 +25,7 @@ SpatialAssay <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Read10X_Spatial <- function(
+Read10xSpatial <- function(
   outs_path,
   filtered_feature_bc_matrix_path = outs_path,
   image_path = outs_path,
@@ -80,8 +78,7 @@ Read10X_Spatial <- function(
   image$image_width <- width
   # Filter for only spots under tissue if TRUE (default)
   if (filter_matrix) {
-    tissue.positions <- tissue.positions %>% 
-		dplyr::filter(tissue == 1)
+    tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
   }
   assays <- list(CreateAssayObject(
     counts = a,
@@ -117,7 +114,7 @@ geom_spatial <-  function(mapping = NULL,
                          show.legend = NA,
                          inherit.aes = FALSE,
                          ...) {
-  
+
   GeomCustom <- ggproto(
     "GeomCustom",
     Geom,
@@ -125,17 +122,17 @@ geom_spatial <-  function(mapping = NULL,
       data <- ggproto_parent(Geom, self)$setup_data(data, params)
       data
     },
-    
+
     draw_group = function(data, panel_scales, coord) {
       vp <- grid::viewport(x=data$x, y=data$y)
       g <- grid::editGrob(data$grob[[1]], vp=vp)
       ggplot2:::ggname("geom_spatial", g)
     },
-    
+
     required_aes = c("grob","x","y")
-    
+
   )
-  
+
   layer(
     geom = GeomCustom,
     mapping = mapping,
@@ -159,7 +156,7 @@ SingleSpatialPlot <- function(
   na.value = 'grey50'
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data)
-  
+
   if (!is.data.frame(x = data)) {
     data <- as.data.frame(x = data)
   }
@@ -181,7 +178,7 @@ SingleSpatialPlot <- function(
     ylim(image.tibble$image_height,0)+
     coord_cartesian(expand=FALSE)+
     # guides(color = guide_legend(override.aes = list(size = 3))) +
-    labs(color = NULL) +
+    labs(color = NULL)
 
   #plot <- plot + theme_cowplot()
    plot <- plot + theme_void()
@@ -198,11 +195,11 @@ SpatialFeaturePlot <- function(
   ncol = NULL,
   combine = TRUE
 ) {
- 
+
   data <- FetchData(object = object,
                     vars = features,
                     slot = slot)
-  
+
   features <- colnames(x = data)
   # # Determine cutoffs
   # min.cutoff <- mapply(
@@ -267,7 +264,7 @@ SpatialFeaturePlot <- function(
   # )
   colnames(x = data) <- features
   rownames(x = data) <- colnames(object)
-  
+
   plots <- vector(
     mode = "list",
     length(features)
@@ -280,10 +277,7 @@ SpatialFeaturePlot <- function(
         #pt.size = pt.size,
         col.by = feature
       )
-      plot <- plot + 
-        scale_color_gradientn(colours = SpatialColors(100)) + 
-        labs(title = feature)
-      
+      plot <- plot + scale_color_gradientn(colours = SpatialColors(100))
       plots[[i]] <- plot
   }
   if (combine) {
