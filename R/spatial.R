@@ -26,7 +26,8 @@ SpatialAssay <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+#' @export
+#' @importFrom magrittr "%>%"
 Read10X_Spatial <- function(
   outs_path,
   filtered_feature_bc_matrix_path = outs_path,
