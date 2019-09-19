@@ -72,6 +72,8 @@ Read10xSpatial <- function(
       header = FALSE
     )
   }
+  rownames(x = tissue.positions) <- tissue.positions$barcode
+  tissue.positions <- tissue.positions[colnames(x = a), ]
   tissue.positions$scaled_imagerow <- tissue.positions$imagerow * scale.factors$tissue_lowres_scalef
   tissue.positions$scaled_imagecol <- tissue.positions$imagecol * scale.factors$tissue_lowres_scalef
   image$image_height <- height
@@ -165,7 +167,6 @@ SingleSpatialPlot <- function(
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
-  
   plot <- ggplot(data = data) +
     geom_spatial(data=image.tibble, aes(grob=grob), x=0.5, y=0.5)+
     geom_point(
@@ -203,7 +204,6 @@ SpatialFeaturePlot <- function(
                     slot = slot)
   
   features <- colnames(x = data)
-  
   # # Determine cutoffs
   # min.cutoff <- mapply(
   #   FUN = function(cutoff, feature) {
@@ -272,7 +272,6 @@ SpatialFeaturePlot <- function(
     mode = "list",
     length(features)
   )
-  
   for (i in 1:length(x = features)) {
       feature <- features[i]
       plot <- SingleSpatialPlot(
