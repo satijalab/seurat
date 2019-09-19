@@ -189,6 +189,37 @@ SingleSpatialPlot <- function(
   return(plot)
 }
 
+SpatialDimPlot <- function(
+  object,
+  group.by = NULL,
+  combine = TRUE,
+  ...
+) {
+  object[['ident']] <- Idents(object = object)
+  group.by <- group.by %||% 'ident'
+  data <- object[[group.by]]
+  for (group in group.by) {
+    if (!is.factor(x = data[, group])) {
+      data[, group] <- factor(x = data[, group])
+    }
+  }
+  plots <- lapply(
+    X = group.by,
+    FUN = function(x) {
+      SingleSpatialPlot(
+        data = cbind(GetTissueCoordinates(object = object), data[, x, drop = FALSE]),
+        image.tibble = GetImage(object = object),
+        col.by = x
+      ) + 
+      theme_void()
+    }
+  )
+  if (combine) {
+    plots <- CombinePlots(plots = plots, ...)
+  }
+  return(plots)
+}
+
 SpatialFeaturePlot <- function(
   object,
   features,
