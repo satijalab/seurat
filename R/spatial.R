@@ -80,7 +80,7 @@ Read10X_Spatial <- function(
   image$image_width <- width
   # Filter for only spots under tissue if TRUE (default)
   if (filter_matrix) {
-    tissue.positions <- tissue.positions %>%
+    tissue.positions <- tissue.positions %>% 
 		dplyr::filter(tissue == 1)
   }
   assays <- list(CreateAssayObject(
@@ -117,7 +117,7 @@ geom_spatial <-  function(mapping = NULL,
                          show.legend = NA,
                          inherit.aes = FALSE,
                          ...) {
-
+  
   GeomCustom <- ggproto(
     "GeomCustom",
     Geom,
@@ -125,17 +125,17 @@ geom_spatial <-  function(mapping = NULL,
       data <- ggproto_parent(Geom, self)$setup_data(data, params)
       data
     },
-
+    
     draw_group = function(data, panel_scales, coord) {
       vp <- grid::viewport(x=data$x, y=data$y)
       g <- grid::editGrob(data$grob[[1]], vp=vp)
       ggplot2:::ggname("geom_spatial", g)
     },
-
+    
     required_aes = c("grob","x","y")
-
+    
   )
-
+  
   layer(
     geom = GeomCustom,
     mapping = mapping,
@@ -159,7 +159,7 @@ SingleSpatialPlot <- function(
   na.value = 'grey50'
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data)
-
+  
   if (!is.data.frame(x = data)) {
     data <- as.data.frame(x = data)
   }
@@ -181,7 +181,7 @@ SingleSpatialPlot <- function(
     ylim(image.tibble$image_height,0)+
     coord_cartesian(expand=FALSE)+
     # guides(color = guide_legend(override.aes = list(size = 3))) +
-    labs(color = NULL)
+    labs(color = NULL) +
 
   #plot <- plot + theme_cowplot()
    plot <- plot + theme_void()
@@ -198,27 +198,11 @@ SpatialFeaturePlot <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  assay <- DefaultAssay(object = object)
-  if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
-    spatial.assays <- FilterObjects(object = object, classes.keep = 'SpatialAssay')
-    if (length(x = spatial.assays) != 1) {
-      stop(
-        "Could not unambigously find a spatial assay to use, please set one as default and run again",
-        call. = FALSE
-      )
-    } else {
-      warning(
-        "Default assay is not spatial, using '", spatial.assays, "' instead",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-      DefaultAssay(object = object) <- spatial.assays
-    }
-  }
+ 
   data <- FetchData(object = object,
                     vars = features,
                     slot = slot)
-
+  
   features <- colnames(x = data)
   # # Determine cutoffs
   # min.cutoff <- mapply(
@@ -283,7 +267,7 @@ SpatialFeaturePlot <- function(
   # )
   colnames(x = data) <- features
   rownames(x = data) <- colnames(object)
-
+  
   plots <- vector(
     mode = "list",
     length(features)
@@ -296,7 +280,10 @@ SpatialFeaturePlot <- function(
         #pt.size = pt.size,
         col.by = feature
       )
-      plot <- plot + scale_color_gradientn(colours = SpatialColors(100))
+      plot <- plot + 
+        scale_color_gradientn(colours = SpatialColors(100)) + 
+        labs(title = feature)
+      
       plots[[i]] <- plot
   }
   if (combine) {
