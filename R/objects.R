@@ -914,38 +914,34 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     FUN = function(x) {
       vars.use <- vars[keyed.vars[[x]]]
       key.use <- object.keys[x]
-      data.return <- switch(
-        EXPR = class(x = object[[x]]),
-        'DimReduc' = {
-          vars.use <- grep(
-            pattern = paste0('^', key.use, '[[:digit:]]+$'),
-            x = vars.use,
-            value = TRUE
+      data.return <- if (inherits(x = object[[x]], what = 'DimReduc')) {
+        vars.use <- grep(
+          pattern = paste0('^', key.use, '[[:digit:]]+$'),
+          x = vars.use,
+          value = TRUE
+        )
+        if (length(x = vars.use) > 0) {
+          tryCatch(
+            expr = object[[x]][[cells, vars.use, drop = FALSE]],
+            error = function(e) NULL
           )
-          if (length(x = vars.use) > 0) {
-            tryCatch(
-              expr = object[[x]][[cells, vars.use, drop = FALSE]],
-              error = function(e) NULL
-            )
-          } else {
-            NULL
-          }
-        },
-        'Assay' = {
-          vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
-          data.assay <- GetAssayData(
-            object = object,
-            slot = slot,
-            assay = x
-          )
-          vars.use <- vars.use[vars.use %in% rownames(x = data.assay)]
-          data.vars <- t(x = as.matrix(data.assay[vars.use, cells, drop = FALSE]))
-          if (ncol(data.vars) > 0) {
-            colnames(x = data.vars) <- paste0(key.use, vars.use)
-          }
-          data.vars
+        } else {
+          NULL
         }
-      )
+      } else if (inherits(x = object[[x]], what = 'Assay')) {
+        vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
+        data.assay <- GetAssayData(
+          object = object,
+          slot = slot,
+          assay = x
+        )
+        vars.use <- vars.use[vars.use %in% rownames(x = data.assay)]
+        data.vars <- t(x = as.matrix(data.assay[vars.use, cells, drop = FALSE]))
+        if (ncol(data.vars) > 0) {
+          colnames(x = data.vars) <- paste0(key.use, vars.use)
+        }
+        data.vars
+      }
       data.return <- as.list(x = as.data.frame(x = data.return))
       return(data.return)
     }
