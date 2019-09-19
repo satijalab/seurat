@@ -59,6 +59,7 @@ Imports:
     sctransform (>= 0.2.0),
     SDMTools,
     stats,
+    tibble,
     tools,
     tsne,
     utils,

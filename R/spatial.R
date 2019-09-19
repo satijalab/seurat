@@ -1,6 +1,6 @@
 #' @include objects.R
 #' @include generics.R
-#' @importFrom methods setClass setOldClass setClassUnion slot<-
+#' @importFrom methods setClass setOldClass setClassUnion slot<- setAs
 #' setMethod new
 #'
 NULL
@@ -19,6 +19,30 @@ SpatialAssay <- setClass(
     'scale.factors' = 'list',
     'tissue.positions' = 'data.frame'
   )
+)
+
+#' @importFrom tibble tibble
+#'
+setAs(
+  from = 'Assay',
+  to = 'SpatialAssay',
+  def = function(from) {
+    object.list <- sapply(
+      X = slotNames(x = from),
+      FUN = slot,
+      object = from,
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    object.list <- c(
+      list(
+        'Class' = 'SpatialAssay',
+        'image' = tibble()
+      ),
+      object.list
+    )
+    return(do.call(what = 'new', args = object.list))
+  }
 )
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
