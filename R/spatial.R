@@ -27,7 +27,7 @@ SpatialAssay <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Read10xSpatial <- function(
+Read10X_Spatial <- function(
   outs_path,
   filtered_feature_bc_matrix_path = outs_path,
   image_path = outs_path,
