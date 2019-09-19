@@ -26,8 +26,9 @@ SpatialAssay <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-Read10xSpatial <- function(
+#' @export
+#' @importFrom magrittr "%>%"
+Read10X_Spatial <- function(
   outs_path,
   filtered_feature_bc_matrix_path = outs_path,
   image_path = outs_path,
@@ -181,7 +182,7 @@ SingleSpatialPlot <- function(
     ylim(image.tibble$image_height,0)+
     coord_cartesian(expand=FALSE)+
     # guides(color = guide_legend(override.aes = list(size = 3))) +
-    labs(color = NULL)
+    labs(color = NULL) +
 
   #plot <- plot + theme_cowplot()
    plot <- plot + theme_void()
@@ -311,7 +312,10 @@ SpatialFeaturePlot <- function(
         #pt.size = pt.size,
         col.by = feature
       )
-      plot <- plot + scale_color_gradientn(colours = SpatialColors(100))
+      plot <- plot + 
+        scale_color_gradientn(colours = SpatialColors(100)) + 
+        labs(title = feature)
+      
       plots[[i]] <- plot
   }
   if (combine) {

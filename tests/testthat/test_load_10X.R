@@ -28,9 +28,9 @@ test_that("Read10X handles missing files properly", {
 })
 
 # Tests for reading in spatial 10x data
-context("Read10xSpatial")
+context("Read10X_Spatial")
 dname <- "../testdata/visium"
-txsp <- Read10xSpatial(outs_path = "~/Projects/seurat-spatial/tests/testdata/visium/")
+txsp <- Read10X_Spatial(outs_path = "../testdata/visium/")
 
 test_that("10x Spatial Data Parsing", {
   expect_is(txsp, "Seurat")
@@ -41,7 +41,9 @@ test_that("10x Spatial Data Parsing", {
   expect_equal(GetAssayData(object = txsp[["Spatial"]], slot = "counts")[5, 9], 1)
 })
 
-test_that("Read10xSpatial handles missing files properly", {
-  expect_error(Read10xSpatial(outs_path = "."))
-  expect_error(Read10xSpatial(outs_path = "./notadir/"))
+test_that("Read10X_Spatial handles missing files properly", {
+  expect_error(Read10X_Spatial(outs_path = "."))
+  expect_error(Read10X_Spatial(outs_path = "./notadir/"))
 })
+
+
