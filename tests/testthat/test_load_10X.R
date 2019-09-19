@@ -30,7 +30,7 @@ test_that("Read10X handles missing files properly", {
 # Tests for reading in spatial 10x data
 context("Read10xSpatial")
 dname <- "../testdata/visium"
-txsp <- Read10xSpatial(outs_path = "~/Projects/seurat-spatial/tests/testdata/visium/")
+txsp <- Read10xSpatial(outs_path = "../testdata/visium/")
 
 test_that("10x Spatial Data Parsing", {
   expect_is(txsp, "Seurat")
