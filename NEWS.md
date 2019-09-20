@@ -7,10 +7,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 - New `RegroupIdents` function to reassign idents based on metadata column majority
 - `UpdateSymbolList` function to pull new gene names from HGNC
+- Added support for H5AD layers as additional assays in a `Seurat` object
 
 ### Changed
 - Fix rownames issue when running UMAP on dist object
-- Fixes to ReadH5AD
+- Add support for new H5AD `obsm` and `varm` stucture
+- Fix issue when trying to read non-existent feature-level metadata from an H5AD file
 - Fix in integration workflow when using SCTransform
 - Improved error checking for `AddModuleScore`
 - cbind fix in reference-based integration (`MapQuery`)
