@@ -92,6 +92,7 @@ Suggests:
     SingleCellExperiment,
     MAST,
     DESeq2,
+    BiocGenerics,
     GenomicRanges,
     GenomeInfoDb,
     IRanges,
