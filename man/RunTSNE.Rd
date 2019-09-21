@@ -69,6 +69,9 @@ instead of data matrix (experimental)}
 
 \item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. tsne by default}
 }
+\value{
+Returns a Seurat object containing a tSNE representation
+}
 \description{
 Run t-SNE dimensionality reduction on selected features. Has the option of
 running in a reduced dimensional space (i.e. spectral tSNE, recommended),
