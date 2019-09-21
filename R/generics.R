@@ -827,6 +827,26 @@ RunPCA <- function(object, ...) {
   UseMethod(generic = 'RunPCA', object = object)
 }
 
+#' Run diffusion map
+#'
+#' Run a diffusion map dimensionality reduction. For details about stored difussion map calculation
+#' parameters, see \code{PrintDiffusionParams}.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods and destiny
+#'
+#' @return Returns Seurat object with the diffusion map calculation stored in the reductions slot
+#'
+#' @export
+#'
+#' @rdname RunDiffusion
+#' @export RunDiffusion
+#'
+RunDiffusion <- function (object, ...) 
+{
+  UseMethod(generic = "RunDiffusion", object = object)
+}
+
 #' Run t-distributed Stochastic Neighbor Embedding
 #'
 #' Run t-SNE dimensionality reduction on selected features. Has the option of
@@ -836,7 +856,9 @@ RunPCA <- function(object, ...) {
 #'
 #' @param object Seurat object
 #' @param ... Arguments passed to other methods and to t-SNE call (most commonly used is perplexity)
-#'
+#' 
+#' @return Returns a Seurat object containing a tSNE representation
+#' 
 #' @rdname RunTSNE
 #' @export RunTSNE
 #'
