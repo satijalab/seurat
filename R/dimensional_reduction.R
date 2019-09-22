@@ -1046,7 +1046,9 @@ RunDiffusion.Seurat <- function (
 ) 
 {
   cells <- cells %||% Cells(x = object)
-  normalize.method <- normalize.method %||% "LogNormalize"
+  if (!normalize.method == "SCTransform") {
+    normalize.method <- "LogNormalize"
+  }
   if (!is.null(features)) {
     dims <- NULL
   }
