@@ -195,7 +195,7 @@ CreateGeneActivityMatrix <- function(
   # if any peaks start at 0, change to 1
   # otherwise GenomicRanges::distanceToNearest will not work 
   BiocGenerics::start(peaks.gr[start(peaks.gr) == 0, ]) <- 1
-
+  
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
@@ -205,7 +205,7 @@ CreateGeneActivityMatrix <- function(
     GenomeInfoDb::seqlevelsStyle(gtf) <- GenomeInfoDb::seqlevelsStyle(peaks.gr)
   }
   gtf.genes <- gtf[gtf$type == 'gene']
-
+  
   # Extend definition up/downstream
   if (include.body) {
     gtf.body_prom <- Extend(x = gtf.genes, upstream = upstream, downstream = downstream)
@@ -226,11 +226,11 @@ CreateGeneActivityMatrix <- function(
   peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
   annotations <- peak.ids[, c('peak', 'gene.name')]
   colnames(x = annotations) <- c('feature', 'new_feature')
-
+  
   # collapse into expression matrix
   peak.matrix <- as(object = peak.matrix, Class = 'matrix')
   all.features <- unique(x = annotations$new_feature)
-
+  
   if (nbrOfWorkers() > 1) {
     mysapply <- future_sapply
   } else {
@@ -486,74 +486,74 @@ GetResidual <- function(
         clip.range = clip.range,
         verbose = verbose
       )
-  } else {
-    # Calculate Pearson Residual from integrated object SCT assay
-    vst.set <- Misc(object = object[[assay]], slot = 'vst.set')
-    scale.data <- GetAssayData(
-      object = object,
-      assay = assay,
-      slot = "scale.data"
-    )
-
-    vst_set_genes <-  sapply(1:length(vst.set), function(x) rownames(vst.set[[x]]$model_pars_fit))
-    vst_set_genes <- Reduce(intersect, vst_set_genes)
-    diff_features <- setdiff(
-      x = new_features,
-      y = vst_set_genes
-    )
-    if (length(x = diff_features) !=0) {
-      warning(
-        "The following ", length(x = diff_features),
-        " features do not exist in all SCT models: ",
-        paste(diff_features, collapse = " ")
-      )
-    }
-    new_features <- intersect(
-      x = new_features,
-      y = vst_set_genes
-    )
-    if (length(new_features) != 0){
-    object <- SetAssayData(
-      object = object,
-      assay = assay,
-      slot = "scale.data",
-      new.data = scale.data[!rownames(x = scale.data) %in% new_features, , drop = FALSE]
-    )
-    new.scale.data <- matrix(nrow = length(new_features), ncol = 0)
-    rownames(x = new.scale.data) <- new_features
-    for (v in 1:length(x = vst.set)) {
-      vst_out <- vst.set[[v]]
-      # confirm that cells from SCT model also exist in the integrated object
-      cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
-      vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
-      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
-      object.v <- subset(x = object, cells = cells.v)
-
-      object.v <- GetResidualVstOut(
-        object = object.v,
+    } else {
+      # Calculate Pearson Residual from integrated object SCT assay
+      vst.set <- Misc(object = object[[assay]], slot = 'vst.set')
+      scale.data <- GetAssayData(
+        object = object,
         assay = assay,
-        umi.assay = umi.assay,
-        new_features = new_features,
-        vst_out = vst_out,
-        clip.range = clip.range,
-        verbose = verbose
+        slot = "scale.data"
       )
-      new.scale.data <- cbind(
-        new.scale.data,
-        GetAssayData(object = object.v, assay = assay, slot ="scale.data" )[new_features, , drop = FALSE]
+      
+      vst_set_genes <-  sapply(1:length(vst.set), function(x) rownames(vst.set[[x]]$model_pars_fit))
+      vst_set_genes <- Reduce(intersect, vst_set_genes)
+      diff_features <- setdiff(
+        x = new_features,
+        y = vst_set_genes
       )
+      if (length(x = diff_features) !=0) {
+        warning(
+          "The following ", length(x = diff_features),
+          " features do not exist in all SCT models: ",
+          paste(diff_features, collapse = " ")
+        )
+      }
+      new_features <- intersect(
+        x = new_features,
+        y = vst_set_genes
+      )
+      if (length(new_features) != 0){
+        object <- SetAssayData(
+          object = object,
+          assay = assay,
+          slot = "scale.data",
+          new.data = scale.data[!rownames(x = scale.data) %in% new_features, , drop = FALSE]
+        )
+        new.scale.data <- matrix(nrow = length(new_features), ncol = 0)
+        rownames(x = new.scale.data) <- new_features
+        for (v in 1:length(x = vst.set)) {
+          vst_out <- vst.set[[v]]
+          # confirm that cells from SCT model also exist in the integrated object
+          cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
+          vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
+          vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
+          object.v <- subset(x = object, cells = cells.v)
+          
+          object.v <- GetResidualVstOut(
+            object = object.v,
+            assay = assay,
+            umi.assay = umi.assay,
+            new_features = new_features,
+            vst_out = vst_out,
+            clip.range = clip.range,
+            verbose = verbose
+          )
+          new.scale.data <- cbind(
+            new.scale.data,
+            GetAssayData(object = object.v, assay = assay, slot ="scale.data" )[new_features, , drop = FALSE]
+          )
+        }
+        object <- SetAssayData(
+          object = object,
+          assay = assay,
+          slot = "scale.data",
+          new.data = rbind(
+            GetAssayData(object = object, slot = 'scale.data', assay = assay),
+            new.scale.data
+          )
+        )
+      }
     }
-    object <- SetAssayData(
-      object = object,
-      assay = assay,
-      slot = "scale.data",
-      new.data = rbind(
-        GetAssayData(object = object, slot = 'scale.data', assay = assay),
-        new.scale.data
-      )
-    )
-    }
-  }
   }
   return(object)
 }
@@ -2679,13 +2679,13 @@ GetResidualVstOut <- function(
   if (length(x = diff_features) == 0) {
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[new_features, , drop = FALSE]
   } else {
-
+    
     warning(
       "The following ", length(x = diff_features),
       " features do not exist in the counts slot: ",
       paste(diff_features, collapse = " ")
     )
-
+    
     if (length(x = intersect_feature) == 0) {
       return(object)
     }
@@ -2693,8 +2693,8 @@ GetResidualVstOut <- function(
   }
   if (is.null(x = clip.range)) {
     if(length(vst_out$arguments$sct.clip.range)!=0 ){
-    clip.max <- max(vst_out$arguments$sct.clip.range)
-    clip.min <- min(vst_out$arguments$sct.clip.range)
+      clip.max <- max(vst_out$arguments$sct.clip.range)
+      clip.min <- min(vst_out$arguments$sct.clip.range)
     } else{
       clip.max <- max(vst_out$arguments$res_clip_range)
       clip.min <- min(vst_out$arguments$res_clip_range)
