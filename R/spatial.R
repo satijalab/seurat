@@ -66,7 +66,7 @@ Read10X_Spatial <- function(
     Read10X_h5(filename = filtered_feature_bc_matrix_path)
   }
   if (missing(x = image_path)) {
-   image <- png::readPNG(source = file.path(outs_path, "spatial", "tissue_lowres_image.jpg"))
+   image <- png::readPNG(source = file.path(outs_path, "spatial", "tissue_lowres_image.png"))
   } else {
    image <- png::readPNG(source = image_path)
   }
