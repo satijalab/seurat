@@ -10,7 +10,7 @@ SCTransform(object, assay = "RNA", new.assay.name = "SCT",
   do.scale = FALSE, do.center = TRUE, clip.range = c(-sqrt(x = ncol(x
   = object[[assay]])/30), sqrt(x = ncol(x = object[[assay]])/30)),
   conserve.memory = FALSE, return.only.var.genes = TRUE,
-  seed.use = 1448145, verbose = TRUE, ...)
+  return.vst.y = FALSE, seed.use = 1448145, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -46,6 +46,8 @@ this will also set return.only.var.genes to TRUE; default is FALSE}
 
 \item{return.only.var.genes}{If set to TRUE the scale.data matrices in output assay are
 subset to contain only the variable genes; default is TRUE}
+
+\item{return.vst.y}{If set to TRUE the vst.out will keep output y; default is FALSE.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting
 NULL will not set a seed.}

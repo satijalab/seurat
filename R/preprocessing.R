@@ -1160,6 +1160,7 @@ SampleUMI <- function(
 #' this will also set return.only.var.genes to TRUE; default is FALSE
 #' @param return.only.var.genes If set to TRUE the scale.data matrices in output assay are
 #' subset to contain only the variable genes; default is TRUE
+#' @param return.vst.y If set to TRUE the vst.out will keep output y; default is FALSE.
 #' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
 #' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
@@ -1192,6 +1193,7 @@ SCTransform <- function(
   clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
+  return.vst.y = FALSE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
@@ -1249,6 +1251,7 @@ SCTransform <- function(
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
   if (conserve.memory) {
     return.only.var.genes <- TRUE
+    return.vst.y <- FALSE
   }
   if (conserve.memory) {
     vst.args[['residual_type']] <- 'none'
@@ -1345,7 +1348,9 @@ SCTransform <- function(
     new.data = scale.data
   )
   # save vst output (except y) in @misc slot
-  vst.out$y <- NULL
+  if (!return.vst.y) {
+    vst.out$y <- NULL
+  }
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
