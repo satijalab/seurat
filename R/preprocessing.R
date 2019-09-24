@@ -194,7 +194,7 @@ CreateGeneActivityMatrix <- function(
   
   # if any peaks start at 0, change to 1
   # otherwise GenomicRanges::distanceToNearest will not work 
-  BiocGenerics::start(peaks.gr[start(peaks.gr) == 0, ]) <- 1
+  BiocGenerics::start(peaks.gr[BiocGenerics::start(peaks.gr) == 0, ]) <- 1
 
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
