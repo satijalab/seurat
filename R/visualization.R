@@ -553,11 +553,18 @@ VlnPlot <- function(
   ncol = NULL,
   combine = TRUE,
   slot = 'data',
+  multi.group = FALSE,
   ...
 ) {
+  if(multi.group){
+    type = "multiViolin"
+  }else{
+    type = 'violin'
+  }
+  
   return(ExIPlot(
     object = object,
-    type = 'violin',
+    type = type,
     features = features,
     idents = idents,
     ncol = ncol,
@@ -3619,6 +3626,7 @@ ExIPlot <- function(
   label.fxn <- switch(
     EXPR = type,
     'violin' = ylab,
+    "multiViolin"= ylab,
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -4492,14 +4500,19 @@ SingleExIPlot <- function(
   }
   axis.label <- ifelse(test = log, yes = 'Log Expression Level', no = 'Expression Level')
   y.max <- y.max %||% max(data[, feature])
-  if (is.null(x = split) || type != 'violin') {
-    vln.geom <- geom_violin
-    fill <- 'ident'
-  } else {
+  if(type == 'violin'& !is.null(x = split)){
     data$split <- split
     vln.geom <- geom_split_violin
     fill <- 'split'
+  }else if(type == 'multiViolin'& !is.null(x = split )){
+    data$split <- split
+    vln.geom <- geom_violin
+    fill <- 'split'
+  } else{
+    vln.geom <- geom_violin
+    fill <- 'ident'
   }
+  
   switch(
     EXPR = type,
     'violin' = {
@@ -4531,6 +4544,19 @@ SingleExIPlot <- function(
       axis.scale <- function(...) {
         invisible(x = NULL)
       }
+    },
+    'multiViolin' = {
+      x <- 'ident'
+      y <- paste0("`", feature, "`")
+      xlab <- 'Identity'
+      ylab <- axis.label
+      geom <- list(
+        vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      )
+      jitter <- geom_jitter(height = 0, size = pt.size)
+      log.scale <- scale_y_log10()
+      axis.scale <- ylim
     },
     stop("Unknown plot type: ", type)
   )
