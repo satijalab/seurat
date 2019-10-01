@@ -74,7 +74,7 @@ AddModuleScore <- function(
   assay = NULL,
   name = 'Cluster',
   seed = 1,
-  search = TRUE,
+  search = FALSE,
   ...
 ) {
   set.seed(seed = seed)
