@@ -5294,6 +5294,42 @@ dimnames.Seurat <- function(x) {
 }
 
 #' @export
+#' @method dimnames<- Assay
+#'
+"dimnames<-.Assay" <- function(x, value) {
+  if (!is.list(x = value) || length(x = value) != 2L) {
+    stop("Invalid 'dimnames' for Assays", call. = FALSE)
+  } else if (!all(sapply(X = value, FUN = length) == dim(x = x))) {
+    stop("Missing row (feature) and/or column (cell) names", call. = FALSE)
+  }
+  value[[1L]] <- as.character(x = value[[1L]])
+  value[[2L]] <- as.character(x = value[[2L]])
+  if (!IsMatrixEmpty(x = GetAssayData(object = x, slot = 'scale.data'))) {
+    value.scaled <- value
+    features.scaled <- match(
+      x = rownames(x = GetAssayData(object = x, slot = 'scale.data')),
+      table = rownames(x = x)
+    )
+    value.scaled[[1L]] <- value.scaled[[1L]][features.scaled]
+    dimnames(x = slot(object = x, name = 'scale.data')) <- value.scaled
+  }
+  if (length(x = VariableFeatures(object = x)) > 0) {
+    features.variable <- match(
+      x = VariableFeatures(object = x),
+      table = rownames(x = x)
+    )
+    VariableFeatures(object = x) <- value[[1L]][features.variable]
+  }
+  for (slot in c('counts', 'data')) {
+    if (!IsMatrixEmpty(x = GetAssayData(object = x, slot = slot))) {
+      dimnames(x = slot(object = x, name = slot)) <- value
+    }
+  }
+  rownames(x = slot(object = x, name = 'meta.features')) <- value[[1L]]
+  return(x)
+}
+
+#' @export
 #' @method droplevels Seurat
 #'
 droplevels.Seurat <- function(x, ...) {
@@ -6041,7 +6077,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
-      if (!is.null(x = FindObject(object = x, name = i)) && !(class(x = value) %in% c(class(x = x[[i]]), 'NULL'))) {
+      if (!is.null(x = FindObject(object = x, name = i)) && !inherits(x = value, what = c(class(x = x[[i]]), 'NULL'))) {
         stop(
           "This object already contains ",
           i,

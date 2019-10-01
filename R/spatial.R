@@ -1,6 +1,6 @@
 #' @include objects.R
 #' @include generics.R
-#' @importFrom methods setClass setOldClass setClassUnion slot<- setAs
+#' @importFrom methods setClass setOldClass slot<- setAs
 #' setMethod new
 #'
 NULL
@@ -9,20 +9,69 @@ NULL
 # Class definitions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @note \code{scalefactors} objects can be created with \code{scalefactors()}
+#'
+#' @param spot Spot full resolution scale factor
+#' @param fiducial Fiducial full resolution scale factor
+#' @param hires High resolutoin scale factor
+#' @param lowres Low resolution scale factor
+#'
+#' @rdname ScaleFactors
+#' @export
+#'
+scalefactors <- function(spot, fiducial, hires, lowres) {
+  object <- list(
+    spot = spot,
+    fiducial = fiducial,
+    hires = hires,
+    lowres = lowres
+  )
+  object <- sapply(X = object, FUN = as.numeric, simplify = FALSE, USE.NAMES = TRUE)
+  return(structure(.Data = object, class = 'scalefactors'))
+}
+
 setOldClass(Classes = 'tbl_df')
+setOldClass(Classes = c('rastergrob', 'scalefactors'))
+
+SliceImage <- setClass(
+  Class = 'SliceImage',
+  slots = list(
+    'image' = 'rastergrob',
+    'scale.factors' = 'scalefactors',
+    'coordinates' = 'data.frame'
+  )
+)
+
+#' @rdname Cells
+#' @method Cells SliceImage
+#' @export
+#'
+Cells.SliceImage <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
+}
+
+#' @method dim SliceImage
+#' @export
+#'
+dim.SliceImage <- function(x) {
+  return(dim(x = GetImage(object = x)$raster))
+}
+
+#' @method dimnames SliceImage
+#' @export
+#'
+dimnames.SliceImage <- function(x) {
+  ''
+}
 
 SpatialAssay <- setClass(
   Class = 'SpatialAssay',
   contains = 'Assay',
   slots = list(
-    'image' = 'tbl_df',
-    'scale.factors' = 'list',
-    'tissue.positions' = 'data.frame'
+    'images' = 'list'
   )
 )
 
-#' @importFrom tibble tibble
-#'
 setAs(
   from = 'Assay',
   to = 'SpatialAssay',
@@ -36,8 +85,8 @@ setAs(
     )
     object.list <- c(
       list(
-        'Class' = 'SpatialAssay',
-        'image' = tibble()
+        'Class' = 'SpatialAssay'
+        # 'image' = tibble()
       ),
       object.list
     )
@@ -48,6 +97,65 @@ setAs(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Load a 10X Genomics Visium Spatial Experiment into a \code{Seurat} object
+#'
+#' @inheritParams Read10X
+#' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#'
+#' @return A \code{Seurat} object
+#'
+#' @importFrom png readPNG
+#' @importFrom grid rasterGrob
+#' @importFrom jsonlite fromJSON
+#'
+#' @export
+#'
+Load10X_Spatial <- function(
+  data.dir,
+  assay = 'Spatial',
+  slice = NULL,
+  filter.matrix = TRUE,
+  ...
+) {
+  data <- Read10X_h5(
+    filename = file.path(data.dir, 'filtered_feature_bc_matrix.h5'),
+    ...
+  )
+  image <- readPNG(source = file.path(data.dir, 'spatial', 'tissue_lowres_image.png'))
+  scale.factors <- fromJSON(txt = file.path(data.dir, 'spatial', 'scalefactors_json.json'))
+  tissue.positions <- read.csv(
+    file = file.path(data.dir, 'spatial', 'tissue_positions_list.txt'),
+    col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
+    header = FALSE,
+    as.is = TRUE,
+    row.names = 1
+  )
+  if (filter.matrix) {
+    tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
+  }
+  object <- CreateSeuratObject(counts = data, assay = assay)
+  object <- SetSlice(
+    object = object,
+    image = new(
+      Class = 'SliceImage',
+      image = rasterGrob(
+        image = image,
+        width = unit(x = 1, units = 'npc'),
+        height = unit(x = 1, units = 'npc')
+      ),
+      scale.factors = scalefactors(
+        spot = scale.factors$tissue_hires_scalef,
+        fiducial = scale.factors$fiducial_diameter_fullres,
+        hires = scale.factors$tissue_hires_scalef,
+        scale.factors$tissue_lowres_scalef
+      ),
+      coordinates = tissue.positions
+    ),
+    slice = slice
+  )
+  return(object)
+}
 
 #' @export
 #'
@@ -358,44 +466,150 @@ SpatialFeaturePlot <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @rdname GetImage
-#' @method GetImage SpatialAssay
-#' @export
-#'
-GetImage.SpatialAssay <- function(object, ...) {
-  return(slot(object = object, name = 'image'))
-}
-
-#' @rdname GetImage
 #' @method GetImage Seurat
 #' @export
 #'
-GetImage.Seurat <- function(object, assay = NULL, ...) {
+GetImage.Seurat <- function(object, slice = NULL, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
     stop("GetImage works only with SpatialAssay objects", call. = FALSE)
   }
-  return(GetImage(object = object[[assay]]))
+  return(GetImage(object = object[[assay]], slice = slice))
 }
 
-#' @rdname GetTissueCoordinates
-#' @method GetTissueCoordinates SpatialAssay
+#' @rdname GetImage
+#' @method GetImage SliceImage
 #' @export
 #'
-GetTissueCoordinates.SpatialAssay <- function(object, ...) {
-  cols.use <- c('scaled_imagerow', 'scaled_imagecol')
-  return(slot(object = object, name = 'tissue.positions')[, cols.use, drop = FALSE])
+GetImage.SliceImage <- function(object, ...) {
+  return(slot(object = object, name = 'image'))
+}
+
+#' @rdname GetImage
+#' @method GetImage SpatialAssay
+#' @export
+#'
+GetImage.SpatialAssay <- function(object, slice = NULL, ...) {
+  slice <- slice %||% names(x = GetSlice(object = object))[1]
+  return(GetImage(object = GetSlice(object = object, slice = slice)))
+}
+
+#' @rdname ImageData
+#' @method GetSlice Seurat
+#' @export
+#'
+GetSlice.Seurat <- function(object, slice = NULL, assay = NULL, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
+    stop("'GetSlice' needs to be run on assays with spatial information", call. = FALSE)
+  }
+  return(GetSlice(object = object[[assay]], slice = slice))
+}
+
+#' @rdname ImageData
+#' @method GetSlice SpatialAssay
+#' @export
+#'
+GetSlice.SpatialAssay <- function(object, slice = NULL, ...) {
+  images <- slot(object = object, name = 'images')
+  if (is.null(x = slice)) {
+    return(images)
+  }
+  return(images[[slice]])
 }
 
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates Seurat
 #' @export
 #'
-GetTissueCoordinates.Seurat <- function(object, assay = NULL, ...) {
+GetTissueCoordinates.Seurat <- function(
+  object,
+  scale = 'lowres',
+  slice = NULL,
+  assay = NULL,
+  ...
+) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
     stop("GetTissueCoordinates works only with SpatialAssay objects", call. = FALSE)
   }
-  return(GetTissueCoordinates(object = object[[assay]]))
+  return(GetTissueCoordinates(object = object[[assay]], scale = scale, slice = slice))
+}
+
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates SliceImage
+#' @export
+#'
+GetTissueCoordinates.SliceImage <- function(object, scale = 'lowres', ...) {
+  coordinates <- slot(object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
+  if (!is.null(x = scale)) {
+    scale <- match.arg(arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
+    scale.use <- slot(object = object, name = 'scale.factors')[[scale]]
+    coordinates <- coordinates * scale.use
+  }
+  return(coordinates)
+}
+
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates SpatialAssay
+#' @export
+#'
+GetTissueCoordinates.SpatialAssay <- function(
+  object,
+  scale = 'lowres',
+  slice = NULL,
+  ...
+) {
+  slice <- slice %||% names(x = GetSlice(object = object))[1]
+  return(GetTissueCoordinates(
+    object = GetSlice(object = object, slice = ),
+    scale = scale
+  ))
+}
+
+#' @method ScaleFactors SliceImage
+#' @export
+#'
+ScaleFactors.SliceImage <- function(object, ...) {
+  return(slot(object = object, name = 'scale.factors'))
+}
+
+#' @rdname ImageData
+#' @method SetSlice Assay
+#' @export
+#'
+SetSlice.Assay <- function(object, image, slice = NULL, ...) {
+  object <- as(object = object, Class = 'SpatialAssay')
+  object <- SetSlice(object = object, image = image, slice = slice)
+  return(object)
+}
+
+#' @rdname ImageData
+#' @method SetSlice Seurat
+#' @export
+#'
+SetSlice.Seurat <- function(object, image, slice = NULL, assay = NULL, ...) {
+  spatial <- FilterObjects(object = pbmc_small, classes.keep = 'SpatialAssay')
+  assay <- assay %||% ifelse(
+    test = length(x = spatial) > 0,
+    yes = spatial[1],
+    no = DefaultAssay(object = object)
+  )
+  object[[assay]] <- SetSlice(object = object[[assay]], image = image)
+  return(object)
+}
+
+#' @rdname ImageData
+#' @method SetSlice SpatialAssay
+#' @export
+#'
+SetSlice.SpatialAssay <- function(object, image, slice = NULL, ...) {
+  if (!all(Cells(x = image) %in% Cells(x = object))) {
+    stop("Extra cells")
+  }
+  slice <- slice %||% paste0('slice', length(x = GetSlice(object = object)) + 1)
+  slot(object = object, name = 'images')[[slice]] <- image
+  return(object)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

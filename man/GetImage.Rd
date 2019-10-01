@@ -2,16 +2,34 @@
 % Please edit documentation in R/generics.R, R/spatial.R
 \name{GetImage}
 \alias{GetImage}
-\alias{GetImage.SpatialAssay}
 \alias{GetImage.Seurat}
+\alias{GetImage.SliceImage}
+\alias{GetImage.SpatialAssay}
 \title{Get image data}
 \usage{
 GetImage(object, ...)
 
-\method{GetImage}{SpatialAssay}(object, ...)
+\method{GetImage}{Seurat}(object, slice = NULL, assay = NULL, ...)
 
-\method{GetImage}{Seurat}(object, assay = NULL, ...)
+\method{GetImage}{SliceImage}(object, ...)
+
+\method{GetImage}{SpatialAssay}(object, slice = NULL, ...)
+}
+\arguments{
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
+
+\item{slice}{Name or index of slice to pull image data for}
+
+\item{assay}{Name of assay to pull image data for}
+}
+\value{
+A grob of the image
 }
 \description{
 Get image data
+}
+\note{
+TODO: replace grobs with PNG arrays
 }
