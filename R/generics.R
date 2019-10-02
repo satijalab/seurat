@@ -1032,6 +1032,13 @@ SetSlice <- function(object, image, slice = NULL, ...) {
   UseMethod(generic = 'SetSlice', object = object)
 }
 
+#' @rdname ImageData
+#' @export
+#'
+SetTissueCoordinates <- function(object, coordinates, ...) {
+  UseMethod(generic = "SetTissueCoordinates", object = object)
+}
+
 #' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents

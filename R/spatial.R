@@ -240,10 +240,16 @@ SingleSpatialPlot <- function(
 
 SpatialDimPlot <- function(
   object,
+  spatial = NULL,
   group.by = NULL,
+  slice = NULL,
   combine = TRUE,
   ...
 ) {
+  spatial = spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
+  if (length(x = spatial) != 1) {
+    stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
+  }
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <- object[[group.by]]
@@ -252,19 +258,34 @@ SpatialDimPlot <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
-  plots <- lapply(
-    X = group.by,
-    FUN = function(x) {
-      SingleSpatialPlot(
-        data = cbind(GetTissueCoordinates(object = object), data[, x, drop = FALSE]),
-        image.tibble = GetImage(object = object),
-        col.by = x
-      ) +
-      theme_void()
-    }
+  slice <- slice %||% Slices(object = object[[spatial]])
+  plots <- vector(
+    mode = "list",
+    length = length(x = group.by)
   )
+  for (i in 1:length(x = group.by)) {
+    group <- group.by[i]
+    slice.plots <- vector(mode = "list",length = length(x = slice))
+    for (s in 1:length(x = slice)) {
+      coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
+      plot.slice <- GetSlice(object = object, slice = slice[s])
+      plot <- SingleSpatialPlot(
+        data = cbind(
+          coordinates,
+          data[rownames(x = coordinates), group, drop = FALSE]
+        ),
+        col.by = group,
+        image.tibble = tibble(grob = list(GetImage(object = plot.slice)), image_width = ncol(x = plot.slice), image_height = nrow(x = plot.slice))
+      )
+      if (i == 1) {
+        plot <- plot + ggtitle(label = slice[s])  + theme(plot.title = element_text(hjust = 0.5)) 
+      }
+      slice.plots[[s]] <- plot
+    }
+    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = s)
+  }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ...)
+    plots <- CombinePlots(plots = plots, ncol = 1)
   }
   return(plots)
 }
@@ -273,13 +294,13 @@ SpatialFeaturePlot <- function(
   object,
   features,
   spatial = NULL,
+  slice = NULL,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
   ncol = NULL,
   combine = TRUE
 ) {
-
   data <- FetchData(object = object,
                     vars = features,
                     slot = slot)
@@ -290,6 +311,7 @@ SpatialFeaturePlot <- function(
   if (!inherits(x = object[[spatial]], what = 'SpatialAssay')) {
     stop("Assay ", spatial, " is not a SpatialAssay", call. = FALSE)
   }
+  slice <- slice %||% Slices(object = object[[spatial]])
   features <- colnames(x = data)
   # # Determine cutoffs
   # min.cutoff <- mapply(
@@ -354,27 +376,35 @@ SpatialFeaturePlot <- function(
   # )
   colnames(x = data) <- features
   rownames(x = data) <- colnames(object)
-
   plots <- vector(
     mode = "list",
-    length(features)
+    length = length(x = features)
   )
   for (i in 1:length(x = features)) {
-      feature <- features[i]
+    feature <- features[i]
+    slice.plots <- vector(mode = "list",length = length(x = slice))
+    for (s in 1:length(x = slice)) {
+      coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
+      plot.slice <- GetSlice(object = object, slice = slice[s])
       plot <- SingleSpatialPlot(
         data = cbind(
-          GetTissueCoordinates(object = object, assay = spatial),
-          data[, features, drop = FALSE]
+          coordinates,
+          data[rownames(x = coordinates), features, drop = FALSE]
         ),
-        image.tibble = GetImage(object = object, assay = spatial),
+        image.tibble = tibble(grob = list(GetImage(object = plot.slice)), image_width = ncol(x = plot.slice), image_height = nrow(x = plot.slice)),
         #pt.size = pt.size,
         col.by = feature
       )
-      plot <- plot + scale_color_gradientn(colours = SpatialColors(100))
-      plots[[i]] <- plot
+      plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))  
+      if (i == 1) {
+        plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5)) 
+      }
+      slice.plots[[s]] <- plot
+    }
+    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = s)
   }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol)
+    plots <- CombinePlots(plots = plots, ncol = 1)
   }
   return(plots)
 }
@@ -451,19 +481,22 @@ GetTissueCoordinates.Seurat <- function(
   if (!inherits(x = object[[assay]], what = 'SpatialAssay')) {
     stop("GetTissueCoordinates works only with SpatialAssay objects", call. = FALSE)
   }
-  return(GetTissueCoordinates(object = object[[assay]], scale = scale, slice = slice))
+  return(GetTissueCoordinates(object = object[[assay]], scale = scale, slice = slice, ...))
 }
 
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates SliceImage
 #' @export
 #'
-GetTissueCoordinates.SliceImage <- function(object, scale = 'lowres', ...) {
-  coordinates <- slot(object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
+GetTissueCoordinates.SliceImage <- function(object, scale = 'lowres', cols = c('imagerow', 'imagecol'), ...) {
+  cols <- cols %||% colnames(x = slot(object = object, name = 'coordinates'))
   if (!is.null(x = scale)) {
+    coordinates <- slot(object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
     scale <- match.arg(arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
     scale.use <- slot(object = object, name = 'scale.factors')[[scale]]
     coordinates <- coordinates * scale.use
+  } else {
+    coordinates <- slot(object = object, name = 'coordinates')[, cols]
   }
   return(coordinates)
 }
@@ -480,9 +513,65 @@ GetTissueCoordinates.SpatialAssay <- function(
 ) {
   slice <- slice %||% names(x = GetSlice(object = object))[1]
   return(GetTissueCoordinates(
-    object = GetSlice(object = object, slice = ),
-    scale = scale
+    object = GetSlice(object = object, slice = slice),
+    scale = scale,
+    ...
   ))
+}
+
+
+
+#' @rdname merge.Seurat
+#' @export
+#' @method merge SpatialAssay
+#'
+merge.SpatialAssay <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = TRUE,
+  ...
+) {
+  assays <- c(x, y)
+  merged.assay <- merge.Assay(
+    x = x,
+    y = y,
+    add.cell.ids = add.cell.ids,
+    merge.data = merge.data,
+    ...
+  )
+  merged.assay <- as(object = merged.assay, Class = "SpatialAssay")
+  cell.idx <- 1
+  for(i in 1:length(x = assays)) {
+    if (!isTRUE(x = all.equal(colnames(x = assays[[i]]), colnames(x = merged.assay)[cell.idx:(cell.idx + ncol(x = assays[[i]]) - 1)]))) {
+      merged.assay <- RenameCells(object = assays[[i]], new.names = colnames(x = merged.assay)[cell.idx:(cell.idx + ncol(x = assays[[i]]) - 1)])
+    }
+    slices <- GetSlice(object = assays[[i]]) 
+    for(s in 1:length(x = slices)) {
+      if (names(x = slices)[s] %in% Slices(object = merged.assay)) {
+        names(x = slices)[s] <- make.unique(names = c(Slices(object = merged.assay), names(x = slices)[s]))[length(x = Slices(object = merged.assay)) + 1]
+      }
+      merged.assay <- SetSlice(object = merged.assay, image = slices[[s]], slice = names(x = slices)[s])
+    }
+    cell.idx <- cell.idx + ncol(x = assays[[i]])
+  }
+  return(merged.assay)
+}
+
+RenameCells.SpatialAssay <- function(
+  object,
+  new.names = NULL,
+  ...
+) {
+  old.names <- Cells(x = object)
+  renamed.assay <- RenameCells.Assay(object = object, new.names = new.names)
+  names(x = new.names) <- old.names
+  for(s in Slices(object = object)) {
+    coordinates <- GetTissueCoordinates(object = renamed.assay, slice = s, scale = NULL, cols = NULL)
+    rownames(x = coordinates) <- new.names[rownames(x = coordinates)]
+    renamed.assay <- SetTissueCoordinates(object = renamed.assay, coordinates = coordinates, slice = s)
+  }
+  return(renamed.assay)
 }
 
 #' @method ScaleFactors SliceImage
@@ -507,7 +596,7 @@ SetSlice.Assay <- function(object, image, slice = NULL, ...) {
 #' @export
 #'
 SetSlice.Seurat <- function(object, image, slice = NULL, assay = NULL, ...) {
-  spatial <- FilterObjects(object = pbmc_small, classes.keep = 'SpatialAssay')
+  spatial <- FilterObjects(object = object, classes.keep = 'SpatialAssay')
   assay <- assay %||% ifelse(
     test = length(x = spatial) > 0,
     yes = spatial[1],
@@ -529,6 +618,31 @@ SetSlice.SpatialAssay <- function(object, image, slice = NULL, ...) {
   slot(object = object, name = 'images')[[slice]] <- image
   return(object)
 }
+
+SetTissueCoordinates.Seurat <- function(object, coordinates, slice = NULL, assay = NULL, ...) {
+  if (!inherits(x = object[[assay]], what = "SpatialAssay")) {
+    stop("Assay must be a SpatialAssay.")
+  }
+  object[[assay]] <- SetTissueCoordinates(object = object[[assay]], slice = slice, coordinates = coordinates)
+  return(object)
+}
+
+SetTissueCoordinates.SpatialAssay <- function(object, coordinates, slice = NULL, ...) {
+  updated.slice <- GetSlice(object = object, slice = slice)
+  updated.slice <- SetTissueCoordinates(object = updated.slice, coordinates = coordinates, ... )
+  object <- SetSlice(object = object, image = updated.slice, slice = slice)
+  return(object)
+}
+
+SetTissueCoordinates.SliceImage <- function(object, coordinates, ...) {
+  slot(object = object, name = "coordinates") <- coordinates
+  return(object)
+}
+
+Slices <- function(object) {
+  return(names(x = slot(object = object, name = "images")))
+}
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics

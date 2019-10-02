@@ -4,6 +4,7 @@
 \alias{ImageData}
 \alias{GetSlice}
 \alias{SetSlice}
+\alias{SetTissueCoordinates}
 \alias{GetSlice.Seurat}
 \alias{GetSlice.SpatialAssay}
 \alias{SetSlice.Assay}
@@ -14,6 +15,8 @@
 GetSlice(object, slice = NULL, ...)
 
 SetSlice(object, image, slice = NULL, ...)
+
+SetTissueCoordinates(object, coordinates, ...)
 
 \method{GetSlice}{Seurat}(object, slice = NULL, assay = NULL, ...)
 

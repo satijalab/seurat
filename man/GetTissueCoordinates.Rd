@@ -12,7 +12,8 @@ GetTissueCoordinates(object, scale = "lowres", ...)
 \method{GetTissueCoordinates}{Seurat}(object, scale = "lowres",
   slice = NULL, assay = NULL, ...)
 
-\method{GetTissueCoordinates}{SliceImage}(object, scale = "lowres", ...)
+\method{GetTissueCoordinates}{SliceImage}(object, scale = "lowres",
+  cols = c("imagerow", "imagecol"), ...)
 
 \method{GetTissueCoordinates}{SpatialAssay}(object, scale = "lowres",
   slice = NULL, ...)
