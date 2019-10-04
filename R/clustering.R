@@ -13,6 +13,9 @@ NULL
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
+#' @importFrom igraph graph_from_adjacency_matrix
+#' @importFrom methods as
+#' @importClassesFrom Matrix dgCMatrix
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param initial.membership,weights,node.sizes Parameters to pass to the Python leidenalg function.
@@ -82,6 +85,13 @@ FindClusters.default <- function(
             edge.file.name = edge.file.name
           )
         } else if (algorithm == 4) {
+          if (method == "matrix" || method == "igraph"){
+            if (method == "igraph"){
+            object <- graph_from_adjacency_matrix(object)
+            }
+          } else {
+            stop("method must be 'matrix' or 'igraph'")
+          }
           ids <- RunLeiden(
             object = object,
             method = method,
@@ -158,6 +168,7 @@ FindClusters.Seurat <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
+  method = "matrix",
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -183,6 +194,7 @@ FindClusters.Seurat <- function(
     weights = weights,
     node.sizes = node.sizes,
     resolution = resolution,
+    method = method,
     algorithm = algorithm,
     n.start = n.start,
     n.iter = n.iter,
@@ -711,7 +723,7 @@ RunLeiden <- function(
     "matrix" = input <- as(object, "matrix"),
     #run as igraph object (passes to reticulate)
     "igraph" = switch(
-      EXPR = is(object),
+      EXPR = is(object)[1],
       #generate igraph if needed (will handle updated snn class)
       "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
       "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
