@@ -1152,6 +1152,7 @@ RunUMAP.default <- function(
   negative.sample.rate = 5,
   a = NULL,
   b = NULL,
+  uwot.sgd = FALSE,
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1162,7 +1163,6 @@ RunUMAP.default <- function(
   CheckDots(...)
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
-    py_set_seed(seed = seed.use)
   }
   if (umap.method != 'umap-learn' && getOption('Seurat.warn.umap.uwot', TRUE)) {
     warning(
@@ -1179,6 +1179,9 @@ RunUMAP.default <- function(
     'umap-learn' = {
       if (!py_module_available(module = 'umap')) {
         stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+      }
+      if (!is.null(x = seed.use)) {
+        py_set_seed(seed = seed.use)
       }
       if (typeof(x = n.epochs) == "double") {
         n.epochs <- as.integer(x = n.epochs)
@@ -1229,13 +1232,18 @@ RunUMAP.default <- function(
         negative_sample_rate = negative.sample.rate,
         a = a,
         b = b,
+        fast_sgd = uwot.sgd,
         verbose = verbose
       )
     },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
-  rownames(x = umap.output) <- rownames(x = object)
+  if (inherits(x = object, what = 'dist')) {
+    rownames(x = umap.output) <- attr(x = object, "Labels")
+  } else {
+    rownames(x = umap.output) <- rownames(x = object)
+  }
   umap.reduction <- CreateDimReducObject(
     embeddings = umap.output,
     key = reduction.key,
@@ -1264,6 +1272,7 @@ RunUMAP.Graph <- function(
   negative.sample.rate = 5L,
   a = NULL,
   b = NULL,
+  uwot.sgd = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
   verbose = TRUE,
@@ -1379,6 +1388,7 @@ RunUMAP.Graph <- function(
 #' @param b More specific parameters controlling the embedding. If NULL, these values are set
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 #' right adjoint functor.
+#' @param uwot.sgd Set \code{uwot::umap(fast_sgd = TRUE)}; see \code{\link[uwot]{umap}} for more details
 #' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
 #' @param angular.rp.forest Whether to use an angular random projection forest to initialise the
@@ -1417,6 +1427,7 @@ RunUMAP.Seurat <- function(
   negative.sample.rate = 5L,
   a = NULL,
   b = NULL,
+  uwot.sgd = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
@@ -1456,6 +1467,7 @@ RunUMAP.Seurat <- function(
     negative.sample.rate = negative.sample.rate,
     a = a,
     b = b,
+    uwot.sgd = uwot.sgd,
     seed.use = seed.use,
     metric.kwds = metric.kwds,
     angular.rp.forest = angular.rp.forest,

@@ -674,6 +674,7 @@ IntegrateData <- function(
         data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
       )
     }
+    slot(object = anchorset, name = "object.list") <- object.list
   }
   # perform pairwise integration of reference objects
   reference.integrated <- PairwiseIntegrateReference(
@@ -692,7 +693,6 @@ IntegrateData <- function(
     eps = eps,
     verbose = verbose
   )
-
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
       reference.integrated <- SetAssayData(
@@ -973,7 +973,8 @@ MapQuery <- function(
     object = reference,
     slot = 'data'
   )[features.to.integrate, ]
-  all.integrated <- do.call(cbind, c(reference.integrated, query.corrected))
+  query.corrected[[length(x = query.corrected) + 1]] <- reference.integrated
+  all.integrated <- do.call(cbind, query.corrected)
   return(all.integrated)
 }
 
@@ -1188,7 +1189,6 @@ PairwiseIntegrateReference <- function(
     suppressWarnings(object.2[["ToIntegrate"]] <- object.2[[DefaultAssay(object = object.2)]])
     DefaultAssay(object = object.2) <- "ToIntegrate"
     object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate")
-
     datasets <- ParseMergePair(sample.tree, ii)
     if (verbose) {
       message(

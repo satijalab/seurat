@@ -1,4 +1,4 @@
-# Seurat v3.1.0
+# Seurat v3.1.1
 
 ## Test environments
 * local Ubuntu 16.04.6 and 18.04.2 installs, R 3.5.3
@@ -25,10 +25,10 @@ There were 3 NOTEs:
   Package suggested but not available for checking: 'loomR'
 
   This is a suggested package hosted on a custom repository and maintained by us (both the package and repository).
-  
+
 * checking Rd cross-references ... NOTE
   Package unavailable to check Rd xrefs: 'loomR'
-  
+
   This is a suggested package that we maintain. We have checked the cross references to ensure they link to the correct help pages.
 
 ## Downstream dependencies

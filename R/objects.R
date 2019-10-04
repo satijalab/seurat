@@ -699,7 +699,7 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     if (is.null(x = rownames(x = meta.data))) {
       stop("Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
-    } 
+    }
     if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
       warning("Some cells in meta.data not present in provided counts matrix.")
       meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
@@ -1117,6 +1117,9 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   # fill in params list
   for (arg in argnames) {
     param_value <- get(x = arg, envir = p.env)
+    if (inherits(x = param_value, what = 'Seurat')) {
+      next
+    }
     #TODO Institute some check of object size?
     params[[arg]] <- param_value
   }
@@ -3319,13 +3322,22 @@ Project.Seurat <- function(object, ...) {
 }
 
 #' @param assay Name of assay to store
+#' @param layers Slot to store layers as; choose from 'counts' or 'data'; pass
+#' \code{FALSE} to not pull layers; may pass one value of 'counts' or 'data' for
+#' each layer in the H5AD file, must be in order
 #' @param verbose Show progress updates
 #'
 #' @rdname h5ad
 #' @export
 #' @method ReadH5AD character
 #'
-ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
+ReadH5AD.character <- function(
+  file,
+  assay = 'RNA',
+  layers = 'data',
+  verbose = TRUE,
+  ...
+) {
   CheckDots(...)
   if (!PackageCheck('hdf5r', error = FALSE)) {
     stop("Please install hdf5r' for h5ad capabilities")
@@ -3334,7 +3346,13 @@ ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     stop("Unable to find input H5AD file ", file)
   }
   hfile <- hdf5r::h5file(filename = file, mode = 'r')
-  object <- ReadH5AD(file = hfile, assay = assay, verbose = verbose)
+  object <- ReadH5AD(
+    file = hfile,
+    assay = assay,
+    layers = layers,
+    verbose = verbose,
+    ...
+  )
   hfile$close_all()
   return(object)
 }
@@ -3347,7 +3365,13 @@ ReadH5AD.character <- function(file, assay = 'RNA', verbose = TRUE, ...) {
 #' @export
 #' @method ReadH5AD H5File
 #'
-ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
+ReadH5AD.H5File <- function(
+  file,
+  assay = 'RNA',
+  layers = 'data',
+  verbose = TRUE,
+  ...
+) {
   CheckDots(...)
   # Pull assay data
   # If X is an H5D, assume scaled
@@ -3480,7 +3504,9 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   }
   names(x = assays) <- assay
   # Add meta feature information
-  assays[[assay]][[names(x = meta.features)]] <- meta.features
+  if (ncol(x = meta.features) > 0) {
+    assays[[assay]][[names(x = meta.features)]] <- meta.features
+  }
   # Add highly variable feature information
   if ('highly.variable' %in% colnames(x = assays[[assay]][[]])) {
     if (verbose) {
@@ -3506,27 +3532,40 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
       message("Pulling cell embeddings")
     }
     # Pull cell embeddings
-    embed.reduc <- file[['obsm']]$get_type()$get_cpd_labels()
-    embed.n <- sapply(
-      X = file[['obsm']]$get_type()$describe()$cpd_types,
-      FUN = '[[',
-      'array_dims'
-    )
-    names(x = embed.n) <- embed.reduc
-    ncells <- file[['obsm']]$dims
-    embeddings <- lapply(
-      X = embed.reduc,
-      FUN = function(r) {
-        return(t(x = vapply(
-          X = 1:ncells,
-          FUN = function(i) {
-            return(file[['obsm']][i][[r]])
-          },
-          FUN.VALUE = numeric(length = embed.n[[r]])
-        )))
-      }
-    )
-    names(x = embeddings) <- embed.reduc
+    if (inherits(x = file[['obsm']], what = 'H5Group')) {
+      embed.reduc <- names(x = file[['obsm']])
+      embeddings <- sapply(
+        X = embed.reduc,
+        FUN = function(x) {
+          return(t(x = file[['obsm']][[x]][, ]))
+        },
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      )
+    } else {
+      embed.reduc <- file[['obsm']]$get_type()$get_cpd_labels()
+      embed.n <- sapply(
+        X = file[['obsm']]$get_type()$describe()$cpd_types,
+        FUN = '[[',
+        'array_dims'
+      )
+      names(x = embed.n) <- embed.reduc
+      ncells <- file[['obsm']]$dims
+      embeddings <- lapply(
+        X = embed.reduc,
+        FUN = function(r) {
+          return(t(x = vapply(
+            X = 1:ncells,
+            FUN = function(i) {
+              return(file[['obsm']][i][[r]])
+            },
+            FUN.VALUE = numeric(length = embed.n[[r]])
+          )))
+        }
+      )
+      names(x = embeddings) <- embed.reduc
+    }
+    # Set cell names for embeddings matrices
     for (i in 1:length(x = embeddings)) {
       rownames(x = embeddings[[i]]) <- colnames(x = assays[[assay]])
     }
@@ -3535,26 +3574,38 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
       if (verbose) {
         message("Pulling feature loadings")
       }
-      load.reduc <- file[['varm']]$get_type()$get_cpd_labels()
-      load.n <- sapply(
-        X = file[['varm']]$get_type()$describe()$cpd_types,
-        FUN = '[[',
-        'array_dims'
-      )
-      names(x = load.n) <- load.reduc
-      nfeatures <- file[['varm']]$dims
-      loadings <- lapply(
-        X = load.reduc,
-        FUN = function(r) {
-          return(t(x = vapply(
-            X = 1:nfeatures,
-            FUN = function(i) {
-              return(file[['varm']][i][[r]])
-            },
-            FUN.VALUE = numeric(length = load.n[[load.reduc]])
-          )))
-        }
-      )
+      if (inherits(x = file[['varm']], what = 'H5Group')) {
+        load.reduc <- names(x = file[['varm']])
+        loadings <- sapply(
+          X = load.reduc,
+          FUN = function(x) {
+            return(t(x = file[['varm']][[x]][, ]))
+          },
+          simplify = FALSE,
+          USE.NAMES = TRUE
+        )
+      } else {
+        load.reduc <- file[['varm']]$get_type()$get_cpd_labels()
+        load.n <- sapply(
+          X = file[['varm']]$get_type()$describe()$cpd_types,
+          FUN = '[[',
+          'array_dims'
+        )
+        names(x = load.n) <- load.reduc
+        nfeatures <- file[['varm']]$dims
+        loadings <- lapply(
+          X = load.reduc,
+          FUN = function(r) {
+            return(t(x = vapply(
+              X = 1:nfeatures,
+              FUN = function(i) {
+                return(file[['varm']][i][[r]])
+              },
+              FUN.VALUE = numeric(length = load.n[[load.reduc]])
+            )))
+          }
+        )
+      }
       match.ind <- lapply(
         X = gsub(pattern = 's$', replacement = '', x = tolower(x = load.reduc)),
         FUN = grep,
@@ -3666,6 +3717,52 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     object[[paste(assay, method, sep = '_')]] <- as.Graph(x = graph)
   } else if (verbose) {
     message("No nearest-neighbor graph")
+  }
+  # Add layers
+  if (isFALSE(x = layers)) {
+    if (verbose) {
+      message("Not pulling layers")
+    }
+  } else if (file$exists(name = 'layers')) {
+    file.layers <- names(x = file[['layers']])
+    layers <- rep_len(
+      x = tolower(x = layers),
+      length.out = length(x = file.layers)
+    )
+    if (!all(layers %in% c('counts', 'data'))) {
+      stop("'layers' must be either 'counts' or 'data'", call. = FALSE)
+    }
+    names(x = layers) <- file.layers
+    for (layer in file.layers) {
+      layer.dest <- layers[[layer]]
+      if (verbose) {
+        message(
+          "Reading ",
+          layer,
+          " into new assay, putting data into ",
+          layer.dest
+        )
+      }
+      layer.data <- if (inherits(x = file[['layers']][[layer]], what = 'H5Group')) {
+        as.sparse(x = file[['layers']][[layer]])
+      } else {
+        file[['layers']][[layer]][, ]
+      }
+      dimnames(x = layer.data) <- dimnames(x = object)
+      layer.assay <- switch(
+        EXPR = layer.dest,
+        'counts' = CreateAssayObject(
+          counts = layer.data,
+          min.cells = -1,
+          min.features = -1
+        ),
+        'data' = CreateAssayObject(data = layer.data),
+        stop("Unknown layer destination: ", layer.data, call. = FALSE)
+      )
+      object[[layer]] <- layer.assay
+    }
+  } else if (verbose) {
+    message("No additional layers found")
   }
   return(object)
 }

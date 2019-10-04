@@ -185,18 +185,25 @@ CreateGeneActivityMatrix <- function(
   if (!PackageCheck('rtracklayer', error = FALSE)) {
     stop("Please install rtracklayer from Bioconductor.")
   }
-
   # convert peak matrix to GRanges object
   peak.df <- rownames(x = peak.matrix)
   peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
   peak.df <- as.data.frame(x = peak.df)
   colnames(x = peak.df) <- c("chromosome", 'start', 'end')
   peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
+  
+  # if any peaks start at 0, change to 1
+  # otherwise GenomicRanges::distanceToNearest will not work 
+  BiocGenerics::start(peaks.gr[BiocGenerics::start(peaks.gr) == 0, ]) <- 1
 
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-  GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
+  
+  # change seqlevelsStyle if not the same
+  if (!any(GenomeInfoDb::seqlevelsStyle(x = gtf) == GenomeInfoDb::seqlevelsStyle(x = peaks.gr))) {
+    GenomeInfoDb::seqlevelsStyle(gtf) <- GenomeInfoDb::seqlevelsStyle(peaks.gr)
+  }
   gtf.genes <- gtf[gtf$type == 'gene']
 
   # Extend definition up/downstream
@@ -209,9 +216,14 @@ CreateGeneActivityMatrix <- function(
   keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
   peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
   gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
+  
+  # Some GTF rows will not have gene_name attribute
+  # Replace it by gene_id attribute
+  gene.ids$gene_name[is.na(gene.ids$gene_name)] <- gene.ids$gene_id[is.na(gene.ids$gene_name)]
+  
   peak.ids$gene.name <- gene.ids$gene_name
   peak.ids <- as.data.frame(x = peak.ids)
-  peak.ids$peak <- paste0(peak.ids$seqnames, ":", peak.ids$start, "-", peak.ids$end)
+  peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
   annotations <- peak.ids[, c('peak', 'gene.name')]
   colnames(x = annotations) <- c('feature', 'new_feature')
 
@@ -489,7 +501,7 @@ GetResidual <- function(
       x = new_features,
       y = vst_set_genes
     )
-    if (diff_features !=0){
+    if (length(x = diff_features) !=0) {
       warning(
         "The following ", length(x = diff_features),
         " features do not exist in all SCT models: ",
@@ -535,9 +547,11 @@ GetResidual <- function(
       object = object,
       assay = assay,
       slot = "scale.data",
-      new.data = new.scale.data
+      new.data = rbind(
+        GetAssayData(object = object, slot = 'scale.data', assay = assay),
+        new.scale.data
+      )
     )
-
     }
   }
   }
