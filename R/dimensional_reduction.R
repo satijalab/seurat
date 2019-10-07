@@ -1109,7 +1109,7 @@ RunTSNE.Seurat <- function(
     )
   } else if (!is.null(x = features)) {
     RunTSNE(
-      object = as.matrix(x = GetAssayData(object = object)[features, cells]),
+      object = t(as.matrix(x = GetAssayData(object = object)[features, cells])),
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
