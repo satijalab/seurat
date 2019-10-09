@@ -3843,6 +3843,10 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
     }
     colnames(x = slot(object = object, name = data.slot)) <- new.names
   }
+  if (IsSCT(assay = object)) {
+    suppressWarnings(Misc(object, slot = "vst.out")$cells_step1 <- new.names)
+    suppressWarnings(rownames(x = Misc(object, slot = "vst.out")$cell_attr) <- new.names)
+  }
   return(object)
 }
 
