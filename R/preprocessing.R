@@ -1305,6 +1305,7 @@ SCTransform <- function(
       message('Place corrected count matrix in counts slot')
     }
     assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+    vst.out$umi_corrected <- NULL
   } else {
     assay.out <- CreateAssayObject(counts = umi)
   }
