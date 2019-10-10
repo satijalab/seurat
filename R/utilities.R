@@ -1571,7 +1571,7 @@ IsSCT <- function(assay) {
     })
     return(unlist(x = sct.check))
   }
-  return(!is.null(x = Misc(assay, slot = 'vst.out')))
+  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')))
 }
 
 # Check the length of components of a list
