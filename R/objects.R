@@ -3836,22 +3836,24 @@ ReorderIdent.Seurat <- function(
 #'
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
-  
   if (IsSCT(assay = object)) {
-    if(is.null(x = Misc(object = object, slot = 'vst.set'))){
-      suppressWarnings(Misc(object, slot = "vst.out")$cells_step1 <- new.names)
-      suppressWarnings(rownames(x = Misc(object, slot = "vst.out")$cell_attr) <- new.names)
+    if (is.null(x = Misc(object = object, slot = 'vst.set'))) {
+      suppressWarnings(Misc(object = object, slot = "vst.out")$cells_step1 <- new.names)
+      suppressWarnings(rownames(x = Misc(object = object, slot = "vst.out")$cell_attr) <- new.names)
     } else{
       suppressWarnings(
-        Misc(object, slot = "vst.set") <- lapply(Misc(object, slot = "vst.set"), function(x) { 
-        new.names.vst <- new.names[ which(x$cells_step1  %in% Cells(object)) ]
-        x$cells_step1 <- new.names.vst
-        (rownames(x$cell_attr) <- new.names.vst)
-      return(x)
-      }  ) )
+        Misc(object, slot = "vst.set") <- lapply(
+          X = Misc(object = object, slot = "vst.set"), 
+          FUN = function(x) { 
+            new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
+            x$cells_step1 <- new.names.vst
+            rownames(x = x$cell_attr) <- new.names.vst
+            return(x)
+          }
+        )
+      )
     }
   }
-    
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) <= 1) {
@@ -3859,10 +3861,6 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
     }
     colnames(x = slot(object = object, name = data.slot)) <- new.names
   }
-
-            
-    
-
   return(object)
 }
 
