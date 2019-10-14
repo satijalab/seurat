@@ -131,6 +131,7 @@ Load10X_Spatial <- function(
     as.is = TRUE,
     row.names = 1
   )
+  tissue.positions <- tissue.positions[colnames(x = data), ]
   if (filter.matrix) {
     tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
   }
