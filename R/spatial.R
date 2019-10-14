@@ -240,13 +240,16 @@ SingleSpatialPlot <- function(
 
 SpatialDimPlot <- function(
   object,
+  assay = NULL,
   spatial = NULL,
   group.by = NULL,
   slice = NULL,
   combine = TRUE,
   ...
 ) {
-  spatial = spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  spatial <- spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
   if (length(x = spatial) != 1) {
     stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
   }
@@ -268,7 +271,7 @@ SpatialDimPlot <- function(
     slice.plots <- vector(mode = "list",length = length(x = slice))
     for (s in 1:length(x = slice)) {
       coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
-      plot.slice <- GetSlice(object = object, slice = slice[s])
+      plot.slice <- GetSlice(object = object[[spatial]], slice = slice[s])
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
@@ -293,6 +296,7 @@ SpatialDimPlot <- function(
 SpatialFeaturePlot <- function(
   object,
   features,
+  assay = NULL,
   spatial = NULL,
   slice = NULL,
   slot = 'data',
@@ -301,10 +305,14 @@ SpatialFeaturePlot <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  data <- FetchData(object = object,
-                    vars = features,
-                    slot = slot)
-  spatial = spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  data <- FetchData(
+    object = object,
+    vars = features,
+    slot = slot
+  )
+  spatial <- spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
   if (length(x = spatial) != 1) {
     stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
   }
@@ -385,7 +393,7 @@ SpatialFeaturePlot <- function(
     slice.plots <- vector(mode = "list",length = length(x = slice))
     for (s in 1:length(x = slice)) {
       coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
-      plot.slice <- GetSlice(object = object, slice = slice[s])
+      plot.slice <- GetSlice(object = object[[spatial]], slice = slice[s])
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
