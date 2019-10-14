@@ -404,7 +404,7 @@ SpatialFeaturePlot <- function(
         col.by = feature
       )
       plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))  
-      if (i == 1) {
+      if (i == 1 & length(x = slice) > 1) {
         plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5)) 
       }
       slice.plots[[s]] <- plot
@@ -412,7 +412,11 @@ SpatialFeaturePlot <- function(
     plots[[i]] <- CombinePlots(plots = slice.plots, ncol = s)
   }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = 1)
+    if (length(x = slice) > 1) {
+      plots <- CombinePlots(plots = plots, ncol = 1)
+    } else {
+      plots <- CombinePlots(plots = plots, ncol = ncol)
+    }
   }
   return(plots)
 }
