@@ -85,9 +85,9 @@ FindClusters.default <- function(
             edge.file.name = edge.file.name
           )
         } else if (algorithm == 4) {
-          if (method == "matrix" || method == "igraph"){
-            if (method == "igraph"){
-            object <- graph_from_adjacency_matrix(object)
+          if (method == "matrix" || method == "igraph") {
+            if (method == "igraph") {
+              object <- graph_from_adjacency_matrix(adjmatrix = object)
             }
           } else {
             stop("method must be 'matrix' or 'igraph'")
