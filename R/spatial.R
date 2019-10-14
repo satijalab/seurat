@@ -98,6 +98,153 @@ setAs(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom crosstalk SharedData bscols
+#' @importFrom plotly layout plot_ly highlight
+#'
+LinkedFeaturePlot <- function(
+  object,
+  feature,
+  dims = 1:2,
+  reduction = NULL,
+  spatial = NULL,
+  slice = NULL,
+  slot = 'data',
+  min.cutoff = NA,
+  max.cutoff = NA
+) {
+  if (length(x = feature) > 1) {
+    stop("'LinkedFeaturePlot' currently only supports one feature", call. = FALSE)
+  }
+  expression.data <- FetchData(object = object, vars = feature)
+  # Generate the SpatialFeaturePlot and pull plotting data
+  spatial.plot <- SpatialFeaturePlot(
+    object = object,
+    features = feature,
+    spatial = spatial,
+    slice = slice,
+    slot = 'data',
+    min.cutoff = min.cutoff,
+    max.cutoff = max.cutoff
+  )
+  spatial.build <- GGpointToPlotlyBuild(
+    plot = spatial.plot,
+    information = expression.data
+  )
+  # Generate the normal FeaturePlot and pull plotting data
+  feature.plot <- FeaturePlot(
+    object = object,
+    features = feature,
+    dims = dims,
+    reduction = reduction,
+    min.cutoff = min.cutoff,
+    max.cutoff = max.cutoff
+  )
+  feature.build <- GGpointToPlotlyBuild(
+    plot = feature.plot,
+    information = expression.data
+  )
+  # Generate full build
+  plot.build <- merge(x = spatial.build, y = feature.build, by = 0)
+  rownames(x = plot.build) <- plot.build$Row.names
+  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
+  # Build the plotly plots
+  plot.build <- SharedData$new(data = plot.build)
+  spatial.plotly <- layout(
+    p = plot_ly(
+      data = plot.build,
+      x = ~x.x,
+      y = ~y.x,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color.x),
+      hoverinfo = 'text',
+      text = ~feature.x
+    )
+  )
+  spatial.plotly <- highlight(p = spatial.plotly, on = 'plotly_selected')
+  feature.plotly <- layout(
+    p = plot_ly(
+      data = plot.build,
+      x = ~y.x,
+      y = ~y.y,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color.y),
+      hoverinfo = 'text',
+      text = ~feature.y
+    )
+  )
+  feature.plotly <- highlight(p = feature.plotly, on = 'plotly_selected')
+  bscols(spatial.plotly, feature.plotly)
+}
+
+
+#' @importFrom crosstalk SharedData bscols
+#' @importFrom plotly layout plot_ly highlight
+#'
+LinkedDimPlot <- function(
+  object,
+  dims = 1:2,
+  reduction = NULL,
+  spatial = NULL,
+  slice = NULL,
+  group.by = NULL
+) {
+  # Generate the SpatialFeaturePlot and pull plotting data
+  spatial.plot <- SpatialDimPlot(
+    object = object,
+    group.by = group.by,
+    spatial = spatial,
+    slice = slice
+  )
+  spatial.build <- GGpointToPlotlyBuild(
+    plot = spatial.plot
+  )
+  # Generate the normal FeaturePlot and pull plotting data
+  feature.plot <- DimPlot(
+    object = object,
+    group.by = group.by,
+    dims = dims,
+    reduction = reduction
+  )
+  feature.build <- GGpointToPlotlyBuild(
+    plot = feature.plot
+  )
+  # Generate full build
+  plot.build <- merge(x = spatial.build, y = feature.build, by = 0)
+  rownames(x = plot.build) <- plot.build$Row.names
+  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
+  # Build the plotly plots
+  plot.build <- SharedData$new(data = plot.build)
+  spatial.plotly <- layout(
+    p = plot_ly(
+      data = plot.build,
+      x = ~x.x,
+      y = ~y.x,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color.x),
+      hoverinfo = 'text',
+      text = ~feature.x
+    )
+  )
+  spatial.plotly <- highlight(p = spatial.plotly, on = 'plotly_selected')
+  feature.plotly <- layout(
+    p = plot_ly(
+      data = plot.build,
+      x = ~y.x,
+      y = ~y.y,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color.y),
+      hoverinfo = 'text',
+      text = ~feature.y
+    )
+  )
+  feature.plotly <- highlight(p = feature.plotly, on = 'plotly_selected')
+  bscols(spatial.plotly, feature.plotly)
+}
+
 #' Load a 10X Genomics Visium Spatial Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
@@ -158,14 +305,18 @@ Load10X_Spatial <- function(
 }
 
 # for plotting the tissue image
-geom_spatial <-  function(mapping = NULL,
-                         data = NULL,
-                         stat = "identity",
-                         position = "identity",
-                         na.rm = FALSE,
-                         show.legend = NA,
-                         inherit.aes = FALSE,
-                         ...) {
+#' @importFrom ggplot2 ggproto Geom ggproto_parent layer
+#'
+geom_spatial <-  function(
+  mapping = NULL,
+  data = NULL,
+  stat = "identity",
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = FALSE,
+  ...
+) {
 
   GeomCustom <- ggproto(
     "GeomCustom",
@@ -197,9 +348,11 @@ geom_spatial <-  function(mapping = NULL,
   )
 }
 
-
 SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
 
+#' @importFrom ggplot2 ggplot aes aes_string geom_point xlim ylim
+#' coord_cartesian labs theme_void
+#'
 SingleSpatialPlot <- function(
   data,
   image.tibble,
@@ -217,7 +370,7 @@ SingleSpatialPlot <- function(
     col.by <- NULL
   }
   plot <- ggplot(data = data) +
-    geom_spatial(data=image.tibble, aes(grob=grob), x=0.5, y=0.5)+
+    geom_spatial(data = image.tibble, aes(grob = grob), x = 0.5, y = 0.5) +
     geom_point(
       mapping = aes_string(
         x = colnames(x = data)[2],
@@ -226,15 +379,11 @@ SingleSpatialPlot <- function(
         ),
       size = pt.size
     ) +
-    xlim(0,image.tibble$image_width)+
-    ylim(image.tibble$image_height,0)+
-    coord_cartesian(expand=FALSE)+
-    # guides(color = guide_legend(override.aes = list(size = 3))) +
+    xlim(0, image.tibble$image_width) +
+    ylim(image.tibble$image_height, 0) +
+    coord_cartesian(expand = FALSE) +
     labs(color = NULL)
-
-  #plot <- plot + theme_cowplot()
    plot <- plot + theme_void()
-
   return(plot)
 }
 
@@ -268,17 +417,22 @@ SpatialDimPlot <- function(
     slice.plots <- vector(mode = "list",length = length(x = slice))
     for (s in 1:length(x = slice)) {
       coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
-      plot.slice <- GetSlice(object = object, slice = slice[s])
+      plot.slice <- GetSlice(object = object[[spatial]], slice = slice[s])
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
           data[rownames(x = coordinates), group, drop = FALSE]
         ),
         col.by = group,
-        image.tibble = tibble(grob = list(GetImage(object = plot.slice)), image_width = ncol(x = plot.slice), image_height = nrow(x = plot.slice))
+        image.tibble = tibble(
+          grob = list(GetImage(object = plot.slice)),
+          image_width = ncol(x = plot.slice),
+          image_height = nrow(x = plot.slice)
+        )
       )
       if (i == 1) {
-        plot <- plot + ggtitle(label = slice[s])  + theme(plot.title = element_text(hjust = 0.5)) 
+        plot <- plot + ggtitle(label = slice[s]) +
+          theme(plot.title = element_text(hjust = 0.5))
       }
       slice.plots[[s]] <- plot
     }
@@ -290,6 +444,8 @@ SpatialDimPlot <- function(
   return(plots)
 }
 
+#' @importFrom tibble tibble
+#'
 SpatialFeaturePlot <- function(
   object,
   features,
@@ -301,10 +457,12 @@ SpatialFeaturePlot <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  data <- FetchData(object = object,
-                    vars = features,
-                    slot = slot)
-  spatial = spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
+  data <- FetchData(
+    object = object,
+    vars = features,
+    slot = slot
+  )
+  spatial <- spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
   if (length(x = spatial) != 1) {
     stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
   }
@@ -313,67 +471,6 @@ SpatialFeaturePlot <- function(
   }
   slice <- slice %||% Slices(object = object[[spatial]])
   features <- colnames(x = data)
-  # # Determine cutoffs
-  # min.cutoff <- mapply(
-  #   FUN = function(cutoff, feature) {
-  #     return(ifelse(
-  #       test = is.na(x = cutoff),
-  #       yes = min(data[, feature]),
-  #       no = cutoff
-  #     ))
-  #   },
-  #   cutoff = min.cutoff,
-  #   feature = features
-  # )
-  # max.cutoff <- mapply(
-  #   FUN = function(cutoff, feature) {
-  #     return(ifelse(
-  #       test = is.na(x = cutoff),
-  #       yes = max(data[, feature]),
-  #       no = cutoff
-  #     ))
-  #   },
-  #   cutoff = max.cutoff,
-  #   feature = features
-  # )
-  # check.lengths <- unique(x = vapply(
-  #   X = list(features, min.cutoff, max.cutoff),
-  #   FUN = length,
-  #   FUN.VALUE = numeric(length = 1)
-  # ))
-  # if (length(x = check.lengths) != 1) {
-  #   stop("There must be the same number of minimum and maximum cuttoffs as there are features")
-  # }
-  # # brewer.gran <- ifelse(
-  # #   test = length(x = cols) == 1,
-  # #   yes = brewer.pal.info[cols, ]$maxcolors,
-  # #   no = length(x = cols)
-  # # )
-  # brewer.gran <- 100
-  # # Apply cutoffs
-  # data <- sapply(
-  #   X = 1:ncol(x = data),
-  #   FUN = function(index) {
-  #     data.feature <- as.vector(x = data[, index])
-  #     min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
-  #     max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
-  #     data.feature[data.feature < min.use] <- min.use
-  #     data.feature[data.feature > max.use] <- max.use
-  #     if (brewer.gran == 2) {
-  #       return(data.feature)
-  #     }
-  #     data.cut <- if (all(data.feature == 0)) {
-  #       0
-  #     }
-  #     else {
-  #       as.numeric(x = as.factor(x = cut(
-  #         x = as.numeric(x = data.feature),
-  #         breaks = brewer.gran
-  #       )))
-  #     }
-  #     return(data.cut)
-  #   }
-  # )
   colnames(x = data) <- features
   rownames(x = data) <- colnames(object)
   plots <- vector(
@@ -384,20 +481,27 @@ SpatialFeaturePlot <- function(
     feature <- features[i]
     slice.plots <- vector(mode = "list",length = length(x = slice))
     for (s in 1:length(x = slice)) {
-      coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
-      plot.slice <- GetSlice(object = object, slice = slice[s])
+      coordinates <- GetTissueCoordinates(
+        object = object,
+        assay = spatial,
+        slice = slice[s]
+      )
+      plot.slice <- GetSlice(object = object[[spatial]], slice = slice[s])
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
           data[rownames(x = coordinates), features, drop = FALSE]
         ),
-        image.tibble = tibble(grob = list(GetImage(object = plot.slice)), image_width = ncol(x = plot.slice), image_height = nrow(x = plot.slice)),
-        #pt.size = pt.size,
+        image.tibble = tibble(
+          grob = list(GetImage(object = plot.slice)),
+          image_width = ncol(x = plot.slice),
+          image_height = nrow(x = plot.slice)
+        ),
         col.by = feature
       )
-      plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))  
+      plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))
       if (i == 1) {
-        plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5)) 
+        plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5))
       }
       slice.plots[[s]] <- plot
     }
@@ -519,8 +623,6 @@ GetTissueCoordinates.SpatialAssay <- function(
   ))
 }
 
-
-
 #' @rdname merge.Seurat
 #' @export
 #' @method merge SpatialAssay
@@ -546,7 +648,7 @@ merge.SpatialAssay <- function(
     if (!isTRUE(x = all.equal(colnames(x = assays[[i]]), colnames(x = merged.assay)[cell.idx:(cell.idx + ncol(x = assays[[i]]) - 1)]))) {
       merged.assay <- RenameCells(object = assays[[i]], new.names = colnames(x = merged.assay)[cell.idx:(cell.idx + ncol(x = assays[[i]]) - 1)])
     }
-    slices <- GetSlice(object = assays[[i]]) 
+    slices <- GetSlice(object = assays[[i]])
     for(s in 1:length(x = slices)) {
       if (names(x = slices)[s] %in% Slices(object = merged.assay)) {
         names(x = slices)[s] <- make.unique(names = c(Slices(object = merged.assay), names(x = slices)[s]))[length(x = Slices(object = merged.assay)) + 1]
@@ -643,7 +745,6 @@ Slices <- function(object) {
   return(names(x = slot(object = object, name = "images")))
 }
 
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -655,3 +756,38 @@ Slices <- function(object) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom ggplot2 ggplot_build
+#'
+GGpointToPlotlyBuild <- function(plot, information = NULL) {
+  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+  data <- ggplot_build(plot = plot)$plot$data
+  rownames(x = plot.build) <- rownames(data)
+  # Reset the names to 'x' and 'y'
+  names(x = plot.build) <- c(
+    'x',
+    'y',
+    names(x = plot.build)[3:length(x = plot.build)]
+  )
+  # Add the hover information we're looking for
+  if (is.null(x = information)) {
+    plot.build$feature <- rownames(x = data)
+  } else {
+    info <- apply(
+      X = information,
+      MARGIN = 1,
+      FUN = function(x, names) {
+        return(paste0(names, ': ', x, collapse = '<br>'))
+      },
+      names = colnames(x = information)
+    )
+    data.info <- data.frame(
+      feature = paste(rownames(x = information), info, sep = '<br>'),
+      row.names = rownames(x = information)
+    )
+    plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    rownames(x = plot.build) <- plot.build$Row.names
+    plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
+  }
+  return(plot.build)
+}
