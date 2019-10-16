@@ -13,9 +13,6 @@ NULL
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
-#' @importFrom igraph graph_from_adjacency_matrix
-#' @importFrom methods as
-#' @importClassesFrom Matrix dgCMatrix
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param initial.membership,weights,node.sizes Parameters to pass to the Python leidenalg function.
@@ -85,13 +82,6 @@ FindClusters.default <- function(
             edge.file.name = edge.file.name
           )
         } else if (algorithm == 4) {
-          if (method == "matrix" || method == "igraph"){
-            if (method == "igraph"){
-            object <- graph_from_adjacency_matrix(object)
-            }
-          } else {
-            stop("method must be 'matrix' or 'igraph'")
-          }
           ids <- RunLeiden(
             object = object,
             method = method,
@@ -717,23 +707,25 @@ RunLeiden <- function(
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
-  switch(
-    EXPR = method,
-    #cast to dense (supported by reticulate for numpy.array)
-    "matrix" = input <- as(object, "matrix"),
-    #run as igraph object (passes to reticulate)
-    "igraph" = switch(
-      EXPR = is(object)[1],
-      #generate igraph if needed (will handle updated snn class)
-      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-      "igraph" = input <- object,
-      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-      "list" = input <- graph_from_adj_list(adjlist = object),
-      stop("SNN object must be a compatible input for igraph")
-    ),
-    stop("method for leiden must be 'matrix' or 'igraph'")
-  )
+  
+  if (method %in% c("matrix", "igraph")){
+    if (method == "igraph"){
+      object <- graph_from_adjacency_matrix(object)
+    }
+  } else {
+    warning("method for Leiden recommended as 'matrix' or 'igraph'")
+  }
+  
+  input <- if (inherits(x = object, what = 'list')) {
+    graph_from_adj_list(adjlist = object)
+  } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
+    graph_from_adjacency_matrix(adjmatrix = object)
+  } else if (inherits(x = object, what = 'igraph')) {
+    object
+  } else {
+    stop(paste("method for Leiden not found for class", class(object)))
+  }
+  
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
     object = input,
