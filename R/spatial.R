@@ -159,15 +159,18 @@ Load10X_Spatial <- function(
 }
 
 # for plotting the tissue image
-geom_spatial <-  function(mapping = NULL,
-                         data = NULL,
-                         stat = "identity",
-                         position = "identity",
-                         na.rm = FALSE,
-                         show.legend = NA,
-                         inherit.aes = FALSE,
-                         ...) {
-
+#' @importFrom ggplot2 ggproto Geom ggproto_parent layer
+#'
+geom_spatial <-  function(
+  mapping = NULL,
+  data = NULL,
+  stat = "identity",
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = FALSE,
+  ...
+) {
   GeomCustom <- ggproto(
     "GeomCustom",
     Geom,
@@ -181,11 +184,8 @@ geom_spatial <-  function(mapping = NULL,
       g <- grid::editGrob(data$grob[[1]], vp=vp)
       ggplot2:::ggname("geom_spatial", g)
     },
-
     required_aes = c("grob","x","y")
-
   )
-
   layer(
     geom = GeomCustom,
     mapping = mapping,
@@ -198,13 +198,18 @@ geom_spatial <-  function(mapping = NULL,
   )
 }
 
-
+#' @importFrom grDevices colorRampPalette
+#'
 SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
 
+#' @importFrom ggplot2 ggplot aes geom_point aes_string xlim ylim
+#' coord_cartesian labs theme_void
+#'
 SingleSpatialPlot <- function(
   data,
   image.tibble,
   pt.size = NULL,
+  alpha = 1,
   col.by = NULL,
   na.value = 'grey50'
 ) {
@@ -224,27 +229,29 @@ SingleSpatialPlot <- function(
         x = colnames(x = data)[2],
         y = colnames(x = data)[1],
         color = col.by %iff% paste0("`", col.by, "`")
-        ),
-      size = pt.size
+      ),
+      size = pt.size,
+      alpha = alpha
     ) +
-    xlim(0,image.tibble$image_width)+
-    ylim(image.tibble$image_height,0)+
-    coord_cartesian(expand=FALSE)+
-    # guides(color = guide_legend(override.aes = list(size = 3))) +
+    xlim(0,image.tibble$image_width) +
+    ylim(image.tibble$image_height,0) +
+    coord_cartesian(expand = FALSE) +
     labs(color = NULL)
-
-  #plot <- plot + theme_cowplot()
-   plot <- plot + theme_void()
-
+  plot <- plot + theme_void()
   return(plot)
 }
 
+#' @importFrom tibble tibble
+#' @importFrom ggplot2 theme element_text
+#'
 SpatialDimPlot <- function(
   object,
   assay = NULL,
   spatial = NULL,
   group.by = NULL,
   slice = NULL,
+  pt.size = NULL,
+  alpha = 1,
   combine = TRUE,
   ...
 ) {
@@ -279,10 +286,16 @@ SpatialDimPlot <- function(
           data[rownames(x = coordinates), group, drop = FALSE]
         ),
         col.by = group,
-        image.tibble = tibble(grob = list(GetImage(object = plot.slice)), image_width = ncol(x = plot.slice), image_height = nrow(x = plot.slice))
+        image.tibble = tibble(
+          grob = list(GetImage(object = plot.slice)),
+          image_width = ncol(x = plot.slice),
+          image_height = nrow(x = plot.slice)
+        ),
+        pt.size = pt.size,
+        alpha = alpha
       )
       if (i == 1) {
-        plot <- plot + ggtitle(label = slice[s])  + theme(plot.title = element_text(hjust = 0.5)) 
+        plot <- plot + ggtitle(label = slice[s])  + theme(plot.title = element_text(hjust = 0.5))
       }
       slice.plots[[s]] <- plot
     }
@@ -294,6 +307,8 @@ SpatialDimPlot <- function(
   return(plots)
 }
 
+#' @importFrom tibble tibble
+#'
 SpatialFeaturePlot <- function(
   object,
   features,
@@ -301,6 +316,8 @@ SpatialFeaturePlot <- function(
   spatial = NULL,
   slice = NULL,
   slot = 'data',
+  pt.size = pt.size,
+  alpha = alpha,
   min.cutoff = NA,
   max.cutoff = NA,
   ncol = NULL,
@@ -322,67 +339,6 @@ SpatialFeaturePlot <- function(
   }
   slice <- slice %||% Slices(object = object[[spatial]])
   features <- colnames(x = data)
-  # # Determine cutoffs
-  # min.cutoff <- mapply(
-  #   FUN = function(cutoff, feature) {
-  #     return(ifelse(
-  #       test = is.na(x = cutoff),
-  #       yes = min(data[, feature]),
-  #       no = cutoff
-  #     ))
-  #   },
-  #   cutoff = min.cutoff,
-  #   feature = features
-  # )
-  # max.cutoff <- mapply(
-  #   FUN = function(cutoff, feature) {
-  #     return(ifelse(
-  #       test = is.na(x = cutoff),
-  #       yes = max(data[, feature]),
-  #       no = cutoff
-  #     ))
-  #   },
-  #   cutoff = max.cutoff,
-  #   feature = features
-  # )
-  # check.lengths <- unique(x = vapply(
-  #   X = list(features, min.cutoff, max.cutoff),
-  #   FUN = length,
-  #   FUN.VALUE = numeric(length = 1)
-  # ))
-  # if (length(x = check.lengths) != 1) {
-  #   stop("There must be the same number of minimum and maximum cuttoffs as there are features")
-  # }
-  # # brewer.gran <- ifelse(
-  # #   test = length(x = cols) == 1,
-  # #   yes = brewer.pal.info[cols, ]$maxcolors,
-  # #   no = length(x = cols)
-  # # )
-  # brewer.gran <- 100
-  # # Apply cutoffs
-  # data <- sapply(
-  #   X = 1:ncol(x = data),
-  #   FUN = function(index) {
-  #     data.feature <- as.vector(x = data[, index])
-  #     min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
-  #     max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
-  #     data.feature[data.feature < min.use] <- min.use
-  #     data.feature[data.feature > max.use] <- max.use
-  #     if (brewer.gran == 2) {
-  #       return(data.feature)
-  #     }
-  #     data.cut <- if (all(data.feature == 0)) {
-  #       0
-  #     }
-  #     else {
-  #       as.numeric(x = as.factor(x = cut(
-  #         x = as.numeric(x = data.feature),
-  #         breaks = brewer.gran
-  #       )))
-  #     }
-  #     return(data.cut)
-  #   }
-  # )
   colnames(x = data) <- features
   rownames(x = data) <- colnames(object)
   plots <- vector(
@@ -400,13 +356,18 @@ SpatialFeaturePlot <- function(
           coordinates,
           data[rownames(x = coordinates), features, drop = FALSE]
         ),
-        image.tibble = tibble(grob = list(GetImage(object = plot.slice)), image_width = ncol(x = plot.slice), image_height = nrow(x = plot.slice)),
-        #pt.size = pt.size,
-        col.by = feature
+        image.tibble = tibble(
+          grob = list(GetImage(object = plot.slice)),
+          image_width = ncol(x = plot.slice),
+          image_height = nrow(x = plot.slice)
+        ),
+        col.by = feature,
+        pt.size = pt.size,
+        alpha = alpha
       )
-      plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))  
+      plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))
       if (i == 1 & length(x = slice) > 1) {
-        plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5)) 
+        plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5))
       }
       slice.plots[[s]] <- plot
     }
@@ -532,8 +493,6 @@ GetTissueCoordinates.SpatialAssay <- function(
   ))
 }
 
-
-
 #' @rdname merge.Seurat
 #' @export
 #' @method merge SpatialAssay
@@ -559,7 +518,7 @@ merge.SpatialAssay <- function(
     if (!isTRUE(x = all.equal(colnames(x = assays[[i]]), colnames(x = merged.assay)[cell.idx:(cell.idx + ncol(x = assays[[i]]) - 1)]))) {
       merged.assay <- RenameCells(object = assays[[i]], new.names = colnames(x = merged.assay)[cell.idx:(cell.idx + ncol(x = assays[[i]]) - 1)])
     }
-    slices <- GetSlice(object = assays[[i]]) 
+    slices <- GetSlice(object = assays[[i]])
     for(s in 1:length(x = slices)) {
       if (names(x = slices)[s] %in% Slices(object = merged.assay)) {
         names(x = slices)[s] <- make.unique(names = c(Slices(object = merged.assay), names(x = slices)[s]))[length(x = Slices(object = merged.assay)) + 1]
