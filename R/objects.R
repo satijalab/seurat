@@ -201,7 +201,8 @@ SCTAssay <- setClass(
   slots = c(
     feature.attributes = 'data.frame',
     cell.attributes = 'data.frame',
-    cell.groups = 'factor'
+    groups = 'factor',
+    fitted.parameters = 'matrix'
   )
 )
 
@@ -5636,6 +5637,49 @@ merge.Seurat <- function(
 }
 
 #' @export
+#' @method merge vstresults
+#'
+#' @keywords internal
+#'
+merge.vstresults <- function(x, y, ...) {
+  if (inherits(x = y, what = 'vstresults')) {
+    y <- list(y)
+  } else if (!all(sapply(X = y, FUN = inherits, what = 'vstresults'))) {
+    stop(
+      "'y' must either be a 'vstresults' or a list of 'vstresults' objects",
+      call. = FALSE
+    )
+  }
+  objects <- c(list(x), y)
+  merged <- vector(mode = 'list', length = length(x = x))
+  names(x = merged) <- names(x = x)
+  merged$cell.attributes <- do.call(
+    what = 'rbind',
+    args = lapply(X = objects, FUN = '[[', 'cell.attributes')
+  )
+  merged$feature.attributes <- do.call(
+    what = 'rbind',
+    args = lapply(X = objects, FUN = '[[', 'feature.attributes')
+  )
+  merged$fitted.parameters <- do.call(
+    what = 'rbind',
+    args = lapply(X = objects, FUN = '[[', 'fitted.parameters')
+  )
+  merged$groups <- as.character(x = unlist(x = lapply(
+    X = objects,
+    FUN = '[[',
+    'groups'
+  )))
+  names(x = merged$groups) <- names(x = unlist(x = lapply(
+    X = objects,
+    FUN = '[[',
+    'groups'
+  )))
+  merged$groups <- factor(x = merged$groups)
+  return(structure(.Data = merged, class = 'vstresults'))
+}
+
+#' @export
 #' @method names DimReduc
 #'
 names.DimReduc <- function(x) {
@@ -5968,7 +6012,7 @@ setAs(
       vst.slots <- c('vst.set', 'vst.out')
       vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
       vst.res <- Misc(object = from, slot = vst.use)
-      if (vst.out == 'vst.out') {
+      if (vst.use == 'vst.out') {
         vst.res <- list(vst.res)
       }
       vst.res <- lapply(
@@ -5977,6 +6021,12 @@ setAs(
           return(PrepVSTResults(vst.res = vst.res[[i]], group = i))
         }
       )
+      if (length(x = vst.res) == 1) {
+        vst.res <- vst.res[[1]]
+      } else {
+        vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
+      }
+      object.list <- c(object.list, vst.res)
     }
     return(do.call(what = 'new', args = object.list))
   }
@@ -6720,7 +6770,7 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
   group <- as.character(x = group)
   # Prepare cell attribute information
   cell.attrs <- vst.res$cell_attr
-  cols.keep <- c(
+  cell.cols <- c(
     'umi',
     'gene',
     'log_umi',
@@ -6728,28 +6778,42 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     'umi_per_gene',
     'log_umi_per_gene'
   )
-  cell.attrs <- cell.attrs[, cols.keep, drop = FALSE]
+  cell.attrs <- cell.attrs[, cell.cols, drop = FALSE]
   colnames(x = cell.attrs) <- gsub(
     pattern = 'gene',
     replacement = 'feature',
     x = colnames(x = cell.attrs)
   )
+  rownames(x = cell.attrs) <- paste(group, rownames(x = cell.attrs), sep = '.')
   # Prepare grouping information
-  # names(x = groups) <- rownames(x = cell.attrs)
   groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
-  names(x = groups) <- rownames(x = cell.attrs)
+  names(x = groups) <- gsub(
+    pattern = paste0('^', group, '.'),
+    replacement = '',
+    x = rownames(x = cell.attrs)
+  )
   groups <- factor(x = groups)
   # Prepare feature attribute information
   feature.attrs <- vst.res$gene_attr
+  feature.cols <- c(
+    'detection_rate',
+    'gmean',
+    'variance',
+    'residual_mean',
+    'residual_variance'
+  )
+  feature.attrs <- feature.attrs[, feature.cols, drop = FALSE]
+  rownames(x = feature.attrs) <- paste(group, rownames(x = feature.attrs), sep = '.')
   # Prepare model information
   model.params <- vst.res$model_pars_fit
-  colnames(x = model.params) <- paste(group, colnames(x = model.params), sep = '.')
+  rownames(x = model.params) <- paste(group, rownames(x = model.params), sep = '.')
+  # colnames(x = model.params) <- paste(group, colnames(x = model.params), sep = '.')
   # Prepare the results
   vst.res <- list(
     'cell.attributes' = cell.attrs,
-    'feature.attributes' = '',
-    'groups' = 'groups',
-    'fittedparameters' = model.params
+    'feature.attributes' = feature.attrs,
+    'groups' = groups,
+    'fitted.parameters' = model.params
   )
   return(structure(.Data = vst.res, class = 'vstresults'))
 }
