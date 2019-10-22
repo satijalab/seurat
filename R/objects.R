@@ -2,7 +2,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature slotNames is
+#' slot<- setMethod new signature slotNames is setAs setValidity
 #' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
@@ -182,6 +182,26 @@ IntegrationData <- setClass(
     offsets = "ANY",
     objects.ncell = "ANY",
     sample.tree = "ANY"
+  )
+)
+
+#' The SCTAssay Class
+#'
+#' The SCTAssay object contains all the information found in an \code{\link{Assay}}
+#' object, with extra information from the results of \code{\link{SCTransform}}
+#'
+#' @slot ...
+#'
+#' @name SCTAssay-class
+#' @rdname SCTAssay-class
+#'
+SCTAssay <- setClass(
+  Class = 'SCTAssay',
+  contains = 'Assay',
+  slots = c(
+    feature.attributes = 'data.frame',
+    cell.attributes = 'data.frame',
+    cell.groups = 'factor'
   )
 )
 
@@ -3843,8 +3863,8 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
     } else{
       suppressWarnings(
         Misc(object, slot = "vst.set") <- lapply(
-          X = Misc(object = object, slot = "vst.set"), 
-          FUN = function(x) { 
+          X = Misc(object = object, slot = "vst.set"),
+          FUN = function(x) {
             new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
             x$cells_step1 <- new.names.vst
             rownames(x = x$cell_attr) <- new.names.vst
@@ -5201,6 +5221,14 @@ WriteH5AD.Seurat <- function(
   return(data.return)
 }
 
+#' @export
+#' @method as.character SCTAssay
+#'
+as.character.SCTAssay <- function(x, ...) {
+  .NotYetImplemented()
+  return(invisible(x = NULL))
+}
+
 #' Coerce a SeuratCommand to a list
 #'
 #' @inheritParams base::as.list
@@ -5248,6 +5276,20 @@ as.logical.JackStrawData <- function(x, ...) {
   empP <- JS(object = x, slot = 'empirical')
   return(!(all(dim(x = empP) == 0) || all(is.na(x = empP))))
 }
+
+# #' @export
+# #' @method attr SCTAssay
+# #'
+# attr.SCTAssay <- function(x, which, exact = FALSE) {
+#   .NotYetImplemented()
+# }
+#
+# #' @export
+# #' @method attr<- SCTAssay
+# #'
+# `attr<-.SCTAssay` <- function(x, which, value) {
+#   .NotYetImplemented()
+# }
 
 #' @export
 #' @method dim Assay
@@ -5299,11 +5341,27 @@ droplevels.Seurat <- function(x, ...) {
   return(x)
 }
 
+#' @importFrom stats formula as.formula
+#'
+#' @export
+#' @method formula SCTAssay
+#'
+formula.SCTAssay <- function(x, ...) {
+  return(as.formula(object = as.character(x = x)))
+}
+
 #' @export
 #' @method length DimReduc
 #'
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
+}
+
+#' @export
+#' @method levels SCTAssay
+#'
+levels.SCTAssay <- function(x) {
+  .NotYetImplemented()
 }
 
 #' @rdname Idents
@@ -5655,6 +5713,20 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
   }
 }
 
+#' @export
+#' @method range SCTAssay
+#'
+range.SCTAssay <- function(..., na.rm = FALSE) {
+  .NotYetImplemented()
+}
+
+#' @export
+#' @method split SCTAssay
+#'
+split.SCTAssay <- function(x, f, drop = FALSE) {
+  .NotYetImplemented()
+}
+
 #' @importFrom stats na.omit
 #'
 #' @export
@@ -5878,6 +5950,39 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setAs(
+  from = 'Assay',
+  to = 'SCTAssay',
+  def = function(from) {
+    object.list <- sapply(
+      X = slotNames(x = from),
+      FUN = slot,
+      object = from,
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    object.list <- c(
+      list('Class' = 'SCTAssay'),
+      object.list
+    )
+    if (IsSCT(assay = from)) {
+      vst.slots <- c('vst.set', 'vst.out')
+      vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
+      vst.res <- Misc(object = from, slot = vst.use)
+      if (vst.out == 'vst.out') {
+        vst.res <- list(vst.res)
+      }
+      vst.res <- lapply(
+        X = 1:length(x = vst.res),
+        FUN = function(i) {
+          return(PrepVSTResults(vst.res = vst.res[[i]], group = i))
+        }
+      )
+    }
+    return(do.call(what = 'new', args = object.list))
+  }
+)
 
 #' @rdname AddMetaData
 #'
@@ -6416,6 +6521,36 @@ setMethod(
   }
 )
 
+setValidity(
+  Class = 'SCTAssay',
+  method = function(object) {
+    # TODO: Remove this when validity is done
+    tryCatch(
+      expr = .NotYetImplemented(),
+      error = function(e) {
+        warning(e$message, call. = FALSE, immediate. = TRUE)
+      }
+    )
+    return(TRUE)
+    # Check the validity of an SCTAssay object
+    errors <- vector(mode = 'character', length = 0L)
+    # Check cell attributes
+    cell.attrs <- slot(object = object, name = 'cell.attributes')
+    if (nrow(x = cell.attrs) != ncol(x = object)) {
+      errors <- c(errors, 'The number of cells ...')
+    }
+    if (!all(rownames(x = cell.attrs) == colnames(x = object))) {
+      errors <- c(errors, '')
+    }
+    # Check ...
+    # Check ...
+    if (length(x = errors)) {
+      return(errors)
+    }
+    return(TRUE)
+  }
+)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -6571,6 +6706,54 @@ FindObject <- function(object, name) {
     }
   }
   return(NULL)
+}
+
+# Prepare VST results for use with SCTAssay objects
+#
+# @param vst.res ...
+# @param group Group identifier
+#
+# @return A list with the following values
+# \describe{
+#  \item{}{}
+# }
+#
+PrepVSTResults <- function(vst.res, group = RandomName()) {
+  group <- as.character(x = group)
+  # Prepare cell attribute information
+  cell.attrs <- vst.res$cell_attr
+  cols.keep <- c(
+    'umi',
+    'gene',
+    'log_umi',
+    'log_gene',
+    'umi_per_gene',
+    'log_umi_per_gene'
+  )
+  cell.attrs <- cell.attrs[, cols.keep, drop = FALSE]
+  colnames(x = cell.attrs) <- gsub(
+    pattern = 'gene',
+    replacement = 'feature',
+    x = colnames(x = cell.attrs)
+  )
+  # Prepare grouping information
+  # names(x = groups) <- rownames(x = cell.attrs)
+  groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
+  names(x = groups) <- rownames(x = cell.attrs)
+  groups <- factor(x = groups)
+  # Prepare feature attribute information
+  feature.attrs <- vst.res$gene_attr
+  # Prepare model information
+  model.params <- vst.res$model_pars_fit
+  colnames(x = model.params) <- paste(group, colnames(x = model.params), sep = '.')
+  # Prepare the results
+  vst.res <- list(
+    'cell.attributes' = cell.attrs,
+    'feature.attributes' = '',
+    'groups' = 'groups',
+    'fittedparameters' = model.params
+  )
+  return(structure(.Data = vst.res, class = 'vstresults'))
 }
 
 # Check to see if projected loadings have been set
