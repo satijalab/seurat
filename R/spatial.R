@@ -116,12 +116,16 @@ Load10X_Spatial <- function(
   assay = 'Spatial',
   slice = NULL,
   filter.matrix = TRUE,
+  to.upper = FALSE,
   ...
 ) {
   data <- Read10X_h5(
     filename = file.path(data.dir, 'filtered_feature_bc_matrix.h5'),
     ...
   )
+  if (to.upper) {
+    rownames(x = data) <- toupper(x = rownames(x = data))
+  }
   image <- readPNG(source = file.path(data.dir, 'spatial', 'tissue_lowres_image.png'))
   scale.factors <- fromJSON(txt = file.path(data.dir, 'spatial', 'scalefactors_json.json'))
   tissue.positions <- read.csv(
