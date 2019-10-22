@@ -4,10 +4,12 @@
 \alias{ExpMean}
 \title{Calculate the mean of logged values}
 \usage{
-ExpMean(x)
+ExpMean(x, ...)
 }
 \arguments{
 \item{x}{A vector of values}
+
+\item{...}{Other arguments (not used)}
 }
 \value{
 Returns the mean in log-space

@@ -4,10 +4,12 @@
 \alias{LogVMR}
 \title{Calculate the variance to mean ratio of logged values}
 \usage{
-LogVMR(x)
+LogVMR(x, ...)
 }
 \arguments{
 \item{x}{A vector of values}
+
+\item{...}{Other arguments (not used)}
 }
 \value{
 Returns the VMR in log-space
