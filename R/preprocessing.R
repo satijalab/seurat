@@ -2667,10 +2667,7 @@ GetResidualVstOut <- function(
   clip.range,
   verbose
 ) {
-  model.features <- unname(obj = sapply(
-    X = rownames(x = SCTResults(object = object[[assay]], slot = "fitted.parameters")), 
-    FUN = ExtractField, field = 2, delim = "\\.")
-  )
+  model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "fitted.parameters"))
   diff_features <- setdiff(
     x = new_features,
     y = model.features
@@ -2692,21 +2689,18 @@ GetResidualVstOut <- function(
     }
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[intersect_feature, , drop = FALSE]
   }
-  # if (is.null(x = clip.range)) {
-  #   if(length(vst_out$arguments$sct.clip.range)!=0 ){
-  #   clip.max <- max(vst_out$arguments$sct.clip.range)
-  #   clip.min <- min(vst_out$arguments$sct.clip.range)
-  #   } else{
-  #     clip.max <- max(vst_out$arguments$res_clip_range)
-  #     clip.min <- min(vst_out$arguments$res_clip_range)
-  #   }
-  # } else {
+  if (is.null(x = clip.range)) {
+    clip.max <- max(object[[assay]])
+    clip.min <- min(object[[assay]])
+    
+  } else {
      clip.max <- max(clip.range)
      clip.min <- min(clip.range)
-  # }
+  }
   vst_out <- list()
   vst_out$model_str <- SCTResults(object = object[[assay]], slot = "model")
   vst_out$model_pars_fit <- SCTResults(object = object[[assay]], slot = "fitted.parameters")
+  vst_out$cell_attr <- SCTResults(object = object[[assay]], slot = "cell.attributes")
   new_residual <- get_residuals(
     vst_out = vst_out,
     umi = umi,

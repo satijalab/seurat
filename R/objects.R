@@ -4023,12 +4023,13 @@ RenameIdents.Seurat <- function(object, ...) {
 }
 
 #' @param slot Which slot to pull the SCT results from
+#' @param key Key value
 #'
 #' @rdname SCTResults
 #' @export
 #' @method SCTResults Assay
 #'
-SCTResults.Assay <- function(object, slot, ...) {
+SCTResults.Assay <- function(object, slot, key = "1", ...) {
   CheckDots(...)
   if (!inherits(x = object, what = "SCTAssay")) {
     stop("Provided assay is not an SCTAssay")
@@ -4040,6 +4041,11 @@ SCTResults.Assay <- function(object, slot, ...) {
       paste(slots.use, collapse = ', '),
       call. = FALSE
     )
+  }
+  if (slot %in% c("fitted.parameters", "cell.attributes")) {
+    to.return <- slot(object = object, name = slot)
+    rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = ExtractField, delim = paste0(key, "_"), field = 2)
+    return(to.return)
   }
   return(slot(object = object, name = slot))
 }
