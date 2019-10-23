@@ -202,7 +202,8 @@ SCTAssay <- setClass(
     feature.attributes = 'data.frame',
     cell.attributes = 'data.frame',
     groups = 'factor',
-    fitted.parameters = 'matrix'
+    fitted.parameters = 'matrix',
+    model = 'character'
   )
 )
 
@@ -4014,6 +4015,42 @@ RenameIdents.Seurat <- function(object, ...) {
   return(object)
 }
 
+#' @param slot Which slot to pull the SCT results from
+#'
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults Assay
+#'
+SCTResults.Assay <- function(object, slot, ...) {
+  CheckDots(...)
+  if (!inherits(x = object, what = "SCTAssay")) {
+    stop("Provided assay is not an SCTAssay")
+  }
+  slots.use <- c('feature.attributes', 'cell.attributes', 'groups', 'fitted.parameters', 'model')
+  if (!slot %in% slots.use) {
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
+  }
+  return(slot(object = object, name = slot))
+}
+
+#' @param assay Assay in the Seurat object to pull from
+#'
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults Seurat
+#'
+SCTResults.Seurat <- function(object, assay = "SCT", slot, ...) {
+  CheckDots(...)
+  return(
+    SCTResults(object = object[[assay]], slot = slot)
+  )
+}
+
+
 #' @param slot Where to store the new data
 #' @param new.data New data to insert
 #'
@@ -6028,6 +6065,7 @@ setAs(
       }
       object.list <- c(object.list, vst.res)
     }
+    object.list$misc[[vst.use]] <- NULL
     return(do.call(what = 'new', args = object.list))
   }
 )
@@ -6192,7 +6230,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
-      if (!is.null(x = FindObject(object = x, name = i)) && !(class(x = value) %in% c(class(x = x[[i]]), 'NULL'))) {
+      if (!is.null(x = FindObject(object = x, name = i)) && !(inherits(x = value, what = class(x = x[[i]])) | class(x = value) == 'NULL')) {
         stop(
           "This object already contains ",
           i,
@@ -6813,7 +6851,8 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     'cell.attributes' = cell.attrs,
     'feature.attributes' = feature.attrs,
     'groups' = groups,
-    'fitted.parameters' = model.params
+    'fitted.parameters' = model.params,
+    'model' = vst.res$model_str
   )
   return(structure(.Data = vst.res, class = 'vstresults'))
 }

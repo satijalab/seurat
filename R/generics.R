@@ -929,6 +929,18 @@ ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
+#' Get SCT results from an Assay
+#' 
+#' @param object An object
+#' @param ... Arguments passed to other methods (not used)
+#' 
+#' @rdname SCTResults
+#' @export SCTResults
+#' 
+SCTResults <- function(object, ...) {
+  UseMethod(generic = 'SCTResults', object = object)
+}
+
 #' Setter for multimodal data
 #'
 #' @param object An object
