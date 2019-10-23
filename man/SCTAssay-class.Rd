@@ -4,7 +4,47 @@
 \name{SCTAssay-class}
 \alias{SCTAssay-class}
 \alias{SCTAssay}
+\alias{max.SCTAssay}
+\alias{min.SCTAssay}
+\alias{range.SCTAssay}
 \title{The SCTAssay Class}
+\usage{
+\method{max}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"),
+  drop = TRUE)
+
+\method{min}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"),
+  drop = TRUE)
+
+\method{range}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"),
+  drop = TRUE)
+}
+\arguments{
+\item{...}{For \code{range}, \code{min}, and \code{max}, an \code{SCTAssay}
+object. For all others, arguments passed to other methods or ignored}
+
+\item{na.rm}{logical, indicating if \code{\link{NA}}'s should be
+    omitted.}
+
+\item{slot}{Which clips to fetch, choose from "sct" (Seurat \code{\link{SCTransform}}- set clips)
+or "vst" (\code{\link[sctransform]{vst}}) set clips}
+
+\item{drop}{If only one SCTransform group, return a vector instead of a list}
+}
+\value{
+\code{max}: The maximum clip values. If multiple SCTransform groups
+present (eg. merged \code{SCTAssay} objects), returns as a named list with
+the maximums present for each list; otherwise, returns a vector similar to
+\code{\link[base]{max}}
+
+\code{min}: The minimum clip values. If multiple SCTransform groups
+present (eg. merged \code{SCTAssay} objects), returns as a named list with
+the minimums present for each list; otherwise, returns a vector similar to
+\code{\link[base]{min}}
+
+\code{range}: The clip values. If multiple SCTransform groups present
+(eg. merged \code{SCTAssay} objects), returns as a named list with the ranges
+present for each list; otherwise, returns a vector similar to \code{\link[base]{range}}
+}
 \description{
 The SCTAssay object contains all the information found in an \code{\link{Assay}}
 object, with extra information from the results of \code{\link{SCTransform}}
@@ -23,6 +63,13 @@ object, with extra information from the results of \code{\link{SCTransform}}
 \item{\code{groups}}{...}
 }}
 
+\section{Get SCT clip values}{
+
+\code{range}, \code{min}, and \code{max} get the SCT clip values for this
+\code{SCTAssay} object. \code{range} provides both the minimum and maximum,
+\code{min} provides just the minimum, and \code{max} provides just the maximum
+}
+
 \section{Creating an \code{SCTAssay} from an \code{Assay}}{
 
 Conversion from an \code{Assay} object to an \code{SCTAssay} object by
@@ -33,4 +80,10 @@ the conversion will automagically fill the new slots with the data
 
 \seealso{
 \code{\link{Assay}}
+
+\code{\link[base]{max}}
+
+\code{\link[base]{min}}
+
+\code{\link[base]{range}}
 }
