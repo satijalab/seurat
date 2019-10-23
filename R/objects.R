@@ -190,7 +190,13 @@ IntegrationData <- setClass(
 #' The SCTAssay object contains all the information found in an \code{\link{Assay}}
 #' object, with extra information from the results of \code{\link{SCTransform}}
 #'
-#' @slot ...
+#' @slot feature.attributes A data.frame with the following columns:
+#' @slot cell.attributes A data.frame with the following columns:
+#' @slot fitted.parameters A matrix with the following columns:
+#' @slot clips ...
+#' @slot groups ...
+#'
+#' @seealso \code{\link{Assay}}
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
@@ -201,9 +207,10 @@ SCTAssay <- setClass(
   slots = c(
     feature.attributes = 'data.frame',
     cell.attributes = 'data.frame',
-    groups = 'factor',
     fitted.parameters = 'matrix',
-    model = 'character'
+    groups = 'factor',
+    model = 'character',
+    clips = 'list'
   )
 )
 
@@ -5432,6 +5439,28 @@ levels.Seurat <- function(x) {
   return(x)
 }
 
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @return \code{max}: The maximum clip values. If multiple SCTransform groups
+#' present (eg. merged \code{SCTAssay} objects), returns as a named list with
+#' the maximums present for each list; otherwise, returns a vector similar to
+#' \code{\link[base]{max}}
+#'
+#' @seealso \code{\link[base]{max}}
+#'
+#' @export
+#' @method max SCTAssay
+#'
+max.SCTAssay <- function(..., na.rm = FALSE, slot = c('sct', 'vst'), drop = TRUE) {
+  maxs <- range(..., slot = slot, drop = FALSE)
+  maxs <- lapply(X = maxs, FUN = max)
+  if (length(x = maxs) == 1 && drop) {
+    maxs <- unlist(x = maxs, use.names = FALSE)
+  }
+  return(maxs)
+}
+
 #' @rdname merge.Seurat
 #' @export
 #' @method merge Assay
@@ -5702,6 +5731,7 @@ merge.vstresults <- function(x, y, ...) {
     what = 'rbind',
     args = lapply(X = objects, FUN = '[[', 'fitted.parameters')
   )
+  merged$clips <- sapply(X = objects, FUN = '[[', 'clips')
   merged$groups <- as.character(x = unlist(x = lapply(
     X = objects,
     FUN = '[[',
@@ -5714,6 +5744,28 @@ merge.vstresults <- function(x, y, ...) {
   )))
   merged$groups <- factor(x = merged$groups)
   return(structure(.Data = merged, class = 'vstresults'))
+}
+
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @return \code{min}: The minimum clip values. If multiple SCTransform groups
+#' present (eg. merged \code{SCTAssay} objects), returns as a named list with
+#' the minimums present for each list; otherwise, returns a vector similar to
+#' \code{\link[base]{min}}
+#'
+#' @seealso \code{\link[base]{min}}
+#'
+#' @export
+#' @method min SCTAssay
+#'
+min.SCTAssay <- function(..., na.rm = FALSE, slot = c('sct', 'vst'), drop = TRUE) {
+  mins <- range(..., slot = slot, drop = FALSE)
+  mins <- lapply(X = mins, FUN = min)
+  if (length(x = mins) == 1 && drop) {
+    mins <- unlist(x = mins, use.names = FALSE)
+  }
+  return(mins)
 }
 
 #' @export
@@ -5792,11 +5844,61 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
   }
 }
 
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @section Get SCT clip values:
+#' \code{range}, \code{min}, and \code{max} get the SCT clip values for this
+#' \code{SCTAssay} object. \code{range} provides both the minimum and maximum,
+#' \code{min} provides just the minimum, and \code{max} provides just the maximum
+#'
+#' @inheritParams base::range
+#' @param ... For \code{range}, \code{min}, and \code{max}, an \code{SCTAssay}
+#' object. For all others, arguments passed to other methods or ignored
+#' @param slot Which clips to fetch, choose from "sct" (Seurat \code{\link{SCTransform}}- set clips)
+#' or "vst" (\code{\link[sctransform]{vst}}) set clips
+#' @param drop If only one SCTransform group, return a vector instead of a list
+#'
+#' @return \code{range}: The clip values. If multiple SCTransform groups present
+#' (eg. merged \code{SCTAssay} objects), returns as a named list with the ranges
+#' present for each list; otherwise, returns a vector similar to \code{\link[base]{range}}
+#'
+#' @seealso \code{\link[base]{range}}
+#'
 #' @export
 #' @method range SCTAssay
 #'
-range.SCTAssay <- function(..., na.rm = FALSE) {
-  .NotYetImplemented()
+range.SCTAssay <- function(..., na.rm = FALSE, slot = c('sct', 'vst'), drop = TRUE) {
+  object <- c(...)[[1]]
+  slots <- c('sct', 'vst')
+  slot <- match.arg(arg = slot, choices = slots)
+  clips <- slot(object = object, name = 'clips')
+  clips <- lapply(
+    X = clips,
+    FUN = '[[',
+    slot
+  )
+  for (i in 1:length(x = clips)) {
+    if (is.null(x = clips[[i]])) {
+      slot.use <- slots[slots != slot]
+      warning(
+        "Could not find ",
+        slot,
+        " clips for ",
+        names(x = clips)[i],
+        ", using ",
+        slot.use,
+        " instead",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      clips[[i]] <- slot(object = object, name = 'clips')[[i]][[slot.use]]
+    }
+  }
+  if (length(x = clips) == 1 && drop) {
+    clips <- unlist(x = clips, use.names = FALSE)
+  }
+  return(clips)
 }
 
 #' @export
@@ -6030,6 +6132,15 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @section Creating an \code{SCTAssay} from an \code{Assay}:
+#' Conversion from an \code{Assay} object to an \code{SCTAssay} object by
+#' is done by adding the additional slots to the object. If \code{from} has
+#' results generated by \code{\link{SCTransform}} from Seurat v3.0.0 to v3.1.1,
+#' the conversion will automagically fill the new slots with the data
+#'
 setAs(
   from = 'Assay',
   to = 'SCTAssay',
@@ -6806,6 +6917,7 @@ FindObject <- function(object, name) {
 #
 PrepVSTResults <- function(vst.res, group = RandomName()) {
   group <- as.character(x = group)
+  group.key <- suppressWarnings(expr = UpdateKey(key = group))
   # Prepare cell attribute information
   cell.attrs <- vst.res$cell_attr
   cell.cols <- c(
@@ -6822,11 +6934,11 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     replacement = 'feature',
     x = colnames(x = cell.attrs)
   )
-  rownames(x = cell.attrs) <- paste(group, rownames(x = cell.attrs), sep = '.')
+  rownames(x = cell.attrs) <- paste0(group.key, rownames(x = cell.attrs))
   # Prepare grouping information
   groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
   names(x = groups) <- gsub(
-    pattern = paste0('^', group, '.'),
+    pattern = paste0('^', group.key),
     replacement = '',
     x = rownames(x = cell.attrs)
   )
@@ -6841,18 +6953,25 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     'residual_variance'
   )
   feature.attrs <- feature.attrs[, feature.cols, drop = FALSE]
-  rownames(x = feature.attrs) <- paste(group, rownames(x = feature.attrs), sep = '.')
+  rownames(x = feature.attrs) <- paste0(group.key, rownames(x = feature.attrs))
   # Prepare model information
   model.params <- vst.res$model_pars_fit
-  rownames(x = model.params) <- paste(group, rownames(x = model.params), sep = '.')
-  # colnames(x = model.params) <- paste(group, colnames(x = model.params), sep = '.')
+  rownames(x = model.params) <- paste0(group.key, rownames(x = model.params))
+  # Prepare clipping information
+  clips <- list(
+    'vst' = vst.res$arguments$res_clip_range,
+    'sct' = vst.res$arguments$sct.clip.range
+  )
+  clips <- list(clips)
+  names(x = clips) <- group
   # Prepare the results
   vst.res <- list(
     'cell.attributes' = cell.attrs,
     'feature.attributes' = feature.attrs,
-    'groups' = groups,
     'fitted.parameters' = model.params,
-    'model' = vst.res$model_str
+    'groups' = groups,
+    'model' = vst.res$model_str,
+    'clips' = clips
   )
   return(structure(.Data = vst.res, class = 'vstresults'))
 }
