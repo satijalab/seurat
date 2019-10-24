@@ -1134,8 +1134,14 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   # check if function works on the Assay and/or the DimReduc Level
   assay <- params[["assay"]]
   reduction <- params[["reduction"]]
-  if (class(x = reduction) == 'DimReduc') {
-    reduction = 'DimReduc'
+  # Get assay used for command
+  cmd.assay <- assay %||% (reduction %iff% if (inherits(x = reduction, what = 'DimReduc')) {
+    DefaultAssay(object = reduction)
+  } else if (reduction %in% Reductions(object = object)) {
+    DefaultAssay(object = object[[reduction]])
+  })
+  if (inherits(x = reduction, what = 'DimReduc')) {
+    reduction <- 'DimReduc'
   }
   # rename function name to include Assay/DimReduc info
   if (length(x = assay) == 1) {
@@ -1149,7 +1155,8 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     name = command.name,
     params = params,
     time.stamp = time.stamp,
-    call.string = call.string
+    call.string = call.string,
+    assay.used = cmd.assay
   )
   if (return.command) {
     return(seurat.command)
@@ -1380,7 +1387,7 @@ UpdateSeuratObject <- function(object) {
       # Update object slots
       message("Updating object slots")
       for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
-        object[[obj]] <- UpdateSlots(object = object[[obj]])
+        suppressWarnings(expr = object[[obj]] <- UpdateSlots(object = object[[obj]]))
       }
       for (cmd in Command(object = object)) {
         slot(object = object, name = 'commands')[[cmd]] <- UpdateSlots(
@@ -2938,6 +2945,14 @@ Idents.Seurat <- function(object, ...) {
     object <- droplevels(x = object)
   }
   return(object)
+}
+
+#' @rdname IsGlobal
+#' @export
+#' @method IsGlobal default
+#'
+IsGlobal.default <- function(object, ...) {
+  return(FALSE)
 }
 
 #' @rdname IsGlobal
@@ -6100,6 +6115,20 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       'assays'
     } else if (inherits(x = value, what = 'Graph')) {
+      # Ensure Assay that Graph is associated with is present in the Seurat object
+      if (is.null(x = DefaultAssay(object = value))) {
+        warning(
+          "Adding a Graph without an assay associated with it",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      } else if (!any(DefaultAssay(object = value) %in% Assays(object = x))) {
+        stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+      }
+      # Ensure Graph object is in order
+      if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+        value <- value[Cells(x = x), Cells(x = x)]
+      }
       'graphs'
     } else if (inherits(x = value, what = 'DimReduc')) {
       # All DimReducs must be associated with an Assay
@@ -6107,7 +6136,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
       }
       # Ensure Assay that DimReduc is associated with is present in the Seurat object
-      if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
+      if (IsGlobal(object = value)) {
+        message("Adding global dimensional reduction information")
+      } else if (!any(DefaultAssay(object = value) %in% Assays(object = x))) {
         stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
       }
       # Ensure DimReduc object is in order
@@ -6116,6 +6147,16 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       'reductions'
     } else if (inherits(x = value, what = 'SeuratCommand')) {
+      # Ensure Assay that SeuratCommand is associated with is present in the Seurat object
+      if (is.null(x = DefaultAssay(object = value))) {
+        warning(
+          "Adding a command log without an assay associated with it",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      } else if (!any(DefaultAssay(object = value) %in% Assays(object = x))) {
+        stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+      }
       'commands'
     } else if (is.null(x = value)) {
       slot.use
@@ -6245,17 +6286,20 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           x[[names(x = n.calc)]] <- n.calc
         }
       }
-      # When removing an Assay, clear out associated DimReducs
+      # When removing an Assay, clear out associated DimReducs, Graphs, and SeuratCommands
       if (is.null(x = value) && inherits(x = x[[i]], what = 'Assay')) {
-        reducs.assay <- FilterObjects(object = x, classes.keep = 'DimReduc')
-        reducs.assay <- Filter(
-          f = function(dr) {
-            return(DefaultAssay(object = x[[dr]]) == i)
-          },
-          x = reducs.assay
+        objs.assay <- FilterObjects(
+          object = x,
+          classes.keep = c('DimReduc', 'SeuratCommand', 'Graph')
         )
-        for (dr in reducs.assay) {
-          x[[dr]] <- NULL
+        objs.assay <- Filter(
+          f = function(o) {
+            return(all(DefaultAssay(object = x[[o]]) == i) && !IsGlobal(object = x[[o]]))
+          },
+          x = objs.assay
+        )
+        for (o in objs.assay) {
+          x[[o]] <- NULL
         }
       }
       # If adding a command, ensure it gets put at the end of the command list
