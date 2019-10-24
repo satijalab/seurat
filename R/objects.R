@@ -1454,9 +1454,53 @@ UpdateSeuratObject <- function(object) {
         }
         object[[reduc.name]] <- reduc
       }
-      message("Object representation is consistent with the most current Seurat version")
-      return(object)
     }
+    if (package_version(x = slot(object = object, name = 'version')) <= package_version(x = '3.1.1')) {
+      # Update Assays, DimReducs, and Graphs
+      for (x in names(x = object)) {
+        message("Updating slots in ", x)
+        xobj <- object[[x]]
+        xobj <- UpdateSlots(object = xobj)
+        if (inherits(x = xobj, what = 'DimReduc')) {
+          if (any(sapply(X = c('tsne', 'umap'), FUN = grepl, x = tolower(x = x)))) {
+            message("Setting ", x, " DimReduc to global")
+            slot(object = xobj, name = 'global') <- TRUE
+          }
+        } else if (inherits(x = xobj, what = 'Graph')) {
+          graph.assay <- unlist(x = strsplit(x = x, split = '_'))[1]
+          if (graph.assay %in% Assays(object = object)) {
+            message("Setting default assay of ", x, " to ", graph.assay)
+            DefaultAssay(object = xobj) <- graph.assay
+          }
+        }
+        object[[x]] <- xobj
+      }
+      # Update SeuratCommands
+      for (cmd in Command(object = object)) {
+        cobj <- Command(object = object, command = cmd)
+        cobj <- UpdateSlots(object = cobj)
+        cmd.assay <- unlist(x = strsplit(x = cmd, split = '\\.'))
+        cmd.assay <- cmd.assay[length(x = cmd.assay)]
+        cmd.assay <- if (cmd.assay %in% Assays(object = object)) {
+          cmd.assay
+        } else if (cmd.assay %in% Reductions(object = object)) {
+          DefaultAssay(object = object[[cmd.assay]])
+        } else {
+          NULL
+        }
+        if (is.null(x = cmd.assay)) {
+          message("No assay information could be found for ", cmd)
+        } else {
+          message("Setting assay used for ", cmd, " to ", cmd.assay)
+        }
+        slot(object = cobj, name = 'assay.used') <- cmd.assay
+        object[[cmd]] <- cobj
+      }
+      # Update object version
+      slot(object = object, name = 'version') <- packageVersion(pkg = 'Seurat')
+    }
+    message("Object representation is consistent with the most current Seurat version")
+    return(object)
   }
   stop(
     "We are unable to convert Seurat objects less than version 2.X to version 3.X\n",
