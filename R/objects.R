@@ -13,7 +13,8 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setOldClass(Classes = 'package_version')
-setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
+setClassUnion(name = 'AnyMatrix', members = c("matrix", "dgCMatrix"))
+setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 
 #' The AnchorSet Class
 #'
@@ -77,7 +78,7 @@ Assay <- setClass(
     data = 'AnyMatrix',
     scale.data = 'matrix',
     key = 'character',
-    assay.orig = 'character',
+    assay.orig = 'OptionalCharacter',
     var.features = 'vector',
     meta.features = 'data.frame',
     misc = 'ANY'
@@ -156,7 +157,7 @@ Graph <- setClass(
   Class = 'Graph',
   contains = "dgCMatrix",
   slots = list(
-    assay.used = 'character'
+    assay.used = 'OptionalCharacter'
   )
 )
 
@@ -208,7 +209,7 @@ SeuratCommand <- setClass(
   slots = c(
     name = 'character',
     time.stamp = 'POSIXct',
-    assay.used = 'character',
+    assay.used = 'OptionalCharacter',
     call.string = 'character',
     params = 'ANY'
   )
@@ -2544,12 +2545,8 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 #' @method DefaultAssay Assay
 #'
 DefaultAssay.Assay <- function(object, ...) {
-  return(tryCatch(
-    expr = slot(object = object, name = 'assay.orig'),
-    error = function(...) {
-      return(character(length = 0L))
-    }
-  ))
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.orig'))
 }
 
 #' @rdname DefaultAssay
@@ -2566,12 +2563,8 @@ DefaultAssay.DimReduc <- function(object, ...) {
 #' @method DefaultAssay Graph
 #'
 DefaultAssay.Graph <- function(object, ...) {
-  return(tryCatch(
-    expr = slot(object = object, name = 'assay.used'),
-    error = function(...) {
-      return(character(length = 0L))
-    }
-  ))
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.used'))
 }
 
 #' @rdname DefaultAssay
@@ -2592,18 +2585,16 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' @method DefaultAssay SeuratCommand
 #'
 DefaultAssay.SeuratCommand <- function(object, ...) {
-  return(tryCatch(
-    expr = slot(object = object, name = 'assay.used'),
-    error = function(...) {
-      return(character(length = 0L))
-    }
-  ))
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.used'))
 }
 
 #' @export
 #' @method DefaultAssay<- Assay
 #'
 "DefaultAssay<-.Assay" <- function(object, ..., value) {
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.used'))
   object <- UpdateSlots(object = object)
   slot(object = object, name = 'assay.orig') <- value
   return(object)
@@ -2903,6 +2894,15 @@ Idents.Seurat <- function(object, ...) {
     object <- droplevels(x = object)
   }
   return(object)
+}
+
+#' @rdname IsGlobal
+#' @export
+#' @method IsGlobal DimReduc
+#'
+IsGlobal.DimReduc <- function(object, ...) {
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'global'))
 }
 
 #' @param slot Name of slot to store JackStraw scores to
@@ -5314,16 +5314,12 @@ as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
   return(cmd)
 }
 
+#' @rdname IsGlobal
 #' @export
 #' @method as.logical DimReduc
 #'
 as.logical.DimReduc <- function(x, ...) {
-  return(tryCatch(
-    expr = slot(object = x, name = 'global'),
-    error = function(...) {
-      return(FALSE)
-    }
-  ))
+  return(IsGlobal(object = x))
 }
 
 #' @export
@@ -6730,7 +6726,7 @@ UpdateAssay <- function(old.assay, assay){
 # @param old.dr Seurat2 dimension reduction slot
 # @param assay.used Name of assay used to compute dimension reduction
 #
-UpdateDimReduction <- function(old.dr, assay){
+UpdateDimReduction <- function(old.dr, assay) {
   new.dr <- list()
   for (i in names(x = old.dr)) {
     cell.embeddings <- old.dr[[i]]@cell.embeddings %||% new(Class = 'matrix')
@@ -6853,7 +6849,14 @@ UpdateSlots <- function(object) {
   )
   object.list <- Filter(f = Negate(f = is.null), x = object.list)
   object.list <- c('Class' = class(x = object)[1], object.list)
-  return(do.call(what = 'new', args = object.list))
+  object <- do.call(what = 'new', args = object.list)
+  for (x in slotNames(x = object)) {
+    xobj <- slot(object = object, name = x)
+    if (is.vector(x = xobj) && !is.list(x = xobj) && length(x = xobj) == 0) {
+      slot(object = object, name = x) <- vector(mode = class(x = xobj), length = 1L)
+    }
+  }
+  return(object)
 }
 
 # Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty
