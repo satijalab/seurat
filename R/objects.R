@@ -3043,6 +3043,7 @@ Key.Seurat <- function(object, ...) {
 #'
 "Key<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
+  object <- UpdateSlots(object = object)
   old.key <- Key(object = object)
   slots <- Filter(
     f = function(x) {
