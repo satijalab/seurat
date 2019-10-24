@@ -74,7 +74,7 @@ AddModuleScore <- function(
   assay = NULL,
   name = 'Cluster',
   seed = 1,
-  search = TRUE,
+  search = FALSE,
   ...
 ) {
   set.seed(seed = seed)
@@ -560,6 +560,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #' Calculate mean of logged values in non-log space (return answer in log-space)
 #'
 #' @param x A vector of values
+#' @param ... Other arguments (not used)
 #'
 #' @return Returns the mean in log-space
 #'
@@ -568,8 +569,12 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #' @examples
 #' ExpMean(x = c(1, 2, 3))
 #'
-ExpMean <- function(x) {
-  return(log(x = mean(x = exp(x = x) - 1) + 1))
+ExpMean <- function(x, ...) {
+  if (inherits(x = x, what = 'AnyMatrix')) {
+    return(apply(X = x, FUN = function(i) {log(x = mean(x = exp(x = i) - 1) + 1)}, MARGIN = 1))
+  } else {
+    return(log(x = mean(x = exp(x = x) - 1) + 1))
+  }
 }
 
 #' Export Seurat object for UCSC cell browser
@@ -976,6 +981,7 @@ GeneSymbolThesarus <- function(
 #' log-space)
 #'
 #' @param x A vector of values
+#' @param ... Other arguments (not used)
 #'
 #' @return Returns the VMR in log-space
 #'
@@ -986,8 +992,12 @@ GeneSymbolThesarus <- function(
 #' @examples
 #' LogVMR(x = c(1, 2, 3))
 #'
-LogVMR <- function(x) {
-  return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
+LogVMR <- function(x, ...) {
+  if (inherits(x = x, what = 'AnyMatrix')) {
+    return(apply(X = x, FUN = function(i) {log(x = var(x = exp(x = i) - 1) / mean(x = exp(x = i) - 1))}, MARGIN = 1))
+  } else {
+    return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
+  }
 }
 
 #' Aggregate expression of multiple features into a single feature
@@ -1571,7 +1581,7 @@ IsSCT <- function(assay) {
     })
     return(unlist(x = sct.check))
   }
-  return(!is.null(x = Misc(assay, slot = 'vst.out')))
+  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')))
 }
 
 # Check the length of components of a list

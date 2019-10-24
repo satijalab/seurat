@@ -899,38 +899,36 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     FUN = function(x) {
       vars.use <- vars[keyed.vars[[x]]]
       key.use <- object.keys[x]
-      data.return <- switch(
-        EXPR = class(x = object[[x]]),
-        'DimReduc' = {
-          vars.use <- grep(
-            pattern = paste0('^', key.use, '[[:digit:]]+$'),
-            x = vars.use,
-            value = TRUE
+      data.return <- if (inherits(x = object[[x]], what = 'DimReduc')) {
+        vars.use <- grep(
+          pattern = paste0('^', key.use, '[[:digit:]]+$'),
+          x = vars.use,
+          value = TRUE
+        )
+        if (length(x = vars.use) > 0) {
+          tryCatch(
+            expr = object[[x]][[cells, vars.use, drop = FALSE]],
+            error = function(...) {
+              return(NULL)
+            }
           )
-          if (length(x = vars.use) > 0) {
-            tryCatch(
-              expr = object[[x]][[cells, vars.use, drop = FALSE]],
-              error = function(e) NULL
-            )
-          } else {
-            NULL
-          }
-        },
-        'Assay' = {
-          vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
-          data.assay <- GetAssayData(
-            object = object,
-            slot = slot,
-            assay = x
-          )
-          vars.use <- vars.use[vars.use %in% rownames(x = data.assay)]
-          data.vars <- t(x = as.matrix(data.assay[vars.use, cells, drop = FALSE]))
-          if (ncol(data.vars) > 0) {
-            colnames(x = data.vars) <- paste0(key.use, vars.use)
-          }
-          data.vars
+        } else {
+          NULL
         }
-      )
+      } else if (inherits(x = object[[x]], what = 'Assay')) {
+        vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
+        data.assay <- GetAssayData(
+          object = object,
+          slot = slot,
+          assay = x
+        )
+        vars.use <- vars.use[vars.use %in% rownames(x = data.assay)]
+        data.vars <- t(x = as.matrix(data.assay[vars.use, cells, drop = FALSE]))
+        if (ncol(data.vars) > 0) {
+          colnames(x = data.vars) <- paste0(key.use, vars.use)
+        }
+        data.vars
+      }
       data.return <- as.list(x = as.data.frame(x = data.return))
       return(data.return)
     }
@@ -3912,6 +3910,24 @@ ReorderIdent.Seurat <- function(
 #'
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
+  if (IsSCT(assay = object)) {
+    if (is.null(x = Misc(object = object, slot = 'vst.set'))) {
+      suppressWarnings(Misc(object = object, slot = "vst.out")$cells_step1 <- new.names)
+      suppressWarnings(rownames(x = Misc(object = object, slot = "vst.out")$cell_attr) <- new.names)
+    } else{
+      suppressWarnings(
+        Misc(object, slot = "vst.set") <- lapply(
+          X = Misc(object = object, slot = "vst.set"),
+          FUN = function(x) {
+            new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
+            x$cells_step1 <- new.names.vst
+            rownames(x = x$cell_attr) <- new.names.vst
+            return(x)
+          }
+        )
+      )
+    }
+  }
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) <= 1) {
@@ -6022,49 +6038,49 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
     }
     # Figure out where to store data
-    slot.use <- switch(
-      EXPR = as.character(x = class(x = value))[1],
-      'Assay' = {
-        # Ensure we have the same number of cells
-        if (ncol(x = value) != ncol(x = x)) {
-          stop(
-            "Cannot add a different number of cells than already present",
-            call. = FALSE
-          )
-        }
-        # Ensure cell order stays the same
-        if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
-          for (slot in c('counts', 'data', 'scale.data')) {
-            assay.data <- GetAssayData(object = value, slot = slot)
-            if (!IsMatrixEmpty(x = assay.data)) {
-              assay.data <- assay.data[, Cells(x = x), drop = FALSE]
-            }
-            # Use slot because SetAssayData is being weird
-            slot(object = value, name = slot) <- assay.data
+    slot.use <- if (inherits(x = value, what = 'Assay')) {
+      # Ensure we have the same number of cells
+      if (ncol(x = value) != ncol(x = x)) {
+        stop(
+          "Cannot add a different number of cells than already present",
+          call. = FALSE
+        )
+      }
+      # Ensure cell order stays the same
+      if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+        for (slot in c('counts', 'data', 'scale.data')) {
+          assay.data <- GetAssayData(object = value, slot = slot)
+          if (!IsMatrixEmpty(x = assay.data)) {
+            assay.data <- assay.data[, Cells(x = x), drop = FALSE]
           }
+          # Use slot because SetAssayData is being weird
+          slot(object = value, name = slot) <- assay.data
         }
-        'assays'
-      },
-      'Graph' = 'graphs',
-      'DimReduc' = {
-        # All DimReducs must be associated with an Assay
-        if (is.null(x = DefaultAssay(object = value))) {
-          stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
-        }
-        # Ensure Assay that DimReduc is associated with is present in the Seurat object
-        if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
-          stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
-        }
-        # Ensure DimReduc object is in order
-        if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
-          slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
-        }
-        'reductions'
-      },
-      'SeuratCommand' = 'commands',
-      'NULL' = slot.use,
+      }
+      'assays'
+    } else if (inherits(x = value, what = 'Graph')) {
+      'graphs'
+    } else if (inherits(x = value, what = 'DimReduc')) {
+      # All DimReducs must be associated with an Assay
+      if (is.null(x = DefaultAssay(object = value))) {
+        stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
+      }
+      # Ensure Assay that DimReduc is associated with is present in the Seurat object
+      if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
+        stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+      }
+      # Ensure DimReduc object is in order
+      if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+        slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
+      }
+      'reductions'
+    } else if (inherits(x = value, what = 'SeuratCommand')) {
+      'commands'
+    } else if (is.null(x = value)) {
+      slot.use
+    } else {
       'meta.data'
-    )
+    }
     if (slot.use == 'meta.data') {
       # Add data to object metadata
       meta.data <- x[[]]
@@ -6612,10 +6628,10 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
   object.classes <- sapply(
     X = slots.objects,
     FUN = function(i) {
-      return(class(x = object[[i]]))
+      return(inherits(x = object[[i]], what = classes.keep))
     }
   )
-  object.classes <- object.classes[object.classes %in% classes.keep]
+  object.classes <- which(x = object.classes, useNames = TRUE)
   return(names(x = object.classes))
 }
 
