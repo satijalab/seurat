@@ -201,6 +201,12 @@ IntegrationData <- setClass(
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
 #'
+#' @examples
+#' \dontrun{
+#' # SCTAssay objects are generated from SCTransform
+#' pbmc_small <- SCTransform(pbmc_small)
+#' }
+#'
 SCTAssay <- setClass(
   Class = 'SCTAssay',
   contains = 'Assay',
@@ -4059,7 +4065,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
       call. = FALSE
     )
   }
-  if (slot %in% c("fitted.parameters")) {
+  if (slot %in% c("fitted.parameters", "cell.attributes")) {
     to.return <- slot(object = object, name = slot)
     rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = function(x){
       x <- unlist(x = strsplit(x = x, split = "_"))
@@ -5426,11 +5432,35 @@ length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
 
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @section Get and set SCT groupings:
+#' SCT results are grouped by initial run of \code{\link{SCTransform}} in order
+#' to keep SCT parameters straight between runs. When working with merged
+#' \code{SCTAssay} objects, these groups are important. \code{levels} allows the
+#' querying of groups present. \code{levels<-} allows the changing of the groups
+#' present, useful when merging \code{SCTAssay} objects. Note: unlike normal
+#' \code{\link[base]{levels<-}}, \code{levels<-.SCTAssay} allows complete changing
+#' of groups, not reordering.
+#'
+#' @param x An \code{SCTAssay} object
+#'
+#' @return \code{levels}: SCT grouping levels
+#'
 #' @export
 #' @method levels SCTAssay
 #'
+#' @examples
+#' \dontrun{
+#' # Query and change SCT groupings
+#' levels(pbmc_small[['SCT']])
+#' levels(pbmc_small[['SCT']]) <- '3'
+#' levels(pbmc_small[['SCT']])
+#' }
+#'
 levels.SCTAssay <- function(x) {
-  .NotYetImplemented()
+  return(levels(x = slot(object = x, name = 'groups')))
 }
 
 #' @rdname Idents
@@ -5443,6 +5473,46 @@ levels.SCTAssay <- function(x) {
 #'
 levels.Seurat <- function(x) {
   return(levels(x = Idents(object = x)))
+}
+
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @param value New levels, must be in the same order as the levels present
+#'
+#' @return \code{levels<-}: \code{x} with updated SCT groupings
+#'
+#' @export
+#' @method levels<- SCTAssay
+#'
+"levels<-.SCTAssay" <- function(x, value) {
+  # Get current levels
+  xlevels <- levels(x = x)
+  # Create a levels map
+  value <- rep_len(x = as.character(x = value), length.out = length(x = xlevels))
+  names(x = value) <- xlevels
+  # Map the existing levels to the new ones
+  groups <- as.character(x = slot(object = x, name = 'groups'))
+  groups <- value[groups]
+  names(x = groups) <- names(x = slot(object = x, name = 'groups'))
+  slot(object = x, name = 'groups') <- factor(x = groups)
+  # Change levels for the feature.attributes and fitted.parameters data.frames
+  for (i in c('feature.attributes', 'fitted.parameters')) {
+    df <- slot(object = x, name = i)
+    keyed.features <- rownames(x = df)
+    for (l in xlevels) {
+      lkey <- paste0('^', suppressWarnings(expr = UpdateKey(key = l)))
+      lfeatures <- which(x = grepl(pattern = lkey, x = keyed.features))
+      keyed.features[lfeatures] <- gsub(
+        pattern = lkey,
+        replacement = suppressWarnings(expr = UpdateKey(key = value[l])),
+        x = keyed.features[lfeatures]
+      )
+    }
+    rownames(x = df) <- keyed.features
+    slot(object = x, name = i) <- df
+  }
+  return(x)
 }
 
 #' @rdname Idents
@@ -5472,8 +5542,6 @@ levels.Seurat <- function(x) {
 #' present (eg. merged \code{SCTAssay} objects), returns as a named list with
 #' the maximums present for each list; otherwise, returns a vector similar to
 #' \code{\link[base]{max}}
-#'
-#' @seealso \code{\link[base]{max}}
 #'
 #' @export
 #' @method max SCTAssay
@@ -5780,8 +5848,6 @@ merge.vstresults <- function(x, y, ...) {
 #' the minimums present for each list; otherwise, returns a vector similar to
 #' \code{\link[base]{min}}
 #'
-#' @seealso \code{\link[base]{min}}
-#'
 #' @export
 #' @method min SCTAssay
 #'
@@ -5889,10 +5955,20 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
 #' (eg. merged \code{SCTAssay} objects), returns as a named list with the ranges
 #' present for each list; otherwise, returns a vector similar to \code{\link[base]{range}}
 #'
-#' @seealso \code{\link[base]{range}}
-#'
 #' @export
 #' @method range SCTAssay
+#'
+#' @examples
+#' \dontrun{
+#' # Query clip values
+#' range(pbmc_small[['SCT']])
+#' range(pbmc_small[['SCT']], slot = 'vst') # Get sctransform::vst determined clips
+#' range(pbmc_small[['SCT']], drop = FALSE) # Prevent simplification to a vector
+#'
+#' # Query minimum and maximum clip values
+#' min(pbmc_small[['SCT']])
+#' max(pbmc_small[['SCT']])
+#' }
 #'
 range.SCTAssay <- function(..., na.rm = FALSE, slot = c('sct', 'vst'), drop = TRUE) {
   object <- c(...)[[1]]
@@ -5927,11 +6003,6 @@ range.SCTAssay <- function(..., na.rm = FALSE, slot = c('sct', 'vst'), drop = TR
   return(clips)
 }
 
-
-#' @rdname SCTAssay-class
-#' @name SCTAssay-class
-#' @inheritParams base::range
-#'
 #' @export
 #' @method split SCTAssay
 #'
@@ -5993,40 +6064,6 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   slot(object = x, name = 'meta.features') <- x[[]][features, , drop = FALSE]
   return(x)
 }
-
-#' Subset a SCTAssay object
-#'
-#' @param x Seurat object to be subsetted
-#' @param subset Logical expression indicating features/variables to keep
-#' @param i,features A vector of features to keep
-#' @param j,cells A vector of cells to keep
-#' @param idents A vector of identity classes to keep
-#' @param ... Extra parameters passed to \code{\link{WhichCells}},
-#' such as \code{slot}, \code{invert}, or \code{downsample}
-#'
-#' @return A subsetted SCTAssay
-#'
-#' @rdname subset.SCTAssay
-#' @aliases subset
-#' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
-#'
-#' @export
-#' @method subset SCTAssay
-#'
-#' @examples
-#' 
-subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
-  x <- subset.Assay(x = x, 
-               cells = cells,
-               features = features)
-  x <- SCTAssay(x, 
-                cell.attributes = SCTResults(object = x,
-                                             slot = "cell.attributes"
-                                             )[Cells(x),]
-                )
-  return(x)
-}
-
 
 #' @export
 #' @method subset DimReduc
@@ -6135,21 +6172,12 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   # Filter Assay objects
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
-    if(inherits(x = x[[assay]], what = "SCTAssay")){
-      slot(object = x, name = 'assays')[[assay]] <- tryCatch(
-        expr = subset.SCTAssay(x = x[[assay]], cells = cells, features = assay.features),
-        error = function(e) {
-          return(NULL)
-        }
-      )
-    } else{
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
       expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
         return(NULL)
       }
     )
-    }
   }
   slot(object = x, name = 'assays') <- Filter(
     f = Negate(f = is.null),
@@ -7008,6 +7036,7 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     replacement = 'feature',
     x = colnames(x = cell.attrs)
   )
+  # rownames(x = cell.attrs) <- paste0(group.key, rownames(x = cell.attrs))
   # Prepare grouping information
   groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
   names(x = groups) <- gsub(
