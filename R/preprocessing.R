@@ -2667,7 +2667,7 @@ GetResidualVstOut <- function(
   clip.range,
   verbose
 ) {
-  model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "fitted.parameters"))
+  model.features <- unname(obj = rownames(x = SCTResults(object = object[[assay]], slot = "fitted.parameters")))
   diff_features <- setdiff(
     x = new_features,
     y = model.features

@@ -4031,6 +4031,23 @@ RenameIdents.Seurat <- function(object, ...) {
 #'
 SCTResults.Assay <- function(object, slot, key = "1", ...) {
   CheckDots(...)
+  if (IsSCT(assay = object)) {
+    object <- as(object = object, class = "SCTAssay")
+  } else {
+    stop("Assay provided is not an SCTAssay.")
+  }
+  return(SCTResults(object = object))
+}
+
+#' @param slot Which slot to pull the SCT results from
+#' @param key Key value
+#'
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults SCTAssay
+#'
+SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
+  CheckDots(...)
   if (!inherits(x = object, what = "SCTAssay")) {
     stop("Provided assay is not an SCTAssay")
   }
@@ -4044,7 +4061,10 @@ SCTResults.Assay <- function(object, slot, key = "1", ...) {
   }
   if (slot %in% c("fitted.parameters", "cell.attributes")) {
     to.return <- slot(object = object, name = slot)
-    rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = ExtractField, delim = paste0(key, "_"), field = 2)
+    rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = function(x){
+      x <- unlist(x = strsplit(x = x, split = "_"))
+      x <- paste0(x[2:length(x = x)], collapse = "_")
+    })
     return(to.return)
   }
   return(slot(object = object, name = slot))

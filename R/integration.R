@@ -1324,9 +1324,11 @@ PrepSCTIntegration <- function(
     X = 1:length(x = object.list),
     FUN = function(i) {
       sct.check <- IsSCT(assay = object.list[[i]][[assay[i]]])
+      if (sct.check) {
+        object.list[[i]][[assay[i]]] <- as(object = object.list[[i]][[assay[i]]], Class = "SCTAssay")
+      }
       if (!sct.check) {
-        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) && 
-            Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
+        if (inherits(x = object.list[[i]][[assay[i]]], what = "SCTAssay")) {
           sct.check <- TRUE
         }
       }
@@ -1348,18 +1350,6 @@ PrepSCTIntegration <- function(
       call. = FALSE
     )
   }
-  
-  object.list <- lapply(
-    X = 1:length(x = object.list),
-    FUN = function(i) {
-      vst_out <- Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out")
-      vst_out$cell_attr <- vst_out$cell_attr[Cells(x = object.list[[i]]), ]
-      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = Cells(x = object.list[[i]]))
-      suppressWarnings(expr = Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out") <- vst_out)
-      return(object.list[[i]])
-    }
-  )
-  
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -1370,26 +1360,14 @@ PrepSCTIntegration <- function(
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
-      if (!IsSCT(assay = object.list[[i]][[assay[i]]])) {
-        return(object.list[[i]])
-      }
-      obj <- if (is.null(x = sct.clip.range)) {
-        GetResidual(
-          object = object.list[[i]],
-          features = anchor.features,
-          assay = assay[i],
-          verbose = FALSE
-        )
-      } else {
-        GetResidual(
-          object = object.list[[i]],
-          assay = assay[i],
-          features = anchor.features,
-          replace.value = TRUE,
-          clip.range = sct.clip.range,
-          verbose = FALSE
-        )
-      }
+      obj <- GetResidual(
+        object = object.list[[i]],
+        assay = assay[i],
+        features = anchor.features,
+        replace.value = TRUE,
+        clip.range = sct.clip.range,
+        verbose = FALSE
+      )
       scale.data <- GetAssayData(
         object = obj,
         assay = assay[i],

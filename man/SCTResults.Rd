@@ -3,12 +3,15 @@
 \name{SCTResults}
 \alias{SCTResults}
 \alias{SCTResults.Assay}
+\alias{SCTResults.SCTAssay}
 \alias{SCTResults.Seurat}
 \title{Get SCT results from an Assay}
 \usage{
 SCTResults(object, ...)
 
-\method{SCTResults}{Assay}(object, slot, ...)
+\method{SCTResults}{Assay}(object, slot, key = "1", ...)
+
+\method{SCTResults}{SCTAssay}(object, slot, key = "1", ...)
 
 \method{SCTResults}{Seurat}(object, assay = "SCT", slot, ...)
 }
@@ -19,7 +22,13 @@ SCTResults(object, ...)
 
 \item{slot}{Which slot to pull the SCT results from}
 
+\item{key}{Key value}
+
 \item{assay}{Assay in the Seurat object to pull from}
+
+\item{slot}{Which slot to pull the SCT results from}
+
+\item{key}{Key value}
 }
 \description{
 Get SCT results from an Assay
