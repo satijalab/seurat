@@ -4059,7 +4059,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
       call. = FALSE
     )
   }
-  if (slot %in% c("fitted.parameters", "cell.attributes")) {
+  if (slot %in% c("fitted.parameters")) {
     to.return <- slot(object = object, name = slot)
     rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = function(x){
       x <- unlist(x = strsplit(x = x, split = "_"))
@@ -6960,7 +6960,6 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     replacement = 'feature',
     x = colnames(x = cell.attrs)
   )
-  rownames(x = cell.attrs) <- paste0(group.key, rownames(x = cell.attrs))
   # Prepare grouping information
   groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
   names(x = groups) <- gsub(
