@@ -5509,6 +5509,7 @@ levels.Seurat <- function(x) {
         x = keyed.features[lfeatures]
       )
     }
+    names(x@clips) <- levels(x)
     rownames(x = df) <- keyed.features
     slot(object = x, name = i) <- df
   }
@@ -5639,6 +5640,82 @@ merge.Assay <- function(
   return(combined.assay)
 }
 
+
+
+
+#' @rdname merge.Seurat
+#' @export
+#' @method merge Assay
+#'
+merge.SCTAssay <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = TRUE,
+  ...
+) {
+  combined.assay <- merge.Assay( x = x,
+               y = y,
+               add.cell.ids = add.cell.ids,
+               merge.data = merge.data)
+  combined.assay <-  as(combined.assay, Class = "SCTAssay" )
+ for (i in (1:length(y))){
+   levels(y[[i]]) <- length(levels(x)) + as.numeric(levels(y[[i]])) + i -1
+ }
+  z <- c(x, y)
+  combined.assay <- SCTAssay(combined.assay, 
+                             feature.attributes = 
+                               Reduce(rbind,
+                                      lapply(z, 
+                                             function(x) SCTResults(x, slot = "feature.attributes")
+                                             )
+                                      )
+                              )
+  
+  combined.assay <- SCTAssay(combined.assay, 
+                             cell.attributes = 
+                               Reduce(rbind,
+                                      lapply(z, 
+                                             function(x) SCTResults(x, slot = "cell.attributes")
+                                      )
+                               )
+  )
+  # SCTResults will delete the levels key
+  combined.assay <- SCTAssay(combined.assay, 
+                             fitted.parameters = 
+                               Reduce(rbind,
+                                      lapply(z, 
+                                             function(x) x@fitted.parameters )
+                                      )
+                               )
+  combined.assay <- SCTAssay(combined.assay, 
+                             groups = 
+                               unlist(
+                                      lapply(z, 
+                                             function(x) SCTResults(x, slot = "groups")
+                                      )
+                               )
+  )
+  combined.assay <- SCTAssay(combined.assay, 
+                             model = 
+                               unlist(
+                                 lapply(z, 
+                                        function(x) SCTResults(x, slot = "model")
+                                 )
+                               )
+  )
+  # no clips slot in SCTResults
+  combined.assay <- SCTAssay(combined.assay, 
+                             clips =  unlist(
+                               lapply(z, function(x) x@clips),
+                               recursive = FALSE) 
+                             )
+
+  return(combined.assay)
+}
+  
+  
+
 #' Merge Seurat Objects
 #'
 #' Merge two or more objects.
@@ -5746,11 +5823,23 @@ merge.Seurat <- function(
           new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
       }
     }
-    merged.assay <- merge(
-      x = assays.merge[[1]],
-      y = assays.merge[2:length(x = assays.merge)],
-      merge.data = merge.data
-    )
+    
+    if(inherits(x = assays.merge[[1]], what = "SCTAssay") ){
+      merged.assay <- merge.SCTAssay(
+        x = assays.merge[[1]],
+        y = assays.merge[2:length(x = assays.merge)],
+        merge.data = merge.data
+      )
+      
+    } else{
+      merged.assay <- merge.Assay(
+        x = assays.merge[[1]],
+        y = assays.merge[2:length(x = assays.merge)],
+        merge.data = merge.data
+      )
+    }
+  
+    
     merged.assay <- subset(
       x = merged.assay,
       features = rownames(x = merged.assay)[rownames(x = merged.assay) != fake.feature]
@@ -6322,8 +6411,9 @@ setAs(
         vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
       }
       object.list <- c(object.list, vst.res)
-    }
-    object.list$misc[[vst.use]] <- NULL
+      object.list$misc[[vst.use]] <- NULL
+      }
+  
     return(do.call(what = 'new', args = object.list))
   }
 )
