@@ -6136,9 +6136,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
       }
       # Ensure Assay that DimReduc is associated with is present in the Seurat object
-      if (IsGlobal(object = value)) {
-        message("Adding global dimensional reduction information")
-      } else if (!any(DefaultAssay(object = value) %in% Assays(object = x))) {
+      if (!IsGlobal(object = value) && !any(DefaultAssay(object = value) %in% Assays(object = x))) {
         stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
       }
       # Ensure DimReduc object is in order
