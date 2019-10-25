@@ -63,6 +63,8 @@ AnchorSet <- setClass(
 #' @slot data Normalized expression data
 #' @slot scale.data Scaled expression data
 #' @slot key Key for the Assay
+#' @slot assay.orig Original assay that this assay is based off of. Used to track
+#' assay provenence
 #' @slot var.features Vector of features exhibiting high variance across single cells
 #' @slot meta.features Feature-level metadata
 #' @slot misc Utility slot for storing additional data associated with the assay
@@ -117,12 +119,15 @@ JackStrawData <- setClass(
 #' @slot cell.embeddings Cell embeddings matrix (required)
 #' @slot feature.loadings Feature loadings matrix (optional)
 #' @slot feature.loadings.projected Projected feature loadings matrix (optional)
-#' @slot assay.used Name of assay used to generate DimReduc object
+#' @slot assay.used Name of assay used to generate \code{DimReduc} object
+#' @slot global Is this \code{DimReduc} global/persistent? If so, it will not be
+#' removed when removing its associated assay
 #' @slot stdev A vector of standard deviations
-#' @slot key Key for the DimReduc, must be alphanumerics followed by an underscore
-#' @slot jackstraw A \code{\link{JackStrawData-class}} object associated with this DimReduc
-#' @slot misc Utility slot for storing additional data associated with the DimReduc
-#'       (e.g. the total variance of the PCA)
+#' @slot key Key for the \code{DimReduc}, must be alphanumerics followed by an underscore
+#' @slot jackstraw A \code{\link{JackStrawData-class}} object associated with
+#' this \code{DimReduc}
+#' @slot misc Utility slot for storing additional data associated with the
+#' \code{DimReduc} (e.g. the total variance of the PCA)
 #'
 #' @name DimReduc-class
 #' @rdname DimReduc-class
@@ -145,7 +150,9 @@ DimReduc <- setClass(
 
 #' The Graph Class
 #'
-#' The Graph class simply inherits from dgCMatrix. We do this to enable future expandability of graphs.
+#' The Graph class inherits from dgCMatrix. We do this to enable future expandability of graphs.
+#'
+#' @slot assay.used Optional name of assay used to generate \code{Graph} object
 #'
 #' @name Graph-class
 #' @rdname Graph-class
@@ -197,6 +204,7 @@ IntegrationData <- setClass(
 #'
 #' @slot name Command name
 #' @slot time.stamp Timestamp of when command was tun
+#' @slot assay.used Optional name of assay used to generate \code{SeuratCommand} object
 #' @slot call.string String of the command call
 #' @slot params List of parameters used in the command call
 #'
@@ -5372,14 +5380,6 @@ as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
     }
   }
   return(cmd)
-}
-
-#' @rdname IsGlobal
-#' @export
-#' @method as.logical DimReduc
-#'
-as.logical.DimReduc <- function(x, ...) {
-  return(IsGlobal(object = x))
 }
 
 #' @export

@@ -2,15 +2,15 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{IsGlobal}
 \alias{IsGlobal}
+\alias{IsGlobal.default}
 \alias{IsGlobal.DimReduc}
-\alias{as.logical.DimReduc}
-\title{Is an object global or persistent?}
+\title{Is an object global/persistent?}
 \usage{
 IsGlobal(object, ...)
 
-\method{IsGlobal}{DimReduc}(object, ...)
+\method{IsGlobal}{default}(object, ...)
 
-\method{as.logical}{DimReduc}(x, ...)
+\method{IsGlobal}{DimReduc}(object, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -18,10 +18,13 @@ IsGlobal(object, ...)
 \item{...}{Arguments passed to other methods}
 }
 \value{
-\code{TRUE} if the object is global or persistent otherwise \code{FALSE}
+\code{TRUE} if the object is global/persistent otherwise \code{FALSE}
 }
 \description{
-Is an object global or persistent?
+Typically, when removing \code{Assay} objects from an \code{Seurat} object,
+all associated objects (eg. \code{DimReduc}, \code{Graph}, and \code{SeuratCommand} objects)
+are removed as well. If an associated object is marked as global/persistent,
+the associated object will remain even if its original assay was deleted
 }
 \examples{
 IsGlobal(pbmc_small[['pca']])
