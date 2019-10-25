@@ -4065,7 +4065,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
       call. = FALSE
     )
   }
-  if (slot %in% c("fitted.parameters", "cell.attributes")) {
+  if (slot %in% c("fitted.parameters")) {
     to.return <- slot(object = object, name = slot)
     rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = function(x){
       x <- unlist(x = strsplit(x = x, split = "_"))
@@ -6125,6 +6125,42 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   return(x)
 }
 
+
+
+#' Subset a SCTAssay object
+#'
+#' @param x Seurat object to be subsetted
+#' @param subset Logical expression indicating features/variables to keep
+#' @param i,features A vector of features to keep
+#' @param j,cells A vector of cells to keep
+#' @param idents A vector of identity classes to keep
+#' @param ... Extra parameters passed to \code{\link{WhichCells}},
+#' such as \code{slot}, \code{invert}, or \code{downsample}
+#'
+#' @return A subsetted SCTAssay
+#'
+#' @rdname subset.SCTAssay
+#' @aliases subset
+#' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
+#'
+#' @export
+#' @method subset SCTAssay
+#'
+#' @examples
+#' 
+subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
+  x <- subset.Assay(x = x, 
+                    cells = cells,
+                    features = features)
+  x <- SCTAssay(x, 
+                cell.attributes = SCTResults(object = x,
+                                             slot = "cell.attributes"
+                )[Cells(x),]
+  )
+  return(x)
+}
+
+
 #' Subset a Seurat object
 #'
 #' @param x Seurat object to be subsetted
@@ -6172,12 +6208,21 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   # Filter Assay objects
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
+    if(inherits(x = x[[assay]], what = "SCTAssay")){
+      slot(object = x, name = 'assays')[[assay]] <- tryCatch(
+        expr = subset.SCTAssay(x = x[[assay]], cells = cells, features = assay.features),
+        error = function(e) {
+          return(NULL)
+        }
+      )
+    } else{
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
       expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
         return(NULL)
       }
     )
+    }
   }
   slot(object = x, name = 'assays') <- Filter(
     f = Negate(f = is.null),
