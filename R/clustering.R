@@ -210,7 +210,9 @@ FindClusters.Seurat <- function(
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
   object[['seurat_clusters']] <- Idents(object = object)
-  object <- LogSeuratCommand(object)
+  cmd <- LogSeuratCommand(object = object, return.command = TRUE)
+  slot(object = cmd, name = 'assay.used') <- DefaultAssay(object = object[[graph.name]])
+  object[[slot(object = cmd, name = 'name')]] <- cmd
   return(object)
 }
 
@@ -421,7 +423,8 @@ FindNeighbors.Seurat <- function(
 ) {
   CheckDots(...)
   if (!is.null(x = dims)) {
-    assay <- assay %||% DefaultAssay(object = object)
+    # assay <- assay %||% DefaultAssay(object = object)
+    assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
     if (max(dims) > ncol(x = data.use)) {
       stop("More dimensions specified in dims than have been computed")
@@ -458,6 +461,7 @@ FindNeighbors.Seurat <- function(
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
   for (ii in 1:length(x = graph.name)) {
+    DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
     object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
   }
   if (do.plot) {

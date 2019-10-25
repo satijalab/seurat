@@ -19,15 +19,19 @@ loadings matrix.
 
 \item{\code{feature.loadings.projected}}{Projected feature loadings matrix (optional)}
 
-\item{\code{assay.used}}{Name of assay used to generate DimReduc object}
+\item{\code{assay.used}}{Name of assay used to generate \code{DimReduc} object}
+
+\item{\code{global}}{Is this \code{DimReduc} global/persistent? If so, it will not be
+removed when removing its associated assay}
 
 \item{\code{stdev}}{A vector of standard deviations}
 
-\item{\code{key}}{Key for the DimReduc, must be alphanumerics followed by an underscore}
+\item{\code{key}}{Key for the \code{DimReduc}, must be alphanumerics followed by an underscore}
 
-\item{\code{jackstraw}}{A \code{\link{JackStrawData-class}} object associated with this DimReduc}
+\item{\code{jackstraw}}{A \code{\link{JackStrawData-class}} object associated with
+this \code{DimReduc}}
 
-\item{\code{misc}}{Utility slot for storing additional data associated with the DimReduc
-(e.g. the total variance of the PCA)}
+\item{\code{misc}}{Utility slot for storing additional data associated with the
+\code{DimReduc} (e.g. the total variance of the PCA)}
 }}
 
