@@ -677,8 +677,7 @@ NNHelper <- function(data, query = data, k, method, ...) {
 # @keywords graph network igraph mvtnorm simulation
 #
 #' @importFrom leiden leiden
-#' @importFrom methods as is
-#' @importFrom reticulate py_module_available import r_to_py
+#' @importFrom reticulate py_module_available
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
 # @author Tom Kelly
@@ -705,17 +704,22 @@ RunLeiden <- function(
   n.iter = 10
 ) {
   if (!py_module_available(module = 'leidenalg')) {
-    stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
+    stop(
+      "Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).",
+      call. = FALSE
+    )
   }
-  
-  if (method %in% c("matrix", "igraph")){
-    if (method == "igraph"){
-      object <- graph_from_adjacency_matrix(object)
+  if (method %in% c("matrix", "igraph")) {
+    if (method == "igraph") {
+      object <- graph_from_adjacency_matrix(adjmatrix = object)
     }
   } else {
-    warning("method for Leiden recommended as 'matrix' or 'igraph'")
+    warning(
+      "method for Leiden recommended as 'matrix' or 'igraph'",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
-  
   input <- if (inherits(x = object, what = 'list')) {
     graph_from_adj_list(adjlist = object)
   } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
@@ -723,9 +727,11 @@ RunLeiden <- function(
   } else if (inherits(x = object, what = 'igraph')) {
     object
   } else {
-    stop(paste("method for Leiden not found for class", class(object)))
+    stop(
+      paste("method for Leiden not found for class", class(x = object)),
+      call. = FALSE
+    )
   }
-  
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
     object = input,
