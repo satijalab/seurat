@@ -1352,7 +1352,9 @@ SCTransform <- function(
   assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
   assay.out[['sct.variable']] <- rownames(x = assay.out[[]]) %in% top.features
   assay.out <- as(object = assay.out, Class = "SCTAssay")
+  assay.out <- SCTAssay(assay.out, assay.orig = assay)
   object[[new.assay.name]] <- assay.out
+  
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
   }

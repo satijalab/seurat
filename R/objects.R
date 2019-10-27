@@ -5803,10 +5803,17 @@ merge.SCTAssay <- function(
                add.cell.ids = add.cell.ids,
                merge.data = merge.data)
   combined.assay <-  as(combined.assay, Class = "SCTAssay" )
- for (i in (1:length(y))){
-   levels(y[[i]]) <- length(levels(x)) + as.numeric(levels(y[[i]])) + i -1
- }
+  levels.ori.set <- as.numeric(c(levels(x), unlist(lapply(y, function(x) levels(x)))))
+  intermediate.levels.set <- (max(levels.ori.set) + length(levels.ori.set)): (max(levels.ori.set) + 2*length(levels.ori.set) -1)
+  new.levels.set <- c(1:length(levels.ori.set))
   z <- c(x, y)
+  # avoid duplicate levels in the processing
+  for (i in (1:length(z))){
+    levels(z[[i]]) <- intermediate.levels.set[ (1:length(levels(z[[i]]))) + i - 1]
+    levels(z[[i]]) <- new.levels.set[ (1:length(levels(z[[i]]))) + i - 1]
+  }
+
+  
   combined.assay <- SCTAssay(combined.assay, 
                              feature.attributes = 
                                Reduce(rbind,
@@ -5847,6 +5854,12 @@ merge.SCTAssay <- function(
                                         function(x) SCTResults(x, slot = "model")
                                  )
                                )
+  )
+  # no assay.orig in SCTResults
+  combined.assay <- SCTAssay(combined.assay, 
+                             assay.orig =  unlist(
+                               lapply(z, function(x) x@assay.orig),
+                               recursive = FALSE) 
   )
   # no clips slot in SCTResults
   combined.assay <- SCTAssay(combined.assay, 
