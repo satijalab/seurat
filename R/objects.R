@@ -5713,6 +5713,11 @@ merge.Assay <- function(
 ) {
   CheckDots(...)
   assays <- c(x, y)
+  # merge SCT assay misc vst info and scale.data
+  if (all(IsSCT(assay = assays))) {
+    assays <- lapply(X = assays, FUN = as, Class = "SCTAssay")
+    return(merge(x = assays[1], y = assays[2:length(x = assays)]))
+  }
   if (!is.null(x = add.cell.ids)) {
     for (i in 1:length(assays)) {
       assays[[i]] <- RenameCells(object = assays[[i]], new.names = add.cell.ids[i])
@@ -5754,33 +5759,6 @@ merge.Assay <- function(
       new.data = merged.data
     )
   }
-  # merge SCT assay misc vst info and scale.data
-  if (all(IsSCT(assay = assays))) {
-    vst.set.new <- list()
-    idx <- 1
-    for (i in 1:length(x = assays)) {
-      vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
-      if (!is.null(x = vst.set.old)) {
-        for (j in 1:length(x = vst.set.old)) {
-          vst.set.new[[idx]] <- vst.set.old[[j]]
-          idx <- idx + 1
-        }
-      } else if (!is.null(x = Misc(object = assays[[i]], slot = "vst.out"))) {
-        vst.set.new[[idx]] <- Misc(object = assays[[i]], slot = "vst.out")
-        idx <- idx + 1
-      }
-    }
-    Misc(object = combined.assay, slot = "vst.set") <- vst.set.new
-    scale.data <- do.call(
-      what = cbind,
-      args = lapply(X = assays, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
-    )
-    combined.assay <- SetAssayData(
-      object = combined.assay,
-      slot = "scale.data",
-      new.data = scale.data
-    )
-  }
   return(combined.assay)
 }
 
@@ -5798,76 +5776,93 @@ merge.SCTAssay <- function(
   merge.data = TRUE,
   ...
 ) {
-  combined.assay <- merge.Assay( x = x,
-               y = y,
-               add.cell.ids = add.cell.ids,
-               merge.data = merge.data)
-  combined.assay <-  as(combined.assay, Class = "SCTAssay" )
-  levels.ori.set <- as.numeric(c(levels(x), unlist(lapply(y, function(x) levels(x)))))
-  intermediate.levels.set <- (max(levels.ori.set) + length(levels.ori.set)): (max(levels.ori.set) + 2*length(levels.ori.set) -1)
-  new.levels.set <- c(1:length(levels.ori.set))
+  combined.assay <- merge.Assay(
+    x = x,
+    y = y,
+    add.cell.ids = add.cell.ids,
+    merge.data = merge.data
+  )
   z <- c(x, y)
-  # avoid duplicate levels in the processing
-  for (i in (1:length(z))){
-    levels(z[[i]]) <- intermediate.levels.set[ (1:length(levels(z[[i]]))) + i - 1]
-    levels(z[[i]]) <- new.levels.set[ (1:length(levels(z[[i]]))) + i - 1]
+  combined.assay <-  as(combined.assay, Class = "SCTAssay")
+  all.scaled.features <- names(x = which(x = table(x = as.vector(x = sapply(
+    X = z, 
+    FUN = function(ob) rownames(x = GetAssayData(object = ob, slot = "scale.data"))
+  ))) == length(x = z)))
+  scale.data <- do.call(
+    what = cbind,
+    args = lapply(X = z, FUN = function(ob) GetAssayData(object = ob, slot = "scale.data")[all.scaled.features, ])
+  )
+  combined.assay <- SetAssayData(
+    object = combined.assay,
+    slot = "scale.data",
+    new.data = scale.data
+  )
+  all.levels <- unlist(x = lapply(X = c(x, y), FUN = levels))
+  while (anyDuplicated(x = all.levels)) {
+    levels.duplicate <- which(x = duplicated(x = all.levels))
+    all.levels <- sapply(X = 1:length(x = all.levels), FUN = function(l) {
+      if (l %in% levels.duplicate) {
+        return(tryCatch(
+          expr = as.numeric(x = all.levels[l]) + 1, 
+          warning = function(...) {
+            make.unique(names = all.levels)[l]
+          },
+          error = function(...){
+            make.unique(names = all.levels)[l]
+          }
+        ))
+      } else {
+        return(all.levels[l])
+      }
+    }) 
   }
+  z <- lapply(X = 1:length(x = z), FUN = function(i) {
+    levels(x = z[[i]]) <- all.levels[i]
+    return(z[[i]])
+  })
 
-  
-  combined.assay <- SCTAssay(combined.assay, 
-                             feature.attributes = 
-                               Reduce(rbind,
-                                      lapply(z, 
-                                             function(x) SCTResults(x, slot = "feature.attributes")
-                                             )
-                                      )
-                              )
-  
-  combined.assay <- SCTAssay(combined.assay, 
-                             cell.attributes = 
-                               Reduce(rbind,
-                                      lapply(z, 
-                                             function(x) SCTResults(x, slot = "cell.attributes")
-                                      )
-                               )
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    feature.attributes = Reduce(
+      f = rbind, 
+      x = lapply(X = z, FUN = SCTResults, slot = "feature.attributes")
+    )
+  )
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    cell.attributes = Reduce(
+      f = rbind,
+      x = lapply(X = z, FUN = SCTResults, slot = "cell.attributes")
+    )
   )
   # SCTResults will delete the levels key
-  combined.assay <- SCTAssay(combined.assay, 
-                             fitted.parameters = 
-                               Reduce(rbind,
-                                      lapply(z, 
-                                             function(x) x@fitted.parameters )
-                                      )
-                               )
-  combined.assay <- SCTAssay(combined.assay, 
-                             groups = 
-                               unlist(
-                                      lapply(z, 
-                                             function(x) SCTResults(x, slot = "groups")
-                                      )
-                               )
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    fitted.parameters = Reduce(
+      f = rbind,
+      x = lapply(X = z, FUN = function(x) slot(object = x, name = "fitted.parameters"))
+    )
   )
-  combined.assay <- SCTAssay(combined.assay, 
-                             model = 
-                               unlist(
-                                 lapply(z, 
-                                        function(x) SCTResults(x, slot = "model")
-                                 )
-                               )
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    groups = unlist(x = lapply(X = z, FUN = SCTResults, slot = "groups"))
   )
-  # no assay.orig in SCTResults
-  combined.assay <- SCTAssay(combined.assay, 
-                             assay.orig =  unlist(
-                               lapply(z, function(x) x@assay.orig),
-                               recursive = FALSE) 
+  models <- unlist(x = lapply(X = z, FUN = slot, name = "model"))
+  names(x = models) <- all.levels
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    model = models
   )
-  # no clips slot in SCTResults
-  combined.assay <- SCTAssay(combined.assay, 
-                             clips =  unlist(
-                               lapply(z, function(x) x@clips),
-                               recursive = FALSE) 
-                             )
-
+  assay.orig <- unlist(x = lapply(X = z, FUN = slot, name ="assay.orig"))
+  names(x = assay.orig) <- all.levels
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    assay.orig = assay.orig
+  )
+  combined.assay <- SCTAssay(
+    combined.assay, 
+    clips = sapply(X = z, FUN = slot, name = "clips")
+  )
   return(combined.assay)
 }
   
