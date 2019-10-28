@@ -3,11 +3,14 @@
 \name{ScaleFactors}
 \alias{ScaleFactors}
 \alias{scalefactors}
+\alias{ScaleFactors.SliceImage}
 \title{Get image scale factors}
 \usage{
 ScaleFactors(object, ...)
 
 scalefactors(spot, fiducial, hires, lowres)
+
+\method{ScaleFactors}{SliceImage}(object, ...)
 }
 \arguments{
 \item{object}{An object to get scale factors from}

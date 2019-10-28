@@ -2,7 +2,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature slotNames is
+#' slot<- setMethod new signature slotNames is .hasSlot
 #' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
@@ -13,7 +13,8 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setOldClass(Classes = 'package_version')
-setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
+setClassUnion(name = 'AnyMatrix', members = c("matrix", "dgCMatrix"))
+setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 
 #' The AnchorSet Class
 #'
@@ -62,6 +63,8 @@ AnchorSet <- setClass(
 #' @slot data Normalized expression data
 #' @slot scale.data Scaled expression data
 #' @slot key Key for the Assay
+#' @slot assay.orig Original assay that this assay is based off of. Used to track
+#' assay provenence
 #' @slot var.features Vector of features exhibiting high variance across single cells
 #' @slot meta.features Feature-level metadata
 #' @slot misc Utility slot for storing additional data associated with the assay
@@ -77,6 +80,7 @@ Assay <- setClass(
     data = 'AnyMatrix',
     scale.data = 'matrix',
     key = 'character',
+    assay.orig = 'OptionalCharacter',
     var.features = 'vector',
     meta.features = 'data.frame',
     misc = 'ANY'
@@ -115,12 +119,15 @@ JackStrawData <- setClass(
 #' @slot cell.embeddings Cell embeddings matrix (required)
 #' @slot feature.loadings Feature loadings matrix (optional)
 #' @slot feature.loadings.projected Projected feature loadings matrix (optional)
-#' @slot assay.used Name of assay used to generate DimReduc object
+#' @slot assay.used Name of assay used to generate \code{DimReduc} object
+#' @slot global Is this \code{DimReduc} global/persistent? If so, it will not be
+#' removed when removing its associated assay
 #' @slot stdev A vector of standard deviations
-#' @slot key Key for the DimReduc, must be alphanumerics followed by an underscore
-#' @slot jackstraw A \code{\link{JackStrawData-class}} object associated with this DimReduc
-#' @slot misc Utility slot for storing additional data associated with the DimReduc
-#'       (e.g. the total variance of the PCA)
+#' @slot key Key for the \code{DimReduc}, must be alphanumerics followed by an underscore
+#' @slot jackstraw A \code{\link{JackStrawData-class}} object associated with
+#' this \code{DimReduc}
+#' @slot misc Utility slot for storing additional data associated with the
+#' \code{DimReduc} (e.g. the total variance of the PCA)
 #'
 #' @name DimReduc-class
 #' @rdname DimReduc-class
@@ -133,6 +140,7 @@ DimReduc <- setClass(
     feature.loadings = 'matrix',
     feature.loadings.projected = 'matrix',
     assay.used = 'character',
+    global = 'logical',
     stdev = 'numeric',
     key = 'character',
     jackstraw = 'JackStrawData',
@@ -142,7 +150,9 @@ DimReduc <- setClass(
 
 #' The Graph Class
 #'
-#' The Graph class simply inherits from dgCMatrix. We do this to enable future expandability of graphs.
+#' The Graph class inherits from dgCMatrix. We do this to enable future expandability of graphs.
+#'
+#' @slot assay.used Optional name of assay used to generate \code{Graph} object
 #'
 #' @name Graph-class
 #' @rdname Graph-class
@@ -152,7 +162,10 @@ DimReduc <- setClass(
 #'
 Graph <- setClass(
   Class = 'Graph',
-  contains = "dgCMatrix"
+  contains = "dgCMatrix",
+  slots = list(
+    assay.used = 'OptionalCharacter'
+  )
 )
 
 #' The IntegrationData Class
@@ -191,6 +204,7 @@ IntegrationData <- setClass(
 #'
 #' @slot name Command name
 #' @slot time.stamp Timestamp of when command was tun
+#' @slot assay.used Optional name of assay used to generate \code{SeuratCommand} object
 #' @slot call.string String of the command call
 #' @slot params List of parameters used in the command call
 #'
@@ -203,6 +217,7 @@ SeuratCommand <- setClass(
   slots = c(
     name = 'character',
     time.stamp = 'POSIXct',
+    assay.used = 'OptionalCharacter',
     call.string = 'character',
     params = 'ANY'
   )
@@ -224,8 +239,9 @@ SeuratCommand <- setClass(
 #' @slot active.assay Name of the active, or default, assay; settable using \code{\link{DefaultAssay}}
 #' @slot active.ident The active cluster identity for this Seurat object; settable using \code{\link{Idents}}
 #' @slot graphs A list of \code{\link{Graph-class}} objects
-#' @slot neighbors ...
+#' @slot neighbors Unused at this time
 #' @slot reductions A list of dimmensional reduction objects for this object
+#' @slot images A list of spatial image objects
 #' @slot project.name Name of the project
 #' @slot misc A list of miscellaneous information
 #' @slot version Version of Seurat this object was built under
@@ -246,6 +262,7 @@ Seurat <- setClass(
     graphs = 'list',
     neighbors = 'list',
     reductions = 'list',
+    images = 'list',
     project.name = 'character',
     misc = 'list',
     version = 'package_version',
@@ -386,10 +403,7 @@ CreateAssayObject <- function(
   counts,
   data,
   min.cells = 0,
-  min.features = 0,
-  image = NULL,
-  scale.factors = NULL,
-  tissue.positions = NULL
+  min.features = 0
 ) {
   if (missing(x = counts) && missing(x = data)) {
     stop("Must provide either 'counts' or 'data'")
@@ -523,34 +537,14 @@ CreateAssayObject <- function(
   }
   # Initialize meta.features
   init.meta.features <- data.frame(row.names = rownames(x = data))
-  # Figure out which class to create
   object.list <- list(
+    'Class' = 'Assay',
     'counts' = counts,
     'data' = data,
     'scale.data' = new(Class = 'matrix'),
     'meta.features' = init.meta.features
   )
-  if (any(sapply(X = list(image, scale.factors, tissue.positions), FUN = is.null))) {
-    object.list$Class <- 'Assay'
-  } else {
-    object.list <- c(
-      object.list,
-      list(
-        'image' = image,
-        'scale.factors' = scale.factors,
-        'tissue.positions' = tissue.positions
-      )
-    )
-    object.list$Class <- 'SpatialAssay'
-  }
   assay <- do.call(what = 'new', args = object.list)
-  # assay <- new(
-  #   Class = 'Assay',
-  #   counts = counts,
-  #   data = data,
-  #   scale.data = new(Class = 'matrix'),
-  #   meta.features = init.meta.features
-  # )
   return(assay)
 }
 
@@ -563,6 +557,7 @@ CreateAssayObject <- function(
 #' @param stdev Standard deviation (if applicable) for the dimensional reduction
 #' @param key A character string to facilitate looking up features from a
 #' specific DimReduc
+#' @param global Specify this as a global reduction (useful for visualizations)
 #' @param jackstraw Results from the JackStraw function
 #' @param misc list for the user to store any additional information associated
 #' with the dimensional reduction
@@ -589,6 +584,7 @@ CreateDimReducObject <- function(
   assay = NULL,
   stdev = numeric(),
   key = NULL,
+  global = FALSE,
   jackstraw = NULL,
   misc = list()
 ) {
@@ -667,6 +663,7 @@ CreateDimReducObject <- function(
     feature.loadings = loadings,
     feature.loadings.projected = projected,
     assay.used = assay,
+    global = global,
     stdev = stdev,
     key = key,
     jackstraw = jackstraw,
@@ -923,7 +920,9 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
         if (length(x = vars.use) > 0) {
           tryCatch(
             expr = object[[x]][[cells, vars.use, drop = FALSE]],
-            error = function(e) NULL
+            error = function(...) {
+              return(NULL)
+            }
           )
         } else {
           NULL
@@ -1146,8 +1145,14 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   # check if function works on the Assay and/or the DimReduc Level
   assay <- params[["assay"]]
   reduction <- params[["reduction"]]
-  if (class(x = reduction) == 'DimReduc') {
-    reduction = 'DimReduc'
+  # Get assay used for command
+  cmd.assay <- assay %||% (reduction %iff% if (inherits(x = reduction, what = 'DimReduc')) {
+    DefaultAssay(object = reduction)
+  } else if (reduction %in% Reductions(object = object)) {
+    DefaultAssay(object = object[[reduction]])
+  })
+  if (inherits(x = reduction, what = 'DimReduc')) {
+    reduction <- 'DimReduc'
   }
   # rename function name to include Assay/DimReduc info
   if (length(x = assay) == 1) {
@@ -1161,7 +1166,8 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     name = command.name,
     params = params,
     time.stamp = time.stamp,
-    call.string = call.string
+    call.string = call.string,
+    assay.used = cmd.assay
   )
   if (return.command) {
     return(seurat.command)
@@ -1351,7 +1357,6 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #' @return Returns a Seurat object compatible with latest changes
 #'
 #' @importFrom utils packageVersion
-#' @importFrom methods .hasSlot new slotNames as
 #'
 #' @export
 #'
@@ -1389,6 +1394,16 @@ UpdateSeuratObject <- function(object) {
     if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
       message("Validating object structure")
+      # Update object slots
+      message("Updating object slots")
+      for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
+        suppressWarnings(expr = object[[obj]] <- UpdateSlots(object = object[[obj]]))
+      }
+      for (cmd in Command(object = object)) {
+        slot(object = object, name = 'commands')[[cmd]] <- UpdateSlots(
+          object = Command(object = object, command = cmd)
+        )
+      }
       # Validate object keys
       message("Ensuring keys are in the proper strucutre")
       for (ko in FilterObjects(object = object)) {
@@ -1456,9 +1471,54 @@ UpdateSeuratObject <- function(object) {
         }
         object[[reduc.name]] <- reduc
       }
-      message("Object representation is consistent with the most current Seurat version")
-      return(object)
     }
+    if (package_version(x = slot(object = object, name = 'version')) <= package_version(x = '3.1.1')) {
+      # Update Assays, DimReducs, and Graphs
+      for (x in names(x = object)) {
+        message("Updating slots in ", x)
+        xobj <- object[[x]]
+        xobj <- UpdateSlots(object = xobj)
+        if (inherits(x = xobj, what = 'DimReduc')) {
+          if (any(sapply(X = c('tsne', 'umap'), FUN = grepl, x = tolower(x = x)))) {
+            message("Setting ", x, " DimReduc to global")
+            slot(object = xobj, name = 'global') <- TRUE
+          }
+        } else if (inherits(x = xobj, what = 'Graph')) {
+          graph.assay <- unlist(x = strsplit(x = x, split = '_'))[1]
+          if (graph.assay %in% Assays(object = object)) {
+            message("Setting default assay of ", x, " to ", graph.assay)
+            DefaultAssay(object = xobj) <- graph.assay
+          }
+        }
+        object[[x]] <- xobj
+      }
+      # Update SeuratCommands
+      for (cmd in Command(object = object)) {
+        cobj <- Command(object = object, command = cmd)
+        cobj <- UpdateSlots(object = cobj)
+        cmd.assay <- unlist(x = strsplit(x = cmd, split = '\\.'))
+        cmd.assay <- cmd.assay[length(x = cmd.assay)]
+        cmd.assay <- if (cmd.assay %in% Assays(object = object)) {
+          cmd.assay
+        } else if (cmd.assay %in% Reductions(object = object)) {
+          DefaultAssay(object = object[[cmd.assay]])
+        } else {
+          NULL
+        }
+        if (is.null(x = cmd.assay)) {
+          message("No assay information could be found for ", cmd)
+        } else {
+          message("Setting assay used for ", cmd, " to ", cmd.assay)
+        }
+        slot(object = cobj, name = 'assay.used') <- cmd.assay
+        object[[cmd]] <- cobj
+      }
+      # Update object version
+      slot(object = object, name = 'version') <- packageVersion(pkg = 'Seurat')
+    }
+    object <- UpdateSlots(object = object)
+    message("Object representation is consistent with the most current Seurat version")
+    return(object)
   }
   stop(
     "We are unable to convert Seurat objects less than version 2.X to version 3.X\n",
@@ -2544,10 +2604,28 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 
 #' @rdname DefaultAssay
 #' @export
+#' @method DefaultAssay Assay
+#'
+DefaultAssay.Assay <- function(object, ...) {
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.orig'))
+}
+
+#' @rdname DefaultAssay
+#' @export
 #' @method DefaultAssay DimReduc
 #'
 DefaultAssay.DimReduc <- function(object, ...) {
   CheckDots(...)
+  return(slot(object = object, name = 'assay.used'))
+}
+
+#' @rdname DefaultAssay
+#' @export
+#' @method DefaultAssay Graph
+#'
+DefaultAssay.Graph <- function(object, ...) {
+  object <- UpdateSlots(object = object)
   return(slot(object = object, name = 'assay.used'))
 }
 
@@ -2564,11 +2642,40 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.assay'))
 }
 
+#' @rdname DefaultAssay
+#' @export
+#' @method DefaultAssay SeuratCommand
+#'
+DefaultAssay.SeuratCommand <- function(object, ...) {
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.used'))
+}
+
+#' @export
+#' @method DefaultAssay<- Assay
+#'
+"DefaultAssay<-.Assay" <- function(object, ..., value) {
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'assay.used'))
+  object <- UpdateSlots(object = object)
+  slot(object = object, name = 'assay.orig') <- value
+  return(object)
+}
+
 #' @export
 #' @method DefaultAssay<- DimReduc
 #'
 "DefaultAssay<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
+  slot(object = object, name = 'assay.used') <- value
+  return(object)
+}
+
+#' @export
+#' @method DefaultAssay<- Graph
+#'
+"DefaultAssay<-.Graph" <- function(object, ..., value) {
+  object <- UpdateSlots(object = object)
   slot(object = object, name = 'assay.used') <- value
   return(object)
 }
@@ -2851,6 +2958,23 @@ Idents.Seurat <- function(object, ...) {
   return(object)
 }
 
+#' @rdname IsGlobal
+#' @export
+#' @method IsGlobal default
+#'
+IsGlobal.default <- function(object) {
+  return(FALSE)
+}
+
+#' @rdname IsGlobal
+#' @export
+#' @method IsGlobal DimReduc
+#'
+IsGlobal.DimReduc <- function(object) {
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'global'))
+}
+
 #' @param slot Name of slot to store JackStraw scores to
 #' Can shorten to 'empirical', 'fake', 'full', or 'overall'
 #'
@@ -2989,6 +3113,7 @@ Key.Seurat <- function(object, ...) {
 #'
 "Key<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
+  object <- UpdateSlots(object = object)
   old.key <- Key(object = object)
   slots <- Filter(
     f = function(x) {
@@ -3863,8 +3988,8 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
     } else{
       suppressWarnings(
         Misc(object, slot = "vst.set") <- lapply(
-          X = Misc(object = object, slot = "vst.set"), 
-          FUN = function(x) { 
+          X = Misc(object = object, slot = "vst.set"),
+          FUN = function(x) {
             new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
             x$cells_step1 <- new.names.vst
             rownames(x = x$cell_attr) <- new.names.vst
@@ -5205,7 +5330,7 @@ WriteH5AD.Seurat <- function(
     }
   } else {
     slot.use <- unlist(x = lapply(
-      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands'),
+      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'images'),
       FUN = function(s) {
         if (any(i %in% names(x = slot(object = x, name = s)))) {
           return(s)
@@ -5214,7 +5339,7 @@ WriteH5AD.Seurat <- function(
       }
     ))
     if (is.null(x = slot.use)) {
-      stop("Cannot find '", i, "' in this Seurat object")
+      stop("Cannot find '", i, "' in this Seurat object", call. = FALSE)
     }
     data.return <- slot(object = x, name = slot.use)[[i]]
   }
@@ -6028,7 +6153,35 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         }
       }
       'assays'
+    } else if (inherits(x = value, what = 'SpatialImage')) {
+      # Ensure that all cells for this image are present
+      if (!all(Cells(x = value) %in% Cells(x = x))) {
+        stop("", call. = FALSE)
+      }
+      # Ensure Assay that SpatialImage is associated with is present in Seurat object
+      if (!DefaultAssay(object = value) %in% Assays(object = x)) {
+        warning(
+          "Adding image data that isn't associated with any assay present",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      }
+      'images'
     } else if (inherits(x = value, what = 'Graph')) {
+      # Ensure Assay that Graph is associated with is present in the Seurat object
+      if (is.null(x = DefaultAssay(object = value))) {
+        warning(
+          "Adding a Graph without an assay associated with it",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      } else if (!any(DefaultAssay(object = value) %in% Assays(object = x))) {
+        stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+      }
+      # Ensure Graph object is in order
+      if (all(Cells(x = value) %in% Cells(x = x)) && !all(Cells(x = value) == Cells(x = x))) {
+        value <- value[Cells(x = x), Cells(x = x)]
+      }
       'graphs'
     } else if (inherits(x = value, what = 'DimReduc')) {
       # All DimReducs must be associated with an Assay
@@ -6036,7 +6189,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
       }
       # Ensure Assay that DimReduc is associated with is present in the Seurat object
-      if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
+      if (!IsGlobal(object = value) && !any(DefaultAssay(object = value) %in% Assays(object = x))) {
         stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
       }
       # Ensure DimReduc object is in order
@@ -6045,6 +6198,16 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       'reductions'
     } else if (inherits(x = value, what = 'SeuratCommand')) {
+      # Ensure Assay that SeuratCommand is associated with is present in the Seurat object
+      if (is.null(x = DefaultAssay(object = value))) {
+        warning(
+          "Adding a command log without an assay associated with it",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      } else if (!any(DefaultAssay(object = value) %in% Assays(object = x))) {
+        stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+      }
       'commands'
     } else if (is.null(x = value)) {
       slot.use
@@ -6091,7 +6254,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(Cells(x = value) == Cells(x = x))) {
+      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SlotImage')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
@@ -6174,17 +6337,20 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           x[[names(x = n.calc)]] <- n.calc
         }
       }
-      # When removing an Assay, clear out associated DimReducs
+      # When removing an Assay, clear out associated DimReducs, Graphs, and SeuratCommands
       if (is.null(x = value) && inherits(x = x[[i]], what = 'Assay')) {
-        reducs.assay <- FilterObjects(object = x, classes.keep = 'DimReduc')
-        reducs.assay <- Filter(
-          f = function(dr) {
-            return(DefaultAssay(object = x[[dr]]) == i)
-          },
-          x = reducs.assay
+        objs.assay <- FilterObjects(
+          object = x,
+          classes.keep = c('DimReduc', 'SeuratCommand', 'Graph')
         )
-        for (dr in reducs.assay) {
-          x[[dr]] <- NULL
+        objs.assay <- Filter(
+          f = function(o) {
+            return(all(DefaultAssay(object = x[[o]]) == i) && !IsGlobal(object = x[[o]]))
+          },
+          x = objs.assay
+        )
+        for (o in objs.assay) {
+          x[[o]] <- NULL
         }
       }
       # If adding a command, ensure it gets put at the end of the command list
@@ -6389,6 +6555,7 @@ setMethod(
   f = "show",
   signature = "Seurat",
   definition = function(object) {
+    object <- UpdateSlots(object = object)
     assays <- FilterObjects(object = object, classes.keep = 'Assay')
     nfeatures <- sum(vapply(
       X = assays,
@@ -6577,9 +6744,11 @@ CellsByIdentities <- function(object, cells = NULL) {
 # @return A vector with the names of objects within the Seurat object that are of class \code{classes.keep}
 #
 FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
+  object <- UpdateSlots(object = object)
   slots <- na.omit(object = Filter(
     f = function(x) {
-      return(class(x = slot(object = object, name = x)) == 'list')
+      sobj <- slot(object = object, name = x)
+      return(is.list(x = sobj) && !is.data.frame(x = sobj) && !is.package_version(x = sobj))
     },
     x = slotNames(x = object)
   ))
@@ -6601,13 +6770,6 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
     }
   )
   object.classes <- which(x = object.classes, useNames = TRUE)
-  # object.classes <- sapply(
-  #   X = slots.objects,
-  #   FUN = function(i) {
-  #     return(class(x = object[[i]]))
-  #   }
-  # )
-  # object.classes <- object.classes[object.classes %in% classes.keep]
   return(names(x = object.classes))
 }
 
@@ -6706,7 +6868,7 @@ UpdateAssay <- function(old.assay, assay){
 # @param old.dr Seurat2 dimension reduction slot
 # @param assay.used Name of assay used to compute dimension reduction
 #
-UpdateDimReduction <- function(old.dr, assay){
+UpdateDimReduction <- function(old.dr, assay) {
   new.dr <- list()
   for (i in names(x = old.dr)) {
     cell.embeddings <- old.dr[[i]]@cell.embeddings %||% new(Class = 'matrix')
@@ -6805,6 +6967,38 @@ UpdateKey <- function(key) {
     )
     return(new.key)
   }
+}
+
+# Update slots in an object
+#
+# @param object An object to update
+#
+# @return \code{object} with the latest slot definitions
+#
+UpdateSlots <- function(object) {
+  object.list <- sapply(
+    X = slotNames(x = object),
+    FUN = function(x) {
+      return(tryCatch(
+        expr = slot(object = object, name = x),
+        error = function(...) {
+          return(NULL)
+        }
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  object.list <- Filter(f = Negate(f = is.null), x = object.list)
+  object.list <- c('Class' = class(x = object)[1], object.list)
+  object <- do.call(what = 'new', args = object.list)
+  for (x in slotNames(x = object)) {
+    xobj <- slot(object = object, name = x)
+    if (is.vector(x = xobj) && !is.list(x = xobj) && length(x = xobj) == 0) {
+      slot(object = object, name = x) <- vector(mode = class(x = xobj), length = 1L)
+    }
+  }
+  return(object)
 }
 
 # Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty

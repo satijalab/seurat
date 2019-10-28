@@ -25,7 +25,8 @@ A vector of cell names
 Get cells present in an object
 }
 \note{
-The default method simply calls \code{\link[base]{colnames}} on \code{x}; other methods are provided for objects where colnames aren't necessarily cell names
+The default method simply calls \code{\link[base]{colnames}} on \code{x};
+other methods are provided for objects where colnames aren't necessarily cell names
 }
 \examples{
 Cells(x = pbmc_small)
