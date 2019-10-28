@@ -115,7 +115,8 @@ as.sparse <- function(x, ...) {
 #'
 #' @return A vector of cell names
 #'
-#' @note The default method simply calls \code{\link[base]{colnames}} on \code{x}; other methods are provided for objects where colnames aren't necessarily cell names
+#' @note The default method simply calls \code{\link[base]{colnames}} on \code{x};
+#' other methods are provided for objects where colnames aren't necessarily cell names
 #'
 #' @rdname Cells
 #' @export Cells
@@ -361,52 +362,30 @@ GetAssayData <- function(object, ...) {
 #' Get image data
 #'
 #' @param object An object
+#' @param grob Return a grob representation of the image
 #' @param ... Arguments passed to other methods
-#' @param slice Name or index of slice to pull image data for
-#' @param assay Name of assay to pull image data for
 #'
-#' @return A grob of the image
-#'
-#' @note
-#' TODO: replace grobs with PNG arrays
+#' @return If \code{grob}, a grob representation of the image; otherwise the default
+#' representation of the image (typically an array)
 #'
 #' @rdname GetImage
 #' @export GetImage
 #'
-GetImage <- function(object, ...) {
+GetImage <- function(object, grob = TRUE, ...) {
   UseMethod(generic = 'GetImage', object = object)
-}
-
-#' Get and set slice image data
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#' @param slice Name of slice to get/set
-#' @param assay Name of assay to get \code{SliceImage} from or set in. Note: will
-#' attempt to convert non-\code{SpatialAssay} objects into a \code{SpatialAssay}
-#' @param image An object of class \code{SliceImage}
-#'
-#' @name ImageData
-#' @rdname ImageData
-#' @export GetSlice
-#'
-GetSlice <- function(object, slice = NULL, ...) {
-  UseMethod(generic = 'GetSlice', object = object)
 }
 
 #' Get tissue coordinates
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
-#' @param scale A factor to scale the coordinates by; choose from: 'tissue',
-#' 'fiducial', 'hires', 'lowres', or \code{NULL} for no scaling
-#' @param slice Name or index of slice to pull coordinates for
-#' @param assay Name of assay to pull coordinates for
+#'
+#' @return A data.frame with tissue coordinates
 #'
 #' @rdname GetTissueCoordinates
 #' @export GetTissueCoordinates
 #'
-GetTissueCoordinates <- function(object, scale = 'lowres', ...) {
+GetTissueCoordinates <- function(object, ...) {
   UseMethod(generic = 'GetTissueCoordinates', object = object)
 }
 
@@ -475,7 +454,6 @@ Idents <- function(object, ... ) {
 #' the associated object will remain even if its original assay was deleted
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods
 #'
 #' @return \code{TRUE} if the object is global/persistent otherwise \code{FALSE}
 #'
@@ -485,7 +463,7 @@ Idents <- function(object, ... ) {
 #' @examples
 #' IsGlobal(pbmc_small[['pca']])
 #'
-IsGlobal <- function(object, ...) {
+IsGlobal <- function(object) {
   UseMethod(generic = 'IsGlobal', object = object)
 }
 
@@ -1045,20 +1023,6 @@ SetAssayData <- function(object, ...) {
 #'
 SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
-}
-
-#' @rdname ImageData
-#' @export
-#'
-SetSlice <- function(object, image, slice = NULL, ...) {
-  UseMethod(generic = 'SetSlice', object = object)
-}
-
-#' @rdname ImageData
-#' @export
-#'
-SetTissueCoordinates <- function(object, coordinates, ...) {
-  UseMethod(generic = "SetTissueCoordinates", object = object)
 }
 
 #' @return \code{StashIdent}: An object with the identities stashed
