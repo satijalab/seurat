@@ -1000,7 +1000,8 @@ RunTSNE.matrix <- function(
   tsne.reduction <- CreateDimReducObject(
     embeddings = tsne.data,
     key = reduction.key,
-    assay = assay
+    assay = assay,
+    global = TRUE
   )
   return(tsne.reduction)
 }
@@ -1247,7 +1248,8 @@ RunUMAP.default <- function(
   umap.reduction <- CreateDimReducObject(
     embeddings = umap.output,
     key = reduction.key,
-    assay = assay
+    assay = assay,
+    global = TRUE
   )
   return(umap.reduction)
 }
@@ -1331,7 +1333,12 @@ RunUMAP.Graph <- function(
   colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
   # center the embeddings on zero
   embeddings <- scale(x = embeddings, scale = FALSE)
-  umap <- CreateDimReducObject(embeddings = embeddings, key = reduction.key, assay = assay)
+  umap <- CreateDimReducObject(
+    embeddings = embeddings,
+    key = reduction.key,
+    assay = assay,
+    global = TRUE
+  )
   return(umap)
 }
 

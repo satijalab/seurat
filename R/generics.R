@@ -467,6 +467,28 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
+#' Is an object global/persistent?
+#'
+#' Typically, when removing \code{Assay} objects from an \code{Seurat} object,
+#' all associated objects (eg. \code{DimReduc}, \code{Graph}, and \code{SeuratCommand} objects)
+#' are removed as well. If an associated object is marked as global/persistent,
+#' the associated object will remain even if its original assay was deleted
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return \code{TRUE} if the object is global/persistent otherwise \code{FALSE}
+#'
+#' @rdname IsGlobal
+#' @export IsGlobal
+#'
+#' @examples
+#' IsGlobal(pbmc_small[['pca']])
+#'
+IsGlobal <- function(object, ...) {
+  UseMethod(generic = 'IsGlobal', object = object)
+}
+
 #' Get JackStraw information
 #'
 #' @param object An object
