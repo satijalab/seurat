@@ -4,31 +4,33 @@
 \alias{GetTissueCoordinates}
 \alias{GetTissueCoordinates.Seurat}
 \alias{GetTissueCoordinates.SliceImage}
-\alias{GetTissueCoordinates.SpatialAssay}
+\alias{GetTissueCoordinates.SpatialImage}
 \title{Get tissue coordinates}
 \usage{
-GetTissueCoordinates(object, scale = "lowres", ...)
+GetTissueCoordinates(object, ...)
 
-\method{GetTissueCoordinates}{Seurat}(object, scale = "lowres",
-  slice = NULL, assay = NULL, ...)
+\method{GetTissueCoordinates}{Seurat}(object, image = NULL, ...)
 
 \method{GetTissueCoordinates}{SliceImage}(object, scale = "lowres",
   cols = c("imagerow", "imagecol"), ...)
 
-\method{GetTissueCoordinates}{SpatialAssay}(object, scale = "lowres",
-  slice = NULL, ...)
+\method{GetTissueCoordinates}{SpatialImage}(object, ...)
 }
 \arguments{
 \item{object}{An object}
 
+\item{...}{Arguments passed to other methods}
+
+\item{image}{Name of \code{SpatialImage} object to get coordinates for; if
+\code{NULL}, will attempt to select an image automatically}
+
 \item{scale}{A factor to scale the coordinates by; choose from: 'tissue',
 'fiducial', 'hires', 'lowres', or \code{NULL} for no scaling}
 
-\item{...}{Arguments passed to other methods}
-
-\item{slice}{Name or index of slice to pull coordinates for}
-
-\item{assay}{Name of assay to pull coordinates for}
+\item{cols}{Columns of tissue coordinates data.frame to pull}
+}
+\value{
+A data.frame with tissue coordinates
 }
 \description{
 Get tissue coordinates

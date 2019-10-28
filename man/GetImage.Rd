@@ -4,32 +4,31 @@
 \alias{GetImage}
 \alias{GetImage.Seurat}
 \alias{GetImage.SliceImage}
-\alias{GetImage.SpatialAssay}
+\alias{GetImage.SpatialImage}
 \title{Get image data}
 \usage{
-GetImage(object, ...)
+GetImage(object, grob = TRUE, ...)
 
-\method{GetImage}{Seurat}(object, slice = NULL, assay = NULL, ...)
+\method{GetImage}{Seurat}(object, grob = TRUE, image = NULL, ...)
 
-\method{GetImage}{SliceImage}(object, ...)
+\method{GetImage}{SliceImage}(object, grob = TRUE, ...)
 
-\method{GetImage}{SpatialAssay}(object, slice = NULL, ...)
+\method{GetImage}{SpatialImage}(object, grob = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
 
+\item{grob}{Return a grob representation of the image}
+
 \item{...}{Arguments passed to other methods}
 
-\item{slice}{Name or index of slice to pull image data for}
-
-\item{assay}{Name of assay to pull image data for}
+\item{image}{Name of \code{SpatialImage} object to pull image data for; if
+\code{NULL}, will attempt to select an image automatically}
 }
 \value{
-A grob of the image
+If \code{grob}, a grob representation of the image; otherwise the default
+representation of the image (typically an array)
 }
 \description{
 Get image data
-}
-\note{
-TODO: replace grobs with PNG arrays
 }
