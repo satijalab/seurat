@@ -183,8 +183,7 @@ LinkedFeaturePlot <- function(
   feature,
   dims = 1:2,
   reduction = NULL,
-  spatial = NULL,
-  slice = NULL,
+  images = NULL,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA
@@ -197,8 +196,7 @@ LinkedFeaturePlot <- function(
   spatial.plot <- SpatialFeaturePlot(
     object = object,
     features = feature,
-    spatial = spatial,
-    slice = slice,
+    images = images,
     slot = 'data',
     min.cutoff = min.cutoff,
     max.cutoff = max.cutoff
@@ -262,16 +260,14 @@ LinkedDimPlot <- function(
   object,
   dims = 1:2,
   reduction = NULL,
-  spatial = NULL,
-  slice = NULL,
+  images = NULL,
   group.by = NULL
 ) {
   # Generate the SpatialFeaturePlot and pull plotting data
   spatial.plot <- SpatialDimPlot(
     object = object,
     group.by = group.by,
-    spatial = spatial,
-    slice = slice
+    images = images
   )
   spatial.build <- GGpointToPlotlyBuild(
     plot = spatial.plot
@@ -399,7 +395,7 @@ geom_spatial <-  function(
 #'
 SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
 
-#' @importFrom ggplot2 ggplot aes geom_point aes_string xlim ylim
+#' @importFrom ggplot2 ggplot geom_point aes_string xlim ylim
 #' coord_cartesian labs theme_void
 #'
 SingleSpatialPlot <- function(
@@ -420,7 +416,7 @@ SingleSpatialPlot <- function(
     col.by <- NULL
   }
   plot <- ggplot(data = data) +
-    geom_spatial(data = image.tibble, aes(grob = grob), x = 0.5, y = 0.5) +
+    geom_spatial(data = image.tibble, aes_string(grob = 'grob'), x = 0.5, y = 0.5) +
     geom_point(
       mapping = aes_string(
         x = colnames(x = data)[2],
@@ -430,8 +426,8 @@ SingleSpatialPlot <- function(
       size = pt.size,
       alpha = alpha
     ) +
-    xlim(0,image.tibble$image_width) +
-    ylim(image.tibble$image_height,0) +
+    xlim(0, image.tibble$image_width) +
+    ylim(image.tibble$image_height, 0) +
     coord_cartesian(expand = FALSE) +
     labs(color = NULL)
   plot <- plot + theme_void()
@@ -444,9 +440,8 @@ SingleSpatialPlot <- function(
 SpatialDimPlot <- function(
   object,
   assay = NULL,
-  spatial = NULL,
   group.by = NULL,
-  slice = NULL,
+  images = NULL,
   pt.size = NULL,
   alpha = 1,
   combine = TRUE,
@@ -454,10 +449,6 @@ SpatialDimPlot <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
-  spatial <- spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
-  if (length(x = spatial) != 1) {
-    stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
-  }
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <- object[[group.by]]
@@ -466,17 +457,19 @@ SpatialDimPlot <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
-  slice <- slice %||% Slices(object = object[[spatial]])
+  # TODO: Replace this once SCTransform assigns assay.orig
+  # images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  images <- images %||% DefaultImage(object = object)
   plots <- vector(
     mode = "list",
     length = length(x = group.by)
   )
   for (i in 1:length(x = group.by)) {
     group <- group.by[i]
-    slice.plots <- vector(mode = "list",length = length(x = slice))
-    for (s in 1:length(x = slice)) {
-      coordinates <- GetTissueCoordinates(object = object, assay = spatial, slice = slice[s])
-      plot.slice <- GetSlice(object = object[[spatial]], slice = slice[s])
+    slice.plots <- vector(mode = "list",length = length(x = images))
+    for (j in 1:length(x = images)) {
+      image.use <- object[[images[[j]]]]
+      coordinates <- GetTissueCoordinates(object = image.use)
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
@@ -484,19 +477,19 @@ SpatialDimPlot <- function(
         ),
         col.by = group,
         image.tibble = tibble(
-          grob = list(GetImage(object = plot.slice)),
-          image_width = ncol(x = plot.slice),
-          image_height = nrow(x = plot.slice)
+          grob = list(GetImage(object = image.use)),
+          image_width = ncol(x = image.use),
+          image_height = nrow(x = image.use)
         ),
         pt.size = pt.size,
         alpha = alpha
       )
       if (i == 1) {
-        plot <- plot + ggtitle(label = slice[s])  + theme(plot.title = element_text(hjust = 0.5))
+        plot <- plot + ggtitle(label = images[j])  + theme(plot.title = element_text(hjust = 0.5))
       }
-      slice.plots[[s]] <- plot
+      slice.plots[[j]] <- plot
     }
-    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = s)
+    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
   }
   if (combine) {
     plots <- CombinePlots(plots = plots, ncol = 1)
@@ -505,12 +498,12 @@ SpatialDimPlot <- function(
 }
 
 #' @importFrom tibble tibble
+#' @importFrom ggplot2 scale_color_gradientn ggtitle theme element_text
 #'
 SpatialFeaturePlot <- function(
   object,
   features,
-  spatial = NULL,
-  slice = NULL,
+  images = NULL,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
@@ -522,14 +515,12 @@ SpatialFeaturePlot <- function(
     vars = features,
     slot = slot
   )
-  spatial <- spatial %||% FilterObjects(object = object, classes.keep = 'SpatialAssay')
-  if (length(x = spatial) != 1) {
-    stop("Could not unabiguously find a SpatialAssay, please provide", call. = FALSE)
+  # TODO: Replace this once SCTransform assigns assay.orig
+  # images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  images <- images %||% DefaultImage(object = object)
+  if (length(x = images) < 1) {
+    stop("Could not find any spatial image information")
   }
-  if (!inherits(x = object[[spatial]], what = 'SpatialAssay')) {
-    stop("Assay ", spatial, " is not a SpatialAssay", call. = FALSE)
-  }
-  slice <- slice %||% Slices(object = object[[spatial]])
   features <- colnames(x = data)
   colnames(x = data) <- features
   rownames(x = data) <- colnames(object)
@@ -539,33 +530,29 @@ SpatialFeaturePlot <- function(
   )
   for (i in 1:length(x = features)) {
     feature <- features[i]
-    slice.plots <- vector(mode = "list",length = length(x = slice))
-    for (s in 1:length(x = slice)) {
-      coordinates <- GetTissueCoordinates(
-        object = object,
-        assay = spatial,
-        slice = slice[s]
-      )
-      plot.slice <- GetSlice(object = object[[spatial]], slice = slice[s])
+    slice.plots <- vector(mode = "list",length = length(x = images))
+    for (j in 1:length(x = images)) {
+      image.use <- object[[images[[j]]]]
+      coordinates <- GetTissueCoordinates(object = image.use)
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
           data[rownames(x = coordinates), features, drop = FALSE]
         ),
         image.tibble = tibble(
-          grob = list(GetImage(object = plot.slice)),
-          image_width = ncol(x = plot.slice),
-          image_height = nrow(x = plot.slice)
+          grob = list(GetImage(object = image.use)),
+          image_width = ncol(x = image.use),
+          image_height = nrow(x = image.use)
         ),
         col.by = feature
       )
       plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))
       if (i == 1) {
-        plot <- plot + ggtitle(label = slice[s]) + theme(plot.title = element_text(hjust = 0.5))
+        plot <- plot + ggtitle(label = images[[j]]) + theme(plot.title = element_text(hjust = 0.5))
       }
-      slice.plots[[s]] <- plot
+      slice.plots[[j]] <- plot
     }
-    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = s)
+    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
   }
   if (combine) {
     plots <- CombinePlots(plots = plots, ncol = 1)
