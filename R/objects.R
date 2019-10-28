@@ -1446,6 +1446,9 @@ UpdateSeuratObject <- function(object) {
       message("Ensuring feature names don't have underscores or pipes")
       for (assay.name in FilterObjects(object = object, classes.keep = 'Assay')) {
         assay <- object[[assay.name]]
+        if (IsSCT(assay = assay)) {
+          assay <- as(object = assay, Class = "SCTAssay")
+        }
         for (slot in c('counts', 'data', 'scale.data')) {
           if (!IsMatrixEmpty(x = slot(object = assay, name = slot))) {
             rownames(x = slot(object = assay, name = slot)) <- gsub(
@@ -6554,7 +6557,7 @@ setAs(
       vst.res <- lapply(
         X = 1:length(x = vst.res),
         FUN = function(i) {
-          return(PrepVSTResults(vst.res = vst.res[[i]], group = i))
+          return(PrepVSTResults(vst.res = vst.res[[i]], group = i, cell.names = colnames(x = from)))
         }
       )
       if (length(x = vst.res) == 1) {
@@ -6564,8 +6567,7 @@ setAs(
       }
       object.list <- c(object.list, vst.res)
       object.list$misc[[vst.use]] <- NULL
-      }
-  
+    }
     return(do.call(what = 'new', args = object.list))
   }
 )
@@ -7326,13 +7328,14 @@ FindObject <- function(object, name) {
 #
 # @param vst.res ...
 # @param group Group identifier
-#
+# @param cell.names Vector of valid cell names still in object
+# 
 # @return A list with the following values
 # \describe{
 #  \item{}{}
 # }
 #
-PrepVSTResults <- function(vst.res, group = RandomName()) {
+PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
   group <- as.character(x = group)
   group.key <- suppressWarnings(expr = UpdateKey(key = group))
   # Prepare cell attribute information
@@ -7345,7 +7348,7 @@ PrepVSTResults <- function(vst.res, group = RandomName()) {
     'umi_per_gene',
     'log_umi_per_gene'
   )
-  cell.attrs <- cell.attrs[, cell.cols, drop = FALSE]
+  cell.attrs <- cell.attrs[cell.names, cell.cols, drop = FALSE]
   colnames(x = cell.attrs) <- gsub(
     pattern = 'gene',
     replacement = 'feature',

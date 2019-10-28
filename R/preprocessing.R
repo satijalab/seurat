@@ -451,7 +451,7 @@ GetResidual <- function(
   object,
   features,
   assay = "SCT",
-  umi.assay = "RNA",
+  umi.assay = NULL,
   clip.range = NULL,
   replace.value = FALSE,
   verbose = TRUE
@@ -470,6 +470,7 @@ GetResidual <- function(
       y = rownames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
     )
   }
+  umi.assay <- umi.assay %||% DefaultAssay(object = object[[assay]]) %||% "RNA"
   if (length(x = new_features) == 0) {
     if (verbose) {
       message("Pearson residuals of input features exist already")
@@ -492,7 +493,6 @@ GetResidual <- function(
       assay = assay,
       slot = "scale.data"
     )
-
     vst_set_genes <-  sapply(1:length(vst.set), function(x) rownames(vst.set[[x]]$model_pars_fit))
     vst_set_genes <- Reduce(intersect, vst_set_genes)
     diff_features <- setdiff(
@@ -526,7 +526,6 @@ GetResidual <- function(
       vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
       vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
       object.v <- subset(x = object, cells = cells.v)
-
       object.v <- GetResidualVstOut(
         object = object.v,
         assay = assay,
@@ -2694,7 +2693,6 @@ GetResidualVstOut <- function(
   if (is.null(x = clip.range)) {
     clip.max <- max(object[[assay]])
     clip.min <- min(object[[assay]])
-    
   } else {
      clip.max <- max(clip.range)
      clip.min <- min(clip.range)
