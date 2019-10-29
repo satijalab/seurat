@@ -362,16 +362,16 @@ GetAssayData <- function(object, ...) {
 #' Get image data
 #'
 #' @param object An object
-#' @param grob Return a grob representation of the image
+#' @param mode How to return the image; should accept at least 'grob' (default) and 'raster'
 #' @param ... Arguments passed to other methods
 #'
-#' @return If \code{grob}, a grob representation of the image; otherwise the default
-#' representation of the image (typically an array)
+#' @return Image data, either as a grob (if \code{mode = 'grob'}), raster (if
+#' \code{mode = 'raster'}) or other as implemented by each method
 #'
 #' @rdname GetImage
 #' @export GetImage
 #'
-GetImage <- function(object, grob = TRUE, ...) {
+GetImage <- function(object, mode = 'grob', ...) {
   UseMethod(generic = 'GetImage', object = object)
 }
 

@@ -175,15 +175,92 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
   ))
 }
 
+
 #' @importFrom crosstalk SharedData bscols
 #' @importFrom plotly layout plot_ly highlight
+#'
+LinkPlots <- function(
+  plot1,
+  plot2,
+  plot1.labels = TRUE,
+  plot2.labels = TRUE,
+  information = NULL,
+  plot1.layout = list(),
+  plot2.layout = list(),
+  ...
+) {
+  # Get plot builds for each plot
+  plot1.build <- GGpointToPlotlyBuild(plot = plot1, information = information)
+  plot1.labels <- if (plot1.labels) {
+    GetXYAesthetics(plot = plot1)
+  } else {
+    list()
+  }
+  plot2.build <- GGpointToPlotlyBuild(plot = plot2, information = information)
+  plot2.labels <- if (plot2.labels) {
+    GetXYAesthetics(plot = plot2)
+  } else {
+    list()
+  }
+  # Generate the full build
+  plot.build <- merge(x = plot1.build, plot2.build, by = 0)
+  rownames(x = plot.build) <- plot.build$Row.names
+  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
+  plot.build <- SharedData$new(data = plot.build)
+  # Build the plotly plots
+  Axis <- function(title = NULL) {
+    return(list(
+      title = title %||% '',
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    ))
+  }
+  plot1.layout$xaxis <- c(Axis(title = plot1.labels[['x']]), plot1.layout$xaxis)
+  plot1.layout$yaxis <- c(Axis(title = plot1.labels[['y']]), plot1.layout$yaxis)
+  plot1.layout <- c(
+    list(p = plot_ly(
+      data = plot.build,
+      x = ~x.x,
+      y = ~y.x,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color.x),
+      hoverinfo = 'text',
+      text = ~feature.x
+    )),
+    plot1.layout
+  )
+  plot1.plotly <- do.call(what = 'layout', args = plot1.layout)
+  plot1.plotly <- highlight(p = plot1.plotly, on = 'plotly_selected')
+  plot2.layout$xaxis <- c(Axis(title = plot2.labels[['x']]), plot2.layout$xaxis)
+  plot2.layout$yaxis <- c(Axis(title = plot2.labels[['y']]), plot2.layout$yaxis)
+  plot2.layout <- c(
+    list(p = plot_ly(
+      data = plot.build,
+      x = ~y.x,
+      y = ~y.y,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color.y),
+      hoverinfo = 'text',
+      text = ~feature.y
+    )),
+    plot2.layout
+  )
+  plot2.plotly <- do.call(what = 'layout', args = plot2.layout)
+  plot2.plotly <- highlight(p = plot2.plotly, on = 'plotly_selected')
+  return(bscols(plot1.plotly, plot2.plotly))
+}
+
+#' @importFrom plotly raster2uri
 #'
 LinkedFeaturePlot <- function(
   object,
   feature,
   dims = 1:2,
   reduction = NULL,
-  images = NULL,
+  image = NULL,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA
@@ -192,20 +269,27 @@ LinkedFeaturePlot <- function(
     stop("'LinkedFeaturePlot' currently only supports one feature", call. = FALSE)
   }
   expression.data <- FetchData(object = object, vars = feature)
-  # Generate the SpatialFeaturePlot and pull plotting data
+  image <- image %||% DefaultImage(object = object)
+  image.plotly <- list(
+    source = raster2uri(r = GetImage(object = object[[image]], mode = 'raster')),
+    xref = 'x',
+    yref = 'y',
+    x = -7,
+    y = -7,
+    sizex = ncol(x = object[[image]]),
+    sizey = nrow(x = object[[image]]),
+    sizing = 'stretch',
+    opacity = 1,
+    layer = 'below'
+  )
   spatial.plot <- SpatialFeaturePlot(
     object = object,
     features = feature,
-    images = images,
+    images = image,
     slot = 'data',
     min.cutoff = min.cutoff,
     max.cutoff = max.cutoff
   )
-  spatial.build <- GGpointToPlotlyBuild(
-    plot = spatial.plot,
-    information = expression.data
-  )
-  # Generate the normal FeaturePlot and pull plotting data
   feature.plot <- FeaturePlot(
     object = object,
     features = feature,
@@ -214,107 +298,58 @@ LinkedFeaturePlot <- function(
     min.cutoff = min.cutoff,
     max.cutoff = max.cutoff
   )
-  feature.build <- GGpointToPlotlyBuild(
-    plot = feature.plot,
-    information = expression.data
-  )
-  # Generate full build
-  plot.build <- merge(x = spatial.build, y = feature.build, by = 0)
-  rownames(x = plot.build) <- plot.build$Row.names
-  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
-  # Build the plotly plots
-  plot.build <- SharedData$new(data = plot.build)
-  spatial.plotly <- layout(
-    p = plot_ly(
-      data = plot.build,
-      x = ~x.x,
-      y = ~y.x,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.x),
-      hoverinfo = 'text',
-      text = ~feature.x
-    )
-  )
-  spatial.plotly <- highlight(p = spatial.plotly, on = 'plotly_selected')
-  feature.plotly <- layout(
-    p = plot_ly(
-      data = plot.build,
-      x = ~y.x,
-      y = ~y.y,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.y),
-      hoverinfo = 'text',
-      text = ~feature.y
-    )
-  )
-  feature.plotly <- highlight(p = feature.plotly, on = 'plotly_selected')
-  bscols(spatial.plotly, feature.plotly)
+  return(LinkPlots(
+    plot1 = spatial.plot,
+    plot2 = feature.plot,
+    plot1.labels = FALSE,
+    information = expression.data,
+    plot1.layout = list('images' = image.plotly)
+  ))
 }
 
-#' @importFrom crosstalk SharedData bscols
-#' @importFrom plotly layout plot_ly highlight
+#' @importFrom plotly raster2uri
 #'
 LinkedDimPlot <- function(
   object,
   dims = 1:2,
   reduction = NULL,
-  images = NULL,
+  image = NULL,
   group.by = NULL
 ) {
-  # Generate the SpatialFeaturePlot and pull plotting data
+  image <- image %||% DefaultImage(object = object)
+  image.plotly <- list(
+    source = raster2uri(r = GetImage(object = object[[image]], mode = 'raster')),
+    xref = 'x',
+    yref = 'y',
+    x = -7,
+    y = -7,
+    sizex = ncol(x = object[[image]]),
+    sizey = nrow(x = object[[image]]),
+    sizing = 'stretch',
+    opacity = 1,
+    layer = 'below'
+  )
   spatial.plot <- SpatialDimPlot(
     object = object,
     group.by = group.by,
-    images = images
+    images = image
   )
-  spatial.build <- GGpointToPlotlyBuild(
-    plot = spatial.plot
-  )
-  # Generate the normal FeaturePlot and pull plotting data
-  feature.plot <- DimPlot(
+  dim.plot <- DimPlot(
     object = object,
     group.by = group.by,
     dims = dims,
     reduction = reduction
   )
-  feature.build <- GGpointToPlotlyBuild(
-    plot = feature.plot
-  )
-  # Generate full build
-  plot.build <- merge(x = spatial.build, y = feature.build, by = 0)
-  rownames(x = plot.build) <- plot.build$Row.names
-  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
-  # Build the plotly plots
-  plot.build <- SharedData$new(data = plot.build)
-  spatial.plotly <- layout(
-    p = plot_ly(
-      data = plot.build,
-      x = ~x.x,
-      y = ~y.x,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.x),
-      hoverinfo = 'text',
-      text = ~feature.x
+  return(LinkPlots(
+    plot1 = spatial.plot,
+    plot2 = dim.plot,
+    plot1.labels = FALSE,
+    plot1.layout = list(
+      'images' = image.plotly
+      # 'xaxis' = list('range' = c(0, ncol(x = object[[image]]))),
+      # 'yaxis' = list('range' = c(nrow(x = object[[image]]), 0))
     )
-  )
-  spatial.plotly <- highlight(p = spatial.plotly, on = 'plotly_selected')
-  feature.plotly <- layout(
-    p = plot_ly(
-      data = plot.build,
-      x = ~y.x,
-      y = ~y.y,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.y),
-      hoverinfo = 'text',
-      text = ~feature.y
-    )
-  )
-  feature.plotly <- highlight(p = feature.plotly, on = 'plotly_selected')
-  bscols(spatial.plotly, feature.plotly)
+  ))
 }
 
 #' Load a 10X Genomics Visium Spatial Experiment into a \code{Seurat} object
@@ -598,29 +633,33 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @method GetImage Seurat
 #' @export
 #'
-GetImage.Seurat <- function(object, grob = TRUE, image = NULL, ...) {
+GetImage.Seurat <- function(object, mode = 'grob', image = NULL, ...) {
   image <- image %||% DefaultImage(object = object)
   if (is.null(x = image)) {
     stop("No images present in this Seurat object", call. = FALSE)
   }
-  return(GetImage(object = object[[image]], grob = grob, ...))
+  return(GetImage(object = object[[image]], mode = mode, ...))
 }
 
+#' @importFrom grDevices as.raster
 #' @importFrom grid rasterGrob unit
 #'
 #' @rdname GetImage
 #' @method GetImage SliceImage
 #' @export
 #'
-GetImage.SliceImage <- function(object, grob = TRUE, ...) {
+GetImage.SliceImage <- function(object, mode = 'grob', ...) {
   image <- slot(object = object, name = 'image')
-  if (grob) {
-    image <- rasterGrob(
+  image <- switch(
+    EXPR = mode,
+    'grob' = rasterGrob(
       image = image,
       width = unit(x = 1, units = 'npc'),
       height = unit(x = 1, units = 'npc')
-    )
-  }
+    ),
+    'raster' = as.raster(x = image),
+    image
+  )
   return(image)
 }
 
@@ -628,7 +667,7 @@ GetImage.SliceImage <- function(object, grob = TRUE, ...) {
 #' @method GetImage SpatialImage
 #' @export
 #'
-GetImage.SpatialImage <- function(object, grob = TRUE, ...) {
+GetImage.SpatialImage <- function(object, mode = 'grob', ...) {
   stop(
     "'GetImage' must be overridden for all sublcasses of 'SpatialImage'",
     call. = FALSE

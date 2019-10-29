@@ -7,18 +7,18 @@
 \alias{GetImage.SpatialImage}
 \title{Get image data}
 \usage{
-GetImage(object, grob = TRUE, ...)
+GetImage(object, mode = "grob", ...)
 
-\method{GetImage}{Seurat}(object, grob = TRUE, image = NULL, ...)
+\method{GetImage}{Seurat}(object, mode = "grob", image = NULL, ...)
 
-\method{GetImage}{SliceImage}(object, grob = TRUE, ...)
+\method{GetImage}{SliceImage}(object, mode = "grob", ...)
 
-\method{GetImage}{SpatialImage}(object, grob = TRUE, ...)
+\method{GetImage}{SpatialImage}(object, mode = "grob", ...)
 }
 \arguments{
 \item{object}{An object}
 
-\item{grob}{Return a grob representation of the image}
+\item{mode}{How to return the image; should accept at least 'grob' (default) and 'raster'}
 
 \item{...}{Arguments passed to other methods}
 
@@ -26,8 +26,8 @@ GetImage(object, grob = TRUE, ...)
 \code{NULL}, will attempt to select an image automatically}
 }
 \value{
-If \code{grob}, a grob representation of the image; otherwise the default
-representation of the image (typically an array)
+Image data, either as a grob (if \code{mode = 'grob'}), raster (if
+\code{mode = 'raster'}) or other as implemented by each method
 }
 \description{
 Get image data
