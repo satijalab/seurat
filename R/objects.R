@@ -944,10 +944,10 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
   # Pull vars from object metadata
-  meta.vars <- vars[vars %in% colnames(x = object[[]])]
+  meta.vars <- vars[vars %in% colnames(x = object[[]]) & ! vars %in% names(x = data.fetched)]
   data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
   # Pull vars from the default assay
-  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot))]
+  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot)) & ! vars %in% names(x = data.fetched)]
   data.fetched <- c(
     data.fetched,
     tryCatch(
