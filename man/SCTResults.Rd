@@ -2,16 +2,22 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{SCTResults}
 \alias{SCTResults}
+\alias{SCTResults<-}
 \alias{SCTResults.Assay}
 \alias{SCTResults.SCTAssay}
+\alias{SCTResults<-.SCTAssay}
 \alias{SCTResults.Seurat}
 \title{Get SCT results from an Assay}
 \usage{
 SCTResults(object, ...)
 
+SCTResults(object, ...) <- value
+
 \method{SCTResults}{Assay}(object, slot, key = "1", ...)
 
 \method{SCTResults}{SCTAssay}(object, slot, key = "1", ...)
+
+\method{SCTResults}{SCTAssay}(object, slot, ...) <- value
 
 \method{SCTResults}{Seurat}(object, assay = "SCT", slot, ...)
 }
@@ -19,6 +25,8 @@ SCTResults(object, ...)
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods (not used)}
+
+\item{value}{new data to set}
 
 \item{slot}{Which slot to pull the SCT results from}
 

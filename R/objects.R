@@ -4223,6 +4223,23 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
   return(slot(object = object, name = slot))
 }
 
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults<- SCTAssay
+#'
+"SCTResults<-.SCTAssay" <- function(object, slot, ..., value) {
+  slots.use <- c('feature.attributes', 'cell.attributes', 'groups', 'fitted.parameters', 'model')
+  if (!slot %in% slots.use) {
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
+  }
+  slot(object = object, name = slot) <- value
+  return(object)
+}
+
 #' @param assay Assay in the Seurat object to pull from
 #'
 #' @rdname SCTResults
@@ -6369,41 +6386,20 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   return(x)
 }
 
-
-
-#' Subset a SCTAssay object
-#'
-#' @param x Seurat object to be subsetted
-#' @param subset Logical expression indicating features/variables to keep
-#' @param i,features A vector of features to keep
-#' @param j,cells A vector of cells to keep
-#' @param idents A vector of identity classes to keep
-#' @param ... Extra parameters passed to \code{\link{WhichCells}},
-#' such as \code{slot}, \code{invert}, or \code{downsample}
-#'
-#' @return A subsetted SCTAssay
-#'
-#' @rdname subset.SCTAssay
-#' @aliases subset
-#' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
-#'
 #' @export
 #' @method subset SCTAssay
 #'
-#' @examples
-#' 
 subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
-  x <- subset.Assay(x = x, 
-                    cells = cells,
-                    features = features)
-  x <- SCTAssay(x, 
-                cell.attributes = SCTResults(object = x,
-                                             slot = "cell.attributes"
-                )[Cells(x),]
+  x <- subset.Assay(
+    x = x, 
+    cells = cells,
+    features = features,
+    ... 
   )
+  SCTResults(object = x, slot = "cell.attributes") <- 
+    SCTResults(object = x, slot = "cell.attributes")[Cells(x = x), ]
   return(x)
 }
-
 
 #' Subset a Seurat object
 #'

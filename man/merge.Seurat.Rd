@@ -2,12 +2,16 @@
 % Please edit documentation in R/objects.R
 \name{merge.Assay}
 \alias{merge.Assay}
+\alias{merge.SCTAssay}
 \alias{merge.Seurat}
 \alias{merge}
 \alias{MergeSeurat}
 \alias{AddSamples}
 \title{Merge Seurat Objects}
 \usage{
+\method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
+  merge.data = TRUE, ...)
+
 \method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
   merge.data = TRUE, ...)
 

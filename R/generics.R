@@ -963,6 +963,17 @@ SCTResults <- function(object, ...) {
   UseMethod(generic = 'SCTResults', object = object)
 }
 
+
+#' @inheritParams SCTResults
+#' @param value new data to set
+#'
+#' @rdname SCTResults
+#' @export SCTResults<-
+#'
+"SCTResults<-" <- function(object, ..., value) {
+  UseMethod(generic = 'SCTResults<-', object = object)
+}
+
 #' Setter for multimodal data
 #'
 #' @param object An object
