@@ -4492,7 +4492,7 @@ SingleExIPlot <- function(
   } else{
     data[, feature] <- data[, feature] + noise
   }
-  axis.label <- ifelse(test = log, yes = 'Log Expression Level', no = 'Expression Level')
+  axis.label <- 'Expression Level'
   y.max <- y.max %||% max(data[, feature])
   if (is.null(x = split) || type != 'violin') {
     vln.geom <- geom_violin
