@@ -1440,15 +1440,9 @@ FeatureScatter <- function(
     cols = cols,
     pt.size = pt.size,
     smooth = smooth,
-    legend.title = 'Identity'
+    legend.title = 'Identity',
+    span = span
   )
-  if (!is.null(x = span)) {
-    plot <- plot + geom_smooth(
-      mapping = aes_string(x = feature1, y = feature2),
-      method = 'loess',
-      span = span
-    )
-  }
   return(plot)
 }
 
@@ -4182,7 +4176,8 @@ SingleCorPlot <- function(
   smooth = FALSE,
   rows.highlight = NULL,
   legend.title = NULL,
-  na.value = 'grey50'
+  na.value = 'grey50',
+  span = NULL
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -4279,6 +4274,13 @@ SingleCorPlot <- function(
     }
   }
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
+  if (!is.null(x = span)) {
+    plot <- plot + geom_smooth(
+      mapping = aes_string(x = names.plot[1], y = names.plot[2]),
+      method = 'loess',
+      span = span
+    )
+  }
   return(plot)
 }
 
