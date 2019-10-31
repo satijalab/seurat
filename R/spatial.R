@@ -226,6 +226,8 @@ LinkPlots <- function(
       type = 'scatter',
       mode = 'markers',
       color = ~I(color.x),
+      # size = ~I(cex.x),
+      # symbol = ~I(pch.x),
       hoverinfo = 'text',
       text = ~feature.x
     )),
@@ -238,11 +240,13 @@ LinkPlots <- function(
   plot2.layout <- c(
     list(p = plot_ly(
       data = plot.build,
-      x = ~y.x,
+      x = ~x.y,
       y = ~y.y,
       type = 'scatter',
       mode = 'markers',
       color = ~I(color.y),
+      # size = ~I(cex.y),
+      # symbol = ~I(pch.y),
       hoverinfo = 'text',
       text = ~feature.y
     )),
