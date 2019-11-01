@@ -478,7 +478,6 @@ SingleSpatialPlot <- function(
 #'
 SpatialDimPlot <- function(
   object,
-  assay = NULL,
   group.by = NULL,
   images = NULL,
   pt.size = NULL,
@@ -486,8 +485,6 @@ SpatialDimPlot <- function(
   combine = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object = object)
-  DefaultAssay(object = object) <- assay
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <- object[[group.by]]
@@ -496,9 +493,10 @@ SpatialDimPlot <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
-  # TODO: Replace this once SCTransform assigns assay.orig
-  # images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
-  images <- images %||% DefaultImage(object = object)
+  images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) == 0) {
+    images <- Images(object = object)
+  }
   plots <- vector(
     mode = "list",
     length = length(x = group.by)
@@ -554,9 +552,10 @@ SpatialFeaturePlot <- function(
     vars = features,
     slot = slot
   )
-  # TODO: Replace this once SCTransform assigns assay.orig
-  # images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
-  images <- images %||% DefaultImage(object = object)
+  images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) == 0) {
+    images <- Images(object = object)
+  }
   if (length(x = images) < 1) {
     stop("Could not find any spatial image information")
   }
