@@ -4,6 +4,7 @@
 \alias{RenameCells}
 \alias{RenameCells.Assay}
 \alias{RenameCells.DimReduc}
+\alias{RenameCells.SCTAssay}
 \alias{RenameCells.Seurat}
 \title{Rename cells}
 \usage{
@@ -12,6 +13,8 @@ RenameCells(object, ...)
 \method{RenameCells}{Assay}(object, new.names = NULL, ...)
 
 \method{RenameCells}{DimReduc}(object, new.names = NULL, ...)
+
+\method{RenameCells}{SCTAssay}(object, new.names = NULL, ...)
 
 \method{RenameCells}{Seurat}(object, add.cell.id = NULL,
   new.names = NULL, for.merge = FALSE, ...)

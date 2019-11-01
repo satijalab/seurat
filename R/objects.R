@@ -4017,22 +4017,8 @@ ReorderIdent.Seurat <- function(
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
   if (IsSCT(assay = object)) {
-    if (is.null(x = Misc(object = object, slot = 'vst.set'))) {
-      suppressWarnings(Misc(object = object, slot = "vst.out")$cells_step1 <- new.names)
-      suppressWarnings(rownames(x = Misc(object = object, slot = "vst.out")$cell_attr) <- new.names)
-    } else{
-      suppressWarnings(
-        Misc(object, slot = "vst.set") <- lapply(
-          X = Misc(object = object, slot = "vst.set"),
-          FUN = function(x) {
-            new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
-            x$cells_step1 <- new.names.vst
-            rownames(x = x$cell_attr) <- new.names.vst
-            return(x)
-          }
-        )
-      )
-    }
+    assay <- as(object = assay, Class = "SCTAssay")
+    return(RenameCells(object = assay))
   }
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
@@ -4062,6 +4048,19 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
   rownames(x = old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
+  return(object)
+}
+
+#' @rdname RenameCells
+#' @export
+#' @method RenameCells SCTAssay
+#'
+RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
+  CheckDots(...)
+  object <- RenameCells.Assay(object = object, new.names = new.names, ...)
+  cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
+  rownames(x = cell.attributes) <- new.names
+  SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
   return(object)
 }
 
