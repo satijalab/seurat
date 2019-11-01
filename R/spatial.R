@@ -745,7 +745,7 @@ IsGlobal.SpatialImage <- function(object) {
 RenameCells.SliceImage <- function(object, new.names = NULL, ...) {
   if (is.null(x = new.names)) {
     return(object)
-  } else if (length(x = new.names) != nrow(x = object)) {
+  } else if (length(x = new.names) != length(x = Cells(x = object))) {
     stop("Wrong number of cell/spot names", call. = FALSE)
   }
   names(x = new.names) <- Cells(x = object)

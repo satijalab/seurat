@@ -4077,6 +4077,7 @@ RenameCells.Seurat <- function(
       )
     }
   }
+  old.names <- colnames(x = object)
   # rename in the assay objects
   assays <- FilterObjects(object = object, classes.keep = 'Assay')
   for (assay in assays) {
@@ -4105,6 +4106,14 @@ RenameCells.Seurat <- function(
   graphs <- FilterObjects(object = object, classes.keep = "Graph")
   for (g in graphs) {
     rownames(x = object[[g]]) <- colnames(x = object[[g]]) <- new.cell.names
+  }
+  # Rename the images
+  names(x = new.cell.names) <- old.names
+  for (i in Images(object = object)) {
+    object[[i]] <- RenameCells(
+      object = object[[i]],
+      new.names = unname(obj = new.cell.names[Cells(x = object[[i]])])
+    )
   }
   return(object)
 }
@@ -5748,9 +5757,36 @@ merge.Seurat <- function(
   } else {
     new.default.assay <- assays[1]
   }
+  # Merge images
+  combined.images <- vector(
+    mode = 'list',
+    length = length(x = unlist(x = lapply(X = objects, FUN = Images)))
+  )
+  index <- 1L
+  for (i in 1:length(x = objects)) {
+    object <- objects[[i]]
+    for (image in Images(object = object)) {
+      image.obj <- object[[image]]
+      if (image %in% names(x = combined.images)) {
+        image <- if (is.null(x = add.cell.ids)) {
+          make.unique(names = c(
+            na.omit(object = names(x = combined.images)),
+            image
+          ))[index]
+        } else {
+          paste(image, add.cell.ids[i], sep = '_')
+        }
+      }
+      combined.images[[index]] <- image.obj
+      names(x = combined.images)[index] <- image
+      index <- index + 1L
+    }
+  }
+  # Create merged Seurat object
   merged.object <- new(
     Class = 'Seurat',
     assays = combined.assays,
+    images = combined.images,
     meta.data = combined.meta.data,
     active.assay = new.default.assay,
     active.ident = new.idents,
