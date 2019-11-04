@@ -4,8 +4,14 @@
 \alias{MetaFeature}
 \title{Aggregate expression of multiple features into a single feature}
 \usage{
-MetaFeature(object, features, meta.name = "metafeature", cells = NULL,
-  assay = NULL, slot = "data")
+MetaFeature(
+  object,
+  features,
+  meta.name = "metafeature",
+  cells = NULL,
+  assay = NULL,
+  slot = "data"
+)
 }
 \arguments{
 \item{object}{A Seurat object}

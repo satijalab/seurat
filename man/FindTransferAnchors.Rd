@@ -4,13 +4,27 @@
 \alias{FindTransferAnchors}
 \title{Find transfer anchors}
 \usage{
-FindTransferAnchors(reference, query,
+FindTransferAnchors(
+  reference,
+  query,
   normalization.method = c("LogNormalize", "SCT"),
-  reference.assay = NULL, query.assay = NULL,
-  reduction = "pcaproject", project.query = FALSE, features = NULL,
-  npcs = 30, l2.norm = TRUE, dims = 1:30, k.anchor = 5,
-  k.filter = 200, k.score = 30, max.features = 200,
-  nn.method = "rann", eps = 0, approx.pca = TRUE, verbose = TRUE)
+  reference.assay = NULL,
+  query.assay = NULL,
+  reduction = "pcaproject",
+  project.query = FALSE,
+  features = NULL,
+  npcs = 30,
+  l2.norm = TRUE,
+  dims = 1:30,
+  k.anchor = 5,
+  k.filter = 200,
+  k.score = 30,
+  max.features = 200,
+  nn.method = "rann",
+  eps = 0,
+  approx.pca = TRUE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{reference}{Seurat object to use as the reference}

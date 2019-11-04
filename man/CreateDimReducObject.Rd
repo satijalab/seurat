@@ -5,10 +5,16 @@
 \alias{SetDimReduction}
 \title{Create a DimReduc object}
 \usage{
-CreateDimReducObject(embeddings = new(Class = "matrix"),
-  loadings = new(Class = "matrix"), projected = new(Class = "matrix"),
-  assay = NULL, stdev = numeric(), key = NULL, jackstraw = NULL,
-  misc = list())
+CreateDimReducObject(
+  embeddings = new(Class = "matrix"),
+  loadings = new(Class = "matrix"),
+  projected = new(Class = "matrix"),
+  assay = NULL,
+  stdev = numeric(),
+  key = NULL,
+  jackstraw = NULL,
+  misc = list()
+)
 }
 \arguments{
 \item{embeddings}{A matrix with the cell embeddings}

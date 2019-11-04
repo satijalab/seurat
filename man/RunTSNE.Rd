@@ -10,22 +10,55 @@
 \usage{
 RunTSNE(object, ...)
 
-\method{RunTSNE}{matrix}(object, assay = NULL, seed.use = 1,
-  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  reduction.key = "tSNE_", ...)
+\method{RunTSNE}{matrix}(
+  object,
+  assay = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+)
 
-\method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5,
-  seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  reduction.key = "tSNE_", ...)
+\method{RunTSNE}{DimReduc}(
+  object,
+  cells = NULL,
+  dims = 1:5,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+)
 
-\method{RunTSNE}{dist}(object, assay = NULL, seed.use = 1,
-  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  reduction.key = "tSNE_", ...)
+\method{RunTSNE}{dist}(
+  object,
+  assay = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+)
 
-\method{RunTSNE}{Seurat}(object, reduction = "pca", cells = NULL,
-  dims = 1:5, features = NULL, seed.use = 1, tsne.method = "Rtsne",
-  add.iter = 0, dim.embed = 2, distance.matrix = NULL,
-  reduction.name = "tsne", reduction.key = "tSNE_", ...)
+\method{RunTSNE}{Seurat}(
+  object,
+  reduction = "pca",
+  cells = NULL,
+  dims = 1:5,
+  features = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}

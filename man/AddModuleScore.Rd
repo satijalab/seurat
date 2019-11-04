@@ -4,9 +4,19 @@
 \alias{AddModuleScore}
 \title{Calculate module scores for feature expression programs in single cells}
 \usage{
-AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
-  k = FALSE, assay = NULL, name = "Cluster", seed = 1,
-  search = FALSE, ...)
+AddModuleScore(
+  object,
+  features,
+  pool = NULL,
+  nbin = 24,
+  ctrl = 100,
+  k = FALSE,
+  assay = NULL,
+  name = "Cluster",
+  seed = 1,
+  search = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}

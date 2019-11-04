@@ -9,16 +9,39 @@
 \usage{
 RunLSI(object, ...)
 
-\method{RunLSI}{default}(object, assay = NULL, n = 50,
-  reduction.key = "LSI_", scale.max = NULL, seed.use = 42,
-  verbose = TRUE, ...)
+\method{RunLSI}{default}(
+  object,
+  assay = NULL,
+  n = 50,
+  reduction.key = "LSI_",
+  scale.max = NULL,
+  seed.use = 42,
+  verbose = TRUE,
+  ...
+)
 
-\method{RunLSI}{Assay}(object, assay = NULL, features = NULL, n = 50,
-  reduction.key = "LSI_", scale.max = NULL, verbose = TRUE, ...)
+\method{RunLSI}{Assay}(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.key = "LSI_",
+  scale.max = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{RunLSI}{Seurat}(object, assay = NULL, features = NULL,
-  n = 50, reduction.key = "LSI_", reduction.name = "lsi",
-  scale.max = NULL, verbose = TRUE, ...)
+\method{RunLSI}{Seurat}(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.key = "LSI_",
+  reduction.name = "lsi",
+  scale.max = NULL,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}

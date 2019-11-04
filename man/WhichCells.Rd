@@ -8,12 +8,19 @@
 \usage{
 WhichCells(object, ...)
 
-\method{WhichCells}{Assay}(object, cells = NULL, expression,
-  invert = FALSE, ...)
+\method{WhichCells}{Assay}(object, cells = NULL, expression, invert = FALSE, ...)
 
-\method{WhichCells}{Seurat}(object, cells = NULL, idents = NULL,
-  expression, slot = "data", invert = FALSE, downsample = Inf,
-  seed = 1, ...)
+\method{WhichCells}{Seurat}(
+  object,
+  cells = NULL,
+  idents = NULL,
+  expression,
+  slot = "data",
+  invert = FALSE,
+  downsample = Inf,
+  seed = 1,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

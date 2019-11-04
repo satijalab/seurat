@@ -4,11 +4,23 @@
 \alias{MapQuery}
 \title{Map queries to reference}
 \usage{
-MapQuery(anchorset, reference, new.assay.name = "integrated",
-  normalization.method = c("LogNormalize", "SCT"), features = NULL,
-  features.to.integrate = NULL, dims = 1:30, k.weight = 100,
-  weight.reduction = NULL, sd.weight = 1, sample.tree = NULL,
-  preserve.order = FALSE, do.cpp = TRUE, eps = 0, verbose = TRUE)
+MapQuery(
+  anchorset,
+  reference,
+  new.assay.name = "integrated",
+  normalization.method = c("LogNormalize", "SCT"),
+  features = NULL,
+  features.to.integrate = NULL,
+  dims = 1:30,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
+  do.cpp = TRUE,
+  eps = 0,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{anchorset}{Anchorset found by FindIntegrationAnchors}

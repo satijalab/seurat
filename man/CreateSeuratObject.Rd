@@ -4,9 +4,16 @@
 \alias{CreateSeuratObject}
 \title{Create a Seurat object}
 \usage{
-CreateSeuratObject(counts, project = "SeuratProject", assay = "RNA",
-  min.cells = 0, min.features = 0, names.field = 1,
-  names.delim = "_", meta.data = NULL)
+CreateSeuratObject(
+  counts,
+  project = "SeuratProject",
+  assay = "RNA",
+  min.cells = 0,
+  min.features = 0,
+  names.field = 1,
+  names.delim = "_",
+  meta.data = NULL
+)
 }
 \arguments{
 \item{counts}{Unnormalized data such as raw counts or TPMs}

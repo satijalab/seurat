@@ -4,8 +4,13 @@
 \alias{PolyDimPlot}
 \title{Polygon DimPlot}
 \usage{
-PolyDimPlot(object, group.by = NULL, cells = NULL,
-  poly.data = "spatial", flip.coords = FALSE)
+PolyDimPlot(
+  object,
+  group.by = NULL,
+  cells = NULL,
+  poly.data = "spatial",
+  flip.coords = FALSE
+)
 }
 \arguments{
 \item{object}{Seurat object}
