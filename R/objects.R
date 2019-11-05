@@ -6089,6 +6089,10 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   slot(object = x, name = 'meta.data') <- x[[metadata.keep]]
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
+  # subset images
+  for (image in Images(object = x)) {
+    x[[image]] <- base::subset(x = x[[image]], cells = cells)
+  }
   return(x)
 }
 
