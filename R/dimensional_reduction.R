@@ -811,10 +811,10 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
+    total.variance <- sum(RowVar(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)
-      total.variance <- sum(RowVar(x = object))
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -827,7 +827,6 @@ RunPCA.default <- function(
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
-      total.variance <- sum(sdev)
       if (weight.by.var) {
         cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
       } else {
@@ -1000,7 +999,8 @@ RunTSNE.matrix <- function(
   tsne.reduction <- CreateDimReducObject(
     embeddings = tsne.data,
     key = reduction.key,
-    assay = assay
+    assay = assay,
+    global = TRUE
   )
   return(tsne.reduction)
 }
@@ -1247,7 +1247,8 @@ RunUMAP.default <- function(
   umap.reduction <- CreateDimReducObject(
     embeddings = umap.output,
     key = reduction.key,
-    assay = assay
+    assay = assay,
+    global = TRUE
   )
   return(umap.reduction)
 }
@@ -1331,7 +1332,12 @@ RunUMAP.Graph <- function(
   colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
   # center the embeddings on zero
   embeddings <- scale(x = embeddings, scale = FALSE)
-  umap <- CreateDimReducObject(embeddings = embeddings, key = reduction.key, assay = assay)
+  umap <- CreateDimReducObject(
+    embeddings = embeddings,
+    key = reduction.key,
+    assay = assay,
+    global = TRUE
+  )
   return(umap)
 }
 

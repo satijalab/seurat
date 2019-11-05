@@ -3,8 +3,11 @@
 \name{DefaultAssay}
 \alias{DefaultAssay}
 \alias{DefaultAssay<-}
+\alias{DefaultAssay.Assay}
 \alias{DefaultAssay.DimReduc}
+\alias{DefaultAssay.Graph}
 \alias{DefaultAssay.Seurat}
+\alias{DefaultAssay.SeuratCommand}
 \alias{DefaultAssay<-.Seurat}
 \title{Get and set the default assay}
 \usage{
@@ -12,9 +15,15 @@ DefaultAssay(object, ...)
 
 DefaultAssay(object, ...) <- value
 
+\method{DefaultAssay}{Assay}(object, ...)
+
 \method{DefaultAssay}{DimReduc}(object, ...)
 
+\method{DefaultAssay}{Graph}(object, ...)
+
 \method{DefaultAssay}{Seurat}(object, ...)
+
+\method{DefaultAssay}{SeuratCommand}(object, ...)
 
 \method{DefaultAssay}{Seurat}(object, ...) <- value
 }
