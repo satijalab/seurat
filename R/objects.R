@@ -1396,6 +1396,7 @@ UpdateSeuratObject <- function(object) {
       message("Validating object structure")
       # Update object slots
       message("Updating object slots")
+      object <- UpdateSlots(object = object)
       for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
         suppressWarnings(expr = object[[obj]] <- UpdateSlots(object = object[[obj]]))
       }
@@ -6371,10 +6372,15 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       # For Assays, run CalcN
       if (inherits(x = value, what = 'Assay')) {
-        n.calc <- CalcN(object = value)
-        if (!is.null(x = n.calc)) {
-          names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
-          x[[names(x = n.calc)]] <- n.calc
+        if (i %in% Assays(object = x) && ! identical(
+          x = GetAssayData(object = x, assay = i, slot = "counts"), 
+          y = GetAssayData(object = value, slot = "counts"))
+        ) {
+          n.calc <- CalcN(object = value)
+          if (!is.null(x = n.calc)) {
+            names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
+            x[[names(x = n.calc)]] <- n.calc
+          }
         }
       }
       # When removing an Assay, clear out associated DimReducs, Graphs, and SeuratCommands
