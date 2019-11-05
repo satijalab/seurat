@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial.R
 \name{Load10X_Spatial}
 \alias{Load10X_Spatial}
-\title{Load a 10X Genomics Visium Spatial Experiment into a \code{Seurat} object}
+\title{Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object}
 \usage{
 Load10X_Spatial(data.dir, assay = "Spatial", slice = "slice1",
   filter.matrix = TRUE, to.upper = FALSE, ...)
@@ -13,11 +13,29 @@ files provided by 10X. A vector or named vector can be given in order to load
 several data directories. If a named vector is given, the cell barcode names
 will be prefixed with the name.}
 
+\item{assay}{Name of the assay corresponding to the initial input data.}
+
+\item{slice}{Name for the stored image of the tissue slice}
+
+\item{filter.matrix}{Only keep spots that have been determined to be over 
+tissue}
+
+\item{to.upper}{Converts all feature names to upper case. Can be useful when 
+analyses require comparisons between humand and mouse gene names for example.}
+
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }
 \value{
 A \code{Seurat} object
 }
 \description{
-Load a 10X Genomics Visium Spatial Experiment into a \code{Seurat} object
+Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
+}
+\examples{
+\dontrun{
+data_dir <- 'path/to/data/directory'
+list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
+Load10X_Spatial(data.dir = data_dir)
+}
+
 }

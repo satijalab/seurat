@@ -356,9 +356,15 @@ LinkedDimPlot <- function(
   ))
 }
 
-#' Load a 10X Genomics Visium Spatial Experiment into a \code{Seurat} object
+#' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
+#' @inheritParams CreateSeuratObject
+#' @param slice Name for the stored image of the tissue slice
+#' @param filter.matrix Only keep spots that have been determined to be over 
+#' tissue
+#' @param to.upper Converts all feature names to upper case. Can be useful when 
+#' analyses require comparisons between humand and mouse gene names for example. 
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -368,7 +374,14 @@ LinkedDimPlot <- function(
 #' @importFrom jsonlite fromJSON
 #'
 #' @export
-#'
+#' 
+#' @examples 
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
+#' Load10X_Spatial(data.dir = data_dir)
+#' }
+#' 
 Load10X_Spatial <- function(
   data.dir,
   assay = 'Spatial',
