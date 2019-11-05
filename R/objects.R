@@ -1394,6 +1394,7 @@ UpdateSeuratObject <- function(object) {
       message("Validating object structure")
       # Update object slots
       message("Updating object slots")
+      object <- UpdateSlots(object = object)
       for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
         suppressWarnings(expr = object[[obj]] <- UpdateSlots(object = object[[obj]]))
       }
