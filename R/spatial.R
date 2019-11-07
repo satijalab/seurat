@@ -107,6 +107,36 @@ SliceImage <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Get a vector of cell names associated with an image (or set of images)
+#' 
+#' @param object Seurat object
+#' @param images Vector of image names
+#' @param unlist Return as a single vector of cell names as opposed to a list,
+#' named by image name.
+#' 
+#' @return A vector of cell names
+#' 
+#' @examples 
+#' \dontrun{
+#' CellsByImage(object = object, images = "slice1")
+#' }
+#'
+CellsByImage <- function(object, images = NULL, unlist = FALSE) {
+  images <- images %||% Images(object = object)
+  cells <- sapply(
+    X = images,
+    FUN = function(x) {
+      Cells(x = object[[x]])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (unlist) {
+    cells <- unname(obj = unlist(x = cells))
+  }
+  return(cells)
+}
+
 #' Pull spatial image names
 #'
 #' List the names of \code{SpatialImage} objects present in a \code{Seurat} object.
