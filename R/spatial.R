@@ -541,6 +541,7 @@ SpatialDimPlot <- function(
   pt.size.factor = 1,
   alpha = 1,
   combine = TRUE,
+  ncol = NULL,
   ...
 ) {
   object[['ident']] <- Idents(object = object)
@@ -557,33 +558,34 @@ SpatialDimPlot <- function(
   }
   plots <- vector(
     mode = "list",
-    length = length(x = group.by)
+    length = length(x = group.by) * length(x = images)
   )
-  for (i in 1:length(x = group.by)) {
-    group <- group.by[i]
-    slice.plots <- vector(mode = "list",length = length(x = images))
-    for (j in 1:length(x = images)) {
-      image.use <- object[[images[[j]]]]
-      coordinates <- GetTissueCoordinates(object = image.use)
+  for (i in 1:length(x = images)) {
+    plot.idx <- i
+    image.use <- object[[images[[i]]]]
+    coordinates <- GetTissueCoordinates(object = image.use)
+    for (j in 1:length(x = group.by)) {
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
-          data[rownames(x = coordinates), group, drop = FALSE]
+          data[rownames(x = coordinates), group.by[j], drop = FALSE]
         ),
         image = image.use,
-        col.by = group,
+        col.by = group.by[j],
         pt.size.factor = pt.size.factor,
         alpha = alpha
       )
-      if (i == 1) {
-        plot <- plot + ggtitle(label = images[j])  + theme(plot.title = element_text(hjust = 0.5))
+      if (j == 1 | length(x = images) == 1) {
+        plot <- plot + ggtitle(label = images[i])  + theme(plot.title = element_text(hjust = 0.5))
       }
-      slice.plots[[j]] <- plot
+      plots[[plot.idx]] <- plot
+      plot.idx <- plot.idx + length(x = images)
     }
-    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
   }
-  if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = 1)
+  if (length(x = images) > 1 &  combine) {
+    plots <- CombinePlots(plots = plots, ncol = length(x = images))
+  } else if (length(x = images == 1) & combine) {
+    plots <- CombinePlots(plots = plots, ncol = ncol)
   }
   return(plots)
 }
@@ -620,39 +622,37 @@ SpatialFeaturePlot <- function(
   rownames(x = data) <- colnames(object)
   plots <- vector(
     mode = "list",
-    length = length(x = features)
+    length = length(x = images) * length(x = features)
   )
-  for (i in 1:length(x = features)) {
-    feature <- features[i]
-    slice.plots <- vector(mode = "list",length = length(x = images))
-    for (j in 1:length(x = images)) {
-      image.use <- object[[images[[j]]]]
-      coordinates <- GetTissueCoordinates(object = image.use)
+  for(i in 1:length(x = images)) {
+    plot.idx <- i
+    image.use <- object[[images[[i]]]]
+    coordinates <- GetTissueCoordinates(object = image.use)
+    slice.plots <- vector(mode = "list", length(x = features))
+    for (j in 1:length(x = features)) {
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
-          data[rownames(x = coordinates), features, drop = FALSE]
+          data[rownames(x = coordinates), features[j], drop = FALSE]
         ),
         image = image.use,
-        col.by = feature,
+        col.by = features[j],
         pt.size.factor = pt.size.factor,
         alpha = alpha
       )
-      plot <- plot + scale_fill_gradientn(name = feature, colours = SpatialColors(100))
-      if (i == 1 | length(x = images) == 1) {
-        plot <- plot + ggtitle(label = images[[j]]) + theme(plot.title = element_text(hjust = 0.5))
+      plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
+      if (j == 1 | length(x = images) == 1) {
+        plot <- plot + ggtitle(label = images[[i]]) + theme(plot.title = element_text(hjust = 0.5))
       }
-      slice.plots[[j]] <- plot
-    }
-    if (j > 1 & combine) {
-      plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
-    } else {
-      plots[[i]] <- slice.plots[[1]]
+      plots[[plot.idx]] <- plot
+      plot.idx <- plot.idx + length(x = images)
     }
   }
-  if (j == 1 & combine) {
+  if (length(x = images) > 1 &  combine) {
+    plots <- CombinePlots(plots = plots, ncol = length(x = images))
+  } else if (length(x = images == 1) & combine) {
     plots <- CombinePlots(plots = plots, ncol = ncol)
-  } 
+  }
   return(plots)
 }
 
