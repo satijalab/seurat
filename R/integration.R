@@ -2619,6 +2619,9 @@ RunIntegration <- function(
     dr.weights <- merged.obj[['pca']]
   } else {
     dr <- weight.reduction[[2]]
+    if (!all(cells2 %in% rownames(x = dr))) {
+      stop("Query cells not present in supplied DimReduc object. Set weight.reduction to a DimReduc object containing the query cells.")
+    }
     if (inherits(x = dr, what = "DimReduc")) {
       dr.weights <- dr
     } else {
