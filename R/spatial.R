@@ -580,54 +580,20 @@ SpatialDimPlot <- function(
   object,
   group.by = NULL,
   images = NULL,
-  pt.size.factor = 1,
-  alpha = 1,
+  ncol = NULL,
   combine = TRUE,
-  ...
+  pt.size.factor = 1,
+  alpha = 1
 ) {
-  object[['ident']] <- Idents(object = object)
-  group.by <- group.by %||% 'ident'
-  data <- object[[group.by]]
-  for (group in group.by) {
-    if (!is.factor(x = data[, group])) {
-      data[, group] <- factor(x = data[, group])
-    }
-  }
-  images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
-  if (length(x = images) == 0) {
-    images <- Images(object = object)
-  }
-  plots <- vector(
-    mode = "list",
-    length = length(x = group.by)
-  )
-  for (i in 1:length(x = group.by)) {
-    group <- group.by[i]
-    slice.plots <- vector(mode = "list",length = length(x = images))
-    for (j in 1:length(x = images)) {
-      image.use <- object[[images[[j]]]]
-      coordinates <- GetTissueCoordinates(object = image.use)
-      plot <- SingleSpatialPlot(
-        data = cbind(
-          coordinates,
-          data[rownames(x = coordinates), group, drop = FALSE]
-        ),
-        image = image.use,
-        col.by = group,
-        pt.size.factor = pt.size.factor,
-        alpha = alpha
-      )
-      if (i == 1) {
-        plot <- plot + ggtitle(label = images[j])  + theme(plot.title = element_text(hjust = 0.5))
-      }
-      slice.plots[[j]] <- plot
-    }
-    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
-  }
-  if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = 1)
-  }
-  return(plots)
+  return(SpatialPlot(
+    object = object,
+    group.by = group.by,
+    images = images,
+    ncol = ncol,
+    combine = combine,
+    pt.size.factor = pt.size.factor,
+    alpha = alpha
+  ))
 }
 
 #' @importFrom tibble tibble
@@ -645,11 +611,98 @@ SpatialFeaturePlot <- function(
   pt.size.factor = 1,
   alpha = 1
 ) {
-  data <- FetchData(
+  return(SpatialPlot(
     object = object,
-    vars = features,
-    slot = slot
-  )
+    features = features,
+    images = images,
+    slot = slot,
+    min.cutoff = min.cutoff,
+    max.cutoff = max.cutoff,
+    ncol = ncol,
+    combine = combine,
+    pt.size.factor = pt.size.factor,
+    alpha = alpha
+  ))
+}
+
+SpatialPlot <- function(
+  object,
+  group.by = NULL,
+  features = NULL,
+  images = NULL,
+  slot = 'data',
+  min.cutoff = NA,
+  max.cutoff = NA,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1,
+  alpha = 1
+) {
+  if (!is.null(x = group.by) & !is.null(x = features)) {
+    stop("Please specific either group.by or features, not both.") 
+  }
+  if (is.null(x = features)) {
+    group.by <- group.by %||% 'ident'
+    object[['ident']] <- Idents(object = object)
+    data <- object[[group.by]]
+    for (group in group.by) {
+      if (!is.factor(x = data[, group])) {
+        data[, group] <- factor(x = data[, group])
+      }
+    }
+  } else {
+    data <- FetchData(
+      object = object,
+      vars = features,
+      slot = slot
+    )
+    features <- colnames(x = data)
+    # Determine cutoffs
+    min.cutoff <- mapply(
+      FUN = function(cutoff, feature) {
+        return(ifelse(
+          test = is.na(x = cutoff),
+          yes = min(data[, feature]),
+          no = cutoff
+        ))
+      },
+      cutoff = min.cutoff,
+      feature = features
+    )
+    max.cutoff <- mapply(
+      FUN = function(cutoff, feature) {
+        return(ifelse(
+          test = is.na(x = cutoff),
+          yes = max(data[, feature]),
+          no = cutoff
+        ))
+      },
+      cutoff = max.cutoff,
+      feature = features
+    )
+    check.lengths <- unique(x = vapply(
+      X = list(features, min.cutoff, max.cutoff),
+      FUN = length,
+      FUN.VALUE = numeric(length = 1)
+    ))
+    if (length(x = check.lengths) != 1) {
+      stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+    }
+    # Apply cutoffs
+    data <- sapply(
+      X = 1:ncol(x = data),
+      FUN = function(index) {
+        data.feature <- as.vector(x = data[, index])
+        min.use <- SetQuantile(cutoff = min.cutoff[index], data.feature)
+        max.use <- SetQuantile(cutoff = max.cutoff[index], data.feature)
+        data.feature[data.feature < min.use] <- min.use
+        data.feature[data.feature > max.use] <- max.use
+        return(data.feature)
+      }
+    )
+    colnames(x = data) <- features
+    rownames(x = data) <- Cells(x = object)
+  }
   images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
   if (length(x = images) == 0) {
     images <- Images(object = object)
@@ -662,37 +715,37 @@ SpatialFeaturePlot <- function(
   rownames(x = data) <- colnames(object)
   plots <- vector(
     mode = "list",
-    length = length(x = features)
+    length = length(x = images) * length(x = features)
   )
-  for (i in 1:length(x = features)) {
-    feature <- features[i]
-    slice.plots <- vector(mode = "list",length = length(x = images))
-    for (j in 1:length(x = images)) {
-      image.use <- object[[images[[j]]]]
-      coordinates <- GetTissueCoordinates(object = image.use)
+  for(i in 1:length(x = images)) {
+    plot.idx <- i
+    image.use <- object[[images[[i]]]]
+    coordinates <- GetTissueCoordinates(object = image.use)
+    slice.plots <- vector(mode = "list", length(x = features))
+    for (j in 1:length(x = features)) {
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
-          data[rownames(x = coordinates), features, drop = FALSE]
+          data[rownames(x = coordinates), features[j], drop = FALSE]
         ),
         image = image.use,
-        col.by = feature,
+        col.by = features[j],
         pt.size.factor = pt.size.factor,
         alpha = alpha
       )
-      plot <- plot + scale_fill_gradientn(name = feature, colours = SpatialColors(100))
-      if (i == 1 | length(x = images) == 1) {
-        plot <- plot + ggtitle(label = images[[j]]) + theme(plot.title = element_text(hjust = 0.5))
+      if (is.null(x = group.by)) {
+        plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
       }
-      slice.plots[[j]] <- plot
-    }
-    if (j > 1 & combine) {
-      plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
-    } else {
-      plots[[i]] <- slice.plots[[1]]
+      if (j == 1 | length(x = images) == 1) {
+        plot <- plot + ggtitle(label = images[[i]]) + theme(plot.title = element_text(hjust = 0.5))
+      }
+      plots[[plot.idx]] <- plot
+      plot.idx <- plot.idx + length(x = images)
     }
   }
-  if (j == 1 & combine) {
+  if (length(x = images) > 1 &  combine) {
+    plots <- CombinePlots(plots = plots, ncol = length(x = images))
+  } else if (length(x = images == 1) & combine) {
     plots <- CombinePlots(plots = plots, ncol = ncol)
   }
   return(plots)
