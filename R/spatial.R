@@ -99,9 +99,11 @@ SliceImage <- setClass(
   slots = list(
     'image' = 'array',
     'scale.factors' = 'scalefactors',
-    'coordinates' = 'data.frame'
+    'coordinates' = 'data.frame',
+    'spot.radius' = 'numeric'
   )
 )
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
@@ -162,6 +164,8 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
   if (filter.matrix) {
     tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
   }
+  unnormalized.radius <- scale.factors$fiducial_diameter_fullres * scale.factors$tissue_lowres_scalef
+  spot.radius <-  unnormalized.radius / max(dim(x = image))
   return(new(
     Class = 'SliceImage',
     image = image,
@@ -171,7 +175,8 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
       hires = scale.factors$tissue_hires_scalef,
       scale.factors$tissue_lowres_scalef
     ),
-    coordinates = tissue.positions
+    coordinates = tissue.positions,
+    spot.radius = spot.radius
   ))
 }
 
@@ -403,43 +408,96 @@ Load10X_Spatial <- function(
   return(object)
 }
 
-# for plotting the tissue image
-#' @importFrom ggplot2 ggproto Geom ggproto_parent layer
+# For plotting the tissue image
+#' @importFrom grid unit gpar
+#' @importFrom ggplot2 ggproto Geom aes ggproto_parent alpha draw_key_point
+#' @export
+#'
+GeomSpatial <- ggproto(
+  "GeomSpatial",
+  Geom,
+  required_aes = c("x", "y"),
+  extra_params = c("na.rm", "image"),
+  default_aes = aes(
+    shape = 21,
+    colour = "black",
+    point.size.factor = 1.0,
+    fill = NA,
+    alpha = NA,
+    stroke = 0.5
+  ),
+  setup_data = function(self, data, params) {
+    data <- ggproto_parent(Geom, self)$setup_data(data, params)
+    # We need to flip the image as the Y coordinates are reversed
+    data$y = max(data$y) - data$y + min(data$y)
+    data
+  },
+  draw_key = draw_key_point,
+  draw_group = function(data, panel_scales, coord, image) {
+    # This should be in native units, where
+    # Locations and sizes are relative to the x- and yscales for the current viewport.
+    z = coord$transform(
+      data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
+      panel_scales
+    )
+    # Flip Y axis for image
+    z$y = -rev(z$y) + 1
+    wdth = z$x[2] - z$x[1]
+    hgth = z$y[2] - z$y[1]
+    vp <- grid::viewport(
+      x = unit(x = z$x[1], units = "npc"), y = unit(x = z$y[1], units = "npc"),
+      width = unit(x = wdth, units = "npc"),
+      height = unit(x = hgth, units = "npc"),
+      just = c("left", "bottom")
+    )
+    img.grob <- GetImage(object = image)
+    img <- grid::editGrob(img.grob, vp = vp)
+    spot.size <- slot(object = image, name = "spot.radius")
+    coords <- coord$transform(data, panel_scales)
+    pts <- grid::pointsGrob(
+      coords$x, coords$y,
+      pch = data$shape,
+      size = unit(spot.size, "npc") * data$point.size.factor,
+      gp = grid::gpar(
+        col = alpha(coords$colour, coords$alpha),
+        fill = alpha(coords$fill, coords$alpha))
+    )
+    vp <- grid::viewport()
+    gt <- grid::gTree(vp = vp)
+    if (abs(x = data$group[1]) == 1) {
+      gt <- grid::addGrob(gt, img)
+    }
+    gt <- grid::addGrob(gt, pts)
+    ggplot2:::ggname("geom_spatial", gt)
+  }
+)
+
+# influenced by: https://stackoverflow.com/questions/49475201/adding-tables-to-ggplot2-with-facet-wrap-in-r
+# https://ggplot2.tidyverse.org/articles/extending-ggplot2.html
+#' @importFrom ggplot2 layer
+#'
+#' @export
 #'
 geom_spatial <-  function(
   mapping = NULL,
   data = NULL,
+  image = image,
   stat = "identity",
   position = "identity",
   na.rm = FALSE,
   show.legend = NA,
-  inherit.aes = FALSE,
+  inherit.aes = TRUE,
   ...
 ) {
-  GeomCustom <- ggproto(
-    "GeomCustom",
-    Geom,
-    setup_data = function(self, data, params) {
-      data <- ggproto_parent(Geom, self)$setup_data(data, params)
-      data
-    },
-
-    draw_group = function(data, panel_scales, coord) {
-      vp <- grid::viewport(x=data$x, y=data$y)
-      g <- grid::editGrob(data$grob[[1]], vp=vp)
-      ggplot2:::ggname("geom_spatial", g)
-    },
-    required_aes = c("grob","x","y")
-  )
   layer(
-    geom = GeomCustom,
+    geom = GeomSpatial,
     mapping = mapping,
     data = data,
     stat = stat,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(na.rm = na.rm, ...)
+    params = list(na.rm = na.rm, image = image, ...)
   )
 }
 
@@ -447,42 +505,29 @@ geom_spatial <-  function(
 #'
 SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
 
+
 #' @importFrom ggplot2 ggplot geom_point aes_string xlim ylim
 #' coord_cartesian labs theme_void
 #'
 SingleSpatialPlot <- function(
   data,
-  image.tibble,
-  pt.size = NULL,
+  image,
+  pt.size.factor = NULL,
   alpha = 1,
   col.by = NULL,
   na.value = 'grey50'
 ) {
-  pt.size <- pt.size %||% AutoPointSize(data = data)
-
-  if (!is.data.frame(x = data)) {
-    data <- as.data.frame(x = data)
-  }
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
-  plot <- ggplot(data = data) +
-    geom_spatial(data = image.tibble, aes_string(grob = 'grob'), x = 0.5, y = 0.5) +
-    geom_point(
-      mapping = aes_string(
-        x = colnames(x = data)[2],
-        y = colnames(x = data)[1],
-        color = col.by %iff% paste0("`", col.by, "`")
-      ),
-      size = pt.size,
-      alpha = alpha
-    ) +
-    xlim(0, image.tibble$image_width) +
-    ylim(image.tibble$image_height, 0) +
-    coord_cartesian(expand = FALSE) +
-    labs(color = NULL)
-  plot <- plot + theme_void()
+  plot <- ggplot(data = data, aes_string(
+    x = colnames(x = data)[2],
+    y = colnames(x = data)[1],
+    fill = col.by %iff% paste0("`", col.by, "`"))
+  ) +
+  geom_spatial(point.size.factor = pt.size.factor, alpha = alpha, data = data, image = image) 
+  plot <- plot + theme_void() + coord_fixed()
   return(plot)
 }
 
@@ -493,7 +538,7 @@ SpatialDimPlot <- function(
   object,
   group.by = NULL,
   images = NULL,
-  pt.size = NULL,
+  pt.size.factor = 1,
   alpha = 1,
   combine = TRUE,
   ...
@@ -525,13 +570,9 @@ SpatialDimPlot <- function(
           coordinates,
           data[rownames(x = coordinates), group, drop = FALSE]
         ),
+        image = image.use,
         col.by = group,
-        image.tibble = tibble(
-          grob = list(GetImage(object = image.use)),
-          image_width = ncol(x = image.use),
-          image_height = nrow(x = image.use)
-        ),
-        pt.size = pt.size,
+        pt.size.factor = pt.size.factor,
         alpha = alpha
       )
       if (i == 1) {
@@ -548,7 +589,7 @@ SpatialDimPlot <- function(
 }
 
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 scale_color_gradientn ggtitle theme element_text
+#' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text
 #'
 SpatialFeaturePlot <- function(
   object,
@@ -558,7 +599,9 @@ SpatialFeaturePlot <- function(
   min.cutoff = NA,
   max.cutoff = NA,
   ncol = NULL,
-  combine = TRUE
+  combine = TRUE,
+  pt.size.factor = 1,
+  alpha = 1
 ) {
   data <- FetchData(
     object = object,
@@ -590,24 +633,26 @@ SpatialFeaturePlot <- function(
           coordinates,
           data[rownames(x = coordinates), features, drop = FALSE]
         ),
-        image.tibble = tibble(
-          grob = list(GetImage(object = image.use)),
-          image_width = ncol(x = image.use),
-          image_height = nrow(x = image.use)
-        ),
-        col.by = feature
+        image = image.use,
+        col.by = feature,
+        pt.size.factor = pt.size.factor,
+        alpha = alpha
       )
-      plot <- plot + scale_color_gradientn(name = feature, colours = SpatialColors(100))
-      if (i == 1) {
+      plot <- plot + scale_fill_gradientn(name = feature, colours = SpatialColors(100))
+      if (i == 1 | length(x = images) == 1) {
         plot <- plot + ggtitle(label = images[[j]]) + theme(plot.title = element_text(hjust = 0.5))
       }
       slice.plots[[j]] <- plot
     }
-    plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
+    if (j > 1 & combine) {
+      plots[[i]] <- CombinePlots(plots = slice.plots, ncol = j)
+    } else {
+      plots[[i]] <- slice.plots[[1]]
+    }
   }
-  if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = 1)
-  }
+  if (j == 1 & combine) {
+    plots <- CombinePlots(plots = plots, ncol = ncol)
+  } 
   return(plots)
 }
 
