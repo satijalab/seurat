@@ -45,7 +45,7 @@ Imports:
     Matrix (>= 1.2-14),
     metap,
     pbapply,
-    plotly,
+    plotly (>= 4.9.0),
     png,
     RANN,
     RColorBrewer,

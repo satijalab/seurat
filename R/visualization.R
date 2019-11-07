@@ -3668,15 +3668,54 @@ FacetTheme <- function(...) {
 #
 # @param plot A ggplot2 scatterplot
 # @param do.plot Create the plot with base R graphics
+# @param cols A named vector of column names to pull. Vector names must be 'x',
+# 'y', 'colour', 'shape', and/or 'size'; vector values must be the names of
+# columns in plot data that correspond to these values. May pass only values that
+# differ from the default (eg. \code{cols = c('size' = 'point.size.factor')})
 # @param ... Extra parameters passed to PlotBuild
 #
 # @return A dataframe with the data that created the ggplot2 scatterplot
 #
 #' @importFrom ggplot2 ggplot_build
 #
-GGpointToBase <- function(plot, do.plot = TRUE, ...) {
+GGpointToBase <- function(
+  plot,
+  do.plot = TRUE,
+  cols = c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  ),
+  ...
+) {
   plot.build <- ggplot_build(plot = plot)
-  cols <- c('x', 'y', 'colour', 'shape', 'size')
+  default.cols <- c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  )
+  cols <- cols %||% default.cols
+  if (is.null(x = names(x = cols))) {
+    if (length(x = cols) > length(x = default.cols)) {
+      warning(
+        "Too many columns provided, selecting only first ",
+        length(x = default.cols),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cols <- cols[1:length(x = default.cols)]
+    }
+    names(x = cols) <- names(x = default.cols)[1:length(x = cols)]
+  }
+  cols <- c(
+    cols[intersect(x = names(x = default.cols), y = names(x = cols))],
+    default.cols[setdiff(x = names(x = default.cols), y = names(x = cols))]
+  )
+  cols <- cols[names(x = default.cols)]
   build.use <- which(x = vapply(
     X = plot.build$data,
     FUN = function(dat) {

@@ -104,7 +104,6 @@ SliceImage <- setClass(
   )
 )
 
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -180,9 +179,30 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
   ))
 }
 
-
+#' Link two ggplot plots together
+#'
+#' @param plot1,plot2 \code{ggplot} objects
+#' @param plot1.labels,plot2.labels Logical values to inherit X/Y labels from
+#' component \code{ggplot} objects
+#' @param information ...
+#' @param pt.size Point size in px
+#' @param plot1.cols,plot2.cols A named vector of column names to pull. Vector
+#' names must be 'x', 'y', 'colour', 'shape', and/or 'size'; vector values must
+#' be the names of columns in plot data that correspond to these values. May
+#' pass only values that differ from the default
+#' (eg. \code{cols = c('size' = 'point.size.factor')})
+#' @param plot1.layout,plot2.layout Extra information for \code{\link[plotly]{layout}}
+#' @param ... ...
+#'
+#' @return A \code{link[htmltools]{browsable}} HTML element with the two plots
+#' linked and side-by-side
+#'
 #' @importFrom crosstalk SharedData bscols
 #' @importFrom plotly layout plot_ly highlight
+#'
+#' @export
+#'
+#' @seealso \code{\link[plotly]{layout}}
 #'
 LinkPlots <- function(
   plot1,
@@ -190,18 +210,29 @@ LinkPlots <- function(
   plot1.labels = TRUE,
   plot2.labels = TRUE,
   information = NULL,
+  pt.size = 6,
+  plot1.cols = eval(formals(fun = GGpointToBase)$cols),
+  plot2.cols = eval(formals(fun = GGpointToBase)$cols),
   plot1.layout = list(),
   plot2.layout = list(),
   ...
 ) {
   # Get plot builds for each plot
-  plot1.build <- GGpointToPlotlyBuild(plot = plot1, information = information)
+  plot1.build <- GGpointToPlotlyBuild(
+    plot = plot1,
+    information = information,
+    cols = plot1.cols
+  )
   plot1.labels <- if (plot1.labels) {
     GetXYAesthetics(plot = plot1)
   } else {
     list()
   }
-  plot2.build <- GGpointToPlotlyBuild(plot = plot2, information = information)
+  plot2.build <- GGpointToPlotlyBuild(
+    plot = plot2,
+    information = information,
+    cols = plot2.cols
+  )
   plot2.labels <- if (plot2.labels) {
     GetXYAesthetics(plot = plot2)
   } else {
@@ -231,13 +262,14 @@ LinkPlots <- function(
       type = 'scatter',
       mode = 'markers',
       color = ~I(color.x),
-      # size = ~I(cex.x),
+      size = ~I(pt.size),
       # symbol = ~I(pch.x),
       hoverinfo = 'text',
       text = ~feature.x
     )),
     plot1.layout
   )
+  # browser()
   plot1.plotly <- do.call(what = 'layout', args = plot1.layout)
   plot1.plotly <- highlight(p = plot1.plotly, on = 'plotly_selected')
   plot2.layout$xaxis <- c(Axis(title = plot2.labels[['x']]), plot2.layout$xaxis)
@@ -250,7 +282,7 @@ LinkPlots <- function(
       type = 'scatter',
       mode = 'markers',
       color = ~I(color.y),
-      # size = ~I(cex.y),
+      size = ~I(pt.size),
       # symbol = ~I(pch.y),
       hoverinfo = 'text',
       text = ~feature.y
@@ -269,6 +301,7 @@ LinkedFeaturePlot <- function(
   feature,
   dims = 1:2,
   reduction = NULL,
+  pt.size = 6,
   image = NULL,
   slot = 'data',
   min.cutoff = NA,
@@ -283,13 +316,14 @@ LinkedFeaturePlot <- function(
     source = raster2uri(r = GetImage(object = object[[image]], mode = 'raster')),
     xref = 'x',
     yref = 'y',
-    x = -7,
-    y = -7,
+    x = 2,
+    y = 30,
     sizex = ncol(x = object[[image]]),
     sizey = nrow(x = object[[image]]),
     sizing = 'stretch',
     opacity = 1,
-    layer = 'below'
+    layer = 'below',
+    yanchor = 'bottom'
   )
   spatial.plot <- SpatialFeaturePlot(
     object = object,
@@ -312,7 +346,12 @@ LinkedFeaturePlot <- function(
     plot2 = feature.plot,
     plot1.labels = FALSE,
     information = expression.data,
-    plot1.layout = list('images' = image.plotly)
+    pt.size = pt.size,
+    plot1.layout = list(
+      'images' = image.plotly,
+      'xaxis' = list('visible' = FALSE),
+      'yaxis' = list('visible' = FALSE)
+    )
   ))
 }
 
@@ -322,6 +361,7 @@ LinkedDimPlot <- function(
   object,
   dims = 1:2,
   reduction = NULL,
+  pt.size = 6,
   image = NULL,
   group.by = NULL
 ) {
@@ -330,13 +370,14 @@ LinkedDimPlot <- function(
     source = raster2uri(r = GetImage(object = object[[image]], mode = 'raster')),
     xref = 'x',
     yref = 'y',
-    x = -7,
-    y = -7,
+    x = 2,
+    y = 30,
     sizex = ncol(x = object[[image]]),
     sizey = nrow(x = object[[image]]),
     sizing = 'stretch',
     opacity = 1,
-    layer = 'below'
+    layer = 'below',
+    yanchor = 'bottom'
   )
   spatial.plot <- SpatialDimPlot(
     object = object,
@@ -353,10 +394,12 @@ LinkedDimPlot <- function(
     plot1 = spatial.plot,
     plot2 = dim.plot,
     plot1.labels = FALSE,
+    pt.size = pt.size,
+    plot1.cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
     plot1.layout = list(
-      'images' = image.plotly
-      # 'xaxis' = list('range' = c(0, ncol(x = object[[image]]))),
-      # 'yaxis' = list('range' = c(nrow(x = object[[image]]), 0))
+      'images' = image.plotly,
+      'xaxis' = list('visible' = FALSE),
+      'yaxis' = list('visible' = FALSE)
     )
   ))
 }
@@ -366,10 +409,10 @@ LinkedDimPlot <- function(
 #' @inheritParams Read10X
 #' @inheritParams CreateSeuratObject
 #' @param slice Name for the stored image of the tissue slice
-#' @param filter.matrix Only keep spots that have been determined to be over 
+#' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
-#' @param to.upper Converts all feature names to upper case. Can be useful when 
-#' analyses require comparisons between humand and mouse gene names for example. 
+#' @param to.upper Converts all feature names to upper case. Can be useful when
+#' analyses require comparisons between humand and mouse gene names for example.
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -379,14 +422,14 @@ LinkedDimPlot <- function(
 #' @importFrom jsonlite fromJSON
 #'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
 #' data_dir <- 'path/to/data/directory'
 #' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
 #' Load10X_Spatial(data.dir = data_dir)
 #' }
-#' 
+#'
 Load10X_Spatial <- function(
   data.dir,
   assay = 'Spatial',
@@ -505,7 +548,6 @@ geom_spatial <-  function(
 #'
 SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
 
-
 #' @importFrom ggplot2 ggplot geom_point aes_string xlim ylim
 #' coord_cartesian labs theme_void
 #'
@@ -526,7 +568,7 @@ SingleSpatialPlot <- function(
     y = colnames(x = data)[1],
     fill = col.by %iff% paste0("`", col.by, "`"))
   ) +
-  geom_spatial(point.size.factor = pt.size.factor, alpha = alpha, data = data, image = image) 
+  geom_spatial(point.size.factor = pt.size.factor, alpha = alpha, data = data, image = image)
   plot <- plot + theme_void() + coord_fixed()
   return(plot)
 }
@@ -652,7 +694,7 @@ SpatialFeaturePlot <- function(
   }
   if (j == 1 & combine) {
     plots <- CombinePlots(plots = plots, ncol = ncol)
-  } 
+  }
   return(plots)
 }
 
@@ -905,8 +947,12 @@ DefaultImage <- function(object) {
 
 #' @importFrom ggplot2 ggplot_build
 #'
-GGpointToPlotlyBuild <- function(plot, information = NULL) {
-  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+GGpointToPlotlyBuild <- function(
+  plot,
+  information = NULL,
+  cols = eval(expr = formals(fun = GGpointToBase)$cols)
+) {
+  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE, cols = cols)
   data <- ggplot_build(plot = plot)$plot$data
   rownames(x = plot.build) <- rownames(data)
   # Reset the names to 'x' and 'y'
