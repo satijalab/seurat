@@ -6094,6 +6094,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Cannot delete the default assay", call. = FALSE)
       }
     }
+    # remove disallowed characters from object name
+    newi <- make.names(names = i)
+    if (i != newi) {
+      warning("Invalid name supplied, making object name syntactically valid. New object name is ", newi)
+      i <- newi
+    }
     # Figure out where to store data
     slot.use <- if (inherits(x = value, what = 'Assay')) {
       # Ensure we have the same number of cells
@@ -6225,29 +6231,8 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (class(x = value) %in% c('Assay', 'DimReduc')) {
         if (length(x = Key(object = value)) == 0) {
           Key(object = value) <- paste0(tolower(x = i), '_')
-        } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = Key(object = value))) {
-          non.alnum <- gsub(
-            pattern = '[[:alnum:]]',
-            replacement = '',
-            x = Key(object = value)
-          )
-          non.alnum <- unlist(x = strsplit(x = non.alnum, split = ''))
-          non.alnum <- paste(non.alnum, collapse = '|')
-          new.key <- gsub(
-            pattern = non.alnum,
-            replacement = '',
-            x = Key(object = value)
-          )
-          new.key <- paste0(new.key, '_')
-          warning(
-            "All object keys must be alphanumeric characters, followed by an underscore ('_'), setting key to '",
-            new.key,
-            "'",
-            call. = FALSE,
-            immediate. = TRUE
-          )
-          Key(object = value) <- new.key
         }
+        Key(object = value) <- UpdateKey(key = Key(object = value))
         # Check for duplicate keys
         object.keys <- sapply(
           X = FilterObjects(object = x),
@@ -6899,12 +6884,13 @@ UpdateKey <- function(key) {
   if (grepl(pattern = '^[[:alnum:]]+_', x = key)) {
     return(key)
   } else {
-    new.key <- regmatches(
+    new.key <-  gsub(
+      pattern = "[[:^alnum:]]",
+      replacement = "",
       x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+      perl = TRUE
     )
-    new.key <- unlist(x = new.key, use.names = FALSE)
-    new.key <- paste0(paste(new.key, collapse = ''), '_')
+    new.key <- paste0(new.key, '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }
