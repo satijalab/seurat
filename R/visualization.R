@@ -2708,6 +2708,7 @@ HoverLocator <- function(
 #' @param split.by Split labels by some grouping label, useful when using
 #' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
+#' @param geom Name of geom to get X/Y aesthetic names for
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
@@ -2730,9 +2731,10 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  geom = 'GeomPoint',
   ...
 ) {
-  xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
+  xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }

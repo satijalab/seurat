@@ -580,6 +580,10 @@ SpatialDimPlot <- function(
   object,
   group.by = NULL,
   images = NULL,
+  label = FALSE,
+  label.size = 9,
+  label.color = 'limegreen',
+  repel = TRUE,
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
@@ -589,6 +593,10 @@ SpatialDimPlot <- function(
     object = object,
     group.by = group.by,
     images = images,
+    label = label,
+    label.size = label.size,
+    label.color = label.color,
+    repel = repel,
     ncol = ncol,
     combine = combine,
     pt.size.factor = pt.size.factor,
@@ -633,13 +641,17 @@ SpatialPlot <- function(
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
+  label = FALSE,
+  label.size = 9,
+  label.color = 'limegreen',
+  repel = TRUE,
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
   alpha = 1
 ) {
   if (!is.null(x = group.by) & !is.null(x = features)) {
-    stop("Please specific either group.by or features, not both.") 
+    stop("Please specific either group.by or features, not both.")
   }
   if (is.null(x = features)) {
     group.by <- group.by %||% 'ident'
@@ -712,12 +724,12 @@ SpatialPlot <- function(
   }
   features <- colnames(x = data)
   colnames(x = data) <- features
-  rownames(x = data) <- colnames(object)
+  rownames(x = data) <- colnames(x = object)
   plots <- vector(
     mode = "list",
     length = length(x = images) * length(x = features)
   )
-  for(i in 1:length(x = images)) {
+  for (i in 1:length(x = images)) {
     plot.idx <- i
     image.use <- object[[images[[i]]]]
     coordinates <- GetTissueCoordinates(object = image.use)
@@ -735,6 +747,15 @@ SpatialPlot <- function(
       )
       if (is.null(x = group.by)) {
         plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
+      } else if (label) {
+        plot <- LabelClusters(
+          plot = plot,
+          id = features[j],
+          geom = 'GeomSpatial',
+          repel = repel,
+          size = label.size,
+          color = label.color
+        )
       }
       if (j == 1 | length(x = images) == 1) {
         plot <- plot + ggtitle(label = images[[i]]) + theme(plot.title = element_text(hjust = 0.5))
