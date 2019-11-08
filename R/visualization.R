@@ -2666,8 +2666,10 @@ HoverLocator <- function(
   # Add labels
   label.layer <- which(x = sapply(
     X = plot$layers,
-    FUN = function(x) class(x$geom)[1] == "GeomText")
-  )
+    FUN = function(x) {
+      return(inherits(x = x$geom, what = c('GeomText', 'GeomTextRepel')))
+    }
+  ))
   if (length(x = label.layer) == 1) {
     p <- add_annotations(
       p = p,
