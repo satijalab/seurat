@@ -362,16 +362,25 @@ GetAssayData <- function(object, ...) {
 #' Get image data
 #'
 #' @param object An object
-#' @param mode How to return the image; should accept at least 'grob' (default) and 'raster'
+#' @param mode How to return the image; should accept one of 'grob', 'raster',
+#' 'plotly', or 'raw'
 #' @param ... Arguments passed to other methods
 #'
-#' @return Image data, either as a grob (if \code{mode = 'grob'}), raster (if
-#' \code{mode = 'raster'}) or other as implemented by each method
+#' @return Image data, varying depending on the value of \code{mode}:
+#' \describe{
+#'  \item{'grob'}{An object representing image data inheriting from \code{grob} objects (eg. \code{rastergrob})}
+#'  \item{'raster'}{An object of class \code{raster}}
+#'  \item{'plotly'}{A list with image data suitable for Plotly rendering, see \code{\link[plotly]{layout}} for more details}
+#'  \item{'raw'}{The raw image data as stored in the object}
+#' }
+#'
+#' @seealso \code{\link[plotly]{layout}}
 #'
 #' @rdname GetImage
 #' @export GetImage
 #'
-GetImage <- function(object, mode = 'grob', ...) {
+GetImage <- function(object, mode = c('grob', 'raster', 'plotly', 'raw'), ...) {
+  mode <- match.arg(arg = mode)
   UseMethod(generic = 'GetImage', object = object)
 }
 
