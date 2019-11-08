@@ -332,6 +332,7 @@ LinkedFeaturePlot <- function(
     plot1.labels = FALSE,
     information = expression.data,
     pt.size = pt.size,
+    plot1.cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
     plot1.layout = list(
       'images' = GetImage(object = object[[image]], mode = 'plotly'),
       'xaxis' = list('visible' = FALSE),
@@ -363,6 +364,7 @@ LinkedDimPlot <- function(
   return(LinkPlots(
     plot1 = spatial.plot,
     plot2 = dim.plot,
+    information = FetchData(object = object, vars = group.by %||% 'ident'),
     plot1.labels = FALSE,
     pt.size = pt.size,
     plot1.cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
