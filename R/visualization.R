@@ -2581,10 +2581,11 @@ FeatureLocator <- function(plot, ...) {
 #' @param plot A ggplot2 plot
 #' @param information An optional dataframe or matrix of extra information to be displayed on hover
 #' @param dark.theme Plot using a dark theme?
-#' @param ... Extra parameters to be passed to \code{plotly::layout}
+#' @param axes Display or hide x- and y-axes
+#' @param ... Extra parameters to be passed to \code{\link[plotly]{layout}}
 #'
 #' @importFrom ggplot2 ggplot_build
-#' @importFrom plotly plot_ly layout
+#' @importFrom plotly plot_ly layout add_annotations
 #' @export
 #'
 #' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
@@ -2599,53 +2600,37 @@ FeatureLocator <- function(plot, ...) {
 HoverLocator <- function(
   plot,
   information = NULL,
+  axes = TRUE,
   dark.theme = FALSE,
   ...
 ) {
-  #   Use GGpointToBase because we already have ggplot objects
-  #   with colors (which are annoying in plotly)
-  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+  # Use GGpointToBase because we already have ggplot objects
+  # with colors (which are annoying in plotly)
+  plot.build <- suppressWarnings(expr = GGpointToPlotlyBuild(
+    plot = plot,
+    information = information,
+    ...
+  ))
   data <- ggplot_build(plot = plot)$plot$data
-  rownames(x = plot.build) <- rownames(x = data)
-  #   Reset the names to 'x' and 'y'
-  names(x = plot.build) <- c(
-    'x',
-    'y',
-    names(x = plot.build)[3:length(x = plot.build)]
-  )
-  #   Add the names we're looking for (eg. cell name, gene name)
-  if (is.null(x = information)) {
-    plot.build$feature <- rownames(x = data)
+  # Set up axis labels here
+  # Also, a bunch of stuff to get axis lines done properly
+  if (axes) {
+    xaxis <- list(
+      title = names(x = data)[1],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
+    yaxis <- list(
+      title = names(x = data)[2],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
   } else {
-    info <- apply(
-      X = information,
-      MARGIN = 1,
-      FUN = function(x, names) {
-        return(paste0(names, ': ', x, collapse = '<br>'))
-      },
-      names = colnames(x = information)
-    )
-    data.info <- data.frame(
-      feature = paste(rownames(x = information), info, sep = '<br>'),
-      row.names = rownames(x = information)
-    )
-    plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    xaxis <- yaxis <- list(visible = FALSE)
   }
-  #   Set up axis labels here
-  #   Also, a bunch of stuff to get axis lines done properly
-  xaxis <- list(
-    title = names(x = data)[1],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  yaxis <- list(
-    title = names(x = data)[2],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  #   Check for dark theme
+  # Check for dark theme
   if (dark.theme) {
     title <- list(color = 'white')
     xaxis <- c(xaxis, color = 'white')
@@ -2655,11 +2640,11 @@ HoverLocator <- function(
     title = list(color = 'black')
     plotbg = 'white'
   }
-  #   The `~' means pull from the data passed (this is why we reset the names)
-  #   Use I() to get plotly to accept the colors from the data as is
-  #   Set hoverinfo to 'text' to override the default hover information
-  #   rather than append to it
-  p <- plotly::layout(
+  # The `~' means pull from the data passed (this is why we reset the names)
+  # Use I() to get plotly to accept the colors from the data as is
+  # Set hoverinfo to 'text' to override the default hover information
+  # rather than append to it
+  p <- layout(
     p = plot_ly(
       data = plot.build,
       x = ~x,
@@ -2678,13 +2663,13 @@ HoverLocator <- function(
     plot_bgcolor = plotbg,
     ...
   )
-  # add labels
+  # Add labels
   label.layer <- which(x = sapply(
     X = plot$layers,
     FUN = function(x) class(x$geom)[1] == "GeomText")
   )
   if (length(x = label.layer) == 1) {
-    p <- plotly::add_annotations(
+    p <- add_annotations(
       p = p,
       x = plot$layers[[label.layer]]$data[, 1],
       y = plot$layers[[label.layer]]$data[, 2],

@@ -294,8 +294,6 @@ LinkPlots <- function(
   return(bscols(plot1.plotly, plot2.plotly))
 }
 
-#' @importFrom plotly raster2uri
-#'
 LinkedFeaturePlot <- function(
   object,
   feature,
@@ -312,19 +310,6 @@ LinkedFeaturePlot <- function(
   }
   expression.data <- FetchData(object = object, vars = feature)
   image <- image %||% DefaultImage(object = object)
-  image.plotly <- list(
-    source = raster2uri(r = GetImage(object = object[[image]], mode = 'raster')),
-    xref = 'x',
-    yref = 'y',
-    x = 2,
-    y = 30,
-    sizex = ncol(x = object[[image]]),
-    sizey = nrow(x = object[[image]]),
-    sizing = 'stretch',
-    opacity = 1,
-    layer = 'below',
-    yanchor = 'bottom'
-  )
   spatial.plot <- SpatialFeaturePlot(
     object = object,
     features = feature,
@@ -348,15 +333,13 @@ LinkedFeaturePlot <- function(
     information = expression.data,
     pt.size = pt.size,
     plot1.layout = list(
-      'images' = image.plotly,
+      'images' = GetImage(object = object[[image]], mode = 'plotly'),
       'xaxis' = list('visible' = FALSE),
       'yaxis' = list('visible' = FALSE)
     )
   ))
 }
 
-#' @importFrom plotly raster2uri
-#'
 LinkedDimPlot <- function(
   object,
   dims = 1:2,
@@ -366,19 +349,6 @@ LinkedDimPlot <- function(
   group.by = NULL
 ) {
   image <- image %||% DefaultImage(object = object)
-  image.plotly <- list(
-    source = raster2uri(r = GetImage(object = object[[image]], mode = 'raster')),
-    xref = 'x',
-    yref = 'y',
-    x = 2,
-    y = 30,
-    sizex = ncol(x = object[[image]]),
-    sizey = nrow(x = object[[image]]),
-    sizing = 'stretch',
-    opacity = 1,
-    layer = 'below',
-    yanchor = 'bottom'
-  )
   spatial.plot <- SpatialDimPlot(
     object = object,
     group.by = group.by,
@@ -397,7 +367,7 @@ LinkedDimPlot <- function(
     pt.size = pt.size,
     plot1.cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
     plot1.layout = list(
-      'images' = image.plotly,
+      'images' = GetImage(object = object[[image]], mode = 'plotly'),
       'xaxis' = list('visible' = FALSE),
       'yaxis' = list('visible' = FALSE)
     )
@@ -587,7 +557,8 @@ SpatialDimPlot <- function(
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
-  alpha = 1
+  alpha = 1,
+  do.hover = FALSE
 ) {
   return(SpatialPlot(
     object = object,
@@ -600,7 +571,8 @@ SpatialDimPlot <- function(
     ncol = ncol,
     combine = combine,
     pt.size.factor = pt.size.factor,
-    alpha = alpha
+    alpha = alpha,
+    do.hover = do.hover
   ))
 }
 
@@ -617,7 +589,8 @@ SpatialFeaturePlot <- function(
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
-  alpha = 1
+  alpha = 1,
+  do.hover = FALSE
 ) {
   return(SpatialPlot(
     object = object,
@@ -629,7 +602,8 @@ SpatialFeaturePlot <- function(
     ncol = ncol,
     combine = combine,
     pt.size.factor = pt.size.factor,
-    alpha = alpha
+    alpha = alpha,
+    do.hover = do.hover
   ))
 }
 
@@ -648,7 +622,8 @@ SpatialPlot <- function(
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
-  alpha = 1
+  alpha = 1,
+  do.hover = FALSE
 ) {
   if (!is.null(x = group.by) & !is.null(x = features)) {
     stop("Please specific either group.by or features, not both.")
@@ -729,6 +704,29 @@ SpatialPlot <- function(
     mode = "list",
     length = length(x = images) * length(x = features)
   )
+  if (do.hover) {
+    if (length(x = images) > 1) {
+      images <- images[1]
+      warning(
+        "'do.hover' requires only one image, using image ",
+        images,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (length(x = features) > 1) {
+      features <- features[1]
+      type <- ifelse(test = is.null(x = group.by), yes = 'feature', no = 'grouping')
+      warning(
+        "'do.hover' requires only one ",
+        type,
+        ", using ",
+        features,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
   for (i in 1:length(x = images)) {
     plot.idx <- i
     image.use <- object[[images[[i]]]]
@@ -764,7 +762,16 @@ SpatialPlot <- function(
       plot.idx <- plot.idx + length(x = images)
     }
   }
-  if (length(x = images) > 1 &  combine) {
+  if (do.hover) {
+    return(HoverLocator(
+      plot = plots[[1]],
+      information = data[, features, drop = FALSE],
+      axes = FALSE,
+      cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
+      images = GetImage(object = object, mode = 'plotly', image = images)
+    ))
+  }
+  if (length(x = images) > 1 & combine) {
     plots <- CombinePlots(plots = plots, ncol = length(x = images))
   } else if (length(x = images == 1) & combine) {
     plots <- CombinePlots(plots = plots, ncol = ncol)
@@ -810,7 +817,13 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @method GetImage Seurat
 #' @export
 #'
-GetImage.Seurat <- function(object, mode = 'grob', image = NULL, ...) {
+GetImage.Seurat <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  image = NULL,
+  ...
+) {
+  mode <- match.arg(arg = mode)
   image <- image %||% DefaultImage(object = object)
   if (is.null(x = image)) {
     stop("No images present in this Seurat object", call. = FALSE)
@@ -818,6 +831,7 @@ GetImage.Seurat <- function(object, mode = 'grob', image = NULL, ...) {
   return(GetImage(object = object[[image]], mode = mode, ...))
 }
 
+#' @importFrom plotly raster2uri
 #' @importFrom grDevices as.raster
 #' @importFrom grid rasterGrob unit
 #'
@@ -825,7 +839,12 @@ GetImage.Seurat <- function(object, mode = 'grob', image = NULL, ...) {
 #' @method GetImage SliceImage
 #' @export
 #'
-GetImage.SliceImage <- function(object, mode = 'grob', ...) {
+GetImage.SliceImage <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
   image <- slot(object = object, name = 'image')
   image <- switch(
     EXPR = mode,
@@ -835,7 +854,21 @@ GetImage.SliceImage <- function(object, mode = 'grob', ...) {
       height = unit(x = 1, units = 'npc')
     ),
     'raster' = as.raster(x = image),
-    image
+    'plotly' = list(
+      source = raster2uri(r = GetImage(object = object, mode = 'raster')),
+      xref = 'x',
+      yref = 'y',
+      x = 2,
+      y = 30,
+      sizex = ncol(x = object),
+      sizey = nrow(x = object),
+      sizing = 'stretch',
+      opacity = 1,
+      layer = 'below',
+      yanchor = 'bottom'
+    ),
+    'raw' = image,
+    stop("Unknown image mode: ", mode, call. = FALSE)
   )
   return(image)
 }
@@ -844,7 +877,12 @@ GetImage.SliceImage <- function(object, mode = 'grob', ...) {
 #' @method GetImage SpatialImage
 #' @export
 #'
-GetImage.SpatialImage <- function(object, mode = 'grob', ...) {
+GetImage.SpatialImage <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
   stop(
     "'GetImage' must be overridden for all sublcasses of 'SpatialImage'",
     call. = FALSE
@@ -1024,8 +1062,10 @@ DefaultImage <- function(object) {
 GGpointToPlotlyBuild <- function(
   plot,
   information = NULL,
-  cols = eval(expr = formals(fun = GGpointToBase)$cols)
+  cols = eval(expr = formals(fun = GGpointToBase)$cols),
+  ...
 ) {
+  CheckDots(...)
   plot.build <- GGpointToBase(plot = plot, do.plot = FALSE, cols = cols)
   data <- ggplot_build(plot = plot)$plot$data
   rownames(x = plot.build) <- rownames(data)
