@@ -2696,13 +2696,15 @@ HoverLocator <- function(
 #' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param geom Name of geom to get X/Y aesthetic names for
+#' @param box Use geom_label/geom_label_repel (includes a box around the text
+#' labels)
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
 #' @importFrom stats median
-#' @importFrom ggrepel geom_text_repel
-#' @importFrom ggplot2 aes_string geom_text
+#' @importFrom ggrepel geom_text_repel geom_label_repel
+#' @importFrom ggplot2 aes_string geom_text geom_label
 #' @export
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
@@ -2718,6 +2720,7 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  box = FALSE,
   geom = 'GeomPoint',
   ...
 ) {
@@ -2773,6 +2776,7 @@ LabelClusters <- function(
     }
   )
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
     stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
@@ -2781,12 +2785,24 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
-  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
-  plot <- plot + geom.use(
-    data = labels.loc,
-    mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
-    ...
-  )
+  if (box) {
+    geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
+      show.legend = FALSE,
+      ...
+    )
+  } else {
+    geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
+      show.legend = FALSE,
+      ...
+    )
+  }
+
   return(plot)
 }
 

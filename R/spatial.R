@@ -643,14 +643,15 @@ SpatialDimPlot <- function(
   group.by = NULL,
   images = NULL,
   label = FALSE,
-  label.size = 9,
-  label.color = 'limegreen',
+  label.size = 7,
+  label.color = 'white',
   repel = FALSE,
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
   alpha = 1,
   stroke = 0.25,
+  box = TRUE,
   do.hover = FALSE
 ) {
   return(SpatialPlot(
@@ -666,6 +667,7 @@ SpatialDimPlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     stroke = stroke,
+    box = box,
     do.hover = do.hover
   ))
 }
@@ -712,9 +714,10 @@ SpatialPlot <- function(
   min.cutoff = NA,
   max.cutoff = NA,
   label = FALSE,
-  label.size = 9,
-  label.color = 'limegreen',
-  repel = TRUE,
+  label.size = 5,
+  label.color = 'white',
+  repel = FALSE,
+  box = TRUE,
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
@@ -851,7 +854,8 @@ SpatialPlot <- function(
           geom = 'GeomSpatial',
           repel = repel,
           size = label.size,
-          color = label.color
+          color = label.color,
+          box = box
         )
       }
       if (j == 1 | length(x = images) == 1) {
