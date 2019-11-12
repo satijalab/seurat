@@ -269,7 +269,6 @@ LinkPlots <- function(
     )),
     plot1.layout
   )
-  # browser()
   plot1.plotly <- do.call(what = 'layout', args = plot1.layout)
   plot1.plotly <- highlight(p = plot1.plotly, on = 'plotly_selected')
   plot2.layout$xaxis <- c(Axis(title = plot2.labels[['x']]), plot2.layout$xaxis)
@@ -308,15 +307,21 @@ LinkedFeaturePlot <- function(
   if (length(x = feature) > 1) {
     stop("'LinkedFeaturePlot' currently only supports one feature", call. = FALSE)
   }
-  expression.data <- FetchData(object = object, vars = feature)
   image <- image %||% DefaultImage(object = object)
-  spatial.plot <- SpatialFeaturePlot(
+  expression.data <- FetchData(
     object = object,
-    features = feature,
-    images = image,
-    slot = 'data',
-    min.cutoff = min.cutoff,
-    max.cutoff = max.cutoff
+    vars = feature,
+    cells = Cells(x = object[[image]])
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  spatial.plot <- SingleSpatialPlot(
+    data = cbind(coords, expression.data),
+    image = object[[image]],
+    col.by = feature,
+    geom = 'custom'
+  )
+  spatial.plot <- spatial.plot + scale_color_gradientn(
+    colours = SpatialColors(n = 100)
   )
   feature.plot <- FeaturePlot(
     object = object,
@@ -332,7 +337,6 @@ LinkedFeaturePlot <- function(
     plot1.labels = FALSE,
     information = expression.data,
     pt.size = pt.size,
-    plot1.cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
     plot1.layout = list(
       'images' = GetImage(object = object[[image]], mode = 'plotly'),
       'xaxis' = list('visible' = FALSE),
@@ -350,10 +354,18 @@ LinkedDimPlot <- function(
   group.by = NULL
 ) {
   image <- image %||% DefaultImage(object = object)
-  spatial.plot <- SpatialDimPlot(
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
     object = object,
-    group.by = group.by,
-    images = image
+    vars = group.by,
+    cells = Cells(x = object[[image]])
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  spatial.plot <- SingleSpatialPlot(
+    data = cbind(coords, group.data),
+    image = object[[image]],
+    col.by = group.by,
+    geom = 'custom'
   )
   dim.plot <- DimPlot(
     object = object,
@@ -364,10 +376,9 @@ LinkedDimPlot <- function(
   return(LinkPlots(
     plot1 = spatial.plot,
     plot2 = dim.plot,
-    information = FetchData(object = object, vars = group.by %||% 'ident'),
+    information = FetchData(object = object, vars = group.by),
     plot1.labels = FALSE,
     pt.size = pt.size,
-    plot1.cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
     plot1.layout = list(
       'images' = GetImage(object = object[[image]], mode = 'plotly'),
       'xaxis' = list('visible' = FALSE),
@@ -423,9 +434,53 @@ Load10X_Spatial <- function(
   return(object)
 }
 
+#' @importFrom grid viewport editGrob grobName
+#' @importFrom ggplot2 ggproto Geom ggproto_parent
+GeomCustom <- ggproto(
+  "GeomCustom",
+  Geom,
+  setup_data = function(self, data, params) {
+    data <- ggproto_parent(parent = Geom, self = self)$setup_data(data, params)
+    data
+  },
+  draw_group = function(data, panel_scales, coord) {
+    vp <- viewport(x = data$x, y = data$y)
+    g <- editGrob(grob = data$grob[[1]], vp = vp)
+    # Replacement for ggname
+    g$name <- grobName(grob = g, prefix = 'geom_custom')
+    return(g)
+    # return(ggname(prefix = "geom_spatial", grob = g))
+  },
+  required_aes = c("grob","x","y")
+)
+
+#' @importFrom ggplot2 layer
+#'
+geom_custom <-  function(
+  mapping = NULL,
+  data = NULL,
+  stat = "identity",
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = FALSE,
+  ...
+) {
+  layer(
+    geom = GeomCustom,
+    mapping = mapping,
+    data = data,
+    stat = stat,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
 # For plotting the tissue image
-#' @importFrom grid unit gpar
 #' @importFrom ggplot2 ggproto Geom aes ggproto_parent alpha draw_key_point
+#' @importFrom grid unit gpar editGrob pointsGrob viewport gTree addGrob grobName
 #' @export
 #'
 GeomSpatial <- ggproto(
@@ -460,30 +515,35 @@ GeomSpatial <- ggproto(
     wdth = z$x[2] - z$x[1]
     hgth = z$y[2] - z$y[1]
     vp <- grid::viewport(
-      x = unit(x = z$x[1], units = "npc"), y = unit(x = z$y[1], units = "npc"),
+      x = unit(x = z$x[1], units = "npc"),
+      y = unit(x = z$y[1], units = "npc"),
       width = unit(x = wdth, units = "npc"),
       height = unit(x = hgth, units = "npc"),
       just = c("left", "bottom")
     )
     img.grob <- GetImage(object = image)
-    img <- grid::editGrob(img.grob, vp = vp)
+    img <- editGrob(grob = img.grob, vp = vp)
     spot.size <- slot(object = image, name = "spot.radius")
     coords <- coord$transform(data, panel_scales)
-    pts <- grid::pointsGrob(
-      coords$x, coords$y,
+    pts <- pointsGrob(
+      x = coords$x,
+      y = coords$y,
       pch = data$shape,
       size = unit(spot.size, "npc") * data$point.size.factor,
-      gp = grid::gpar(
+      gp = gpar(
         col = alpha(coords$colour, coords$alpha),
         fill = alpha(coords$fill, coords$alpha))
     )
-    vp <- grid::viewport()
-    gt <- grid::gTree(vp = vp)
+    vp <- viewport()
+    gt <- gTree(vp = vp)
     if (abs(x = data$group[1]) == 1) {
-      gt <- grid::addGrob(gt, img)
+      gt <- addGrob(gTree = gt, child = img)
     }
-    gt <- grid::addGrob(gt, pts)
-    ggplot2:::ggname("geom_spatial", gt)
+    gt <- addGrob(gTree = gt, child = pts)
+    # Replacement for ggname
+    gt$name <- grobName(grob = gt, prefix = 'geom_spatial')
+    return(gt)
+    # ggplot2:::ggname("geom_spatial", gt)
   }
 )
 
@@ -520,7 +580,8 @@ geom_spatial <-  function(
 #'
 SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
 
-#' @importFrom ggplot2 ggplot geom_point aes_string xlim ylim
+#' @importFrom tibble tibble
+#' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
 #' coord_cartesian labs theme_void
 #'
 SingleSpatialPlot <- function(
@@ -529,19 +590,45 @@ SingleSpatialPlot <- function(
   pt.size.factor = NULL,
   alpha = 1,
   col.by = NULL,
+  geom = c('spatial', 'custom'),
   na.value = 'grey50'
 ) {
+  geom <- match.arg(arg = geom)
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
     col.by <- NULL
   }
+  col.by <- col.by %iff% paste0("`", col.by, "`")
   plot <- ggplot(data = data, aes_string(
     x = colnames(x = data)[2],
     y = colnames(x = data)[1],
-    fill = col.by %iff% paste0("`", col.by, "`"))
-  ) +
-  geom_spatial(point.size.factor = pt.size.factor, alpha = alpha, data = data, image = image)
-  plot <- plot + theme_void() + coord_fixed()
+    fill = col.by
+  ))
+  plot <- switch(
+    EXPR = geom,
+    'spatial' = {
+      plot + geom_spatial(
+        point.size.factor = pt.size.factor,
+        alpha = alpha,
+        data = data,
+        image = image
+      ) + coord_fixed()
+    },
+    'custom' = {
+      plot + geom_custom(
+        data = tibble(grob = list(GetImage(object = image, mode = 'grob'))),
+        mapping = aes_string(grob = 'grob'),
+        x = 0.5,
+        y = 0.5
+      ) +
+        geom_point(mapping = aes_string(color = col.by)) +
+        xlim(0, ncol(x = image)) +
+        ylim(nrow(x = image), 0) +
+        coord_cartesian(expand = FALSE)
+    },
+    stop("Unknown geom, choose from 'spatial' or 'custom'", call. = FALSE)
+  )
+  plot <- plot + theme_void()
   return(plot)
 }
 
@@ -742,6 +829,7 @@ SpatialPlot <- function(
         ),
         image = image.use,
         col.by = features[j],
+        geom = ifelse(test = do.hover, yes = 'custom', no = 'spatial'),
         pt.size.factor = pt.size.factor,
         alpha = alpha
       )
@@ -769,7 +857,7 @@ SpatialPlot <- function(
       plot = plots[[1]],
       information = data[, features, drop = FALSE],
       axes = FALSE,
-      cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
+      # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
       images = GetImage(object = object, mode = 'plotly', image = images)
     ))
   }
@@ -860,14 +948,13 @@ GetImage.SliceImage <- function(
       source = raster2uri(r = GetImage(object = object, mode = 'raster')),
       xref = 'x',
       yref = 'y',
-      x = 2,
-      y = 30,
+        # x = -7,
+        # y = -7,
       sizex = ncol(x = object),
       sizey = nrow(x = object),
       sizing = 'stretch',
       opacity = 1,
-      layer = 'below',
-      yanchor = 'bottom'
+      layer = 'below'
     ),
     'raw' = image,
     stop("Unknown image mode: ", mode, call. = FALSE)
