@@ -642,7 +642,7 @@ SpatialDimPlot <- function(
   label = FALSE,
   label.size = 9,
   label.color = 'limegreen',
-  repel = TRUE,
+  repel = FALSE,
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,

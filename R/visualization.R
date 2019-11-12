@@ -2735,6 +2735,9 @@ LabelClusters <- function(
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
+  if (geom == 'GeomSpatial') {
+    data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
+  }
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
