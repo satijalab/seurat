@@ -590,6 +590,7 @@ SingleSpatialPlot <- function(
   image,
   pt.size.factor = NULL,
   alpha = 1,
+  stroke = 0.25,
   col.by = NULL,
   geom = c('spatial', 'custom'),
   na.value = 'grey50'
@@ -612,7 +613,8 @@ SingleSpatialPlot <- function(
         point.size.factor = pt.size.factor,
         alpha = alpha,
         data = data,
-        image = image
+        image = image,
+        stroke = stroke
       ) + coord_fixed()
     },
     'custom' = {
@@ -648,6 +650,7 @@ SpatialDimPlot <- function(
   combine = TRUE,
   pt.size.factor = 1,
   alpha = 1,
+  stroke = 0.25,
   do.hover = FALSE
 ) {
   return(SpatialPlot(
@@ -662,6 +665,7 @@ SpatialDimPlot <- function(
     combine = combine,
     pt.size.factor = pt.size.factor,
     alpha = alpha,
+    stroke = stroke,
     do.hover = do.hover
   ))
 }
@@ -680,6 +684,7 @@ SpatialFeaturePlot <- function(
   combine = TRUE,
   pt.size.factor = 1,
   alpha = 1,
+  stroke = 0.25,
   do.hover = FALSE
 ) {
   return(SpatialPlot(
@@ -693,6 +698,7 @@ SpatialFeaturePlot <- function(
     combine = combine,
     pt.size.factor = pt.size.factor,
     alpha = alpha,
+    stroke = stroke,
     do.hover = do.hover
   ))
 }
@@ -713,6 +719,7 @@ SpatialPlot <- function(
   combine = TRUE,
   pt.size.factor = 1,
   alpha = 1,
+  stroke = 0.25,
   do.hover = FALSE
 ) {
   if (!is.null(x = group.by) & !is.null(x = features)) {
@@ -832,7 +839,8 @@ SpatialPlot <- function(
         col.by = features[j],
         geom = ifelse(test = do.hover, yes = 'custom', no = 'spatial'),
         pt.size.factor = pt.size.factor,
-        alpha = alpha
+        alpha = alpha,
+        stroke = stroke
       )
       if (is.null(x = group.by)) {
         plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
