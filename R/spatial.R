@@ -494,7 +494,7 @@ GeomSpatial <- ggproto(
     point.size.factor = 1.0,
     fill = NA,
     alpha = NA,
-    stroke = 0.5
+    stroke = 0.25
   ),
   setup_data = function(self, data, params) {
     data <- ggproto_parent(Geom, self)$setup_data(data, params)
@@ -532,7 +532,8 @@ GeomSpatial <- ggproto(
       size = unit(spot.size, "npc") * data$point.size.factor,
       gp = gpar(
         col = alpha(coords$colour, coords$alpha),
-        fill = alpha(coords$fill, coords$alpha))
+        fill = alpha(coords$fill, coords$alpha), 
+        lwd = coords$stroke)
     )
     vp <- viewport()
     gt <- gTree(vp = vp)
