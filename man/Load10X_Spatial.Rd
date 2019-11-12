@@ -21,7 +21,7 @@ will be prefixed with the name.}
 tissue}
 
 \item{to.upper}{Converts all feature names to upper case. Can be useful when
-analyses require comparisons between humand and mouse gene names for example.}
+analyses require comparisons between human and mouse gene names for example.}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }

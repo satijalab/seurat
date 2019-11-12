@@ -143,7 +143,6 @@ Images <- function(object, assay = NULL) {
 #' @return A \code{\link{SliceImage}} object
 #'
 #' @importFrom png readPNG
-#' @importFrom grid rasterGrob
 #' @importFrom jsonlite fromJSON
 #'
 #' @seealso \code{\link{SliceImage}} \code{\link{Load10X_Spatial}}
@@ -395,7 +394,7 @@ LinkedDimPlot <- function(
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
-#' analyses require comparisons between humand and mouse gene names for example.
+#' analyses require comparisons between human and mouse gene names for example.
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
