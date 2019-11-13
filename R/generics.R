@@ -490,7 +490,7 @@ JS <- function(object, ...) {
 
 #' Set JackStraw information
 #'
-#' @inherit JS
+#' @inheritParams JS
 #' @param value JackStraw information
 #'
 #' @rdname JS
