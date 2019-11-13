@@ -33,20 +33,20 @@ features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
 
-\item{slot}{If plotting a feature, which data slot to pull from (counts, 
+\item{slot}{If plotting a feature, which data slot to pull from (counts,
 data, or scale.data)}
 
-\item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff 
-values for each feature, may specify quantile in the form of 'q##' where '##' 
+\item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff
+values for each feature, may specify quantile in the form of 'q##' where '##'
 is the quantile (eg, 'q1', 'q10')}
 
-\item{cells.highlight}{A list of character or numeric vectors of cells to 
-highlight. If only one group of cells desired, can simply pass a vector 
-instead of a list. If set, colors selected cells to the color(s) in 
+\item{cells.highlight}{A list of character or numeric vectors of cells to
+highlight. If only one group of cells desired, can simply pass a vector
+instead of a list. If set, colors selected cells to the color(s) in
 cols.highlight}
 
 \item{cols.highlight}{A vector of colors to highlight the cells as; ordered
-the same as the groups in cells.highlight; last color corresponds to 
+the same as the groups in cells.highlight; last color corresponds to
 unselected cells.}
 
 \item{label}{Whether to label the clusters}
@@ -62,7 +62,7 @@ geom_label)}
 
 \item{ncol}{Number of columns if plotting multiple plots}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; 
+\item{combine}{Combine plots into a single gg object; note that if TRUE;
 themeing will not work when plotting multiple features/groupings}
 
 \item{pt.size.factor}{Scale the size of the spots}
@@ -79,8 +79,8 @@ A ggplot object
 }
 \description{
 SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as
-spots over the image that was collected. We also provide SpatialFeaturePlot 
-and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent 
+spots over the image that was collected. We also provide SpatialFeaturePlot
+and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent
 naming framework.
 }
 \examples{
