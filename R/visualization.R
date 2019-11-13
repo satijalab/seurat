@@ -4187,6 +4187,12 @@ SingleCorPlot <- function(
     x = colnames(x = data),
     fixed = TRUE
   )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = ':',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   if (ncol(x = data) < 2) {
     msg <- "Too few variables passed"
     if (ncol(x = data) == 1) {
@@ -4492,7 +4498,7 @@ SingleExIPlot <- function(
   } else{
     data[, feature] <- data[, feature] + noise
   }
-  axis.label <- ifelse(test = log, yes = 'Log Expression Level', no = 'Expression Level')
+  axis.label <- 'Expression Level'
   y.max <- y.max %||% max(data[, feature])
   if (is.null(x = split) || type != 'violin') {
     vln.geom <- geom_violin
