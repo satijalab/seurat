@@ -314,6 +314,7 @@ ProjectDim <- function(
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
+#' @param seed.use Random seed to set. If NULL, does not set a seed
 #' @param verbose Show progress messages
 #'
 #' @importFrom irlba irlba
@@ -326,10 +327,13 @@ RunCCA.default <- function(
   object2,
   standardize = TRUE,
   num.cc = 20,
+  seed.use = 42,
   verbose = FALSE,
   ...
 ) {
-  set.seed(seed = 42)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   cells1 <- colnames(x = object1)
   cells2 <- colnames(x = object2)
   if (standardize) {
@@ -942,7 +946,7 @@ RunPCA.Seurat <- function(
 }
 
 #' @param assay Name of assay that that t-SNE is being run on
-#' @param seed.use Random seed for the t-SNE
+#' @param seed.use Random seed for the t-SNE. If NULL, does not set the seed
 #' @param tsne.method Select the method to use to compute the tSNE. Available
 #' methods are:
 #' \itemize{
@@ -975,7 +979,9 @@ RunTSNE.matrix <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  set.seed(seed = seed.use)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   tsne.data <- switch(
     EXPR = tsne.method,
     'Rtsne' = Rtsne(
@@ -1849,7 +1855,9 @@ JackRandom <- function(
   weight.by.var = weight.by.var,
   maxit = 1000
 ) {
-  set.seed(seed = seed.use)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   rand.genes <- sample(
     x = rownames(x = scaled.data),
     size = nrow(x = scaled.data) * prop.use

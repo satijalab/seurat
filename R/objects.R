@@ -4687,7 +4687,7 @@ WhichCells.Assay <- function(
 #' @param downsample Maximum number of cells per identity class, default is \code{Inf};
 #' downsampling will happen after all other operations, including inverting the
 #' cell selection
-#' @param seed Random seed for downsampling
+#' @param seed Random seed for downsampling. If NULL, does not set a seed
 #'
 #' @importFrom stats na.omit
 #'
@@ -4713,7 +4713,9 @@ WhichCells.Seurat <- function(
   }
   cell.order <- cells
   if (!is.null(x = idents)) {
-    set.seed(seed = seed)
+    if (!is.null(x = seed)) {
+      set.seed(seed = seed)
+    }
     if (any(!idents %in% levels(x = Idents(object = object)))) {
       stop(
         "Cannot find the following identities in the object: ",
@@ -6279,10 +6281,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       # For Assays, run CalcN
       if (inherits(x = value, what = 'Assay')) {
-        if (i %in% Assays(object = x) && ! identical(
-          x = GetAssayData(object = x, assay = i, slot = "counts"), 
-          y = GetAssayData(object = value, slot = "counts"))
-        ) {
+        if ((!i %in% Assays(object = x)) | 
+            (i %in% Assays(object = x) && ! identical(
+              x = GetAssayData(object = x, assay = i, slot = "counts"), 
+              y = GetAssayData(object = value, slot = "counts"))
+            )) {
           n.calc <- CalcN(object = value)
           if (!is.null(x = n.calc)) {
             names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
