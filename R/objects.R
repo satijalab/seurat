@@ -6279,10 +6279,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       # For Assays, run CalcN
       if (inherits(x = value, what = 'Assay')) {
-        if (i %in% Assays(object = x) && ! identical(
-          x = GetAssayData(object = x, assay = i, slot = "counts"), 
-          y = GetAssayData(object = value, slot = "counts"))
-        ) {
+        if ((!i %in% Assays(object = x)) | 
+            (i %in% Assays(object = x) && ! identical(
+              x = GetAssayData(object = x, assay = i, slot = "counts"), 
+              y = GetAssayData(object = value, slot = "counts"))
+            )) {
           n.calc <- CalcN(object = value)
           if (!is.null(x = n.calc)) {
             names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
