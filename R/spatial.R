@@ -88,6 +88,7 @@ SpatialImage <- setClass(
 #' @slot scale.factors An object of class \code{\link{scalefactors}}; see
 #' \code{\link{scalefactors}} for more information
 #' @slot coordinates A data frame with tissue coordinate information
+#' @slot spot.radius Single numeric value giving the radius of the spots
 #'
 #' @name SliceImage-class
 #' @rdname SliceImage-class
@@ -138,6 +139,8 @@ Images <- function(object, assay = NULL) {
 #' Load a 10X Genomics Visium Image
 #'
 #' @inheritParams Read10X
+#' @param filter.matrix Filter spot/feature matrix to only include spots that 
+#' have been determined to be over tissue.
 #' @param ... Ignored for now
 #'
 #' @return A \code{\link{SliceImage}} object
@@ -585,6 +588,25 @@ geom_spatial <-  function(
 #'
 SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
 
+
+# Base plotting function for all Spatial plots
+# 
+# @param data Data.frame with info to be plotted
+# @param image SpatialImage object to be plotted
+# @param pt.size.factor Sets the size of the points relative to spot.radius
+# @param alpha Controls the opacity
+# @param stroke Control the width of the border around the spots
+# @param cells.highlight A list of character or numeric vectors of cells to 
+# highlight. If only one group of cells desired, can simply pass a vector 
+# instead of a list. If set, colors selected cells to the color(s) in 
+# cols.highlight
+# @param cols.highlight A vector of colors to highlight the cells as; ordered 
+# the same as the groups in cells.highlight; last color corresponds to 
+# unselected cells.
+# @param geom Switch between normal spatial geom and geom to enable hover 
+# functionality
+# @param na.value Color for spots with NA values
+
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
 #' coord_cartesian labs theme_void
@@ -656,87 +678,59 @@ SingleSpatialPlot <- function(
   return(plot)
 }
 
-#' @export
-#' @rdname SpatialPlot
-#'
-SpatialDimPlot <- function(
-  object,
-  group.by = NULL,
-  images = NULL,
-  cells.highlight = NULL,
-  cols.highlight = c('#DE2D26', 'grey50'),
-  label = FALSE,
-  label.size = 7,
-  label.color = 'white',
-  repel = FALSE,
-  ncol = NULL,
-  combine = TRUE,
-  pt.size.factor = 1,
-  alpha = 1,
-  stroke = 0.25,
-  box = TRUE,
-  do.hover = FALSE
-) {
-  return(SpatialPlot(
-    object = object,
-    group.by = group.by,
-    images = images,
-    cells.highlight = cells.highlight,
-    cols.highlight = cols.highlight,
-    label = label,
-    label.size = label.size,
-    label.color = label.color,
-    repel = repel,
-    ncol = ncol,
-    combine = combine,
-    pt.size.factor = pt.size.factor,
-    alpha = alpha,
-    stroke = stroke,
-    box = box,
-    do.hover = do.hover
-  ))
-}
-
-#' @export
-#' @rdname SpatialPlot
-#'
-SpatialFeaturePlot <- function(
-  object,
-  features,
-  images = NULL,
-  slot = 'data',
-  min.cutoff = NA,
-  max.cutoff = NA,
-  ncol = NULL,
-  combine = TRUE,
-  pt.size.factor = 1,
-  alpha = 1,
-  stroke = 0.25,
-  do.hover = FALSE
-) {
-  return(SpatialPlot(
-    object = object,
-    features = features,
-    images = images,
-    slot = slot,
-    min.cutoff = min.cutoff,
-    max.cutoff = max.cutoff,
-    ncol = ncol,
-    combine = combine,
-    pt.size.factor = pt.size.factor,
-    alpha = alpha,
-    stroke = stroke,
-    do.hover = do.hover
-  ))
-}
-
-#' Visualize spatial clustering and expression data
-#'
+#' Visualize spatial clustering and expression data. 
+#' 
+#' SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as
+#' spots over the image that was collected. We also provide SpatialFeaturePlot 
+#' and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent 
+#' naming framework.  
+#' 
+#' @param object A Seurat object
+#' @param group.by Name of meta.data column to group the data by
+#' @param features Name of the feature to visualize. Provide either group.by OR
+#' features, not both.
+#' @param images Name of the images to use in the plot(s)
+#' @param slot If plotting a feature, which data slot to pull from (counts, 
+#' data, or scale.data)
+#' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff 
+#' values for each feature, may specify quantile in the form of 'q##' where '##' 
+#' is the quantile (eg, 'q1', 'q10')
+#' @param cells.highlight A list of character or numeric vectors of cells to 
+#' highlight. If only one group of cells desired, can simply pass a vector 
+#' instead of a list. If set, colors selected cells to the color(s) in 
+#' cols.highlight 
+#' @param cols.highlight A vector of colors to highlight the cells as; ordered
+#' the same as the groups in cells.highlight; last color corresponds to 
+#' unselected cells.
+#' @param label Whether to label the clusters
+#' @param label.size Sets the size of the labels
+#' @param label.color Sets the color of the label text
+#' @param label.box Whether to put a box around the label text (geom_text vs
+#' geom_label)
+#' @param repel Repels the labels to prevent overlap
+#' @param ncol Number of columns if plotting multiple plots 
+#' @param combine Combine plots into a single gg object; note that if TRUE; 
+#' themeing will not work when plotting multiple features/groupings
+#' @param pt.size.factor Scale the size of the spots
+#' @param alpha Controls opacity of spots 
+#' @param stroke Control the width of the border around the spots
+#' @param do.hover Return a plotly view of the data to get info when hovering
+#' over points.
+#' 
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text
 #'
 #' @export
+#' 
+#' @examples
+#' \dontrun{
+#' # For functionality analagous to FeaturePlot
+#' SpatialPlot(seurat.object, features = "MS4A1")
+#' 
+#' # For functionality analagous to DimPlot
+#' SpatialPlot(seurat.object, group.by = "clusters")
+#' }
 #'
 SpatialPlot <- function(
   object,
@@ -751,8 +745,8 @@ SpatialPlot <- function(
   label = FALSE,
   label.size = 5,
   label.color = 'white',
+  label.box = TRUE,
   repel = FALSE,
-  box = TRUE,
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1,
@@ -892,7 +886,7 @@ SpatialPlot <- function(
           repel = repel,
           size = label.size,
           color = label.color,
-          box = box
+          label.box = label.box
         )
       }
       if (j == 1 | length(x = images) == 1) {
@@ -918,6 +912,83 @@ SpatialPlot <- function(
   }
   return(plots)
 }
+
+# TODO: move to convienence.R
+#' @export
+#' @rdname SpatialPlot
+#'
+SpatialDimPlot <- function(
+  object,
+  group.by = NULL,
+  images = NULL,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
+  label = FALSE,
+  label.size = 7,
+  label.color = 'white',
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1,
+  alpha = 1,
+  stroke = 0.25,
+  label.box = TRUE,
+  do.hover = FALSE
+) {
+  return(SpatialPlot(
+    object = object,
+    group.by = group.by,
+    images = images,
+    cells.highlight = cells.highlight,
+    cols.highlight = cols.highlight,
+    label = label,
+    label.size = label.size,
+    label.color = label.color,
+    repel = repel,
+    ncol = ncol,
+    combine = combine,
+    pt.size.factor = pt.size.factor,
+    alpha = alpha,
+    stroke = stroke,
+    label.box = label.box,
+    do.hover = do.hover
+  ))
+}
+
+# TODO: move to convienence.R
+#' @export
+#' @rdname SpatialPlot
+#'
+SpatialFeaturePlot <- function(
+  object,
+  features,
+  images = NULL,
+  slot = 'data',
+  min.cutoff = NA,
+  max.cutoff = NA,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1,
+  alpha = 1,
+  stroke = 0.25,
+  do.hover = FALSE
+) {
+  return(SpatialPlot(
+    object = object,
+    features = features,
+    images = images,
+    slot = slot,
+    min.cutoff = min.cutoff,
+    max.cutoff = max.cutoff,
+    ncol = ncol,
+    combine = combine,
+    pt.size.factor = pt.size.factor,
+    alpha = alpha,
+    stroke = stroke,
+    do.hover = do.hover
+  ))
+}
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics

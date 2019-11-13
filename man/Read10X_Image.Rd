@@ -12,6 +12,9 @@ files provided by 10X. A vector or named vector can be given in order to load
 several data directories. If a named vector is given, the cell barcode names
 will be prefixed with the name.}
 
+\item{filter.matrix}{Filter spot/feature matrix to only include spots that 
+have been determined to be over tissue.}
+
 \item{...}{Ignored for now}
 }
 \value{

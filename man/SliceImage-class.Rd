@@ -19,5 +19,7 @@ platform
 \code{\link{scalefactors}} for more information}
 
 \item{\code{coordinates}}{A data frame with tissue coordinate information}
+
+\item{\code{spot.radius}}{Single numeric value giving the radius of the spots}
 }}
 
