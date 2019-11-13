@@ -591,6 +591,8 @@ SingleSpatialPlot <- function(
   alpha = 1,
   stroke = 0.25,
   col.by = NULL,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
   geom = c('spatial', 'custom'),
   na.value = 'grey50'
 ) {
@@ -600,6 +602,18 @@ SingleSpatialPlot <- function(
     col.by <- NULL
   }
   col.by <- col.by %iff% paste0("`", col.by, "`")
+  if (!is.null(x = cells.highlight)) {
+    highlight.info <- SetHighlight(
+      cells.highlight = cells.highlight,
+      cells.all = rownames(x = data),
+      sizes.highlight = pt.size.factor,
+      cols.highlight = cols.highlight[1],
+      col.base = cols.highlight[2]
+    )
+    order <- highlight.info$plot.order
+    data$highlight <- highlight.info$highlight
+    col.by <- 'highlight'
+  }
   plot <- ggplot(data = data, aes_string(
     x = colnames(x = data)[2],
     y = colnames(x = data)[1],
@@ -630,6 +644,9 @@ SingleSpatialPlot <- function(
     },
     stop("Unknown geom, choose from 'spatial' or 'custom'", call. = FALSE)
   )
+  if (!is.null(x = cells.highlight)) {
+    plot <- plot + scale_fill_manual(values = cols.highlight)
+  }
   plot <- plot + theme_void()
   return(plot)
 }
@@ -641,6 +658,8 @@ SpatialDimPlot <- function(
   object,
   group.by = NULL,
   images = NULL,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
   label = FALSE,
   label.size = 7,
   label.color = 'white',
@@ -657,6 +676,8 @@ SpatialDimPlot <- function(
     object = object,
     group.by = group.by,
     images = images,
+    cells.highlight = cells.highlight,
+    cols.highlight = cols.highlight,
     label = label,
     label.size = label.size,
     label.color = label.color,
@@ -712,6 +733,8 @@ SpatialPlot <- function(
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
   label = FALSE,
   label.size = 5,
   label.color = 'white',
@@ -840,6 +863,8 @@ SpatialPlot <- function(
         image = image.use,
         col.by = features[j],
         geom = ifelse(test = do.hover, yes = 'custom', no = 'spatial'),
+        cells.highlight = cells.highlight,
+        cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
         alpha = alpha,
         stroke = stroke
