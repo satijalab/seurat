@@ -7,8 +7,7 @@
 LinkPlots(plot1, plot2, plot1.labels = TRUE, plot2.labels = TRUE,
   information = NULL, pt.size = 6, plot1.cols = eval(formals(fun =
   GGpointToBase)$cols), plot2.cols = eval(formals(fun =
-  GGpointToBase)$cols), plot1.layout = list(), plot2.layout = list(),
-  ...)
+  GGpointToBase)$cols), plot1.layout = list(), plot2.layout = list())
 }
 \arguments{
 \item{plot1, plot2}{\code{ggplot} objects}
@@ -16,7 +15,7 @@ LinkPlots(plot1, plot2, plot1.labels = TRUE, plot2.labels = TRUE,
 \item{plot1.labels, plot2.labels}{Logical values to inherit X/Y labels from
 component \code{ggplot} objects}
 
-\item{information}{...}
+\item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 
 \item{pt.size}{Point size in px}
 
@@ -27,11 +26,9 @@ pass only values that differ from the default
 (eg. \code{cols = c('size' = 'point.size.factor')})}
 
 \item{plot1.layout, plot2.layout}{Extra information for \code{\link[plotly]{layout}}}
-
-\item{...}{...}
 }
 \value{
-A \code{link[htmltools]{browsable}} HTML element with the two plots
+A \code{\link[htmltools]{browsable}} HTML element with the two plots
 linked and side-by-side
 }
 \description{

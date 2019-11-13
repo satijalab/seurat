@@ -183,10 +183,10 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
 
 #' Link two ggplot plots together
 #'
+#' @inheritParams HoverLocator
 #' @param plot1,plot2 \code{ggplot} objects
 #' @param plot1.labels,plot2.labels Logical values to inherit X/Y labels from
 #' component \code{ggplot} objects
-#' @param information ...
 #' @param pt.size Point size in px
 #' @param plot1.cols,plot2.cols A named vector of column names to pull. Vector
 #' names must be 'x', 'y', 'colour', 'shape', and/or 'size'; vector values must
@@ -194,9 +194,8 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
 #' pass only values that differ from the default
 #' (eg. \code{cols = c('size' = 'point.size.factor')})
 #' @param plot1.layout,plot2.layout Extra information for \code{\link[plotly]{layout}}
-#' @param ... ...
 #'
-#' @return A \code{link[htmltools]{browsable}} HTML element with the two plots
+#' @return A \code{\link[htmltools]{browsable}} HTML element with the two plots
 #' linked and side-by-side
 #'
 #' @importFrom crosstalk SharedData bscols
@@ -216,8 +215,7 @@ LinkPlots <- function(
   plot1.cols = eval(formals(fun = GGpointToBase)$cols),
   plot2.cols = eval(formals(fun = GGpointToBase)$cols),
   plot1.layout = list(),
-  plot2.layout = list(),
-  ...
+  plot2.layout = list()
 ) {
   # Get plot builds for each plot
   plot1.build <- GGpointToPlotlyBuild(
@@ -295,7 +293,29 @@ LinkPlots <- function(
   return(bscols(plot1.plotly, plot2.plotly))
 }
 
+#' Visualize spatial and clustering (dimensional reduction) data in a linked,
+#' interactive framework
+#'
+#' @inheritParams FeaturePlot
+#' @inheritParams SpatialPlot
+#' @param feature Feature to visualize
+#' @param image Which image to use
+#'
+#' @return A \code{\link[htmltools]{browsable}} HTML element with the spatial plot
+#' on the left and the dimensional-reduction plot on the right
+#'
+#' @rdname LinkedPlots
+#' @name LinkedPlots
+#'
+#' @aliases LinkedPlot
+#'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' LinkedFeaturePlot(seurat.object, feature = 'Hpca')
+#' LinkedDimPlot(seurat.object)
+#' }
 #'
 LinkedFeaturePlot <- function(
   object,
@@ -349,6 +369,8 @@ LinkedFeaturePlot <- function(
   ))
 }
 
+#' @rdname LinkedPlots
+#'
 #' @export
 #'
 LinkedDimPlot <- function(
@@ -589,7 +611,6 @@ geom_spatial <-  function(
 #'
 SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
 
-
 # Base plotting function for all Spatial plots
 #
 # @param data Data.frame with info to be plotted
@@ -728,9 +749,11 @@ SingleSpatialPlot <- function(
 #' \dontrun{
 #' # For functionality analagous to FeaturePlot
 #' SpatialPlot(seurat.object, features = "MS4A1")
+#' SpatialFeaturePlot(seurat.object, features = "MS4A1")
 #'
 #' # For functionality analagous to DimPlot
 #' SpatialPlot(seurat.object, group.by = "clusters")
+#' SpatialDimPlot(seurat.object, group.by = "clusters")
 #' }
 #'
 SpatialPlot <- function(
@@ -989,7 +1012,6 @@ SpatialFeaturePlot <- function(
     do.hover = do.hover
   ))
 }
-
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics

@@ -87,9 +87,11 @@ naming framework.
 \dontrun{
 # For functionality analagous to FeaturePlot
 SpatialPlot(seurat.object, features = "MS4A1")
+SpatialFeaturePlot(seurat.object, features = "MS4A1")
 
 # For functionality analagous to DimPlot
 SpatialPlot(seurat.object, group.by = "clusters")
+SpatialDimPlot(seurat.object, group.by = "clusters")
 }
 
 }
