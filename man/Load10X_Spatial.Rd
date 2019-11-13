@@ -17,11 +17,11 @@ will be prefixed with the name.}
 
 \item{slice}{Name for the stored image of the tissue slice}
 
-\item{filter.matrix}{Only keep spots that have been determined to be over 
+\item{filter.matrix}{Only keep spots that have been determined to be over
 tissue}
 
-\item{to.upper}{Converts all feature names to upper case. Can be useful when 
-analyses require comparisons between humand and mouse gene names for example.}
+\item{to.upper}{Converts all feature names to upper case. Can be useful when
+analyses require comparisons between human and mouse gene names for example.}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }

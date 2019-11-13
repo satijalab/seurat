@@ -7,18 +7,22 @@
 \alias{GetImage.SpatialImage}
 \title{Get image data}
 \usage{
-GetImage(object, mode = "grob", ...)
+GetImage(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 
-\method{GetImage}{Seurat}(object, mode = "grob", image = NULL, ...)
+\method{GetImage}{Seurat}(object, mode = c("grob", "raster", "plotly",
+  "raw"), image = NULL, ...)
 
-\method{GetImage}{SliceImage}(object, mode = "grob", ...)
+\method{GetImage}{SliceImage}(object, mode = c("grob", "raster",
+  "plotly", "raw"), ...)
 
-\method{GetImage}{SpatialImage}(object, mode = "grob", ...)
+\method{GetImage}{SpatialImage}(object, mode = c("grob", "raster",
+  "plotly", "raw"), ...)
 }
 \arguments{
 \item{object}{An object}
 
-\item{mode}{How to return the image; should accept at least 'grob' (default) and 'raster'}
+\item{mode}{How to return the image; should accept one of 'grob', 'raster',
+'plotly', or 'raw'}
 
 \item{...}{Arguments passed to other methods}
 
@@ -26,9 +30,17 @@ GetImage(object, mode = "grob", ...)
 \code{NULL}, will attempt to select an image automatically}
 }
 \value{
-Image data, either as a grob (if \code{mode = 'grob'}), raster (if
-\code{mode = 'raster'}) or other as implemented by each method
+Image data, varying depending on the value of \code{mode}:
+\describe{
+ \item{'grob'}{An object representing image data inheriting from \code{grob} objects (eg. \code{rastergrob})}
+ \item{'raster'}{An object of class \code{raster}}
+ \item{'plotly'}{A list with image data suitable for Plotly rendering, see \code{\link[plotly]{layout}} for more details}
+ \item{'raw'}{The raw image data as stored in the object}
+}
 }
 \description{
 Get image data
+}
+\seealso{
+\code{\link[plotly]{layout}}
 }
