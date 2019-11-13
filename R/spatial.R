@@ -139,7 +139,7 @@ Images <- function(object, assay = NULL) {
 #' Load a 10X Genomics Visium Image
 #'
 #' @inheritParams Read10X
-#' @param filter.matrix Filter spot/feature matrix to only include spots that 
+#' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue.
 #' @param ... Ignored for now
 #'
@@ -322,7 +322,7 @@ LinkedFeaturePlot <- function(
     data = cbind(coords, expression.data),
     image = object[[image]],
     col.by = feature,
-    geom = 'custom'
+    geom = 'interactive'
   )
   spatial.plot <- spatial.plot + scale_color_gradientn(
     colours = SpatialColors(n = 100)
@@ -371,7 +371,7 @@ LinkedDimPlot <- function(
     data = cbind(coords, group.data),
     image = object[[image]],
     col.by = group.by,
-    geom = 'custom'
+    geom = 'interactive'
   )
   dim.plot <- DimPlot(
     object = object,
@@ -442,8 +442,9 @@ Load10X_Spatial <- function(
 
 #' @importFrom grid viewport editGrob grobName
 #' @importFrom ggplot2 ggproto Geom ggproto_parent
-GeomCustom <- ggproto(
-  "GeomCustom",
+#
+GeomSpatialInteractive <- ggproto(
+  "GeomSpatialInteractive",
   Geom,
   setup_data = function(self, data, params) {
     data <- ggproto_parent(parent = Geom, self = self)$setup_data(data, params)
@@ -453,7 +454,7 @@ GeomCustom <- ggproto(
     vp <- viewport(x = data$x, y = data$y)
     g <- editGrob(grob = data$grob[[1]], vp = vp)
     # Replacement for ggname
-    g$name <- grobName(grob = g, prefix = 'geom_custom')
+    g$name <- grobName(grob = g, prefix = 'geom_spatial_interactive')
     return(g)
     # return(ggname(prefix = "geom_spatial", grob = g))
   },
@@ -461,8 +462,8 @@ GeomCustom <- ggproto(
 )
 
 #' @importFrom ggplot2 layer
-#'
-geom_custom <-  function(
+#
+geom_spatial_interactive <-  function(
   mapping = NULL,
   data = NULL,
   stat = "identity",
@@ -473,7 +474,7 @@ geom_custom <-  function(
   ...
 ) {
   layer(
-    geom = GeomCustom,
+    geom = GeomSpatialInteractive,
     mapping = mapping,
     data = data,
     stat = stat,
@@ -590,20 +591,20 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 
 
 # Base plotting function for all Spatial plots
-# 
+#
 # @param data Data.frame with info to be plotted
 # @param image SpatialImage object to be plotted
 # @param pt.size.factor Sets the size of the points relative to spot.radius
 # @param alpha Controls the opacity
 # @param stroke Control the width of the border around the spots
-# @param cells.highlight A list of character or numeric vectors of cells to 
-# highlight. If only one group of cells desired, can simply pass a vector 
-# instead of a list. If set, colors selected cells to the color(s) in 
+# @param cells.highlight A list of character or numeric vectors of cells to
+# highlight. If only one group of cells desired, can simply pass a vector
+# instead of a list. If set, colors selected cells to the color(s) in
 # cols.highlight
-# @param cols.highlight A vector of colors to highlight the cells as; ordered 
-# the same as the groups in cells.highlight; last color corresponds to 
+# @param cols.highlight A vector of colors to highlight the cells as; ordered
+# the same as the groups in cells.highlight; last color corresponds to
 # unselected cells.
-# @param geom Switch between normal spatial geom and geom to enable hover 
+# @param geom Switch between normal spatial geom and geom to enable hover
 # functionality
 # @param na.value Color for spots with NA values
 
@@ -620,7 +621,7 @@ SingleSpatialPlot <- function(
   col.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
-  geom = c('spatial', 'custom'),
+  geom = c('spatial', 'interactive'),
   na.value = 'grey50'
 ) {
   geom <- match.arg(arg = geom)
@@ -657,8 +658,8 @@ SingleSpatialPlot <- function(
         stroke = stroke
       ) + coord_fixed()
     },
-    'custom' = {
-      plot + geom_custom(
+    'interactive' = {
+      plot + geom_spatial_interactive(
         data = tibble(grob = list(GetImage(object = image, mode = 'grob'))),
         mapping = aes_string(grob = 'grob'),
         x = 0.5,
@@ -669,7 +670,7 @@ SingleSpatialPlot <- function(
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
     },
-    stop("Unknown geom, choose from 'spatial' or 'custom'", call. = FALSE)
+    stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )
   if (!is.null(x = cells.highlight)) {
     plot <- plot + scale_fill_manual(values = cols.highlight)
@@ -678,29 +679,29 @@ SingleSpatialPlot <- function(
   return(plot)
 }
 
-#' Visualize spatial clustering and expression data. 
-#' 
+#' Visualize spatial clustering and expression data.
+#'
 #' SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as
-#' spots over the image that was collected. We also provide SpatialFeaturePlot 
-#' and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent 
-#' naming framework.  
-#' 
+#' spots over the image that was collected. We also provide SpatialFeaturePlot
+#' and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent
+#' naming framework.
+#'
 #' @param object A Seurat object
 #' @param group.by Name of meta.data column to group the data by
 #' @param features Name of the feature to visualize. Provide either group.by OR
 #' features, not both.
 #' @param images Name of the images to use in the plot(s)
-#' @param slot If plotting a feature, which data slot to pull from (counts, 
+#' @param slot If plotting a feature, which data slot to pull from (counts,
 #' data, or scale.data)
-#' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff 
-#' values for each feature, may specify quantile in the form of 'q##' where '##' 
+#' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff
+#' values for each feature, may specify quantile in the form of 'q##' where '##'
 #' is the quantile (eg, 'q1', 'q10')
-#' @param cells.highlight A list of character or numeric vectors of cells to 
-#' highlight. If only one group of cells desired, can simply pass a vector 
-#' instead of a list. If set, colors selected cells to the color(s) in 
-#' cols.highlight 
+#' @param cells.highlight A list of character or numeric vectors of cells to
+#' highlight. If only one group of cells desired, can simply pass a vector
+#' instead of a list. If set, colors selected cells to the color(s) in
+#' cols.highlight
 #' @param cols.highlight A vector of colors to highlight the cells as; ordered
-#' the same as the groups in cells.highlight; last color corresponds to 
+#' the same as the groups in cells.highlight; last color corresponds to
 #' unselected cells.
 #' @param label Whether to label the clusters
 #' @param label.size Sets the size of the labels
@@ -708,26 +709,26 @@ SingleSpatialPlot <- function(
 #' @param label.box Whether to put a box around the label text (geom_text vs
 #' geom_label)
 #' @param repel Repels the labels to prevent overlap
-#' @param ncol Number of columns if plotting multiple plots 
-#' @param combine Combine plots into a single gg object; note that if TRUE; 
+#' @param ncol Number of columns if plotting multiple plots
+#' @param combine Combine plots into a single gg object; note that if TRUE;
 #' themeing will not work when plotting multiple features/groupings
 #' @param pt.size.factor Scale the size of the spots
-#' @param alpha Controls opacity of spots 
+#' @param alpha Controls opacity of spots
 #' @param stroke Control the width of the border around the spots
 #' @param do.hover Return a plotly view of the data to get info when hovering
 #' over points.
-#' 
+#'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' # For functionality analagous to FeaturePlot
 #' SpatialPlot(seurat.object, features = "MS4A1")
-#' 
+#'
 #' # For functionality analagous to DimPlot
 #' SpatialPlot(seurat.object, group.by = "clusters")
 #' }
@@ -869,7 +870,7 @@ SpatialPlot <- function(
         ),
         image = image.use,
         col.by = features[j],
-        geom = ifelse(test = do.hover, yes = 'custom', no = 'spatial'),
+        geom = ifelse(test = do.hover, yes = 'interactive', no = 'spatial'),
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
