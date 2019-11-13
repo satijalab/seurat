@@ -292,6 +292,8 @@ LinkPlots <- function(
   return(bscols(plot1.plotly, plot2.plotly))
 }
 
+#' @export
+#'
 LinkedFeaturePlot <- function(
   object,
   feature,
@@ -344,6 +346,8 @@ LinkedFeaturePlot <- function(
   ))
 }
 
+#' @export
+#'
 LinkedDimPlot <- function(
   object,
   dims = 1:2,
@@ -531,7 +535,7 @@ GeomSpatial <- ggproto(
       size = unit(spot.size, "npc") * data$point.size.factor,
       gp = gpar(
         col = alpha(coords$colour, coords$alpha),
-        fill = alpha(coords$fill, coords$alpha), 
+        fill = alpha(coords$fill, coords$alpha),
         lwd = coords$stroke)
     )
     vp <- viewport()
@@ -576,9 +580,10 @@ geom_spatial <-  function(
   )
 }
 
+#' @importFrom RColorBrewer brewer.pal
 #' @importFrom grDevices colorRampPalette
 #'
-SpatialColors <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
+SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
 
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
@@ -651,8 +656,8 @@ SingleSpatialPlot <- function(
   return(plot)
 }
 
-#' @importFrom tibble tibble
-#' @importFrom ggplot2 theme element_text
+#' @export
+#' @rdname SpatialPlot
 #'
 SpatialDimPlot <- function(
   object,
@@ -692,8 +697,8 @@ SpatialDimPlot <- function(
   ))
 }
 
-#' @importFrom tibble tibble
-#' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text
+#' @export
+#' @rdname SpatialPlot
 #'
 SpatialFeaturePlot <- function(
   object,
@@ -725,6 +730,14 @@ SpatialFeaturePlot <- function(
   ))
 }
 
+#' Visualize spatial clustering and expression data
+#'
+#' @return A ggplot object
+#'
+#' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text
+#'
+#' @export
+#'
 SpatialPlot <- function(
   object,
   group.by = NULL,
