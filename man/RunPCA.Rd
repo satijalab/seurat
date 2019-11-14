@@ -12,17 +12,21 @@ RunPCA(object, ...)
 \method{RunPCA}{default}(object, assay = NULL, npcs = 50,
   rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
-  seed.use = 42, approx = TRUE, ...)
+  seed.use = 42, approx = TRUE, center = !approx, scale = if
+  (!missing(scale.)) scale. else FALSE, scale., ...)
 
 \method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
   npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
-  seed.use = 42, ...)
+  seed.use = 42, approx = TRUE, center = if (slot == "scale.data")
+  !approx else TRUE, scale = if (!missing(scale.)) scale. else slot !=
+  "scale.data", scale., ..., slot = "scale.data")
 
 \method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
   npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.name = "pca",
-  reduction.key = "PC_", seed.use = 42, ...)
+  reduction.key = "PC_", seed.use = 42, approx = TRUE, ...,
+  slot = "scale.data")
 }
 \arguments{
 \item{object}{An object}
@@ -52,10 +56,18 @@ the number for the dimension names. PC by default}
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
 
-\item{approx}{Use truncated singular value decomposition to approximate PCA}
+\item{approx}{Use truncated singular value decomposition to approximate PCA. See \code{\link[irlba]{irlba}}}
 
-\item{features}{Features to compute PCA on. If features=NULL, PCA will be run 
+\item{center}{logical(1) or numeric. Center features (cells if \code{rev.pca=TRUE}) before computing PCs (recommended). See \code{\link[stats]{prcomp}}}
+
+\item{scale}{logical(1) or numeric. Scale features (cells if \code{rev.pca=TRUE}) before computing PCs (recommended). See \code{\link[stats]{prcomp}}}
+
+\item{scale.}{Deprecated. Alias for \code{scale}}
+
+\item{features}{Features to compute PCA on. If features=NULL, PCA will be run
 using the variable features for the Assay.}
+
+\item{slot}{Name of slot of assay PCA is being run on}
 
 \item{reduction.name}{dimensional reduction name,  pca by default}
 }

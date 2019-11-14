@@ -776,7 +776,10 @@ RunLSI.Seurat <- function(
 #' the number for the dimension names. PC by default
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
-#' @param approx Use truncated singular value decomposition to approximate PCA
+#' @param approx Use truncated singular value decomposition to approximate PCA. See \code{\link[irlba]{irlba}}
+#' @param center logical(1) or numeric. Center features (cells if \code{rev.pca=TRUE}) before computing PCs (recommended). See \code{\link[stats]{prcomp}}
+#' @param scale logical(1) or numeric. Scale features (cells if \code{rev.pca=TRUE}) before computing PCs (recommended). See \code{\link[stats]{prcomp}}
+#' @param scale. Deprecated. Alias for \code{scale}
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
@@ -797,6 +800,9 @@ RunPCA.default <- function(
   reduction.key = "PC_",
   seed.use = 42,
   approx = TRUE,
+  center = !approx, # to retain previous (non-sensible) defaults
+  scale = if(!missing(scale.)) scale. else FALSE, # to retain previous defaults
+  scale.,
   ...
 ) {
   if(!approx) {
@@ -834,21 +840,38 @@ RunPCA.default <- function(
     # }
     # # Stage 5: remove this if clause
   }
+  if(!missing(scale.) && !missing(scale)) stop("Either `scale` or `scale.` can be spcified, not both!")
+  if(is.null(scale)) scale <- FALSE
+  if(is.null(center)) center <- FALSE
+  do.scale <- !is.logical(scale) || scale
+  calc.scale <- is.logical(scale) && scale
+  do.center <- !is.logical(center) || center
+  calc.center <- is.logical(center) && center
 
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
   t.object <- if(rev.pca) object else t(x = object)
-  nt.object <- if(rev.pca) t(x = object) else object
-  total.variance <- sum(RowVar(x = nt.object))
+  feature.means <- Matrix::colMeans(t.object)
+  feature.sq.means <- Matrix::colMeans(t.object^2)
+
+  center_ <- if (calc.center) feature.means else if (do.center) center else 0
+  # feature.vars <- colMeans(t(nt.object - center_)^2) <=>
+  feature.vars <- feature.sq.means - 2*feature.means*center_ + center_^2
+  feature.vars <- feature.vars * 1/(1-1/nrow(t.object))
+  scale_ <- if (calc.scale) sqrt(feature.vars) else if(do.scale) scale else 1
+  total.variance <- sum(feature.vars/scale_^2)
+
   if (approx){
-    npcs <- min(npcs, ncol(x = t.object) - 1) # irlba does not allow computation of all PCs
-    pca.results <- irlba(A = t.object, nv = npcs, ...)
+    if(!do.scale) scale_ <- NULL
+    if(!do.center) center_ <- NULL
+    npcs <- min(npcs, dim(t.object) - 1L) # irlba does not allow computation of all PCs
+    pca.results <- irlba(A = t.object, nv = npcs, scale = scale_, center = center_, ...)
     sdev <- pca.results$d/sqrt(nrow(t.object) - 1)
     feature.loadings <- pca.results$v
     cell.embeddings <- pca.results$u %*% diag(pca.results$d)
   } else {
-    pca.results <- prcomp(x = t.object, rank. = npcs, ...)
+    pca.results <- prcomp(x = t.object, rank. = npcs, center = center, scale. = scale, ...)
     sdev <- pca.results$sdev
     feature.loadings <- pca.results$rotation
     cell.embeddings <- pca.results$x
@@ -890,6 +913,7 @@ RunPCA.default <- function(
 
 #' @param features Features to compute PCA on. If features=NULL, PCA will be run
 #' using the variable features for the Assay.
+#' @param slot Name of slot of assay PCA is being run on
 #'
 #' @rdname RunPCA
 #' @export
@@ -907,12 +931,19 @@ RunPCA.Assay <- function(
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
-  ...
+  approx = TRUE,
+  center = if(slot=="scale.data")  !approx else TRUE, # for backwards compatibilty. `slot!="scale.data"` would be more sensible
+  scale = if(!missing(scale.)) scale. else slot!="scale.data", # for backwards compatibilty
+  scale.,
+  ...,
+  slot = "scale.data"
 ) {
+  if(!missing(scale.) && !missing(scale)) stop("Either `scale` or `scale.` can be spcified, not both!")
   data.use <- PrepDR(
     object = object,
     features = features,
-    verbose = verbose
+    verbose = verbose,
+    slot = slot
   )
   reduction.data <- RunPCA(
     object = data.use,
@@ -925,8 +956,10 @@ RunPCA.Assay <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
-    ...
-
+    approx = approx,
+    ...,
+    center = center,
+    scale = scale
   )
   return(reduction.data)
 }
@@ -950,7 +983,9 @@ RunPCA.Seurat <- function(
   reduction.name = "pca",
   reduction.key = "PC_",
   seed.use = 42,
-  ...
+  approx = TRUE,
+  ...,
+  slot = "scale.data"
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
@@ -966,7 +1001,9 @@ RunPCA.Seurat <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
-    ...
+    approx = approx,
+    ...,
+    slot = slot
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
@@ -1935,31 +1972,36 @@ L2Norm <- function(vec) {
 # @param object        Assay object
 # @param features  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
-# @ param verbose   Print messages and warnings
+# @param verbose   Print messages and warnings
+# @param slot   slot to use as input for the dimensional reduction technique
 #
 #
 PrepDR <- function(
   object,
   features = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  slot = "scale.data"
 ) {
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
-    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
+    stop("Variable features haven't been set. Run FindVariableFeatures() or use the `features`argument to specify whichfeatures to use.")
   }
-  data.use <- GetAssayData(object = object, slot = "scale.data")
+  data.use <- GetAssayData(object = object, slot = slot)
   if (nrow(x = data.use ) == 0) {
-    stop("Data has not been scaled. Please run ScaleData and retry")
+    switch(slot,
+           "scale.data" = stop("Data has not been scaled. Please run ScaleData and retry"),
+           "data" =  stop("Data has not been normalized. Please run NormalizeData and retry"),
+           stop(paste0("Slot '", slot, "' not found in assay '", object@key, "'.")))
   }
   features <- features %||% VariableFeatures(object = object)
   features.keep <- unique(x = features[features %in% rownames(x = data.use)])
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
     if (verbose) {
-      warning(paste0("The following ", length(x = features.exclude), " features requested have not been scaled (running reduction without them): ", paste0(features.exclude, collapse = ", ")))
+      warning(paste0("The following ", length(x = features.exclude), " features requested have not been found in slot '", slot, "' of assay '", object@key, "' (running reduction without them): ", paste0(features.exclude, collapse = ", ")))
     }
   }
   features <- features.keep
-  features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
+  features.var <- Matrix::rowMeans(data.use[features, ]^2) - Matrix::rowMeans(data.use[features, ])^2
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
