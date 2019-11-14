@@ -4,7 +4,42 @@
 \name{SpatialImage-class}
 \alias{SpatialImage-class}
 \alias{SpatialImage}
+\alias{Cells.SpatialImage}
+\alias{GetImage.SpatialImage}
+\alias{GetTissueCoordinates.SpatialImage}
+\alias{RenameCells.SpatialImage}
+\alias{[.SpatialImage}
+\alias{dim.SpatialImage}
+\alias{subset.SpatialImage}
 \title{The SpatialImage class}
+\usage{
+\method{Cells}{SpatialImage}(x)
+
+\method{GetImage}{SpatialImage}(object, mode = c("grob", "raster",
+  "plotly", "raw"), ...)
+
+\method{GetTissueCoordinates}{SpatialImage}(object, ...)
+
+\method{RenameCells}{SpatialImage}(object, new.names = NULL, ...)
+
+\method{[}{SpatialImage}(x, i, ...)
+
+\method{dim}{SpatialImage}(x)
+
+\method{subset}{SpatialImage}(x, cells, ...)
+}
+\arguments{
+\item{x, object}{An inheriting from \code{SpatialImage}}
+
+\item{mode}{How to return the image; should accept one of 'grob', 'raster',
+'plotly', or 'raw'}
+
+\item{...}{Arguments passed to other methods}
+
+\item{new.names}{vector of new cell names}
+
+\item{i, cells}{A vector of cells to keep}
+}
 \description{
 The SpatialImage class is a virtual class representing spatial information for
 Seurat. All spatial image information must inherit from this class for use with
@@ -31,7 +66,8 @@ overwritten without careful thought
 \section{Required methods}{
 
 All subclasses of the \code{SpatialImage} class must define the following methods;
-simply relying on the \code{SpatialImage} method will result in errors
+simply relying on the \code{SpatialImage} method will result in errors. For required
+parameters and their values, see the \code{Usage} and \code{Arguments} sections
 \describe{
   \item{\code{\link{Cells}}}{Return the cell/spot barcodes associated with each position}
   \item{\code{\link{dim}}}{...}

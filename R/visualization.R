@@ -3466,6 +3466,7 @@ Col2Hex <- function(...) {
 # @return The default DimReduc, if possible
 #
 DefaultDimReduc <- function(object, assay = NULL) {
+  object <- UpdateSlots(object = object)
   assay <- assay %||% DefaultAssay(object = object)
   drs.use <- c('umap', 'tsne', 'pca')
   dim.reducs <- FilterObjects(object = object, classes.keep = 'DimReduc')

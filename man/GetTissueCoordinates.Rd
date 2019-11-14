@@ -4,7 +4,6 @@
 \alias{GetTissueCoordinates}
 \alias{GetTissueCoordinates.Seurat}
 \alias{GetTissueCoordinates.SliceImage}
-\alias{GetTissueCoordinates.SpatialImage}
 \title{Get tissue coordinates}
 \usage{
 GetTissueCoordinates(object, ...)
@@ -13,8 +12,6 @@ GetTissueCoordinates(object, ...)
 
 \method{GetTissueCoordinates}{SliceImage}(object, scale = "lowres",
   cols = c("imagerow", "imagecol"), ...)
-
-\method{GetTissueCoordinates}{SpatialImage}(object, ...)
 }
 \arguments{
 \item{object}{An object}

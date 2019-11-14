@@ -4,7 +4,6 @@
 \alias{GetImage}
 \alias{GetImage.Seurat}
 \alias{GetImage.SliceImage}
-\alias{GetImage.SpatialImage}
 \title{Get image data}
 \usage{
 GetImage(object, mode = c("grob", "raster", "plotly", "raw"), ...)
@@ -13,9 +12,6 @@ GetImage(object, mode = c("grob", "raster", "plotly", "raw"), ...)
   "raw"), image = NULL, ...)
 
 \method{GetImage}{SliceImage}(object, mode = c("grob", "raster",
-  "plotly", "raw"), ...)
-
-\method{GetImage}{SpatialImage}(object, mode = c("grob", "raster",
   "plotly", "raw"), ...)
 }
 \arguments{
