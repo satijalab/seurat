@@ -6099,7 +6099,13 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     # remove disallowed characters from object name
     newi <- make.names(names = i)
     if (i != newi) {
-      warning("Invalid name supplied, making object name syntactically valid. New object name is ", newi)
+      warning(
+        "Invalid name supplied, making object name syntactically valid. New object name is ",
+         newi,
+        "; see ?make.names for more details on syntax validity",
+        call. = FALSE,
+        immediate. = TRUE
+      )
       i <- newi
     }
     # Figure out where to store data
