@@ -861,7 +861,8 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
-#' @param features Features to compute PCA on
+#' @param features Features to compute PCA on. If features=NULL, PCA will be run 
+#' using the variable features for the Assay. 
 #'
 #' @rdname RunPCA
 #' @export
