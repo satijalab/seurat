@@ -22,6 +22,9 @@ data.
 
 \item{\code{key}}{Key for the Assay}
 
+\item{\code{assay.orig}}{Original assay that this assay is based off of. Used to track
+assay provenence}
+
 \item{\code{var.features}}{Vector of features exhibiting high variance across single cells}
 
 \item{\code{meta.features}}{Feature-level metadata}
