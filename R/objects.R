@@ -4260,7 +4260,7 @@ SetAssayData.Seurat <- function(
 ) {
   CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
-  object[[assay]] <- SetAssayData(object = object[[assay]], slot = slot, new.data = new.data)
+  object[[assay]] <- SetAssayData(object = object[[assay]], slot = slot, new.data = new.data, ...)
   return(object)
 }
 
