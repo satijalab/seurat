@@ -861,7 +861,8 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
-#' @param features Features to compute PCA on
+#' @param features Features to compute PCA on. If features=NULL, PCA will be run 
+#' using the variable features for the Assay. 
 #'
 #' @rdname RunPCA
 #' @export
@@ -1115,7 +1116,7 @@ RunTSNE.Seurat <- function(
     )
   } else if (!is.null(x = features)) {
     RunTSNE(
-      object = as.matrix(x = GetAssayData(object = object)[features, cells]),
+      object = t(x = as.matrix(x = GetAssayData(object = object)[features, cells])),
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
