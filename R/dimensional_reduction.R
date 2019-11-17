@@ -766,8 +766,8 @@ RunLSI.Seurat <- function(
 #' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
-#' @param weight.by.var Weight the cell embeddings by the variance of each PC
-#' (weights the gene loadings if rev.pca is TRUE)
+#' @param weight.by.var Deprecated. Leave empty to obtain cell embeddings (gene loadings if rev.pca
+#' is TRUE)whose variance matches the correspondig eigenvalue
 #' @param verbose Print the top genes associated with high/low loadings for
 #' the PCs
 #' @param ndims.print PCs to print genes for
@@ -799,6 +799,15 @@ RunPCA.default <- function(
   approx = TRUE,
   ...
 ) {
+  pcs.name <- if(rev.pca) "`gene.loadings`" else "`cell.embeddings`"
+  normal.pcs.name <- paste0("normal (\"weighted\") ", pcs.name, " whose variances equlas the ",
+                            "eigenvalues of their coressponding principal components")
+
+  if(!missing(x = weight.by.var))
+    warning("`weight.by.var` is deprecated and will be removed in a future version. To obtain ",
+    normal.pcs.name, " and get rid of this warning message simply do not supply `weight.by.var` (recommended).",
+    "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+
   if(!approx) {
     pcs.name <- if(rev.pca) "`gene.loadings`" else "`cell.embeddings`"
     # Stage 1:
@@ -914,20 +923,20 @@ RunPCA.Assay <- function(
     features = features,
     verbose = verbose
   )
-  reduction.data <- RunPCA(
+  args <- list(
     object = data.use,
     assay = assay,
     npcs = npcs,
     rev.pca = rev.pca,
-    weight.by.var = weight.by.var,
     verbose = verbose,
     ndims.print = ndims.print,
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
-
   )
+  if(!missing(weight.by.var)) args$weight.by.var <- weight.by.var
+  reduction.data <- do.call(RunPCA, args)
   return(reduction.data)
 }
 
@@ -954,13 +963,12 @@ RunPCA.Seurat <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
-  reduction.data <- RunPCA(
+  args <- list(
     object = assay.data,
     assay = assay,
     features = features,
     npcs = npcs,
     rev.pca = rev.pca,
-    weight.by.var = weight.by.var,
     verbose = verbose,
     ndims.print = ndims.print,
     nfeatures.print = nfeatures.print,
@@ -968,6 +976,8 @@ RunPCA.Seurat <- function(
     seed.use = seed.use,
     ...
   )
+  if(!missing(weight.by.var)) args$weight.by.var <- weight.by.var
+  reduction.data <- do.call(RunPCA, args)
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
   return(object)
