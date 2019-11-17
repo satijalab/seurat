@@ -187,3 +187,41 @@ test_that("pca reduction behaves as previously", {
   }
 })
 
+test_that("pca reduction warns for deprecated `weight.by.var` argument", {
+  # Generate dummy data exp matrix
+  set.seed(seed = 1)
+  npcs <- 3
+  dummyexpMat <- matrix(
+    data = stats::rexp(n = 2e4, rate = 1),
+    ncol = 200, nrow = 100
+  )
+  colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
+  row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+
+  # Create Seurat object for testing
+  obj <- CreateSeuratObject(counts = dummyexpMat)
+
+  # Normalize
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  # Scale
+  obj <- ScaleData(object = obj, verbose = FALSE)
+
+  # compute PCA with different values of related parameters
+  for (approx in list(list(approx=TRUE), list(approx=FALSE), list())) {
+    for (weight.by.var in list(list(weight.by.var=TRUE), list(weight.by.var=FALSE))) {
+      pars <- c(approx, weight.by.var)
+      pars.str <- paste0(deparse(pars), collapse="")
+      expect_warning(
+        object = do.call(
+            what = RunPCA,
+            args = c(
+              list(object = obj, features = rownames(x = obj), npcs = npcs),
+              pars
+            )
+          )[["pca"]],
+        regexp = ".*[Dd]eprecate.*",
+        label = paste0("RunPCA with ", pars.str)
+      )
+    }
+  }
+})
