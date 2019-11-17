@@ -58,3 +58,89 @@ test_that("pca returns total variance (see #982)", {
                     sum(prcomp_result$sdev^2))
 
 })
+
+test_that("pca embedding weighting works", {
+  # Generate dummy data exp matrix
+  set.seed(seed = 1)
+  npcs <- 50
+  dummyexpMat <- matrix(
+    data = stats::rexp(n = 2e4, rate = 1),
+    ncol = 200, nrow = 100
+  )
+  colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
+  row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+
+  # Create Seurat object for testing
+  obj <- CreateSeuratObject(counts = dummyexpMat)
+
+  # Normalize
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  # Scale
+  obj <- ScaleData(object = obj, verbose = FALSE)
+
+  # un(weighted/scaled)
+  # compute PCA
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.prcomp.unscaled",
+    npcs = npcs,
+    weight.by.var = FALSE,
+    approx = FALSE
+  ))
+
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.irlba.unscaled",
+    npcs = npcs,
+    weight.by.var = FALSE,
+    approx = TRUE
+  ))
+
+  # Compare
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.prcomp.unscaled"]], name = "cell.embeddings"))),
+    rep(x = 1/(ncol(x = obj)-1), times=npcs)
+  )
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.irlba.unscaled"]], name = "cell.embeddings"))),
+    rep(x = 1/(ncol(x = obj)-1), times=npcs)
+  )
+
+  # weighted/scaled
+  # compute PCA
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.prcomp.var_scaled",
+    npcs = npcs,
+    weight.by.var = TRUE,
+    approx = FALSE
+  ))
+
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.irlba.var_scaled",
+    npcs = npcs,
+    weight.by.var = TRUE,
+    approx = TRUE
+  ))
+
+  # Compare
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.prcomp.var_scaled"]], name = "cell.embeddings"))),
+    slot(object = obj[["pca.prcomp.var_scaled"]], name = "stdev")[1:npcs]^2
+  )
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.irlba.var_scaled"]], name = "cell.embeddings"))),
+    slot(object = obj[["pca.prcomp.var_scaled"]], name = "stdev")[1:npcs]^2
+  )
+
+})
+
