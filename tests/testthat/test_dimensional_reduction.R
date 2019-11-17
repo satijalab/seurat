@@ -144,3 +144,44 @@ test_that("pca embedding weighting works", {
 
 })
 
+test_that("pca reduction behaves as previously", {
+  # Generate dummy data exp matrix
+  set.seed(seed = 1)
+  npcs <- 3
+  dummyexpMat <- matrix(
+    data = stats::rexp(n = 2e4, rate = 1),
+    ncol = 200, nrow = 100
+  )
+  colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
+  row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+
+  # Create Seurat object for testing
+  obj <- CreateSeuratObject(counts = dummyexpMat)
+
+  # Normalize
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  # Scale
+  obj <- ScaleData(object = obj, verbose = FALSE)
+
+  # compute PCA with different values of related parameters
+  for (approx in list(list(approx=TRUE), list(approx=FALSE))) {
+    for (weight.by.var in list(list(weight.by.var=TRUE), list(weight.by.var=FALSE), list())) {
+      pars <- c(approx, weight.by.var)
+      pars.str <- paste0(deparse(pars), collapse="")
+      expect_known_value(
+        object = suppressWarnings(
+          expr = do.call(
+            what = RunPCA,
+            args = c(
+              list(object = obj, features = rownames(x = obj), npcs = npcs),
+              pars
+            )
+          )
+        )[["pca"]],
+        file = paste0("pca", make.names(pars.str), ".rds"),
+        label = paste0("RunPCA with ", pars.str)
+      )
+    }
+  }
+})
+
