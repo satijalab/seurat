@@ -60,6 +60,8 @@ test_that("pca returns total variance (see #982)", {
 })
 
 test_that("pca embedding weighting works", {
+  #test new behavior
+  Seurat.RunPCA.use.correct.scaling.bak <- options(Seurat.RunPCA.use.correct.scaling = TRUE)
   # Generate dummy data exp matrix
   set.seed(seed = 1)
   npcs <- 50
@@ -141,7 +143,7 @@ test_that("pca embedding weighting works", {
     diag(x = cov(x = slot(object = obj[["pca.irlba.var_scaled"]], name = "cell.embeddings"))),
     slot(object = obj[["pca.prcomp.var_scaled"]], name = "stdev")[1:npcs]^2
   )
-
+  options(Seurat.RunPCA.use.correct.scaling.bak)
 })
 
 test_that("pca reduction behaves as previously", {
