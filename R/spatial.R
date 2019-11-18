@@ -656,6 +656,7 @@ RunMarkVario.Seurat <- function(object, assay = NULL, image = NULL, slot = "scal
   tc <- GetTissueCoordinates(object = object[[image]])
   data <- GetAssayData(object = object, assay = assay, slot = slot)
   data <- as.matrix(x = data[features, ])
+  data <- data[rowSums(data) > 0, ]
   mv <- RunMarkVario(object = tc, data = data)
   Tool(object = object) <- mv
   object <- ComputeRMetric(object = object, assay = assay, r.metric = r.metric)
@@ -677,7 +678,7 @@ GetRMetric <- function(object, assay = NULL, sorted = TRUE) {
   assay <- assay %||% DefaultAssay(object = object)
   metric <- na.omit(object[[assay]][["r.metric"]])
   if (sorted) {
-    metric <- metric[order(metric, decreasing = TRUE), ,drop = FALSE]
+    metric <- metric[order(metric), ,drop = FALSE]
   }
   metric <- setNames(object = metric[, 1], nm = rownames(x = metric)) 
   return(metric)
