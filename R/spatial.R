@@ -401,18 +401,20 @@ LinkedDimPlot <- function(
     dims = dims,
     reduction = reduction
   )
-  return(LinkPlots(
-    plot1 = spatial.plot,
-    plot2 = dim.plot,
-    information = FetchData(object = object, vars = group.by),
-    plot1.labels = FALSE,
-    pt.size = pt.size,
-    plot1.layout = list(
-      'images' = GetImage(object = object[[image]], mode = 'plotly'),
-      'xaxis' = list('visible' = FALSE),
-      'yaxis' = list('visible' = FALSE)
+  suppressMessages(expr = suppressWarnings(expr = print(
+    x = LinkPlots(
+      plot1 = spatial.plot,
+      plot2 = dim.plot,
+      information = FetchData(object = object, vars = group.by),
+      plot1.labels = FALSE,
+      pt.size = pt.size,
+      plot1.layout = list(
+        'images' = GetImage(object = object[[image]], mode = 'plotly'),
+        'xaxis' = list('visible' = FALSE),
+        'yaxis' = list('visible' = FALSE)
+      )
     )
-  ))
+  )))
 }
 
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
