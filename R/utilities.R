@@ -1109,7 +1109,7 @@ PercentageFeatureSet <- function(
     warning("Both pattern and features provided. Pattern is being ignored.")
   }
   features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
-  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, , drop = FALSE])/
+  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE])/
     object[[paste0("nCount_", assay)]] * 100
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
