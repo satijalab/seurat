@@ -1391,6 +1391,126 @@ subset.SpatialImage <- function(x, ...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Splits features into groups based on log expression levels 
+#
+# @param object Seurat object
+# @param assay Assay for expression data
+# @param min.cells Only compute for features in at least this many cells
+# @param ngroups Number of groups to split into
+#
+# @return A Seurat object with the feature group stored as a factor in 
+# metafeatures
+#
+#' @importFrom Matrix rowMeans rowSums
+# 
+GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
+  cm <- GetAssayData(object = object[[assay]], slot = "counts")
+  # subset to keep only genes detected in at least min.cells cells
+  cm <- cm[rowSums(cm > 0) >= min.cells, ]
+  # use the geometric mean of the features to group them
+  # (using the arithmetic mean would usually not change things much)
+  # could use sctransform:::row_gmean here but not exported
+  feature.gmean <- exp(x = rowMeans(log1p(x = cm))) - 1
+  feature.grp.breaks <- seq(
+    from = min(log10(x = feature.gmean)) - 10*.Machine$double.eps, 
+    to = max(log10(x = feature.gmean)), 
+    length.out = ngroups + 1
+  )
+  feature.grp <- cut(
+    x = log10(x = feature.gmean), 
+    breaks = feature.grp.breaks, 
+    ordered_result = TRUE
+  )
+  feature.grp <- factor(
+    x = feature.grp, 
+    levels = rev(x = levels(x = feature.grp)), 
+    ordered = TRUE
+  )
+  names(x = feature.grp) <- names(x = feature.gmean)
+  return(feature.grp)
+}
+
+#' Compute the correlation of features broken down by groups with another 
+#' covariate
+#' 
+#' @param object Seurat object
+#' @param assay Assay to pull the data from
+#' @param slot Slot in the assay to pull feature expression data from (counts,
+#' data, or scale.data)
+#' @param var Variable with which to correlate the features
+#' @param group.assay Compute the gene groups based off the data in this assay. 
+#' @param min.cells Only compute for genes in at least this many cells
+#' @param ngroups Number of groups to split into
+#' 
+#' @return A Seurat object with the correlation stored in metafeatures
+#' 
+#' @export
+#' 
+ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6, do.plot = TRUE) {
+  assay <- assay %||% DefaultAssay(object = object)
+  group.assay <- group.assay %||% assay
+  var <- var %||% paste0("nCount_", group.assay)
+  gene.grp <- GetFeatureGroups(
+    object = object,
+    assay = group.assay,
+    min.cells = min.cells,
+    ngroups = ngroups
+  )
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- data[rowMeans(x = data) != 0, ]
+  grp.cors <- apply(
+    X = data, 
+    MARGIN = 1, 
+    FUN = function(x) {
+      cor(x = x, y = object[[var]])
+    }
+  )
+  grp.cors <- grp.cors[names(x = gene.grp)]
+  grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
+  grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
+  colnames(x = grp.cors) <- c("cor", "feature_grp")
+  object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
+  object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
+  if (do.plot) {
+    print(FeatureGrpCorPlot(object = object, assay = assay, feature.group = "feature.grp", cor = paste0(var, "_cor")))
+  }
+  return(object)
+}
+
+#' Boxplot of correlation of a variable (e.g. number of UMIs) with expression 
+#' data
+#'
+#' @param object Seurat object
+#' @param assay Assay where the feature grouping info and correlations are 
+#' stored
+#' @param feature.group Name of the column in meta.features where the feature
+#' grouping info is stored
+#' @param cor Name of the column in meta.features where correlation info is 
+#' stored
+#' 
+#' @return Returns a ggplot boxplot of correlations split by group
+#' 
+#' @importFrom ggplot2 geom_boxplot scale_fill_manual geom_hline
+#' @importFrom cowplot theme_cowplot
+#' @importFrom scales brewer_pal
+#' 
+#' @export
+#' 
+FeatureGrpCorPlot <- function(object, assay = NULL, feature.group = "feature.grp", cor = "nCount_RNA_cor") {
+  assay <- assay %||% DefaultAssay(object = object)
+  data <- object[[assay]][[c(feature.group, cor)]]
+  data <- data[complete.cases(data), ]
+  colnames(x = data) <- c('grp', 'cor')
+  plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +  
+        geom_boxplot() + 
+        theme_cowplot() + scale_fill_manual(values = rev(brewer_pal(palette='YlOrRd')(7))) +
+        ylab(paste0("Correlation with ",  gsub(x = cor, pattern = "_cor", replacement = ""))) +
+        geom_hline(yintercept = 0) + NoLegend() +
+        theme(axis.line.x = element_blank(), axis.title.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x = element_blank())
+  return(plot)
+}
+
+
 DefaultImage <- function(object) {
   object <- UpdateSlots(object = object)
   images <- Images(object = object, assay = DefaultAssay(object = object))
