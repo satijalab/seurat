@@ -37,7 +37,7 @@ are present in the feature name}
 downsampling will happen after all other operations, including inverting the
 cell selection}
 
-\item{seed}{Random seed for downsampling}
+\item{seed}{Random seed for downsampling. If NULL, does not set a seed}
 }
 \value{
 A vector of cell names
