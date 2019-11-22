@@ -28,9 +28,10 @@ test_that("Read10X handles missing files properly", {
 })
 
 # Tests for reading in spatial 10x data
-context("Read10X_Spatial")
+context("Load10X_Spatial")
 dname <- "../testdata/visium"
-txsp <- Read10X_Spatial(outs_path = "../testdata/visium/")
+# txsp <- Read10X_Spatial(outs_path = "../testdata/visium/")
+txsp <- Load10X_Spatial(data.dir = '../testdata/visium')
 
 test_that("10x Spatial Data Parsing", {
   expect_is(txsp, "Seurat")
@@ -42,8 +43,8 @@ test_that("10x Spatial Data Parsing", {
 })
 
 test_that("Read10X_Spatial handles missing files properly", {
-  expect_error(Read10X_Spatial(outs_path = "."))
-  expect_error(Read10X_Spatial(outs_path = "./notadir/"))
+  expect_error(Load10X_Spatial(data.dir = "."))
+  expect_error(Load10X_Spatial(data.dir = "./notadir/"))
 })
 
 

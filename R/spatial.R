@@ -51,7 +51,8 @@ setOldClass(Classes = c('scalefactors'))
 #'
 #' @section Required methods:
 #' All subclasses of the \code{SpatialImage} class must define the following methods;
-#' simply relying on the \code{SpatialImage} method will result in errors
+#' simply relying on the \code{SpatialImage} method will result in errors. For required
+#' parameters and their values, see the \code{Usage} and \code{Arguments} sections
 #' \describe{
 #'   \item{\code{\link{Cells}}}{Return the cell/spot barcodes associated with each position}
 #'   \item{\code{\link{dim}}}{...}
@@ -108,6 +109,36 @@ SliceImage <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Get a vector of cell names associated with an image (or set of images)
+#'
+#' @param object Seurat object
+#' @param images Vector of image names
+#' @param unlist Return as a single vector of cell names as opposed to a list,
+#' named by image name.
+#'
+#' @return A vector of cell names
+#'
+#' @examples
+#' \dontrun{
+#' CellsByImage(object = object, images = "slice1")
+#' }
+#'
+CellsByImage <- function(object, images = NULL, unlist = FALSE) {
+  images <- images %||% Images(object = object)
+  cells <- sapply(
+    X = images,
+    FUN = function(x) {
+      Cells(x = object[[x]])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (unlist) {
+    cells <- unname(obj = unlist(x = cells))
+  }
+  return(cells)
+}
 
 #' Pull spatial image names
 #'
@@ -1137,6 +1168,21 @@ Cells.SliceImage <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
+#' @param x,object An inheriting from \code{SpatialImage}
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method Cells SpatialImage
+#' @export
+#'
+Cells.SpatialImage <- function(x) {
+  stop(
+    "'Cells' must be overridden for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
 #' @rdname DefaultAssay
 #' @method DefaultAssay SpatialImage
 #' @export
@@ -1218,7 +1264,11 @@ GetImage.SliceImage <- function(
   return(image)
 }
 
-#' @rdname GetImage
+#' @inheritParams GetImage
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
 #' @method GetImage SpatialImage
 #' @export
 #'
@@ -1275,7 +1325,11 @@ GetTissueCoordinates.SliceImage <- function(
   return(coordinates)
 }
 
-#' @rdname GetTissueCoordinates
+#' @inheritParams GetTissueCoordinates
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
 #' @method GetTissueCoordinates SpatialImage
 #' @export
 #'
@@ -1311,11 +1365,15 @@ RenameCells.SliceImage <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
-#' @rdname RenameCells
+#' @inheritParams  RenameCells
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
 #' @method RenameCells SpatialImage
 #' @export
 #'
-RenameCells.SpatialImage <- function(object, ...) {
+RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
   stop(
     "'RenameCells' must be overwritten for all subclasses of 'SpatialImage'",
     call. = FALSE
@@ -1341,10 +1399,15 @@ ScaleFactors.SliceImage <- function(object, ...) {
   return(subset(x = x, cells = i))
 }
 
+#' @param i,cells A vector of cells to keep
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
 #' @method [ SpatialImage
 #' @export
 #'
-"[.SpatialImage" <- function(x, ...) {
+"[.SpatialImage" <- function(x, i, ...) {
   stop(
     "'[' must be overwritten for all subclasses of 'SpatialImage'",
     call. = FALSE
@@ -1358,6 +1421,9 @@ dim.SliceImage <- function(x) {
   return(dim(x = GetImage(object = x)$raster))
 }
 
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
 #' @method dim SpatialImage
 #' @export
 #'
@@ -1378,10 +1444,13 @@ subset.SliceImage <- function(x, cells, ...) {
   return(x)
 }
 
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
 #' @method subset SpatialImage
 #' @export
 #'
-subset.SpatialImage <- function(x, ...) {
+subset.SpatialImage <- function(x, cells, ...) {
   stop("'subset' must be overwritten for all subclasses of 'SpatialImage'")
 }
 

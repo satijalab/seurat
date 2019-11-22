@@ -6,7 +6,6 @@
 \alias{RenameCells.DimReduc}
 \alias{RenameCells.Seurat}
 \alias{RenameCells.SliceImage}
-\alias{RenameCells.SpatialImage}
 \title{Rename cells}
 \usage{
 RenameCells(object, ...)
@@ -19,8 +18,6 @@ RenameCells(object, ...)
   new.names = NULL, for.merge = FALSE, ...)
 
 \method{RenameCells}{SliceImage}(object, new.names = NULL, ...)
-
-\method{RenameCells}{SpatialImage}(object, ...)
 }
 \arguments{
 \item{object}{An object}
