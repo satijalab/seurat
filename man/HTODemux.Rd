@@ -31,7 +31,7 @@ HTODemux(
 
 \item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"}
 
-\item{seed}{Sets the random seed}
+\item{seed}{Sets the random seed. If NULL, seed is not set}
 
 \item{verbose}{Prints the output}
 }

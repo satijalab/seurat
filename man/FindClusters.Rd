@@ -35,6 +35,7 @@ FindClusters(object, ...)
   weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
+  method = "matrix",
   algorithm = 1,
   n.start = 10,
   n.iter = 10,

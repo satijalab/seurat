@@ -35,7 +35,7 @@ AddModuleScore(
 
 \item{name}{Name for the expression programs}
 
-\item{seed}{Set a random seed}
+\item{seed}{Set a random seed. If NULL, seed is not set.}
 
 \item{search}{Search for symbol synonyms for features in \code{features} that
 don't match features in \code{object}? Searches the HGNC's gene names database;

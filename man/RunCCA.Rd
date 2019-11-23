@@ -8,7 +8,15 @@
 \usage{
 RunCCA(object1, object2, ...)
 
-\method{RunCCA}{default}(object1, object2, standardize = TRUE, num.cc = 20, verbose = FALSE, ...)
+\method{RunCCA}{default}(
+  object1,
+  object2,
+  standardize = TRUE,
+  num.cc = 20,
+  seed.use = 42,
+  verbose = FALSE,
+  ...
+)
 
 \method{RunCCA}{Seurat}(
   object1,
@@ -39,6 +47,8 @@ set to TRUE)}
 and mean 0}
 
 \item{num.cc}{Number of canonical vectors to calculate}
+
+\item{seed.use}{Random seed to set. If NULL, does not set a seed}
 
 \item{verbose}{Show progress messages}
 

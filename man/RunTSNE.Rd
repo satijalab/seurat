@@ -67,7 +67,7 @@ RunTSNE(object, ...)
 
 \item{assay}{Name of assay that that t-SNE is being run on}
 
-\item{seed.use}{Random seed for the t-SNE}
+\item{seed.use}{Random seed for the t-SNE. If NULL, does not set the seed}
 
 \item{tsne.method}{Select the method to use to compute the tSNE. Available
 methods are:

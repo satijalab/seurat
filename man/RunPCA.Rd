@@ -85,7 +85,8 @@ NULL will not set a seed.}
 
 \item{approx}{Use truncated singular value decomposition to approximate PCA}
 
-\item{features}{Features to compute PCA on}
+\item{features}{Features to compute PCA on. If features=NULL, PCA will be run 
+using the variable features for the Assay.}
 
 \item{reduction.name}{dimensional reduction name,  pca by default}
 }

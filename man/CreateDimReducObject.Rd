@@ -12,6 +12,7 @@ CreateDimReducObject(
   assay = NULL,
   stdev = numeric(),
   key = NULL,
+  global = FALSE,
   jackstraw = NULL,
   misc = list()
 )
@@ -29,6 +30,8 @@ CreateDimReducObject(
 
 \item{key}{A character string to facilitate looking up features from a
 specific DimReduc}
+
+\item{global}{Specify this as a global reduction (useful for visualizations)}
 
 \item{jackstraw}{Results from the JackStraw function}
 

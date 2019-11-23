@@ -21,7 +21,7 @@ NULL
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
 #' @param name Name for the expression programs
-#' @param seed Set a random seed
+#' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names database;
 #' see \code{\link{UpdateSymbolList}} for more details
@@ -77,7 +77,9 @@ AddModuleScore <- function(
   search = FALSE,
   ...
 ) {
-  set.seed(seed = seed)
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
@@ -560,6 +562,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #' Calculate mean of logged values in non-log space (return answer in log-space)
 #'
 #' @param x A vector of values
+#' @param ... Other arguments (not used)
 #'
 #' @return Returns the mean in log-space
 #'
@@ -568,8 +571,12 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #' @examples
 #' ExpMean(x = c(1, 2, 3))
 #'
-ExpMean <- function(x) {
-  return(log(x = mean(x = exp(x = x) - 1) + 1))
+ExpMean <- function(x, ...) {
+  if (inherits(x = x, what = 'AnyMatrix')) {
+    return(apply(X = x, FUN = function(i) {log(x = mean(x = exp(x = i) - 1) + 1)}, MARGIN = 1))
+  } else {
+    return(log(x = mean(x = exp(x = x) - 1) + 1))
+  }
 }
 
 #' Export Seurat object for UCSC cell browser
@@ -976,6 +983,7 @@ GeneSymbolThesarus <- function(
 #' log-space)
 #'
 #' @param x A vector of values
+#' @param ... Other arguments (not used)
 #'
 #' @return Returns the VMR in log-space
 #'
@@ -986,8 +994,12 @@ GeneSymbolThesarus <- function(
 #' @examples
 #' LogVMR(x = c(1, 2, 3))
 #'
-LogVMR <- function(x) {
-  return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
+LogVMR <- function(x, ...) {
+  if (inherits(x = x, what = 'AnyMatrix')) {
+    return(apply(X = x, FUN = function(i) {log(x = var(x = exp(x = i) - 1) / mean(x = exp(x = i) - 1))}, MARGIN = 1))
+  } else {
+    return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
+  }
 }
 
 #' Aggregate expression of multiple features into a single feature
@@ -1097,7 +1109,7 @@ PercentageFeatureSet <- function(
     warning("Both pattern and features provided. Pattern is being ignored.")
   }
   features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
-  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, , drop = FALSE])/
+  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE])/
     object[[paste0("nCount_", assay)]] * 100
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
@@ -1571,7 +1583,7 @@ IsSCT <- function(assay) {
     })
     return(unlist(x = sct.check))
   }
-  return(!is.null(x = Misc(assay, slot = 'vst.out')))
+  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')))
 }
 
 # Check the length of components of a list

@@ -158,6 +158,7 @@ FindClusters.Seurat <- function(
   weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
+  method = "matrix",
   algorithm = 1,
   n.start = 10,
   n.iter = 10,
@@ -183,6 +184,7 @@ FindClusters.Seurat <- function(
     weights = weights,
     node.sizes = node.sizes,
     resolution = resolution,
+    method = method,
     algorithm = algorithm,
     n.start = n.start,
     n.iter = n.iter,
@@ -208,7 +210,9 @@ FindClusters.Seurat <- function(
   )
   Idents(object = object) <- factor(x = Idents(object = object), levels = sort(x = levels))
   object[['seurat_clusters']] <- Idents(object = object)
-  object <- LogSeuratCommand(object)
+  cmd <- LogSeuratCommand(object = object, return.command = TRUE)
+  slot(object = cmd, name = 'assay.used') <- DefaultAssay(object = object[[graph.name]])
+  object[[slot(object = cmd, name = 'name')]] <- cmd
   return(object)
 }
 
@@ -419,7 +423,8 @@ FindNeighbors.Seurat <- function(
 ) {
   CheckDots(...)
   if (!is.null(x = dims)) {
-    assay <- assay %||% DefaultAssay(object = object)
+    # assay <- assay %||% DefaultAssay(object = object)
+    assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
     if (max(dims) > ncol(x = data.use)) {
       stop("More dimensions specified in dims than have been computed")
@@ -456,6 +461,7 @@ FindNeighbors.Seurat <- function(
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
   for (ii in 1:length(x = graph.name)) {
+    DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
     object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
   }
   if (do.plot) {
@@ -675,8 +681,7 @@ NNHelper <- function(data, query = data, k, method, ...) {
 # @keywords graph network igraph mvtnorm simulation
 #
 #' @importFrom leiden leiden
-#' @importFrom methods as is
-#' @importFrom reticulate py_module_available import r_to_py
+#' @importFrom reticulate py_module_available
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
 # @author Tom Kelly
@@ -703,25 +708,34 @@ RunLeiden <- function(
   n.iter = 10
 ) {
   if (!py_module_available(module = 'leidenalg')) {
-    stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
+    stop(
+      "Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).",
+      call. = FALSE
+    )
   }
-  switch(
-    EXPR = method,
-    #cast to dense (supported by reticulate for numpy.array)
-    "matrix" = input <- as(object, "matrix"),
-    #run as igraph object (passes to reticulate)
-    "igraph" = switch(
-      EXPR = is(object),
-      #generate igraph if needed (will handle updated snn class)
-      "Graph" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-      "dgCMatrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-      "igraph" = input <- object,
-      "matrix" = input <- graph_from_adjacency_matrix(adjmatrix = object),
-      "list" = input <- graph_from_adj_list(adjlist = object),
-      stop("SNN object must be a compatible input for igraph")
-    ),
-    stop("method for leiden must be 'matrix' or 'igraph'")
-  )
+  if (method %in% c("matrix", "igraph")) {
+    if (method == "igraph") {
+      object <- graph_from_adjacency_matrix(adjmatrix = object)
+    }
+  } else {
+    warning(
+      "method for Leiden recommended as 'matrix' or 'igraph'",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  input <- if (inherits(x = object, what = 'list')) {
+    graph_from_adj_list(adjlist = object)
+  } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
+    graph_from_adjacency_matrix(adjmatrix = object)
+  } else if (inherits(x = object, what = 'igraph')) {
+    object
+  } else {
+    stop(
+      paste("method for Leiden not found for class", class(x = object)),
+      call. = FALSE
+    )
+  }
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
     object = input,
