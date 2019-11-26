@@ -36,8 +36,8 @@ RunPCA(object, ...)
 \item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
 to true will compute it on gene x cell matrix.}
 
-\item{weight.by.var}{Weight the cell embeddings by the variance of each PC
-(weights the gene loadings if rev.pca is TRUE)}
+\item{weight.by.var}{Deprecated. Leave empty to obtain cell embeddings (gene loadings if rev.pca
+is TRUE)whose variance matches the correspondig eigenvalue}
 
 \item{verbose}{Print the top genes associated with high/low loadings for
 the PCs}
@@ -54,7 +54,7 @@ NULL will not set a seed.}
 
 \item{approx}{Use truncated singular value decomposition to approximate PCA}
 
-\item{features}{Features to compute PCA on. If features=NULL, PCA will be run 
+\item{features}{Features to compute PCA on. If features=NULL, PCA will be run
 using the variable features for the Assay.}
 
 \item{reduction.name}{dimensional reduction name,  pca by default}

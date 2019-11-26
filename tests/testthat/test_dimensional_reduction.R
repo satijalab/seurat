@@ -58,3 +58,170 @@ test_that("pca returns total variance (see #982)", {
                     sum(prcomp_result$sdev^2))
 
 })
+
+test_that("pca embedding weighting works", {
+  #test new behavior
+  Seurat.RunPCA.use.correct.scaling.bak <- options(Seurat.RunPCA.use.correct.scaling = TRUE)
+  # Generate dummy data exp matrix
+  set.seed(seed = 1)
+  npcs <- 50
+  dummyexpMat <- matrix(
+    data = stats::rexp(n = 2e4, rate = 1),
+    ncol = 200, nrow = 100
+  )
+  colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
+  row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+
+  # Create Seurat object for testing
+  obj <- CreateSeuratObject(counts = dummyexpMat)
+
+  # Normalize
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  # Scale
+  obj <- ScaleData(object = obj, verbose = FALSE)
+
+  # un(weighted/scaled)
+  # compute PCA
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.prcomp.unscaled",
+    npcs = npcs,
+    weight.by.var = FALSE,
+    approx = FALSE
+  ))
+
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.irlba.unscaled",
+    npcs = npcs,
+    weight.by.var = FALSE,
+    approx = TRUE
+  ))
+
+  # Compare
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.prcomp.unscaled"]], name = "cell.embeddings"))),
+    rep(x = 1/(ncol(x = obj)-1), times=npcs)
+  )
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.irlba.unscaled"]], name = "cell.embeddings"))),
+    rep(x = 1/(ncol(x = obj)-1), times=npcs)
+  )
+
+  # weighted/scaled
+  # compute PCA
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.prcomp.var_scaled",
+    npcs = npcs,
+    weight.by.var = TRUE,
+    approx = FALSE
+  ))
+
+  obj <- suppressWarnings(expr = RunPCA(
+    object = obj,
+    features = rownames(x = obj),
+    verbose = FALSE,
+    reduction.name = "pca.irlba.var_scaled",
+    npcs = npcs,
+    weight.by.var = TRUE,
+    approx = TRUE
+  ))
+
+  # Compare
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.prcomp.var_scaled"]], name = "cell.embeddings"))),
+    slot(object = obj[["pca.prcomp.var_scaled"]], name = "stdev")[1:npcs]^2
+  )
+  expect_equivalent(
+    diag(x = cov(x = slot(object = obj[["pca.irlba.var_scaled"]], name = "cell.embeddings"))),
+    slot(object = obj[["pca.prcomp.var_scaled"]], name = "stdev")[1:npcs]^2
+  )
+  options(Seurat.RunPCA.use.correct.scaling.bak)
+})
+
+test_that("pca reduction behaves as previously", {
+  # Generate dummy data exp matrix
+  set.seed(seed = 1)
+  npcs <- 3
+  dummyexpMat <- matrix(
+    data = stats::rexp(n = 2e4, rate = 1),
+    ncol = 200, nrow = 100
+  )
+  colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
+  row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+
+  # Create Seurat object for testing
+  obj <- CreateSeuratObject(counts = dummyexpMat)
+
+  # Normalize
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  # Scale
+  obj <- ScaleData(object = obj, verbose = FALSE)
+
+  # compute PCA with different values of related parameters
+  for (approx in list(list(approx=TRUE), list(approx=FALSE))) {
+    for (weight.by.var in list(list(weight.by.var=TRUE), list(weight.by.var=FALSE), list())) {
+      pars <- c(approx, weight.by.var)
+      pars.str <- paste0(deparse(pars), collapse="")
+      expect_known_value(
+        object = suppressWarnings(
+          expr = do.call(
+            what = RunPCA,
+            args = c(
+              list(object = obj, features = rownames(x = obj), npcs = npcs),
+              pars
+            )
+          )
+        )[["pca"]],
+        file = paste0("pca", make.names(pars.str), ".rds"),
+        label = paste0("RunPCA with ", pars.str)
+      )
+    }
+  }
+})
+
+test_that("pca reduction warns for deprecated `weight.by.var` argument", {
+  # Generate dummy data exp matrix
+  set.seed(seed = 1)
+  npcs <- 3
+  dummyexpMat <- matrix(
+    data = stats::rexp(n = 2e4, rate = 1),
+    ncol = 200, nrow = 100
+  )
+  colnames(x = dummyexpMat) <- paste0("cell", seq(ncol(x = dummyexpMat)))
+  row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
+
+  # Create Seurat object for testing
+  obj <- CreateSeuratObject(counts = dummyexpMat)
+
+  # Normalize
+  obj <- NormalizeData(object = obj, verbose = FALSE)
+  # Scale
+  obj <- ScaleData(object = obj, verbose = FALSE)
+
+  # compute PCA with different values of related parameters
+  for (approx in list(list(approx=TRUE), list(approx=FALSE), list())) {
+    for (weight.by.var in list(list(weight.by.var=TRUE), list(weight.by.var=FALSE))) {
+      pars <- c(approx, weight.by.var)
+      pars.str <- paste0(deparse(pars), collapse="")
+      expect_warning(
+        object = do.call(
+            what = RunPCA,
+            args = c(
+              list(object = obj, features = rownames(x = obj), npcs = npcs),
+              pars
+            )
+          )[["pca"]],
+        regexp = ".*[Dd]eprecate.*",
+        label = paste0("RunPCA with ", pars.str)
+      )
+    }
+  }
+})

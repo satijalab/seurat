@@ -766,8 +766,8 @@ RunLSI.Seurat <- function(
 #' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
-#' @param weight.by.var Weight the cell embeddings by the variance of each PC
-#' (weights the gene loadings if rev.pca is TRUE)
+#' @param weight.by.var Deprecated. Leave empty to obtain cell embeddings (gene loadings if rev.pca
+#' is TRUE)whose variance matches the correspondig eigenvalue
 #' @param verbose Print the top genes associated with high/low loadings for
 #' the PCs
 #' @param ndims.print PCs to print genes for
@@ -799,44 +799,80 @@ RunPCA.default <- function(
   approx = TRUE,
   ...
 ) {
+  pcs.name <- if(rev.pca) "`gene.loadings`" else "`cell.embeddings`"
+  normal.pcs.name <- paste0("normal (\"weighted\") ", pcs.name, " whose variances equlas the ",
+                            "eigenvalues of their coressponding principal components")
+
+  if(!missing(x = weight.by.var))
+    warning("`weight.by.var` is deprecated and will be removed in a future version. To obtain ",
+    normal.pcs.name, " and get rid of this warning message simply do not supply `weight.by.var` (recommended).",
+    "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+
+  if(!approx) {
+    pcs.name <- if(rev.pca) "`gene.loadings`" else "`cell.embeddings`"
+    # Stage 1:
+    Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling")
+    if (is.null(Seurat.RunPCA.use.correct.scaling)) {
+      warning("If used with `approx=FALSE`, RunPCA does not scale ", pcs.name, " correctly. This will change",
+              " in a future version.\nTo switch to the new, correct behavior now and get rid of this" ,       # to be changed to
+              " warning message, use `options(Seurat.RunPCA.use.correct.scaling = TRUE)` or use `approx=TRUE` (recommended).",
+              "\nTo maintain the current (wrong) behavior and get rid of this warning message,",
+              " set `options(Seurat.RunPCA.use.correct.scaling = FALSE)` (not recommended).",
+              "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+      Seurat.RunPCA.use.correct.scaling <- FALSE
+    }
+    # # Stage 2: # fill in current date for yyyyy in stage 4 warning
+    # Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling", default = TRUE)
+    # # Stage 3: # fill in current date for xxxxx in stage 4 warnings
+    # Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling", default = TRUE)
+    # if (!Seurat.RunPCA.use.correct.scaling) {
+    #   warning("Using `options(Seurat.RunPCA.use.correct.scaling = FALSE)` is deprecated in will cause an error in future versions of Seurat.",
+    #           "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+    # }
+    # # Stage 4: remove if clause below
+    # Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling", default = TRUE)
+    # if (!is.null(Seurat.RunPCA.use.correct.scaling)) {
+    #   if (Seurat.RunPCA.use.correct.scaling) {
+    #     warning("Using `options(Seurat.RunPCA.use.correct.scaling = FALSE)` is deprecated since xxxxx.",
+    #     " Specifing `options(Seurat.RunPCA.use.correct.scaling = TRUE)`  is no longer needed since yyyyy, please to not set it anymore.",
+    #           "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+    #   } else {
+    #     stop("`options(Seurat.RunPCA.use.correct.scaling = FALSE)` has been deprecated since xxxx and is no longer supported.",
+    #          "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+    #   }
+    # }
+    # # Stage 5: remove this if clause
+  }
+
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (rev.pca) {
-    npcs <- min(npcs, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = npcs, ...)
-    total.variance <- sum(RowVar(x = t(x = object)))
-    sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
-    if (weight.by.var) {
-      feature.loadings <- pca.results$u %*% diag(pca.results$d)
-    } else{
-      feature.loadings <- pca.results$u
-    }
-    cell.embeddings <- pca.results$v
+  t.object <- if(rev.pca) object else t(x = object)
+  nt.object <- if(rev.pca) t(x = object) else object
+  total.variance <- sum(RowVar(x = nt.object))
+  if (approx){
+    npcs <- min(npcs, ncol(x = t.object) - 1) # irlba does not allow computation of all PCs
+    pca.results <- irlba(A = t.object, nv = npcs, ...)
+    sdev <- pca.results$d/sqrt(nrow(t.object) - 1)
+    feature.loadings <- pca.results$v
+    cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+  } else {
+    pca.results <- prcomp(x = t.object, rank. = npcs, ...)
+    sdev <- pca.results$sdev
+    feature.loadings <- pca.results$rotation
+    cell.embeddings <- pca.results$x
   }
-  else {
-    total.variance <- sum(RowVar(x = object))
-    if (approx) {
-      npcs <- min(npcs, nrow(x = object) - 1)
-      pca.results <- irlba(A = t(x = object), nv = npcs, ...)
-      feature.loadings <- pca.results$v
-      sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
-      } else {
-        cell.embeddings <- pca.results$u
-      }
-    } else {
-      npcs <- min(npcs, nrow(x = object))
-      pca.results <- prcomp(x = t(object), rank. = npcs, ...)
-      feature.loadings <- pca.results$rotation
-      sdev <- pca.results$sdev
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
-      } else {
-        cell.embeddings <- pca.results$x
-      }
-    }
+  if (!approx && !Seurat.RunPCA.use.correct.scaling ) {                                             # to be removed at stage 4
+    if (weight.by.var) {                                                                            #
+      cell.embeddings <- cell.embeddings %*% diag(sdev[1:npcs]^2)                                   #
+    }                                                                                               #
+  } else if (!weight.by.var) {
+    cell.embeddings <- cell.embeddings %*% diag(1/sdev[1:npcs]/sqrt(nrow(t.object) - 1))
+  }
+  if (rev.pca){
+    tmp <- feature.loadings
+    feature.loadings <- cell.embeddings
+    cell.embeddings <- tmp
   }
   rownames(x = feature.loadings) <- rownames(x = object)
   colnames(x = feature.loadings) <- paste0(reduction.key, 1:npcs)
@@ -861,8 +897,8 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
-#' @param features Features to compute PCA on. If features=NULL, PCA will be run 
-#' using the variable features for the Assay. 
+#' @param features Features to compute PCA on. If features=NULL, PCA will be run
+#' using the variable features for the Assay.
 #'
 #' @rdname RunPCA
 #' @export
@@ -887,20 +923,20 @@ RunPCA.Assay <- function(
     features = features,
     verbose = verbose
   )
-  reduction.data <- RunPCA(
+  args <- list(
     object = data.use,
     assay = assay,
     npcs = npcs,
     rev.pca = rev.pca,
-    weight.by.var = weight.by.var,
     verbose = verbose,
     ndims.print = ndims.print,
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
-
   )
+  if(!missing(weight.by.var)) args$weight.by.var <- weight.by.var
+  reduction.data <- do.call(RunPCA, args)
   return(reduction.data)
 }
 
@@ -927,13 +963,12 @@ RunPCA.Seurat <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
-  reduction.data <- RunPCA(
+  args <- list(
     object = assay.data,
     assay = assay,
     features = features,
     npcs = npcs,
     rev.pca = rev.pca,
-    weight.by.var = weight.by.var,
     verbose = verbose,
     ndims.print = ndims.print,
     nfeatures.print = nfeatures.print,
@@ -941,6 +976,8 @@ RunPCA.Seurat <- function(
     seed.use = seed.use,
     ...
   )
+  if(!missing(weight.by.var)) args$weight.by.var <- weight.by.var
+  reduction.data <- do.call(RunPCA, args)
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
   return(object)
