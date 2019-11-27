@@ -187,7 +187,7 @@ Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
   image <- readPNG(source = file.path(data.dir, 'spatial', 'tissue_lowres_image.png'))
   scale.factors <- fromJSON(txt = file.path(data.dir, 'spatial', 'scalefactors_json.json'))
   tissue.positions <- read.csv(
-    file = file.path(data.dir, 'spatial', 'tissue_positions_list.txt'),
+    file = file.path(data.dir, 'spatial', 'tissue_positions_list.csv'),
     col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
     header = FALSE,
     as.is = TRUE,
