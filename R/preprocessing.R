@@ -2113,7 +2113,7 @@ RunALRA.Seurat <- function(
 
 #' @importFrom future nbrOfWorkers
 #'
-#' @param features Vector of features names to scale/center. Default is all features
+#' @param features Vector of features names to scale/center. Default is variable features.
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
