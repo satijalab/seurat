@@ -641,6 +641,8 @@ geom_spatial <-  function(
 
 #' @importFrom spatstat markvario ppp
 #' 
+#' @method RunMarkVario default
+#' @rdname RunMarkVario
 #' @export
 #' 
 RunMarkVario.default <- function(object, data, ...) {
@@ -667,8 +669,6 @@ RunMarkVario.default <- function(object, data, ...) {
   return(mv)
 }
 
-#' Run the mark variogram computation on a given Seurat object
-#' 
 #' @param object A Seurat object or data.frame giving x/y positions
 #' @param assay Assay to pull the features (marks) from
 #' @param image Name of image to pull the coordinates from
@@ -680,6 +680,8 @@ RunMarkVario.default <- function(object, data, ...) {
 #' @return Returns a Seurat object with the output from markvario stored in
 #' Tools and the r.metric stored in the Assay's meta.features data.frame
 #' 
+#' @method RunMarkVario Seurat
+#' @rdname RunMarkVario
 #' @export
 #' 
 RunMarkVario.Seurat <- function(object, assay = NULL, image = NULL, slot = "scale.data", features = NULL, r.metric = 20, ...) {

@@ -871,14 +871,12 @@ RunLSI <- function(object, ...) {
   UseMethod(generic = "RunLSI", object = object)
 }
 
-#' Compute a mark variogram for a marked point pattern.
+#' Run the mark variogram computation on a given Seurat object
 #'
 #' Wraps the functionality of markvario from the spatstat package.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
-#'
-#' @return Returns 
 #'
 #' @export
 #'
