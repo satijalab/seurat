@@ -169,7 +169,9 @@ Images <- function(object, assay = NULL) {
 
 #' Load a 10X Genomics Visium Image
 #'
-#' @inheritParams Read10X
+#' @param image.dir Path to directory with 10X Genomics visium image data;
+#' should include files \code{tissue_lowres_iamge.png},
+#' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue.
 #' @param ... Ignored for now
@@ -183,11 +185,11 @@ Images <- function(object, assay = NULL) {
 #'
 #' @export
 #'
-Read10X_Image <- function(data.dir, filter.matrix = TRUE, ...) {
-  image <- readPNG(source = file.path(data.dir, 'spatial', 'tissue_lowres_image.png'))
-  scale.factors <- fromJSON(txt = file.path(data.dir, 'spatial', 'scalefactors_json.json'))
+Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
+  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
+  scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
   tissue.positions <- read.csv(
-    file = file.path(data.dir, 'spatial', 'tissue_positions_list.txt'),
+    file = file.path(image.dir, 'tissue_positions_list.csv'),
     col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
     header = FALSE,
     as.is = TRUE,
@@ -432,18 +434,20 @@ LinkedDimPlot <- function(
     dims = dims,
     reduction = reduction
   )
-  return(LinkPlots(
-    plot1 = spatial.plot,
-    plot2 = dim.plot,
-    information = FetchData(object = object, vars = group.by),
-    plot1.labels = FALSE,
-    pt.size = pt.size,
-    plot1.layout = list(
-      'images' = GetImage(object = object[[image]], mode = 'plotly'),
-      'xaxis' = list('visible' = FALSE),
-      'yaxis' = list('visible' = FALSE)
+  suppressMessages(expr = suppressWarnings(expr = print(
+    x = LinkPlots(
+      plot1 = spatial.plot,
+      plot2 = dim.plot,
+      information = FetchData(object = object, vars = group.by),
+      plot1.labels = FALSE,
+      pt.size = pt.size,
+      plot1.layout = list(
+        'images' = GetImage(object = object[[image]], mode = 'plotly'),
+        'xaxis' = list('visible' = FALSE),
+        'yaxis' = list('visible' = FALSE)
+      )
     )
-  ))
+  )))
 }
 
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
@@ -486,7 +490,10 @@ Load10X_Spatial <- function(
     rownames(x = data) <- toupper(x = rownames(x = data))
   }
   object <- CreateSeuratObject(counts = data, assay = assay)
-  image <- Read10X_Image(data.dir = data.dir, filter.matrix = filter.matrix)
+  image <- Read10X_Image(
+    image.dir = file.path(data.dir, 'spatial'),
+    filter.matrix = filter.matrix
+  )
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image

@@ -21,7 +21,7 @@ NULL
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
 #' @param name Name for the expression programs
-#' @param seed Set a random seed
+#' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names database;
 #' see \code{\link{UpdateSymbolList}} for more details
@@ -77,7 +77,9 @@ AddModuleScore <- function(
   search = FALSE,
   ...
 ) {
-  set.seed(seed = seed)
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
@@ -1107,7 +1109,7 @@ PercentageFeatureSet <- function(
     warning("Both pattern and features provided. Pattern is being ignored.")
   }
   features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
-  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, , drop = FALSE])/
+  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE])/
     object[[paste0("nCount_", assay)]] * 100
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)

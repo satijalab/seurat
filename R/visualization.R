@@ -3615,7 +3615,8 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        log = log
+        log = log,
+        ...
       ))
     }
   )
@@ -4493,6 +4494,7 @@ SingleDimPlot <- function(
 # @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
 # @param log plot Y axis on log scale
+# @param seed.use Random seed to use. If NULL, don't set a seed
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
@@ -4514,9 +4516,12 @@ SingleExIPlot <- function(
   adjust = 1,
   pt.size = 0,
   cols = NULL,
+  seed.use = 42,
   log = FALSE
 ) {
-  set.seed(seed = 42)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   if (!is.data.frame(x = data) || ncol(x = data) != 1) {
     stop("'SingleExIPlot requires a data frame with 1 column")
   }

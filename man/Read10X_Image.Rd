@@ -7,15 +7,14 @@
 Read10X_Image(data.dir, filter.matrix = TRUE, ...)
 }
 \arguments{
-\item{data.dir}{Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv
-files provided by 10X. A vector or named vector can be given in order to load
-several data directories. If a named vector is given, the cell barcode names
-will be prefixed with the name.}
-
 \item{filter.matrix}{Filter spot/feature matrix to only include spots that
 have been determined to be over tissue.}
 
 \item{...}{Ignored for now}
+
+\item{image.dir}{Path to directory with 10X Genomics visium image data;
+should include files \code{tissue_lowres_iamge.png},
+\code{scalefactors_json.json} and \code{tissue_positions_list.csv}}
 }
 \value{
 A \code{\link{SliceImage}} object
