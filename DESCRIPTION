@@ -60,6 +60,7 @@ Imports:
     scales,
     sctransform (>= 0.2.0),
     SDMTools,
+    spatstat,
     stats,
     tibble,
     tools,

@@ -1209,7 +1209,8 @@ TransferData <- function(
   eps = 0,
   do.cpp = TRUE,
   verbose = TRUE,
-  slot = "data"
+  slot = "data",
+  prediction.assay = FALSE
 ) {
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
@@ -1343,7 +1344,12 @@ TransferData <- function(
       row.names = query.cells,
       stringsAsFactors = FALSE)
     )
-    return(predictions)
+    if (prediction.assay) {
+      pa <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
+      return(pa)
+    } else {
+      return(predictions)
+    }
   } else {  # case for transferring features
     reference.cell.indices <- reference.cells[anchors$cell1]
     refdata.anchors <- refdata[, reference.cell.indices]
@@ -2679,7 +2685,6 @@ ScoreAnchors <- function(
   nn.m4 <- ConstructNNMat(nn.idx = neighbors$nnbb$nn.idx[,1:k.score], offset1 = offset, offset2 = offset, dims = c(total.cells, total.cells))
   k.matrix <- nn.m1 + nn.m2 + nn.m3 + nn.m4
   anchor.only <- sparseMatrix(i = anchor.df[, 1], j = anchor.df[, 2], x = 1, dims = c(total.cells, total.cells))
-
   if (do.cpp){
     anchor.matrix <- SNNAnchor(k_matrix = k.matrix, anchor_only = anchor.only)
   } else {

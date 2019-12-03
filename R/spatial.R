@@ -644,8 +644,120 @@ geom_spatial <-  function(
   )
 }
 
+#' @importFrom spatstat markvario ppp
+#' 
+#' @method RunMarkVario default
+#' @rdname RunMarkVario
+#' @export
+#' 
+RunMarkVario.default <- function(object, data, ...) {
+  pp <- ppp(
+    x = object[, 1],
+    y = object[, 2],
+    xrange = range(object[, 1]),
+    yrange = range(object[, 2])
+  )
+  if (nbrOfWorkers() > 1) {
+    chunks <- nbrOfWorkers()
+    features <- rownames(x = data)
+    features <- split(x = features, f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks)))
+    mv <- future_lapply(X = features, FUN = function(x) {
+      pp[["marks"]] <- as.data.frame(x = t(x = data[x, ]))
+      markvario(X = pp, normalise = TRUE, ...)
+    })
+    mv <- unlist(x = mv, recursive = FALSE)
+    names(x = mv) <- rownames(x = data)
+  } else {
+    pp[["marks"]] <- as.data.frame(x = t(x = data))
+    mv <- markvario(X = pp, normalise = TRUE, ...)
+  }
+  return(mv)
+}
+
+#' @param object A Seurat object or data.frame giving x/y positions
+#' @param assay Assay to pull the features (marks) from
+#' @param image Name of image to pull the coordinates from
+#' @param slot Slot in the Assay to pull data from
+#' @param features Set of features to run on
+#' @param r.metric r value at which to report the "trans" value of the mark 
+#' variogram
+#' 
+#' @return Returns a Seurat object with the output from markvario stored in
+#' Tools and the r.metric stored in the Assay's meta.features data.frame
+#' 
+#' @method RunMarkVario Seurat
+#' @rdname RunMarkVario
+#' @export
+#' 
+RunMarkVario.Seurat <- function(object, assay = NULL, image = NULL, slot = "scale.data", features = NULL, r.metric = 20, ...) {
+  features <- features %||% VariableFeatures(object = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  image <- image %||% DefaultImage(object = object)
+  tc <- GetTissueCoordinates(object = object[[image]])
+  data <- GetAssayData(object = object, assay = assay, slot = slot)
+  data <- as.matrix(x = data[features, ])
+  data <- data[rowSums(data) > 0, ]
+  mv <- RunMarkVario(object = tc, data = data)
+  Tool(object = object) <- mv
+  object <- ComputeRMetric(object = object, assay = assay, r.metric = r.metric)
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+#' Quick accessor function for getting the Mark Variogram values 
+#' 
+#' @param object Seurat object
+#' @param assay Assay on which the mark variogram computations were made
+#' @param sorted Return the values in sorted decreasing order
+#' 
+#' @return Returns a vector of r metric values as a name vector
+#' 
+#' @export
+#' 
+GetRMetric <- function(object, assay = NULL, sorted = TRUE) {
+  assay <- assay %||% DefaultAssay(object = object)
+  metric <- na.omit(object[[assay]][["r.metric"]])
+  if (sorted) {
+    metric <- metric[order(metric), ,drop = FALSE]
+  }
+  metric <- setNames(object = metric[, 1], nm = rownames(x = metric)) 
+  return(metric)
+}
+
+#' Computes the metric at a given r (radius) value and stores in meta.features
+#' 
+#' @param object Seurat object
+#' @param assay Assay on which the mark variogram computations were made
+#' @param r.metric r value at which to report the "trans" value of the mark 
+#' variogram
+#' 
+#' @return Returns a Seurat object with the "r.metric" column in the Assay's 
+#' meta.features data.frame updated for relevant features
+#' 
+#' @export
+#' 
+ComputeRMetric <- function(object, assay = NULL, r.metric = 20) {
+  assay <- assay %||% DefaultAssay(object = object)
+  mv <- Tool(object = object, slot = "RunMarkVario")
+  if (is.null(x = mv)) {
+    stop("Please call RunMarkVario before ComputeRMetric.")
+  }
+  r.metric.results <- unlist(x = lapply(
+    X = mv, 
+    FUN = function(x) {
+      x$trans[which.min(x = abs(x = x$r - r.metric))]
+    }
+  ))
+  r.metric.vec <- rep(x = NA, length = nrow(x = object[[assay]]))
+  names(x = r.metric.vec) <- rownames(x = object[[assay]])
+  r.metric.vec[names(x = r.metric.results)] <- r.metric.results
+  object[[assay]][["r.metric"]] <- r.metric.vec
+  return(object)
+}
+
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom grDevices colorRampPalette
+#' 
 #'
 SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
 
@@ -941,6 +1053,9 @@ SpatialPlot <- function(
       if (is.null(x = group.by)) {
         plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
       } else if (label) {
+        if (!is.null(x = cells.highlight)) {
+          features[j] <- "highlight"
+        }
         plot <- LabelClusters(
           plot = plot,
           id = features[j],
@@ -948,7 +1063,7 @@ SpatialPlot <- function(
           repel = repel,
           size = label.size,
           color = label.color,
-          label.box = label.box
+          box = label.box
         )
       }
       if (j == 1 | length(x = images) == 1) {
@@ -1356,6 +1471,126 @@ subset.SpatialImage <- function(x, cells, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Splits features into groups based on log expression levels 
+#
+# @param object Seurat object
+# @param assay Assay for expression data
+# @param min.cells Only compute for features in at least this many cells
+# @param ngroups Number of groups to split into
+#
+# @return A Seurat object with the feature group stored as a factor in 
+# metafeatures
+#
+#' @importFrom Matrix rowMeans rowSums
+# 
+GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
+  cm <- GetAssayData(object = object[[assay]], slot = "counts")
+  # subset to keep only genes detected in at least min.cells cells
+  cm <- cm[rowSums(cm > 0) >= min.cells, ]
+  # use the geometric mean of the features to group them
+  # (using the arithmetic mean would usually not change things much)
+  # could use sctransform:::row_gmean here but not exported
+  feature.gmean <- exp(x = rowMeans(log1p(x = cm))) - 1
+  feature.grp.breaks <- seq(
+    from = min(log10(x = feature.gmean)) - 10*.Machine$double.eps, 
+    to = max(log10(x = feature.gmean)), 
+    length.out = ngroups + 1
+  )
+  feature.grp <- cut(
+    x = log10(x = feature.gmean), 
+    breaks = feature.grp.breaks, 
+    ordered_result = TRUE
+  )
+  feature.grp <- factor(
+    x = feature.grp, 
+    levels = rev(x = levels(x = feature.grp)), 
+    ordered = TRUE
+  )
+  names(x = feature.grp) <- names(x = feature.gmean)
+  return(feature.grp)
+}
+
+#' Compute the correlation of features broken down by groups with another 
+#' covariate
+#' 
+#' @param object Seurat object
+#' @param assay Assay to pull the data from
+#' @param slot Slot in the assay to pull feature expression data from (counts,
+#' data, or scale.data)
+#' @param var Variable with which to correlate the features
+#' @param group.assay Compute the gene groups based off the data in this assay. 
+#' @param min.cells Only compute for genes in at least this many cells
+#' @param ngroups Number of groups to split into
+#' 
+#' @return A Seurat object with the correlation stored in metafeatures
+#' 
+#' @export
+#' 
+ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6, do.plot = TRUE) {
+  assay <- assay %||% DefaultAssay(object = object)
+  group.assay <- group.assay %||% assay
+  var <- var %||% paste0("nCount_", group.assay)
+  gene.grp <- GetFeatureGroups(
+    object = object,
+    assay = group.assay,
+    min.cells = min.cells,
+    ngroups = ngroups
+  )
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- data[rowMeans(x = data) != 0, ]
+  grp.cors <- apply(
+    X = data, 
+    MARGIN = 1, 
+    FUN = function(x) {
+      cor(x = x, y = object[[var]])
+    }
+  )
+  grp.cors <- grp.cors[names(x = gene.grp)]
+  grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
+  grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
+  colnames(x = grp.cors) <- c("cor", "feature_grp")
+  object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
+  object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
+  if (do.plot) {
+    print(FeatureGrpCorPlot(object = object, assay = assay, feature.group = "feature.grp", cor = paste0(var, "_cor")))
+  }
+  return(object)
+}
+
+#' Boxplot of correlation of a variable (e.g. number of UMIs) with expression 
+#' data
+#'
+#' @param object Seurat object
+#' @param assay Assay where the feature grouping info and correlations are 
+#' stored
+#' @param feature.group Name of the column in meta.features where the feature
+#' grouping info is stored
+#' @param cor Name of the column in meta.features where correlation info is 
+#' stored
+#' 
+#' @return Returns a ggplot boxplot of correlations split by group
+#' 
+#' @importFrom ggplot2 geom_boxplot scale_fill_manual geom_hline
+#' @importFrom cowplot theme_cowplot
+#' @importFrom scales brewer_pal
+#' 
+#' @export
+#' 
+FeatureGrpCorPlot <- function(object, assay = NULL, feature.group = "feature.grp", cor = "nCount_RNA_cor") {
+  assay <- assay %||% DefaultAssay(object = object)
+  data <- object[[assay]][[c(feature.group, cor)]]
+  data <- data[complete.cases(data), ]
+  colnames(x = data) <- c('grp', 'cor')
+  plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +  
+        geom_boxplot() + 
+        theme_cowplot() + scale_fill_manual(values = rev(brewer_pal(palette='YlOrRd')(7))) +
+        ylab(paste0("Correlation with ",  gsub(x = cor, pattern = "_cor", replacement = ""))) +
+        geom_hline(yintercept = 0) + NoLegend() +
+        theme(axis.line.x = element_blank(), axis.title.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x = element_blank())
+  return(plot)
+}
+
 
 DefaultImage <- function(object) {
   object <- UpdateSlots(object = object)

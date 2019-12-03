@@ -871,6 +871,23 @@ RunLSI <- function(object, ...) {
   UseMethod(generic = "RunLSI", object = object)
 }
 
+#' Run the mark variogram computation on a given Seurat object
+#'
+#' Wraps the functionality of markvario from the spatstat package.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @export
+#'
+#' @rdname RunMarkVario
+#' @export RunMarkVario
+#'
+RunMarkVario <- function(object, ...) {
+  UseMethod(generic = 'RunMarkVario', object = object)
+}
+
+
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation

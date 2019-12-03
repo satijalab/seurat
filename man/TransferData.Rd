@@ -6,7 +6,8 @@
 \usage{
 TransferData(anchorset, refdata, weight.reduction = "pcaproject",
   l2.norm = FALSE, dims = 1:30, k.weight = 50, sd.weight = 1,
-  eps = 0, do.cpp = TRUE, verbose = TRUE, slot = "data")
+  eps = 0, do.cpp = TRUE, verbose = TRUE, slot = "data",
+  prediction.assay = FALSE)
 }
 \arguments{
 \item{anchorset}{Results from FindTransferAnchors}
