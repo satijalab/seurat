@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial.R
 \name{ComputeFeatureGrpCor}
 \alias{ComputeFeatureGrpCor}
-\title{Compute the correlation of features broken down by groups with another 
+\title{Compute the correlation of features broken down by groups with another
 covariate}
 \usage{
 ComputeFeatureGrpCor(object, assay = NULL, slot = "scale.data",
@@ -29,6 +29,6 @@ data, or scale.data)}
 A Seurat object with the correlation stored in metafeatures
 }
 \description{
-Compute the correlation of features broken down by groups with another 
+Compute the correlation of features broken down by groups with another
 covariate
 }

@@ -11,11 +11,11 @@ ComputeRMetric(object, assay = NULL, r.metric = 20)
 
 \item{assay}{Assay on which the mark variogram computations were made}
 
-\item{r.metric}{r value at which to report the "trans" value of the mark 
+\item{r.metric}{r value at which to report the "trans" value of the mark
 variogram}
 }
 \value{
-Returns a Seurat object with the "r.metric" column in the Assay's 
+Returns a Seurat object with the "r.metric" column in the Assay's
 meta.features data.frame updated for relevant features
 }
 \description{

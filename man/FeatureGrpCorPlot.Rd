@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial.R
 \name{FeatureGrpCorPlot}
 \alias{FeatureGrpCorPlot}
-\title{Boxplot of correlation of a variable (e.g. number of UMIs) with expression 
+\title{Boxplot of correlation of a variable (e.g. number of UMIs) with expression
 data}
 \usage{
 FeatureGrpCorPlot(object, assay = NULL, feature.group = "feature.grp",
@@ -11,19 +11,19 @@ FeatureGrpCorPlot(object, assay = NULL, feature.group = "feature.grp",
 \arguments{
 \item{object}{Seurat object}
 
-\item{assay}{Assay where the feature grouping info and correlations are 
+\item{assay}{Assay where the feature grouping info and correlations are
 stored}
 
 \item{feature.group}{Name of the column in meta.features where the feature
 grouping info is stored}
 
-\item{cor}{Name of the column in meta.features where correlation info is 
+\item{cor}{Name of the column in meta.features where correlation info is
 stored}
 }
 \value{
 Returns a ggplot boxplot of correlations split by group
 }
 \description{
-Boxplot of correlation of a variable (e.g. number of UMIs) with expression 
+Boxplot of correlation of a variable (e.g. number of UMIs) with expression
 data
 }

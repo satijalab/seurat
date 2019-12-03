@@ -26,7 +26,7 @@ RunMarkVario(object, ...)
 
 \item{features}{Set of features to run on}
 
-\item{r.metric}{r value at which to report the "trans" value of the mark 
+\item{r.metric}{r value at which to report the "trans" value of the mark
 variogram}
 
 \item{object}{A Seurat object or data.frame giving x/y positions}
