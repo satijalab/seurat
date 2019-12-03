@@ -1048,6 +1048,9 @@ SpatialPlot <- function(
       if (is.null(x = group.by)) {
         plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
       } else if (label) {
+        if (!is.null(x = cells.highlight)) {
+          features[j] <- "highlight"
+        }
         plot <- LabelClusters(
           plot = plot,
           id = features[j],
@@ -1055,7 +1058,7 @@ SpatialPlot <- function(
           repel = repel,
           size = label.size,
           color = label.color,
-          label.box = label.box
+          box = label.box
         )
       }
       if (j == 1 | length(x = images) == 1) {
