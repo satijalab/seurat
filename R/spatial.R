@@ -645,11 +645,11 @@ geom_spatial <-  function(
 }
 
 #' @importFrom spatstat markvario ppp
-#' 
+#'
 #' @method RunMarkVario default
 #' @rdname RunMarkVario
 #' @export
-#' 
+#'
 RunMarkVario.default <- function(object, data, ...) {
   pp <- ppp(
     x = object[, 1],
@@ -679,16 +679,16 @@ RunMarkVario.default <- function(object, data, ...) {
 #' @param image Name of image to pull the coordinates from
 #' @param slot Slot in the Assay to pull data from
 #' @param features Set of features to run on
-#' @param r.metric r value at which to report the "trans" value of the mark 
+#' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
-#' 
+#'
 #' @return Returns a Seurat object with the output from markvario stored in
 #' Tools and the r.metric stored in the Assay's meta.features data.frame
-#' 
+#'
 #' @method RunMarkVario Seurat
 #' @rdname RunMarkVario
 #' @export
-#' 
+#'
 RunMarkVario.Seurat <- function(object, assay = NULL, image = NULL, slot = "scale.data", features = NULL, r.metric = 20, ...) {
   features <- features %||% VariableFeatures(object = object)
   assay <- assay %||% DefaultAssay(object = object)
@@ -704,38 +704,38 @@ RunMarkVario.Seurat <- function(object, assay = NULL, image = NULL, slot = "scal
   return(object)
 }
 
-#' Quick accessor function for getting the Mark Variogram values 
-#' 
+#' Quick accessor function for getting the Mark Variogram values
+#'
 #' @param object Seurat object
 #' @param assay Assay on which the mark variogram computations were made
 #' @param sorted Return the values in sorted decreasing order
-#' 
+#'
 #' @return Returns a vector of r metric values as a name vector
-#' 
+#'
 #' @export
-#' 
+#'
 GetRMetric <- function(object, assay = NULL, sorted = TRUE) {
   assay <- assay %||% DefaultAssay(object = object)
   metric <- na.omit(object[[assay]][["r.metric"]])
   if (sorted) {
     metric <- metric[order(metric), ,drop = FALSE]
   }
-  metric <- setNames(object = metric[, 1], nm = rownames(x = metric)) 
+  metric <- setNames(object = metric[, 1], nm = rownames(x = metric))
   return(metric)
 }
 
 #' Computes the metric at a given r (radius) value and stores in meta.features
-#' 
+#'
 #' @param object Seurat object
 #' @param assay Assay on which the mark variogram computations were made
-#' @param r.metric r value at which to report the "trans" value of the mark 
+#' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
-#' 
-#' @return Returns a Seurat object with the "r.metric" column in the Assay's 
+#'
+#' @return Returns a Seurat object with the "r.metric" column in the Assay's
 #' meta.features data.frame updated for relevant features
-#' 
+#'
 #' @export
-#' 
+#'
 ComputeRMetric <- function(object, assay = NULL, r.metric = 20) {
   assay <- assay %||% DefaultAssay(object = object)
   mv <- Tool(object = object, slot = "RunMarkVario")
@@ -743,7 +743,7 @@ ComputeRMetric <- function(object, assay = NULL, r.metric = 20) {
     stop("Please call RunMarkVario before ComputeRMetric.")
   }
   r.metric.results <- unlist(x = lapply(
-    X = mv, 
+    X = mv,
     FUN = function(x) {
       x$trans[which.min(x = abs(x = x$r - r.metric))]
     }
@@ -757,7 +757,7 @@ ComputeRMetric <- function(object, assay = NULL, r.metric = 20) {
 
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom grDevices colorRampPalette
-#' 
+#'
 #'
 SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
 
@@ -874,6 +874,8 @@ SingleSpatialPlot <- function(
 #' @param cols.highlight A vector of colors to highlight the cells as; ordered
 #' the same as the groups in cells.highlight; last color corresponds to
 #' unselected cells.
+#' @param facet.highlight When highlighting certain groups of cells, split each
+#' group into its own plot
 #' @param label Whether to label the clusters
 #' @param label.size Sets the size of the labels
 #' @param label.color Sets the color of the label text
@@ -916,6 +918,7 @@ SpatialPlot <- function(
   max.cutoff = NA,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
+  facet.highlight = FALSE,
   label = FALSE,
   label.size = 5,
   label.color = 'white',
@@ -1003,10 +1006,7 @@ SpatialPlot <- function(
   features <- colnames(x = data)
   colnames(x = data) <- features
   rownames(x = data) <- colnames(x = object)
-  plots <- vector(
-    mode = "list",
-    length = length(x = images) * length(x = features)
-  )
+  facet.highlight <- facet.highlight && (!is.null(x = cells.highlight) && is.list(x = cells.highlight))
   if (do.hover) {
     if (length(x = images) > 1) {
       images <- images[1]
@@ -1029,12 +1029,45 @@ SpatialPlot <- function(
         immediate. = TRUE
       )
     }
+    if (facet.highlight) {
+      warning(
+        "'do.hover' requires no faceting highlighted cells",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      facet.highlight <- FALSE
+    }
   }
-  for (i in 1:length(x = images)) {
+  if (facet.highlight) {
+    if (length(x = images) > 1) {
+      images <- images[1]
+      warning(
+        "Faceting the highlight only works with a single image, using image ",
+        images,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    ncols <- length(x = cells.highlight)
+  } else {
+    ncols <- length(x = images)
+  }
+  plots <- vector(
+    mode = "list",
+    length = length(x = features) * ncols
+  )
+  # browser()
+  for (i in 1:ncols) {
     plot.idx <- i
-    image.use <- object[[images[[i]]]]
+    image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
+    image.use <- object[[images[[image.idx]]]]
     coordinates <- GetTissueCoordinates(object = image.use)
-    slice.plots <- vector(mode = "list", length(x = features))
+    # slice.plots <- vector(mode = "list", length(x = features))
+    highlight.use <- if (facet.highlight) {
+      cells.highlight[i]
+    } else {
+      cells.highlight
+    }
     for (j in 1:length(x = features)) {
       plot <- SingleSpatialPlot(
         data = cbind(
@@ -1044,7 +1077,8 @@ SpatialPlot <- function(
         image = image.use,
         col.by = features[j],
         geom = ifelse(test = do.hover, yes = 'interactive', no = 'spatial'),
-        cells.highlight = cells.highlight,
+        # cells.highlight = cells.highlight,
+        cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
         alpha = alpha,
@@ -1053,12 +1087,16 @@ SpatialPlot <- function(
       if (is.null(x = group.by)) {
         plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
       } else if (label) {
-        if (!is.null(x = cells.highlight)) {
-          features[j] <- "highlight"
-        }
+        # if (!is.null(x = cells.highlight)) {
+        #   features[j] <- "highlight"
+        # }
         plot <- LabelClusters(
           plot = plot,
-          id = features[j],
+          id = ifelse(
+            test = is.null(x = cells.highlight),
+            yes = features[j],
+            no = 'highlight'
+          ),
           geom = 'GeomSpatial',
           repel = repel,
           size = label.size,
@@ -1067,10 +1105,11 @@ SpatialPlot <- function(
         )
       }
       if (j == 1 | length(x = images) == 1) {
-        plot <- plot + ggtitle(label = images[[i]]) + theme(plot.title = element_text(hjust = 0.5))
+        plot <- plot + ggtitle(label = images[[image.idx]]) + theme(plot.title = element_text(hjust = 0.5))
       }
       plots[[plot.idx]] <- plot
-      plot.idx <- plot.idx + length(x = images)
+      # plot.idx <- plot.idx + length(x = images)
+      plot.idx <- plot.idx + ncols
     }
   }
   if (do.hover) {
@@ -1100,6 +1139,7 @@ SpatialDimPlot <- function(
   images = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
+  facet.highlight = FALSE,
   label = FALSE,
   label.size = 7,
   label.color = 'white',
@@ -1118,6 +1158,7 @@ SpatialDimPlot <- function(
     images = images,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
+    facet.highlight = facet.highlight,
     label = label,
     label.size = label.size,
     label.color = label.color,
@@ -1472,18 +1513,18 @@ subset.SpatialImage <- function(x, cells, ...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Splits features into groups based on log expression levels 
+# Splits features into groups based on log expression levels
 #
 # @param object Seurat object
 # @param assay Assay for expression data
 # @param min.cells Only compute for features in at least this many cells
 # @param ngroups Number of groups to split into
 #
-# @return A Seurat object with the feature group stored as a factor in 
+# @return A Seurat object with the feature group stored as a factor in
 # metafeatures
 #
 #' @importFrom Matrix rowMeans rowSums
-# 
+#
 GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
   cm <- GetAssayData(object = object[[assay]], slot = "counts")
   # subset to keep only genes detected in at least min.cells cells
@@ -1493,40 +1534,40 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
   # could use sctransform:::row_gmean here but not exported
   feature.gmean <- exp(x = rowMeans(log1p(x = cm))) - 1
   feature.grp.breaks <- seq(
-    from = min(log10(x = feature.gmean)) - 10*.Machine$double.eps, 
-    to = max(log10(x = feature.gmean)), 
+    from = min(log10(x = feature.gmean)) - 10*.Machine$double.eps,
+    to = max(log10(x = feature.gmean)),
     length.out = ngroups + 1
   )
   feature.grp <- cut(
-    x = log10(x = feature.gmean), 
-    breaks = feature.grp.breaks, 
+    x = log10(x = feature.gmean),
+    breaks = feature.grp.breaks,
     ordered_result = TRUE
   )
   feature.grp <- factor(
-    x = feature.grp, 
-    levels = rev(x = levels(x = feature.grp)), 
+    x = feature.grp,
+    levels = rev(x = levels(x = feature.grp)),
     ordered = TRUE
   )
   names(x = feature.grp) <- names(x = feature.gmean)
   return(feature.grp)
 }
 
-#' Compute the correlation of features broken down by groups with another 
+#' Compute the correlation of features broken down by groups with another
 #' covariate
-#' 
+#'
 #' @param object Seurat object
 #' @param assay Assay to pull the data from
 #' @param slot Slot in the assay to pull feature expression data from (counts,
 #' data, or scale.data)
 #' @param var Variable with which to correlate the features
-#' @param group.assay Compute the gene groups based off the data in this assay. 
+#' @param group.assay Compute the gene groups based off the data in this assay.
 #' @param min.cells Only compute for genes in at least this many cells
 #' @param ngroups Number of groups to split into
-#' 
+#'
 #' @return A Seurat object with the correlation stored in metafeatures
-#' 
+#'
 #' @export
-#' 
+#'
 ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6, do.plot = TRUE) {
   assay <- assay %||% DefaultAssay(object = object)
   group.assay <- group.assay %||% assay
@@ -1540,8 +1581,8 @@ ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var 
   data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
   data <- data[rowMeans(x = data) != 0, ]
   grp.cors <- apply(
-    X = data, 
-    MARGIN = 1, 
+    X = data,
+    MARGIN = 1,
     FUN = function(x) {
       cor(x = x, y = object[[var]])
     }
@@ -1558,32 +1599,32 @@ ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var 
   return(object)
 }
 
-#' Boxplot of correlation of a variable (e.g. number of UMIs) with expression 
+#' Boxplot of correlation of a variable (e.g. number of UMIs) with expression
 #' data
 #'
 #' @param object Seurat object
-#' @param assay Assay where the feature grouping info and correlations are 
+#' @param assay Assay where the feature grouping info and correlations are
 #' stored
 #' @param feature.group Name of the column in meta.features where the feature
 #' grouping info is stored
-#' @param cor Name of the column in meta.features where correlation info is 
+#' @param cor Name of the column in meta.features where correlation info is
 #' stored
-#' 
+#'
 #' @return Returns a ggplot boxplot of correlations split by group
-#' 
+#'
 #' @importFrom ggplot2 geom_boxplot scale_fill_manual geom_hline
 #' @importFrom cowplot theme_cowplot
 #' @importFrom scales brewer_pal
-#' 
+#'
 #' @export
-#' 
+#'
 FeatureGrpCorPlot <- function(object, assay = NULL, feature.group = "feature.grp", cor = "nCount_RNA_cor") {
   assay <- assay %||% DefaultAssay(object = object)
   data <- object[[assay]][[c(feature.group, cor)]]
   data <- data[complete.cases(data), ]
   colnames(x = data) <- c('grp', 'cor')
-  plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +  
-        geom_boxplot() + 
+  plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +
+        geom_boxplot() +
         theme_cowplot() + scale_fill_manual(values = rev(brewer_pal(palette='YlOrRd')(7))) +
         ylab(paste0("Correlation with ",  gsub(x = cor, pattern = "_cor", replacement = ""))) +
         geom_hline(yintercept = 0) + NoLegend() +

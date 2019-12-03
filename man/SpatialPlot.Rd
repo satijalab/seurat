@@ -9,15 +9,17 @@
 SpatialPlot(object, group.by = NULL, features = NULL, images = NULL,
   slot = "data", min.cutoff = NA, max.cutoff = NA,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
-  label = FALSE, label.size = 5, label.color = "white",
-  label.box = TRUE, repel = FALSE, ncol = NULL, combine = TRUE,
-  pt.size.factor = 1, alpha = 1, stroke = 0.25, do.hover = FALSE)
+  facet.highlight = FALSE, label = FALSE, label.size = 5,
+  label.color = "white", label.box = TRUE, repel = FALSE,
+  ncol = NULL, combine = TRUE, pt.size.factor = 1, alpha = 1,
+  stroke = 0.25, do.hover = FALSE)
 
 SpatialDimPlot(object, group.by = NULL, images = NULL,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
-  label = FALSE, label.size = 7, label.color = "white",
-  repel = FALSE, ncol = NULL, combine = TRUE, pt.size.factor = 1,
-  alpha = 1, stroke = 0.25, label.box = TRUE, do.hover = FALSE)
+  facet.highlight = FALSE, label = FALSE, label.size = 7,
+  label.color = "white", repel = FALSE, ncol = NULL,
+  combine = TRUE, pt.size.factor = 1, alpha = 1, stroke = 0.25,
+  label.box = TRUE, do.hover = FALSE)
 
 SpatialFeaturePlot(object, features, images = NULL, slot = "data",
   min.cutoff = NA, max.cutoff = NA, ncol = NULL, combine = TRUE,
@@ -48,6 +50,9 @@ cols.highlight}
 \item{cols.highlight}{A vector of colors to highlight the cells as; ordered
 the same as the groups in cells.highlight; last color corresponds to
 unselected cells.}
+
+\item{facet.highlight}{When highlighting certain groups of cells, split each
+group into its own plot}
 
 \item{label}{Whether to label the clusters}
 
