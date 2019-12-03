@@ -115,6 +115,9 @@ as.sparse <- function(x, ...) {
 #'
 #' @return A vector of cell names
 #'
+#' @note The default method simply calls \code{\link[base]{colnames}} on \code{x};
+#' other methods are provided for objects where colnames aren't necessarily cell names
+#'
 #' @rdname Cells
 #' @export Cells
 #'
@@ -358,14 +361,35 @@ GetAssayData <- function(object, ...) {
 
 #' Get image data
 #'
+#' @param object An object
+#' @param mode How to return the image; should accept one of 'grob', 'raster',
+#' 'plotly', or 'raw'
+#' @param ... Arguments passed to other methods
+#'
+#' @return Image data, varying depending on the value of \code{mode}:
+#' \describe{
+#'  \item{'grob'}{An object representing image data inheriting from \code{grob} objects (eg. \code{rastergrob})}
+#'  \item{'raster'}{An object of class \code{raster}}
+#'  \item{'plotly'}{A list with image data suitable for Plotly rendering, see \code{\link[plotly]{layout}} for more details}
+#'  \item{'raw'}{The raw image data as stored in the object}
+#' }
+#'
+#' @seealso \code{\link[plotly]{layout}}
+#'
 #' @rdname GetImage
 #' @export GetImage
 #'
-GetImage <- function(object, ...) {
+GetImage <- function(object, mode = c('grob', 'raster', 'plotly', 'raw'), ...) {
+  mode <- match.arg(arg = mode)
   UseMethod(generic = 'GetImage', object = object)
 }
 
 #' Get tissue coordinates
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return A data.frame with tissue coordinates
 #'
 #' @rdname GetTissueCoordinates
 #' @export GetTissueCoordinates
@@ -439,7 +463,6 @@ Idents <- function(object, ... ) {
 #' the associated object will remain even if its original assay was deleted
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods
 #'
 #' @return \code{TRUE} if the object is global/persistent otherwise \code{FALSE}
 #'
@@ -449,7 +472,7 @@ Idents <- function(object, ... ) {
 #' @examples
 #' IsGlobal(pbmc_small[['pca']])
 #'
-IsGlobal <- function(object, ...) {
+IsGlobal <- function(object) {
   UseMethod(generic = 'IsGlobal', object = object)
 }
 
@@ -467,7 +490,7 @@ JS <- function(object, ...) {
 
 #' Set JackStraw information
 #'
-#' @inherit JS
+#' @inheritParams JS
 #' @param value JackStraw information
 #'
 #' @rdname JS
@@ -944,6 +967,20 @@ RunUMAP <- function(object, ...) {
 #'
 ScaleData <- function(object, ...) {
   UseMethod(generic = 'ScaleData', object = object)
+}
+
+#' Get image scale factors
+#'
+#' @param object An object to get scale factors from
+#' @param ... Arguments passed to other methods
+#'
+#' @return An object of class \code{scalefactors}
+#'
+#' @rdname ScaleFactors
+#' @export ScaleFactors
+#'
+ScaleFactors <- function(object, ...) {
+  UseMethod(generic = 'ScaleFactors', object = object)
 }
 
 #' Compute Jackstraw scores significance.

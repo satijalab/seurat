@@ -2581,10 +2581,11 @@ FeatureLocator <- function(plot, ...) {
 #' @param plot A ggplot2 plot
 #' @param information An optional dataframe or matrix of extra information to be displayed on hover
 #' @param dark.theme Plot using a dark theme?
-#' @param ... Extra parameters to be passed to \code{plotly::layout}
+#' @param axes Display or hide x- and y-axes
+#' @param ... Extra parameters to be passed to \code{\link[plotly]{layout}}
 #'
 #' @importFrom ggplot2 ggplot_build
-#' @importFrom plotly plot_ly layout
+#' @importFrom plotly plot_ly layout add_annotations
 #' @export
 #'
 #' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
@@ -2599,53 +2600,37 @@ FeatureLocator <- function(plot, ...) {
 HoverLocator <- function(
   plot,
   information = NULL,
+  axes = TRUE,
   dark.theme = FALSE,
   ...
 ) {
-  #   Use GGpointToBase because we already have ggplot objects
-  #   with colors (which are annoying in plotly)
-  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+  # Use GGpointToBase because we already have ggplot objects
+  # with colors (which are annoying in plotly)
+  plot.build <- suppressWarnings(expr = GGpointToPlotlyBuild(
+    plot = plot,
+    information = information,
+    ...
+  ))
   data <- ggplot_build(plot = plot)$plot$data
-  rownames(x = plot.build) <- rownames(x = data)
-  #   Reset the names to 'x' and 'y'
-  names(x = plot.build) <- c(
-    'x',
-    'y',
-    names(x = plot.build)[3:length(x = plot.build)]
-  )
-  #   Add the names we're looking for (eg. cell name, gene name)
-  if (is.null(x = information)) {
-    plot.build$feature <- rownames(x = data)
+  # Set up axis labels here
+  # Also, a bunch of stuff to get axis lines done properly
+  if (axes) {
+    xaxis <- list(
+      title = names(x = data)[1],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
+    yaxis <- list(
+      title = names(x = data)[2],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
   } else {
-    info <- apply(
-      X = information,
-      MARGIN = 1,
-      FUN = function(x, names) {
-        return(paste0(names, ': ', x, collapse = '<br>'))
-      },
-      names = colnames(x = information)
-    )
-    data.info <- data.frame(
-      feature = paste(rownames(x = information), info, sep = '<br>'),
-      row.names = rownames(x = information)
-    )
-    plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    xaxis <- yaxis <- list(visible = FALSE)
   }
-  #   Set up axis labels here
-  #   Also, a bunch of stuff to get axis lines done properly
-  xaxis <- list(
-    title = names(x = data)[1],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  yaxis <- list(
-    title = names(x = data)[2],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  #   Check for dark theme
+  # Check for dark theme
   if (dark.theme) {
     title <- list(color = 'white')
     xaxis <- c(xaxis, color = 'white')
@@ -2655,11 +2640,11 @@ HoverLocator <- function(
     title = list(color = 'black')
     plotbg = 'white'
   }
-  #   The `~' means pull from the data passed (this is why we reset the names)
-  #   Use I() to get plotly to accept the colors from the data as is
-  #   Set hoverinfo to 'text' to override the default hover information
-  #   rather than append to it
-  p <- plotly::layout(
+  # The `~' means pull from the data passed (this is why we reset the names)
+  # Use I() to get plotly to accept the colors from the data as is
+  # Set hoverinfo to 'text' to override the default hover information
+  # rather than append to it
+  p <- layout(
     p = plot_ly(
       data = plot.build,
       x = ~x,
@@ -2678,13 +2663,15 @@ HoverLocator <- function(
     plot_bgcolor = plotbg,
     ...
   )
-  # add labels
+  # Add labels
   label.layer <- which(x = sapply(
     X = plot$layers,
-    FUN = function(x) class(x$geom)[1] == "GeomText")
-  )
+    FUN = function(x) {
+      return(inherits(x = x$geom, what = c('GeomText', 'GeomTextRepel')))
+    }
+  ))
   if (length(x = label.layer) == 1) {
-    p <- plotly::add_annotations(
+    p <- add_annotations(
       p = p,
       x = plot$layers[[label.layer]]$data[, 1],
       y = plot$layers[[label.layer]]$data[, 2],
@@ -2708,13 +2695,16 @@ HoverLocator <- function(
 #' @param split.by Split labels by some grouping label, useful when using
 #' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
+#' @param geom Name of geom to get X/Y aesthetic names for
+#' @param box Use geom_label/geom_label_repel (includes a box around the text
+#' labels)
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
 #' @importFrom stats median
-#' @importFrom ggrepel geom_text_repel
-#' @importFrom ggplot2 aes_string geom_text
+#' @importFrom ggrepel geom_text_repel geom_label_repel
+#' @importFrom ggplot2 aes_string geom_text geom_label
 #' @export
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
@@ -2730,9 +2720,11 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  box = FALSE,
+  geom = 'GeomPoint',
   ...
 ) {
-  xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
+  xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
@@ -2745,6 +2737,9 @@ LabelClusters <- function(
   groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
+  }
+  if (geom == 'GeomSpatial') {
+    data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
   }
   labels.loc <- lapply(
     X = groups,
@@ -2781,6 +2776,7 @@ LabelClusters <- function(
     }
   )
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
     stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
@@ -2789,12 +2785,24 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
-  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
-  plot <- plot + geom.use(
-    data = labels.loc,
-    mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
-    ...
-  )
+  if (box) {
+    geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
+      show.legend = FALSE,
+      ...
+    )
+  } else {
+    geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
+      show.legend = FALSE,
+      ...
+    )
+  }
+
   return(plot)
 }
 
@@ -3458,6 +3466,7 @@ Col2Hex <- function(...) {
 # @return The default DimReduc, if possible
 #
 DefaultDimReduc <- function(object, assay = NULL) {
+  object <- UpdateSlots(object = object)
   assay <- assay %||% DefaultAssay(object = object)
   drs.use <- c('umap', 'tsne', 'pca')
   dim.reducs <- FilterObjects(object = object, classes.keep = 'DimReduc')
@@ -3669,15 +3678,54 @@ FacetTheme <- function(...) {
 #
 # @param plot A ggplot2 scatterplot
 # @param do.plot Create the plot with base R graphics
+# @param cols A named vector of column names to pull. Vector names must be 'x',
+# 'y', 'colour', 'shape', and/or 'size'; vector values must be the names of
+# columns in plot data that correspond to these values. May pass only values that
+# differ from the default (eg. \code{cols = c('size' = 'point.size.factor')})
 # @param ... Extra parameters passed to PlotBuild
 #
 # @return A dataframe with the data that created the ggplot2 scatterplot
 #
 #' @importFrom ggplot2 ggplot_build
 #
-GGpointToBase <- function(plot, do.plot = TRUE, ...) {
+GGpointToBase <- function(
+  plot,
+  do.plot = TRUE,
+  cols = c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  ),
+  ...
+) {
   plot.build <- ggplot_build(plot = plot)
-  cols <- c('x', 'y', 'colour', 'shape', 'size')
+  default.cols <- c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  )
+  cols <- cols %||% default.cols
+  if (is.null(x = names(x = cols))) {
+    if (length(x = cols) > length(x = default.cols)) {
+      warning(
+        "Too many columns provided, selecting only first ",
+        length(x = default.cols),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cols <- cols[1:length(x = default.cols)]
+    }
+    names(x = cols) <- names(x = default.cols)[1:length(x = cols)]
+  }
+  cols <- c(
+    cols[intersect(x = names(x = default.cols), y = names(x = cols))],
+    default.cols[setdiff(x = names(x = default.cols), y = names(x = cols))]
+  )
+  cols <- cols[names(x = default.cols)]
   build.use <- which(x = vapply(
     X = plot.build$data,
     FUN = function(dat) {

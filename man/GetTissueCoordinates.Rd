@@ -2,15 +2,32 @@
 % Please edit documentation in R/generics.R, R/spatial.R
 \name{GetTissueCoordinates}
 \alias{GetTissueCoordinates}
-\alias{GetTissueCoordinates.SpatialAssay}
 \alias{GetTissueCoordinates.Seurat}
+\alias{GetTissueCoordinates.SliceImage}
 \title{Get tissue coordinates}
 \usage{
 GetTissueCoordinates(object, ...)
 
-\method{GetTissueCoordinates}{SpatialAssay}(object, ...)
+\method{GetTissueCoordinates}{Seurat}(object, image = NULL, ...)
 
-\method{GetTissueCoordinates}{Seurat}(object, assay = NULL, ...)
+\method{GetTissueCoordinates}{SliceImage}(object, scale = "lowres",
+  cols = c("imagerow", "imagecol"), ...)
+}
+\arguments{
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
+
+\item{image}{Name of \code{SpatialImage} object to get coordinates for; if
+\code{NULL}, will attempt to select an image automatically}
+
+\item{scale}{A factor to scale the coordinates by; choose from: 'tissue',
+'fiducial', 'hires', 'lowres', or \code{NULL} for no scaling}
+
+\item{cols}{Columns of tissue coordinates data.frame to pull}
+}
+\value{
+A data.frame with tissue coordinates
 }
 \description{
 Get tissue coordinates

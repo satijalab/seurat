@@ -5,7 +5,8 @@
 \title{Label clusters on a ggplot2-based scatter plot}
 \usage{
 LabelClusters(plot, id, clusters = NULL, labels = NULL,
-  split.by = NULL, repel = TRUE, ...)
+  split.by = NULL, repel = TRUE, box = FALSE, geom = "GeomPoint",
+  ...)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
@@ -20,6 +21,11 @@ LabelClusters(plot, id, clusters = NULL, labels = NULL,
 \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}}
 
 \item{repel}{Use \code{geom_text_repel} to create nicely-repelled labels}
+
+\item{box}{Use geom_label/geom_label_repel (includes a box around the text
+labels)}
+
+\item{geom}{Name of geom to get X/Y aesthetic names for}
 
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}}
 }
