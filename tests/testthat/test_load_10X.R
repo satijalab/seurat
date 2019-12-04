@@ -38,7 +38,7 @@ test_that("10x Spatial Data Parsing", {
   expect_equal(ncol(x = txsp), 2695)
   expect_equal(nrow(x = txsp), 100)
   expect_equal(Cells(x = txsp)[1], "AAACAAGTATCTCCCA-1")
-  expect_equal(names(x = txsp), "Spatial")
+  expect_equal(Assays(object = txsp), "Spatial")
   expect_equal(GetAssayData(object = txsp[["Spatial"]], slot = "counts")[5, 9], 1)
 })
 
