@@ -722,7 +722,7 @@ CreateSeuratObject <- function(
       warning("Some cells in meta.data not present in provided counts matrix.")
       meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
     }
-    if (class(x = meta.data) == "data.frame") {
+    if (is.data.frame(x = meta.data)) {
       new.meta.data <- data.frame(row.names = colnames(x = counts))
       for (ii in 1:ncol(x = meta.data)) {
         new.meta.data[rownames(x = meta.data), colnames(x = meta.data)[ii]] <- meta.data[, ii, drop = FALSE]
@@ -6224,7 +6224,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         )
       }
       # Check keyed objects
-      if (class(x = value) %in% c('Assay', 'DimReduc')) {
+      if (inherits(x = value, what = c('Assay', 'DimReduc'))) {
         if (length(x = Key(object = value)) == 0) {
           Key(object = value) <- paste0(tolower(x = i), '_')
         } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = Key(object = value))) {
@@ -6281,9 +6281,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       # For Assays, run CalcN
       if (inherits(x = value, what = 'Assay')) {
-        if ((!i %in% Assays(object = x)) | 
+        if ((!i %in% Assays(object = x)) |
             (i %in% Assays(object = x) && ! identical(
-              x = GetAssayData(object = x, assay = i, slot = "counts"), 
+              x = GetAssayData(object = x, assay = i, slot = "counts"),
               y = GetAssayData(object = value, slot = "counts"))
             )) {
           n.calc <- CalcN(object = value)
