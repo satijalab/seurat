@@ -32,7 +32,7 @@ ScaleData(object, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{features}{Vector of features names to scale/center. Default is all features}
+\item{features}{Vector of features names to scale/center. Default is variable features.}
 
 \item{vars.to.regress}{Variables to regress out (previously latent.vars in
 RegressOut). For example, nUMI, or percent.mito.}
