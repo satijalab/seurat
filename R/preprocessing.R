@@ -109,9 +109,9 @@ CalculateBarcodeInflections <- function(
     }
   )$x
   ## workaround for aggregate behavior noted above
-  if (class(x = whichmin_list) == 'list') { # uneven lengths
+  if (is.list(x = whichmin_list)) { # uneven lengths
     is_inflection <- unlist(x = whichmin_list)
-  } else if (class(x = whichmin_list) == 'matrix') { # even lengths
+  } else if (is.matrix(x = whichmin_list)) { # even lengths
     is_inflection <- as.vector(x = t(x = whichmin_list))
   }
   tmp <- cbind(barcode_dist_sub, is_inflection)
@@ -191,15 +191,15 @@ CreateGeneActivityMatrix <- function(
   peak.df <- as.data.frame(x = peak.df)
   colnames(x = peak.df) <- c("chromosome", 'start', 'end')
   peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
-  
+
   # if any peaks start at 0, change to 1
-  # otherwise GenomicRanges::distanceToNearest will not work 
+  # otherwise GenomicRanges::distanceToNearest will not work
   BiocGenerics::start(peaks.gr[BiocGenerics::start(peaks.gr) == 0, ]) <- 1
 
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-  
+
   # change seqlevelsStyle if not the same
   if (!any(GenomeInfoDb::seqlevelsStyle(x = gtf) == GenomeInfoDb::seqlevelsStyle(x = peaks.gr))) {
     GenomeInfoDb::seqlevelsStyle(gtf) <- GenomeInfoDb::seqlevelsStyle(peaks.gr)
@@ -216,11 +216,11 @@ CreateGeneActivityMatrix <- function(
   keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
   peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
   gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
-  
+
   # Some GTF rows will not have gene_name attribute
   # Replace it by gene_id attribute
   gene.ids$gene_name[is.na(gene.ids$gene_name)] <- gene.ids$gene_id[is.na(gene.ids$gene_name)]
-  
+
   peak.ids$gene.name <- gene.ids$gene_name
   peak.ids <- as.data.frame(x = peak.ids)
   peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
@@ -582,10 +582,10 @@ GetResidual <- function(
 #' mat_norm
 #'
 LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   # call Rcpp function to normalize
@@ -1066,10 +1066,10 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' mat_norm
 #'
 RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
@@ -1419,10 +1419,10 @@ SubsetByBarcodeInflections <- function(object) {
 #' mat_norm <- TF.IDF(data = mat)
 #'
 TF.IDF <- function(data, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
@@ -2502,7 +2502,6 @@ ClassifyCells <- function(data, q) {
         message("No threshold found for ", colnames(x = data)[i], "...")
       }
     )
-    # if (class(x = model) == "character") {
     if (is.character(x = model)) {
       next
     }
@@ -2569,10 +2568,10 @@ ClassifyCells <- function(data, q) {
 # @import Matrix
 #
 CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
@@ -2782,7 +2781,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
       data = regression.mat
     ),
     silent = TRUE)
-  if (class(fit)[1] == 'numeric') {
+  if (is.numeric(x = fit)) {
     message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
     resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
     mode <- 'scale'
