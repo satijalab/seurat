@@ -1056,13 +1056,11 @@ SpatialPlot <- function(
     mode = "list",
     length = length(x = features) * ncols
   )
-  # browser()
   for (i in 1:ncols) {
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
     image.use <- object[[images[[image.idx]]]]
     coordinates <- GetTissueCoordinates(object = image.use)
-    # slice.plots <- vector(mode = "list", length(x = features))
     highlight.use <- if (facet.highlight) {
       cells.highlight[i]
     } else {
@@ -1077,7 +1075,6 @@ SpatialPlot <- function(
         image = image.use,
         col.by = features[j],
         geom = ifelse(test = do.hover, yes = 'interactive', no = 'spatial'),
-        # cells.highlight = cells.highlight,
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
@@ -1087,9 +1084,6 @@ SpatialPlot <- function(
       if (is.null(x = group.by)) {
         plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
       } else if (label) {
-        # if (!is.null(x = cells.highlight)) {
-        #   features[j] <- "highlight"
-        # }
         plot <- LabelClusters(
           plot = plot,
           id = ifelse(
@@ -1108,7 +1102,6 @@ SpatialPlot <- function(
         plot <- plot + ggtitle(label = images[[image.idx]]) + theme(plot.title = element_text(hjust = 0.5))
       }
       plots[[plot.idx]] <- plot
-      # plot.idx <- plot.idx + length(x = images)
       plot.idx <- plot.idx + ncols
     }
   }
