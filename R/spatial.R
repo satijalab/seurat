@@ -40,12 +40,14 @@ setOldClass(Classes = c('scalefactors'))
 #' @slot assay Name of assay to associate image data with; will give this image
 #' priority for visualization when the assay is set as the active/default assay
 #' in a \code{Seurat} object
+#' @slot key Key for the image
 #'
 #' @section Provided methods:
 #' These methods are defined on the \code{SpatialImage} object and should not be
 #' overwritten without careful thought
 #' \itemize{
 #'   \item \code{\link{DefaultAssay}} and \code{\link{DefaultAssay<-}}
+#'   \item \code{\link{Key}} and \code{\link{Key<-}}
 #'   \item \code{\link{IsGlobal}}
 #' }
 #'
@@ -75,7 +77,8 @@ SpatialImage <- setClass(
   Class = 'SpatialImage',
   contains = 'VIRTUAL',
   slots = list(
-    'assay' = 'character'
+    'assay' = 'character',
+    'key' = 'character'
   )
 )
 
@@ -1390,6 +1393,28 @@ GetTissueCoordinates.SpatialImage <- function(object, ...) {
 #'
 IsGlobal.SpatialImage <- function(object) {
   return(TRUE)
+}
+
+#' @rdname Key
+#' @method Key SpatialImage
+#' @export
+#'
+Key.SpatialImage <- function(object, ...) {
+  CheckDots(...)
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'key'))
+}
+
+#' @rdname Key
+#' @method Key<- SpatialImage
+#' @export
+#'
+"Key<-.SpatialImage" <- function(object, ..., value) {
+  CheckDots(...)
+  object <- UpdateSlots(object = object)
+  value <- UpdateKey(key = value)
+  slot(object = object, name = 'key') <- value
+  return(object)
 }
 
 #' @rdname RenameCells
