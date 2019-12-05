@@ -4826,7 +4826,10 @@ WhichCells.Seurat <- function(
     cells <- intersect(x = cells, y = cells.idents)
   }
   if (!missing(x = expression)) {
-    objects.use <- FilterObjects(object = object)
+    objects.use <- FilterObjects(
+      object = object,
+      classes.keep = c('Assay', 'DimReduc', 'SpatialImage')
+    )
     object.keys <- sapply(
       X = objects.use,
       FUN = function(i) {
