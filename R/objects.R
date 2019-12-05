@@ -370,6 +370,46 @@ Assays <- function(object, slot = NULL) {
   return(slot(object = object, name = 'assays')[[slot]])
 }
 
+#' Get cell names grouped by identity class
+#'
+#' @param object A Seurat object
+#' @param idents A vector of identity class levels to limit resulting list to;
+#' defaults to all identity class levels
+#' @param cells A vector of cells to grouping to
+#'
+#' @return A named list where names are identity classes and values are vectors
+#' of cells beloning to that class
+#'
+#' @export
+#'
+#' @examples
+#' CellsByIdentities(object = pbmc_small)
+#'
+CellsByIdentities <- function(object, idents = NULL, cells = NULL) {
+  cells <- cells %||% colnames(x = object)
+  cells <- intersect(x = cells, y = colnames(x = object))
+  if (length(x = cells) == 0) {
+    stop("Cannot find cells provided")
+  }
+  idents <- idents %||% levels(x = object)
+  idents <- intersect(x = idents, y = levels(x = object))
+  if (length(x = idents) == 0) {
+    stop("None of the provided identity class levels were found", call. = FALSE)
+  }
+  cells.idents <- sapply(
+    X = idents,
+    FUN = function(i) {
+      return(cells[as.vector(x = Idents(object = object)[cells]) == i])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (any(is.na(x = Idents(object = object)[cells]))) {
+    cells.idents["NA"] <- names(x = which(x = is.na(x = Idents(object = object)[cells])))
+  }
+  return(cells.idents)
+}
+
 #' Create an Assay object
 #'
 #' Create an Assay object from a feature (e.g. gene) expression matrix. The
@@ -6792,36 +6832,6 @@ CalcN <- function(object) {
     nCount = colSums(x = object, slot = 'counts'),
     nFeature = colSums(x = GetAssayData(object = object, slot = 'counts') > 0)
   ))
-}
-
-# Get cell names grouped by identity class
-#
-# @param object A Seurat object
-# @param cells A vector of cells to grouping to
-#
-# @return A named list where names are identity classes and values are vectors
-# of cells beloning to that class
-#
-CellsByIdentities <- function(object, cells = NULL) {
-  object <- UpdateSlots(object = object)
-  cells <- cells %||% colnames(x = object)
-  cells <- intersect(x = cells, y = colnames(x = object))
-  if (length(x = cells) == 0) {
-    stop("Cannot find cells provided")
-  }
-  idents <- levels(x = object)
-  cells.idents <- sapply(
-    X = idents,
-    FUN = function(i) {
-      return(cells[as.vector(x = Idents(object = object)[cells]) == i])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  if (any(is.na(x = Idents(object = object)[cells]))) {
-    cells.idents["NA"] <- names(x = which(x = is.na(x = Idents(object = object)[cells])))
-  }
-  return(cells.idents)
 }
 
 # Get the names of objects within a Seurat object that are of a certain class
