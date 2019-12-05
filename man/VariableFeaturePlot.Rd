@@ -6,8 +6,14 @@
 \alias{MeanVarPlot}
 \title{View variable features}
 \usage{
-VariableFeaturePlot(object, cols = c("black", "red"), pt.size = 1,
-  log = NULL, selection.method = NULL, assay = NULL)
+VariableFeaturePlot(
+  object,
+  cols = c("black", "red"),
+  pt.size = 1,
+  log = NULL,
+  selection.method = NULL,
+  assay = NULL
+)
 }
 \arguments{
 \item{object}{Seurat object}

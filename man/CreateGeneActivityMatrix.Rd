@@ -4,9 +4,15 @@
 \alias{CreateGeneActivityMatrix}
 \title{Convert a peak matrix to a gene activity matrix}
 \usage{
-CreateGeneActivityMatrix(peak.matrix, annotation.file,
-  seq.levels = c(1:22, "X", "Y"), include.body = TRUE,
-  upstream = 2000, downstream = 0, verbose = TRUE)
+CreateGeneActivityMatrix(
+  peak.matrix,
+  annotation.file,
+  seq.levels = c(1:22, "X", "Y"),
+  include.body = TRUE,
+  upstream = 2000,
+  downstream = 0,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{peak.matrix}{Matrix of peak counts}

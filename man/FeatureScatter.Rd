@@ -5,9 +5,19 @@
 \alias{GenePlot}
 \title{Scatter plot of single cell data}
 \usage{
-FeatureScatter(object, feature1, feature2, cells = NULL,
-  group.by = NULL, cols = NULL, pt.size = 1, shape.by = NULL,
-  span = NULL, smooth = FALSE, slot = "data")
+FeatureScatter(
+  object,
+  feature1,
+  feature2,
+  cells = NULL,
+  group.by = NULL,
+  cols = NULL,
+  pt.size = 1,
+  shape.by = NULL,
+  span = NULL,
+  smooth = FALSE,
+  slot = "data"
+)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -4,12 +4,27 @@
 \alias{DoHeatmap}
 \title{Feature expression heatmap}
 \usage{
-DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
-  group.bar = TRUE, group.colors = NULL, disp.min = -2.5,
-  disp.max = NULL, slot = "scale.data", assay = NULL, label = TRUE,
-  size = 5.5, hjust = 0, angle = 45, raster = TRUE,
-  draw.lines = TRUE, lines.width = NULL, group.bar.height = 0.02,
-  combine = TRUE)
+DoHeatmap(
+  object,
+  features = NULL,
+  cells = NULL,
+  group.by = "ident",
+  group.bar = TRUE,
+  group.colors = NULL,
+  disp.min = -2.5,
+  disp.max = NULL,
+  slot = "scale.data",
+  assay = NULL,
+  label = TRUE,
+  size = 5.5,
+  hjust = 0,
+  angle = 45,
+  raster = TRUE,
+  draw.lines = TRUE,
+  lines.width = NULL,
+  group.bar.height = 0.02,
+  combine = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}

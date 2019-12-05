@@ -4,8 +4,13 @@
 \alias{PercentageFeatureSet}
 \title{Calculate the percentage of all counts that belong to a given set of features}
 \usage{
-PercentageFeatureSet(object, pattern = NULL, features = NULL,
-  col.name = NULL, assay = NULL)
+PercentageFeatureSet(
+  object,
+  pattern = NULL,
+  features = NULL,
+  col.name = NULL,
+  assay = NULL
+)
 }
 \arguments{
 \item{object}{A Seurat object}
