@@ -793,6 +793,7 @@ SingleSpatialPlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   col.by = NULL,
+  alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
   geom = c('spatial', 'interactive'),
@@ -820,9 +821,9 @@ SingleSpatialPlot <- function(
     x = colnames(x = data)[2],
     y = colnames(x = data)[1],
     fill = col.by,
-    alpha = col.by
+    alpha = alpha.by
   ))
-  plot <- plot + scale_alpha(range = alpha, guide = 'none') 
+ # plot <- plot + scale_alpha(range = alpha, guide = 'none') 
   plot <- switch(
     EXPR = geom,
     'spatial' = {
@@ -1078,6 +1079,11 @@ SpatialPlot <- function(
         ),
         image = image.use,
         col.by = features[j],
+        alpha.by = if (is.null(x = group.by)) {
+          features[j]
+        } else {
+          NULL
+        },
         geom = ifelse(test = do.hover, yes = 'interactive', no = 'spatial'),
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
@@ -1086,7 +1092,7 @@ SpatialPlot <- function(
         stroke = stroke
       )
       if (is.null(x = group.by)) {
-        plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100))
+        plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100)) +scale_alpha(range = alpha)
       } else if (label) {
         plot <- LabelClusters(
           plot = plot,
