@@ -784,7 +784,7 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
-#' coord_cartesian labs theme_void
+#' coord_cartesian labs theme_void theme scale_alpha
 #'
 SingleSpatialPlot <- function(
   data,
@@ -1092,7 +1092,10 @@ SpatialPlot <- function(
         stroke = stroke
       )
       if (is.null(x = group.by)) {
-        plot <- plot + scale_fill_gradientn(name = features[j], colours = SpatialColors(100)) +scale_alpha(range = alpha)
+        plot <- plot +
+          scale_fill_gradientn(name = features[j], colours = SpatialColors(100)) +
+          theme(legend.position = 'top') +scale_alpha(range = alpha)
+          guides(alpha = FALSE)
       } else if (label) {
         plot <- LabelClusters(
           plot = plot,
@@ -1108,8 +1111,10 @@ SpatialPlot <- function(
           box = label.box
         )
       }
-      if (j == 1 | length(x = images) == 1) {
-        plot <- plot + ggtitle(label = images[[image.idx]]) + theme(plot.title = element_text(hjust = 0.5))
+      if (j == 1 && length(x = images) > 1) {
+        plot <- plot +
+          ggtitle(label = images[[image.idx]]) +
+          theme(plot.title = element_text(hjust = 0.5))
       }
       plots[[plot.idx]] <- plot
       plot.idx <- plot.idx + ncols
@@ -1124,9 +1129,9 @@ SpatialPlot <- function(
       images = GetImage(object = object, mode = 'plotly', image = images)
     ))
   }
-  if (length(x = images) > 1 & combine) {
+  if (length(x = images) > 1 && combine) {
     plots <- CombinePlots(plots = plots, ncol = length(x = images))
-  } else if (length(x = images == 1) & combine) {
+  } else if (length(x = images == 1) && combine) {
     plots <- CombinePlots(plots = plots, ncol = ncol)
   }
   return(plots)

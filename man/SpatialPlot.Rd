@@ -11,8 +11,8 @@ SpatialPlot(object, group.by = NULL, features = NULL, images = NULL,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
   facet.highlight = FALSE, label = FALSE, label.size = 5,
   label.color = "white", label.box = TRUE, repel = FALSE,
-  ncol = NULL, combine = TRUE, pt.size.factor = 1, alpha = 1,
-  stroke = 0.25, do.hover = FALSE)
+  ncol = NULL, combine = TRUE, pt.size.factor = 1.6, alpha = c(1,
+  1), stroke = 0.25, do.hover = FALSE)
 
 SpatialDimPlot(object, group.by = NULL, images = NULL,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
@@ -23,7 +23,8 @@ SpatialDimPlot(object, group.by = NULL, images = NULL,
 
 SpatialFeaturePlot(object, features, images = NULL, slot = "data",
   min.cutoff = NA, max.cutoff = NA, ncol = NULL, combine = TRUE,
-  pt.size.factor = 1, alpha = 1, stroke = 0.25, do.hover = FALSE)
+  pt.size.factor = 1.6, alpha = c(1, 1), stroke = 0.25,
+  do.hover = FALSE)
 }
 \arguments{
 \item{object}{A Seurat object}
