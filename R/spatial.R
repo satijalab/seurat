@@ -822,7 +822,7 @@ SingleSpatialPlot <- function(
     fill = col.by,
     alpha = col.by
   ))
-  plot <- plot + scale_alpha(range = alpha)
+  plot <- plot + scale_alpha(range = alpha, guide = 'none') 
   plot <- switch(
     EXPR = geom,
     'spatial' = {
@@ -1587,7 +1587,7 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
 #'
 #' @export
 #'
-ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6, do.plot = TRUE) {
+GroupCorrelation <- function(object, assay = NULL, slot = "scale.data", var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6, do.plot = TRUE) {
   assay <- assay %||% DefaultAssay(object = object)
   group.assay <- group.assay %||% assay
   var <- var %||% paste0("nCount_", group.assay)
@@ -1613,7 +1613,7 @@ ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var 
   object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
   object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
   if (do.plot) {
-    print(FeatureGrpCorPlot(object = object, assay = assay, feature.group = "feature.grp", cor = paste0(var, "_cor")))
+    print(GroupCorrelationPlot(object = object, assay = assay, feature.group = "feature.grp", cor = paste0(var, "_cor")))
   }
   return(object)
 }
@@ -1637,7 +1637,7 @@ ComputeFeatureGrpCor <- function(object, assay = NULL, slot = "scale.data", var 
 #'
 #' @export
 #'
-FeatureGrpCorPlot <- function(object, assay = NULL, feature.group = "feature.grp", cor = "nCount_RNA_cor") {
+GroupCorrelationPlot <- function(object, assay = NULL, feature.group = "feature.grp", cor = "nCount_RNA_cor") {
   assay <- assay %||% DefaultAssay(object = object)
   data <- object[[assay]][[c(feature.group, cor)]]
   data <- data[complete.cases(data), ]
