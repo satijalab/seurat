@@ -7,24 +7,24 @@
 \title{Visualize spatial clustering and expression data.}
 \usage{
 SpatialPlot(object, group.by = NULL, features = NULL, images = NULL,
-  slot = "data", min.cutoff = NA, max.cutoff = NA,
+  crop = TRUE, slot = "data", min.cutoff = NA, max.cutoff = NA,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
   facet.highlight = FALSE, label = FALSE, label.size = 5,
   label.color = "white", label.box = TRUE, repel = FALSE,
   ncol = NULL, combine = TRUE, pt.size.factor = 1.6, alpha = c(1,
-  1), stroke = 0.25, do.hover = FALSE)
+  1), stroke = 0.25, do.hover = FALSE, information = NULL)
 
-SpatialDimPlot(object, group.by = NULL, images = NULL,
+SpatialDimPlot(object, group.by = NULL, images = NULL, crop = TRUE,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
   facet.highlight = FALSE, label = FALSE, label.size = 7,
   label.color = "white", repel = FALSE, ncol = NULL,
-  combine = TRUE, pt.size.factor = 1, alpha = 1, stroke = 0.25,
-  label.box = TRUE, do.hover = FALSE)
+  combine = TRUE, pt.size.factor = 1.6, alpha = 1, stroke = 0.25,
+  label.box = TRUE, do.hover = FALSE, information = NULL)
 
-SpatialFeaturePlot(object, features, images = NULL, slot = "data",
-  min.cutoff = NA, max.cutoff = NA, ncol = NULL, combine = TRUE,
-  pt.size.factor = 1.6, alpha = c(1, 1), stroke = 0.25,
-  do.hover = FALSE)
+SpatialFeaturePlot(object, features, images = NULL, crop = TRUE,
+  slot = "data", min.cutoff = NA, max.cutoff = NA, ncol = NULL,
+  combine = TRUE, pt.size.factor = 1.6, alpha = c(1, 1),
+  stroke = 0.25, do.hover = FALSE, information = NULL)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -35,6 +35,9 @@ SpatialFeaturePlot(object, features, images = NULL, slot = "data",
 features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
+
+\item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show 
+entire background image.}
 
 \item{slot}{If plotting a feature, which data slot to pull from (counts,
 data, or scale.data)}
@@ -79,6 +82,8 @@ themeing will not work when plotting multiple features/groupings}
 
 \item{do.hover}{Return a plotly view of the data to get info when hovering
 over points.}
+
+\item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 }
 \value{
 A ggplot object

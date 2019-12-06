@@ -557,7 +557,7 @@ GeomSpatial <- ggproto(
   "GeomSpatial",
   Geom,
   required_aes = c("x", "y"),
-  extra_params = c("na.rm", "image"),
+  extra_params = c("na.rm", "image", "crop"),
   default_aes = aes(
     shape = 21,
     colour = "black",
@@ -573,9 +573,16 @@ GeomSpatial <- ggproto(
     data
   },
   draw_key = draw_key_point,
-  draw_group = function(data, panel_scales, coord, image) {
+  draw_panel = function(data, panel_scales, coord, image, crop) {
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
+    if (!crop) {
+      y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
+      data$y <- data$y + sum(y.transform)
+      panel_scales$y.range <- c(0, nrow(x = image))
+      panel_scales$x.range <- c(0, ncol(x = image))
+    }
+    
     z = coord$transform(
       data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
       panel_scales
@@ -607,9 +614,7 @@ GeomSpatial <- ggproto(
     )
     vp <- viewport()
     gt <- gTree(vp = vp)
-    if (abs(x = data$group[1]) == 1) {
-      gt <- addGrob(gTree = gt, child = img)
-    }
+    gt <- addGrob(gTree = gt, child = img)
     gt <- addGrob(gTree = gt, child = pts)
     # Replacement for ggname
     gt$name <- grobName(grob = gt, prefix = 'geom_spatial')
@@ -628,6 +633,7 @@ geom_spatial <-  function(
   mapping = NULL,
   data = NULL,
   image = image,
+  crop = crop,
   stat = "identity",
   position = "identity",
   na.rm = FALSE,
@@ -643,7 +649,7 @@ geom_spatial <-  function(
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(na.rm = na.rm, image = image, ...)
+    params = list(na.rm = na.rm, image = image, crop = crop, ...)
   )
 }
 
@@ -768,6 +774,8 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 #
 # @param data Data.frame with info to be plotted
 # @param image SpatialImage object to be plotted
+# @param crop Crop the plot in to focus on points plotted. Set to FALSE to show 
+# entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
 # @param alpha Controls the opacity
 # @param stroke Control the width of the border around the spots
@@ -789,6 +797,7 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 SingleSpatialPlot <- function(
   data,
   image,
+  crop = TRUE,
   pt.size.factor = NULL,
   alpha = c(1, 1),
   stroke = 0.25,
@@ -831,6 +840,7 @@ SingleSpatialPlot <- function(
         point.size.factor = pt.size.factor,
         data = data,
         image = image,
+        crop = crop,
         stroke = stroke
       ) + coord_fixed()
     },
@@ -862,11 +872,14 @@ SingleSpatialPlot <- function(
 #' and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent
 #' naming framework.
 #'
+#' @inheritParams HoverLocator
 #' @param object A Seurat object
 #' @param group.by Name of meta.data column to group the data by
 #' @param features Name of the feature to visualize. Provide either group.by OR
 #' features, not both.
 #' @param images Name of the images to use in the plot(s)
+#' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show 
+#' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
 #' data, or scale.data)
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff
@@ -918,6 +931,7 @@ SpatialPlot <- function(
   group.by = NULL,
   features = NULL,
   images = NULL,
+  crop = TRUE,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
@@ -934,7 +948,8 @@ SpatialPlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1,1),
   stroke = 0.25,
-  do.hover = FALSE
+  do.hover = FALSE,
+  information = NULL
 ) {
   if (!is.null(x = group.by) & !is.null(x = features)) {
     stop("Please specific either group.by or features, not both.")
@@ -1089,7 +1104,8 @@ SpatialPlot <- function(
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
         alpha = alpha,
-        stroke = stroke
+        stroke = stroke,
+        crop = crop,
       )
       if (is.null(x = group.by)) {
         plot <- plot +
@@ -1123,7 +1139,7 @@ SpatialPlot <- function(
   if (do.hover) {
     return(HoverLocator(
       plot = plots[[1]],
-      information = data[, features, drop = FALSE],
+      information = information %||% data[, features, drop = FALSE],
       axes = FALSE,
       # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
       images = GetImage(object = object, mode = 'plotly', image = images)
@@ -1145,6 +1161,7 @@ SpatialDimPlot <- function(
   object,
   group.by = NULL,
   images = NULL,
+  crop = TRUE,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
   facet.highlight = FALSE,
@@ -1158,12 +1175,14 @@ SpatialDimPlot <- function(
   alpha = 1,
   stroke = 0.25,
   label.box = TRUE,
-  do.hover = FALSE
+  do.hover = FALSE,
+  information = NULL
 ) {
   return(SpatialPlot(
     object = object,
     group.by = group.by,
     images = images,
+    crop = crop,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
     facet.highlight = facet.highlight,
@@ -1177,7 +1196,8 @@ SpatialDimPlot <- function(
     alpha = alpha,
     stroke = stroke,
     label.box = label.box,
-    do.hover = do.hover
+    do.hover = do.hover,
+    information = information
   ))
 }
 
@@ -1189,6 +1209,7 @@ SpatialFeaturePlot <- function(
   object,
   features,
   images = NULL,
+  crop = TRUE,
   slot = 'data',
   min.cutoff = NA,
   max.cutoff = NA,
@@ -1197,12 +1218,14 @@ SpatialFeaturePlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
-  do.hover = FALSE
+  do.hover = FALSE,
+  information = NULL
 ) {
   return(SpatialPlot(
     object = object,
     features = features,
     images = images,
+    crop = crop,
     slot = slot,
     min.cutoff = min.cutoff,
     max.cutoff = max.cutoff,
@@ -1211,7 +1234,8 @@ SpatialFeaturePlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     stroke = stroke,
-    do.hover = do.hover
+    do.hover = do.hover,
+    information = information
   ))
 }
 
