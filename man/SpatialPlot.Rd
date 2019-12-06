@@ -12,19 +12,19 @@ SpatialPlot(object, group.by = NULL, features = NULL, images = NULL,
   facet.highlight = FALSE, label = FALSE, label.size = 5,
   label.color = "white", label.box = TRUE, repel = FALSE,
   ncol = NULL, combine = TRUE, pt.size.factor = 1, alpha = 1,
-  stroke = 0.25, do.hover = FALSE)
+  stroke = 0.25, do.hover = FALSE, information = NULL)
 
 SpatialDimPlot(object, group.by = NULL, images = NULL, crop = TRUE,
   cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
   facet.highlight = FALSE, label = FALSE, label.size = 7,
   label.color = "white", repel = FALSE, ncol = NULL,
   combine = TRUE, pt.size.factor = 1, alpha = 1, stroke = 0.25,
-  label.box = TRUE, do.hover = FALSE)
+  label.box = TRUE, do.hover = FALSE, information = NULL)
 
 SpatialFeaturePlot(object, features, images = NULL, crop = TRUE,
   slot = "data", min.cutoff = NA, max.cutoff = NA, ncol = NULL,
   combine = TRUE, pt.size.factor = 1, alpha = 1, stroke = 0.25,
-  do.hover = FALSE)
+  do.hover = FALSE, information = NULL)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -82,6 +82,8 @@ themeing will not work when plotting multiple features/groupings}
 
 \item{do.hover}{Return a plotly view of the data to get info when hovering
 over points.}
+
+\item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 }
 \value{
 A ggplot object

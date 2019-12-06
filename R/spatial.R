@@ -867,6 +867,7 @@ SingleSpatialPlot <- function(
 #' and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent
 #' naming framework.
 #'
+#' @inheritParams HoverLocator
 #' @param object A Seurat object
 #' @param group.by Name of meta.data column to group the data by
 #' @param features Name of the feature to visualize. Provide either group.by OR
@@ -942,7 +943,8 @@ SpatialPlot <- function(
   pt.size.factor = 1,
   alpha = 1,
   stroke = 0.25,
-  do.hover = FALSE
+  do.hover = FALSE,
+  information = NULL
 ) {
   if (!is.null(x = group.by) & !is.null(x = features)) {
     stop("Please specific either group.by or features, not both.")
@@ -1122,7 +1124,7 @@ SpatialPlot <- function(
   if (do.hover) {
     return(HoverLocator(
       plot = plots[[1]],
-      information = data[, features, drop = FALSE],
+      information = information %||% data[, features, drop = FALSE],
       axes = FALSE,
       # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
       images = GetImage(object = object, mode = 'plotly', image = images)
@@ -1158,7 +1160,8 @@ SpatialDimPlot <- function(
   alpha = 1,
   stroke = 0.25,
   label.box = TRUE,
-  do.hover = FALSE
+  do.hover = FALSE,
+  information = NULL
 ) {
   return(SpatialPlot(
     object = object,
@@ -1178,7 +1181,8 @@ SpatialDimPlot <- function(
     alpha = alpha,
     stroke = stroke,
     label.box = label.box,
-    do.hover = do.hover
+    do.hover = do.hover,
+    information = information
   ))
 }
 
@@ -1199,7 +1203,8 @@ SpatialFeaturePlot <- function(
   pt.size.factor = 1,
   alpha = 1,
   stroke = 0.25,
-  do.hover = FALSE
+  do.hover = FALSE,
+  information = NULL
 ) {
   return(SpatialPlot(
     object = object,
@@ -1214,7 +1219,8 @@ SpatialFeaturePlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     stroke = stroke,
-    do.hover = do.hover
+    do.hover = do.hover,
+    information = information
   ))
 }
 
