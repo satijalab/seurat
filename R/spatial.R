@@ -1094,7 +1094,7 @@ SpatialPlot <- function(
       if (is.null(x = group.by)) {
         plot <- plot +
           scale_fill_gradientn(name = features[j], colours = SpatialColors(100)) +
-          theme(legend.position = 'top') +scale_alpha(range = alpha)
+          theme(legend.position = 'top') +scale_alpha(range = alpha) +
           guides(alpha = FALSE)
       } else if (label) {
         plot <- LabelClusters(
@@ -1154,7 +1154,7 @@ SpatialDimPlot <- function(
   repel = FALSE,
   ncol = NULL,
   combine = TRUE,
-  pt.size.factor = 1,
+  pt.size.factor = 1.6,
   alpha = 1,
   stroke = 0.25,
   label.box = TRUE,
