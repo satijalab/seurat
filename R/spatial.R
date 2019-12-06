@@ -1108,18 +1108,9 @@ SpatialPlot <- function(
     }
   }
   if (do.hover) {
-    info.feature <- data[, features, drop = FALSE]
-    information <- if (is.null(x = information)) {
-      info.feature
-    } else {
-      cbind(
-        info.feature,
-        information[rownames(x = info.feature), colnames(x = information), drop = FALSE]
-      )
-    }
     return(HoverLocator(
       plot = plots[[1]],
-      information = information,
+      information = information %||% data[, features, drop = FALSE],
       axes = FALSE,
       # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
       images = GetImage(object = object, mode = 'plotly', image = images)
