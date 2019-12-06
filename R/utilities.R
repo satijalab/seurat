@@ -1820,13 +1820,22 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
-# Internal function for merging two matrices by rowname
-#
-# @param mat1 First matrix
-# @param mat2 Second matrix
-#
-# @return A merged matrix
-#
+#' Merge two matrices by rowname
+#' 
+#' This function is for use on sparse matrices and 
+#' should not be run on a Seurat object.
+#' 
+#' Shared matrix rows (with the same row name) will be merged,
+#' and unshared rows (with different names) will be filled
+#' with zeros in the matrix not containing the row.
+#' 
+#' @param mat1 First matrix
+#' @param mat2 Second matrix
+#'
+#' @return A merged matrix
+#' @export
+#' @return Returns a sparse matrix
+#'
 #' @importFrom methods as
 #
 RowMergeSparseMatrices <- function(mat1, mat2){
