@@ -790,7 +790,7 @@ SingleSpatialPlot <- function(
   data,
   image,
   pt.size.factor = NULL,
-  alpha = 1,
+  alpha = c(1, 1),
   stroke = 0.25,
   col.by = NULL,
   cells.highlight = NULL,
@@ -819,14 +819,15 @@ SingleSpatialPlot <- function(
   plot <- ggplot(data = data, aes_string(
     x = colnames(x = data)[2],
     y = colnames(x = data)[1],
-    fill = col.by
+    fill = col.by,
+    alpha = col.by
   ))
+  plot <- plot + scale_alpha(range = alpha)
   plot <- switch(
     EXPR = geom,
     'spatial' = {
       plot + geom_spatial(
         point.size.factor = pt.size.factor,
-        alpha = alpha,
         data = data,
         image = image,
         stroke = stroke
@@ -929,8 +930,8 @@ SpatialPlot <- function(
   repel = FALSE,
   ncol = NULL,
   combine = TRUE,
-  pt.size.factor = 1,
-  alpha = 1,
+  pt.size.factor = 1.6,
+  alpha = c(1,1),
   stroke = 0.25,
   do.hover = FALSE
 ) {
@@ -1182,8 +1183,8 @@ SpatialFeaturePlot <- function(
   max.cutoff = NA,
   ncol = NULL,
   combine = TRUE,
-  pt.size.factor = 1,
-  alpha = 1,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
   stroke = 0.25,
   do.hover = FALSE
 ) {
