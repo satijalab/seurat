@@ -1147,6 +1147,57 @@ RegroupIdents <- function(object, metadata) {
   return(object)
 }
 
+#' Merge two matrices by rowname
+#'
+#' This function is for use on sparse matrices and
+#' should not be run on a Seurat object.
+#'
+#' Shared matrix rows (with the same row name) will be merged,
+#' and unshared rows (with different names) will be filled
+#' with zeros in the matrix not containing the row.
+#'
+#' @param mat1 First matrix
+#' @param mat2 Second matrix
+#'
+#' @return A merged matrix
+#'
+#' @return Returns a sparse matrix
+#'
+#' @importFrom methods as
+#
+#' @export
+#'
+RowMergeSparseMatrices <- function(mat1, mat2){
+  if (inherits(x = mat1, what = "data.frame")) {
+    mat1 <- as.matrix(x = mat1)
+  }
+  if (inherits(x = mat2, what = "data.frame")) {
+    mat2 <- as.matrix(x = mat2)
+  }
+  mat1.names <- rownames(x = mat1)
+  mat2.names <- rownames(x = mat2)
+  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
+    new.mat <- cbind(mat1, mat2)
+  } else {
+    mat1 <- as(object = mat1, Class = "RsparseMatrix")
+    mat2 <- as(object = mat2, Class = "RsparseMatrix")
+    all.names <- union(x = mat1.names, y = mat2.names)
+    new.mat <- RowMergeMatrices(
+      mat1 = mat1,
+      mat2 = mat2,
+      mat1_rownames = mat1.names,
+      mat2_rownames = mat2.names,
+      all_rownames = all.names
+    )
+    rownames(x = new.mat) <- make.unique(names = all.names)
+  }
+  colnames(x = new.mat) <- make.unique(names = c(
+    colnames(x = mat1),
+    colnames(x = mat2)
+  ))
+  return(new.mat)
+}
+
 #' Stop Cellbrowser web server
 #'
 #' @importFrom reticulate py_module_available
@@ -1818,55 +1869,6 @@ PercentAbove <- function(x, threshold) {
 RandomName <- function(length = 5L, ...) {
   CheckDots(..., fxns = 'sample')
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
-}
-
-#' Merge two matrices by rowname
-#' 
-#' This function is for use on sparse matrices and 
-#' should not be run on a Seurat object.
-#' 
-#' Shared matrix rows (with the same row name) will be merged,
-#' and unshared rows (with different names) will be filled
-#' with zeros in the matrix not containing the row.
-#' 
-#' @param mat1 First matrix
-#' @param mat2 Second matrix
-#'
-#' @return A merged matrix
-#' @export
-#' @return Returns a sparse matrix
-#'
-#' @importFrom methods as
-#
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if (inherits(x = mat1, what = "data.frame")) {
-    mat1 <- as.matrix(x = mat1)
-  }
-  if (inherits(x = mat2, what = "data.frame")) {
-    mat2 <- as.matrix(x = mat2)
-  }
-  mat1.names <- rownames(x = mat1)
-  mat2.names <- rownames(x = mat2)
-  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
-    new.mat <- cbind(mat1, mat2)
-  } else {
-    mat1 <- as(object = mat1, Class = "RsparseMatrix")
-    mat2 <- as(object = mat2, Class = "RsparseMatrix")
-    all.names <- union(x = mat1.names, y = mat2.names)
-    new.mat <- RowMergeMatrices(
-      mat1 = mat1,
-      mat2 = mat2,
-      mat1_rownames = mat1.names,
-      mat2_rownames = mat2.names,
-      all_rownames = all.names
-    )
-    rownames(x = new.mat) <- make.unique(names = all.names)
-  }
-  colnames(x = new.mat) <- make.unique(names = c(
-    colnames(x = mat1),
-    colnames(x = mat2)
-  ))
-  return(new.mat)
 }
 
 # Return what was passed
