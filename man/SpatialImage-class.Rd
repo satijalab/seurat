@@ -51,6 +51,8 @@ Seurat. All spatial image information must inherit from this class for use with
 \item{\code{assay}}{Name of assay to associate image data with; will give this image
 priority for visualization when the assay is set as the active/default assay
 in a \code{Seurat} object}
+
+\item{\code{key}}{Key for the image}
 }}
 
 \section{Provided methods}{
@@ -59,6 +61,7 @@ These methods are defined on the \code{SpatialImage} object and should not be
 overwritten without careful thought
 \itemize{
   \item \code{\link{DefaultAssay}} and \code{\link{DefaultAssay<-}}
+  \item \code{\link{Key}} and \code{\link{Key<-}}
   \item \code{\link{IsGlobal}}
 }
 }
