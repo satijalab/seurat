@@ -698,7 +698,15 @@ RunMarkVario.default <- function(object, data, ...) {
 #' @rdname RunMarkVario
 #' @export
 #'
-RunMarkVario.Seurat <- function(object, assay = NULL, image = NULL, slot = "scale.data", features = NULL, r.metric = 20, ...) {
+RunMarkVario.Seurat <- function(
+  object,
+  assay = NULL,
+  image = NULL,
+  slot = "scale.data",
+  features = NULL,
+  r.metric = 20,
+  ...
+) {
   features <- features %||% VariableFeatures(object = object)
   assay <- assay %||% DefaultAssay(object = object)
   image <- image %||% DefaultImage(object = object)
