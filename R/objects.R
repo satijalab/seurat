@@ -935,13 +935,12 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     cells <- colnames(x = object)[cells]
   }
   # Get a list of all objects to search through and their keys
-  objects.use <- FilterObjects(object = object)
-  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
+  object.keys <- Key(object = object)
   # Find all vars that are keyed
   keyed.vars <- lapply(
     X = object.keys,
     FUN = function(key) {
-      if (length(x = key) == 0) {
+      if (length(x = key) == 0 || nchar(x = key) == 0) {
         return(integer(length = 0L))
       }
       return(grep(pattern = paste0('^', key), x = vars))
@@ -982,6 +981,12 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
           colnames(x = data.vars) <- paste0(key.use, vars.use)
         }
         data.vars
+      } else if (inherits(x = object[[x]], what = 'SpatialImage')) {
+        vars.unkeyed <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
+        names(x = vars.use) <- vars.unkeyed
+        coords <- GetTissueCoordinates(object = object[[x]])[cells, vars.unkeyed, drop = FALSE]
+        colnames(x = coords) <- vars.use[colnames(x = coords)]
+        coords
       }
       data.return <- as.list(x = as.data.frame(x = data.return))
       return(data.return)
@@ -989,10 +994,10 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
   # Pull vars from object metadata
-  meta.vars <- vars[vars %in% colnames(x = object[[]]) & ! vars %in% names(x = data.fetched)]
+  meta.vars <- vars[vars %in% colnames(x = object[[]]) & !(vars %in% names(x = data.fetched))]
   data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
   # Pull vars from the default assay
-  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot)) & ! vars %in% names(x = data.fetched)]
+  default.vars <- vars[vars %in% rownames(x = GetAssayData(object = object, slot = slot)) & !(vars %in% names(x = data.fetched))]
   data.fetched <- c(
     data.fetched,
     tryCatch(
@@ -3132,7 +3137,10 @@ Key.DimReduc <- function(object, ...) {
 Key.Seurat <- function(object, ...) {
   CheckDots(...)
   object <- UpdateSlots(object = object)
-  keyed.objects <- FilterObjects(object = object)
+  keyed.objects <- FilterObjects(
+    object = object,
+    classes.keep = c('Assay', 'DimReduc', 'SpatialImage')
+  )
   return(sapply(
     X = keyed.objects,
     FUN = function(x) {
@@ -4818,7 +4826,10 @@ WhichCells.Seurat <- function(
     cells <- intersect(x = cells, y = cells.idents)
   }
   if (!missing(x = expression)) {
-    objects.use <- FilterObjects(object = object)
+    objects.use <- FilterObjects(
+      object = object,
+      classes.keep = c('Assay', 'DimReduc', 'SpatialImage')
+    )
     object.keys <- sapply(
       X = objects.use,
       FUN = function(i) {
@@ -5887,7 +5898,10 @@ names.DimReduc <- function(x) {
 #' @method names Seurat
 #'
 names.Seurat <- function(x) {
-  return(FilterObjects(object = x, classes.keep = c('Assay', 'DimReduc', 'Graph')))
+  return(FilterObjects(
+    object = x,
+    classes.keep = c('Assay', 'DimReduc', 'Graph', 'SpatialImage')
+  ))
 }
 
 #' Print the results of a dimensional reduction analysis
@@ -6235,6 +6249,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   f = '[[<-',
   signature = c('x' = 'Seurat'),
   definition = function(x, i, ..., value) {
+    x <- UpdateSlots(object = x)
     # Require names, no index setting
     if (!is.character(x = i)) {
       stop("'i' must be a character", call. = FALSE)
@@ -6395,32 +6410,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         )
       }
       # Check keyed objects
-      if (inherits(x = value, what = c('Assay', 'DimReduc'))) {
-        if (length(x = Key(object = value)) == 0) {
+      if (inherits(x = value, what = c('Assay', 'DimReduc', 'SpatialImage'))) {
+        if (length(x = Key(object = value)) == 0 || nchar(x = Key(object = value)) == 0) {
           Key(object = value) <- paste0(tolower(x = i), '_')
-        } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = Key(object = value))) {
-          non.alnum <- gsub(
-            pattern = '[[:alnum:]]',
-            replacement = '',
-            x = Key(object = value)
-          )
-          non.alnum <- unlist(x = strsplit(x = non.alnum, split = ''))
-          non.alnum <- paste(non.alnum, collapse = '|')
-          new.key <- gsub(
-            pattern = non.alnum,
-            replacement = '',
-            x = Key(object = value)
-          )
-          new.key <- paste0(new.key, '_')
-          warning(
-            "All object keys must be alphanumeric characters, followed by an underscore ('_'), setting key to '",
-            new.key,
-            "'",
-            call. = FALSE,
-            immediate. = TRUE
-          )
-          Key(object = value) <- new.key
         }
+        Key(object = value) <- UpdateKey(key = Key(object = value))
         # Check for duplicate keys
         object.keys <- sapply(
           X = FilterObjects(object = x),
@@ -6779,6 +6773,7 @@ setMethod(
 # @return object with metadata added
 #
 .AddMetaData <- function(object, metadata, col.name = NULL) {
+  object <- UpdateSlots(object = object)
   if (is.null(x = col.name) && is.atomic(x = metadata)) {
     stop("'col.name' must be provided for atomic metadata types (eg. vectors)")
   }
@@ -6879,7 +6874,14 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
 # @return The collection (slot) of the object
 #
 FindObject <- function(object, name) {
-  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands')
+  collections <- c(
+    'assays',
+    'graphs',
+    'neighbors',
+    'reductions',
+    'commands',
+    'images'
+  )
   object.names <- lapply(
     X = collections,
     FUN = function(x) {
@@ -7043,12 +7045,12 @@ UpdateJackstraw <- function(old.jackstraw) {
 # @return An updated Key that's valid for Seurat
 #
 UpdateKey <- function(key) {
-  if (grepl(pattern = '^[[:alnum:]]+_', x = key)) {
+  if (grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
     return(key)
   } else {
     new.key <- regmatches(
       x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+      m = gregexpr(pattern = '[[:alnum:]]+', text = key)
     )
     new.key <- unlist(x = new.key, use.names = FALSE)
     new.key <- paste0(paste(new.key, collapse = ''), '_')
