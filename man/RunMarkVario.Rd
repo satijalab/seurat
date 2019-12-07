@@ -10,11 +10,18 @@ RunMarkVario(object, ...)
 
 \method{RunMarkVario}{default}(object, data, ...)
 
-\method{RunMarkVario}{Seurat}(object, assay = NULL, image = NULL,
-  slot = "scale.data", features = NULL, r.metric = 20, ...)
+\method{RunMarkVario}{Seurat}(
+  object,
+  assay = NULL,
+  image = NULL,
+  slot = "scale.data",
+  features = NULL,
+  r.metric = 20,
+  ...
+)
 }
 \arguments{
-\item{object}{An object}
+\item{object}{A Seurat object or data.frame giving x/y positions}
 
 \item{...}{Arguments passed to other methods}
 
@@ -28,8 +35,6 @@ RunMarkVario(object, ...)
 
 \item{r.metric}{r value at which to report the "trans" value of the mark
 variogram}
-
-\item{object}{A Seurat object or data.frame giving x/y positions}
 }
 \value{
 Returns a Seurat object with the output from markvario stored in

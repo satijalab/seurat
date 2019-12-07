@@ -4,8 +4,14 @@
 \alias{Load10X_Spatial}
 \title{Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object}
 \usage{
-Load10X_Spatial(data.dir, assay = "Spatial", slice = "slice1",
-  filter.matrix = TRUE, to.upper = FALSE, ...)
+Load10X_Spatial(
+  data.dir,
+  assay = "Spatial",
+  slice = "slice1",
+  filter.matrix = TRUE,
+  to.upper = FALSE,
+  ...
+)
 }
 \arguments{
 \item{data.dir}{Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv

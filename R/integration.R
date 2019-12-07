@@ -547,7 +547,10 @@ FindTransferAnchors <- function(
         key = "ProjectPC_",
         assay = reference.assay
       )
-      combined.ob <- merge(x = DietSeurat(reference, features = features), y = DietSeurat(query,features = features))
+      combined.ob <- merge(
+        x = DietSeurat(object = reference, features = features), 
+        y = DietSeurat(object = query, features = features)
+      )
       combined.ob[["pcaproject"]] <- combined.pca
       old.loadings <- Loadings(object = reference[["pca"]])
       colnames(x = old.loadings) <- paste0("ProjectPC_", 1:ncol(x = old.loadings))

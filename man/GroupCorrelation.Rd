@@ -5,9 +5,16 @@
 \title{Compute the correlation of features broken down by groups with another
 covariate}
 \usage{
-GroupCorrelation(object, assay = NULL, slot = "scale.data",
-  var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6,
-  do.plot = TRUE)
+GroupCorrelation(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  var = NULL,
+  group.assay = NULL,
+  min.cells = 5,
+  ngroups = 6,
+  do.plot = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -4,9 +4,13 @@
 \alias{CalculateBarcodeInflections}
 \title{Calculate the Barcode Distribution Inflection}
 \usage{
-CalculateBarcodeInflections(object, barcode.column = "nCount_RNA",
-  group.column = "orig.ident", threshold.low = NULL,
-  threshold.high = NULL)
+CalculateBarcodeInflections(
+  object,
+  barcode.column = "nCount_RNA",
+  group.column = "orig.ident",
+  threshold.low = NULL,
+  threshold.high = NULL
+)
 }
 \arguments{
 \item{object}{Seurat object}

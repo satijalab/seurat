@@ -777,8 +777,11 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 # @param crop Crop the plot in to focus on points plotted. Set to FALSE to show 
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
-# @param alpha Controls the opacity
+# @param alpha Controls the opacity. Provide as a vector specifying the min and 
+# max
 # @param stroke Control the width of the border around the spots
+# @param col.by Mapping variable for the point color
+# @param alpha.by Mapping variable for the point alpha value
 # @param cells.highlight A list of character or numeric vectors of cells to
 # highlight. If only one group of cells desired, can simply pass a vector
 # instead of a list. If set, colors selected cells to the color(s) in
@@ -832,7 +835,6 @@ SingleSpatialPlot <- function(
     fill = col.by,
     alpha = alpha.by
   ))
- # plot <- plot + scale_alpha(range = alpha, guide = 'none') 
   plot <- switch(
     EXPR = geom,
     'spatial' = {
@@ -903,8 +905,9 @@ SingleSpatialPlot <- function(
 #' @param ncol Number of columns if plotting multiple plots
 #' @param combine Combine plots into a single gg object; note that if TRUE;
 #' themeing will not work when plotting multiple features/groupings
-#' @param pt.size.factor Scale the size of the spots
-#' @param alpha Controls opacity of spots
+#' @param pt.size.factor Scale the size of the spots. 
+#' @param alpha Controls opacity of spots. Provide as a vector specifying the 
+#' min and max
 #' @param stroke Control the width of the border around the spots
 #' @param do.hover Return a plotly view of the data to get info when hovering
 #' over points.
@@ -946,7 +949,7 @@ SpatialPlot <- function(
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1.6,
-  alpha = c(1,1),
+  alpha = c(1, 1),
   stroke = 0.25,
   do.hover = FALSE,
   information = NULL
@@ -1109,8 +1112,8 @@ SpatialPlot <- function(
       )
       if (is.null(x = group.by)) {
         plot <- plot +
-          scale_fill_gradientn(name = features[j], colours = SpatialColors(100)) +
-          theme(legend.position = 'top') +scale_alpha(range = alpha) +
+          scale_fill_gradientn(name = features[j], colours = SpatialColors(n = 100)) +
+          theme(legend.position = 'top') + scale_alpha(range = alpha) +
           guides(alpha = FALSE)
       } else if (label) {
         plot <- LabelClusters(

@@ -5,10 +5,21 @@
 \alias{SplitDotPlotGG}
 \title{Dot plot visualization}
 \usage{
-DotPlot(object, assay = NULL, features, cols = c("lightgrey", "blue"),
-  col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6,
-  group.by = NULL, split.by = NULL, scale.by = "radius",
-  scale.min = NA, scale.max = NA)
+DotPlot(
+  object,
+  assay = NULL,
+  features,
+  cols = c("lightgrey", "blue"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  group.by = NULL,
+  split.by = NULL,
+  scale.by = "radius",
+  scale.min = NA,
+  scale.max = NA
+)
 }
 \arguments{
 \item{object}{Seurat object}

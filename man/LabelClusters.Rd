@@ -4,9 +4,18 @@
 \alias{LabelClusters}
 \title{Label clusters on a ggplot2-based scatter plot}
 \usage{
-LabelClusters(plot, id, clusters = NULL, labels = NULL,
-  split.by = NULL, repel = TRUE, box = FALSE, geom = "GeomPoint",
-  position = "median", ...)
+LabelClusters(
+  plot,
+  id,
+  clusters = NULL,
+  labels = NULL,
+  split.by = NULL,
+  repel = TRUE,
+  box = FALSE,
+  geom = "GeomPoint",
+  position = "median",
+  ...
+)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}

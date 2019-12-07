@@ -5,8 +5,12 @@
 \title{Boxplot of correlation of a variable (e.g. number of UMIs) with expression
 data}
 \usage{
-GroupCorrelationPlot(object, assay = NULL,
-  feature.group = "feature.grp", cor = "nCount_RNA_cor")
+GroupCorrelationPlot(
+  object,
+  assay = NULL,
+  feature.group = "feature.grp",
+  cor = "nCount_RNA_cor"
+)
 }
 \arguments{
 \item{object}{Seurat object}

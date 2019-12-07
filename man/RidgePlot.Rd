@@ -4,9 +4,22 @@
 \alias{RidgePlot}
 \title{Single cell ridge plot}
 \usage{
-RidgePlot(object, features, cols = NULL, idents = NULL, sort = FALSE,
-  assay = NULL, group.by = NULL, y.max = NULL, same.y.lims = FALSE,
-  log = FALSE, ncol = NULL, combine = TRUE, slot = "data", ...)
+RidgePlot(
+  object,
+  features,
+  cols = NULL,
+  idents = NULL,
+  sort = FALSE,
+  assay = NULL,
+  group.by = NULL,
+  y.max = NULL,
+  same.y.lims = FALSE,
+  log = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  slot = "data",
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}

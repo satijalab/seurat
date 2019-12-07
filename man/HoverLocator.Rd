@@ -4,8 +4,7 @@
 \alias{HoverLocator}
 \title{Hover Locator}
 \usage{
-HoverLocator(plot, information = NULL, axes = TRUE,
-  dark.theme = FALSE, ...)
+HoverLocator(plot, information = NULL, axes = TRUE, dark.theme = FALSE, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot}

@@ -8,12 +8,26 @@
 \title{Visualize spatial and clustering (dimensional reduction) data in a linked,
 interactive framework}
 \usage{
-LinkedFeaturePlot(object, feature, dims = 1:2, reduction = NULL,
-  pt.size = 6, image = NULL, slot = "data", min.cutoff = NA,
-  max.cutoff = NA)
+LinkedFeaturePlot(
+  object,
+  feature,
+  dims = 1:2,
+  reduction = NULL,
+  pt.size = 6,
+  image = NULL,
+  slot = "data",
+  min.cutoff = NA,
+  max.cutoff = NA
+)
 
-LinkedDimPlot(object, dims = 1:2, reduction = NULL, pt.size = 6,
-  image = NULL, group.by = NULL)
+LinkedDimPlot(
+  object,
+  dims = 1:2,
+  reduction = NULL,
+  pt.size = 6,
+  image = NULL,
+  group.by = NULL
+)
 }
 \arguments{
 \item{object}{Seurat object}

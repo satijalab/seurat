@@ -4,10 +4,18 @@
 \alias{LinkPlots}
 \title{Link two ggplot plots together}
 \usage{
-LinkPlots(plot1, plot2, plot1.labels = TRUE, plot2.labels = TRUE,
-  information = NULL, pt.size = 6, plot1.cols = eval(formals(fun =
-  GGpointToBase)$cols), plot2.cols = eval(formals(fun =
-  GGpointToBase)$cols), plot1.layout = list(), plot2.layout = list())
+LinkPlots(
+  plot1,
+  plot2,
+  plot1.labels = TRUE,
+  plot2.labels = TRUE,
+  information = NULL,
+  pt.size = 6,
+  plot1.cols = eval(formals(fun = GGpointToBase)$cols),
+  plot2.cols = eval(formals(fun = GGpointToBase)$cols),
+  plot1.layout = list(),
+  plot2.layout = list()
+)
 }
 \arguments{
 \item{plot1, plot2}{\code{ggplot} objects}

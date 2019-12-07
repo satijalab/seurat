@@ -15,8 +15,7 @@
 \usage{
 \method{Cells}{SpatialImage}(x)
 
-\method{GetImage}{SpatialImage}(object, mode = c("grob", "raster",
-  "plotly", "raw"), ...)
+\method{GetImage}{SpatialImage}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 
 \method{GetTissueCoordinates}{SpatialImage}(object, ...)
 
