@@ -2698,6 +2698,9 @@ HoverLocator <- function(
 #' @param geom Name of geom to get X/Y aesthetic names for
 #' @param box Use geom_label/geom_label_repel (includes a box around the text
 #' labels)
+#' @param position How to place the label if repel = FALSE. If "median", place
+#' the label at the median position. If "nearest" place the label at the 
+#' position of the nearest data point to the median.
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
@@ -2705,6 +2708,8 @@ HoverLocator <- function(
 #' @importFrom stats median
 #' @importFrom ggrepel geom_text_repel geom_label_repel
 #' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom RANN nn2
+#'
 #' @export
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
@@ -2722,6 +2727,7 @@ LabelClusters <- function(
   repel = TRUE,
   box = FALSE,
   geom = 'GeomPoint',
+  position = "median",
   ...
 ) {
   xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
@@ -2775,6 +2781,14 @@ LabelClusters <- function(
       return(data.medians)
     }
   )
+  if (position == "nearest") {
+    labels.loc <- lapply(X = labels.loc, FUN = function(x) {
+      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
+      nearest.point <- nn2(data = group.data[, 1:2], query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
+      x[1:2] <- group.data[nearest.point, 1:2]
+      return(x)
+    })
+  }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
   labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
