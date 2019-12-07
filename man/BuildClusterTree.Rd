@@ -4,9 +4,17 @@
 \alias{BuildClusterTree}
 \title{Phylogenetic Analysis of Identity Classes}
 \usage{
-BuildClusterTree(object, assay = NULL, features = NULL, dims = NULL,
-  graph = NULL, slot = "data", reorder = FALSE,
-  reorder.numeric = FALSE, verbose = TRUE)
+BuildClusterTree(
+  object,
+  assay = NULL,
+  features = NULL,
+  dims = NULL,
+  graph = NULL,
+  slot = "data",
+  reorder = FALSE,
+  reorder.numeric = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}

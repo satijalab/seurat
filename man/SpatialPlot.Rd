@@ -6,25 +6,70 @@
 \alias{SpatialFeaturePlot}
 \title{Visualize spatial clustering and expression data.}
 \usage{
-SpatialPlot(object, group.by = NULL, features = NULL, images = NULL,
-  crop = TRUE, slot = "data", min.cutoff = NA, max.cutoff = NA,
-  cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
-  facet.highlight = FALSE, label = FALSE, label.size = 5,
-  label.color = "white", label.box = TRUE, repel = FALSE,
-  ncol = NULL, combine = TRUE, pt.size.factor = 1, alpha = 1,
-  stroke = 0.25, do.hover = FALSE, information = NULL)
+SpatialPlot(
+  object,
+  group.by = NULL,
+  features = NULL,
+  images = NULL,
+  crop = TRUE,
+  slot = "data",
+  min.cutoff = NA,
+  max.cutoff = NA,
+  cells.highlight = NULL,
+  cols.highlight = c("#DE2D26", "grey50"),
+  facet.highlight = FALSE,
+  label = FALSE,
+  label.size = 5,
+  label.color = "white",
+  label.box = TRUE,
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  stroke = 0.25,
+  do.hover = FALSE,
+  information = NULL
+)
 
-SpatialDimPlot(object, group.by = NULL, images = NULL, crop = TRUE,
-  cells.highlight = NULL, cols.highlight = c("#DE2D26", "grey50"),
-  facet.highlight = FALSE, label = FALSE, label.size = 7,
-  label.color = "white", repel = FALSE, ncol = NULL,
-  combine = TRUE, pt.size.factor = 1, alpha = 1, stroke = 0.25,
-  label.box = TRUE, do.hover = FALSE, information = NULL)
+SpatialDimPlot(
+  object,
+  group.by = NULL,
+  images = NULL,
+  crop = TRUE,
+  cells.highlight = NULL,
+  cols.highlight = c("#DE2D26", "grey50"),
+  facet.highlight = FALSE,
+  label = FALSE,
+  label.size = 7,
+  label.color = "white",
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  stroke = 0.25,
+  label.box = TRUE,
+  do.hover = FALSE,
+  information = NULL
+)
 
-SpatialFeaturePlot(object, features, images = NULL, crop = TRUE,
-  slot = "data", min.cutoff = NA, max.cutoff = NA, ncol = NULL,
-  combine = TRUE, pt.size.factor = 1, alpha = 1, stroke = 0.25,
-  do.hover = FALSE, information = NULL)
+SpatialFeaturePlot(
+  object,
+  features,
+  images = NULL,
+  crop = TRUE,
+  slot = "data",
+  min.cutoff = NA,
+  max.cutoff = NA,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  stroke = 0.25,
+  do.hover = FALSE,
+  information = NULL
+)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -36,7 +81,7 @@ features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
 
-\item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show 
+\item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show
 entire background image.}
 
 \item{slot}{If plotting a feature, which data slot to pull from (counts,
@@ -74,9 +119,10 @@ geom_label)}
 \item{combine}{Combine plots into a single gg object; note that if TRUE;
 themeing will not work when plotting multiple features/groupings}
 
-\item{pt.size.factor}{Scale the size of the spots}
+\item{pt.size.factor}{Scale the size of the spots.}
 
-\item{alpha}{Controls opacity of spots}
+\item{alpha}{Controls opacity of spots. Provide as a vector specifying the
+min and max}
 
 \item{stroke}{Control the width of the border around the spots}
 

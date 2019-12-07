@@ -4,8 +4,15 @@
 \alias{GetResidual}
 \title{Calculate pearson residuals of features not in the scale.data}
 \usage{
-GetResidual(object, features, assay = "SCT", umi.assay = NULL,
-  clip.range = NULL, replace.value = FALSE, verbose = TRUE)
+GetResidual(
+  object,
+  features,
+  assay = "SCT",
+  umi.assay = NULL,
+  clip.range = NULL,
+  replace.value = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{A seurat object}

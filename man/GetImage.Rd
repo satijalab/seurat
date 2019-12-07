@@ -8,11 +8,14 @@
 \usage{
 GetImage(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 
-\method{GetImage}{Seurat}(object, mode = c("grob", "raster", "plotly",
-  "raw"), image = NULL, ...)
+\method{GetImage}{Seurat}(
+  object,
+  mode = c("grob", "raster", "plotly", "raw"),
+  image = NULL,
+  ...
+)
 
-\method{GetImage}{SliceImage}(object, mode = c("grob", "raster",
-  "plotly", "raw"), ...)
+\method{GetImage}{SliceImage}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 }
 \arguments{
 \item{object}{An object}

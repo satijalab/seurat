@@ -10,8 +10,12 @@ GetTissueCoordinates(object, ...)
 
 \method{GetTissueCoordinates}{Seurat}(object, image = NULL, ...)
 
-\method{GetTissueCoordinates}{SliceImage}(object, scale = "lowres",
-  cols = c("imagerow", "imagecol"), ...)
+\method{GetTissueCoordinates}{SliceImage}(
+  object,
+  scale = "lowres",
+  cols = c("imagerow", "imagecol"),
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
