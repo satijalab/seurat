@@ -47,7 +47,7 @@ SpatialDimPlot(
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1.6,
-  alpha = 1,
+  alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
   do.hover = FALSE,
@@ -81,7 +81,7 @@ features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
 
-\item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show 
+\item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show
 entire background image.}
 
 \item{slot}{If plotting a feature, which data slot to pull from (counts,
@@ -121,7 +121,7 @@ themeing will not work when plotting multiple features/groupings}
 
 \item{pt.size.factor}{Scale the size of the spots.}
 
-\item{alpha}{Controls opacity of spots. Provide as a vector specifying the 
+\item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max}
 
 \item{stroke}{Control the width of the border around the spots}
