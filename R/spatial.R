@@ -582,7 +582,7 @@ GeomSpatial <- ggproto(
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
-    
+
     z = coord$transform(
       data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
       panel_scales
@@ -774,11 +774,9 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 #
 # @param data Data.frame with info to be plotted
 # @param image SpatialImage object to be plotted
-# @param crop Crop the plot in to focus on points plotted. Set to FALSE to show 
+# @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
-# @param alpha Controls the opacity. Provide as a vector specifying the min and 
-# max
 # @param stroke Control the width of the border around the spots
 # @param col.by Mapping variable for the point color
 # @param alpha.by Mapping variable for the point alpha value
@@ -795,14 +793,13 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
-#' coord_cartesian labs theme_void theme scale_alpha
+#' coord_cartesian labs theme_void theme
 #'
 SingleSpatialPlot <- function(
   data,
   image,
   crop = TRUE,
   pt.size.factor = NULL,
-  alpha = c(1, 1),
   stroke = 0.25,
   col.by = NULL,
   alpha.by = NULL,
@@ -880,7 +877,7 @@ SingleSpatialPlot <- function(
 #' @param features Name of the feature to visualize. Provide either group.by OR
 #' features, not both.
 #' @param images Name of the images to use in the plot(s)
-#' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show 
+#' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
 #' data, or scale.data)
@@ -905,8 +902,8 @@ SingleSpatialPlot <- function(
 #' @param ncol Number of columns if plotting multiple plots
 #' @param combine Combine plots into a single gg object; note that if TRUE;
 #' themeing will not work when plotting multiple features/groupings
-#' @param pt.size.factor Scale the size of the spots. 
-#' @param alpha Controls opacity of spots. Provide as a vector specifying the 
+#' @param pt.size.factor Scale the size of the spots.
+#' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max
 #' @param stroke Control the width of the border around the spots
 #' @param do.hover Return a plotly view of the data to get info when hovering
@@ -914,7 +911,7 @@ SingleSpatialPlot <- function(
 #'
 #' @return A ggplot object
 #'
-#' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text
+#' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text scale_alpha
 #'
 #' @export
 #'
@@ -1106,14 +1103,17 @@ SpatialPlot <- function(
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
-        alpha = alpha,
         stroke = stroke,
-        crop = crop,
+        crop = crop
       )
       if (is.null(x = group.by)) {
         plot <- plot +
-          scale_fill_gradientn(name = features[j], colours = SpatialColors(n = 100)) +
-          theme(legend.position = 'top') + scale_alpha(range = alpha) +
+          scale_fill_gradientn(
+            name = features[j],
+            colours = SpatialColors(n = 100)
+          ) +
+          theme(legend.position = 'top') +
+          scale_alpha(range = alpha) +
           guides(alpha = FALSE)
       } else if (label) {
         plot <- LabelClusters(
@@ -1176,7 +1176,7 @@ SpatialDimPlot <- function(
   ncol = NULL,
   combine = TRUE,
   pt.size.factor = 1.6,
-  alpha = 1,
+  alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
   do.hover = FALSE,
@@ -1626,7 +1626,16 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
 #'
 #' @export
 #'
-GroupCorrelation <- function(object, assay = NULL, slot = "scale.data", var = NULL, group.assay = NULL, min.cells = 5, ngroups = 6, do.plot = TRUE) {
+GroupCorrelation <- function(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  var = NULL,
+  group.assay = NULL,
+  min.cells = 5,
+  ngroups = 6,
+  do.plot = TRUE
+) {
   assay <- assay %||% DefaultAssay(object = object)
   group.assay <- group.assay %||% assay
   var <- var %||% paste0("nCount_", group.assay)
@@ -1652,7 +1661,12 @@ GroupCorrelation <- function(object, assay = NULL, slot = "scale.data", var = NU
   object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
   object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
   if (do.plot) {
-    print(GroupCorrelationPlot(object = object, assay = assay, feature.group = "feature.grp", cor = paste0(var, "_cor")))
+    print(GroupCorrelationPlot(
+      object = object,
+      assay = assay,
+      feature.group = "feature.grp",
+      cor = paste0(var, "_cor")
+    ))
   }
   return(object)
 }
@@ -1676,21 +1690,45 @@ GroupCorrelation <- function(object, assay = NULL, slot = "scale.data", var = NU
 #'
 #' @export
 #'
-GroupCorrelationPlot <- function(object, assay = NULL, feature.group = "feature.grp", cor = "nCount_RNA_cor") {
+GroupCorrelationPlot <- function(
+  object,
+  assay = NULL,
+  feature.group = "feature.grp",
+  cor = "nCount_RNA_cor"
+) {
   assay <- assay %||% DefaultAssay(object = object)
   data <- object[[assay]][[c(feature.group, cor)]]
   data <- data[complete.cases(data), ]
   colnames(x = data) <- c('grp', 'cor')
   plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +
-        geom_boxplot() +
-        theme_cowplot() + scale_fill_manual(values = rev(brewer_pal(palette='YlOrRd')(7))) +
-        ylab(paste0("Correlation with ",  gsub(x = cor, pattern = "_cor", replacement = ""))) +
-        geom_hline(yintercept = 0) + NoLegend() +
-        theme(axis.line.x = element_blank(), axis.title.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x = element_blank())
+    geom_boxplot() +
+    theme_cowplot() +
+    scale_fill_manual(values = rev(x = brewer_pal(palette = 'YlOrRd')(n = 7))) +
+    ylab(paste(
+      "Correlation with",
+      gsub(x = cor, pattern = "_cor", replacement = "")
+    )) +
+    geom_hline(yintercept = 0) +
+    NoLegend() +
+    theme(
+      axis.line.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_blank()
+    )
   return(plot)
 }
 
-
+# Get the default image of an object
+#
+# Attempts to find all images associated with the default assay of the object.
+# If none present, finds all images present in the object. Returns the name of
+# the first image
+#
+# @param object A Seurat object
+#
+# @return The name of the default image
+#
 DefaultImage <- function(object) {
   object <- UpdateSlots(object = object)
   images <- Images(object = object, assay = DefaultAssay(object = object))
