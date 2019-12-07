@@ -1124,7 +1124,8 @@ SpatialPlot <- function(
           repel = repel,
           size = label.size,
           color = label.color,
-          box = label.box
+          box = label.box,
+          position = "nearest"
         )
       }
       if (j == 1 && length(x = images) > 1) {

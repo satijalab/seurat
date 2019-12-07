@@ -6,7 +6,7 @@
 \usage{
 LabelClusters(plot, id, clusters = NULL, labels = NULL,
   split.by = NULL, repel = TRUE, box = FALSE, geom = "GeomPoint",
-  ...)
+  position = "median", ...)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
@@ -26,6 +26,10 @@ LabelClusters(plot, id, clusters = NULL, labels = NULL,
 labels)}
 
 \item{geom}{Name of geom to get X/Y aesthetic names for}
+
+\item{position}{How to place the label if repel = FALSE. If "median", place
+the label at the median position. If "nearest" place the label at the 
+position of the nearest data point to the median.}
 
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}}
 }
