@@ -747,6 +747,7 @@ SingleSpatialPlot <- function(
     col.by <- NULL
   }
   col.by <- col.by %iff% paste0("`", col.by, "`")
+  alpha.by <- alpha.by %iff% paste0("`", alpha.by, "`")
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
