@@ -1139,10 +1139,16 @@ SpatialPlot <- function(
           position = "nearest"
         )
       }
-      if (j == 1 && length(x = images) > 1) {
+      if (j == 1 && length(x = images) > 1 && !facet.hightlight) {
         plot <- plot +
           ggtitle(label = images[[image.idx]]) +
           theme(plot.title = element_text(hjust = 0.5))
+      } 
+      if (facet.highlight) {
+        plot <- plot +
+          ggtitle(label = names(x = cells.highlight)[i]) +
+          theme(plot.title = element_text(hjust = 0.5)) +
+          NoLegend()
       }
       plots[[plot.idx]] <- plot
       plot.idx <- plot.idx + ncols
