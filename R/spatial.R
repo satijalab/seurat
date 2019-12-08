@@ -1270,27 +1270,37 @@ FindSpatiallyVariableFeatures.Assay <- function(
   ...
 ) {
   features <- features %||% rownames(x = object)
+  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
+    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
+    features <- features[! features %in% features.computed]
+  }
   data <- GetAssayData(object = object, slot = slot)
   data <- as.matrix(x = data[features, ])
-  data <- data[rowSums(data) > 0, ]
-  svf.info <- FindSpatiallyVariableFeatures(
-    object = data,
-    spatial.location = spatial.location,
-    selection.method = selection.method,
-    r.metric = r.metric,
-    ...
-  )
+  data <- data[RowVar(x = data) > 0, ]
+  if (nrow(x = data) != 0) {
+    svf.info <- FindSpatiallyVariableFeatures(
+      object = data,
+      spatial.location = spatial.location,
+      selection.method = selection.method,
+      r.metric = r.metric,
+      ...
+    )
+  } else {
+    svf.info <- c()
+  }
   if (selection.method == "markvariogram") {
-    markvariogram <- svf.info
+    if ("markvariogram" %in% names(x = Misc(object = object))) {
+      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+    }
+    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
     svf.info <- ComputeRMetric(mv = svf.info, r.metric)
     svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
     svf.info$markvariogram.spatially.variable <- FALSE
     svf.info$markvariogram.spatially.variable[1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
     svf.info$markvariogram.spatially.variable.rank <- 1:nrow(x = svf.info)
     object[[names(x = svf.info)]] <- svf.info
-    svf.info <- list(assay = object, markvariogram = markvariogram)
   }
-  return(svf.info)
+  return(object)
 }
 
 #' @param object A Seurat object 
@@ -1315,7 +1325,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   slot = "scale.data",
   features = NULL,
   image = NULL,
-  selection.method = "markvariogram",
+  selection.method = c("markvariogram"),
   r.metric = 5,
   nfeatures = 2000,
   verbose = TRUE,
@@ -1325,7 +1335,9 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   features <- features %||% rownames(x = object[[assay]])
   image <- image %||% DefaultImage(object = object)
   tc <- GetTissueCoordinates(object = object[[image]])
-  svf.info <- FindSpatiallyVariableFeatures(
+  # check if markvariogram has been run on necessary features
+  # only run for new ones
+  object[[assay]] <- FindSpatiallyVariableFeatures(
     object = object[[assay]],
     slot = slot,
     features = features,
@@ -1335,10 +1347,6 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     nfeatures = nfeatures,
     ...
   )
-  object[[assay]] <- svf.info$assay
-  if (selection.method == "markvariogram") {
-    Tool(object = object) <- svf.info$markvariogram
-  }
   object <- LogSeuratCommand(object = object)
 }
 
