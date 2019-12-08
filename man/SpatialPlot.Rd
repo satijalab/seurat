@@ -28,6 +28,8 @@ SpatialPlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  do.identify = FALSE,
+  identify.ident = NULL,
   do.hover = FALSE,
   information = NULL
 )
@@ -50,6 +52,8 @@ SpatialDimPlot(
   alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
+  do.identify = FALSE,
+  identify.ident = NULL,
   do.hover = FALSE,
   information = NULL
 )
@@ -68,6 +72,8 @@ SpatialFeaturePlot(
   alpha = c(1, 1),
   stroke = 0.25,
   do.hover = FALSE,
+  do.identify = FALSE,
+  identify.ident = NULL,
   information = NULL
 )
 }
@@ -126,13 +132,22 @@ min and max}
 
 \item{stroke}{Control the width of the border around the spots}
 
+\item{do.identify}{Select points on the plot to highlight them}
+
+\item{identify.ident}{An optional identity class to set the selected cells to;
+will return \code{object} with the identity class updated instead of a vector
+of selected cells}
+
 \item{do.hover}{Return a plotly view of the data to get info when hovering
-over points.}
+over points}
 
 \item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 }
 \value{
-A ggplot object
+If \code{do.identify}, either a vector of cells selected or the object
+with selected cells set to the value of \code{identify.ident} (if set). Else,
+if \code{do.hover}, a plotly object with interactive graphics. Else, a ggplot
+object
 }
 \description{
 SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as

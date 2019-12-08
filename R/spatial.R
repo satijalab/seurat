@@ -914,10 +914,17 @@ SingleSpatialPlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max
 #' @param stroke Control the width of the border around the spots
+#' @param do.identify Select points on the plot to highlight them
+#' @param identify.ident An optional identity class to set the selected cells to;
+#' will return \code{object} with the identity class updated instead of a vector
+#' of selected cells
 #' @param do.hover Return a plotly view of the data to get info when hovering
-#' over points.
+#' over points
 #'
-#' @return A ggplot object
+#' @return If \code{do.identify}, either a vector of cells selected or the object
+#' with selected cells set to the value of \code{identify.ident} (if set). Else,
+#' if \code{do.hover}, a plotly object with interactive graphics. Else, a ggplot
+#' object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text scale_alpha
 #'
@@ -956,6 +963,8 @@ SpatialPlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  do.identify = FALSE,
+  identify.ident = NULL,
   do.hover = FALSE,
   information = NULL
 ) {
@@ -1107,7 +1116,11 @@ SpatialPlot <- function(
         } else {
           NULL
         },
-        geom = ifelse(test = do.hover, yes = 'interactive', no = 'spatial'),
+        geom = ifelse(
+          test = do.hover || do.identify,
+          yes = 'interactive',
+          no = 'spatial'
+        ),
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
@@ -1139,11 +1152,11 @@ SpatialPlot <- function(
           position = "nearest"
         )
       }
-      if (j == 1 && length(x = images) > 1 && !facet.hightlight) {
+      if (j == 1 && length(x = images) > 1 && !facet.highlight) {
         plot <- plot +
           ggtitle(label = images[[image.idx]]) +
           theme(plot.title = element_text(hjust = 0.5))
-      } 
+      }
       if (facet.highlight) {
         plot <- plot +
           ggtitle(label = names(x = cells.highlight)[i]) +
@@ -1154,7 +1167,13 @@ SpatialPlot <- function(
       plot.idx <- plot.idx + ncols
     }
   }
-  if (do.hover) {
+  if (do.identify) {
+    return(CellSelector(
+      plot = plot,
+      object = identify.ident %iff% object,
+      ident = identify.ident
+    ))
+  } else if (do.hover) {
     return(HoverLocator(
       plot = plots[[1]],
       information = information %||% data[, features, drop = FALSE],
@@ -1193,6 +1212,8 @@ SpatialDimPlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
+  do.identify = FALSE,
+  identify.ident = NULL,
   do.hover = FALSE,
   information = NULL
 ) {
@@ -1214,6 +1235,8 @@ SpatialDimPlot <- function(
     alpha = alpha,
     stroke = stroke,
     label.box = label.box,
+    do.identify = do.identify,
+    identify.ident = identify.ident,
     do.hover = do.hover,
     information = information
   ))
@@ -1237,6 +1260,8 @@ SpatialFeaturePlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   do.hover = FALSE,
+  do.identify = FALSE,
+  identify.ident = NULL,
   information = NULL
 ) {
   return(SpatialPlot(
@@ -1252,6 +1277,8 @@ SpatialFeaturePlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     stroke = stroke,
+    do.identify = do.identify,
+    identify.ident = identify.ident,
     do.hover = do.hover,
     information = information
   ))
