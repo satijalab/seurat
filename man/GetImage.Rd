@@ -3,7 +3,7 @@
 \name{GetImage}
 \alias{GetImage}
 \alias{GetImage.Seurat}
-\alias{GetImage.SliceImage}
+\alias{GetImage.VisiumV1}
 \title{Get image data}
 \usage{
 GetImage(object, mode = c("grob", "raster", "plotly", "raw"), ...)
@@ -15,7 +15,7 @@ GetImage(object, mode = c("grob", "raster", "plotly", "raw"), ...)
   ...
 )
 
-\method{GetImage}{SliceImage}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
+\method{GetImage}{VisiumV1}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 }
 \arguments{
 \item{object}{An object}

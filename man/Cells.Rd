@@ -4,7 +4,7 @@
 \alias{Cells}
 \alias{Cells.default}
 \alias{Cells.DimReduc}
-\alias{Cells.SliceImage}
+\alias{Cells.VisiumV1}
 \title{Get cells present in an object}
 \usage{
 Cells(x)
@@ -13,7 +13,7 @@ Cells(x)
 
 \method{Cells}{DimReduc}(x)
 
-\method{Cells}{SliceImage}(x)
+\method{Cells}{VisiumV1}(x)
 }
 \arguments{
 \item{x}{An object}

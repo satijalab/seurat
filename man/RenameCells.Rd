@@ -5,7 +5,7 @@
 \alias{RenameCells.Assay}
 \alias{RenameCells.DimReduc}
 \alias{RenameCells.Seurat}
-\alias{RenameCells.SliceImage}
+\alias{RenameCells.VisiumV1}
 \title{Rename cells}
 \usage{
 RenameCells(object, ...)
@@ -22,7 +22,7 @@ RenameCells(object, ...)
   ...
 )
 
-\method{RenameCells}{SliceImage}(object, new.names = NULL, ...)
+\method{RenameCells}{VisiumV1}(object, new.names = NULL, ...)
 }
 \arguments{
 \item{object}{An object}

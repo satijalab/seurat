@@ -3,14 +3,14 @@
 \name{GetTissueCoordinates}
 \alias{GetTissueCoordinates}
 \alias{GetTissueCoordinates.Seurat}
-\alias{GetTissueCoordinates.SliceImage}
+\alias{GetTissueCoordinates.VisiumV1}
 \title{Get tissue coordinates}
 \usage{
 GetTissueCoordinates(object, ...)
 
 \method{GetTissueCoordinates}{Seurat}(object, image = NULL, ...)
 
-\method{GetTissueCoordinates}{SliceImage}(
+\method{GetTissueCoordinates}{VisiumV1}(
   object,
   scale = "lowres",
   cols = c("imagerow", "imagecol"),

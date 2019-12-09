@@ -17,11 +17,11 @@ have been determined to be over tissue.}
 \item{...}{Ignored for now}
 }
 \value{
-A \code{\link{SliceImage}} object
+A \code{\link{VisiumV1}} object
 }
 \description{
 Load a 10X Genomics Visium Image
 }
 \seealso{
-\code{\link{SliceImage}} \code{\link{Load10X_Spatial}}
+\code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
 }

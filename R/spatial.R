@@ -82,9 +82,9 @@ SpatialImage <- setClass(
   )
 )
 
-#' The SliceImage class
+#' The VisiumV1 class
 #'
-#' The SliceImage class represents spatial information from the 10X Genomics Visium
+#' The VisiumV1 class represents spatial information from the 10X Genomics Visium
 #' platform
 #'
 #' @slot image A three-dimensional array with PNG image data, see
@@ -94,12 +94,12 @@ SpatialImage <- setClass(
 #' @slot coordinates A data frame with tissue coordinate information
 #' @slot spot.radius Single numeric value giving the radius of the spots
 #'
-#' @name SliceImage-class
-#' @rdname SliceImage-class
-#' @exportClass SliceImage
+#' @name VisiumV1-class
+#' @rdname VisiumV1-class
+#' @exportClass VisiumV1
 #'
-SliceImage <- setClass(
-  Class = 'SliceImage',
+VisiumV1 <- setClass(
+  Class = 'VisiumV1',
   contains = 'SpatialImage',
   slots = list(
     'image' = 'array',
@@ -108,6 +108,8 @@ SliceImage <- setClass(
     'spot.radius' = 'numeric'
   )
 )
+
+setClass(Class = 'SliceImage', contains = 'VisiumV1')
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
@@ -179,12 +181,12 @@ Images <- function(object, assay = NULL) {
 #' have been determined to be over tissue.
 #' @param ... Ignored for now
 #'
-#' @return A \code{\link{SliceImage}} object
+#' @return A \code{\link{VisiumV1}} object
 #'
 #' @importFrom png readPNG
 #' @importFrom jsonlite fromJSON
 #'
-#' @seealso \code{\link{SliceImage}} \code{\link{Load10X_Spatial}}
+#' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
 #'
 #' @export
 #'
@@ -204,7 +206,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   unnormalized.radius <- scale.factors$fiducial_diameter_fullres * scale.factors$tissue_lowres_scalef
   spot.radius <-  unnormalized.radius / max(dim(x = image))
   return(new(
-    Class = 'SliceImage',
+    Class = 'VisiumV1',
     image = image,
     scale.factors = scalefactors(
       spot = scale.factors$tissue_hires_scalef,
@@ -1289,10 +1291,10 @@ SpatialFeaturePlot <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @rdname Cells
-#' @method Cells SliceImage
+#' @method Cells VisiumV1
 #' @export
 #'
-Cells.SliceImage <- function(x) {
+Cells.VisiumV1 <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
@@ -1356,10 +1358,10 @@ GetImage.Seurat <- function(
 #' @importFrom grid rasterGrob unit
 #'
 #' @rdname GetImage
-#' @method GetImage SliceImage
+#' @method GetImage VisiumV1
 #' @export
 #'
-GetImage.SliceImage <- function(
+GetImage.VisiumV1 <- function(
   object,
   mode = c('grob', 'raster', 'plotly', 'raw'),
   ...
@@ -1432,10 +1434,10 @@ GetTissueCoordinates.Seurat <- function(object, image = NULL, ...) {
 #' @param cols Columns of tissue coordinates data.frame to pull
 #'
 #' @rdname GetTissueCoordinates
-#' @method GetTissueCoordinates SliceImage
+#' @method GetTissueCoordinates VisiumV1
 #' @export
 #'
-GetTissueCoordinates.SliceImage <- function(
+GetTissueCoordinates.VisiumV1 <- function(
   object,
   scale = 'lowres',
   cols = c('imagerow', 'imagecol'),
@@ -1499,10 +1501,10 @@ Key.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname RenameCells
-#' @method RenameCells SliceImage
+#' @method RenameCells VisiumV1
 #' @export
 #'
-RenameCells.SliceImage <- function(object, new.names = NULL, ...) {
+RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
   if (is.null(x = new.names)) {
     return(object)
   } else if (length(x = new.names) != length(x = Cells(x = object))) {
@@ -1531,10 +1533,10 @@ RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
 }
 
 #' @rdname ScaleFactors
-#' @method ScaleFactors SliceImage
+#' @method ScaleFactors VisiumV1
 #' @export
 #'
-ScaleFactors.SliceImage <- function(object, ...) {
+ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
 }
 
@@ -1542,10 +1544,10 @@ ScaleFactors.SliceImage <- function(object, ...) {
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @method [ SliceImage
+#' @method [ VisiumV1
 #' @export
 #'
-"[.SliceImage" <- function(x, i, ...) {
+"[.VisiumV1" <- function(x, i, ...) {
   return(subset(x = x, cells = i))
 }
 
@@ -1564,10 +1566,10 @@ ScaleFactors.SliceImage <- function(object, ...) {
   )
 }
 
-#' @method dim SliceImage
+#' @method dim VisiumV1
 #' @export
 #'
-dim.SliceImage <- function(x) {
+dim.VisiumV1 <- function(x) {
   return(dim(x = GetImage(object = x)$raster))
 }
 
@@ -1584,10 +1586,10 @@ dim.SpatialImage <- function(x) {
   )
 }
 
-#' @method subset SliceImage
+#' @method subset VisiumV1
 #' @export
 #'
-subset.SliceImage <- function(x, cells, ...) {
+subset.VisiumV1 <- function(x, cells, ...) {
   coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
   coordinates <- coordinates[cells, ]
   slot(object = x, name = 'coordinates') <- coordinates
