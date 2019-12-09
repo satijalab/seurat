@@ -862,7 +862,9 @@ RunPCA.default <- function(
 }
 
 #' @param features Features to compute PCA on. If features=NULL, PCA will be run 
-#' using the variable features for the Assay. 
+#' using the variable features for the Assay. Note that the features must be present
+#' the scaled data. Any requested features that are not scaled will be dropped, and
+#' the PCA will be run using the remaining features.
 #'
 #' @rdname RunPCA
 #' @export
