@@ -34,7 +34,7 @@ FindSpatiallyVariableFeatures(object, ...)
   slot = "scale.data",
   features = NULL,
   image = NULL,
-  selection.method = "markvariogram",
+  selection.method = c("markvariogram"),
   r.metric = 5,
   nfeatures = 2000,
   verbose = TRUE,

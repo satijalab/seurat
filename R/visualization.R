@@ -2745,7 +2745,26 @@ LabelClusters <- function(
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
   if (geom == 'GeomSpatial') {
+    pb <- ggplot_build(plot = plot)
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
+    if (!pb$plot$plot_env$crop) {
+      # pretty hacky solution to learn the linear transform to put the data into 
+      # the rescaled coordinates when not cropping in. Probably a better way to 
+      # do this via ggplot
+      y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
+      data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
+      data$x <- data[, xynames["x"]]
+      data$y <- data[, xynames["y"]]
+      panel_params_image <- c()
+      panel_params_image$x.range <- c(0, ncol(x = pb$plot$plot_env$image))
+      panel_params_image$y.range <- c(0, nrow(x = pb$plot$plot_env$image))
+      image.xform <- pb$layout$coord$transform(data, panel_params_image)[, c("x", "y")]
+      plot.xform <- pb$layout$coord$transform(data, pb$layout$panel_params[[1]])[, c("x", "y")]
+      x.xform <- lm(data$x ~ plot.xform$x)
+      y.xform <- lm(data$y ~ plot.xform$y)
+      data[, xynames['y']] <- image.xform$y * y.xform$coefficients[2] + y.xform$coefficients[1]
+      data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
+    }
   }
   labels.loc <- lapply(
     X = groups,
