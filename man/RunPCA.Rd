@@ -56,8 +56,8 @@ NULL will not set a seed.}
 
 \item{features}{Features to compute PCA on. If features=NULL, PCA will be run 
 using the variable features for the Assay. Note that the features must be present
-the scaled data. Any requested features that are not scaled will be dropped, and
-the PCA will be run using the remaining features.}
+in the scaled data. Any requested features that are not scaled or have 0 variance
+will be dropped, and the PCA will be run using the remaining features.}
 
 \item{reduction.name}{dimensional reduction name,  pca by default}
 }
