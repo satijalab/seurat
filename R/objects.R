@@ -6137,7 +6137,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
     }
     # remove disallowed characters from object name
-    newi <- make.names(names = i)
+    newi <- if (is.null(x = value)) {
+      i
+    } else {
+      make.names(names = i)
+    }
     if (i != newi) {
       warning(
         "Invalid name supplied, making object name syntactically valid. New object name is ",
