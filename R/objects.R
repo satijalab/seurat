@@ -6142,7 +6142,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       make.names(names = i)
     }
-    if (i != newi) {
+    if (any(i != newi)) {
       warning(
         "Invalid name supplied, making object name syntactically valid. New object name is ",
          newi,
