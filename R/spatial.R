@@ -439,20 +439,22 @@ LinkedDimPlot <- function(
     dims = dims,
     reduction = reduction
   )
-  suppressMessages(expr = suppressWarnings(expr = print(
-    x = LinkPlots(
-      plot1 = spatial.plot,
-      plot2 = dim.plot,
-      information = FetchData(object = object, vars = group.by),
-      plot1.labels = FALSE,
-      pt.size = pt.size,
-      plot1.layout = list(
-        'images' = GetImage(object = object[[image]], mode = 'plotly'),
-        'xaxis' = list('visible' = FALSE),
-        'yaxis' = list('visible' = FALSE)
-      )
+  linked.plot <- LinkPlots(
+    plot1 = spatial.plot,
+    plot2 = dim.plot,
+    information = FetchData(object = object, vars = group.by),
+    plot1.labels = FALSE,
+    pt.size = pt.size,
+    plot1.layout = list(
+      'images' = GetImage(object = object[[image]], mode = 'plotly'),
+      'xaxis' = list('visible' = FALSE),
+      'yaxis' = list('visible' = FALSE)
     )
+  )
+  suppressMessages(expr = suppressWarnings(expr = print(
+    x = linked.plot
   )))
+  return(linked.plot)
 }
 
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
@@ -655,23 +657,37 @@ geom_spatial <-  function(
   )
 }
 
+#' Run the mark variogram computation on a given Seurat object
+#'
+#' Wraps the functionality of markvario from the spatstat package.
+#'
+#' @param spatial.location A 2 column matrix giving the spatial locations of 
+#' each of the data points also in data
+#' @param data Matrix containing the data used as "marks" (e.g. gene expression)
+#' @param ... Arguments passed to markvario
+#' 
 #' @importFrom spatstat markvario ppp
 #'
-#' @method RunMarkVario default
-#' @rdname RunMarkVario
 #' @export
 #'
-RunMarkVario.default <- function(object, data, ...) {
+RunMarkVario <- function(
+  spatial.location, 
+  data, 
+  ...
+) {
   pp <- ppp(
-    x = object[, 1],
-    y = object[, 2],
-    xrange = range(object[, 1]),
-    yrange = range(object[, 2])
+    x = spatial.location[, 1],
+    y = spatial.location[, 2],
+    xrange = range(spatial.location[, 1]),
+    yrange = range(spatial.location[, 2])
   )
   if (nbrOfWorkers() > 1) {
     chunks <- nbrOfWorkers()
     features <- rownames(x = data)
-    features <- split(x = features, f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks)))
+    features <- split(
+      x = features, 
+      f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
+    )
     mv <- future_lapply(X = features, FUN = function(x) {
       pp[["marks"]] <- as.data.frame(x = t(x = data[x, ]))
       markvario(X = pp, normalise = TRUE, ...)
@@ -683,95 +699,6 @@ RunMarkVario.default <- function(object, data, ...) {
     mv <- markvario(X = pp, normalise = TRUE, ...)
   }
   return(mv)
-}
-
-#' @param object A Seurat object or data.frame giving x/y positions
-#' @param assay Assay to pull the features (marks) from
-#' @param image Name of image to pull the coordinates from
-#' @param slot Slot in the Assay to pull data from
-#' @param features Set of features to run on
-#' @param r.metric r value at which to report the "trans" value of the mark
-#' variogram
-#'
-#' @return Returns a Seurat object with the output from markvario stored in
-#' Tools and the r.metric stored in the Assay's meta.features data.frame
-#'
-#' @method RunMarkVario Seurat
-#' @rdname RunMarkVario
-#' @export
-#'
-RunMarkVario.Seurat <- function(
-  object,
-  assay = NULL,
-  image = NULL,
-  slot = "scale.data",
-  features = NULL,
-  r.metric = 20,
-  ...
-) {
-  features <- features %||% VariableFeatures(object = object)
-  assay <- assay %||% DefaultAssay(object = object)
-  image <- image %||% DefaultImage(object = object)
-  tc <- GetTissueCoordinates(object = object[[image]])
-  data <- GetAssayData(object = object, assay = assay, slot = slot)
-  data <- as.matrix(x = data[features, ])
-  data <- data[rowSums(data) > 0, ]
-  mv <- RunMarkVario(object = tc, data = data)
-  Tool(object = object) <- mv
-  object <- ComputeRMetric(object = object, assay = assay, r.metric = r.metric)
-  object <- LogSeuratCommand(object = object)
-  return(object)
-}
-
-#' Quick accessor function for getting the Mark Variogram values
-#'
-#' @param object Seurat object
-#' @param assay Assay on which the mark variogram computations were made
-#' @param sorted Return the values in sorted decreasing order
-#'
-#' @return Returns a vector of r metric values as a name vector
-#'
-#' @export
-#'
-GetRMetric <- function(object, assay = NULL, sorted = TRUE) {
-  assay <- assay %||% DefaultAssay(object = object)
-  metric <- na.omit(object[[assay]][["r.metric"]])
-  if (sorted) {
-    metric <- metric[order(metric), ,drop = FALSE]
-  }
-  metric <- setNames(object = metric[, 1], nm = rownames(x = metric))
-  return(metric)
-}
-
-#' Computes the metric at a given r (radius) value and stores in meta.features
-#'
-#' @param object Seurat object
-#' @param assay Assay on which the mark variogram computations were made
-#' @param r.metric r value at which to report the "trans" value of the mark
-#' variogram
-#'
-#' @return Returns a Seurat object with the "r.metric" column in the Assay's
-#' meta.features data.frame updated for relevant features
-#'
-#' @export
-#'
-ComputeRMetric <- function(object, assay = NULL, r.metric = 20) {
-  assay <- assay %||% DefaultAssay(object = object)
-  mv <- Tool(object = object, slot = "RunMarkVario")
-  if (is.null(x = mv)) {
-    stop("Please call RunMarkVario before ComputeRMetric.")
-  }
-  r.metric.results <- unlist(x = lapply(
-    X = mv,
-    FUN = function(x) {
-      x$trans[which.min(x = abs(x = x$r - r.metric))]
-    }
-  ))
-  r.metric.vec <- rep(x = NA, length = nrow(x = object[[assay]]))
-  names(x = r.metric.vec) <- rownames(x = object[[assay]])
-  r.metric.vec[names(x = r.metric.results)] <- r.metric.results
-  object[[assay]][["r.metric"]] <- r.metric.vec
-  return(object)
 }
 
 #' @importFrom RColorBrewer brewer.pal
@@ -824,6 +751,7 @@ SingleSpatialPlot <- function(
     col.by <- NULL
   }
   col.by <- col.by %iff% paste0("`", col.by, "`")
+  alpha.by <- alpha.by %iff% paste0("`", alpha.by, "`")
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
@@ -1332,6 +1260,128 @@ DefaultAssay.SpatialImage <- function(object, ...) {
   return(object)
 }
 
+#' @method FindSpatiallyVariableFeatures Assay
+#' @rdname FindSpatiallyVariableFeatures
+#' @export 
+#'
+#'
+FindSpatiallyVariableFeatures.default <- function(
+  object,
+  spatial.location,
+  selection.method = 'markvariogram',
+  r.metric = 5,
+  ...
+) {
+  # error check dimensions
+  if (ncol(x = object) != nrow(x = spatial.location)) {
+    stop("Please provide the same number of observations as spatial locations.")
+  }
+  if (selection.method == "markvariogram") {
+    svf.info <- RunMarkVario(
+      spatial.location = spatial.location,
+      data = object
+    )
+  }
+  return(svf.info)
+}
+
+#' @param spatial.location
+#'  
+#' @method FindSpatiallyVariableFeatures Assay
+#' @rdname FindSpatiallyVariableFeatures
+#' @export 
+#' 
+FindSpatiallyVariableFeatures.Assay <- function(
+  object,
+  slot = "scale.data",
+  features = NULL,
+  spatial.location,
+  selection.method = 'markvariogram',
+  r.metric = 5,
+  nfeatures = nfeatures,
+  ...
+) {
+  features <- features %||% rownames(x = object)
+  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
+    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
+    features <- features[! features %in% features.computed]
+  }
+  data <- GetAssayData(object = object, slot = slot)
+  data <- as.matrix(x = data[features, ])
+  data <- data[RowVar(x = data) > 0, ]
+  if (nrow(x = data) != 0) {
+    svf.info <- FindSpatiallyVariableFeatures(
+      object = data,
+      spatial.location = spatial.location,
+      selection.method = selection.method,
+      r.metric = r.metric,
+      ...
+    )
+  } else {
+    svf.info <- c()
+  }
+  if (selection.method == "markvariogram") {
+    if ("markvariogram" %in% names(x = Misc(object = object))) {
+      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+    }
+    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
+    svf.info <- ComputeRMetric(mv = svf.info, r.metric)
+    svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
+    svf.info$markvariogram.spatially.variable <- FALSE
+    svf.info$markvariogram.spatially.variable[1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
+    svf.info$markvariogram.spatially.variable.rank <- 1:nrow(x = svf.info)
+    object[[names(x = svf.info)]] <- svf.info
+  }
+  return(object)
+}
+
+#' @param object A Seurat object 
+#' @param assay Assay to pull the features (marks) from
+#' @param slot Slot in the Assay to pull data from
+#' @param features If provided, only compute on given features. Otherwise, 
+#' compute for all features.
+#' @param image Name of image to pull the coordinates from
+#' @param selection.method Method for selecting spatially variable features.
+#' Only 'markvariogram' method is currently implemented. See 
+#' \code{\link{RunMarkVario}} for method. 
+#' @param r.metric r value at which to report the "trans" value of the mark
+#' variogram
+#' 
+#' @method FindSpatiallyVariableFeatures Seurat
+#' @rdname FindSpatiallyVariableFeatures
+#' @export 
+#' 
+FindSpatiallyVariableFeatures.Seurat <- function(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  features = NULL,
+  image = NULL,
+  selection.method = c("markvariogram"),
+  r.metric = 5,
+  nfeatures = 2000,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% rownames(x = object[[assay]])
+  image <- image %||% DefaultImage(object = object)
+  tc <- GetTissueCoordinates(object = object[[image]])
+  # check if markvariogram has been run on necessary features
+  # only run for new ones
+  object[[assay]] <- FindSpatiallyVariableFeatures(
+    object = object[[assay]],
+    slot = slot,
+    features = features,
+    spatial.location = tc,
+    selection.method = selection.method,
+    r.metric = r.metric,
+    nfeatures = nfeatures,
+    ...
+  )
+  object <- LogSeuratCommand(object = object)
+}
+
 #' @param image Name of \code{SpatialImage} object to pull image data for; if
 #' \code{NULL}, will attempt to select an image automatically
 #'
@@ -1540,6 +1590,93 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
 }
 
+#' @rdname SpatiallyVariableFeatures
+#' @export
+#' @method SpatiallyVariableFeatures Assay
+#'
+SpatiallyVariableFeatures.Assay <- function(object, selection.method = "markvariogram", decreasing = TRUE, ...) {
+  CheckDots(...)
+  vf <- SVFInfo(object = object, selection.method = selection.method, status = TRUE)
+  vf <- vf[rownames(x = vf)[which(x = vf[, "variable"][, 1])], ]
+  if (!is.null(x = decreasing)) {
+    vf <- vf[order(x = vf[, "rank"], decreasing = !decreasing), ]
+  }
+  return(rownames(x = vf)[which(x = vf[, "variable"][, 1])])
+}
+
+#' @param assay Name of assay to pull spatially variable features for
+#'
+#' @rdname SpatiallyVariableFeatures
+#' @export
+#' @method SpatiallyVariableFeatures Seurat
+#'
+SpatiallyVariableFeatures.Seurat <- function(object, assay = NULL, selection.method = "markvariogram", decreasing = TRUE, ...) {
+  CheckDots(...)
+  assay <- assay %||% DefaultAssay(object = object)
+  return(SpatiallyVariableFeatures(object = object[[assay]], selection.method = selection.method, decreasing = decreasing))
+}
+
+#' @param selection.method Which method to pull. Options: markvariogram
+#' @param status Add variable status to the resulting data.frame
+#'
+#' @rdname SVFInfo
+#' @export
+#' @method SVFInfo Assay
+#'
+SVFInfo.Assay <- function(object, selection.method = "markvariogram", status = FALSE, ...) {
+  CheckDots(...)
+  vars <- switch(
+    EXPR = selection.method,
+    'markvariogram' = grep(pattern = "r.metric", x = colnames(x = object[[]]), value = TRUE),
+    stop("Unknown method: '", selection.method, "'", call. = FALSE)
+  )
+  tryCatch(
+    expr = svf.info <- object[[vars]],
+    error = function(e) {
+      stop(
+        "Unable to find highly variable feature information for method '",
+        selection.method,
+        "'",
+        call. = FALSE
+      )
+    }
+  )
+  colnames(x = svf.info) <- vars
+  if (status) {
+    svf.info$variable <- object[[paste0(selection.method, '.spatially.variable')]]
+    svf.info$rank <- object[[paste0(selection.method, '.spatially.variable.rank')]]
+  }
+  return(svf.info)
+}
+
+#' @param assay Name of assay to pull highly variable feature information for
+#'
+#' @importFrom tools file_path_sans_ext
+#'
+#' @rdname HVFInfo
+#' @export
+#' @method HVFInfo Seurat
+#'
+#' @examples
+#' # Get the HVF info from a specific Assay in a Seurat object
+#' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
+#'
+SVFInfo.Seurat <- function(
+  object,
+  selection.method = "markvariogram",
+  assay = NULL,
+  status = FALSE,
+  ...
+) {
+  CheckDots(...)
+  assay <- assay %||% DefaultAssay(object = object)
+  return(SVFInfo(
+    object = GetAssay(object = object, assay = assay),
+    selection.method = selection.method,
+    status = status
+  ))
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1613,6 +1750,27 @@ subset.SpatialImage <- function(x, cells, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Computes the metric at a given r (radius) value and stores in meta.features
+#
+# @param mv Results of running markvario
+# @param r.metric r value at which to report the "trans" value of the mark
+# variogram
+#
+# @return Returns a data.frame with r.metric values
+#
+#
+ComputeRMetric <- function(mv, r.metric = 5) {
+  r.metric.results <- unlist(x = lapply(
+    X = mv,
+    FUN = function(x) {
+      x$trans[which.min(x = abs(x = x$r - r.metric))]
+    }
+  ))
+  r.metric.results <- as.data.frame(x = r.metric.results)
+  colnames(r.metric.results) <- paste0("r.metric.", r.metric)
+  return(r.metric.results)
+}
 
 # Splits features into groups based on log expression levels
 #

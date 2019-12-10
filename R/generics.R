@@ -328,6 +328,21 @@ FindVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
+#' Find spatially variable features
+#' 
+#' Identify features whose variability in expression can be explained to some
+#' degree by spatial location.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname FindSpatiallyVariableFeatures
+#' @export FindSpatiallyVariableFeatures
+#'
+FindSpatiallyVariableFeatures <- function(object, ...) {
+  UseMethod(generic = 'FindSpatiallyVariableFeatures', object = object)
+}
+
 #' Get an Assay object from a given Seurat object.
 #'
 #' @param object An object
@@ -868,23 +883,6 @@ RunLSI <- function(object, ...) {
   UseMethod(generic = "RunLSI", object = object)
 }
 
-#' Run the mark variogram computation on a given Seurat object
-#'
-#' Wraps the functionality of markvario from the spatstat package.
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @export
-#'
-#' @rdname RunMarkVario
-#' @export RunMarkVario
-#'
-RunMarkVario <- function(object, ...) {
-  UseMethod(generic = 'RunMarkVario', object = object)
-}
-
-
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
@@ -1048,6 +1046,14 @@ SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
+
+#' @rdname SpatiallyVariableFeatures
+#' @export SpatiallyVariableFeatures
+#' 
+SpatiallyVariableFeatures <- function(object, ...){
+  UseMethod(generic = 'SpatiallyVariableFeatures', object = object)
+}
+
 #' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents
@@ -1098,6 +1104,17 @@ SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
 }
 
+#' Get spatially variable feature information
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname SVFInfo
+#' @export SVFInfo
+#'
+SVFInfo <- function(object, ...) {
+  UseMethod(generic = 'SVFInfo', object = object)
+}
 #' Get and set additional tool data
 #'
 #' Use \code{Tool} to get tool data. If no additional arguments are provided,
