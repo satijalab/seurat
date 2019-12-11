@@ -17,7 +17,7 @@ A merged matrix
 Returns a sparse matrix
 }
 \description{
-This function is for use on sparse matrices and 
+This function is for use on sparse matrices and
 should not be run on a Seurat object.
 }
 \details{
