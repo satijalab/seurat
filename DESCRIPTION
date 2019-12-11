@@ -83,6 +83,7 @@ Collate:
     'zzz.R'
 RoxygenNote: 7.0.2
 Encoding: UTF-8
+biocViews:
 Suggests:
     loomR,
     testthat,
