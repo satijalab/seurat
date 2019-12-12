@@ -432,7 +432,7 @@ CellCycleScoring <- function(
   set.ident = FALSE,
   ...
 ) {
-  name <- 'Cell Cycle'
+  name <- 'Cell.Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
   object.cc <- AddModuleScore(
     object = object,
