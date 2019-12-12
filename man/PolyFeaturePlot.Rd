@@ -4,9 +4,17 @@
 \alias{PolyFeaturePlot}
 \title{Polygon FeaturePlot}
 \usage{
-PolyFeaturePlot(object, features, cells = NULL, poly.data = "spatial",
-  ncol = ceiling(x = length(x = features)/2), min.cutoff = 0,
-  max.cutoff = NA, common.scale = TRUE, flip.coords = FALSE)
+PolyFeaturePlot(
+  object,
+  features,
+  cells = NULL,
+  poly.data = "spatial",
+  ncol = ceiling(x = length(x = features)/2),
+  min.cutoff = 0,
+  max.cutoff = NA,
+  common.scale = TRUE,
+  flip.coords = FALSE
+)
 }
 \arguments{
 \item{object}{Seurat object}

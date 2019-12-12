@@ -9,17 +9,34 @@
 \usage{
 NormalizeData(object, ...)
 
-\method{NormalizeData}{default}(object,
-  normalization.method = "LogNormalize", scale.factor = 10000,
-  margin = 1, block.size = NULL, verbose = TRUE, ...)
+\method{NormalizeData}{default}(
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
+  block.size = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{NormalizeData}{Assay}(object,
-  normalization.method = "LogNormalize", scale.factor = 10000,
-  margin = 1, verbose = TRUE, ...)
+\method{NormalizeData}{Assay}(
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
+  verbose = TRUE,
+  ...
+)
 
-\method{NormalizeData}{Seurat}(object, assay = NULL,
-  normalization.method = "LogNormalize", scale.factor = 10000,
-  margin = 1, verbose = TRUE, ...)
+\method{NormalizeData}{Seurat}(
+  object,
+  assay = NULL,
+  normalization.method = "LogNormalize",
+  scale.factor = 10000,
+  margin = 1,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

@@ -4,8 +4,7 @@
 \alias{CellCycleScoring}
 \title{Score cell cycle phases}
 \usage{
-CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE,
-  ...)
+CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE, ...)
 }
 \arguments{
 \item{object}{A Seurat object}

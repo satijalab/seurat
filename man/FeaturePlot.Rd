@@ -5,14 +5,32 @@
 \alias{FeatureHeatmap}
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
-FeaturePlot(object, features, dims = c(1, 2), cells = NULL, cols = if
-  (blend) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
-  c("lightgrey", "blue") }, pt.size = NULL, order = FALSE,
-  min.cutoff = NA, max.cutoff = NA, reduction = NULL,
-  split.by = NULL, shape.by = NULL, slot = "data", blend = FALSE,
-  blend.threshold = 0.5, label = FALSE, label.size = 4,
-  repel = FALSE, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
-  by.col = TRUE, sort.cell = FALSE)
+FeaturePlot(
+  object,
+  features,
+  dims = c(1, 2),
+  cells = NULL,
+  cols = if (blend) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
+    c("lightgrey", "blue") },
+  pt.size = NULL,
+  order = FALSE,
+  min.cutoff = NA,
+  max.cutoff = NA,
+  reduction = NULL,
+  split.by = NULL,
+  shape.by = NULL,
+  slot = "data",
+  blend = FALSE,
+  blend.threshold = 0.5,
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  coord.fixed = FALSE,
+  by.col = TRUE,
+  sort.cell = FALSE
+)
 }
 \arguments{
 \item{object}{Seurat object}

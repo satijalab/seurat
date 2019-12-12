@@ -4,9 +4,16 @@
 \alias{ProjectDim}
 \title{Project Dimensional reduction onto full dataset}
 \usage{
-ProjectDim(object, reduction = "pca", assay = NULL, dims.print = 1:5,
-  nfeatures.print = 20, overwrite = FALSE, do.center = FALSE,
-  verbose = TRUE)
+ProjectDim(
+  object,
+  reduction = "pca",
+  assay = NULL,
+  dims.print = 1:5,
+  nfeatures.print = 20,
+  overwrite = FALSE,
+  do.center = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}

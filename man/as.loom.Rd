@@ -7,10 +7,17 @@
 \usage{
 as.loom(x, ...)
 
-\method{as.loom}{Seurat}(x, assay = NULL, filename = file.path(getwd(),
-  paste0(Project(object = x), ".loom")), max.size = "400mb",
-  chunk.dims = NULL, chunk.size = NULL, overwrite = FALSE,
-  verbose = TRUE, ...)
+\method{as.loom}{Seurat}(
+  x,
+  assay = NULL,
+  filename = file.path(getwd(), paste0(Project(object = x), ".loom")),
+  max.size = "400mb",
+  chunk.dims = NULL,
+  chunk.size = NULL,
+  overwrite = FALSE,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{An object to convert to class \code{loom}}
