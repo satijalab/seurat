@@ -1440,15 +1440,9 @@ FeatureScatter <- function(
     cols = cols,
     pt.size = pt.size,
     smooth = smooth,
-    legend.title = 'Identity'
+    legend.title = 'Identity',
+    span = span
   )
-  if (!is.null(x = span)) {
-    plot <- plot + geom_smooth(
-      mapping = aes_string(x = feature1, y = feature2),
-      method = 'loess',
-      span = span
-    )
-  }
   return(plot)
 }
 
@@ -3612,7 +3606,8 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        log = log
+        log = log,
+        ...
       ))
     }
   )
@@ -4182,12 +4177,19 @@ SingleCorPlot <- function(
   smooth = FALSE,
   rows.highlight = NULL,
   legend.title = NULL,
-  na.value = 'grey50'
+  na.value = 'grey50',
+  span = NULL
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = ':',
     replacement = '.',
     x = colnames(x = data),
     fixed = TRUE
@@ -4279,6 +4281,13 @@ SingleCorPlot <- function(
     }
   }
   plot <- plot + theme_cowplot() + theme(plot.title = element_text(hjust = 0.5))
+  if (!is.null(x = span)) {
+    plot <- plot + geom_smooth(
+      mapping = aes_string(x = names.plot[1], y = names.plot[2]),
+      method = 'loess',
+      span = span
+    )
+  }
   return(plot)
 }
 
@@ -4437,6 +4446,7 @@ SingleDimPlot <- function(
 # @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
 # @param log plot Y axis on log scale
+# @param seed.use Random seed to use. If NULL, don't set a seed
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
@@ -4458,9 +4468,12 @@ SingleExIPlot <- function(
   adjust = 1,
   pt.size = 0,
   cols = NULL,
+  seed.use = 42,
   log = FALSE
 ) {
-  set.seed(seed = 42)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   if (!is.data.frame(x = data) || ncol(x = data) != 1) {
     stop("'SingleExIPlot requires a data frame with 1 column")
   }
@@ -4490,7 +4503,7 @@ SingleExIPlot <- function(
   } else{
     data[, feature] <- data[, feature] + noise
   }
-  axis.label <- ifelse(test = log, yes = 'Log Expression Level', no = 'Expression Level')
+  axis.label <- 'Expression Level'
   y.max <- y.max %||% max(data[, feature])
   if (is.null(x = split) || type != 'violin') {
     vln.geom <- geom_violin

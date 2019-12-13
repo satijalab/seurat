@@ -8,19 +8,44 @@
 \usage{
 FindClusters(object, ...)
 
-\method{FindClusters}{default}(object, modularity.fxn = 1,
-  initial.membership = NULL, weights = NULL, node.sizes = NULL,
-  resolution = 0.8, method = "matrix", algorithm = 1, n.start = 10,
-  n.iter = 10, random.seed = 0, group.singletons = TRUE,
-  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  ...)
+\method{FindClusters}{default}(
+  object,
+  modularity.fxn = 1,
+  initial.membership = NULL,
+  weights = NULL,
+  node.sizes = NULL,
+  resolution = 0.8,
+  method = "matrix",
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  group.singletons = TRUE,
+  temp.file.location = NULL,
+  edge.file.name = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{FindClusters}{Seurat}(object, graph.name = NULL,
-  modularity.fxn = 1, initial.membership = NULL, weights = NULL,
-  node.sizes = NULL, resolution = 0.8, algorithm = 1, n.start = 10,
-  n.iter = 10, random.seed = 0, group.singletons = TRUE,
-  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  ...)
+\method{FindClusters}{Seurat}(
+  object,
+  graph.name = NULL,
+  modularity.fxn = 1,
+  initial.membership = NULL,
+  weights = NULL,
+  node.sizes = NULL,
+  resolution = 0.8,
+  method = "matrix",
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  group.singletons = TRUE,
+  temp.file.location = NULL,
+  edge.file.name = NULL,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

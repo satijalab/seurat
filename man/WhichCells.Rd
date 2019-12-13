@@ -8,12 +8,19 @@
 \usage{
 WhichCells(object, ...)
 
-\method{WhichCells}{Assay}(object, cells = NULL, expression,
-  invert = FALSE, ...)
+\method{WhichCells}{Assay}(object, cells = NULL, expression, invert = FALSE, ...)
 
-\method{WhichCells}{Seurat}(object, cells = NULL, idents = NULL,
-  expression, slot = "data", invert = FALSE, downsample = Inf,
-  seed = 1, ...)
+\method{WhichCells}{Seurat}(
+  object,
+  cells = NULL,
+  idents = NULL,
+  expression,
+  slot = "data",
+  invert = FALSE,
+  downsample = Inf,
+  seed = 1,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
@@ -37,7 +44,7 @@ are present in the feature name}
 downsampling will happen after all other operations, including inverting the
 cell selection}
 
-\item{seed}{Random seed for downsampling}
+\item{seed}{Random seed for downsampling. If NULL, does not set a seed}
 }
 \value{
 A vector of cell names

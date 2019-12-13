@@ -9,30 +9,63 @@
 \usage{
 ScaleData(object, ...)
 
-\method{ScaleData}{default}(object, features = NULL,
-  vars.to.regress = NULL, latent.data = NULL, split.by = NULL,
-  model.use = "linear", use.umi = FALSE, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, verbose = TRUE, ...)
+\method{ScaleData}{default}(
+  object,
+  features = NULL,
+  vars.to.regress = NULL,
+  latent.data = NULL,
+  split.by = NULL,
+  model.use = "linear",
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
+)
 
-\method{ScaleData}{Assay}(object, features = NULL,
-  vars.to.regress = NULL, latent.data = NULL, split.by = NULL,
-  model.use = "linear", use.umi = FALSE, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, verbose = TRUE, ...)
+\method{ScaleData}{Assay}(
+  object,
+  features = NULL,
+  vars.to.regress = NULL,
+  latent.data = NULL,
+  split.by = NULL,
+  model.use = "linear",
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
+)
 
-\method{ScaleData}{Seurat}(object, features = NULL, assay = NULL,
-  vars.to.regress = NULL, split.by = NULL, model.use = "linear",
-  use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
-  scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
-  verbose = TRUE, ...)
+\method{ScaleData}{Seurat}(
+  object,
+  features = NULL,
+  assay = NULL,
+  vars.to.regress = NULL,
+  split.by = NULL,
+  model.use = "linear",
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{features}{Vector of features names to scale/center. Default is all features}
+\item{features}{Vector of features names to scale/center. Default is variable features.}
 
 \item{vars.to.regress}{Variables to regress out (previously latent.vars in
 RegressOut). For example, nUMI, or percent.mito.}

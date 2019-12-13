@@ -314,6 +314,7 @@ ProjectDim <- function(
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
+#' @param seed.use Random seed to set. If NULL, does not set a seed
 #' @param verbose Show progress messages
 #'
 #' @importFrom irlba irlba
@@ -326,10 +327,13 @@ RunCCA.default <- function(
   object2,
   standardize = TRUE,
   num.cc = 20,
+  seed.use = 42,
   verbose = FALSE,
   ...
 ) {
-  set.seed(seed = 42)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   cells1 <- colnames(x = object1)
   cells2 <- colnames(x = object2)
   if (standardize) {
@@ -811,10 +815,10 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
+    total.variance <- sum(RowVar(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)
-      total.variance <- sum(RowVar(x = object))
       feature.loadings <- pca.results$v
       sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
       if (weight.by.var) {
@@ -827,7 +831,6 @@ RunPCA.default <- function(
       pca.results <- prcomp(x = t(object), rank. = npcs, ...)
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
-      total.variance <- sum(sdev)
       if (weight.by.var) {
         cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
       } else {
@@ -858,7 +861,10 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
-#' @param features Features to compute PCA on
+#' @param features Features to compute PCA on. If features=NULL, PCA will be run 
+#' using the variable features for the Assay. Note that the features must be present
+#' in the scaled data. Any requested features that are not scaled or have 0 variance
+#' will be dropped, and the PCA will be run using the remaining features.
 #'
 #' @rdname RunPCA
 #' @export
@@ -943,7 +949,7 @@ RunPCA.Seurat <- function(
 }
 
 #' @param assay Name of assay that that t-SNE is being run on
-#' @param seed.use Random seed for the t-SNE
+#' @param seed.use Random seed for the t-SNE. If NULL, does not set the seed
 #' @param tsne.method Select the method to use to compute the tSNE. Available
 #' methods are:
 #' \itemize{
@@ -976,7 +982,9 @@ RunTSNE.matrix <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  set.seed(seed = seed.use)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   tsne.data <- switch(
     EXPR = tsne.method,
     'Rtsne' = Rtsne(
@@ -1000,7 +1008,8 @@ RunTSNE.matrix <- function(
   tsne.reduction <- CreateDimReducObject(
     embeddings = tsne.data,
     key = reduction.key,
-    assay = assay
+    assay = assay,
+    global = TRUE
   )
   return(tsne.reduction)
 }
@@ -1109,7 +1118,7 @@ RunTSNE.Seurat <- function(
     )
   } else if (!is.null(x = features)) {
     RunTSNE(
-      object = as.matrix(x = GetAssayData(object = object)[features, cells]),
+      object = t(x = as.matrix(x = GetAssayData(object = object)[features, cells])),
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
@@ -1247,7 +1256,8 @@ RunUMAP.default <- function(
   umap.reduction <- CreateDimReducObject(
     embeddings = umap.output,
     key = reduction.key,
-    assay = assay
+    assay = assay,
+    global = TRUE
   )
   return(umap.reduction)
 }
@@ -1331,7 +1341,12 @@ RunUMAP.Graph <- function(
   colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
   # center the embeddings on zero
   embeddings <- scale(x = embeddings, scale = FALSE)
-  umap <- CreateDimReducObject(embeddings = embeddings, key = reduction.key, assay = assay)
+  umap <- CreateDimReducObject(
+    embeddings = embeddings,
+    key = reduction.key,
+    assay = assay,
+    global = TRUE
+  )
   return(umap)
 }
 
@@ -1843,7 +1858,9 @@ JackRandom <- function(
   weight.by.var = weight.by.var,
   maxit = 1000
 ) {
-  set.seed(seed = seed.use)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   rand.genes <- sample(
     x = rownames(x = scaled.data),
     size = nrow(x = scaled.data) * prop.use

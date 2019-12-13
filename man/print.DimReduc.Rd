@@ -5,8 +5,7 @@
 \alias{print}
 \title{Print the results of a dimensional reduction analysis}
 \usage{
-\method{print}{DimReduc}(x, dims = 1:5, nfeatures = 20,
-  projected = FALSE, ...)
+\method{print}{DimReduc}(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...)
 }
 \arguments{
 \item{x}{An object}
