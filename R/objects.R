@@ -7135,13 +7135,12 @@ UpdateKey <- function(key) {
   if (grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
     return(key)
   } else {
-    new.key <-  gsub(
-      pattern = "[[:^alnum:]]",
-      replacement = "",
+    new.key <- regmatches(
       x = key,
-      perl = TRUE
+      m = gregexpr(pattern = '[[:alnum:]]+', text = key)
     )
-    new.key <- paste0(new.key, '_')
+    new.key <- unlist(x = new.key, use.names = FALSE)
+    new.key <- paste0(paste(new.key, collapse = ''), '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }
@@ -7150,7 +7149,7 @@ UpdateKey <- function(key) {
       key,
       " to ",
       new.key,
-       call. = FALSE,
+      call. = FALSE,
       immediate. = TRUE
     )
     return(new.key)
