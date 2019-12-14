@@ -1257,6 +1257,73 @@ Reductions <- function(object, slot = NULL) {
   return(slot(object = object, name = 'reductions')[[slot]])
 }
 
+#' Rename assays in a \code{Seurat} object
+#'
+#' @param object A \code{Seurat} object
+#' @param ... Named arguments as \code{old.assay = new.assay}
+#'
+#' @return \code{object} with assays renamed
+#'
+#' @export
+#' @examples
+#' RenameAssays(object = pbmc_small, RNA = 'rna')
+#'
+RenameAssays <- function(object, ...) {
+  assay.pairs <- tryCatch(
+    expr = as.list(x = ...),
+    error = function(e) {
+      return(list(...))
+    }
+  )
+  old.assays <- names(x = assay.pairs)
+  # Handle missing assays
+  missing.assays <- setdiff(x = old.assays, y = Assays(object = object))
+  if (length(x = missing.assays) == length(x = old.assays)) {
+    stop("None of the assays provided are present in this object", call. = FALSE)
+  } else if (length(x = missing.assays)) {
+    warning(
+      "The following assays could not be found: ",
+      paste(missing.assays, collapse = ', '),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  old.assays <- setdiff(x = old.assays, missing.assays)
+  assay.pairs <- assay.pairs[old.assays]
+  # Check to see that all old assays are named
+  if (is.null(x = names(x = assay.pairs)) || any(sapply(X = old.assays, FUN = nchar) < 1)) {
+    stop("All arguments must be named with the old assay name", call. = FALSE)
+  }
+  # Ensure each old assay is going to one new assay
+  if (!all(sapply(X = assay.pairs, FUN = length) == 1) || length(x = old.assays) != length(x = unique(x = old.assays))) {
+    stop("Can only rename assays to one new name", call. = FALSE)
+  }
+  # Ensure each new assay is coming from one old assay
+  if (length(x = assay.pairs) != length(x = unique(x = assay.pairs))) {
+    stop(
+      "One or more assays are set to be lost due to duplicate new assay names",
+      call. = FALSE
+    )
+  }
+  # Rename assays
+  for (old in names(x = assay.pairs)) {
+    new <- assay.pairs[[old]]
+    # If we aren't actually renaming any
+    if (old == new) {
+      next
+    }
+    old.key <- Key(object = object[[old]])
+    suppressWarnings(expr = object[[new]] <- object[[old]])
+    if (old == DefaultAssay(object = object)) {
+      message("Renaming default assay from ", old, " to ", new)
+      DefaultAssay(object = object) <- new
+    }
+    Key(object = object[[new]]) <- old.key
+    object[[old]] <- NULL
+  }
+  return(object)
+}
+
 #' Set integation data
 #'
 #' @param object Seurat object
@@ -1445,6 +1512,10 @@ UpdateSeuratObject <- function(object) {
       # Update object slots
       message("Updating object slots")
       object <- UpdateSlots(object = object)
+      # Rename assays
+      assays <- make.names(names = Assays(object = object))
+      names(x = assays) <- Assays(object = object)
+      object <- do.call(what = RenameAssays, args = c('object' = object, assays))
       for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
         suppressWarnings(expr = object[[obj]] <- UpdateSlots(object = object[[obj]]))
       }
@@ -6268,6 +6339,22 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Cannot delete the default assay", call. = FALSE)
       }
     }
+    # remove disallowed characters from object name
+    newi <- if (is.null(x = value)) {
+      i
+    } else {
+      make.names(names = i)
+    }
+    if (any(i != newi)) {
+      warning(
+        "Invalid name supplied, making object name syntactically valid. New object name is ",
+         newi,
+        "; see ?make.names for more details on syntax validity",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      i <- newi
+    }
     # Figure out where to store data
     slot.use <- if (inherits(x = value, what = 'Assay')) {
       # Ensure we have the same number of cells
@@ -7048,12 +7135,13 @@ UpdateKey <- function(key) {
   if (grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
     return(key)
   } else {
-    new.key <- regmatches(
+    new.key <-  gsub(
+      pattern = "[[:^alnum:]]",
+      replacement = "",
       x = key,
-      m = gregexpr(pattern = '[[:alnum:]]+', text = key)
+      perl = TRUE
     )
-    new.key <- unlist(x = new.key, use.names = FALSE)
-    new.key <- paste0(paste(new.key, collapse = ''), '_')
+    new.key <- paste0(new.key, '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }
