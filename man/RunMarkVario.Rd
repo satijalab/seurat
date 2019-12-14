@@ -7,7 +7,7 @@
 RunMarkVario(spatial.location, data, ...)
 }
 \arguments{
-\item{spatial.location}{A 2 column matrix giving the spatial locations of 
+\item{spatial.location}{A 2 column matrix giving the spatial locations of
 each of the data points also in data}
 
 \item{data}{Matrix containing the data used as "marks" (e.g. gene expression)}

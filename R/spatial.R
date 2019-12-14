@@ -82,6 +82,21 @@ SpatialImage <- setClass(
   )
 )
 
+#' The SlideSeq class
+#'
+#' THe SlideSeq class represents spatial information from the Slide-seq platform
+#'
+#' @slot coordinates ...
+#' @slot ...
+#'
+SlideSeq <- setClass(
+  Class = 'SlideSeq',
+  contains = 'SpatialImage',
+  slots = list(
+    'coordinates' = 'data.frame'
+  )
+)
+
 #' The VisiumV1 class
 #'
 #' The VisiumV1 class represents spatial information from the 10X Genomics Visium
@@ -217,6 +232,56 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
     coordinates = tissue.positions,
     spot.radius = spot.radius
   ))
+}
+
+#' Load a Slide-seq image
+#'
+#' @param puck.path Path to puck directory
+#' @param assay Name of assay to associate image to
+#'
+#' @return A \code{\link{SlideSeq}} object
+#'
+#' @importFrom utils read.csv
+#'
+#' @seealso \code{\link{SlideSeq}}
+#'
+#' @export
+#'
+ReadSlideSeq <- function(puck.path, assay = 'Spatial') {
+  if (!dir.exists(paths = puck.path)) {
+    stop("Cannot find puck path ", puck.path, call. = FALSE)
+  }
+  puck.files <- list.files(
+    path = puck.path,
+    full.names = TRUE,
+    recursive = FALSE
+  )
+  # files.required <- c('BeadImage.tif', 'BeadLocationsForR.csv')
+  files.required <- c('BeadLocationsForR.c')
+  files.found <- vapply(
+    X = files.required,
+    FUN = function(x) {
+      files.match <- grep(pattern = x, x = basename(path = puck.files))
+      if (length(x = files.match) < 1) {
+        stop("Could not find required file ", x, call. = FALSE)
+      }
+      return(puck.files[files.match[1]])
+    },
+    FUN.VALUE = character(length = 1L)
+  )
+  slide.seq <- new(
+    Class = 'SlideSeq',
+    assay = assay,
+    # image = tiff::readTIFF(source = files.found[1]),
+    coordinates = read.csv(
+      # file = files.found[2],
+      file = files.found,
+      header = TRUE,
+      as.is = TRUE,
+      row.names = 1
+    )
+  )
+  return(slide.seq)
 }
 
 #' Link two ggplot plots together
@@ -661,18 +726,18 @@ geom_spatial <-  function(
 #'
 #' Wraps the functionality of markvario from the spatstat package.
 #'
-#' @param spatial.location A 2 column matrix giving the spatial locations of 
+#' @param spatial.location A 2 column matrix giving the spatial locations of
 #' each of the data points also in data
 #' @param data Matrix containing the data used as "marks" (e.g. gene expression)
 #' @param ... Arguments passed to markvario
-#' 
+#'
 #' @importFrom spatstat markvario ppp
 #'
 #' @export
 #'
 RunMarkVario <- function(
-  spatial.location, 
-  data, 
+  spatial.location,
+  data,
   ...
 ) {
   pp <- ppp(
@@ -685,7 +750,7 @@ RunMarkVario <- function(
     chunks <- nbrOfWorkers()
     features <- rownames(x = data)
     features <- split(
-      x = features, 
+      x = features,
       f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
     )
     mv <- future_lapply(X = features, FUN = function(x) {
@@ -1218,12 +1283,11 @@ SpatialFeaturePlot <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @rdname Cells
-#' @method Cells VisiumV1
+#' @method Cells SlideSeq
 #' @export
 #'
-Cells.VisiumV1 <- function(x) {
-  return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
+Cells.SlideSeq <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
 #' @param x,object An inheriting from \code{SpatialImage}
@@ -1239,6 +1303,14 @@ Cells.SpatialImage <- function(x) {
     "'Cells' must be overridden for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
+}
+
+#' @rdname Cells
+#' @method Cells VisiumV1
+#' @export
+#'
+Cells.VisiumV1 <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
 #' @rdname DefaultAssay
@@ -1262,7 +1334,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
+#' @export
 #'
 #'
 FindSpatiallyVariableFeatures.default <- function(
@@ -1286,11 +1358,11 @@ FindSpatiallyVariableFeatures.default <- function(
 }
 
 #' @param spatial.location
-#'  
+#'
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
-#' 
+#' @export
+#'
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
   slot = "scale.data",
@@ -1335,22 +1407,22 @@ FindSpatiallyVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @param object A Seurat object 
+#' @param object A Seurat object
 #' @param assay Assay to pull the features (marks) from
 #' @param slot Slot in the Assay to pull data from
-#' @param features If provided, only compute on given features. Otherwise, 
+#' @param features If provided, only compute on given features. Otherwise,
 #' compute for all features.
 #' @param image Name of image to pull the coordinates from
 #' @param selection.method Method for selecting spatially variable features.
-#' Only 'markvariogram' method is currently implemented. See 
-#' \code{\link{RunMarkVario}} for method. 
+#' Only 'markvariogram' method is currently implemented. See
+#' \code{\link{RunMarkVario}} for method.
 #' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
-#' 
+#'
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
-#' 
+#' @export
+#'
 FindSpatiallyVariableFeatures.Seurat <- function(
   object,
   assay = NULL,
@@ -1407,11 +1479,10 @@ GetImage.Seurat <- function(
 #' @importFrom grDevices as.raster
 #' @importFrom grid rasterGrob unit
 #'
-#' @rdname GetImage
-#' @method GetImage VisiumV1
+#' @method GetImage SlideSeq
 #' @export
 #'
-GetImage.VisiumV1 <- function(
+GetImage.SlideSeq <- function(
   object,
   mode = c('grob', 'raster', 'plotly', 'raw'),
   ...
@@ -1422,22 +1493,11 @@ GetImage.VisiumV1 <- function(
     EXPR = mode,
     'grob' = rasterGrob(
       image = image,
-      width = unit(x = 1, units = 'npc'),
-      height = unit(x = 1, units = 'npc')
+      x = unit(x = 1, units = 'npc'),
+      y = unit(x = 1, units = 'npc')
     ),
     'raster' = as.raster(x = image),
-    'plotly' = list(
-      source = raster2uri(r = GetImage(object = object, mode = 'raster')),
-      xref = 'x',
-      yref = 'y',
-        # x = -7,
-        # y = -7,
-      sizex = ncol(x = object),
-      sizey = nrow(x = object),
-      sizing = 'stretch',
-      opacity = 1,
-      layer = 'below'
-    ),
+    'plotly' = list('visible' = FALSE),
     'raw' = image,
     stop("Unknown image mode: ", mode, call. = FALSE)
   )
@@ -1464,6 +1524,47 @@ GetImage.SpatialImage <- function(
   )
 }
 
+#' @importFrom plotly raster2uri
+#' @importFrom grDevices as.raster
+#' @importFrom grid rasterGrob unit
+#'
+#' @rdname GetImage
+#' @method GetImage VisiumV1
+#' @export
+#'
+GetImage.VisiumV1 <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  image <- slot(object = object, name = 'image')
+  image <- switch(
+    EXPR = mode,
+    'grob' = rasterGrob(
+      image = image,
+      width = unit(x = 1, units = 'npc'),
+      height = unit(x = 1, units = 'npc')
+    ),
+    'raster' = as.raster(x = image),
+    'plotly' = list(
+      source = raster2uri(r = GetImage(object = object, mode = 'raster')),
+      xref = 'x',
+      yref = 'y',
+      # x = -7,
+      # y = -7,
+      sizex = ncol(x = object),
+      sizey = nrow(x = object),
+      sizing = 'stretch',
+      opacity = 1,
+      layer = 'below'
+    ),
+    'raw' = image,
+    stop("Unknown image mode: ", mode, call. = FALSE)
+  )
+  return(image)
+}
+
 #' @param image Name of \code{SpatialImage} object to get coordinates for; if
 #' \code{NULL}, will attempt to select an image automatically
 #'
@@ -1477,6 +1578,33 @@ GetTissueCoordinates.Seurat <- function(object, image = NULL, ...) {
     stop("No images present in this Seurat object", call. = FALSE)
   }
   return(GetTissueCoordinates(object = object[[image]], ...))
+}
+
+#' @method GetTissueCoordinates SlideSeq
+#' @export
+#'
+GetTissueCoordinates.SlideSeq <- function(object, ...) {
+  coords <- slot(object = object, name = 'coordinates')
+  colnames(x = coords) <- c('x', 'y')
+  # coords$y <- -rev(x = coords$y) + 1
+  coords$y <- FlipCoords(x = coords$y)
+  coords$cells <- rownames(x = coords)
+  return(coords)
+}
+
+#' @inheritParams GetTissueCoordinates
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method GetTissueCoordinates SpatialImage
+#' @export
+#'
+GetTissueCoordinates.SpatialImage <- function(object, ...) {
+  stop(
+    "'GetTissueCoordinates' must be overridden for all sublcasses of 'SpatialImage'",
+    call. = FALSE
+  )
 }
 
 #' @param scale A factor to scale the coordinates by; choose from: 'tissue',
@@ -1503,21 +1631,6 @@ GetTissueCoordinates.VisiumV1 <- function(
     coordinates <- slot(object = object, name = 'coordinates')[, cols]
   }
   return(coordinates)
-}
-
-#' @inheritParams GetTissueCoordinates
-#'
-#' @rdname SpatialImage-class
-#' @name SpatialImage-class
-#'
-#' @method GetTissueCoordinates SpatialImage
-#' @export
-#'
-GetTissueCoordinates.SpatialImage <- function(object, ...) {
-  stop(
-    "'GetTissueCoordinates' must be overridden for all sublcasses of 'SpatialImage'",
-    call. = FALSE
-  )
 }
 
 #' @rdname IsGlobal
@@ -1550,21 +1663,11 @@ Key.SpatialImage <- function(object, ...) {
   return(object)
 }
 
-#' @rdname RenameCells
-#' @method RenameCells VisiumV1
+#' @method RenameCells SlideSeq
 #' @export
 #'
-RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
-  if (is.null(x = new.names)) {
-    return(object)
-  } else if (length(x = new.names) != length(x = Cells(x = object))) {
-    stop("Wrong number of cell/spot names", call. = FALSE)
-  }
-  names(x = new.names) <- Cells(x = object)
-  coordinates <- GetTissueCoordinates(object = object, scale = NULL, cols = NULL)
-  rownames(x = coordinates) <- new.names[rownames(x = coordinates)]
-  slot(object = object, name = 'coordinates') <- coordinates
-  return(object)
+RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
+  .NotYetImplemented()
 }
 
 #' @inheritParams  RenameCells
@@ -1582,6 +1685,23 @@ RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
   )
 }
 
+#' @rdname RenameCells
+#' @method RenameCells VisiumV1
+#' @export
+#'
+RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
+  if (is.null(x = new.names)) {
+    return(object)
+  } else if (length(x = new.names) != length(x = Cells(x = object))) {
+    stop("Wrong number of cell/spot names", call. = FALSE)
+  }
+  names(x = new.names) <- Cells(x = object)
+  coordinates <- GetTissueCoordinates(object = object, scale = NULL, cols = NULL)
+  rownames(x = coordinates) <- new.names[rownames(x = coordinates)]
+  slot(object = object, name = 'coordinates') <- coordinates
+  return(object)
+}
+
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
@@ -1594,7 +1714,12 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #' @export
 #' @method SpatiallyVariableFeatures Assay
 #'
-SpatiallyVariableFeatures.Assay <- function(object, selection.method = "markvariogram", decreasing = TRUE, ...) {
+SpatiallyVariableFeatures.Assay <- function(
+  object,
+  selection.method = "markvariogram",
+  decreasing = TRUE,
+  ...
+) {
   CheckDots(...)
   vf <- SVFInfo(object = object, selection.method = selection.method, status = TRUE)
   vf <- vf[rownames(x = vf)[which(x = vf[, "variable"][, 1])], ]
@@ -1610,7 +1735,13 @@ SpatiallyVariableFeatures.Assay <- function(object, selection.method = "markvari
 #' @export
 #' @method SpatiallyVariableFeatures Seurat
 #'
-SpatiallyVariableFeatures.Seurat <- function(object, assay = NULL, selection.method = "markvariogram", decreasing = TRUE, ...) {
+SpatiallyVariableFeatures.Seurat <- function(
+  object,
+  assay = NULL,
+  selection.method = "markvariogram",
+  decreasing = TRUE,
+  ...
+) {
   CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   return(SpatiallyVariableFeatures(object = object[[assay]], selection.method = selection.method, decreasing = decreasing))
@@ -1681,11 +1812,11 @@ SVFInfo.Seurat <- function(
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @method [ VisiumV1
+#' @method [ SlideSeq
 #' @export
 #'
-"[.VisiumV1" <- function(x, i, ...) {
-  return(subset(x = x, cells = i))
+"[.SlideSeq" <- function(x, i, ...) {
+  return(subset(x = x, cells = i, ...))
 }
 
 #' @param i,cells A vector of cells to keep
@@ -1703,11 +1834,18 @@ SVFInfo.Seurat <- function(
   )
 }
 
-#' @method dim VisiumV1
+#' @method [ VisiumV1
 #' @export
 #'
-dim.VisiumV1 <- function(x) {
-  return(dim(x = GetImage(object = x)$raster))
+"[.VisiumV1" <- function(x, i, ...) {
+  return(subset(x = x, cells = i))
+}
+
+#' @method dim SlideSeq
+#' @export
+#'
+dim.SlideSeq <- function(x) {
+  return(dim(x = GetImage(object = x, mode = 'raw')))
 }
 
 #' @rdname SpatialImage-class
@@ -1723,14 +1861,18 @@ dim.SpatialImage <- function(x) {
   )
 }
 
-#' @method subset VisiumV1
+#' @method dim VisiumV1
 #' @export
 #'
-subset.VisiumV1 <- function(x, cells, ...) {
-  coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
-  coordinates <- coordinates[cells, ]
-  slot(object = x, name = 'coordinates') <- coordinates
-  return(x)
+dim.VisiumV1 <- function(x) {
+  return(dim(x = GetImage(object = x)$raster))
+}
+
+#' @method subset SlideSeq
+#' @export
+#'
+subset.SlideSeq <- function(x, cells, ...) {
+  .NotYetImplemented()
 }
 
 #' @rdname SpatialImage-class
@@ -1741,6 +1883,16 @@ subset.VisiumV1 <- function(x, cells, ...) {
 #'
 subset.SpatialImage <- function(x, cells, ...) {
   stop("'subset' must be overwritten for all subclasses of 'SpatialImage'")
+}
+
+#' @method subset VisiumV1
+#' @export
+#'
+subset.VisiumV1 <- function(x, cells, ...) {
+  coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
+  coordinates <- coordinates[cells, ]
+  slot(object = x, name = 'coordinates') <- coordinates
+  return(x)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -49,7 +49,7 @@ FindSpatiallyVariableFeatures(object, ...)
 \item{spatial.location}{}
 
 \item{selection.method}{Method for selecting spatially variable features.
-Only 'markvariogram' method is currently implemented. See 
+Only 'markvariogram' method is currently implemented. See
 \code{\link{RunMarkVario}} for method.}
 
 \item{r.metric}{r value at which to report the "trans" value of the mark
@@ -57,7 +57,7 @@ variogram}
 
 \item{slot}{Slot in the Assay to pull data from}
 
-\item{features}{If provided, only compute on given features. Otherwise, 
+\item{features}{If provided, only compute on given features. Otherwise,
 compute for all features.}
 
 \item{assay}{Assay to pull the features (marks) from}
