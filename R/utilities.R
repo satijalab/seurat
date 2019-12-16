@@ -236,6 +236,7 @@ AddModuleScore <- function(
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #'
+#' @importFrom Matrix rowMeans
 #' @export
 #'
 #' @examples
@@ -268,9 +269,9 @@ AverageExpression <- function(
   fxn.average <- switch(
     EXPR = slot,
     'data' = function(x) {
-      return(mean(x = expm1(x = x)))
+      rowMeans(x = expm1(x = x))
     },
-    mean
+    rowMeans
   )
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
@@ -305,7 +306,7 @@ AverageExpression <- function(
     if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
       features.assay <- rownames(x = data.use)
     }
-    data.all <- data.frame(row.names = features.assay)
+    data.all <- list(data.frame(row.names = features.assay))
     for (j in levels(x = Idents(object))) {
       temp.cells <- WhichCells(object = object, idents = j)
       features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
@@ -318,14 +319,9 @@ AverageExpression <- function(
         }
       }
       if (length(x = temp.cells) > 1 ) {
-        data.temp <- apply(
-          X = data.use[features.assay, temp.cells, drop = FALSE],
-          MARGIN = 1,
-          FUN = fxn.average
-        )
+        data.temp <- fxn.average(data.use[features.assay, temp.cells, drop = FALSE])
       }
-      data.all <- cbind(data.all, data.temp)
-      colnames(x = data.all)[ncol(x = data.all)] <- j
+      data.all[[j]] <- data.temp
       if (verbose) {
         message(paste("Finished averaging", assays[i], "for cluster", j))
       }
@@ -334,7 +330,7 @@ AverageExpression <- function(
       }
     }
     names(x = ident.new) <- levels(x = Idents(object))
-    data.return[[i]] <- data.all
+    data.return[[i]] <- do.call(cbind, data.all)
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
