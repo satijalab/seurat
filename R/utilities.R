@@ -236,6 +236,7 @@ AddModuleScore <- function(
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #'
+#' @importFrom Matrix rowMeans
 #' @export
 #'
 #' @examples

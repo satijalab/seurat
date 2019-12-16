@@ -437,7 +437,7 @@ FindConservedMarkers <- function(
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #'
-#' @importFrom Matrix rowSums
+#' @importFrom Matrix rowSums rowMeans
 #' @importFrom stats p.adjust
 #'
 #' @rdname FindMarkers
