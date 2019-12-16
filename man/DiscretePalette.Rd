@@ -9,9 +9,12 @@ DiscretePalette(n, palette = NULL)
 \arguments{
 \item{n}{Number of colours to be generated.}
 
-\item{palette}{Options are 
+\item{palette}{Options are
 "alphabet", "alphabet2", "glasbey", "polychrome", and "stepped".
 Can be omitted and the function will use the one based on the requested n.}
+}
+\value{
+A vector of colors
 }
 \description{
 These are included here because pals depends on a number of compiled
