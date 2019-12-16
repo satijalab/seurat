@@ -136,7 +136,7 @@ FindAllMarkers <- function(
         return(cond$message)
       }
     )
-    if (class(x = genes.de[[i]]) == "character") {
+    if (is.character(x = genes.de[[i]])) {
       messages[[i]] <- genes.de[[i]]
       genes.de[[i]] <- NULL
     }
@@ -233,7 +233,7 @@ FindConservedMarkers <- function(
   verbose = TRUE,
   ...
 ) {
-  if (class(x = meta.method) != "function") {
+  if (!is.function(x = meta.method)) {
     stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detailed description of the available functions.")
   }
   object.var <- FetchData(object = object, vars = grouping.var)
@@ -1412,7 +1412,7 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
     ),
     silent = TRUE
   )
-  if (class(x = fit2)[1] == 'numeric' | class(x = fit4)[1] == 'numeric') {
+  if (is.numeric(x = fit2) || is.numeric(x = fit4)) {
     message('One of the glm.nb calls failed')
     return(c(rep(x = NA, 5), freqs))
   }
