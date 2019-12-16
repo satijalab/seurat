@@ -4,8 +4,13 @@
 \alias{PCASigGenes}
 \title{Significant genes from a PCA}
 \usage{
-PCASigGenes(object, pcs.use, pval.cut = 0.1, use.full = FALSE,
-  max.per.pc = NULL)
+PCASigGenes(
+  object,
+  pcs.use,
+  pval.cut = 0.1,
+  use.full = FALSE,
+  max.per.pc = NULL
+)
 }
 \arguments{
 \item{object}{Seurat object}

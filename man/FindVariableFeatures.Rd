@@ -10,24 +10,51 @@
 \usage{
 FindVariableFeatures(object, ...)
 
-\method{FindVariableFeatures}{default}(object, selection.method = "vst",
-  loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
-  dispersion.function = FastLogVMR, num.bin = 20,
-  binning.method = "equal_width", verbose = TRUE, ...)
+\method{FindVariableFeatures}{default}(
+  object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = "auto",
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  verbose = TRUE,
+  ...
+)
 
-\method{FindVariableFeatures}{Assay}(object, selection.method = "vst",
-  loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
-  dispersion.function = FastLogVMR, num.bin = 20,
-  binning.method = "equal_width", nfeatures = 2000,
-  mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE, ...)
+\method{FindVariableFeatures}{Assay}(
+  object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = "auto",
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  nfeatures = 2000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  verbose = TRUE,
+  ...
+)
 
-\method{FindVariableFeatures}{Seurat}(object, assay = NULL,
-  selection.method = "vst", loess.span = 0.3, clip.max = "auto",
-  mean.function = FastExpMean, dispersion.function = FastLogVMR,
-  num.bin = 20, binning.method = "equal_width", nfeatures = 2000,
-  mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE, ...)
+\method{FindVariableFeatures}{Seurat}(
+  object,
+  assay = NULL,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = "auto",
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  nfeatures = 2000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

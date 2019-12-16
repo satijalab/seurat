@@ -8,12 +8,28 @@
 \alias{UMAPPlot}
 \title{Dimensional reduction plot}
 \usage{
-DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = NULL, reduction = NULL, group.by = NULL,
-  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
-  label.size = 4, repel = FALSE, cells.highlight = NULL,
-  cols.highlight = "#DE2D26", sizes.highlight = 1,
-  na.value = "grey50", combine = TRUE, ncol = NULL, ...)
+DimPlot(
+  object,
+  dims = c(1, 2),
+  cells = NULL,
+  cols = NULL,
+  pt.size = NULL,
+  reduction = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  shape.by = NULL,
+  order = NULL,
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  cells.highlight = NULL,
+  cols.highlight = "#DE2D26",
+  sizes.highlight = 1,
+  na.value = "grey50",
+  combine = TRUE,
+  ncol = NULL,
+  ...
+)
 
 PCAPlot(object, ...)
 

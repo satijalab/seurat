@@ -12,14 +12,19 @@ ReadH5AD(file, ...)
 
 WriteH5AD(object, ...)
 
-\method{ReadH5AD}{character}(file, assay = "RNA", layers = "data",
-  verbose = TRUE, ...)
+\method{ReadH5AD}{character}(file, assay = "RNA", layers = "data", verbose = TRUE, ...)
 
-\method{ReadH5AD}{H5File}(file, assay = "RNA", layers = "data",
-  verbose = TRUE, ...)
+\method{ReadH5AD}{H5File}(file, assay = "RNA", layers = "data", verbose = TRUE, ...)
 
-\method{WriteH5AD}{Seurat}(object, file, assay = NULL, graph = NULL,
-  verbose = TRUE, overwrite = FALSE, ...)
+\method{WriteH5AD}{Seurat}(
+  object,
+  file,
+  assay = NULL,
+  graph = NULL,
+  verbose = TRUE,
+  overwrite = FALSE,
+  ...
+)
 }
 \arguments{
 \item{file}{Name of h5ad file, or an H5File object for reading in}

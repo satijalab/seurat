@@ -4,8 +4,16 @@
 \alias{MixingMetric}
 \title{Calculates a mixing metric}
 \usage{
-MixingMetric(object, grouping.var, reduction = "pca", dims = 1:2,
-  k = 5, max.k = 300, eps = 0, verbose = TRUE)
+MixingMetric(
+  object,
+  grouping.var,
+  reduction = "pca",
+  dims = 1:2,
+  k = 5,
+  max.k = 300,
+  eps = 0,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}

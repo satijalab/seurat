@@ -4,8 +4,14 @@
 \alias{TopFeatures}
 \title{Find features with highest scores for a given dimensional reduction technique}
 \usage{
-TopFeatures(object, dim = 1, nfeatures = 20, projected = FALSE,
-  balanced = FALSE, ...)
+TopFeatures(
+  object,
+  dim = 1,
+  nfeatures = 20,
+  projected = FALSE,
+  balanced = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{DimReduc object}

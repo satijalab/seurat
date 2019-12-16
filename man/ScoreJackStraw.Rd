@@ -9,14 +9,18 @@
 \usage{
 ScoreJackStraw(object, ...)
 
-\method{ScoreJackStraw}{JackStrawData}(object, dims = 1:5,
-  score.thresh = 1e-05, ...)
+\method{ScoreJackStraw}{JackStrawData}(object, dims = 1:5, score.thresh = 1e-05, ...)
 
-\method{ScoreJackStraw}{DimReduc}(object, dims = 1:5,
-  score.thresh = 1e-05, ...)
+\method{ScoreJackStraw}{DimReduc}(object, dims = 1:5, score.thresh = 1e-05, ...)
 
-\method{ScoreJackStraw}{Seurat}(object, reduction = "pca", dims = 1:5,
-  score.thresh = 1e-05, do.plot = FALSE, ...)
+\method{ScoreJackStraw}{Seurat}(
+  object,
+  reduction = "pca",
+  dims = 1:5,
+  score.thresh = 1e-05,
+  do.plot = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

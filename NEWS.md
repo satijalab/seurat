@@ -3,6 +3,17 @@ All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 
+## [3.1.2] - 2019-12-11
+### Added
+- New silent slot updater
+- New random seed options to `RunCCA`, `RunTSNE`, `WhichCells`, `HTODemux`, `AddModuleScore`, `VlnPlot`, and `RidgePlot`
+- Enhancements for dealing with `Assay`-derived objects
+
+### Changed
+- Only run `CalcN` (generates nFeatures and nCounts) when `counts` changes
+- Fix issue regarding colons in feature names
+- Change object class testing to use `inherits` or `is.*` for R 4.0 compatability
+
 ## [3.1.1] - 2019-09-20
 ### Added
 - New `RegroupIdents` function to reassign idents based on metadata column majority
