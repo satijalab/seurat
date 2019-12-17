@@ -2276,6 +2276,51 @@ BlueAndRed <- function(k = 50) {
   return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
 }
 
+#' Cell selector
+#'
+#' Select points on a scatterplot and get information about them
+#'
+#' @param plot A ggplot2 plot
+#' @param object An optional Seurat object; if passes, will return an object with
+#' the identities of selected cells set to \code{ident}
+#' @param ident An optional new identity class to assign the selected cells
+#' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
+#' recoloring based on selected cells, or using a smooth scatterplot, respectively
+#'
+#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
+#' a Seurat object with the selected cells identity classes set to \code{ident}
+#'
+#' @importFrom ggplot2 ggplot_build
+#' @export
+#'
+# @aliases FeatureLocator
+#' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
+#' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+#'
+#' @examples
+#' \dontrun{
+#' plot <- DimPlot(object = pbmc_small)
+#' # Follow instructions in the terminal to select points
+#' cells.located <- CellSelector(plot = plot)
+#' cells.located
+#' # Automatically set the identity class of selected cells and return a new Seurat object
+#' pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCells')
+#' }
+#'
+CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
+  located <- PointLocator(plot = plot, ...)
+  data <- ggplot_build(plot = plot)$plot$data
+  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
+  if (inherits(x = object, what = 'Seurat')) {
+    if (!all(selected %in% Cells(x = object))) {
+      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+    }
+    Idents(object = object, cells = selected) <- ident
+    return(object)
+  }
+  return(selected)
+}
+
 #' Move outliers towards center on dimension reduction plot
 #'
 #' @param object Seurat object
@@ -2468,49 +2513,84 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#' Cell selector
+#' Discrete colour palettes from the pals package
 #'
-#' Select points on a scatterplot and get information about them
+#' These are included here because pals depends on a number of compiled
+#' packages, and this can lead to increases in run time for Travis,
+#' and generally should be avoided when possible.
 #'
-#' @param plot A ggplot2 plot
-#' @param object An optional Seurat object; if passes, will return an object with
-#' the identities of selected cells set to \code{ident}
-#' @param ident An optional new identity class to assign the selected cells
-#' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
-#' recoloring based on selected cells, or using a smooth scatterplot, respectively
+#' These palettes are a much better default for data with many classes
+#' than the default ggplot2 palette.
 #'
-#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
-#' a Seurat object with the selected cells identity classes set to \code{ident}
+#' Many thanks to Kevin Wright for writing the pals package.
 #'
-#' @importFrom ggplot2 ggplot_build
+#' @param n Number of colours to be generated.
+#' @param palette Options are
+#' "alphabet", "alphabet2", "glasbey", "polychrome", and "stepped".
+#' Can be omitted and the function will use the one based on the requested n.
+#'
+#' @return A vector of colors
+#'
+#' @details
+#' Taken from the pals package (Licence: GPL-3).
+#' \url{https://cran.r-project.org/web/packages/pals/index.html}
+#' Credit: Kevin Wright
+#'
 #' @export
 #'
-# @aliases FeatureLocator
-#' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
-#' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
-#'
-#' @examples
-#' \dontrun{
-#' plot <- DimPlot(object = pbmc_small)
-#' # Follow instructions in the terminal to select points
-#' cells.located <- CellSelector(plot = plot)
-#' cells.located
-#' # Automatically set the identity class of selected cells and return a new Seurat object
-#' pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCells')
-#' }
-#'
-CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
-  located <- PointLocator(plot = plot, ...)
-  data <- ggplot_build(plot = plot)$plot$data
-  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
-  if (inherits(x = object, what = 'Seurat')) {
-    if (!all(selected %in% Cells(x = object))) {
-      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+DiscretePalette <- function(n, palette = NULL) {
+  palettes <- list(
+    alphabet = c(
+      "#F0A0FF", "#0075DC", "#993F00", "#4C005C", "#191919", "#005C31",
+      "#2BCE48", "#FFCC99", "#808080", "#94FFB5", "#8F7C00", "#9DCC00",
+      "#C20088", "#003380", "#FFA405", "#FFA8BB", "#426600", "#FF0010",
+      "#5EF1F2", "#00998F", "#E0FF66", "#740AFF", "#990000", "#FFFF80",
+      "#FFE100", "#FF5005"
+    ),
+    alphabet2 = c(
+      "#AA0DFE", "#3283FE", "#85660D", "#782AB6", "#565656", "#1C8356",
+      "#16FF32", "#F7E1A0", "#E2E2E2", "#1CBE4F", "#C4451C", "#DEA0FD",
+      "#FE00FA", "#325A9B", "#FEAF16", "#F8A19F", "#90AD1C", "#F6222E",
+      "#1CFFCE", "#2ED9FF", "#B10DA1", "#C075A6", "#FC1CBF", "#B00068",
+      "#FBE426", "#FA0087"
+    ),
+    glasbey = c(
+      "#0000FF", "#FF0000", "#00FF00", "#000033", "#FF00B6", "#005300",
+      "#FFD300", "#009FFF", "#9A4D42", "#00FFBE", "#783FC1", "#1F9698",
+      "#FFACFD", "#B1CC71", "#F1085C", "#FE8F42", "#DD00FF", "#201A01",
+      "#720055", "#766C95", "#02AD24", "#C8FF00", "#886C00", "#FFB79F",
+      "#858567", "#A10300", "#14F9FF", "#00479E", "#DC5E93", "#93D4FF",
+      "#004CFF", "#F2F318"
+    ),
+    polychrome = c(
+      "#5A5156", "#E4E1E3", "#F6222E", "#FE00FA", "#16FF32", "#3283FE",
+      "#FEAF16", "#B00068", "#1CFFCE", "#90AD1C", "#2ED9FF", "#DEA0FD",
+      "#AA0DFE", "#F8A19F", "#325A9B", "#C4451C", "#1C8356", "#85660D",
+      "#B10DA1", "#FBE426", "#1CBE4F", "#FA0087", "#FC1CBF", "#F7E1A0",
+      "#C075A6", "#782AB6", "#AAF400", "#BDCDFF", "#822E1C", "#B5EFB5",
+      "#7ED7D1", "#1C7F93", "#D85FF7", "#683B79", "#66B0FF", "#3B00FB"
+    ),
+    stepped = c(
+      "#990F26", "#B33E52", "#CC7A88", "#E6B8BF", "#99600F", "#B3823E",
+      "#CCAA7A", "#E6D2B8", "#54990F", "#78B33E", "#A3CC7A", "#CFE6B8",
+      "#0F8299", "#3E9FB3", "#7ABECC", "#B8DEE6", "#3D0F99", "#653EB3",
+      "#967ACC", "#C7B8E6", "#333333", "#666666", "#999999", "#CCCCCC"
+    )
+  )
+  if (is.null(x = palette)) {
+    if (n <= 26) {
+      palette <- "alphabet"
+    } else if (n <= 32) {
+      palette <- "glasbey"
+    } else {
+      palette <- "polychrome"
     }
-    Idents(object = object, cells = selected) <- ident
-    return(object)
   }
-  return(selected)
+  palette.vec <- palettes[[palette]]
+  if (n > length(x = palette.vec)) {
+    warning("Not enough colours in specified palette")
+  }
+  palette.vec[seq_len(length.out = n)]
 }
 
 #' @rdname CellSelector
@@ -3691,7 +3771,6 @@ GeomSplitViolin <- ggproto(
   #   return(data)
   # },
   draw_group = function(self, data, ..., draw_quantiles = NULL) {
-    # browser()
     data$xminv <- data$x - data$violinwidth * (data$x - data$xmin)
     data$xmaxv <- data$x + data$violinwidth * (data$xmax - data$x)
     grp <- data[1, 'group']
@@ -4258,7 +4337,7 @@ SingleCorPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
-#' scale_color_brewer scale_color_manual element_rect guide_legend
+#'  scale_color_brewer scale_color_manual element_rect guide_legend discrete_scale
 #'
 SingleDimPlot <- function(
   data,
@@ -4360,12 +4439,25 @@ SingleDimPlot <- function(
     )
   }
   if (!is.null(x = cols)) {
-    plot <- plot + if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
-      scale_color_brewer(palette = cols, na.value = na.value)
+    if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
+      scale <- scale_color_brewer(palette = cols, na.value = na.value)
+    } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
+      colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+      scale <- scale_color_manual(values = colors, na.value = na.value)
     } else {
-      scale_color_manual(values = cols, na.value = na.value)
+      scale <- scale_color_manual(values = cols, na.value = na.value)
     }
+  } else {
+    if (length(unique(data[[col.by]])) > 36) {
+      pal.fun <- hue_pal
+    } else {
+      pal.fun <- DiscretePalette
+    }
+    scale <- discrete_scale("color", col.by, pal.fun, na.value = na.value)
+
   }
+  plot <- plot + scale
+
   plot <- plot + theme_cowplot()
   return(plot)
 }
