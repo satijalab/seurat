@@ -6,7 +6,7 @@
 \alias{SlideSeq}
 \title{The SlideSeq class}
 \description{
-THe SlideSeq class represents spatial information from the Slide-seq platform
+The SlideSeq class represents spatial information from the Slide-seq platform
 }
 \section{Slots}{
 

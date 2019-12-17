@@ -49,6 +49,8 @@ setOldClass(Classes = c('scalefactors'))
 #'   \item \code{\link{DefaultAssay}} and \code{\link{DefaultAssay<-}}
 #'   \item \code{\link{Key}} and \code{\link{Key<-}}
 #'   \item \code{\link{IsGlobal}}
+#'   \item \code{\link{Radius}}; this method \emph{can} be overridden to provide
+#'   a spot radius for image objects
 #' }
 #'
 #' @section Required methods:
@@ -57,11 +59,13 @@ setOldClass(Classes = c('scalefactors'))
 #' parameters and their values, see the \code{Usage} and \code{Arguments} sections
 #' \describe{
 #'   \item{\code{\link{Cells}}}{Return the cell/spot barcodes associated with each position}
-#'   \item{\code{\link{dim}}}{...}
+#'   \item{\code{\link{dim}}}{Return the dimensions of the image for plotting in \code{(Y, X)} format}
 #'   \item{\code{\link{GetImage}}}{Return image data; by default, must return a grob object}
 #'   \item{\code{\link{GetTissueCoordinates}}}{Return tissue coordinates; by default,
 #'   must return a two-column data.frame with x-coordinates in the first column and y-coordiantes
 #'   in the second}
+#'   \item{\code{\link{Radius}}}{Return the spot radius; returns \code{NULL} by
+#'   default for use with non-spot image technologies}
 #'   \item{\code{\link{RenameCells}}}{Rename the cell/spot barcodes for this image}
 #'   \item{\code{\link{subset}} and \code{[}}{Subset the image data by cells/spots;
 #'   \code{[} should only take \code{i} for subsetting by cells/spots}
@@ -84,8 +88,9 @@ SpatialImage <- setClass(
 
 #' The SlideSeq class
 #'
-#' THe SlideSeq class represents spatial information from the Slide-seq platform
+#' The SlideSeq class represents spatial information from the Slide-seq platform
 #'
+#' @inheritSection SpatialImage Slots
 #' @slot coordinates ...
 #' @slot ...
 #'
@@ -651,16 +656,15 @@ GeomSpatial <- ggproto(
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
-
-    z = coord$transform(
+    z <- coord$transform(
       data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
       panel_scales
     )
     # Flip Y axis for image
-    z$y = -rev(z$y) + 1
-    wdth = z$x[2] - z$x[1]
-    hgth = z$y[2] - z$y[1]
-    vp <- grid::viewport(
+    z$y <- -rev(z$y) + 1
+    wdth <- z$x[2] - z$x[1]
+    hgth <- z$y[2] - z$y[1]
+    vp <- viewport(
       x = unit(x = z$x[1], units = "npc"),
       y = unit(x = z$y[1], units = "npc"),
       width = unit(x = wdth, units = "npc"),
@@ -669,7 +673,8 @@ GeomSpatial <- ggproto(
     )
     img.grob <- GetImage(object = image)
     img <- editGrob(grob = img.grob, vp = vp)
-    spot.size <- slot(object = image, name = "spot.radius")
+    # spot.size <- slot(object = image, name = "spot.radius")
+    spot.size <- Radius(object = image)
     coords <- coord$transform(data, panel_scales)
     pts <- pointsGrob(
       x = coords$x,
@@ -1290,7 +1295,7 @@ Cells.SlideSeq <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
-#' @param x,object An inheriting from \code{SpatialImage}
+#' @param x,object An object inheriting from \code{SpatialImage}
 #'
 #' @rdname SpatialImage-class
 #' @name SpatialImage-class
@@ -1476,8 +1481,8 @@ GetImage.Seurat <- function(
 }
 
 #' @importFrom plotly raster2uri
+#' @importFrom grid nullGrob rectGrob unit
 #' @importFrom grDevices as.raster
-#' @importFrom grid rasterGrob unit
 #'
 #' @method GetImage SlideSeq
 #' @export
@@ -1488,17 +1493,13 @@ GetImage.SlideSeq <- function(
   ...
 ) {
   mode <- match.arg(arg = mode)
-  image <- slot(object = object, name = 'image')
   image <- switch(
     EXPR = mode,
-    'grob' = rasterGrob(
-      image = image,
-      x = unit(x = 1, units = 'npc'),
-      y = unit(x = 1, units = 'npc')
-    ),
-    'raster' = as.raster(x = image),
+    'grob' = nullGrob(),
+    # grob = rectGrob(width = unit(x = 1, units = 'npc'), height = unit(x = 1, units = 'npc')),
+    'raster' = as.raster(x = new(Class = 'matrix')),
     'plotly' = list('visible' = FALSE),
-    'raw' = image,
+    'raw' = NULL,
     stop("Unknown image mode: ", mode, call. = FALSE)
   )
   return(image)
@@ -1587,7 +1588,7 @@ GetTissueCoordinates.SlideSeq <- function(object, ...) {
   coords <- slot(object = object, name = 'coordinates')
   colnames(x = coords) <- c('x', 'y')
   # coords$y <- -rev(x = coords$y) + 1
-  coords$y <- FlipCoords(x = coords$y)
+  # coords$y <- FlipCoords(x = coords$y)
   coords$cells <- rownames(x = coords)
   return(coords)
 }
@@ -1661,6 +1662,32 @@ Key.SpatialImage <- function(object, ...) {
   value <- UpdateKey(key = value)
   slot(object = object, name = 'key') <- value
   return(object)
+}
+
+#' @rdname Radius
+#' @method Radius SlideSeq
+#' @export
+#'
+Radius.SlideSeq <- function(object) {
+  return(0.005)
+}
+
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method Radius SpatialImage
+#' @export
+#'
+Radius.SpatialImage <- function(object) {
+  return(NULL)
+}
+
+#' @rdname Radius
+#' @method Radius VisiumV1
+#' @export
+#'
+Radius.VisiumV1 <- function(object) {
+  return(slot(object = object, name = 'spot.radius'))
 }
 
 #' @method RenameCells SlideSeq
@@ -1845,7 +1872,8 @@ SVFInfo.Seurat <- function(
 #' @export
 #'
 dim.SlideSeq <- function(x) {
-  return(dim(x = GetImage(object = x, mode = 'raw')))
+  # return(dim(x = GetImage(object = x, mode = 'raw')))
+  return(c(599, 600))
 }
 
 #' @rdname SpatialImage-class
