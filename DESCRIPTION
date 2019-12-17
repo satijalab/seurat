@@ -43,6 +43,7 @@ Imports:
     MASS,
     Matrix (>= 1.2-14),
     metap,
+    patchwork,
     pbapply,
     plotly,
     png,

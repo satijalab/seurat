@@ -16,7 +16,6 @@ DimHeatmap(
   balanced = TRUE,
   projected = FALSE,
   ncol = NULL,
-  combine = TRUE,
   fast = TRUE,
   raster = TRUE,
   slot = "scale.data",
@@ -46,9 +45,6 @@ if \code{slot} is 'scale.data', 6 otherwise}
 \item{projected}{Use the full projected dimensional reduction}
 
 \item{ncol}{Number of columns to plot}
-
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
-when plotting multiple dimensions}
 
 \item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable}
 

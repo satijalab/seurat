@@ -12,8 +12,7 @@ VizDimLoadings(
   reduction = "pca",
   projected = FALSE,
   balanced = FALSE,
-  ncol = NULL,
-  combine = TRUE
+  ncol = NULL
 )
 }
 \arguments{
@@ -34,9 +33,6 @@ dimensional reduction values)}
 FALSE (default), returns the top genes ranked by the scores absolute values}
 
 \item{ncol}{Number of columns to display}
-
-\item{combine}{Combine plots into a single gg object; note that if TRUE;
-themeing will not work when plotting multiple features}
 }
 \value{
 A ggplot object

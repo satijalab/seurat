@@ -22,8 +22,7 @@ DoHeatmap(
   raster = TRUE,
   draw.lines = TRUE,
   lines.width = NULL,
-  group.bar.height = 0.02,
-  combine = TRUE
+  group.bar.height = 0.02
 )
 }
 \arguments{
@@ -66,9 +65,6 @@ if you are encountering that issue (note that plots may take longer to produce/r
 Corresponds to the number of "cells" between each group.}
 
 \item{group.bar.height}{Scale the height of the color bar}
-
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
-when plotting multiple dimensions}
 }
 \value{
 A ggplot object

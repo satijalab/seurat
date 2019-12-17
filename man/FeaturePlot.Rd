@@ -26,7 +26,6 @@ FeaturePlot(
   label.size = 4,
   repel = FALSE,
   ncol = NULL,
-  combine = TRUE,
   coord.fixed = FALSE,
   by.col = TRUE,
   sort.cell = FALSE
@@ -88,8 +87,6 @@ different colors and different shapes on cells}
 
 \item{ncol}{Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}}
 
-\item{combine}{Combine plots into a single gg object; note that if \code{TRUE}; themeing will not work when plotting multiple features}
-
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
@@ -97,9 +94,7 @@ different colors and different shapes on cells}
 \item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
 }
 \value{
-Returns a ggplot object if only 1 feature is plotted.
-If >1 features are plotted and \code{combine=TRUE}, returns a combined ggplot object using \code{cowplot::plot_grid}.
-If >1 features are plotted and \code{combine=FALSE}, returns a list of ggplot objects.
+Returns a ggplot/patchwork object
 }
 \description{
 Colors single cells on a dimensional reduction plot according to a 'feature'
