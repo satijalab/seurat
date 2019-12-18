@@ -726,6 +726,8 @@ RunLeiden <- function(
   }
   input <- if (inherits(x = object, what = 'list')) {
     graph_from_adj_list(adjlist = object)
+  } else if (inherits(x = object, what = "Graph") ) {
+    as( object, "matrix" )    
   } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
     graph_from_adjacency_matrix(adjmatrix = object)
   } else if (inherits(x = object, what = 'igraph')) {
