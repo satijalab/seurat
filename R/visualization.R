@@ -660,7 +660,8 @@ ColorDimSplit <- function(
 #' @param cells Vector of cells to plot (default is all cells)
 #' @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
 #' or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-#' By default, ggplot2 assigns colors
+#' By default, ggplot2 assigns colors. We also include a number of palettes from the pals package. 
+#' See \code{\link{DiscretePalette}} for details.
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by Name of one or more metadata columns to group (color) cells by
@@ -4512,17 +4513,8 @@ SingleDimPlot <- function(
     } else {
       scale <- scale_color_manual(values = cols, na.value = na.value)
     }
-  } else {
-    if (length(unique(data[[col.by]])) > 36) {
-      pal.fun <- hue_pal
-    } else {
-      pal.fun <- DiscretePalette
-    }
-    scale <- discrete_scale("color", col.by, pal.fun, na.value = na.value)
-
+    plot <- plot + scale
   }
-  plot <- plot + scale
-
   plot <- plot + theme_cowplot()
   return(plot)
 }
