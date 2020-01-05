@@ -507,6 +507,89 @@ Load10X_Spatial <- function(
   return(object)
 }
 
+#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow plotOutput hoverOpts renderPlot observeEvent
+#' stopApp runGadget
+#' verbatimTextOutput
+#'
+GadgetDimPlot <- function(
+  object,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  group.by = NULL
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = 'GadgetDimPlot',
+      left = miniTitleBarButton(inputId = 'reset', label = 'Reset', primary = FALSE)
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'spatialplot',
+          height = '100%',
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = FALSE)
+        )
+        # plotOutput(outputId = 'dimplot', height = '100%')
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims <- dims[1:2]
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  plot.data <- cbind(coords, group.data, embeddings)
+  plot.transformed <- Transform(
+    data = plot.data[, c(2, 1, 3:ncol(x = plot.data))],
+    xlim = c(0, ncol(x = object[[image]])),
+    ylim = c(0, nrow(x = object[[image]]))
+  )
+  plot.data$selected_ <- FALSE
+  # Setup the server
+  server <- function(input, output, session) {
+    # Set plots
+    output$spatialplot <- renderPlot(
+      expr = SingleSpatialPlot(
+        data = plot.data,
+        image = object[[image]],
+        col.by = group.by,
+        pt.size.factor = 1.6,
+        crop = FALSE
+      )
+    )
+    output$info <- shiny::renderPrint(
+      expr = shiny::nearPoints(df = plot.data, coordinfo = input$sphover, threshold = 10, maxpoints = 1)
+      # expr = shiny::nearPoints(df = plot.transformed, coordinfo = input$sphover, threshold = 10, maxpoints = 1)
+      # expr = input$sphover
+    )
+    # output$dimplot <- renderPlot(
+    #   expr = DimPlot(object = object)
+    # )
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        stopApp()
+      }
+    )
+  }
+  # Run the thang
+  runGadget(app = ui, server = server)
+}
+
 #' @importFrom grid viewport editGrob grobName
 #' @importFrom ggplot2 ggproto Geom ggproto_parent
 #
@@ -586,7 +669,7 @@ GeomSpatial <- ggproto(
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
-
+    # browser()
     z = coord$transform(
       data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
       panel_scales
@@ -661,18 +744,18 @@ geom_spatial <-  function(
 #'
 #' Wraps the functionality of markvario from the spatstat package.
 #'
-#' @param spatial.location A 2 column matrix giving the spatial locations of 
+#' @param spatial.location A 2 column matrix giving the spatial locations of
 #' each of the data points also in data
 #' @param data Matrix containing the data used as "marks" (e.g. gene expression)
 #' @param ... Arguments passed to markvario
-#' 
+#'
 #' @importFrom spatstat markvario ppp
 #'
 #' @export
 #'
 RunMarkVario <- function(
-  spatial.location, 
-  data, 
+  spatial.location,
+  data,
   ...
 ) {
   pp <- ppp(
@@ -685,7 +768,7 @@ RunMarkVario <- function(
     chunks <- nbrOfWorkers()
     features <- rownames(x = data)
     features <- split(
-      x = features, 
+      x = features,
       f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
     )
     mv <- future_lapply(X = features, FUN = function(x) {
@@ -1262,7 +1345,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
+#' @export
 #'
 #'
 FindSpatiallyVariableFeatures.default <- function(
@@ -1286,11 +1369,11 @@ FindSpatiallyVariableFeatures.default <- function(
 }
 
 #' @param spatial.location
-#'  
+#'
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
-#' 
+#' @export
+#'
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
   slot = "scale.data",
@@ -1335,22 +1418,22 @@ FindSpatiallyVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @param object A Seurat object 
+#' @param object A Seurat object
 #' @param assay Assay to pull the features (marks) from
 #' @param slot Slot in the Assay to pull data from
-#' @param features If provided, only compute on given features. Otherwise, 
+#' @param features If provided, only compute on given features. Otherwise,
 #' compute for all features.
 #' @param image Name of image to pull the coordinates from
 #' @param selection.method Method for selecting spatially variable features.
-#' Only 'markvariogram' method is currently implemented. See 
-#' \code{\link{RunMarkVario}} for method. 
+#' Only 'markvariogram' method is currently implemented. See
+#' \code{\link{RunMarkVario}} for method.
 #' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
-#' 
+#'
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
-#' 
+#' @export
+#'
 FindSpatiallyVariableFeatures.Seurat <- function(
   object,
   assay = NULL,
@@ -1978,4 +2061,45 @@ GGpointToPlotlyBuild <- function(
     plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
   }
   return(plot.build)
+}
+
+# Reimplementation of ggplot2 coord$transform
+#
+# @param data A data frame with x-coordinates in the first column and y-coordinates
+# in the second
+# @param xlim,ylim X- and Y-limits for the transformation, must be two-length
+# numeric vectors
+#
+# @return \code{data} with transformed coordinates
+#
+#' @importFrom ggplot2 transform_position
+#' @importFrom scales rescale squish_infinite
+#
+Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
+  # Quick input argument checking
+  if (!all(sapply(X = list(xlim, ylim), FUN = length) == 2)) {
+    stop("'xlim' and 'ylim' must be two-length numeric vectors", call. = FALSE)
+  }
+  # Save original names
+  df.names <- colnames(x = data)
+  colnames(x = data)[1:2] <- c('x', 'y')
+  # Rescale the X and Y values
+  data <- transform_position(
+    df = data,
+    trans_x = function(df) {
+      return(rescale(x = df, from = xlim))
+    },
+    trans_y = function(df) {
+      return(rescale(x = df, from = ylim))
+    }
+  )
+  # Something that ggplot2 does
+  data <- transform_position(
+    df = data,
+    trans_x = squish_infinite,
+    trans_y = squish_infinite
+  )
+  # Restore original names
+  colnames(x = data) <- df.names
+  return(data)
 }
