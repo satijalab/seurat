@@ -530,9 +530,13 @@ GadgetDimPlot <- function(
         plotOutput(
           outputId = 'spatialplot',
           height = '100%',
-          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = FALSE)
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+        ),
+        plotOutput(
+          outputId = 'dimplot',
+          height = '100%',
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
         )
-        # plotOutput(outputId = 'dimplot', height = '100%')
       ),
       verbatimTextOutput(outputId = 'info')
     )
@@ -552,11 +556,6 @@ GadgetDimPlot <- function(
   coords <- GetTissueCoordinates(object = object[[image]])
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
-  plot.transformed <- Transform(
-    data = plot.data[, c(2, 1, 3:ncol(x = plot.data))],
-    xlim = c(0, ncol(x = object[[image]])),
-    ylim = c(0, nrow(x = object[[image]]))
-  )
   plot.data$selected_ <- FALSE
   # Setup the server
   server <- function(input, output, session) {
@@ -567,17 +566,25 @@ GadgetDimPlot <- function(
         image = object[[image]],
         col.by = group.by,
         pt.size.factor = 1.6,
-        crop = FALSE
+        crop = TRUE
+      ) + NoLegend()
+    )
+    output$dimplot <- renderPlot(
+      expr = DimPlot(object = object) + NoLegend()
+    )
+    # Add hover text
+    output$info <- shiny::renderPrint(
+      expr = shiny::nearPoints(
+        df = plot.data,
+        coordinfo = if (is.null(x = input$sphover)) {
+          input$dimhover
+        } else {
+          InvertCoordinate(x = input$sphover)
+        },
+        threshold = 10,
+        maxpoints = 1
       )
     )
-    output$info <- shiny::renderPrint(
-      expr = shiny::nearPoints(df = plot.data, coordinfo = input$sphover, threshold = 10, maxpoints = 1)
-      # expr = shiny::nearPoints(df = plot.transformed, coordinfo = input$sphover, threshold = 10, maxpoints = 1)
-      # expr = input$sphover
-    )
-    # output$dimplot <- renderPlot(
-    #   expr = DimPlot(object = object)
-    # )
     # Handle events
     observeEvent(
       eventExpr = input$done,
@@ -588,6 +595,29 @@ GadgetDimPlot <- function(
   }
   # Run the thang
   runGadget(app = ui, server = server)
+}
+
+#' @importFrom stats quantile
+#'
+InvertCoordinate <- function(x, MARGIN = 2) {
+  if (!is.null(x = x)) {
+    switch(
+      EXPR = MARGIN,
+      '1' = {
+        minvar <- 'left'
+        maxvar <- 'right'
+      },
+      '2' = {
+        minvar <- 'bottom'
+        maxvar <- 'top'
+      },
+      stop("'MARGIN' must be either 1 or 2", call. = FALSE)
+    )
+    range <- x$range
+    x$range[[minvar]] <- range[[maxvar]]
+    x$range[[maxvar]] <- range[[minvar]]
+  }
+  return(x)
 }
 
 #' @importFrom grid viewport editGrob grobName
