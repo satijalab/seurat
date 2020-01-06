@@ -528,7 +528,7 @@ GadgetDimPlot <- function(
   reduction = NULL,
   image = NULL,
   group.by = NULL,
-  alpha = c(0.5, 1)
+  alpha = c(0.3, 1)
 ) {
   # Setup gadget UI
   ui <- miniPage(
@@ -577,16 +577,20 @@ GadgetDimPlot <- function(
     # Set plots
     output$spatialplot <- renderPlot(
       expr = {
-        if (input$outputId == 'dimplot') {
-          cells.selected <<- rownames(x = brushedPoints(
-            df = plot.data,
-            brush = input$brush
-          ))
-        } else if (input$outputId == 'spatialplot') {
-          cells.selected <<- rownames(x = brushedPoints(
-            df = plot.data,
-            brush = InvertCoordinate(x = input$brush)
-          ))
+        if (is.null(x = input$brush)) {
+          cells.selected <<- NULL
+        } else {
+          if (input$brush$outputId == 'dimplot') {
+            cells.selected <<- rownames(x = brushedPoints(
+              df = plot.data,
+              brush = input$brush
+            ))
+          } else if (input$brush$outputId == 'spatialplot') {
+            cells.selected <<- rownames(x = brushedPoints(
+              df = plot.data,
+              brush = InvertCoordinate(x = input$brush)
+            ))
+          }
         }
         if (!is.null(x = cells.selected)) {
           plot.data[cells.selected, 'selected_'] <- TRUE
@@ -611,32 +615,26 @@ GadgetDimPlot <- function(
       }
     )
     # Add hover text
-    # output$info <- renderPrint(expr = input$spbrush)
     output$info <- renderPrint(
       expr = {
-        cells.selected
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = if (is.null(x = input[['sphover']])) {
+            input$dimhover
+          } else {
+            InvertCoordinate(x = input$sphover)
+          },
+          threshold = 10,
+          maxpoints = 1
+        ))
+        # TODO: Get newlines, extra information, and background color working
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
       }
     )
-    # output$info <- renderPrint(
-    #   expr = {
-    #     cell.hover <- rownames(x = nearPoints(
-    #       df = plot.data,
-    #       coordinfo = if (is.null(x = input[['sphover']])) {
-    #         input$dimhover
-    #       } else {
-    #         InvertCoordinate(x = input$sphover)
-    #       },
-    #       threshold = 10,
-    #       maxpoints = 1
-    #     ))
-    #     # TODO: Get newlines, extra information, and background color working
-    #     if (length(x = cell.hover) == 1) {
-    #       paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
-    #     } else {
-    #       NULL
-    #     }
-    #   }
-    # )
     # Handle events
     observeEvent(
       eventExpr = input$done,
@@ -646,12 +644,6 @@ GadgetDimPlot <- function(
         # stopApp(input$brush)
       }
     )
-    # observeEvent(
-    #   eventExpr = input$reset,
-    #   handlerExpr = {
-    #     cells.selected <- NULL
-    #   }
-    # )
   }
   # Run the thang
   runGadget(app = ui, server = server)
