@@ -507,35 +507,49 @@ Load10X_Spatial <- function(
   return(object)
 }
 
+#' @importFrom ggplot2 scale_alpha_ordinal
 #' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
-#' @importFrom shiny fillRow plotOutput hoverOpts renderPlot observeEvent
-#' stopApp runGadget
+#' @importFrom shiny fillRow
+#' plotOutput
+#' hoverOpts
+#' renderPlot
+#' observeEvent
+#' stopApp
+#' runGadget
+#' brushedPoints
+#' nearPoints
+#' renderPrint
 #' verbatimTextOutput
+#' brushOpts
 #'
 GadgetDimPlot <- function(
   object,
   dims = 1:2,
   reduction = NULL,
   image = NULL,
-  group.by = NULL
+  group.by = NULL,
+  alpha = c(0.5, 1)
 ) {
   # Setup gadget UI
   ui <- miniPage(
     gadgetTitleBar(
       title = 'GadgetDimPlot',
-      left = miniTitleBarButton(inputId = 'reset', label = 'Reset', primary = FALSE)
+      left = NULL
+      # left = miniTitleBarButton(inputId = 'reset', label = 'Reset', primary = FALSE)
     ),
     miniContentPanel(
       fillRow(
         plotOutput(
           outputId = 'spatialplot',
           height = '100%',
-          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE),
+          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE)
         ),
         plotOutput(
           outputId = 'dimplot',
           height = '100%',
-          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE),
+          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE)
         )
       ),
       verbatimTextOutput(outputId = 'info')
@@ -557,41 +571,87 @@ GadgetDimPlot <- function(
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   plot.data$selected_ <- FALSE
+  cells.selected <- NULL
   # Setup the server
   server <- function(input, output, session) {
     # Set plots
     output$spatialplot <- renderPlot(
-      expr = SingleSpatialPlot(
-        data = plot.data,
-        image = object[[image]],
-        col.by = group.by,
-        pt.size.factor = 1.6,
-        crop = TRUE
-      ) + NoLegend()
+      expr = {
+        if (input$outputId == 'dimplot') {
+          cells.selected <<- rownames(x = brushedPoints(
+            df = plot.data,
+            brush = input$brush
+          ))
+        } else if (input$outputId == 'spatialplot') {
+          cells.selected <<- rownames(x = brushedPoints(
+            df = plot.data,
+            brush = InvertCoordinate(x = input$brush)
+          ))
+        }
+        if (!is.null(x = cells.selected)) {
+          plot.data[cells.selected, 'selected_'] <- TRUE
+        }
+        plot <- SingleSpatialPlot(
+          data = plot.data,
+          image = object[[image]],
+          col.by = group.by,
+          pt.size.factor = 1.6,
+          crop = TRUE,
+          alpha.by = cells.selected %iff% 'selected_'
+        ) + NoLegend()
+        if (!is.null(x = cells.selected)) {
+          plot <- plot + scale_alpha_ordinal(range = alpha)
+        }
+        plot
+      }
     )
     output$dimplot <- renderPlot(
-      expr = DimPlot(object = object) + NoLegend()
+      expr = {
+        DimPlot(object = object) + NoLegend()
+      }
     )
     # Add hover text
-    output$info <- shiny::renderPrint(
-      expr = shiny::nearPoints(
-        df = plot.data,
-        coordinfo = if (is.null(x = input$sphover)) {
-          input$dimhover
-        } else {
-          InvertCoordinate(x = input$sphover)
-        },
-        threshold = 10,
-        maxpoints = 1
-      )
+    # output$info <- renderPrint(expr = input$spbrush)
+    output$info <- renderPrint(
+      expr = {
+        cells.selected
+      }
     )
+    # output$info <- renderPrint(
+    #   expr = {
+    #     cell.hover <- rownames(x = nearPoints(
+    #       df = plot.data,
+    #       coordinfo = if (is.null(x = input[['sphover']])) {
+    #         input$dimhover
+    #       } else {
+    #         InvertCoordinate(x = input$sphover)
+    #       },
+    #       threshold = 10,
+    #       maxpoints = 1
+    #     ))
+    #     # TODO: Get newlines, extra information, and background color working
+    #     if (length(x = cell.hover) == 1) {
+    #       paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+    #     } else {
+    #       NULL
+    #     }
+    #   }
+    # )
     # Handle events
     observeEvent(
       eventExpr = input$done,
       handlerExpr = {
         stopApp()
+        # stopApp(cells.selected)
+        # stopApp(input$brush)
       }
     )
+    # observeEvent(
+    #   eventExpr = input$reset,
+    #   handlerExpr = {
+    #     cells.selected <- NULL
+    #   }
+    # )
   }
   # Run the thang
   runGadget(app = ui, server = server)
@@ -604,18 +664,40 @@ InvertCoordinate <- function(x, MARGIN = 2) {
     switch(
       EXPR = MARGIN,
       '1' = {
-        minvar <- 'left'
-        maxvar <- 'right'
+        rmin <- 'left'
+        rmax <- 'right'
+        cmin <- 'xmin'
+        cmax <- 'xmax'
       },
       '2' = {
-        minvar <- 'bottom'
-        maxvar <- 'top'
+        rmin <- 'bottom'
+        rmax <- 'top'
+        cmin <- 'ymin'
+        cmax <- 'ymax'
       },
       stop("'MARGIN' must be either 1 or 2", call. = FALSE)
     )
+    # Fix the range so that rmin becomes rmax and vice versa
+    # Needed for both points and brushes
     range <- x$range
-    x$range[[minvar]] <- range[[maxvar]]
-    x$range[[maxvar]] <- range[[minvar]]
+    x$range[[rmin]] <- range[[rmax]]
+    x$range[[rmax]] <- range[[rmin]]
+    # Fix the cmin and cmax values, if provided
+    # These are used for brush boundaries
+    coords <- c(x[[cmin]], x[[cmax]])
+    if (all(!is.null(x = coords))) {
+      names(x = coords) <- c(cmin, cmax)
+      x[[cmin]] <- quantile(
+        x = x$range[[rmin]]:x$range[[rmax]],
+        probs = 1 - (coords[cmax] / x$range[[rmax]]),
+        names = FALSE
+      )
+      x[[cmax]] <- quantile(
+        x = x$range[[rmin]]:x$range[[rmax]],
+        probs = 1 - (coords[cmin] / x$range[[rmax]]),
+        names = FALSE
+      )
+    }
   }
   return(x)
 }
