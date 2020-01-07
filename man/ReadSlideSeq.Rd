@@ -2,12 +2,12 @@
 % Please edit documentation in R/spatial.R
 \name{ReadSlideSeq}
 \alias{ReadSlideSeq}
-\title{Load a Slide-seq image}
+\title{Load Slide-seq spatial data}
 \usage{
-ReadSlideSeq(puck.path, assay = "Spatial")
+ReadSlideSeq(coord.file, assay = "Spatial")
 }
 \arguments{
-\item{puck.path}{Path to puck directory}
+\item{coord.file}{Path to csv file containing bead coordinate positions}
 
 \item{assay}{Name of assay to associate image to}
 }
@@ -15,7 +15,7 @@ ReadSlideSeq(puck.path, assay = "Spatial")
 A \code{\link{SlideSeq}} object
 }
 \description{
-Load a Slide-seq image
+Load Slide-seq spatial data
 }
 \seealso{
 \code{\link{SlideSeq}}

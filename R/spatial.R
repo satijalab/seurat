@@ -239,9 +239,9 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   ))
 }
 
-#' Load a Slide-seq image
+#' Load Slide-seq spatial data 
 #'
-#' @param puck.path Path to puck directory
+#' @param coord.file Path to csv file containing bead coordinate positions
 #' @param assay Name of assay to associate image to
 #'
 #' @return A \code{\link{SlideSeq}} object
@@ -252,35 +252,15 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
 #'
 #' @export
 #'
-ReadSlideSeq <- function(puck.path, assay = 'Spatial') {
-  if (!dir.exists(paths = puck.path)) {
-    stop("Cannot find puck path ", puck.path, call. = FALSE)
+ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
+  if (!file.exists(paths = coord.file)) {
+    stop("Cannot find coord file ", coord.file, call. = FALSE)
   }
-  puck.files <- list.files(
-    path = puck.path,
-    full.names = TRUE,
-    recursive = FALSE
-  )
-  # files.required <- c('BeadImage.tif', 'BeadLocationsForR.csv')
-  files.required <- c('BeadLocationsForR.c')
-  files.found <- vapply(
-    X = files.required,
-    FUN = function(x) {
-      files.match <- grep(pattern = x, x = basename(path = puck.files))
-      if (length(x = files.match) < 1) {
-        stop("Could not find required file ", x, call. = FALSE)
-      }
-      return(puck.files[files.match[1]])
-    },
-    FUN.VALUE = character(length = 1L)
-  )
   slide.seq <- new(
     Class = 'SlideSeq',
     assay = assay,
-    # image = tiff::readTIFF(source = files.found[1]),
     coordinates = read.csv(
-      # file = files.found[2],
-      file = files.found,
+      file = coord.file,
       header = TRUE,
       as.is = TRUE,
       row.names = 1
