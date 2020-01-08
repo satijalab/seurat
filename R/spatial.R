@@ -102,6 +102,21 @@ SlideSeq <- setClass(
   )
 )
 
+#' The STARmap class
+#'
+#' The STARmap class represents spatial information from the STARmap platform
+#'
+#' @inheritSection SpatialImage Slots
+#' @slot ...
+#'
+STARmap <- setClass(
+  Class = 'STARmap',
+  contains = 'SpatialImage',
+  slots = list(
+    'coordinates' = 'data.frame'
+  )
+)
+
 #' The VisiumV1 class
 #'
 #' The VisiumV1 class represents spatial information from the 10X Genomics Visium
@@ -239,7 +254,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   ))
 }
 
-#' Load Slide-seq spatial data 
+#' Load Slide-seq spatial data
 #'
 #' @param coord.file Path to csv file containing bead coordinate positions
 #' @param assay Name of assay to associate image to
@@ -1290,6 +1305,13 @@ Cells.SpatialImage <- function(x) {
   )
 }
 
+#' @method Cells STARmap
+#' @export
+#'
+Cells.STARmap <- function(x) {
+  .NotYetImplemented()
+}
+
 #' @rdname Cells
 #' @method Cells VisiumV1
 #' @export
@@ -1460,10 +1482,6 @@ GetImage.Seurat <- function(
   return(GetImage(object = object[[image]], mode = mode, ...))
 }
 
-#' @importFrom plotly raster2uri
-#' @importFrom grid nullGrob rectGrob unit
-#' @importFrom grDevices as.raster
-#'
 #' @method GetImage SlideSeq
 #' @export
 #'
@@ -1473,16 +1491,7 @@ GetImage.SlideSeq <- function(
   ...
 ) {
   mode <- match.arg(arg = mode)
-  image <- switch(
-    EXPR = mode,
-    'grob' = nullGrob(),
-    # grob = rectGrob(width = unit(x = 1, units = 'npc'), height = unit(x = 1, units = 'npc')),
-    'raster' = as.raster(x = new(Class = 'matrix')),
-    'plotly' = list('visible' = FALSE),
-    'raw' = NULL,
-    stop("Unknown image mode: ", mode, call. = FALSE)
-  )
-  return(image)
+  return(NullImage(mode = mode))
 }
 
 #' @inheritParams GetImage
@@ -1503,6 +1512,18 @@ GetImage.SpatialImage <- function(
     "'GetImage' must be overridden for all sublcasses of 'SpatialImage'",
     call. = FALSE
   )
+}
+
+#' @method GetImage STARmap
+#' @export
+#'
+GetImage.STARmap <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  return(NullImage(mode = mode))
 }
 
 #' @importFrom plotly raster2uri
@@ -1586,6 +1607,13 @@ GetTissueCoordinates.SpatialImage <- function(object, ...) {
     "'GetTissueCoordinates' must be overridden for all sublcasses of 'SpatialImage'",
     call. = FALSE
   )
+}
+
+#' @method GetTissueCoordinates STARmap
+#' @export
+#'
+GetTissueCoordinates.STARmap <- function(object, ...) {
+  .NotYetImplemented()
 }
 
 #' @param scale A factor to scale the coordinates by; choose from: 'tissue',
@@ -1690,6 +1718,13 @@ RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
     "'RenameCells' must be overwritten for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
+}
+
+#' @method RenameCells STARmap
+#' @export
+#'
+RenameCells.STARmap <- function(object, new.names = NULL, ...) {
+  .NotYetImplemented()
 }
 
 #' @rdname RenameCells
@@ -2138,4 +2173,24 @@ GGpointToPlotlyBuild <- function(
     plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
   }
   return(plot.build)
+}
+
+# Return a null image
+#
+# @param mode Image representation to return
+# see \code{\link{GetImage}} for more details
+#
+#' @importFrom grid nullGrob
+#' @importFrom grDevices as.raster
+#
+NullImage <- function(mode) {
+  image <- switch(
+    EXPR = mode,
+    'grob' = nullGrob(),
+    'raster' = as.raster(x = new(Class = 'matrix')),
+    'plotly' = list('visible' = FALSE),
+    'raw' = NULL,
+    stop("Unknown image mode: ", mode, call. = FALSE)
+  )
+  return(image)
 }
