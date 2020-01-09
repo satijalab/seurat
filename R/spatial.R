@@ -507,23 +507,28 @@ Load10X_Spatial <- function(
   return(object)
 }
 
+#' Visualize spatial and clustering (dimensional reduction) data in a linked,
+#' interactive framework
+#'
+#' @inheritParams DimPlot
+#' @inheritParams SpatialPlot
+#' @param image Name of the image to use in the plot
+#'
+#' @return Runs linked plot in a Shiny gadget session; does not return any value
+#'
+#' @rdname GadgetPlot
+#' @name GadgetPlot
+#'
+#' @aliases GadgetDimPlot
+#'
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 scale_alpha_ordinal guides
 #' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
-#' @importFrom shiny fillRow
-#' plotOutput
-#' hoverOpts
-#' reactiveValues
-#' renderPlot
-#' observeEvent
-#' stopApp
-#' runGadget
-#' brushedPoints
-#' nearPoints
-#' renderPrint
-#' verbatimTextOutput
-#' brushOpts
-#' clickOpts
+#' @importFrom shiny fillRow plotOutput brushOpts clickOpts hoverOpts
+#' verbatimTextOutput reactiveValues observeEvent stopApp nearPoints
+#' brushedPoints renderPlot renderPrint runGadget
+#'
+#' @export
 #'
 GadgetDimPlot <- function(
   object,
@@ -537,7 +542,6 @@ GadgetDimPlot <- function(
   ui <- miniPage(
     gadgetTitleBar(
       title = 'GadgetDimPlot',
-      # left = NULL
       left = miniTitleBarButton(inputId = 'reset', label = 'Reset')
     ),
     miniContentPanel(
