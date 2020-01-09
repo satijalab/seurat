@@ -1702,7 +1702,7 @@ Radius.VisiumV1 <- function(object) {
 #' @export
 #'
 RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
-  .NotYetImplemented()
+  return(RenameCells.VisiumV1(object = object, new.names = new.names))
 }
 
 #' @inheritParams  RenameCells
