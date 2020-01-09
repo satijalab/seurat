@@ -596,9 +596,7 @@ GadgetDimPlot <- function(
         session$resetBrush(brushId = 'brush')
       }
     )
-    observeEvent(
-      eventExpr = input$brush, handlerExpr = click$pt <- NULL
-    )
+    observeEvent(eventExpr = input$brush, handlerExpr = click$pt <- NULL)
     observeEvent(
       eventExpr = input$spclick,
       handlerExpr = {
@@ -715,6 +713,249 @@ GadgetDimPlot <- function(
     )
   }
   # Run the thang
+  runGadget(app = ui, server = server)
+}
+
+#' Visualize features spatially and interactively
+#'
+#' @inheritParams FeaturePlot
+#' @inheritParams SpatialPlot
+#' @inheritParams GadgetPlot
+#'
+#' @return Runs an interactive spatial feature plot in a Shiny gadget session;
+#' does not return any value
+#'
+#' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton
+#' miniTabstripPanel miniTabPanel miniContentPanel
+#' @importFrom shiny icon radioButtons selectInput fillCol sliderInput
+#' plotOutput renderPlot reactiveValues observeEvent observe updateRadioButtons
+#' updateSelectInput stopApp runGadget
+#'
+#' @export
+#'
+ISpatialFeaturePlot <- function(
+  object,
+  feature,
+  image = NULL,
+  slot = 'data',
+  alpha = c(0.1, 1)
+) {
+  # Set inital data values
+  initial.assay <- if (feature %in% colnames(x = object[[]])) {
+    'meta.data'
+  } else {
+    assay.keys <- Key(object = object)[Assays(object = object)]
+    keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+    if (any(keyed)) {
+      names(x = which(x = keyed))[1]
+    } else {
+      DefaultAssay(object = object)
+    }
+  }
+  initial.features <- if (initial.assay == 'meta.data') {
+    colnames(x = object[[]])
+  } else {
+    rownames(x = GetAssayData(object = object, slot = slot, assay = initial.assay))
+  }
+  slots <- c('Counts' = 'counts', 'Data' = 'data', 'Scaled Data' = 'scale.data')
+  initial.slots <- if (initial.assay == 'meta.data') {
+    'none'
+  } else {
+    slots.use <- sapply(
+      X = slots,
+      FUN = function(x) {
+        return(!IsMatrixEmpty(x = GetAssayData(
+          object = object,
+          slot = x,
+          assay = initial.assay
+        )))
+      }
+    )
+    slots[slots.use]
+  }
+  # Setup gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniTabstripPanel(
+      miniTabPanel(
+        title = 'Parameters',
+        icon = icon(name = 'sliders'),
+        miniContentPanel(
+          radioButtons(
+            inputId = 'assay',
+            label = 'Assay',
+            selected = initial.assay,
+            choiceNames = c(Assays(object = object), 'Meta Data'),
+            choiceValues = c(Assays(object = object), 'meta.data'),
+            inline = TRUE
+          ),
+          radioButtons(
+            inputId = 'slot',
+            label = 'Slot',
+            choices = initial.slots,
+            selected = ifelse(
+              test = initial.assay == 'meta.data',
+              yes = 'none',
+              no = slot
+            ),
+            inline = TRUE
+          ),
+          selectInput(
+            inputId = 'feature',
+            label = 'Feature to visualize',
+            choices = initial.features,
+            selected = feature,
+            selectize = FALSE
+          )
+        )
+      ),
+      miniTabPanel(
+        title = 'Visualize',
+        icon = icon(name = 'area-chart'),
+        miniContentPanel(
+          fillCol(
+            sliderInput(
+              inputId = 'alpha',
+              label = 'Alpha intensity',
+              min = 0,
+              max = 1,
+              value = alpha[1],
+              step = 0.01,
+              width = '100%'
+            ),
+            sliderInput(
+              inputId = 'pt.size',
+              label = 'Point size',
+              min = 0,
+              max = 5,
+              value = 1.6,
+              step = 0.1,
+              width = '100%'
+            ),
+            plotOutput(outputId = 'plot', height = '100%'),
+            flex = c(NA, NA, 1)
+          )
+        )
+      ),
+      selected = 'Visualize'
+      # selected = 'Parameters'
+    )
+  )
+  # Prepare plotting data
+  cols <- SpatialColors(n = 100)
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]])
+  feature.data <- FetchData(
+    object = object,
+    vars = feature,
+    cells = cells.use,
+    slot = slot
+  )
+  plot.data <- cbind(coords, feature.data)
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(
+      data = plot.data,
+      feature = feature
+    )
+    # Observe events
+    observeEvent(eventExpr = input$done, handlerExpr = stopApp())
+    observe(x = {
+      assay <- input$assay
+      slot.use <- input$slot
+      feature.use <- input$feature
+      slot.order <- c('data', 'scale.data', 'counts')
+      if (assay == 'meta.data') {
+        slot.use <- slots.assay <- 'none'
+        features.assay <- colnames(x = object[[]])
+      } else {
+        slots.assay <- sapply(
+          X = slots,
+          FUN = function(x) {
+            return(!IsMatrixEmpty(x = GetAssayData(
+              object = object,
+              slot = x,
+              assay = assay
+            )))
+          }
+        )
+        slots.assay <- slots[slots.assay]
+        slot.use <- ifelse(
+          test = slot.use %in% slots.assay,
+          yes = slot.use,
+          no = slot.order[slot.order %in% slots.assay][1]
+        )
+        features.assay <- rownames(x = GetAssayData(
+          object = object,
+          slot = slot.use,
+          assay = assay
+        ))
+      }
+      feature.use <- ifelse(
+        test = feature.use %in% features.assay,
+        yes = feature.use,
+        no = features.assay[1]
+      )
+      message(assay, feature.use, feature.use %in% features.assay)
+      updateRadioButtons(
+        session = session,
+        inputId = 'slot',
+        label = 'Slot',
+        choices = slots.assay,
+        selected = slot.use,
+        inline = TRUE
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = 'Feature to visualize',
+        choices = features.assay,
+        selected = feature.use
+      )
+    })
+    observe(x = {
+      feature.use <- input$feature
+      keyed.feature <- ifelse(
+        test = input$assay == 'meta.data',
+        yes = feature.use,
+        no = paste0(Key(object = object[[input$assay]]), feature.use)
+      )
+      try(
+        expr = {
+          feature.data <- FetchData(
+            object = object,
+            vars = keyed.feature,
+            cells = cells.use,
+            slot = ifelse(test = input$slot == 'none', yes = 'data', no = input$slot)
+          )
+          colnames(x = feature.data) <- feature.use
+          plot.env$data <- cbind(coords, feature.data)
+          plot.env$feature <- feature.use
+        },
+        silent = TRUE
+      )
+    })
+    # Create plot
+    output$plot <- renderPlot(expr = {
+      SingleSpatialPlot(
+        data = plot.env$data,
+        image = object[[image]],
+        col.by = plot.env$feature,
+        pt.size.factor = input$pt.size,
+        crop = TRUE,
+        alpha.by = plot.env$feature
+      ) +
+        scale_fill_gradientn(name = plot.env$feature, colours = cols) +
+        theme(legend.position = 'top') +
+        scale_alpha(range = c(input$alpha, 1)) +
+        guides(alpha = FALSE)
+    })
+  }
   runGadget(app = ui, server = server)
 }
 
