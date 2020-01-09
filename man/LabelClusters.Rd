@@ -37,7 +37,7 @@ labels)}
 \item{geom}{Name of geom to get X/Y aesthetic names for}
 
 \item{position}{How to place the label if repel = FALSE. If "median", place
-the label at the median position. If "nearest" place the label at the 
+the label at the median position. If "nearest" place the label at the
 position of the nearest data point to the median.}
 
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}}

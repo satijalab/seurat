@@ -507,11 +507,13 @@ Load10X_Spatial <- function(
   return(object)
 }
 
-#' @importFrom ggplot2 scale_alpha_ordinal
+#' @importFrom scales hue_pal
+#' @importFrom ggplot2 scale_alpha_ordinal guides
 #' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
 #' @importFrom shiny fillRow
 #' plotOutput
 #' hoverOpts
+#' reactiveValues
 #' renderPlot
 #' observeEvent
 #' stopApp
@@ -521,6 +523,7 @@ Load10X_Spatial <- function(
 #' renderPrint
 #' verbatimTextOutput
 #' brushOpts
+#' clickOpts
 #'
 GadgetDimPlot <- function(
   object,
@@ -534,23 +537,26 @@ GadgetDimPlot <- function(
   ui <- miniPage(
     gadgetTitleBar(
       title = 'GadgetDimPlot',
-      left = NULL
-      # left = miniTitleBarButton(inputId = 'reset', label = 'Reset', primary = FALSE)
+      # left = NULL
+      left = miniTitleBarButton(inputId = 'reset', label = 'Reset')
     ),
     miniContentPanel(
       fillRow(
         plotOutput(
           outputId = 'spatialplot',
           height = '100%',
-          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE),
-          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE)
+          # brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = clickOpts(id = 'spclick', clip = TRUE),
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
         ),
         plotOutput(
           outputId = 'dimplot',
           height = '100%',
-          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE),
-          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE)
-        )
+          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = clickOpts(id = 'dimclick', clip = TRUE),
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
       ),
       verbatimTextOutput(outputId = 'info')
     )
@@ -571,47 +577,94 @@ GadgetDimPlot <- function(
   embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
   plot.data <- cbind(coords, group.data, embeddings)
   plot.data$selected_ <- FALSE
-  cells.selected <- NULL
+  Idents(object = object) <- group.by
   # Setup the server
   server <- function(input, output, session) {
+    click <- reactiveValues(pt = NULL, invert = FALSE)
+    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    # Handle events
+    observeEvent(eventExpr = input$done, handlerExpr = stopApp())
+    observeEvent(
+      eventExpr = input$reset,
+      handlerExpr = {
+        click$pt <- NULL
+        click$invert <- FALSE
+        session$resetBrush(brushId = 'brush')
+      }
+    )
+    observeEvent(
+      eventExpr = input$brush, handlerExpr = click$pt <- NULL
+    )
+    observeEvent(
+      eventExpr = input$spclick,
+      handlerExpr = {
+        click$pt <- input$spclick
+        click$invert <- TRUE
+      }
+    )
+    observeEvent(
+      eventExpr = input$dimclick,
+      handlerExpr = {
+        click$pt <- input$dimclick
+        click$invert <- FALSE
+      }
+    )
+    observeEvent(
+      eventExpr = c(input$brush, input$spclick, input$dimclick),
+      handlerExpr = {
+        plot.env$data <- if (is.null(x = input$brush)) {
+          clicked <- nearPoints(
+            df = plot.data,
+            coordinfo = if (click$invert) {
+              InvertCoordinate(x = click$pt)
+            } else {
+              click$pt
+            },
+            threshold = 10,
+            maxpoints = 1
+          )
+          if (nrow(x = clicked) == 1) {
+            cell.clicked <- rownames(x = clicked)
+            group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
+            idx.group <- which(x = plot.data[[group.by]] == group.clicked)
+            plot.data[idx.group, 'selected_'] <- TRUE
+            plot.data
+          } else {
+            plot.data
+          }
+        } else if (input$brush$outputId == 'dimplot') {
+          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE)
+        } else if (input$brush$outputId == 'spatialplot') {
+          brushedPoints(df = plot.data, brush = InvertCoordinate(x = input$brush), allRows = TRUE)
+        }
+        plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
+          'selected_'
+        } else {
+          NULL
+        }
+      }
+    )
     # Set plots
     output$spatialplot <- renderPlot(
       expr = {
-        if (is.null(x = input$brush)) {
-          cells.selected <<- NULL
-        } else {
-          if (input$brush$outputId == 'dimplot') {
-            cells.selected <<- rownames(x = brushedPoints(
-              df = plot.data,
-              brush = input$brush
-            ))
-          } else if (input$brush$outputId == 'spatialplot') {
-            cells.selected <<- rownames(x = brushedPoints(
-              df = plot.data,
-              brush = InvertCoordinate(x = input$brush)
-            ))
-          }
-        }
-        if (!is.null(x = cells.selected)) {
-          plot.data[cells.selected, 'selected_'] <- TRUE
-        }
-        plot <- SingleSpatialPlot(
-          data = plot.data,
+        SingleSpatialPlot(
+          data = plot.env$data,
           image = object[[image]],
           col.by = group.by,
           pt.size.factor = 1.6,
           crop = TRUE,
-          alpha.by = cells.selected %iff% 'selected_'
-        ) + NoLegend()
-        if (!is.null(x = cells.selected)) {
-          plot <- plot + scale_alpha_ordinal(range = alpha)
-        }
-        plot
+          alpha.by = plot.env$alpha.by
+        ) + scale_alpha_ordinal(range = alpha) + NoLegend()
       }
     )
     output$dimplot <- renderPlot(
       expr = {
-        DimPlot(object = object) + NoLegend()
+        SingleDimPlot(
+          data = plot.env$data,
+          dims = dims,
+          col.by = group.by,
+          alpha.by = plot.env$alpha.by
+        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
       }
     )
     # Add hover text
@@ -627,6 +680,27 @@ GadgetDimPlot <- function(
           threshold = 10,
           maxpoints = 1
         ))
+        # if (length(x = cell.hover) == 1) {
+        #   palette <- hue_pal()(n = length(x = levels(x = object)))
+        #   group <- plot.data[cell.hover, group.by, drop = TRUE]
+        #   background <- palette[which(x = levels(x = object) == group)]
+        #   text <- unname(obj = BGTextColor(background = background))
+        #   style <- paste0(
+        #     paste(
+        #       paste('background-color:', background),
+        #       paste('color:', text),
+        #       sep = '; '
+        #     ),
+        #     ';'
+        #   )
+        #   info <- paste(cell.hover, paste('Group:', group), sep = '<br />')
+        # } else {
+        #   style <- 'background-color: white; color: black'
+        #   info <- NULL
+        # }
+        # HTML(text = paste0("<div style='", style, "'>", info, "</div>"))
+        # p(HTML(info), style = style)
+        # paste0('<div style="', style, '">', info, '</div>')
         # TODO: Get newlines, extra information, and background color working
         if (length(x = cell.hover) == 1) {
           paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
@@ -635,18 +709,26 @@ GadgetDimPlot <- function(
         }
       }
     )
-    # Handle events
-    observeEvent(
-      eventExpr = input$done,
-      handlerExpr = {
-        stopApp()
-        # stopApp(cells.selected)
-        # stopApp(input$brush)
-      }
-    )
   }
   # Run the thang
   runGadget(app = ui, server = server)
+}
+
+#' @importFrom shiny brushedPoints
+#
+ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0L)) {#}, selected = NULL) {
+  selected <- NULL
+  if (!is.null(x = brush)) {
+    if (brush$outputId %in% outputs) {
+      selected <- rownames(x = brushedPoints(df = plot.data, brush = brush))
+    } else if (brush$outputId %in% inverts) {
+      selected <- rownames(x = brushedPoints(
+        df = plot.data,
+        brush = InvertCoordinate(x = brush)
+      ))
+    }
+  }
+  return(selected)
 }
 
 #' @importFrom stats quantile
@@ -1938,6 +2020,51 @@ subset.SpatialImage <- function(x, cells, ...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Determine text color based on background color
+#'
+#' @param background A vector of background colors; supports R color names and
+#' hexadecimal codes
+#' @param threshold Intensity threshold for light/dark cutoff; intensities
+#' greater than \code{theshold} yield \code{dark}, others yield \code{light}
+#' @param w3c Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+#' background text color; ignores \code{threshold}
+#' @param dark Color for dark text
+#' @param light Color for light text
+#'
+#' @return A named vector of either \code{dark} or \code{light}, depending on
+#' \code{background}; names of vector are \code{background}
+#'
+#' @export
+#'
+#' @keywords color
+#' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
+#'
+#' @examples
+#' BGTextColor(background = c('black', 'white', '#E76BF3'))
+#'
+BGTextColor <- function(
+  background,
+  threshold = 186,
+  w3c = FALSE,
+  dark = 'black',
+  light = 'white'
+) {
+  if (w3c) {
+    luminance <- Luminance(color = background)
+    threshold <- 179
+    return(ifelse(
+      test = luminance > sqrt(x = 1.05 * 0.05) - 0.05,
+      yes = dark,
+      no = light
+    ))
+  }
+  return(ifelse(
+    test = Intensity(color = background) > threshold,
+    yes = dark,
+    no = light
+  ))
+}
+
 # Computes the metric at a given r (radius) value and stores in meta.features
 #
 # @param mv Results of running markvario
@@ -2165,6 +2292,72 @@ GGpointToPlotlyBuild <- function(
     plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
   }
   return(plot.build)
+}
+
+#' Get the intensity and/or luminance of a color
+#'
+#' @param color A vector of colors
+#'
+#' @return A vector of intensities/luminances for each color
+#'
+#' @name contrast-theory
+#' @rdname contrast-theory
+#'
+#' @importFrom grDevices col2rgb
+#'
+#' @export
+#'
+#' @keywords color
+#' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
+#'
+#' @examples
+#' Intensity(color = c('black', 'white', '#E76BF3'))
+#'
+Intensity <- function(color) {
+  intensities <- apply(
+    X = col2rgb(col = color),
+    MARGIN = 2,
+    FUN = function(col) {
+      col <- rbind(as.vector(x = col), c(0.299, 0.587, 0.114))
+      return(sum(apply(X = col, MARGIN = 2, FUN = prod)))
+    }
+  )
+  names(x = intensities) <- color
+  return(intensities)
+}
+
+#' @name contrast-theory
+#' @rdname contrast-theory
+#'
+#' @importFrom grDevices col2rgb
+#'
+#' @export
+#'
+#' @examples
+#' Luminance(color = c('black', 'white', '#E76BF3'))
+#'
+Luminance <- function(color) {
+  luminance <- apply(
+    X = col2rgb(col = color),
+    MARGIN = 2,
+    function(col) {
+      col <- as.vector(x = col) / 255
+      col <- sapply(
+        X = col,
+        FUN = function(x) {
+          return(ifelse(
+            test = x <= 0.03928,
+            yes = x / 12.92,
+            no = ((x + 0.055) / 1.055) ^ 2.4
+          ))
+        }
+      )
+      col <- rbind(col, c(0.2126, 0.7152, 0.0722))
+      return(sum(apply(X = col, MARGIN = 2, FUN = prod)))
+    }
+  )
+  names(x = luminance) <- color
+  return(luminance)
 }
 
 # Reimplementation of ggplot2 coord$transform
