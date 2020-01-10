@@ -523,6 +523,7 @@ RidgePlot <- function(
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
 #' @param split.by A variable to split the violin plots by,
+#' @param multi.group  plot each group of the split violin plots by multiple or single violin shapes
 #' see \code{\link{FetchData}} for more details
 #' @param adjust Adjust parameter for geom_violin
 #'
@@ -4636,19 +4637,6 @@ SingleExIPlot <- function(
         invisible(x = NULL)
       }
     },
-    # 'multiViolin' = {
-    #   x <- 'ident'
-    #   y <- paste0("`", feature, "`")
-    #   xlab <- 'Identity'
-    #   ylab <- axis.label
-    #   geom <- list(
-    #     vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
-    #     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    #   )
-    #   jitter <- geom_jitter(height = 0, size = pt.size)
-    #   log.scale <- scale_y_log10()
-    #   axis.scale <- ylim
-    # },
     stop("Unknown plot type: ", type)
   )
   plot <- ggplot(
