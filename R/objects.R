@@ -6098,7 +6098,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   }
   # Remove metadata for cells not present
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
-  # Recalcualte nCount and nFeature
+  # Recalculate nCount and nFeature
   for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
     n.calc <- CalcN(object = x[[assay]])
     if (!is.null(x = n.calc)) {
@@ -6106,28 +6106,9 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
       x[[names(x = n.calc)]] <- n.calc
     }
   }
-  # Filter metadata to keep nCount and nFeature for assays present
-  ncolumns <- grep(
-    pattern = '^nCount_|^nFeature_',
-    x = colnames(x = x[[]]),
-    value = TRUE
-  )
-  ncols.keep <- as.vector(x = outer(
-    X = c('nCount_', 'nFeature_'),
-    Y = FilterObjects(object = x, classes.keep = 'Assay'),
-    FUN = paste0
-  ))
-  ncols.keep <- paste(ncols.keep, collapse = '|')
-  ncols.remove <- grep(
-    pattern = ncols.keep,
-    x = ncolumns,
-    value = TRUE,
-    invert = TRUE
-  )
-  metadata.keep <- colnames(x = x[[]])[!colnames(x = x[[]]) %in% ncols.remove]
-  slot(object = x, name = 'meta.data') <- x[[metadata.keep]]
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
+  
   return(x)
 }
 
