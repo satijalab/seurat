@@ -1,11 +1,11 @@
-# Seurat v3.1.1
+# Seurat v3.1.2
 
 ## Test environments
-* local Ubuntu 16.04.6 and 18.04.2 installs, R 3.5.3
+* local Ubuntu 16.04.6 and 18.04.2 installs, R 3.6.1
 * Ubuntu 16.04.6 (on travis-ci), R 3.6.1
 * macOS 10.13.3 (on travis-ci), R 3.6.1
 * Windows Server 2012 R2 (on AppVeyor), R 3.6.1 Patched
-* win-builder (oldrelease, release, devel)
+* win-builder (oldrelease, release, devel, devel_gcc8)
 
 ## R CMD check results
 There were no ERRORs or WARNINGs
@@ -33,4 +33,6 @@ There were 3 NOTEs:
 
 ## Downstream dependencies
 
-There are three packages that suggest Seurat: BisqueRNA, clustreen, and iCellR; this update does not impact their functionality.
+There is one pacakge that imports Seurat: multicross; this update does not impact its functionality
+
+There are five packages that suggest Seurat: BisqueRNA, clustree, diem, iCellR, and Rmagic; this update does not impact their functionality.
