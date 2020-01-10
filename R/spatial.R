@@ -2062,6 +2062,23 @@ subset.VisiumV1 <- function(x, cells, ...) {
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+setMethod(
+  f = 'show',
+  signature = 'SpatialImage',
+  definition = function(object) {
+    object <- UpdateSlots(object = object)
+    cat(
+      "Spatial data from the",
+      class(x = object),
+      "technology for",
+      length(x = Cells(x = object)),
+      "samples\n"
+    )
+    cat("Associated assay:", DefaultAssay(object = object), "\n")
+    cat("Image key:", Key(object = object), "\n")
+  }
+)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
