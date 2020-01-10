@@ -15,6 +15,8 @@ ISpatialFeaturePlot(
 \arguments{
 \item{object}{Seurat object}
 
+\item{feature}{Feature to visualize}
+
 \item{image}{Name of the image to use in the plot}
 
 \item{slot}{Which slot to pull expression data from?}

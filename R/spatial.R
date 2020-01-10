@@ -511,7 +511,9 @@ Load10X_Spatial <- function(
 #' interactive framework
 #'
 #' @inheritParams DimPlot
+#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @param feature Feature to visualize
 #' @param image Name of the image to use in the plot
 #'
 #' @return Runs linked plot in a Shiny gadget session; does not return any value
@@ -713,6 +715,122 @@ GadgetDimPlot <- function(
     )
   }
   # Run the thang
+  runGadget(app = ui, server = server)
+}
+
+#' @rdname GadgetPlot
+#' @name GadgetPlot
+#'
+#' @aliases GadgetFeaturePlot
+#'
+#' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
+#' scale_color_gradientn
+#'
+#' @export
+#'
+GadgetFeaturePlot <- function(
+  object,
+  feature,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  slot = 'data',
+  alpha = c(0.3, 1)
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = 'GadgetDimPlot',
+      left = NULL
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'spatialplot',
+          height = '100%',
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+        ),
+        plotOutput(
+          outputId = 'dimplot',
+          height = '100%',
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Prepare plotting data
+  cols <- SpatialColors(n = 100)
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims <- dims[1:2]
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  group.data <- FetchData(
+    object = object,
+    vars = feature,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  plot.data <- cbind(coords, group.data, embeddings)
+  # Setup the server
+  server <- function(input, output, session) {
+    # Handle events
+    observeEvent(eventExpr = input$done, handlerExpr = stopApp())
+    # Set plots
+    output$spatialplot <- renderPlot(
+      expr = {
+        SingleSpatialPlot(
+          data = plot.data,
+          image = object[[image]],
+          col.by = feature,
+          pt.size.factor = 1.6,
+          crop = TRUE,
+          alpha.by = feature
+        ) +
+          scale_fill_gradientn(name = feature, colours = cols) +
+          theme(legend.position = 'top') +
+          scale_alpha(range = alpha) +
+          guides(alpha = FALSE)
+      }
+    )
+    output$dimplot <- renderPlot(
+      expr = {
+        SingleDimPlot(
+          data = plot.data,
+          dims = dims,
+          col.by = feature
+          # alpha.by = feature
+        ) +
+          scale_color_gradientn(name = feature, colours = cols, guide = 'colorbar') +
+          # scale_alpha(range = alpha) +
+          guides(alpha = FALSE)
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = if (is.null(x = input[['sphover']])) {
+            input$dimhover
+          } else {
+            InvertCoordinate(x = input$sphover)
+          },
+          threshold = 10,
+          maxpoints = 1
+        ))
+        # TODO: Get newlines, extra information, and background color working
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Expression:', plot.data[cell.hover, feature, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
   runGadget(app = ui, server = server)
 }
 

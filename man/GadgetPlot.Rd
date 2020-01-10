@@ -3,6 +3,7 @@
 \name{GadgetPlot}
 \alias{GadgetPlot}
 \alias{GadgetDimPlot}
+\alias{GadgetFeaturePlot}
 \title{Visualize spatial and clustering (dimensional reduction) data in a linked,
 interactive framework}
 \usage{
@@ -12,6 +13,16 @@ GadgetDimPlot(
   reduction = NULL,
   image = NULL,
   group.by = NULL,
+  alpha = c(0.3, 1)
+)
+
+GadgetFeaturePlot(
+  object,
+  feature,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  slot = "data",
   alpha = c(0.3, 1)
 )
 }
@@ -29,6 +40,10 @@ GadgetDimPlot(
 
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max}
+
+\item{feature}{Feature to visualize}
+
+\item{slot}{Which slot to pull expression data from?}
 }
 \value{
 Runs linked plot in a Shiny gadget session; does not return any value
