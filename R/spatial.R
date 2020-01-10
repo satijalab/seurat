@@ -2052,6 +2052,7 @@ subset.SpatialImage <- function(x, cells, ...) {
 #'
 subset.VisiumV1 <- function(x, cells, ...) {
   coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
+  cells <- cells[cells %in% rownames(x = coordinates)]
   coordinates <- coordinates[cells, ]
   slot(object = x, name = 'coordinates') <- coordinates
   return(x)
