@@ -2699,7 +2699,7 @@ HoverLocator <- function(
 #' @param box Use geom_label/geom_label_repel (includes a box around the text
 #' labels)
 #' @param position How to place the label if repel = FALSE. If "median", place
-#' the label at the median position. If "nearest" place the label at the 
+#' the label at the median position. If "nearest" place the label at the
 #' position of the nearest data point to the median.
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
@@ -2748,8 +2748,8 @@ LabelClusters <- function(
     pb <- ggplot_build(plot = plot)
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
-      # pretty hacky solution to learn the linear transform to put the data into 
-      # the rescaled coordinates when not cropping in. Probably a better way to 
+      # pretty hacky solution to learn the linear transform to put the data into
+      # the rescaled coordinates when not cropping in. Probably a better way to
       # do this via ggplot
       y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
@@ -4384,6 +4384,7 @@ SingleCorPlot <- function(
 # @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
 # (that can be pulled with FetchData) allowing for both different colors and different shapes on
 # cells.
+# @param alpha.by Mapping variable for the point alpha value
 # @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
 # points of interest are being buried. Provide either a full list of valid idents or a subset to be
 # plotted last (on top).
@@ -4413,6 +4414,7 @@ SingleDimPlot <- function(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha.by = NULL,
   order = NULL,
   label = FALSE,
   repel = FALSE,
@@ -4485,13 +4487,24 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
+  if (!is.null(x = alpha.by) && !alpha.by %in% colnames(x = data)) {
+    warning(
+      "Cannot find alpha variable ",
+      alpha.by,
+      " in data, setting to NULL",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    alpha.by <- NULL
+  }
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
         color = paste0("`", col.by, "`"),
-        shape = shape.by
+        shape = shape.by,
+        alpha = alpha.by
       ),
       size = pt.size
     ) +
