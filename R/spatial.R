@@ -1019,7 +1019,6 @@ ISpatialFeaturePlot <- function(
         yes = feature.use,
         no = features.assay[1]
       )
-      message(assay, feature.use, feature.use %in% features.assay)
       updateRadioButtons(
         session = session,
         inputId = 'slot',
