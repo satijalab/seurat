@@ -113,7 +113,8 @@ STARmap <- setClass(
   Class = 'STARmap',
   contains = 'SpatialImage',
   slots = list(
-    'coordinates' = 'data.frame'
+    'coordinates' = 'data.frame',
+    'qhulls' = 'data.frame'
   )
 )
 
@@ -282,6 +283,76 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
     )
   )
   return(slide.seq)
+}
+
+
+#' Load STARmap data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene name, qhull, and centroid files. 
+#' @param counts.file name of file containing the counts matrix (csv)
+#' @param gene.file name of file containing the gene names (csv)
+#' @param qhull.file name of file containing the hull coordinates (tsv)
+#' @param centroidlfile name of file containing the centroid positions (tsv)
+#' @param assay Name of assay to associate spatial data to
+#' @param image Name of "image" object storing spatial coordinates
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom utils read.csv read.table
+#'
+#' @seealso \code{\link{STARmap}}
+#'
+#' @export
+#'
+LoadSTARmap <- function(
+  data.dir, 
+  counts.file = "cell_barcode_count.csv", 
+  gene.file = "genes.csv",
+  qhull.file = "qhulls.tsv",
+  centroid.file = "centroids.tsv",
+  assay = "Spatial",
+  image = "image"
+) {
+  if (!dir.exists(paths = data.dir)) {
+    stop("Cannot find directory ", data.dir, call. = FALSE)
+  }
+  counts <- read.csv(
+    file = file.path(data.dir, counts.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  gene.names <- read.csv(
+    file = file.path(data.dir, gene.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  qhulls <- read.table(
+    file = file.path(data.dir, qhull.file),
+    sep = '\t',
+    col.names = c('cell', 'y', 'x'),
+    as.is = TRUE
+  )
+  centroids <- read.table(
+    file = file.path(data.dir, centroid.file),
+    sep = '\t',
+    as.is = TRUE,
+    col.names = c('y', 'x')
+  )
+  colnames(x = counts) <- gene.names[, 1]
+  rownames(x = counts) <- paste0('starmap', seq(1:nrow(x = counts)))
+  counts <- as.matrix(x = counts)
+  rownames(x = centroids) <- rownames(x = counts)
+  qhulls$cell <- paste0('starmap', qhulls$cell)
+  centroids <- as.matrix(x = centroids)
+  starmap <- CreateSeuratObject(counts = t(x = counts), assay = assay)
+  starmap[[image]] <- new(
+    Class = 'STARmap',
+    assay = assay,
+    coordinates = as.data.frame(x = centroids),
+    qhulls = qhulls
+  )
+  return(starmap)
 }
 
 #' Link two ggplot plots together
@@ -807,7 +878,7 @@ SingleSpatialPlot <- function(
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
-  geom = c('spatial', 'interactive'),
+  geom = c('spatial', 'interactive', 'poly'),
   na.value = 'grey50'
 ) {
   geom <- match.arg(arg = geom)
@@ -857,6 +928,20 @@ SingleSpatialPlot <- function(
         xlim(0, ncol(x = image)) +
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
+    },
+    'poly' = {
+      data$cell <- rownames(x = data)
+      data[, c('x', 'y')] <- NULL
+      data <- merge(
+        x = data, 
+        y = GetTissueCoordinates(object = image, qhulls = TRUE), 
+        by = "cell"
+      )
+      plot + geom_polygon(
+        data = data,
+        mapping = aes_string(fill = col.by, group = 'cell')
+      ) + coord_fixed() + theme_cowplot()
+        
     },
     stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )
@@ -1111,11 +1196,13 @@ SpatialPlot <- function(
         } else {
           NULL
         },
-        geom = ifelse(
-          test = do.hover || do.identify,
-          yes = 'interactive',
-          no = 'spatial'
-        ),
+        geom = if (do.hover || do.identify) {
+          'interactive'
+        } else if (inherits(x = image.use, what = "STARmap")) {
+          'poly'
+        } else {
+          'spatial'
+        },
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
@@ -1139,7 +1226,11 @@ SpatialPlot <- function(
             yes = features[j],
             no = 'highlight'
           ),
-          geom = 'GeomSpatial',
+          geom = if (inherits(x = image.use, what = "STARmap")) {
+            'GeomPolygon'
+          } else {
+            'GeomSpatial'
+          },
           repel = repel,
           size = label.size,
           color = label.color,
@@ -1309,7 +1400,7 @@ Cells.SpatialImage <- function(x) {
 #' @export
 #'
 Cells.STARmap <- function(x) {
-  .NotYetImplemented()
+  return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
 #' @rdname Cells
@@ -1609,11 +1700,15 @@ GetTissueCoordinates.SpatialImage <- function(object, ...) {
   )
 }
 
+#' @param qhulls return qhulls instead of centroids
 #' @method GetTissueCoordinates STARmap
 #' @export
 #'
-GetTissueCoordinates.STARmap <- function(object, ...) {
-  .NotYetImplemented()
+GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
+  if (qhulls) {
+    return(slot(object = object, name = 'qhulls'))
+  } 
+  return(slot(object = object, name = 'coordinates'))
 }
 
 #' @param scale A factor to scale the coordinates by; choose from: 'tissue',
@@ -1724,7 +1819,12 @@ RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
 #' @export
 #'
 RenameCells.STARmap <- function(object, new.names = NULL, ...) {
-  .NotYetImplemented()
+  names(x = new.names) <- Cells(x = object)
+  object <- RenameCells.VisiumV1(object = object, new.names = new.names)
+  qhulls <- GetTissueCoordinates(object = object, qhull = TRUE)
+  qhulls$cell <- new.names[qhulls$cell]
+  slot(object = object, name = "qhulls") <- qhulls
+  return(object)
 }
 
 #' @rdname RenameCells
@@ -1904,6 +2004,14 @@ dim.SpatialImage <- function(x) {
   )
 }
 
+dim.STARmap <- function(x) {
+  coords <- GetTissueCoordinates(object = x)
+  return(c(
+    max(coords[, 1]) - min(coords[, 1]), 
+    max(coords[, 2]) - min(coords[, 2])
+  ))
+}
+
 #' @method dim VisiumV1
 #' @export
 #'
@@ -1916,6 +2024,17 @@ dim.VisiumV1 <- function(x) {
 #'
 subset.SlideSeq <- function(x, cells, ...) {
   .NotYetImplemented()
+}
+
+#' @method subset STARmap
+#' @export
+#'
+subset.STARmap <- function(x, cells, ...) {
+  x <- subset.VisiumV1(x = x, cells = cells, ...)
+  qhulls <- GetTissueCoordinates(object = x, qhulls = TRUE)
+  qhulls <- qhulls[qhulls$cell %in% cells, ]
+  slot(object = x, name = 'qhulls') <- qhulls
+  return(x)
 }
 
 #' @rdname SpatialImage-class
