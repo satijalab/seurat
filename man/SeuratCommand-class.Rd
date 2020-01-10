@@ -15,6 +15,8 @@ The SeuratCommand is used for logging commands that are run on a SeuratObject. I
 
 \item{\code{time.stamp}}{Timestamp of when command was tun}
 
+\item{\code{assay.used}}{Optional name of assay used to generate \code{SeuratCommand} object}
+
 \item{\code{call.string}}{String of the command call}
 
 \item{\code{params}}{List of parameters used in the command call}

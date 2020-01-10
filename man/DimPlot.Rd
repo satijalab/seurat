@@ -8,12 +8,28 @@
 \alias{UMAPPlot}
 \title{Dimensional reduction plot}
 \usage{
-DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = NULL, reduction = NULL, group.by = NULL,
-  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
-  label.size = 4, repel = FALSE, cells.highlight = NULL,
-  cols.highlight = "#DE2D26", sizes.highlight = 1,
-  na.value = "grey50", combine = TRUE, ncol = NULL, ...)
+DimPlot(
+  object,
+  dims = c(1, 2),
+  cells = NULL,
+  cols = NULL,
+  pt.size = NULL,
+  reduction = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  shape.by = NULL,
+  order = NULL,
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  cells.highlight = NULL,
+  cols.highlight = "#DE2D26",
+  sizes.highlight = 1,
+  na.value = "grey50",
+  combine = TRUE,
+  ncol = NULL,
+  ...
+)
 
 PCAPlot(object, ...)
 
@@ -30,7 +46,8 @@ UMAPPlot(object, ...)
 
 \item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors}
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package. 
+See \code{\link{DiscretePalette}} for details.}
 
 \item{pt.size}{Adjust point size for plotting}
 

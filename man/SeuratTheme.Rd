@@ -19,8 +19,14 @@ SeuratTheme()
 
 DarkTheme(...)
 
-FontSize(x.text = NULL, y.text = NULL, x.title = NULL,
-  y.title = NULL, main = NULL, ...)
+FontSize(
+  x.text = NULL,
+  y.text = NULL,
+  x.title = NULL,
+  y.title = NULL,
+  main = NULL,
+  ...
+)
 
 NoAxes(..., keep.text = FALSE, keep.ticks = FALSE)
 

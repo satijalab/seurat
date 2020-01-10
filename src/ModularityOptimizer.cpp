@@ -244,7 +244,7 @@ std::vector<IVector> Network::getEdges() {
   std::vector<IVector> edge(2);
   edge[0].resize(nEdges);
   for(int i=0; i < nNodes; i++) {
-    std::fill(edge[0].begin() + firstNeighborIndex.at(i), edge[0].end() + firstNeighborIndex.at(i + 1), i);
+    std::fill(edge[0].begin() + firstNeighborIndex.at(i), edge[0].begin() + firstNeighborIndex.at(i + 1), i);
   }
   edge.at(1) = neighbor;
   return edge;
