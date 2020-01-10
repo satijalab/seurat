@@ -661,18 +661,18 @@ geom_spatial <-  function(
 #'
 #' Wraps the functionality of markvario from the spatstat package.
 #'
-#' @param spatial.location A 2 column matrix giving the spatial locations of 
+#' @param spatial.location A 2 column matrix giving the spatial locations of
 #' each of the data points also in data
 #' @param data Matrix containing the data used as "marks" (e.g. gene expression)
 #' @param ... Arguments passed to markvario
-#' 
+#'
 #' @importFrom spatstat markvario ppp
 #'
 #' @export
 #'
 RunMarkVario <- function(
-  spatial.location, 
-  data, 
+  spatial.location,
+  data,
   ...
 ) {
   pp <- ppp(
@@ -685,7 +685,7 @@ RunMarkVario <- function(
     chunks <- nbrOfWorkers()
     features <- rownames(x = data)
     features <- split(
-      x = features, 
+      x = features,
       f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
     )
     mv <- future_lapply(X = features, FUN = function(x) {
@@ -1262,7 +1262,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
+#' @export
 #'
 #'
 FindSpatiallyVariableFeatures.default <- function(
@@ -1286,11 +1286,11 @@ FindSpatiallyVariableFeatures.default <- function(
 }
 
 #' @param spatial.location
-#'  
+#'
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
-#' 
+#' @export
+#'
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
   slot = "scale.data",
@@ -1335,22 +1335,22 @@ FindSpatiallyVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @param object A Seurat object 
+#' @param object A Seurat object
 #' @param assay Assay to pull the features (marks) from
 #' @param slot Slot in the Assay to pull data from
-#' @param features If provided, only compute on given features. Otherwise, 
+#' @param features If provided, only compute on given features. Otherwise,
 #' compute for all features.
 #' @param image Name of image to pull the coordinates from
 #' @param selection.method Method for selecting spatially variable features.
-#' Only 'markvariogram' method is currently implemented. See 
-#' \code{\link{RunMarkVario}} for method. 
+#' Only 'markvariogram' method is currently implemented. See
+#' \code{\link{RunMarkVario}} for method.
 #' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
-#' 
+#'
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
-#' @export 
-#' 
+#' @export
+#'
 FindSpatiallyVariableFeatures.Seurat <- function(
   object,
   assay = NULL,
@@ -1746,6 +1746,23 @@ subset.SpatialImage <- function(x, cells, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setMethod(
+  f = 'show',
+  signature = 'SpatialImage',
+  definition = function(object) {
+    object <- UpdateSlots(object = object)
+    cat(
+      "Spatial data from the",
+      class(x = object),
+      "technology for",
+      length(x = Cells(x = object)),
+      "samples\n"
+    )
+    cat("Associated assay:", DefaultAssay(object = object), "\n")
+    cat("Image key:", Key(object = object), "\n")
+  }
+)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
