@@ -866,13 +866,13 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       matrix.loc <- addgz(s = matrix.loc)
     }
     if (!file.exists(barcode.loc)) {
-      stop("Barcode file missing")
+      stop("Barcode file missing. Expecting ", basename(path = barcode.loc))
     }
     if (!pre_ver_3 && !file.exists(features.loc) ) {
-      stop("Gene name or features file missing")
+      stop("Gene name or features file missing. Expecting ", basename(path = features.loc))
     }
     if (!file.exists(matrix.loc)) {
-      stop("Expression matrix file missing")
+      stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
