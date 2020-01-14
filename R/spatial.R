@@ -1885,7 +1885,7 @@ Cells.VisiumV1 <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
-#' @param x,object An inheriting from \code{SpatialImage}
+#' @param x,object An object inheriting from \code{SpatialImage}
 #'
 #' @rdname SpatialImage-class
 #' @name SpatialImage-class
