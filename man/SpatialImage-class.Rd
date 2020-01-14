@@ -28,7 +28,7 @@
 \method{subset}{SpatialImage}(x, cells, ...)
 }
 \arguments{
-\item{x, object}{An inheriting from \code{SpatialImage}}
+\item{x, object}{An object inheriting from \code{SpatialImage}}
 
 \item{mode}{How to return the image; should accept one of 'grob', 'raster',
 'plotly', or 'raw'}
