@@ -516,7 +516,8 @@ Load10X_Spatial <- function(
 #' @param feature Feature to visualize
 #' @param image Name of the image to use in the plot
 #'
-#' @return Runs linked plot in a Shiny gadget session; does not return any value
+#' @return Returns final plots. If \code{combine}, plots are stiched together
+#' using \code{\link{CombinePlots}}; otherwise, returns a list of ggplot objects
 #'
 #' @rdname GadgetPlot
 #' @name GadgetPlot
@@ -538,7 +539,8 @@ GadgetDimPlot <- function(
   reduction = NULL,
   image = NULL,
   group.by = NULL,
-  alpha = c(0.3, 1)
+  alpha = c(0.3, 1),
+  combine = TRUE
 ) {
   # Setup gadget UI
   ui <- miniPage(
@@ -589,7 +591,16 @@ GadgetDimPlot <- function(
     click <- reactiveValues(pt = NULL, invert = FALSE)
     plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
     # Handle events
-    observeEvent(eventExpr = input$done, handlerExpr = stopApp())
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        plots <- list(plot.env$spatialplot, plot.env$dimplot)
+        if (combine) {
+          plots <- CombinePlots(plots = plots, ncol = 2)
+        }
+        stopApp(returnValue = plots)
+      }
+    )
     observeEvent(
       eventExpr = input$reset,
       handlerExpr = {
@@ -651,7 +662,7 @@ GadgetDimPlot <- function(
     # Set plots
     output$spatialplot <- renderPlot(
       expr = {
-        SingleSpatialPlot(
+        plot.env$spatialplot <- SingleSpatialPlot(
           data = plot.env$data,
           image = object[[image]],
           col.by = group.by,
@@ -659,16 +670,18 @@ GadgetDimPlot <- function(
           crop = TRUE,
           alpha.by = plot.env$alpha.by
         ) + scale_alpha_ordinal(range = alpha) + NoLegend()
+        plot.env$spatialplot
       }
     )
     output$dimplot <- renderPlot(
       expr = {
-        SingleDimPlot(
+        plot.env$dimplot <- SingleDimPlot(
           data = plot.env$data,
           dims = dims,
           col.by = group.by,
           alpha.by = plot.env$alpha.by
         ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
+        plot.env$dimplot
       }
     )
     # Add hover text
@@ -735,7 +748,8 @@ GadgetFeaturePlot <- function(
   reduction = NULL,
   image = NULL,
   slot = 'data',
-  alpha = c(0.3, 1)
+  alpha = c(0.3, 1),
+  combine = TRUE
 ) {
   # Setup gadget UI
   ui <- miniPage(
@@ -777,12 +791,22 @@ GadgetFeaturePlot <- function(
   plot.data <- cbind(coords, group.data, embeddings)
   # Setup the server
   server <- function(input, output, session) {
+    plot.env <- reactiveValues()
     # Handle events
-    observeEvent(eventExpr = input$done, handlerExpr = stopApp())
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        plots <- list(plot.env$spatialplot, plot.env$dimplot)
+        if (combine) {
+          plots <- CombinePlots(plots = plots, ncol = 2)
+        }
+        stopApp(returnValue = plots)
+      }
+    )
     # Set plots
     output$spatialplot <- renderPlot(
       expr = {
-        SingleSpatialPlot(
+        plot.env$spatialplot <- SingleSpatialPlot(
           data = plot.data,
           image = object[[image]],
           col.by = feature,
@@ -794,11 +818,12 @@ GadgetFeaturePlot <- function(
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
           guides(alpha = FALSE)
+        plot.env$spatialplot
       }
     )
     output$dimplot <- renderPlot(
       expr = {
-        SingleDimPlot(
+        plot.env$dimplot <- SingleDimPlot(
           data = plot.data,
           dims = dims,
           col.by = feature
@@ -807,6 +832,7 @@ GadgetFeaturePlot <- function(
           scale_color_gradientn(name = feature, colours = cols, guide = 'colorbar') +
           # scale_alpha(range = alpha) +
           guides(alpha = FALSE)
+        plot.env$dimplot
       }
     )
     # Add hover text
@@ -840,8 +866,7 @@ GadgetFeaturePlot <- function(
 #' @inheritParams SpatialPlot
 #' @inheritParams GadgetPlot
 #'
-#' @return Runs an interactive spatial feature plot in a Shiny gadget session;
-#' does not return any value
+#' @return Returns final plot as a ggplot object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
 #' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton
@@ -961,7 +986,6 @@ ISpatialFeaturePlot <- function(
         )
       ),
       selected = 'Visualize'
-      # selected = 'Parameters'
     )
   )
   # Prepare plotting data
@@ -982,7 +1006,10 @@ ISpatialFeaturePlot <- function(
       feature = feature
     )
     # Observe events
-    observeEvent(eventExpr = input$done, handlerExpr = stopApp())
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
     observe(x = {
       assay <- input$assay
       slot.use <- input$slot
@@ -1059,7 +1086,7 @@ ISpatialFeaturePlot <- function(
     })
     # Create plot
     output$plot <- renderPlot(expr = {
-      SingleSpatialPlot(
+      plot.env$plot <- SingleSpatialPlot(
         data = plot.env$data,
         image = object[[image]],
         col.by = plot.env$feature,
@@ -1071,6 +1098,7 @@ ISpatialFeaturePlot <- function(
         theme(legend.position = 'top') +
         scale_alpha(range = c(input$alpha, 1)) +
         guides(alpha = FALSE)
+      plot.env$plot
     })
   }
   runGadget(app = ui, server = server)

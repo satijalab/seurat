@@ -13,7 +13,8 @@ GadgetDimPlot(
   reduction = NULL,
   image = NULL,
   group.by = NULL,
-  alpha = c(0.3, 1)
+  alpha = c(0.3, 1),
+  combine = TRUE
 )
 
 GadgetFeaturePlot(
@@ -23,7 +24,8 @@ GadgetFeaturePlot(
   reduction = NULL,
   image = NULL,
   slot = "data",
-  alpha = c(0.3, 1)
+  alpha = c(0.3, 1),
+  combine = TRUE
 )
 }
 \arguments{
@@ -41,12 +43,15 @@ GadgetFeaturePlot(
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max}
 
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
 \item{feature}{Feature to visualize}
 
 \item{slot}{Which slot to pull expression data from?}
 }
 \value{
-Runs linked plot in a Shiny gadget session; does not return any value
+Returns final plots. If \code{combine}, plots are stiched together
+using \code{\link{CombinePlots}}; otherwise, returns a list of ggplot objects
 }
 \description{
 Visualize spatial and clustering (dimensional reduction) data in a linked,

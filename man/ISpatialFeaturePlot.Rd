@@ -25,8 +25,7 @@ ISpatialFeaturePlot(
 min and max}
 }
 \value{
-Runs an interactive spatial feature plot in a Shiny gadget session;
-does not return any value
+Returns final plot as a ggplot object
 }
 \description{
 Visualize features spatially and interactively
