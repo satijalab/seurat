@@ -715,12 +715,22 @@ RunLeiden <- function(
   }
   switch(
     EXPR = method,
-    "matrix" = input <- as(object = object, Class = "matrix"),
+    "matrix" = {
+      input <- as(object = object, Class = "matrix")
+      },
     "igraph" = {
       input <- if (inherits(x = object, what = 'list')) {
-        graph_from_adj_list(adjlist = object)
+        if(is.null(weights)){
+          graph_from_adj_list(adjlist = object)
+        } else {
+          graph_from_adj_list(adjlist = object, weighted = TRUE)
+        }
       } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
-        graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
+        if(is.null(weights)){
+          graph_from_adjacency_matrix(adjmatrix = object)
+        } else {
+          graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
+        }
       } else if (inherits(x = object, what = 'igraph')) {
         object
       } else {

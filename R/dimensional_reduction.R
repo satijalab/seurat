@@ -1456,7 +1456,7 @@ RunUMAP.Seurat <- function(
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
   if (!is.null(x = features)) {
-    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ]))
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
