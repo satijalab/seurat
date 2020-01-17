@@ -1495,6 +1495,20 @@ UpdateSeuratObject <- function(object) {
         meta.data = object@meta.data,
         tools = list()
       )
+      # Run CalcN
+      for (assay in Assays(object = object)) {
+        n.calc <- CalcN(object = object[[assay]])
+        if (!is.null(x = n.calc)) {
+          names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+          object[[names(x = n.calc)]] <- n.calc
+        }
+        to.remove <- c("nGene", "nUMI")
+        for (i in to.remove) {
+          if (i %in% colnames(x = object[[]])) {
+            object[[i]] <- NULL
+          }
+        }
+      }
     }
     if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
