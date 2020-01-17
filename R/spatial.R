@@ -737,7 +737,7 @@ GadgetDimPlot <- function(
 #' @aliases GadgetFeaturePlot
 #'
 #' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
-#' scale_color_gradientn
+#' scale_color_gradientn guide_colorbar
 #'
 #' @export
 #'
@@ -827,11 +827,9 @@ GadgetFeaturePlot <- function(
           data = plot.data,
           dims = dims,
           col.by = feature
-          # alpha.by = feature
         ) +
           scale_color_gradientn(name = feature, colours = cols, guide = 'colorbar') +
-          # scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(color = guide_colorbar())
         plot.env$dimplot
       }
     )
