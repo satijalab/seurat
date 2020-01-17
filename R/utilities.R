@@ -1913,7 +1913,7 @@ Which <- function(
 ) {
   cmd <- ifelse(
     test = .Platform$OS.type == 'windows',
-    yes = 'where',
+    yes = 'where.exe',
     no = 'which'
   )
   if (add.exe) {
