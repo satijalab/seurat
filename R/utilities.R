@@ -1906,7 +1906,7 @@ ToNumeric <- function(x){
 #
 #' @importFrom tools file_ext
 #
-Which <- function(
+SysExec <- function(
   progs,
   error = ifelse(test = length(x = progs) == 1, yes = TRUE, no = FALSE),
   add.exe = .Platform$OS.type == 'windows'

@@ -1704,7 +1704,7 @@ fftRtsne <- function(X,
   }
   if (is.null(x = fast_tsne_path)) {
     # suppressWarnings(expr = fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE))
-    fast_tsne_path <- Which(progs = ifelse(
+    fast_tsne_path <- SysExec(progs = ifelse(
       test = .Platform$OS.type == 'windows',
       yes = 'FItSNE.exe',
       no = 'fast_tsne'
