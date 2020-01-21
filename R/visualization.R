@@ -1425,12 +1425,17 @@ FeatureScatter <- function(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
-  slot = 'data'
+  slot = 'data',
+  split.by = NULL
 ) {
   cells <- cells %||% colnames(x = object)
   group.by <- group.by %||% Idents(object = object)[cells]
+  split.by <- split.by %||% Idents(object = object)[cells]
   if (length(x = group.by) == 1) {
     group.by <- object[[]][, group.by]
+  }
+  if (length(x = split.by) == 1) {
+    split.by <- object[[]][, split.by]
   }
   plot <- SingleCorPlot(
     data = FetchData(
@@ -1446,6 +1451,7 @@ FeatureScatter <- function(
     legend.title = 'Identity',
     span = span
   )
+  plot <- plot + facet_grid(. ~split.by)
   return(plot)
 }
 
