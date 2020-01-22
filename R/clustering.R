@@ -720,13 +720,13 @@ RunLeiden <- function(
       },
     "igraph" = {
       input <- if (inherits(x = object, what = 'list')) {
-        if(is.null(weights)){
+        if (is.null(x = weights)) {
           graph_from_adj_list(adjlist = object)
         } else {
           graph_from_adj_list(adjlist = object, weighted = TRUE)
         }
       } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
-        if(is.null(weights)){
+        if (is.null(x = weights)) {
           graph_from_adjacency_matrix(adjmatrix = object)
         } else {
           graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
