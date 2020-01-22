@@ -1894,3 +1894,49 @@ ToNumeric <- function(x){
   }
   return(x)
 }
+
+# Get program paths in a system-agnostic way
+#
+# @param progs A vector of program names
+# @param error Throw an error if any programs are not found
+# @param add.exe Add '.exe' extension to program names that don't have it
+#
+# @return A named vector of program paths; missing programs are returned as
+# \code{NA} if \code{error = FALSE}
+#
+#' @importFrom tools file_ext
+#
+SysExec <- function(
+  progs,
+  error = ifelse(test = length(x = progs) == 1, yes = TRUE, no = FALSE),
+  add.exe = .Platform$OS.type == 'windows'
+) {
+  cmd <- ifelse(
+    test = .Platform$OS.type == 'windows',
+    yes = 'where.exe',
+    no = 'which'
+  )
+  if (add.exe) {
+    missing.exe <- file_ext(x = progs) != 'exe'
+    progs[missing.exe] <- paste0(progs[missing.exe], '.exe')
+  }
+  paths <- sapply(
+    X = progs,
+    FUN = function(x) {
+      return(tryCatch(
+        expr = system2(command = cmd, args = x, stdout = TRUE)[1],
+        warning = function(...) {
+          return(NA_character_)
+        }
+      ))
+    }
+  )
+  if (error && any(is.na(x = paths))) {
+    stop(
+      "Could not find the following programs: ",
+      paste(names(x = paths[is.na(x = paths)]), collapse = ', '),
+      call. = FALSE
+    )
+  }
+  return(paths)
+}
