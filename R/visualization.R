@@ -1399,6 +1399,7 @@ CellScatter <- function(
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
+#' @param split.by Name of a metadata column to split plot by;
 #' @param shape.by Ignored for now
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
@@ -1407,6 +1408,9 @@ CellScatter <- function(
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom rlang !!
+#' @importFrom ggplot2 facet_wrap vars sym
+#' @importFrom ggplot2 facet_grid
 #' @export
 #'
 #' @aliases GenePlot
@@ -1451,7 +1455,8 @@ FeatureScatter <- function(
     legend.title = 'Identity',
     span = span
   )
-  plot <- plot + facet_grid(. ~split.by)
+  split <- factor(split.by)
+  plot <- plot + facet_grid(. ~split)
   return(plot)
 }
 
