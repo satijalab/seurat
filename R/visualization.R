@@ -1411,6 +1411,8 @@ CellScatter <- function(
 #' @importFrom rlang !!
 #' @importFrom ggplot2 facet_wrap vars sym
 #' @importFrom ggplot2 facet_grid
+#' @importFrom dplyr
+#' @importFrom tidyverse
 #' @export
 #'
 #' @aliases GenePlot
@@ -1432,32 +1434,43 @@ FeatureScatter <- function(
   slot = 'data',
   split.by = NULL
 ) {
-  cells <- cells %||% colnames(x = object)
-  group.by <- group.by %||% Idents(object = object)[cells]
-  split.by <- split.by %||% Idents(object = object)[cells]
-  if (length(x = group.by) == 1) {
-    group.by <- object[[]][, group.by]
-  }
-  if (length(x = split.by) == 1) {
-    split.by <- object[[]][, split.by]
-  }
-  plot <- SingleCorPlot(
-    data = FetchData(
-      object = object,
-      vars = c(feature1, feature2),
-      cells = cells,
-      slot = slot
-    ),
-    col.by = group.by,
-    cols = cols,
-    pt.size = pt.size,
-    smooth = smooth,
-    legend.title = 'Identity',
-    span = span
-  )
-  split <- factor(split.by)
-  plot <- plot + facet_grid(. ~split)
-  return(plot)
+    if(is.null(x = split.by)) {
+     cells <- cells %||% colnames(x = object)
+     group.by <- group.by %||% Idents(object = object)[cells]
+     if (length(x = group.by) == 1) {
+         group.by <- object[[]][, group.by]
+     }
+     plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, 
+         feature2), cells = cells, slot = slot), col.by = group.by, 
+         cols = cols, pt.size = pt.size, smooth = smooth, legend.title = "Identity")
+     if (!is.null(x = span)) {
+         plot <- plot + geom_smooth(mapping = aes_string(x = feature1, 
+             y = feature2), method = "loess", span = span)
+     }
+      return(plot)
+     }
+     if(!is.null(x = split.by)) {
+      cells <- cells %||% colnames(x = object)
+      group.by <- group.by %||% Idents(object = object)[cells]
+      split.by <- split.by %||% Idents(object = object)[cells]
+      if (length(x = group.by) == 1) {
+          group.by <- object[[]][, group.by]
+      }
+      if (length(x = split.by) == 1) {
+          split.by <- object[[]][, split.by]
+      }
+      data <- as.data.frame(data)
+      data$split <- split.by
+      plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, feature2), cells = cells, slot = slot), col.by = group.by, 
+          cols = cols, pt.size = pt.size, smooth = smooth, legend.title = "Identity")
+      if (!is.null(x = span)) {
+          plot <- plot + geom_smooth(mapping = aes_string(x = feature1, 
+            y = feature2), method = "loess", span = span)
+      }
+      plot <- plot + facet_grid(. ~data$split)
+             
+      return(plot)
+     }
 }
 
 #' View variable features
