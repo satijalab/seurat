@@ -1391,7 +1391,7 @@ Cells.SlideSeq <- function(x) {
 #'
 Cells.SpatialImage <- function(x) {
   stop(
-    "'Cells' must be overridden for all subclasses of 'SpatialImage'",
+    "'Cells' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
@@ -1600,7 +1600,7 @@ GetImage.SpatialImage <- function(
 ) {
   mode <- match.arg(arg = mode)
   stop(
-    "'GetImage' must be overridden for all sublcasses of 'SpatialImage'",
+    "'GetImage' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
@@ -1695,7 +1695,7 @@ GetTissueCoordinates.SlideSeq <- function(object, ...) {
 #'
 GetTissueCoordinates.SpatialImage <- function(object, ...) {
   stop(
-    "'GetTissueCoordinates' must be overridden for all sublcasses of 'SpatialImage'",
+    "'GetTissueCoordinates' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
@@ -1810,7 +1810,7 @@ RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
 #'
 RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
   stop(
-    "'RenameCells' must be overwritten for all subclasses of 'SpatialImage'",
+    "'RenameCells' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
@@ -1971,7 +1971,7 @@ SVFInfo.Seurat <- function(
 #'
 "[.SpatialImage" <- function(x, i, ...) {
   stop(
-    "'[' must be overwritten for all subclasses of 'SpatialImage'",
+    "'[' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
@@ -1999,7 +1999,7 @@ dim.SlideSeq <- function(x) {
 #'
 dim.SpatialImage <- function(x) {
   stop(
-    "'dim' must be overwritten for all subclasses of 'SpatialImage'",
+    "'dim' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
@@ -2023,7 +2023,8 @@ dim.VisiumV1 <- function(x) {
 #' @export
 #'
 subset.SlideSeq <- function(x, cells, ...) {
-  .NotYetImplemented()
+  x <- subset.VisiumV1(x = x, cells = cells, ...)
+  return(x)
 }
 
 #' @method subset STARmap
@@ -2044,7 +2045,7 @@ subset.STARmap <- function(x, cells, ...) {
 #' @export
 #'
 subset.SpatialImage <- function(x, cells, ...) {
-  stop("'subset' must be overwritten for all subclasses of 'SpatialImage'")
+  stop("'subset' must be implemented for all subclasses of 'SpatialImage'")
 }
 
 #' @method subset VisiumV1
