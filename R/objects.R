@@ -1505,6 +1505,20 @@ UpdateSeuratObject <- function(object) {
         meta.data = object@meta.data,
         tools = list()
       )
+      # Run CalcN
+      for (assay in Assays(object = object)) {
+        n.calc <- CalcN(object = object[[assay]])
+        if (!is.null(x = n.calc)) {
+          names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+          object[[names(x = n.calc)]] <- n.calc
+        }
+        to.remove <- c("nGene", "nUMI")
+        for (i in to.remove) {
+          if (i %in% colnames(x = object[[]])) {
+            object[[i]] <- NULL
+          }
+        }
+      }
     }
     if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
@@ -6225,7 +6239,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   }
   # Remove metadata for cells not present
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
-  # Recalcualte nCount and nFeature
+  # Recalculate nCount and nFeature
   for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
     n.calc <- CalcN(object = x[[assay]])
     if (!is.null(x = n.calc)) {
@@ -6233,26 +6247,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
       x[[names(x = n.calc)]] <- n.calc
     }
   }
-  # Filter metadata to keep nCount and nFeature for assays present
-  ncolumns <- grep(
-    pattern = '^nCount_|^nFeature_',
-    x = colnames(x = x[[]]),
-    value = TRUE
-  )
-  ncols.keep <- as.vector(x = outer(
-    X = c('nCount_', 'nFeature_'),
-    Y = FilterObjects(object = x, classes.keep = 'Assay'),
-    FUN = paste0
-  ))
-  ncols.keep <- paste(ncols.keep, collapse = '|')
-  ncols.remove <- grep(
-    pattern = ncols.keep,
-    x = ncolumns,
-    value = TRUE,
-    invert = TRUE
-  )
-  metadata.keep <- colnames(x = x[[]])[!colnames(x = x[[]]) %in% ncols.remove]
-  slot(object = x, name = 'meta.data') <- x[[metadata.keep]]
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   # subset images
@@ -6477,7 +6471,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SlotImage')) && !all(Cells(x = value) == Cells(x = x))) {
+      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names

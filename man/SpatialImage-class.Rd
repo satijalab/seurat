@@ -7,6 +7,7 @@
 \alias{Cells.SpatialImage}
 \alias{GetImage.SpatialImage}
 \alias{GetTissueCoordinates.SpatialImage}
+\alias{Radius.SpatialImage}
 \alias{RenameCells.SpatialImage}
 \alias{[.SpatialImage}
 \alias{dim.SpatialImage}
@@ -18,6 +19,8 @@
 \method{GetImage}{SpatialImage}(object, mode = c("grob", "raster", "plotly", "raw"), ...)
 
 \method{GetTissueCoordinates}{SpatialImage}(object, ...)
+
+\method{Radius}{SpatialImage}(object)
 
 \method{RenameCells}{SpatialImage}(object, new.names = NULL, ...)
 
@@ -62,6 +65,8 @@ overwritten without careful thought
   \item \code{\link{DefaultAssay}} and \code{\link{DefaultAssay<-}}
   \item \code{\link{Key}} and \code{\link{Key<-}}
   \item \code{\link{IsGlobal}}
+  \item \code{\link{Radius}}; this method \emph{can} be overridden to provide
+  a spot radius for image objects
 }
 }
 
@@ -72,11 +77,13 @@ simply relying on the \code{SpatialImage} method will result in errors. For requ
 parameters and their values, see the \code{Usage} and \code{Arguments} sections
 \describe{
   \item{\code{\link{Cells}}}{Return the cell/spot barcodes associated with each position}
-  \item{\code{\link{dim}}}{...}
+  \item{\code{\link{dim}}}{Return the dimensions of the image for plotting in \code{(Y, X)} format}
   \item{\code{\link{GetImage}}}{Return image data; by default, must return a grob object}
   \item{\code{\link{GetTissueCoordinates}}}{Return tissue coordinates; by default,
   must return a two-column data.frame with x-coordinates in the first column and y-coordiantes
   in the second}
+  \item{\code{\link{Radius}}}{Return the spot radius; returns \code{NULL} by
+  default for use with non-spot image technologies}
   \item{\code{\link{RenameCells}}}{Rename the cell/spot barcodes for this image}
   \item{\code{\link{subset}} and \code{[}}{Subset the image data by cells/spots;
   \code{[} should only take \code{i} for subsetting by cells/spots}

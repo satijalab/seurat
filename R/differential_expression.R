@@ -437,7 +437,7 @@ FindConservedMarkers <- function(
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #'
-#' @importFrom Matrix rowSums
+#' @importFrom Matrix rowSums rowMeans
 #' @importFrom stats p.adjust
 #'
 #' @rdname FindMarkers
@@ -540,25 +540,18 @@ FindMarkers.default <- function(
     switch(
       EXPR = slot,
       'data' = function(x) {
-        return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
       },
       function(x) {
-        return(log(x = mean(x = x) + pseudocount.use))
+        return(log(x = rowMeans(x = x) + pseudocount.use))
       }
     )
   } else {
-    mean
+    rowMeans
   }
-  data.1 <- apply(
-    X = data[features, cells.1, drop = FALSE],
-    MARGIN = 1,
-    FUN = mean.fxn
-  )
-  data.2 <- apply(
-    X = data[features, cells.2, drop = FALSE],
-    MARGIN = 1,
-    FUN = mean.fxn
-  )
+  data.1 <- mean.fxn(data[features, cells.1, drop = FALSE])
+  data.2 <- mean.fxn(data[features, cells.2, drop = FALSE])
+
   total.diff <- (data.1 - data.2)
   if (is.null(x = reduction) && slot != "scale.data") {
     features.diff <- if (only.pos) {
