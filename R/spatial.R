@@ -49,6 +49,8 @@ setOldClass(Classes = c('scalefactors'))
 #'   \item \code{\link{DefaultAssay}} and \code{\link{DefaultAssay<-}}
 #'   \item \code{\link{Key}} and \code{\link{Key<-}}
 #'   \item \code{\link{IsGlobal}}
+#'   \item \code{\link{Radius}}; this method \emph{can} be overridden to provide
+#'   a spot radius for image objects
 #' }
 #'
 #' @section Required methods:
@@ -57,11 +59,13 @@ setOldClass(Classes = c('scalefactors'))
 #' parameters and their values, see the \code{Usage} and \code{Arguments} sections
 #' \describe{
 #'   \item{\code{\link{Cells}}}{Return the cell/spot barcodes associated with each position}
-#'   \item{\code{\link{dim}}}{...}
+#'   \item{\code{\link{dim}}}{Return the dimensions of the image for plotting in \code{(Y, X)} format}
 #'   \item{\code{\link{GetImage}}}{Return image data; by default, must return a grob object}
 #'   \item{\code{\link{GetTissueCoordinates}}}{Return tissue coordinates; by default,
 #'   must return a two-column data.frame with x-coordinates in the first column and y-coordiantes
 #'   in the second}
+#'   \item{\code{\link{Radius}}}{Return the spot radius; returns \code{NULL} by
+#'   default for use with non-spot image technologies}
 #'   \item{\code{\link{RenameCells}}}{Rename the cell/spot barcodes for this image}
 #'   \item{\code{\link{subset}} and \code{[}}{Subset the image data by cells/spots;
 #'   \code{[} should only take \code{i} for subsetting by cells/spots}
@@ -79,6 +83,38 @@ SpatialImage <- setClass(
   slots = list(
     'assay' = 'character',
     'key' = 'character'
+  )
+)
+
+#' The SlideSeq class
+#'
+#' The SlideSeq class represents spatial information from the Slide-seq platform
+#'
+#' @inheritSection SpatialImage Slots
+#' @slot coordinates ...
+#' @slot ...
+#'
+SlideSeq <- setClass(
+  Class = 'SlideSeq',
+  contains = 'SpatialImage',
+  slots = list(
+    'coordinates' = 'data.frame'
+  )
+)
+
+#' The STARmap class
+#'
+#' The STARmap class represents spatial information from the STARmap platform
+#'
+#' @inheritSection SpatialImage Slots
+#' @slot ...
+#'
+STARmap <- setClass(
+  Class = 'STARmap',
+  contains = 'SpatialImage',
+  slots = list(
+    'coordinates' = 'data.frame',
+    'qhulls' = 'data.frame'
   )
 )
 
@@ -217,6 +253,106 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
     coordinates = tissue.positions,
     spot.radius = spot.radius
   ))
+}
+
+#' Load Slide-seq spatial data
+#'
+#' @param coord.file Path to csv file containing bead coordinate positions
+#' @param assay Name of assay to associate image to
+#'
+#' @return A \code{\link{SlideSeq}} object
+#'
+#' @importFrom utils read.csv
+#'
+#' @seealso \code{\link{SlideSeq}}
+#'
+#' @export
+#'
+ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
+  if (!file.exists(paths = coord.file)) {
+    stop("Cannot find coord file ", coord.file, call. = FALSE)
+  }
+  slide.seq <- new(
+    Class = 'SlideSeq',
+    assay = assay,
+    coordinates = read.csv(
+      file = coord.file,
+      header = TRUE,
+      as.is = TRUE,
+      row.names = 1
+    )
+  )
+  return(slide.seq)
+}
+
+
+#' Load STARmap data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene name, qhull, and centroid files. 
+#' @param counts.file name of file containing the counts matrix (csv)
+#' @param gene.file name of file containing the gene names (csv)
+#' @param qhull.file name of file containing the hull coordinates (tsv)
+#' @param centroidlfile name of file containing the centroid positions (tsv)
+#' @param assay Name of assay to associate spatial data to
+#' @param image Name of "image" object storing spatial coordinates
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom utils read.csv read.table
+#'
+#' @seealso \code{\link{STARmap}}
+#'
+#' @export
+#'
+LoadSTARmap <- function(
+  data.dir, 
+  counts.file = "cell_barcode_count.csv", 
+  gene.file = "genes.csv",
+  qhull.file = "qhulls.tsv",
+  centroid.file = "centroids.tsv",
+  assay = "Spatial",
+  image = "image"
+) {
+  if (!dir.exists(paths = data.dir)) {
+    stop("Cannot find directory ", data.dir, call. = FALSE)
+  }
+  counts <- read.csv(
+    file = file.path(data.dir, counts.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  gene.names <- read.csv(
+    file = file.path(data.dir, gene.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  qhulls <- read.table(
+    file = file.path(data.dir, qhull.file),
+    sep = '\t',
+    col.names = c('cell', 'y', 'x'),
+    as.is = TRUE
+  )
+  centroids <- read.table(
+    file = file.path(data.dir, centroid.file),
+    sep = '\t',
+    as.is = TRUE,
+    col.names = c('y', 'x')
+  )
+  colnames(x = counts) <- gene.names[, 1]
+  rownames(x = counts) <- paste0('starmap', seq(1:nrow(x = counts)))
+  counts <- as.matrix(x = counts)
+  rownames(x = centroids) <- rownames(x = counts)
+  qhulls$cell <- paste0('starmap', qhulls$cell)
+  centroids <- as.matrix(x = centroids)
+  starmap <- CreateSeuratObject(counts = t(x = counts), assay = assay)
+  starmap[[image]] <- new(
+    Class = 'STARmap',
+    assay = assay,
+    coordinates = as.data.frame(x = centroids),
+    qhulls = qhulls
+  )
+  return(starmap)
 }
 
 #' Link two ggplot plots together
@@ -586,16 +722,15 @@ GeomSpatial <- ggproto(
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
-
-    z = coord$transform(
+    z <- coord$transform(
       data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
       panel_scales
     )
     # Flip Y axis for image
-    z$y = -rev(z$y) + 1
-    wdth = z$x[2] - z$x[1]
-    hgth = z$y[2] - z$y[1]
-    vp <- grid::viewport(
+    z$y <- -rev(z$y) + 1
+    wdth <- z$x[2] - z$x[1]
+    hgth <- z$y[2] - z$y[1]
+    vp <- viewport(
       x = unit(x = z$x[1], units = "npc"),
       y = unit(x = z$y[1], units = "npc"),
       width = unit(x = wdth, units = "npc"),
@@ -604,7 +739,8 @@ GeomSpatial <- ggproto(
     )
     img.grob <- GetImage(object = image)
     img <- editGrob(grob = img.grob, vp = vp)
-    spot.size <- slot(object = image, name = "spot.radius")
+    # spot.size <- slot(object = image, name = "spot.radius")
+    spot.size <- Radius(object = image)
     coords <- coord$transform(data, panel_scales)
     pts <- pointsGrob(
       x = coords$x,
@@ -742,7 +878,7 @@ SingleSpatialPlot <- function(
   alpha.by = NULL,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),
-  geom = c('spatial', 'interactive'),
+  geom = c('spatial', 'interactive', 'poly'),
   na.value = 'grey50'
 ) {
   geom <- match.arg(arg = geom)
@@ -792,6 +928,20 @@ SingleSpatialPlot <- function(
         xlim(0, ncol(x = image)) +
         ylim(nrow(x = image), 0) +
         coord_cartesian(expand = FALSE)
+    },
+    'poly' = {
+      data$cell <- rownames(x = data)
+      data[, c('x', 'y')] <- NULL
+      data <- merge(
+        x = data, 
+        y = GetTissueCoordinates(object = image, qhulls = TRUE), 
+        by = "cell"
+      )
+      plot + geom_polygon(
+        data = data,
+        mapping = aes_string(fill = col.by, group = 'cell')
+      ) + coord_fixed() + theme_cowplot()
+        
     },
     stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )
@@ -1046,11 +1196,13 @@ SpatialPlot <- function(
         } else {
           NULL
         },
-        geom = ifelse(
-          test = do.hover || do.identify,
-          yes = 'interactive',
-          no = 'spatial'
-        ),
+        geom = if (do.hover || do.identify) {
+          'interactive'
+        } else if (inherits(x = image.use, what = "STARmap")) {
+          'poly'
+        } else {
+          'spatial'
+        },
         cells.highlight = highlight.use,
         cols.highlight = cols.highlight,
         pt.size.factor = pt.size.factor,
@@ -1074,7 +1226,11 @@ SpatialPlot <- function(
             yes = features[j],
             no = 'highlight'
           ),
-          geom = 'GeomSpatial',
+          geom = if (inherits(x = image.use, what = "STARmap")) {
+            'GeomPolygon'
+          } else {
+            'GeomSpatial'
+          },
           repel = repel,
           size = label.size,
           color = label.color,
@@ -1218,15 +1374,14 @@ SpatialFeaturePlot <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @rdname Cells
-#' @method Cells VisiumV1
+#' @method Cells SlideSeq
 #' @export
 #'
-Cells.VisiumV1 <- function(x) {
-  return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
+Cells.SlideSeq <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
-#' @param x,object An inheriting from \code{SpatialImage}
+#' @param x,object An object inheriting from \code{SpatialImage}
 #'
 #' @rdname SpatialImage-class
 #' @name SpatialImage-class
@@ -1236,9 +1391,24 @@ Cells.VisiumV1 <- function(x) {
 #'
 Cells.SpatialImage <- function(x) {
   stop(
-    "'Cells' must be overridden for all subclasses of 'SpatialImage'",
+    "'Cells' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
+}
+
+#' @method Cells STARmap
+#' @export
+#'
+Cells.STARmap <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x)))
+}
+
+#' @rdname Cells
+#' @method Cells VisiumV1
+#' @export
+#'
+Cells.VisiumV1 <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
 #' @rdname DefaultAssay
@@ -1403,6 +1573,50 @@ GetImage.Seurat <- function(
   return(GetImage(object = object[[image]], mode = mode, ...))
 }
 
+#' @method GetImage SlideSeq
+#' @export
+#'
+GetImage.SlideSeq <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  return(NullImage(mode = mode))
+}
+
+#' @inheritParams GetImage
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method GetImage SpatialImage
+#' @export
+#'
+GetImage.SpatialImage <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  stop(
+    "'GetImage' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @method GetImage STARmap
+#' @export
+#'
+GetImage.STARmap <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  return(NullImage(mode = mode))
+}
+
 #' @importFrom plotly raster2uri
 #' @importFrom grDevices as.raster
 #' @importFrom grid rasterGrob unit
@@ -1430,8 +1644,8 @@ GetImage.VisiumV1 <- function(
       source = raster2uri(r = GetImage(object = object, mode = 'raster')),
       xref = 'x',
       yref = 'y',
-        # x = -7,
-        # y = -7,
+      # x = -7,
+      # y = -7,
       sizex = ncol(x = object),
       sizey = nrow(x = object),
       sizing = 'stretch',
@@ -1442,26 +1656,6 @@ GetImage.VisiumV1 <- function(
     stop("Unknown image mode: ", mode, call. = FALSE)
   )
   return(image)
-}
-
-#' @inheritParams GetImage
-#'
-#' @rdname SpatialImage-class
-#' @name SpatialImage-class
-#'
-#' @method GetImage SpatialImage
-#' @export
-#'
-GetImage.SpatialImage <- function(
-  object,
-  mode = c('grob', 'raster', 'plotly', 'raw'),
-  ...
-) {
-  mode <- match.arg(arg = mode)
-  stop(
-    "'GetImage' must be overridden for all sublcasses of 'SpatialImage'",
-    call. = FALSE
-  )
 }
 
 #' @param image Name of \code{SpatialImage} object to get coordinates for; if
@@ -1477,6 +1671,44 @@ GetTissueCoordinates.Seurat <- function(object, image = NULL, ...) {
     stop("No images present in this Seurat object", call. = FALSE)
   }
   return(GetTissueCoordinates(object = object[[image]], ...))
+}
+
+#' @method GetTissueCoordinates SlideSeq
+#' @export
+#'
+GetTissueCoordinates.SlideSeq <- function(object, ...) {
+  coords <- slot(object = object, name = 'coordinates')
+  colnames(x = coords) <- c('x', 'y')
+  # coords$y <- -rev(x = coords$y) + 1
+  # coords$y <- FlipCoords(x = coords$y)
+  coords$cells <- rownames(x = coords)
+  return(coords)
+}
+
+#' @inheritParams GetTissueCoordinates
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method GetTissueCoordinates SpatialImage
+#' @export
+#'
+GetTissueCoordinates.SpatialImage <- function(object, ...) {
+  stop(
+    "'GetTissueCoordinates' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @param qhulls return qhulls instead of centroids
+#' @method GetTissueCoordinates STARmap
+#' @export
+#'
+GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
+  if (qhulls) {
+    return(slot(object = object, name = 'qhulls'))
+  } 
+  return(slot(object = object, name = 'coordinates'))
 }
 
 #' @param scale A factor to scale the coordinates by; choose from: 'tissue',
@@ -1503,21 +1735,6 @@ GetTissueCoordinates.VisiumV1 <- function(
     coordinates <- slot(object = object, name = 'coordinates')[, cols]
   }
   return(coordinates)
-}
-
-#' @inheritParams GetTissueCoordinates
-#'
-#' @rdname SpatialImage-class
-#' @name SpatialImage-class
-#'
-#' @method GetTissueCoordinates SpatialImage
-#' @export
-#'
-GetTissueCoordinates.SpatialImage <- function(object, ...) {
-  stop(
-    "'GetTissueCoordinates' must be overridden for all sublcasses of 'SpatialImage'",
-    call. = FALSE
-  )
 }
 
 #' @rdname IsGlobal
@@ -1550,6 +1767,74 @@ Key.SpatialImage <- function(object, ...) {
   return(object)
 }
 
+#' @rdname Radius
+#' @method Radius SlideSeq
+#' @export
+#'
+Radius.SlideSeq <- function(object) {
+  return(0.005)
+}
+
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method Radius SpatialImage
+#' @export
+#'
+Radius.SpatialImage <- function(object) {
+  return(NULL)
+}
+
+#' @rdname Radius
+#' @method Radius STARmap
+#' @export
+#'
+Radius.STARmap <- function(object) {
+  return(NULL)
+}
+
+#' @rdname Radius
+#' @method Radius VisiumV1
+#' @export
+#'
+Radius.VisiumV1 <- function(object) {
+  return(slot(object = object, name = 'spot.radius'))
+}
+
+#' @method RenameCells SlideSeq
+#' @export
+#'
+RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
+  return(RenameCells.VisiumV1(object = object, new.names = new.names))
+}
+
+#' @inheritParams  RenameCells
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method RenameCells SpatialImage
+#' @export
+#'
+RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
+  stop(
+    "'RenameCells' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @method RenameCells STARmap
+#' @export
+#'
+RenameCells.STARmap <- function(object, new.names = NULL, ...) {
+  names(x = new.names) <- Cells(x = object)
+  object <- RenameCells.VisiumV1(object = object, new.names = new.names)
+  qhulls <- GetTissueCoordinates(object = object, qhull = TRUE)
+  qhulls$cell <- new.names[qhulls$cell]
+  slot(object = object, name = "qhulls") <- qhulls
+  return(object)
+}
+
 #' @rdname RenameCells
 #' @method RenameCells VisiumV1
 #' @export
@@ -1567,21 +1852,6 @@ RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
-#' @inheritParams  RenameCells
-#'
-#' @rdname SpatialImage-class
-#' @name SpatialImage-class
-#'
-#' @method RenameCells SpatialImage
-#' @export
-#'
-RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
-  stop(
-    "'RenameCells' must be overwritten for all subclasses of 'SpatialImage'",
-    call. = FALSE
-  )
-}
-
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
@@ -1594,7 +1864,12 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #' @export
 #' @method SpatiallyVariableFeatures Assay
 #'
-SpatiallyVariableFeatures.Assay <- function(object, selection.method = "markvariogram", decreasing = TRUE, ...) {
+SpatiallyVariableFeatures.Assay <- function(
+  object,
+  selection.method = "markvariogram",
+  decreasing = TRUE,
+  ...
+) {
   CheckDots(...)
   vf <- SVFInfo(object = object, selection.method = selection.method, status = TRUE)
   vf <- vf[rownames(x = vf)[which(x = vf[, "variable"][, 1])], ]
@@ -1610,7 +1885,13 @@ SpatiallyVariableFeatures.Assay <- function(object, selection.method = "markvari
 #' @export
 #' @method SpatiallyVariableFeatures Seurat
 #'
-SpatiallyVariableFeatures.Seurat <- function(object, assay = NULL, selection.method = "markvariogram", decreasing = TRUE, ...) {
+SpatiallyVariableFeatures.Seurat <- function(
+  object,
+  assay = NULL,
+  selection.method = "markvariogram",
+  decreasing = TRUE,
+  ...
+) {
   CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
   return(SpatiallyVariableFeatures(object = object[[assay]], selection.method = selection.method, decreasing = decreasing))
@@ -1681,11 +1962,11 @@ SVFInfo.Seurat <- function(
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @method [ VisiumV1
+#' @method [ SlideSeq
 #' @export
 #'
-"[.VisiumV1" <- function(x, i, ...) {
-  return(subset(x = x, cells = i))
+"[.SlideSeq" <- function(x, i, ...) {
+  return(subset(x = x, cells = i, ...))
 }
 
 #' @param i,cells A vector of cells to keep
@@ -1698,16 +1979,24 @@ SVFInfo.Seurat <- function(
 #'
 "[.SpatialImage" <- function(x, i, ...) {
   stop(
-    "'[' must be overwritten for all subclasses of 'SpatialImage'",
+    "'[' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
 
-#' @method dim VisiumV1
+#' @method [ VisiumV1
 #' @export
 #'
-dim.VisiumV1 <- function(x) {
-  return(dim(x = GetImage(object = x)$raster))
+"[.VisiumV1" <- function(x, i, ...) {
+  return(subset(x = x, cells = i))
+}
+
+#' @method dim SlideSeq
+#' @export
+#'
+dim.SlideSeq <- function(x) {
+  # return(dim(x = GetImage(object = x, mode = 'raw')))
+  return(c(599, 600))
 }
 
 #' @rdname SpatialImage-class
@@ -1718,18 +2007,45 @@ dim.VisiumV1 <- function(x) {
 #'
 dim.SpatialImage <- function(x) {
   stop(
-    "'dim' must be overwritten for all subclasses of 'SpatialImage'",
+    "'dim' must be implemented for all subclasses of 'SpatialImage'",
     call. = FALSE
   )
 }
 
-#' @method subset VisiumV1
+#' @method dim STARmap
 #' @export
 #'
-subset.VisiumV1 <- function(x, cells, ...) {
-  coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
-  coordinates <- coordinates[cells, ]
-  slot(object = x, name = 'coordinates') <- coordinates
+dim.STARmap <- function(x) {
+  coords <- GetTissueCoordinates(object = x)
+  return(c(
+    max(coords[, 1]) - min(coords[, 1]), 
+    max(coords[, 2]) - min(coords[, 2])
+  ))
+}
+
+#' @method dim VisiumV1
+#' @export
+#'
+dim.VisiumV1 <- function(x) {
+  return(dim(x = GetImage(object = x)$raster))
+}
+
+#' @method subset SlideSeq
+#' @export
+#'
+subset.SlideSeq <- function(x, cells, ...) {
+  x <- subset.VisiumV1(x = x, cells = cells, ...)
+  return(x)
+}
+
+#' @method subset STARmap
+#' @export
+#'
+subset.STARmap <- function(x, cells, ...) {
+  x <- subset.VisiumV1(x = x, cells = cells, ...)
+  qhulls <- GetTissueCoordinates(object = x, qhulls = TRUE)
+  qhulls <- qhulls[qhulls$cell %in% cells, ]
+  slot(object = x, name = 'qhulls') <- qhulls
   return(x)
 }
 
@@ -1740,7 +2056,18 @@ subset.VisiumV1 <- function(x, cells, ...) {
 #' @export
 #'
 subset.SpatialImage <- function(x, cells, ...) {
-  stop("'subset' must be overwritten for all subclasses of 'SpatialImage'")
+  stop("'subset' must be implemented for all subclasses of 'SpatialImage'")
+}
+
+#' @method subset VisiumV1
+#' @export
+#'
+subset.VisiumV1 <- function(x, cells, ...) {
+  coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
+  cells <- cells[cells %in% rownames(x = coordinates)]
+  coordinates <- coordinates[cells, ]
+  slot(object = x, name = 'coordinates') <- coordinates
+  return(x)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1995,4 +2322,24 @@ GGpointToPlotlyBuild <- function(
     plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
   }
   return(plot.build)
+}
+
+# Return a null image
+#
+# @param mode Image representation to return
+# see \code{\link{GetImage}} for more details
+#
+#' @importFrom grid nullGrob
+#' @importFrom grDevices as.raster
+#
+NullImage <- function(mode) {
+  image <- switch(
+    EXPR = mode,
+    'grob' = nullGrob(),
+    'raster' = as.raster(x = new(Class = 'matrix')),
+    'plotly' = list('visible' = FALSE),
+    'raw' = NULL,
+    stop("Unknown image mode: ", mode, call. = FALSE)
+  )
+  return(image)
 }

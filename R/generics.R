@@ -329,7 +329,7 @@ FindVariableFeatures <- function(object, ...) {
 }
 
 #' Find spatially variable features
-#' 
+#'
 #' Identify features whose variability in expression can be explained to some
 #' degree by spatial location.
 #'
@@ -652,6 +652,19 @@ Project <- function(object, ...) {
 #'
 "Project<-" <- function(object, ..., value) {
   UseMethod(generic = 'Project<-', object = object)
+}
+
+#' Get the spot radius from an image
+#'
+#' @param object An image object
+#'
+#' @return The radius size
+#'
+#' @rdname Radius
+#' @export Radius
+#'
+Radius <- function(object) {
+  UseMethod(generic = 'Radius', object = object)
 }
 
 #' Read from and write to h5ad files
@@ -1049,7 +1062,7 @@ SetIdent <- function(object, ...) {
 
 #' @rdname SpatiallyVariableFeatures
 #' @export SpatiallyVariableFeatures
-#' 
+#'
 SpatiallyVariableFeatures <- function(object, ...){
   UseMethod(generic = 'SpatiallyVariableFeatures', object = object)
 }

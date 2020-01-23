@@ -6471,7 +6471,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SlotImage')) && !all(Cells(x = value) == Cells(x = x))) {
+      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
