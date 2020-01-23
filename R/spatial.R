@@ -219,294 +219,6 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   ))
 }
 
-#' Link two ggplot plots together
-#'
-#' @inheritParams HoverLocator
-#' @param plot1,plot2 \code{ggplot} objects
-#' @param plot1.labels,plot2.labels Logical values to inherit X/Y labels from
-#' component \code{ggplot} objects
-#' @param pt.size Point size in px
-#' @param plot1.cols,plot2.cols A named vector of column names to pull. Vector
-#' names must be 'x', 'y', 'colour', 'shape', and/or 'size'; vector values must
-#' be the names of columns in plot data that correspond to these values. May
-#' pass only values that differ from the default
-#' (eg. \code{cols = c('size' = 'point.size.factor')})
-#' @param plot1.layout,plot2.layout Extra information for \code{\link[plotly]{layout}}
-#'
-#' @return A \code{\link[htmltools]{browsable}} HTML element with the two plots
-#' linked and side-by-side
-#'
-#' @importFrom crosstalk SharedData bscols
-#' @importFrom plotly layout plot_ly highlight
-#'
-#' @export
-#'
-#' @seealso \code{\link[plotly]{layout}}
-#'
-LinkPlots <- function(
-  plot1,
-  plot2,
-  plot1.labels = TRUE,
-  plot2.labels = TRUE,
-  information = NULL,
-  pt.size = 6,
-  plot1.cols = eval(formals(fun = GGpointToBase)$cols),
-  plot2.cols = eval(formals(fun = GGpointToBase)$cols),
-  plot1.layout = list(),
-  plot2.layout = list()
-) {
-  # Get plot builds for each plot
-  plot1.build <- GGpointToPlotlyBuild(
-    plot = plot1,
-    information = information,
-    cols = plot1.cols
-  )
-  plot1.labels <- if (plot1.labels) {
-    GetXYAesthetics(plot = plot1)
-  } else {
-    list()
-  }
-  plot2.build <- GGpointToPlotlyBuild(
-    plot = plot2,
-    information = information,
-    cols = plot2.cols
-  )
-  plot2.labels <- if (plot2.labels) {
-    GetXYAesthetics(plot = plot2)
-  } else {
-    list()
-  }
-  # Generate the full build
-  plot.build <- merge(x = plot1.build, plot2.build, by = 0)
-  rownames(x = plot.build) <- plot.build$Row.names
-  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
-  plot.build <- SharedData$new(data = plot.build)
-  # Build the plotly plots
-  Axis <- function(title = NULL) {
-    return(list(
-      title = title %||% '',
-      showgrid = FALSE,
-      zeroline = FALSE,
-      showline = TRUE
-    ))
-  }
-  plot1.layout$xaxis <- c(Axis(title = plot1.labels[['x']]), plot1.layout$xaxis)
-  plot1.layout$yaxis <- c(Axis(title = plot1.labels[['y']]), plot1.layout$yaxis)
-  plot1.layout <- c(
-    list(p = plot_ly(
-      data = plot.build,
-      x = ~x.x,
-      y = ~y.x,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.x),
-      size = ~I(pt.size),
-      # symbol = ~I(pch.x),
-      hoverinfo = 'text',
-      text = ~feature.x
-    )),
-    plot1.layout
-  )
-  plot1.plotly <- do.call(what = 'layout', args = plot1.layout)
-  plot1.plotly <- highlight(p = plot1.plotly, on = 'plotly_selected')
-  plot2.layout$xaxis <- c(Axis(title = plot2.labels[['x']]), plot2.layout$xaxis)
-  plot2.layout$yaxis <- c(Axis(title = plot2.labels[['y']]), plot2.layout$yaxis)
-  plot2.layout <- c(
-    list(p = plot_ly(
-      data = plot.build,
-      x = ~x.y,
-      y = ~y.y,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.y),
-      size = ~I(pt.size),
-      # symbol = ~I(pch.y),
-      hoverinfo = 'text',
-      text = ~feature.y
-    )),
-    plot2.layout
-  )
-  plot2.plotly <- do.call(what = 'layout', args = plot2.layout)
-  plot2.plotly <- highlight(p = plot2.plotly, on = 'plotly_selected')
-  return(bscols(plot1.plotly, plot2.plotly))
-}
-
-#' Visualize spatial and clustering (dimensional reduction) data in a linked,
-#' interactive framework
-#'
-#' @inheritParams FeaturePlot
-#' @inheritParams SpatialPlot
-#' @param feature Feature to visualize
-#' @param image Which image to use
-#'
-#' @return A \code{\link[htmltools]{browsable}} HTML element with the spatial plot
-#' on the left and the dimensional-reduction plot on the right
-#'
-#' @rdname LinkedPlots
-#' @name LinkedPlots
-#'
-#' @aliases LinkedPlot
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' LinkedFeaturePlot(seurat.object, feature = 'Hpca')
-#' LinkedDimPlot(seurat.object)
-#' }
-#'
-LinkedFeaturePlot <- function(
-  object,
-  feature,
-  dims = 1:2,
-  reduction = NULL,
-  pt.size = 6,
-  image = NULL,
-  slot = 'data',
-  min.cutoff = NA,
-  max.cutoff = NA
-) {
-  if (length(x = feature) > 1) {
-    stop("'LinkedFeaturePlot' currently only supports one feature", call. = FALSE)
-  }
-  image <- image %||% DefaultImage(object = object)
-  expression.data <- FetchData(
-    object = object,
-    vars = feature,
-    cells = Cells(x = object[[image]])
-  )
-  coords <- GetTissueCoordinates(object = object[[image]])
-  spatial.plot <- SingleSpatialPlot(
-    data = cbind(coords, expression.data),
-    image = object[[image]],
-    col.by = feature,
-    geom = 'interactive'
-  )
-  spatial.plot <- spatial.plot + scale_color_gradientn(
-    colours = SpatialColors(n = 100)
-  )
-  feature.plot <- FeaturePlot(
-    object = object,
-    features = feature,
-    dims = dims,
-    reduction = reduction,
-    min.cutoff = min.cutoff,
-    max.cutoff = max.cutoff
-  )
-  return(LinkPlots(
-    plot1 = spatial.plot,
-    plot2 = feature.plot,
-    plot1.labels = FALSE,
-    information = expression.data,
-    pt.size = pt.size,
-    plot1.layout = list(
-      'images' = GetImage(object = object[[image]], mode = 'plotly'),
-      'xaxis' = list('visible' = FALSE),
-      'yaxis' = list('visible' = FALSE)
-    )
-  ))
-}
-
-#' @rdname LinkedPlots
-#'
-#' @export
-#'
-LinkedDimPlot <- function(
-  object,
-  dims = 1:2,
-  reduction = NULL,
-  pt.size = 6,
-  image = NULL,
-  group.by = NULL
-) {
-  image <- image %||% DefaultImage(object = object)
-  group.by <- group.by %||% 'ident'
-  group.data <- FetchData(
-    object = object,
-    vars = group.by,
-    cells = Cells(x = object[[image]])
-  )
-  coords <- GetTissueCoordinates(object = object[[image]])
-  spatial.plot <- SingleSpatialPlot(
-    data = cbind(coords, group.data),
-    image = object[[image]],
-    col.by = group.by,
-    geom = 'interactive'
-  )
-  dim.plot <- DimPlot(
-    object = object,
-    group.by = group.by,
-    dims = dims,
-    reduction = reduction
-  )
-  linked.plot <- LinkPlots(
-    plot1 = spatial.plot,
-    plot2 = dim.plot,
-    information = FetchData(object = object, vars = group.by),
-    plot1.labels = FALSE,
-    pt.size = pt.size,
-    plot1.layout = list(
-      'images' = GetImage(object = object[[image]], mode = 'plotly'),
-      'xaxis' = list('visible' = FALSE),
-      'yaxis' = list('visible' = FALSE)
-    )
-  )
-  suppressMessages(expr = suppressWarnings(expr = print(
-    x = linked.plot
-  )))
-  return(linked.plot)
-}
-
-#' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
-#'
-#' @inheritParams Read10X
-#' @inheritParams CreateSeuratObject
-#' @param slice Name for the stored image of the tissue slice
-#' @param filter.matrix Only keep spots that have been determined to be over
-#' tissue
-#' @param to.upper Converts all feature names to upper case. Can be useful when
-#' analyses require comparisons between human and mouse gene names for example.
-#' @param ... Arguments passed to \code{\link{Read10X_h5}}
-#'
-#' @return A \code{Seurat} object
-#'
-#' @importFrom png readPNG
-#' @importFrom grid rasterGrob
-#' @importFrom jsonlite fromJSON
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' data_dir <- 'path/to/data/directory'
-#' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
-#' Load10X_Spatial(data.dir = data_dir)
-#' }
-#'
-Load10X_Spatial <- function(
-  data.dir,
-  assay = 'Spatial',
-  slice = 'slice1',
-  filter.matrix = TRUE,
-  to.upper = FALSE,
-  ...
-) {
-  filename <- file.path(data.dir, 'filtered_feature_bc_matrix.h5')
-  data <- Read10X_h5(filename = filename, ...)
-  if (to.upper) {
-    rownames(x = data) <- toupper(x = rownames(x = data))
-  }
-  object <- CreateSeuratObject(counts = data, assay = assay)
-  image <- Read10X_Image(
-    image.dir = file.path(data.dir, 'spatial'),
-    filter.matrix = filter.matrix
-  )
-  image <- image[Cells(x = object)]
-  DefaultAssay(object = image) <- assay
-  object[[slice]] <- image
-  return(object)
-}
-
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
 #'
@@ -519,10 +231,8 @@ Load10X_Spatial <- function(
 #' @return Returns final plots. If \code{combine}, plots are stiched together
 #' using \code{\link{CombinePlots}}; otherwise, returns a list of ggplot objects
 #'
-#' @rdname GadgetPlot
-#' @name GadgetPlot
-#'
-#' @aliases GadgetDimPlot
+#' @rdname LinkedPlots
+#' @name LinkedPlots
 #'
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 scale_alpha_ordinal guides
@@ -531,9 +241,17 @@ Load10X_Spatial <- function(
 #' verbatimTextOutput reactiveValues observeEvent stopApp nearPoints
 #' brushedPoints renderPlot renderPrint runGadget
 #'
+#' @aliases LinkedPlot LinkedDimPlot
+#'
 #' @export
 #'
-GadgetDimPlot <- function(
+#' @examples
+#' \dontrun{
+#' LinkedDimPlot(seurat.object)
+#' LinkedFeaturePlot(seurat.object, feature = 'Hpca')
+#' }
+#'
+LinkedDimPlot <- function(
   object,
   dims = 1:2,
   reduction = NULL,
@@ -545,7 +263,7 @@ GadgetDimPlot <- function(
   # Setup gadget UI
   ui <- miniPage(
     gadgetTitleBar(
-      title = 'GadgetDimPlot',
+      title = 'LinkedDimPlot',
       left = miniTitleBarButton(inputId = 'reset', label = 'Reset')
     ),
     miniContentPanel(
@@ -731,17 +449,16 @@ GadgetDimPlot <- function(
   runGadget(app = ui, server = server)
 }
 
-#' @rdname GadgetPlot
-#' @name GadgetPlot
+#' @rdname LinkedPlots
 #'
-#' @aliases GadgetFeaturePlot
+#' @aliases LinkedFeaturePlot
 #'
 #' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
 #' scale_color_gradientn guide_colorbar
 #'
 #' @export
 #'
-GadgetFeaturePlot <- function(
+LinkedFeaturePlot <- function(
   object,
   feature,
   dims = 1:2,
@@ -754,7 +471,7 @@ GadgetFeaturePlot <- function(
   # Setup gadget UI
   ui <- miniPage(
     gadgetTitleBar(
-      title = 'GadgetDimPlot',
+      title = 'LinkedFeaturePlot',
       left = NULL
     ),
     miniContentPanel(
@@ -858,11 +575,61 @@ GadgetFeaturePlot <- function(
   runGadget(app = ui, server = server)
 }
 
+#' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
+#'
+#' @inheritParams Read10X
+#' @inheritParams CreateSeuratObject
+#' @param slice Name for the stored image of the tissue slice
+#' @param filter.matrix Only keep spots that have been determined to be over
+#' tissue
+#' @param to.upper Converts all feature names to upper case. Can be useful when
+#' analyses require comparisons between human and mouse gene names for example.
+#' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#'
+#' @return A \code{Seurat} object
+#'
+#' @importFrom png readPNG
+#' @importFrom grid rasterGrob
+#' @importFrom jsonlite fromJSON
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
+#' Load10X_Spatial(data.dir = data_dir)
+#' }
+#'
+Load10X_Spatial <- function(
+  data.dir,
+  assay = 'Spatial',
+  slice = 'slice1',
+  filter.matrix = TRUE,
+  to.upper = FALSE,
+  ...
+) {
+  filename <- file.path(data.dir, 'filtered_feature_bc_matrix.h5')
+  data <- Read10X_h5(filename = filename, ...)
+  if (to.upper) {
+    rownames(x = data) <- toupper(x = rownames(x = data))
+  }
+  object <- CreateSeuratObject(counts = data, assay = assay)
+  image <- Read10X_Image(
+    image.dir = file.path(data.dir, 'spatial'),
+    filter.matrix = filter.matrix
+  )
+  image <- image[Cells(x = object)]
+  DefaultAssay(object = image) <- assay
+  object[[slice]] <- image
+  return(object)
+}
+
 #' Visualize features spatially and interactively
 #'
 #' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
-#' @inheritParams GadgetPlot
+#' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
 #'
