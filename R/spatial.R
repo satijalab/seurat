@@ -1786,6 +1786,14 @@ Radius.SpatialImage <- function(object) {
 }
 
 #' @rdname Radius
+#' @method Radius STARmap
+#' @export
+#'
+Radius.STARmap <- function(object) {
+  return(NULL)
+}
+
+#' @rdname Radius
 #' @method Radius VisiumV1
 #' @export
 #'
@@ -2004,6 +2012,9 @@ dim.SpatialImage <- function(x) {
   )
 }
 
+#' @method dim STARmap
+#' @export
+#'
 dim.STARmap <- function(x) {
   coords <- GetTissueCoordinates(object = x)
   return(c(

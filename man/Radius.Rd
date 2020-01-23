@@ -3,12 +3,15 @@
 \name{Radius}
 \alias{Radius}
 \alias{Radius.SlideSeq}
+\alias{Radius.STARmap}
 \alias{Radius.VisiumV1}
 \title{Get the spot radius from an image}
 \usage{
 Radius(object)
 
 \method{Radius}{SlideSeq}(object)
+
+\method{Radius}{STARmap}(object)
 
 \method{Radius}{VisiumV1}(object)
 }
