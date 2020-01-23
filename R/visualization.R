@@ -1459,16 +1459,17 @@ FeatureScatter <- function(
       if (length(x = split.by) == 1) {
           split.by <- object[[]][, split.by]
       }
-      data <- as.data.frame(data)
-      data$split <- split.by
-      plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, feature2), cells = cells, slot = slot), col.by = group.by, 
-          cols = cols, pt.size = pt.size, smooth = smooth, legend.title = "Identity")
+      plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, 
+        feature2), cells = cells, slot = slot), col.by = group.by, 
+        cols = cols, pt.size = pt.size, smooth = smooth, legend.title = "Identity")
       if (!is.null(x = span)) {
           plot <- plot + geom_smooth(mapping = aes_string(x = feature1, 
             y = feature2), method = "loess", span = span)
       }
+      data = FetchData(object = object, vars = c(feature1, feature2), cells = cells)
+      data <- as.data.frame(data)
+      data$split <- split.by
       plot <- plot + facet_grid(. ~data$split)
-             
       return(plot)
      }
 }
