@@ -507,6 +507,7 @@ RidgePlot <- function(
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
 #' @param split.by A variable to split the violin plots by,
+#' @param multi.group  plot each group of the split violin plots by multiple or single violin shapes
 #' see \code{\link{FetchData}} for more details
 #' @param adjust Adjust parameter for geom_violin
 #'
@@ -535,11 +536,14 @@ VlnPlot <- function(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  slot = 'data'
+  combine = TRUE,
+  slot = 'data',
+  multi.group = FALSE,
+  ...
 ) {
   return(ExIPlot(
     object = object,
-    type = 'violin',
+    type = ifelse(test = multi.group, yes = 'multiViolin', no = 'violin'),
     features = features,
     idents = idents,
     ncol = ncol,
@@ -640,7 +644,7 @@ ColorDimSplit <- function(
 #' @param cells Vector of cells to plot (default is all cells)
 #' @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
 #' or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-#' By default, ggplot2 assigns colors. We also include a number of palettes from the pals package. 
+#' By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
 #' See \code{\link{DiscretePalette}} for details.
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
@@ -3535,7 +3539,7 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # Basically combines the codebase for VlnPlot and RidgePlot
 #
 # @param object Seurat object
-# @param plot.type Plot type, choose from 'ridge' or 'violin'
+# @param type Plot type, choose from 'ridge', 'violin', or 'multiViolin'
 # @param features Features to plot (gene expression, metrics, PC scores,
 # anything that can be retreived by FetchData)
 # @param idents Which classes to include in the plot (default is all)
@@ -3640,6 +3644,7 @@ ExIPlot <- function(
   label.fxn <- switch(
     EXPR = type,
     'violin' = ylab,
+    "multiViolin" = ylab,
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -4524,13 +4529,18 @@ SingleExIPlot <- function(
   }
   axis.label <- 'Expression Level'
   y.max <- y.max %||% max(data[, feature])
-  if (is.null(x = split) || type != 'violin') {
-    vln.geom <- geom_violin
-    fill <- 'ident'
-  } else {
+  if (type == 'violin' && !is.null(x = split)) {
     data$split <- split
     vln.geom <- geom_split_violin
     fill <- 'split'
+  } else if (type == 'multiViolin' && !is.null(x = split )) {
+    data$split <- split
+    vln.geom <- geom_violin
+    fill <- 'split'
+    type <- 'violin'
+  } else {
+    vln.geom <- geom_violin
+    fill <- 'ident'
   }
   switch(
     EXPR = type,
