@@ -9,22 +9,53 @@
 \usage{
 FindMarkers(object, ...)
 
-\method{FindMarkers}{default}(object, slot = "data",
-  counts = numeric(), cells.1 = NULL, cells.2 = NULL,
-  features = NULL, reduction = NULL, logfc.threshold = 0.25,
-  test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
-  verbose = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  random.seed = 1, latent.vars = NULL, min.cells.feature = 3,
-  min.cells.group = 3, pseudocount.use = 1, ...)
+\method{FindMarkers}{default}(
+  object,
+  slot = "data",
+  counts = numeric(),
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  reduction = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  ...
+)
 
-\method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
-  group.by = NULL, subset.ident = NULL, assay = NULL,
-  slot = "data", reduction = NULL, features = NULL,
-  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
-  min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
-  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
-  min.cells.feature = 3, min.cells.group = 3, pseudocount.use = 1,
-  ...)
+\method{FindMarkers}{Seurat}(
+  object,
+  ident.1 = NULL,
+  ident.2 = NULL,
+  group.by = NULL,
+  subset.ident = NULL,
+  assay = NULL,
+  slot = "data",
+  reduction = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

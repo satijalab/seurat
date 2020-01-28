@@ -4,8 +4,14 @@
 \alias{SelectIntegrationFeatures}
 \title{Select integration features}
 \usage{
-SelectIntegrationFeatures(object.list, nfeatures = 2000, assay = NULL,
-  verbose = TRUE, fvf.nfeatures = 2000, ...)
+SelectIntegrationFeatures(
+  object.list,
+  nfeatures = 2000,
+  assay = NULL,
+  verbose = TRUE,
+  fvf.nfeatures = 2000,
+  ...
+)
 }
 \arguments{
 \item{object.list}{List of seurat objects}

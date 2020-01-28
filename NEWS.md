@@ -2,10 +2,37 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+
+## [3.1.2] - 2019-12-11
+### Added
+- New silent slot updater
+- New random seed options to `RunCCA`, `RunTSNE`, `WhichCells`, `HTODemux`, `AddModuleScore`, `VlnPlot`, and `RidgePlot`
+- Enhancements for dealing with `Assay`-derived objects
+
+### Changed
+- Only run `CalcN` (generates nFeatures and nCounts) when `counts` changes
+- Fix issue regarding colons in feature names
+- Change object class testing to use `inherits` or `is.*` for R 4.0 compatability
+
+## [3.1.1] - 2019-09-20
+### Added
+- New `RegroupIdents` function to reassign idents based on metadata column majority
+- `UpdateSymbolList` function to pull new gene names from HGNC
+- Added support for H5AD layers as additional assays in a `Seurat` object
+
+### Changed
+- Fix rownames issue when running UMAP on dist object
+- Add support for new H5AD `obsm` and `varm` stucture
+- Fix issue when trying to read non-existent feature-level metadata from an H5AD file
+- Fix in integration workflow when using SCTransform
+- Improved error checking for `AddModuleScore`
+- cbind fix in reference-based integration (`MapQuery`)
+- Fix for convenience plots error hanging
+- Ensure Seurat objects aren't stored in the command logs
+
 ## [3.1.0] - 2019-08-20
 ### Added
-- New `PrepSCTIntegrati
-- on` function to facilitate integration after `SCTransform`
+- New `PrepSCTIntegration` function to facilitate integration after `SCTransform`
 - Reference-based integration with the `reference` parameter in `FindIntegrationAnchors`
 - Reciprocal PCA as a `reduction` option in `FindIntegrationAnchors`
 - New `CollapseEmbeddingOutliers` function

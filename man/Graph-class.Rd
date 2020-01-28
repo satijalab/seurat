@@ -6,8 +6,14 @@
 \alias{Graph}
 \title{The Graph Class}
 \description{
-The Graph class simply inherits from dgCMatrix. We do this to enable future expandability of graphs.
+The Graph class inherits from dgCMatrix. We do this to enable future expandability of graphs.
 }
+\section{Slots}{
+
+\describe{
+\item{\code{assay.used}}{Optional name of assay used to generate \code{Graph} object}
+}}
+
 \seealso{
 \code{\link[Matrix]{dgCMatrix-class}}
 }

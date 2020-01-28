@@ -15,7 +15,7 @@ RegroupIdents(object, metadata)
 A Seurat object with the active idents regrouped
 }
 \description{
-For cells in each ident, set a new identity based on the most common value 
+For cells in each ident, set a new identity based on the most common value
 of a specified metadata column.
 }
 \examples{
