@@ -289,7 +289,7 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' Load STARmap data
 #'
 #' @param data.dir location of data directory that contains the counts matrix,
-#' gene name, qhull, and centroid files. 
+#' gene name, qhull, and centroid files.
 #' @param counts.file name of file containing the counts matrix (csv)
 #' @param gene.file name of file containing the gene names (csv)
 #' @param qhull.file name of file containing the hull coordinates (tsv)
@@ -306,8 +306,8 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @export
 #'
 LoadSTARmap <- function(
-  data.dir, 
-  counts.file = "cell_barcode_count.csv", 
+  data.dir,
+  counts.file = "cell_barcode_count.csv",
   gene.file = "genes.csv",
   qhull.file = "qhulls.tsv",
   centroid.file = "centroids.tsv",
@@ -355,242 +355,360 @@ LoadSTARmap <- function(
   return(starmap)
 }
 
-#' Link two ggplot plots together
-#'
-#' @inheritParams HoverLocator
-#' @param plot1,plot2 \code{ggplot} objects
-#' @param plot1.labels,plot2.labels Logical values to inherit X/Y labels from
-#' component \code{ggplot} objects
-#' @param pt.size Point size in px
-#' @param plot1.cols,plot2.cols A named vector of column names to pull. Vector
-#' names must be 'x', 'y', 'colour', 'shape', and/or 'size'; vector values must
-#' be the names of columns in plot data that correspond to these values. May
-#' pass only values that differ from the default
-#' (eg. \code{cols = c('size' = 'point.size.factor')})
-#' @param plot1.layout,plot2.layout Extra information for \code{\link[plotly]{layout}}
-#'
-#' @return A \code{\link[htmltools]{browsable}} HTML element with the two plots
-#' linked and side-by-side
-#'
-#' @importFrom crosstalk SharedData bscols
-#' @importFrom plotly layout plot_ly highlight
-#'
-#' @export
-#'
-#' @seealso \code{\link[plotly]{layout}}
-#'
-LinkPlots <- function(
-  plot1,
-  plot2,
-  plot1.labels = TRUE,
-  plot2.labels = TRUE,
-  information = NULL,
-  pt.size = 6,
-  plot1.cols = eval(formals(fun = GGpointToBase)$cols),
-  plot2.cols = eval(formals(fun = GGpointToBase)$cols),
-  plot1.layout = list(),
-  plot2.layout = list()
-) {
-  # Get plot builds for each plot
-  plot1.build <- GGpointToPlotlyBuild(
-    plot = plot1,
-    information = information,
-    cols = plot1.cols
-  )
-  plot1.labels <- if (plot1.labels) {
-    GetXYAesthetics(plot = plot1)
-  } else {
-    list()
-  }
-  plot2.build <- GGpointToPlotlyBuild(
-    plot = plot2,
-    information = information,
-    cols = plot2.cols
-  )
-  plot2.labels <- if (plot2.labels) {
-    GetXYAesthetics(plot = plot2)
-  } else {
-    list()
-  }
-  # Generate the full build
-  plot.build <- merge(x = plot1.build, plot2.build, by = 0)
-  rownames(x = plot.build) <- plot.build$Row.names
-  plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
-  plot.build <- SharedData$new(data = plot.build)
-  # Build the plotly plots
-  Axis <- function(title = NULL) {
-    return(list(
-      title = title %||% '',
-      showgrid = FALSE,
-      zeroline = FALSE,
-      showline = TRUE
-    ))
-  }
-  plot1.layout$xaxis <- c(Axis(title = plot1.labels[['x']]), plot1.layout$xaxis)
-  plot1.layout$yaxis <- c(Axis(title = plot1.labels[['y']]), plot1.layout$yaxis)
-  plot1.layout <- c(
-    list(p = plot_ly(
-      data = plot.build,
-      x = ~x.x,
-      y = ~y.x,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.x),
-      size = ~I(pt.size),
-      # symbol = ~I(pch.x),
-      hoverinfo = 'text',
-      text = ~feature.x
-    )),
-    plot1.layout
-  )
-  plot1.plotly <- do.call(what = 'layout', args = plot1.layout)
-  plot1.plotly <- highlight(p = plot1.plotly, on = 'plotly_selected')
-  plot2.layout$xaxis <- c(Axis(title = plot2.labels[['x']]), plot2.layout$xaxis)
-  plot2.layout$yaxis <- c(Axis(title = plot2.labels[['y']]), plot2.layout$yaxis)
-  plot2.layout <- c(
-    list(p = plot_ly(
-      data = plot.build,
-      x = ~x.y,
-      y = ~y.y,
-      type = 'scatter',
-      mode = 'markers',
-      color = ~I(color.y),
-      size = ~I(pt.size),
-      # symbol = ~I(pch.y),
-      hoverinfo = 'text',
-      text = ~feature.y
-    )),
-    plot2.layout
-  )
-  plot2.plotly <- do.call(what = 'layout', args = plot2.layout)
-  plot2.plotly <- highlight(p = plot2.plotly, on = 'plotly_selected')
-  return(bscols(plot1.plotly, plot2.plotly))
-}
-
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
 #'
+#' @inheritParams DimPlot
 #' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
 #' @param feature Feature to visualize
-#' @param image Which image to use
+#' @param image Name of the image to use in the plot
 #'
-#' @return A \code{\link[htmltools]{browsable}} HTML element with the spatial plot
-#' on the left and the dimensional-reduction plot on the right
+#' @return Returns final plots. If \code{combine}, plots are stiched together
+#' using \code{\link{CombinePlots}}; otherwise, returns a list of ggplot objects
 #'
 #' @rdname LinkedPlots
 #' @name LinkedPlots
 #'
-#' @aliases LinkedPlot
+#' @importFrom scales hue_pal
+#' @importFrom ggplot2 scale_alpha_ordinal guides
+#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow plotOutput brushOpts clickOpts hoverOpts
+#' verbatimTextOutput reactiveValues observeEvent stopApp nearPoints
+#' brushedPoints renderPlot renderPrint runGadget
+#'
+#' @aliases LinkedPlot LinkedDimPlot
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' LinkedFeaturePlot(seurat.object, feature = 'Hpca')
 #' LinkedDimPlot(seurat.object)
+#' LinkedFeaturePlot(seurat.object, feature = 'Hpca')
 #' }
+#'
+LinkedDimPlot <- function(
+  object,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  group.by = NULL,
+  alpha = c(0.3, 1),
+  combine = TRUE
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = 'LinkedDimPlot',
+      left = miniTitleBarButton(inputId = 'reset', label = 'Reset')
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'spatialplot',
+          height = '100%',
+          # brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = clickOpts(id = 'spclick', clip = TRUE),
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+        ),
+        plotOutput(
+          outputId = 'dimplot',
+          height = '100%',
+          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = clickOpts(id = 'dimclick', clip = TRUE),
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims <- dims[1:2]
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  plot.data <- cbind(coords, group.data, embeddings)
+  plot.data$selected_ <- FALSE
+  Idents(object = object) <- group.by
+  # Setup the server
+  server <- function(input, output, session) {
+    click <- reactiveValues(pt = NULL, invert = FALSE)
+    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        plots <- list(plot.env$spatialplot, plot.env$dimplot)
+        if (combine) {
+          plots <- CombinePlots(plots = plots, ncol = 2)
+        }
+        stopApp(returnValue = plots)
+      }
+    )
+    observeEvent(
+      eventExpr = input$reset,
+      handlerExpr = {
+        click$pt <- NULL
+        click$invert <- FALSE
+        session$resetBrush(brushId = 'brush')
+      }
+    )
+    observeEvent(eventExpr = input$brush, handlerExpr = click$pt <- NULL)
+    observeEvent(
+      eventExpr = input$spclick,
+      handlerExpr = {
+        click$pt <- input$spclick
+        click$invert <- TRUE
+      }
+    )
+    observeEvent(
+      eventExpr = input$dimclick,
+      handlerExpr = {
+        click$pt <- input$dimclick
+        click$invert <- FALSE
+      }
+    )
+    observeEvent(
+      eventExpr = c(input$brush, input$spclick, input$dimclick),
+      handlerExpr = {
+        plot.env$data <- if (is.null(x = input$brush)) {
+          clicked <- nearPoints(
+            df = plot.data,
+            coordinfo = if (click$invert) {
+              InvertCoordinate(x = click$pt)
+            } else {
+              click$pt
+            },
+            threshold = 10,
+            maxpoints = 1
+          )
+          if (nrow(x = clicked) == 1) {
+            cell.clicked <- rownames(x = clicked)
+            group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
+            idx.group <- which(x = plot.data[[group.by]] == group.clicked)
+            plot.data[idx.group, 'selected_'] <- TRUE
+            plot.data
+          } else {
+            plot.data
+          }
+        } else if (input$brush$outputId == 'dimplot') {
+          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE)
+        } else if (input$brush$outputId == 'spatialplot') {
+          brushedPoints(df = plot.data, brush = InvertCoordinate(x = input$brush), allRows = TRUE)
+        }
+        plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
+          'selected_'
+        } else {
+          NULL
+        }
+      }
+    )
+    # Set plots
+    output$spatialplot <- renderPlot(
+      expr = {
+        plot.env$spatialplot <- SingleSpatialPlot(
+          data = plot.env$data,
+          image = object[[image]],
+          col.by = group.by,
+          pt.size.factor = 1.6,
+          crop = TRUE,
+          alpha.by = plot.env$alpha.by
+        ) + scale_alpha_ordinal(range = alpha) + NoLegend()
+        plot.env$spatialplot
+      }
+    )
+    output$dimplot <- renderPlot(
+      expr = {
+        plot.env$dimplot <- SingleDimPlot(
+          data = plot.env$data,
+          dims = dims,
+          col.by = group.by,
+          alpha.by = plot.env$alpha.by
+        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
+        plot.env$dimplot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = if (is.null(x = input[['sphover']])) {
+            input$dimhover
+          } else {
+            InvertCoordinate(x = input$sphover)
+          },
+          threshold = 10,
+          maxpoints = 1
+        ))
+        # if (length(x = cell.hover) == 1) {
+        #   palette <- hue_pal()(n = length(x = levels(x = object)))
+        #   group <- plot.data[cell.hover, group.by, drop = TRUE]
+        #   background <- palette[which(x = levels(x = object) == group)]
+        #   text <- unname(obj = BGTextColor(background = background))
+        #   style <- paste0(
+        #     paste(
+        #       paste('background-color:', background),
+        #       paste('color:', text),
+        #       sep = '; '
+        #     ),
+        #     ';'
+        #   )
+        #   info <- paste(cell.hover, paste('Group:', group), sep = '<br />')
+        # } else {
+        #   style <- 'background-color: white; color: black'
+        #   info <- NULL
+        # }
+        # HTML(text = paste0("<div style='", style, "'>", info, "</div>"))
+        # p(HTML(info), style = style)
+        # paste0('<div style="', style, '">', info, '</div>')
+        # TODO: Get newlines, extra information, and background color working
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  # Run the thang
+  runGadget(app = ui, server = server)
+}
+
+#' @rdname LinkedPlots
+#'
+#' @aliases LinkedFeaturePlot
+#'
+#' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
+#' scale_color_gradientn guide_colorbar
+#'
+#' @export
 #'
 LinkedFeaturePlot <- function(
   object,
   feature,
   dims = 1:2,
   reduction = NULL,
-  pt.size = 6,
   image = NULL,
   slot = 'data',
-  min.cutoff = NA,
-  max.cutoff = NA
+  alpha = c(0.3, 1),
+  combine = TRUE
 ) {
-  if (length(x = feature) > 1) {
-    stop("'LinkedFeaturePlot' currently only supports one feature", call. = FALSE)
-  }
-  image <- image %||% DefaultImage(object = object)
-  expression.data <- FetchData(
-    object = object,
-    vars = feature,
-    cells = Cells(x = object[[image]])
-  )
-  coords <- GetTissueCoordinates(object = object[[image]])
-  spatial.plot <- SingleSpatialPlot(
-    data = cbind(coords, expression.data),
-    image = object[[image]],
-    col.by = feature,
-    geom = 'interactive'
-  )
-  spatial.plot <- spatial.plot + scale_color_gradientn(
-    colours = SpatialColors(n = 100)
-  )
-  feature.plot <- FeaturePlot(
-    object = object,
-    features = feature,
-    dims = dims,
-    reduction = reduction,
-    min.cutoff = min.cutoff,
-    max.cutoff = max.cutoff
-  )
-  return(LinkPlots(
-    plot1 = spatial.plot,
-    plot2 = feature.plot,
-    plot1.labels = FALSE,
-    information = expression.data,
-    pt.size = pt.size,
-    plot1.layout = list(
-      'images' = GetImage(object = object[[image]], mode = 'plotly'),
-      'xaxis' = list('visible' = FALSE),
-      'yaxis' = list('visible' = FALSE)
+  # Setup gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = 'LinkedFeaturePlot',
+      left = NULL
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'spatialplot',
+          height = '100%',
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+        ),
+        plotOutput(
+          outputId = 'dimplot',
+          height = '100%',
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
     )
-  ))
-}
-
-#' @rdname LinkedPlots
-#'
-#' @export
-#'
-LinkedDimPlot <- function(
-  object,
-  dims = 1:2,
-  reduction = NULL,
-  pt.size = 6,
-  image = NULL,
-  group.by = NULL
-) {
+  )
+  # Prepare plotting data
+  cols <- SpatialColors(n = 100)
   image <- image %||% DefaultImage(object = object)
-  group.by <- group.by %||% 'ident'
+  cells.use <- Cells(x = object[[image]])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims <- dims[1:2]
+  dims <- paste0(Key(object = object[[reduction]]), dims)
   group.data <- FetchData(
     object = object,
-    vars = group.by,
-    cells = Cells(x = object[[image]])
+    vars = feature,
+    cells = cells.use
   )
   coords <- GetTissueCoordinates(object = object[[image]])
-  spatial.plot <- SingleSpatialPlot(
-    data = cbind(coords, group.data),
-    image = object[[image]],
-    col.by = group.by,
-    geom = 'interactive'
-  )
-  dim.plot <- DimPlot(
-    object = object,
-    group.by = group.by,
-    dims = dims,
-    reduction = reduction
-  )
-  linked.plot <- LinkPlots(
-    plot1 = spatial.plot,
-    plot2 = dim.plot,
-    information = FetchData(object = object, vars = group.by),
-    plot1.labels = FALSE,
-    pt.size = pt.size,
-    plot1.layout = list(
-      'images' = GetImage(object = object[[image]], mode = 'plotly'),
-      'xaxis' = list('visible' = FALSE),
-      'yaxis' = list('visible' = FALSE)
+  embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  plot.data <- cbind(coords, group.data, embeddings)
+  # Setup the server
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues()
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        plots <- list(plot.env$spatialplot, plot.env$dimplot)
+        if (combine) {
+          plots <- CombinePlots(plots = plots, ncol = 2)
+        }
+        stopApp(returnValue = plots)
+      }
     )
-  )
-  suppressMessages(expr = suppressWarnings(expr = print(
-    x = linked.plot
-  )))
-  return(linked.plot)
+    # Set plots
+    output$spatialplot <- renderPlot(
+      expr = {
+        plot.env$spatialplot <- SingleSpatialPlot(
+          data = plot.data,
+          image = object[[image]],
+          col.by = feature,
+          pt.size.factor = 1.6,
+          crop = TRUE,
+          alpha.by = feature
+        ) +
+          scale_fill_gradientn(name = feature, colours = cols) +
+          theme(legend.position = 'top') +
+          scale_alpha(range = alpha) +
+          guides(alpha = FALSE)
+        plot.env$spatialplot
+      }
+    )
+    output$dimplot <- renderPlot(
+      expr = {
+        plot.env$dimplot <- SingleDimPlot(
+          data = plot.data,
+          dims = dims,
+          col.by = feature
+        ) +
+          scale_color_gradientn(name = feature, colours = cols, guide = 'colorbar') +
+          guides(color = guide_colorbar())
+        plot.env$dimplot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = if (is.null(x = input[['sphover']])) {
+            input$dimhover
+          } else {
+            InvertCoordinate(x = input$sphover)
+          },
+          threshold = 10,
+          maxpoints = 1
+        ))
+        # TODO: Get newlines, extra information, and background color working
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Expression:', plot.data[cell.hover, feature, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  runGadget(app = ui, server = server)
 }
 
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
@@ -641,6 +759,312 @@ Load10X_Spatial <- function(
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
   return(object)
+}
+
+#' Visualize features spatially and interactively
+#'
+#' @inheritParams FeaturePlot
+#' @inheritParams SpatialPlot
+#' @inheritParams LinkedPlots
+#'
+#' @return Returns final plot as a ggplot object
+#'
+#' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton
+#' miniTabstripPanel miniTabPanel miniContentPanel
+#' @importFrom shiny icon radioButtons selectInput fillCol sliderInput
+#' plotOutput renderPlot reactiveValues observeEvent observe updateRadioButtons
+#' updateSelectInput stopApp runGadget
+#'
+#' @export
+#'
+ISpatialFeaturePlot <- function(
+  object,
+  feature,
+  image = NULL,
+  slot = 'data',
+  alpha = c(0.1, 1)
+) {
+  # Set inital data values
+  initial.assay <- if (feature %in% colnames(x = object[[]])) {
+    'meta.data'
+  } else {
+    assay.keys <- Key(object = object)[Assays(object = object)]
+    keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+    if (any(keyed)) {
+      names(x = which(x = keyed))[1]
+    } else {
+      DefaultAssay(object = object)
+    }
+  }
+  initial.features <- if (initial.assay == 'meta.data') {
+    colnames(x = object[[]])
+  } else {
+    rownames(x = GetAssayData(object = object, slot = slot, assay = initial.assay))
+  }
+  slots <- c('Counts' = 'counts', 'Data' = 'data', 'Scaled Data' = 'scale.data')
+  initial.slots <- if (initial.assay == 'meta.data') {
+    'none'
+  } else {
+    slots.use <- sapply(
+      X = slots,
+      FUN = function(x) {
+        return(!IsMatrixEmpty(x = GetAssayData(
+          object = object,
+          slot = x,
+          assay = initial.assay
+        )))
+      }
+    )
+    slots[slots.use]
+  }
+  # Setup gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniTabstripPanel(
+      miniTabPanel(
+        title = 'Parameters',
+        icon = icon(name = 'sliders'),
+        miniContentPanel(
+          radioButtons(
+            inputId = 'assay',
+            label = 'Assay',
+            selected = initial.assay,
+            choiceNames = c(Assays(object = object), 'Meta Data'),
+            choiceValues = c(Assays(object = object), 'meta.data'),
+            inline = TRUE
+          ),
+          radioButtons(
+            inputId = 'slot',
+            label = 'Slot',
+            choices = initial.slots,
+            selected = ifelse(
+              test = initial.assay == 'meta.data',
+              yes = 'none',
+              no = slot
+            ),
+            inline = TRUE
+          ),
+          selectInput(
+            inputId = 'feature',
+            label = 'Feature to visualize',
+            choices = initial.features,
+            selected = feature,
+            selectize = FALSE
+          )
+        )
+      ),
+      miniTabPanel(
+        title = 'Visualize',
+        icon = icon(name = 'area-chart'),
+        miniContentPanel(
+          fillCol(
+            sliderInput(
+              inputId = 'alpha',
+              label = 'Alpha intensity',
+              min = 0,
+              max = 1,
+              value = alpha[1],
+              step = 0.01,
+              width = '100%'
+            ),
+            sliderInput(
+              inputId = 'pt.size',
+              label = 'Point size',
+              min = 0,
+              max = 5,
+              value = 1.6,
+              step = 0.1,
+              width = '100%'
+            ),
+            plotOutput(outputId = 'plot', height = '100%'),
+            flex = c(NA, NA, 1)
+          )
+        )
+      ),
+      selected = 'Visualize'
+    )
+  )
+  # Prepare plotting data
+  cols <- SpatialColors(n = 100)
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]])
+  feature.data <- FetchData(
+    object = object,
+    vars = feature,
+    cells = cells.use,
+    slot = slot
+  )
+  plot.data <- cbind(coords, feature.data)
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(
+      data = plot.data,
+      feature = feature
+    )
+    # Observe events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observe(x = {
+      assay <- input$assay
+      slot.use <- input$slot
+      feature.use <- input$feature
+      slot.order <- c('data', 'scale.data', 'counts')
+      if (assay == 'meta.data') {
+        slot.use <- slots.assay <- 'none'
+        features.assay <- colnames(x = object[[]])
+      } else {
+        slots.assay <- sapply(
+          X = slots,
+          FUN = function(x) {
+            return(!IsMatrixEmpty(x = GetAssayData(
+              object = object,
+              slot = x,
+              assay = assay
+            )))
+          }
+        )
+        slots.assay <- slots[slots.assay]
+        slot.use <- ifelse(
+          test = slot.use %in% slots.assay,
+          yes = slot.use,
+          no = slot.order[slot.order %in% slots.assay][1]
+        )
+        features.assay <- rownames(x = GetAssayData(
+          object = object,
+          slot = slot.use,
+          assay = assay
+        ))
+      }
+      feature.use <- ifelse(
+        test = feature.use %in% features.assay,
+        yes = feature.use,
+        no = features.assay[1]
+      )
+      updateRadioButtons(
+        session = session,
+        inputId = 'slot',
+        label = 'Slot',
+        choices = slots.assay,
+        selected = slot.use,
+        inline = TRUE
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = 'Feature to visualize',
+        choices = features.assay,
+        selected = feature.use
+      )
+    })
+    observe(x = {
+      feature.use <- input$feature
+      keyed.feature <- ifelse(
+        test = input$assay == 'meta.data',
+        yes = feature.use,
+        no = paste0(Key(object = object[[input$assay]]), feature.use)
+      )
+      try(
+        expr = {
+          feature.data <- FetchData(
+            object = object,
+            vars = keyed.feature,
+            cells = cells.use,
+            slot = ifelse(test = input$slot == 'none', yes = 'data', no = input$slot)
+          )
+          colnames(x = feature.data) <- feature.use
+          plot.env$data <- cbind(coords, feature.data)
+          plot.env$feature <- feature.use
+        },
+        silent = TRUE
+      )
+    })
+    # Create plot
+    output$plot <- renderPlot(expr = {
+      plot.env$plot <- SingleSpatialPlot(
+        data = plot.env$data,
+        image = object[[image]],
+        col.by = plot.env$feature,
+        pt.size.factor = input$pt.size,
+        crop = TRUE,
+        alpha.by = plot.env$feature
+      ) +
+        scale_fill_gradientn(name = plot.env$feature, colours = cols) +
+        theme(legend.position = 'top') +
+        scale_alpha(range = c(input$alpha, 1)) +
+        guides(alpha = FALSE)
+      plot.env$plot
+    })
+  }
+  runGadget(app = ui, server = server)
+}
+
+#' @importFrom shiny brushedPoints
+#
+ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0L)) {#}, selected = NULL) {
+  selected <- NULL
+  if (!is.null(x = brush)) {
+    if (brush$outputId %in% outputs) {
+      selected <- rownames(x = brushedPoints(df = plot.data, brush = brush))
+    } else if (brush$outputId %in% inverts) {
+      selected <- rownames(x = brushedPoints(
+        df = plot.data,
+        brush = InvertCoordinate(x = brush)
+      ))
+    }
+  }
+  return(selected)
+}
+
+#' @importFrom stats quantile
+#'
+InvertCoordinate <- function(x, MARGIN = 2) {
+  if (!is.null(x = x)) {
+    switch(
+      EXPR = MARGIN,
+      '1' = {
+        rmin <- 'left'
+        rmax <- 'right'
+        cmin <- 'xmin'
+        cmax <- 'xmax'
+      },
+      '2' = {
+        rmin <- 'bottom'
+        rmax <- 'top'
+        cmin <- 'ymin'
+        cmax <- 'ymax'
+      },
+      stop("'MARGIN' must be either 1 or 2", call. = FALSE)
+    )
+    # Fix the range so that rmin becomes rmax and vice versa
+    # Needed for both points and brushes
+    range <- x$range
+    x$range[[rmin]] <- range[[rmax]]
+    x$range[[rmax]] <- range[[rmin]]
+    # Fix the cmin and cmax values, if provided
+    # These are used for brush boundaries
+    coords <- c(x[[cmin]], x[[cmax]])
+    if (all(!is.null(x = coords))) {
+      names(x = coords) <- c(cmin, cmax)
+      x[[cmin]] <- quantile(
+        x = x$range[[rmin]]:x$range[[rmax]],
+        probs = 1 - (coords[cmax] / x$range[[rmax]]),
+        names = FALSE
+      )
+      x[[cmax]] <- quantile(
+        x = x$range[[rmin]]:x$range[[rmax]],
+        probs = 1 - (coords[cmin] / x$range[[rmax]]),
+        names = FALSE
+      )
+    }
+  }
+  return(x)
 }
 
 #' @importFrom grid viewport editGrob grobName
@@ -933,15 +1357,15 @@ SingleSpatialPlot <- function(
       data$cell <- rownames(x = data)
       data[, c('x', 'y')] <- NULL
       data <- merge(
-        x = data, 
-        y = GetTissueCoordinates(object = image, qhulls = TRUE), 
+        x = data,
+        y = GetTissueCoordinates(object = image, qhulls = TRUE),
         by = "cell"
       )
       plot + geom_polygon(
         data = data,
         mapping = aes_string(fill = col.by, group = 'cell')
       ) + coord_fixed() + theme_cowplot()
-        
+
     },
     stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )
@@ -1707,7 +2131,7 @@ GetTissueCoordinates.SpatialImage <- function(object, ...) {
 GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
   if (qhulls) {
     return(slot(object = object, name = 'qhulls'))
-  } 
+  }
   return(slot(object = object, name = 'coordinates'))
 }
 
@@ -2018,7 +2442,7 @@ dim.SpatialImage <- function(x) {
 dim.STARmap <- function(x) {
   coords <- GetTissueCoordinates(object = x)
   return(c(
-    max(coords[, 1]) - min(coords[, 1]), 
+    max(coords[, 1]) - min(coords[, 1]),
     max(coords[, 2]) - min(coords[, 2])
   ))
 }
@@ -2094,6 +2518,51 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Determine text color based on background color
+#'
+#' @param background A vector of background colors; supports R color names and
+#' hexadecimal codes
+#' @param threshold Intensity threshold for light/dark cutoff; intensities
+#' greater than \code{theshold} yield \code{dark}, others yield \code{light}
+#' @param w3c Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+#' background text color; ignores \code{threshold}
+#' @param dark Color for dark text
+#' @param light Color for light text
+#'
+#' @return A named vector of either \code{dark} or \code{light}, depending on
+#' \code{background}; names of vector are \code{background}
+#'
+#' @export
+#'
+#' @keywords color
+#' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
+#'
+#' @examples
+#' BGTextColor(background = c('black', 'white', '#E76BF3'))
+#'
+BGTextColor <- function(
+  background,
+  threshold = 186,
+  w3c = FALSE,
+  dark = 'black',
+  light = 'white'
+) {
+  if (w3c) {
+    luminance <- Luminance(color = background)
+    threshold <- 179
+    return(ifelse(
+      test = luminance > sqrt(x = 1.05 * 0.05) - 0.05,
+      yes = dark,
+      no = light
+    ))
+  }
+  return(ifelse(
+    test = Intensity(color = background) > threshold,
+    yes = dark,
+    no = light
+  ))
+}
 
 # Computes the metric at a given r (radius) value and stores in meta.features
 #
@@ -2322,6 +2791,113 @@ GGpointToPlotlyBuild <- function(
     plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
   }
   return(plot.build)
+}
+
+#' Get the intensity and/or luminance of a color
+#'
+#' @param color A vector of colors
+#'
+#' @return A vector of intensities/luminances for each color
+#'
+#' @name contrast-theory
+#' @rdname contrast-theory
+#'
+#' @importFrom grDevices col2rgb
+#'
+#' @export
+#'
+#' @keywords color
+#' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
+#'
+#' @examples
+#' Intensity(color = c('black', 'white', '#E76BF3'))
+#'
+Intensity <- function(color) {
+  intensities <- apply(
+    X = col2rgb(col = color),
+    MARGIN = 2,
+    FUN = function(col) {
+      col <- rbind(as.vector(x = col), c(0.299, 0.587, 0.114))
+      return(sum(apply(X = col, MARGIN = 2, FUN = prod)))
+    }
+  )
+  names(x = intensities) <- color
+  return(intensities)
+}
+
+#' @name contrast-theory
+#' @rdname contrast-theory
+#'
+#' @importFrom grDevices col2rgb
+#'
+#' @export
+#'
+#' @examples
+#' Luminance(color = c('black', 'white', '#E76BF3'))
+#'
+Luminance <- function(color) {
+  luminance <- apply(
+    X = col2rgb(col = color),
+    MARGIN = 2,
+    function(col) {
+      col <- as.vector(x = col) / 255
+      col <- sapply(
+        X = col,
+        FUN = function(x) {
+          return(ifelse(
+            test = x <= 0.03928,
+            yes = x / 12.92,
+            no = ((x + 0.055) / 1.055) ^ 2.4
+          ))
+        }
+      )
+      col <- rbind(col, c(0.2126, 0.7152, 0.0722))
+      return(sum(apply(X = col, MARGIN = 2, FUN = prod)))
+    }
+  )
+  names(x = luminance) <- color
+  return(luminance)
+}
+
+# Reimplementation of ggplot2 coord$transform
+#
+# @param data A data frame with x-coordinates in the first column and y-coordinates
+# in the second
+# @param xlim,ylim X- and Y-limits for the transformation, must be two-length
+# numeric vectors
+#
+# @return \code{data} with transformed coordinates
+#
+#' @importFrom ggplot2 transform_position
+#' @importFrom scales rescale squish_infinite
+#
+Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
+  # Quick input argument checking
+  if (!all(sapply(X = list(xlim, ylim), FUN = length) == 2)) {
+    stop("'xlim' and 'ylim' must be two-length numeric vectors", call. = FALSE)
+  }
+  # Save original names
+  df.names <- colnames(x = data)
+  colnames(x = data)[1:2] <- c('x', 'y')
+  # Rescale the X and Y values
+  data <- transform_position(
+    df = data,
+    trans_x = function(df) {
+      return(rescale(x = df, from = xlim))
+    },
+    trans_y = function(df) {
+      return(rescale(x = df, from = ylim))
+    }
+  )
+  # Something that ggplot2 does
+  data <- transform_position(
+    df = data,
+    trans_x = squish_infinite,
+    trans_y = squish_infinite
+  )
+  # Restore original names
+  colnames(x = data) <- df.names
+  return(data)
 }
 
 # Return a null image

@@ -2,59 +2,57 @@
 % Please edit documentation in R/spatial.R
 \name{LinkedPlots}
 \alias{LinkedPlots}
-\alias{LinkedFeaturePlot}
-\alias{LinkedPlot}
 \alias{LinkedDimPlot}
+\alias{LinkedPlot}
+\alias{LinkedFeaturePlot}
 \title{Visualize spatial and clustering (dimensional reduction) data in a linked,
 interactive framework}
 \usage{
+LinkedDimPlot(
+  object,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  group.by = NULL,
+  alpha = c(0.3, 1),
+  combine = TRUE
+)
+
 LinkedFeaturePlot(
   object,
   feature,
   dims = 1:2,
   reduction = NULL,
-  pt.size = 6,
   image = NULL,
   slot = "data",
-  min.cutoff = NA,
-  max.cutoff = NA
-)
-
-LinkedDimPlot(
-  object,
-  dims = 1:2,
-  reduction = NULL,
-  pt.size = 6,
-  image = NULL,
-  group.by = NULL
+  alpha = c(0.3, 1),
+  combine = TRUE
 )
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{feature}{Feature to visualize}
-
 \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
-\item{pt.size}{Adjust point size for plotting}
+\item{image}{Name of the image to use in the plot}
 
-\item{image}{Which image to use}
+\item{group.by}{Name of one or more metadata columns to group (color) cells by
+(for example, orig.ident); pass 'ident' to group by identity class}
+
+\item{alpha}{Controls opacity of spots. Provide as a vector specifying the
+min and max}
+
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{feature}{Feature to visualize}
 
 \item{slot}{Which slot to pull expression data from?}
-
-\item{min.cutoff}{Vector of minimum and maximum cutoff values for each feature,
-may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
-
-\item{max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
-may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
-
-\item{group.by}{Name of meta.data column to group the data by}
 }
 \value{
-A \code{\link[htmltools]{browsable}} HTML element with the spatial plot
-on the left and the dimensional-reduction plot on the right
+Returns final plots. If \code{combine}, plots are stiched together
+using \code{\link{CombinePlots}}; otherwise, returns a list of ggplot objects
 }
 \description{
 Visualize spatial and clustering (dimensional reduction) data in a linked,
@@ -62,8 +60,8 @@ interactive framework
 }
 \examples{
 \dontrun{
-LinkedFeaturePlot(seurat.object, feature = 'Hpca')
 LinkedDimPlot(seurat.object)
+LinkedFeaturePlot(seurat.object, feature = 'Hpca')
 }
 
 }
