@@ -1434,43 +1434,31 @@ FeatureScatter <- function(
   slot = 'data',
   split.by = NULL
 ) {
-    if(is.null(x = split.by)) {
-     cells <- cells %||% colnames(x = object)
-     group.by <- group.by %||% Idents(object = object)[cells]
-     if (length(x = group.by) == 1) {
-         group.by <- object[[]][, group.by]
-     }
-     plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, 
-         feature2), cells = cells, slot = slot), col.by = group.by, 
-         cols = cols, pt.size = pt.size, smooth = smooth, legend.title = "Identity")
-     if (!is.null(x = span)) {
-         plot <- plot + geom_smooth(mapping = aes_string(x = feature1, 
-             y = feature2), method = "loess", span = span)
-     }
-      return(plot)
-     }
-     if(!is.null(x = split.by)) {
-      cells <- cells %||% colnames(x = object)
-      group.by <- group.by %||% Idents(object = object)[cells]
-      split.by <- split.by %||% Idents(object = object)[cells]
-      if (length(x = group.by) == 1) {
+    cells <- cells %||% colnames(x = object)
+    group.by <- group.by %||% Idents(object = object)[cells]
+    if (length(x = group.by) == 1) {
           group.by <- object[[]][, group.by]
-      }
-      if (length(x = split.by) == 1) {
-          split.by <- object[[]][, split.by]
-      }
-      plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, 
-        feature2), cells = cells, slot = slot), col.by = group.by, 
+    }
+    plot <- SingleCorPlot(data = FetchData(object = object, vars = c(feature1, 
+    	feature2), cells = cells, slot = slot), col.by = group.by, 
         cols = cols, pt.size = pt.size, smooth = smooth, legend.title = "Identity")
-      if (!is.null(x = span)) {
-          plot <- plot + geom_smooth(mapping = aes_string(x = feature1, 
-            y = feature2), method = "loess", span = span)
-      }
-      data = FetchData(object = object, vars = c(feature1, feature2), cells = cells)
-      data <- as.data.frame(data)
-      data$split <- split.by
-      plot <- plot + facet_grid(. ~data$split)
-      return(plot)
+    if (!is.null(x = span)) {
+        plot <- plot + geom_smooth(mapping = aes_string(x = feature1, 
+        y = feature2), method = "loess", span = span)
+    }
+    if (!is.null(x = split.by)) {
+        split.by <- split.by %||% Idents(object = object)[cells]
+        if (length(x = split.by) == 1) {
+          split.by <- object[[]][, split.by]
+        }
+        data = FetchData(object = object, vars = c(feature1, feature2), cells = cells)
+        data <- as.data.frame(data)
+        data$split <- split.by
+        plot <- plot + facet_grid(. ~data$split)
+        return (plot)
+     }
+     else {
+     return(plot)
      }
 }
 
