@@ -1217,7 +1217,8 @@ geom_spatial <-  function(
   )
 }
 
-#' Run the mark variogram computation on a given Seurat object
+#' Run the mark variogram computation on a given position matrix and expression
+#' matrix.
 #'
 #' Wraps the functionality of markvario from the spatstat package.
 #'
@@ -1259,6 +1260,36 @@ RunMarkVario <- function(
     mv <- markvario(X = pp, normalise = TRUE, ...)
   }
   return(mv)
+}
+
+#' Compute Moran's I value.
+#'
+#' Wraps the functionality of the Moran.I function from the ape package. 
+#' Weights are computed as 1/distance. 
+#'
+#' @param data Expression matrix 
+#' @param pos Position matrix
+#'
+#' @importFrom stats dist
+#' @importFrom ape Moran.I
+#'
+#' @export
+#'
+RunMoransI <- function(data, pos){
+  message("Computing Moran's I")
+  pos.dist <- dist(x = pos)
+  pos.dist.mat <- as.matrix(x = pos.dist)
+  # weights as 1/dist
+  weights <- 1/pos.dist.mat
+  diag(x = weights) <- 0
+  results <- apply(X = data, MARGIN = 1, FUN = function(x) {
+    tryCatch(
+      expr = t(x = as.data.frame(x = Moran.I(x = x, weight = weights))), 
+      error = function(x) c(1,1,1,1)
+    )
+  })
+  rownames(x = results) <- c("observed", "expected", "sd", "p.value")
+  return(as.data.frame(x = t(x = results)))
 }
 
 #' @importFrom RColorBrewer brewer.pal
@@ -1862,20 +1893,33 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 FindSpatiallyVariableFeatures.default <- function(
   object,
   spatial.location,
-  selection.method = 'markvariogram',
+  selection.method = c('markvariogram', 'moransi'),
   r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
   ...
 ) {
   # error check dimensions
   if (ncol(x = object) != nrow(x = spatial.location)) {
     stop("Please provide the same number of observations as spatial locations.")
   }
-  if (selection.method == "markvariogram") {
-    svf.info <- RunMarkVario(
+  if (!is.null(x = x.cuts) & !is.null(x = y.cuts)) {
+    binned.data <- BinData(data = object, pos = spatial.location, x.cuts = x.cuts, y.cuts = y.cuts)
+    object <- binned.data$data
+    spatial.location <- binned.data$pos
+  }
+  svf.info <- switch(
+    EXPR = selection.method,
+    'markvariogram' = RunMarkVario(
       spatial.location = spatial.location,
       data = object
-    )
-  }
+    ),
+    'moransi' = RunMoransI(
+      data = object, 
+      pos = spatial.location
+    ),
+    stop("Invalid selection method. Please choose one of: markvariogram, moransi.")
+  )
   return(svf.info)
 }
 
@@ -1890,8 +1934,10 @@ FindSpatiallyVariableFeatures.Assay <- function(
   slot = "scale.data",
   features = NULL,
   spatial.location,
-  selection.method = 'markvariogram',
+  selection.method = c('markvariogram', 'moransi'),
   r.metric = 5,
+  x.cuts = NULL, 
+  y.cuts = NULL,
   nfeatures = nfeatures,
   ...
 ) {
@@ -1909,6 +1955,8 @@ FindSpatiallyVariableFeatures.Assay <- function(
       spatial.location = spatial.location,
       selection.method = selection.method,
       r.metric = r.metric,
+      x.cuts = x.cuts,
+      y.cuts = y.cuts,
       ...
     )
   } else {
@@ -1921,11 +1969,17 @@ FindSpatiallyVariableFeatures.Assay <- function(
     suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
     svf.info <- ComputeRMetric(mv = svf.info, r.metric)
     svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
-    svf.info$markvariogram.spatially.variable <- FALSE
-    svf.info$markvariogram.spatially.variable[1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
-    svf.info$markvariogram.spatially.variable.rank <- 1:nrow(x = svf.info)
-    object[[names(x = svf.info)]] <- svf.info
   }
+  if (selection.method == "moransi") {
+    colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
+    svf.info <- svf.info[order(svf.info[, 4], -svf.info[, 1]), , drop = FALSE]
+  }
+  var.name <- paste0(selection.method, ".spatially.variable")
+  var.name.rank <- paste0(var.name, ".rank")
+  svf.info[[var.name]] <- FALSE
+  svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
+  svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
+  object[[names(x = svf.info)]] <- svf.info
   return(object)
 }
 
@@ -1951,8 +2005,10 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   slot = "scale.data",
   features = NULL,
   image = NULL,
-  selection.method = c("markvariogram"),
+  selection.method = c('markvariogram', 'moransi'),
   r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
   nfeatures = 2000,
   verbose = TRUE,
   ...
@@ -1970,6 +2026,8 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     spatial.location = tc,
     selection.method = selection.method,
     r.metric = r.metric,
+    x.cuts = x.cuts,
+    y.cuts = y.cuts,
     nfeatures = nfeatures,
     ...
   )
@@ -2321,18 +2379,19 @@ SpatiallyVariableFeatures.Seurat <- function(
   return(SpatiallyVariableFeatures(object = object[[assay]], selection.method = selection.method, decreasing = decreasing))
 }
 
-#' @param selection.method Which method to pull. Options: markvariogram
+#' @param selection.method Which method to pull. Options: markvariogram, moransi
 #' @param status Add variable status to the resulting data.frame
 #'
 #' @rdname SVFInfo
 #' @export
 #' @method SVFInfo Assay
 #'
-SVFInfo.Assay <- function(object, selection.method = "markvariogram", status = FALSE, ...) {
+SVFInfo.Assay <- function(object, selection.method = c("markvariogram", "moransi"), status = FALSE, ...) {
   CheckDots(...)
   vars <- switch(
     EXPR = selection.method,
     'markvariogram' = grep(pattern = "r.metric", x = colnames(x = object[[]]), value = TRUE),
+    'moransi' = grep(pattern = 'moransi', x = colnames(x = object[[]]), value = TRUE),
     stop("Unknown method: '", selection.method, "'", call. = FALSE)
   )
   tryCatch(
@@ -2518,6 +2577,53 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Bin spatial regions into grid and average expression values
+#
+# @param dat Expression data
+# @param pos Position information/coordinates for each sample
+# @param x.cuts Number of cuts to make in the x direction (defines grid along 
+# with y.cuts)
+# @param y.cuts Number of cuts to make in the y direction
+#
+# @return returns a list with positions as centers of the bins and average 
+# expression within the bins
+#
+#' @importFrom Matrix rowMeans
+#
+BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts) {
+  message("Binning spatial data")
+  pos$x.cuts <- cut(x = pos[, 1], breaks = x.cuts)
+  pos$y.cuts <- cut(x = pos[, 2], breaks = y.cuts)
+  pos$bin <- paste0(pos$x.cuts, "_", pos$y.cuts)
+  all.bins <- unique(x = pos$bin)
+  split.dat <- sapply(X = 1:length(x = all.bins), FUN = function(x) {
+    samples <- rownames(x = pos)[which(x = pos$bin == all.bins[x])]
+    data[, samples]
+  })
+  new.dat <- do.call(
+    what = cbind, 
+    args = lapply(
+      X = split.dat, 
+      FUN = function(x) {
+        if (is.null(x = dim(x = x))) {
+          return(x)
+        }
+        rowMeans(x = x)
+      }
+    )
+  )
+  rownames(x = new.dat) <- rownames(x = data)
+  colnames(x = new.dat) <- all.bins
+  new.pos <- t(x = sapply(X = all.bins, FUN = function(x) {
+    xy <- unlist(x = strsplit(x = x, split = "_"))
+    x.mean <- MeanRange(x = xy[1])  
+    y.mean <- MeanRange(x = xy[2])
+    return(c(x.mean, y.mean))
+  }))
+  colnames(x = new.pos) <- colnames(x = pos)[1:2]
+  return(list(data = new.dat, pos = new.pos))
+}
 
 #' Determine text color based on background color
 #'
@@ -2857,6 +2963,17 @@ Luminance <- function(color) {
   )
   names(x = luminance) <- color
   return(luminance)
+}
+
+# Given a range from cut, compute the mean
+#
+# @x range from cut as a string (e.g. (10, 20] )
+# @return returns a numeric with the mean of the range
+#
+MeanRange <- function(x) {
+  left <- gsub(pattern = "\\]", replacement = "", x = sub(pattern = "\\([[:digit:]\\.e+]*,", x = x, replacement = ""))
+  right <- gsub(pattern = "\\(", replacement = "", x = sub(pattern = ",[[:digit:]\\.e+]*]", x = x, replacement = ""))
+  return(mean(c(as.numeric(x = left), as.numeric(x = right))))
 }
 
 # Reimplementation of ggplot2 coord$transform

@@ -7,14 +7,19 @@
 \usage{
 SVFInfo(object, ...)
 
-\method{SVFInfo}{Assay}(object, selection.method = "markvariogram", status = FALSE, ...)
+\method{SVFInfo}{Assay}(
+  object,
+  selection.method = c("markvariogram", "moransi"),
+  status = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{selection.method}{Which method to pull. Options: markvariogram}
+\item{selection.method}{Which method to pull. Options: markvariogram, moransi}
 
 \item{status}{Add variable status to the resulting data.frame}
 }

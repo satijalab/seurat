@@ -2,7 +2,8 @@
 % Please edit documentation in R/spatial.R
 \name{RunMarkVario}
 \alias{RunMarkVario}
-\title{Run the mark variogram computation on a given Seurat object}
+\title{Run the mark variogram computation on a given position matrix and expression
+matrix.}
 \usage{
 RunMarkVario(spatial.location, data, ...)
 }

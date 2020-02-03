@@ -12,8 +12,10 @@ FindSpatiallyVariableFeatures(object, ...)
 \method{FindSpatiallyVariableFeatures}{Assay}(
   object,
   spatial.location,
-  selection.method = "markvariogram",
+  selection.method = c("markvariogram", "moransi"),
   r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
   ...
 )
 
@@ -22,8 +24,10 @@ FindSpatiallyVariableFeatures(object, ...)
   slot = "scale.data",
   features = NULL,
   spatial.location,
-  selection.method = "markvariogram",
+  selection.method = c("markvariogram", "moransi"),
   r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
   nfeatures = nfeatures,
   ...
 )
@@ -34,8 +38,10 @@ FindSpatiallyVariableFeatures(object, ...)
   slot = "scale.data",
   features = NULL,
   image = NULL,
-  selection.method = c("markvariogram"),
+  selection.method = c("markvariogram", "moransi"),
   r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
   nfeatures = 2000,
   verbose = TRUE,
   ...
