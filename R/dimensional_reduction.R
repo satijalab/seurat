@@ -1458,17 +1458,27 @@ RunUMAP.Seurat <- function(
   if (!is.null(x = features)) {
     data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
-      stop("Please provide as many or more features than n.components. ", 
-           length(x = features), " features provided, ", n.components, 
-           " UMAP components requested.")   
+      stop(
+        "Please provide as many or more features than n.components: ",
+        length(x = features),
+        " features provided, ",
+        n.components,
+        " UMAP components requested",
+        call. = FALSE
+      )
     }
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
     if (length(x = dims) < n.components) {
-      stop("Please provide as many or more dims than n.components. ", 
-           length(x = dims), " dims provided, ", n.components, 
-           " UMAP components requested.")   
+      stop(
+        "Please provide as many or more dims than n.components: ",
+        length(x = dims),
+        " dims provided, ",
+        n.components,
+        " UMAP components requested",
+        call. = FALSE
+      )
     }
   } else if (!is.null(x = graph)) {
     data.use <- object[[graph]]
