@@ -2415,7 +2415,7 @@ CollapseEmbeddingOutliers <- function(
   data.medians.scale <- as.matrix(x = scale(x = data.medians, center = TRUE, scale = TRUE))
   data.medians.scale[abs(x = data.medians.scale) < outlier.sd] <- 0
   data.medians.scale <- sign(x = data.medians.scale) * (abs(x = data.medians.scale) - outlier.sd)
-  data.correct <- sweep(
+  data.correct <- Sweep(
     x = data.medians.scale,
     MARGIN = 2,
     STATS = data.sd,
@@ -2425,7 +2425,7 @@ CollapseEmbeddingOutliers <- function(
   new.embeddings <- embeddings
   for (i in rownames(x = data.correct)) {
     cells.correct <- rownames(x = idents)[idents[, "ident"] == i]
-    new.embeddings[cells.correct, ] <- sweep(
+    new.embeddings[cells.correct, ] <- Sweep(
       x = new.embeddings[cells.correct,],
       MARGIN = 2,
       STATS = data.correct[i, ],

@@ -251,7 +251,7 @@ FindIntegrationAnchors <- function(
       DefaultAssay(object = object.2) <- "ToIntegrate"
       if (reduction %in% Reductions(object = object.2)) {
         slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
-      }      
+      }
       object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
       object.pair <- switch(
         EXPR = reduction,
@@ -305,13 +305,13 @@ FindIntegrationAnchors <- function(
           reduction <- "projectedpca.1"
           reduction.2 <- "projectedpca.2"
           if (l2.norm){
-            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- sweep(
+            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- Sweep(
               x = Embeddings(object = object.pair[["projectedpca.1"]]),
               MARGIN = 2,
               STATS = apply(X = Embeddings(object = object.pair[["projectedpca.1"]]), MARGIN = 2, FUN = sd),
               FUN = "/"
             )
-            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- sweep(
+            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- Sweep(
               x = Embeddings(object = object.pair[["projectedpca.2"]]),
               MARGIN = 2,
               STATS = apply(X = Embeddings(object = object.pair[["projectedpca.2"]]), MARGIN = 2, FUN = sd),
@@ -992,7 +992,7 @@ PrepSCTIntegration <- function(
     FUN = function(i) {
       sct.check <- IsSCT(assay = object.list[[i]][[assay[i]]])
       if (!sct.check) {
-        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) && 
+        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) &&
             Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
           sct.check <- TRUE
         }
@@ -1015,7 +1015,7 @@ PrepSCTIntegration <- function(
       call. = FALSE
     )
   }
-  
+
   object.list <- lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
@@ -1026,7 +1026,7 @@ PrepSCTIntegration <- function(
       return(object.list[[i]])
     }
   )
-  
+
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -1992,7 +1992,7 @@ FindWeights <- function(
     if (verbose) message("")
     dist.anchor.weight <- dist.weights * anchors[, "score"]
     weights <- 1 - exp(-1 * dist.anchor.weight / (2 * (1 / sd.weight)) ^ 2)
-    weights <- sweep(weights, 2, Matrix::colSums(weights), "/")
+    weights <- Sweep(x = weights, MARGIN = 2, STATS = Matrix::colSums(weights), FUN = "/")
   }
   object <- SetIntegrationData(
     object = object,
@@ -2028,9 +2028,9 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 }
 
 # Map queries to reference
-# 
+#
 # Map query objects onto assembled reference dataset
-# 
+#
 # @param anchorset Anchorset found by FindIntegrationAnchors
 # @param reference Pre-integrated reference dataset to map query datasets to
 # @param new.assay.name Name for the new assay containing the integrated data
@@ -2058,7 +2058,7 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # @param do.cpp Run cpp code where applicable
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
-# 
+#
 # @return Returns an integrated matrix
 #
 MapQuery <- function(

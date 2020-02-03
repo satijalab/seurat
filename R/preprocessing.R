@@ -1954,13 +1954,13 @@ RunALRA.default <- function(
   sigma.1.2 <- sigma.2 / sigma.1
   toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
   A.norm.rank.k.temp <- A.norm.rank.k.cor[, toscale]
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = sigma.1.2[toscale],
     FUN = "*"
   )
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = toadd[toscale],
@@ -2908,7 +2908,7 @@ RegressOutMatrix <- function(
     close(con = pb)
   }
   if (use.umi) {
-    data.resid <- log1p(x = sweep(
+    data.resid <- log1p(x = Sweep(
       x = data.resid,
       MARGIN = 1,
       STATS = apply(X = data.resid, MARGIN = 1, FUN = min),
