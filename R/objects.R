@@ -646,12 +646,13 @@ CreateDimReducObject <- function(
   if (length(x = key) != 1) {
     stop("Please specify a key for the DimReduc object")
   } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
-    # New SetKey function
-    key <- regmatches(
-      x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+    old.key  <- key
+    key <- UpdateKey(key = old.key)
+    colnames(x = embeddings) <- gsub(
+      x = colnames(x = embeddings),
+      pattern = old.key,
+      replacement = key
     )
-    key <- paste0(paste(key, collapse = ''), '_')
     warning(
       "All keys should be one or more alphanumeric characters followed by an underscore '_', setting key to ",
       key,
@@ -6122,7 +6123,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   }
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
-  
+
   return(x)
 }
 
@@ -6971,16 +6972,14 @@ UpdateJackstraw <- function(old.jackstraw) {
 # @return An updated Key that's valid for Seurat
 #
 UpdateKey <- function(key) {
-  if (grepl(pattern = '^[[:alnum:]]+_', x = key)) {
+  if (grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
     return(key)
   } else {
-    new.key <-  gsub(
-      pattern = "[[:^alnum:]]",
-      replacement = "",
+    new.key <- regmatches(
       x = key,
-      perl = TRUE
+      m = gregexpr(pattern = '[[:alnum:]]+', text = key)
     )
-    new.key <- paste0(new.key, '_')
+    new.key <- paste0(paste(unlist(x = new.key), collapse = ''), '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }
