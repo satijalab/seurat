@@ -1175,6 +1175,8 @@ SampleUMI <- function(
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
+#' @seealso \code{\link[sctransform:correct_counts]{sctransform::correct_counts}}
+#' @seealso \code{\link[sctransform:get_residuals]{sctransform::get_residuals}}
 #' @export
 #'
 #' @examples
