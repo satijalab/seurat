@@ -86,7 +86,5 @@ SCTransform(object = pbmc_small)
 
 }
 \seealso{
-\code{\link[sctransform:correct_counts]{sctransform::correct_counts()}}
-
-\code{\link[sctransform:get_residuals]{sctransform::get_residuals()}}
+\code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 }
