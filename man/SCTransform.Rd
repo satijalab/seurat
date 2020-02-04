@@ -85,3 +85,6 @@ in misc slot of new assay.
 SCTransform(object = pbmc_small)
 
 }
+\seealso{
+\code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
+}
