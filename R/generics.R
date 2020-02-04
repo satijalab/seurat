@@ -764,9 +764,6 @@ RunALRA <- function(object, ...) {
 #'
 #' @return Returns a combined Seurat object with the CCA results stored.
 #'
-#' @rdname RunCCA
-#' @export RunCCA
-#'
 #' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples

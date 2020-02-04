@@ -236,6 +236,7 @@ AddModuleScore <- function(
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #'
+#' @importFrom Matrix rowMeans
 #' @export
 #'
 #' @examples
@@ -268,9 +269,9 @@ AverageExpression <- function(
   fxn.average <- switch(
     EXPR = slot,
     'data' = function(x) {
-      return(mean(x = expm1(x = x)))
+      rowMeans(x = expm1(x = x))
     },
-    mean
+    rowMeans
   )
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
@@ -305,7 +306,7 @@ AverageExpression <- function(
     if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
       features.assay <- rownames(x = data.use)
     }
-    data.all <- data.frame(row.names = features.assay)
+    data.all <- list(data.frame(row.names = features.assay))
     for (j in levels(x = Idents(object))) {
       temp.cells <- WhichCells(object = object, idents = j)
       features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
@@ -318,14 +319,9 @@ AverageExpression <- function(
         }
       }
       if (length(x = temp.cells) > 1 ) {
-        data.temp <- apply(
-          X = data.use[features.assay, temp.cells, drop = FALSE],
-          MARGIN = 1,
-          FUN = fxn.average
-        )
+        data.temp <- fxn.average(data.use[features.assay, temp.cells, drop = FALSE])
       }
-      data.all <- cbind(data.all, data.temp)
-      colnames(x = data.all)[ncol(x = data.all)] <- j
+      data.all[[j]] <- data.temp
       if (verbose) {
         message(paste("Finished averaging", assays[i], "for cluster", j))
       }
@@ -334,7 +330,7 @@ AverageExpression <- function(
       }
     }
     names(x = ident.new) <- levels(x = Idents(object))
-    data.return[[i]] <- data.all
+    data.return[[i]] <- do.call(cbind, data.all)
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
@@ -1368,7 +1364,7 @@ ChunkPoints <- function(dsize, csize) {
 #
 #
 L2Norm <- function(mat, MARGIN = 1){
-  normalized <- sweep(
+  normalized <- Sweep(
     x = mat,
     MARGIN = MARGIN,
     STATS = apply(
@@ -1879,6 +1875,84 @@ RandomName <- function(length = 5L, ...) {
 #
 Same <- function(x) {
   return(x)
+}
+
+# Sweep out array summaries
+#
+# Reimplmentation of \code{\link[base]{sweep}} to maintain compatability with
+# both R 3.X and 4.X
+#
+# @inheritParams base::sweep
+# @param x an array.
+#
+# @seealso \code{\link[base]{sweep}}
+#
+Sweep <- function(x, MARGIN, STATS, FUN = '-', check.margin = TRUE, ...) {
+  if (any(grepl(pattern = 'X', x = names(x = formals(fun = sweep))))) {
+    return(sweep(
+      X = x,
+      MARGIN = MARGIN,
+      STATS = STATS,
+      FUN = FUN,
+      check.margin = check.margin,
+      ...
+    ))
+  } else {
+    return(sweep(
+      x = x,
+      MARGIN = MARGIN,
+      STATS = STATS,
+      FUN = FUN,
+      check.margin = check.margin,
+      ...
+    ))
+  }
+}
+
+# Get program paths in a system-agnostic way
+#
+# @param progs A vector of program names
+# @param error Throw an error if any programs are not found
+# @param add.exe Add '.exe' extension to program names that don't have it
+#
+# @return A named vector of program paths; missing programs are returned as
+# \code{NA} if \code{error = FALSE}
+#
+#' @importFrom tools file_ext
+#
+SysExec <- function(
+  progs,
+  error = ifelse(test = length(x = progs) == 1, yes = TRUE, no = FALSE),
+  add.exe = .Platform$OS.type == 'windows'
+) {
+  cmd <- ifelse(
+    test = .Platform$OS.type == 'windows',
+    yes = 'where.exe',
+    no = 'which'
+  )
+  if (add.exe) {
+    missing.exe <- file_ext(x = progs) != 'exe'
+    progs[missing.exe] <- paste0(progs[missing.exe], '.exe')
+  }
+  paths <- sapply(
+    X = progs,
+    FUN = function(x) {
+      return(tryCatch(
+        expr = system2(command = cmd, args = x, stdout = TRUE)[1],
+        warning = function(...) {
+          return(NA_character_)
+        }
+      ))
+    }
+  )
+  if (error && any(is.na(x = paths))) {
+    stop(
+      "Could not find the following programs: ",
+      paste(names(x = paths[is.na(x = paths)]), collapse = ', '),
+      call. = FALSE
+    )
+  }
+  return(paths)
 }
 
 # Try to convert x to numeric, if NA's introduced return x as is

@@ -861,7 +861,7 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
-#' @param features Features to compute PCA on. If features=NULL, PCA will be run 
+#' @param features Features to compute PCA on. If features=NULL, PCA will be run
 #' using the variable features for the Assay. Note that the features must be present
 #' in the scaled data. Any requested features that are not scaled or have 0 variance
 #' will be dropped, and the PCA will be run using the remaining features.
@@ -1456,10 +1456,30 @@ RunUMAP.Seurat <- function(
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
   if (!is.null(x = features)) {
-    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, , drop = FALSE]))
+    if (ncol(x = data.use) < n.components) {
+      stop(
+        "Please provide as many or more features than n.components: ",
+        length(x = features),
+        " features provided, ",
+        n.components,
+        " UMAP components requested",
+        call. = FALSE
+      )
+    }
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
+    if (length(x = dims) < n.components) {
+      stop(
+        "Please provide as many or more dims than n.components: ",
+        length(x = dims),
+        " dims provided, ",
+        n.components,
+        " UMAP components requested",
+        call. = FALSE
+      )
+    }
   } else if (!is.null(x = graph)) {
     data.use <- object[[graph]]
   } else {
@@ -1703,7 +1723,12 @@ fftRtsne <- function(X,
     result_path <- tempfile(pattern = 'fftRtsne_result_', fileext = '.dat')
   }
   if (is.null(x = fast_tsne_path)) {
-    suppressWarnings(expr = fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE))
+    # suppressWarnings(expr = fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE))
+    fast_tsne_path <- SysExec(progs = ifelse(
+      test = .Platform$OS.type == 'windows',
+      yes = 'FItSNE.exe',
+      no = 'fast_tsne'
+      ))
     if (length(x = fast_tsne_path) == 0) {
       stop("no fast_tsne_path specified and fast_tsne binary is not in the search path")
     }
