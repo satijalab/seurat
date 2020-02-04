@@ -499,7 +499,9 @@ FindTransferAnchors <- function(
         if (verbose) {
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
         }
-        query <- ScaleData(object = query, features = features, verbose = FALSE)
+        if (normalization.method == "LogNormalize") {
+          query <- ScaleData(object = query, features = features, verbose = FALSE)
+        }
         query <- RunPCA(object = query, npcs = npcs, verbose = FALSE, features = features, approx = approx.pca)
       }
       projected.pca <- ProjectCellEmbeddings(
@@ -525,7 +527,7 @@ FindTransferAnchors <- function(
           message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
         }
         if (normalization.method == "LogNormalize") {
-        reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+          reference <- ScaleData(object = reference, features = features, verbose = FALSE)
         }
         reference <- RunPCA(
           object = reference,
@@ -558,8 +560,8 @@ FindTransferAnchors <- function(
   ## find anchors using CCA
   if (reduction == 'cca') {
     if (normalization.method == "LogNormalize") {
-    reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-    query <- ScaleData(object = query, features = features, verbose = FALSE)
+      reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+      query <- ScaleData(object = query, features = features, verbose = FALSE)
     }
     combined.ob <- RunCCA(
       object1 = reference,
