@@ -393,7 +393,7 @@ LinkedDimPlot <- function(
   reduction = NULL,
   image = NULL,
   group.by = NULL,
-  alpha = c(0.3, 1),
+  alpha = c(0.1, 1),
   combine = TRUE
 ) {
   # Setup gadget UI
@@ -601,7 +601,7 @@ LinkedFeaturePlot <- function(
   reduction = NULL,
   image = NULL,
   slot = 'data',
-  alpha = c(0.3, 1),
+  alpha = c(0.1, 1),
   combine = TRUE
 ) {
   # Setup gadget UI
@@ -1264,10 +1264,10 @@ RunMarkVario <- function(
 
 #' Compute Moran's I value.
 #'
-#' Wraps the functionality of the Moran.I function from the ape package. 
-#' Weights are computed as 1/distance. 
+#' Wraps the functionality of the Moran.I function from the ape package.
+#' Weights are computed as 1/distance.
 #'
-#' @param data Expression matrix 
+#' @param data Expression matrix
 #' @param pos Position matrix
 #'
 #' @importFrom stats dist
@@ -1284,7 +1284,7 @@ RunMoransI <- function(data, pos){
   diag(x = weights) <- 0
   results <- apply(X = data, MARGIN = 1, FUN = function(x) {
     tryCatch(
-      expr = t(x = as.data.frame(x = Moran.I(x = x, weight = weights))), 
+      expr = t(x = as.data.frame(x = Moran.I(x = x, weight = weights))),
       error = function(x) c(1,1,1,1)
     )
   })
@@ -1915,7 +1915,7 @@ FindSpatiallyVariableFeatures.default <- function(
       data = object
     ),
     'moransi' = RunMoransI(
-      data = object, 
+      data = object,
       pos = spatial.location
     ),
     stop("Invalid selection method. Please choose one of: markvariogram, moransi.")
@@ -1936,7 +1936,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   spatial.location,
   selection.method = c('markvariogram', 'moransi'),
   r.metric = 5,
-  x.cuts = NULL, 
+  x.cuts = NULL,
   y.cuts = NULL,
   nfeatures = nfeatures,
   ...
@@ -2582,11 +2582,11 @@ setMethod(
 #
 # @param dat Expression data
 # @param pos Position information/coordinates for each sample
-# @param x.cuts Number of cuts to make in the x direction (defines grid along 
+# @param x.cuts Number of cuts to make in the x direction (defines grid along
 # with y.cuts)
 # @param y.cuts Number of cuts to make in the y direction
 #
-# @return returns a list with positions as centers of the bins and average 
+# @return returns a list with positions as centers of the bins and average
 # expression within the bins
 #
 #' @importFrom Matrix rowMeans
@@ -2602,9 +2602,9 @@ BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts) {
     data[, samples]
   })
   new.dat <- do.call(
-    what = cbind, 
+    what = cbind,
     args = lapply(
-      X = split.dat, 
+      X = split.dat,
       FUN = function(x) {
         if (is.null(x = dim(x = x))) {
           return(x)
@@ -2617,7 +2617,7 @@ BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts) {
   colnames(x = new.dat) <- all.bins
   new.pos <- t(x = sapply(X = all.bins, FUN = function(x) {
     xy <- unlist(x = strsplit(x = x, split = "_"))
-    x.mean <- MeanRange(x = xy[1])  
+    x.mean <- MeanRange(x = xy[1])
     y.mean <- MeanRange(x = xy[2])
     return(c(x.mean, y.mean))
   }))

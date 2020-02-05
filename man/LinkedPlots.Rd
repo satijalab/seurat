@@ -14,7 +14,7 @@ LinkedDimPlot(
   reduction = NULL,
   image = NULL,
   group.by = NULL,
-  alpha = c(0.3, 1),
+  alpha = c(0.1, 1),
   combine = TRUE
 )
 
@@ -25,7 +25,7 @@ LinkedFeaturePlot(
   reduction = NULL,
   image = NULL,
   slot = "data",
-  alpha = c(0.3, 1),
+  alpha = c(0.1, 1),
   combine = TRUE
 )
 }
