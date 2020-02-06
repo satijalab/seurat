@@ -44,7 +44,7 @@ UMAPPlot(object, ...)
 
 \item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors. We also include a number of palettes from the pals package. 
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
 See \code{\link{DiscretePalette}} for details.}
 
 \item{pt.size}{Adjust point size for plotting}
@@ -88,7 +88,7 @@ groups in cells.highlight}
 \item{ncol}{Number of columns for display when combining plots}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -106,5 +106,5 @@ DimPlot(object = pbmc_small, split.by = 'ident')
 }
 \seealso{
 \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-\code{\link{CellSelector}} \code{link{FetchData}}
+\code{\link{CellSelector}} \code{\link{FetchData}}
 }

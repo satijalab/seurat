@@ -59,7 +59,8 @@ if you are encountering that issue (note that plots may take longer to produce/r
 \item{...}{Extra parameters passed to \code{DimHeatmap}}
 }
 \value{
-No return value by default. If using fast = FALSE, will return a ggplot object.
+No return value by default. If using fast = FALSE, will return a
+\code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their

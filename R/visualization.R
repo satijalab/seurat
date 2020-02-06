@@ -23,7 +23,8 @@ NULL
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
 #'
-#' @return No return value by default. If using fast = FALSE, will return a ggplot object.
+#' @return No return value by default. If using fast = FALSE, will return a
+#' \code{\link[patchwork]{patchwork}ed} ggplot object
 #'
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -461,7 +462,7 @@ HTOHeatmap <- function(
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param slot Use non-normalized counts data for plotting
 #'
-#' @return A ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
 #'
 #' @export
 #'
@@ -511,7 +512,7 @@ RidgePlot <- function(
 #' see \code{\link{FetchData}} for more details
 #' @param adjust Adjust parameter for geom_violin
 #'
-#' @return A ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
 #'
 #' @export
 #'
@@ -578,6 +579,8 @@ VlnPlot <- function(
 #' @return Returns a DimPlot
 #'
 #' @export
+#'
+#' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
 #' pbmc_small
@@ -671,7 +674,7 @@ ColorDimSplit <- function(
 #' @param na.value Color value for NA points when using custom scale
 #' @param ncol Number of columns for display when combining plots
 #'
-#' @return A ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
 #'
 #' @importFrom rlang !!
 #' @importFrom ggplot2 facet_wrap vars sym
@@ -684,7 +687,7 @@ ColorDimSplit <- function(
 #'
 #' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-#' \code{\link{CellSelector}} \code{link{FetchData}}
+#' \code{\link{CellSelector}} \code{\link{FetchData}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
@@ -774,7 +777,7 @@ DimPlot <- function(
   )
   if( !is.null(x = split.by) && length(x = group.by) > 1) {
     ncol <- 1
-  } 
+  }
   plots <- wrap_plots(plots, ncol = ncol)
   return(plots)
 }
@@ -815,15 +818,15 @@ DimPlot <- function(
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 #' @param sort.cell If \code{TRUE}, the positive cells will overlap the negative cells
 #'
-#' @return Returns a ggplot/patchwork object 
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
 #'
 #' @importFrom grDevices rgb
+#' @importFrom patchwork wrap_plots
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect
 #' dup_axis guides element_blank element_text margin scale_color_brewer scale_color_gradientn
 #' scale_color_manual coord_fixed ggtitle
-#' @importFrom patchwork wrap_plots
 #'
 #' @export
 #'
@@ -1645,8 +1648,9 @@ PolyFeaturePlot <- function(
 #' first singular value spacings are so large. Nicer visualizations result from
 #' skipping the first few. If set to 0 (default) starts from k/2.
 #'
-#' @return A list of 3 ggplot objects splotting the singular values, the
-#' spacings of the singular values, and the p-values of the singular values.
+#' @return A list of 3 \code{\link[patchwork]{patchwork}ed} ggplot objects
+#' splotting the singular values, the spacings of the singular values, and the
+#' p-values of the singular values.
 #'
 #' @author Jun Zhao, George Linderman
 #' @seealso \code{\link{RunALRA}}
@@ -2120,8 +2124,9 @@ PlotClusterTree <- function(object, ...) {
 #' FALSE (default), returns the top genes ranked by the scores absolute values
 #' @param ncol Number of columns to display
 #'
-#' @return A ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot
 #'
+#' @importFrom patchwork wrap_plots
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string geom_point labs
 #' @export
@@ -3556,8 +3561,11 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param log plot Y axis on log scale
 # @param slot Use non-normalized counts data for plotting
 #
+# @return A \code{\link[patchwork]{patchwork}ed} ggplot
+#
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 xlab ylab
+#' @importFrom patchwork wrap_plots
 #
 ExIPlot <- function(
   object,

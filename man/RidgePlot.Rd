@@ -47,7 +47,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 \item{slot}{Use non-normalized counts data for plotting}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Draws a ridge plot of single cell data (gene expression, metrics, PC

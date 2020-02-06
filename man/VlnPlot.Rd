@@ -60,7 +60,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 see \code{\link{FetchData}} for more details}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Draws a violin plot of single cell data (gene expression, metrics, PC

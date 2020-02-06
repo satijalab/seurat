@@ -31,7 +31,7 @@ ColorDimSplit(
     \item{\code{cells}}{Vector of cells to plot (default is all cells)}
     \item{\code{cols}}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors. We also include a number of palettes from the pals package. 
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
 See \code{\link{DiscretePalette}} for details.}
     \item{\code{pt.size}}{Adjust point size for plotting}
     \item{\code{reduction}}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
@@ -74,4 +74,7 @@ pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 PlotClusterTree(pbmc_small)
 ColorDimSplit(pbmc_small, node = 5)
 
+}
+\seealso{
+\code{\link{DimPlot}}
 }

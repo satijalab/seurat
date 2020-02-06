@@ -94,7 +94,7 @@ different colors and different shapes on cells}
 \item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
 }
 \value{
-Returns a ggplot/patchwork object
+A \code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Colors single cells on a dimensional reduction plot according to a 'feature'

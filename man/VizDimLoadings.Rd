@@ -35,7 +35,7 @@ FALSE (default), returns the top genes ranked by the scores absolute values}
 \item{ncol}{Number of columns to display}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot
 }
 \description{
 Visualize top genes associated with reduction components
