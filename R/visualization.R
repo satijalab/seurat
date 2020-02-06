@@ -536,10 +536,8 @@ VlnPlot <- function(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  combine = TRUE,
   slot = 'data',
-  multi.group = FALSE,
-  ...
+  multi.group = FALSE
 ) {
   return(ExIPlot(
     object = object,
@@ -1237,60 +1235,59 @@ FeaturePlot <- function(
     if (length(x = features) > 9) {
       ncol <- 4
     }
-    ncol <- ifelse(
-      test = is.null(x = split.by) || blend,
-      yes = ncol,
-      no = length(x = features)
-    )
-    legend <- if (blend) {
-      'none'
-    } else {
-      split.by %iff% 'none'
-    }
-    # Transpose the FeatureHeatmap matrix (not applicable for blended FeaturePlots)
-    if (by.col && !is.null(x = split.by) && !blend) {
-      plots <- lapply(
-        X = plots,
-        FUN = function(x) {
-          return(suppressMessages(
-            expr = x +
-              theme_cowplot() +
-              ggtitle("") +
-              scale_y_continuous(sec.axis = dup_axis(name = "")) +
-              no.right
-          ))
-        }
-      )
-      nsplits <- length(x = levels(x = data$split))
-      idx <- 1
-      for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
-        plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
-        idx <- idx + 1
+  }
+  ncol <- ifelse(
+    test = is.null(x = split.by) || blend,
+    yes = ncol,
+    no = length(x = features)
+  )
+  legend <- if (blend) {
+    'none'
+  } else {
+    split.by %iff% 'none'
+  }
+  # Transpose the FeatureHeatmap matrix (not applicable for blended FeaturePlots)
+  if (by.col && !is.null(x = split.by) && !blend) {
+    plots <- lapply(
+      X = plots,
+      FUN = function(x) {
+        return(suppressMessages(
+          expr = x +
+            theme_cowplot() +
+            ggtitle("") +
+            scale_y_continuous(sec.axis = dup_axis(name = "")) +
+            no.right
+        ))
       }
-      idx <- 1
-      for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
+    )
+    nsplits <- length(x = levels(x = data$split))
+    idx <- 1
+    for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
+      plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
+      idx <- idx + 1
+    }
+    idx <- 1
+    for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
+      plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
+      idx <- idx + 1
+    }
+    idx <- 1
+    if (length(x = features) == 1) {
+      for (i in 1:length(x = plots)) {
         plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
         idx <- idx + 1
       }
-      idx <- 1
-      if (length(x = features) == 1) {
-        for (i in 1:length(x = plots)) {
-          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
-          idx <- idx + 1
-        }
-      }
-      plots <- plots[c(do.call(
-        what = rbind,
-        args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
-      ))]
-      plots <- wrap_plots(plots, ncol = nsplits)
- 
-    } else {
-      plots <- wrap_plots(plots, ncol = ncol, nrow = split.by %iff% length(x = levels(x = data$split)))
     }
-    if (legend == 'none'){
-      plots <- plots & NoLegend()
-    }
+    plots <- plots[c(do.call(
+      what = rbind,
+      args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
+    ))]
+    plots <- wrap_plots(plots, ncol = nsplits)
+  } else {
+    plots <- wrap_plots(plots, ncol = ncol, nrow = split.by %iff% length(x = levels(x = data$split)))
+  }
+  if (!is.null(x = legend) && legend == 'none') {
+    plots <- plots & NoLegend()
   }
   return(plots)
 }
@@ -2412,14 +2409,18 @@ CollapseEmbeddingOutliers <- function(
 #'   size = ncol(x = pbmc_small),
 #'   replace = TRUE
 #' )
-#' plots <- FeaturePlot(
+#' plot1 <- FeaturePlot(
 #'   object = pbmc_small,
-#'   features = c('MS4A1', 'FCN1'),
-#'   split.by = 'group',
-#'   combine = FALSE
+#'   features = 'MS4A1',
+#'   split.by = 'group'
+#' )
+#' plot2 <- FeaturePlot(
+#'   object = pbmc_small,
+#'   features = 'FCN1',
+#'   split.by = 'group'
 #' )
 #' CombinePlots(
-#'   plots = plots,
+#'   plots = list(plot1, plot2),
 #'   legend = 'none',
 #'   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 #' )
