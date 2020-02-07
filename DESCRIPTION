@@ -57,7 +57,6 @@ Imports:
     Rtsne,
     scales,
     sctransform (>= 0.2.0),
-    SDMTools,
     stats,
     tools,
     tsne,
@@ -86,6 +85,7 @@ Encoding: UTF-8
 biocViews:
 Suggests:
     loomR,
+    SDMTools,
     testthat,
     hdf5r,
     S4Vectors,

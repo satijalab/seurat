@@ -4053,10 +4053,11 @@ PlotBuild <- function(data, dark.theme = FALSE, smooth = FALSE, ...) {
 # @return A dataframe of x and y coordinates for points selected
 #
 #' @importFrom graphics locator
-#' @importFrom SDMTools pnt.in.poly
+# @importFrom SDMTools pnt.in.poly
 #
 PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
+  PackageCheck('SDMTools')
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
   npoints <- nrow(x = plot.data)
   cat("Click around the cluster of points you wish to select\n")
@@ -4065,7 +4066,7 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   polygon <- locator(n = npoints, type = 'l')
   polygon <- data.frame(polygon)
   #   pnt.in.poly returns a data.frame of points
-  points.all <- pnt.in.poly(
+  points.all <- SDMTools::pnt.in.poly(
     pnts = plot.data[, c(1, 2)],
     poly.pnts = polygon
   )
