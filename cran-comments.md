@@ -28,7 +28,7 @@ There were 3 NOTEs:
     Availability using Additional_repositories specification:
         loomR   yes   https://mojaveazure.github.io/loomR
 
-  This is a patch for an archived package Seurat. We were slow in fixing the errors and would like to get Seurat back on CRAN. In addition. the package we suggest, loomR, is currently underdevelopment and not yet available on CRAN. This package is not required for core functionality of Seurat.
+  This is a patch for an archived package Seurat. We were slow in fixing the errors and would like to get Seurat back on CRAN. In addition. the package we suggest, loomR, is currently under development and not yet available on CRAN. This package is not required for core functionality of Seurat.
 
 * checking package dependencies ... NOTE
   Package suggested but not available for checking: 'loomR'

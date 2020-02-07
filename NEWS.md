@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Fixes for keys with underscores
 - Fix issue with leiden option for `FindClusters`
 - Fix for data transfer when using sctransform
+- SDMTools moved to Suggests as package is orphaned 
 
 ## [3.1.2] - 2019-12-11
 ### Added
