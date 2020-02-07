@@ -2586,7 +2586,7 @@ CustomPalette <- function(
 #'
 #' @details
 #' Taken from the pals package (Licence: GPL-3).
-#' \url{https://cran.r-project.org/web/packages/pals/index.html}
+#' \url{https://cran.r-project.org/package=pals}
 #' Credit: Kevin Wright
 #'
 #' @export
