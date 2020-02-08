@@ -1,4 +1,4 @@
-# Seurat v3.1.2
+# Seurat v3.1.3
 
 ## Test environments
 * local Ubuntu 16.04.6 and 18.04.2 installs, R 3.6.1
@@ -14,12 +14,21 @@ There were 3 NOTEs:
 
 * checking CRAN incoming feasibility ... NOTE
     Maintainer: ‘Paul Hoffman <nygcSatijalab@nygenome.org>’
+
+    New submission
+
+    Package was archived on CRAN
+
+    CRAN repository db overrides:
+        X-CRAN-Comment: Archived on 2020-02-07 as check issues were not
+            corrected in time.
+
     Suggests or Enhances not in mainstream repositories:
         loomR
     Availability using Additional_repositories specification:
         loomR   yes   https://mojaveazure.github.io/loomR
 
-  The package we suggest, loomR, is currently underdevelopment and not yet available on CRAN. This package is not required for core functionality of Seurat.
+  This is a patch for an archived package Seurat. We were slow in fixing the errors and would like to get Seurat back on CRAN. In addition. the package we suggest, loomR, is currently under development and not yet available on CRAN. This package is not required for core functionality of Seurat.
 
 * checking package dependencies ... NOTE
   Package suggested but not available for checking: 'loomR'

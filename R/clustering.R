@@ -723,7 +723,7 @@ RunLeiden <- function(
         if (is.null(x = weights)) {
           graph_from_adj_list(adjlist = object)
         } else {
-          graph_from_adj_list(adjlist = object, weighted = TRUE)
+          graph_from_adj_list(adjlist = object)
         }
       } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
         if (is.null(x = weights)) {
