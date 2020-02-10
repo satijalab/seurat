@@ -355,7 +355,7 @@ DoHeatmap <- function(
         scale_color_manual(values = cols)
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
-        x.divs <- pbuild$layout$panel_params[[1]]$x.major
+        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% pbuild$layout$panel_params[[1]]$x$break_positions()
         x <- data.frame(group = sort(x = group.use), x = x.divs)
         label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
         label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
