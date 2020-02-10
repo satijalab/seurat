@@ -776,7 +776,10 @@ RunLSI.Seurat <- function(
 #' the number for the dimension names. PC by default
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
-#' @param approx Use truncated singular value decomposition to approximate PCA
+#' @param approx Use truncated singular value decomposition to approximate PCA. See \code{\link[irlba]{irlba}}
+#' @param center logical(1) or numeric. Center features (cells if \code{rev.pca=TRUE}) before computing PCs (recommended). See \code{\link[stats]{prcomp}}
+#' @param scale logical(1) or numeric. Scale features (cells if \code{rev.pca=TRUE}) before computing PCs (recommended). See \code{\link[stats]{prcomp}}
+#' @param scale. Deprecated. Alias for \code{scale}
 #'
 #' @importFrom irlba irlba
 #' @importFrom stats prcomp
@@ -797,46 +800,93 @@ RunPCA.default <- function(
   reduction.key = "PC_",
   seed.use = 42,
   approx = TRUE,
+  center = !approx, # to retain previous (non-sensible) defaults
+  scale = if(!missing(scale.)) scale. else FALSE, # to retain previous defaults
+  scale.,
   ...
 ) {
+  if(!approx) {
+    pcs.name <- if(rev.pca) "`gene.loadings`" else "`cell.embeddings`"
+    # Stage 1:
+    Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling")
+    if (is.null(Seurat.RunPCA.use.correct.scaling)) {
+      warning("If used with `approx=FALSE`, RunPCA does not scale ", pcs.name, " correctly. This will change",
+              " in a future version.\nTo switch to the new, correct behavior now and get rid of this" ,       # to be changed to
+              " warning message, use `options(Seurat.RunPCA.use.correct.scaling = TRUE)` or use `approx=TRUE` (recommended).",
+              "\nTo maintain the current (wrong) behavior and get rid of this warning message,",
+              " set `options(Seurat.RunPCA.use.correct.scaling = FALSE)` (not recommended).",
+              "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+      Seurat.RunPCA.use.correct.scaling <- FALSE
+    }
+    # # Stage 2: # fill in current date for yyyyy in stage 4 warning
+    # Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling", default = TRUE)
+    # # Stage 3: # fill in current date for xxxxx in stage 4 warnings
+    # Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling", default = TRUE)
+    # if (!Seurat.RunPCA.use.correct.scaling) {
+    #   warning("Using `options(Seurat.RunPCA.use.correct.scaling = FALSE)` is deprecated in will cause an error in future versions of Seurat.",
+    #           "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+    # }
+    # # Stage 4: remove if clause below
+    # Seurat.RunPCA.use.correct.scaling <- getOption(x = "Seurat.RunPCA.use.correct.scaling", default = TRUE)
+    # if (!is.null(Seurat.RunPCA.use.correct.scaling)) {
+    #   if (Seurat.RunPCA.use.correct.scaling) {
+    #     warning("Using `options(Seurat.RunPCA.use.correct.scaling = FALSE)` is deprecated since xxxxx.",
+    #     " Specifing `options(Seurat.RunPCA.use.correct.scaling = TRUE)`  is no longer needed since yyyyy, please to not set it anymore.",
+    #           "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+    #   } else {
+    #     stop("`options(Seurat.RunPCA.use.correct.scaling = FALSE)` has been deprecated since xxxx and is no longer supported.",
+    #          "\nSee https://github.com/satijalab/seurat/issues/2237 for further information.")
+    #   }
+    # }
+    # # Stage 5: remove this if clause
+  }
+  if(!missing(scale.) && !missing(scale)) stop("Either `scale` or `scale.` can be spcified, not both!")
+  if(is.null(scale)) scale <- FALSE
+  if(is.null(center)) center <- FALSE
+  do.scale <- !is.logical(scale) || scale
+  calc.scale <- is.logical(scale) && scale
+  do.center <- !is.logical(center) || center
+  calc.center <- is.logical(center) && center
+
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (rev.pca) {
-    npcs <- min(npcs, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = npcs, ...)
-    total.variance <- sum(RowVar(x = t(x = object)))
-    sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
-    if (weight.by.var) {
-      feature.loadings <- pca.results$u %*% diag(pca.results$d)
-    } else{
-      feature.loadings <- pca.results$u
-    }
-    cell.embeddings <- pca.results$v
+  t.object <- if(rev.pca) object else t(x = object)
+  feature.means <- Matrix::colMeans(t.object)
+  feature.sq.means <- Matrix::colMeans(t.object^2)
+
+  center_ <- if (calc.center) feature.means else if (do.center) center else 0
+  # feature.vars <- colMeans(t(nt.object - center_)^2) <=>
+  feature.vars <- feature.sq.means - 2*feature.means*center_ + center_^2
+  feature.vars <- feature.vars * 1/(1-1/nrow(t.object))
+  scale_ <- if (calc.scale) sqrt(feature.vars) else if(do.scale) scale else 1
+  total.variance <- sum(feature.vars/scale_^2)
+
+  if (approx){
+    if(!do.scale) scale_ <- NULL
+    if(!do.center) center_ <- NULL
+    npcs <- min(npcs, dim(t.object) - 1L) # irlba does not allow computation of all PCs
+    pca.results <- irlba(A = t.object, nv = npcs, scale = scale_, center = center_, ...)
+    sdev <- pca.results$d/sqrt(nrow(t.object) - 1)
+    feature.loadings <- pca.results$v
+    cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+  } else {
+    pca.results <- prcomp(x = t.object, rank. = npcs, center = center, scale. = scale, ...)
+    sdev <- pca.results$sdev
+    feature.loadings <- pca.results$rotation
+    cell.embeddings <- pca.results$x
   }
-  else {
-    total.variance <- sum(RowVar(x = object))
-    if (approx) {
-      npcs <- min(npcs, nrow(x = object) - 1)
-      pca.results <- irlba(A = t(x = object), nv = npcs, ...)
-      feature.loadings <- pca.results$v
-      sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
-      } else {
-        cell.embeddings <- pca.results$u
-      }
-    } else {
-      npcs <- min(npcs, nrow(x = object))
-      pca.results <- prcomp(x = t(object), rank. = npcs, ...)
-      feature.loadings <- pca.results$rotation
-      sdev <- pca.results$sdev
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
-      } else {
-        cell.embeddings <- pca.results$x
-      }
-    }
+  if (!approx && !Seurat.RunPCA.use.correct.scaling ) {                                             # to be removed at stage 4
+    if (weight.by.var) {                                                                            #
+      cell.embeddings <- cell.embeddings %*% diag(sdev[1:npcs]^2)                                   #
+    }                                                                                               #
+  } else if (!weight.by.var) {
+    cell.embeddings <- cell.embeddings %*% diag(1/sdev[1:npcs]/sqrt(nrow(t.object) - 1))
+  }
+  if (rev.pca){
+    tmp <- feature.loadings
+    feature.loadings <- cell.embeddings
+    cell.embeddings <- tmp
   }
   rownames(x = feature.loadings) <- rownames(x = object)
   colnames(x = feature.loadings) <- paste0(reduction.key, 1:npcs)
@@ -865,6 +915,7 @@ RunPCA.default <- function(
 #' using the variable features for the Assay. Note that the features must be present
 #' in the scaled data. Any requested features that are not scaled or have 0 variance
 #' will be dropped, and the PCA will be run using the remaining features.
+#' @param slot Name of slot of assay PCA is being run on
 #'
 #' @rdname RunPCA
 #' @export
@@ -882,12 +933,19 @@ RunPCA.Assay <- function(
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
-  ...
+  approx = TRUE,
+  center = if(slot=="scale.data")  !approx else TRUE, # for backwards compatibilty. `slot!="scale.data"` would be more sensible
+  scale = if(!missing(scale.)) scale. else slot!="scale.data", # for backwards compatibilty
+  scale.,
+  ...,
+  slot = "scale.data"
 ) {
+  if(!missing(scale.) && !missing(scale)) stop("Either `scale` or `scale.` can be spcified, not both!")
   data.use <- PrepDR(
     object = object,
     features = features,
-    verbose = verbose
+    verbose = verbose,
+    slot = slot
   )
   reduction.data <- RunPCA(
     object = data.use,
@@ -900,8 +958,10 @@ RunPCA.Assay <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
-    ...
-
+    approx = approx,
+    ...,
+    center = center,
+    scale = scale
   )
   return(reduction.data)
 }
@@ -925,7 +985,9 @@ RunPCA.Seurat <- function(
   reduction.name = "pca",
   reduction.key = "PC_",
   seed.use = 42,
-  ...
+  approx = TRUE,
+  ...,
+  slot = "scale.data"
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
@@ -941,7 +1003,9 @@ RunPCA.Seurat <- function(
     nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
-    ...
+    approx = approx,
+    ...,
+    slot = slot
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
@@ -1935,31 +1999,36 @@ L2Norm <- function(vec) {
 # @param object        Assay object
 # @param features  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
-# @ param verbose   Print messages and warnings
+# @param verbose   Print messages and warnings
+# @param slot   slot to use as input for the dimensional reduction technique
 #
 #
 PrepDR <- function(
   object,
   features = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  slot = "scale.data"
 ) {
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
-    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
+    stop("Variable features haven't been set. Run FindVariableFeatures() or use the `features`argument to specify whichfeatures to use.")
   }
-  data.use <- GetAssayData(object = object, slot = "scale.data")
+  data.use <- GetAssayData(object = object, slot = slot)
   if (nrow(x = data.use ) == 0) {
-    stop("Data has not been scaled. Please run ScaleData and retry")
+    switch(slot,
+           "scale.data" = stop("Data has not been scaled. Please run ScaleData and retry"),
+           "data" =  stop("Data has not been normalized. Please run NormalizeData and retry"),
+           stop(paste0("Slot '", slot, "' not found in assay '", object@key, "'.")))
   }
   features <- features %||% VariableFeatures(object = object)
   features.keep <- unique(x = features[features %in% rownames(x = data.use)])
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
     if (verbose) {
-      warning(paste0("The following ", length(x = features.exclude), " features requested have not been scaled (running reduction without them): ", paste0(features.exclude, collapse = ", ")))
+      warning(paste0("The following ", length(x = features.exclude), " features requested have not been found in slot '", slot, "' of assay '", object@key, "' (running reduction without them): ", paste0(features.exclude, collapse = ", ")))
     }
   }
   features <- features.keep
-  features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
+  features.var <- Matrix::rowMeans(data.use[features, ]^2) - Matrix::rowMeans(data.use[features, ])^2
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
