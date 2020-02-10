@@ -8,14 +8,30 @@
 \usage{
 SubsetData(object, ...)
 
-\method{SubsetData}{Assay}(object, cells = NULL, subset.name = NULL,
-  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  ...)
+\method{SubsetData}{Assay}(
+  object,
+  cells = NULL,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ...
+)
 
-\method{SubsetData}{Seurat}(object, assay = NULL, cells = NULL,
-  subset.name = NULL, ident.use = NULL, ident.remove = NULL,
-  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  max.cells.per.ident = Inf, random.seed = 1, ...)
+\method{SubsetData}{Seurat}(
+  object,
+  assay = NULL,
+  cells = NULL,
+  subset.name = NULL,
+  ident.use = NULL,
+  ident.remove = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

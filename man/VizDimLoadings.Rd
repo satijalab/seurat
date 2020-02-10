@@ -4,9 +4,17 @@
 \alias{VizDimLoadings}
 \title{Visualize Dimensional Reduction genes}
 \usage{
-VizDimLoadings(object, dims = 1:5, nfeatures = 30, col = "blue",
-  reduction = "pca", projected = FALSE, balanced = FALSE,
-  ncol = NULL, combine = TRUE)
+VizDimLoadings(
+  object,
+  dims = 1:5,
+  nfeatures = 30,
+  col = "blue",
+  reduction = "pca",
+  projected = FALSE,
+  balanced = FALSE,
+  ncol = NULL,
+  combine = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}

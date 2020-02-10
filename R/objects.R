@@ -368,6 +368,46 @@ Assays <- function(object, slot = NULL) {
   return(slot(object = object, name = 'assays')[[slot]])
 }
 
+#' Get cell names grouped by identity class
+#'
+#' @param object A Seurat object
+#' @param idents A vector of identity class levels to limit resulting list to;
+#' defaults to all identity class levels
+#' @param cells A vector of cells to grouping to
+#'
+#' @return A named list where names are identity classes and values are vectors
+#' of cells beloning to that class
+#'
+#' @export
+#'
+#' @examples
+#' CellsByIdentities(object = pbmc_small)
+#'
+CellsByIdentities <- function(object, idents = NULL, cells = NULL) {
+  cells <- cells %||% colnames(x = object)
+  cells <- intersect(x = cells, y = colnames(x = object))
+  if (length(x = cells) == 0) {
+    stop("Cannot find cells provided")
+  }
+  idents <- idents %||% levels(x = object)
+  idents <- intersect(x = idents, y = levels(x = object))
+  if (length(x = idents) == 0) {
+    stop("None of the provided identity class levels were found", call. = FALSE)
+  }
+  cells.idents <- sapply(
+    X = idents,
+    FUN = function(i) {
+      return(cells[as.vector(x = Idents(object = object)[cells]) == i])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (any(is.na(x = Idents(object = object)[cells]))) {
+    cells.idents["NA"] <- names(x = which(x = is.na(x = Idents(object = object)[cells])))
+  }
+  return(cells.idents)
+}
+
 #' Create an Assay object
 #'
 #' Create an Assay object from a feature (e.g. gene) expression matrix. The
@@ -606,12 +646,13 @@ CreateDimReducObject <- function(
   if (length(x = key) != 1) {
     stop("Please specify a key for the DimReduc object")
   } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
-    # New SetKey function
-    key <- regmatches(
-      x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+    old.key  <- key
+    key <- UpdateKey(key = old.key)
+    colnames(x = embeddings) <- gsub(
+      x = colnames(x = embeddings),
+      pattern = old.key,
+      replacement = key
     )
-    key <- paste0(paste(key, collapse = ''), '_')
     warning(
       "All keys should be one or more alphanumeric characters followed by an underscore '_', setting key to ",
       key,
@@ -722,7 +763,7 @@ CreateSeuratObject <- function(
       warning("Some cells in meta.data not present in provided counts matrix.")
       meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
     }
-    if (class(x = meta.data) == "data.frame") {
+    if (is.data.frame(x = meta.data)) {
       new.meta.data <- data.frame(row.names = colnames(x = counts))
       for (ii in 1:ncol(x = meta.data)) {
         new.meta.data[rownames(x = meta.data), colnames(x = meta.data)[ii]] <- meta.data[, ii, drop = FALSE]
@@ -1206,6 +1247,73 @@ Reductions <- function(object, slot = NULL) {
   return(slot(object = object, name = 'reductions')[[slot]])
 }
 
+#' Rename assays in a \code{Seurat} object
+#'
+#' @param object A \code{Seurat} object
+#' @param ... Named arguments as \code{old.assay = new.assay}
+#'
+#' @return \code{object} with assays renamed
+#'
+#' @export
+#' @examples
+#' RenameAssays(object = pbmc_small, RNA = 'rna')
+#'
+RenameAssays <- function(object, ...) {
+  assay.pairs <- tryCatch(
+    expr = as.list(x = ...),
+    error = function(e) {
+      return(list(...))
+    }
+  )
+  old.assays <- names(x = assay.pairs)
+  # Handle missing assays
+  missing.assays <- setdiff(x = old.assays, y = Assays(object = object))
+  if (length(x = missing.assays) == length(x = old.assays)) {
+    stop("None of the assays provided are present in this object", call. = FALSE)
+  } else if (length(x = missing.assays)) {
+    warning(
+      "The following assays could not be found: ",
+      paste(missing.assays, collapse = ', '),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  old.assays <- setdiff(x = old.assays, missing.assays)
+  assay.pairs <- assay.pairs[old.assays]
+  # Check to see that all old assays are named
+  if (is.null(x = names(x = assay.pairs)) || any(sapply(X = old.assays, FUN = nchar) < 1)) {
+    stop("All arguments must be named with the old assay name", call. = FALSE)
+  }
+  # Ensure each old assay is going to one new assay
+  if (!all(sapply(X = assay.pairs, FUN = length) == 1) || length(x = old.assays) != length(x = unique(x = old.assays))) {
+    stop("Can only rename assays to one new name", call. = FALSE)
+  }
+  # Ensure each new assay is coming from one old assay
+  if (length(x = assay.pairs) != length(x = unique(x = assay.pairs))) {
+    stop(
+      "One or more assays are set to be lost due to duplicate new assay names",
+      call. = FALSE
+    )
+  }
+  # Rename assays
+  for (old in names(x = assay.pairs)) {
+    new <- assay.pairs[[old]]
+    # If we aren't actually renaming any
+    if (old == new) {
+      next
+    }
+    old.key <- Key(object = object[[old]])
+    suppressWarnings(expr = object[[new]] <- object[[old]])
+    if (old == DefaultAssay(object = object)) {
+      message("Renaming default assay from ", old, " to ", new)
+      DefaultAssay(object = object) <- new
+    }
+    Key(object = object[[new]]) <- old.key
+    object[[old]] <- NULL
+  }
+  return(object)
+}
+
 #' Set integation data
 #'
 #' @param object Seurat object
@@ -1388,6 +1496,20 @@ UpdateSeuratObject <- function(object) {
         meta.data = object@meta.data,
         tools = list()
       )
+      # Run CalcN
+      for (assay in Assays(object = object)) {
+        n.calc <- CalcN(object = object[[assay]])
+        if (!is.null(x = n.calc)) {
+          names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+          object[[names(x = n.calc)]] <- n.calc
+        }
+        to.remove <- c("nGene", "nUMI")
+        for (i in to.remove) {
+          if (i %in% colnames(x = object[[]])) {
+            object[[i]] <- NULL
+          }
+        }
+      }
     }
     if (package_version(x = slot(object = object, name = 'version')) >= package_version(x = "3.0.0")) {
       # Run validation
@@ -1395,6 +1517,10 @@ UpdateSeuratObject <- function(object) {
       # Update object slots
       message("Updating object slots")
       object <- UpdateSlots(object = object)
+      # Rename assays
+      assays <- make.names(names = Assays(object = object))
+      names(x = assays) <- Assays(object = object)
+      object <- do.call(what = RenameAssays, args = c('object' = object, assays))
       for (obj in FilterObjects(object = object, classes.keep = c('Assay', 'DimReduc', 'Graph'))) {
         suppressWarnings(expr = object[[obj]] <- UpdateSlots(object = object[[obj]]))
       }
@@ -5987,7 +6113,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   }
   # Remove metadata for cells not present
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
-  # Recalcualte nCount and nFeature
+  # Recalculate nCount and nFeature
   for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
     n.calc <- CalcN(object = x[[assay]])
     if (!is.null(x = n.calc)) {
@@ -5995,28 +6121,9 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
       x[[names(x = n.calc)]] <- n.calc
     }
   }
-  # Filter metadata to keep nCount and nFeature for assays present
-  ncolumns <- grep(
-    pattern = '^nCount_|^nFeature_',
-    x = colnames(x = x[[]]),
-    value = TRUE
-  )
-  ncols.keep <- as.vector(x = outer(
-    X = c('nCount_', 'nFeature_'),
-    Y = FilterObjects(object = x, classes.keep = 'Assay'),
-    FUN = paste0
-  ))
-  ncols.keep <- paste(ncols.keep, collapse = '|')
-  ncols.remove <- grep(
-    pattern = ncols.keep,
-    x = ncolumns,
-    value = TRUE,
-    invert = TRUE
-  )
-  metadata.keep <- colnames(x = x[[]])[!colnames(x = x[[]]) %in% ncols.remove]
-  slot(object = x, name = 'meta.data') <- x[[metadata.keep]]
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
+
   return(x)
 }
 
@@ -6095,6 +6202,22 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (i == DefaultAssay(object = x)) {
         stop("Cannot delete the default assay", call. = FALSE)
       }
+    }
+    # remove disallowed characters from object name
+    newi <- if (is.null(x = value)) {
+      i
+    } else {
+      make.names(names = i)
+    }
+    if (any(i != newi)) {
+      warning(
+        "Invalid name supplied, making object name syntactically valid. New object name is ",
+         newi,
+        "; see ?make.names for more details on syntax validity",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      i <- newi
     }
     # Figure out where to store data
     slot.use <- if (inherits(x = value, what = 'Assay')) {
@@ -6224,32 +6347,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         )
       }
       # Check keyed objects
-      if (class(x = value) %in% c('Assay', 'DimReduc')) {
+      if (inherits(x = value, what = c('Assay', 'DimReduc'))) {
         if (length(x = Key(object = value)) == 0) {
           Key(object = value) <- paste0(tolower(x = i), '_')
-        } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = Key(object = value))) {
-          non.alnum <- gsub(
-            pattern = '[[:alnum:]]',
-            replacement = '',
-            x = Key(object = value)
-          )
-          non.alnum <- unlist(x = strsplit(x = non.alnum, split = ''))
-          non.alnum <- paste(non.alnum, collapse = '|')
-          new.key <- gsub(
-            pattern = non.alnum,
-            replacement = '',
-            x = Key(object = value)
-          )
-          new.key <- paste0(new.key, '_')
-          warning(
-            "All object keys must be alphanumeric characters, followed by an underscore ('_'), setting key to '",
-            new.key,
-            "'",
-            call. = FALSE,
-            immediate. = TRUE
-          )
-          Key(object = value) <- new.key
         }
+        Key(object = value) <- UpdateKey(key = Key(object = value))
         # Check for duplicate keys
         object.keys <- sapply(
           X = FilterObjects(object = x),
@@ -6281,9 +6383,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       }
       # For Assays, run CalcN
       if (inherits(x = value, what = 'Assay')) {
-        if ((!i %in% Assays(object = x)) | 
+        if ((!i %in% Assays(object = x)) |
             (i %in% Assays(object = x) && ! identical(
-              x = GetAssayData(object = x, assay = i, slot = "counts"), 
+              x = GetAssayData(object = x, assay = i, slot = "counts"),
               y = GetAssayData(object = value, slot = "counts"))
             )) {
           n.calc <- CalcN(object = value)
@@ -6662,35 +6764,6 @@ CalcN <- function(object) {
   ))
 }
 
-# Get cell names grouped by identity class
-#
-# @param object A Seurat object
-# @param cells A vector of cells to grouping to
-#
-# @return A named list where names are identity classes and values are vectors
-# of cells beloning to that class
-#
-CellsByIdentities <- function(object, cells = NULL) {
-  cells <- cells %||% colnames(x = object)
-  cells <- intersect(x = cells, y = colnames(x = object))
-  if (length(x = cells) == 0) {
-    stop("Cannot find cells provided")
-  }
-  idents <- levels(x = object)
-  cells.idents <- sapply(
-    X = idents,
-    FUN = function(i) {
-      return(cells[as.vector(x = Idents(object = object)[cells]) == i])
-    },
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-  if (any(is.na(x = Idents(object = object)[cells]))) {
-    cells.idents["NA"] <- names(x = which(x = is.na(x = Idents(object = object)[cells])))
-  }
-  return(cells.idents)
-}
-
 # Get the names of objects within a Seurat object that are of a certain class
 #
 # @param object A Seurat object
@@ -6899,15 +6972,14 @@ UpdateJackstraw <- function(old.jackstraw) {
 # @return An updated Key that's valid for Seurat
 #
 UpdateKey <- function(key) {
-  if (grepl(pattern = '^[[:alnum:]]+_', x = key)) {
+  if (grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
     return(key)
   } else {
     new.key <- regmatches(
       x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+      m = gregexpr(pattern = '[[:alnum:]]+', text = key)
     )
-    new.key <- unlist(x = new.key, use.names = FALSE)
-    new.key <- paste0(paste(new.key, collapse = ''), '_')
+    new.key <- paste0(paste(unlist(x = new.key), collapse = ''), '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }

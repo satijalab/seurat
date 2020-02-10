@@ -109,9 +109,9 @@ CalculateBarcodeInflections <- function(
     }
   )$x
   ## workaround for aggregate behavior noted above
-  if (class(x = whichmin_list) == 'list') { # uneven lengths
+  if (is.list(x = whichmin_list)) { # uneven lengths
     is_inflection <- unlist(x = whichmin_list)
-  } else if (class(x = whichmin_list) == 'matrix') { # even lengths
+  } else if (is.matrix(x = whichmin_list)) { # even lengths
     is_inflection <- as.vector(x = t(x = whichmin_list))
   }
   tmp <- cbind(barcode_dist_sub, is_inflection)
@@ -191,15 +191,15 @@ CreateGeneActivityMatrix <- function(
   peak.df <- as.data.frame(x = peak.df)
   colnames(x = peak.df) <- c("chromosome", 'start', 'end')
   peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
-  
+
   # if any peaks start at 0, change to 1
-  # otherwise GenomicRanges::distanceToNearest will not work 
+  # otherwise GenomicRanges::distanceToNearest will not work
   BiocGenerics::start(peaks.gr[BiocGenerics::start(peaks.gr) == 0, ]) <- 1
 
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-  
+
   # change seqlevelsStyle if not the same
   if (!any(GenomeInfoDb::seqlevelsStyle(x = gtf) == GenomeInfoDb::seqlevelsStyle(x = peaks.gr))) {
     GenomeInfoDb::seqlevelsStyle(gtf) <- GenomeInfoDb::seqlevelsStyle(peaks.gr)
@@ -216,11 +216,11 @@ CreateGeneActivityMatrix <- function(
   keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
   peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
   gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
-  
+
   # Some GTF rows will not have gene_name attribute
   # Replace it by gene_id attribute
   gene.ids$gene_name[is.na(gene.ids$gene_name)] <- gene.ids$gene_id[is.na(gene.ids$gene_name)]
-  
+
   peak.ids$gene.name <- gene.ids$gene_name
   peak.ids <- as.data.frame(x = peak.ids)
   peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
@@ -582,10 +582,10 @@ GetResidual <- function(
 #' mat_norm
 #'
 LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   # call Rcpp function to normalize
@@ -866,13 +866,13 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       matrix.loc <- addgz(s = matrix.loc)
     }
     if (!file.exists(barcode.loc)) {
-      stop("Barcode file missing")
+      stop("Barcode file missing. Expecting ", basename(path = barcode.loc))
     }
     if (!pre_ver_3 && !file.exists(features.loc) ) {
-      stop("Gene name or features file missing")
+      stop("Gene name or features file missing. Expecting ", basename(path = features.loc))
     }
     if (!file.exists(matrix.loc)) {
-      stop("Expression matrix file missing")
+      stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
@@ -1066,10 +1066,10 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' mat_norm
 #'
 RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
@@ -1175,6 +1175,7 @@ SampleUMI <- function(
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
+#' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 #' @export
 #'
 #' @examples
@@ -1419,10 +1420,10 @@ SubsetByBarcodeInflections <- function(object) {
 #' mat_norm <- TF.IDF(data = mat)
 #'
 TF.IDF <- function(data, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
@@ -1954,13 +1955,13 @@ RunALRA.default <- function(
   sigma.1.2 <- sigma.2 / sigma.1
   toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
   A.norm.rank.k.temp <- A.norm.rank.k.cor[, toscale]
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = sigma.1.2[toscale],
     FUN = "*"
   )
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = toadd[toscale],
@@ -2113,7 +2114,7 @@ RunALRA.Seurat <- function(
 
 #' @importFrom future nbrOfWorkers
 #'
-#' @param features Vector of features names to scale/center. Default is all features
+#' @param features Vector of features names to scale/center. Default is variable features.
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
@@ -2502,7 +2503,6 @@ ClassifyCells <- function(data, q) {
         message("No threshold found for ", colnames(x = data)[i], "...")
       }
     )
-    # if (class(x = model) == "character") {
     if (is.character(x = model)) {
       next
     }
@@ -2569,10 +2569,10 @@ ClassifyCells <- function(data, q) {
 # @import Matrix
 #
 CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
@@ -2782,7 +2782,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
       data = regression.mat
     ),
     silent = TRUE)
-  if (class(fit)[1] == 'numeric') {
+  if (is.numeric(x = fit)) {
     message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
     resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
     mode <- 'scale'
@@ -2909,7 +2909,7 @@ RegressOutMatrix <- function(
     close(con = pb)
   }
   if (use.umi) {
-    data.resid <- log1p(x = sweep(
+    data.resid <- log1p(x = Sweep(
       x = data.resid,
       MARGIN = 1,
       STATS = apply(X = data.resid, MARGIN = 1, FUN = min),

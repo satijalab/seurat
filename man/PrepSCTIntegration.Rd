@@ -4,8 +4,13 @@
 \alias{PrepSCTIntegration}
 \title{Prepare an object list that has been run through SCTransform for integration}
 \usage{
-PrepSCTIntegration(object.list, assay = NULL, anchor.features = 2000,
-  sct.clip.range = NULL, verbose = TRUE)
+PrepSCTIntegration(
+  object.list,
+  assay = NULL,
+  anchor.features = 2000,
+  sct.clip.range = NULL,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object.list}{A list of objects to prep for integration}

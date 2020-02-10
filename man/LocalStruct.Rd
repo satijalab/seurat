@@ -4,9 +4,16 @@
 \alias{LocalStruct}
 \title{Calculate the local structure preservation metric}
 \usage{
-LocalStruct(object, grouping.var, idents = NULL, neighbors = 100,
-  reduction = "pca", reduced.dims = 1:10, orig.dims = 1:10,
-  verbose = TRUE)
+LocalStruct(
+  object,
+  grouping.var,
+  idents = NULL,
+  neighbors = 100,
+  reduction = "pca",
+  reduced.dims = 1:10,
+  orig.dims = 1:10,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}
