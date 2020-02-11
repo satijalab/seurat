@@ -13,6 +13,7 @@ test_that("Default settings work as expected", {
   expect_error(FindMarkers(object = pbmc_small))
   expect_error(FindMarkers(object = pbmc_small, ident.1 = "test"))
   expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = "test"))
+  expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, test.use = "areallyfaketest"), regexp = "Unknown test: ")
   expect_equal(colnames(x = markers.0), c("p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj"))
   expect_equal(markers.0[1, "p_val"], 9.572778e-13)
   expect_equal(markers.0[1, "avg_logFC"], -4.034691, tolerance = 1e-6)
@@ -221,7 +222,30 @@ test_that("LR test works", {
   expect_equal(rownames(x = results)[1], "LYZ")
 })
 
-# Tests for FindConservedMarkers 
+test_that("Arbitrary marker function calling works", {
+  return_fakedata <- function(data.use, ...) data.frame(p_val = rep(1, nrow(data.use)), row.names = rownames(data.use))
+
+  results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "return_fakedata", verbose = FALSE))
+
+  expect_equal(nrow(x = results), 201)
+  expect_equal(results["CST3", "p_val"], 1)
+  expect_equal(results["CST3", "avg_logFC"], -2.552769, tolerance = 1e-6)
+  expect_equal(results["CST3", "pct.1"], 0.306)
+  expect_equal(results["CST3", "pct.2"], 1.00)
+  expect_equal(results["CST3", "p_val_adj"], 1)
+  expect_equal(rownames(x = results)[1], "PF4")
+
+})
+
+test_that("Arbitrary marker function propagates the right error", {
+  buggyfunction <- function(...) stop("I dont work")
+
+  expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "buggyfunction", verbose = FALSE), "I dont work")
+  expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, test.use = "nonexistent", verbose = FALSE), "Unknown test: nonexistent")
+})
+
+
+# Tests for FindConservedMarkers
 # --------------------------------------------------------------------------------
 context("FindConservedMarkers")
 pbmc_small$groups

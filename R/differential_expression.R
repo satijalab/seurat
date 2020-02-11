@@ -588,74 +588,71 @@ FindMarkers.default <- function(
   if (!test.use %in% c('wilcox', 'MAST', 'DESeq2')) {
     CheckDots(...)
   }
+
+  std.arguments <- list(
+    data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+    cells.1 = cells.1,  cells.2 = cells.2,  verbose = verbose)
+
   de.results <- switch(
     EXPR = test.use,
-    'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
+    'wilcox' = do.call(what = "WilcoxDETest", args = c(std.arguments, ...)),
+    'bimod' = do.call(what = "DiffExpTest", args = c(std.arguments, ...)),
+    'roc' = do.call(what = "MarkerTest", args = std.arguments),
+    't' = do.call(what = "DiffTTest", args = std.arguments),
+    'negbinom' = do.call(
+      what = "GLMDETest",
+      args = c(
+        std.arguments,
+        min.cells = min.cells.feature,
+        latent.vars = latent.vars,
+        test.use = test.use
+      )
     ),
-    'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
+    'poisson' = do.call(
+      what = "GLMDETest",
+      args = c(
+        std.arguments,
+        min.cells = min.cells.feature,
+        latent.vars = latent.vars,
+        test.use = test.use
+      )
     ),
-    'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
+    'MAST' = do.call(
+      what = "MASTDETest",
+      args = c(
+        std.arguments,
+        min.cells = min.cells.feature,
+        latent.vars = latent.vars,
+        test.use = test.use
+      )
     ),
-    't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
+    "DESeq2" = do.call(what = "DESeq2DETest", args = std.arguments),
+    "LR" = do.call(
+      what = "LRDETest",
+      args = c(std.arguments, latent.vars = latent.vars)
     ),
-    'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose,
-      ...
-    ),
-    "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
-    ),
-    "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose
-    ),
-    stop("Unknown test: ", test.use)
+    {
+      de.results <- try(
+        expr = {
+          do.call(
+            what = test.use,
+            args = c(std.arguments, ...),
+            envir = parent.frame(2)
+          )
+         },
+        silent = TRUE
+      )
+      # This section makes sure that the correct error is raised, the
+      if (class(de.results) == "try-error") {
+        if (grepl(paste0("could not find function.*", test.use), de.results)) {
+          stop("Unknown test: ", test.use)
+        } else {
+          stop(de.results)
+        }
+      }
+
+      de.results
+    }
   )
   if (is.null(x = reduction)) {
     diff.col <- ifelse(
