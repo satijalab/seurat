@@ -32,8 +32,12 @@ There were 3 NOTEs:
 
 * checking package dependencies ... NOTE
   Package suggested but not available for checking: 'loomR'
+  
+  Suggests orphaned package: ‘SDMTools’
 
-  This is a suggested package hosted on a custom repository and maintained by us (both the package and repository).
+  loomR is a suggested package hosted on a custom repository and maintained by us (both the package and repository).
+  
+  SDMTools is not required for any essential functionality. We are working to replace the function that calls SDMTools with a new function using non-orphaned packages.
 
 * checking Rd cross-references ... NOTE
   Package unavailable to check Rd xrefs: 'loomR'
