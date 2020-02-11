@@ -1373,8 +1373,6 @@ SCTransform <- function(
 #' [BarcodeInflectionsPlot()] to visualize and test inflection point calculations.
 #'
 #' @param object Seurat object
-#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
-#'   recalculate the inflection points, else will use those already in `object`
 #'
 #' @return Returns a subsetted Seurat object.
 #'

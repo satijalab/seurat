@@ -2,6 +2,18 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.1.3] = 2020-02-07
+### Added
+- New system agnostic `Which` function to address problems with FItSNE on Windows
+
+### Changes
+- Export `CellsByIdentities` and `RowMergeSparseMatrices` functions
+- nCount and nFeature metadata variables retained after subset and updated properly with `UpdateSeuratObject`
+- Fix uwot support for running directly on feature matrices
+- Fixes for keys with underscores
+- Fix issue with leiden option for `FindClusters`
+- Fix for data transfer when using sctransform
+- SDMTools moved to Suggests as package is orphaned 
 
 ## [3.1.2] - 2019-12-11
 ### Added
