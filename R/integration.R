@@ -251,7 +251,7 @@ FindIntegrationAnchors <- function(
       DefaultAssay(object = object.2) <- "ToIntegrate"
       if (reduction %in% Reductions(object = object.2)) {
         slot(object = object.2[[reduction]], name = "assay.used") <- "ToIntegrate"
-      }      
+      }
       object.2 <- DietSeurat(object = object.2, assays = "ToIntegrate", scale.data = TRUE, dimreducs = reduction)
       object.pair <- switch(
         EXPR = reduction,
@@ -305,13 +305,13 @@ FindIntegrationAnchors <- function(
           reduction <- "projectedpca.1"
           reduction.2 <- "projectedpca.2"
           if (l2.norm){
-            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- sweep(
+            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- Sweep(
               x = Embeddings(object = object.pair[["projectedpca.1"]]),
               MARGIN = 2,
               STATS = apply(X = Embeddings(object = object.pair[["projectedpca.1"]]), MARGIN = 2, FUN = sd),
               FUN = "/"
             )
-            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- sweep(
+            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- Sweep(
               x = Embeddings(object = object.pair[["projectedpca.2"]]),
               MARGIN = 2,
               STATS = apply(X = Embeddings(object = object.pair[["projectedpca.2"]]), MARGIN = 2, FUN = sd),
@@ -453,6 +453,45 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
+  if (normalization.method == "SCT") {
+    features <- intersect(x = features, y = rownames(x = query))
+    query <- GetResidual(object = query, features = features, verbose = FALSE)
+    query[[query.assay]] <- CreateAssayObject(
+      counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
+    )
+    query <- SetAssayData(
+      object = query,
+      slot = "data",
+      assay = query.assay,
+      new.data = GetAssayData(object = query[[query.assay]], slot = "counts")
+    )
+    query <- SetAssayData(
+      object = query,
+      slot = "scale.data",
+      assay = query.assay,
+      new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
+    )
+    if (IsSCT(assay = reference[[reference.assay]])) {
+      reference <- GetResidual(object = reference, features = features, verbose = FALSE)
+    }
+    reference[[reference.assay]] <- CreateAssayObject(
+      counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
+    )
+    reference <- SetAssayData(
+      object = reference,
+      slot = "data",
+      assay = reference.assay,
+      new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
+    )
+    reference <- SetAssayData(
+      object = reference,
+      slot = "scale.data",
+      assay = reference.assay,
+      new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
+    )
+    feature.mean <- "SCT"
+    slot <- "scale.data"
+  }
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
@@ -460,7 +499,9 @@ FindTransferAnchors <- function(
         if (verbose) {
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
         }
-        query <- ScaleData(object = query, features = features, verbose = FALSE)
+        if (normalization.method == "LogNormalize") {
+          query <- ScaleData(object = query, features = features, verbose = FALSE)
+        }
         query <- RunPCA(object = query, npcs = npcs, verbose = FALSE, features = features, approx = approx.pca)
       }
       projected.pca <- ProjectCellEmbeddings(
@@ -486,45 +527,7 @@ FindTransferAnchors <- function(
           message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
         }
         if (normalization.method == "LogNormalize") {
-        reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-        } else if (normalization.method == "SCT") {
-          features <- intersect(x = features, y = rownames(x = query))
-          query <- GetResidual(object = query, features = features, verbose = FALSE)
-          query[[query.assay]] <- CreateAssayObject(
-            counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
-          )
-          query <- SetAssayData(
-            object = query,
-            slot = "data",
-            assay = query.assay,
-            new.data = GetAssayData(object = query[[query.assay]], slot = "counts")
-          )
-          query <- SetAssayData(
-            object = query,
-            slot = "scale.data",
-            assay = query.assay,
-            new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
-          )
-          if (IsSCT(assay = reference[[reference.assay]])) {
-            reference <- GetResidual(object = reference, features = features, verbose = FALSE)
-          }
-          reference[[reference.assay]] <- CreateAssayObject(
-            counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
-          )
-          reference <- SetAssayData(
-            object = reference,
-            slot = "data",
-            assay = reference.assay,
-            new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
-          )
-          reference <- SetAssayData(
-            object = reference,
-            slot = "scale.data",
-            assay = reference.assay,
-            new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
-          )
-          feature.mean <- "SCT"
-          slot <- "scale.data"
+          reference <- ScaleData(object = reference, features = features, verbose = FALSE)
         }
         reference <- RunPCA(
           object = reference,
@@ -556,8 +559,10 @@ FindTransferAnchors <- function(
   }
   ## find anchors using CCA
   if (reduction == 'cca') {
-    reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-    query <- ScaleData(object = query, features = features, verbose = FALSE)
+    if (normalization.method == "LogNormalize") {
+      reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+      query <- ScaleData(object = query, features = features, verbose = FALSE)
+    }
     combined.ob <- RunCCA(
       object1 = reference,
       object2 = query,
@@ -992,7 +997,7 @@ PrepSCTIntegration <- function(
     FUN = function(i) {
       sct.check <- IsSCT(assay = object.list[[i]][[assay[i]]])
       if (!sct.check) {
-        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) && 
+        if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) &&
             Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
           sct.check <- TRUE
         }
@@ -1015,7 +1020,7 @@ PrepSCTIntegration <- function(
       call. = FALSE
     )
   }
-  
+
   object.list <- lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
@@ -1026,7 +1031,7 @@ PrepSCTIntegration <- function(
       return(object.list[[i]])
     }
   )
-  
+
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -1992,7 +1997,7 @@ FindWeights <- function(
     if (verbose) message("")
     dist.anchor.weight <- dist.weights * anchors[, "score"]
     weights <- 1 - exp(-1 * dist.anchor.weight / (2 * (1 / sd.weight)) ^ 2)
-    weights <- sweep(weights, 2, Matrix::colSums(weights), "/")
+    weights <- Sweep(x = weights, MARGIN = 2, STATS = Matrix::colSums(weights), FUN = "/")
   }
   object <- SetIntegrationData(
     object = object,
@@ -2028,9 +2033,9 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 }
 
 # Map queries to reference
-# 
+#
 # Map query objects onto assembled reference dataset
-# 
+#
 # @param anchorset Anchorset found by FindIntegrationAnchors
 # @param reference Pre-integrated reference dataset to map query datasets to
 # @param new.assay.name Name for the new assay containing the integrated data
@@ -2058,7 +2063,7 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # @param do.cpp Run cpp code where applicable
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
-# 
+#
 # @return Returns an integrated matrix
 #
 MapQuery <- function(

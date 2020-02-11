@@ -866,13 +866,13 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       matrix.loc <- addgz(s = matrix.loc)
     }
     if (!file.exists(barcode.loc)) {
-      stop("Barcode file missing")
+      stop("Barcode file missing. Expecting ", basename(path = barcode.loc))
     }
     if (!pre_ver_3 && !file.exists(features.loc) ) {
-      stop("Gene name or features file missing")
+      stop("Gene name or features file missing. Expecting ", basename(path = features.loc))
     }
     if (!file.exists(matrix.loc)) {
-      stop("Expression matrix file missing")
+      stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
@@ -1175,6 +1175,7 @@ SampleUMI <- function(
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
+#' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 #' @export
 #'
 #' @examples
@@ -1372,8 +1373,6 @@ SCTransform <- function(
 #' [BarcodeInflectionsPlot()] to visualize and test inflection point calculations.
 #'
 #' @param object Seurat object
-#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
-#'   recalculate the inflection points, else will use those already in `object`
 #'
 #' @return Returns a subsetted Seurat object.
 #'
@@ -1954,13 +1953,13 @@ RunALRA.default <- function(
   sigma.1.2 <- sigma.2 / sigma.1
   toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
   A.norm.rank.k.temp <- A.norm.rank.k.cor[, toscale]
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = sigma.1.2[toscale],
     FUN = "*"
   )
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = toadd[toscale],
@@ -2908,7 +2907,7 @@ RegressOutMatrix <- function(
     close(con = pb)
   }
   if (use.umi) {
-    data.resid <- log1p(x = sweep(
+    data.resid <- log1p(x = Sweep(
       x = data.resid,
       MARGIN = 1,
       STATS = apply(X = data.resid, MARGIN = 1, FUN = min),

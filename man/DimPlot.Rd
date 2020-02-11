@@ -46,7 +46,8 @@ UMAPPlot(object, ...)
 
 \item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors}
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
+See \code{\link{DiscretePalette}} for details.}
 
 \item{pt.size}{Adjust point size for plotting}
 
