@@ -20,8 +20,7 @@ VlnPlot(
   log = FALSE,
   ncol = NULL,
   slot = "data",
-  multi.group = FALSE,
-  ...
+  multi.group = FALSE
 )
 }
 \arguments{
@@ -59,8 +58,6 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{multi.group}{plot each group of the split violin plots by multiple or single violin shapes
 see \code{\link{FetchData}} for more details}
-
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object
