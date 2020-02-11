@@ -19,6 +19,8 @@ PCHeatmap <- function(object, ...) {
   return(do.call(what = 'DimHeatmap', args = args))
 }
 
+#' @param ... Extra parameters passed to \code{DimPlot}
+#'
 #' @rdname DimPlot
 #' @export
 #'

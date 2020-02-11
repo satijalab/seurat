@@ -86,6 +86,8 @@ groups in cells.highlight}
 \item{na.value}{Color value for NA points when using custom scale}
 
 \item{ncol}{Number of columns for display when combining plots}
+
+\item{...}{Extra parameters passed to \code{DimPlot}}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object
