@@ -355,7 +355,8 @@ DoHeatmap <- function(
         scale_color_manual(values = cols)
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
-        x.divs <- pbuild$layout$panel_params[[1]]$x.major
+        # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
+        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% pbuild$layout$panel_params[[1]]$x$break_positions()
         x <- data.frame(group = sort(x = group.use), x = x.divs)
         label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
         label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
@@ -2586,7 +2587,7 @@ CustomPalette <- function(
 #'
 #' @details
 #' Taken from the pals package (Licence: GPL-3).
-#' \url{https://cran.r-project.org/web/packages/pals/index.html}
+#' \url{https://cran.r-project.org/package=pals}
 #' Credit: Kevin Wright
 #'
 #' @export
@@ -4053,10 +4054,11 @@ PlotBuild <- function(data, dark.theme = FALSE, smooth = FALSE, ...) {
 # @return A dataframe of x and y coordinates for points selected
 #
 #' @importFrom graphics locator
-#' @importFrom SDMTools pnt.in.poly
+# @importFrom SDMTools pnt.in.poly
 #
 PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
+  PackageCheck('SDMTools')
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
   npoints <- nrow(x = plot.data)
   cat("Click around the cluster of points you wish to select\n")
@@ -4065,7 +4067,7 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   polygon <- locator(n = npoints, type = 'l')
   polygon <- data.frame(polygon)
   #   pnt.in.poly returns a data.frame of points
-  points.all <- pnt.in.poly(
+  points.all <- SDMTools::pnt.in.poly(
     pnts = plot.data[, c(1, 2)],
     poly.pnts = polygon
   )
