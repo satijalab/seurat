@@ -775,6 +775,7 @@ Load10X_Spatial <- function(
 #' @importFrom shiny icon radioButtons selectInput fillCol sliderInput
 #' plotOutput renderPlot reactiveValues observeEvent observe updateRadioButtons
 #' updateSelectInput stopApp runGadget
+#' sidebarPanel
 #'
 #' @export
 #'
@@ -786,38 +787,33 @@ ISpatialFeaturePlot <- function(
   alpha = c(0.1, 1)
 ) {
   # Set inital data values
-  initial.assay <- if (feature %in% colnames(x = object[[]])) {
-    'meta.data'
+  assay.keys <- Key(object = object)[Assays(object = object)]
+  keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+  assay <- if (any(keyed)) {
+    names(x = which(x = keyed))[1]
   } else {
-    assay.keys <- Key(object = object)[Assays(object = object)]
-    keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
-    if (any(keyed)) {
-      names(x = which(x = keyed))[1]
-    } else {
-      DefaultAssay(object = object)
-    }
+    DefaultAssay(object = object)
   }
-  initial.features <- if (initial.assay == 'meta.data') {
-    colnames(x = object[[]])
-  } else {
-    rownames(x = GetAssayData(object = object, slot = slot, assay = initial.assay))
-  }
-  slots <- c('Counts' = 'counts', 'Data' = 'data', 'Scaled Data' = 'scale.data')
-  initial.slots <- if (initial.assay == 'meta.data') {
-    'none'
-  } else {
-    slots.use <- sapply(
-      X = slots,
-      FUN = function(x) {
-        return(!IsMatrixEmpty(x = GetAssayData(
-          object = object,
-          slot = x,
-          assay = initial.assay
-        )))
-      }
-    )
-    slots[slots.use]
-  }
+  features <- sort(x = rownames(x = GetAssayData(
+    object = object,
+    slot = slot,
+    assay = assay
+  )))
+  feature.label <- 'Feature to visualize'
+  slots <- c('counts', 'data', 'scale.data')
+  initial.slots <- vapply(
+    X = slots,
+    FUN = function(x) {
+      return(ifelse(
+        test = IsMatrixEmpty(x = GetAssayData(object = object, slot = x, assay = assay)),
+        yes = NA_character_,
+        no = x
+      ))
+    },
+    FUN.VALUE = character(length = 1L),
+    USE.NAMES = FALSE
+  )
+  initial.slots <- Filter(f = Negate(f = is.na), x = initial.slots)
   # Setup gadget UI
   ui <- miniPage(
     miniButtonBlock(miniTitleBarButton(
@@ -825,68 +821,54 @@ ISpatialFeaturePlot <- function(
       label = 'Done',
       primary = TRUE
     )),
-    miniTabstripPanel(
-      miniTabPanel(
-        title = 'Parameters',
-        icon = icon(name = 'sliders'),
-        miniContentPanel(
+    miniContentPanel(
+      fillRow(
+        sidebarPanel(
+          sliderInput(
+            inputId = 'alpha',
+            label = 'Alpha intensity',
+            min = 0,
+            max = max(alpha),
+            value = min(alpha),
+            step = 0.01,
+            width = '100%'
+          ),
+          sliderInput(
+            inputId = 'pt.size',
+            label = 'Point size',
+            min = 0,
+            max = 5,
+            value = 1.6,
+            step = 0.1,
+            width = '100%'
+          ),
           radioButtons(
             inputId = 'assay',
             label = 'Assay',
-            selected = initial.assay,
-            choiceNames = c(Assays(object = object), 'Meta Data'),
-            choiceValues = c(Assays(object = object), 'meta.data'),
+            selected = assay,
+            choices = Assays(object = object),
             inline = TRUE
           ),
           radioButtons(
             inputId = 'slot',
             label = 'Slot',
             choices = initial.slots,
-            selected = ifelse(
-              test = initial.assay == 'meta.data',
-              yes = 'none',
-              no = slot
-            ),
+            selected = slot,
             inline = TRUE
           ),
           selectInput(
             inputId = 'feature',
-            label = 'Feature to visualize',
-            choices = initial.features,
+            label = feature.label,
+            choices = features,
             selected = feature,
-            selectize = FALSE
-          )
-        )
-      ),
-      miniTabPanel(
-        title = 'Visualize',
-        icon = icon(name = 'area-chart'),
-        miniContentPanel(
-          fillCol(
-            sliderInput(
-              inputId = 'alpha',
-              label = 'Alpha intensity',
-              min = 0,
-              max = 1,
-              value = alpha[1],
-              step = 0.01,
-              width = '100%'
-            ),
-            sliderInput(
-              inputId = 'pt.size',
-              label = 'Point size',
-              min = 0,
-              max = 5,
-              value = 1.6,
-              step = 0.1,
-              width = '100%'
-            ),
-            plotOutput(outputId = 'plot', height = '100%'),
-            flex = c(NA, NA, 1)
-          )
-        )
-      ),
-      selected = 'Visualize'
+            selectize = FALSE,
+            width = '100%'
+          ),
+          width = '100%'
+        ),
+        plotOutput(outputId = 'plot', height = '100%'),
+        flex = c(1,4)
+      )
     )
   )
   # Prepare plotting data
@@ -916,32 +898,27 @@ ISpatialFeaturePlot <- function(
       slot.use <- input$slot
       feature.use <- input$feature
       slot.order <- c('data', 'scale.data', 'counts')
-      if (assay == 'meta.data') {
-        slot.use <- slots.assay <- 'none'
-        features.assay <- colnames(x = object[[]])
-      } else {
-        slots.assay <- sapply(
-          X = slots,
-          FUN = function(x) {
-            return(!IsMatrixEmpty(x = GetAssayData(
-              object = object,
-              slot = x,
-              assay = assay
-            )))
-          }
-        )
-        slots.assay <- slots[slots.assay]
-        slot.use <- ifelse(
-          test = slot.use %in% slots.assay,
-          yes = slot.use,
-          no = slot.order[slot.order %in% slots.assay][1]
-        )
-        features.assay <- rownames(x = GetAssayData(
-          object = object,
-          slot = slot.use,
-          assay = assay
-        ))
-      }
+      slots.assay <- sapply(
+        X = slots,
+        FUN = function(x) {
+          return(!IsMatrixEmpty(x = GetAssayData(
+            object = object,
+            slot = x,
+            assay = assay
+          )))
+        }
+      )
+      slots.assay <- slots[slots.assay]
+      slot.use <- ifelse(
+        test = slot.use %in% slots.assay,
+        yes = slot.use,
+        no = slot.order[slot.order %in% slots.assay][1]
+      )
+      features.assay <- sort(x = rownames(x = GetAssayData(
+        object = object,
+        slot = slot.use,
+        assay = assay
+      )))
       feature.use <- ifelse(
         test = feature.use %in% features.assay,
         yes = feature.use,
@@ -958,25 +935,20 @@ ISpatialFeaturePlot <- function(
       updateSelectInput(
         session = session,
         inputId = 'feature',
-        label = 'Feature to visualize',
+        label = feature.label,
         choices = features.assay,
         selected = feature.use
       )
     })
     observe(x = {
       feature.use <- input$feature
-      keyed.feature <- ifelse(
-        test = input$assay == 'meta.data',
-        yes = feature.use,
-        no = paste0(Key(object = object[[input$assay]]), feature.use)
-      )
       try(
         expr = {
           feature.data <- FetchData(
             object = object,
-            vars = keyed.feature,
+            vars = paste0(Key(object = object[[input$assay]]), feature.use),
             cells = cells.use,
-            slot = ifelse(test = input$slot == 'none', yes = 'data', no = input$slot)
+            slot = input$slot
           )
           colnames(x = feature.data) <- feature.use
           plot.env$data <- cbind(coords, feature.data)
