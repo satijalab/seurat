@@ -16,9 +16,7 @@ RidgePlot(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  combine = TRUE,
-  slot = "data",
-  ...
+  slot = "data"
 )
 }
 \arguments{
@@ -46,14 +44,10 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
 \item{slot}{Use non-normalized counts data for plotting}
-
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Draws a ridge plot of single cell data (gene expression, metrics, PC
