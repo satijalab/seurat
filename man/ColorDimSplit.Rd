@@ -58,7 +58,6 @@ repeat to the length groups in cells.highlight}
     \item{\code{sizes.highlight}}{Size of highlighted cells; will repeat to the length
 groups in cells.highlight}
     \item{\code{na.value}}{Color value for NA points when using custom scale}
-    \item{\code{combine}}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
     \item{\code{ncol}}{Number of columns for display when combining plots}
   }}
 }
@@ -75,4 +74,7 @@ pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 PlotClusterTree(pbmc_small)
 ColorDimSplit(pbmc_small, node = 5)
 
+}
+\seealso{
+\code{\link{DimPlot}}
 }

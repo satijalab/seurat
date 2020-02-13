@@ -26,9 +26,7 @@ DimPlot(
   cols.highlight = "#DE2D26",
   sizes.highlight = 1,
   na.value = "grey50",
-  combine = TRUE,
-  ncol = NULL,
-  ...
+  ncol = NULL
 )
 
 PCAPlot(object, ...)
@@ -87,14 +85,12 @@ groups in cells.highlight}
 
 \item{na.value}{Color value for NA points when using custom scale}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
 \item{ncol}{Number of columns for display when combining plots}
 
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
+\item{...}{Extra parameters passed to \code{DimPlot}}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object
 }
 \description{
 Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -112,5 +108,5 @@ DimPlot(object = pbmc_small, split.by = 'ident')
 }
 \seealso{
 \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-\code{\link{CellSelector}} \code{link{FetchData}}
+\code{\link{CellSelector}} \code{\link{FetchData}}
 }

@@ -453,6 +453,45 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
+  if (normalization.method == "SCT") {
+    features <- intersect(x = features, y = rownames(x = query))
+    query <- GetResidual(object = query, features = features, verbose = FALSE)
+    query[[query.assay]] <- CreateAssayObject(
+      counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
+    )
+    query <- SetAssayData(
+      object = query,
+      slot = "data",
+      assay = query.assay,
+      new.data = GetAssayData(object = query[[query.assay]], slot = "counts")
+    )
+    query <- SetAssayData(
+      object = query,
+      slot = "scale.data",
+      assay = query.assay,
+      new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
+    )
+    if (IsSCT(assay = reference[[reference.assay]])) {
+      reference <- GetResidual(object = reference, features = features, verbose = FALSE)
+    }
+    reference[[reference.assay]] <- CreateAssayObject(
+      counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
+    )
+    reference <- SetAssayData(
+      object = reference,
+      slot = "data",
+      assay = reference.assay,
+      new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
+    )
+    reference <- SetAssayData(
+      object = reference,
+      slot = "scale.data",
+      assay = reference.assay,
+      new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
+    )
+    feature.mean <- "SCT"
+    slot <- "scale.data"
+  }
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
@@ -460,7 +499,9 @@ FindTransferAnchors <- function(
         if (verbose) {
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
         }
-        query <- ScaleData(object = query, features = features, verbose = FALSE)
+        if (normalization.method == "LogNormalize") {
+          query <- ScaleData(object = query, features = features, verbose = FALSE)
+        }
         query <- RunPCA(object = query, npcs = npcs, verbose = FALSE, features = features, approx = approx.pca)
       }
       projected.pca <- ProjectCellEmbeddings(
@@ -486,45 +527,7 @@ FindTransferAnchors <- function(
           message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
         }
         if (normalization.method == "LogNormalize") {
-        reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-        } else if (normalization.method == "SCT") {
-          features <- intersect(x = features, y = rownames(x = query))
-          query <- GetResidual(object = query, features = features, verbose = FALSE)
-          query[[query.assay]] <- CreateAssayObject(
-            counts =  as.sparse(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ])
-          )
-          query <- SetAssayData(
-            object = query,
-            slot = "data",
-            assay = query.assay,
-            new.data = GetAssayData(object = query[[query.assay]], slot = "counts")
-          )
-          query <- SetAssayData(
-            object = query,
-            slot = "scale.data",
-            assay = query.assay,
-            new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "counts"))
-          )
-          if (IsSCT(assay = reference[[reference.assay]])) {
-            reference <- GetResidual(object = reference, features = features, verbose = FALSE)
-          }
-          reference[[reference.assay]] <- CreateAssayObject(
-            counts =  as.sparse(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ])
-          )
-          reference <- SetAssayData(
-            object = reference,
-            slot = "data",
-            assay = reference.assay,
-            new.data = GetAssayData(object = reference[[reference.assay]], slot = "counts")
-          )
-          reference <- SetAssayData(
-            object = reference,
-            slot = "scale.data",
-            assay = reference.assay,
-            new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "counts"))
-          )
-          feature.mean <- "SCT"
-          slot <- "scale.data"
+          reference <- ScaleData(object = reference, features = features, verbose = FALSE)
         }
         reference <- RunPCA(
           object = reference,
@@ -559,8 +562,10 @@ FindTransferAnchors <- function(
   }
   ## find anchors using CCA
   if (reduction == 'cca') {
-    reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-    query <- ScaleData(object = query, features = features, verbose = FALSE)
+    if (normalization.method == "LogNormalize") {
+      reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+      query <- ScaleData(object = query, features = features, verbose = FALSE)
+    }
     combined.ob <- RunCCA(
       object1 = reference,
       object2 = query,

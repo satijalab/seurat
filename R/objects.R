@@ -649,12 +649,13 @@ CreateDimReducObject <- function(
   if (length(x = key) != 1) {
     stop("Please specify a key for the DimReduc object")
   } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
-    # New SetKey function
-    key <- regmatches(
-      x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+    old.key  <- key
+    key <- UpdateKey(key = old.key)
+    colnames(x = embeddings) <- gsub(
+      x = colnames(x = embeddings),
+      pattern = old.key,
+      replacement = key
     )
-    key <- paste0(paste(key, collapse = ''), '_')
     warning(
       "All keys should be one or more alphanumeric characters followed by an underscore '_', setting key to ",
       key,
@@ -7133,8 +7134,7 @@ UpdateKey <- function(key) {
       x = key,
       m = gregexpr(pattern = '[[:alnum:]]+', text = key)
     )
-    new.key <- unlist(x = new.key, use.names = FALSE)
-    new.key <- paste0(paste(new.key, collapse = ''), '_')
+    new.key <- paste0(paste(unlist(x = new.key), collapse = ''), '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }
