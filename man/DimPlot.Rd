@@ -26,7 +26,8 @@ DimPlot(
   cols.highlight = "#DE2D26",
   sizes.highlight = 1,
   na.value = "grey50",
-  ncol = NULL
+  ncol = NULL,
+  combine = TRUE
 )
 
 PCAPlot(object, ...)
@@ -87,10 +88,14 @@ groups in cells.highlight}
 
 \item{ncol}{Number of columns for display when combining plots}
 
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }
 \value{
-A \code{\link[patchwork]{patchwork}ed} ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a

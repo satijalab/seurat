@@ -22,9 +22,12 @@ NULL
 #' @param ncol Number of columns to plot
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
 #' @return No return value by default. If using fast = FALSE, will return a
-#' \code{\link[patchwork]{patchwork}ed} ggplot object
+#' \code{\link[patchwork]{patchwork}ed} ggplot object if combine = TRUE, otherwise
+#' returns a list of ggplot objects
 #'
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -48,7 +51,8 @@ DimHeatmap <- function(
   fast = TRUE,
   raster = TRUE,
   slot = 'scale.data',
-  assays = NULL
+  assays = NULL,
+  combine = TRUE
 ) {
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
   plots <- vector(mode = 'list', length = length(x = dims))
@@ -157,7 +161,9 @@ DimHeatmap <- function(
     par(mfrow = orig.par)
     return(invisible(x = NULL))
   }
-  plots <- wrap_plots(plots, ncol = ncol, guides = "collect")
+  if (combine) {
+    plots <- wrap_plots(plots, ncol = ncol, guides = "collect")
+  }
   return(plots)
 }
 
@@ -188,8 +194,11 @@ DimHeatmap <- function(
 #' @param lines.width Integer number to adjust the width of the separating white lines.
 #' Corresponds to the number of "cells" between each group.
 #' @param group.bar.height Scale the height of the color bar
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
@@ -219,7 +228,8 @@ DoHeatmap <- function(
   raster = TRUE,
   draw.lines = TRUE,
   lines.width = NULL,
-  group.bar.height = 0.02
+  group.bar.height = 0.02,
+  combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
@@ -371,7 +381,9 @@ DoHeatmap <- function(
     plot <- plot + theme(line = element_blank())
     plots[[i]] <- plot
   }
-  plots <- wrap_plots(plots)
+  if (combine) {
+    plots <- wrap_plots(plots)
+  }
   return(plots)
 }
 
@@ -462,8 +474,11 @@ HTOHeatmap <- function(
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param slot Use non-normalized counts data for plotting
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @export
 #'
@@ -482,7 +497,8 @@ RidgePlot <- function(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  slot = 'data'
+  slot = 'data',
+  combine = TRUE
 ) {
   return(ExIPlot(
     object = object,
@@ -497,7 +513,8 @@ RidgePlot <- function(
     cols = cols,
     group.by = group.by,
     log = log,
-    slot = slot
+    slot = slot,
+    combine = combine
   ))
 }
 
@@ -513,7 +530,8 @@ RidgePlot <- function(
 #' see \code{\link{FetchData}} for more details
 #' @param adjust Adjust parameter for geom_violin
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @export
 #'
@@ -539,7 +557,8 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = 'data',
-  multi.group = FALSE
+  multi.group = FALSE,
+  combine = TRUE
 ) {
   return(ExIPlot(
     object = object,
@@ -557,7 +576,8 @@ VlnPlot <- function(
     group.by = group.by,
     split.by = split.by,
     log = log,
-    slot = slot
+    slot = slot,
+    combine = combine
   ))
 }
 
@@ -674,8 +694,11 @@ ColorDimSplit <- function(
 #' groups in cells.highlight
 #' @param na.value Color value for NA points when using custom scale
 #' @param ncol Number of columns for display when combining plots
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom rlang !!
 #' @importFrom ggplot2 facet_wrap vars sym
@@ -712,7 +735,8 @@ DimPlot <- function(
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
   na.value = 'grey50',
-  ncol = NULL
+  ncol = NULL,
+  combine = TRUE
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -779,7 +803,9 @@ DimPlot <- function(
   if( !is.null(x = split.by) && length(x = group.by) > 1) {
     ncol <- 1
   }
-  plots <- wrap_plots(plots, ncol = ncol)
+  if (combine) {
+    plots <- wrap_plots(plots, ncol = ncol)
+  }
   return(plots)
 }
 
@@ -818,8 +844,11 @@ DimPlot <- function(
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 #' @param sort.cell If \code{TRUE}, the positive cells will overlap the negative cells
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom grDevices rgb
 #' @importFrom patchwork wrap_plots
@@ -867,7 +896,8 @@ FeaturePlot <- function(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE
+  sort.cell = FALSE,
+  combine = TRUE
 ) {
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
@@ -1251,47 +1281,49 @@ FeaturePlot <- function(
     split.by %iff% 'none'
   }
   # Transpose the FeatureHeatmap matrix (not applicable for blended FeaturePlots)
-  if (by.col && !is.null(x = split.by) && !blend) {
-    plots <- lapply(
-      X = plots,
-      FUN = function(x) {
-        return(suppressMessages(
-          expr = x +
-            theme_cowplot() +
-            ggtitle("") +
-            scale_y_continuous(sec.axis = dup_axis(name = "")) +
-            no.right
-        ))
+  if (combine) {
+    if (by.col && !is.null(x = split.by) && !blend) {
+      plots <- lapply(
+        X = plots,
+        FUN = function(x) {
+          return(suppressMessages(
+            expr = x +
+              theme_cowplot() +
+              ggtitle("") +
+              scale_y_continuous(sec.axis = dup_axis(name = "")) +
+              no.right
+          ))
+        }
+      )
+      nsplits <- length(x = levels(x = data$split))
+      idx <- 1
+      for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
+        plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
+        idx <- idx + 1
       }
-    )
-    nsplits <- length(x = levels(x = data$split))
-    idx <- 1
-    for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
-      plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
-      idx <- idx + 1
-    }
-    idx <- 1
-    for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
-      plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
-      idx <- idx + 1
-    }
-    idx <- 1
-    if (length(x = features) == 1) {
-      for (i in 1:length(x = plots)) {
+      idx <- 1
+      for (i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
         plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
         idx <- idx + 1
       }
+      idx <- 1
+      if (length(x = features) == 1) {
+        for (i in 1:length(x = plots)) {
+          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
+          idx <- idx + 1
+        }
+      }
+      plots <- plots[c(do.call(
+        what = rbind,
+        args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
+      ))]
+      plots <- wrap_plots(plots, ncol = nsplits)
+    } else {
+      plots <- wrap_plots(plots, ncol = ncol, nrow = split.by %iff% length(x = levels(x = data$split)))
     }
-    plots <- plots[c(do.call(
-      what = rbind,
-      args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
-    ))]
-    plots <- wrap_plots(plots, ncol = nsplits)
-  } else {
-    plots <- wrap_plots(plots, ncol = ncol, nrow = split.by %iff% length(x = levels(x = data$split)))
-  }
-  if (!is.null(x = legend) && legend == 'none') {
-    plots <- plots & NoLegend()
+    if (!is.null(x = legend) && legend == 'none') {
+      plots <- plots & NoLegend()
+    }
   }
   return(plots)
 }
@@ -1648,6 +1680,8 @@ PolyFeaturePlot <- function(
 #' The transition from "signal" to "noise" in the is hard to see because the
 #' first singular value spacings are so large. Nicer visualizations result from
 #' skipping the first few. If set to 0 (default) starts from k/2.
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
 #' @return A list of 3 \code{\link[patchwork]{patchwork}ed} ggplot objects
 #' splotting the singular values, the spacings of the singular values, and the
@@ -1662,7 +1696,7 @@ PolyFeaturePlot <- function(
 #' @importFrom patchwork wrap_plots
 #' @export
 #'
-ALRAChooseKPlot <- function(object, start = 0) {
+ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
   .Deprecated(
     new = 'SeruatWrappers::ALRAChooseKPlot',
     msg = paste(
@@ -1701,7 +1735,9 @@ ALRAChooseKPlot <- function(object, start = 0) {
     scale_x_continuous(breaks = breaks) +
     labs(x = NULL, y = 's_{i} - s_{i-1}', title = 'Singular value spacings')
   plots <- list(spectrum = gg1, spacings = gg2)
-  plots <- wrap_plots(plots)
+  if (combine) {
+    plots <- wrap_plots(plots)
+  }
   return(plots)
 }
 
@@ -2124,8 +2160,11 @@ PlotClusterTree <- function(object, ...) {
 #' @param balanced Return an equal number of genes with + and - scores. If
 #' FALSE (default), returns the top genes ranked by the scores absolute values
 #' @param ncol Number of columns to display
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot
+#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom patchwork wrap_plots
 #' @importFrom cowplot theme_cowplot
@@ -2143,7 +2182,8 @@ VizDimLoadings <- function(
   reduction = 'pca',
   projected = FALSE,
   balanced = FALSE,
-  ncol = NULL
+  ncol = NULL,
+  combine = TRUE
 ) {
   ncol <- ncol %||% 2
   if (length(x = dims) == 1) {
@@ -2186,7 +2226,9 @@ VizDimLoadings <- function(
       return(plot)
     }
   )
-  plots <- wrap_plots(plots, ncol = ncol)
+  if (combine) {
+    plots <- wrap_plots(plots, ncol = ncol)
+  }
   return(plots)
 }
 
@@ -3561,8 +3603,11 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
 # @param slot Use non-normalized counts data for plotting
+# @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+# ggplot object. If \code{FALSE}, return a list of ggplot objects
 #
-# @return A \code{\link[patchwork]{patchwork}ed} ggplot
+# @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+# \code{combine = TRUE}; otherwise, a list of ggplot objects
 #
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 xlab ylab
@@ -3584,7 +3629,8 @@ ExIPlot <- function(
   group.by = NULL,
   split.by = NULL,
   log = FALSE,
-  slot = 'data'
+  slot = 'data',
+  combine = TRUE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -3674,7 +3720,9 @@ ExIPlot <- function(
       plots[[i]] <- plots[[i]] + label.fxn(label = NULL)
     }
   }
-  plots <- wrap_plots(plots, ncol = ncol)
+  if (combine) {
+    plots <- wrap_plots(plots, ncol = ncol)
+  }
   return(plots)
 }
 
