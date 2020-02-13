@@ -19,7 +19,8 @@ DimHeatmap(
   fast = TRUE,
   raster = TRUE,
   slot = "scale.data",
-  assays = NULL
+  assays = NULL,
+  combine = TRUE
 )
 
 PCHeatmap(object, ...)
@@ -56,11 +57,15 @@ if you are encountering that issue (note that plots may take longer to produce/r
 
 \item{assays}{A vector of assays to pull data from}
 
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
 \item{...}{Extra parameters passed to \code{DimHeatmap}}
 }
 \value{
 No return value by default. If using fast = FALSE, will return a
-\code{\link[patchwork]{patchwork}ed} ggplot object
+\code{\link[patchwork]{patchwork}ed} ggplot object if combine = TRUE, otherwise
+returns a list of ggplot objects
 }
 \description{
 Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
