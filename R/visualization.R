@@ -1134,7 +1134,8 @@ FeaturePlot <- function(
         if (j == length(x = features) && !blend) {
           suppressMessages(
             expr = plot <- plot +
-              scale_y_continuous(sec.axis = dup_axis(name = ident)) +
+              scale_y_continuous(sec.axis = dup_axis(name = ident),
+                                 limits = ylims) +
               no.right
           )
         }
@@ -1208,6 +1209,7 @@ FeaturePlot <- function(
                 yes = levels(x = data$split)[ii],
                 no = ''
               )),
+              limits = ylims,
               expand = c(0, 0)
             ) +
             labs(
@@ -1259,7 +1261,7 @@ FeaturePlot <- function(
           expr = x +
             theme_cowplot() +
             ggtitle("") +
-            scale_y_continuous(sec.axis = dup_axis(name = "")) +
+            scale_y_continuous(sec.axis = dup_axis(name = ""), limits = ylims) +
             no.right
         ))
       }
@@ -1267,7 +1269,10 @@ FeaturePlot <- function(
     nsplits <- length(x = levels(x = data$split))
     idx <- 1
     for (i in (length(x = features) * (nsplits - 1) + 1):(length(x = features) * nsplits)) {
-      plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
+      plots[[i]] <- suppressMessages(plots[[i]] +
+                                     scale_y_continuous(sec.axis = dup_axis(name = features[[idx]]),
+                                                        limits = ylims) +
+                                     no.right)
       idx <- idx + 1
     }
     idx <- 1
