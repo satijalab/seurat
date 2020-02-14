@@ -11,6 +11,7 @@ SpatialPlot(
   group.by = NULL,
   features = NULL,
   images = NULL,
+  cols = NULL,
   crop = TRUE,
   slot = "data",
   min.cutoff = NA,
@@ -38,6 +39,7 @@ SpatialDimPlot(
   object,
   group.by = NULL,
   images = NULL,
+  cols = NULL,
   crop = TRUE,
   cells.highlight = NULL,
   cols.highlight = c("#DE2D26", "grey50"),
@@ -86,6 +88,11 @@ SpatialFeaturePlot(
 features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
+
+\item{cols}{Vector of colors, each color corresponds to an identity class. 
+This may also be a single character or numeric value corresponding to a 
+palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}. By 
+default, ggplot2 assigns colors}
 
 \item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show
 entire background image.}

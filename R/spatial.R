@@ -739,14 +739,14 @@ LinkedFeaturePlot <- function(
 #'
 Load10X_Spatial <- function(
   data.dir,
+  filename = 'filtered_feature_bc_matrix.h5',
   assay = 'Spatial',
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
   ...
 ) {
-  filename <- file.path(data.dir, 'filtered_feature_bc_matrix.h5')
-  data <- Read10X_h5(filename = filename, ...)
+  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
     rownames(x = data) <- toupper(x = rownames(x = data))
   }
@@ -1274,6 +1274,9 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 #
 # @param data Data.frame with info to be plotted
 # @param image SpatialImage object to be plotted
+# @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
+# or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+# By default, ggplot2 assigns colors
 # @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
@@ -1298,6 +1301,7 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 SingleSpatialPlot <- function(
   data,
   image,
+  cols = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
   stroke = 0.25,
@@ -1375,6 +1379,17 @@ SingleSpatialPlot <- function(
   if (!is.null(x = cells.highlight)) {
     plot <- plot + scale_fill_manual(values = cols.highlight)
   }
+  if (!is.null(x = cols)) {
+    if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
+      scale <- scale_fill_brewer(palette = cols, na.value = na.value)
+    } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
+      colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+      scale <- scale_fill_manual(values = colors, na.value = na.value)
+    } else {
+      scale <- scale_fill_manual(values = cols, na.value = na.value)
+    }
+    plot <- plot + scale
+  }
   plot <- plot + theme_void()
   return(plot)
 }
@@ -1392,6 +1407,10 @@ SingleSpatialPlot <- function(
 #' @param features Name of the feature to visualize. Provide either group.by OR
 #' features, not both.
 #' @param images Name of the images to use in the plot(s)
+#' @param cols Vector of colors, each color corresponds to an identity class. 
+#' This may also be a single character or numeric value corresponding to a 
+#' palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}. By 
+#' default, ggplot2 assigns colors
 #' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
@@ -1434,7 +1453,7 @@ SingleSpatialPlot <- function(
 #' object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text scale_alpha
-#'
+#' @importFrom patchwork wrap_plots
 #' @export
 #'
 #' @examples
@@ -1453,6 +1472,7 @@ SpatialPlot <- function(
   group.by = NULL,
   features = NULL,
   images = NULL,
+  cols = NULL,
   crop = TRUE,
   slot = 'data',
   min.cutoff = NA,
@@ -1618,6 +1638,7 @@ SpatialPlot <- function(
         ),
         image = image.use,
         col.by = features[j],
+        cols = cols,
         alpha.by = if (is.null(x = group.by)) {
           features[j]
         } else {
@@ -1696,9 +1717,9 @@ SpatialPlot <- function(
     ))
   }
   if (length(x = images) > 1 && combine) {
-    plots <- CombinePlots(plots = plots, ncol = length(x = images))
+    plots <- wrap_plots(plots = plots, ncol = length(x = images))
   } else if (length(x = images == 1) && combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol)
+    plots <- wrap_plots(plots = plots, ncol = ncol)
   }
   return(plots)
 }
@@ -1711,6 +1732,7 @@ SpatialDimPlot <- function(
   object,
   group.by = NULL,
   images = NULL,
+  cols = NULL,
   crop = TRUE,
   cells.highlight = NULL,
   cols.highlight = c('#DE2D26', 'grey50'),

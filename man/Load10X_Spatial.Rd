@@ -6,6 +6,7 @@
 \usage{
 Load10X_Spatial(
   data.dir,
+  filename = "filtered_feature_bc_matrix.h5",
   assay = "Spatial",
   slice = "slice1",
   filter.matrix = TRUE,
