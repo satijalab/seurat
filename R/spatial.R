@@ -1093,7 +1093,7 @@ GeomSpatial <- ggproto(
   "GeomSpatial",
   Geom,
   required_aes = c("x", "y"),
-  extra_params = c("na.rm", "image", "crop"),
+  extra_params = c("na.rm", "image", "image.alpha", "crop"),
   default_aes = aes(
     shape = 21,
     colour = "black",
@@ -1109,7 +1109,7 @@ GeomSpatial <- ggproto(
     data
   },
   draw_key = draw_key_point,
-  draw_panel = function(data, panel_scales, coord, image, crop) {
+  draw_panel = function(data, panel_scales, coord, image, image.alpha, crop) {
     # This should be in native units, where
     # Locations and sizes are relative to the x- and yscales for the current viewport.
     if (!crop) {
@@ -1134,6 +1134,7 @@ GeomSpatial <- ggproto(
       just = c("left", "bottom")
     )
     img.grob <- GetImage(object = image)
+
     img <- editGrob(grob = img.grob, vp = vp)
     # spot.size <- slot(object = image, name = "spot.radius")
     spot.size <- Radius(object = image)
@@ -1144,13 +1145,24 @@ GeomSpatial <- ggproto(
       pch = data$shape,
       size = unit(spot.size, "npc") * data$point.size.factor,
       gp = gpar(
-        col = alpha(coords$colour, coords$alpha),
-        fill = alpha(coords$fill, coords$alpha),
+        col = alpha(colour = coords$colour, alpha = coords$alpha),
+        fill = alpha(colour = coords$fill, alpha = coords$alpha),
         lwd = coords$stroke)
     )
     vp <- viewport()
     gt <- gTree(vp = vp)
-    gt <- addGrob(gTree = gt, child = img)
+    if (image.alpha > 0) {
+      if (image.alpha != 1) {
+        img$raster = as.raster(
+          x = matrix(
+            data = alpha(colour = img$raster, alpha = image.alpha), 
+            nrow = nrow(x = img$raster), 
+            ncol = ncol(x = img$raster), 
+            byrow = TRUE)
+          )
+      }
+      gt <- addGrob(gTree = gt, child = img)
+    }
     gt <- addGrob(gTree = gt, child = pts)
     # Replacement for ggname
     gt$name <- grobName(grob = gt, prefix = 'geom_spatial')
@@ -1169,6 +1181,7 @@ geom_spatial <-  function(
   mapping = NULL,
   data = NULL,
   image = image,
+  image.alpha = image.alpha,
   crop = crop,
   stat = "identity",
   position = "identity",
@@ -1185,7 +1198,7 @@ geom_spatial <-  function(
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(na.rm = na.rm, image = image, crop = crop, ...)
+    params = list(na.rm = na.rm, image = image, image.alpha = image.alpha, crop = crop, ...)
   )
 }
 
@@ -1274,6 +1287,8 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 #
 # @param data Data.frame with info to be plotted
 # @param image SpatialImage object to be plotted
+# @param image.alpha Adjust the opacity of the background images. Set to 0 to
+# remove.
 # @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
@@ -1298,6 +1313,7 @@ SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Sp
 SingleSpatialPlot <- function(
   data,
   image,
+  image.alpha = 1,
   crop = TRUE,
   pt.size.factor = NULL,
   stroke = 0.25,
@@ -1340,6 +1356,7 @@ SingleSpatialPlot <- function(
         point.size.factor = pt.size.factor,
         data = data,
         image = image,
+        image.alpha = image.alpha,
         crop = crop,
         stroke = stroke
       ) + coord_fixed()
@@ -1392,6 +1409,8 @@ SingleSpatialPlot <- function(
 #' @param features Name of the feature to visualize. Provide either group.by OR
 #' features, not both.
 #' @param images Name of the images to use in the plot(s)
+#' @param image.alpha Adjust the opacity of the background images. Set to 0 to
+#' remove.
 #' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
@@ -1453,6 +1472,7 @@ SpatialPlot <- function(
   group.by = NULL,
   features = NULL,
   images = NULL,
+  image.alpha = 1,
   crop = TRUE,
   slot = 'data',
   min.cutoff = NA,
@@ -1617,6 +1637,7 @@ SpatialPlot <- function(
           data[rownames(x = coordinates), features[j], drop = FALSE]
         ),
         image = image.use,
+        image.alpha = image.alpha,
         col.by = features[j],
         alpha.by = if (is.null(x = group.by)) {
           features[j]
