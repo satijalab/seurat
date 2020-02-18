@@ -5667,19 +5667,24 @@ merge.Assay <- function(
   if (all(IsSCT(assay = assays))) {
     vst.set.new <- list()
     idx <- 1
+    umi.assay.new <- list()
     for (i in 1:length(x = assays)) {
       vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
+      umi.assay.old <- Misc(object = assays[[i]], slot = "umi.assay")
       if (!is.null(x = vst.set.old)) {
         for (j in 1:length(x = vst.set.old)) {
           vst.set.new[[idx]] <- vst.set.old[[j]]
+          umi.assay.new[[idx]] <- umi.assay.old[[j]]
           idx <- idx + 1
         }
       } else if (!is.null(x = Misc(object = assays[[i]], slot = "vst.out"))) {
         vst.set.new[[idx]] <- Misc(object = assays[[i]], slot = "vst.out")
+        umi.assay.new[[idx]] <- Misc(object = assays[[i]], slot = "umi.assay")
         idx <- idx + 1
       }
     }
     Misc(object = combined.assay, slot = "vst.set") <- vst.set.new
+    Misc(object = combined.assay, slot = "umi.assay") <- umi.assay.new
     scale.data <- do.call(
       what = cbind,
       args = lapply(X = assays, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
