@@ -818,6 +818,7 @@ DimPlot <- function(
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 #' @param sort.cell If \code{TRUE}, the positive cells will overlap the negative cells
+#' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object
 #'
@@ -867,8 +868,18 @@ FeaturePlot <- function(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE
+  sort.cell = FALSE,
+  interactive = FALSE
 ) {
+  if (interactive) {
+    return(IFeaturePlot(
+      object = object,
+      feature = features[1],
+      dims = dims,
+      reduction = reduction,
+      slot = slot
+    ))
+  }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
   no.right <- theme(
@@ -1294,6 +1305,230 @@ FeaturePlot <- function(
     plots <- plots & NoLegend()
   }
   return(plots)
+}
+
+#' Visualize features in dimensional reduction space interactively
+#'
+#' @inheritParams FeaturePlot
+#'
+#' @return Returns the final plot as a ggplot object
+#'
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 theme element_text guides scale_color_gradientn
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow sidebarPanel selectInput plotOutput reactiveValues
+#' observeEvent stopApp observe updateSelectInput renderPlot runGadget
+#'
+#' @export
+#'
+IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
+  # Set initial data values
+  feature.label <- 'Feature to visualize'
+  assay.keys <- Key(object = object)[Assays(object = object)]
+  keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+  assay <- if (any(keyed)) {
+    names(x = which(x = keyed))[1]
+  } else {
+    DefaultAssay(object = object)
+  }
+  features <- sort(x = rownames(x = GetAssayData(
+    object = object,
+    slot = slot,
+    assay = assay
+  )))
+  assays.use <- vapply(
+    X = Assays(object = object),
+    FUN = function(x) {
+      return(!IsMatrixEmpty(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = x
+      )))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  assays.use <- sort(x = Assays(object = object)[assays.use])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims.reduc <- gsub(
+    pattern = Key(object = object[[reduction]]),
+    replacement = '',
+    x = colnames(x = object[[reduction]])
+  )
+  # Set up the gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        sidebarPanel(
+          selectInput(
+            inputId = 'assay',
+            label = 'Assay',
+            choices = assays.use,
+            selected = assay,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'feature',
+            label = feature.label,
+            choices = features,
+            selected = feature,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'reduction',
+            label = 'Dimensional reduction',
+            choices = Reductions(object = object),
+            selected = reduction,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'xdim',
+            label = 'X dimension',
+            choices = dims.reduc,
+            selected = as.character(x = dims[1]),
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'ydim',
+            label = 'Y dimension',
+            choices = dims.reduc,
+            selected = as.character(x = dims[2]),
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'palette',
+            label = 'Color scheme',
+            choices = names(x = FeaturePalettes),
+            selected = 'Seurat',
+            selectize = FALSE,
+            width = '100%'
+          ),
+          width = '100%'
+        ),
+        plotOutput(outputId = 'plot', height = '100%'),
+        flex = c(1, 4)
+      )
+    )
+  )
+  # Prepare plotting data
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  # Shiny server
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(
+      data = plot.data,
+      dims = paste0(Key(object = object[[reduction]]), dims),
+      feature = feature,
+      palette = 'Seurat'
+    )
+    # Observe events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observe(x = {
+      assay <- input$assay
+      feature.use <- input$feature
+      features.assay <- sort(x = rownames(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = assay
+      )))
+      feature.use <- ifelse(
+        test = feature.use %in% features.assay,
+        yes = feature.use,
+        no = features.assay[1]
+      )
+      reduc <- input$reduction
+      dims.reduc <- gsub(
+        pattern = Key(object = object[[reduc]]),
+        replacement = '',
+        x = colnames(x = object[[reduc]])
+      )
+      dims <- c(input$xdim, input$ydim)
+      for (i in seq_along(along.with = dims)) {
+        if (!dims[i] %in% dims.reduc) {
+          dims[i] <- dims.reduc[i]
+        }
+      }
+      updateSelectInput(
+        session = session,
+        inputId = 'xdim',
+        label = 'X dimension',
+        choices = dims.reduc,
+        selected = as.character(x = dims[1])
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'ydim',
+        label = 'Y dimension',
+        choices = dims.reduc,
+        selected = as.character(x = dims[2])
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = feature.label,
+        choices = features.assay,
+        selected = feature.use
+      )
+    })
+    observe(x = {
+      feature.use <- input$feature
+      feature.keyed <- paste0(Key(object = object[[input$assay]]), feature.use)
+      reduc <- input$reduction
+      dims <- c(input$xdim, input$ydim)
+      dims <- paste0(Key(object = object[[reduc]]), dims)
+      plot.data <- tryCatch(
+        expr = FetchData(
+          object = object,
+          vars = c(dims, feature.keyed),
+          slot = slot
+        ),
+        warning = function(...) {
+          return(plot.env$data)
+        },
+        error = function(...) {
+          return(plot.env$data)
+        }
+      )
+      dims <- colnames(x = plot.data)[1:2]
+      colnames(x = plot.data) <- c(dims, feature.use)
+      plot.env$data <- plot.data
+      plot.env$feature <- feature.use
+      plot.env$dims <- dims
+    })
+    observe(x = {
+      plot.env$palette <- input$palette
+    })
+    # Create the plot
+    output$plot <- renderPlot(expr = {
+      plot.env$plot <- SingleDimPlot(
+        data = plot.env$data,
+        dims = plot.env$dims,
+        col.by = plot.env$feature,
+        label = FALSE
+      ) +
+        theme_cowplot() +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        guides(color = NULL) +
+        scale_color_gradientn(
+          colors = FeaturePalettes[[plot.env$palette]],
+          guide = 'colorbar'
+        )
+      plot.env$plot
+    })
+  }
+  runGadget(app = ui, server = server)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3737,6 +3972,19 @@ FacetTheme <- function(...) {
     ...
   ))
 }
+
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom grDevices colorRampPalette
+#'
+#'
+SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
+
+# Feature plot palettes
+#
+FeaturePalettes <- list(
+  'Spatial' = SpatialColors(n = 100),
+  'Seurat' = c('lightgrey', 'blue')
+)
 
 # Convert a ggplot2 scatterplot to base R graphics
 #

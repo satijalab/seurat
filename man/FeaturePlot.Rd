@@ -28,7 +28,8 @@ FeaturePlot(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE
+  sort.cell = FALSE,
+  interactive = FALSE
 )
 }
 \arguments{
@@ -92,6 +93,8 @@ different colors and different shapes on cells}
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 
 \item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
+
+\item{interactive}{Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object

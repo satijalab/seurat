@@ -1,5 +1,6 @@
 #' @include objects.R
 #' @include generics.R
+#' @include visualization.R
 #' @importFrom methods setClass setOldClass slot<- setAs setMethod new
 #'
 NULL
@@ -770,12 +771,9 @@ Load10X_Spatial <- function(
 #' @return Returns final plot as a ggplot object
 #'
 #' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
-#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton
-#' miniTabstripPanel miniTabPanel miniContentPanel
-#' @importFrom shiny icon radioButtons selectInput fillCol sliderInput
-#' plotOutput renderPlot reactiveValues observeEvent observe updateRadioButtons
-#' updateSelectInput stopApp runGadget
-#' sidebarPanel
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow sidebarPanel sliderInput selectInput reactiveValues
+#' observeEvent stopApp observe updateSelectInput plotOutput renderPlot runGadget
 #'
 #' @export
 #'
@@ -800,20 +798,18 @@ ISpatialFeaturePlot <- function(
     assay = assay
   )))
   feature.label <- 'Feature to visualize'
-  slots <- c('counts', 'data', 'scale.data')
-  initial.slots <- vapply(
-    X = slots,
+  assays.use <- vapply(
+    X = Assays(object = object),
     FUN = function(x) {
-      return(ifelse(
-        test = IsMatrixEmpty(x = GetAssayData(object = object, slot = x, assay = assay)),
-        yes = NA_character_,
-        no = x
-      ))
+      return(!IsMatrixEmpty(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = x
+      )))
     },
-    FUN.VALUE = character(length = 1L),
-    USE.NAMES = FALSE
+    FUN.VALUE = logical(length = 1L)
   )
-  initial.slots <- Filter(f = Negate(f = is.na), x = initial.slots)
+  assays.use <- sort(x = Assays(object = object)[assays.use])
   # Setup gadget UI
   ui <- miniPage(
     miniButtonBlock(miniTitleBarButton(
@@ -842,19 +838,13 @@ ISpatialFeaturePlot <- function(
             step = 0.1,
             width = '100%'
           ),
-          radioButtons(
+          selectInput(
             inputId = 'assay',
             label = 'Assay',
+            choices = assays.use,
             selected = assay,
-            choices = Assays(object = object),
-            inline = TRUE
-          ),
-          radioButtons(
-            inputId = 'slot',
-            label = 'Slot',
-            choices = initial.slots,
-            selected = slot,
-            inline = TRUE
+            selectize = FALSE,
+            width = '100%'
           ),
           selectInput(
             inputId = 'feature',
@@ -864,15 +854,22 @@ ISpatialFeaturePlot <- function(
             selectize = FALSE,
             width = '100%'
           ),
+          selectInput(
+            inputId = 'palette',
+            label = 'Color scheme',
+            choices = names(x = FeaturePalettes),
+            selected = 'Spatial',
+            selectize = FALSE,
+            width = '100%'
+          ),
           width = '100%'
         ),
         plotOutput(outputId = 'plot', height = '100%'),
-        flex = c(1,4)
+        flex = c(1, 4)
       )
     )
   )
   # Prepare plotting data
-  cols <- SpatialColors(n = 100)
   image <- image %||% DefaultImage(object = object)
   cells.use <- Cells(x = object[[image]])
   coords <- GetTissueCoordinates(object = object[[image]])
@@ -886,7 +883,8 @@ ISpatialFeaturePlot <- function(
   server <- function(input, output, session) {
     plot.env <- reactiveValues(
       data = plot.data,
-      feature = feature
+      feature = feature,
+      palette = 'Spatial'
     )
     # Observe events
     observeEvent(
@@ -895,28 +893,10 @@ ISpatialFeaturePlot <- function(
     )
     observe(x = {
       assay <- input$assay
-      slot.use <- input$slot
       feature.use <- input$feature
-      slot.order <- c('data', 'scale.data', 'counts')
-      slots.assay <- sapply(
-        X = slots,
-        FUN = function(x) {
-          return(!IsMatrixEmpty(x = GetAssayData(
-            object = object,
-            slot = x,
-            assay = assay
-          )))
-        }
-      )
-      slots.assay <- slots[slots.assay]
-      slot.use <- ifelse(
-        test = slot.use %in% slots.assay,
-        yes = slot.use,
-        no = slot.order[slot.order %in% slots.assay][1]
-      )
       features.assay <- sort(x = rownames(x = GetAssayData(
         object = object,
-        slot = slot.use,
+        slot = slot,
         assay = assay
       )))
       feature.use <- ifelse(
@@ -924,13 +904,12 @@ ISpatialFeaturePlot <- function(
         yes = feature.use,
         no = features.assay[1]
       )
-      updateRadioButtons(
+      updateSelectInput(
         session = session,
-        inputId = 'slot',
-        label = 'Slot',
-        choices = slots.assay,
-        selected = slot.use,
-        inline = TRUE
+        inputId = 'assay',
+        label = 'Assay',
+        choices = assays.use,
+        selected = assay
       )
       updateSelectInput(
         session = session,
@@ -948,7 +927,7 @@ ISpatialFeaturePlot <- function(
             object = object,
             vars = paste0(Key(object = object[[input$assay]]), feature.use),
             cells = cells.use,
-            slot = input$slot
+            slot = slot
           )
           colnames(x = feature.data) <- feature.use
           plot.env$data <- cbind(coords, feature.data)
@@ -956,6 +935,9 @@ ISpatialFeaturePlot <- function(
         },
         silent = TRUE
       )
+    })
+    observe(x = {
+      plot.env$palette <- input$palette
     })
     # Create plot
     output$plot <- renderPlot(expr = {
@@ -967,7 +949,8 @@ ISpatialFeaturePlot <- function(
         crop = TRUE,
         alpha.by = plot.env$feature
       ) +
-        scale_fill_gradientn(name = plot.env$feature, colours = cols) +
+        # scale_fill_gradientn(name = plot.env$feature, colours = cols) +
+        scale_fill_gradientn(name = plot.env$feature, colours = FeaturePalettes[[plot.env$palette]]) +
         theme(legend.position = 'top') +
         scale_alpha(range = c(input$alpha, 1)) +
         guides(alpha = FALSE)
@@ -1264,12 +1247,6 @@ RunMoransI <- function(data, pos){
   return(as.data.frame(x = t(x = results)))
 }
 
-#' @importFrom RColorBrewer brewer.pal
-#' @importFrom grDevices colorRampPalette
-#'
-#'
-SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
-
 # Base plotting function for all Spatial plots
 #
 # @param data Data.frame with info to be plotted
@@ -1421,6 +1398,8 @@ SingleSpatialPlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max
 #' @param stroke Control the width of the border around the spots
+#' @param interactive Launch an interactive SpatialFeaturePlot session, see
+#' \code{\link{ISpatialFeaturePlot}} for more details
 #' @param do.identify Select points on the plot to highlight them
 #' @param identify.ident An optional identity class to set the selected cells to;
 #' will return \code{object} with the identity class updated instead of a vector
@@ -1470,6 +1449,7 @@ SpatialPlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
   do.hover = FALSE,
@@ -1478,7 +1458,16 @@ SpatialPlot <- function(
   if (!is.null(x = group.by) & !is.null(x = features)) {
     stop("Please specific either group.by or features, not both.")
   }
+  images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
   if (is.null(x = features)) {
+    if (interactive) {
+      warning(
+        "Interactive spatial plots are currently only implemented for features, not clusters",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      interactive <- FALSE
+    }
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
     data <- object[[group.by]]
@@ -1488,6 +1477,15 @@ SpatialPlot <- function(
       }
     }
   } else {
+    if (interactive) {
+      return(ISpatialFeaturePlot(
+        object = object,
+        feature = features[1],
+        image = images[1],
+        slot = slot,
+        alpha = alpha
+      ))
+    }
     data <- FetchData(
       object = object,
       vars = features,
@@ -1540,7 +1538,6 @@ SpatialPlot <- function(
     colnames(x = data) <- features
     rownames(x = data) <- Cells(x = object)
   }
-  images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
   if (length(x = images) == 0) {
     images <- Images(object = object)
   }
@@ -1772,6 +1769,7 @@ SpatialFeaturePlot <- function(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  interactive = FALSE,
   do.hover = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -1790,6 +1788,7 @@ SpatialFeaturePlot <- function(
     pt.size.factor = pt.size.factor,
     alpha = alpha,
     stroke = stroke,
+    interactive = interactive,
     do.identify = do.identify,
     identify.ident = identify.ident,
     do.hover = do.hover,

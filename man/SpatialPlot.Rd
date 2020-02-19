@@ -28,6 +28,7 @@ SpatialPlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
   do.hover = FALSE,
@@ -71,6 +72,7 @@ SpatialFeaturePlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  interactive = FALSE,
   do.hover = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -131,6 +133,9 @@ themeing will not work when plotting multiple features/groupings}
 min and max}
 
 \item{stroke}{Control the width of the border around the spots}
+
+\item{interactive}{Launch an interactive SpatialFeaturePlot session, see
+\code{\link{ISpatialFeaturePlot}} for more details}
 
 \item{do.identify}{Select points on the plot to highlight them}
 
