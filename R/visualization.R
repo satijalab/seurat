@@ -1242,7 +1242,6 @@ FeaturePlot <- function(
                 yes = levels(x = data$split)[ii],
                 no = ''
               )),
-              limits = ylims,
               expand = c(0, 0)
             ) +
             labs(
