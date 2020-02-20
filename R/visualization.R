@@ -1345,14 +1345,6 @@ FeaturePlot <- function(
       if (!is.null(x = legend) && legend == 'none') {
         plots <- plots & NoLegend()
       }
-      plots <- plots[c(do.call(
-        what = rbind,
-        args = split(
-          x = 1:length(x = plots),
-          f = ceiling(x = seq_along(along.with = 1:length(x = plots)) / length(x = features))
-        )
-      ))]
-      plots <- wrap_plots(plots, ncol = nsplits)
     } else {
       plots <- wrap_plots(plots, ncol = ncol, nrow = split.by %iff% length(x = levels(x = data$split)))
     }
