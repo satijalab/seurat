@@ -3749,6 +3749,9 @@ ExIPlot <- function(
   }
   if (combine) {
     plots <- wrap_plots(plots, ncol = ncol)
+    if (length(x = features) > 1) {
+      plots <- plots & NoLegend()
+    }
   }
   return(plots)
 }
