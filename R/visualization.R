@@ -747,6 +747,7 @@ DimPlot <- function(
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
   object[['ident']] <- Idents(object = object)
+  orig.groups <- group.by
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   for (group in group.by) {
@@ -800,11 +801,11 @@ DimPlot <- function(
       return(plot)
     }
   )
-  if( !is.null(x = split.by) && length(x = group.by) > 1) {
+  if (!is.null(x = split.by) && length(x = group.by) > 1) {
     ncol <- 1
   }
   if (combine) {
-    plots <- wrap_plots(plots, ncol = ncol)
+    plots <- wrap_plots(plots, ncol = orig.groups %iff% ncol)
   }
   return(plots)
 }
