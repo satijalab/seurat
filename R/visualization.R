@@ -1327,21 +1327,16 @@ FeaturePlot <- function(
             theme(plot.title = element_text(hjust = 0.5))
           idx <- idx + 1
         }
-        idx <- 1
-        if (length(x = features) == 1) {
-          for (i in 1:length(x = plots)) {
-            plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]]) + theme(plot.title = element_text(hjust = 0.5))
-            idx <- idx + 1
-          }
-        }
-        plots <- plots[c(do.call(
-          what = rbind,
-          args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
-        ))]
-        plots <- wrap_plots(plots, ncol = nsplits)
+        ncol <- nsplits
+        nrow <- 1
       } else {
-        plots <- wrap_plots(plots, ncol = ncol, nrow = split.by %iff% length(x = levels(x = data$split)))
+        nrow <- split.by %iff% length(x = levels(x = data$split))
       }
+      plots <- plots[c(do.call(
+        what = rbind,
+        args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots)) / length(x = features)))
+      ))]
+      plots <- wrap_plots(plots, ncol = ncol, nrow = nrow)
       if (!is.null(x = legend) && legend == 'none') {
         plots <- plots & NoLegend()
       }
