@@ -59,6 +59,8 @@ repeat to the length groups in cells.highlight}
 groups in cells.highlight}
     \item{\code{na.value}}{Color value for NA points when using custom scale}
     \item{\code{ncol}}{Number of columns for display when combining plots}
+    \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
   }}
 }
 \value{

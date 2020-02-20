@@ -20,7 +20,8 @@ VlnPlot(
   log = FALSE,
   ncol = NULL,
   slot = "data",
-  multi.group = FALSE
+  multi.group = FALSE,
+  combine = TRUE
 )
 }
 \arguments{
@@ -58,9 +59,13 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{multi.group}{plot each group of the split violin plots by multiple or single violin shapes
 see \code{\link{FetchData}} for more details}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A \code{\link[patchwork]{patchwork}ed} ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Draws a violin plot of single cell data (gene expression, metrics, PC
