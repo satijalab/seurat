@@ -4615,6 +4615,10 @@ SingleExIPlot <- function(
   }
   axis.label <- 'Expression Level'
   y.max <- y.max %||% max(data[, feature])
+  if (is.infinite(x = y.max)) {
+    tmp <- data[, feature]
+    y.max <- max(tmp[!is.infinite(x = tmp)])
+  }
   if (type == 'violin' && !is.null(x = split)) {
     data$split <- split
     vln.geom <- geom_split_violin
