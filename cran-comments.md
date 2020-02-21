@@ -2,6 +2,7 @@
 
 ## Test environments
 * local Ubuntu 16.04.6 and 18.04.2 installs, R 3.6.1
+* local Windows 10 install, R 3.5.3
 * Ubuntu 16.04.6 (on travis-ci), R 3.6.1
 * macOS 10.13.3 (on travis-ci), R 3.6.1
 * Windows Server 2012 R2 (on AppVeyor), R 3.6.1 Patched
