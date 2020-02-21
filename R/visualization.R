@@ -801,7 +801,7 @@ DimPlot <- function(
       return(plot)
     }
   )
-  if (!is.null(x = split.by) && length(x = group.by) > 1) {
+  if (!is.null(x = split.by)) {
     ncol <- 1
   }
   if (combine) {
