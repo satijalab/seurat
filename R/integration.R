@@ -1721,8 +1721,7 @@ FindAnchorPairs <- function(
   # convert cell name to neighbor index
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
-  cell1.index <- sapply(X = cells1, FUN = function(x) return(which(x == nn.cells1)))
-  cell2.index <- sapply(X = cells2, FUN = function(x) return(which(x == nn.cells2)))
+  cell1.index <-  which(cells1 == nn.cells1, arr.ind = TRUE)
 
   ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
   ncell <- ncell[ncell %in% cell1.index]
