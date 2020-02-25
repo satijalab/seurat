@@ -8,7 +8,7 @@ GetResidual(
   object,
   features,
   assay = "SCT",
-  umi.assay = "RNA",
+  umi.assay = NULL,
   clip.range = NULL,
   replace.value = FALSE,
   verbose = TRUE
