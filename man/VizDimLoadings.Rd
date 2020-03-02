@@ -35,11 +35,12 @@ FALSE (default), returns the top genes ranked by the scores absolute values}
 
 \item{ncol}{Number of columns to display}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE;
-themeing will not work when plotting multiple features}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Visualize top genes associated with reduction components

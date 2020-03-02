@@ -76,11 +76,11 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
 
   // Set up hash maps for rowname based lookup
   std::unordered_map<std::string, int> mat1_map;
-  for(int i = 0; i < mat1_rownames.size(); i++){
+  for(unsigned int i = 0; i < mat1_rownames.size(); i++){
     mat1_map[mat1_rownames[i]] = i;
   }
   std::unordered_map<std::string, int> mat2_map;
-  for(int i = 0; i < mat2_rownames.size(); i++){
+  for(unsigned int i = 0; i < mat2_rownames.size(); i++){
     mat2_map[mat2_rownames[i]] = i;
   }
 
