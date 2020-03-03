@@ -18,7 +18,7 @@ jobs:
     pool: Default
     variables:
       R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
-    container: satijalab/online-workflows:latest
+    container: satijalab/seurat:develop
     steps:
       - script: |
           R CMD build .

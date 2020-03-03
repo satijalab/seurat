@@ -19,10 +19,9 @@ VlnPlot(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  combine = TRUE,
   slot = "data",
   multi.group = FALSE,
-  ...
+  combine = TRUE
 )
 }
 \arguments{
@@ -56,17 +55,17 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
 \item{slot}{Use non-normalized counts data for plotting}
 
 \item{multi.group}{plot each group of the split violin plots by multiple or single violin shapes
 see \code{\link{FetchData}} for more details}
 
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Draws a violin plot of single cell data (gene expression, metrics, PC
