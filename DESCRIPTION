@@ -42,7 +42,6 @@ Imports:
     lmtest,
     MASS,
     Matrix (>= 1.2-14),
-    metap,
     patchwork,
     pbapply,
     plotly,
@@ -101,4 +100,5 @@ Suggests:
     rtracklayer,
     monocle,
     Biobase,
-    VGAM
+    VGAM,
+    metap
