@@ -6653,6 +6653,11 @@ setMethod(
         strwrap(x = paste(other.assays, collapse = ', '))
       )
     }
+    cat(
+      '\n',
+      'Number of variable features: ',
+      length(x = VariableFeatures(object = object))
+    )
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
     if (length(x = reductions) > 0) {
       cat(
