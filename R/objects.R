@@ -6655,7 +6655,7 @@ setMethod(
     }
     cat(
       '\n',
-      'Number of variable features: ',
+      'Number of variable features:',
       length(x = VariableFeatures(object = object))
     )
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
