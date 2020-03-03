@@ -6640,7 +6640,7 @@ setMethod(
     cat(
       "Active assay:",
       DefaultAssay(object = object),
-      paste0('(', nrow(x = object), ' features)')
+      paste0('(', nrow(x = object), ' features, ', length(x = VariableFeatures(object = object)), ' variable features)')
     )
     other.assays <- assays[assays != DefaultAssay(object = object)]
     if (length(x = other.assays) > 0) {
@@ -6653,11 +6653,6 @@ setMethod(
         strwrap(x = paste(other.assays, collapse = ', '))
       )
     }
-    cat(
-      '\n',
-      'Number of variable features:',
-      length(x = VariableFeatures(object = object))
-    )
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
     if (length(x = reductions) > 0) {
       cat(
