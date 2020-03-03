@@ -2,7 +2,7 @@
 % Please edit documentation in R/integration.R
 \name{PrepSCTIntegration}
 \alias{PrepSCTIntegration}
-\title{Prepare an object list that has been run through SCTransform for integration}
+\title{Prepare an object list normalized with sctransform for integration.}
 \usage{
 PrepSCTIntegration(
   object.list,
@@ -33,9 +33,22 @@ the Pearson residual will be clipped to}
 \item{verbose}{Display output/messages}
 }
 \value{
-An object list with the \code{scale.data} slots set to the anchor
-features
+A list of Seurat objects with the appropriate \code{scale.data} slots
+containing only the required \code{anchor.features}.
 }
 \description{
-Prepare an object list that has been run through SCTransform for integration
+This function takes in a list of objects that have been normalized with the 
+\code{\link{SCTransform}} method and performs the following steps:
+\itemize{
+  \item{If anchor.features is a numeric value, calls \code{\link{SelectIntegrationFeatures}} 
+  to determine the features to use in the downstream integration procedure.}
+  \item{Ensures that the sctransform residuals for the features specified 
+  to anchor.features are present in each object in the list. This is 
+  necessary because the default behavior of \code{\link{SCTransform}} is to 
+  only store the residuals for the features determined to be variable. 
+  Residuals are recomputed for missing features using the stored model 
+  parameters via the \code{\link{GetResidual}} function.}
+  \item{Subsets the scale.data slot to only contain the residuals for
+  anchor.features for efficiency in downstream processing. }
+}
 }

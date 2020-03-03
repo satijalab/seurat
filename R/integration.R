@@ -943,7 +943,22 @@ MixingMetric <- function(
   return(mixing)
 }
 
-#' Prepare an object list that has been run through SCTransform for integration
+#' Prepare an object list normalized with sctransform for integration.
+#' 
+#' This function takes in a list of objects that have been normalized with the 
+#' \code{\link{SCTransform}} method and performs the following steps:
+#' \itemize{
+#'   \item{If anchor.features is a numeric value, calls \code{\link{SelectIntegrationFeatures}} 
+#'   to determine the features to use in the downstream integration procedure.}
+#'   \item{Ensures that the sctransform residuals for the features specified 
+#'   to anchor.features are present in each object in the list. This is 
+#'   necessary because the default behavior of \code{\link{SCTransform}} is to 
+#'   only store the residuals for the features determined to be variable. 
+#'   Residuals are recomputed for missing features using the stored model 
+#'   parameters via the \code{\link{GetResidual}} function.}
+#'   \item{Subsets the scale.data slot to only contain the residuals for
+#'   anchor.features for efficiency in downstream processing. }
+#' }
 #'
 #' @param object.list A list of objects to prep for integration
 #' @param assay Name or vector of assay names (one for each object) that correspond
@@ -960,8 +975,8 @@ MixingMetric <- function(
 #' the Pearson residual will be clipped to
 #' @param verbose Display output/messages
 #'
-#' @return An object list with the \code{scale.data} slots set to the anchor
-#' features
+#' @return A list of Seurat objects with the appropriate \code{scale.data} slots
+#' containing only the required \code{anchor.features}.
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom methods slot slot<-
@@ -1088,15 +1103,22 @@ PrepSCTIntegration <- function(
 #' Select integration features
 #'
 #' Choose the features to use when integrating multiple datasets. This function
-#' ranks features by the number of datasets they appear in, breaking ties by the
-#' median rank across datasets. It returns the highest features by this ranking.
+#' ranks features by the number of datasets they are deemed variable in, 
+#' breaking ties by the median variable feature rank across datasets. It returns 
+#' the top scoring features by this ranking.
+#' 
+#' If for any assay in the list, \code{\link{FindVariableFeatures}} hasn't been
+#' run, this method will try to run it using the \code{fvf.nfeatures} parameter
+#' and any additional ones specified through the \dots.
 #'
 #' @param object.list List of seurat objects
 #' @param nfeatures Number of features to return
-#' @param assay Name of assay from which to pull the variable features.
+#' @param assay Name or vector of assay names (one for each object) from which 
+#' to pull the variable features. 
 #' @param verbose Print messages
-#' @param fvf.nfeatures nfeatures for FindVariableFeatures. Used if
-#' VariableFeatures have not been set for any object in object.list.
+#' @param fvf.nfeatures nfeatures for \code{\link{FindVariableFeatures}}. Used 
+#' if \code{VariableFeatures} have not been set for any object in 
+#' \code{object.list}.
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
 #' @return A vector of selected features
