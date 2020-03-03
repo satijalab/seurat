@@ -13,11 +13,13 @@ PrepSCTIntegration(
 )
 }
 \arguments{
-\item{object.list}{A list of objects to prep for integration}
+\item{object.list}{A list of \code{\link{Seurat}} objects to prepare for integration}
 
-\item{assay}{Name or vector of assay names (one for each object) that correspond
-to the assay that SCTransform has been run on. If NULL, the current default
-assay for each object is used.}
+\item{assay}{The name of the \code{\link{Assay}} to use for integration. This can be a 
+single name if all the assays to be integrated have the same name, or a character vector
+containing the name of each \code{\link{Assay}} in each object to be integrated. The
+specified assays must have been normalized using \code{\link{SCTransform}}.
+If NULL (default), the current default assay for each object is used.}
 
 \item{anchor.features}{Can be either:
 \itemize{
@@ -33,7 +35,7 @@ the Pearson residual will be clipped to}
 \item{verbose}{Display output/messages}
 }
 \value{
-A list of Seurat objects with the appropriate \code{scale.data} slots
+A list of \code{\link{Seurat}} objects with the appropriate \code{scale.data} slots
 containing only the required \code{anchor.features}.
 }
 \description{
@@ -48,7 +50,7 @@ This function takes in a list of objects that have been normalized with the
   only store the residuals for the features determined to be variable. 
   Residuals are recomputed for missing features using the stored model 
   parameters via the \code{\link{GetResidual}} function.}
-  \item{Subsets the scale.data slot to only contain the residuals for
+  \item{Subsets the \code{scale.data} slot to only contain the residuals for
   anchor.features for efficiency in downstream processing. }
 }
 }

@@ -25,7 +25,7 @@ FindIntegrationAnchors(
 )
 }
 \arguments{
-\item{object.list}{A list of objects between which to find anchors for
+\item{object.list}{A list of \code{\link{Seurat}} objects between which to find anchors for
 downstream integration.}
 
 \item{assay}{A vector of assay names specifying which assay to use when
@@ -90,5 +90,7 @@ annoy}
 Returns an AnchorSet object
 }
 \description{
-Finds the integration anchors
+Find a set of anchors between a group of \code{\link{Seurat}} objects. 
+These  anchors can later be used to integrate the objects using the
+\code{\link{IntegrateData}} function.
 }

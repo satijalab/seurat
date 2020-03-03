@@ -27,15 +27,15 @@ FindTransferAnchors(
 )
 }
 \arguments{
-\item{reference}{Seurat object to use as the reference}
+\item{reference}{\code{\link{Seurat}} object to use as the reference}
 
-\item{query}{Seurat object to use as the query}
+\item{query}{\code{\link{Seurat}} object to use as the query}
 
 \item{normalization.method}{Name of normalization method used: LogNormalize or SCT}
 
-\item{reference.assay}{Assay to use from reference}
+\item{reference.assay}{Name of the Assay to use from reference}
 
-\item{query.assay}{Assay to use from query}
+\item{query.assay}{Name of the Assay to use from query}
 
 \item{reduction}{Dimensional reduction to perform when finding anchors. Options are:
 \itemize{
@@ -57,7 +57,7 @@ the reference object}
 
 \item{dims}{Which dimensions to use from the reduction to specify the neighbor search space}
 
-\item{k.anchor}{How many neighbors (k) to use when picking anchors}
+\item{k.anchor}{How many neighbors (k) to use when finding anchors}
 
 \item{k.filter}{How many neighbors (k) to use when filtering anchors}
 
@@ -69,15 +69,17 @@ space in the anchor filtering}
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
 
-\item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
+\item{eps}{Error bound on the neighbor finding algorithm (from \code{\link{RANN}})}
 
 \item{approx.pca}{Use truncated singular value decomposition to approximate PCA}
 
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns an AnchorSet object
+Returns an \code{\link{AnchorSet}} object
 }
 \description{
-Finds the transfer anchors
+Find a set of anchors between a reference and query object. These 
+anchors can later be used to transfer data from the reference to 
+query object using the \code{\link{TransferData}} object.
 }
