@@ -233,14 +233,16 @@ FindConservedMarkers <- function(
 ) {
   metap.installed <- PackageCheck("metap", error = FALSE)
   if (!metap.installed[1]) {
-    message("Please install the metap package to use FindConservedMarkers.")
-    message("The can be accomplished with the following commands: ")
-    message("----------------------------------------")
-    message("install.packages('BiocManager')")
-    message("BiocManager::install('multtest')")
-    message("install.packages('metap')")
-    message("----------------------------------------")
-    stop("metap not found", call. = FALSE)
+    stop(
+      "Please install the metap package to use FindConservedMarkers.",
+      "\nThis can be accomplished with the following commands: ",
+      "\n----------------------------------------",
+      "\ninstall.packages('BiocManager')",
+      "\nBiocManager::install('multtest')",
+      "\ninstall.packages('metap')",
+      "\n----------------------------------------",
+      call. = FALSE
+    )
   }
   if (!is.function(x = meta.method)) {
     stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detailed description of the available functions.")
