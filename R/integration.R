@@ -672,7 +672,6 @@ IntegrateData <- function(
     y = object.list[2:length(x = object.list)]
   )
   if (normalization.method == "SCT") {
-    vst.set <- list()
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       object.list[[i]][[assay]] <- CreateAssayObject(
