@@ -1505,7 +1505,9 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 # Differential expression using Wilcoxon Rank Sum
 #
 # Identifies differentially expressed genes between two groups of cells using
-# a Wilcoxon Rank Sum test
+# a Wilcoxon Rank Sum test. Makes use of limma::rankSumTestWithCorrelation for a
+# more efficient implementation of the wilcoxon test. Thanks to Yunshun Chen and
+# Gordon Smyth for suggesting the limma implementation.
 #
 # @param data.use Data matrix to test
 # @param cells.1 Group 1 cells
@@ -1535,21 +1537,47 @@ WilcoxDETest <- function(
   verbose = TRUE,
   ...
 ) {
-  group.info <- data.frame(row.names = c(cells.1, cells.2))
-  group.info[cells.1, "group"] <- "Group1"
-  group.info[cells.2, "group"] <- "Group2"
-  group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(x = group.info), drop = FALSE]
+  data.use <- data.use[, c(cells.1, cells.2), drop = FALSE]
+  j <- seq_len(length.out = length(x = cells.1))
   my.sapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
     no = future_sapply
   )
-  p_val <- my.sapply(
-    X = 1:nrow(x = data.use),
-    FUN = function(x) {
-      return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+  limma.check <- PackageCheck("limma", error = FALSE)
+  if (limma.check[1]) {
+    p_val <- my.sapply(
+      X = 1:nrow(x = data.use),
+      FUN = function(x) {
+        return(min(2 * min(limma::rankSumTestWithCorrelation(index = j, statistics = data.use[x, ])), 1))
+      }
+    )
+  } else {
+    if (getOption('Seurat.limma.wilcox.msg', TRUE)) {
+      message(
+        "For a more efficient implementation of the Wilcoxon Rank Sum Test,", 
+        "\n(default method for FindMarkers) please install the limma package",
+        "\n--------------------------------------------",
+        "\ninstall.packages('BiocManager')",
+        "\nBiocManager::install('limma')",
+        "\n--------------------------------------------",
+        "\nAfter installation of limma, Seurat will automatically use the more ",
+        "\nefficient implementation (no further action necessary).",
+        "\nThis message will be shown once per session"
+      )
+      options(Seurat.limma.wilcox.msg = FALSE)
     }
-  )
+    group.info <- data.frame(row.names = c(cells.1, cells.2))
+    group.info[cells.1, "group"] <- "Group1"
+    group.info[cells.2, "group"] <- "Group2"
+    group.info[, "group"] <- factor(x = group.info[, "group"])
+    data.use <- data.use[, rownames(x = group.info), drop = FALSE]
+    p_val <- my.sapply(
+      X = 1:nrow(x = data.use),
+      FUN = function(x) {
+        return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+      }
+    )
+  }
   return(data.frame(p_val, row.names = rownames(x = data.use)))
 }
