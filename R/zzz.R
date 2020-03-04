@@ -15,6 +15,8 @@
 #'   \item{\code{Seurat.checkdots}}{For functions that have ... as a parameter,
 #'   this controls the behavior when an item isn't used. Can be one of warn,
 #'   stop, or silent.}
+#'   \item{\code{Seurat.limma.wilcox.msg}}{{Show message about more efficient 
+#'   Wilcoxon Rank Sum test available via the limma package}}
 #' }
 #'
 #' @docType package
@@ -26,7 +28,8 @@ NULL
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
-  Seurat.checkdots = "warn"
+  Seurat.checkdots = "warn",
+  Seurat.limma.wilcox.msg = TRUE
 )
 
 .onLoad <- function(libname, pkgname) {
