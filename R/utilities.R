@@ -1783,9 +1783,9 @@ PackageCheck <- function(..., error = TRUE) {
   )
   if (error && any(!package.installed)) {
     stop(
-      "Cannot find ",
-      paste(pkgs[!package.installed], collapse = ', '),
-      "; please install"
+      "Cannot find the following packages: ",
+       paste(pkgs[!package.installed], collapse = ', '),
+       ". Please install"
     )
   }
   invisible(x = package.installed)
