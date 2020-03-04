@@ -1692,8 +1692,6 @@ FindAnchors <- function(
 FindAnchorPairs <- function(
   object,
   integration.name = 'integrated',
-  cells1 = NULL,
-  cells2 = NULL,
   k.anchor = 5,
   verbose = TRUE
 ) {
@@ -1706,23 +1704,10 @@ FindAnchorPairs <- function(
   if (verbose) {
     message("Finding anchors")
   }
-  if (is.null(x = cells1)) {
-    cells1 <- colnames(x = object)
-  }
-  if (is.null(x = cells2)) {
-    cells2 <- colnames(x = object)
-  }
-  if (!(cells1 %in% colnames(object)) || !(cells2 %in% colnames(object))) {
-    warning("Requested cells not contained in Seurat object. Subsetting list of cells.")
-    cells1 <- intersect(x = cells1, y = colnames(x = object))
-    cells2 <- intersect(x = cells2, y = colnames(x = object))
-  }
   # convert cell name to neighbor index
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
-  cell1.index <- sapply(X = cells1, FUN = function(x) return(which(x == nn.cells1)))
-  cell2.index <- sapply(X = cells2, FUN = function(x) return(which(x == nn.cells2)))
-
+  cell1.index <-  suppressWarnings(which(colnames(x = object) == nn.cells1, arr.ind = TRUE))
   ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
   ncell <- ncell[ncell %in% cell1.index]
   anchors <- list()
