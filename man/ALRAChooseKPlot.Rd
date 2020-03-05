@@ -4,7 +4,7 @@
 \alias{ALRAChooseKPlot}
 \title{ALRA Approximate Rank Selection Plot}
 \usage{
-ALRAChooseKPlot(object, start = 0)
+ALRAChooseKPlot(object, start = 0, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -13,6 +13,9 @@ ALRAChooseKPlot(object, start = 0)
 The transition from "signal" to "noise" in the is hard to see because the
 first singular value spacings are so large. Nicer visualizations result from
 skipping the first few. If set to 0 (default) starts from k/2.}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
 A list of 3 \code{\link[patchwork]{patchwork}ed} ggplot objects

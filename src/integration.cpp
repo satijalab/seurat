@@ -96,17 +96,30 @@ Eigen::SparseMatrix<double> IntegrateDataC(
 }
 
 
+int getCoeff (Eigen::SparseMatrix<double>& mat, size_t i, size_t j){
+  int score{0};
+  if (i == j) {
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat, i); it; ++it){
+      score++;
+    }
+  } else {
+    for(int k=0; k < mat.outerSize(); ++k) {
+      if (mat.coeff(i, k) and mat.coeff(j, k)) { score++; }
+    }
+  }
+
+  return score;
+}
+
+
 //[[Rcpp::export]]
 Eigen::SparseMatrix<double> SNNAnchor(
   Eigen::SparseMatrix<double> k_matrix, 
   Eigen::SparseMatrix<double> anchor_only
 ) {
-  typedef Eigen::SparseMatrix<double, 0, std::ptrdiff_t> SpMat;
-  SpMat mat2 = k_matrix;
-  SpMat mat3 = mat2 * mat2.transpose();
   for (int k=0; k<anchor_only.outerSize(); ++k){
     for (Eigen::SparseMatrix<double>::InnerIterator it(anchor_only,k); it; ++it){
-      it.valueRef() = mat3.coeff(it.row(), it.col());
+      it.valueRef() = getCoeff(k_matrix, it.row(), it.col());
     }
   }
   return(anchor_only);

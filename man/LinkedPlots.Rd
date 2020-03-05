@@ -44,7 +44,8 @@ LinkedFeaturePlot(
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
 min and max}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{feature}{Feature to visualize}
 
