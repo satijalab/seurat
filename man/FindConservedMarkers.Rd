@@ -11,7 +11,7 @@ FindConservedMarkers(
   grouping.var,
   assay = "RNA",
   slot = "data",
-  meta.method = minimump,
+  meta.method = metap::minimump,
   verbose = TRUE,
   ...
 )

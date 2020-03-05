@@ -12,6 +12,6 @@ RunMoransI(data, pos)
 \item{pos}{Position matrix}
 }
 \description{
-Wraps the functionality of the Moran.I function from the ape package. 
+Wraps the functionality of the Moran.I function from the ape package.
 Weights are computed as 1/distance.
 }
