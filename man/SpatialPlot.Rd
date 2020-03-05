@@ -11,6 +11,7 @@ SpatialPlot(
   group.by = NULL,
   features = NULL,
   images = NULL,
+  image.alpha = 1,
   crop = TRUE,
   slot = "data",
   min.cutoff = NA,
@@ -88,6 +89,9 @@ SpatialFeaturePlot(
 features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
+
+\item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
+remove.}
 
 \item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show
 entire background image.}
