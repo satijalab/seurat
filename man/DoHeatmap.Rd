@@ -22,7 +22,8 @@ DoHeatmap(
   raster = TRUE,
   draw.lines = TRUE,
   lines.width = NULL,
-  group.bar.height = 0.02
+  group.bar.height = 0.02,
+  combine = TRUE
 )
 }
 \arguments{
@@ -65,9 +66,13 @@ if you are encountering that issue (note that plots may take longer to produce/r
 Corresponds to the number of "cells" between each group.}
 
 \item{group.bar.height}{Scale the height of the color bar}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Draws a heatmap of single cell feature expression.

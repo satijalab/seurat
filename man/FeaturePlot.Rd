@@ -28,7 +28,9 @@ FeaturePlot(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE
+  sort.cell = FALSE,
+  interactive = FALSE,
+  combine = TRUE
 )
 }
 \arguments{
@@ -92,9 +94,15 @@ different colors and different shapes on cells}
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 
 \item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
+
+\item{interactive}{Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A \code{\link[patchwork]{patchwork}ed} ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Colors single cells on a dimensional reduction plot according to a 'feature'

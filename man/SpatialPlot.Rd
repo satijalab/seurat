@@ -12,6 +12,7 @@ SpatialPlot(
   features = NULL,
   images = NULL,
   cols = NULL,
+  image.alpha = 1,
   crop = TRUE,
   slot = "data",
   min.cutoff = NA,
@@ -29,6 +30,7 @@ SpatialPlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  interactive = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
   do.hover = FALSE,
@@ -73,6 +75,7 @@ SpatialFeaturePlot(
   pt.size.factor = 1.6,
   alpha = c(1, 1),
   stroke = 0.25,
+  interactive = FALSE,
   do.hover = FALSE,
   do.identify = FALSE,
   identify.ident = NULL,
@@ -89,10 +92,13 @@ features, not both.}
 
 \item{images}{Name of the images to use in the plot(s)}
 
-\item{cols}{Vector of colors, each color corresponds to an identity class. 
-This may also be a single character or numeric value corresponding to a 
-palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}. By 
+\item{cols}{Vector of colors, each color corresponds to an identity class.
+This may also be a single character or numeric value corresponding to a
+palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}. By
 default, ggplot2 assigns colors}
+
+\item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
+remove.}
 
 \item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show
 entire background image.}
@@ -138,6 +144,9 @@ themeing will not work when plotting multiple features/groupings}
 min and max}
 
 \item{stroke}{Control the width of the border around the spots}
+
+\item{interactive}{Launch an interactive SpatialFeaturePlot session, see
+\code{\link{ISpatialFeaturePlot}} for more details}
 
 \item{do.identify}{Select points on the plot to highlight them}
 
