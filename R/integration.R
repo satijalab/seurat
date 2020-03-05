@@ -405,38 +405,81 @@ FindIntegrationAnchors <- function(
 #' anchors can later be used to transfer data from the reference to 
 #' query object using the \code{\link{TransferData}} object.
 #'
+#' The main steps of this procedure are outlined below. For a more detailed 
+#' description of the methodology, please see Stuart, Butler, et al Cell 2019. 
+#' 
+#' \itemize{
+#' 
+#'   \item{Perform dimensional reduction. Exactly what is done here depends on 
+#'   the values set for the \code{reduction} and \code{project.query} 
+#'   parameters. If \code{reduction = "pcaproject"}, a PCA is performed on 
+#'   either the reference (if \code{project.query = FALSE}) or the query (if 
+#'   \code{project.query = TRUE}), using the \code{features} specified. The data
+#'   from the other dataset is then projected onto this learned PCA structure. 
+#'   If \code{reduction = "cca"}, then CCA is performed on the reference and 
+#'   query for this dimensional reduction step. If \code{l2.norm} is set to 
+#'   \code{TRUE}, perform L2 normalization of the embedding vectors.}
+#'   \item{Identify anchors between the reference and query - pairs of cells 
+#'   from each dataset that are contained within each other's neighborhoods 
+#'   (also known as mutual nearest neighbors).}
+#'   \item{Filter low confidence anchors to ensure anchors in the low dimension
+#'   space are in broad agreement with the high dimensional measurements. This 
+#'   is done by looking at the neighbors of each query cell in the reference 
+#'   dataset using \code{max.features} to define this space. If the reference
+#'   cell isn't found within the first \code{k.filter} neighbors, remove the 
+#'   anchor.}
+#'   \item{Assign each remaining anchor a score. For each anchor cell, determine 
+#'   the nearest \code{k.score} anchors within its own dataset and within its 
+#'   pair's dataset. Based on these neighborhoods, construct an overall neighbor
+#'   graph and then compute the shared neighbor overlap between anchor and query
+#'   cells (analagous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+#'   these scores to dampen outlier effects and rescale to range between 0-1.}
+#' }
+#'
 #' @param reference \code{\link{Seurat}} object to use as the reference
 #' @param query \code{\link{Seurat}} object to use as the query
 #' @param reference.assay Name of the Assay to use from reference
 #' @param query.assay Name of the Assay to use from query
-#' @param reduction Dimensional reduction to perform when finding anchors. Options are:
+#' @param reduction Dimensional reduction to perform when finding anchors. 
+#' Options are:
 #' \itemize{
-#'    \item{pcaproject: Project the PCA from the reference onto the query. We recommend using PCA
-#'    when reference and query datasets are from scRNA-seq}
+#'    \item{pcaproject: Project the PCA from the reference onto the query. We 
+#'    recommend using PCA when reference and query datasets are from scRNA-seq}
 #'    \item{cca: Run a CCA on the reference and query }
 #' }
-#' @param project.query Project the PCA from the query dataset onto the reference. Use only in rare
-#' cases where the query dataset has a much larger cell number, but the reference dataset has a
-#' unique assay for transfer.
-#' @param features Features to use for dimensional reduction
-#' @param normalization.method Name of normalization method used: LogNormalize or SCT
-#' @param npcs Number of PCs to compute on reference. If null, then use an existing PCA structure in
-#' the reference object
-#' @param l2.norm Perform L2 normalization on the cell embeddings after dimensional reduction
-#' @param dims Which dimensions to use from the reduction to specify the neighbor search space
+#' @param project.query Project the PCA from the query dataset onto the 
+#' reference. Use only in rare cases where the query dataset has a much larger 
+#' cell number, but the reference dataset has a unique assay for transfer.
+#' @param features Features to use for dimensional reduction. If not specified,
+#' set as variable features of the reference object which are also present in 
+#' the query. 
+#' @param normalization.method Name of normalization method used: LogNormalize 
+#' or SCT
+#' @param npcs Number of PCs to compute on reference. If null, then use an 
+#' existing PCA structure in the reference object
+#' @param l2.norm Perform L2 normalization on the cell embeddings after 
+#' dimensional reduction
+#' @param dims Which dimensions to use from the reduction to specify the 
+#' neighbor search space
 #' @param k.anchor How many neighbors (k) to use when finding anchors
 #' @param k.filter How many neighbors (k) to use when filtering anchors
 #' @param k.score How many neighbors (k) to use when scoring anchors
-#' @param max.features The maximum number of features to use when specifying the neighborhood search
-#' space in the anchor filtering
+#' @param max.features The maximum number of features to use when specifying the 
+#' neighborhood search space in the anchor filtering
 #'@param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
-#' @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
-#' @param approx.pca Use truncated singular value decomposition to approximate PCA
+#' @param eps Error bound on the neighbor finding algorithm (from 
+#' \code{\link{RANN}})
+#' @param approx.pca Use truncated singular value decomposition to approximate 
+#' PCA
 #' @param verbose Print progress bars and output
 #'
-#' @return Returns an \code{\link{AnchorSet}} object
-#'
+#' @return Returns an \code{AnchorSet} object that can be used as input to 
+#' \code{\link{TransferData}}
+#' 
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#' 
 #' @export
 #'
 FindTransferAnchors <- function(
