@@ -210,8 +210,6 @@ FindAllMarkers <- function(
 #' associated output column (e.g. CTRL_p_val). If only one group is tested in the grouping.var, max
 #' and combined p-values are not returned.
 #'
-#' @importFrom metap minimump
-#'
 #' @export
 #'
 #' @examples
@@ -229,10 +227,23 @@ FindConservedMarkers <- function(
   grouping.var,
   assay = 'RNA',
   slot = 'data',
-  meta.method = minimump,
+  meta.method = metap::minimump,
   verbose = TRUE,
   ...
 ) {
+  metap.installed <- PackageCheck("metap", error = FALSE)
+  if (!metap.installed[1]) {
+    stop(
+      "Please install the metap package to use FindConservedMarkers.",
+      "\nThis can be accomplished with the following commands: ",
+      "\n----------------------------------------",
+      "\ninstall.packages('BiocManager')",
+      "\nBiocManager::install('multtest')",
+      "\ninstall.packages('metap')",
+      "\n----------------------------------------",
+      call. = FALSE
+    )
+  }
   if (!is.function(x = meta.method)) {
     stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detailed description of the available functions.")
   }
@@ -354,12 +365,13 @@ FindConservedMarkers <- function(
         return(meta.method(x)$p)
       }
     ))
-    colnames(x = combined.pval) <- paste0(
-      as.character(x = formals()$meta.method),
-      "_p_val"
-    )
+    meta.method.name <- as.character(x = formals()$meta.method)
+    if (length(x = meta.method.name) == 3) {
+      meta.method.name <- meta.method.name[3]
+    }
+    colnames(x = combined.pval) <- paste0(meta.method.name, "_p_val")
     markers.combined <- cbind(markers.combined, combined.pval)
-    markers.combined <- markers.combined[order(markers.combined[, paste0(as.character(x = formals()$meta.method), "_p_val")]), ]
+    markers.combined <- markers.combined[order(markers.combined[, paste0(meta.method.name, "_p_val")]), ]
   } else {
     warning("Only a single group was tested", call. = FALSE, immediate. = TRUE)
   }
