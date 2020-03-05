@@ -1327,8 +1327,8 @@ FeaturePlot <- function(
             theme(plot.title = element_text(hjust = 0.5))
           idx <- idx + 1
         }
-        ncol <- nsplits
-        nrow <- 1
+        ncol <- 1
+        nrow <- nsplits
       } else {
         nrow <- split.by %iff% length(x = levels(x = data$split))
       }
@@ -1336,7 +1336,8 @@ FeaturePlot <- function(
         what = rbind,
         args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots)) / length(x = features)))
       ))]
-      plots <- wrap_plots(plots, ncol = ncol, nrow = nrow)
+      # Set ncol to number of splits (nrow) and nrow to number of features (ncol)
+      plots <- wrap_plots(plots, ncol = nrow, nrow = ncol)
       if (!is.null(x = legend) && legend == 'none') {
         plots <- plots & NoLegend()
       }
