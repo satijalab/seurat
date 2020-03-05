@@ -1327,8 +1327,8 @@ FeaturePlot <- function(
             theme(plot.title = element_text(hjust = 0.5))
           idx <- idx + 1
         }
-        ncol <- nsplits
-        nrow <- 1
+        ncol <- 1
+        nrow <- nsplits
       } else {
         nrow <- split.by %iff% length(x = levels(x = data$split))
       }
