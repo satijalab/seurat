@@ -4638,7 +4638,7 @@ SingleExIPlot <- function(
         vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
-      jitter <- geom_jitter(height = 0, size = pt.size)
+      jitter <- geom_jitter(position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), size = pt.size)
       log.scale <- scale_y_log10()
       axis.scale <- ylim
     },
