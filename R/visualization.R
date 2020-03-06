@@ -4563,7 +4563,7 @@ SingleDimPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim
+#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim position_jitterdodge
 #' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
 #'
@@ -4638,7 +4638,7 @@ SingleExIPlot <- function(
         vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
-      jitter <- geom_jitter(height = 0, size = pt.size)
+      jitter <- geom_jitter(position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), size = pt.size)
       log.scale <- scale_y_log10()
       axis.scale <- ylim
     },
