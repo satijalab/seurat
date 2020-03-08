@@ -1965,6 +1965,7 @@ DotPlot <- function(
       return(data.use)
     }
   )
+  avg.exp.scaled[is.nan(avg.exp.scaled)] <- 0
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
   if (!is.null(x = split.by)) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
