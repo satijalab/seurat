@@ -844,7 +844,8 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
-#' @param sort.cell If \code{TRUE}, the positive cells will overlap the negative cells
+#' @param sort.cell Redundant with \code{order}. This argument is being 
+#' deprecated. Please use \code{order} instead. 
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
@@ -897,9 +898,18 @@ FeaturePlot <- function(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE,
+  sort.cell = NULL,
   combine = TRUE
 ) {
+  # sort.cell to be deprecated
+  if (!is.null(x = sort.cell)) {
+    warning(
+      "The sort.cell parameter is being deprecated. Please use the order ",
+      "parameter instead for equivalent functionality.")
+    if (sort.cell) {
+      order <- sort.cell
+    }
+  }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
   no.right <- theme(
@@ -1125,9 +1135,6 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       data.single <- data.plot[, c(dims, 'ident', feature, shape.by)]
-      if (sort.cell) {
-        data.single <- data.single[order(data.single[, feature]),]
-      }
       # Make the plot
       plot <- SingleDimPlot(
         data = data.single,
