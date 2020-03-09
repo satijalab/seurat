@@ -671,20 +671,27 @@ IntegrateData <- function(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
   )
-  if ( !is.null(features.to.integrate) ) {
-    features.to.integrate <- intersect(features.to.integrate,  
-                                         Reduce( intersect, 
-                                                 lapply( X = object.list,
-                                                         FUN = function(obj) rownames(obj) 
-                                                         )
-                                                 )
-                                         )
-    }
+  if (!is.null(x = features.to.integrate)) {
+    features.to.integrate <- intersect(
+      x = features.to.integrate,  
+      y = Reduce(
+        f = intersect,
+        x = lapply(
+          X = object.list, 
+          FUN = rownames
+        )
+      )
+    )
+  }
   if (normalization.method == "SCT") {
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
-      if ( length(setdiff(features.to.integrate, features))!=0 ) {
-        object.list[[i]] <- GetResidual( object.list[[i]], features = setdiff(features.to.integrate, features), verbose = verbose )
+      if (length(x = setdiff(x = features.to.integrate, y = features)) != 0) {
+        object.list[[i]] <- GetResidual(
+          object = object.list[[i]], 
+          features = setdiff(x = features.to.integrate, y = features), 
+          verbose = verbose
+        )
       }
       object.list[[i]][[assay]] <- CreateAssayObject(
         data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
