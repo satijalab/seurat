@@ -901,7 +901,7 @@ FeaturePlot <- function(
   sort.cell = NULL,
   combine = TRUE
 ) {
-  # sort.cell to be deprecated
+  # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
     warning(
       "The sort.cell parameter is being deprecated. Please use the order ",
