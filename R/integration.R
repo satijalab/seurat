@@ -767,6 +767,9 @@ FindTransferAnchors <- function(
 #' integrated data is returned to the \code{scale.data} slot and can be treated
 #' as centered, corrected Pearson residuals.  
 #'
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#'
 #' @export
 #'
 IntegrateData <- function(
@@ -1393,6 +1396,9 @@ SelectIntegrationFeatures <- function(
 #' predictions. If \code{refdata} is a matrix, returns an Assay object where the 
 #' imputed data has been stored in the provided slot.
 #'
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#' 
 #' @export
 #'
 TransferData <- function(

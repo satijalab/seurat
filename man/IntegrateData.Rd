@@ -116,3 +116,7 @@ To determine the order of integration (if not specified via
   \item{Cluster this distance matrix to determine a guide tree}  
 }
 }
+\references{
+Stuart T, Butler A, et al. Comprehensive Integration of 
+Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+}
