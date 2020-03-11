@@ -1648,10 +1648,10 @@ SpatialPlot <- function(
       cells.highlight
     }
     for (j in 1:length(x = features)) {
-      cols.unset <- is.factor(x = data[[features[j]]]) && is.null(x = cols)
+      cols.unset <- is.factor(x = data[, features[j]]) && is.null(x = cols)
       if (cols.unset) {
-        cols <- hue_pal()(n = length(x = levels(x = data[[features[j]]])))
-        names(x = cols) <- levels(x = data[[features[j]]])
+        cols <- hue_pal()(n = length(x = levels(x = data[, features[j]])))
+        names(x = cols) <- levels(x = data[, features[j]])
       }
       plot <- SingleSpatialPlot(
         data = cbind(
