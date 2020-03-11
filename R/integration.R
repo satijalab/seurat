@@ -13,7 +13,10 @@ NULL
 #' \code{\link{IntegrateData}} function.
 #' 
 #' The main steps of this procedure are outlined below. For a more detailed 
-#' description of the methodology, please see Stuart, Butler, et al Cell 2019. 
+#' description of the methodology, please see Stuart, Butler, et al Cell 2019: 
+#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
+#' \url{https://doi.org/10.1101/460147}
+#' 
 #' First, determine anchor.features if not explicitly specified using 
 #' \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations 
 #' of reference and query datasets:
@@ -88,14 +91,20 @@ NULL
 #' \code{\link{IntegrateData}}. 
 #' 
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of 
-#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
+#' j.cell.2019.05.031}
 #' 
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
 #' @export
-#'
+#' 
+#' @examples
+#' \dontrun{
+#' anchors <- FindIntegrationAnchors(object.list = list(object1, object2, object3))
+#' integrated <- IntegrateData(anchorset = anchors)
+#' }
 FindIntegrationAnchors <- function(
   object.list = NULL,
   assay = NULL,
@@ -406,7 +415,9 @@ FindIntegrationAnchors <- function(
 #' query object using the \code{\link{TransferData}} object.
 #'
 #' The main steps of this procedure are outlined below. For a more detailed 
-#' description of the methodology, please see Stuart, Butler, et al Cell 2019. 
+#' description of the methodology, please see Stuart, Butler, et al Cell 2019.
+#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
+#' \url{https://doi.org/10.1101/460147}
 #' 
 #' \itemize{
 #' 
@@ -478,10 +489,16 @@ FindIntegrationAnchors <- function(
 #' \code{\link{TransferData}}
 #' 
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of 
-#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
+#' j.cell.2019.05.031};
 #' 
 #' @export
-#'
+#' @examples 
+#' \dontrun{
+#' anchors <- FindTransferAnchors(reference = ref.obj, query = query.obj)
+#' predictions <- TransferData(anchorset = anchors, refdata = Idents(ref.obj))
+#' query.obj <- AddMetaData(object = query.obj, metadata = predictions)
+#' }
 FindTransferAnchors <- function(
   reference,
   query,
@@ -692,6 +709,9 @@ FindTransferAnchors <- function(
 #'
 #' The main steps of this procedure are outlined below. For a more detailed 
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
+#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
+#' \url{https://doi.org/10.1101/460147}
+#' 
 #' For pairwise integration:
 #' 
 #' \itemize{
@@ -768,10 +788,15 @@ FindTransferAnchors <- function(
 #' as centered, corrected Pearson residuals.  
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of 
-#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
+#' j.cell.2019.05.031}
 #'
 #' @export
-#'
+#' @examples
+#' \dontrun{
+#' anchors <- FindIntegrationAnchors(object.list = list(object1, object2, object3))
+#' integrated <- IntegrateData(anchorset = anchors)
+#' }
 IntegrateData <- function(
   anchorset,
   new.assay.name = "integrated",
@@ -1331,6 +1356,9 @@ SelectIntegrationFeatures <- function(
 #'
 #' The main steps of this procedure are outlined below. For a more detailed 
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
+#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
+#' \url{https://doi.org/10.1101/460147}
+#' 
 #' For both transferring discrete labels and also feature imputation, we first
 #' compute the weights matrix.
 #' 
@@ -1397,10 +1425,16 @@ SelectIntegrationFeatures <- function(
 #' imputed data has been stored in the provided slot.
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of 
-#' Single-Cell Data. Cell. 2019;177:1888-1902 doi.org/10.1016/j.cell.2019.05.031
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
+#' j.cell.2019.05.031}
 #' 
 #' @export
-#'
+#' @examples 
+#' \dontrun{
+#' anchors <- FindTransferAnchors(reference = ref.obj, query = query.obj)
+#' predictions <- TransferData(anchorset = anchors, refdata = Idents(ref.obj))
+#' query.obj <- AddMetaData(object = query.obj, metadata = predictions)
+#' }
 TransferData <- function(
   anchorset,
   refdata,
