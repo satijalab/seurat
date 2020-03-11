@@ -121,7 +121,25 @@ To determine the order of integration (if not specified via
 }
 \examples{
 \dontrun{
-anchors <- FindIntegrationAnchors(object.list = list(object1, object2, object3))
+# to install the SeuratData package see https://github.com/satijalab/seurat-data
+library(SeuratData)
+data("panc8")
+
+# panc8 is a merged Seurat object containing 8 separate pancreas datasets
+# split the object by dataset
+pancreas.list <- SplitObject(panc8, split.by = "tech")
+
+# perform standard preprocessing on each object
+for (i in 1:length(pancreas.list)) {
+  pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
+  pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst", 
+                                             nfeatures = 2000, verbose = FALSE)
+ }
+
+# find anchors
+anchors <- FindIntegrationAnchors(object.list = pancreas.list)
+
+# integrate data
 integrated <- IntegrateData(anchorset = anchors)
 }
 }

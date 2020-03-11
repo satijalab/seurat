@@ -102,7 +102,25 @@ NULL
 #' 
 #' @examples
 #' \dontrun{
-#' anchors <- FindIntegrationAnchors(object.list = list(object1, object2, object3))
+#' # to install the SeuratData package see https://github.com/satijalab/seurat-data
+#' library(SeuratData)
+#' data("panc8")
+#' 
+#' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
+#' # split the object by dataset
+#' pancreas.list <- SplitObject(panc8, split.by = "tech")
+#' 
+#' # perform standard preprocessing on each object
+#' for (i in 1:length(pancreas.list)) {
+#'   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
+#'   pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst", 
+#'                                              nfeatures = 2000, verbose = FALSE)
+#'  }
+#' 
+#' # find anchors
+#' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
+#' 
+#' # integrate data
 #' integrated <- IntegrateData(anchorset = anchors)
 #' }
 FindIntegrationAnchors <- function(
@@ -493,11 +511,31 @@ FindIntegrationAnchors <- function(
 #' j.cell.2019.05.031};
 #' 
 #' @export
-#' @examples 
+#' @examples
 #' \dontrun{
-#' anchors <- FindTransferAnchors(reference = ref.obj, query = query.obj)
-#' predictions <- TransferData(anchorset = anchors, refdata = Idents(ref.obj))
-#' query.obj <- AddMetaData(object = query.obj, metadata = predictions)
+#' # to install the SeuratData package see https://github.com/satijalab/seurat-data
+#' library(SeuratData)
+#' data("pbmc3k")
+#' 
+#' # for demonstration, split the object into reference and query
+#' pbmc.reference <- pbmc3k[, 1:1350]
+#' pbmc.query <- pbmc3k[, 1351:2700]
+#' 
+#' # perform standard preprocessing on each object
+#' pbmc.reference <- NormalizeData(pbmc.reference)
+#' pbmc.reference <- FindVariableFeatures(pbmc.reference)
+#' pbmc.reference <- ScaleData(pbmc.reference)
+#' 
+#' pbmc.query <- NormalizeData(pbmc.query)
+#' pbmc.query <- FindVariableFeatures(pbmc.query)
+#' pbmc.query <- ScaleData(pbmc.query)
+#' 
+#' # find anchors
+#' anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
+#' 
+#' # transfer labels
+#' predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
+#' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
 FindTransferAnchors <- function(
   reference,
@@ -794,7 +832,25 @@ FindTransferAnchors <- function(
 #' @export
 #' @examples
 #' \dontrun{
-#' anchors <- FindIntegrationAnchors(object.list = list(object1, object2, object3))
+#' # to install the SeuratData package see https://github.com/satijalab/seurat-data
+#' library(SeuratData)
+#' data("panc8")
+#' 
+#' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
+#' # split the object by dataset
+#' pancreas.list <- SplitObject(panc8, split.by = "tech")
+#' 
+#' # perform standard preprocessing on each object
+#' for (i in 1:length(pancreas.list)) {
+#'   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
+#'   pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst", 
+#'                                              nfeatures = 2000, verbose = FALSE)
+#'  }
+#' 
+#' # find anchors
+#' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
+#' 
+#' # integrate data
 #' integrated <- IntegrateData(anchorset = anchors)
 #' }
 IntegrateData <- function(
@@ -1431,9 +1487,29 @@ SelectIntegrationFeatures <- function(
 #' @export
 #' @examples 
 #' \dontrun{
-#' anchors <- FindTransferAnchors(reference = ref.obj, query = query.obj)
-#' predictions <- TransferData(anchorset = anchors, refdata = Idents(ref.obj))
-#' query.obj <- AddMetaData(object = query.obj, metadata = predictions)
+#' # to install the SeuratData package see https://github.com/satijalab/seurat-data
+#' library(SeuratData)
+#' data("pbmc3k")
+#' 
+#' # for demonstration, split the object into reference and query
+#' pbmc.reference <- pbmc3k[, 1:1350]
+#' pbmc.query <- pbmc3k[, 1351:2700]
+#' 
+#' # perform standard preprocessing on each object
+#' pbmc.reference <- NormalizeData(pbmc.reference)
+#' pbmc.reference <- FindVariableFeatures(pbmc.reference)
+#' pbmc.reference <- ScaleData(pbmc.reference)
+#' 
+#' pbmc.query <- NormalizeData(pbmc.query)
+#' pbmc.query <- FindVariableFeatures(pbmc.query)
+#' pbmc.query <- ScaleData(pbmc.query)
+#' 
+#' # find anchors
+#' anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
+#' 
+#' # transfer labels
+#' predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
+#' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
 TransferData <- function(
   anchorset,
