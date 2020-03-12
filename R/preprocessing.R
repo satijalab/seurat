@@ -934,7 +934,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       data <- lapply(
         X = lvls,
         FUN = function(l) {
-          return(data[data_types == l, ])
+          return(data[data_types == l, , drop = FALSE])
         }
       )
       names(x = data) <- lvls
