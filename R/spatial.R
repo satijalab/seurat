@@ -1098,6 +1098,8 @@ GeomSpatial <- ggproto(
     if (!crop) {
       y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
       data$y <- data$y + sum(y.transform)
+      panel_scales$x$continuous_range <- c(0, nrow(x = image))
+      panel_scales$y$continuous_range <- c(0, ncol(x = image))
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
