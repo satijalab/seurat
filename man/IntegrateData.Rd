@@ -82,7 +82,7 @@ integrated data is returned to the \code{scale.data} slot and can be treated
 as centered, corrected Pearson residuals.
 }
 \description{
-Perform dataset integration using a pre-computed \code{\link{Anchorset}}.
+Perform dataset integration using a pre-computed \code{\link{AnchorSet}}.
 }
 \details{
 The main steps of this procedure are outlined below. For a more detailed 
@@ -97,7 +97,7 @@ For pairwise integration:
   query cell and each anchor. These weights are computed as 1 - the distance
   between the query cell and the anchor divided by the distance of the query 
   cell to the \code{k.weight}th anchor multiplied by the anchor score 
-  computed in \code{\link{FindIntegrationAchors}}. We then apply a Gaussian 
+  computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian 
   kernel width a bandwidth defined by \code{sd.weight} and normalize across
   all \code{k.weight} anchors.}
   \item{Compute the anchor integration matrix as the difference between the 
@@ -113,7 +113,7 @@ To determine the order of integration (if not specified via
 \code{sample.tree}), we 
 \itemize{
   \item{Define a distance between datasets as the total number of cells in 
-  the samller dataset divided by the total number of anchors between the two 
+  the smaller dataset divided by the total number of anchors between the two 
   datasets.}
   \item{Compute all pairwise distances between datasets}
   \item{Cluster this distance matrix to determine a guide tree}  

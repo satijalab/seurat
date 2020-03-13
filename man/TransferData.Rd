@@ -56,7 +56,7 @@ dimensional reduction}
 or "counts"}
 }
 \value{
-If \code{refdata} is a vector, returns a dataframe with label 
+If \code{refdata} is a vector, returns a data.frame with label 
 predictions. If \code{refdata} is a matrix, returns an Assay object where the 
 imputed data has been stored in the provided slot.
 }
@@ -81,7 +81,7 @@ compute the weights matrix.
   query cell and each anchor. These weights are computed as 1 - the distance
   between the query cell and the anchor divided by the distance of the query 
   cell to the \code{k.weight}th anchor multiplied by the anchor score 
-  computed in \code{\link{FindIntegrationAchors}}. We then apply a Gaussian 
+  computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian 
   kernel width a bandwidth defined by \code{sd.weight} and normalize across
   all \code{k.weight} anchors.}
 }

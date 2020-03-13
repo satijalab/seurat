@@ -87,7 +87,7 @@ annoy}
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns an \code{AnchorSet} object that can be used as input to 
+Returns an \code{\link{AnchorSet}} object that can be used as input to 
 \code{\link{IntegrateData}}.
 }
 \description{
@@ -122,7 +122,7 @@ of reference and query datasets:
   the nearest \code{k.score} anchors within its own dataset and within its 
   pair's dataset. Based on these neighborhoods, construct an overall neighbor
   graph and then compute the shared neighbor overlap between anchor and query
-  cells (analagous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+  cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
   these scores to dampen outlier effects and rescale to range between 0-1.}
 }
 }

@@ -38,7 +38,7 @@ NULL
 #'   the nearest \code{k.score} anchors within its own dataset and within its 
 #'   pair's dataset. Based on these neighborhoods, construct an overall neighbor
 #'   graph and then compute the shared neighbor overlap between anchor and query
-#'   cells (analagous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+#'   cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
 #'   these scores to dampen outlier effects and rescale to range between 0-1.}
 #' }
 #'
@@ -87,7 +87,7 @@ NULL
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param verbose Print progress bars and output
 #'
-#' @return Returns an \code{AnchorSet} object that can be used as input to 
+#' @return Returns an \code{\link{AnchorSet}} object that can be used as input to 
 #' \code{\link{IntegrateData}}. 
 #' 
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of 
@@ -464,7 +464,7 @@ FindIntegrationAnchors <- function(
 #'   the nearest \code{k.score} anchors within its own dataset and within its 
 #'   pair's dataset. Based on these neighborhoods, construct an overall neighbor
 #'   graph and then compute the shared neighbor overlap between anchor and query
-#'   cells (analagous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+#'   cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
 #'   these scores to dampen outlier effects and rescale to range between 0-1.}
 #' }
 #'
@@ -750,7 +750,7 @@ FindTransferAnchors <- function(
 
 #' Integrate data
 #'
-#' Perform dataset integration using a pre-computed \code{\link{Anchorset}}. 
+#' Perform dataset integration using a pre-computed \code{\link{AnchorSet}}. 
 #'
 #' The main steps of this procedure are outlined below. For a more detailed 
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
@@ -764,7 +764,7 @@ FindTransferAnchors <- function(
 #'   query cell and each anchor. These weights are computed as 1 - the distance
 #'   between the query cell and the anchor divided by the distance of the query 
 #'   cell to the \code{k.weight}th anchor multiplied by the anchor score 
-#'   computed in \code{\link{FindIntegrationAchors}}. We then apply a Gaussian 
+#'   computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian 
 #'   kernel width a bandwidth defined by \code{sd.weight} and normalize across
 #'   all \code{k.weight} anchors.}
 #'   \item{Compute the anchor integration matrix as the difference between the 
@@ -780,7 +780,7 @@ FindTransferAnchors <- function(
 #' \code{sample.tree}), we 
 #' \itemize{
 #'   \item{Define a distance between datasets as the total number of cells in 
-#'   the samller dataset divided by the total number of anchors between the two 
+#'   the smaller dataset divided by the total number of anchors between the two 
 #'   datasets.}
 #'   \item{Compute all pairwise distances between datasets}
 #'   \item{Cluster this distance matrix to determine a guide tree}  
@@ -1496,7 +1496,7 @@ SelectIntegrationFeatures <- function(
 #'   query cell and each anchor. These weights are computed as 1 - the distance
 #'   between the query cell and the anchor divided by the distance of the query 
 #'   cell to the \code{k.weight}th anchor multiplied by the anchor score 
-#'   computed in \code{\link{FindIntegrationAchors}}. We then apply a Gaussian 
+#'   computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian 
 #'   kernel width a bandwidth defined by \code{sd.weight} and normalize across
 #'   all \code{k.weight} anchors.}
 #' }
@@ -1549,7 +1549,7 @@ SelectIntegrationFeatures <- function(
 #' @param slot Slot to store the imputed data. Must be either "data" (default) 
 #' or "counts"
 #'
-#' @return If \code{refdata} is a vector, returns a dataframe with label 
+#' @return If \code{refdata} is a vector, returns a data.frame with label 
 #' predictions. If \code{refdata} is a matrix, returns an Assay object where the 
 #' imputed data has been stored in the provided slot.
 #'
