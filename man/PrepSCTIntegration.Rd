@@ -54,3 +54,33 @@ This function takes in a list of objects that have been normalized with the
   anchor.features for efficiency in downstream processing. }
 }
 }
+\examples{
+\dontrun{
+# to install the SeuratData package see https://github.com/satijalab/seurat-data
+library(SeuratData)
+data("panc8")
+
+# panc8 is a merged Seurat object containing 8 separate pancreas datasets
+# split the object by dataset and take the first 2 to integrate
+pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+
+# perform SCTransform normalization
+pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
+
+# select integration features and prep step
+features <- SelectIntegrationFeatures(pancreas.list)
+pancreas.list <- PrepSCTIntegration(
+  pancreas.list, 
+  anchor.features = features
+)
+
+# downstream integration steps
+anchors <- FindIntegrationAnchors(
+  pancreas.list, 
+  normalization.method = "SCT", 
+  anchor.features = features
+)
+pancreas.integrated <- IntegrateData(anchors)
+}
+
+}

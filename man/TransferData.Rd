@@ -133,6 +133,7 @@ anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
 predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
 pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 }
+
 }
 \references{
 Stuart T, Butler A, et al. Comprehensive Integration of 

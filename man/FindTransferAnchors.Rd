@@ -149,9 +149,13 @@ pbmc.query <- ScaleData(pbmc.query)
 anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
 
 # transfer labels
-predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
+predictions <- TransferData(
+  anchorset = anchors, 
+  refdata = pbmc.reference$seurat_annotations
+)
 pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 }
+
 }
 \references{
 Stuart T, Butler A, et al. Comprehensive Integration of 

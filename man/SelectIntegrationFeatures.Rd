@@ -43,3 +43,21 @@ If for any assay in the list, \code{\link{FindVariableFeatures}} hasn't been
 run, this method will try to run it using the \code{fvf.nfeatures} parameter
 and any additional ones specified through the \dots.
 }
+\examples{
+\dontrun{
+# to install the SeuratData package see https://github.com/satijalab/seurat-data
+library(SeuratData)
+data("panc8")
+
+# panc8 is a merged Seurat object containing 8 separate pancreas datasets
+# split the object by dataset and take the first 2 
+pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+
+# perform SCTransform normalization
+pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
+
+# select integration features
+features <- SelectIntegrationFeatures(pancreas.list)
+}
+
+}

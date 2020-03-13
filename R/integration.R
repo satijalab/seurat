@@ -113,9 +113,11 @@ NULL
 #' # perform standard preprocessing on each object
 #' for (i in 1:length(pancreas.list)) {
 #'   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
-#'   pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst", 
-#'                                              nfeatures = 2000, verbose = FALSE)
-#'  }
+#'   pancreas.list[[i]] <- FindVariableFeatures(
+#'     pancreas.list[[i]], selection.method = "vst", 
+#'     nfeatures = 2000, verbose = FALSE
+#'   )
+#' }
 #' 
 #' # find anchors
 #' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
@@ -123,6 +125,7 @@ NULL
 #' # integrate data
 #' integrated <- IntegrateData(anchorset = anchors)
 #' }
+#' 
 FindIntegrationAnchors <- function(
   object.list = NULL,
   assay = NULL,
@@ -534,9 +537,13 @@ FindIntegrationAnchors <- function(
 #' anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
 #' 
 #' # transfer labels
-#' predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
+#' predictions <- TransferData(
+#'   anchorset = anchors, 
+#'   refdata = pbmc.reference$seurat_annotations
+#' )
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
+#' 
 FindTransferAnchors <- function(
   reference,
   query,
@@ -843,9 +850,11 @@ FindTransferAnchors <- function(
 #' # perform standard preprocessing on each object
 #' for (i in 1:length(pancreas.list)) {
 #'   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
-#'   pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst", 
-#'                                              nfeatures = 2000, verbose = FALSE)
-#'  }
+#'   pancreas.list[[i]] <- FindVariableFeatures(
+#'     pancreas.list[[i]], selection.method = "vst", 
+#'     nfeatures = 2000, verbose = FALSE
+#'   )
+#' }
 #' 
 #' # find anchors
 #' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
@@ -853,6 +862,7 @@ FindTransferAnchors <- function(
 #' # integrate data
 #' integrated <- IntegrateData(anchorset = anchors)
 #' }
+#' 
 IntegrateData <- function(
   anchorset,
   new.assay.name = "integrated",
@@ -1194,7 +1204,35 @@ MixingMetric <- function(
 #' @importFrom future.apply future_lapply
 #'
 #' @export
-#'
+#' @examples 
+#' \dontrun{
+#' # to install the SeuratData package see https://github.com/satijalab/seurat-data
+#' library(SeuratData)
+#' data("panc8")
+#' 
+#' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
+#' # split the object by dataset and take the first 2 to integrate
+#' pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+#' 
+#' # perform SCTransform normalization
+#' pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
+#' 
+#' # select integration features and prep step
+#' features <- SelectIntegrationFeatures(pancreas.list)
+#' pancreas.list <- PrepSCTIntegration(
+#'   pancreas.list, 
+#'   anchor.features = features
+#' )
+#' 
+#' # downstream integration steps
+#' anchors <- FindIntegrationAnchors(
+#'   pancreas.list, 
+#'   normalization.method = "SCT", 
+#'   anchor.features = features
+#' )
+#' pancreas.integrated <- IntegrateData(anchors)
+#' }
+#' 
 PrepSCTIntegration <- function(
   object.list,
   assay = NULL,
@@ -1334,6 +1372,23 @@ PrepSCTIntegration <- function(
 #' @return A vector of selected features
 #'
 #' @export
+#' 
+#' @examples 
+#' \dontrun{
+#' # to install the SeuratData package see https://github.com/satijalab/seurat-data
+#' library(SeuratData)
+#' data("panc8")
+#' 
+#' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
+#' # split the object by dataset and take the first 2 
+#' pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+#' 
+#' # perform SCTransform normalization
+#' pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
+#' 
+#' # select integration features
+#' features <- SelectIntegrationFeatures(pancreas.list)
+#' }
 #'
 SelectIntegrationFeatures <- function(
   object.list,
@@ -1511,6 +1566,7 @@ SelectIntegrationFeatures <- function(
 #' predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
+#' 
 TransferData <- function(
   anchorset,
   refdata,
