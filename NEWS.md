@@ -2,6 +2,11 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## Develop 
+### Changes
+- Replace wilcox.test with limma implementation for a faster FindMarkers default method
+- Better point separation for `VlnPlot`s when using the `split.by` option
+
 ## [3.1.4] - 2020-02-20
 ### Changes 
 - Fixes to `DoHeatmap` to remain compatible with ggplot2 v3.3

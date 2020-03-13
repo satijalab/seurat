@@ -934,7 +934,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       data <- lapply(
         X = lvls,
         FUN = function(l) {
-          return(data[data_types == l, ])
+          return(data[data_types == l, , drop = FALSE])
         }
       )
       names(x = data) <- lvls
@@ -2188,6 +2188,21 @@ ScaleData.default <- function(
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
+    notfound <- setdiff(x = vars.to.regress, y = colnames(x = latent.data))
+    if (length(x = notfound) == length(x = vars.to.regress)) {
+      stop(
+        "None of the requested variables to regress are present in the object.",
+        call. = FALSE
+      )
+    } else if (length(x = notfound) > 0) {
+      warning(
+        "Requested variables to regress not in object: ",
+        paste(notfound, collapse = ", "),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      vars.to.regress <- colnames(x = latent.data)
+    }
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
@@ -2504,7 +2519,7 @@ ClassifyCells <- function(data, q) {
         message("No threshold found for ", colnames(x = data)[i], "...")
       }
     )
-    if (is.character(x = model)) {
+    if (is.null(x = model)) {
       next
     }
     x <- seq.int(
