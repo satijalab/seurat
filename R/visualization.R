@@ -1987,11 +1987,18 @@ DotPlot <- function(
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (!is.null(x = split.by)) {
+    # splits.use <- vapply(
+    #   X = strsplit(x = as.character(x = data.plot$id), split = '_'),
+    #   FUN = '[[',
+    #   FUN.VALUE = character(length = 1L),
+    #   2
+    # )
     splits.use <- vapply(
       X = strsplit(x = as.character(x = data.plot$id), split = '_'),
-      FUN = '[[',
-      FUN.VALUE = character(length = 1L),
-      2
+      FUN = function(x) {
+        return(paste(x[2:length(x = x)], collapse = '_'))
+      },
+      FUN.VALUE = character(length = 1L)
     )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
