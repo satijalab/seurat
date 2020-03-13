@@ -1861,6 +1861,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param group.by Factor to group the cells by
 #' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
+#' @param scale Determine whether the data is scaled, TRUE for default
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
@@ -1893,6 +1894,7 @@ DotPlot <- function(
   dot.scale = 6,
   group.by = NULL,
   split.by = NULL,
+  scale = TRUE,
   scale.by = 'radius',
   scale.min = NA,
   scale.max = NA
@@ -1956,16 +1958,21 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
-  avg.exp.scaled <- sapply(
-    X = unique(x = data.plot$features.plot),
-    FUN = function(x) {
-      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
-      data.use <- scale(x = data.use)
-      data.use <- MinMax(data = data.use, min = col.min, max = col.max)
-      return(data.use)
-    }
-  )
-  avg.exp.scaled[is.nan(avg.exp.scaled)] <- 0
+ 
+    avg.exp.scaled <- sapply(
+      X = unique(x = data.plot$features.plot),
+      FUN = function(x) {
+        data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
+        if (scale) {
+          data.use <- scale(x = data.use)
+          data.use <- MinMax(data = data.use, min = col.min, max = col.max)
+        }
+        return(data.use)
+      }
+    )
+   
+
+  
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
   if (!is.null(x = split.by)) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
