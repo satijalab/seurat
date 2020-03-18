@@ -4,9 +4,6 @@
 \name{Seurat-package}
 \alias{Seurat-package}
 \title{Tools for single-cell genomics}
-\description{
-Tools for single-cell genomics
-}
 \section{Package options}{
 
 
