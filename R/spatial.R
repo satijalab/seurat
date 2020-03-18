@@ -372,6 +372,7 @@ LoadSTARmap <- function(
 #' @name LinkedPlots
 #'
 #' @importFrom scales hue_pal
+#' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 scale_alpha_ordinal guides
 #' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
 #' @importFrom shiny fillRow plotOutput brushOpts clickOpts hoverOpts
@@ -451,7 +452,7 @@ LinkedDimPlot <- function(
       handlerExpr = {
         plots <- list(plot.env$spatialplot, plot.env$dimplot)
         if (combine) {
-          plots <- CombinePlots(plots = plots, ncol = 2)
+          plots <- wrap_plots(plots, ncol = 2)
         }
         stopApp(returnValue = plots)
       }
@@ -652,7 +653,7 @@ LinkedFeaturePlot <- function(
       handlerExpr = {
         plots <- list(plot.env$spatialplot, plot.env$dimplot)
         if (combine) {
-          plots <- CombinePlots(plots = plots, ncol = 2)
+          plots <- wrap_plots(plots, ncol = 2)
         }
         stopApp(returnValue = plots)
       }
@@ -760,6 +761,130 @@ Load10X_Spatial <- function(
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
   return(object)
+}
+
+#' Visualize clusters spatially and interactively
+#'
+#' @inheritParams DimPlot
+#' @inheritParams SpatialPlot
+#' @inheritParams LinkedPlots
+#'
+#' @return Returns final plot as a ggplot object
+#'
+#' @importFrom ggplot2 scale_alpha_ordinal
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow plotOutput verbatimTextOutput reactiveValues
+#' observeEvent stopApp nearPoints renderPlot runGadget
+#'
+#' @export
+#'
+ISpatialDimPlot <- function(
+  object,
+  image = NULL,
+  group.by = NULL,
+  alpha = c(0.3, 1)
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'plot',
+          height = '100%',
+          click = clickOpts(id = 'click', clip = TRUE),
+          hover = hoverOpts(id = 'hover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Get plotting data
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  plot.data <- cbind(coords, group.data)
+  plot.data$selected_ <- FALSE
+  Idents(object = object) <- group.by
+  # Set up the server
+  server <- function(input, output, session) {
+    click <- reactiveValues(pt = NULL)
+    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observeEvent(
+      eventExpr = input$click,
+      handlerExpr = {
+        clicked <- nearPoints(
+          df = plot.data,
+          coordinfo = InvertCoordinate(x = input$click),
+          threshold = 10,
+          maxpoints = 1
+        )
+        plot.env$data <- if (nrow(x = clicked) == 1) {
+          cell.clicked <- rownames(x = clicked)
+          cell.clicked <- rownames(x = clicked)
+          group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
+          idx.group <- which(x = plot.data[[group.by]] == group.clicked)
+          plot.data[idx.group, 'selected_'] <- TRUE
+          plot.data
+        } else {
+          plot.data
+        }
+        plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
+          'selected_'
+        } else {
+          NULL
+        }
+      }
+    )
+    # Set plot
+    output$plot <- renderPlot(
+      expr = {
+        plot.env$plot <- SingleSpatialPlot(
+          data = plot.env$data,
+          image = object[[image]],
+          col.by = group.by,
+          crop = TRUE,
+          alpha.by = plot.env$alpha.by,
+          pt.size.factor = 1.6
+        ) + scale_alpha_ordinal(range = alpha) + NoLegend()
+        plot.env$plot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = InvertCoordinate(x = input$hover),
+          threshold = 10,
+          maxpoints = 1
+        ))
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  runGadget(app = ui, server = server)
 }
 
 #' Visualize features spatially and interactively
