@@ -28,7 +28,7 @@ FeaturePlot(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE,
+  sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE
 )
@@ -93,7 +93,8 @@ different colors and different shapes on cells}
 
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 
-\item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
+\item{sort.cell}{Redundant with \code{order}. This argument is being
+deprecated. Please use \code{order} instead.}
 
 \item{interactive}{Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}}
 
