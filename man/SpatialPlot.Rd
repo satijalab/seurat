@@ -56,9 +56,7 @@ SpatialDimPlot(
   alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
-  do.identify = FALSE,
-  identify.ident = NULL,
-  do.hover = FALSE,
+  interactive = FALSE,
   information = NULL
 )
 
@@ -76,9 +74,6 @@ SpatialFeaturePlot(
   alpha = c(1, 1),
   stroke = 0.25,
   interactive = FALSE,
-  do.hover = FALSE,
-  do.identify = FALSE,
-  identify.ident = NULL,
   information = NULL
 )
 }
@@ -145,17 +140,13 @@ min and max}
 
 \item{stroke}{Control the width of the border around the spots}
 
-\item{interactive}{Launch an interactive SpatialFeaturePlot session, see
+\item{interactive}{Launch an interactive SpatialDimPlot or SpatialFeaturePlot
+session, see \code{\link{ISpatialDimPlot}} or
 \code{\link{ISpatialFeaturePlot}} for more details}
 
-\item{do.identify}{Select points on the plot to highlight them}
+\item{do.identify, do.hover}{DEPRECATED in favor of \code{interactive}}
 
-\item{identify.ident}{An optional identity class to set the selected cells to;
-will return \code{object} with the identity class updated instead of a vector
-of selected cells}
-
-\item{do.hover}{Return a plotly view of the data to get info when hovering
-over points}
+\item{identify.ident}{DEPRECATED}
 
 \item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 }

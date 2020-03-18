@@ -372,6 +372,7 @@ LoadSTARmap <- function(
 #' @name LinkedPlots
 #'
 #' @importFrom scales hue_pal
+#' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 scale_alpha_ordinal guides
 #' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
 #' @importFrom shiny fillRow plotOutput brushOpts clickOpts hoverOpts
@@ -451,7 +452,7 @@ LinkedDimPlot <- function(
       handlerExpr = {
         plots <- list(plot.env$spatialplot, plot.env$dimplot)
         if (combine) {
-          plots <- CombinePlots(plots = plots, ncol = 2)
+          plots <- wrap_plots(plots, ncol = 2)
         }
         stopApp(returnValue = plots)
       }
@@ -652,7 +653,7 @@ LinkedFeaturePlot <- function(
       handlerExpr = {
         plots <- list(plot.env$spatialplot, plot.env$dimplot)
         if (combine) {
-          plots <- CombinePlots(plots = plots, ncol = 2)
+          plots <- wrap_plots(plots, ncol = 2)
         }
         stopApp(returnValue = plots)
       }
@@ -760,6 +761,130 @@ Load10X_Spatial <- function(
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
   return(object)
+}
+
+#' Visualize clusters spatially and interactively
+#'
+#' @inheritParams DimPlot
+#' @inheritParams SpatialPlot
+#' @inheritParams LinkedPlots
+#'
+#' @return Returns final plot as a ggplot object
+#'
+#' @importFrom ggplot2 scale_alpha_ordinal
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow plotOutput verbatimTextOutput reactiveValues
+#' observeEvent stopApp nearPoints renderPlot runGadget
+#'
+#' @export
+#'
+ISpatialDimPlot <- function(
+  object,
+  image = NULL,
+  group.by = NULL,
+  alpha = c(0.3, 1)
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'plot',
+          height = '100%',
+          click = clickOpts(id = 'click', clip = TRUE),
+          hover = hoverOpts(id = 'hover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Get plotting data
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  plot.data <- cbind(coords, group.data)
+  plot.data$selected_ <- FALSE
+  Idents(object = object) <- group.by
+  # Set up the server
+  server <- function(input, output, session) {
+    click <- reactiveValues(pt = NULL)
+    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observeEvent(
+      eventExpr = input$click,
+      handlerExpr = {
+        clicked <- nearPoints(
+          df = plot.data,
+          coordinfo = InvertCoordinate(x = input$click),
+          threshold = 10,
+          maxpoints = 1
+        )
+        plot.env$data <- if (nrow(x = clicked) == 1) {
+          cell.clicked <- rownames(x = clicked)
+          cell.clicked <- rownames(x = clicked)
+          group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
+          idx.group <- which(x = plot.data[[group.by]] == group.clicked)
+          plot.data[idx.group, 'selected_'] <- TRUE
+          plot.data
+        } else {
+          plot.data
+        }
+        plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
+          'selected_'
+        } else {
+          NULL
+        }
+      }
+    )
+    # Set plot
+    output$plot <- renderPlot(
+      expr = {
+        plot.env$plot <- SingleSpatialPlot(
+          data = plot.env$data,
+          image = object[[image]],
+          col.by = group.by,
+          crop = TRUE,
+          alpha.by = plot.env$alpha.by,
+          pt.size.factor = 1.6
+        ) + scale_alpha_ordinal(range = alpha) + NoLegend()
+        plot.env$plot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = InvertCoordinate(x = input$hover),
+          threshold = 10,
+          maxpoints = 1
+        ))
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  runGadget(app = ui, server = server)
 }
 
 #' Visualize features spatially and interactively
@@ -1466,14 +1591,11 @@ SingleSpatialPlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max
 #' @param stroke Control the width of the border around the spots
-#' @param interactive Launch an interactive SpatialFeaturePlot session, see
+#' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
+#' session, see \code{\link{ISpatialDimPlot}} or
 #' \code{\link{ISpatialFeaturePlot}} for more details
-#' @param do.identify Select points on the plot to highlight them
-#' @param identify.ident An optional identity class to set the selected cells to;
-#' will return \code{object} with the identity class updated instead of a vector
-#' of selected cells
-#' @param do.hover Return a plotly view of the data to get info when hovering
-#' over points
+#' @param do.identify,do.hover DEPRECATED in favor of \code{interactive}
+#' @param identify.ident DEPRECATED
 #'
 #' @return If \code{do.identify}, either a vector of cells selected or the object
 #' with selected cells set to the value of \code{identify.ident} (if set). Else,
@@ -1525,18 +1647,26 @@ SpatialPlot <- function(
   do.hover = FALSE,
   information = NULL
 ) {
+  if (isTRUE(x = do.hover) || isTRUE(x = do.identify)) {
+    warning(
+      "'do.hover' and 'do.identify' are deprecated as we are removing plotly-based interactive graphics, use 'interactive' instead for Shiny-based interactivity",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    interactive <- TRUE
+  }
   if (!is.null(x = group.by) & !is.null(x = features)) {
     stop("Please specific either group.by or features, not both.")
   }
   images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
   if (is.null(x = features)) {
     if (interactive) {
-      warning(
-        "Interactive spatial plots are currently only implemented for features, not clusters",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-      interactive <- FALSE
+      return(ISpatialDimPlot(
+        object = object,
+        image = image,
+        group.by = group.by,
+        alpha = alpha
+      ))
     }
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
@@ -1697,9 +1827,7 @@ SpatialPlot <- function(
         } else {
           NULL
         },
-        geom = if (do.hover || do.identify) {
-          'interactive'
-        } else if (inherits(x = image.use, what = "STARmap")) {
+        geom = if (inherits(x = image.use, what = "STARmap")) {
           'poly'
         } else {
           'spatial'
@@ -1757,21 +1885,21 @@ SpatialPlot <- function(
       }
     }
   }
-  if (do.identify) {
-    return(CellSelector(
-      plot = plot,
-      object = identify.ident %iff% object,
-      ident = identify.ident
-    ))
-  } else if (do.hover) {
-    return(HoverLocator(
-      plot = plots[[1]],
-      information = information %||% data[, features, drop = FALSE],
-      axes = FALSE,
-      # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
-      images = GetImage(object = object, mode = 'plotly', image = images)
-    ))
-  }
+  # if (do.identify) {
+  #   return(CellSelector(
+  #     plot = plot,
+  #     object = identify.ident %iff% object,
+  #     ident = identify.ident
+  #   ))
+  # } else if (do.hover) {
+  #   return(HoverLocator(
+  #     plot = plots[[1]],
+  #     information = information %||% data[, features, drop = FALSE],
+  #     axes = FALSE,
+  #     # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
+  #     images = GetImage(object = object, mode = 'plotly', image = images)
+  #   ))
+  # }
   if (length(x = images) > 1 && combine) {
     plots <- wrap_plots(plots = plots, ncol = length(x = images))
   } else if (length(x = images == 1) && combine) {
@@ -1803,9 +1931,7 @@ SpatialDimPlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
-  do.identify = FALSE,
-  identify.ident = NULL,
-  do.hover = FALSE,
+  interactive = FALSE,
   information = NULL
 ) {
   return(SpatialPlot(
@@ -1826,9 +1952,7 @@ SpatialDimPlot <- function(
     alpha = alpha,
     stroke = stroke,
     label.box = label.box,
-    do.identify = do.identify,
-    identify.ident = identify.ident,
-    do.hover = do.hover,
+    interactive = interactive,
     information = information
   ))
 }
@@ -1851,9 +1975,6 @@ SpatialFeaturePlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   interactive = FALSE,
-  do.hover = FALSE,
-  do.identify = FALSE,
-  identify.ident = NULL,
   information = NULL
 ) {
   return(SpatialPlot(
@@ -1870,9 +1991,6 @@ SpatialFeaturePlot <- function(
     alpha = alpha,
     stroke = stroke,
     interactive = interactive,
-    do.identify = do.identify,
-    identify.ident = identify.ident,
-    do.hover = do.hover,
     information = information
   ))
 }

@@ -4,7 +4,8 @@
 \name{pbmc_small}
 \alias{pbmc_small}
 \title{A small example version of the PBMC dataset}
-\format{A Seurat object with the following slots filled
+\format{
+A Seurat object with the following slots filled
 \describe{
   \item{assays}{
   \itemize{Currently only contains one assay ("RNA" - scRNA-seq expression data)
@@ -21,7 +22,8 @@
   \item{reductions}{Dimensional reductions: currently PCA and tSNE}
   \item{version}{Seurat version used to create the object}
   \item{commands}{Command history}
-}}
+}
+}
 \source{
 \url{https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k}
 }
