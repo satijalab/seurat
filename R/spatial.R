@@ -1563,14 +1563,11 @@ SingleSpatialPlot <- function(
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
 #' min and max
 #' @param stroke Control the width of the border around the spots
-#' @param interactive Launch an interactive SpatialFeaturePlot session, see
+#' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
+#' session, see \code{\link{ISpatialDimPlot}} or
 #' \code{\link{ISpatialFeaturePlot}} for more details
-#' @param do.identify Select points on the plot to highlight them
-#' @param identify.ident An optional identity class to set the selected cells to;
-#' will return \code{object} with the identity class updated instead of a vector
-#' of selected cells
-#' @param do.hover Return a plotly view of the data to get info when hovering
-#' over points
+#' @param do.identify,do.hover DEPRECATED in favor of \code{interactive}
+#' @param identify.ident DEPRECATED
 #'
 #' @return If \code{do.identify}, either a vector of cells selected or the object
 #' with selected cells set to the value of \code{identify.ident} (if set). Else,
@@ -1622,18 +1619,26 @@ SpatialPlot <- function(
   do.hover = FALSE,
   information = NULL
 ) {
+  if (isTRUE(x = do.hover) || isTRUE(x = do.identify)) {
+    warning(
+      "'do.hover' and 'do.identify' are deprecated as we are removing plotly-based interactive graphics, use 'interactive' instead for Shiny-based interactivity",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    interactive <- TRUE
+  }
   if (!is.null(x = group.by) & !is.null(x = features)) {
     stop("Please specific either group.by or features, not both.")
   }
   images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
   if (is.null(x = features)) {
     if (interactive) {
-      warning(
-        "Interactive spatial plots are currently only implemented for features, not clusters",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-      interactive <- FALSE
+      return(ISpatialDimPlot(
+        object = object,
+        image = image,
+        group.by = group.by,
+        alpha = alpha
+      ))
     }
     group.by <- group.by %||% 'ident'
     object[['ident']] <- Idents(object = object)
@@ -1794,9 +1799,7 @@ SpatialPlot <- function(
         } else {
           NULL
         },
-        geom = if (do.hover || do.identify) {
-          'interactive'
-        } else if (inherits(x = image.use, what = "STARmap")) {
+        geom = if (inherits(x = image.use, what = "STARmap")) {
           'poly'
         } else {
           'spatial'
@@ -1854,21 +1857,21 @@ SpatialPlot <- function(
       }
     }
   }
-  if (do.identify) {
-    return(CellSelector(
-      plot = plot,
-      object = identify.ident %iff% object,
-      ident = identify.ident
-    ))
-  } else if (do.hover) {
-    return(HoverLocator(
-      plot = plots[[1]],
-      information = information %||% data[, features, drop = FALSE],
-      axes = FALSE,
-      # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
-      images = GetImage(object = object, mode = 'plotly', image = images)
-    ))
-  }
+  # if (do.identify) {
+  #   return(CellSelector(
+  #     plot = plot,
+  #     object = identify.ident %iff% object,
+  #     ident = identify.ident
+  #   ))
+  # } else if (do.hover) {
+  #   return(HoverLocator(
+  #     plot = plots[[1]],
+  #     information = information %||% data[, features, drop = FALSE],
+  #     axes = FALSE,
+  #     # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
+  #     images = GetImage(object = object, mode = 'plotly', image = images)
+  #   ))
+  # }
   if (length(x = images) > 1 && combine) {
     plots <- wrap_plots(plots = plots, ncol = length(x = images))
   } else if (length(x = images == 1) && combine) {
@@ -1900,9 +1903,7 @@ SpatialDimPlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   label.box = TRUE,
-  do.identify = FALSE,
-  identify.ident = NULL,
-  do.hover = FALSE,
+  interactive = FALSE,
   information = NULL
 ) {
   return(SpatialPlot(
@@ -1923,9 +1924,7 @@ SpatialDimPlot <- function(
     alpha = alpha,
     stroke = stroke,
     label.box = label.box,
-    do.identify = do.identify,
-    identify.ident = identify.ident,
-    do.hover = do.hover,
+    interactive = interactive,
     information = information
   ))
 }
@@ -1948,9 +1947,6 @@ SpatialFeaturePlot <- function(
   alpha = c(1, 1),
   stroke = 0.25,
   interactive = FALSE,
-  do.hover = FALSE,
-  do.identify = FALSE,
-  identify.ident = NULL,
   information = NULL
 ) {
   return(SpatialPlot(
@@ -1967,9 +1963,6 @@ SpatialFeaturePlot <- function(
     alpha = alpha,
     stroke = stroke,
     interactive = interactive,
-    do.identify = do.identify,
-    identify.ident = identify.ident,
-    do.hover = do.hover,
     information = information
   ))
 }
