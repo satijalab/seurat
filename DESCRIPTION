@@ -103,6 +103,7 @@ Suggests:
     GenomeInfoDb,
     IRanges,
     rtracklayer,
+    Rfast2,
     monocle,
     Biobase,
     VGAM,

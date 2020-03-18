@@ -1239,27 +1239,55 @@ RunMarkVario <- function(
 #'
 #' @param data Expression matrix
 #' @param pos Position matrix
+#' @param verbose Display messages/progress
 #'
 #' @importFrom stats dist
 #' @importFrom ape Moran.I
 #'
 #' @export
 #'
-RunMoransI <- function(data, pos){
-  message("Computing Moran's I")
+RunMoransI <- function(data, pos, verbose = TRUE) {
+  mysapply <- sapply
+  if (verbose) {
+    message("Computing Moran's I")
+    mysapply <- pbsapply
+  }
+  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
+  if (Rfast2.installed) {
+    MyMoran <- Rfast2::moranI
+  } else {
+    MyMoran <- ape::Moran.I
+    if (getOption('Seurat.Rfast2.msg', TRUE)) {
+      message(
+        "For a more efficient implementation of the Morans I calculation,", 
+        "\n(selection.method = 'moransi') please install the Rfast2 package",
+        "\n--------------------------------------------",
+        "\ninstall.packages('Rfast2')",
+        "\n--------------------------------------------",
+        "\nAfter installation of Rfast2, Seurat will automatically use the more ",
+        "\nefficient implementation (no further action necessary).",
+        "\nThis message will be shown once per session"
+      )
+      options(Seurat.Rfast2.msg = FALSE)
+    }
+  }
   pos.dist <- dist(x = pos)
   pos.dist.mat <- as.matrix(x = pos.dist)
-  # weights as 1/dist
-  weights <- 1/pos.dist.mat
+  # weights as 1/dist^2
+  weights <- 1/pos.dist.mat^2
   diag(x = weights) <- 0
-  results <- apply(X = data, MARGIN = 1, FUN = function(x) {
+  results <- mysapply(X = 1:nrow(x = data), FUN = function(x) {
     tryCatch(
-      expr = t(x = as.data.frame(x = Moran.I(x = x, weight = weights))),
+      expr = MyMoran(data[x, ], weights),
       error = function(x) c(1,1,1,1)
     )
   })
-  rownames(x = results) <- c("observed", "expected", "sd", "p.value")
-  return(as.data.frame(x = t(x = results)))
+  results <- data.frame(
+    observed = unlist(x = results[1, ]),
+    p.value = unlist(x = results[2, ])
+  )
+  rownames(x = results) <- rownames(x = data)
+  return(results)
 }
 
 # Base plotting function for all Spatial plots
@@ -1921,6 +1949,7 @@ FindSpatiallyVariableFeatures.default <- function(
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
+  verbose = TRUE,
   ...
 ) {
   # error check dimensions
@@ -1928,7 +1957,13 @@ FindSpatiallyVariableFeatures.default <- function(
     stop("Please provide the same number of observations as spatial locations.")
   }
   if (!is.null(x = x.cuts) & !is.null(x = y.cuts)) {
-    binned.data <- BinData(data = object, pos = spatial.location, x.cuts = x.cuts, y.cuts = y.cuts)
+    binned.data <- BinData(
+      data = object, 
+      pos = spatial.location, 
+      x.cuts = x.cuts, 
+      y.cuts = y.cuts,
+      verbose = verbose
+    )
     object <- binned.data$data
     spatial.location <- binned.data$pos
   }
@@ -1940,7 +1975,8 @@ FindSpatiallyVariableFeatures.default <- function(
     ),
     'moransi' = RunMoransI(
       data = object,
-      pos = spatial.location
+      pos = spatial.location,
+      verbose = verbose
     ),
     stop("Invalid selection method. Please choose one of: markvariogram, moransi.")
   )
@@ -1963,6 +1999,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   x.cuts = NULL,
   y.cuts = NULL,
   nfeatures = nfeatures,
+  verbose = TRUE,
   ...
 ) {
   features <- features %||% rownames(x = object)
@@ -1981,6 +2018,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
       r.metric = r.metric,
       x.cuts = x.cuts,
       y.cuts = y.cuts,
+      verbose = verbose,
       ...
     )
   } else {
@@ -1996,7 +2034,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   }
   if (selection.method == "moransi") {
     colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
-    svf.info <- svf.info[order(svf.info[, 4], -svf.info[, 1]), , drop = FALSE]
+    svf.info <- svf.info[order(svf.info[, 2], -abs(svf.info[, 1])), , drop = FALSE]
   }
   var.name <- paste0(selection.method, ".spatially.variable")
   var.name.rank <- paste0(var.name, ".rank")
@@ -2053,6 +2091,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
     x.cuts = x.cuts,
     y.cuts = y.cuts,
     nfeatures = nfeatures,
+    verbose = verbose,
     ...
   )
   object <- LogSeuratCommand(object = object)
@@ -2615,36 +2654,30 @@ setMethod(
 #
 #' @importFrom Matrix rowMeans
 #
-BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts) {
-  message("Binning spatial data")
+BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts, verbose = TRUE) {
+  if (verbose) {
+    message("Binning spatial data")
+  }
   pos$x.cuts <- cut(x = pos[, 1], breaks = x.cuts)
   pos$y.cuts <- cut(x = pos[, 2], breaks = y.cuts)
   pos$bin <- paste0(pos$x.cuts, "_", pos$y.cuts)
   all.bins <- unique(x = pos$bin)
-  split.dat <- sapply(X = 1:length(x = all.bins), FUN = function(x) {
-    samples <- rownames(x = pos)[which(x = pos$bin == all.bins[x])]
-    data[, samples]
-  })
-  new.dat <- do.call(
-    what = cbind,
-    args = lapply(
-      X = split.dat,
-      FUN = function(x) {
-        if (is.null(x = dim(x = x))) {
-          return(x)
-        }
-        rowMeans(x = x)
-      }
-    )
-  )
+  new.pos <- matrix(data = numeric(), nrow = length(x = all.bins), ncol = 2)
+  new.dat <- matrix(data = numeric(), nrow = nrow(x = data), ncol = length(x = all.bins))
+  for(i in 1:length(x = all.bins)) {
+    samples <- rownames(x = pos)[which(x = pos$bin == all.bins[i])]
+    dat <- data[, samples]
+    if (is.null(x = dim(x = dat))) {
+      new.dat[, i] <- dat
+    } else {
+      new.dat[, i] <- rowMeans(data[, samples])
+    }
+    new.pos[i, 1] <- mean(pos[samples, "x"])
+    new.pos[i, 2] <- mean(pos[samples, "y"])
+  }
   rownames(x = new.dat) <- rownames(x = data)
   colnames(x = new.dat) <- all.bins
-  new.pos <- t(x = sapply(X = all.bins, FUN = function(x) {
-    xy <- unlist(x = strsplit(x = x, split = "_"))
-    x.mean <- MeanRange(x = xy[1])
-    y.mean <- MeanRange(x = xy[2])
-    return(c(x.mean, y.mean))
-  }))
+  rownames(x = new.pos) <- all.bins
   colnames(x = new.pos) <- colnames(x = pos)[1:2]
   return(list(data = new.dat, pos = new.pos))
 }

@@ -29,7 +29,8 @@ seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
   Seurat.checkdots = "warn",
-  Seurat.limma.wilcox.msg = TRUE
+  Seurat.limma.wilcox.msg = TRUE,
+  Seurat.Rfast2.msg = TRUE
 )
 
 .onLoad <- function(libname, pkgname) {

@@ -16,6 +16,7 @@ FindSpatiallyVariableFeatures(object, ...)
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
+  verbose = TRUE,
   ...
 )
 
@@ -29,6 +30,7 @@ FindSpatiallyVariableFeatures(object, ...)
   x.cuts = NULL,
   y.cuts = NULL,
   nfeatures = nfeatures,
+  verbose = TRUE,
   ...
 )
 

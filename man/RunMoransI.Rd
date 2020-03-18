@@ -4,12 +4,14 @@
 \alias{RunMoransI}
 \title{Compute Moran's I value.}
 \usage{
-RunMoransI(data, pos)
+RunMoransI(data, pos, verbose = TRUE)
 }
 \arguments{
 \item{data}{Expression matrix}
 
 \item{pos}{Position matrix}
+
+\item{verbose}{Display messages/progress}
 }
 \description{
 Wraps the functionality of the Moran.I function from the ape package.
