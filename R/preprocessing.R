@@ -2504,7 +2504,7 @@ ClassifyCells <- function(data, q) {
         message("No threshold found for ", colnames(x = data)[i], "...")
       }
     )
-    if (is.character(x = model)) {
+    if (is.null(x = model)) {
       next
     }
     x <- seq.int(
