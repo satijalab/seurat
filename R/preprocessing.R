@@ -250,9 +250,9 @@ CreateGeneActivityMatrix <- function(
       submat <- Matrix::colSums(submat)
     }
     if (keep.sparse) {
-      return(as(object = as.matrix(submat), Class = 'dgCMatrix'))
+      return(as(object = as.matrix(x = submat), Class = 'dgCMatrix'))
     } else {
-      return(as.matrix(submat))
+      return(as.matrix(x = submat))
     }
   }, simplify = FALSE)
   newmat = do.call(what = cbind, args = newmat.list)
