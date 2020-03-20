@@ -165,6 +165,10 @@ CalculateBarcodeInflections <- function(
 #' @param include.body Include the gene body?
 #' @param upstream Number of bases upstream to consider
 #' @param downstream Number of bases downstream to consider
+#' @param keep.sparse Leave the matrix as a sparse matrix. Setting this option to
+#' TRUE will take much longer but will use less memory. This can be useful if 
+#' you have a very large matrix that cannot fit into memory when converted to 
+#' a dense form.
 #' @param verbose Print progress/messages
 #'
 #' @importFrom future nbrOfWorkers
@@ -177,6 +181,7 @@ CreateGeneActivityMatrix <- function(
   include.body = TRUE,
   upstream = 2000,
   downstream = 0,
+  keep.sparse = FALSE,
   verbose = TRUE
 ) {
   if (!PackageCheck('GenomicRanges', error = FALSE)) {
@@ -228,7 +233,9 @@ CreateGeneActivityMatrix <- function(
   colnames(x = annotations) <- c('feature', 'new_feature')
 
   # collapse into expression matrix
-  peak.matrix <- as(object = peak.matrix, Class = 'matrix')
+  if (!keep.sparse) {
+    peak.matrix <- as(object = peak.matrix, Class = 'matrix')
+  }
   all.features <- unique(x = annotations$new_feature)
 
   if (nbrOfWorkers() > 1) {
@@ -236,18 +243,21 @@ CreateGeneActivityMatrix <- function(
   } else {
     mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   }
-  newmat <- mysapply(X = 1:length(x = all.features), FUN = function(x){
+  newmat.list <- mysapply(X = 1:length(x = all.features), FUN = function(x){
     features.use <- annotations[annotations$new_feature == all.features[[x]], ]$feature
     submat <- peak.matrix[features.use, ]
     if (length(x = features.use) > 1) {
-      return(Matrix::colSums(x = submat))
-    } else {
-      return(submat)
+      submat <- Matrix::colSums(submat)
     }
-  })
+    if (keep.sparse) {
+      return(as(object = as.matrix(x = submat), Class = 'dgCMatrix'))
+    } else {
+      return(as.matrix(x = submat))
+    }
+  }, simplify = FALSE)
+  newmat = do.call(what = cbind, args = newmat.list)
   newmat <- t(x = newmat)
   rownames(x = newmat) <- all.features
-  colnames(x = newmat) <- colnames(x = peak.matrix)
   return(as(object = newmat, Class = 'dgCMatrix'))
 }
 
@@ -934,7 +944,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       data <- lapply(
         X = lvls,
         FUN = function(l) {
-          return(data[data_types == l, ])
+          return(data[data_types == l, , drop = FALSE])
         }
       )
       names(x = data) <- lvls
