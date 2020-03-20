@@ -3110,6 +3110,8 @@ LabelClusters <- function(
       panel_params_image <- c()
       panel_params_image$x.range <- c(0, ncol(x = pb$plot$plot_env$image))
       panel_params_image$y.range <- c(0, nrow(x = pb$plot$plot_env$image))
+      suppressWarnings(panel_params_image$x$continuous_range <- c(0, ncol(x = pb$plot$plot_env$image)))
+      suppressWarnings(panel_params_image$y$continuous_range <- c(0, nrow(x = pb$plot$plot_env$image)))
       image.xform <- pb$layout$coord$transform(data, panel_params_image)[, c("x", "y")]
       plot.xform <- pb$layout$coord$transform(data, pb$layout$panel_params[[1]])[, c("x", "y")]
       x.xform <- lm(data$x ~ plot.xform$x)
