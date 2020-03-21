@@ -751,6 +751,45 @@ FindTransferAnchors <- function(
   return(anchor.set)
 }
 
+#' Get the predicted identity
+#' 
+#' Utility function to easily pull out the name of the class with the maximum 
+#' prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
+#' \link\code{TransferData} and want to have a vector with the predicted class.
+#' 
+#' @param object Seurat object
+#' @param assay Name of the assay holding the predictions
+#' @param slot Slot of the assay in which the prediction scores are stored
+#' @param score.filter Return "Unassigned" for any cell with a score less than 
+#' this value
+#' 
+#' @return Returns a vector of predicted class names
+#' 
+#' @examples 
+#' \dontrun{
+#'   prediction.assay <- TransferData(anchorset = anchors, refdata = reference$class)
+#'   query[["predictions"]] <- prediction.assay
+#'   query$predicted.id <- GetTransferPredictions(query)
+#' }
+#' @export
+#' 
+GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
+  dat <- GetAssayData(slide.seq[[assay]], slot = slot)
+  predictions <- apply(
+    X = dat, 
+    MARGIN = 2, 
+    FUN = function(x){
+      if (x['max'] < score.filter) {
+        "Unassigned"
+      } else {
+        x <- x[-which(x = names(x = x) == "max")]
+        names(x = which.max(x = x))
+      }
+    }
+  )
+  return(predictions)
+}
+
 #' Integrate data
 #'
 #' Perform dataset integration using a pre-computed \code{\link{AnchorSet}}. 
