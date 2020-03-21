@@ -1478,6 +1478,8 @@ SingleSpatialPlot <- function(
     order <- highlight.info$plot.order
     data$highlight <- highlight.info$highlight
     col.by <- 'highlight'
+    levels(x = data$ident) <- c(order, setdiff(x = levels(x = data$ident), y = order))
+    data <- data[order(data$ident), ]
   }
   plot <- ggplot(data = data, aes_string(
     x = colnames(x = data)[2],
