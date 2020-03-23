@@ -755,7 +755,7 @@ FindTransferAnchors <- function(
 #' 
 #' Utility function to easily pull out the name of the class with the maximum 
 #' prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
-#' \link\code{TransferData} and want to have a vector with the predicted class.
+#' \link{\code{TransferData}} and want to have a vector with the predicted class.
 #' 
 #' @param object Seurat object
 #' @param assay Name of the assay holding the predictions
@@ -774,7 +774,7 @@ FindTransferAnchors <- function(
 #' @export
 #' 
 GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
-  dat <- GetAssayData(slide.seq[[assay]], slot = slot)
+  dat <- GetAssayData(object[[assay]], slot = slot)
   predictions <- apply(
     X = dat, 
     MARGIN = 2, 
