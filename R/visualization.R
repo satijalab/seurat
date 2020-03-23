@@ -1375,6 +1375,7 @@ FeaturePlot <- function(
 #' Visualize features in dimensional reduction space interactively
 #'
 #' @inheritParams FeaturePlot
+#' @param feature Feature to plot
 #'
 #' @return Returns the final plot as a ggplot object
 #'

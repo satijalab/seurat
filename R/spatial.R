@@ -294,7 +294,7 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @param counts.file name of file containing the counts matrix (csv)
 #' @param gene.file name of file containing the gene names (csv)
 #' @param qhull.file name of file containing the hull coordinates (tsv)
-#' @param centroidlfile name of file containing the centroid positions (tsv)
+#' @param centroid.file name of file containing the centroid positions (tsv)
 #' @param assay Name of assay to associate spatial data to
 #' @param image Name of "image" object storing spatial coordinates
 #'
@@ -717,6 +717,7 @@ LinkedFeaturePlot <- function(
 #'
 #' @inheritParams Read10X
 #' @inheritParams CreateSeuratObject
+#' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
@@ -1443,7 +1444,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
-#' coord_cartesian labs theme_void theme
+#' coord_cartesian labs theme_void theme scale_fill_brewer
 #'
 SingleSpatialPlot <- function(
   data,
@@ -2057,7 +2058,21 @@ DefaultAssay.SpatialImage <- function(object, ...) {
   return(object)
 }
 
-#' @method FindSpatiallyVariableFeatures Assay
+
+#' @param object A Seurat object, assay, or expression matrix
+#' @param spatial.location Coordinates for each cell/spot/bead
+#' @param selection.method Method for selecting spatially variable features.
+#' Only 'markvariogram' method is currently implemented. See
+#' \code{\link{RunMarkVario}} for method.
+#' @param r.metric r value at which to report the "trans" value of the mark
+#' variogram
+#' @param x.cuts Number of divisions to make in the x direction, helps define 
+#' the grid over which binning is performed 
+#' @param y.cuts Number of divisions to make in the y direction, helps define 
+#' the grid over which binning is performed 
+#' @param verbose Print messages and progress
+#' 
+#' @method FindSpatiallyVariableFeatures default
 #' @rdname FindSpatiallyVariableFeatures
 #' @export
 #'
@@ -2103,8 +2118,11 @@ FindSpatiallyVariableFeatures.default <- function(
   return(svf.info)
 }
 
-#' @param spatial.location
-#'
+#' @param slot Slot in the Assay to pull data from
+#' @param features If provided, only compute on given features. Otherwise,
+#' compute for all features.
+#' @param nfeatures Number of features to mark as the top spatially variable.
+#' 
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
 #' @export
@@ -2112,9 +2130,9 @@ FindSpatiallyVariableFeatures.default <- function(
 FindSpatiallyVariableFeatures.Assay <- function(
   object,
   slot = "scale.data",
-  features = NULL,
   spatial.location,
   selection.method = c('markvariogram', 'moransi'),
+  features = NULL,
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
@@ -2165,17 +2183,8 @@ FindSpatiallyVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @param object A Seurat object
 #' @param assay Assay to pull the features (marks) from
-#' @param slot Slot in the Assay to pull data from
-#' @param features If provided, only compute on given features. Otherwise,
-#' compute for all features.
 #' @param image Name of image to pull the coordinates from
-#' @param selection.method Method for selecting spatially variable features.
-#' Only 'markvariogram' method is currently implemented. See
-#' \code{\link{RunMarkVario}} for method.
-#' @param r.metric r value at which to report the "trans" value of the mark
-#' variogram
 #'
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
@@ -2600,17 +2609,13 @@ SVFInfo.Assay <- function(object, selection.method = c("markvariogram", "moransi
 #'
 #' @importFrom tools file_path_sans_ext
 #'
-#' @rdname HVFInfo
+#' @rdname SVFInfo
 #' @export
-#' @method HVFInfo Seurat
-#'
-#' @examples
-#' # Get the HVF info from a specific Assay in a Seurat object
-#' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
+#' @method SVFInfo Seurat
 #'
 SVFInfo.Seurat <- function(
   object,
-  selection.method = "markvariogram",
+  selection.method = c("markvariogram", "moransi"),
   assay = NULL,
   status = FALSE,
   ...
@@ -2918,6 +2923,8 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
 #' @param group.assay Compute the gene groups based off the data in this assay.
 #' @param min.cells Only compute for genes in at least this many cells
 #' @param ngroups Number of groups to split into
+#' @param do.plot Display the group correlation boxplot (via 
+#' \code{GroupCorrelationPlot})
 #'
 #' @return A Seurat object with the correlation stored in metafeatures
 #'
@@ -2984,6 +2991,7 @@ GroupCorrelation <- function(
 #' @importFrom ggplot2 geom_boxplot scale_fill_manual geom_hline
 #' @importFrom cowplot theme_cowplot
 #' @importFrom scales brewer_pal
+#' @importFrom stats complete.cases
 #'
 #' @export
 #'

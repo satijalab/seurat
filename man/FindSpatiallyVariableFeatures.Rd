@@ -9,7 +9,7 @@
 \usage{
 FindSpatiallyVariableFeatures(object, ...)
 
-\method{FindSpatiallyVariableFeatures}{Assay}(
+\method{FindSpatiallyVariableFeatures}{default}(
   object,
   spatial.location,
   selection.method = c("markvariogram", "moransi"),
@@ -23,9 +23,9 @@ FindSpatiallyVariableFeatures(object, ...)
 \method{FindSpatiallyVariableFeatures}{Assay}(
   object,
   slot = "scale.data",
-  features = NULL,
   spatial.location,
   selection.method = c("markvariogram", "moransi"),
+  features = NULL,
   r.metric = 5,
   x.cuts = NULL,
   y.cuts = NULL,
@@ -50,11 +50,11 @@ FindSpatiallyVariableFeatures(object, ...)
 )
 }
 \arguments{
-\item{object}{A Seurat object}
+\item{object}{A Seurat object, assay, or expression matrix}
 
 \item{...}{Arguments passed to other methods}
 
-\item{spatial.location}{}
+\item{spatial.location}{Coordinates for each cell/spot/bead}
 
 \item{selection.method}{Method for selecting spatially variable features.
 Only 'markvariogram' method is currently implemented. See
@@ -63,10 +63,20 @@ Only 'markvariogram' method is currently implemented. See
 \item{r.metric}{r value at which to report the "trans" value of the mark
 variogram}
 
+\item{x.cuts}{Number of divisions to make in the x direction, helps define 
+the grid over which binning is performed}
+
+\item{y.cuts}{Number of divisions to make in the y direction, helps define 
+the grid over which binning is performed}
+
+\item{verbose}{Print messages and progress}
+
 \item{slot}{Slot in the Assay to pull data from}
 
 \item{features}{If provided, only compute on given features. Otherwise,
 compute for all features.}
+
+\item{nfeatures}{Number of features to mark as the top spatially variable.}
 
 \item{assay}{Assay to pull the features (marks) from}
 

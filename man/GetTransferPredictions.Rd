@@ -27,7 +27,7 @@ Returns a vector of predicted class names
 \description{
 Utility function to easily pull out the name of the class with the maximum 
 prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
-\link{\code{TransferData}} and want to have a vector with the predicted class.
+\code{\link{TransferData}} and want to have a vector with the predicted class.
 }
 \examples{
 \dontrun{

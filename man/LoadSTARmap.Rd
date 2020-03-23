@@ -24,11 +24,11 @@ gene name, qhull, and centroid files.}
 
 \item{qhull.file}{name of file containing the hull coordinates (tsv)}
 
+\item{centroid.file}{name of file containing the centroid positions (tsv)}
+
 \item{assay}{Name of assay to associate spatial data to}
 
 \item{image}{Name of "image" object storing spatial coordinates}
-
-\item{centroidlfile}{name of file containing the centroid positions (tsv)}
 }
 \value{
 A \code{\link{Seurat}} object

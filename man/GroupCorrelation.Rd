@@ -31,6 +31,9 @@ data, or scale.data)}
 \item{min.cells}{Only compute for genes in at least this many cells}
 
 \item{ngroups}{Number of groups to split into}
+
+\item{do.plot}{Display the group correlation boxplot (via 
+\code{GroupCorrelationPlot})}
 }
 \value{
 A Seurat object with the correlation stored in metafeatures

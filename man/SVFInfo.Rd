@@ -3,6 +3,7 @@
 \name{SVFInfo}
 \alias{SVFInfo}
 \alias{SVFInfo.Assay}
+\alias{SVFInfo.Seurat}
 \title{Get spatially variable feature information}
 \usage{
 SVFInfo(object, ...)
@@ -10,6 +11,14 @@ SVFInfo(object, ...)
 \method{SVFInfo}{Assay}(
   object,
   selection.method = c("markvariogram", "moransi"),
+  status = FALSE,
+  ...
+)
+
+\method{SVFInfo}{Seurat}(
+  object,
+  selection.method = c("markvariogram", "moransi"),
+  assay = NULL,
   status = FALSE,
   ...
 )
@@ -22,6 +31,8 @@ SVFInfo(object, ...)
 \item{selection.method}{Which method to pull. Options: markvariogram, moransi}
 
 \item{status}{Add variable status to the resulting data.frame}
+
+\item{assay}{Name of assay to pull highly variable feature information for}
 }
 \description{
 Get spatially variable feature information

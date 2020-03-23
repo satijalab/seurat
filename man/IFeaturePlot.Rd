@@ -9,6 +9,8 @@ IFeaturePlot(object, feature, dims = c(1, 2), reduction = NULL, slot = "data")
 \arguments{
 \item{object}{Seurat object}
 
+\item{feature}{Feature to plot}
+
 \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}

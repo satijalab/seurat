@@ -755,7 +755,7 @@ FindTransferAnchors <- function(
 #' 
 #' Utility function to easily pull out the name of the class with the maximum 
 #' prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
-#' \link{\code{TransferData}} and want to have a vector with the predicted class.
+#' \code{\link{TransferData}} and want to have a vector with the predicted class.
 #' 
 #' @param object Seurat object
 #' @param assay Name of the assay holding the predictions
@@ -1590,6 +1590,8 @@ SelectIntegrationFeatures <- function(
 #' @param verbose Print progress bars and output
 #' @param slot Slot to store the imputed data. Must be either "data" (default) 
 #' or "counts"
+#' @param prediction.assay Return an \code{Assay} object with the prediction
+#' scores for each class stored in the \code{data} slot. 
 #'
 #' @return If \code{refdata} is a vector, returns a data.frame with label 
 #' predictions. If \code{refdata} is a matrix, returns an Assay object where the 

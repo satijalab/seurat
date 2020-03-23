@@ -22,6 +22,8 @@ Seurat uses the following [options()] to configure behaviour:
   stop, or silent.}
   \item{\code{Seurat.limma.wilcox.msg}}{{Show message about more efficient 
   Wilcoxon Rank Sum test available via the limma package}}
+  \item{\code{Seurat.limma.wilcox.msg}}{{Show message about more efficient 
+  Moran's I function available via the Rfast2 package}}
 }
 }
 
