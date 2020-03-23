@@ -11,6 +11,7 @@ CreateGeneActivityMatrix(
   include.body = TRUE,
   upstream = 2000,
   downstream = 0,
+  keep.sparse = FALSE,
   verbose = TRUE
 )
 }
@@ -26,6 +27,11 @@ CreateGeneActivityMatrix(
 \item{upstream}{Number of bases upstream to consider}
 
 \item{downstream}{Number of bases downstream to consider}
+
+\item{keep.sparse}{Leave the matrix as a sparse matrix. Setting this option to
+TRUE will take much longer but will use less memory. This can be useful if 
+you have a very large matrix that cannot fit into memory when converted to 
+a dense form.}
 
 \item{verbose}{Print progress/messages}
 }

@@ -844,7 +844,8 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
-#' @param sort.cell If \code{TRUE}, the positive cells will overlap the negative cells
+#' @param sort.cell Redundant with \code{order}. This argument is being
+#' deprecated. Please use \code{order} instead.
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
@@ -897,9 +898,21 @@ FeaturePlot <- function(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE,
+  sort.cell = NULL,
   combine = TRUE
 ) {
+  # TODO: deprecate fully on 3.2.0
+  if (!is.null(x = sort.cell)) {
+    warning(
+      "The sort.cell parameter is being deprecated. Please use the order ",
+      "parameter instead for equivalent functionality.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    if (isTRUE(x = sort.cell)) {
+      order <- sort.cell
+    }
+  }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
   no.right <- theme(
@@ -1125,9 +1138,6 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       data.single <- data.plot[, c(dims, 'ident', feature, shape.by)]
-      if (sort.cell) {
-        data.single <- data.single[order(data.single[, feature]),]
-      }
       # Make the plot
       plot <- SingleDimPlot(
         data = data.single,
@@ -4649,7 +4659,14 @@ SingleExIPlot <- function(
         vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
-      jitter <- geom_jitter(position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), size = pt.size)
+      if (is.null(x = split)) {
+        jitter <- geom_jitter(height = 0, size = pt.size)
+      } else {
+        jitter <- geom_jitter(
+          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), 
+          size = pt.size
+        )
+      }
       log.scale <- scale_y_log10()
       axis.scale <- ylim
     },
