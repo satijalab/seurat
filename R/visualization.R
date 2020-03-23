@@ -4648,10 +4648,13 @@ SingleExIPlot <- function(
         vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
-      if(is.null(split)){
+      if (is.null(x = split)) {
         jitter <- geom_jitter(height = 0, size = pt.size)
-      } else{
-        jitter <- geom_jitter(position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), size = pt.size)
+      } else {
+        jitter <- geom_jitter(
+          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), 
+          size = pt.size
+        )
       }
       log.scale <- scale_y_log10()
       axis.scale <- ylim
