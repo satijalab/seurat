@@ -16,6 +16,7 @@ DotPlot(
   dot.scale = 6,
   group.by = NULL,
   split.by = NULL,
+  scale = TRUE,
   scale.by = "radius",
   scale.min = NA,
   scale.max = NA
@@ -47,6 +48,8 @@ gene will have no dot drawn.}
 
 \item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 see \code{\link{FetchData}} for more details}
+
+\item{scale}{Determine whether the data is scaled, TRUE for default}
 
 \item{scale.by}{Scale the size of the points by 'size' or by 'radius'}
 

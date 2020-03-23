@@ -2879,7 +2879,13 @@ ProjectCellEmbeddings <- function(
 
   if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
-    feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
+    feature.sd <- sqrt(
+      x = SparseRowVar2(
+        mat = as(object = reference.data, Class = "dgCMatrix"), 
+        mu = feature.mean, 
+        display_progress = FALSE
+      )
+    )
     feature.sd[is.na(x = feature.sd)] <- 1
     feature.mean[is.na(x = feature.mean)] <- 1
   }
@@ -2890,12 +2896,12 @@ ProjectCellEmbeddings <- function(
   )[features, ]
   store.names <- dimnames(x = proj.data)
   if (is.numeric(x = feature.mean) && feature.mean != "SCT") {
-  proj.data <- FastSparseRowScaleWithKnownStats(
-    mat = proj.data,
-    mu = feature.mean,
-    sigma = feature.sd,
-    display_progress = FALSE
-  )
+    proj.data <- FastSparseRowScaleWithKnownStats(
+      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mu = feature.mean,
+      sigma = feature.sd,
+      display_progress = FALSE
+    )
   }
   dimnames(x = proj.data) <- store.names
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
