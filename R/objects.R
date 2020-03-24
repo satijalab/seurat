@@ -3335,6 +3335,18 @@ Misc.Assay <- function(object, slot = NULL, ...) {
 
 #' @rdname Misc
 #' @export
+#' @method Misc DimReduc
+#'
+Misc.DimReduc <- function(object, slot = NULL, ...) {
+  CheckDots(...)
+  if (is.null(x = slot)) {
+    return(slot(object = object, name = 'misc'))
+  }
+  return(slot(object = object, name = 'misc')[[slot]])
+}
+
+#' @rdname Misc
+#' @export
 #' @method Misc Seurat
 #'
 #' @examples
@@ -3354,6 +3366,23 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @method Misc<- Assay
 #'
 "Misc<-.Assay" <- function(object, slot, ..., value) {
+  CheckDots(...)
+  if (slot %in% names(x = Misc(object = object))) {
+    warning("Overwriting miscellanous data for ", slot)
+  }
+  if (is.list(x = value)) {
+    slot(object = object, name = 'misc')[[slot]] <- c(value)
+  } else {
+    slot(object = object, name = 'misc')[[slot]] <- value
+  }
+  return(object)
+}
+
+#' @rdname Misc
+#' @export
+#' @method Misc<- DimReduc
+#'
+"Misc<-.DimReduc" <- function(object, slot, ..., value) {
   CheckDots(...)
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)

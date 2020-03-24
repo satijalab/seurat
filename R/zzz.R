@@ -1,3 +1,5 @@
+#' Seurat package
+#' 
 #' Tools for single-cell genomics
 #'
 #' @section Package options:
