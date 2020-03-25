@@ -1122,24 +1122,23 @@ SampleUMI <- function(
 ) {
   data <- as(object = data, Class = "dgCMatrix")
   if (length(x = max.umi) == 1) {
-    return(
-      RunUMISampling(
-        data = data,
-        sample_val = max.umi,
-        upsample = upsample,
-        display_progress = verbose
-      )
+    new_data <- RunUMISampling(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
     )
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
+  } else {
+    new_data <- RunUMISamplingPerCell(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
+    )
   }
-  new_data = RunUMISamplingPerCell(
-    data = data,
-    sample_val = max.umi,
-    upsample = upsample,
-    display_progress = verbose
-  )
-  dimnames(new_data) <- dimnames(data)
+  dimnames(x = new_data) <- dimnames(x = data)
   return(new_data)
 }
 
