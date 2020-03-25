@@ -286,6 +286,75 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
   return(slide.seq)
 }
 
+#' Filter stray beads from Slide-seq puck
+#' 
+#' This function is useful for removing stray beads that fall outside the main 
+#' Slide-seq puck area. Essentially, it's a circular filter where you set a 
+#' center and radius defining a circle of beads to keep. If the center is not 
+#' set, it will be estimated from the bead coordinates (removing the 1st and 
+#' 99th quantile to avoid skewing the center by the stray beads). By default,
+#' this function will display a \code{\link{SpatialDimPlot}} showing which cells
+#' were removed for easy adjustment of the center and/or radius.
+#' 
+#' @param object Seurat object with slide-seq data
+#' @param image Name of the image where the coordinates are stored
+#' @param center Vector specifying the x and y coordinates for the center of the 
+#' inclusion circle
+#' @param radius Radius of the circle of inclusion
+#' @param do.plot Display a \code{\link{SpatialDimPlot}} with the cells being 
+#' removed labeled.
+#' 
+#' @return Returns a Seurat object with only the subset of cells that pass the 
+#' circular filter
+#' 
+#' @examples 
+#' \dontrun{
+#' # This example uses the ssHippo dataset which you can download 
+#' # using the SeuratData package.
+#' library(SeuratData)
+#' data('ssHippo')
+#' # perform filtering of beads
+#' ssHippo.filtered <- FilterSlideSeq(ssHippo, radius = 2300)
+#' # This radius looks to small so increase and repeat until satisfied
+#' }
+#' @export
+#' 
+FilterSlideSeq <- function(
+  object, 
+  image = "image", 
+  center = NULL, 
+  radius = NULL, 
+  do.plot = TRUE
+) {
+  if (!inherits(x = object[[image]], what = "SlideSeq")) {
+    warning("This fxn is intended for filtering SlideSeq data and is untested ",
+            "outside of that context.")
+  }
+  dat <- GetTissueCoordinates(object[[image]])
+  if (is.null(x = center)) {
+    # heuristic for determining center of puck
+    center <- c()
+    x.vals <- dat[, 1]
+    center[1] <- mean(x.vals[x.vals < quantile(x = x.vals, probs = 0.99) &
+                            x.vals > quantile(x = x.vals, probs = 0.01)])
+    y.vals <- dat[, 2]
+    center[2] <- mean(y.vals[y.vals < quantile(x = y.vals, probs = 0.99) &
+                             y.vals > quantile(x = y.vals, probs = 0.01)])
+  }
+  if (is.null(x = radius)) {
+    stop("Please provide a radius.")
+  }
+  dists <- apply(X = dat, MARGIN = 1, FUN = function(x) {
+    as.numeric(dist(rbind(x[c(1, 2)], center)))
+  })
+  cells.to.remove <- names(x = which(x = (dists > radius)))
+  if (do.plot){
+    Idents(object) <- "keep"
+    object <- SetIdent(object = object, cells = cells.to.remove, value = "remove")
+    print(SpatialDimPlot(object = object))
+  }
+  return(subset(x = object, cells = cells.to.remove, invert = TRUE))
+}
 
 #' Load STARmap data
 #'
