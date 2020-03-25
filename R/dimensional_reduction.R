@@ -1285,7 +1285,7 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      if (reduction.model == NULL) {
+      if ( is.null(reduction.model)  ) {
         stop("If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.")
       }
       model <- reduction.model %||% Misc(
@@ -1322,11 +1322,7 @@ RunUMAP.default <- function(
     global = TRUE
   )
   if (umap.method == 'uwot-learn') {
-    umap.reduction <- Misc(
-      object = umap.reduction, 
-      value = umap.model, 
-      slot = "model"
-    )
+    Misc(umap.reduction, slot = "model") <- umap.model
   }
   return(umap.reduction)
 }
