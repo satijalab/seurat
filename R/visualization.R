@@ -1985,9 +1985,9 @@ DotPlot <- function(
         return(data.use)
       }
     )
-   
 
-  
+
+
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
   if (!is.null(x = split.by)) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
@@ -2000,18 +2000,17 @@ DotPlot <- function(
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (!is.null(x = split.by)) {
-    # splits.use <- vapply(
-    #   X = strsplit(x = as.character(x = data.plot$id), split = '_'),
-    #   FUN = '[[',
-    #   FUN.VALUE = character(length = 1L),
-    #   2
-    # )
     splits.use <- vapply(
-      X = strsplit(x = as.character(x = data.plot$id), split = '_'),
-      FUN = function(x) {
-        return(paste(x[2:length(x = x)], collapse = '_'))
-      },
-      FUN.VALUE = character(length = 1L)
+      X = as.character(x = data.plot$id),
+      FUN = gsub,
+      FUN.VALUE = character(length = 1L),
+      pattern =  paste0(
+        '^((',
+        paste(sort(x = levels(x = object), decreasing = TRUE), collapse = '|'),
+        ')_)'
+      ),
+      replacement = '',
+      USE.NAMES = FALSE
     )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
@@ -4672,7 +4671,7 @@ SingleExIPlot <- function(
         jitter <- geom_jitter(height = 0, size = pt.size)
       } else {
         jitter <- geom_jitter(
-          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), 
+          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
           size = pt.size
         )
       }
