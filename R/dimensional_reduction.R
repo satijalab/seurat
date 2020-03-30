@@ -1146,6 +1146,7 @@ RunTSNE.Seurat <- function(
 #'
 RunUMAP.default <- function(
   object,
+  model.object = NULL,
   assay = NULL,
   umap.method = 'uwot',
   n.neighbors = 30L,
@@ -1245,20 +1246,90 @@ RunUMAP.default <- function(
         verbose = verbose
       )
     },
+    'uwot-learn' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      umap(
+        X = object,
+        n_threads = nbrOfWorkers(),
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        fast_sgd = uwot.sgd,
+        verbose = verbose,
+        ret_model = TRUE
+      )
+    },
+    'uwot-predict' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      #if (model.object == NULL) {
+      #  stop("UWOT predict needs a model, try umot-learn on the object first")
+      #}
+      uwot::umap_transform(
+        X = object,
+        model = model.object@reductions$umap@misc,
+        n_threads = nbrOfWorkers(),
+        n_epochs = n.epochs,
+        verbose = verbose
+      )
+    },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
+  
+  if (umap.method == 'uwot-learn') {
+    umap.model <- umap.output
+    umap.output <- umap.output$embedding
+  }
+  
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
   if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
   } else {
     rownames(x = umap.output) <- rownames(x = object)
   }
-  umap.reduction <- CreateDimReducObject(
-    embeddings = umap.output,
-    key = reduction.key,
-    assay = assay,
-    global = TRUE
-  )
+  
+  if (umap.method == 'umap-learn' || umap.method == 'uwot' || umap.method == 'uwot-predict') {
+    umap.reduction <- CreateDimReducObject(
+      embeddings = umap.output,
+      key = reduction.key,
+      assay = assay,
+      global = TRUE
+    )
+  } else if (umap.method == 'uwot-learn') {
+    umap.reduction <- CreateDimReducObject(
+      embeddings = umap.output,
+      key = reduction.key,
+      assay = assay,
+      global = TRUE,
+      misc = umap.model
+    )
+  } else {
+    stop("Unknown umap method: ", umap.method, call. = FALSE)
+  }
+  
   return(umap.reduction)
 }
 
@@ -1423,6 +1494,7 @@ RunUMAP.Graph <- function(
 #'
 RunUMAP.Seurat <- function(
   object,
+  model.object = NULL,
   dims = NULL,
   reduction = 'pca',
   features = NULL,
@@ -1487,6 +1559,7 @@ RunUMAP.Seurat <- function(
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
+    model.object = model.object,
     assay = assay,
     umap.method = umap.method,
     n.neighbors = n.neighbors,
