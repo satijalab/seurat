@@ -6,6 +6,126 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add info to anchor matrix
+#'
+#' @param object An \code{\link{AnchorSet}} object
+#' @param annotation Name in metadata to annotate anchors with
+#
+#' @return Returns the anchor dataframe with additional columns for annotation
+#' metadata
+#' 
+#' @export
+#' 
+AnnotateAnchors <- function(
+  object,
+  annotation = NULL
+) {
+  anchors <- slot(object = object, name = 'anchors')
+  object.list <- slot(object = object, name = 'object.list')
+  object.list <- lapply(X = object.list, FUN = DietSeurat)
+  # transfer or integration?
+  if (length(x = object.list) == 1) {
+    ref <- subset(
+      x = object.list[[1]], 
+      cells = slot(object = object, name = "reference.cells"),
+      recompute = FALSE
+    )
+    ref.names <- unname(obj = sapply(
+      X = Cells(x = ref), 
+      FUN = function(x) {
+        x <- unlist(x = strsplit(x = x, split = "_"))
+        paste(x[1:(length(x = x) - 1)], collapse = "_")
+      }))
+    ref <- RenameCells(object = ref, new.names = ref.names)
+    query <- subset(
+      x = object.list[[1]],
+      cells = slot(object = object, name = "query.cells"),
+      recompute = FALSE
+    )
+    query.names <- unname(obj = sapply(
+      X = Cells(x = query), 
+      FUN = function(x) {
+        x <- unlist(x = strsplit(x = x, split = "_"))
+        paste(x[1:(length(x = x) - 1)], collapse = "_")
+      }))
+    query <- RenameCells(object = query, new.names = query.names)
+    object.list <- list(reference = ref, query = query)
+    anchors <- as.data.frame(x = anchors)
+    anchors$dataset1 <- "reference"
+    anchors$dataset2 <- "query"
+  }
+  # reorder columns
+  anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
+  colnames(x = anchors)[5] <- "anchor.score"
+  # replace index with cell name
+  cell.names <- lapply(X = object.list, FUN = Cells)
+  anchors$cell1 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    dataset <- anchors[x, 'dataset1']
+    cell.names[[dataset]][anchors[x, "cell1"]]
+  })
+  anchors$cell2 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    dataset <- anchors[x, 'dataset2']
+    cell.names[[dataset]][anchors[x, "cell2"]]
+  })
+  # label datasets with their name if present
+  if (!is.null(x = names(object.list))){
+    anchors$dataset1 <- sapply(X = anchors$dataset1, FUN = function(x) {
+      names(x = object.list[x])
+    })
+    anchors$dataset2 <- sapply(X = anchors$dataset2, FUN = function(x) {
+      names(x = object.list[x])
+    })
+  }
+  for(annot in annotation) {
+    annot.check <- unlist(x = lapply(X = object.list, FUN = function(x) {
+      annot %in% colnames(x = x[[]])
+    }))
+    if (all(!annot.check)) {
+      warning(
+        annot, " not in any objects metadata. Skipping annotation.", 
+        call. = FALSE, 
+        immediate. = TRUE
+      )
+      next
+    }
+    if (! all(annot.check)) {
+      warning(
+        annot, " not in all objects metadata. Filling missing objects with NA",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    annot.list <- lapply(X = 1:length(x = object.list), FUN = function(x) {
+      if (!annot.check[x]) {
+        NA
+      } else {
+        object.list[[x]][[annot]]
+      }
+    })
+    names(x = annot.list) <- names(x = object.list)
+    anchors[, paste0("cell1.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
+      annot.df <- annot.list[[x[['dataset1']]]]
+      if (!inherits(x = annot.df, what = "data.frame")) {
+        NA
+      } else{
+        annot.df[x['cell1'], ]
+      }                    
+    })
+    anchors[, paste0("cell2.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
+      annot.df <- annot.list[[x[['dataset2']]]]
+      if (!inherits(x = annot.df, what = "data.frame")) {
+        NA
+      } else{
+        annot.df[x['cell2'], ]
+      }                    
+    })
+    # column specifying whether the annotation matches across pair of datasets
+    anchors[, paste0(annot, ".match")] <- anchors[, paste0("cell1.", annot)] == 
+      anchors[, paste0("cell2.", annot)]
+  }
+  return(anchors)
+}
+
 #' Find integration anchors
 #'
 #' Find a set of anchors between a list of \code{\link{Seurat}} objects. 
@@ -1772,6 +1892,9 @@ TransferData <- function(
 #' @param ident.matrix Provide a binary matrix specifying whether an ident pair
 #' is allowable (1) or not (0). Should be an ident x ident symmetric matrix
 #' 
+#' @return Returns an \code{\link{AnchorSet}} object with specified anchors 
+#' filtered out
+#' 
 #' @export
 #' 
 subset.AnchorSet <- function(
@@ -1926,126 +2049,6 @@ AdjustSampleTree <- function(x, reference.objects) {
     }
   }
   return(x)
-}
-
-#' Add info to anchor matrix
-#'
-#' @param object An \code{\link{AnchorSet}} object
-#' @param annotation Name in metadata to annotate anchors with
-#' @param object.list List of objects using in FindIntegrationAnchors call
-#
-#' @return Returns the anchor dataframe with additional columns for annotation
-#' metadata
-#' @export
-#' 
-AnnotateAnchors <- function(
-  object,
-  annotation = NULL
-) {
-  anchors <- slot(object = object, name = 'anchors')
-  object.list <- slot(object = object, name = 'object.list')
-  object.list <- lapply(X = object.list, FUN = DietSeurat)
-  # transfer or integration?
-  if (length(x = object.list) == 1) {
-    ref <- subset(
-      x = object.list[[1]], 
-      cells = slot(object = object, name = "reference.cells"),
-      recompute = FALSE
-    )
-    ref.names <- unname(obj = sapply(
-      X = Cells(x = ref), 
-      FUN = function(x) {
-        x <- unlist(x = strsplit(x = x, split = "_"))
-        paste(x[1:(length(x = x) - 1)], collapse = "_")
-    }))
-    ref <- RenameCells(object = ref, new.names = ref.names)
-    query <- subset(
-      x = object.list[[1]],
-      cells = slot(object = object, name = "query.cells"),
-      recompute = FALSE
-    )
-    query.names <- unname(obj = sapply(
-      X = Cells(x = query), 
-      FUN = function(x) {
-        x <- unlist(x = strsplit(x = x, split = "_"))
-        paste(x[1:(length(x = x) - 1)], collapse = "_")
-    }))
-    query <- RenameCells(object = query, new.names = query.names)
-    object.list <- list(reference = ref, query = query)
-    anchors <- as.data.frame(x = anchors)
-    anchors$dataset1 <- "reference"
-    anchors$dataset2 <- "query"
-  }
-  # reorder columns
-  anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
-  colnames(x = anchors)[5] <- "anchor.score"
-  # replace index with cell name
-  cell.names <- lapply(X = object.list, FUN = Cells)
-  anchors$cell1 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    dataset <- anchors[x, 'dataset1']
-    cell.names[[dataset]][anchors[x, "cell1"]]
-  })
-  anchors$cell2 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    dataset <- anchors[x, 'dataset2']
-    cell.names[[dataset]][anchors[x, "cell2"]]
-  })
-  # label datasets with their name if present
-  if (!is.null(x = names(object.list))){
-    anchors$dataset1 <- sapply(X = anchors$dataset1, FUN = function(x) {
-      names(x = object.list[x])
-    })
-    anchors$dataset2 <- sapply(X = anchors$dataset2, FUN = function(x) {
-      names(x = object.list[x])
-    })
-  }
-  for(annot in annotation) {
-    annot.check <- unlist(x = lapply(X = object.list, FUN = function(x) {
-      annot %in% colnames(x = x[[]])
-    }))
-    if (all(!annot.check)) {
-      warning(
-        annot, " not in any objects metadata. Skipping annotation.", 
-        call. = FALSE, 
-        immediate. = TRUE
-      )
-      next
-    }
-    if (! all(annot.check)) {
-      warning(
-        annot, " not in all objects metadata. Filling missing objects with NA",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-    }
-    annot.list <- lapply(X = 1:length(x = object.list), FUN = function(x) {
-      if (!annot.check[x]) {
-        NA
-      } else {
-        object.list[[x]][[annot]]
-      }
-    })
-    names(x = annot.list) <- names(x = object.list)
-    anchors[, paste0("cell1.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
-      annot.df <- annot.list[[x[['dataset1']]]]
-      if (!inherits(x = annot.df, what = "data.frame")) {
-        NA
-      } else{
-        annot.df[x['cell1'], ]
-      }                    
-    })
-    anchors[, paste0("cell2.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
-      annot.df <- annot.list[[x[['dataset2']]]]
-      if (!inherits(x = annot.df, what = "data.frame")) {
-        NA
-      } else{
-        annot.df[x['cell2'], ]
-      }                    
-    })
-    # column specifying whether the annotation matches across pair of datasets
-    anchors[, paste0(annot, ".match")] <- anchors[, paste0("cell1.", annot)] == 
-      anchors[, paste0("cell2.", annot)]
-  }
-  return(anchors)
 }
 
 # Build tree of datasets based on cell similarity

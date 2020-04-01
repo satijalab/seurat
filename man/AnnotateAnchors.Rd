@@ -10,8 +10,6 @@ AnnotateAnchors(object, annotation = NULL)
 \item{object}{An \code{\link{AnchorSet}} object}
 
 \item{annotation}{Name in metadata to annotate anchors with}
-
-\item{object.list}{List of objects using in FindIntegrationAnchors call}
 }
 \value{
 Returns the anchor dataframe with additional columns for annotation
