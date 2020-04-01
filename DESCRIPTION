@@ -80,7 +80,7 @@ Collate:
     'tree.R'
     'utilities.R'
     'zzz.R'
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 Encoding: UTF-8
 biocViews:
 Suggests:

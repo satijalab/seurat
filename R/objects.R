@@ -6053,6 +6053,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #' @param i,features A vector of features to keep
 #' @param j,cells A vector of cells to keep
 #' @param idents A vector of identity classes to keep
+#' @param recompute Recompute nCount and nFeature
 #' @param ... Extra parameters passed to \code{\link{WhichCells}},
 #' such as \code{slot}, \code{invert}, or \code{downsample}
 #'
@@ -6072,7 +6073,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #' subset(x = pbmc_small, subset = MS4A1 > 3, slot = 'counts')
 #' subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
-subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
+subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, recompute = TRUE, ...) {
   if (!missing(x = subset)) {
     subset <- deparse(expr = substitute(expr = subset))
   }
@@ -6119,12 +6120,14 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   # Remove metadata for cells not present
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
   # Recalculate nCount and nFeature
-  for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
-    n.calc <- CalcN(object = x[[assay]])
-    if (!is.null(x = n.calc)) {
-      names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
-      x[[names(x = n.calc)]] <- n.calc
-    }
+  if (recompute) {
+    for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
+      n.calc <- CalcN(object = x[[assay]])
+      if (!is.null(x = n.calc)) {
+        names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+        x[[names(x = n.calc)]] <- n.calc
+      }
+    } 
   }
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]

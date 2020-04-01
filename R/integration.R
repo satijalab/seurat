@@ -1756,6 +1756,123 @@ TransferData <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @export
+#' @method subset AnchorSet
+#'
+#' @param score.threshold Only anchor pairs with scores greater than this value
+#' are retained.
+#' @param disallowed.dataset.pairs Remove any anchors formed between the
+#' provided pairs. E.g. list(c(1, 5), c(1, 2)) filters out any anchors between
+#' datasets 1 and 5 and datasets 1 and 2.
+#' @param dataset.matrix Provide a binary matrix specifying whether a dataset 
+#' pair is allowable (1) or not (0). Should be a dataset x dataset matrix. 
+#' @param group.by Grouping variable to determine allowable ident pairs
+#' @param disallowed.ident.pairs Remove any anchors formed between provided 
+#' ident pairs
+#' @param ident.matrix Provide a binary matrix specifying whether an ident pair
+#' is allowable (1) or not (0). Should be an ident x ident symmetric matrix
+#' 
+#' @export
+#' 
+subset.AnchorSet <- function(
+  x, 
+  score.threshold = NULL, 
+  disallowed.dataset.pairs = NULL, 
+  dataset.matrix = NULL,
+  group.by = NULL,
+  disallowed.ident.pairs = NULL,
+  ident.matrix = NULL,
+  ...
+) {
+  if (!is.null(x = disallowed.dataset.pairs) && !is.null(x = dataset.matrix)) {
+    stop("Please use either disallowed.dataset.pairs OR dataset.matrix, not both.")
+  }
+  # Filter based on scores
+  if (!is.null(x = score.threshold)) {
+    if (score.threshold > 1 | score.threshold < 0) {
+      stop(
+        "Anchors are scored on a scale between 0 and 1. Please provide a value", 
+        " in that range to score.threshold."
+      )
+    }
+    anchors <- slot(object = x, name = "anchors")
+    anchors <- anchors[anchors[, 'score'] > score.threshold, , drop = FALSE]
+    slot(object = x, name = "anchors") <- anchors
+  }
+  object.names <- names(x = slot(object = x, name = "object.list"))
+  num.obs <- length(x = object.names)
+  # Filter based on dataset pairings
+  if (!is.null(x = disallowed.dataset.pairs)) {
+    dataset.matrix <- matrix(data = 1, nrow = num.obs, ncol = num.obs)
+    for(i in 1:length(x = disallowed.dataset.pairs)) {
+      pair <- disallowed.dataset.pairs[[i]]
+      if (length(x = pair) != 2) {
+        stop("Please ensure all list items in disallowed.dataset.pairs are of length 2.")
+      }
+      if (any(pair %in% object.names)) {
+        pair[which(pair %in% object.names)] <- sapply(
+          X = pair[which(pair %in% object.names)],
+          FUN = function(x) {
+            which(object.names == x)
+          })
+      }
+      pair <- as.numeric(x = pair)
+      dataset.matrix[pair[1], pair[2]] <- 0
+    }
+  }
+  if (!is.null(x = dataset.matrix)) {
+    if (any(dim(x = dataset.matrix) != c(num.obs, num.obs))){
+      stop("Please provide a dataset.matrix that is ", num.obs, " x ", num.obs, ".")
+    }
+    anchors <- slot(object = x, name = "anchors")
+    pairs <- which(dataset.matrix == 0, arr.ind = TRUE)
+    for (i in 1:nrow(x = pairs)) {
+      anchors <- anchors[-which(x = anchors$dataset1 == pairs[i, 1] & anchors$dataset2 == pairs[i, 2]), ]
+      anchors <- anchors[-which(x = anchors$dataset1 == pairs[i, 2] & anchors$dataset2 == pairs[i, 1]), ]
+    }
+    slot(object = x, name = "anchors") <- anchors
+  }
+  # Filter based on ident pairings
+  if (!is.null(x = group.by)) {
+    anchors <- AnnotateAnchors(object = x, annotation = group.by)
+    if (!is.null(x = disallowed.ident.pairs) && !is.null(x = ident.matrix)) {
+      stop("Please use either disallowed.ident.pairs OR ident.matrix, not both.")
+    }
+    unique.ids <- unique(x = c(anchors[, paste0("cell1.", group.by)], anchors[, paste0("cell2.", group.by)]))
+    unique.ids <- unique.ids[!is.na(x = unique.ids)]
+    num.ids <- length(x = unique.ids)
+    if (!is.null(x = disallowed.ident.pairs)) {
+      ident.matrix <- matrix(data = 1, nrow = num.ids, ncol = num.ids)
+      rownames(x = ident.matrix) <- unique.ids
+      colnames(x = ident.matrix) <- unique.ids
+      for(i in 1:length(x = disallowed.ident.pairs)) {
+        pair <- disallowed.ident.pairs[[i]]
+        if (length(x = pair) != 2) {
+          stop("Please ensure all list items in disallowed.dataset.pairs are of length 2.")
+        }
+        ident.matrix[pair[1], pair[2]] <- 0
+      }
+    }
+    if (!is.null(x = ident.matrix)) {
+      if (any(dim(x = ident.matrix) != c(num.ids, num.ids))){
+        stop("Please provide a dataset.matrix that is ", num.ids, " x ", num.ids, ".")
+      }
+      to.remove <- c()
+      pairs <- which(ident.matrix == 0, arr.ind = TRUE)
+      for (i in 1:nrow(x = pairs)) {
+        id1 <- rownames(x = ident.matrix)[pairs[i, 1]]
+        id2 <- colnames(x = ident.matrix)[pairs[i, 2]]
+        to.remove <- c(to.remove, which(x = anchors[, paste0("cell1.", group.by)] == id1 & anchors[, paste0("cell2.", group.by)] == id2))
+        to.remove <- c(to.remove, which(x = anchors[, paste0("cell1.", group.by)] == id2 & anchors[, paste0("cell2.", group.by)] == id1))
+      }
+      anchors <- slot(object = x, name = "anchors")
+      anchors <- anchors[-to.remove, ]
+      slot(object = x, name = "anchors") <- anchors
+    }
+  }
+  return(x)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1811,54 +1928,122 @@ AdjustSampleTree <- function(x, reference.objects) {
   return(x)
 }
 
-# Add info to anchor matrix
+#' Add info to anchor matrix
+#'
+#' @param object An \code{\link{AnchorSet}} object
+#' @param annotation Name in metadata to annotate anchors with
+#' @param object.list List of objects using in FindIntegrationAnchors call
 #
-# @param object Seurat object
-# @param toolname Name in tool slot to pull from
-# @param annotation Name in metadata to annotate anchors with
-# @param object.list List of objects using in FindIntegrationAnchors call
-#
-# @return Returns the anchor dataframe with additional columns for annotation
-# metadata
-
+#' @return Returns the anchor dataframe with additional columns for annotation
+#' metadata
+#' @export
+#' 
 AnnotateAnchors <- function(
   object,
-  toolname = "integrated",
-  annotation = NULL,
-  object.list = NULL
+  annotation = NULL
 ) {
-  anchors <- GetIntegrationData(
-    object = object,
-    integration.name = toolname,
-    slot = 'anchors'
-  )
-  for(i in annotation) {
-    if (! i %in% colnames(x = object[[]])) {
-      warning(i, " not in object metadata")
+  anchors <- slot(object = object, name = 'anchors')
+  object.list <- slot(object = object, name = 'object.list')
+  object.list <- lapply(X = object.list, FUN = DietSeurat)
+  # transfer or integration?
+  if (length(x = object.list) == 1) {
+    ref <- subset(
+      x = object.list[[1]], 
+      cells = slot(object = object, name = "reference.cells"),
+      recompute = FALSE
+    )
+    ref.names <- unname(obj = sapply(
+      X = Cells(x = ref), 
+      FUN = function(x) {
+        x <- unlist(x = strsplit(x = x, split = "_"))
+        paste(x[1:(length(x = x) - 1)], collapse = "_")
+    }))
+    ref <- RenameCells(object = ref, new.names = ref.names)
+    query <- subset(
+      x = object.list[[1]],
+      cells = slot(object = object, name = "query.cells"),
+      recompute = FALSE
+    )
+    query.names <- unname(obj = sapply(
+      X = Cells(x = query), 
+      FUN = function(x) {
+        x <- unlist(x = strsplit(x = x, split = "_"))
+        paste(x[1:(length(x = x) - 1)], collapse = "_")
+    }))
+    query <- RenameCells(object = query, new.names = query.names)
+    object.list <- list(reference = ref, query = query)
+    anchors <- as.data.frame(x = anchors)
+    anchors$dataset1 <- "reference"
+    anchors$dataset2 <- "query"
+  }
+  # reorder columns
+  anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
+  colnames(x = anchors)[5] <- "anchor.score"
+  # replace index with cell name
+  cell.names <- lapply(X = object.list, FUN = Cells)
+  anchors$cell1 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    dataset <- anchors[x, 'dataset1']
+    cell.names[[dataset]][anchors[x, "cell1"]]
+  })
+  anchors$cell2 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    dataset <- anchors[x, 'dataset2']
+    cell.names[[dataset]][anchors[x, "cell2"]]
+  })
+  # label datasets with their name if present
+  if (!is.null(x = names(object.list))){
+    anchors$dataset1 <- sapply(X = anchors$dataset1, FUN = function(x) {
+      names(x = object.list[x])
+    })
+    anchors$dataset2 <- sapply(X = anchors$dataset2, FUN = function(x) {
+      names(x = object.list[x])
+    })
+  }
+  for(annot in annotation) {
+    annot.check <- unlist(x = lapply(X = object.list, FUN = function(x) {
+      annot %in% colnames(x = x[[]])
+    }))
+    if (all(!annot.check)) {
+      warning(
+        annot, " not in any objects metadata. Skipping annotation.", 
+        call. = FALSE, 
+        immediate. = TRUE
+      )
       next
     }
-    if(!is.null(x = object.list)) {
-      anchors[, paste0("cell1.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
-        as.character(object.list[[as.numeric(x[["dataset1"]])]][[]][as.numeric(x[["cell1"]]), i])
-      })
-      anchors[, paste0("cell2.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
-        as.character(object.list[[as.numeric(x[["dataset2"]])]][[]][as.numeric(x[["cell2"]]), i])
-      })
-    } else {
-      cells1 <- GetIntegrationData(
-        object = object,
-        integration.name = toolname,
-        slot = 'neighbors'
-      )$cells1
-      cells2 <- GetIntegrationData(
-        object = object,
-        integration.name = toolname,
-        slot = 'neighbors'
-      )$cells2
-      anchors[, paste0("cell1.", i)] <- object[[i]][cells1[anchors$cell1], , drop = TRUE]
-      anchors[, paste0("cell2.", i)] <- object[[i]][cells2[anchors$cell2], , drop = TRUE]
-      anchors[, paste0(i, ".match")] <- anchors[, paste0("cell1.", i)] == anchors[, paste0("cell2.", i)]
+    if (! all(annot.check)) {
+      warning(
+        annot, " not in all objects metadata. Filling missing objects with NA",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
+    annot.list <- lapply(X = 1:length(x = object.list), FUN = function(x) {
+      if (!annot.check[x]) {
+        NA
+      } else {
+        object.list[[x]][[annot]]
+      }
+    })
+    names(x = annot.list) <- names(x = object.list)
+    anchors[, paste0("cell1.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
+      annot.df <- annot.list[[x[['dataset1']]]]
+      if (!inherits(x = annot.df, what = "data.frame")) {
+        NA
+      } else{
+        annot.df[x['cell1'], ]
+      }                    
+    })
+    anchors[, paste0("cell2.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
+      annot.df <- annot.list[[x[['dataset2']]]]
+      if (!inherits(x = annot.df, what = "data.frame")) {
+        NA
+      } else{
+        annot.df[x['cell2'], ]
+      }                    
+    })
+    # column specifying whether the annotation matches across pair of datasets
+    anchors[, paste0(annot, ".match")] <- anchors[, paste0("cell1.", annot)] == 
+      anchors[, paste0("cell2.", annot)]
   }
   return(anchors)
 }
