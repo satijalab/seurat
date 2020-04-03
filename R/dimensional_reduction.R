@@ -65,6 +65,10 @@ JackStraw <- function(
     my.sapply <- future_sapply
   }
   assay <- assay %||% DefaultAssay(object = object)
+  if (IsSCT(assay = assay)) {
+    stop("JackStraw cannot be run on SCTransform-normalized data.
+         Please supply a non-SCT assay.")
+  }
   if (dims > length(x = object[[reduction]])) {
     dims <- length(x = object[[reduction]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
