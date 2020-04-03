@@ -562,7 +562,7 @@ VlnPlot <- function(
 ) {
   return(ExIPlot(
     object = object,
-    type = ifelse(test = multi.group, yes = 'multiViolin', no = 'violin'),
+    type = ifelse(test = multi.group, yes = 'violin', no = 'multiViolin'),
     features = features,
     idents = idents,
     ncol = ncol,
@@ -3728,6 +3728,10 @@ ExIPlot <- function(
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
+    if ((length(x = cols) > 2) & (type == "violin")) {
+      warning("Split violin is only supported for <3 groups, using multi-violin.")
+      type <- "multiViolin"
+    }
   }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
