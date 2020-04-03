@@ -59,13 +59,17 @@ AnnotateAnchors <- function(
   colnames(x = anchors)[5] <- "anchor.score"
   # replace index with cell name
   cell.names <- lapply(X = object.list, FUN = Cells)
-  anchors$cell1 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    dataset <- anchors[x, 'dataset1']
-    cell.names[[dataset]][anchors[x, "cell1"]]
+  anchors$cell1 <- sapply(
+    X = seq_len(length.out = nrow(x = anchors)),
+    FUN = function(x) {
+      dataset <- anchors[x, 'dataset1']
+      cell.names[[dataset]][anchors[x, "cell1"]]
   })
-  anchors$cell2 <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    dataset <- anchors[x, 'dataset2']
-    cell.names[[dataset]][anchors[x, "cell2"]]
+  anchors$cell2 <- sapply(
+    X = seq_len(length.out = nrow(x = anchors)),
+    FUN = function(x) {
+      dataset <- anchors[x, 'dataset2']
+      cell.names[[dataset]][anchors[x, "cell2"]]
   })
   # label datasets with their name if present
   if (!is.null(x = names(object.list))){
@@ -88,14 +92,14 @@ AnnotateAnchors <- function(
       )
       next
     }
-    if (! all(annot.check)) {
+    if (!all(annot.check)) {
       warning(
         annot, " not in all objects metadata. Filling missing objects with NA",
         call. = FALSE,
         immediate. = TRUE
       )
     }
-    annot.list <- lapply(X = 1:length(x = object.list), FUN = function(x) {
+    annot.list <- lapply(X = seq_along(along.with = object.list), FUN = function(x) {
       if (!annot.check[x]) {
         NA
       } else {
@@ -1882,13 +1886,13 @@ TransferData <- function(
 #' @param score.threshold Only anchor pairs with scores greater than this value
 #' are retained.
 #' @param disallowed.dataset.pairs Remove any anchors formed between the
-#' provided pairs. E.g. list(c(1, 5), c(1, 2)) filters out any anchors between
+#' provided pairs. E.g. \code{list(c(1, 5), c(1, 2))} filters out any anchors between
 #' datasets 1 and 5 and datasets 1 and 2.
 #' @param dataset.matrix Provide a binary matrix specifying whether a dataset 
 #' pair is allowable (1) or not (0). Should be a dataset x dataset matrix. 
 #' @param group.by Grouping variable to determine allowable ident pairs
 #' @param disallowed.ident.pairs Remove any anchors formed between provided 
-#' ident pairs
+#' ident pairs. E.g. \code{list(c("CD4", "CD8"), c("B-cell", "T-cell"))}
 #' @param ident.matrix Provide a binary matrix specifying whether an ident pair
 #' is allowable (1) or not (0). Should be an ident x ident symmetric matrix
 #' 
