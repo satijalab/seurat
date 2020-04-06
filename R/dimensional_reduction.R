@@ -65,7 +65,7 @@ JackStraw <- function(
     my.sapply <- future_sapply
   }
   assay <- assay %||% DefaultAssay(object = object)
-  if (IsSCT(assay = assay)) {
+  if (IsSCT(assay = object[[assay]])) {
     stop("JackStraw cannot be run on SCTransform-normalized data.
          Please supply a non-SCT assay.")
   }
