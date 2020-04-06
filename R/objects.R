@@ -4754,6 +4754,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @param invert Invert the selection of cells
 #'
 #' @importFrom stats na.omit
+#' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
 #' @export
@@ -4770,12 +4771,14 @@ WhichCells.Assay <- function(
   cells <- cells %||% colnames(x = object)
   if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
     key.pattern <- paste0('^', Key(object = object))
-    expr <- if (is.call(x = substitute(expr = expression))) {
-      substitute(expr = expression)
+    expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
+      expression
+    } else if (is.call(x = enquo(arg = exression))) {
+      enquo(arg = expression)
     } else {
       parse(text = expression)
     }
-    expr.char <- as.character(x = expr)
+    expr.char <- suppressWarnings(expr = as.character(x = expr))
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
       pattern = key.pattern,
@@ -4798,8 +4801,7 @@ WhichCells.Assay <- function(
     expr.char <- expr.char[vars.use]
     data.subset <- as.data.frame(x = t(x = as.matrix(x = object[expr.char, ])))
     colnames(x = data.subset) <- expr.char
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- rownames(x = data.subset)
+    cells <- rownames(x = data.subset)[eval_tidy(expr = expr, data = data.subset)]
   }
   if (invert) {
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
@@ -4816,6 +4818,7 @@ WhichCells.Assay <- function(
 #' @param seed Random seed for downsampling. If NULL, does not set a seed
 #'
 #' @importFrom stats na.omit
+#' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
 #' @export
@@ -4870,12 +4873,14 @@ WhichCells.Seurat <- function(
       }
     )
     key.pattern <- paste0('^', object.keys, collapse = '|')
-    expr <- if (is.call(x = substitute(expr = expression))) {
-      substitute(expr = expression)
+    expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
+      expression
+    } else if (is.call(x = enquo(arg = expression))) {
+      enquo(arg = expression)
     } else {
       parse(text = expression)
     }
-    expr.char <- as.character(x = expr)
+    expr.char <- suppressWarnings(expr = as.character(x = expr))
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
       pattern = '(',
@@ -4899,8 +4904,7 @@ WhichCells.Seurat <- function(
       cells = cells,
       slot = slot
     )
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- rownames(x = data.subset)
+    cells <- rownames(x = data.subset)[eval_tidy(expr = expr, data = data.subset)]
   }
   if (invert) {
     cell.order <- colnames(x = object)
@@ -6058,6 +6062,8 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @return A subsetted Seurat object
 #'
+#' @importFrom rlang enquo
+#'
 #' @rdname subset.Seurat
 #' @aliases subset
 #' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
@@ -6074,7 +6080,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
   if (!missing(x = subset)) {
-    subset <- deparse(expr = substitute(expr = subset))
+    subset <- enquo(arg = subset)
   }
   cells <- WhichCells(
     object = x,
