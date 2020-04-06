@@ -526,8 +526,8 @@ RidgePlot <- function(
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
 #' @param split.by A variable to split the violin plots by,
-#' @param multi.group  plot each group of the split violin plots by multiple or single violin shapes
-#' see \code{\link{FetchData}} for more details
+#' @param split.plot  plot each group of the split violin plots by multiple or
+#' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -557,12 +557,12 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = 'data',
-  multi.group = FALSE,
+  split.plot = FALSE,
   combine = TRUE
 ) {
   return(ExIPlot(
     object = object,
-    type = ifelse(test = multi.group, yes = 'violin', no = 'multiViolin'),
+    type = ifelse(test = split.plot, yes = 'splitViolin', no = 'violin'),
     features = features,
     idents = idents,
     ncol = ncol,
@@ -3640,7 +3640,7 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # Basically combines the codebase for VlnPlot and RidgePlot
 #
 # @param object Seurat object
-# @param type Plot type, choose from 'ridge', 'violin', or 'multiViolin'
+# @param type Plot type, choose from 'ridge', 'violin', or 'splitViolin'
 # @param features Features to plot (gene expression, metrics, PC scores,
 # anything that can be retreived by FetchData)
 # @param idents Which classes to include in the plot (default is all)
@@ -3728,9 +3728,9 @@ ExIPlot <- function(
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
-    if ((length(x = cols) > 2) & (type == "violin")) {
+    if ((length(x = cols) > 2) & (type == "splitViolin")) {
       warning("Split violin is only supported for <3 groups, using multi-violin.")
-      type <- "multiViolin"
+      type <- "violin"
     }
   }
   if (same.y.lims && is.null(x = y.max)) {
@@ -3756,7 +3756,7 @@ ExIPlot <- function(
   label.fxn <- switch(
     EXPR = type,
     'violin' = ylab,
-    "multiViolin" = ylab,
+    "splitViolin" = ylab,
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -4649,11 +4649,11 @@ SingleExIPlot <- function(
   y.max <- y.max %||% max(data[, feature][is.finite(x = data[, feature])])
   if (type == 'violin' && !is.null(x = split)) {
     data$split <- split
-    vln.geom <- geom_split_violin
-    fill <- 'split'
-  } else if (type == 'multiViolin' && !is.null(x = split )) {
-    data$split <- split
     vln.geom <- geom_violin
+    fill <- 'split'
+  } else if (type == 'splitViolin' && !is.null(x = split )) {
+    data$split <- split
+    vln.geom <- geom_split_violin
     fill <- 'split'
     type <- 'violin'
   } else {
