@@ -1600,7 +1600,7 @@ SingleSpatialPlot <- function(
   if (!is.null(x = cells.highlight)) {
     plot <- plot + scale_fill_manual(values = cols.highlight)
   }
-  if (!is.null(x = cols)) {
+  if (!is.null(x = cols) && is.null(x = cells.highlight)) {
     if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
       scale <- scale_fill_brewer(palette = cols, na.value = na.value)
     } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
