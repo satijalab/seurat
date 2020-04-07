@@ -28,6 +28,7 @@ NULL
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
+  Seurat.warn.vlnplot.split = TRUE,
   Seurat.checkdots = "warn",
   Seurat.limma.wilcox.msg = TRUE
 )
