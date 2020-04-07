@@ -564,13 +564,12 @@ VlnPlot <- function(
     !is.null(x = split.by) &
     getOption(x = 'Seurat.warn.vlnplot.split', default = TRUE)
   ) {
-    warning(
+    message(
       "The default behaviour of split.by has changed.\n",
       "Separate violin plots are now plotted side-by-side.\n",
       "To restore the old behaviour of a single split violin,\n",
-      "set split.plot = TRUE",
-      call. = FALSE,
-      immediate. = TRUE
+      "set split.plot = TRUE.
+      \nThis message will be shown once per session."
     )
     options(Seurat.warn.vlnplot.split = FALSE)
   }
