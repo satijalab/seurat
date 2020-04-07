@@ -11,6 +11,7 @@ RunUMAP(object, ...)
 
 \method{RunUMAP}{default}(
   object,
+  model.object = NULL,
   assay = NULL,
   umap.method = "uwot",
   n.neighbors = 30L,
@@ -59,6 +60,7 @@ RunUMAP(object, ...)
 
 \method{RunUMAP}{Seurat}(
   object,
+  model.object = NULL,
   dims = NULL,
   reduction = "pca",
   features = NULL,

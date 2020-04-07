@@ -92,7 +92,7 @@ different colors and different shapes on cells}
 
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 
-\item{sort.cell}{Redundant with \code{order}. This argument is being 
+\item{sort.cell}{Redundant with \code{order}. This argument is being
 deprecated. Please use \code{order} instead.}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
