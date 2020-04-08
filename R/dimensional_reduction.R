@@ -1285,15 +1285,21 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      if ( is.null(reduction.model)  ) {
-        stop("If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.")
+      if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
+        stop(
+          "If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.",
+          call. = FALSE
+        )
       }
       model <- reduction.model %||% Misc(
-        object = reduction.model, 
+        object = reduction.model,
         slot = "model"
       )
       if (length(x = model) == 0) {
-        stop("The provided reduction.model does not have a model stored. Please try running umot-learn on the object first")
+        stop(
+          "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
+          call. = FALSE
+        )
       }
       umap_transform(
         X = object,
@@ -1415,7 +1421,7 @@ RunUMAP.Graph <- function(
   return(umap)
 }
 
-#' @param reduction.model \code{DimReduc} object that contains the umap model 
+#' @param reduction.model \code{DimReduc} object that contains the umap model
 #' @param dims Which dimensions to use as input features, used only if
 #' \code{features} is NULL
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
