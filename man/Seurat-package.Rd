@@ -3,7 +3,7 @@
 \docType{package}
 \name{Seurat-package}
 \alias{Seurat-package}
-\title{Tools for single-cell genomics}
+\title{Seurat package}
 \description{
 Tools for single-cell genomics
 }
