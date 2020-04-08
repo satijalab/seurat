@@ -1429,6 +1429,7 @@ RunUMAP.Graph <- function(
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
 #'   \item{\code{uwot}:}{Runs umap via the uwot R package}
+#'   \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
 #'   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 #' }
 #' @param n.neighbors This determines the number of neighboring points used in
