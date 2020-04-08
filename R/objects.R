@@ -4802,7 +4802,7 @@ WhichCells.Assay <- function(
     key.pattern <- paste0('^', Key(object = object))
     expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
       expression
-    } else if (is.call(x = enquo(arg = exression))) {
+    } else if (is.call(x = enquo(arg = expression))) {
       enquo(arg = expression)
     } else {
       parse(text = expression)

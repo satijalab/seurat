@@ -2,6 +2,8 @@
 #'
 #' Tools for single-cell genomics
 #'
+#' Tools for single-cell genomics
+#'
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:

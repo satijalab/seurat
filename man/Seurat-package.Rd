@@ -7,6 +7,9 @@
 \description{
 Tools for single-cell genomics
 }
+\details{
+Tools for single-cell genomics
+}
 \section{Package options}{
 
 
