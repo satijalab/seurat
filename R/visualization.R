@@ -1470,7 +1470,7 @@ FeatureScatter <- function(
   cells <- cells %||% colnames(x = object)
   group.by <- group.by %||% Idents(object = object)[cells]
   if (length(x = group.by) == 1) {
-    group.by <- object[[]][, group.by]
+    group.by <- object[[]][cells, group.by]
   }
   plot <- SingleCorPlot(
     data = FetchData(
