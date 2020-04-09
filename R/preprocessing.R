@@ -832,6 +832,7 @@ ReadAlevin <- function(base.path) {
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #' @param unique.features Make feature names unique (default TRUE)
+#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -857,7 +858,12 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
+Read10X <- function(
+  data.dir = NULL,
+  gene.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+) {
   full.data <- list()
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
@@ -888,7 +894,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
-    if (all(grepl(pattern = "\\-1$", x = cell.names))) {
+    if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
         FUN = ExtractField,
