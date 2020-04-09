@@ -4929,7 +4929,7 @@ WhichCells.Seurat <- function(
     )
     data.subset <- FetchData(
       object = object,
-      vars = expr.char[vars.use],
+      vars = unique(x = expr.char[vars.use]),
       cells = cells,
       slot = slot
     )
