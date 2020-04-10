@@ -1309,6 +1309,12 @@ RenameAssays <- function(object, ...) {
       DefaultAssay(object = object) <- new
     }
     Key(object = object[[new]]) <- old.key
+    # change assay used in any dimreduc object
+    for (i in Reductions(object = object)) {
+      if (DefaultAssay(object = object[[i]]) == old) {
+        DefaultAssay(object = object[[i]]) <- new
+      }
+    }
     object[[old]] <- NULL
   }
   return(object)
