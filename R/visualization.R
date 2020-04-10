@@ -1443,10 +1443,13 @@ CellScatter <- function(
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom patchwork wrap_plots
+#'
 #' @export
 #'
 #' @aliases GenePlot
@@ -1465,28 +1468,42 @@ FeatureScatter <- function(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
+  combine = TRUE,
   slot = 'data'
 ) {
   cells <- cells %||% colnames(x = object)
-  group.by <- group.by %||% Idents(object = object)[cells]
-  if (length(x = group.by) == 1) {
-    group.by <- object[[]][, group.by]
-  }
-  plot <- SingleCorPlot(
-    data = FetchData(
-      object = object,
-      vars = c(feature1, feature2),
-      cells = cells,
-      slot = slot
-    ),
-    col.by = group.by,
-    cols = cols,
-    pt.size = pt.size,
-    smooth = smooth,
-    legend.title = 'Identity',
-    span = span
+  object[['ident']] <- Idents(object = object)
+  group.by <- group.by %||% 'ident'
+  data <-  FetchData(
+    object = object,
+    vars = c(feature1, feature2, group.by),
+    cells = cells,
+    slot = slot
   )
-  return(plot)
+  data <- as.data.frame(x = data)
+  for (group in group.by) {
+    if (!is.factor(x = data[, group])) {
+      data[, group] <- factor(x = data[, group])
+    }
+  }
+  plots <- lapply(
+    X = group.by,
+    FUN = function(x) {
+      SingleCorPlot(
+        data = data[,c(feature1, feature2)],
+        col.by = data[, x],
+        cols = cols,
+        pt.size = pt.size,
+        smooth = smooth,
+        legend.title = 'Identity',
+        span = span
+      )
+    }
+  )
+  if (isTRUE(x = combine)) {
+    plots <- wrap_plots(plots, ncol = length(x = group.by))
+  }
+  return(plots)
 }
 
 #' View variable features
