@@ -1477,7 +1477,6 @@ FeatureScatter <- function(
     slot = slot
   )
   data <- as.data.frame(x = data)
-  group.by <- group.by %||% Idents(object = object)[cells]
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
