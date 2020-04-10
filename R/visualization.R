@@ -1444,12 +1444,12 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-#' 
+#'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
 #' @importFrom patchwork wrap_plots
-#' 
+#'
 #' @export
 #'
 #' @aliases GenePlot
@@ -1468,13 +1468,12 @@ FeatureScatter <- function(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
-  combine = TRUE, 
+  combine = TRUE,
   slot = 'data'
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
-  
   data <-  FetchData(
     object = object,
     vars = c(feature1, feature2, group.by),
@@ -1488,7 +1487,7 @@ FeatureScatter <- function(
     }
   }
   plots <- lapply(
-    X = group.by, 
+    X = group.by,
     FUN = function(x) {
       SingleCorPlot(
         data = data[,c(feature1, feature2)],
