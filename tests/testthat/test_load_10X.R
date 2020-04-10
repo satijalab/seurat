@@ -9,7 +9,7 @@ test_that("Cell Ranger 3.0 Data Parsing", {
   expect_is(test.data, "list")
   expect_equal(ncol(test.data$`Gene Expression`), .5 * ncol(test.data2$`Gene Expression`))
   expect_equal(ncol(test.data$`Antibody Capture`), .5 * ncol(test.data2$`Antibody Capture`))
-  expect_equal(colnames(test.data2[[1]])[6], "2_AAAGTAGCACAGTCGC")
+  expect_equal(colnames(test.data2[[1]])[6], "2_AAAGTAGCACAGTCGC-1")
   expect_equal(test.data$`Gene Expression`[2,2], 1000)
 })
 
@@ -17,7 +17,7 @@ test_that("Cell Ranger 3.0 Data Parsing", {
 test.data3 <- Read10X("../testdata/")
 test_that("Read10X creates sparse matrix", {
   expect_is(test.data3, "dgCMatrix")
-  expect_equal(colnames(test.data3)[1], "ATGCCAGAACGACT")
+  expect_equal(colnames(test.data3)[1], "ATGCCAGAACGACT-1")
   expect_equal(rownames(test.data3)[1], "MS4A1")
 })
 
