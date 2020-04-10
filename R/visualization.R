@@ -3491,7 +3491,7 @@ BlendMap <- function(color.matrix) {
 #
 # @return An n x n matrix of blended colors
 #
-#' @importFrom grDevices rgb colorRamp
+#' @importFrom plotly toRGB
 #
 BlendMatrix <- function(
   n = 10,
@@ -3502,10 +3502,13 @@ BlendMatrix <- function(
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
-  C0 <- colorRamp(colors = negative.color)(1)
-  ramp <- colorRamp(colors = two.colors)
-  C1 <- ramp(x = 0)
-  C2 <- ramp(x = 1)
+  C0 <- as.numeric(strsplit(gsub("[rgba(]|[)]", "" , plotly::toRGB(negative.color)), ",")[[1]])
+  C1 <- as.numeric(strsplit(gsub("[rgba(]|[)]", "" , plotly::toRGB(two.colors[1])), ",")[[1]])
+  C2 <- as.numeric(strsplit(gsub("[rgba(]|[)]", "" , plotly::toRGB(two.colors[2])), ",")[[1]])
+  blend_alpha <- 255*(C1[4] + C2[4])/2
+  C0 <- C0[-4]
+  C1 <- C1[-4]
+  C2 <- C2[-4]
   merge.weight <- min(255 / (C1 + C2 +  C0 + 0.01))
   sigmoid <- function(x) {
     return(1 / (1 + exp(-x)))
@@ -3518,6 +3521,7 @@ BlendMatrix <- function(
     C0,
     C1,
     C2,
+    alpha,
     merge.weight
   ) {
     c.min <- sigmoid(5 * (1 / n - col.threshold))
@@ -3538,10 +3542,10 @@ BlendMatrix <- function(
     C_blend[C_blend > 255] <- 255
     C_blend[C_blend < 0] <- 0
     return(rgb(
-      red = C_blend[, 1],
-      green = C_blend[, 2],
-      blue = C_blend[, 3],
-      alpha = 255,
+      red = C_blend[1],
+      green = C_blend[2],
+      blue = C_blend[3],
+      alpha = alpha,
       maxColorValue = 255
     ))
   }
@@ -3556,6 +3560,7 @@ BlendMatrix <- function(
         C0 = C0,
         C1 = C1,
         C2 = C2,
+        alpha = blend_alpha,
         merge.weight = merge.weight
       )
     }
