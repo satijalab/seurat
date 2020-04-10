@@ -3491,7 +3491,7 @@ BlendMap <- function(color.matrix) {
 #
 # @return An n x n matrix of blended colors
 #
-#' @importFrom plotly toRGB
+#' @importFrom grDevices col2rgb
 #
 BlendMatrix <- function(
   n = 10,
@@ -3502,10 +3502,10 @@ BlendMatrix <- function(
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
-  C0 <- as.numeric(strsplit(gsub("[rgba(]|[)]", "" , plotly::toRGB(negative.color)), ",")[[1]])
-  C1 <- as.numeric(strsplit(gsub("[rgba(]|[)]", "" , plotly::toRGB(two.colors[1])), ",")[[1]])
-  C2 <- as.numeric(strsplit(gsub("[rgba(]|[)]", "" , plotly::toRGB(two.colors[2])), ",")[[1]])
-  blend_alpha <- 255*(C1[4] + C2[4])/2
+  C0 <- as.vector(col2rgb(negative.color, alpha = TRUE))
+  C1 <- as.vector(col2rgb(two.colors[1], alpha = TRUE))
+  C2 <- as.vector(col2rgb(two.colors[2], alpha = TRUE))
+  blend_alpha <- (C1[4] + C2[4])/2
   C0 <- C0[-4]
   C1 <- C1[-4]
   C2 <- C2[-4]
