@@ -1448,6 +1448,8 @@ CellScatter <- function(
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom patchwork wrap_plots
+#' 
 #' @export
 #'
 #' @aliases GenePlot
@@ -1485,22 +1487,22 @@ FeatureScatter <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
-  plots <- lapply(X = group.by, 
-                  FUN = function(x) {
-    plot <- SingleCorPlot(
-    data = data[,c(feature1, feature2)],
-    col.by = data[, x],
-    cols = cols,
-    pt.size = pt.size,
-    smooth = smooth,
-    legend.title = 'Identity',
-    span = span
-  )
-  return(plot)
+  plots <- lapply(
+    X = group.by, 
+    FUN = function(x) {
+      SingleCorPlot(
+        data = data[,c(feature1, feature2)],
+        col.by = data[, x],
+        cols = cols,
+        pt.size = pt.size,
+        smooth = smooth,
+        legend.title = 'Identity',
+        span = span
+      )
     }
   )
-  if (combine) {
-    plots <- wrap_plots(plots, ncol = length(group.by))
+  if (isTRUE(x = combine)) {
+    plots <- wrap_plots(plots, ncol = length(x = group.by))
   }
   return(plots)
 }

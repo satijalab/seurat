@@ -16,6 +16,7 @@ FeatureScatter(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
+  combine = TRUE,
   slot = "data"
 )
 }
@@ -41,6 +42,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{span}{Spline span in loess function call, if \code{NULL}, no spline added}
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}}
 
 \item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
 }
