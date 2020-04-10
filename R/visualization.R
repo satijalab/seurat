@@ -1472,16 +1472,16 @@ FeatureScatter <- function(
   slot = 'data'
 ) {
   cells <- cells %||% colnames(x = object)
+  object[['ident']] <- Idents(object = object)
+  group.by <- group.by %||% 'ident'
+  
   data <-  FetchData(
     object = object,
-    vars = c(feature1, feature2),
+    vars = c(feature1, feature2, group.by),
     cells = cells,
     slot = slot
   )
   data <- as.data.frame(x = data)
-  object[['ident']] <- Idents(object = object)
-  group.by <- group.by %||% 'ident'
-  data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
