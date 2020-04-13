@@ -799,3 +799,850 @@ RunModularityClustering <- function(
   )
   return(clusters)
 }
+
+
+
+# Find subclusters under one cluster
+#' @param object a seurat object
+#' @param cluster the cluster needed to be subclustered
+#' @param graph.name the name of graph used for clustering
+#' @param subcluster.name the name of sub cluster added in the meta.data
+#' @param resolution.sub Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
+
+FindSubCluster <- function(object, 
+                           cluster, 
+                           graph.name,
+                           subcluster.name = "sub.cluster",
+                           resolution.sub = 1, 
+                           algorithm = 1
+){
+  sub.obj <- subset(object, idents = cluster)
+  sub.obj[[graph.name]]   <- as.Graph(object[[graph.name]][Cells(sub.obj), Cells(sub.obj)])
+  sub.obj <- FindClusters(sub.obj, graph.name = graph.name, resolution = resolution.sub, algorithm = algorithm)
+  Idents(sub.obj) <- paste(cluster , Idents(sub.obj), sep = "_")
+  
+  object@meta.data[, subcluster.name] <- as.character(Idents(object))
+  object@meta.data[Cells(sub.obj), subcluster.name] <- as.character(Idents(sub.obj))
+  return(object)
+}
+
+#' Predict expression value from knn
+#'
+#' @param object The object used to calculate knn
+#' @param nn.idx k near neighbour indices. A cells x k matrix.
+#' @param assay Assay used for prediction
+#' @param reduction Cell embedding of the reduction used for prediction
+#' @param dims Number of dimensions of cell embedding
+#' @param slot slot used for prediction
+#' @param features features used for prediction
+#' @param mean.type the type of mean, 	arithmetic mean (amean) or geometric mean (gmean)
+#'
+#' @importFrom pbapply pbapply
+#' @importFrom future.apply future_apply
+#' @importFrom future nbrOfWorkers
+#' @importFrom sctransform row_gmean
+#'
+#' @return return an assay containing predicted expression value in the data slot
+#' @export
+#' 
+PredictAssay <- function(
+  object,
+  nn.idx,
+  assay,
+  reduction = NULL,
+  dims = NULL, 
+  return.assay = TRUE,
+  cells = NULL,
+  slot = "scale.data",
+  features = NULL,
+  mean.type = NULL,
+  verbose = TRUE
+){
+  if(is.null(mean.type)){
+    mean.type <- "amean"
+  }
+  if(is.null(reduction)){
+    reference.data <- GetAssayData(object = object,
+                                   assay = assay,
+                                   slot = slot)
+    if(is.null(features)){
+      features <- VariableFeatures(object[[assay]])
+      if (length(features) == 0){
+        message("VariableFeatures are empty in the ",assay," assay, features in the ", slot, " slot will be used" )
+        features <- rownames(reference.data)
+        if (length(features) == 0){
+          stop("No features in the ",slot, " slot of the assay ",assay )
+        }
+      }
+    }
+    reference.data <- reference.data[features, ]
+  } else{
+    if(is.null(dims)){
+      stop("dims is empty")
+    }
+    reference.data <- t(object[[reduction]]@cell.embeddings[,dims ])
+  }
+  if(nrow(nn.idx) > 1){
+    if ( all(nn.idx[1:10,1] == 1:10 )){
+      if(verbose){
+        message("The nearest neighbor is the query cell itself, and it will not be used for prediction")
+      }
+      nn.idx <- nn.idx[,-1]
+    }
+    if (mean.type =="gmean") {
+      predicted <- apply(nn.idx,
+                         1,
+                         function(x) sctransform:::row_gmean(reference.data[,x]))
+    }else if (mean.type == "ExpMean") {
+      predicted <- apply(nn.idx,
+                         1,
+                         function(x) FastExpMean(reference.data[,x], display_progress = F))
+    } else {
+      predicted <- apply(nn.idx,
+                         1,
+                         function(x) rowMeans(reference.data[,x], 
+                                              na.rm = T)    )
+    } 
+  } else if(nrow(nn.idx) ==1){
+    if(verbose){
+      message("Only one cell's neighbors are given, and the first one will not be used for prediction")
+    }
+    nn.idx <- nn.idx[,-1]
+    predicted <-  rowMeans(reference.data[,nn.idx],  na.rm = T)
+    predicted <- as.matrix(predicted)
+  }
+  if(is.null(cells)){
+    cells <-  Cells(object)
+  }
+  colnames(predicted) <- cells
+  if(return.assay){
+    predicted.assay <- CreateAssayObject(data = predicted)
+    return(predicted.assay)
+  } else{
+    return(predicted)
+  }
+}
+
+
+
+# Find multi-model neighbors 
+#
+#' @param object The object used to calculate knn
+#' @param k.nn .Number of nearest multi-model neighbors to compute
+#' @param reduction.list A list of reduction name 
+#' @param dims.list A list of dimentions used for the reduction
+#' @param knn.range The number of approximate neighbors to compute
+#' @param modality.weight the cell-specific modeality weights
+#' @param verbose Whether or not to print output to the console
+#'
+#' @return return a list containing nn index and nn multi-model distance
+#' @export
+#' 
+MultiModelNN <- function(object, 
+                    k.nn = 20, 
+                    reduction.list,
+                    dims.list,
+                    knn.range = 200,
+                    modality.weight = NULL,
+                    verbose = TRUE
+){
+  if( is.null(modality.weight)){
+    modality.weight <- lapply(X = 1:length(reduction.list),
+                              FUN = function(r) rep( 1/length(reduction.list), ncol(object)) )
+  }
+  if(!is.list(modality.weight)){
+    modality.weight <- list(modality.weight, (1 - modality.weight))
+  }
+  redunction_embedding <- lapply( X = 1:length(reduction.list), 
+                                  FUN = function(x) {
+                                    Embeddings(object[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
+                                  })
+  redunction_nn <- lapply( X = 1:length(reduction.list), 
+                           FUN = function(x){
+                             NNHelper(data = redunction_embedding[[x]],
+                                      k = knn.range,
+                                      method = 'annoy',
+                                      metric = "cosine") })
+  # convert cosine distance to cosine simialrity
+  redunction_distance <- lapply(X = redunction_nn, 
+                                FUN = function(x) 1- (x$nn.dists[ , -1]**2)/2)
+  # union of rna and adt nn, remove itself from neighobors
+  redunction_nn <- lapply(X = redunction_nn , 
+                          FUN = function(x)  x$nn.idx[, -1]  )
+  nn_idx <- lapply( X = 1:ncol(object) , 
+                    FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
+  # oranize distance for each neighbor, for cell without distance fill up with 0.1
+  nn_dist <- lapply( X = 1:length(reduction.list) , 
+                     FUN = function(r){
+                       lapply(X = 1:length(nn_idx),
+                              FUN = function(x){
+                                dist = redunction_distance[[r]][x,  match(nn_idx[[x]], redunction_nn[[r]][x,]) ] 
+                                dist[ which(is.na(dist))] <- 0.1
+                                return(dist)
+                              } )
+                     })
+  # convert costine to angular
+  nn_annoy_dist <- lapply( X = 1:length(reduction.list) , 
+                           FUN = function(r){
+                             lapply(  X = nn_dist[[r]] , FUN = function(cosine) 1 - 2*acos(cosine)/pi )
+                           })
+  # convert costine to projection similarity
+  redunction_embedding.len <- lapply(X = 1:length(reduction.list) ,  
+                                     FUN = function(r) sqrt(rowSums(redunction_embedding[[r]]**2)))
+  nn_projection_dist <- lapply(X = 1:length(reduction.list),  
+                               FUN = function(r){
+                                 lapply(  X = 1:ncol(object),
+                                          FUN = function(x) {nn_dist[[r]][[x]] * 
+                                              redunction_embedding.len[[r]][ nn_idx[[x]] ] /
+                                              redunction_embedding.len[[r]][ x ]} 
+                                 )
+                               })
+  # modality weighted distance
+  nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
+                             FUN = function(r){
+                               lapply(  X = 1:ncol(object),
+                                        FUN = function(x){
+                                          nn_annoy_dist[[r]][[x]] *
+                                            nn_projection_dist[[r]][[x]] *
+                                            modality.weight[[r]][x]}
+                               )
+                             })
+  nn_weighted_dist <- sapply(1:ncol(object), 
+                             FUN =  function(x){ 
+                               Reduce("+", 
+                                      lapply( X = 1:length(reduction.list), 
+                                              FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
+                             })
+  # select k nearest joint neighbors
+  select_idx <-  lapply( X = nn_weighted_dist,
+                         FUN = function(dist){
+                           which(rank(dist*-1) <= (k.nn))
+                         })
+  select_nn <- t(sapply( X = 1:ncol(object),
+                         FUN = function(x) nn_idx[[x]][select_idx[[x]]])
+  )
+  select_dist <- t(sapply( X = 1:ncol(object), 
+                           FUN = function(x) nn_weighted_dist[[x]][select_idx[[x]]])
+  )
+  rownames(select_nn) <- rownames(select_dist) <- Cells(object)
+  joint.nn <- list(select_nn, select_dist)
+  names(joint.nn) <- c("nn.idx", "nn.dists")
+  return(joint.nn)
+}
+
+
+#' Multimodel KNN and SNN Graph Construction
+#' 
+#' @param object The object used to calculate knn
+#' @param reduction.list A list of reduction name 
+#' @param dims.list A list of dimentions used for the reduction
+#' @param k.nn .Number of nearest multi-model neighbors to compute
+#' @param knn.range The number of approximate neighbors to compute
+#' @param knn.graph.name The name of multi-model knn graph
+#' @param snn.graph.name The name of multi-model snn graph
+#' @param joint.nn.name The name of multi-model neighbors
+#' @param modality.weight the cell-specific modeality weights
+#' @param verbose Whether or not to print output to the console
+#' 
+#' @return return an object containing multi-model KNN, SNN and neighbors
+#' @export
+FindMultiModelNeighbors <-  function(object, 
+                                     reduction.list,
+                                     dims.list,
+                                     k.nn = 20, 
+                                     knn.range = 200,
+                                     knn.graph.name = "jknn",
+                                     snn.graph.name = "jsnn",
+                                     joint.nn.name = "joint.nn",
+                                     modality.weight = NULL,
+                                     verbose = TRUE
+){
+  joint.nn <- MultiModelNN(object = object, 
+                      k.nn = k.nn, 
+                      reduction.list =reduction.list, 
+                      dims.list = dims.list, knn.range = knn.range, 
+                      modality.weight = modality.weight, 
+                      verbose = verbose )
+  select_nn <- joint.nn$nn.idx
+  j <- as.numeric(x = t(x = select_nn ))
+  i <- ((1:length(x = j)) - 1) %/% k.nn + 1
+  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1, dims = c(ncol(x = object), ncol(x = object))), Class = "Graph")
+  rownames(x = nn.matrix) <-  colnames(x = nn.matrix) <- colnames(x = object)
+  suppressWarnings(object[[knn.graph.name]] <- nn.matrix)
+  snn.matrix <- knn_snn_graph(object, nn.matrix)
+  suppressWarnings(object[[snn.graph.name]] <- as(object = snn.matrix, Class = "Graph"))
+  suppressWarnings(  Misc(object, slot = joint.nn.name) <- joint.nn)
+  return(object)
+}
+
+
+
+#' Calculate modality weights
+#'
+#' @param object A Seurat object
+#' @param assay.list A list of names of assays
+#' @param reduction.list A list of name of dimension reduction 
+#' @param dims.list A list of number of dimensions to use
+#' @param knn.list A list of number of nearest neighbors to use
+#' @param type.list A list of name of datatype, such as RNA, ATAC.
+#' @param feature.list A list of features for different modality
+#' @param slot.list  A list of slots 
+#' @param num.boot The number of bootstrapping
+#' @param nn.metric distance metric for finding neighbors
+#' @param score.c the minimal cross modality prediction similarity
+#' @param max.modality_score the maximal modality score
+#' @param seed seed for bootstrapping
+#' @param verbose Display messages
+#'
+#' @return Returns a list of similarities
+#' @export
+#' 
+FindModalityWeights <- function(object,
+                                assay.list, 
+                                reduction.list, 
+                                dims.list, 
+                                knn.list = NULL,
+                                type.list = NULL,
+                                num.boot = 2, 
+                                nn.metric = "cosine",
+                                feature.list = NULL,
+                                slot.list = NULL,
+                                mean.type = NULL,
+                                seed = 1628, 
+                                stdev.weight = TRUE, 
+                                max.modality_score = 20, 
+                                score.c = list(0.1, 0.1),
+                                verbose = TRUE
+){
+  if(!is.list(reduction.list)){
+    reduction.list <- as.list(reduction.list)
+  }
+  if(!is.list(assay.list)){
+    assay.list <- as.list(assay.list)
+  }
+  if( length( unique(unlist(reduction.list))) < length(reduction.list) |
+      length( unique(unlist(assay.list))) < length(assay.list) ){
+    stop("assay.list and reduction.list require unique input assays and reductions")
+  }
+  if(!is.list(dims.list)){
+    stop("dims.list require a list of dims for reductions")
+  }
+  if(is.null(knn.list)){
+    knn.list <- list(20,20)
+  }
+  if(is.null(slot.list)){
+    slot.list <- list("scale.data", "scale.data")
+  }
+  if(is.null(type.list)){
+    type.list <- list("RNA", "RNA")
+  }
+  if(is.null(feature.list )){
+    feature.list <- lapply( X = 1:length(assay.list), FUN = function(a) rownames( object[[ reduction.list[[a]] ]]@feature.loadings ) )  
+  }
+  if(!is.list(knn.list)){
+    knn.list <- as.list(knn.list)
+  }
+  if(!is.list(slot.list)){
+    slot.list <- as.list(slot.list)
+  }
+  if(!is.list(type.list)){
+    type.list <- as.list(type.list)
+  }
+  names(score.c) <- names(type.list) <- names(feature.list) <- names(slot.list) <- names(reduction.list) <- names(assay.list) <- names(dims.list) <- names(knn.list) <- unlist(assay.list)
+  set.seed(seed)
+  proj.embedding.boot <- list()
+  proj.loading.boot <- list()
+  if(num.boot > 0){
+    boot.list <- lapply( X = 1: num.boot,
+                         FUN = function(x){
+                           sample(x = 1:ncol(object), size = ncol(object), replace = T)
+                         })
+    total.loss <- list()
+    if(verbose){
+      message("Building bootstraping PCA")
+      pb <- txtProgressBar(min = 0, max = length(boot.list), style = 3)
+    }
+    for (f in 1:length(boot.list)){
+      feature.multi <- feature.list 
+      boot.multi <- lapply( X = assay.list, 
+                            FUN = function(assay){
+                              GetAssayData(object = object, 
+                                           assay = assay, 
+                                           slot = slot.list[[assay]] )[ feature.multi[[assay]], boot.list[[f]] ]
+                            }) 
+      boot.pca.multi <- lapply( X = assay.list, 
+                                FUN = function(assay){
+                                  RunSVD.bootstrapping(object = object,
+                                                       boot.object = boot.multi[[assay]], 
+                                                       npcs = max(50, dims.list[[assay]]),
+                                                       reduction = reduction.list[[assay]],
+                                                       type = type.list[[assay]],
+                                                       dims =  dims.list[[assay]],
+                                                       assay = assay,
+                                                       slot = slot.list[[assay]],
+                                                       verbose = FALSE)
+                                })
+      proj.embedding.boot[[f]] <- lapply(X =  assay.list, 
+                                         FUN = function(assay){
+                                           boot.pca.multi[[assay]]@cell.embeddings
+                                         })
+      
+      proj.loading.boot[[f]] <- lapply(X =  assay.list,
+                                       FUN = function(assay){
+                                         boot.pca.multi[[assay]]@feature.loadings 
+                                       })
+      if(verbose){
+        setTxtProgressBar(pb, f)
+      }
+    }
+    if(verbose){
+      close(pb)
+    }
+  } else{
+    proj.embedding.boot[[1]] <- lapply(X =  assay.list,
+                                       FUN = function(assay) {
+                                         object[[reduction.list[[assay]]]]@cell.embeddings[ , dims.list[[assay]]]
+                                       })
+  }
+  modality.weight <- ModalityWeights(object = object, 
+                                     bootstrap.embedding.list =  proj.embedding.boot,
+                                     assay.list = assay.list,
+                                     reduction.list = reduction.list,
+                                     dims.list = dims.list, 
+                                     knn.list = knn.list,
+                                     mean.type = mean.type,
+                                     nn.metric = nn.metric, 
+                                     score.c = score.c,
+                                     stdev.weight = stdev.weight, 
+                                     max.modality_score = max.modality_score,
+                                     verbose = verbose)
+  return( modality.weight )
+}
+
+
+
+#' Dimensional reduction for FindModalityWeights.Multi
+#'
+#' @param object A Seurat object
+#' @param assay Assay name added in the reduction assay
+#' @param type Data type, such as RNA, ATAC
+#' @param npcs The number of PC calculated
+#' @param verbose Display messages
+#'
+#' @return Returns a reduction assay
+
+RunSVD.bootstrapping <- function(object, 
+                                 boot.object,
+                                 assay,
+                                 reduction, 
+                                 dims,
+                                 type = "RNA", 
+                                 npcs = 50, 
+                                 slot, 
+                                 verbose = FALSE){
+  if(type =="ATAC"){
+    npcs <- min(npcs, nrow(x = boot.object) - 1)
+    svd.results <- irlba(A = t(x = boot.object), nv = npcs)
+    feature.loadings <- svd.results$v[, dims]
+    sdev <- svd.results$d[dims]
+    boot.feature <- rownames(feature.loadings) <- rownames(boot.object)
+    cell.embeddings <- t( GetAssayData(object = object, 
+                                       assay = assay,
+                                       slot = slot )[boot.feature, ]) %*% 
+      feature.loadings[ boot.feature, ] %*% diag(1/sdev)
+    embed.mean <- apply(X =  svd.results$u[ ,dims], MARGIN = 2, FUN = mean)
+    embed.sd <- apply(X =  svd.results$u[ ,dims], MARGIN = 2, FUN = sd)
+    norm.cell.embeddings <- t((t(cell.embeddings) - embed.mean) / embed.sd)
+    rownames(x = feature.loadings) <- rownames(x = boot.object)
+    colnames(x = norm.cell.embeddings) <- colnames(x = feature.loadings) <- paste0("LSI_", dims)
+    reduction.data <- CreateDimReducObject(
+      embeddings = as.matrix(norm.cell.embeddings),
+      loadings = feature.loadings,
+      assay = assay,
+      stdev = sdev,
+      key = "LSI_"
+    )
+  } else{
+    boot.object <- ScaleData(boot.object, do.scale = FALSE, do.center = TRUE, verbose = FALSE ) 
+    boot.reduction.data <- suppressWarnings( RunPCA(boot.object, npcs =  npcs ,assay = assay, verbose = verbose))
+    boot.feature <- rownames(boot.reduction.data@feature.loadings)
+    cell.embeddings <- t( GetAssayData(object = object, 
+                                       assay = assay,
+                                       slot = slot )[boot.feature, ] ) %*% 
+      boot.reduction.data@feature.loadings[ boot.feature, dims] 
+    reduction.data <- CreateDimReducObject(
+      embeddings = cell.embeddings,
+      loadings = boot.reduction.data@feature.loadings[,dims],
+      assay = assay,
+      stdev = boot.reduction.data@stdev[dims],
+      key = "PC_"
+    )
+  }
+  return(reduction.data)
+}
+
+#' Calculate cosine times projection similarity 
+#' given boostatrping embeddings
+#'
+#' @param object A Seurat object
+#' @param bootstrap.embedding.list A list of bootstaping cell embeddings
+#' @param assay.list A list of names of assays
+#' @param reduction.list A list of name of dimension reduction 
+#' @param dims.list A list of number of dimensions to use
+#' @param knn.list A list of number of nearest neighbors to use
+#' @param mean.type the mean method to average neighbors
+#' @param nn.metric distance metric for finding neighbors
+#' @param clip.range clip range of similarity
+#' @param score.c a list of the minimal cross modality prediction similarity
+#' @param max.modality_score the maximal modality score
+#' @param verbose Display messages
+#' 
+#' @importFrom pracma dot
+#' @return Returns a vector of angular distance to x
+#' 
+ModalityWeights <- function(object,
+                            bootstrap.embedding.list,
+                            assay.list,
+                            reduction.list, 
+                            dims.list,
+                            knn.list = NULL, 
+                            mean.type = NULL,
+                            nn.metric = "cosine",
+                            score.c = list(0.1, 0.1), 
+                            stdev.weight = TRUE,
+                            max.modality_score = 20, 
+                            clip.range = c(0.01, 1), 
+                            verbose = TRUE){
+  feature.multi <- lapply( X = assay.list, FUN = function(assay) rownames(object[[reduction.list[[assay]]]]@feature.loadings) )
+  assay.comb <-  as.data.frame(gtools::permutations(n = length(assay.list), r = 2,v = unlist(assay.list),  repeats.allowed = T))
+  colnames(assay.comb) <- c("assay", "nn")
+  assay.comb$assay <- as.character(assay.comb$assay)
+  assay.comb$nn <- as.character(assay.comb$nn)
+  
+  projcos.multi.boot <- list()
+  embedding.multi <- lapply( X = assay.list,
+                             FUN = function(assay){
+                               t(object[[reduction.list[[assay]]]]@cell.embeddings[ , dims.list[[assay]]] )
+                             } ) 
+  embedding.dot.product.multi <- lapply( X = embedding.multi, 
+                                         FUN = function(embedding){
+                                           colSums(matrixcalc::hadamard.prod(embedding, embedding  ))  
+                                         } )
+  if(verbose){
+    message("Predicting modality weights")
+    pb <- txtProgressBar(min = 0, max = length(  length(bootstrap.embedding.list[[1]])), style = 3)
+  }
+  for (b in 1:length(bootstrap.embedding.list)){
+    bs_nn.multi <- lapply(X = assay.list,
+                          FUN = function(assay){
+                            NNHelper( data = bootstrap.embedding.list[[b]][[assay]],
+                                      k = knn.list[[assay]],
+                                      method = "annoy", 
+                                      metric = nn.metric) 
+                          })
+    bs_nn.multi <- lapply(X = bs_nn.multi, FUN = function(nn){ rownames(nn$nn.idx)<- Cells(object) ; nn} )
+    projcos.multi.boot[[b]] <- lapply( X = 1:nrow(assay.comb), 
+                                       FUN =  function(c){
+                                         projcosine(object = object, 
+                                                    nn.idx = bs_nn.multi[[ assay.comb[c,"nn"] ]]$nn.idx, 
+                                                    reduction.list = reduction.list[[assay.comb[c,"assay"]]], 
+                                                    dims.list = dims.list[[ assay.comb[c,"assay"] ]], 
+                                                    embedding.dot.product = embedding.dot.product.multi[[ assay.comb[c,"assay"]]],
+                                                    embedding.list = embedding.multi[[ assay.comb[c,"assay"] ]]  )
+                                       })
+    if(verbose){
+      setTxtProgressBar(pb, b)
+    }
+  }
+  if(verbose){
+    close(pb)
+  }
+  proj.multi.mean <- lapply(X = 1:nrow(assay.comb), 
+                            FUN = function(c){
+                              rowMeans( 
+                                sapply(X = 1:length(projcos.multi.boot), 
+                                       FUN = function(b) projcos.multi.boot[[b]][[c]]$proj.similarity[[1]] )
+                              )
+                            }  )
+  proj.multi.mean <- lapply(X = proj.multi.mean, 
+                            FUN = function(proj){ 
+                              MinMax( data = proj, min = min(clip.range), max = max(clip.range) ) 
+                            })
+  cosine.multi.mean <- lapply(X = 1:nrow(assay.comb), 
+                              FUN = function(c){
+                                rowMeans( 
+                                  sapply(X = 1:length(projcos.multi.boot), 
+                                         FUN = function(b) projcos.multi.boot[[b]][[c]]$cosine.similarity[[1]] ) 
+                                )
+                              })
+  cosine.multi.mean <- lapply(X = cosine.multi.mean, 
+                              FUN = function(cosine){
+                                MinMax( data = cosine, min = min(clip.range), max = max(clip.range) ) 
+                              })
+  proj_cosine <- lapply(X = 1:nrow(assay.comb), 
+                        FUN = function(c)  cosine.multi.mean[[c]] * proj.multi.mean[[c]]   )
+  if(stdev.weight){
+    modality_score <- lapply(X = assay.list,
+                             FUN =  function(assay){
+                               (sd(object[[reduction.list[[assay]]]]@stdev) / mean( object[[reduction.list[[assay]]]]@stdev))*
+                                 (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn == assay ) ]] ) / 
+                                 (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn != assay ) ]] + score.c[[assay]])
+                             }  )
+  } else{
+    modality_score <- lapply(X = assay.list, 
+                             FUN = function(assay){
+                               (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn == assay ) ]] ) / 
+                                 (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn != assay ) ]] + score.c[[assay]]   )
+                             })
+  }
+  modality_score <- lapply(X = modality_score,
+                           FUN = function(score) {
+                             MinMax(score, min = 0, max = max.modality_score)
+                           })                
+  first.modality.weight <- exp(modality_score[[1]]) / (exp(modality_score[[1]]) + exp(modality_score[[2]]))
+  weight.list <- list(  proj_cosine,  modality_score , first.modality.weight)
+  names(weight.list) <-c(  "proj_cosine",  "modality_score" , "first.modality.weight")
+  return(weight.list)
+}
+
+
+
+#' Calculate cosine times projection similarity given the knn indices
+#'
+#' @param object A Seurat object
+#' @param nn.idx k near neighbour indices. A cells x k matrix.
+#' @param assay.rna Name of the RNA assay
+#' @param assay.adt Name of the ADT assay
+#' @param reduction.rna Name of dimension reduction for the RNA assay
+#' @param reduction.adt Name of dimension reduction for the ADT assay
+#' @param dims.rna Number of dimensions to use for the RNA assay
+#' @param dims.adt Number of dimensions to use for the ADT assay
+#' @param verbose Display messages
+#' 
+#' @importFrom pracma dot
+#' @return Returns a list of similarities
+#' 
+projcosine <- function(object, 
+                       nn.idx,
+                       embedding.list = NULL,
+                       embedding.dot.product = NULL, 
+                       reduction.list, 
+                       dims.list,
+                       mean.type = NULL,
+                       verbose = FALSE
+){
+  if(is.null(embedding.list)){
+    embedding.list <- lapply( X = 1:length(reduction.list),
+                              FUN = function(r){
+                                t(Embeddings(object = object, reduction = reduction.list[[r]])[, dims.list[[r]]] )
+                              }
+    )
+    embedding.dot.product <- lapply( X = embedding.list, 
+                                     FUN = function(embedding){
+                                       colSums(matrixcalc::hadamard.prod(embedding, embedding))
+                                     } )
+  }
+  if(!is.list(embedding.list)){
+    embedding.list <- list(embedding.list)
+  }
+  if(!is.list(embedding.dot.product)){
+    embedding.dot.product <- list(embedding.dot.product)
+  }
+  if(!is.list(reduction.list)){
+    reduction.list <- list(reduction.list)
+  }
+  if(!is.list(dims.list)){
+    dims.list <- list(dims.list)
+  }
+  
+  predict.embedding.list <- lapply(1:length(reduction.list), 
+                                   FUN = function(r){
+                                     PredictAssay(object = object, 
+                                                  reduction = reduction.list[[r]],
+                                                  dims =  dims.list[[r]],
+                                                  mean.type = mean.type,
+                                                  nn.idx = nn.idx,
+                                                  return.assay = F,
+                                                  verbose = verbose )
+                                   }  )
+  proj.similarity <- lapply(X = 1:length(reduction.list),
+                            FUN = function(r){
+                              colSums(matrixcalc::hadamard.prod(predict.embedding.list[[r]], embedding.list[[r]]  )) / 
+                                embedding.dot.product[[r]]  
+                            })
+  cosine.similarity <- lapply(X = 1:length(reduction.list), 
+                              FUN = function(r){
+                                proj.similarity[[r]] * 
+                                  sqrt(embedding.dot.product[[r]] ) / 
+                                  sqrt(colSums(
+                                    matrixcalc::hadamard.prod(predict.embedding.list[[r]],predict.embedding.list[[r]])))  
+                              } )
+  cosine.similarity <- lapply(X = cosine.similarity, 
+                              FUN = function(cosine) {
+                                1 - 2*acos(cosine)/pi
+                              } )
+  loss.list <- list(proj.similarity, cosine.similarity )
+  names(loss.list) <-c("proj.similarity", "cosine.similarity")
+  return(loss.list)
+}
+
+
+#' Joint linear discriminant analysis
+#' It is used to interprete the joint clustering results
+#' to deconvulte the combination of different modalities
+#' @param object A Seurat object
+#' @param reduction.list A list of name of dimention reduction
+#' @param dims.list A list of number of dimention 
+#' @param labels Observation labels for LDA
+#' @param lda.weight.name The name of modality weights stored
+#' @param new.assay The name of assay used for multiple reduction 
+#' cell embeddings
+#' @param new.reduction.name name of LDA redunction name, lda by default
+#' @param new.reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. LDA_ by default
+#' 
+#' @export
+#'
+JointLDA <- function(object, 
+                     reduction.list, 
+                     dims.list, 
+                     labels,
+                     lda.weight.name = "RNA.lda.weight", 
+                     new.assay= "Reduc", 
+                     new.reduction.name = "lda",
+                     new.reduction.key = "LDA_"
+){
+  
+  joint.embedding <- cbind(object[[reduction.list[[1]]]]@cell.embeddings[, dims.list[[1]]] , 
+                           object[[reduction.list[[2]]]]@cell.embeddings[, dims.list[[2]]] )
+  object[[new.assay]] <- CreateAssayObject(data = t(joint.embedding))
+  DefaultAssay(object) <- new.assay
+  object <- ScaleData(object, assay = new.assay, do.center = T, do.scale = F)
+  object <- RunLDA.Seurat(object = object, 
+                          assay = new.assay, 
+                          labels = as.character(labels), 
+                          features = rownames(object[[new.assay]]),
+                          reduction.name = new.reduction.name,
+                          reduction.key =  new.reduction.key )
+  
+  #calculate modality weights in LDA
+  lda.weight <- sapply(X = 1:ncol(object[[new.reduction.name]] ), 
+                       FUN = function(x){
+                         mean(abs(object[[new.reduction.name]]@feature.loadings[dims.list[[1]] ,x])) / 
+                           (mean(abs(object[[new.reduction.name]]@feature.loadings[1 : length(dims.list[[1]]) ,x])) + 
+                              mean(abs(object[[new.reduction.name]]@feature.loadings[(length(dims.list[[1]])+1):(length(dims.list[[1]]) + length(dims.list[[2]]) ),x]))
+                           )  
+                       })
+  
+  object[[new.reduction.name]]@misc[[lda.weight.name]] <- lda.weight
+  return(object)
+}
+
+
+
+FilterADT <- function(object, 
+                      assay = "ADT", 
+                      dims, 
+                      reduction = "pca",
+                      slot = "data", 
+                      overlap.cutoff = 10, 
+                      k.nn = 30, 
+                      positive.probs = 0.9,
+                      negative.probs = 0.1
+){
+  
+  count.overlap.list <- list()
+  adt.cutoff.list <- list()
+  adt.cutoff.list.low <- list()
+  adt.data <- GetAssayData(object = object, assay = assay, slot = slot )
+  feature.adt.set <- rownames(adt.data)
+  
+  for (f in 1:length(feature.adt.set)){
+    
+    feature.adt <- feature.adt.set[f]
+    
+    adt.cutoff <- quantile(x = adt.data[feature.adt, ], probs = positive.probs)
+    
+    
+    adt.cutoff.list[[f]] <- adt.cutoff
+    adt.cutoff.list.low[[f]] <-  quantile(x = adt.data[feature.adt, ], probs = negative.probs)
+    if( adt.cutoff.list.low[[f]] == adt.cutoff.list[[f]] ){
+      adt.cutoff.list[[f]] <- quantile(x = adt.data[feature.adt, ], probs = 1)
+    }
+    
+    positive.idx <- which(adt.data[feature.adt, ] >= adt.cutoff)
+    positive.cell <- Cells(object)[positive.idx]
+    
+    postive.nn <- NNHelper(data = object[[reduction]]@cell.embeddings[, dims], 
+                           query = object[[reduction]]@cell.embeddings[positive.cell, dims], 
+                           k = k.nn, 
+                           method = "annoy"   )
+    
+    overlap.pos <- function(x, y ) length(intersect(x, y))
+    positive.nn.cover <- apply(X = postive.nn$nn.idx[,-1], MARGIN = 1 , y = positive.idx, FUN =  overlap.pos)
+    
+    
+    count.overlap.list[[f]] <- sum(positive.nn.cover > overlap.cutoff)
+  }
+  
+  names(count.overlap.list) <- names(adt.cutoff.list) <- names(adt.cutoff.list.low) <- feature.adt.set
+  count.overlap.list <- unlist(count.overlap.list)
+  adt.cutoff.list <- unlist(adt.cutoff.list)
+  adt.cutoff.list.low <- unlist(adt.cutoff.list.low)
+  
+  #count.overlap.list <- unlist(count.overlap.list)
+  return( list(count.overlap.list, adt.cutoff.list, adt.cutoff.list.low))
+}
+
+
+
+#' Convert knn into snn
+#'
+#' @param object A Seurat object
+#' @param wknn.use knn graph
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
+#' computing the neighborhood overlap for the SNN construction.
+#'
+#' @importFrom Matrix tcrossprod
+#' @return Returns a snn matrix
+#' 
+knn_snn_graph <- function(object,
+                          wknn.use, 
+                          prune.SNN = 1/15){
+  k.overlap <- wknn.use %*% Matrix::t(wknn.use)
+  wsnn.joint <- k.overlap/Matrix::diag(k.overlap)
+  joint.summary <- Matrix::summary(wsnn.joint)
+  joint.summary <- joint.summary[joint.summary$x > prune.SNN,]
+  joint.summary$x[joint.summary$x > 1] <- 1
+  wsnn.joint.2 <- sparseMatrix(i = joint.summary$i,
+                               j = joint.summary$j,
+                               x = joint.summary$x,
+                               dims = c(nrow(wsnn.joint), ncol(wsnn.joint))
+  )
+  rownames(wsnn.joint.2) <- Cells(object)
+  colnames(wsnn.joint.2) <- Cells(object)
+  return(wsnn.joint.2)
+}
+
+
+#' Calculate angular distance
+#'
+#' @param x a vector of number
+#' @param y a vector of number, or a matrix
+#' @importFrom rdist cdist
+#' @return Returns a vector of angular distance to x
+#' 
+angular <- function(x,y){
+  if( is.null(ncol(x)) & is.null( ncol(y))){
+    return(  rdist::cdist(t(x),t(y), metric = "angular")*2/pi )
+  } else{
+    dist.vector <- sapply(1:nrow(y), function(c)  rdist::cdist(t(x),t(y[c,]), metric = "angular")*2/pi )
+    return(dist.vector)
+  }
+  
+}
+
