@@ -1480,6 +1480,12 @@ FeatureScatter <- function(
     cells = cells,
     slot = slot
   )
+  if (isFALSE(x = feature1 %in% colnames(x = data))) {
+    stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
+  }
+  if (isFALSE(x = feature2 %in% colnames(x = data))) {
+    stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
+  }
   data <- as.data.frame(x = data)
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
@@ -1500,6 +1506,9 @@ FeatureScatter <- function(
       )
     }
   )
+  if (isTRUE(x = length(x = plots) == 1)) {
+    return(plots[[1]])
+  }
   if (isTRUE(x = combine)) {
     plots <- wrap_plots(plots, ncol = length(x = group.by))
   }

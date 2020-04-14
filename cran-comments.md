@@ -1,8 +1,8 @@
-# Seurat v3.1.4
+# Seurat v3.1.5
 
 ## Test environments
 * local Ubuntu 16.04.6 and 18.04.2 installs, R 3.6.1
-* local Windows 10 install, R 3.5.3
+* local Windows 10 install, R 3.5.3, R-devel (4.1.0)
 * Ubuntu 16.04.6 (on travis-ci), R 3.6.1
 * macOS 10.13.3 (on travis-ci), R 3.6.1
 * Windows Server 2012 R2 (on AppVeyor), R 3.6.1 Patched
@@ -40,6 +40,6 @@ There were 3 NOTEs:
 
 ## Downstream dependencies
 
-There is one pacakge that imports Seurat: multicross; this update does not impact its functionality
+There are three pacakges that imports Seurat: multicross, scMappR, and Signac; this update does not impact their functionality
 
-There are three packages that suggest Seurat: BisqueRNA, clustree, and Rmagic; this update does not impact their functionality.
+There are four packages that suggest Seurat: BisqueRNA, clustree, Rmagic, and treefit; this update does not impact their functionality.
