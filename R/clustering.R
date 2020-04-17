@@ -1404,8 +1404,8 @@ ModalityWeights <- function(object,
                              MinMax(score, min = 0, max = max.modality_score)
                            })                
   first.modality.weight <- exp(modality_score[[1]]) / (exp(modality_score[[1]]) + exp(modality_score[[2]]))
-  weight.list <- list(  proj_cosine,  modality_score , first.modality.weight)
-  names(weight.list) <-c(  "proj_cosine",  "modality_score" , "first.modality.weight")
+  weight.list <- list(  proj_cosine,  modality_score , first.modality.weight, assay.comb)
+  names(weight.list) <-c(  "proj_cosine",  "modality_score" , "first.modality.weight", "assay.comb")
   return(weight.list)
 }
 
