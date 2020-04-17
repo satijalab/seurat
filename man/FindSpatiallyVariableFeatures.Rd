@@ -57,8 +57,10 @@ FindSpatiallyVariableFeatures(object, ...)
 \item{spatial.location}{Coordinates for each cell/spot/bead}
 
 \item{selection.method}{Method for selecting spatially variable features.
-Only 'markvariogram' method is currently implemented. See
-\code{\link{RunMarkVario}} for method.}
+#' \itemize{
+  \item \code{markvariogram}: See \code{\link{RunMarkVario}} for details
+  \item \code{moransi}: See \code{\link{RunMoransI}} for details.
+}}
 
 \item{r.metric}{r value at which to report the "trans" value of the mark
 variogram}

@@ -2131,8 +2131,11 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @param object A Seurat object, assay, or expression matrix
 #' @param spatial.location Coordinates for each cell/spot/bead
 #' @param selection.method Method for selecting spatially variable features.
-#' Only 'markvariogram' method is currently implemented. See
-#' \code{\link{RunMarkVario}} for method.
+#' #' \itemize{
+#'   \item \code{markvariogram}: See \code{\link{RunMarkVario}} for details
+#'   \item \code{moransi}: See \code{\link{RunMoransI}} for details.
+#' }
+#'
 #' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
 #' @param x.cuts Number of divisions to make in the x direction, helps define 
