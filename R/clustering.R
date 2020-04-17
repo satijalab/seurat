@@ -967,25 +967,24 @@ MultiModelNN <- function(object,
                                       k = knn.range,
                                       method = 'annoy',
                                       metric = "cosine") })
-  # convert cosine distance to cosine simialrity
-  redunction_distance <- lapply(X = redunction_nn, 
-                                FUN = function(x) 1- (x$nn.dists[ , -1]**2)/2)
+
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(X = redunction_nn , 
                           FUN = function(x)  x$nn.idx[, -1]  )
   nn_idx <- lapply( X = 1:ncol(object) , 
                     FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
-  # oranize distance for each neighbor, for cell without distance fill up with 0.1
-  nn_dist <- lapply( X = 1:length(reduction.list) , 
-                     FUN = function(r){
-                       lapply(X = 1:length(nn_idx),
+# calculate cosine similarity of union neighobors
+  nn_dist  <-  lapply( X = 1:length(reduction.list) , 
+                       FUN = function(r){
+                       lapply(X = 1:ncol(object),
                               FUN = function(x){
-                                dist = redunction_distance[[r]][x,  match(nn_idx[[x]], redunction_nn[[r]][x,]) ] 
-                                dist[ which(is.na(dist))] <- 0.1
-                                return(dist)
-                              } )
-                     })
-  # convert costine to angular
+                                correlation = as.matrix(  rdist::cdist( X = redunction_embedding[[r]][x,,drop = F], 
+                                                          Y = redunction_embedding[[r]][ nn_idx[[x]],], 
+                                                          metric = "correlation" ) )
+                                return(1 - 2* correlation**2)
+                              })
+                       })
+  # convert correlation to angular
   nn_annoy_dist <- lapply( X = 1:length(reduction.list) , 
                            FUN = function(r){
                              lapply(  X = nn_dist[[r]] , FUN = function(cosine) 1 - 2*acos(cosine)/pi )
@@ -1383,8 +1382,9 @@ ModalityWeights <- function(object,
                               FUN = function(cosine){
                                 MinMax( data = cosine, min = min(clip.range), max = max(clip.range) ) 
                               })
-  proj_cosine <- lapply(X = 1:nrow(assay.comb), 
-                        FUN = function(c)  cosine.multi.mean[[c]] * proj.multi.mean[[c]]   )
+   proj_cosine <- lapply(X = 1:nrow(assay.comb), 
+                         FUN = function(c)  sqrt(cosine.multi.mean[[c]] * proj.multi.mean[[c]])   )
+  
   if(stdev.weight){
     modality_score <- lapply(X = assay.list,
                              FUN =  function(assay){
