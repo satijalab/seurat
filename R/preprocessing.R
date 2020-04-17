@@ -165,6 +165,10 @@ CalculateBarcodeInflections <- function(
 #' @param include.body Include the gene body?
 #' @param upstream Number of bases upstream to consider
 #' @param downstream Number of bases downstream to consider
+#' @param keep.sparse Leave the matrix as a sparse matrix. Setting this option to
+#' TRUE will take much longer but will use less memory. This can be useful if 
+#' you have a very large matrix that cannot fit into memory when converted to 
+#' a dense form.
 #' @param verbose Print progress/messages
 #'
 #' @importFrom future nbrOfWorkers
@@ -177,6 +181,7 @@ CreateGeneActivityMatrix <- function(
   include.body = TRUE,
   upstream = 2000,
   downstream = 0,
+  keep.sparse = FALSE,
   verbose = TRUE
 ) {
   if (!PackageCheck('GenomicRanges', error = FALSE)) {
@@ -228,7 +233,9 @@ CreateGeneActivityMatrix <- function(
   colnames(x = annotations) <- c('feature', 'new_feature')
 
   # collapse into expression matrix
-  peak.matrix <- as(object = peak.matrix, Class = 'matrix')
+  if (!keep.sparse) {
+    peak.matrix <- as(object = peak.matrix, Class = 'matrix')
+  }
   all.features <- unique(x = annotations$new_feature)
 
   if (nbrOfWorkers() > 1) {
@@ -236,18 +243,21 @@ CreateGeneActivityMatrix <- function(
   } else {
     mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   }
-  newmat <- mysapply(X = 1:length(x = all.features), FUN = function(x){
+  newmat.list <- mysapply(X = 1:length(x = all.features), FUN = function(x){
     features.use <- annotations[annotations$new_feature == all.features[[x]], ]$feature
     submat <- peak.matrix[features.use, ]
     if (length(x = features.use) > 1) {
-      return(Matrix::colSums(x = submat))
-    } else {
-      return(submat)
+      submat <- Matrix::colSums(submat)
     }
-  })
+    if (keep.sparse) {
+      return(as(object = as.matrix(x = submat), Class = 'dgCMatrix'))
+    } else {
+      return(as.matrix(x = submat))
+    }
+  }, simplify = FALSE)
+  newmat = do.call(what = cbind, args = newmat.list)
   newmat <- t(x = newmat)
   rownames(x = newmat) <- all.features
-  colnames(x = newmat) <- colnames(x = peak.matrix)
   return(as(object = newmat, Class = 'dgCMatrix'))
 }
 
@@ -822,6 +832,7 @@ ReadAlevin <- function(base.path) {
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #' @param unique.features Make feature names unique (default TRUE)
+#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -847,7 +858,12 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
+Read10X <- function(
+  data.dir = NULL,
+  gene.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+) {
   full.data <- list()
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
@@ -878,7 +894,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
-    if (all(grepl(pattern = "\\-1$", x = cell.names))) {
+    if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
         FUN = ExtractField,
@@ -934,7 +950,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       data <- lapply(
         X = lvls,
         FUN = function(l) {
-          return(data[data_types == l, ])
+          return(data[data_types == l, , drop = FALSE])
         }
       )
       names(x = data) <- lvls
@@ -1112,24 +1128,23 @@ SampleUMI <- function(
 ) {
   data <- as(object = data, Class = "dgCMatrix")
   if (length(x = max.umi) == 1) {
-    return(
-      RunUMISampling(
-        data = data,
-        sample_val = max.umi,
-        upsample = upsample,
-        display_progress = verbose
-      )
+    new_data <- RunUMISampling(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
     )
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
+  } else {
+    new_data <- RunUMISamplingPerCell(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
+    )
   }
-  new_data = RunUMISamplingPerCell(
-    data = data,
-    sample_val = max.umi,
-    upsample = upsample,
-    display_progress = verbose
-  )
-  dimnames(new_data) <- dimnames(data)
+  dimnames(x = new_data) <- dimnames(x = data)
   return(new_data)
 }
 
@@ -2188,6 +2203,21 @@ ScaleData.default <- function(
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
+    notfound <- setdiff(x = vars.to.regress, y = colnames(x = latent.data))
+    if (length(x = notfound) == length(x = vars.to.regress)) {
+      stop(
+        "None of the requested variables to regress are present in the object.",
+        call. = FALSE
+      )
+    } else if (length(x = notfound) > 0) {
+      warning(
+        "Requested variables to regress not in object: ",
+        paste(notfound, collapse = ", "),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      vars.to.regress <- colnames(x = latent.data)
+    }
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
@@ -2504,7 +2534,7 @@ ClassifyCells <- function(data, q) {
         message("No threshold found for ", colnames(x = data)[i], "...")
       }
     )
-    if (is.character(x = model)) {
+    if (is.null(x = model)) {
       next
     }
     x <- seq.int(

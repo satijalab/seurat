@@ -526,8 +526,8 @@ RidgePlot <- function(
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
 #' @param split.by A variable to split the violin plots by,
-#' @param multi.group  plot each group of the split violin plots by multiple or single violin shapes
-#' see \code{\link{FetchData}} for more details
+#' @param split.plot  plot each group of the split violin plots by multiple or
+#' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -557,12 +557,25 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = 'data',
-  multi.group = FALSE,
+  split.plot = FALSE,
   combine = TRUE
 ) {
+  if (
+    !is.null(x = split.by) &
+    getOption(x = 'Seurat.warn.vlnplot.split', default = TRUE)
+  ) {
+    message(
+      "The default behaviour of split.by has changed.\n",
+      "Separate violin plots are now plotted side-by-side.\n",
+      "To restore the old behaviour of a single split violin,\n",
+      "set split.plot = TRUE.
+      \nThis message will be shown once per session."
+    )
+    options(Seurat.warn.vlnplot.split = FALSE)
+  }
   return(ExIPlot(
     object = object,
-    type = ifelse(test = multi.group, yes = 'multiViolin', no = 'violin'),
+    type = ifelse(test = split.plot, yes = 'splitViolin', no = 'violin'),
     features = features,
     idents = idents,
     ncol = ncol,
@@ -844,7 +857,8 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
-#' @param sort.cell If \code{TRUE}, the positive cells will overlap the negative cells
+#' @param sort.cell Redundant with \code{order}. This argument is being
+#' deprecated. Please use \code{order} instead.
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
@@ -897,9 +911,21 @@ FeaturePlot <- function(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE,
+  sort.cell = NULL,
   combine = TRUE
 ) {
+  # TODO: deprecate fully on 3.2.0
+  if (!is.null(x = sort.cell)) {
+    warning(
+      "The sort.cell parameter is being deprecated. Please use the order ",
+      "parameter instead for equivalent functionality.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    if (isTRUE(x = sort.cell)) {
+      order <- sort.cell
+    }
+  }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
   no.right <- theme(
@@ -1125,9 +1151,6 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       data.single <- data.plot[, c(dims, 'ident', feature, shape.by)]
-      if (sort.cell) {
-        data.single <- data.single[order(data.single[, feature]),]
-      }
       # Make the plot
       plot <- SingleDimPlot(
         data = data.single,
@@ -1327,8 +1350,8 @@ FeaturePlot <- function(
             theme(plot.title = element_text(hjust = 0.5))
           idx <- idx + 1
         }
-        ncol <- nsplits
-        nrow <- 1
+        ncol <- 1
+        nrow <- nsplits
       } else {
         nrow <- split.by %iff% length(x = levels(x = data$split))
       }
@@ -1336,7 +1359,8 @@ FeaturePlot <- function(
         what = rbind,
         args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots)) / length(x = features)))
       ))]
-      plots <- wrap_plots(plots, ncol = ncol, nrow = nrow)
+      # Set ncol to number of splits (nrow) and nrow to number of features (ncol)
+      plots <- wrap_plots(plots, ncol = nrow, nrow = ncol)
       if (!is.null(x = legend) && legend == 'none') {
         plots <- plots & NoLegend()
       }
@@ -1419,10 +1443,13 @@ CellScatter <- function(
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom patchwork wrap_plots
+#'
 #' @export
 #'
 #' @aliases GenePlot
@@ -1441,28 +1468,51 @@ FeatureScatter <- function(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
+  combine = TRUE,
   slot = 'data'
 ) {
   cells <- cells %||% colnames(x = object)
-  group.by <- group.by %||% Idents(object = object)[cells]
-  if (length(x = group.by) == 1) {
-    group.by <- object[[]][, group.by]
-  }
-  plot <- SingleCorPlot(
-    data = FetchData(
-      object = object,
-      vars = c(feature1, feature2),
-      cells = cells,
-      slot = slot
-    ),
-    col.by = group.by,
-    cols = cols,
-    pt.size = pt.size,
-    smooth = smooth,
-    legend.title = 'Identity',
-    span = span
+  object[['ident']] <- Idents(object = object)
+  group.by <- group.by %||% 'ident'
+  data <-  FetchData(
+    object = object,
+    vars = c(feature1, feature2, group.by),
+    cells = cells,
+    slot = slot
   )
-  return(plot)
+  if (isFALSE(x = feature1 %in% colnames(x = data))) {
+    stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
+  }
+  if (isFALSE(x = feature2 %in% colnames(x = data))) {
+    stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
+  }
+  data <- as.data.frame(x = data)
+  for (group in group.by) {
+    if (!is.factor(x = data[, group])) {
+      data[, group] <- factor(x = data[, group])
+    }
+  }
+  plots <- lapply(
+    X = group.by,
+    FUN = function(x) {
+      SingleCorPlot(
+        data = data[,c(feature1, feature2)],
+        col.by = data[, x],
+        cols = cols,
+        pt.size = pt.size,
+        smooth = smooth,
+        legend.title = 'Identity',
+        span = span
+      )
+    }
+  )
+  if (isTRUE(x = length(x = plots) == 1)) {
+    return(plots[[1]])
+  }
+  if (isTRUE(x = combine)) {
+    plots <- wrap_plots(plots, ncol = length(x = group.by))
+  }
+  return(plots)
 }
 
 #' View variable features
@@ -1860,6 +1910,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param group.by Factor to group the cells by
 #' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
+#' @param scale Determine whether the data is scaled, TRUE for default
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
@@ -1892,6 +1943,7 @@ DotPlot <- function(
   dot.scale = 6,
   group.by = NULL,
   split.by = NULL,
+  scale = TRUE,
   scale.by = 'radius',
   scale.min = NA,
   scale.max = NA
@@ -1955,15 +2007,26 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
-  avg.exp.scaled <- sapply(
-    X = unique(x = data.plot$features.plot),
-    FUN = function(x) {
-      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
-      data.use <- scale(x = data.use)
-      data.use <- MinMax(data = data.use, min = col.min, max = col.max)
-      return(data.use)
-    }
-  )
+ if (length(x = levels(x = data.plot$id)) == 1) {
+   scale <- FALSE
+   warning("Only one identity present, the expression values will be not scaled.")
+ }
+    avg.exp.scaled <- sapply(
+      X = unique(x = data.plot$features.plot),
+      FUN = function(x) {
+        data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
+        if (scale) {
+          data.use <- scale(x = data.use)
+          data.use <- MinMax(data = data.use, min = col.min, max = col.max)
+        } else {
+          data.use <- log(x = data.use)
+        }
+        return(data.use)
+      }
+    )
+
+
+
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
   if (!is.null(x = split.by)) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
@@ -1977,10 +2040,16 @@ DotPlot <- function(
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (!is.null(x = split.by)) {
     splits.use <- vapply(
-      X = strsplit(x = as.character(x = data.plot$id), split = '_'),
-      FUN = '[[',
+      X = as.character(x = data.plot$id),
+      FUN = gsub,
       FUN.VALUE = character(length = 1L),
-      2
+      pattern =  paste0(
+        '^((',
+        paste(sort(x = levels(x = object), decreasing = TRUE), collapse = '|'),
+        ')_)'
+      ),
+      replacement = '',
+      USE.NAMES = FALSE
     )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
@@ -3448,7 +3517,7 @@ BlendMap <- function(color.matrix) {
 #
 # @return An n x n matrix of blended colors
 #
-#' @importFrom grDevices rgb colorRamp
+#' @importFrom grDevices col2rgb
 #
 BlendMatrix <- function(
   n = 10,
@@ -3459,10 +3528,13 @@ BlendMatrix <- function(
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
-  C0 <- colorRamp(colors = negative.color)(1)
-  ramp <- colorRamp(colors = two.colors)
-  C1 <- ramp(x = 0)
-  C2 <- ramp(x = 1)
+  C0 <- as.vector(col2rgb(negative.color, alpha = TRUE))
+  C1 <- as.vector(col2rgb(two.colors[1], alpha = TRUE))
+  C2 <- as.vector(col2rgb(two.colors[2], alpha = TRUE))
+  blend_alpha <- (C1[4] + C2[4])/2
+  C0 <- C0[-4]
+  C1 <- C1[-4]
+  C2 <- C2[-4]
   merge.weight <- min(255 / (C1 + C2 +  C0 + 0.01))
   sigmoid <- function(x) {
     return(1 / (1 + exp(-x)))
@@ -3475,6 +3547,7 @@ BlendMatrix <- function(
     C0,
     C1,
     C2,
+    alpha,
     merge.weight
   ) {
     c.min <- sigmoid(5 * (1 / n - col.threshold))
@@ -3495,10 +3568,10 @@ BlendMatrix <- function(
     C_blend[C_blend > 255] <- 255
     C_blend[C_blend < 0] <- 0
     return(rgb(
-      red = C_blend[, 1],
-      green = C_blend[, 2],
-      blue = C_blend[, 3],
-      alpha = 255,
+      red = C_blend[1],
+      green = C_blend[2],
+      blue = C_blend[3],
+      alpha = alpha,
       maxColorValue = 255
     ))
   }
@@ -3513,6 +3586,7 @@ BlendMatrix <- function(
         C0 = C0,
         C1 = C1,
         C2 = C2,
+        alpha = blend_alpha,
         merge.weight = merge.weight
       )
     }
@@ -3610,7 +3684,7 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # Basically combines the codebase for VlnPlot and RidgePlot
 #
 # @param object Seurat object
-# @param type Plot type, choose from 'ridge', 'violin', or 'multiViolin'
+# @param type Plot type, choose from 'ridge', 'violin', or 'splitViolin'
 # @param features Features to plot (gene expression, metrics, PC scores,
 # anything that can be retreived by FetchData)
 # @param idents Which classes to include in the plot (default is all)
@@ -3698,6 +3772,10 @@ ExIPlot <- function(
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
+    if ((length(x = cols) > 2) & (type == "splitViolin")) {
+      warning("Split violin is only supported for <3 groups, using multi-violin.")
+      type <- "violin"
+    }
   }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
@@ -3722,7 +3800,7 @@ ExIPlot <- function(
   label.fxn <- switch(
     EXPR = type,
     'violin' = ylab,
-    "multiViolin" = ylab,
+    "splitViolin" = ylab,
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -4562,7 +4640,7 @@ SingleDimPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim
+#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim position_jitterdodge
 #' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
 #'
@@ -4612,14 +4690,14 @@ SingleExIPlot <- function(
     data[, feature] <- data[, feature] + noise
   }
   axis.label <- 'Expression Level'
-  y.max <- y.max %||% max(data[, feature])
+  y.max <- y.max %||% max(data[, feature][is.finite(x = data[, feature])])
   if (type == 'violin' && !is.null(x = split)) {
     data$split <- split
-    vln.geom <- geom_split_violin
-    fill <- 'split'
-  } else if (type == 'multiViolin' && !is.null(x = split )) {
-    data$split <- split
     vln.geom <- geom_violin
+    fill <- 'split'
+  } else if (type == 'splitViolin' && !is.null(x = split )) {
+    data$split <- split
+    vln.geom <- geom_split_violin
     fill <- 'split'
     type <- 'violin'
   } else {
@@ -4637,7 +4715,14 @@ SingleExIPlot <- function(
         vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
-      jitter <- geom_jitter(height = 0, size = pt.size)
+      if (is.null(x = split)) {
+        jitter <- geom_jitter(height = 0, size = pt.size)
+      } else {
+        jitter <- geom_jitter(
+          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
+          size = pt.size
+        )
+      }
       log.scale <- scale_y_log10()
       axis.scale <- ylim
     },

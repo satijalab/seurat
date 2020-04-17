@@ -28,7 +28,7 @@ FeaturePlot(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = FALSE,
+  sort.cell = NULL,
   combine = TRUE
 )
 }
@@ -92,7 +92,8 @@ different colors and different shapes on cells}
 
 \item{by.col}{If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}}
 
-\item{sort.cell}{If \code{TRUE}, the positive cells will overlap the negative cells}
+\item{sort.cell}{Redundant with \code{order}. This argument is being
+deprecated. Please use \code{order} instead.}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}

@@ -1309,6 +1309,12 @@ RenameAssays <- function(object, ...) {
       DefaultAssay(object = object) <- new
     }
     Key(object = object[[new]]) <- old.key
+    # change assay used in any dimreduc object
+    for (i in Reductions(object = object)) {
+      if (DefaultAssay(object = object[[i]]) == old) {
+        DefaultAssay(object = object[[i]]) <- new
+      }
+    }
     object[[old]] <- NULL
   }
   return(object)
@@ -3335,6 +3341,18 @@ Misc.Assay <- function(object, slot = NULL, ...) {
 
 #' @rdname Misc
 #' @export
+#' @method Misc DimReduc
+#'
+Misc.DimReduc <- function(object, slot = NULL, ...) {
+  CheckDots(...)
+  if (is.null(x = slot)) {
+    return(slot(object = object, name = 'misc'))
+  }
+  return(slot(object = object, name = 'misc')[[slot]])
+}
+
+#' @rdname Misc
+#' @export
 #' @method Misc Seurat
 #'
 #' @examples
@@ -3354,6 +3372,23 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @method Misc<- Assay
 #'
 "Misc<-.Assay" <- function(object, slot, ..., value) {
+  CheckDots(...)
+  if (slot %in% names(x = Misc(object = object))) {
+    warning("Overwriting miscellanous data for ", slot)
+  }
+  if (is.list(x = value)) {
+    slot(object = object, name = 'misc')[[slot]] <- c(value)
+  } else {
+    slot(object = object, name = 'misc')[[slot]] <- value
+  }
+  return(object)
+}
+
+#' @rdname Misc
+#' @export
+#' @method Misc<- DimReduc
+#'
+"Misc<-.DimReduc" <- function(object, slot, ..., value) {
   CheckDots(...)
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)
@@ -4754,6 +4789,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @param invert Invert the selection of cells
 #'
 #' @importFrom stats na.omit
+#' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
 #' @export
@@ -4770,12 +4806,14 @@ WhichCells.Assay <- function(
   cells <- cells %||% colnames(x = object)
   if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
     key.pattern <- paste0('^', Key(object = object))
-    expr <- if (is.call(x = substitute(expr = expression))) {
-      substitute(expr = expression)
+    expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
+      expression
+    } else if (is.call(x = enquo(arg = expression))) {
+      enquo(arg = expression)
     } else {
       parse(text = expression)
     }
-    expr.char <- as.character(x = expr)
+    expr.char <- suppressWarnings(expr = as.character(x = expr))
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
       pattern = key.pattern,
@@ -4798,8 +4836,7 @@ WhichCells.Assay <- function(
     expr.char <- expr.char[vars.use]
     data.subset <- as.data.frame(x = t(x = as.matrix(x = object[expr.char, ])))
     colnames(x = data.subset) <- expr.char
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- rownames(x = data.subset)
+    cells <- rownames(x = data.subset)[eval_tidy(expr = expr, data = data.subset)]
   }
   if (invert) {
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
@@ -4816,6 +4853,7 @@ WhichCells.Assay <- function(
 #' @param seed Random seed for downsampling. If NULL, does not set a seed
 #'
 #' @importFrom stats na.omit
+#' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
 #' @export
@@ -4870,12 +4908,14 @@ WhichCells.Seurat <- function(
       }
     )
     key.pattern <- paste0('^', object.keys, collapse = '|')
-    expr <- if (is.call(x = substitute(expr = expression))) {
-      substitute(expr = expression)
+    expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
+      expression
+    } else if (is.call(x = enquo(arg = expression))) {
+      enquo(arg = expression)
     } else {
       parse(text = expression)
     }
-    expr.char <- as.character(x = expr)
+    expr.char <- suppressWarnings(expr = as.character(x = expr))
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
       pattern = '(',
@@ -4895,12 +4935,11 @@ WhichCells.Seurat <- function(
     )
     data.subset <- FetchData(
       object = object,
-      vars = expr.char[vars.use],
+      vars = unique(x = expr.char[vars.use]),
       cells = cells,
       slot = slot
     )
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- rownames(x = data.subset)
+    cells <- rownames(x = data.subset)[eval_tidy(expr = expr, data = data.subset)]
   }
   if (invert) {
     cell.order <- colnames(x = object)
@@ -6058,6 +6097,8 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @return A subsetted Seurat object
 #'
+#' @importFrom rlang enquo
+#'
 #' @rdname subset.Seurat
 #' @aliases subset
 #' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
@@ -6074,7 +6115,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
   if (!missing(x = subset)) {
-    subset <- deparse(expr = substitute(expr = subset))
+    subset <- enquo(arg = subset)
   }
   cells <- WhichCells(
     object = x,
@@ -6640,7 +6681,7 @@ setMethod(
     cat(
       "Active assay:",
       DefaultAssay(object = object),
-      paste0('(', nrow(x = object), ' features)')
+      paste0('(', nrow(x = object), ' features, ', length(x = VariableFeatures(object = object)), ' variable features)')
     )
     other.assays <- assays[assays != DefaultAssay(object = object)]
     if (length(x = other.assays) > 0) {
