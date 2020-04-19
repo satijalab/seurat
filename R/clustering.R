@@ -929,6 +929,47 @@ PredictAssay <- function(
 
 
 
+projcos_nn_dist <- function( nn.idx, redunction.embedding){
+  
+  if( !is.list(nn.idx) ){
+    nn.idx <- lapply(1:nrow(nn.idx), function(x) nn.idx[x,])
+  }
+  
+  nn.dist <- lapply(X = 1:nrow(redunction.embedding), 
+                    FUN = function(x){
+                      correlation = as.matrix(  rdist::cdist( X = redunction.embedding[x,,drop = F], 
+                                                              Y = redunction.embedding[  nn.idx[[x]],], 
+                                                              metric = "correlation" ) )
+                      return(1 - 2* correlation**2)
+                    })
+  nn.eu_dist <- lapply(X = 1:nrow(redunction.embedding), 
+                    FUN = function(x){
+                      correlation = as.matrix(  rdist::cdist( X = redunction.embedding[x,,drop = F], 
+                                                              Y = redunction.embedding[  nn.idx[[x]],], 
+                                                              metric = "euclidean") )
+                    })
+  
+  nn.angular_dist <-  lapply(  X = nn.dist , FUN = function(cosine) 1 - 2*acos(cosine)/pi )
+  redunction.embedding.len <-  sqrt(rowSums(redunction.embedding**2))
+  nn.proj_dist <- lapply(  X = 1:nrow(redunction.embedding),
+                            FUN = function(x) {
+                              proj_dist = nn.dist[[x]] * 
+                                redunction.embedding.len[ nn.idx[[x]] ] /
+                                redunction.embedding.len[ x ]
+                              proj_dist = MinMax(data = proj_dist, min = 0, max = 1)
+                              return ( proj_dist)})
+                
+  nn.AP_dist <-  lapply(  X = 1:nrow(redunction.embedding),
+                          FUN = function(x) {
+                            nn.proj_dist[[x]] * nn.angular_dist[[x]]
+                          })
+  nn.angular_proj_dist <- list(nn.angular_dist, nn.proj_dist, nn.AP_dist, nn.eu_dist)
+  names( nn.angular_proj_dist) <- c("angular", "projection", "proj_angular", "euclidean")
+  return( nn.angular_proj_dist)
+}
+
+
+
 # Find multi-model neighbors 
 #
 #' @param object The object used to calculate knn
@@ -943,12 +984,14 @@ PredictAssay <- function(
 #' @export
 #' 
 MultiModelNN <- function(object, 
-                    k.nn = 20, 
-                    reduction.list,
-                    dims.list,
-                    knn.range = 200,
-                    modality.weight = NULL,
-                    verbose = TRUE
+                         query = NULL,
+                         k.nn = 20, 
+                         reduction.list,
+                         dims.list = NULL,
+                         knn.range = 200,
+                         distance = c( "proj_angular", "euclidean")[1],
+                         modality.weight = NULL,
+                         verbose = TRUE
 ){
   if( is.null(modality.weight)){
     modality.weight <- lapply(X = 1:length(reduction.list),
@@ -957,77 +1000,95 @@ MultiModelNN <- function(object,
   if(!is.list(modality.weight)){
     modality.weight <- list(modality.weight, (1 - modality.weight))
   }
-  redunction_embedding <- lapply( X = 1:length(reduction.list), 
-                                  FUN = function(x) {
-                                    Embeddings(object[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
-                                  })
-  redunction_nn <- lapply( X = 1:length(reduction.list), 
+  if( class(object)[1] == "Seurat"){
+    redunction_embedding <- lapply( X = 1:length(reduction.list), 
+                                    FUN = function(x) {
+                                      Embeddings(object[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
+                                    })
+  } else {
+    redunction_embedding <- object
+  }
+  
+  if(is.null(query)){
+    query.redunction_embedding <- redunction_embedding
+    query <- object
+  } else{
+    if( class(query)[1] == "Seurat" ){
+      query.redunction_embedding <- lapply( X = 1:length(reduction.list), 
+                                            FUN = function(x) {
+                                              Embeddings(query[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
+                                            })
+    } else {
+      query.redunction_embedding <- query
+    }
+  }
+  query.cell.num <- nrow( query.redunction_embedding[[1]] )
+  reduction.num <- length( query.redunction_embedding )
+  redunction_nn <- lapply( X = 1:reduction.num, 
                            FUN = function(x){
-                             NNHelper(data = redunction_embedding[[x]],
+                             NNHelper(data = redunction_embedding[[x]], 
+                                      query = query.redunction_embedding[[x]],
                                       k = knn.range,
                                       method = 'annoy',
                                       metric = "cosine") })
-
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(X = redunction_nn , 
                           FUN = function(x)  x$nn.idx[, -1]  )
-  nn_idx <- lapply( X = 1:ncol(object) , 
+  
+  nn_idx <- lapply( X = 1:query.cell.num , 
                     FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
-# calculate cosine similarity of union neighobors
-  nn_dist  <-  lapply( X = 1:length(reduction.list) , 
-                       FUN = function(r){
-                       lapply(X = 1:ncol(object),
-                              FUN = function(x){
-                                correlation = as.matrix(  rdist::cdist( X = redunction_embedding[[r]][x,,drop = F], 
-                                                          Y = redunction_embedding[[r]][ nn_idx[[x]],], 
-                                                          metric = "correlation" ) )
-                                return(1 - 2* correlation**2)
-                              })
-                       })
-  # convert correlation to angular
-  nn_annoy_dist <- lapply( X = 1:length(reduction.list) , 
-                           FUN = function(r){
-                             lapply(  X = nn_dist[[r]] , FUN = function(cosine) 1 - 2*acos(cosine)/pi )
-                           })
-  # convert costine to projection similarity
-  redunction_embedding.len <- lapply(X = 1:length(reduction.list) ,  
-                                     FUN = function(r) sqrt(rowSums(redunction_embedding[[r]]**2)))
-  nn_projection_dist <- lapply(X = 1:length(reduction.list),  
+  
+  # calculate cosine similarity of union neighobors, and convert to angular and projection similarity
+  nn_angular_projection_dist <- lapply(X = 1:reduction.num,  
+                                       FUN = function(r){
+                                         projangular_nn_dist(nn.idx = nn_idx,
+                                                             redunction.embedding = redunction_embedding[[r]], 
+                                                             query.reduction.embedding = query.redunction_embedding[[r]] )
+                                       })
+  # modality weighted distance
+  if(distance  =="euclidean"){
+    nn_eu_sd <-  lapply(X = 1:length(reduction.list),  
+                        FUN = function(r){
+                          sapply(nn_angular_projection_dist[[r]]$euclidean, 
+                                 FUN = function(x) { sort(x)[5]  })
+                        })
+    nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
                                FUN = function(r){
                                  lapply(  X = 1:ncol(object),
-                                          FUN = function(x) {nn_dist[[r]][[x]] * 
-                                              redunction_embedding.len[[r]][ nn_idx[[x]] ] /
-                                              redunction_embedding.len[[r]][ x ]} 
+                                          FUN = function(x){ 
+                                            exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] / nn_eu_sd[[r]][x])**2) * 
+                                              modality.weight[[r]][x] })
+                               })
+  }else{
+    nn_weighted_dist <- lapply(X = 1:reduction.num,  
+                               FUN = function(r){
+                                 lapply(  X = 1:query.cell.num,
+                                          FUN = function(x){
+                                            nn_angular_projection_dist[[r]]$angular[[x]] *
+                                              nn_angular_projection_dist[[r]]$projection[[x]] *
+                                              modality.weight[[r]][x]}
                                  )
                                })
-  # modality weighted distance
-  nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
-                             FUN = function(r){
-                               lapply(  X = 1:ncol(object),
-                                        FUN = function(x){
-                                          nn_annoy_dist[[r]][[x]] *
-                                            nn_projection_dist[[r]][[x]] *
-                                            modality.weight[[r]][x]}
-                               )
-                             })
-  nn_weighted_dist <- sapply(1:ncol(object), 
+  }
+  nn_weighted_dist <- sapply(1:query.cell.num, 
                              FUN =  function(x){ 
                                Reduce("+", 
-                                      lapply( X = 1:length(reduction.list), 
+                                      lapply( X = 1:reduction.num, 
                                               FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
                              })
   # select k nearest joint neighbors
   select_idx <-  lapply( X = nn_weighted_dist,
                          FUN = function(dist){
-                           which(rank(dist*-1) <= (k.nn))
+                           which(rank(dist*-1,  ties.method = "first") <= (k.nn))
                          })
-  select_nn <- t(sapply( X = 1:ncol(object),
+  select_nn <- t(sapply( X = 1:query.cell.num,
                          FUN = function(x) nn_idx[[x]][select_idx[[x]]])
   )
-  select_dist <- t(sapply( X = 1:ncol(object), 
+  
+  select_dist <- t(sapply( X = 1:query.cell.num, 
                            FUN = function(x) nn_weighted_dist[[x]][select_idx[[x]]])
   )
-  rownames(select_nn) <- rownames(select_dist) <- Cells(object)
+  rownames(select_nn) <- rownames(select_dist) <- Cells(query)
   joint.nn <- list(select_nn, select_dist)
   names(joint.nn) <- c("nn.idx", "nn.dists")
   return(joint.nn)
@@ -1058,10 +1119,12 @@ FindMultiModelNeighbors <-  function(object,
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
                                      modality.weight = NULL,
+                                     nn.distance = "proj_angular", 
                                      verbose = TRUE
 ){
   joint.nn <- MultiModelNN(object = object, 
                       k.nn = k.nn, 
+                      distance = nn.distance,
                       reduction.list =reduction.list, 
                       dims.list = dims.list, knn.range = knn.range, 
                       modality.weight = modality.weight, 
@@ -1104,6 +1167,9 @@ FindModalityWeights <- function(object,
                                 assay.list, 
                                 reduction.list, 
                                 dims.list, 
+                                distance = c("proj_angular",  "angular", "projection"  ,"euclidean")[1],
+                                kernel = FALSE,
+                                kernel.power = 2, 
                                 knn.list = NULL,
                                 type.list = NULL,
                                 num.boot = 2, 
@@ -1113,7 +1179,7 @@ FindModalityWeights <- function(object,
                                 mean.type = NULL,
                                 seed = 1628, 
                                 stdev.weight = TRUE, 
-                                max.modality_score = 20, 
+                                max.modality_score = 700, 
                                 score.c = list(0.1, 0.1),
                                 verbose = TRUE
 ){
@@ -1210,6 +1276,9 @@ FindModalityWeights <- function(object,
   modality.weight <- ModalityWeights(object = object, 
                                      bootstrap.embedding.list =  proj.embedding.boot,
                                      assay.list = assay.list,
+                                     distance = distance,
+                                     kernel = kernel,
+                                     kernel.power = kernel.power, 
                                      reduction.list = reduction.list,
                                      dims.list = dims.list, 
                                      knn.list = knn.list,
@@ -1308,12 +1377,15 @@ ModalityWeights <- function(object,
                             assay.list,
                             reduction.list, 
                             dims.list,
+                            distance = c("proj_angular",  "angular", "projection"  ,"euclidean")[1],
+                            kernel = FALSE,
+                            kernel.power = 2, 
                             knn.list = NULL, 
                             mean.type = NULL,
                             nn.metric = "cosine",
                             score.c = list(0.1, 0.1), 
                             stdev.weight = TRUE,
-                            max.modality_score = 20, 
+                            max.modality_score = 700, 
                             clip.range = c(0.01, 1), 
                             verbose = TRUE){
   feature.multi <- lapply( X = assay.list, FUN = function(assay) rownames(object[[reduction.list[[assay]]]]@feature.loadings) )
@@ -1384,28 +1456,81 @@ ModalityWeights <- function(object,
                               })
    proj_cosine <- lapply(X = 1:nrow(assay.comb), 
                          FUN = function(c)  sqrt(cosine.multi.mean[[c]] * proj.multi.mean[[c]])   )
+   
+   nn_dist <- lapply(X = 1:nrow(assay.comb), 
+                     FUN = function(c){
+                       projcos_nn_dist(   bs_nn.multi[[ assay.comb$nn[c] ]]$nn.idx,  
+                                          bootstrap.embedding.list[[1]][[ assay.comb$assay[c]]])
+                       
+                     })
+   eu.multi.mean <- lapply(X = 1:nrow(assay.comb), 
+                             FUN = function(c){
+                               rowMeans( 
+                                 sapply(X = 1:length(projcos.multi.boot), 
+                                        FUN = function(b) projcos.multi.boot[[b]][[c]]$euclidean.distance[[1]] )
+                               )
+                             })
+   nn_dist.eu.sd <-  lapply(X = assay.list, 
+                            FUN = function(assay){
+                              sapply( X= nn_dist[[which(assay.comb$assay == assay & assay.comb$nn == assay )]]$euclidean, 
+                                      function(x) sort(x)[5])
+                            })
+
+all_impute_dist <- list(cosine.multi.mean,proj.multi.mean, proj_cosine ,eu.multi.mean)
+names(all_impute_dist) <- names(nn_dist[[1]])
+
+all_dist_sd <-  lapply(X = names(all_impute_dist),
+                       FUN = function(d){ 
+                         lapply(X = assay.list, 
+                                FUN = function(assay){
+                                  sapply( X = nn_dist[[which(assay.comb$assay == assay & assay.comb$nn == assay )]][[d]], 
+                                          function(x) sort(x)[5])
+                                })
+                         })
+names(all_dist_sd) <-  names(all_impute_dist)
+assay.comb.dist <- all_impute_dist[[distance]]
+
+if(distance == "euclidean"){
+  assay.comb.dist <- lapply(X = 1:nrow(assay.comb), 
+                               FUN = function(c){
+                                 exp(-0.5*(all_impute_dist[[distance]][[c]] / 
+                                             (all_dist_sd[[distance]][[ assay.comb[c,"assay"] ]] ) )**kernel.power)}
+  ) 
+} else{
+if(kernel){
+  assay.comb.dist <- lapply(X = 1:nrow(assay.comb), 
+                               FUN = function(c){
+                                 exp(-0.5*( (1 - all_impute_dist[[distance]][[c]]) / 
+                                             ( 1 - all_dist_sd[[distance]][[ assay.comb[c,"assay"] ]] ) )**kernel.power) 
+                                 }) 
   
-  if(stdev.weight){
+}
+  
+}
+   
+if(stdev.weight){
     modality_score <- lapply(X = assay.list,
                              FUN =  function(assay){
                                (sd(object[[reduction.list[[assay]]]]@stdev) / mean( object[[reduction.list[[assay]]]]@stdev))*
-                                 (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn == assay ) ]] ) / 
-                                 (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn != assay ) ]] + score.c[[assay]])
+                                 (assay.comb.dist[[ which(assay.comb$assay == assay & assay.comb$nn == assay ) ]] ) / 
+                                 (assay.comb.dist[[ which(assay.comb$assay == assay & assay.comb$nn != assay ) ]] + score.c[[assay]])
                              }  )
   } else{
     modality_score <- lapply(X = assay.list, 
                              FUN = function(assay){
-                               (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn == assay ) ]] ) / 
-                                 (proj_cosine[[ which(assay.comb$assay == assay & assay.comb$nn != assay ) ]] + score.c[[assay]]   )
+                               (assay.comb.dist[[ which(assay.comb$assay == assay & assay.comb$nn == assay ) ]] ) / 
+                                 (assay.comb.dist[[ which(assay.comb$assay == assay & assay.comb$nn != assay ) ]] + 
+                                    score.c[[assay]]   )
                              })
   }
   modality_score <- lapply(X = modality_score,
                            FUN = function(score) {
                              MinMax(score, min = 0, max = max.modality_score)
-                           })                
+                           })      
+
   first.modality.weight <- exp(modality_score[[1]]) / (exp(modality_score[[1]]) + exp(modality_score[[2]]))
-  weight.list <- list(  proj_cosine,  modality_score , first.modality.weight, assay.comb)
-  names(weight.list) <-c(  "proj_cosine",  "modality_score" , "first.modality.weight", "assay.comb")
+  weight.list <- list(  assay.comb.dist,  modality_score , first.modality.weight, assay.comb)
+  names(weight.list) <-c(  "assay.comb.dist",  "modality_score" , "first.modality.weight", "assay.comb")
   return(weight.list)
 }
 
@@ -1469,6 +1594,13 @@ projcosine <- function(object,
                                                   return.assay = F,
                                                   verbose = verbose )
                                    }  )
+  eu.distance <- lapply(X = 1:length(reduction.list),
+                         FUN = function(r){
+                           sapply(1:ncol(embedding.list[[r]]),
+                                  function(c) cdist( X = t(predict.embedding.list[[r]][,c]), 
+                                                     Y = t(embedding.list[[r]][,c]), 
+                                                     metric = "euclidean"))
+                         })
   proj.similarity <- lapply(X = 1:length(reduction.list),
                             FUN = function(r){
                               colSums(matrixcalc::hadamard.prod(predict.embedding.list[[r]], embedding.list[[r]]  )) / 
@@ -1485,8 +1617,8 @@ projcosine <- function(object,
                               FUN = function(cosine) {
                                 1 - 2*acos(cosine)/pi
                               } )
-  loss.list <- list(proj.similarity, cosine.similarity )
-  names(loss.list) <-c("proj.similarity", "cosine.similarity")
+  loss.list <- list(proj.similarity, cosine.similarity,  eu.distance, predict.embedding.list )
+  names(loss.list) <-c("proj.similarity", "cosine.similarity", "euclidean.distance", "predicted.embedding")
   return(loss.list)
 }
 
