@@ -929,45 +929,50 @@ PredictAssay <- function(
 
 
 
-projcos_nn_dist <- function( nn.idx, redunction.embedding){
+projangular_nn_dist <- function( nn.idx, 
+                                 redunction.embedding, 
+                                 query.reduction.embedding = NULL){
   
   if( !is.list(nn.idx) ){
     nn.idx <- lapply(1:nrow(nn.idx), function(x) nn.idx[x,])
   }
-  
-  nn.dist <- lapply(X = 1:nrow(redunction.embedding), 
+  if(is.null( query.reduction.embedding)){
+    query.reduction.embedding <- redunction.embedding
+  }
+  nn.dist <- lapply(X = 1:nrow(query.reduction.embedding), 
                     FUN = function(x){
-                      correlation = as.matrix(  rdist::cdist( X = redunction.embedding[x,,drop = F], 
+                      correlation = as.matrix(  rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
                                                               Y = redunction.embedding[  nn.idx[[x]],], 
                                                               metric = "correlation" ) )
                       return(1 - 2* correlation**2)
                     })
-  nn.eu_dist <- lapply(X = 1:nrow(redunction.embedding), 
-                    FUN = function(x){
-                      correlation = as.matrix(  rdist::cdist( X = redunction.embedding[x,,drop = F], 
-                                                              Y = redunction.embedding[  nn.idx[[x]],], 
-                                                              metric = "euclidean") )
-                    })
+  
+  
+  nn.eu_dist <- lapply(X = 1:nrow(query.reduction.embedding), 
+                       FUN = function(x){
+                         correlation = as.matrix(  rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
+                                                                 Y = redunction.embedding[  nn.idx[[x]],], 
+                                                                 metric = "euclidean") )
+                       })
   
   nn.angular_dist <-  lapply(  X = nn.dist , FUN = function(cosine) 1 - 2*acos(cosine)/pi )
-  redunction.embedding.len <-  sqrt(rowSums(redunction.embedding**2))
-  nn.proj_dist <- lapply(  X = 1:nrow(redunction.embedding),
-                            FUN = function(x) {
-                              proj_dist = nn.dist[[x]] * 
-                                redunction.embedding.len[ nn.idx[[x]] ] /
-                                redunction.embedding.len[ x ]
-                              proj_dist = MinMax(data = proj_dist, min = 0, max = 1)
-                              return ( proj_dist)})
-                
-  nn.AP_dist <-  lapply(  X = 1:nrow(redunction.embedding),
-                          FUN = function(x) {
-                            nn.proj_dist[[x]] * nn.angular_dist[[x]]
-                          })
-  nn.angular_proj_dist <- list(nn.angular_dist, nn.proj_dist, nn.AP_dist, nn.eu_dist)
+  query.reduction.embedding.len <-  sqrt(rowSums(query.reduction.embedding**2))
+  nn.proj_dist <- lapply(  X = 1:nrow(query.reduction.embedding),
+                           FUN = function(x) {
+                             proj_dist = nn.dist[[x]] * 
+                               query.reduction.embedding.len[ nn.idx[[x]] ] /
+                               query.reduction.embedding.len[ x ]
+                             proj_dist = MinMax(data = proj_dist, min = 0, max = 1)
+                             return ( proj_dist)})
+  
+  nn.proj_angular_dist <-  lapply(  X = 1:nrow(query.reduction.embedding),
+                                    FUN = function(x) {
+                                      nn.proj_dist[[x]] * nn.angular_dist[[x]]
+                                    })
+  nn.angular_proj_dist <- list(nn.angular_dist, nn.proj_dist, nn.proj_angular_dist, nn.eu_dist)
   names( nn.angular_proj_dist) <- c("angular", "projection", "proj_angular", "euclidean")
   return( nn.angular_proj_dist)
 }
-
 
 
 # Find multi-model neighbors 
