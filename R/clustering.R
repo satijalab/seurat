@@ -995,6 +995,7 @@ MultiModelNN <- function(object,
                          knn.range = 200,
                          distance = c( "proj_angular", "euclidean", "kernel")[1],
                          modality.weight = NULL,
+                         sigma.idx = 5, 
                          sigma.list = NULL,
                          power.list = NULL, 
                          l2.norm = FALSE, 
@@ -1061,7 +1062,7 @@ MultiModelNN <- function(object,
     nn_eu_sd <-  lapply(X = 1:length(reduction.list),  
                         FUN = function(r){
                           sapply(nn_angular_projection_dist[[r]]$euclidean, 
-                                 FUN = function(x) { sort(x)[5]  })
+                                 FUN = function(x) { sort(x)[sigma.idx]  })
                         })
     nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
                                FUN = function(r){
@@ -1143,6 +1144,7 @@ FindMultiModelNeighbors <-  function(object,
                                      joint.nn.name = "joint.nn",
                                      modality.weight = NULL,
                                      nn.distance = "proj_angular", 
+                                     eu.sigma.idx = 5, 
                                      verbose = TRUE
 ){
   if(length(modality.weight) == 3){
@@ -1166,6 +1168,7 @@ FindMultiModelNeighbors <-  function(object,
                       knn.range = knn.range, 
                       modality.weight = modality.weight, 
                       l2.norm = l2.norm, 
+                      sigma.idx = eu.sigma.idx, 
                       sigma.list = sigma.list, 
                       power.list = power.list, 
                       verbose = verbose )
