@@ -993,8 +993,11 @@ MultiModelNN <- function(object,
                          reduction.list,
                          dims.list = NULL,
                          knn.range = 200,
-                         distance = c( "proj_angular", "euclidean")[1],
+                         distance = c( "proj_angular", "euclidean", "kernel")[1],
                          modality.weight = NULL,
+                         sigma.list = NULL,
+                         power.list = NULL, 
+                         l2.norm = FALSE, 
                          verbose = TRUE
 ){
   if( is.null(modality.weight)){
@@ -1026,6 +1029,10 @@ MultiModelNN <- function(object,
       query.redunction_embedding <- query
     }
   }
+  if(l2.norm){
+    query.redunction_embedding <- L2Norm(query.redunction_embedding)
+    redunction_embedding <- L2Norm(redunction_embedding)
+  }
   query.cell.num <- nrow( query.redunction_embedding[[1]] )
   reduction.num <- length( query.redunction_embedding )
   redunction_nn <- lapply( X = 1:reduction.num, 
@@ -1041,14 +1048,14 @@ MultiModelNN <- function(object,
   
   nn_idx <- lapply( X = 1:query.cell.num , 
                     FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
-  
   # calculate cosine similarity of union neighobors, and convert to angular and projection similarity
   nn_angular_projection_dist <- lapply(X = 1:reduction.num,  
                                        FUN = function(r){
                                          projangular_nn_dist(nn.idx = nn_idx,
                                                              redunction.embedding = redunction_embedding[[r]], 
-                                                             query.reduction.embedding = query.redunction_embedding[[r]] )
+                                                             query.reduction.embedding = query.redunction_embedding[[r]])
                                        })
+ 
   # modality weighted distance
   if(distance  =="euclidean"){
     nn_eu_sd <-  lapply(X = 1:length(reduction.list),  
@@ -1063,7 +1070,17 @@ MultiModelNN <- function(object,
                                             exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] / nn_eu_sd[[r]][x])**2) * 
                                               modality.weight[[r]][x] })
                                })
-  }else{
+  }else if(distance == "kernel"){
+    nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
+                               FUN = function(r){
+                                 lapply(  X = 1:ncol(object),
+                                          FUN = function(x){ 
+                                            exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] /
+                                                      sigma.list[[r]])**power.list[[r]]) * 
+                                              modality.weight[[r]][x] })
+                               })
+    }else{
+
     nn_weighted_dist <- lapply(X = 1:reduction.num,  
                                FUN = function(r){
                                  lapply(  X = 1:query.cell.num,
@@ -1115,11 +1132,12 @@ MultiModelNN <- function(object,
 #' @return return an object containing multi-model KNN, SNN and neighbors
 #' @export
 FindMultiModelNeighbors <-  function(object, 
-                                     reduction.list,
-                                     dims.list,
+                                     reduction.list = NULL,
+                                     dims.list = NULL,
                                      k.nn = 20, 
                                      knn.range = 200,
                                      weighted.graph = FALSE,
+                                     l2.norm = FALSE, 
                                      knn.graph.name = "jknn",
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
@@ -1127,13 +1145,29 @@ FindMultiModelNeighbors <-  function(object,
                                      nn.distance = "proj_angular", 
                                      verbose = TRUE
 ){
+  if(length(modality.weight) == 3){
+    l2.norm <- modality.weight$params$l2.norm
+    sigma.list <- modality.weight$params$sigma
+    power.list <-  modality.weight$params$power
+    if(is.null(reduction.list)){
+      reduction.list <- modality.weight$params$reduction.list
+    }
+    if(is.null(dims.list)){
+      dims.list <- modality.weight$params$dims.list
+    }
+    modality.weight <- modality.weight$first.modality.weight
+    }
+  
   joint.nn <- MultiModelNN(object = object, 
                       k.nn = k.nn, 
                       distance = nn.distance,
-                      reduction.list =reduction.list, 
+                      reduction.list = reduction.list, 
                       dims.list = dims.list,
                       knn.range = knn.range, 
                       modality.weight = modality.weight, 
+                      l2.norm = l2.norm, 
+                      sigma.list = sigma.list, 
+                      power.list = power.list, 
                       verbose = verbose )
   select_nn <- joint.nn$nn.idx
   joint.nn$nn.dists <- sqrt( joint.nn$nn.dists )
@@ -1311,6 +1345,205 @@ FindModalityWeights <- function(object,
                                      max.modality_score = max.modality_score,
                                      verbose = verbose)
   return( modality.weight )
+}
+
+
+
+
+optimize_kernel <- function(positive, 
+                            negative, 
+                            sigma.set = c(seq(0.1, 0.9, 0.1), 1, 2, 5, 10), 
+                            power.set = c(0.5, 1, 1.5, 2, 3, 4),
+                            lambda.set = seq(0.1, 0.9, 0.1) ){
+  phi.list <- list()
+  param.list <- list()
+  idx = 0
+  for (sigma in sigma.set ){
+    for (power in power.set){
+      for (lamda in lambda.set){
+        idx = idx + 1
+        pull  <-  exp(-1*(positive/sigma)**power)**2
+        push  <-   1 + exp(-1*(positive/sigma)**power)**2 - exp(-1*(negative/sigma)**power)**2
+        phi <- lamda*pull + (1-lamda)*push
+        phi <- sum(phi)
+        phi.list[[idx]] <- phi
+        param.list[[idx]] <- c(sigma, power)
+      }
+    }
+  }
+  
+  phi.list <- unlist(phi.list)
+  param.optim <- param.list[[which.max( phi.list)]]
+  names(param.optim) <- c("sigma", "power")
+  return( param.optim )
+}
+
+
+FindModalityWeights.kernel <- function(object, 
+                                       reduction.1,
+                                       reduction.2,
+                                       dims.1,
+                                       dims.2, 
+                                       k.nn = 20, 
+                                       l2.norm = FALSE, 
+                                       sigma.idx = 6,
+                                       LMNN.smooth = FALSE, 
+                                       LMNN = FALSE, 
+                                       LMNN.sigma.set = NULL, 
+                                       LMNN.power.set = NULL, 
+                                       LMNN.lambda.set = NULL){
+  embeddings.1 <- object[[reduction.1 ]]@cell.embeddings[, dims.1]
+  embeddings.2 <- object[[reduction.2 ]]@cell.embeddings[, dims.2]
+  
+  if(l2.norm){
+    embeddings.1.norm <- L2Norm(embeddings.1)
+    embeddings.2.norm <- L2Norm(embeddings.2)
+  } else{
+    embeddings.1.norm <- embeddings.1
+    embeddings.2.norm <- embeddings.2
+  }
+  reduction.1.norm <- paste0(reduction.1, ".norm")
+  reduction.2.norm <- paste0(reduction.2, ".norm")
+  object[[ reduction.1.norm ]] <- CreateDimReducObject(embeddings = embeddings.1.norm,
+                                                       key = paste0("norm", object[[reduction.1 ]]@key))
+  object[[ reduction.2.norm ]] <- CreateDimReducObject(embeddings = embeddings.2.norm,
+                                                       key = paste0("norm", object[[reduction.2]]@key))
+  
+  nn.1 <- NNHelper(embeddings.1.norm, k = k.nn, method = "annoy", metric = "cosine")
+  nn.2 <- NNHelper(embeddings.2.norm, k = k.nn, method = "annoy", metric = "cosine")
+  random.nn.idx <- t(sapply(1:ncol(object), function(x) sample(1:ncol(object), k.nn)))
+  
+  rownames(random.nn.idx) <- rownames(nn.2$nn.idx) <- rownames(nn.1$nn.idx) <- Cells(object)
+  impute1_nn1 <- PredictAssay(object = object, 
+                              nn.idx = nn.1$nn.idx,
+                              reduction = reduction.1.norm,
+                              dims = 1:ncol(embeddings.1.norm), 
+                              return.assay = F )
+  
+  impute1_nn2 <- PredictAssay(object = object,
+                              nn.idx = nn.2$nn.idx,
+                              reduction = reduction.1.norm, 
+                              dims = 1:ncol(embeddings.1.norm), 
+                              return.assay = F )
+  
+  impute1_nn.random <- PredictAssay(object = object,
+                                    nn.idx = random.nn.idx, 
+                                    reduction = reduction.1.norm, 
+                                    dims = 1:ncol(embeddings.1.norm),
+                                    return.assay = F )
+  
+  impute2_nn2  <- PredictAssay(object = object, 
+                               nn.idx = nn.2$nn.idx,
+                               reduction = reduction.2.norm, 
+                               dims = 1:ncol(embeddings.2.norm),
+                               return.assay = F )
+  
+  impute2_nn1  <- PredictAssay(object = object, 
+                               nn.idx = nn.1$nn.idx, 
+                               reduction = reduction.2.norm,
+                               dims = 1:ncol(embeddings.2.norm),
+                               return.assay = F )
+  
+  impute2_nn.random  <- PredictAssay(object = object,
+                                     nn.idx = random.nn.idx,
+                                     reduction = reduction.2.norm, 
+                                     dims = 1:ncol(embeddings.2.norm),
+                                     return.assay = F )
+  
+  
+  modality1_pos <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn1))**2))
+  modality1_neg <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn.random))**2))
+  modality1_cross <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn2))**2))
+  
+  modality2_pos <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn2))**2))
+  modality2_neg <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn.random))**2))
+  modality2_cross <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn1))**2))
+  
+if(LMNN){
+  if(is.null(LMNN.sigma.set)){
+    LMNN.sigma.set <- c(seq(0.1, 0.9, 0.1), 1, 2, 5, 10)
+  }
+  if(is.null( LMNN.power.set)){
+    LMNN.power.set <- c(0.5, 1, 1.5, 2, 3, 4)
+  }
+  if(is.null( LMNN.lambda.set )){
+    LMNN.lambda.set <- seq(0.1, 0.9, 0.1) 
+  }
+  modality1.param <- optimize_kernel(positive = modality1_pos, 
+                                     negative = modality1_neg, 
+                                     sigma.set =  LMNN.sigma.set , 
+                                     power.set =  LMNN.power.set,
+                                     lambda.set =  LMNN.lambda.set
+  )
+  
+  modality2.param <-  optimize_kernel(positive = modality2_pos, 
+                                      negative = modality2_neg, 
+                                      sigma.set =  LMNN.sigma.set , 
+                                      power.set =  LMNN.power.set,
+                                      lambda.set =  LMNN.lambda.set
+  )
+  
+  modality1.cross.score <- exp(-1*(modality1_cross/modality1.param[1])**modality1.param[2])
+  modality2.cross.score <- exp(-1*(modality2_cross/modality2.param[1])**modality2.param[2])
+  
+  modality1.pos.score <- exp(-1*(modality1_pos/modality1.param[1])**modality1.param[2])
+  modality2.pos.score <- exp(-1*(modality2_pos/modality2.param[1])**modality2.param[2])
+  
+  modality1.neg.score <- exp(-1*(modality1_neg/modality1.param[1])**modality1.param[2])
+  modality2.neg.score <- exp(-1*(modality2_neg/modality2.param[1])**modality2.param[2])
+  
+  
+  if(LMNN.smooth){
+    modality1.cross.score <-apply( X = nn.1$nn.idx, MARGIN = 1, FUN = function(nn) mean( modality1.cross.score[ nn[-1]]))
+    modality2.cross.score <-apply( X = nn.2$nn.idx, MARGIN = 1, FUN = function(nn) mean( modality2.cross.score[ nn[-1]]))
+  }
+  modality1.weight <- modality2.cross.score/(modality1.cross.score + modality2.cross.score + 0.01)
+  
+  score.mat <- cbind( modality1.cross.score, modality2.cross.score, modality1.pos.score, modality2.pos.score, modality1.neg.score,  modality2.neg.score)
+  colnames(score.mat) <- c( "modality1.cross.score", "modality2.cross.score", "modality1.pos.score", "modality2.pos.score", "modality1.neg.score",  "modality2.neg.score")
+  score.mat <- as.data.frame(score.mat)
+  params <- list( list(reduction.1, reduction.2), list(dims.1,dims.2), l2.norm, smooth,  list(modality1.param[1],modality2.param[1]), list(modality1.param[2], modality2.param[2]) )
+  names(params) <- c("reduction.list","dims.list","l2.norm", "smooth","sigma", "power")
+  
+} else{
+
+  nn.1_eu.dist <- t(sapply(X = 1:ncol(object),
+                         FUN = function(x){
+    cdist(embeddings.1.norm[x, , drop= F],
+          embeddings.1.norm[nn.1$nn.idx[x,] , , drop= F]  )
+  }  ))
+  
+  nn.2_eu.dist <- t(sapply(X = 1:ncol(object),
+                           FUN = function(x){
+                             cdist(embeddings.2.norm[x, , drop= F],
+                                   embeddings.2.norm[nn.2$nn.idx[x,] , , drop= F]  )
+                           }  ))
+  
+  modality1_sd <- nn.1_eu.dist[, sigma.idx]
+  modality2_sd <- nn.2_eu.dist[, sigma.idx]
+
+  modality1_pos <- exp(-1*( modality1_pos/modality1_sd )**2)
+  modality1_cross <- exp(-1*( modality1_cross/modality1_sd )**2)
+  modality1_score <- (modality1_pos+ 0.01) / (modality1_cross + 0.01)
+  modality1_score <- MinMax(modality1_score, min = 0, max = 200)
+  
+  modality2_pos <-  exp(-1*( modality2_pos/modality2_sd )**2)
+  modality2_cross <-  exp(-1*( modality2_cross/modality2_sd )**2)
+  modality2_score <- (modality2_pos+ 0.01) / (modality2_cross + 0.01)
+  modality2_score <- MinMax(modality2_score, min = 0, max = 200)
+  
+  modality1.weight <- exp(modality1_score)/ (exp(modality1_score) + exp(modality2_score))
+  
+  score.mat <- cbind( modality1_pos, modality1_cross, modality2_pos, modality2_cross, modality1_score,  modality2_score)
+  colnames(score.mat) <- c( "modality1_nn1", "modality1_nn2", "modality2_nn2", "modality2_nn1", "modality1_score",  "modality2_score")
+  score.mat <- as.data.frame(score.mat)
+  params <- list( list(reduction.1, reduction.2), list(dims.1,dims.2), l2.norm, sigma.idx, list(modality1_sd, modality2_sd) )
+  names(params) <- c("reduction.list","dims.list","l2.norm", "sigma.idx", "sigma.list")
+  
+  }
+  weight.list <- list(modality1.weight, params, score.mat )
+  names(weight.list) <- c("first.modality.weight", "params", "score.matrix")
+  return(weight.list)
 }
 
 
