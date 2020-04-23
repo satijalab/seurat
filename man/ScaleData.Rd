@@ -104,7 +104,7 @@ don't block for scaling calculations.}
 }
 \description{
 Scales and centers features in the dataset. If variables are provided in vars.to.regress,
-they are individually regressed against each feautre, and the resulting residuals are
+they are individually regressed against each feature, and the resulting residuals are
 then scaled and centered.
 }
 \details{
