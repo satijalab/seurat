@@ -1462,6 +1462,7 @@ FindModalityWeights.kernel <- function(object,
                                        reduction.2,
                                        snn.cell = 5000, 
                                        seed = 270806, 
+                                       KL.divergence = FALSE, 
                                        snn.graph.1 = NULL, 
                                        snn.graph.2 = NULL, 
                                        dims.1,
@@ -1607,7 +1608,14 @@ FindModalityWeights.kernel <- function(object,
     modality2_score <-apply( X = nn.2$nn.idx, MARGIN = 1, FUN = function(nn) mean( modality2_score[ nn[-1]]))
   }
 
-  modality1.weight <- exp(modality1_score)/(exp(modality1_score) + exp(modality2_score))
+  if(KL.divergence){
+    modality1.weight <-  modality1_pos_kernel*log(modality1_score) / ( modality1_pos_kernel*log(modality1_score) +  modality2_pos_kernel*log(modality2_score))
+    modality1.weight <- MinMax(modality1.weight, min = 0, max = 1)
+    
+  }else{
+    modality1.weight <- exp(modality1_score)/(exp(modality1_score) + exp(modality2_score))
+    
+  }
 
 
   score.mat <- cbind( modality1_pos, modality1_pos_kernel, modality1_cross, modality1_cross_kernel,   modality1_score,
