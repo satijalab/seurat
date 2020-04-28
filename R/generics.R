@@ -901,7 +901,7 @@ RunUMAP <- function(object, ...) {
 #' Scale and center the data.
 #'
 #' Scales and centers features in the dataset. If variables are provided in vars.to.regress,
-#' they are individually regressed against each feautre, and the resulting residuals are
+#' they are individually regressed against each feature, and the resulting residuals are
 #' then scaled and centered.
 #'
 #' ScaleData now incorporates the functionality of the function formerly known
@@ -909,9 +909,9 @@ RunUMAP <- function(object, ...) {
 #' and then scaled the residuals). To make use of the regression functionality,
 #' simply pass the variables you want to remove to the vars.to.regress parameter.
 #'
-#' Setting center to TRUE will center the expression for each feautre by subtracting
-#' the average expression for that feautre. Setting scale to TRUE will scale the
-#' expression level for each feautre by dividing the centered feautre expression
+#' Setting center to TRUE will center the expression for each feature by subtracting
+#' the average expression for that feature. Setting scale to TRUE will scale the
+#' expression level for each feature by dividing the centered feature expression
 #' levels by their standard deviations if center is TRUE and by their root mean
 #' square otherwise.
 #'
