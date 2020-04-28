@@ -87,11 +87,11 @@ modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'}
 \item{do.center}{Whether to center the data.}
 
 \item{scale.max}{Max value to return for scaled data. The default is 10.
-Setting this can help reduce the effects of feautres that are only expressed in
+Setting this can help reduce the effects of features that are only expressed in
 a very small number of cells. If regressing out latent variables and using a
 non-linear model, the default is 50.}
 
-\item{block.size}{Default size for number of feautres to scale at in a single
+\item{block.size}{Default size for number of features to scale at in a single
 computation. Increasing block.size may speed up calculations but at an
 additional memory cost.}
 
@@ -104,7 +104,7 @@ don't block for scaling calculations.}
 }
 \description{
 Scales and centers features in the dataset. If variables are provided in vars.to.regress,
-they are individually regressed against each feautre, and the resulting residuals are
+they are individually regressed against each feature, and the resulting residuals are
 then scaled and centered.
 }
 \details{
@@ -113,9 +113,9 @@ as RegressOut (which regressed out given the effects of provided variables
 and then scaled the residuals). To make use of the regression functionality,
 simply pass the variables you want to remove to the vars.to.regress parameter.
 
-Setting center to TRUE will center the expression for each feautre by subtracting
-the average expression for that feautre. Setting scale to TRUE will scale the
-expression level for each feautre by dividing the centered feautre expression
+Setting center to TRUE will center the expression for each feature by subtracting
+the average expression for that feature. Setting scale to TRUE will scale the
+expression level for each feature by dividing the centered feature expression
 levels by their standard deviations if center is TRUE and by their root mean
 square otherwise.
 }

@@ -832,6 +832,7 @@ ReadAlevin <- function(base.path) {
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #' @param unique.features Make feature names unique (default TRUE)
+#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -857,7 +858,12 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
+Read10X <- function(
+  data.dir = NULL,
+  gene.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+) {
   full.data <- list()
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
@@ -888,7 +894,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
-    if (all(grepl(pattern = "\\-1$", x = cell.names))) {
+    if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
         FUN = ExtractField,
@@ -2138,10 +2144,10 @@ RunALRA.Seurat <- function(
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
+#' Setting this can help reduce the effects of features that are only expressed in
 #' a very small number of cells. If regressing out latent variables and using a
 #' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
+#' @param block.size Default size for number of features to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
