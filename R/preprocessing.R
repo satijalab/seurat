@@ -2144,10 +2144,10 @@ RunALRA.Seurat <- function(
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
+#' Setting this can help reduce the effects of features that are only expressed in
 #' a very small number of cells. If regressing out latent variables and using a
 #' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
+#' @param block.size Default size for number of features to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
