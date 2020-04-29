@@ -3230,132 +3230,6 @@ TransformDataMatrix <- function(
 
 
 
-# Find multi-model neighbors 
-#
-#' @param object The object used to calculate knn
-#' @param k.nn .Number of nearest multi-model neighbors to compute
-#' @param reduction.list A list of reduction name 
-#' @param dims.list A list of dimentions used for the reduction
-#' @param knn.range The number of approximate neighbors to compute
-#' @param modality.weight the cell-specific modeality weights
-#' @param verbose Whether or not to print output to the console
-#'
-#' @return return a list containing nn index and nn multi-model distance
-#' @export
-#' 
-MultiModelNN <- function(object, 
-                         query = NULL,
-                         k.nn = 20, 
-                         reduction.list,
-                         dims.list = NULL,
-                         knn.range = 200,
-                         distance = c( "proj_angular", "euclidean")[1],
-                         modality.weight = NULL,
-                         verbose = TRUE
-){
-  if( is.null(modality.weight)){
-    modality.weight <- lapply(X = 1:length(reduction.list),
-                              FUN = function(r) rep( 1/length(reduction.list), ncol(object)) )
-  }
-  if(!is.list(modality.weight)){
-    modality.weight <- list(modality.weight, (1 - modality.weight))
-  }
-  if( class(object)[1] == "Seurat"){
-    redunction_embedding <- lapply( X = 1:length(reduction.list), 
-                                    FUN = function(x) {
-                                      Embeddings(object[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
-                                    })
-  } else {
-    redunction_embedding <- object
-  }
-  
-  if(is.null(query)){
-    query.redunction_embedding <- redunction_embedding
-    query <- object
-  } else{
-    if( class(query)[1] == "Seurat" ){
-      query.redunction_embedding <- lapply( X = 1:length(reduction.list), 
-                                            FUN = function(x) {
-                                              Embeddings(query[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
-                                            })
-    } else {
-      query.redunction_embedding <- query
-    }
-  }
-  query.cell.num <- nrow( query.redunction_embedding[[1]] )
-  reduction.num <- length( query.redunction_embedding )
-  redunction_nn <- lapply( X = 1:reduction.num, 
-                           FUN = function(x){
-                             NNHelper(data = redunction_embedding[[x]], 
-                                      query = query.redunction_embedding[[x]],
-                                      k = knn.range,
-                                      method = 'annoy',
-                                      metric = "cosine") })
-  # union of rna and adt nn, remove itself from neighobors
-  redunction_nn <- lapply(X = redunction_nn , 
-                          FUN = function(x)  x$nn.idx[, -1]  )
-  
-  nn_idx <- lapply( X = 1:query.cell.num , 
-                    FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
-  
-  # calculate cosine similarity of union neighobors, and convert to angular and projection similarity
-  nn_angular_projection_dist <- lapply(X = 1:reduction.num,  
-                                       FUN = function(r){
-                                         projangular_nn_dist(nn.idx = nn_idx,
-                                                             redunction.embedding = redunction_embedding[[r]], 
-                                                             query.reduction.embedding = query.redunction_embedding[[r]] )
-                                       })
-  # modality weighted distance
-  if(distance  =="euclidean"){
-    nn_eu_sd <-  lapply(X = 1:length(reduction.list),  
-                        FUN = function(r){
-                          sapply(nn_angular_projection_dist[[r]]$euclidean, 
-                                 FUN = function(x) { sort(x)[5]  })
-                        })
-    nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
-                               FUN = function(r){
-                                 lapply(  X = 1:ncol(object),
-                                          FUN = function(x){ 
-                                            exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] / nn_eu_sd[[r]][x])**2) * 
-                                              modality.weight[[r]][x] })
-                               })
-  }else{
-    nn_weighted_dist <- lapply(X = 1:reduction.num,  
-                               FUN = function(r){
-                                 lapply(  X = 1:query.cell.num,
-                                          FUN = function(x){
-                                            nn_angular_projection_dist[[r]]$angular[[x]] *
-                                              nn_angular_projection_dist[[r]]$projection[[x]] *
-                                              modality.weight[[r]][x]}
-                                 )
-                               })
-  }
-  nn_weighted_dist <- sapply(1:query.cell.num, 
-                             FUN =  function(x){ 
-                               Reduce("+", 
-                                      lapply( X = 1:reduction.num, 
-                                              FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
-                             })
-  # select k nearest joint neighbors
-  select_idx <-  lapply( X = nn_weighted_dist,
-                         FUN = function(dist){
-                           which(rank(dist*-1,  ties.method = "first") <= (k.nn))
-                         })
-  select_nn <- t(sapply( X = 1:query.cell.num,
-                         FUN = function(x) nn_idx[[x]][select_idx[[x]]])
-  )
-  
-  select_dist <- t(sapply( X = 1:query.cell.num, 
-                           FUN = function(x) nn_weighted_dist[[x]][select_idx[[x]]])
-  )
-  rownames(select_nn) <- rownames(select_dist) <- Cells(query)
-  joint.nn <- list(select_nn, select_dist)
-  names(joint.nn) <- c("nn.idx", "nn.dists")
-  return(joint.nn)
-}
-
-
-
 FindJointTransferAnchor <- function(reference, 
                                     query, 
                                     reference.modality.weight, 
@@ -3364,6 +3238,7 @@ FindJointTransferAnchor <- function(reference,
                                     query.assay.list,
                                     reduction.list,
                                     dims.list,
+                                    l2.norm = TRUE, 
                                     k.nn = 20,
                                     knn.range = 200, 
                                     k.anchor = 5, 
@@ -3394,7 +3269,9 @@ FindJointTransferAnchor <- function(reference,
       verbose = verbose
     )
     combined.pca <- rbind(projected.pca,  reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]])
-    combined.pca <- L2Norm(combined.pca)
+    if(l2.norm){
+      combined.pca <- L2Norm(combined.pca)
+    }
     # Generate project reduction
     proj.reduc.name <- paste0( reduction.list[[i]],"project")
     proj.reduction.list[[i]] <- proj.reduc.name
