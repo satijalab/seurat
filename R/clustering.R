@@ -1207,7 +1207,7 @@ for (i in 1:ncol(object)){
     diag(nn.matrix) <- 1
     }
   rownames(x = nn.matrix) <-  colnames(x = nn.matrix) <- colnames(x = object)
-  nn.matrix <- nn.matrix + t(nn.matrix) - t(nn.matrix*nn.matrix)
+  nn.matrix <- nn.matrix + t(nn.matrix) - t(nn.matrix)*nn.matrix
   nn.matrix <- as.Graph(nn.matrix)
   suppressWarnings(object[[knn.graph.name]] <- nn.matrix)
   snn.matrix <- knn_snn_graph(object, nn.matrix)
@@ -1460,8 +1460,6 @@ optimize_kernel <- function(positive,
 FindModalityWeights.kernel <- function(object, 
                                        reduction.1,
                                        reduction.2,
-                                       snn.cell = 5000, 
-                                       seed = 270806, 
                                        KL.divergence = FALSE, 
                                        snn.graph.1 = NULL, 
                                        snn.graph.2 = NULL, 
@@ -1469,6 +1467,8 @@ FindModalityWeights.kernel <- function(object,
                                        dims.2, 
                                        snn.far.nn = FALSE, 
                                        k.nn = 20, 
+                                       cross.contant.1 = 1e-4, 
+                                       cross.contant.2 = 1e-4, 
                                        l2.norm = FALSE, 
                                        sigma.idx = 6,
                                        smooth = FALSE
@@ -1501,6 +1501,10 @@ FindModalityWeights.kernel <- function(object,
   if( sigma.idx > k.nn){
     nn.1$nn.idx <- nn.1$nn.idx[, 1:k.nn]
     nn.2$nn.idx <- nn.2$nn.idx[, 1:k.nn]
+    nn.1$nn.dists <- nn.1$nn.dists[, 1:k.nn]
+    nn.2$nn.dists <- nn.2$nn.dists[, 1:k.nn]
+    
+    
   }
   impute1_nn1 <- PredictAssay(object = object, 
                               nn.idx = nn.1$nn.idx,
@@ -1519,13 +1523,11 @@ FindModalityWeights.kernel <- function(object,
                                reduction = reduction.2.norm, 
                                dims = 1:ncol(embeddings.2.norm),
                                return.assay = F )
-  
   impute2_nn1  <- PredictAssay(object = object, 
                                nn.idx = nn.1$nn.idx, 
                                reduction = reduction.2.norm,
                                dims = 1:ncol(embeddings.2.norm),
                                return.assay = F )
-
   
   modality1_pos <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn1))**2))
   modality1_cross <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn2))**2))
@@ -1533,19 +1535,12 @@ FindModalityWeights.kernel <- function(object,
   modality2_pos <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn2))**2))
   modality2_cross <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn1))**2))
   
-
  if(snn.far.nn){
-
-   set.seed(seed)
-   snn.idx  <- sample(1:ncol(object), size = snn.cell)
-   
+   snn.idx <- 1:ncol(object)
    snn.far.nn.1 <- snn_nn(snn.graph = snn.graph.1[snn.idx, ], k.nn = k.nn)
    snn.far.nn.2 <- snn_nn(snn.graph = snn.graph.2[snn.idx, ], k.nn = k.nn)
 
-   modality1_pos.nn <- sigma.nn.1$nn.dists[snn.idx, ]
-   modality2_pos.nn <- sigma.nn.2$nn.dists[snn.idx, ]
-   
-   
+
    modality1_neg.nn <- t(sapply(X = 1:length(snn.idx), 
                                 FUN = function(x){
                                   cdist( X = embeddings.1.norm[ snn.idx[x] ,, drop=F],  
@@ -1559,28 +1554,12 @@ FindModalityWeights.kernel <- function(object,
                                          metric = "euclidean" )
                                 }))
    
-   param.1.cell <- t(sapply( X = 1:length(snn.idx),
-                             FUN = function(x){
-                               optimize_kernel(positive = modality1_pos.nn[x, -1], 
-                                               negative = modality1_neg.nn[x, -1], 
-                                               sigma.set =  seq(1, 50, 1), 
-                                               power.set = 2,
-                                               lambda.set = seq(0.1, 0.9, 0.1)) }))
-   
-   param.2.cell <- t(sapply( X = 1:length(snn.idx),
-                             FUN = function(x){
-                               optimize_kernel(positive = modality2_pos.nn[x, -1], 
-                                               negative = modality2_neg.nn[x, -1], 
-                                               sigma.set = seq(1, 50, 1), 
-                                               power.set = 2,
-                                               lambda.set = seq(0.1, 0.9, 0.1)) }))
-   snn.idx.nn1 <- NNHelper(data = embeddings.1.norm[snn.idx ,], query = embeddings.1.norm, k = k.nn, method = "annoy", metric = "euclidean" )
-   snn.idx.nn2 <- NNHelper(data = embeddings.2.norm[snn.idx ,], query = embeddings.2.norm, k = k.nn, method = "annoy", metric = "euclidean" )
-   modality1_sd <- apply(snn.idx.nn1$nn.idx, MARGIN = 1, function(x) mean(  param.1.cell[x, 1]  ))
-   modality2_sd <- apply(snn.idx.nn2$nn.idx, MARGIN = 1, function(x) mean(  param.2.cell[x, 1]  ))
-   names(modality1_sd) <- names(modality2_sd) <- Cells(object)
- 
- }else{
+   modality1_sd <- rowMeans(modality1_neg.nn )
+   modality2_sd <- rowMeans(modality2_neg.nn )
+   modality1_sd <- MinMax(modality1_sd, min = 0, max = quantile(modality1_sd, probs = 0.99))
+   modality2_sd <- MinMax(modality2_sd, min = 0, max = quantile(modality2_sd, probs = 0.99))
+
+   } else{
    modality1_sd <- sigma.nn.1$nn.dists[, sigma.idx]
    modality2_sd <- sigma.nn.2$nn.dists[, sigma.idx]
  }
@@ -1592,14 +1571,20 @@ FindModalityWeights.kernel <- function(object,
   modality2_cross_kernel <-  exp(-1*( modality2_cross/modality2_sd )**2)
   
   
-  params <- list( list(reduction.1, reduction.2), list(dims.1,dims.2), l2.norm, sigma.idx, snn.far.nn ,list(modality1_sd, modality2_sd) )
+  params <- list( list(reduction.1, reduction.2),
+                  list(dims.1,dims.2),
+                  l2.norm,
+                  sigma.idx,
+                  snn.far.nn ,
+                  list(modality1_sd, modality2_sd) )
+  
   names(params) <- c("reduction.list","dims.list","l2.norm", "sigma.idx", "snn.far.nn","sigma.list")
 
   
-  modality1_score <- (modality1_pos_kernel + 1e-4) / (modality1_cross_kernel + 1e-4)
+  modality1_score <- (modality1_pos_kernel ) / (modality1_cross_kernel + cross.contant.1 )
   modality1_score <- MinMax(modality1_score, min = 0, max = 200)
   
-  modality2_score <- (modality2_pos_kernel+ 1e-4) / (modality2_cross_kernel + 1e-4)
+  modality2_score <- (modality2_pos_kernel) / (modality2_cross_kernel + cross.contant.2)
   modality2_score <- MinMax(modality2_score, min = 0, max = 200)
   
   
@@ -1618,10 +1603,19 @@ FindModalityWeights.kernel <- function(object,
   }
 
 
-  score.mat <- cbind( modality1_pos, modality1_pos_kernel, modality1_cross, modality1_cross_kernel,   modality1_score,
-                      modality2_pos,   modality2_pos_kernel,  modality2_cross, modality2_cross_kernel,  modality2_score)
-  colnames(score.mat) <- c( "modality1_nn1", "modality1_nn1_kernel","modality1_nn2", "modality1_nn2_kernel", "modality1_score", 
-                            "modality2_nn2", "modality2_nn2_kernel", "modality2_nn1", "modality2_nn1_kernel", "modality2_score")
+  score.mat <- cbind( modality1_pos, modality1_pos_kernel, 
+                      modality1_cross, modality1_cross_kernel,  
+                      modality1_score,
+                      modality2_pos,   modality2_pos_kernel,  
+                      modality2_cross, modality2_cross_kernel,  
+                      modality2_score)
+  
+  colnames(score.mat) <- c( "modality1_nn1", "modality1_nn1_kernel",
+                            "modality1_nn2", "modality1_nn2_kernel", 
+                            "modality1_score", 
+                            "modality2_nn2", "modality2_nn2_kernel",
+                            "modality2_nn1", "modality2_nn1_kernel",
+                            "modality2_score")
   score.mat <- as.data.frame(score.mat)
  
   weight.list <- list(modality1.weight, params, score.mat )
