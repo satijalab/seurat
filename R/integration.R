@@ -3290,6 +3290,17 @@ FindJointTransferAnchor <- function(reference,
       assay = query.assay.list[[i]]
     )
   }
+  browser()
+  reference.modality.weight.2 <- FindModalityWeights.kernel(object = reference,
+                                                            reduction.list = proj.reduction.list,
+                                                            dims.list = dims.list, l2.norm = F, snn.far.nn = F, 
+                                                            sigma.idx = 20)
+  query.modality.weight.2 <- FindModalityWeights.kernel(object = query,
+                                                            reduction.list = proj.reduction.list,
+                                                            dims.list = dims.list, l2.norm = F, snn.far.nn = F, 
+                                                        sigma.idx = 20)
+  browser()
+ 
   # Generate bidirectional nearest neighbors
   nnRR <- MultiModelNN(object = reference, 
                        query = reference, 
@@ -3297,14 +3308,18 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  reference.modality.weight)
+                       modality.weight =  reference.modality.weight.2$first.modality.weight, 
+                       l2.norm = FALSE,  
+                       sigma.list = reference.modality.weight.2$params$sigma.list)
   nnQQ <- MultiModelNN(object = query, 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  query.modality.weight )
+                       modality.weight =  query.modality.weight.2$first.modality.weight, 
+                       l2.norm =  FALSE, 
+                       sigma.list = query.modality.weight.2$params$sigma.list)
   
   nnRQ <- MultiModelNN(object = query, 
                        query = reference, 
@@ -3312,7 +3327,9 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  reference.modality.weight)
+                       modality.weight =  reference.modality.weight.2$first.modality.weight, 
+                       l2.norm = FALSE, 
+                       sigma.list = reference.modality.weight.2$params$sigma.list)
   
   nnQR <- MultiModelNN(object = reference , 
                        query = query, 
@@ -3320,8 +3337,9 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  query.modality.weight)
-  
+                       modality.weight =  query.modality.weight.2$first.modality.weight, 
+                       l2.norm =  FALSE, 
+                       sigma.list = query.modality.weight.2$params$sigma.list)
   # merging two objects
   iobject <- merge(x = query, y = reference)
   for (i in 1:length(proj.reduction.list)){
@@ -3339,14 +3357,14 @@ FindJointTransferAnchor <- function(reference,
     new.data = list('nnaa' = nnRR, 'nnab' = nnRQ, 'nnba' = nnQR, 'nnbb' = nnQQ, 
                     cells1 = Cells(reference), cells2 = Cells(query))
   )
-  
+
   iobject <- FindAnchorPairs(
     object = iobject, 
     integration.name = "integrated", 
     k.anchor = k.anchor, 
     verbose = TRUE
   )
-  
+  browser()
   # assay seems not to be used
   anchors = ScoreAnchors(
     object = iobject,
@@ -3362,8 +3380,8 @@ FindJointTransferAnchor <- function(reference,
     slot = 'anchors'
   )
   
-  Misc(iobject, slot = "query.modality.weight") <- query.modality.weight
-  Misc(iobject, slot = "reference.modality.weight") <- reference.modality.weight
+  Misc(iobject, slot = "query.modality.weight") <- query.modality.weight$first.modality.weight
+  Misc(iobject, slot = "reference.modality.weight") <- reference.modality.weight$first.modality.weight
   Misc(iobject, slot = "proj.reduction") <- proj.reduction.list
   
   anchor.set <- new(

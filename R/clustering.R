@@ -970,7 +970,6 @@ MultiModelNN <- function(object,
                          dims.list = NULL,
                          knn.range = 200,
                          modality.weight = NULL,
-                         sigma.idx = 5, 
                          sigma.list = NULL,
                          l2.norm = FALSE, 
                          verbose = TRUE
@@ -1016,7 +1015,7 @@ MultiModelNN <- function(object,
                                       query = query.redunction_embedding[[x]],
                                       k = knn.range,
                                       method = 'annoy',
-                                      metric = "cosine") })
+                                      metric = "euclidean") })
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(X = redunction_nn , 
                           FUN = function(x)  x$nn.idx[, -1]  )
@@ -1036,13 +1035,13 @@ MultiModelNN <- function(object,
     }
     nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
                                FUN = function(r){
-                                 lapply(  X = 1:ncol(object),
+                                 lapply(  X = 1:query.cell.num,
                                           FUN = function(x){ 
                                              exp(-1*(nn_dist[[r]][[x]] / sigma.list[[r]][x] )**
                                                        2) * 
                                               modality.weight[[r]][x] })
                                })
-    nn_weighted_dist <- sapply(1:query.cell.num, 
+    nn_weighted_dist <- sapply(X = 1:query.cell.num, 
                                FUN =  function(x){ 
                                  Reduce("+", 
                                         lapply( X = 1:reduction.num, 
@@ -1364,6 +1363,7 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
 
 
 FindModalityWeights.kernel <- function(object, 
+                                       query = NULL, 
                                        reduction.list, 
                                        dims.list, 
                                        sd.scale = 0.75, 
@@ -1380,24 +1380,43 @@ FindModalityWeights.kernel <- function(object,
   }
   reduction.set <- unlist(reduction.list)
   names(reduction.list) <- names(dims.list)  <- names(cross.contant.list) <- reduction.set
-  
+
   embeddings.list <- lapply( X = reduction.list, 
                              FUN = function(r) Embeddings(object = object, reduction = r)[, dims.list[[r]]  ])
 
   if(l2.norm){
     embeddings.list.norm <- lapply( X = embeddings.list,
-                                    FUN = function(embeddings) L2Norm(embeddings)) 
+                                          FUN = function(embeddings) L2Norm(embeddings)) 
   } else{
-    embeddings.list.norm <- embeddings.list
+   embeddings.list.norm <- embeddings.list
   }
   
-  nn.list <- lapply(X = embeddings.list.norm, 
-                    FUN = function(embeddings){
-                     nn.r <-  NNHelper(embeddings,
+  if(is.null(query)){
+    query.embeddings.list.norm <- embeddings.list.norm
+    query <- object
+  } else{ 
+    if(snn.far.nn){
+      message("query do not support to use snn to find distant neighbors")
+    }
+    query.embeddings.list <- lapply( X = reduction.list, 
+                               FUN = function(r) Embeddings(object = query, reduction = r)[, dims.list[[r]]  ])
+    if(l2.norm){
+      query.embeddings.list.norm <- lapply( X = query.embeddings.list,
+                                      FUN = function(embeddings) L2Norm(embeddings)) 
+    } else{
+      query.embeddings.list.norm <- query.embeddings.list
+    }
+    }
+  
+  
+  nn.list <- lapply(X = reduction.list, 
+                    FUN = function(r){
+                     nn.r <-  NNHelper(data = embeddings.list.norm[[r]],
+                                       query = query.embeddings.list.norm[[r]],
                                k = max(k.nn, sigma.idx), 
                                method = "annoy", 
                                metric = "euclidean")
-                     rownames(nn.r$nn.idx) <- Cells(object)
+                     rownames(nn.r$nn.idx) <- Cells(query)
                      return(nn.r)
                     })
   sigma.nn.list <- nn.list
@@ -1423,6 +1442,7 @@ FindModalityWeights.kernel <- function(object,
                                        reduction = reduction.norm,
                                        dims = 1:ncol(embeddings.list.norm[[r]]), 
                                        verbose = F,
+                                       cells = Cells(query),
                                        return.assay = F )
     
     cross_impute[[r]]<- PredictAssay(object = object,
@@ -1430,16 +1450,17 @@ FindModalityWeights.kernel <- function(object,
                                      reduction = reduction.norm, 
                                      dims = 1:ncol(embeddings.list.norm[[r]]), 
                                      verbose = F,
+                                     cells = Cells(query),
                                      return.assay = F )
   }
   
   within_impute_dist <- lapply( X = reduction.list, 
                                 FUN = function(r){
-                                  sqrt(rowSums((embeddings.list.norm[[r]] - t(within_impute[[r]]))**2))
+                                  sqrt(rowSums((query.embeddings.list.norm[[r]] - t(within_impute[[r]]))**2))
                                 } )
   cross_impute_dist <- lapply( X = reduction.list, 
                                FUN = function(r){
-                                 sqrt(rowSums((embeddings.list.norm[[r]] - t(cross_impute[[r]]))**2))
+                                 sqrt(rowSums((query.embeddings.list.norm[[r]] - t(cross_impute[[r]]))**2))
                                } )
 
  if(snn.far.nn){
