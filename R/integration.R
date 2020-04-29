@@ -550,6 +550,7 @@ FindTransferAnchors <- function(
   normalization.method = c("LogNormalize", "SCT"),
   reference.assay = NULL,
   query.assay = NULL,
+  reference.reduction = "pca", 
   reduction = "pcaproject",
   project.query = FALSE,
   features = NULL,
@@ -562,6 +563,7 @@ FindTransferAnchors <- function(
   max.features = 200,
   nn.method = "rann",
   eps = 0,
+  scale = TRUE, 
   approx.pca = TRUE,
   verbose = TRUE
 ) {
@@ -678,12 +680,14 @@ FindTransferAnchors <- function(
       }
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
+        reduction = reference.reduction, 
         query = query,
         dims = dims,
+        scale = scale,
         feature.mean = feature.mean,
         verbose = verbose
       )
-      ref.pca <- Embeddings(object = reference[["pca"]])[, dims]
+      ref.pca <- Embeddings(object = reference[[reference.reduction]])[, dims]
       combined.pca <- CreateDimReducObject(
         embeddings = as.matrix(x = rbind(ref.pca, projected.pca))[, dims],
         key = "ProjectPC_",
@@ -691,7 +695,7 @@ FindTransferAnchors <- function(
       )
       combined.ob <- merge(x = reference, y = query)
       combined.ob[["pcaproject"]] <- combined.pca
-      old.loadings <- Loadings(object = reference[["pca"]])
+      old.loadings <- Loadings(object = reference[[reference.reduction]])
       colnames(x = old.loadings) <- paste0("ProjectPC_", 1:ncol(x = old.loadings))
       Loadings(object = combined.ob[["pcaproject"]]) <- old.loadings[, dims]
     }
@@ -1588,6 +1592,7 @@ TransferData <- function(
   anchorset,
   refdata,
   weight.reduction = 'pcaproject',
+  multi.modal = FALSE, 
   l2.norm = FALSE,
   dims = 1:30,
   k.weight = 50,
@@ -1667,7 +1672,13 @@ TransferData <- function(
       new.names = paste0(Cells(x = weight.reduction), "_query")
     )
   } else {
-    weight.reduction <- combined.ob[[weight.reduction]]
+    if(multi.modal){
+      weight.reduction <- lapply( X = combined.ob@misc$proj.reduction,
+                                  FUN = function(r) combined.ob[[r]])
+      names(weight.reduction) <- unlist(combined.ob@misc$proj.reduction)
+    } else{
+      weight.reduction <- combined.ob[[weight.reduction]]
+    }
   }
   combined.ob <- SetIntegrationData(
     object = combined.ob,
@@ -2309,20 +2320,50 @@ FindWeights <- function(
   )
   anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
   if (is.null(x = features)) {
-    data.use <- Embeddings(reduction)[nn.cells2, dims]
+    if(is.list(reduction)){
+      message("Multi-modal anchors transfer")
+      query.data.use <- lapply(X = reduction, 
+                               FUN = function(reduc){ 
+                                 Embeddings(reduc)[nn.cells2, ]
+                               })  
+      
+      data.use <- lapply(X = reduction, 
+                         FUN = function(reduc){ 
+                           Embeddings(reduc)[anchors.cells2, ]
+                         })  
+      
+    } else{
+      data.use <- Embeddings(reduction)[nn.cells2, dims]
+    }
   } else {
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
   }
-  knn_2_2 <- NNHelper(
-    data = data.use[anchors.cells2, ],
-    query = data.use,
-    k = k + 1,
-    method = nn.method,
-    eps = eps
-  )
-  distances <- knn_2_2$nn.dists[, -1]
-  distances <- 1 - (distances / distances[, ncol(x = distances)])
-  cell.index <- knn_2_2$nn.idx[, -1]
+  
+  if( is.list( reduction )){
+    knn_2_2 <- MultiModelNN(object = data.use, 
+                            query = query.data.use,
+                            k.nn = k, 
+                            knn.range = max(200, 5*k),
+                            modality.weight = object@misc$query.modality.weight[nn.cells2 ])
+    distances <- knn_2_2$nn.dists
+    distances <- t(apply(  distances , MARGIN = 1, FUN = function(x) sort(x, decreasing = T)))
+    distances <- sqrt((1 - distances)*2)
+    distances <-  1 - (distances / distances[, ncol(x = distances)])
+    cell.index <- knn_2_2$nn.idx
+  } else{
+    knn_2_2 <- NNHelper(
+      data = data.use[anchors.cells2, ],
+      query = data.use,
+      k = k + 1,
+      method = nn.method,
+      eps = eps
+    )
+    distances <- knn_2_2$nn.dists[, -1]
+    distances <- 1 - (distances / distances[, ncol(x = distances)])
+    cell.index <- knn_2_2$nn.idx[, -1]
+  }
+  
+  
   integration.matrix <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -2803,9 +2844,11 @@ ParseRow <- function(clustering, i){
 ProjectCellEmbeddings <- function(
   reference,
   query,
+  reduction = "pca", 
   reference.assay = NULL,
   query.assay = NULL,
   dims = 1:50,
+  scale = TRUE, 
   verbose = TRUE,
   feature.mean = NULL,
   feature.sd = NULL
@@ -2813,7 +2856,6 @@ ProjectCellEmbeddings <- function(
   if (verbose) {
     message("Projecting PCA")
   }
-  reduction <- "pca"
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
@@ -2830,6 +2872,7 @@ ProjectCellEmbeddings <- function(
 
   if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
+    if(scale){
     feature.sd <- sqrt(
       x = SparseRowVar2(
         mat = as(object = reference.data, Class = "dgCMatrix"), 
@@ -2838,6 +2881,9 @@ ProjectCellEmbeddings <- function(
       )
     )
     feature.sd[is.na(x = feature.sd)] <- 1
+    } else {
+      feature.sd <- rep(x = 1, nrow( reference.data))
+    }
     feature.mean[is.na(x = feature.mean)] <- 1
   }
   proj.data <- GetAssayData(
@@ -3181,3 +3227,277 @@ TransformDataMatrix <- function(
   object[[new.assay.name]] <- new.assay
   return(object)
 }
+
+
+
+# Find multi-model neighbors 
+#
+#' @param object The object used to calculate knn
+#' @param k.nn .Number of nearest multi-model neighbors to compute
+#' @param reduction.list A list of reduction name 
+#' @param dims.list A list of dimentions used for the reduction
+#' @param knn.range The number of approximate neighbors to compute
+#' @param modality.weight the cell-specific modeality weights
+#' @param verbose Whether or not to print output to the console
+#'
+#' @return return a list containing nn index and nn multi-model distance
+#' @export
+#' 
+MultiModelNN <- function(object, 
+                         query = NULL,
+                         k.nn = 20, 
+                         reduction.list,
+                         dims.list = NULL,
+                         knn.range = 200,
+                         distance = c( "proj_angular", "euclidean")[1],
+                         modality.weight = NULL,
+                         verbose = TRUE
+){
+  if( is.null(modality.weight)){
+    modality.weight <- lapply(X = 1:length(reduction.list),
+                              FUN = function(r) rep( 1/length(reduction.list), ncol(object)) )
+  }
+  if(!is.list(modality.weight)){
+    modality.weight <- list(modality.weight, (1 - modality.weight))
+  }
+  if( class(object)[1] == "Seurat"){
+    redunction_embedding <- lapply( X = 1:length(reduction.list), 
+                                    FUN = function(x) {
+                                      Embeddings(object[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
+                                    })
+  } else {
+    redunction_embedding <- object
+  }
+  
+  if(is.null(query)){
+    query.redunction_embedding <- redunction_embedding
+    query <- object
+  } else{
+    if( class(query)[1] == "Seurat" ){
+      query.redunction_embedding <- lapply( X = 1:length(reduction.list), 
+                                            FUN = function(x) {
+                                              Embeddings(query[[reduction.list[[x]] ]])[ ,dims.list[[x]] ]
+                                            })
+    } else {
+      query.redunction_embedding <- query
+    }
+  }
+  query.cell.num <- nrow( query.redunction_embedding[[1]] )
+  reduction.num <- length( query.redunction_embedding )
+  redunction_nn <- lapply( X = 1:reduction.num, 
+                           FUN = function(x){
+                             NNHelper(data = redunction_embedding[[x]], 
+                                      query = query.redunction_embedding[[x]],
+                                      k = knn.range,
+                                      method = 'annoy',
+                                      metric = "cosine") })
+  # union of rna and adt nn, remove itself from neighobors
+  redunction_nn <- lapply(X = redunction_nn , 
+                          FUN = function(x)  x$nn.idx[, -1]  )
+  
+  nn_idx <- lapply( X = 1:query.cell.num , 
+                    FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
+  
+  # calculate cosine similarity of union neighobors, and convert to angular and projection similarity
+  nn_angular_projection_dist <- lapply(X = 1:reduction.num,  
+                                       FUN = function(r){
+                                         projangular_nn_dist(nn.idx = nn_idx,
+                                                             redunction.embedding = redunction_embedding[[r]], 
+                                                             query.reduction.embedding = query.redunction_embedding[[r]] )
+                                       })
+  # modality weighted distance
+  if(distance  =="euclidean"){
+    nn_eu_sd <-  lapply(X = 1:length(reduction.list),  
+                        FUN = function(r){
+                          sapply(nn_angular_projection_dist[[r]]$euclidean, 
+                                 FUN = function(x) { sort(x)[5]  })
+                        })
+    nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
+                               FUN = function(r){
+                                 lapply(  X = 1:ncol(object),
+                                          FUN = function(x){ 
+                                            exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] / nn_eu_sd[[r]][x])**2) * 
+                                              modality.weight[[r]][x] })
+                               })
+  }else{
+    nn_weighted_dist <- lapply(X = 1:reduction.num,  
+                               FUN = function(r){
+                                 lapply(  X = 1:query.cell.num,
+                                          FUN = function(x){
+                                            nn_angular_projection_dist[[r]]$angular[[x]] *
+                                              nn_angular_projection_dist[[r]]$projection[[x]] *
+                                              modality.weight[[r]][x]}
+                                 )
+                               })
+  }
+  nn_weighted_dist <- sapply(1:query.cell.num, 
+                             FUN =  function(x){ 
+                               Reduce("+", 
+                                      lapply( X = 1:reduction.num, 
+                                              FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
+                             })
+  # select k nearest joint neighbors
+  select_idx <-  lapply( X = nn_weighted_dist,
+                         FUN = function(dist){
+                           which(rank(dist*-1,  ties.method = "first") <= (k.nn))
+                         })
+  select_nn <- t(sapply( X = 1:query.cell.num,
+                         FUN = function(x) nn_idx[[x]][select_idx[[x]]])
+  )
+  
+  select_dist <- t(sapply( X = 1:query.cell.num, 
+                           FUN = function(x) nn_weighted_dist[[x]][select_idx[[x]]])
+  )
+  rownames(select_nn) <- rownames(select_dist) <- Cells(query)
+  joint.nn <- list(select_nn, select_dist)
+  names(joint.nn) <- c("nn.idx", "nn.dists")
+  return(joint.nn)
+}
+
+
+
+FindJointTransferAnchor <- function(reference, 
+                                    query, 
+                                    reference.modality.weight, 
+                                    query.modality.weight, 
+                                    reference.assay.list, 
+                                    query.assay.list,
+                                    reduction.list,
+                                    dims.list,
+                                    k.nn = 20,
+                                    knn.range = 200, 
+                                    k.anchor = 5, 
+                                    k.score = 20,
+                                    scale = NULL, 
+                                    verbose=TRUE) {
+  
+  if(is.null(scale)){
+    scale <- list(TRUE, TRUE)
+  }
+  #########################
+  # project multiple query reduction to reference
+  proj.reduction.list <- list()
+  proj.reduction.key.list <- list()
+  for (i in 1:length(reference.assay.list)){
+    if(IsSCT(reference[[reference.assay.list[[i]]]] )){
+      message("SCT normalized not support")
+    }
+    
+    projected.pca <- ProjectCellEmbeddings(
+      reference = reference,
+      query = query,
+      dims = dims.list[[i]], 
+      reduction = reduction.list[[i]], 
+      query.assay = query.assay.list[[i]], 
+      reference.assay = reference.assay.list[[i]],
+      scale = scale[[i]],
+      verbose = verbose
+    )
+    combined.pca <- rbind(projected.pca,  reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]])
+    combined.pca <- L2Norm(combined.pca)
+    # Generate project reduction
+    proj.reduc.name <- paste0( reduction.list[[i]],"project")
+    proj.reduction.list[[i]] <- proj.reduc.name
+    
+    proj.reduc.key <- paste0( "Proj", reduction.list[[i]],"_")
+    proj.reduction.key.list[[i]] <- proj.reduc.key
+    
+    query[[ proj.reduc.name ]] <-  CreateDimReducObject(
+      embeddings = combined.pca[1:ncol(query), ], 
+      key = proj.reduc.key,
+      assay = query.assay.list[[i]]
+    )
+    reference[[ proj.reduc.name ]] <-  CreateDimReducObject(
+      embeddings = combined.pca[(ncol(query)+1):nrow(combined.pca) , ], 
+      key = proj.reduc.key,
+      assay = query.assay.list[[i]]
+    )
+  }
+  # Generate bidirectional nearest neighbors
+  nnRR <- MultiModelNN(object = reference, 
+                       query = reference, 
+                       k.nn = k.nn, 
+                       reduction.list = proj.reduction.list,
+                       dims.list = dims.list, 
+                       knn.range = knn.range,
+                       modality.weight =  reference.modality.weight)
+  nnQQ <- MultiModelNN(object = query, 
+                       query = query, 
+                       k.nn = k.nn, 
+                       reduction.list = proj.reduction.list,
+                       dims.list = dims.list, 
+                       knn.range = knn.range,
+                       modality.weight =  query.modality.weight )
+  
+  nnRQ <- MultiModelNN(object = query, 
+                       query = reference, 
+                       k.nn = k.nn, 
+                       reduction.list = proj.reduction.list,
+                       dims.list = dims.list, 
+                       knn.range = knn.range,
+                       modality.weight =  reference.modality.weight)
+  
+  nnQR <- MultiModelNN(object = reference , 
+                       query = query, 
+                       k.nn = k.nn, 
+                       reduction.list = proj.reduction.list,
+                       dims.list = dims.list, 
+                       knn.range = knn.range,
+                       modality.weight =  query.modality.weight)
+  
+  # merging two objects
+  iobject <- merge(x = query, y = reference)
+  for (i in 1:length(proj.reduction.list)){
+    iobject[[ proj.reduction.list[[i]] ]] <- CreateDimReducObject(
+      embeddings = as.matrix(x = rbind(query[[ proj.reduction.list[[i]] ]]@cell.embeddings, 
+                                       reference[[ proj.reduction.list[[i]] ]]@cell.embeddings)),
+      key = proj.reduction.key.list[[i]] ,
+      assay = reference.assay.list[[i]]
+    )
+  }
+  iobject <- SetIntegrationData(
+    object = iobject,
+    integration.name = "integrated",
+    slot = 'neighbors',
+    new.data = list('nnaa' = nnRR, 'nnab' = nnRQ, 'nnba' = nnQR, 'nnbb' = nnQQ, 
+                    cells1 = Cells(reference), cells2 = Cells(query))
+  )
+  
+  iobject <- FindAnchorPairs(
+    object = iobject, 
+    integration.name = "integrated", 
+    k.anchor = k.anchor, 
+    verbose = TRUE
+  )
+  
+  # assay seems not to be used
+  anchors = ScoreAnchors(
+    object = iobject,
+    assay = NULL,
+    integration.name = "integrated",
+    verbose = "TRUE",
+    k.score = k.score
+  )
+  
+  anchors <- GetIntegrationData(
+    object = iobject,
+    integration.name = 'integrated',
+    slot = 'anchors'
+  )
+  
+  Misc(iobject, slot = "query.modality.weight") <- query.modality.weight
+  Misc(iobject, slot = "reference.modality.weight") <- reference.modality.weight
+  Misc(iobject, slot = "proj.reduction") <- proj.reduction.list
+  
+  anchor.set <- new(
+    Class = "AnchorSet",
+    object.list = list(iobject),
+    reference.cells = Cells(reference),
+    query.cells = Cells(query),
+    anchors = anchors,
+    anchor.features = NULL,
+    command = NULL
+  )
+  return (anchor.set)
+}
+

@@ -287,6 +287,7 @@ FindNeighbors.default <- function(
       eps = nn.eps,
       metric = annoy.metric)
     nn.ranked <- nn.ranked$nn.idx
+    browser()
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -1359,15 +1360,13 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
   return(nn.idx.snn)
   
 }
-
-
+ 
 
 
 FindModalityWeights.kernel <- function(object, 
                                        reduction.list, 
                                        dims.list, 
                                        sd.scale = 0.75, 
-                                       snn.graph.list = NULL,
                                        cross.contant.list = NULL, 
                                        snn.far.nn = FALSE, 
                                        k.nn = 20, 
@@ -1376,9 +1375,6 @@ FindModalityWeights.kernel <- function(object,
                                        KL.divergence = FALSE, 
                                        smooth = FALSE
                                   ){
-  if(!is.null(snn.graph.list)){
-    names(snn.graph.list) <- unlist(reduction.list)
-  }
   if(is.null(cross.contant.list)){
     cross.contant.list <- list(1e-4, 1e-4)
   }
@@ -1447,6 +1443,16 @@ FindModalityWeights.kernel <- function(object,
                                } )
 
  if(snn.far.nn){
+   snn.graph.list <- lapply(X = nn.list,
+                            FUN = function(nn){
+                              snn.matrix <- ComputeSNN(
+                                nn_ranked =  nn$nn.idx,
+                                prune = 0
+                              )
+                     colnames(snn.matrix) <- rownames( snn.matrix) <- Cells(object)
+                     return(snn.matrix)
+                            })
+ 
    snn.far.nn.list <- lapply(X = snn.graph.list,
                              FUN = function(snn) {
                                snn_nn(snn.graph = snn,  k.nn = k.nn, far.nn = TRUE)
