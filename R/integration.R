@@ -3290,17 +3290,42 @@ FindJointTransferAnchor <- function(reference,
       assay = query.assay.list[[i]]
     )
   }
-  browser()
-  reference.modality.weight.2 <- FindModalityWeights.kernel(object = reference,
-                                                            reduction.list = proj.reduction.list,
-                                                            dims.list = dims.list, l2.norm = F, snn.far.nn = F, 
-                                                            sigma.idx = 20)
-  query.modality.weight.2 <- FindModalityWeights.kernel(object = query,
-                                                            reduction.list = proj.reduction.list,
-                                                            dims.list = dims.list, l2.norm = F, snn.far.nn = F, 
-                                                        sigma.idx = 20)
-  browser()
- 
+  
+  nnRR.weight <- FindModalityWeights.kernel(object = reference,
+                                            query = reference,
+                                            reduction.list = proj.reduction.list,
+                                            dims.list = dims.list, 
+                                            l2.norm = F,
+                                            snn.far.nn = F, 
+                                            sigma.idx = 40)
+  
+  
+  nnQQ.weight <- FindModalityWeights.kernel(object = query,
+                                            query = query,
+                                            reduction.list = proj.reduction.list,
+                                            dims.list = dims.list, 
+                                            l2.norm = F,
+                                            snn.far.nn = F, 
+                                            sigma.idx = 40)
+  
+  nnRQ.weight <- FindModalityWeights.kernel(object = query,
+                                            query = reference,
+                                            reduction.list = proj.reduction.list,
+                                            dims.list = dims.list, 
+                                            l2.norm = F,
+                                            snn.far.nn = F, 
+                                            sigma.idx = 40)
+  
+  nnQR.weight <- FindModalityWeights.kernel(object = reference,
+                                            query = query,
+                                            reduction.list = proj.reduction.list,
+                                            dims.list = dims.list, 
+                                            l2.norm = F,
+                                            snn.far.nn = F, 
+                                            sigma.idx = 40)
+  
+  
+  
   # Generate bidirectional nearest neighbors
   nnRR <- MultiModelNN(object = reference, 
                        query = reference, 
@@ -3308,18 +3333,20 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  reference.modality.weight.2$first.modality.weight, 
+                       modality.weight =  nnRR.weight$first.modality.weight, 
                        l2.norm = FALSE,  
-                       sigma.list = reference.modality.weight.2$params$sigma.list)
+                       sigma.list = nnRR.weight$params$sigma.list)
+  
+  
   nnQQ <- MultiModelNN(object = query, 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  query.modality.weight.2$first.modality.weight, 
+                       modality.weight =  nnQQ.weight$first.modality.weight, 
                        l2.norm =  FALSE, 
-                       sigma.list = query.modality.weight.2$params$sigma.list)
+                       sigma.list = nnQQ.weight$params$sigma.list)
   
   nnRQ <- MultiModelNN(object = query, 
                        query = reference, 
@@ -3327,9 +3354,9 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  reference.modality.weight.2$first.modality.weight, 
+                       modality.weight =  nnRQ.weight$first.modality.weight, 
                        l2.norm = FALSE, 
-                       sigma.list = reference.modality.weight.2$params$sigma.list)
+                       sigma.list = nnRQ.weight$params$sigma.list)
   
   nnQR <- MultiModelNN(object = reference , 
                        query = query, 
@@ -3337,11 +3364,12 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  query.modality.weight.2$first.modality.weight, 
+                       modality.weight =  nnQR.weight$first.modality.weight, 
                        l2.norm =  FALSE, 
-                       sigma.list = query.modality.weight.2$params$sigma.list)
+                       sigma.list = nnQR.weight$params$sigma.list)
   # merging two objects
-  iobject <- merge(x = query, y = reference)
+  iobject <- merge(x = reference , y = query)
+  
   for (i in 1:length(proj.reduction.list)){
     iobject[[ proj.reduction.list[[i]] ]] <- CreateDimReducObject(
       embeddings = as.matrix(x = rbind(query[[ proj.reduction.list[[i]] ]]@cell.embeddings, 
@@ -3364,7 +3392,7 @@ FindJointTransferAnchor <- function(reference,
     k.anchor = k.anchor, 
     verbose = TRUE
   )
-  browser()
+
   # assay seems not to be used
   anchors = ScoreAnchors(
     object = iobject,
