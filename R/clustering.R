@@ -940,37 +940,12 @@ projangular_nn_dist <- function( nn.idx,
     query.reduction.embedding <- redunction.embedding
   }
   nn.dist <- lapply(X = 1:nrow(query.reduction.embedding), 
-                    FUN = function(x){
-                      correlation = as.matrix(  rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
-                                                              Y = redunction.embedding[  nn.idx[[x]],], 
-                                                              metric = "correlation" ) )
-                      return(1 - 2* correlation**2)
-                    })
-
-  nn.eu_dist <- lapply(X = 1:nrow(query.reduction.embedding), 
                        FUN = function(x){
                          correlation = as.matrix(  rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
                                                                  Y = redunction.embedding[  nn.idx[[x]],], 
                                                                  metric = "euclidean") )
                        })
-  
-  nn.angular_dist <-  lapply(  X = nn.dist , FUN = function(cosine) 1 - 2*acos(cosine)/pi )
-  query.reduction.embedding.len <-  sqrt(rowSums(query.reduction.embedding**2))
-  nn.proj_dist <- lapply(  X = 1:nrow(query.reduction.embedding),
-                           FUN = function(x) {
-                             proj_dist = nn.dist[[x]] * 
-                               query.reduction.embedding.len[ nn.idx[[x]] ] /
-                               query.reduction.embedding.len[ x ]
-                             proj_dist = MinMax(data = proj_dist, min = 0, max = 1)
-                             return ( proj_dist)})
-  
-  nn.proj_angular_dist <-  lapply(  X = 1:nrow(query.reduction.embedding),
-                                    FUN = function(x) {
-                                      nn.proj_dist[[x]] * nn.angular_dist[[x]]
-                                    })
-  nn.angular_proj_dist <- list(nn.angular_dist, nn.proj_dist, nn.proj_angular_dist, nn.eu_dist)
-  names( nn.angular_proj_dist) <- c("angular", "projection", "proj_angular", "euclidean")
-  return( nn.angular_proj_dist)
+  return( nn.dist )
 }
 
 
@@ -993,7 +968,6 @@ MultiModelNN <- function(object,
                          reduction.list,
                          dims.list = NULL,
                          knn.range = 200,
-                         distance = c( "proj_angular", "euclidean", "kernel")[1],
                          modality.weight = NULL,
                          sigma.idx = 5, 
                          sigma.list = NULL,
@@ -1049,44 +1023,21 @@ MultiModelNN <- function(object,
   nn_idx <- lapply( X = 1:query.cell.num , 
                     FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
   # calculate cosine similarity of union neighobors, and convert to angular and projection similarity
-  nn_angular_projection_dist <- lapply(X = 1:reduction.num,  
+  nn_dist <- lapply(X = 1:reduction.num,  
                                        FUN = function(r){
                                          projangular_nn_dist(nn.idx = nn_idx,
                                                              redunction.embedding = redunction_embedding[[r]], 
                                                              query.reduction.embedding = query.redunction_embedding[[r]])
                                        })
- 
   # modality weighted distance
-  if(distance  =="euclidean"){
-    nn_eu_sd <-  lapply(X = 1:length(reduction.list),  
-                        FUN = function(r){
-                          sapply(nn_angular_projection_dist[[r]]$euclidean, 
-                                 FUN = function(x) { sort(x)[sigma.idx]  })
-                        })
-    nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
-                               FUN = function(r){
-                                 lapply(  X = 1:ncol(object),
-                                          FUN = function(x){ 
-                                            exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] / nn_eu_sd[[r]][x])**2) * 
-                                              modality.weight[[r]][x] })
-                               })
-    nn_weighted_dist <- sapply(1:query.cell.num, 
-                               FUN =  function(x){ 
-                                 Reduce("+", 
-                                        lapply( X = 1:reduction.num, 
-                                                FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
-                               })
-    
-  }else if(distance == "kernel"){
     if(length(sigma.list[[1]] ) ==1){
       sigma.list <- lapply(sigma.list, function(x) rep(x = x, ncol(object) ))
     }
-   
     nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
                                FUN = function(r){
                                  lapply(  X = 1:ncol(object),
                                           FUN = function(x){ 
-                                             exp(-1*(nn_angular_projection_dist[[r]]$euclidean[[x]] / sigma.list[[r]][x] )**
+                                             exp(-1*(nn_dist[[r]][[x]] / sigma.list[[r]][x] )**
                                                        2) * 
                                               modality.weight[[r]][x] })
                                })
@@ -1097,25 +1048,7 @@ MultiModelNN <- function(object,
                                                 FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
                                })
     
-    }else{
-
-    nn_weighted_dist <- lapply(X = 1:reduction.num,  
-                               FUN = function(r){
-                                 lapply(  X = 1:query.cell.num,
-                                          FUN = function(x){
-                                            nn_angular_projection_dist[[r]]$angular[[x]] *
-                                              nn_angular_projection_dist[[r]]$projection[[x]] *
-                                              modality.weight[[r]][x]}
-                                 )
-                               })
-    nn_weighted_dist <- sapply(1:query.cell.num, 
-                               FUN =  function(x){ 
-                                 Reduce("+", 
-                                        lapply( X = 1:reduction.num, 
-                                                FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
-                               })
-    
-    }
+     
 
   # select k nearest joint neighbors
   select_idx <-  lapply( X = nn_weighted_dist,
@@ -1156,17 +1089,15 @@ FindMultiModelNeighbors <-  function(object,
                                      dims.list = NULL,
                                      k.nn = 20, 
                                      knn.range = 200,
-                                     weighted.graph = FALSE,
+                                     weighted.graph = TRUE,
                                      l2.norm = FALSE, 
                                      knn.graph.name = "jknn",
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
                                      modality.weight = NULL,
-                                     nn.distance = "proj_angular", 
-                                     eu.sigma.idx = 5, 
                                      verbose = TRUE
 ){
-  if(nn.distance =="kernel"){
+  if( is.list(modality.weight) ){
     l2.norm <- modality.weight$params$l2.norm
     sigma.list <- modality.weight$params$sigma.list
     if(is.null(reduction.list)){
@@ -1180,13 +1111,11 @@ FindMultiModelNeighbors <-  function(object,
   
   joint.nn <- MultiModelNN(object = object, 
                       k.nn = k.nn, 
-                      distance = nn.distance,
                       reduction.list = reduction.list, 
                       dims.list = dims.list,
                       knn.range = knn.range, 
                       modality.weight = modality.weight, 
                       l2.norm = l2.norm, 
-                      sigma.idx = eu.sigma.idx, 
                       sigma.list = sigma.list, 
                       verbose = verbose )
   select_nn <- joint.nn$nn.idx
@@ -1413,14 +1342,18 @@ FindModalityWeights <- function(object,
 }
 
 
-snn_nn <- function(snn.graph, k.nn){
-  
+snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
+  if(far.nn){
+    direction <- 1
+  } else{
+    direction <- (-1)
+  }
   nn.idx.snn <- t(apply(snn.graph, 
                         MARGIN = 1,
                         FUN = function(x){
                           x.nonzero.idx <- which(x !=0 )
                           x.nonzero <- x[ x.nonzero.idx ]
-                          nn.idx <-  x.nonzero.idx[which(rank(x.nonzero,  ties.method = "first") <= (k.nn) )]
+                          nn.idx <-  x.nonzero.idx[which(rank(x.nonzero * direction,  ties.method = "first") <= (k.nn) )]
                           return(nn.idx)
                         } ))
   return(nn.idx.snn)
@@ -1428,194 +1361,167 @@ snn_nn <- function(snn.graph, k.nn){
 }
 
 
-optimize_kernel <- function(positive, 
-                            negative, 
-                            sigma.set = c(seq(0.1, 0.9, 0.1), 1, 2, 5, 10), 
-                            power.set = c(0.5, 1, 1.5, 2, 3, 4),
-                            lambda.set = seq(0.1, 0.9, 0.1) ){
-  phi.list <- list()
-  param.list <- list()
-  idx = 0
-  for (sigma in sigma.set ){
-    for (power in power.set){
-      for (lamda in lambda.set){
-        idx = idx + 1
-        pull  <-  exp(-1*(positive/sigma)**power)**2
-        push  <-   1 + exp(-1*(positive/sigma)**power)**2 - exp(-1*(negative/sigma)**power)**2
-        phi <- lamda*pull + (1-lamda)*push
-        phi <- sum(phi)
-        phi.list[[idx]] <- phi
-        param.list[[idx]] <- c(sigma, power)
-      }
-    }
-  }
-  
-  phi.list <- unlist(phi.list)
-  param.optim <- param.list[[which.max( phi.list)]]
-  names(param.optim) <- c("sigma", "power")
-  return( param.optim )
-}
 
 
 FindModalityWeights.kernel <- function(object, 
-                                       reduction.1,
-                                       reduction.2,
-                                       KL.divergence = FALSE, 
-                                       snn.graph.1 = NULL, 
-                                       snn.graph.2 = NULL, 
-                                       dims.1,
-                                       dims.2, 
+                                       reduction.list, 
+                                       dims.list, 
+                                       sd.scale = 0.75, 
+                                       snn.graph.list = NULL,
+                                       cross.contant.list = NULL, 
                                        snn.far.nn = FALSE, 
                                        k.nn = 20, 
-                                       cross.contant.1 = 1e-4, 
-                                       cross.contant.2 = 1e-4, 
+                                       sigma.idx = 20,
                                        l2.norm = FALSE, 
-                                       sigma.idx = 6,
+                                       KL.divergence = FALSE, 
                                        smooth = FALSE
                                   ){
-  embeddings.1 <- object[[reduction.1 ]]@cell.embeddings[, dims.1]
-  embeddings.2 <- object[[reduction.2 ]]@cell.embeddings[, dims.2]
-  
-  if(l2.norm){
-    embeddings.1.norm <- L2Norm(embeddings.1)
-    embeddings.2.norm <- L2Norm(embeddings.2)
-  } else{
-    embeddings.1.norm <- embeddings.1
-    embeddings.2.norm <- embeddings.2
+  if(!is.null(snn.graph.list)){
+    names(snn.graph.list) <- unlist(reduction.list)
   }
-  reduction.1.norm <- paste0(reduction.1, ".norm")
-  reduction.2.norm <- paste0(reduction.2, ".norm")
-  object[[ reduction.1.norm ]] <- CreateDimReducObject(embeddings = embeddings.1.norm,
-                                                       key = paste0("norm", object[[reduction.1 ]]@key))
-  object[[ reduction.2.norm ]] <- CreateDimReducObject(embeddings = embeddings.2.norm,
-                                                       key = paste0("norm", object[[reduction.2]]@key))
+  if(is.null(cross.contant.list)){
+    cross.contant.list <- list(1e-4, 1e-4)
+  }
+  reduction.set <- unlist(reduction.list)
+  names(reduction.list) <- names(dims.list)  <- names(cross.contant.list) <- reduction.set
   
-  
+  embeddings.list <- lapply( X = reduction.list, 
+                             FUN = function(r) Embeddings(object = object, reduction = r)[, dims.list[[r]]  ])
 
-  nn.1 <- NNHelper(embeddings.1.norm, k = max(k.nn, sigma.idx), method = "annoy", metric = "euclidean")
-  nn.2 <- NNHelper(embeddings.2.norm, k =  max(k.nn, sigma.idx), method = "annoy", metric = "euclidean")
-  rownames(nn.2$nn.idx) <- rownames(nn.1$nn.idx) <- Cells(object)
-  sigma.nn.1 <- nn.1
-  sigma.nn.2 <- nn.2
+  if(l2.norm){
+    embeddings.list.norm <- lapply( X = embeddings.list,
+                                    FUN = function(embeddings) L2Norm(embeddings)) 
+  } else{
+    embeddings.list.norm <- embeddings.list
+  }
+  
+  nn.list <- lapply(X = embeddings.list.norm, 
+                    FUN = function(embeddings){
+                     nn.r <-  NNHelper(embeddings,
+                               k = max(k.nn, sigma.idx), 
+                               method = "annoy", 
+                               metric = "euclidean")
+                     rownames(nn.r$nn.idx) <- Cells(object)
+                     return(nn.r)
+                    })
+  sigma.nn.list <- nn.list
 
   if( sigma.idx > k.nn){
-    nn.1$nn.idx <- nn.1$nn.idx[, 1:k.nn]
-    nn.2$nn.idx <- nn.2$nn.idx[, 1:k.nn]
-    nn.1$nn.dists <- nn.1$nn.dists[, 1:k.nn]
-    nn.2$nn.dists <- nn.2$nn.dists[, 1:k.nn]
-    
-    
+    nn.list <- lapply(X = nn.list, 
+                      FUN = function(nn){
+                        nn$nn.idx <-  nn$nn.idx[, 1:k.nn]
+                        nn$nn.dists <-  nn$nn.dists[, 1:k.nn]
+                        return(nn)
+                      })
   }
-  impute1_nn1 <- PredictAssay(object = object, 
-                              nn.idx = nn.1$nn.idx,
-                              reduction = reduction.1.norm,
-                              dims = 1:ncol(embeddings.1.norm), 
-                              return.assay = F )
-  
-  impute1_nn2 <- PredictAssay(object = object,
-                              nn.idx = nn.2$nn.idx,
-                              reduction = reduction.1.norm, 
-                              dims = 1:ncol(embeddings.1.norm), 
-                              return.assay = F )
 
-  impute2_nn2  <- PredictAssay(object = object, 
-                               nn.idx = nn.2$nn.idx,
-                               reduction = reduction.2.norm, 
-                               dims = 1:ncol(embeddings.2.norm),
-                               return.assay = F )
-  impute2_nn1  <- PredictAssay(object = object, 
-                               nn.idx = nn.1$nn.idx, 
-                               reduction = reduction.2.norm,
-                               dims = 1:ncol(embeddings.2.norm),
-                               return.assay = F )
+  within_impute <- list()
+  cross_impute <- list()
+  for (r in reduction.set ){
+    reduction.norm <- paste0(r, ".norm")
+    object[[ reduction.norm ]] <- CreateDimReducObject(embeddings = embeddings.list.norm[[r]],
+                                                         key = paste0("norm", object[[r]]@key), 
+                                                         assay = object[[r]]@assay.used )
+    within_impute[[r]] <- PredictAssay(object = object, 
+                                       nn.idx =  nn.list[[r]]$nn.idx,
+                                       reduction = reduction.norm,
+                                       dims = 1:ncol(embeddings.list.norm[[r]]), 
+                                       verbose = F,
+                                       return.assay = F )
+    
+    cross_impute[[r]]<- PredictAssay(object = object,
+                                     nn.idx = nn.list[[setdiff(reduction.set, r ) ]]$nn.idx,
+                                     reduction = reduction.norm, 
+                                     dims = 1:ncol(embeddings.list.norm[[r]]), 
+                                     verbose = F,
+                                     return.assay = F )
+  }
   
-  modality1_pos <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn1))**2))
-  modality1_cross <- sqrt(rowSums((embeddings.1.norm - t(impute1_nn2))**2))
-  
-  modality2_pos <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn2))**2))
-  modality2_cross <- sqrt(rowSums((embeddings.2.norm - t(impute2_nn1))**2))
-  
+  within_impute_dist <- lapply( X = reduction.list, 
+                                FUN = function(r){
+                                  sqrt(rowSums((embeddings.list.norm[[r]] - t(within_impute[[r]]))**2))
+                                } )
+  cross_impute_dist <- lapply( X = reduction.list, 
+                               FUN = function(r){
+                                 sqrt(rowSums((embeddings.list.norm[[r]] - t(cross_impute[[r]]))**2))
+                               } )
+
  if(snn.far.nn){
-   snn.idx <- 1:ncol(object)
-   snn.far.nn.1 <- snn_nn(snn.graph = snn.graph.1[snn.idx, ], k.nn = k.nn)
-   snn.far.nn.2 <- snn_nn(snn.graph = snn.graph.2[snn.idx, ], k.nn = k.nn)
+   snn.far.nn.list <- lapply(X = snn.graph.list,
+                             FUN = function(snn) {
+                               snn_nn(snn.graph = snn,  k.nn = k.nn, far.nn = TRUE)
+                             }  )
 
-
-   modality1_neg.nn <- t(sapply(X = 1:length(snn.idx), 
-                                FUN = function(x){
-                                  cdist( X = embeddings.1.norm[ snn.idx[x] ,, drop=F],  
-                                         Y = embeddings.1.norm[ snn.far.nn.1[x, ]  ,, drop=F],
-                                         metric = "euclidean" )
-                                }))
-   modality2_neg.nn <- t(sapply(X =  1:length(snn.idx), 
-                                FUN = function(x){
-                                  cdist( X = embeddings.2.norm[ snn.idx[x],, drop=F],  
-                                         Y = embeddings.2.norm[ snn.far.nn.2[x, ]  ,, drop=F],
-                                         metric = "euclidean" )
-                                }))
-   
-   modality1_sd <- rowMeans(modality1_neg.nn )
-   modality2_sd <- rowMeans(modality2_neg.nn )
-   modality1_sd <- MinMax(modality1_sd, min = 0, max = quantile(modality1_sd, probs = 0.99))
-   modality2_sd <- MinMax(modality2_sd, min = 0, max = quantile(modality2_sd, probs = 0.99))
-
+   distant_nn_dist <- lapply( X = reduction.list, 
+                              FUN = function(r){
+                                t(sapply(X = 1:ncol(object), 
+                                         FUN = function(x){
+                                           rdist::cdist( X = embeddings.list.norm[[r]][ x, , drop = F],  
+                                                  Y = embeddings.list.norm[[r]][ snn.far.nn.list[[r]][x, ], ],
+                                                  metric = "euclidean" )
+                                         }))
+                                
+                              })
+     
+  modality_sd.list <- lapply( X = distant_nn_dist , function(d)  rowMeans(d)*sd.scale)
    } else{
-   modality1_sd <- sigma.nn.1$nn.dists[, sigma.idx]
-   modality2_sd <- sigma.nn.2$nn.dists[, sigma.idx]
+  modality_sd.list <-  lapply( X = sigma.nn.list , function(sigma.nn)  sigma.nn$nn.dists[,sigma.idx])
  }
+  within_impute_kernel <- lapply( X = reduction.list,
+                                  FUN = function(r) {
+                                    exp(-1*( within_impute_dist[[r]]/modality_sd.list[[r]] )**2) 
+                                  })
   
-  modality1_pos_kernel  <-  exp(-1*( modality1_pos/modality1_sd )**2)
-  modality1_cross_kernel <- exp(-1*( modality1_cross/modality1_sd )**2)
+  cross_impute_kernel<- lapply( X = reduction.list,
+                                FUN = function(r) {
+                                  exp(-1*( cross_impute_dist[[r]]/modality_sd.list[[r]] )**2) 
+                                })
+ 
   
-  modality2_pos_kernel <-  exp(-1*( modality2_pos/modality2_sd )**2)
-  modality2_cross_kernel <-  exp(-1*( modality2_cross/modality2_sd )**2)
-  
-  
-  params <- list( list(reduction.1, reduction.2),
-                  list(dims.1,dims.2),
+  params <- list( reduction.list,
+                   dims.list,
                   l2.norm,
                   sigma.idx,
                   snn.far.nn ,
-                  list(modality1_sd, modality2_sd) )
+                  modality_sd.list)
   
   names(params) <- c("reduction.list","dims.list","l2.norm", "sigma.idx", "snn.far.nn","sigma.list")
 
   
-  modality1_score <- (modality1_pos_kernel ) / (modality1_cross_kernel + cross.contant.1 )
-  modality1_score <- MinMax(modality1_score, min = 0, max = 200)
-  
-  modality2_score <- (modality2_pos_kernel) / (modality2_cross_kernel + cross.contant.2)
-  modality2_score <- MinMax(modality2_score, min = 0, max = 200)
-  
-  
+  modality_score <-  lapply( X = reduction.list,
+                             FUN = function(r) {
+                               score = within_impute_kernel[[r]] / 
+                                 ( cross_impute_kernel[[r]] + cross.contant.list[[r]] )
+                               score = MinMax(score, min = 0, max = 200)
+                             })
+ 
   if(smooth){
-    modality1_score <-apply( X = nn.1$nn.idx, MARGIN = 1, FUN = function(nn) mean( modality1_score[ nn[-1]]))
-    modality2_score <-apply( X = nn.2$nn.idx, MARGIN = 1, FUN = function(nn) mean( modality2_score[ nn[-1]]))
+    modality_score <- lapply( X = reduction.list, 
+                             FUN = function(r){
+                               apply( X = nn.list[[r]]$nn.idx,
+                                      MARGIN = 1, 
+                                      FUN = function(nn) mean( modality_score[[r]][ nn[-1]])) 
+                             } )
   }
 
   if(KL.divergence){
-    modality1.weight <-  modality1_pos_kernel*log(modality1_score) / ( modality1_pos_kernel*log(modality1_score) +  modality2_pos_kernel*log(modality2_score))
+    modality1.weight <-  within_impute_kernel[[1]]*log(modality_score[[1]]) / ( within_impute_kernel[[1]]*log(modality_score[[1]]) +  within_impute_kernel[[2]]*log(modality_score[[2]]))
     modality1.weight <- MinMax(modality1.weight, min = 0, max = 1)
-    
   }else{
-    modality1.weight <- exp(modality1_score)/(exp(modality1_score) + exp(modality2_score))
-    
+    modality1.weight <- exp(modality_score[[1]])/(exp(modality_score[[1]]) + exp(modality_score[[2]]))
   }
-
-
-  score.mat <- cbind( modality1_pos, modality1_pos_kernel, 
-                      modality1_cross, modality1_cross_kernel,  
-                      modality1_score,
-                      modality2_pos,   modality2_pos_kernel,  
-                      modality2_cross, modality2_cross_kernel,  
-                      modality2_score)
   
-  colnames(score.mat) <- c( "modality1_nn1", "modality1_nn1_kernel",
-                            "modality1_nn2", "modality1_nn2_kernel", 
-                            "modality1_score", 
-                            "modality2_nn2", "modality2_nn2_kernel",
-                            "modality2_nn1", "modality2_nn1_kernel",
-                            "modality2_score")
+  score.mat<- cbind(Reduce(cbind, within_impute_dist), 
+        Reduce(cbind, cross_impute_dist), 
+        Reduce(cbind, within_impute_kernel), 
+        Reduce(cbind, cross_impute_kernel), 
+        Reduce(cbind, modality_score))
+  
+  colnames(score.mat) <- c( "modality1_nn1", "modality2_nn2", 
+                            "modality1_nn2",  "modality2_nn1", 
+                            "modality1_nn1_kernel",  "modality2_nn2_kernel",
+                           "modality1_nn2_kernel",  "modality2_nn1_kernel",
+                            "modality1_score", "modality2_score")
   score.mat <- as.data.frame(score.mat)
  
   weight.list <- list(modality1.weight, params, score.mat )
