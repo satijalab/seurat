@@ -1033,7 +1033,7 @@ MultiModelNN <- function(object,
     if(length(sigma.list[[1]] ) ==1){
       sigma.list <- lapply(sigma.list, function(x) rep(x = x, ncol(object) ))
     }
-    nn_weighted_dist <- lapply(X = 1:length(reduction.list),  
+    nn_weighted_dist <- lapply(X = 1:reduction.num,  
                                FUN = function(r){
                                  lapply(  X = 1:query.cell.num,
                                           FUN = function(x){ 

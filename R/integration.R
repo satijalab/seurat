@@ -2344,10 +2344,11 @@ FindWeights <- function(
                             query = query.data.use,
                             k.nn = k, 
                             knn.range = max(200, 5*k),
-                            modality.weight = object@misc$query.modality.weight[nn.cells2 ])
+                            modality.weight = object@misc$query.modality.weight, 
+                            sigma.list =object@misc$query.sigma.list )
     distances <- knn_2_2$nn.dists
     distances <- t(apply(  distances , MARGIN = 1, FUN = function(x) sort(x, decreasing = T)))
-    distances <- sqrt((1 - distances)*2)
+    distances <- sqrt(log(distances)*(-1))
     distances <-  1 - (distances / distances[, ncol(x = distances)])
     cell.index <- knn_2_2$nn.idx
   } else{
@@ -3232,8 +3233,6 @@ TransformDataMatrix <- function(
 
 FindJointTransferAnchor <- function(reference, 
                                     query, 
-                                    reference.modality.weight, 
-                                    query.modality.weight, 
                                     reference.assay.list, 
                                     query.assay.list,
                                     reduction.list,
@@ -3407,11 +3406,10 @@ FindJointTransferAnchor <- function(reference,
     integration.name = 'integrated',
     slot = 'anchors'
   )
-  
-  Misc(iobject, slot = "query.modality.weight") <- query.modality.weight$first.modality.weight
-  Misc(iobject, slot = "reference.modality.weight") <- reference.modality.weight$first.modality.weight
+  Misc(iobject, slot = "query.modality.weight") <- nnQQ.weight$first.modality.weight
+  Misc(iobject, slot = "query.sigma.list") <- nnQQ.weight$params$sigma.list
+  Misc(iobject, slot = "reference.modality.weight") <- nnRR.weight$first.modality.weight
   Misc(iobject, slot = "proj.reduction") <- proj.reduction.list
-  
   anchor.set <- new(
     Class = "AnchorSet",
     object.list = list(iobject),
