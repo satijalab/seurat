@@ -6022,6 +6022,18 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   }
   VariableFeatures(object = x) <- VariableFeatures(object = x)[VariableFeatures(object = x) %in% features]
   slot(object = x, name = 'meta.features') <- x[[]][features, , drop = FALSE]
+  if (IsSCT(assay = x)) {
+    # subset cells and genes in the SCT assay
+    obj.misc <- Misc(object = x)
+    sct.info <- obj.misc$vst.out
+    sct.info$cell_attr <- sct.info$cell_attr[cells, ]
+    # find which subset of features are in the SCT assay
+    feat.keep <- intersect(x = features, y = rownames(x = sct.info$gene_attr))
+    sct.info$gene_attr <- sct.info$gene_attr[feat.keep, ]
+    # update vst information in the assay
+    obj.misc$vst.out <- sct.info
+    slot(object = x, name = "misc") <- obj.misc
+  }
   return(x)
 }
 
