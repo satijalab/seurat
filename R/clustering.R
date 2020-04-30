@@ -287,7 +287,6 @@ FindNeighbors.default <- function(
       eps = nn.eps,
       metric = annoy.metric)
     nn.ranked <- nn.ranked$nn.idx
-    browser()
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -1094,6 +1093,7 @@ FindMultiModelNeighbors <-  function(object,
                                      knn.graph.name = "jknn",
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
+                                     knn.smooth = FALSE, 
                                      modality.weight = NULL,
                                      verbose = TRUE
 ){
@@ -1118,6 +1118,9 @@ FindMultiModelNeighbors <-  function(object,
                       l2.norm = l2.norm, 
                       sigma.list = sigma.list, 
                       verbose = verbose )
+  if(knn.smooth){
+    joint.nn$nn.dists <-  uwot::smooth_knn_distances_parallel(nn_dist =  joint.nn$nn.dists , n_threads =1 )$matrix
+  }
   select_nn <- joint.nn$nn.idx
   joint.nn$nn.dists <- joint.nn$nn.dists 
 if(weighted.graph){
@@ -1370,11 +1373,18 @@ FindModalityWeights.kernel <- function(object,
                                        cross.contant.list = NULL, 
                                        snn.far.nn = FALSE, 
                                        k.nn = 20, 
-                                       sigma.idx = 20,
+                                       s.nn = NULL, 
+                                       sigma.idx = NULL,
                                        l2.norm = FALSE, 
                                        KL.divergence = FALSE, 
                                        smooth = FALSE
                                   ){
+  if(is.null(s.nn)){
+    s.nn <- k.nn
+  }
+  if(is.null(sigma.idx)){
+    sigma.idx <- 20
+  }
   if(is.null(cross.contant.list)){
     cross.contant.list <- list(1e-4, 1e-4)
   }
@@ -1413,7 +1423,7 @@ FindModalityWeights.kernel <- function(object,
                     FUN = function(r){
                      nn.r <-  NNHelper(data = embeddings.list.norm[[r]],
                                        query = query.embeddings.list.norm[[r]],
-                               k = max(k.nn, sigma.idx), 
+                               k = max(k.nn, sigma.idx, s.nn), 
                                method = "annoy", 
                                metric = "euclidean")
                      rownames(nn.r$nn.idx) <- Cells(query)
@@ -1421,7 +1431,7 @@ FindModalityWeights.kernel <- function(object,
                     })
   sigma.nn.list <- nn.list
 
-  if( sigma.idx > k.nn){
+  if( sigma.idx > k.nn || s.nn > k.nn){
     nn.list <- lapply(X = nn.list, 
                       FUN = function(nn){
                         nn$nn.idx <-  nn$nn.idx[, 1:k.nn]
@@ -1464,10 +1474,10 @@ FindModalityWeights.kernel <- function(object,
                                } )
 
  if(snn.far.nn){
-   snn.graph.list <- lapply(X = nn.list,
+   snn.graph.list <- lapply(X = sigma.nn.list,
                             FUN = function(nn){
                               snn.matrix <- ComputeSNN(
-                                nn_ranked =  nn$nn.idx,
+                                nn_ranked =  nn$nn.idx[, 1:s.nn],
                                 prune = 0
                               )
                      colnames(snn.matrix) <- rownames( snn.matrix) <- Cells(object)
@@ -1503,7 +1513,6 @@ FindModalityWeights.kernel <- function(object,
                                 FUN = function(r) {
                                   exp(-1*( cross_impute_dist[[r]]/modality_sd.list[[r]] )**2) 
                                 })
- 
   
   params <- list( reduction.list,
                    dims.list,
