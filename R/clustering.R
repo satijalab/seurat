@@ -1094,6 +1094,7 @@ FindMultiModelNeighbors <-  function(object,
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
                                      knn.smooth = FALSE, 
+                                     prune.SNN = 1/20, 
                                      modality.weight = NULL,
                                      verbose = TRUE
 ){
@@ -1142,7 +1143,8 @@ for (i in 1:ncol(object)){
   nn.matrix <- nn.matrix + t(nn.matrix) - t(nn.matrix)*nn.matrix
   nn.matrix <- as.Graph(nn.matrix)
   suppressWarnings(object[[knn.graph.name]] <- nn.matrix)
-  snn.matrix <- knn_snn_graph(object, nn.matrix)
+  snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN )
+  rownames(snn.matrix) <- colnames(snn.matrix) <- Cells(object)
   suppressWarnings(object[[snn.graph.name]] <- as(object = snn.matrix, Class = "Graph"))
   suppressWarnings(  Misc(object, slot = joint.nn.name) <- joint.nn)
   return(object)
@@ -2029,21 +2031,21 @@ FilterADT <- function(object,
 #' @return Returns a snn matrix
 #' 
 knn_snn_graph <- function(object,
-                          wknn.use, 
+                          knn.matrix, 
                           prune.SNN = 1/15){
-  k.overlap <- wknn.use %*% Matrix::t(wknn.use)
-  wsnn.joint <- k.overlap/Matrix::diag(k.overlap)
-  joint.summary <- Matrix::summary(wsnn.joint)
-  joint.summary <- joint.summary[joint.summary$x > prune.SNN,]
-  joint.summary$x[joint.summary$x > 1] <- 1
-  wsnn.joint.2 <- sparseMatrix(i = joint.summary$i,
-                               j = joint.summary$j,
-                               x = joint.summary$x,
-                               dims = c(nrow(wsnn.joint), ncol(wsnn.joint))
+  knn.matrix <- knn.matrix %*% t(knn.matrix)
+  knn.matrix <- knn.matrix/diag(knn.matrix)
+  edge.summary <- Matrix::summary(knn.matrix)
+  edge.summary <- edge.summary[edge.summary$x > prune.SNN, ]
+
+  snn.graph <- sparseMatrix(i = edge.summary$i,
+                               j = edge.summary$j,
+                               x = edge.summary$x,
+                               dims = c(nrow(knn.matrix), ncol(knn.matrix))
   )
-  rownames(wsnn.joint.2) <- Cells(object)
-  colnames(wsnn.joint.2) <- Cells(object)
-  return(wsnn.joint.2)
+  rownames(snn.graph) <- Cells(object)
+  colnames(snn.graph) <- Cells(object)
+  return(snn.graph)
 }
 
 
