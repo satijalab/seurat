@@ -1119,12 +1119,11 @@ FindMultiModelNeighbors <-  function(object,
                       l2.norm = l2.norm, 
                       sigma.list = sigma.list, 
                       verbose = verbose )
-  if(knn.smooth){
-    joint.nn$nn.dists <-  uwot::smooth_knn_distances_parallel(nn_dist =  joint.nn$nn.dists , n_threads =1 )$matrix
-  }
+
   select_nn <- joint.nn$nn.idx
-  joint.nn$nn.dists <- joint.nn$nn.dists 
+  select_nn_dist <- joint.nn$nn.dists 
 if(weighted.graph){
+  joint.nn$nn.dists <- t(apply(X = joint.nn$nn.dists, MARGIN = 1, function(x)  x/max(x) ))
     nn.matrix <- sparseMatrix(i = 1:ncol(object), j =1:ncol(object), x = 1)
 for (i in 1:ncol(object)){
   nn.matrix[i, select_nn[i,]] <- joint.nn$nn.dists[i, ]
