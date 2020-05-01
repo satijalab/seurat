@@ -1351,16 +1351,17 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
   } else{
     direction <- (-1)
   }
-  nn.idx.snn <- t(apply(snn.graph, 
-                        MARGIN = 1,
-                        FUN = function(x){
-                          x.nonzero.idx <- which(x !=0 )
-                          x.nonzero <- x[ x.nonzero.idx ]
-                          nn.idx <-  x.nonzero.idx[which(rank(x.nonzero * direction,  ties.method = "first") <= (k.nn) )]
-                          return(nn.idx)
-                        } ))
-  return(nn.idx.snn)
   
+  edge <- Matrix::summary(snn.graph  )
+  edge$x <- edge$x * direction
+  nn.idx.snn <- edge %>% 
+    dplyr::group_by(j)%>%arrange( x )%>%
+    dplyr::slice(1:k.nn)%>%select( -x) %>%
+    dplyr::group_split( keep = F) %>%
+    Reduce(cbind, .) %>%
+    t()
+  rownames(nn.idx.snn) <- rownames(snn.graph )
+  return(nn.idx.snn)
 }
  
 
@@ -1488,7 +1489,6 @@ FindModalityWeights.kernel <- function(object,
                              FUN = function(snn) {
                                snn_nn(snn.graph = snn,  k.nn = k.nn, far.nn = TRUE)
                              }  )
-
    distant_nn_dist <- lapply( X = reduction.list, 
                               FUN = function(r){
                                 t(sapply(X = 1:ncol(object), 
