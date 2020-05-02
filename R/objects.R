@@ -6002,7 +6002,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
     replacement = '',
     x = features
   )
-  features <- intersect(x = rownames(x = x), y = features)
+  features <- intersect(x = features, y = rownames(x = x))
   if (length(x = features) == 0) {
     stop("Cannot find features provided")
   }
