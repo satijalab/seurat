@@ -1351,16 +1351,15 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
   } else{
     direction <- (-1)
   }
-  
-  edge <- Matrix::summary(snn.graph  )
+  edge <- Matrix::summary(snn.graph)
   edge$x <- edge$x * direction
   nn.idx.snn <- edge %>% 
-    dplyr::group_by(j)%>%arrange( x )%>%
-    dplyr::slice(1:k.nn)%>%select( -x) %>%
+    dplyr::group_by(j)%>% dplyr::arrange( x,  .by_group = TRUE )%>%
+    dplyr::slice(1:k.nn)%>% dplyr::select( -x) %>%
     dplyr::group_split( keep = F) %>%
     Reduce(cbind, .) %>%
     t()
-  rownames(nn.idx.snn) <- rownames(snn.graph )
+  rownames(nn.idx.snn) <- colnames(snn.graph)
   return(nn.idx.snn)
 }
  
@@ -1419,7 +1418,7 @@ FindModalityWeights.kernel <- function(object,
     }
     }
   
-  
+  print(1)
   nn.list <- lapply(X = reduction.list, 
                     FUN = function(r){
                      nn.r <-  NNHelper(data = embeddings.list.norm[[r]],
@@ -1431,7 +1430,7 @@ FindModalityWeights.kernel <- function(object,
                      return(nn.r)
                     })
   sigma.nn.list <- nn.list
-
+  print(2)
   if( sigma.idx > k.nn || s.nn > k.nn){
     nn.list <- lapply(X = nn.list, 
                       FUN = function(nn){
@@ -1464,7 +1463,7 @@ FindModalityWeights.kernel <- function(object,
                                      cells = Cells(query),
                                      return.assay = F )
   }
-  
+  print(3)
   within_impute_dist <- lapply( X = reduction.list, 
                                 FUN = function(r){
                                   sqrt(rowSums((query.embeddings.list.norm[[r]] - t(within_impute[[r]]))**2))
@@ -1475,6 +1474,7 @@ FindModalityWeights.kernel <- function(object,
                                } )
 
  if(snn.far.nn){
+   print(4)
    snn.graph.list <- lapply(X = sigma.nn.list,
                             FUN = function(nn){
                               snn.matrix <- ComputeSNN(
@@ -1484,11 +1484,12 @@ FindModalityWeights.kernel <- function(object,
                      colnames(snn.matrix) <- rownames( snn.matrix) <- Cells(object)
                      return(snn.matrix)
                             })
- 
+   print(5)
    snn.far.nn.list <- lapply(X = snn.graph.list,
                              FUN = function(snn) {
                                snn_nn(snn.graph = snn,  k.nn = k.nn, far.nn = TRUE)
                              }  )
+   print(5.5)
    distant_nn_dist <- lapply( X = reduction.list, 
                               FUN = function(r){
                                 t(sapply(X = 1:ncol(object), 
@@ -1499,7 +1500,7 @@ FindModalityWeights.kernel <- function(object,
                                          }))
                                 
                               })
-     
+   print(6)
   modality_sd.list <- lapply( X = distant_nn_dist , function(d)  rowMeans(d)*sd.scale)
    } else{
   modality_sd.list <-  lapply( X = sigma.nn.list , function(sigma.nn)  sigma.nn$nn.dists[,sigma.idx])
@@ -1523,7 +1524,7 @@ FindModalityWeights.kernel <- function(object,
   
   names(params) <- c("reduction.list","dims.list","l2.norm", "sigma.idx", "snn.far.nn","sigma.list")
 
-  
+  print(7)
   modality_score <-  lapply( X = reduction.list,
                              FUN = function(r) {
                                score = within_impute_kernel[[r]] / 
