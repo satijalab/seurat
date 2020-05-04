@@ -539,6 +539,7 @@ GetResidual <- function(
       vst_out <- vst.set[[v]]
       # confirm that cells from SCT model also exist in the integrated object
       cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
+      if(length(cells.v) !=0){
       vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
       vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
       object.v <- subset(x = object, cells = cells.v)
@@ -556,7 +557,9 @@ GetResidual <- function(
         new.scale.data,
         GetAssayData(object = object.v, assay = assay, slot ="scale.data" )[new_features, , drop = FALSE]
       )
+      }
     }
+
     object <- SetAssayData(
       object = object,
       assay = assay,
