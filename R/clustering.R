@@ -929,9 +929,10 @@ PredictAssay <- function(
 
 
 
-projangular_nn_dist <- function( nn.idx, 
-                                 redunction.embedding, 
-                                 query.reduction.embedding = NULL){
+NNdist <- function( nn.idx, 
+                    redunction.embedding, 
+                    metric = "euclidean",
+                    query.reduction.embedding = NULL){
   
   if( !is.list(nn.idx) ){
     nn.idx <- lapply(1:nrow(nn.idx), function(x) nn.idx[x,])
@@ -943,7 +944,7 @@ projangular_nn_dist <- function( nn.idx,
                        FUN = function(x){
                          correlation = as.matrix(  rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
                                                                  Y = redunction.embedding[  nn.idx[[x]],], 
-                                                                 metric = "euclidean") )
+                                                                 metric = metric) )
                        })
   return( nn.dist )
 }
@@ -962,7 +963,7 @@ projangular_nn_dist <- function( nn.idx,
 #' @return return a list containing nn index and nn multi-model distance
 #' @export
 #' 
-MultiModelNN <- function(object, 
+MultiModalNN <- function(object, 
                          query = NULL,
                          k.nn = 20, 
                          reduction.list,
@@ -1008,25 +1009,38 @@ MultiModelNN <- function(object,
   }
   query.cell.num <- nrow( query.redunction_embedding[[1]] )
   reduction.num <- length( query.redunction_embedding )
+  if(verbose){
+    message("Finding multi-modal nearest neighbors")
+    pb <- txtProgressBar(min = 0, max = reduction.num, style = 3)
+  }
   redunction_nn <- lapply( X = 1:reduction.num, 
                            FUN = function(x){
-                             NNHelper(data = redunction_embedding[[x]], 
+                             nn_x <- NNHelper(data = redunction_embedding[[x]], 
                                       query = query.redunction_embedding[[x]],
                                       k = knn.range,
                                       method = 'annoy',
-                                      metric = "euclidean") })
+                                      metric = "euclidean") 
+                             if(verbose){
+                               setTxtProgressBar(pb, x)
+                             }
+                             return(nn_x)
+                             })
+  if(verbose){
+    close(pb)
+  }
+  
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(X = redunction_nn , 
                           FUN = function(x)  x$nn.idx[, -1]  )
   
   nn_idx <- lapply( X = 1:query.cell.num , 
                     FUN = function(x)  Reduce(union,lapply(redunction_nn, function(y) y[x,] )))
-  # calculate cosine similarity of union neighobors, and convert to angular and projection similarity
+  # calculate euclidean distance of all neighbors
   nn_dist <- lapply(X = 1:reduction.num,  
                                        FUN = function(r){
-                                         projangular_nn_dist(nn.idx = nn_idx,
-                                                             redunction.embedding = redunction_embedding[[r]], 
-                                                             query.reduction.embedding = query.redunction_embedding[[r]])
+                                         NNdist(nn.idx = nn_idx,
+                                              redunction.embedding = redunction_embedding[[r]], 
+                                              query.reduction.embedding = query.redunction_embedding[[r]])
                                        })
   # modality weighted distance
     if(length(sigma.list[[1]] ) ==1){
@@ -1046,9 +1060,6 @@ MultiModelNN <- function(object,
                                         lapply( X = 1:reduction.num, 
                                                 FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
                                })
-    
-     
-
   # select k nearest joint neighbors
   select_idx <-  lapply( X = nn_weighted_dist,
                          FUN = function(dist){
@@ -1057,7 +1068,6 @@ MultiModelNN <- function(object,
   select_nn <- t(sapply( X = 1:query.cell.num,
                          FUN = function(x) nn_idx[[x]][select_idx[[x]]])
   )
-  
   select_dist <- t(sapply( X = 1:query.cell.num, 
                            FUN = function(x) nn_weighted_dist[[x]][select_idx[[x]]])
   )
@@ -1084,17 +1094,17 @@ MultiModelNN <- function(object,
 #' @return return an object containing multi-model KNN, SNN and neighbors
 #' @export
 FindMultiModelNeighbors <-  function(object, 
-                                     reduction.list = NULL,
-                                     dims.list = NULL,
-                                     k.nn = 20, 
-                                     knn.range = 200,
-                                     weighted.graph = FALSE,
-                                     l2.norm = FALSE, 
+                                     modality.weight = NULL,
+                                     prune.SNN = 1/20, 
                                      knn.graph.name = "jknn",
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
-                                     prune.SNN = 1/20, 
-                                     modality.weight = NULL,
+                                     reduction.list = NULL,
+                                     dims.list = NULL,
+                                     k.nn = NULL, 
+                                     knn.range = 200,
+                                     weighted.graph = FALSE,
+                                     l2.norm = FALSE, 
                                      verbose = TRUE
 ){
   if( is.list(modality.weight) ){
@@ -1102,33 +1112,46 @@ FindMultiModelNeighbors <-  function(object,
     sigma.list <- modality.weight$params$sigma.list
     if(is.null(reduction.list)){
       reduction.list <- modality.weight$params$reduction.list
+    } else{
+      warning("reduction.list will use the input ones, not from the FindModalityWeights")
     }
     if(is.null(dims.list)){
       dims.list <- modality.weight$params$dims.list
+    }else{
+      warning("dims.list will use the input ones, not from the FindModalityWeights")
     }
-    modality.weight <- modality.weight$first.modality.weight
+    if(is.null(k.nn)){
+      k.nn <- modality.weight$params$k.nn
+    }else{
+      warning("k.nn will use the input one, not from the FindModalityWeights")
     }
-  
-  joint.nn <- MultiModelNN(object = object, 
+    modality.weight.value <- modality.weight$first.modality.weight
+    }
+  joint.nn <- MultiModalNN(object = object, 
                       k.nn = k.nn, 
                       reduction.list = reduction.list, 
                       dims.list = dims.list,
                       knn.range = knn.range, 
-                      modality.weight = modality.weight, 
+                      modality.weight = modality.weight.value, 
                       l2.norm = l2.norm, 
                       sigma.list = sigma.list, 
                       verbose = verbose )
-
   select_nn <- joint.nn$nn.idx
   select_nn_dist <- joint.nn$nn.dists 
 if(weighted.graph){
+  if(verbose){
+    message("Constructing joint weighted knn graph")
+  }
+  
   joint.nn$nn.dists <- t(apply(X = joint.nn$nn.dists, MARGIN = 1, function(x)  x/max(x) ))
     nn.matrix <- sparseMatrix(i = 1:ncol(object), j =1:ncol(object), x = 1)
 for (i in 1:ncol(object)){
   nn.matrix[i, select_nn[i,]] <- joint.nn$nn.dists[i, ]
 }
-
   }else{
+    if(verbose){
+      message("Constructing joint KNN graph")
+    }
     j <- as.numeric(x = t(x = select_nn ))
     i <- ((1:length(x = j)) - 1) %/% k.nn + 1
     nn.matrix <- sparseMatrix(i = i,
@@ -1141,6 +1164,9 @@ for (i in 1:ncol(object)){
   nn.matrix <- nn.matrix + t(nn.matrix) - t(nn.matrix)*nn.matrix
   nn.matrix <- as.Graph(nn.matrix)
   suppressWarnings(object[[knn.graph.name]] <- nn.matrix)
+  if(verbose){
+    message("Constructing joint SNN graph")
+  }
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN )
   rownames(snn.matrix) <- colnames(snn.matrix) <- Cells(object)
   suppressWarnings(object[[snn.graph.name]] <- as(object = snn.matrix, Class = "Graph"))
@@ -1531,9 +1557,9 @@ FindModalityWeights.kernel <- function(object,
      }
   modality_sd.list <-  lapply( X = sigma.nn.list , function(sigma.nn)  sigma.nn$nn.dists[,sigma.idx])
    }
-  if(verbose){
-    message("Calculating within and cross modality kernel, and modalit weights") 
-  }
+ 
+  
+  # Calculating within and cross modality kernel, and modalit weights
   within_impute_kernel <- lapply( X = reduction.list,
                                   FUN = function(r) {
                                     exp(-1*( within_impute_dist[[r]]/modality_sd.list[[r]] )**2) 
@@ -1547,11 +1573,12 @@ FindModalityWeights.kernel <- function(object,
   params <- list( reduction.list,
                    dims.list,
                   l2.norm,
+                  k.nn, 
                   sigma.idx,
                   snn.far.nn ,
                   modality_sd.list)
   
-  names(params) <- c("reduction.list","dims.list","l2.norm", "sigma.idx", "snn.far.nn","sigma.list")
+  names(params) <- c("reduction.list","dims.list","l2.norm", "k.nn" ,"sigma.idx", "snn.far.nn","sigma.list")
   modality_score <-  lapply( X = reduction.list,
                              FUN = function(r) {
                                score = within_impute_kernel[[r]] / 
@@ -1757,7 +1784,7 @@ ModalityWeights <- function(object,
                          FUN = function(c)  sqrt(cosine.multi.mean[[c]] * proj.multi.mean[[c]])   )
    nn_dist <- lapply(X = 1:nrow(assay.comb), 
                      FUN = function(c){
-                       projangular_nn_dist(   bs_nn.multi[[ assay.comb$nn[c] ]]$nn.idx,  
+                       NNdist(   bs_nn.multi[[ assay.comb$nn[c] ]]$nn.idx,  
                                           bootstrap.embedding.list[[1]][[ assay.comb$assay[c]]])
                        
                      })
