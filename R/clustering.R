@@ -1366,21 +1366,21 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
 
 
 FindModalityWeights.kernel <- function(object, 
-                                       query = NULL, 
                                        reduction.list, 
                                        dims.list, 
-                                       sd.scale = 0.75, 
-                                       cross.contant.list = NULL, 
-                                       snn.far.nn = FALSE, 
+                                       snn.far.nn = TRUE, 
                                        k.nn = 20, 
                                        s.nn = NULL, 
+                                       l2.norm = TRUE, 
+                                       sd.scale = 1, 
+                                       query = NULL, 
+                                       cross.contant.list = NULL, 
                                        sigma.idx = NULL,
-                                       l2.norm = FALSE, 
-                                       KL.divergence = FALSE, 
-                                       smooth = FALSE
+                                       smooth = FALSE, 
+                                       verbose = TRUE
                                   ){
   if(is.null(s.nn)){
-    s.nn <- k.nn
+    s.nn <- k.nn*2
   }
   if(is.null(sigma.idx)){
     sigma.idx <- 20
@@ -1417,8 +1417,10 @@ FindModalityWeights.kernel <- function(object,
       query.embeddings.list.norm <- query.embeddings.list
     }
     }
-  
-  print(1)
+  if(verbose){
+  message("Finding ",k.nn ," nearest neighrbos for each modal") 
+  pb <- txtProgressBar(min = 0, max = length(reduction.list) , style = 3)
+    }
   nn.list <- lapply(X = reduction.list, 
                     FUN = function(r){
                      nn.r <-  NNHelper(data = embeddings.list.norm[[r]],
@@ -1427,10 +1429,17 @@ FindModalityWeights.kernel <- function(object,
                                method = "annoy", 
                                metric = "euclidean")
                      rownames(nn.r$nn.idx) <- Cells(query)
+                     if(verbose){
+                       setTxtProgressBar(pb, which( reduction.list == r))
+                     }
                      return(nn.r)
-                    })
+                    }
+                    
+                    )
   sigma.nn.list <- nn.list
-  print(2)
+  if(verbose){
+    close(pb)
+    }
   if( sigma.idx > k.nn || s.nn > k.nn){
     nn.list <- lapply(X = nn.list, 
                       FUN = function(nn){
@@ -1442,6 +1451,8 @@ FindModalityWeights.kernel <- function(object,
 
   within_impute <- list()
   cross_impute <- list()
+ 
+# Calculating within and cross modality distance
   for (r in reduction.set ){
     reduction.norm <- paste0(r, ".norm")
     object[[ reduction.norm ]] <- CreateDimReducObject(embeddings = embeddings.list.norm[[r]],
@@ -1463,7 +1474,7 @@ FindModalityWeights.kernel <- function(object,
                                      cells = Cells(query),
                                      return.assay = F )
   }
-  print(3)
+ 
   within_impute_dist <- lapply( X = reduction.list, 
                                 FUN = function(r){
                                   sqrt(rowSums((query.embeddings.list.norm[[r]] - t(within_impute[[r]]))**2))
@@ -1474,7 +1485,9 @@ FindModalityWeights.kernel <- function(object,
                                } )
 
  if(snn.far.nn){
-   print(4)
+   if(verbose){
+     message("Constructing SNN graphs for each modality by ", s.nn, " nearest neighbors") 
+   }
    snn.graph.list <- lapply(X = sigma.nn.list,
                             FUN = function(nn){
                               snn.matrix <- ComputeSNN(
@@ -1484,12 +1497,22 @@ FindModalityWeights.kernel <- function(object,
                      colnames(snn.matrix) <- rownames( snn.matrix) <- Cells(object)
                      return(snn.matrix)
                             })
-   print(5)
-   snn.far.nn.list <- lapply(X = snn.graph.list,
-                             FUN = function(snn) {
-                               snn_nn(snn.graph = snn,  k.nn = k.nn, far.nn = TRUE)
+   if(verbose){
+     message("Finding ", k.nn ," distant neighbors from snn graph") 
+     pb <- txtProgressBar(min = 0, max = length(reduction.list) , style = 3)
+   }
+   snn.far.nn.list <- lapply(X = 1:length(snn.graph.list),
+                             FUN = function(s) {
+                               distant_nn <- snn_nn(snn.graph = snn.graph.list[[s]],  k.nn = k.nn, far.nn = TRUE)
+                               if(verbose){
+                                 setTxtProgressBar(pb, s )
+                               }
+                               return(distant_nn)
                              }  )
-   print(5.5)
+   names(snn.far.nn.list) <- unlist(reduction.list)
+   if(verbose){
+     close(pb)
+   }
    distant_nn_dist <- lapply( X = reduction.list, 
                               FUN = function(r){
                                 t(sapply(X = 1:ncol(object), 
@@ -1500,11 +1523,17 @@ FindModalityWeights.kernel <- function(object,
                                          }))
                                 
                               })
-   print(6)
+ 
   modality_sd.list <- lapply( X = distant_nn_dist , function(d)  rowMeans(d)*sd.scale)
    } else{
+     if(verbose){
+       message("Calculating sigma by ", sigma.idx, "th neighbor") 
+     }
   modality_sd.list <-  lapply( X = sigma.nn.list , function(sigma.nn)  sigma.nn$nn.dists[,sigma.idx])
- }
+   }
+  if(verbose){
+    message("Calculating within and cross modality kernel, and modalit weights") 
+  }
   within_impute_kernel <- lapply( X = reduction.list,
                                   FUN = function(r) {
                                     exp(-1*( within_impute_dist[[r]]/modality_sd.list[[r]] )**2) 
@@ -1523,8 +1552,6 @@ FindModalityWeights.kernel <- function(object,
                   modality_sd.list)
   
   names(params) <- c("reduction.list","dims.list","l2.norm", "sigma.idx", "snn.far.nn","sigma.list")
-
-  print(7)
   modality_score <-  lapply( X = reduction.list,
                              FUN = function(r) {
                                score = within_impute_kernel[[r]] / 
@@ -1541,12 +1568,8 @@ FindModalityWeights.kernel <- function(object,
                              } )
   }
 
-  if(KL.divergence){
-    modality1.weight <-  within_impute_kernel[[1]]*log(modality_score[[1]]) / ( within_impute_kernel[[1]]*log(modality_score[[1]]) +  within_impute_kernel[[2]]*log(modality_score[[2]]))
-    modality1.weight <- MinMax(modality1.weight, min = 0, max = 1)
-  }else{
     modality1.weight <- exp(modality_score[[1]])/(exp(modality_score[[1]]) + exp(modality_score[[2]]))
-  }
+ 
   
   score.mat<- cbind(Reduce(cbind, within_impute_dist), 
         Reduce(cbind, cross_impute_dist), 
