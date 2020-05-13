@@ -3375,14 +3375,13 @@ FindJointTransferAnchor <- function(reference,
   )
 
   # assay seems not to be used
-  anchors = ScoreAnchors(
+  iobject = ScoreAnchors(
     object = iobject,
     assay = NULL,
     integration.name = "integrated",
     verbose = "TRUE",
     k.score = k.score
   )
-  
   anchors <- GetIntegrationData(
     object = iobject,
     integration.name = 'integrated',
