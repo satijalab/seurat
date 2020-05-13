@@ -2340,7 +2340,7 @@ FindWeights <- function(
   }
   
   if( is.list( reduction )){
-    knn_2_2 <- MultiModelNN(object = data.use, 
+    knn_2_2 <- MultiModalNN(object = data.use, 
                             query = query.data.use,
                             k.nn = k, 
                             knn.range = max(200, 5*k),
@@ -3239,6 +3239,7 @@ FindJointTransferAnchor <- function(reference,
                                     dims.list,
                                     l2.norm = TRUE, 
                                     k.nn = 20,
+                                    s.nn = 40, 
                                     knn.range = 200, 
                                     k.anchor = 5, 
                                     k.score = 20,
@@ -3289,83 +3290,64 @@ FindJointTransferAnchor <- function(reference,
       assay = query.assay.list[[i]]
     )
   }
-  
-  nnRR.weight <- FindModalityWeights.kernel(object = reference,
-                                            query = reference,
+
+  reference.weight <- FindModalityWeights(object = reference,
                                             reduction.list = proj.reduction.list,
                                             dims.list = dims.list, 
                                             l2.norm = F,
-                                            snn.far.nn = F, 
-                                            sigma.idx = 40)
-  
-  
-  nnQQ.weight <- FindModalityWeights.kernel(object = query,
-                                            query = query,
-                                            reduction.list = proj.reduction.list,
-                                            dims.list = dims.list, 
-                                            l2.norm = F,
-                                            snn.far.nn = F, 
-                                            sigma.idx = 40)
-  
-  nnRQ.weight <- FindModalityWeights.kernel(object = query,
-                                            query = reference,
-                                            reduction.list = proj.reduction.list,
-                                            dims.list = dims.list, 
-                                            l2.norm = F,
-                                            snn.far.nn = F, 
-                                            sigma.idx = 40)
-  
-  nnQR.weight <- FindModalityWeights.kernel(object = reference,
-                                            query = query,
-                                            reduction.list = proj.reduction.list,
-                                            dims.list = dims.list, 
-                                            l2.norm = F,
-                                            snn.far.nn = F, 
-                                            sigma.idx = 40)
-  
+                                            snn.far.nn = T, 
+                                            k.nn = k.nn , 
+                                            s.nn =  s.nn
+                                             )
+  query.weight <- FindModalityWeights(object = query,
+                                      reduction.list = proj.reduction.list,
+                                      dims.list = dims.list, 
+                                      l2.norm = F,
+                                      snn.far.nn = T, 
+                                      k.nn = k.nn , 
+                                      s.nn =  s.nn)
   
   
   # Generate bidirectional nearest neighbors
-  nnRR <- MultiModelNN(object = reference, 
+  nnRR <- MultiModalNN(object = reference, 
                        query = reference, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  nnRR.weight$first.modality.weight, 
+                       modality.weight =  reference.weight$first.modality.weight, 
                        l2.norm = FALSE,  
-                       sigma.list = nnRR.weight$params$sigma.list)
+                       sigma.list = reference.weight$params$sigma.list )
   
-  
-  nnQQ <- MultiModelNN(object = query, 
+  nnQQ <- MultiModalNN(object = query, 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  nnQQ.weight$first.modality.weight, 
+                       modality.weight =  query.weight$first.modality.weight, 
                        l2.norm =  FALSE, 
-                       sigma.list = nnQQ.weight$params$sigma.list)
+                       sigma.list = query.weight$params$sigma.list)
   
-  nnRQ <- MultiModelNN(object = query, 
+  nnRQ <- MultiModalNN(object = query, 
                        query = reference, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  nnRQ.weight$first.modality.weight, 
+                       modality.weight =  reference.weight$first.modality.weight, 
                        l2.norm = FALSE, 
-                       sigma.list = nnRQ.weight$params$sigma.list)
+                       sigma.list = reference.weight$params$sigma.list)
   
-  nnQR <- MultiModelNN(object = reference , 
+  nnQR <- MultiModalNN(object = reference , 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  nnQR.weight$first.modality.weight, 
+                       modality.weight =  query.weight$first.modality.weight, 
                        l2.norm =  FALSE, 
-                       sigma.list = nnQR.weight$params$sigma.list)
+                       sigma.list = query.weight$params$sigma.list)
   # merging two objects
   iobject <- merge(x = reference , y = query)
   
@@ -3406,9 +3388,9 @@ FindJointTransferAnchor <- function(reference,
     integration.name = 'integrated',
     slot = 'anchors'
   )
-  Misc(iobject, slot = "query.modality.weight") <- nnQQ.weight$first.modality.weight
-  Misc(iobject, slot = "query.sigma.list") <- nnQQ.weight$params$sigma.list
-  Misc(iobject, slot = "reference.modality.weight") <- nnRR.weight$first.modality.weight
+  Misc(iobject, slot = "query.modality.weight") <- query.weight$first.modality.weight
+  Misc(iobject, slot = "query.sigma.list") <- query.weight$params$sigma.list
+  Misc(iobject, slot = "reference.modality.weight") <- reference.weight$first.modality.weight
   Misc(iobject, slot = "proj.reduction") <- proj.reduction.list
   anchor.set <- new(
     Class = "AnchorSet",
