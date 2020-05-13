@@ -1323,7 +1323,7 @@ FindMultiModelNeighbors.umap <-  function(object,
                                      dims.list = NULL,
                                      k.nn = NULL, 
                                      knn.range = 200,
-                                     weighted.graph = FALSE,
+                                     weighted.graph = TRUE,
                                      l2.norm = FALSE, 
                                      verbose = TRUE
 ){
