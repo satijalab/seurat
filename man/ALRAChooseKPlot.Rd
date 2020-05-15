@@ -14,12 +14,13 @@ The transition from "signal" to "noise" in the is hard to see because the
 first singular value spacings are so large. Nicer visualizations result from
 skipping the first few. If set to 0 (default) starts from k/2.}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE,
-themeing will not work when plotting multiple features}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A list of 3 ggplot objects splotting the singular values, the
-spacings of the singular values, and the p-values of the singular values.
+A list of 3 \code{\link[patchwork]{patchwork}ed} ggplot objects
+splotting the singular values, the spacings of the singular values, and the
+p-values of the singular values.
 }
 \description{
 Plots the results of the approximate rank selection process for ALRA.

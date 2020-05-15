@@ -713,29 +713,35 @@ RunLeiden <- function(
       call. = FALSE
     )
   }
-  if (method %in% c("matrix", "igraph")) {
-    if (method == "igraph") {
-      object <- graph_from_adjacency_matrix(adjmatrix = object)
-    }
-  } else {
-    warning(
-      "method for Leiden recommended as 'matrix' or 'igraph'",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
-  input <- if (inherits(x = object, what = 'list')) {
-    graph_from_adj_list(adjlist = object)
-  } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
-    graph_from_adjacency_matrix(adjmatrix = object)
-  } else if (inherits(x = object, what = 'igraph')) {
-    object
-  } else {
-    stop(
-      paste("method for Leiden not found for class", class(x = object)),
-      call. = FALSE
-    )
-  }
+  switch(
+    EXPR = method,
+    "matrix" = {
+      input <- as(object = object, Class = "matrix")
+      },
+    "igraph" = {
+      input <- if (inherits(x = object, what = 'list')) {
+        if (is.null(x = weights)) {
+          graph_from_adj_list(adjlist = object)
+        } else {
+          graph_from_adj_list(adjlist = object)
+        }
+      } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
+        if (is.null(x = weights)) {
+          graph_from_adjacency_matrix(adjmatrix = object)
+        } else {
+          graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
+        }
+      } else if (inherits(x = object, what = 'igraph')) {
+        object
+      } else {
+        stop(
+          "Method for Leiden not found for class", class(x = object), 
+           call. = FALSE
+        )
+      }
+    },
+    stop("Method for Leiden must be either 'matrix' or igraph'")
+  )
   #run leiden from CRAN package (calls python with reticulate)
   partition <- leiden(
     object = input,

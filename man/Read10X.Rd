@@ -4,7 +4,12 @@
 \alias{Read10X}
 \title{Load in data from 10X}
 \usage{
-Read10X(data.dir = NULL, gene.column = 2, unique.features = TRUE)
+Read10X(
+  data.dir = NULL,
+  gene.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
 }
 \arguments{
 \item{data.dir}{Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv
@@ -15,6 +20,8 @@ will be prefixed with the name.}
 \item{gene.column}{Specify which column of genes.tsv or features.tsv to use for gene names; default is 2}
 
 \item{unique.features}{Make feature names unique (default TRUE)}
+
+\item{strip.suffix}{Remove trailing "-1" if present in all cell barcodes.}
 }
 \value{
 If features.csv indicates the data has multiple data types, a list

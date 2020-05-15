@@ -1364,7 +1364,7 @@ ChunkPoints <- function(dsize, csize) {
 #
 #
 L2Norm <- function(mat, MARGIN = 1){
-  normalized <- sweep(
+  normalized <- Sweep(
     x = mat,
     MARGIN = MARGIN,
     STATS = apply(
@@ -1783,9 +1783,9 @@ PackageCheck <- function(..., error = TRUE) {
   )
   if (error && any(!package.installed)) {
     stop(
-      "Cannot find ",
-      paste(pkgs[!package.installed], collapse = ', '),
-      "; please install"
+      "Cannot find the following packages: ",
+       paste(pkgs[!package.installed], collapse = ', '),
+       ". Please install"
     )
   }
   invisible(x = package.installed)
@@ -1877,22 +1877,36 @@ Same <- function(x) {
   return(x)
 }
 
-# Try to convert x to numeric, if NA's introduced return x as is
+# Sweep out array summaries
 #
-ToNumeric <- function(x){
-  # check for x:y range
-  if (is.numeric(x = x)) {
-    return(x)
+# Reimplmentation of \code{\link[base]{sweep}} to maintain compatability with
+# both R 3.X and 4.X
+#
+# @inheritParams base::sweep
+# @param x an array.
+#
+# @seealso \code{\link[base]{sweep}}
+#
+Sweep <- function(x, MARGIN, STATS, FUN = '-', check.margin = TRUE, ...) {
+  if (any(grepl(pattern = 'X', x = names(x = formals(fun = sweep))))) {
+    return(sweep(
+      X = x,
+      MARGIN = MARGIN,
+      STATS = STATS,
+      FUN = FUN,
+      check.margin = check.margin,
+      ...
+    ))
+  } else {
+    return(sweep(
+      x = x,
+      MARGIN = MARGIN,
+      STATS = STATS,
+      FUN = FUN,
+      check.margin = check.margin,
+      ...
+    ))
   }
-  if (length(x = unlist(x = strsplit(x = x, split = ":"))) == 2) {
-    num <- unlist(x = strsplit(x = x, split = ":"))
-    return(num[1]:num[2])
-  }
-  num <- suppressWarnings(expr = as.numeric(x = x))
-  if (!is.na(x = num)) {
-    return(num)
-  }
-  return(x)
 }
 
 # Get program paths in a system-agnostic way
@@ -1939,4 +1953,22 @@ SysExec <- function(
     )
   }
   return(paths)
+}
+
+# Try to convert x to numeric, if NA's introduced return x as is
+#
+ToNumeric <- function(x){
+  # check for x:y range
+  if (is.numeric(x = x)) {
+    return(x)
+  }
+  if (length(x = unlist(x = strsplit(x = x, split = ":"))) == 2) {
+    num <- unlist(x = strsplit(x = x, split = ":"))
+    return(num[1]:num[2])
+  }
+  num <- suppressWarnings(expr = as.numeric(x = x))
+  if (!is.na(x = num)) {
+    return(num)
+  }
+  return(x)
 }

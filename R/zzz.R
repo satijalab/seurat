@@ -1,3 +1,7 @@
+#' Seurat package
+#'
+#' Tools for single-cell genomics
+#'
 #' Tools for single-cell genomics
 #'
 #' @section Package options:
@@ -15,6 +19,10 @@
 #'   \item{\code{Seurat.checkdots}}{For functions that have ... as a parameter,
 #'   this controls the behavior when an item isn't used. Can be one of warn,
 #'   stop, or silent.}
+#'   \item{\code{Seurat.limma.wilcox.msg}}{Show message about more efficient 
+#'   Wilcoxon Rank Sum test available via the limma package}
+#'   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to 
+#'   default behavior of split/multi violin plots}
 #' }
 #'
 #' @docType package
@@ -26,7 +34,9 @@ NULL
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
-  Seurat.checkdots = "warn"
+  Seurat.checkdots = "warn",
+  Seurat.limma.wilcox.msg = TRUE,
+  Seurat.warn.vlnplot.split = TRUE
 )
 
 .onLoad <- function(libname, pkgname) {

@@ -2,6 +2,45 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.1.5] - 2020-04-14
+### Added
+- New `scale` parameter in `DotPlot` 
+- New `keep.sparse parameter in `CreateGeneActivityMatrix` for a more memory efficient option
+- Added ability to store model learned by UMAP and project new data
+- New `strip.suffix` option in `Read10X`. **This changes the default behavior of `Read10X`**.
+  A trailing `-1` present in all cell names will not be removed by default.
+- Added `group.by` parameter to `FeatureScatter`
+
+### Changes
+- Replace wilcox.test with limma implementation for a faster FindMarkers default method
+- Better point separation for `VlnPlot`s when using the `split.by` option
+- Efficiency improvements for anchor pairing
+- Deprecate redundant `sort.cell` parameter in `FeaturePlot`
+- Fixes to ensure correct class of Matrix passed to c++ functions
+- Fixes for underscores in ident labels for `DotPlot`
+- Ensure preservation of matrix dimnames in `SampleUMI`
+- Fix non-standard evaluation problems in `subset` and `WhichCells`
+- Default split violin option is now a multi group option
+- Preserve alpha in `FeaturePlot` when using `blend`
+- Update `assay.used` slot for `DimReduc`s when Assay is renamed
+
+## [3.1.4] - 2020-02-20
+### Changes 
+- Fixes to `DoHeatmap` to remain compatible with ggplot2 v3.3
+- Adoption of `patchwork` framework to replace `CombinePlots`
+
+## [3.1.3] - 2020-02-07
+### Added
+- New system agnostic `Which` function to address problems with FItSNE on Windows
+
+### Changes
+- Export `CellsByIdentities` and `RowMergeSparseMatrices` functions
+- nCount and nFeature metadata variables retained after subset and updated properly with `UpdateSeuratObject`
+- Fix uwot support for running directly on feature matrices
+- Fixes for keys with underscores
+- Fix issue with leiden option for `FindClusters`
+- Fix for data transfer when using sctransform
+- SDMTools moved to Suggests as package is orphaned 
 
 ## [3.1.2] - 2019-12-11
 ### Added

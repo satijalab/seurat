@@ -29,6 +29,6 @@ Many thanks to Kevin Wright for writing the pals package.
 
 
 Taken from the pals package (Licence: GPL-3).
-\url{https://cran.r-project.org/web/packages/pals/index.html}
+\url{https://cran.r-project.org/package=pals}
 Credit: Kevin Wright
 }

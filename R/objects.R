@@ -646,12 +646,13 @@ CreateDimReducObject <- function(
   if (length(x = key) != 1) {
     stop("Please specify a key for the DimReduc object")
   } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
-    # New SetKey function
-    key <- regmatches(
-      x = key,
-      m = regexec(pattern = '[[:alnum:]]+', text = key)
+    old.key  <- key
+    key <- UpdateKey(key = old.key)
+    colnames(x = embeddings) <- gsub(
+      x = colnames(x = embeddings),
+      pattern = old.key,
+      replacement = key
     )
-    key <- paste0(paste(key, collapse = ''), '_')
     warning(
       "All keys should be one or more alphanumeric characters followed by an underscore '_', setting key to ",
       key,
@@ -1308,6 +1309,12 @@ RenameAssays <- function(object, ...) {
       DefaultAssay(object = object) <- new
     }
     Key(object = object[[new]]) <- old.key
+    # change assay used in any dimreduc object
+    for (i in Reductions(object = object)) {
+      if (DefaultAssay(object = object[[i]]) == old) {
+        DefaultAssay(object = object[[i]]) <- new
+      }
+    }
     object[[old]] <- NULL
   }
   return(object)
@@ -3334,6 +3341,18 @@ Misc.Assay <- function(object, slot = NULL, ...) {
 
 #' @rdname Misc
 #' @export
+#' @method Misc DimReduc
+#'
+Misc.DimReduc <- function(object, slot = NULL, ...) {
+  CheckDots(...)
+  if (is.null(x = slot)) {
+    return(slot(object = object, name = 'misc'))
+  }
+  return(slot(object = object, name = 'misc')[[slot]])
+}
+
+#' @rdname Misc
+#' @export
 #' @method Misc Seurat
 #'
 #' @examples
@@ -3353,6 +3372,23 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @method Misc<- Assay
 #'
 "Misc<-.Assay" <- function(object, slot, ..., value) {
+  CheckDots(...)
+  if (slot %in% names(x = Misc(object = object))) {
+    warning("Overwriting miscellanous data for ", slot)
+  }
+  if (is.list(x = value)) {
+    slot(object = object, name = 'misc')[[slot]] <- c(value)
+  } else {
+    slot(object = object, name = 'misc')[[slot]] <- value
+  }
+  return(object)
+}
+
+#' @rdname Misc
+#' @export
+#' @method Misc<- DimReduc
+#'
+"Misc<-.DimReduc" <- function(object, slot, ..., value) {
   CheckDots(...)
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)
@@ -4753,6 +4789,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @param invert Invert the selection of cells
 #'
 #' @importFrom stats na.omit
+#' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
 #' @export
@@ -4769,12 +4806,14 @@ WhichCells.Assay <- function(
   cells <- cells %||% colnames(x = object)
   if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
     key.pattern <- paste0('^', Key(object = object))
-    expr <- if (is.call(x = substitute(expr = expression))) {
-      substitute(expr = expression)
+    expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
+      expression
+    } else if (is.call(x = enquo(arg = expression))) {
+      enquo(arg = expression)
     } else {
       parse(text = expression)
     }
-    expr.char <- as.character(x = expr)
+    expr.char <- suppressWarnings(expr = as.character(x = expr))
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
       pattern = key.pattern,
@@ -4797,8 +4836,7 @@ WhichCells.Assay <- function(
     expr.char <- expr.char[vars.use]
     data.subset <- as.data.frame(x = t(x = as.matrix(x = object[expr.char, ])))
     colnames(x = data.subset) <- expr.char
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- rownames(x = data.subset)
+    cells <- rownames(x = data.subset)[eval_tidy(expr = expr, data = data.subset)]
   }
   if (invert) {
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
@@ -4815,6 +4853,7 @@ WhichCells.Assay <- function(
 #' @param seed Random seed for downsampling. If NULL, does not set a seed
 #'
 #' @importFrom stats na.omit
+#' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
 #' @export
@@ -4869,12 +4908,14 @@ WhichCells.Seurat <- function(
       }
     )
     key.pattern <- paste0('^', object.keys, collapse = '|')
-    expr <- if (is.call(x = substitute(expr = expression))) {
-      substitute(expr = expression)
+    expr <- if (tryCatch(expr = is_quosure(x = expression), error = function(...) FALSE)) {
+      expression
+    } else if (is.call(x = enquo(arg = expression))) {
+      enquo(arg = expression)
     } else {
       parse(text = expression)
     }
-    expr.char <- as.character(x = expr)
+    expr.char <- suppressWarnings(expr = as.character(x = expr))
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
       pattern = '(',
@@ -4894,12 +4935,11 @@ WhichCells.Seurat <- function(
     )
     data.subset <- FetchData(
       object = object,
-      vars = expr.char[vars.use],
+      vars = unique(x = expr.char[vars.use]),
       cells = cells,
       slot = slot
     )
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- rownames(x = data.subset)
+    cells <- rownames(x = data.subset)[eval_tidy(expr = expr, data = data.subset)]
   }
   if (invert) {
     cell.order <- colnames(x = object)
@@ -5666,19 +5706,24 @@ merge.Assay <- function(
   if (all(IsSCT(assay = assays))) {
     vst.set.new <- list()
     idx <- 1
+    umi.assay.new <- list()
     for (i in 1:length(x = assays)) {
       vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
+      umi.assay.old <- Misc(object = assays[[i]], slot = "umi.assay")
       if (!is.null(x = vst.set.old)) {
         for (j in 1:length(x = vst.set.old)) {
           vst.set.new[[idx]] <- vst.set.old[[j]]
+          umi.assay.new[[idx]] <- umi.assay.old[[j]]
           idx <- idx + 1
         }
       } else if (!is.null(x = Misc(object = assays[[i]], slot = "vst.out"))) {
         vst.set.new[[idx]] <- Misc(object = assays[[i]], slot = "vst.out")
+        umi.assay.new[[idx]] <- Misc(object = assays[[i]], slot = "umi.assay")
         idx <- idx + 1
       }
     }
     Misc(object = combined.assay, slot = "vst.set") <- vst.set.new
+    Misc(object = combined.assay, slot = "umi.assay") <- umi.assay.new
     scale.data <- do.call(
       what = cbind,
       args = lapply(X = assays, FUN = function(x) GetAssayData(object = x, slot = "scale.data"))
@@ -5957,7 +6002,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
     replacement = '',
     x = features
   )
-  features <- intersect(x = rownames(x = x), y = features)
+  features <- intersect(x = features, y = rownames(x = x))
   if (length(x = features) == 0) {
     stop("Cannot find features provided")
   }
@@ -5977,6 +6022,30 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   }
   VariableFeatures(object = x) <- VariableFeatures(object = x)[VariableFeatures(object = x) %in% features]
   slot(object = x, name = 'meta.features') <- x[[]][features, , drop = FALSE]
+  if (IsSCT(assay = x)) {
+    # subset cells and genes in the SCT assay
+    obj.misc <- Misc(object = x)
+    if ("vst.set" %in% names(x = obj.misc)) {
+      # set of vst.out objects
+      vst.info <- obj.misc[["vst.set"]]
+      for (i in seq_along(along.with = vst.info)) {
+        vst.info[[i]] <- SubsetVST(
+          sct.info = vst.info[[i]],
+          cells = cells,
+          features = features
+        )
+      }
+      obj.misc[["vst.set"]] <- vst.info
+    } else {
+      # just one vst.out
+      obj.misc[["vst.out"]] <- SubsetVST(
+        sct.info = obj.misc[["vst.out"]],
+        cells = cells,
+        features = features
+      )
+    }
+    slot(object = x, name = "misc") <- obj.misc
+  }
   return(x)
 }
 
@@ -6052,6 +6121,8 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @return A subsetted Seurat object
 #'
+#' @importFrom rlang enquo
+#'
 #' @rdname subset.Seurat
 #' @aliases subset
 #' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
@@ -6068,7 +6139,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
   if (!missing(x = subset)) {
-    subset <- deparse(expr = substitute(expr = subset))
+    subset <- enquo(arg = subset)
   }
   cells <- WhichCells(
     object = x,
@@ -6122,7 +6193,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   }
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
-  
+
   return(x)
 }
 
@@ -6634,7 +6705,7 @@ setMethod(
     cat(
       "Active assay:",
       DefaultAssay(object = object),
-      paste0('(', nrow(x = object), ' features)')
+      paste0('(', nrow(x = object), ' features, ', length(x = VariableFeatures(object = object)), ' variable features)')
     )
     other.assays <- assays[assays != DefaultAssay(object = object)]
     if (length(x = other.assays) > 0) {
@@ -6838,6 +6909,19 @@ Projected <- function(object) {
   return(!all(projected.dims == 0))
 }
 
+# Subset cells in vst data
+# @param sct.info A vst.out list 
+# @param cells vector of cells to retain
+# @param features vector of features to retain
+SubsetVST <- function(sct.info, cells, features) {
+  cells.keep <- intersect(x = cells, y = rownames(x = sct.info$cell_attr))
+  sct.info$cell_attr <- sct.info$cell_attr[cells.keep, ]
+  # find which subset of features are in the SCT assay
+  feat.keep <- intersect(x = features, y = rownames(x = sct.info$gene_attr))
+  sct.info$gene_attr <- sct.info$gene_attr[feat.keep, ]
+  return(sct.info)
+}
+
 # Get the top
 #
 # @param data Data to pull the top from
@@ -6971,16 +7055,14 @@ UpdateJackstraw <- function(old.jackstraw) {
 # @return An updated Key that's valid for Seurat
 #
 UpdateKey <- function(key) {
-  if (grepl(pattern = '^[[:alnum:]]+_', x = key)) {
+  if (grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
     return(key)
   } else {
-    new.key <-  gsub(
-      pattern = "[[:^alnum:]]",
-      replacement = "",
+    new.key <- regmatches(
       x = key,
-      perl = TRUE
+      m = gregexpr(pattern = '[[:alnum:]]+', text = key)
     )
-    new.key <- paste0(new.key, '_')
+    new.key <- paste0(paste(unlist(x = new.key), collapse = ''), '_')
     if (new.key == '_') {
       new.key <- paste0(RandomName(length = 3), '_')
     }

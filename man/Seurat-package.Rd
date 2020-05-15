@@ -3,8 +3,11 @@
 \docType{package}
 \name{Seurat-package}
 \alias{Seurat-package}
-\title{Tools for single-cell genomics}
+\title{Seurat package}
 \description{
+Tools for single-cell genomics
+}
+\details{
 Tools for single-cell genomics
 }
 \section{Package options}{
@@ -23,6 +26,10 @@ Seurat uses the following [options()] to configure behaviour:
   \item{\code{Seurat.checkdots}}{For functions that have ... as a parameter,
   this controls the behavior when an item isn't used. Can be one of warn,
   stop, or silent.}
+  \item{\code{Seurat.limma.wilcox.msg}}{Show message about more efficient 
+  Wilcoxon Rank Sum test available via the limma package}
+  \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to 
+  default behavior of split/multi violin plots}
 }
 }
 
