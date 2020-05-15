@@ -152,25 +152,26 @@ CalculateBarcodeInflections <- function(
   Tool(object = object) <- info
   return(object)
 }
-#'  Calculate Perturbation signature in cells with sgRNAs.
+
+#'  Calculate Perturbation score in cells with gRNAs.
 #'  @param object an object of class Seurat
 #'  @param assay Name of Assay PRTB  signature is being calculated on
-#'  @param ctrl.cell.id non targeting control cell identity.
+#'  @param ctrl.cell.id non-targeting gRNA cell identity.
 #'  @param num.neighbors number of neighrest neigbors to consider.
 #'  @param reduction Reduction method used to calculate nearest neighbors.
-#'  @param slot data slot to use
-#'  @param split.by set this if multiple biological replicates exist to calculate PRTB  signature for every replicate seperately
+#'  @param slot data slot to use for PRTB score calculation
+#'  @param split.by provide metadata column if multiple biological replicates exist to calculate PRTB score for every replicate seperately
 #'  @param ndims number of dimensions to use from dimensionality reduction method.
-#'  @param gd.id meta data column containing guide identities.
+#'  @param gd.id metadata column containing gRNA classification.
 
 CalcPerturbSig <- function ( object, 
                              assay = NULL,
                              ctrl.cell.id = "NT",
                              num.neighbors = NULL,
-                             reduction = NULL, 
-                             slot = "scale.data", 
+                             reduction = "pca", 
+                             slot = "data", 
                              split.by = NULL,
-                             ndims= NULL,
+                             ndims= 15,
                              gd.id = "guide_ID",
                              new.assay.name = "PRTB",
                              ...
@@ -179,77 +180,79 @@ CalcPerturbSig <- function ( object,
     assay <- DefaultAssay(object)
   }
   
+  else{
+    
+    if (is.null(reduction) == TRUE){
+      stop('Please provide dimensionality reduction name.')
+    } 
     else{
-  
-      if (is.null(reduction) == TRUE){
-        stop('Please provide dimensionality reduction name.')
-        } 
-      else{
       
-        if (is.null(num.neighbors) == TRUE){
-      stop("Please specify number of nearest neighbors to consider")
+      if (is.null(num.neighbors) == TRUE){
+        stop("Please specify number of nearest neighbors to consider")
+      }
+      else{
+        if(is.null(ndims) == TRUE){
+          stop("Please provide number of ",reduction, " dimensions to consider")
         }
         else{
-          if(is.null(ndims) == TRUE){
-            stop("Please provide number of ",reduction, " dimensions to consider")
-          }
-          else{
+          
+          if(is.null(split.by) == FALSE){
             
-   if(is.null(split.by) == FALSE){
-      
-      Idents(object) = split.by
-      replicate = levels(Idents(object))
-    }
-    
-    else{
-      Idents(object) <- "rep1"
-      replicate <- levels(Idents(object))
-    }
-  
-    all_diff = matrix(nrow = length(rownames(GetAssayData(object = object, assay = assay, slot = slot))), ncol = 0)
-    for (r in replicate) {
-      rep1 <- object[, WhichCells(object = object, idents = r)]
-    
-    #isolate nt cells
-    all_cells <- Cells(rep1)
-    nt_cells <- Cells(rep1[,grep(ctrl.cell.id, rep1@meta.data[,gd.id], value = FALSE)])
-    
-    #subset the objects based on guide ID
-    all <- rep1[,all_cells]
-    nt <- rep1[,nt_cells]
-    
-    #get pca cell embeddings
-    all_mtx <- Embeddings(all, reduction = reduction)
-    nt_mtx <- Embeddings(nt, reduction = reduction)
-    
-    #run nn2 to find the 30 nearest NT neighbors for all cells. Use the same number of PCs as the ones you used for umap
-    mtx <- nn2(data = nt_mtx[,1:ndims], query = all_mtx[,1:ndims], k = num.neighbors)
-    new_expr <- future_sapply(X = 1:length(all_cells), FUN = function(i) {
-      index <- mtx$nn.idx[i,]
-      nt_cells20 <- nt_cells[index]
-      nt_sub <- nt[,nt_cells20]
-      Idents(nt_sub) <- "nt_sub"
-      avg_nt <- rowMeans(GetAssayData(object = nt_sub, assay = assay, slot = slot))
-      avg_nt <- as.matrix(avg_nt)
-      colnames(avg_nt) <- all_cells[i]
-      return(avg_nt)
-    })
-    
-    rownames(new_expr) <- rownames(GetAssayData(object = nt, assay = assay, slot = slot))
-    colnames(new_expr) <- all_cells
-    diff <- new_expr - GetAssayData(object = rep1, slot = slot, assay = assay)[, colnames(new_expr)]
-    all_diff <- cbind(all_diff, diff )
-      } 
-    }
-   }
+            Idents(object) = split.by
+            replicate = levels(Idents(object))
+          }
+          
+          else{
+            Idents(object) <- "rep1"
+            replicate <- levels(Idents(object))
+          }
+          
+          all_diff = matrix(nrow = length(rownames(GetAssayData(object = object, assay = assay, slot = slot))), ncol = 0)
+          
+          for (r in replicate) {
+            rep1 <- object[, WhichCells(object = object, idents = r)]
+            
+            #isolate nt cells
+            all_cells <- Cells(rep1)
+            nt_cells <- Cells(rep1[,grep(ctrl.cell.id, rep1@meta.data[,gd.id], value = FALSE)])
+            
+            #subset the objects based on guide ID
+            all <- rep1[,all_cells]
+            nt <- rep1[,nt_cells]
+            
+            #get pca cell embeddings
+            all_mtx <- Embeddings(all, reduction = reduction)
+            nt_mtx <- Embeddings(nt, reduction = reduction)
+            
+            #run nn2 to find the 20 nearest NT neighbors for all cells. Use the same number of PCs as the ones you used for umap
+            mtx <- nn2(data = nt_mtx[,1:ndims], query = all_mtx[,1:ndims], k = num.neighbors)
+            #browser()
+            nt_data <- expm1(GetAssayData(object = nt, assay = assay, slot = slot))
+            new_expr <- pbsapply(X = 1:length(all_cells), FUN = function(i) {
+              #browser()
+              index <- mtx$nn.idx[i,]
+              nt_cells20 <- nt_cells[index]
+              #Idents(nt_sub) <- "nt_sub"
+              avg_nt <- rowMeans(nt_data[,nt_cells20])
+              avg_nt <- as.matrix(avg_nt)
+              colnames(avg_nt) <- all_cells[i]
+              return(avg_nt)
+            })
+            new_expr <- log1p(new_expr)
+            rownames(new_expr) <- rownames(GetAssayData(object = nt, assay = assay, slot = slot))
+            colnames(new_expr) <- all_cells
+            diff <- new_expr - GetAssayData(object = rep1, slot = slot, assay = assay)[, colnames(new_expr)]
+            all_diff <- cbind(all_diff, diff )
+          } 
+        }
       }
     }
+  }
   all_diff <- as(Class = "dgCMatrix", object = all_diff)
   prtb.assay <- CreateAssayObject(data =  all_diff[, colnames(object)], min.cells = -Inf, min.features = -Inf)
   object[[new.assay.name]] <- prtb.assay
   return(object)
 }
-
 
 #' Convert a peak matrix to a gene activity matrix
 #'
