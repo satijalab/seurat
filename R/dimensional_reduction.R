@@ -962,9 +962,6 @@ RunPCA.Seurat <- function(
 #' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
 #' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
 #' }
-#' @param add.iter If an existing tSNE has already been computed, uses the
-#' current tSNE to seed the algorithm and then adds additional iterations on top
-#' of this
 #' @param dim.embed The dimensional space of the resulting tSNE embedding
 #' (default is 2). For example, set to 3 for a 3d tSNE
 #' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
@@ -981,7 +978,6 @@ RunTSNE.matrix <- function(
   assay = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   reduction.key = "tSNE_",
   ...
@@ -999,14 +995,6 @@ RunTSNE.matrix <- function(
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
     stop("Invalid tSNE method: please choose from 'Rtsne' or 'FIt-SNE'")
   )
-  if (add.iter > 0) {
-    tsne.data <- tsne(
-      X = object,
-      initial_config = as.matrix(x = tsne.data),
-      max_iter = add.iter,
-      ...
-    )
-  }
   colnames(x = tsne.data) <- paste0(reduction.key, 1:ncol(x = tsne.data))
   rownames(x = tsne.data) <- rownames(x = object)
   tsne.reduction <- CreateDimReducObject(
@@ -1031,7 +1019,6 @@ RunTSNE.DimReduc <- function(
   dims = 1:5,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   reduction.key = "tSNE_",
   ...
@@ -1054,7 +1041,6 @@ RunTSNE.dist <- function(
   assay = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   reduction.key = "tSNE_",
   ...
@@ -1087,7 +1073,6 @@ RunTSNE.Seurat <- function(
   features = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   distance.matrix = NULL,
   reduction.name = "tsne",
@@ -1101,7 +1086,6 @@ RunTSNE.Seurat <- function(
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
-      add.iter = add.iter,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
       is_distance = TRUE,
@@ -1114,7 +1098,6 @@ RunTSNE.Seurat <- function(
       dims = dims,
       seed.use = seed.use,
       tsne.method = tsne.method,
-      add.iter = add.iter,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
       pca = FALSE,
@@ -1126,7 +1109,6 @@ RunTSNE.Seurat <- function(
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
-      add.iter = add.iter,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
       pca = FALSE,
