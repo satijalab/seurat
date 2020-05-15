@@ -966,7 +966,6 @@ RunPCA.Seurat <- function(
 #' (default is 2). For example, set to 3 for a 3d tSNE
 #' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
 #'
-#' @importFrom tsne tsne
 #' @importFrom Rtsne Rtsne
 #'
 #' @rdname RunTSNE
