@@ -2051,3 +2051,183 @@ PrepDR <- function(
   data.use <- data.use[features, ]
   return(data.use)
 }
+
+Project <- function(v1, v2) {
+  return(as.vector((v1 %*% v2) / (v2 %*% v2)))
+}
+
+#' Find top DE genes that pass some p value cutoff between cells with targeting and non-targeting gRNAs.
+#' @param object An object of class Seurat.
+#' @param ident.1 Target gene class to find DE genes for.
+#' @param group.by metadata column with target gene classification.
+#' @param assay Name of Assay DE is performed on.
+#' @param test.use 	Denotes which test to use. See all available tests on FindMarkers documentation.
+#' @param pval.cut.off P-value cut-off for selection of significantly DE genes.
+#' 
+TopDEGenesMixscape <- function(
+  object, 
+  ident.1, 
+  group.by = 'gene', 
+  assay = "RNA", 
+  test.use = "LR", 
+  pval.cutoff = 5e-2
+) {
+  message("Finding new perturbation gene set")
+  de.genes <- data.frame()  
+  tryCatch(
+    expr = {
+      de.genes <- FindMarkers(
+        object = object, 
+        ident.1 = ident.1, 
+        group.by = group.by,
+        assay = assay,
+        test.use = test.use
+      )
+      de.genes <- subset(de.genes, p_val_adj < pval.cutoff)
+    }, 
+    error = function(e) {}
+  )
+  return(rownames(de.genes))
+}
+
+
+#' Define Normal distribution - returns list with mu and sd
+DefineNormalMixscape <- function(x) {
+  mu <- mean(x)
+  sd <- sd(x)
+  return(list(mu = mu, sd = sd))
+}
+
+#' Identify perturbed and non-perturbed gRNA expressing cells.
+#' @param An object of class Seurat.
+#' @param assay Assay to use.
+#' @param slot data slot to use.
+#' @param gene.class metadata column with target gene classifications.
+#' @param nt.class.name Classification name of non-targeting gRNA cells.
+#' @param new.class.name Name of mixscape classification to be stored in metadata.
+#' @param min.de.genes Required number of genes that are DE for method to separate perturbed and non-perturbed cells. 
+#' @param iter.num Number of normalmixEM iterations to run if convergance does not occur.
+#' @import mixtools
+#' 
+RunMixscape <- function( object = NULL,
+                         assay = "PRTB",
+                         slot = "scale.data",
+                         gene.class = "gene",
+                         nt.class.name = "NT",
+                         new.class.name = "mixscape_class",
+                         min.de.genes = 5,
+                         iter.num = 10,
+                         ...
+  
+){
+  if (is.null(assay) == TRUE){
+    assay <- DefaultAssay(object)
+  }
+  
+  if (is.null(gene.class) == TRUE){
+    stop("Please specify target gene class metadata name")
+  }
+  #de marker genes
+  prtb_markers <- c()
+  
+  #new metadata column for mixscape classification
+  object[[new.class.name]] <- object[[gene.class]]
+  
+  genes <- setdiff(unique(object[["gene"]][,1]), y = nt.class.name)
+  
+  #pertubration vectors storage
+  gv.list <- list(list())
+  
+  for (gene in genes){
+    message("Processing ", gene)
+    Idents(object) <- gene.class
+    
+    # Get object containing only guide of interest + non-targeting
+    object.gene <- subset(object, idents = c(gene, "NT"))
+    orig.guide.cells <- WhichCells(object.gene, idents = gene)
+    DefaultAssay(object.gene) <- assay
+    
+    # find de genes between guide positive and non-targeting
+    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene)
+    prtb_markers[[gene]] <- de.genes
+    
+    # if fewer than 5 DE genes, call all guide cells NP 
+    if (length(de.genes) < min.de.genes) {
+      message("Fewer than ",min.de.genes, " DE genes for ", gene, ". Assigning cells as NP.")
+      object.gene[[new.class.name]][orig.guide.cells,1] <- paste(gene, "NP", sep = "_")
+    } else {
+      object.gene <- ScaleData(object.gene, features = de.genes, verbose = FALSE) 
+      dat <- GetAssayData(object = object.gene[["PRTB"]], slot = slot)[de.genes, ]
+      converged <- FALSE
+      n.iter <- 0
+      old.classes <- object.gene[[new.class.name]]
+      
+      while (! converged & n.iter < iter.num) {
+        message("Iteration ", n.iter + 1)
+        
+        # Define pertubation vector using only the de genes
+        Idents(object.gene) <- new.class.name
+        nt.cells <- WhichCells(eccite.gene, idents = nt.class.name)
+        guide.cells <- WhichCells(object.gene, idents = gene)
+        vec <- rowMeans(dat[, guide.cells]) - rowMeans(dat[, nt.cells])
+        
+        # project cells onto new perturbation vector
+        pvec <- apply(X = dat, MARGIN = 2, FUN = Project, v2 = vec)
+        
+        #store pvec
+        gv<- melt(pvec)
+        gv$name <- nt.class.name
+        gv[intersect(rownames(gv), guide.cells),"name"] <- gene
+        gv.list[[gene]][[n.iter+1]] <- gv
+        
+        # define normal distributions mu & sd for guide and nt groups
+        guide.norm <- DefineNormalMixscape(pvec[guide.cells])
+        nt.norm <- DefineNormalMixscape(pvec[nt.cells])
+        
+        # construct mixture model using normalmixEM from mixtools
+        mm <- normalmixEM(
+          x = pvec, 
+          mu = c(nt.norm$mu, guide.norm$mu), 
+          sigma = c(nt.norm$sd, guide.norm$sd),
+          k = 2, 
+          mean.constr = c(nt.norm$mu, NA),
+          sd.constr = c(nt.norm$sd, NA), 
+          verb = FALSE,
+          maxit = 5000,
+          maxrestarts = 100
+        )
+        
+        # compute posterior prob 
+        lik.ratio <- dnorm(x = pvec[orig.guide.cells], mean = mm$mu[1], sd = mm$sigma[1]) /
+          dnorm(x = pvec[orig.guide.cells], mean = mm$mu[2], sd = mm$sigma[2])
+        post.prob <- 1 / (1 + lik.ratio)
+        # update classifications
+        object.gene[[new.class.name]][names(which(post.prob > 0.5)),1] <- gene
+        object.gene[[new.class.name]][names(which(post.prob < 0.5)),1] <- paste(gene, "NP", sep = "_")
+        
+        if (length(which(object.gene[[new.class.name]] == gene)) < min.de.genes ){
+          message("Fewer than ", min.de.genes, " cells assigned as ", gene, "Assigning all to NP.")
+          object.gene[[new.class.name]][,1] <- "NP"
+          converged <- TRUE
+        }
+        if (all(object.gene[[new.class.name]] == old.classes)) {
+          converged <- TRUE
+        }
+        old.classes <- object.gene[[new.class.name]]
+        n.iter <- n.iter + 1
+        
+      }
+      object.gene[[new.class.name]][object.gene[[new.class.name]] == gene,1] <- paste(gene, "KO", sep = "_")
+    }
+    
+    # assign classifications back to original object
+    object[[new.class.name]][Cells(object.gene),1] <- object.gene[[new.class.name]]
+    
+    #add global classifications of KO, NP and NT class
+    object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x,"_")[[1]][2]))
+    object[[paste(new.class.name, ".global", sep = "")]][which(is.na(object[[paste(new.class.name, ".global", sep = "")]])),1] <- "NT"
+    
+  }
+  return(object)
+}
+ 
