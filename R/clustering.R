@@ -982,20 +982,13 @@ MultiModalNN <- function(object,
                          reduction.list,
                          dims.list = NULL,
                          knn.range = 200,
-                         kernel.power = 2, 
+                         kernel.power = 1, 
                          modality.weight = NULL,
                          nearest.dist = NULL,
                          sigma.list = NULL,
                          l2.norm = FALSE, 
                          verbose = TRUE
 ){
-  if( is.null(modality.weight)){
-    modality.weight <- lapply(X = 1:length(reduction.list),
-                              FUN = function(r) rep( 1/length(reduction.list), ncol(object)) )
-  }
-  if(!is.list(modality.weight)){
-    modality.weight <- list(modality.weight, (1 - modality.weight))
-  }
   if( class(object)[1] == "Seurat"){
     redunction_embedding <- lapply( X = 1:length(reduction.list), 
                                     FUN = function(x) {
@@ -1018,12 +1011,30 @@ MultiModalNN <- function(object,
       query.redunction_embedding <- query
     }
   }
+  
+  
   if(l2.norm){
     query.redunction_embedding <- lapply( query.redunction_embedding, function(x)  L2Norm(x))
     redunction_embedding <-lapply( redunction_embedding, function(x)  L2Norm(x))
   }
   query.cell.num <- nrow( query.redunction_embedding[[1]] )
   reduction.num <- length( query.redunction_embedding )
+  
+  if( is.null(modality.weight)){
+    modality.weight <- lapply(X = 1:length(reduction.list),
+                              FUN = function(r) rep( 1/length(reduction.list), ncol(object)) )
+  }
+  if(!is.list(modality.weight)){
+    if( length(modality.weight) == query.cell.num ){
+      modality.weight <- list(modality.weight, (1 - modality.weight))
+    } else if( length(modality.weight)  == 1){
+      modality.weight <- list(rep(modality.weight,  query.cell.num), rep((1 - modality.weight), query.cell.num))
+    } else{
+      warning("modality.weight cannot match query")
+    }
+  }
+  
+  
   if(verbose){
     message("Finding multi-modal nearest neighbors")
     pb <- txtProgressBar(min = 0, max = reduction.num, style = 3)
@@ -1078,15 +1089,15 @@ MultiModalNN <- function(object,
                                               FUN = function(r) nn_weighted_dist[[r]][[x]] )) 
                              })
   # select k nearest joint neighbors
-  select_idx <-  lapply( X = nn_weighted_dist,
+  select_order <-  lapply( X = nn_weighted_dist,
                          FUN = function(dist){
-                           which(rank(dist*-1,  ties.method = "first") <= (k.nn))
+                           order(dist, decreasing = TRUE)
                          })
   select_nn <- t(sapply( X = 1:query.cell.num,
-                         FUN = function(x) nn_idx[[x]][select_idx[[x]]])
+                         FUN = function(x) nn_idx[[x]][select_order[[x]]][ 1:k.nn ])
   )
   select_dist <- t(sapply( X = 1:query.cell.num, 
-                           FUN = function(x) nn_weighted_dist[[x]][select_idx[[x]]])
+                           FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][ 1:k.nn ])
   )
   rownames(select_nn) <- rownames(select_dist) <- Cells(query)
   joint.nn <- list(select_nn, select_dist)
@@ -1482,7 +1493,6 @@ FindModalityWeights  <- function(object,
   }
   
   modality1.weight <- exp(modality_score[[1]])/(exp(modality_score[[1]]) + exp(modality_score[[2]]))
-  
   
   score.mat<- cbind(Reduce(cbind, within_impute_dist), 
                     Reduce(cbind, cross_impute_dist), 

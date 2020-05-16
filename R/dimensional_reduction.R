@@ -1295,7 +1295,7 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
-      model <- reduction.model %||% Misc(
+      model <- Misc(
         object = reduction.model,
         slot = "model"
       )

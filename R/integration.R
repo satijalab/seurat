@@ -3291,13 +3291,16 @@ FindJointTransferAnchor <- function(reference,
     )
   }
 
-  reference.weight <- FindModalityWeights(object = reference,
+
+ # 
+ reference.weight <- FindModalityWeights(object = reference,
                                             reduction.list = proj.reduction.list,
                                             dims.list = dims.list, 
                                             l2.norm = F,
                                             snn.far.nn = T, 
                                             k.nn = k.nn , 
-                                            s.nn =  s.nn
+                                            s.nn =  s.nn, 
+                                            verbose = F
                                              )
   query.weight <- FindModalityWeights(object = query,
                                       reduction.list = proj.reduction.list,
@@ -3305,9 +3308,9 @@ FindJointTransferAnchor <- function(reference,
                                       l2.norm = F,
                                       snn.far.nn = T, 
                                       k.nn = k.nn , 
-                                      s.nn =  s.nn)
-  
-  
+                                      s.nn =  s.nn, 
+                                      verbose = F)
+
   # Generate bidirectional nearest neighbors
   nnRR <- MultiModalNN(object = reference, 
                        query = reference, 
@@ -3317,6 +3320,7 @@ FindJointTransferAnchor <- function(reference,
                        knn.range = knn.range,
                        modality.weight =  reference.weight$first.modality.weight, 
                        l2.norm = FALSE,  
+                       nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list )
   
   nnQQ <- MultiModalNN(object = query, 
@@ -3325,8 +3329,9 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  query.weight$first.modality.weight, 
+                       modality.weight =   query.weight$first.modality.weight,
                        l2.norm =  FALSE, 
+                       nearest.dist = query.weight$params$nearest.dist,
                        sigma.list = query.weight$params$sigma.list)
   
   nnRQ <- MultiModalNN(object = query, 
@@ -3335,8 +3340,9 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  reference.weight$first.modality.weight, 
+                       modality.weight =   reference.weight$first.modality.weight,
                        l2.norm = FALSE, 
+                       nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list)
   
   nnQR <- MultiModalNN(object = reference , 
@@ -3345,12 +3351,28 @@ FindJointTransferAnchor <- function(reference,
                        reduction.list = proj.reduction.list,
                        dims.list = dims.list, 
                        knn.range = knn.range,
-                       modality.weight =  query.weight$first.modality.weight, 
+                       modality.weight =   query.weight$first.modality.weight,
                        l2.norm =  FALSE, 
+                       nearest.dist = query.weight$params$nearest.dist,
                        sigma.list = query.weight$params$sigma.list)
   # merging two objects
   iobject <- merge(x = reference , y = query)
   
+  # 
+  # reference <- RunUMAP(reference , reduction = proj.reduction.list[[1]], dims = dims.list[[1]], metric = "euclidean" , n.neighbors = 20 , umap.method = "uwot-learn")
+  # reference <- RunUMAP(reference , reduction = proj.reduction.list[[2]], dims = dims.list[[2]], reduction.name = "aumap", reduction.key = "AUMAP_" , metric = "euclidean" ,n.neighbors = 20, umap.method = "uwot-learn" )
+  # 
+  # query <- RunUMAP(query , reduction = proj.reduction.list[[1]], dims = dims.list[[1]], metric = "euclidean",  n.neighbors = 20, reduction.model = reference[["umap"]], umap.method = "uwot-predict"  )
+  # 
+  # query <- RunUMAP(query , reduction = proj.reduction.list[[2]], dims = dims.list[[2]], reduction.name = "aumap", reduction.key = "AUMAP_" , metric = "euclidean",  n.neighbors = 20 , reduction.model = reference[["aumap"]], umap.method = "uwot-predict" )
+  # 
+  # idx =101
+  # NNPlot(reference, nn.idx = nnRR$nn.idx, cells = idx, reduction = "umap")
+  # NNPlot(reference, nn.idx = nnRR$nn.idx, cells = idx, reduction = "aumap")
+  # 
+  # NNPlot(query, nn.idx = nnRQ$nn.idx, cells = idx, reduction = "umap")
+  # NNPlot(query, nn.idx = nnRQ$nn.idx, cells = idx, reduction = "aumap")
+  # 
   for (i in 1:length(proj.reduction.list)){
     iobject[[ proj.reduction.list[[i]] ]] <- CreateDimReducObject(
       embeddings = as.matrix(x = rbind(query[[ proj.reduction.list[[i]] ]]@cell.embeddings, 
