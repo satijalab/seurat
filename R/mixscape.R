@@ -282,6 +282,44 @@ RunMixscape <- function( object = NULL,
   return(object)
 }
 
+PrepLDA <- function( object,
+                     assay = "PRTB",
+                     slot = "scale.data",
+                     cut.off = 0.25,
+                     labels = "gene",
+                     nt.label = "NT",
+                     npcs = 10,
+                     reduction = "pca",
+                     reduction.name = "pc",
+                     reduction.key = "pc"
+  
+){
+  avg_perturb=AverageExpression(object = object,assays = assay,use.scale = T,slot = slot)
+  
+  #0.25 cutoff is somewhat arbitrary
+  prtb_features <- rownames(which(abs(avg_perturb[[assay]])>cut.off,arr.ind = T))
+  VariableFeatures(object[[assay]]) <- prtb_features
+  
+  # Third goal, classify non-perturbed cells and visualize gene differences
+  projected_pcs <- list()
+  gene_list <- setdiff(unique(object[[labels]][,1]),"NT")
+  for(g in gene_list) {
+    print(g)
+    gene_subset <- subset( object = object, gene%in%c(g,"NT"))
+    DefaultAssay(gene_subset) <- assay
+    gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = T) %>% RunPCA(npcs = npcs ,verbose = F)
+    pca_embed <- gene_subset[[reduction]]@cell.embeddings
+    
+    project_pca=ProjectCellEmbeddings(reference = gene_subset,query = object ,reference.assay = assay ,query.assay = assay,dims = npcs,verbose = F)
+   
+    colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
+    projected_pcs[[g]] <- project_pca
+  }
+  pcassay <- CreateAssayObject(data = t(do.call(what = 'cbind', args = projected_pcs)))
+  object[[reduction.name]] <- pcassay
+  return(object)
+}
+
 #' @param features Features to compute LDA on
 #'
 #' @rdname RunLDA
