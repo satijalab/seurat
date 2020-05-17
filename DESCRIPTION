@@ -72,6 +72,7 @@ Collate:
     'visualization.R'
     'convenience.R'
     'data.R'
+    'mixscape.R'
     'differential_expression.R'
     'dimensional_reduction.R'
     'integration.R'
