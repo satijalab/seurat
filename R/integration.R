@@ -2044,7 +2044,7 @@ FilterMultiModalAnchors <- function(
                                                              assay =  reference.assay.list[[r]] )  
     }
   
-  refernce.top.weight <- FindModalityWeights(object = reference.top,
+  refernce.top.weight <- FindModalityWeights.exp(object = reference.top,
                                            reduction.list = DimR.list,
                                            dims.list = nfeature.list, 
                                            l2.norm = F,
@@ -2054,7 +2054,7 @@ FilterMultiModalAnchors <- function(
                                            verbose = F
    )
   
-  nn <- MultiModalNN(object = cn.data2,
+  nn <- MultiModalNN.exp(object = cn.data2,
                query = cn.data1,
                k.nn = k.filter, 
                knn.range = 2*k.filter,
@@ -3381,7 +3381,7 @@ FindJointTransferAnchor <- function(reference,
 
 
  # 
- reference.weight <- FindModalityWeights(object = reference,
+ reference.weight <- FindModalityWeights.exp(object = reference,
                                             reduction.list = proj.reduction.list,
                                             dims.list = dims.list, 
                                             l2.norm = F,  
@@ -3390,7 +3390,7 @@ FindJointTransferAnchor <- function(reference,
                                             s.nn =  s.nn, 
                                             verbose = F
                                              )
-  query.weight <- FindModalityWeights(object = query,
+  query.weight <- FindModalityWeights.exp(object = query,
                                       reduction.list = proj.reduction.list,
                                       dims.list = dims.list, 
                                       l2.norm = F, 
@@ -3400,7 +3400,7 @@ FindJointTransferAnchor <- function(reference,
                                       verbose = F)
 
   # Generate bidirectional nearest neighbors
-  nnRR <- MultiModalNN(object = reference, 
+  nnRR <- MultiModalNN.exp(object = reference, 
                        query = reference, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3411,7 +3411,7 @@ FindJointTransferAnchor <- function(reference,
                        nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list )
   
-  nnQQ <- MultiModalNN(object = query, 
+  nnQQ <- MultiModalNN.exp(object = query, 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3422,7 +3422,7 @@ FindJointTransferAnchor <- function(reference,
                        nearest.dist = query.weight$params$nearest.dist,
                        sigma.list = query.weight$params$sigma.list)
   
-  nnRQ <- MultiModalNN(object = query, 
+  nnRQ <- MultiModalNN.exp(object = query, 
                        query = reference, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3432,9 +3432,8 @@ FindJointTransferAnchor <- function(reference,
                        l2.norm = FALSE, 
                        nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list)
-  
-  
-  nnQR <- MultiModalNN(object = reference , 
+
+  nnQR <- MultiModalNN.exp(object = reference , 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3541,5 +3540,198 @@ FindJointTransferAnchor <- function(reference,
     command = NULL
   )
   return (anchor.set)
+}
+
+
+
+
+#Align query cells to reference UMAP
+IngestNewData <- function(reference,
+                          query, 
+                          dims,
+                          transfer_anchors = NULL,
+                          verbose = TRUE,
+                          append.to = NULL,
+                          prediction.assay = 'prediction',
+                          k.weight = 50,
+                          sd.weight = 1,
+                          eps = 0,
+                          nn.method = 'annoy',
+                          ...) {
+  if( !is.null(transfer_anchors) && length(query) != length(transfer_anchors) ) {
+    stop("Number of objects in the query object should be exactly the same in the transfer_anchors")
+  }
+  append.to <- append.to %||% reference
+  if (length(query) == 1) {
+    query <- list(query)
+  }
+  objects <- lapply(
+    X = 1:length(x = query),
+    FUN = function(i) {
+      
+      # Find transfer anchors if not passed in
+      if (is.null(transfer_anchors)) {
+        transfer_anchor <- FindTransferAnchors(reference = reference,
+                                               query = query[[i]],
+                                               npcs = NULL,
+                                               dims = dims,
+                                               nn.method = 'annoy',
+                                               ...)
+      } else {
+        if (is.list(transfer_anchors)){
+          transfer_anchor <- transfer_anchors[[i]]
+        } else {
+          transfer_anchor <- transfer_anchors
+        }
+      }
+      obj <- transfer_anchor@object.list[[1]]
+      
+      # setting up an object with pcassay with PCA embedding as the data
+      query.embedding <- t(Embeddings(obj, reduction = 'pcaproject')[,dims])
+      suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
+      
+      # setting up metadata
+      DefaultAssay(obj) <- 'pcassay'
+      obj[["pcaproject"]]@assay.used <- 'pcassay'
+      
+      # create a slim object that contains the PC embeddings as a new assay "pcassay"
+      merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = 'pcaproject')
+      
+      # prepapring metadata for batch correction
+      integration.name <- "integrated"
+      filtered.anchors <- data.frame(transfer_anchor@anchors)
+      
+      # filling the anchors slot in the new object
+      merged.obj <- SetIntegrationData(object = merged.obj, integration.name = 'integrated', 
+                                       slot = "anchors", new.data = filtered.anchors)
+      # filling the neighbors slot in the new object
+      merged.obj <- SetIntegrationData(object = merged.obj, integration.name = 'integrated', 
+                                       slot = "neighbors", new.data = list(cells1 = transfer_anchor@reference.cells, 
+                                                                           cells2 = transfer_anchor@query.cells))
+      
+      # perform batch-correction on the PC values using the new object
+      merged.obj <- FindIntegrationMatrix(object = merged.obj, 
+                                          integration.name = 'integrated', 
+                                          features.integrate = rownames(obj), 
+                                          verbose = TRUE)
+      
+      dr.weights <- merged.obj[["pcaproject"]]
+      #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
+      merged.obj <- FindWeights(object = merged.obj, 
+                                integration.name = integration.name, 
+                                reduction = dr.weights,
+                                cpp = TRUE, 
+                                dims = dims,
+                                k = k.weight, 
+                                sd.weight = sd.weight,
+                                eps = eps, 
+                                nn.method = nn.method)
+      merged.obj <- TransformDataMatrix(object = merged.obj, 
+                                        new.assay.name = 'integrated', 
+                                        features.to.integrate = rownames(obj), 
+                                        integration.name = integration.name)
+      # extracting batch corrcted data
+      integrated.matrix <- GetAssayData(object = merged.obj, 
+                                        assay = 'integrated', 
+                                        slot = "data")
+      
+      # saving the batch corrected PCA embeddings
+      merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
+                                                  key = 'ipc_',
+                                                  assay = 'pcassay')
+      
+      # extracting batch corrected PCA embedding for the query data
+      query_pcs_corrected <- Embeddings(merged.obj[["int"]])[transfer_anchor@query.cells, dims]
+      
+      ## projecting query pca on the reference
+      query_umap <- RunUMAP(query_pcs_corrected,
+                            model.object = reference,
+                            umap.method = 'uwot-predict',
+                            assay = 'pcassay',verbose = verbose)
+      
+      # rename the cells
+      rownames(query_pcs_corrected) <- gsub("\\_query", "", rownames(query_pcs_corrected))
+      query_umap <- RenameCells( query_umap, new.names = gsub("\\_query", "", Cells(query_umap)))
+      
+      # transfer identities
+      refdata <- Idents(reference)
+      filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
+      reference.ids <- factor(x = filtered.anchors$id1, levels = unique(x = refdata))
+      possible.ids <- levels(x = reference.ids)
+      prediction.mat <- matrix(nrow = nrow(x = filtered.anchors), ncol = length(x = possible.ids), data = 0)
+      transfer_weights <-  GetIntegrationData(
+        object = merged.obj,
+        integration.name = "integrated",
+        slot = 'weights'
+      )
+      for(i in 1:length(x = possible.ids)) {
+        prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
+      }
+      prediction.scores <- t(x = transfer_weights) %*% prediction.mat
+      colnames(x = prediction.scores) <- possible.ids
+      rownames(x = prediction.scores) <- transfer_anchor@query.cells
+      prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
+      
+      query_embeddings <- list( Embeddings(query_umap), 
+                                query_pcs_corrected, 
+                                prediction.ids,
+                                prediction.scores)
+      names(query_embeddings) <- c("umap", "pca", "ident","scores")
+      return( query_embeddings )
+    }
+  )
+  if (length(objects) != length(query)) {
+    stop(
+      "Failed Projection",
+      call. = FALSE
+    )
+  }
+  get.umap <- function(x) x[["umap"]]
+  get.pca <- function(x) x[["pca"]]
+  get.ident <- function(x) x[["ident"]]
+  get.scores <- function(x, ids) x[["scores"]][,ids]
+  
+  # merging all umaps
+  merged.umaps <- rbind(Embeddings(append.to[["umap"]]), do.call(rbind, lapply(objects, get.umap)))
+  # merging all pcas
+  merged.pcas <- rbind(Embeddings(append.to[["pca"]])[, dims], do.call(rbind, lapply(objects, get.pca)))
+  # merging the identities
+  merged.idents <- c(as.character(Idents(append.to)), lapply(objects, get.ident))
+  
+  # creating a merged object
+  merged.obj <- merge(append.to, query)
+  merged.obj[["umap"]] <- CreateDimReducObject(embeddings = merged.umaps,
+                                               assay = DefaultAssay(reference))
+  
+  merged.obj[["pca"]] <- CreateDimReducObject(embeddings = merged.pcas,
+                                              assay = DefaultAssay(reference))
+  Idents(merged.obj) <- merged.idents
+  
+  # copy the loadings
+  merged.obj@reductions$pca@feature.loadings <- reference@reductions$pca@feature.loadings
+  
+  # copying the reference uwot model object
+  merged.obj@reductions$umap@misc <- reference@reductions$umap@misc
+  
+  # add prediction scores
+  reference.ids <- Idents(append.to)
+  possible.ids <- levels(x = append.to)
+  reference.scores <- matrix(nrow = ncol(x = append.to), ncol = length(x = possible.ids), data = 0)
+  if (!(prediction.assay %in% names(append.to@assays))) {
+    for(i in 1:length(x = possible.ids)) {
+      reference.scores[which(reference.ids == possible.ids[i]), i] = 1
+    }
+  }
+  else {
+    reference.scores <- t(GetAssayData(object = append.to,slot = 'data',assay = prediction.assay))
+  }
+  
+  colnames(reference.scores) <- possible.ids
+  merged.scores <- rbind(reference.scores, do.call(rbind, lapply(objects, get.scores, possible.ids)))
+  rownames(merged.scores) <- Cells(merged.obj)
+  max.score <- apply(merged.scores,1,max)
+  merged.obj <- AddMetaData(merged.obj,metadata = max.score, col.name = paste0(prediction.assay,".score.max"))
+  merged.obj[[prediction.assay]] <- CreateAssayObject(data = as.matrix(t(merged.scores)))
+  return(merged.obj)
 }
 

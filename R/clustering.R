@@ -1347,7 +1347,7 @@ FindMultiModelNeighbors.exp  <-  function(object,
                                       dims.list = NULL,
                                       k.nn = NULL, 
                                       knn.range = 200,
-                                      weighted.graph = TRUE,
+                                      weighted.graph = FALSE,
                                       l2.norm = FALSE, 
                                       verbose = TRUE
 ){
