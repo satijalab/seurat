@@ -1996,6 +1996,93 @@ FilterAnchors <- function(
   return(object)
 }
 
+
+
+FilterMultiModalAnchors <- function(
+  object, 
+  reference.assay.list, 
+  query.assay.list, 
+  slot = "data",
+  features.list,
+  k.nn = 20, 
+  s.nn = 20, 
+  k.filter = 200,
+  integration.name = 'integrated',
+  verbose = TRUE
+){
+  features.list <- lapply(X = features.list, function(feature)  unique(x = feature))
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
+  nn.cells1 <- neighbors$cells1
+  nn.cells2 <- neighbors$cells2
+  
+  cn.data1 <- lapply(1:length(reference.assay.list), 
+                     FUN = function(r){   
+                       L2Norm(
+                         mat = as.matrix(x = t(x = GetAssayData(
+                           object = object[[reference.assay.list[[r]] ]],
+                           slot = slot)[ features.list[[r]] , nn.cells1])),
+                         MARGIN = 1)
+                       }) 
+  
+  cn.data2 <- lapply(1:length(reference.assay.list), 
+                     FUN = function(r){   
+                       L2Norm(
+                         mat = as.matrix(x = t(x = GetAssayData(
+                           object = object[[query.assay.list[[r]] ]],
+                           slot = slot)[ features.list[[r]] , nn.cells2])),
+                         MARGIN = 1)
+                     }) 
+  reference.top <-  subset(object, cells = nn.cells1)
+  nfeature.list <- list()
+  DimR.list<- list()
+  for (r in 1:length( reference.assay.list )){
+    nfeature.list[[r]] <-  1:ncol( cn.data1[[r]])
+    colnames(cn.data1[[r]]) <- paste0(reference.assay.list[[r]], "_", nfeature.list[[r]] )
+    DimR.list[[r]] <-  paste0(reference.assay.list[[r]],".DimR" )
+    reference.top[[ DimR.list[[r]]  ]] <- CreateDimReducObject( embeddings = cn.data1[[r]], 
+                                                             key = paste0(reference.assay.list[[r]], "_"),
+                                                             assay =  reference.assay.list[[r]] )  
+    }
+  
+  refernce.top.weight <- FindModalityWeights(object = reference.top,
+                                           reduction.list = DimR.list,
+                                           dims.list = nfeature.list, 
+                                           l2.norm = F,
+                                           snn.far.nn = T, 
+                                           k.nn = k.nn , 
+                                           s.nn =  s.nn, 
+                                           verbose = F
+   )
+  
+  nn <- MultiModalNN(object = cn.data2,
+               query = cn.data1,
+               k.nn = k.filter, 
+               knn.range = 2*k.filter,
+               modality.weight = refernce.top.weight$first.modality.weight, 
+               l2.norm =  FALSE, 
+               nearest.dist = refernce.top.weight$params$nearest.dist,
+               sigma.list = refernce.top.weight$params$sigma.list)
+
+  anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
+  position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
+  })
+  anchors <- anchors[!is.na(x = position), ]
+  if (verbose) {
+    message("\tRetained ", nrow(x = anchors), " anchors")
+  }
+  object <- SetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = "anchors",
+    new.data = anchors
+  )
+  return(object)
+  
+}
+
+
+
 FindAnchors <- function(
   object.pair,
   assay,
@@ -3243,6 +3330,7 @@ FindJointTransferAnchor <- function(reference,
                                     knn.range = 200, 
                                     k.anchor = 5, 
                                     k.score = 20,
+                                    k.filter = 200, 
                                     scale = NULL, 
                                     verbose=TRUE) {
   
@@ -3296,7 +3384,7 @@ FindJointTransferAnchor <- function(reference,
  reference.weight <- FindModalityWeights(object = reference,
                                             reduction.list = proj.reduction.list,
                                             dims.list = dims.list, 
-                                            l2.norm = F,
+                                            l2.norm = F,  
                                             snn.far.nn = T, 
                                             k.nn = k.nn , 
                                             s.nn =  s.nn, 
@@ -3305,7 +3393,7 @@ FindJointTransferAnchor <- function(reference,
   query.weight <- FindModalityWeights(object = query,
                                       reduction.list = proj.reduction.list,
                                       dims.list = dims.list, 
-                                      l2.norm = F,
+                                      l2.norm = F, 
                                       snn.far.nn = T, 
                                       k.nn = k.nn , 
                                       s.nn =  s.nn, 
@@ -3375,11 +3463,14 @@ FindJointTransferAnchor <- function(reference,
   # NNPlot(query, nn.idx = nnRQ$nn.idx, cells = idx, reduction = "aumap")
   # 
   for (i in 1:length(proj.reduction.list)){
+    ref.loadings <- Loadings(object = reference[[reduction.list[[i]]]])[, dims.list[[i]]]
+    colnames(ref.loadings) <- paste0("Project",  colnames(ref.loadings) )
     iobject[[ proj.reduction.list[[i]] ]] <- CreateDimReducObject(
       embeddings = as.matrix(x = rbind(query[[ proj.reduction.list[[i]] ]]@cell.embeddings, 
                                        reference[[ proj.reduction.list[[i]] ]]@cell.embeddings)),
       key = proj.reduction.key.list[[i]] ,
-      assay = reference.assay.list[[i]]
+      assay = reference.assay.list[[i]], 
+      loadings = ref.loadings
     )
   }
   iobject <- SetIntegrationData(
@@ -3397,6 +3488,32 @@ FindJointTransferAnchor <- function(reference,
     verbose = TRUE
   )
 
+  if (!is.na(x = k.filter)) {
+    top.features.list <- lapply( X = 1:length(reduction.list) , 
+                                FUN = function(r){
+                               TopDimFeatures(
+                                    object = iobject,
+                                    reduction = proj.reduction.list[[r]],
+                                  dims = dims.list[[r]],
+                                  features.per.dim = max(10,  round(nrow(reference[[reduction.list[[r]] ]]@feature.loadings)/20) ),
+                                   max.features =  max(20,  round(nrow(reference[[reduction.list[[r]] ]]@feature.loadings)/10) ),
+                                    projected = FALSE
+                                  )
+                                }) 
+    iobject <- FilterMultiModalAnchors(
+      object = iobject, 
+      reference.assay.list = reference.assay.list, 
+      query.assay.list = query.assay.list, 
+      slot = "data", 
+      features.list = top.features.list,  
+      integration.name = 'integrated',
+      k.filter = k.filter,
+      k.nn = k.nn, 
+      s.nn = s.nn,
+      verbose = verbose
+    )
+  }
+  
   # assay seems not to be used
   iobject = ScoreAnchors(
     object = iobject,
