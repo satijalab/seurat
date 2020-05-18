@@ -159,6 +159,7 @@ DefineNormalMixscape <- function(x) {
 #' @param min.de.genes Required number of genes that are DE for method to separate perturbed and non-perturbed cells. 
 #' @param iter.num Number of normalmixEM iterations to run if convergance does not occur.
 #' @import mixtools
+#' @import reshape2
 #' 
 RunMixscape <- function( object = NULL,
                          assay = "PRTB",
@@ -303,21 +304,21 @@ PrepLDA <- function( object,
   # Third goal, classify non-perturbed cells and visualize gene differences
   projected_pcs <- list()
   gene_list <- setdiff(unique(object[[labels]][,1]),"NT")
+  
   for(g in gene_list) {
     print(g)
-    gene_subset <- subset( object = object, gene%in%c(g,"NT"))
+    Idents(object) <- labels
+    gene_subset <- subset(object, idents =c(g,"NT"))
     DefaultAssay(gene_subset) <- assay
     gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = T) %>% RunPCA(npcs = npcs ,verbose = F)
     pca_embed <- gene_subset[[reduction]]@cell.embeddings
     
-    project_pca=ProjectCellEmbeddings(reference = gene_subset,query = object ,reference.assay = assay ,query.assay = assay,dims = npcs,verbose = F)
+    project_pca=ProjectCellEmbeddings(reference = gene_subset,query = object ,reference.assay = assay ,query.assay = assay,dims = 1:npcs,verbose = F)
    
     colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
     projected_pcs[[g]] <- project_pca
   }
-  pcassay <- CreateAssayObject(data = t(do.call(what = 'cbind', args = projected_pcs)))
-  object[[reduction.name]] <- pcassay
-  return(object)
+  return(projected_pcs)
 }
 
 #' @param features Features to compute LDA on
