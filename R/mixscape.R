@@ -215,7 +215,7 @@ RunMixscape <- function( object = NULL,
       old.classes <- object.gene[[new.class.name]]
       
       while (! converged & n.iter < iter.num) {
-        message("Iteration ", n.iter + 1)
+        #message("Iteration ", n.iter + 1)
         
         # Define pertubation vector using only the de genes
         Idents(object.gene) <- new.class.name
@@ -292,7 +292,8 @@ PrepLDA <- function( object,
                      npcs = 10,
                      reduction = "pca",
                      reduction.name = "pc",
-                     reduction.key = "pc"
+                     reduction.key = "pc",
+                     verbose = TRUE
   
 ){
   avg_perturb=AverageExpression(object = object,assays = assay,use.scale = T,slot = slot)
@@ -306,7 +307,11 @@ PrepLDA <- function( object,
   gene_list <- setdiff(unique(object[[labels]][,1]),"NT")
   
   for(g in gene_list) {
-    print(g)
+    
+    if (verbose){
+      print(g)
+    }
+    
     Idents(object) <- labels
     gene_subset <- subset(object, idents =c(g,"NT"))
     DefaultAssay(gene_subset) <- assay
