@@ -3559,7 +3559,6 @@ IngestNewData <- function(reference,
                           proj.reduction = "pcaproject", 
                           reference.reduction = "pca", 
                           dims,
-                          multi.modal = FALSE, 
                           transfer.anchors = NULL,
                           transfer.identity = FALSE, 
                           verbose = TRUE,
@@ -3631,11 +3630,11 @@ IngestNewData <- function(reference,
                                           integration.name = 'integrated', 
                                           features.integrate = rownames(obj), 
                                           verbose = verbose)
-      if( length(Reductions(obj)) == 1 ){
-        dr.weights <- merged.obj[[ proj.reduction ]]
-      } else{
+      if( length(obj@misc) == 7  ){
         dr.weights <- lapply( X = obj@misc$proj.reduction,
                               FUN = function(r) obj[[r]])
+      } else{
+        dr.weights <- merged.obj[[ proj.reduction ]]
       }
       #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
       merged.obj <- FindWeights(object = merged.obj, 
@@ -3728,9 +3727,8 @@ IngestNewData <- function(reference,
   
   merged.obj[[ reference.reduction ]] <- CreateDimReducObject(embeddings = merged.pcas,
                                               assay = DefaultAssay(reference))
-  
   # copy the loadings, and reference umap model 
-  Loadings(object = merged.obj[[reference.reduction ]]) <- Loadings(object = reference, reduction = reference.reduction )  
+  Loadings(object = merged.obj[[reference.reduction]]) <- Loadings(object = reference, reduction = reference.reduction )[,dims ]
   Misc(merged.obj[[umap.name]], slot = "model" ) <-  Misc(reference[[umap.name]], slot = "model" )
   
   if(transfer.identity){
