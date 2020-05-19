@@ -2044,7 +2044,7 @@ FilterMultiModalAnchors <- function(
                                                              assay =  reference.assay.list[[r]] )  
     }
   
-  refernce.top.weight <- FindModalityWeights.exp(object = reference.top,
+  refernce.top.weight <- FindModalityWeights(object = reference.top,
                                            reduction.list = DimR.list,
                                            dims.list = nfeature.list, 
                                            l2.norm = F,
@@ -2054,7 +2054,7 @@ FilterMultiModalAnchors <- function(
                                            verbose = F
    )
   
-  nn <- MultiModalNN.exp(object = cn.data2,
+  nn <- MultiModalNN(object = cn.data2,
                query = cn.data1,
                k.nn = k.filter, 
                knn.range = 2*k.filter,
@@ -2427,7 +2427,7 @@ FindWeights <- function(
   }
   
   if( is.list( reduction )){
-    knn_2_2 <- MultiModalNN.exp(object = data.use, 
+    knn_2_2 <- MultiModalNN(object = data.use, 
                             query = query.data.use,
                             k.nn = k, 
                             knn.range = max(200, 5*k),
@@ -3382,7 +3382,7 @@ FindJointTransferAnchor <- function(reference,
 
 
  # 
- reference.weight <- FindModalityWeights.exp(object = reference,
+ reference.weight <- FindModalityWeights(object = reference,
                                             reduction.list = proj.reduction.list,
                                             dims.list = dims.list, 
                                             l2.norm = F,  
@@ -3391,7 +3391,7 @@ FindJointTransferAnchor <- function(reference,
                                             s.nn =  s.nn, 
                                             verbose = F
                                              )
-  query.weight <- FindModalityWeights.exp(object = query,
+  query.weight <- FindModalityWeights(object = query,
                                       reduction.list = proj.reduction.list,
                                       dims.list = dims.list, 
                                       l2.norm = F, 
@@ -3401,7 +3401,7 @@ FindJointTransferAnchor <- function(reference,
                                       verbose = F)
 
   # Generate bidirectional nearest neighbors
-  nnRR <- MultiModalNN.exp(object = reference, 
+  nnRR <- MultiModalNN(object = reference, 
                        query = reference, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3412,7 +3412,7 @@ FindJointTransferAnchor <- function(reference,
                        nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list )
   
-  nnQQ <- MultiModalNN.exp(object = query, 
+  nnQQ <- MultiModalNN(object = query, 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3423,7 +3423,7 @@ FindJointTransferAnchor <- function(reference,
                        nearest.dist = query.weight$params$nearest.dist,
                        sigma.list = query.weight$params$sigma.list)
   
-  nnRQ <- MultiModalNN.exp(object = query, 
+  nnRQ <- MultiModalNN(object = query, 
                        query = reference, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
@@ -3434,7 +3434,7 @@ FindJointTransferAnchor <- function(reference,
                        nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list)
 
-  nnQR <- MultiModalNN.exp(object = reference , 
+  nnQR <- MultiModalNN(object = reference , 
                        query = query, 
                        k.nn = k.nn, 
                        reduction.list = proj.reduction.list,
