@@ -119,7 +119,7 @@ TopDEGenesMixscape <- function(
   object, 
   ident.1, 
   group.by = 'gene', 
-  assay = "RNA", 
+  de.assay = "RNA", 
   test.use = "LR", 
   pval.cutoff = 5e-2
 ) {
@@ -131,7 +131,7 @@ TopDEGenesMixscape <- function(
         object = object, 
         ident.1 = ident.1, 
         group.by = group.by,
-        assay = assay,
+        assay = de.assay,
         test.use = test.use
       )
       de.genes <- subset(de.genes, p_val_adj < pval.cutoff)
@@ -157,6 +157,7 @@ DefineNormalMixscape <- function(x) {
 #' @param nt.class.name Classification name of non-targeting gRNA cells.
 #' @param new.class.name Name of mixscape classification to be stored in metadata.
 #' @param min.de.genes Required number of genes that are DE for method to separate perturbed and non-perturbed cells. 
+#' @param de.assay Assay to use when performing differential expression analysis. Usually RNA.
 #' @param iter.num Number of normalmixEM iterations to run if convergance does not occur.
 #' @import mixtools
 #' @import reshape2
@@ -168,6 +169,7 @@ RunMixscape <- function( object = NULL,
                          nt.class.name = "NT",
                          new.class.name = "mixscape_class",
                          min.de.genes = 5,
+                         de.assay = "RNA",
                          iter.num = 10,
                          ...
                          
@@ -200,7 +202,7 @@ RunMixscape <- function( object = NULL,
     DefaultAssay(object.gene) <- assay
     
     # find de genes between guide positive and non-targeting
-    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene)
+    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay)
     prtb_markers[[gene]] <- de.genes
     
     # if fewer than 5 DE genes, call all guide cells NP 
@@ -304,7 +306,7 @@ PrepLDA <- function( object,
   
   # Third goal, classify non-perturbed cells and visualize gene differences
   projected_pcs <- list()
-  gene_list <- setdiff(unique(object[[labels]][,1]),"NT")
+  gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
   
   for(g in gene_list) {
     
@@ -313,7 +315,7 @@ PrepLDA <- function( object,
     }
     
     Idents(object) <- labels
-    gene_subset <- subset(object, idents =c(g,"NT"))
+    gene_subset <- subset(object, idents =c(g,nt.label))
     DefaultAssay(gene_subset) <- assay
     gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = T) %>% RunPCA(npcs = npcs ,verbose = F)
     pca_embed <- gene_subset[[reduction]]@cell.embeddings
