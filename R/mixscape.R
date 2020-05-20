@@ -195,7 +195,7 @@ RunMixscape <- function( object = NULL,
     Idents(object) <- gene.class
     
     # Get object containing only guide of interest + non-targeting
-    object.gene <- subset(object, idents = c(gene, "NT"))
+    object.gene <- subset(object, idents = c(gene, nt.class.name))
     orig.guide.cells <- WhichCells(object.gene, idents = gene)
     DefaultAssay(object.gene) <- assay
     
@@ -277,7 +277,7 @@ RunMixscape <- function( object = NULL,
     
     #add global classifications of KO, NP and NT class
     object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x,"_")[[1]][2]))
-    object[[paste(new.class.name, ".global", sep = "")]][which(is.na(object[[paste(new.class.name, ".global", sep = "")]])),1] <- "NT"
+    object[[paste(new.class.name, ".global", sep = "")]][which(is.na(object[[paste(new.class.name, ".global", sep = "")]])),1] <- nt.class.name
     
   }
   return(object)
