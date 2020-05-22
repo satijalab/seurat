@@ -81,7 +81,6 @@ Collate:
     'zzz.R'
 RoxygenNote: 7.1.0
 Encoding: UTF-8
-biocViews:
 Suggests:
     loomR,
     SDMTools,
