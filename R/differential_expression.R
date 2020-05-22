@@ -1556,8 +1556,13 @@ WilcoxDETest <- function(
     yes = pbsapply,
     no = future_sapply
   )
+  overflow.check <- ifelse(
+    test = is.na(x = suppressWarnings(length(x = data.use[1, ]) * length(x = data.use[1, ]))),
+    yes = FALSE,
+    no = TRUE
+  )
   limma.check <- PackageCheck("limma", error = FALSE)
-  if (limma.check[1]) {
+  if (limma.check[1] && overflow.check) {
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),
       FUN = function(x) {
@@ -1565,7 +1570,7 @@ WilcoxDETest <- function(
       }
     )
   } else {
-    if (getOption('Seurat.limma.wilcox.msg', TRUE)) {
+    if (getOption('Seurat.limma.wilcox.msg', TRUE) && overflow.check) {
       message(
         "For a more efficient implementation of the Wilcoxon Rank Sum Test,", 
         "\n(default method for FindMarkers) please install the limma package",
