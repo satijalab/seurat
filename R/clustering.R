@@ -1263,7 +1263,7 @@ FindMultiModelNeighbors  <-  function(object,
                                      dims.list = NULL,
                                      k.nn = NULL, 
                                      knn.range = 200,
-                                     weighted.graph = TRUE,
+                                     weighted.graph = FALSE,
                                      l2.norm = FALSE, 
                                      verbose = TRUE
 ){
@@ -2333,7 +2333,8 @@ FilterADT <- function(object,
       adt.cutoff.list.high[[f]] <- quantile(x = adt.data[feature.adt, ], probs = 1)
     }
     positive.idx <- which(adt.data[feature.adt, ] >=  adt.cutoff.list.high[[f]] )
-    positive.nn.cover <- apply(X = reduction.nn $nn.idx[ positive.idx ,-1], 
+ 
+    positive.nn.cover <- apply(X = reduction.nn $nn.idx[ positive.idx ,-1, drop= F], 
                                MARGIN = 1 ,
                                y = positive.idx, 
                                FUN =  overlap.pos)

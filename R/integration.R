@@ -3565,6 +3565,7 @@ IngestNewData <- function(reference,
                           append.to = NULL,
                           prediction.assay = 'prediction',
                           k.weight = 50,
+                          k.filter = 200, 
                           sd.weight = 1,
                           eps = 0,
                           nn.method = 'annoy',
@@ -3595,7 +3596,6 @@ IngestNewData <- function(reference,
         }
       }
 
-  
       obj <- transfer_anchor@object.list[[1]]
       
       # setting up an object with pcassay with PCA embedding as the data
@@ -3646,6 +3646,7 @@ IngestNewData <- function(reference,
                                 sd.weight = sd.weight,
                                 eps = eps, 
                                 nn.method = nn.method)
+      
       merged.obj <- TransformDataMatrix(object = merged.obj, 
                                         new.assay.name = 'integrated', 
                                         features.to.integrate = rownames(obj), 
