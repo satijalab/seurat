@@ -3560,6 +3560,7 @@ IngestNewData <- function(reference,
                           reference.reduction = "pca", 
                           dims,
                           transfer.anchors = NULL,
+                          umap.alignment = TRUE, 
                           transfer.identity = FALSE, 
                           verbose = TRUE,
                           append.to = NULL,
@@ -3660,7 +3661,11 @@ IngestNewData <- function(reference,
       merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
                                                   key = 'ipc_',
                                                   assay = 'pcassay')
-      
+     if( !umap.alignment){
+       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
+       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+        return( merged.obj )
+     } 
       # extracting batch corrected PCA embedding for the query data
       query_pcs_corrected <- Embeddings(merged.obj[["int"]])[transfer_anchor@query.cells, dims]
       ## projecting query pca on the reference
@@ -3706,6 +3711,9 @@ IngestNewData <- function(reference,
       return( query_embeddings )
     }
   )
+  if( !umap.alignment ){
+    return(objects[[1]])
+  }
   if (length(objects) != length(query)) {
     stop(
       "Failed Projection",
