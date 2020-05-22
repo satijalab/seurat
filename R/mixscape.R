@@ -1,23 +1,23 @@
 #'  Calculate Perturbation score in cells with gRNAs.
-#'  @param object an object of class Seurat
-#'  @param assay Name of Assay PRTB  signature is being calculated on
-#'  @param ctrl.cell.id non-targeting gRNA cell identity.
-#'  @param num.neighbors number of neighrest neigbors to consider.
+#'  @param object An object of class Seurat.
+#'  @param assay Name of Assay PRTB  signature is being calculated on.
+#'  @param slot Data slot to use for PRTB score calculation.
+#'  @param gd.class Metadata column containing gRNA classification.
+#'  @param nt.cell.class Non-targeting gRNA cell classification identity.
+#'  @param split.by Provide metadata column if multiple biological replicates exist to calculate PRTB score for every replicate separately.
+#'  @param num.neighbors Number of nearest neigbors to consider.
+#'  @param ndims Number of dimensions to use from dimensionality reduction method.
 #'  @param reduction Reduction method used to calculate nearest neighbors.
-#'  @param slot data slot to use for PRTB score calculation
-#'  @param split.by provide metadata column if multiple biological replicates exist to calculate PRTB score for every replicate seperately
-#'  @param ndims number of dimensions to use from dimensionality reduction method.
-#'  @param gd.id metadata column containing gRNA classification.
 
-CalcPerturbSig <- function ( object, 
+CalcPerturbScore <- function ( object, 
                              assay = NULL,
-                             ctrl.cell.id = "NT",
+                             gd.class = "guide_ID",
+                             nt.cell.class = "NT",
                              num.neighbors = NULL,
                              reduction = "pca", 
                              slot = "data", 
                              split.by = NULL,
                              ndims= 15,
-                             gd.id = "guide_ID",
                              new.assay.name = "PRTB",
                              ...
 ) {
@@ -59,7 +59,7 @@ CalcPerturbSig <- function ( object,
             
             #isolate nt cells
             all_cells <- Cells(rep1)
-            nt_cells <- Cells(rep1[,grep(ctrl.cell.id, rep1@meta.data[,gd.id], value = FALSE)])
+            nt_cells <- Cells(rep1[,grep(nt.cell.class, rep1@meta.data[,gd.class], value = FALSE)])
             
             #subset the objects based on guide ID
             all <- rep1[,all_cells]
