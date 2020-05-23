@@ -8,15 +8,16 @@
 #'  @param num.neighbors Number of nearest neigbors to consider.
 #'  @param ndims Number of dimensions to use from dimensionality reduction method.
 #'  @param reduction Reduction method used to calculate nearest neighbors.
+#'  @param new.assay.name Name for the new assay.
 
 CalcPerturbScore <- function ( object, 
                              assay = NULL,
+                             slot = "data", 
                              gd.class = "guide_ID",
                              nt.cell.class = "NT",
+                             split.by = NULL,
                              num.neighbors = NULL,
                              reduction = "pca", 
-                             slot = "data", 
-                             split.by = NULL,
                              ndims= 15,
                              new.assay.name = "PRTB",
                              ...
@@ -121,7 +122,8 @@ TopDEGenesMixscape <- function(
   group.by = 'gene', 
   de.assay = "RNA", 
   test.use = "LR", 
-  pval.cutoff = 5e-2
+  pval.cutoff = 5e-2,
+  logfc.threshold = 0.25
 ) {
   message("Finding new perturbation gene set")
   de.genes <- data.frame()  
@@ -132,9 +134,10 @@ TopDEGenesMixscape <- function(
         ident.1 = ident.1, 
         group.by = group.by,
         assay = de.assay,
-        test.use = test.use
+        test.use = test.use,
+        logfc.threshold = logfc.threshold
       )
-      de.genes <- subset(de.genes, p_val_adj < pval.cutoff)
+      de.genes <- subset(de.genes, p_val < pval.cutoff)
     }, 
     error = function(e) {}
   )
@@ -170,6 +173,7 @@ RunMixscape <- function( object = NULL,
                          new.class.name = "mixscape_class",
                          min.de.genes = 5,
                          de.assay = "RNA",
+                         logfc.threshold = 0.25,
                          iter.num = 10,
                          ...
                          
@@ -186,6 +190,7 @@ RunMixscape <- function( object = NULL,
   
   #new metadata column for mixscape classification
   object[[new.class.name]] <- object[[gene.class]]
+  object[[new.class.name]][,1] <- as.character(object[[new.class.name]][,1])
   
   genes <- setdiff(unique(object[["gene"]][,1]), y = nt.class.name)
   
@@ -202,7 +207,7 @@ RunMixscape <- function( object = NULL,
     DefaultAssay(object.gene) <- assay
     
     # find de genes between guide positive and non-targeting
-    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay)
+    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay, logfc.threshold = logfc.threshold)
     prtb_markers[[gene]] <- de.genes
     
     # if fewer than 5 DE genes, call all guide cells NP 
@@ -218,7 +223,7 @@ RunMixscape <- function( object = NULL,
       
       while (! converged & n.iter < iter.num) {
         #message("Iteration ", n.iter + 1)
-        
+
         # Define pertubation vector using only the de genes
         Idents(object.gene) <- new.class.name
         nt.cells <- WhichCells(object.gene, idents = nt.class.name)
@@ -264,9 +269,11 @@ RunMixscape <- function( object = NULL,
           object.gene[[new.class.name]][,1] <- "NP"
           converged <- TRUE
         }
+
         if (all(object.gene[[new.class.name]] == old.classes)) {
           converged <- TRUE
         }
+        
         old.classes <- object.gene[[new.class.name]]
         n.iter <- n.iter + 1
         
@@ -298,13 +305,12 @@ PrepLDA <- function( object,
                      verbose = TRUE
   
 ){
-  avg_perturb=AverageExpression(object = object,assays = assay,use.scale = T,slot = slot)
+  avg_perturb=AverageExpression(object = object,assays = assay, slot = slot)
   
   #0.25 cutoff is somewhat arbitrary
   prtb_features <- rownames(which(abs(avg_perturb[[assay]])>cut.off,arr.ind = T))
   VariableFeatures(object[[assay]]) <- prtb_features
   
-  # Third goal, classify non-perturbed cells and visualize gene differences
   projected_pcs <- list()
   gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
   
@@ -317,8 +323,7 @@ PrepLDA <- function( object,
     Idents(object) <- labels
     gene_subset <- subset(object, idents =c(g,nt.label))
     DefaultAssay(gene_subset) <- assay
-    gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = T) %>% RunPCA(npcs = npcs ,verbose = F)
-    pca_embed <- gene_subset[[reduction]]@cell.embeddings
+    gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = F, do.center = T) %>% RunPCA(npcs = npcs ,verbose = F)
     
     project_pca=ProjectCellEmbeddings(reference = gene_subset,query = object ,reference.assay = assay ,query.assay = assay,dims = 1:npcs,verbose = F)
    
