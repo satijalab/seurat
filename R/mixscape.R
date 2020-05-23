@@ -9,6 +9,7 @@
 #'  @param ndims Number of dimensions to use from dimensionality reduction method.
 #'  @param reduction Reduction method used to calculate nearest neighbors.
 #'  @param new.assay.name Name for the new assay.
+#'  @export
 
 CalcPerturbScore <- function ( object, 
                              assay = NULL,
@@ -103,6 +104,7 @@ CalcPerturbScore <- function ( object,
 #' Helper function to project cells onto the perturbation vector
 #' @param v1 vector 1
 #' @param v2 vector 2
+#' @export
 #' 
 Project <- function(v1, v2) {
   return(as.vector((v1 %*% v2) / (v2 %*% v2)))
@@ -115,6 +117,7 @@ Project <- function(v1, v2) {
 #' @param assay Name of Assay DE is performed on.
 #' @param test.use 	Denotes which test to use. See all available tests on FindMarkers documentation.
 #' @param pval.cut.off P-value cut-off for selection of significantly DE genes.
+#' @export
 #' 
 TopDEGenesMixscape <- function(
   object, 
@@ -146,6 +149,7 @@ TopDEGenesMixscape <- function(
 
 
 #' Define Normal distribution - returns list with mu and sd
+#' @export
 DefineNormalMixscape <- function(x) {
   mu <- mean(x)
   sd <- sd(x)
@@ -153,7 +157,7 @@ DefineNormalMixscape <- function(x) {
 }
 
 #' Identify perturbed and non-perturbed gRNA expressing cells.
-#' @param An object of class Seurat.
+#' @param object An object of class Seurat.
 #' @param assay Assay to use.
 #' @param slot data slot to use.
 #' @param gene.class metadata column with target gene classifications.
@@ -164,6 +168,7 @@ DefineNormalMixscape <- function(x) {
 #' @param iter.num Number of normalmixEM iterations to run if convergance does not occur.
 #' @import mixtools
 #' @import reshape2
+#' @export
 #' 
 RunMixscape <- function( object = NULL,
                          assay = "PRTB",
@@ -292,6 +297,16 @@ RunMixscape <- function( object = NULL,
   return(object)
 }
 
+#' @param object An object of class Seurat.
+#' @param assay Assay to use.
+#' @param slot data slot to use.
+#' @param cut.off Absolute cut off value for selecting genes to use in PCA.
+#' @param labels Meta data column with target gene class labels.
+#' @param nt.label Name of non-targeting cell class.
+#' @param npcs Number of principle compontents to use.
+#' @param reduction Dimensionality reduction method to use.
+#' @param verbose Print progress bar.
+#' @export
 PrepLDA <- function( object,
                      assay = "PRTB",
                      slot = "scale.data",
@@ -300,8 +315,6 @@ PrepLDA <- function( object,
                      nt.label = "NT",
                      npcs = 10,
                      reduction = "pca",
-                     reduction.name = "pc",
-                     reduction.key = "pc",
                      verbose = TRUE
   
 ){
@@ -427,7 +440,7 @@ RunLDA.Seurat <- function(
 #'
 #' @importFrom MASS lda
 #'
-#' @rdname RunPCA
+#' @rdname RunLDA
 #' @export
 #'
 RunLDA.default <- function(
