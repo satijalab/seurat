@@ -140,7 +140,7 @@ TopDEGenesMixscape <- function(
         test.use = test.use,
         logfc.threshold = logfc.threshold
       )
-      de.genes <- subset(de.genes, p_val < pval.cutoff)
+      de.genes <- subset(de.genes, p_val_adj < pval.cutoff)
     }, 
     error = function(e) {}
   )
@@ -218,7 +218,7 @@ RunMixscape <- function( object = NULL,
     # if fewer than 5 DE genes, call all guide cells NP 
     if (length(de.genes) < min.de.genes) {
       message("Fewer than ",min.de.genes, " DE genes for ", gene, ". Assigning cells as NP.")
-      object.gene[[new.class.name]][orig.guide.cells,1] <- paste(gene, "NP", sep = "_")
+      object.gene[[new.class.name]][orig.guide.cells,1] <- paste(gene, " NP", sep = "")
     } else {
       object.gene <- ScaleData(object.gene, features = de.genes, verbose = FALSE) 
       dat <- GetAssayData(object = object.gene[["PRTB"]], slot = slot)[de.genes, ]
@@ -267,7 +267,7 @@ RunMixscape <- function( object = NULL,
         post.prob <- 1 / (1 + lik.ratio)
         # update classifications
         object.gene[[new.class.name]][names(which(post.prob > 0.5)),1] <- gene
-        object.gene[[new.class.name]][names(which(post.prob < 0.5)),1] <- paste(gene, "NP", sep = "_")
+        object.gene[[new.class.name]][names(which(post.prob < 0.5)),1] <- paste(gene, " NP", sep = "")
         
         if (length(which(object.gene[[new.class.name]] == gene)) < min.de.genes ){
           message("Fewer than ", min.de.genes, " cells assigned as ", gene, "Assigning all to NP.")
@@ -283,14 +283,14 @@ RunMixscape <- function( object = NULL,
         n.iter <- n.iter + 1
         
       }
-      object.gene[[new.class.name]][object.gene[[new.class.name]] == gene,1] <- paste(gene, "KO", sep = "_")
+      object.gene[[new.class.name]][object.gene[[new.class.name]] == gene,1] <- paste(gene, " KO", sep = "")
     }
     
     # assign classifications back to original object
     object[[new.class.name]][Cells(object.gene),1] <- object.gene[[new.class.name]]
     
     #add global classifications of KO, NP and NT class
-    object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x,"_")[[1]][2]))
+    object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x," ")[[1]][2]))
     object[[paste(new.class.name, ".global", sep = "")]][which(is.na(object[[paste(new.class.name, ".global", sep = "")]])),1] <- nt.class.name
     
   }
