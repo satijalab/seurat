@@ -6002,7 +6002,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
     replacement = '',
     x = features
   )
-  features <- intersect(x = rownames(x = x), y = features)
+  features <- intersect(x = features, y = rownames(x = x))
   if (length(x = features) == 0) {
     stop("Cannot find features provided")
   }
@@ -6022,6 +6022,30 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   }
   VariableFeatures(object = x) <- VariableFeatures(object = x)[VariableFeatures(object = x) %in% features]
   slot(object = x, name = 'meta.features') <- x[[]][features, , drop = FALSE]
+  if (IsSCT(assay = x)) {
+    # subset cells and genes in the SCT assay
+    obj.misc <- Misc(object = x)
+    if ("vst.set" %in% names(x = obj.misc)) {
+      # set of vst.out objects
+      vst.info <- obj.misc[["vst.set"]]
+      for (i in seq_along(along.with = vst.info)) {
+        vst.info[[i]] <- SubsetVST(
+          sct.info = vst.info[[i]],
+          cells = cells,
+          features = features
+        )
+      }
+      obj.misc[["vst.set"]] <- vst.info
+    } else {
+      # just one vst.out
+      obj.misc[["vst.out"]] <- SubsetVST(
+        sct.info = obj.misc[["vst.out"]],
+        cells = cells,
+        features = features
+      )
+    }
+    slot(object = x, name = "misc") <- obj.misc
+  }
   return(x)
 }
 
@@ -6886,6 +6910,19 @@ Projected <- function(object) {
     return(!all(is.na(x = slot(object = object, name = 'feature.loadings.projected'))))
   }
   return(!all(projected.dims == 0))
+}
+
+# Subset cells in vst data
+# @param sct.info A vst.out list 
+# @param cells vector of cells to retain
+# @param features vector of features to retain
+SubsetVST <- function(sct.info, cells, features) {
+  cells.keep <- intersect(x = cells, y = rownames(x = sct.info$cell_attr))
+  sct.info$cell_attr <- sct.info$cell_attr[cells.keep, ]
+  # find which subset of features are in the SCT assay
+  feat.keep <- intersect(x = features, y = rownames(x = sct.info$gene_attr))
+  sct.info$gene_attr <- sct.info$gene_attr[feat.keep, ]
+  return(sct.info)
 }
 
 # Get the top

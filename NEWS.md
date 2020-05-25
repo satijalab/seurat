@@ -2,12 +2,21 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+
+### Added
+
+### Changes
+- Removed `add.iter` parameter from `RunTSNE` function
+- Fixed integer overflow error in the WilcoxDETest function
+
 ## [3.1.5] - 2020-04-14
 ### Added
 - New `scale` parameter in `DotPlot` 
 - New `keep.sparse parameter in `CreateGeneActivityMatrix` for a more memory efficient option
 - Added ability to store model learned by UMAP and project new data
-- New `stip.suffix` option in `Read10X`
+- New `strip.suffix` option in `Read10X`. **This changes the default behavior of `Read10X`**.
+  A trailing `-1` present in all cell names will not be removed by default.
 - Added `group.by` parameter to `FeatureScatter`
 
 ### Changes

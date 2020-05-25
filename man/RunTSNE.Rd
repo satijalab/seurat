@@ -15,7 +15,6 @@ RunTSNE(object, ...)
   assay = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   reduction.key = "tSNE_",
   ...
@@ -27,7 +26,6 @@ RunTSNE(object, ...)
   dims = 1:5,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   reduction.key = "tSNE_",
   ...
@@ -38,7 +36,6 @@ RunTSNE(object, ...)
   assay = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   reduction.key = "tSNE_",
   ...
@@ -52,7 +49,6 @@ RunTSNE(object, ...)
   features = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
-  add.iter = 0,
   dim.embed = 2,
   distance.matrix = NULL,
   reduction.name = "tsne",
@@ -76,10 +72,6 @@ methods are:
 \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
 Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
 }}
-
-\item{add.iter}{If an existing tSNE has already been computed, uses the
-current tSNE to seed the algorithm and then adds additional iterations on top
-of this}
 
 \item{dim.embed}{The dimensional space of the resulting tSNE embedding
 (default is 2). For example, set to 3 for a 3d tSNE}

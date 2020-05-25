@@ -281,7 +281,9 @@ FindMarkers <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return Returns the object with object@@snn filled
+#' @return When running on a \code{\link{Seurat}} object, returns fills the
+#' \code{graphs} slot; names of graphs can be found with
+#' \code{Filter(function(x) inherits(object[[x]], "Graph"), names(object))}
 #'
 #' @examples
 #' pbmc_small
