@@ -106,7 +106,11 @@ AnnotateAnchors <- function(
         object.list[[x]][[annot]]
       }
     })
-    names(x = annot.list) <- names(x = object.list)
+    if (is.null(x = names(x = object.list))) {
+      names(x = annot.list) <- 1:length(x = object.list)
+    } else {
+      names(x = annot.list) <- names(x = object.list)
+    }
     anchors[, paste0("cell1.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
       annot.df <- annot.list[[x[['dataset1']]]]
       if (!inherits(x = annot.df, what = "data.frame")) {
