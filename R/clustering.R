@@ -1332,7 +1332,9 @@ FindMultiModelNeighbors  <-  function(object,
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN )
   rownames(snn.matrix) <- colnames(snn.matrix) <- Cells(object)
   suppressWarnings(object[[snn.graph.name]] <- as(object = snn.matrix, Class = "Graph"))
-  suppressWarnings(  Misc(object, slot = joint.nn.name) <- joint.nn)
+  joint.nn$nn.dists <- 1 - joint.nn$nn.dists
+  names(joint.nn) <- c("idx", "dist")
+  object@neighbors[[joint.nn.name]] <- joint.nn
   return(object)
 }
 
