@@ -3562,7 +3562,6 @@ FindJointTransferAnchor <- function(reference,
        iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
     }
   }
-  proj.embeddings.cca[[2]]
   anchor.set <- new(
     Class = "AnchorSet",
     object.list = list(iobject),

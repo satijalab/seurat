@@ -1313,6 +1313,70 @@ RunUMAP.default <- function(
         verbose = verbose
       )
     },
+    'uwot-learn-nn' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      umap(
+        X = NULL,
+        nn_method = object,
+        n_threads = nbrOfWorkers(),
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        fast_sgd = uwot.sgd,
+        verbose = verbose,
+        ret_model = TRUE
+      )
+    },
+    'uwot-predict-nn' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
+        stop(
+          "If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.",
+          call. = FALSE
+        )
+      }
+      model <- Misc(
+        object = reduction.model,
+        slot = "model"
+      )
+      if (length(x = model) == 0) {
+        stop(
+          "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
+          call. = FALSE
+        )
+      }
+      umap_transform(
+        X = object,
+        model = model,
+        n_threads = nbrOfWorkers(),
+        n_epochs = n.epochs,
+        verbose = verbose
+      )
+    },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   if (umap.method == 'uwot-learn') {
