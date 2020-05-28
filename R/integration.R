@@ -2405,6 +2405,7 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = 'anchors'
   )
+  k <- min(k, nrow(anchors) - 1)
   anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
   if (is.null(x = features)) {
     if(is.list(reduction)){
@@ -3324,6 +3325,7 @@ FindJointTransferAnchor <- function(reference,
                                     reference.assay.list, 
                                     query.assay.list,
                                     reduction.list,
+                                    projection.method.list, 
                                     dims.list,
                                     l2.norm = TRUE, 
                                     k.nn = 20,
@@ -3342,25 +3344,60 @@ FindJointTransferAnchor <- function(reference,
   # project multiple query reduction to reference
   proj.reduction.list <- list()
   proj.reduction.key.list <- list()
+  proj.embeddings.cca <- list()
   for (i in 1:length(reference.assay.list)){
     if(IsSCT(reference[[reference.assay.list[[i]]]] )){
       message("SCT normalized not support")
     }
     
-    projected.pca <- ProjectCellEmbeddings(
-      reference = reference,
-      query = query,
-      dims = dims.list[[i]], 
-      reduction = reduction.list[[i]], 
-      query.assay = query.assay.list[[i]], 
-      reference.assay = reference.assay.list[[i]],
-      scale = scale[[i]],
-      verbose = verbose
-    )
-    combined.pca <- rbind(projected.pca,  reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]])
+    if (projection.method.list[[i]] == 'cca') {
+        features = rownames(reference[[reduction.list[[i]]]]@feature.loadings)
+        reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+        query <- ScaleData(object = query, features = features, verbose = FALSE)
+ 
+      combined.ob <- RunCCA(
+        object1 = query,
+        object2 = reference,
+        features = features,
+        num.cc = max(dims.list[[i]]),
+        renormalize = FALSE,
+        rescale = FALSE,
+        verbose = verbose
+      )
+      combined.pca <- combined.ob[["cca"]]@cell.embeddings[, dims.list[[i]]]
+
+      projected.pca.cca <- ProjectCellEmbeddings(
+        reference = reference,
+        query = query,
+        dims = dims.list[[i]], 
+        reduction = reduction.list[[i]], 
+        query.assay = query.assay.list[[i]], 
+        reference.assay = reference.assay.list[[i]],
+        scale = scale[[i]],
+        verbose = verbose
+      )
+      combined.pca.cca <- rbind(reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]], projected.pca.cca )
+      proj.embeddings.cca[[i]] <- combined.pca.cca
+      } else{
+      projected.pca <- ProjectCellEmbeddings(
+        reference = reference,
+        query = query,
+        dims = dims.list[[i]], 
+        reduction = reduction.list[[i]], 
+        query.assay = query.assay.list[[i]], 
+        reference.assay = reference.assay.list[[i]],
+        scale = scale[[i]],
+        verbose = verbose
+      )
+      combined.pca <- rbind(projected.pca,  reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]])
+    }
     if(l2.norm){
       combined.pca <- L2Norm(combined.pca)
+      if(projection.method.list[[i]] == 'cca'){
+        proj.embeddings.cca[[i]] <- L2Norm(proj.embeddings.cca[[i]])
+      }
     }
+    
     # Generate project reduction
     proj.reduc.name <- paste0( reduction.list[[i]],"project")
     proj.reduction.list[[i]] <- proj.reduc.name
@@ -3447,21 +3484,6 @@ FindJointTransferAnchor <- function(reference,
   # merging two objects
   iobject <- merge(x = reference , y = query)
   
-  # 
-  # reference <- RunUMAP(reference , reduction = proj.reduction.list[[1]], dims = dims.list[[1]], metric = "euclidean" , n.neighbors = 20 , umap.method = "uwot-learn")
-  # reference <- RunUMAP(reference , reduction = proj.reduction.list[[2]], dims = dims.list[[2]], reduction.name = "aumap", reduction.key = "AUMAP_" , metric = "euclidean" ,n.neighbors = 20, umap.method = "uwot-learn" )
-  # 
-  # query <- RunUMAP(query , reduction = proj.reduction.list[[1]], dims = dims.list[[1]], metric = "euclidean",  n.neighbors = 20, reduction.model = reference[["umap"]], umap.method = "uwot-predict"  )
-  # 
-  # query <- RunUMAP(query , reduction = proj.reduction.list[[2]], dims = dims.list[[2]], reduction.name = "aumap", reduction.key = "AUMAP_" , metric = "euclidean",  n.neighbors = 20 , reduction.model = reference[["aumap"]], umap.method = "uwot-predict" )
-  # 
-  # idx =101
-  # NNPlot(reference, nn.idx = nnRR$nn.idx, cells = idx, reduction = "umap")
-  # NNPlot(reference, nn.idx = nnRR$nn.idx, cells = idx, reduction = "aumap")
-  # 
-  # NNPlot(query, nn.idx = nnRQ$nn.idx, cells = idx, reduction = "umap")
-  # NNPlot(query, nn.idx = nnRQ$nn.idx, cells = idx, reduction = "aumap")
-  # 
   for (i in 1:length(proj.reduction.list)){
     ref.loadings <- Loadings(object = reference[[reduction.list[[i]]]])[, dims.list[[i]]]
     colnames(ref.loadings) <- paste0("Project",  colnames(ref.loadings) )
@@ -3535,8 +3557,12 @@ FindJointTransferAnchor <- function(reference,
   Misc(iobject, slot = "reference.reduction") <- reduction.list
   Misc(iobject, slot = "reference.dims") <-  dims.list
   Misc(iobject, slot = "nearest.dist") <-  query.weight$params$nearest.dist
-  
- 
+  for (i in 1:length(projection.method.list)){
+    if( projection.method.list[[i]] == "cca"){
+       iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
+    }
+  }
+  proj.embeddings.cca[[2]]
   anchor.set <- new(
     Class = "AnchorSet",
     object.list = list(iobject),
