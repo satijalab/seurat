@@ -2010,7 +2010,11 @@ FilterMultiModalAnchors <- function(
   integration.name = 'integrated',
   verbose = TRUE
 ){
-  features.list <- lapply(X = features.list, function(feature)  unique(x = feature))
+  features.list <- lapply(X = 1:length(features.list), function(f){
+    feature = unique(features.list[[f]])
+    feature = intersect(feature,  rownames(object[[query.assay.list[[f]] ]] ))
+    return(feature)
+  } )
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
@@ -3336,7 +3340,6 @@ FindJointTransferAnchor <- function(reference,
                                     k.filter = 200, 
                                     scale = NULL, 
                                     verbose=TRUE) {
-  
   if(is.null(scale)){
     scale <- list(TRUE, TRUE)
   }
@@ -3349,12 +3352,10 @@ FindJointTransferAnchor <- function(reference,
     if(IsSCT(reference[[reference.assay.list[[i]]]] )){
       message("SCT normalized not support")
     }
-    
     if (projection.method.list[[i]] == 'cca') {
         features = rownames(reference[[reduction.list[[i]]]]@feature.loadings)
         reference <- ScaleData(object = reference, features = features, verbose = FALSE)
         query <- ScaleData(object = query, features = features, verbose = FALSE)
- 
       combined.ob <- RunCCA(
         object1 = query,
         object2 = reference,
@@ -3365,7 +3366,6 @@ FindJointTransferAnchor <- function(reference,
         verbose = verbose
       )
       combined.pca <- combined.ob[["cca"]]@cell.embeddings[, dims.list[[i]]]
-
       projected.pca.cca <- ProjectCellEmbeddings(
         reference = reference,
         query = query,
@@ -3413,10 +3413,9 @@ FindJointTransferAnchor <- function(reference,
     reference[[ proj.reduc.name ]] <-  CreateDimReducObject(
       embeddings = combined.pca[(ncol(query)+1):nrow(combined.pca) , ], 
       key = proj.reduc.key,
-      assay = query.assay.list[[i]]
+      assay = reference.assay.list[[i]]
     )
   }
-
 
  # 
  reference.weight <- FindModalityWeights(object = reference,
@@ -3502,14 +3501,12 @@ FindJointTransferAnchor <- function(reference,
     new.data = list('nnaa' = nnRR, 'nnab' = nnRQ, 'nnba' = nnQR, 'nnbb' = nnQQ, 
                     cells1 = Cells(reference), cells2 = Cells(query))
   )
-
   iobject <- FindAnchorPairs(
     object = iobject, 
     integration.name = "integrated", 
     k.anchor = k.anchor, 
     verbose = TRUE
   )
-
   if (!is.na(x = k.filter)) {
     top.features.list <- lapply( X = 1:length(reduction.list) , 
                                 FUN = function(r){
@@ -3534,7 +3531,8 @@ FindJointTransferAnchor <- function(reference,
       s.nn = s.nn,
       verbose = verbose
     )
-  }
+  
+    }
   
   # assay seems not to be used
   iobject = ScoreAnchors(
