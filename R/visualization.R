@@ -346,11 +346,13 @@ DoHeatmap <- function(
       y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
       y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
       y.max <- y.pos + group.bar.height * y.range
+      x.min <- min(pbuild$layout$panel_params[[1]]$x.range) + 0.1
+      x.max <- max(pbuild$layout$panel_params[[1]]$x.range) - 0.1
       plot <- plot +
         annotation_raster(
           raster = t(x = cols[group.use2]),
-          xmin = -Inf,
-          xmax = Inf,
+          xmin = x.min,
+          xmax = x.max,
           ymin = y.pos,
           ymax = y.max
         ) +
