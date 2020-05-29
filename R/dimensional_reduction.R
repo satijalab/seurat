@@ -1276,7 +1276,71 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
-      model <- reduction.model %||% Misc(
+      model <- Misc(
+        object = reduction.model,
+        slot = "model"
+      )
+      if (length(x = model) == 0) {
+        stop(
+          "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
+          call. = FALSE
+        )
+      }
+      umap_transform(
+        X = object,
+        model = model,
+        n_threads = nbrOfWorkers(),
+        n_epochs = n.epochs,
+        verbose = verbose
+      )
+    },
+    'uwot-learn-nn' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      umap(
+        X = NULL,
+        nn_method = object,
+        n_threads = nbrOfWorkers(),
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        fast_sgd = uwot.sgd,
+        verbose = verbose,
+        ret_model = TRUE
+      )
+    },
+    'uwot-predict-nn' = {
+      if (metric == 'correlation') {
+        warning(
+          "UWOT does not implement the correlation metric, using cosine instead",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        metric <- 'cosine'
+      }
+      if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
+        stop(
+          "If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.",
+          call. = FALSE
+        )
+      }
+      model <- Misc(
         object = reduction.model,
         slot = "model"
       )
@@ -2032,3 +2096,147 @@ PrepDR <- function(
   data.use <- data.use[features, ]
   return(data.use)
 }
+
+#' @param object Input values for LDA (numeric), with observations as rows
+#' @param labels Observation labels for LDA
+#' @param assay Name of Assay LDA is being run on
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param ndims.print PCs to print genes for
+#' @param nfeatures.print Number of genes to print for each PC
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. LDA by default
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'
+#' @importFrom MASS lda
+#'
+#' @rdname RunLDA
+#' @export
+#' @method RunLDA default
+#' 
+RunLDA.default <- function(
+  object,
+  labels,
+  assay = NULL,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  object <- data.frame(object)
+  var_gene <- colnames(object)[Rfast:::colVars(as.matrix(object)) > 1e-5]
+  object <- object[, var_gene]
+  var_names <- colnames(object)
+  object$lda_cluster_label <- labels
+  lda_results <- MASS::lda(lda_cluster_label ~ ., object,...)
+  lda_predictions <- predict(object = lda_results, newdata = object)
+  feature.loadings <- lda_results$scaling
+  cell.embeddings <- lda_predictions$x
+  lda.assignments <- lda_predictions$class
+  lda.posterior <- lda_predictions$posterior
+  colnames(x = lda.posterior) <- paste0("LDAP_", colnames(x = lda.posterior))
+  rownames(x = feature.loadings) <- var_names
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
+  rownames(x = cell.embeddings) <- rownames(x = object)
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    key = reduction.key,
+    misc = list(assignments=lda.assignments, posterior = lda.posterior, model = lda_results)
+  )
+  if (verbose) {
+    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+  }
+  return(reduction.data)
+}
+
+
+#' @param reduction.name dimensional reduction name,  lda by default
+#'
+#' @rdname RunLDA
+#' @export
+#' @method RunLDA Seurat
+#'
+RunLDA.Seurat <- function(
+  object,
+  labels,
+  assay = NULL,
+  features = NULL,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "lda",
+  reduction.key = "LDA_",
+  seed.use = 42,
+  project = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  reduction.data <- RunLDA.Assay(
+    object = assay.data,
+    assay = assay,
+    labels = labels,
+    features = features,
+    verbose = FALSE,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object$lda.assignments <- slot(object = object[[reduction.name]], name = "misc")[["assignments"]]
+  object <- AddMetaData(object = object, metadata = as.data.frame(x = slot(object = object[[reduction.name]], name = "misc")[["posterior"]]))
+  object <- LogSeuratCommand(object = object)
+  object <- ProjectDim(object = object,reduction = reduction.name,assay = assay,verbose = verbose,dims.print = ndims.print,nfeatures.print = nfeatures.print)
+  object[[reduction.name]]@feature.loadings <- object[[reduction.name]]@feature.loadings.projected
+  return(object)
+}
+
+
+#' @param features Features to compute LDA on
+#'
+#' @rdname RunLDA
+#' @export
+#' @method RunLDA Assay
+#'
+RunLDA.Assay <- function(
+  object,
+  labels,
+  assay = NULL,
+  features = NULL,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunLDA.default(
+    object = t(data.use),
+    labels = labels,
+    assay = assay,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
