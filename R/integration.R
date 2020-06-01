@@ -2441,7 +2441,7 @@ FindWeights <- function(
                             sigma.list  = object@misc$query.sigma.list, 
                             nearest.dist = object@misc$nearest.dist)
     
-    distances <-  1 - knn_2_2$nn.dists + 1e-10
+    distances <- knn_2_2$nn.dists + 1e-10
     distances <-  1 - (distances / distances[, ncol(x = distances)])+ 1e-10
     cell.index <- knn_2_2$nn.idx
   } else{

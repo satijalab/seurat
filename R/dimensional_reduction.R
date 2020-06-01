@@ -1322,11 +1322,11 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      umap(
+      names(object) <- c("idx", "dist")
+       umap(
         X = NULL,
         nn_method = object,
         n_threads = nbrOfWorkers(),
-        n_neighbors = as.integer(x = n.neighbors),
         n_components = as.integer(x = n.components),
         metric = metric,
         n_epochs = n.epochs,
@@ -1379,13 +1379,15 @@ RunUMAP.default <- function(
     },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
-  if (umap.method == 'uwot-learn') {
+  if (umap.method %in% c('uwot-learn', 'uwot-learn-nn') ) {
     umap.model <- umap.output
     umap.output <- umap.output$embedding
   }
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
   if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
+  } else if (umap.method == 'uwot-learn-nn' ){
+    rownames(x = umap.output) <- rownames(x = object$idx)
   } else {
     rownames(x = umap.output) <- rownames(x = object)
   }
@@ -1395,7 +1397,7 @@ RunUMAP.default <- function(
     assay = assay,
     global = TRUE
   )
-  if (umap.method == 'uwot-learn') {
+  if (umap.method %in% c('uwot-learn', 'uwot-learn-nn')) {
     Misc(umap.reduction, slot = "model") <- umap.model
   }
   return(umap.reduction)
