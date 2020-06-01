@@ -1150,7 +1150,7 @@ RunTSNE.Seurat <- function(
 #'
 RunUMAP.default <- function(
   object,
-  reduction.model = NULL,
+  reduction.key = 'UMAP_',
   assay = NULL,
   umap.method = 'uwot',
   n.neighbors = 30L,
@@ -1170,7 +1170,7 @@ RunUMAP.default <- function(
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
-  reduction.key = 'UMAP_',
+  reduction.model = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -1193,6 +1193,13 @@ RunUMAP.default <- function(
     umap.method = "uwot"
   } else{
     return.model = FALSE
+  }
+  if( is.list(object) ){
+    names(object) <- c("idx", "dist")
+  }
+  if( !is.null(reduction.model) ){
+    warning("umap.method is set to uwot-predict, because reduction.model is not NULL")
+    umap.method <- "uwot-predict"
   }
   umap.output <- switch(
     EXPR = umap.method,
@@ -1237,8 +1244,6 @@ RunUMAP.default <- function(
         metric <- 'cosine'
       }
       if( is.list(object) ){
-        names(object) <- c("idx", "dist")
-        browser()
         umap(
           X = NULL,
           nn_method = object,
@@ -1307,6 +1312,13 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
+      if(is.list(object)){
+        uwot_transform_nn(X = object,
+                          model = model, 
+                          n_threads = nbrOfWorkers(),
+                          n_epochs = n.epochs,
+                          verbose = verbose )
+      } else {
       umap_transform(
         X = object,
         model = model,
@@ -1314,6 +1326,7 @@ RunUMAP.default <- function(
         n_epochs = n.epochs,
         verbose = verbose
       )
+      }
     },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
