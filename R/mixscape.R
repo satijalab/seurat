@@ -197,7 +197,7 @@ RunMixscape <- function( object = NULL,
   object[[new.class.name]] <- object[[gene.class]]
   object[[new.class.name]][,1] <- as.character(object[[new.class.name]][,1])
   
-  genes <- setdiff(unique(object[["gene"]][,1]), y = nt.class.name)
+  genes <- setdiff(unique(object[[ gene.class]][,1]), y = nt.class.name)
   
   #pertubration vectors storage
   gv.list <- list(list())
@@ -221,7 +221,7 @@ RunMixscape <- function( object = NULL,
       object.gene[[new.class.name]][orig.guide.cells,1] <- paste(gene, " NP", sep = "")
     } else {
       object.gene <- ScaleData(object.gene, features = de.genes, verbose = FALSE) 
-      dat <- GetAssayData(object = object.gene[["PRTB"]], slot = slot)[de.genes, ]
+      dat <- GetAssayData(object = object.gene[[assay]], slot = slot)[de.genes, ]
       converged <- FALSE
       n.iter <- 0
       old.classes <- object.gene[[new.class.name]]
@@ -484,4 +484,158 @@ RunLDA.default <- function(
     print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
   }
   return(reduction.data)
+}
+
+#' DE and EnrichR pathway visualization plot
+#' 
+#' @inheritParams FindMarkers
+#' @importFrom ggplot2
+#' @importFrom enrichR
+#' @param object Name of object class Seurat
+#' @param ident.1
+#' @param ident.2
+#' @param balanced
+#' @param logfc.threshold
+#' @param assay
+#' @param max.genes
+#' @param test.use
+#' @param p.val.cutoff
+#' @param cols
+#' @param enirch.database
+#' @param num.pathway
+#' @export
+
+DEenrichRPlot <- function(
+  object,
+  ident.1 = NULL,
+  ident.2 = NULL,
+  balanced = TRUE,
+  logfc.threshold = 0.25,
+  assay = NULL,
+  max.genes,
+  test.use = 'wilcox',
+  p.val.cutoff = 0.05,
+  cols = NULL,
+  enrich.database = NULL,
+  num.pathway = 10,
+  return.gene.list = FALSE,
+  ...
+) { 
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
+  logfc.threshold <- logfc.threshold
+  p.val.cutoff <- p.val.cutoff
+  if (is.numeric(x = max.genes)){
+    all.markers <- FindMarkers(
+      object = object, 
+      ident.1 = ident.1,
+      ident.2 = ident.2, 
+      only.pos = FALSE, 
+      logfc.threshold = logfc.threshold,
+      test.use = test.use, 
+      assay = assay
+    )
+    if (balanced == TRUE) {
+      pos.markers <- all.markers[all.markers[, 2] > logfc.threshold, , drop = FALSE]
+      neg.markers <- all.markers[all.markers[, 2] < logfc.threshold, , drop = FALSE]
+      if (nrow(x = pos.markers[pos.markers[, 1] < p.val.cutoff, , drop = FALSE]) < max.genes) {
+        pos.markers.list <- c(rownames(x = pos.markers[pos.markers[, 1] < p.val.cutoff, , drop = FALSE]))
+        
+        if (nrow(neg.markers[neg.markers[,1] < p.val.cutoff, , drop = FALSE]) < max.genes) {
+          neg.markers.list <- c(rownames(x = neg.markers[neg.markers[, 1] < p.val.cutoff, , drop = FALSE]))
+        } else {
+          neg.markers.list <- c(rownames(x = neg.markers[neg.markers[, 1] < p.val.cutoff, , drop = FALSE])[1:max.genes])
+        }
+      } else {
+        pos.markers.list <- c(rownames(x = pos.markers[pos.markers[, 1] < p.val.cutoff, , drop = FALSE]))[1:max.genes]
+        if (nrow(x = neg.markers[neg.markers[, 1] < p.val.cutoff, , drop = FALSE]) < max.genes) {
+          neg.markers.list <- c(rownames(x = neg.markers[neg.markers[, 1] < p.val.cutoff, , drop = FALSE]))
+        } else {
+          neg.markers.list <- c(rownames(x = neg.markers[neg.markers[, 1] < p.val.cutoff, , drop = FALSE])[1:max.genes])
+        }
+      }
+    } 
+    
+    else {
+      pos.markers <- all.markers[all.markers[, 2] > logfc.threshold, , drop = FALSE]
+      if (nrow(pos.markers[pos.markers[, 1] < p.val.cutoff, , drop = FALSE]) < max.genes) {
+        pos.markers.list <- c(rownames(x = pos.markers[pos.markers[, 1] < p.val.cutoff, , drop = FALSE]))
+      } else{
+        pos.markers.list<- c(rownames(x = pos.markers[pos.markers[, 1] < p.val.cutoff, , drop = FALSE]))[1:max.genes]
+      }
+    }
+  }
+  else {
+    stop("please set max.genes")
+  }
+  
+  if(is.null(enrich.database) == TRUE) {
+    stop("please specify the name of enrichR database to use")
+  }
+  else {
+    if (balanced == TRUE){
+      
+      pos.er <- enrichr(genes = pos.markers.list, databases = enrich.database)
+      pos.er <- do.call(what = cbind, pos.er)
+      pos.er$log10pval <- -log10(pos.er[,paste(enrich.database,sep = ".", "P.value")])
+      pos.er$term <- pos.er[, paste(enrich.database,sep = ".", "Term")]
+      pos.er <- pos.er[1:num.pathway, ]
+      pos.er$term <- factor(x = pos.er$term, levels = pos.er$term[order(pos.er$log10pval)])
+      
+      
+      neg.er <- enrichr(genes = neg.markers.list, databases = enrich.database)
+      neg.er <- do.call(what = cbind, neg.er)
+      neg.er$log10pval <- -log10(neg.er[,paste(enrich.database,sep = ".", "P.value")])
+      neg.er$term <- neg.er[, paste(enrich.database,sep = ".", "Term")]
+      neg.er <- neg.er[1:num.pathway, ]
+      neg.er$term <- factor(x = neg.er$term, levels = neg.er$term[order(neg.er$log10pval)])
+      
+      p1 <- ggplot(data=pos.er, aes(x=term, y=log10pval)) +
+        geom_bar(stat="identity") +
+        coord_flip() + xlab("Pathway") +
+        scale_fill_manual(values = cols, drop = FALSE)+
+        ylab("-log10(pval)") +
+        ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) + 
+        theme_classic() +
+        theme(axis.text.y = element_text(size = 12, face = "bold"))
+      
+      p2 <- ggplot(data=neg.er, aes(x=term, y=log10pval)) +
+        geom_bar(stat="identity") +
+        coord_flip() + xlab("Pathway") +
+        scale_fill_manual(values = cols, drop = FALSE)+
+        ylab("-log10(pval)") +
+        ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) + 
+        theme_classic() +
+        theme(axis.text.y = element_text(size = 12, face = "bold"))
+      p <-plot_grid(p1,p2)
+    }
+    
+    else{
+      pos.er <- enrichr(genes = pos.markers.list, databases = enrich.database)
+      pos.er <- do.call(what = cbind, pos.er)
+      pos.er$log10pval <- -log10(pos.er[,paste(enrich.database,sep = ".", "P.value")])
+      pos.er$term <- pos.er[, paste(enrich.database,sep = ".", "Term")]
+      pos.er <- pos.er[1:num.pathway, ]
+      pos.er$term <- factor(x = pos.er$term, levels = pos.er$term[order(pos.er$log10pval)])
+      
+      p <- ggplot(data=pos.er, aes(x=term, y=log10pval)) +
+        geom_bar(stat="identity") +
+        scale_fill_manual(values = cols, drop = FALSE)+
+        coord_flip() + xlab("Pathway") +
+        ylab("-log10(pval)") +
+        ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) + 
+        theme_classic() +
+        theme(axis.text.y = element_text(size = 12, face = "bold"))
+    }
+  }
+  if (!return.gene.list){
+    return(p)
+  }
+  else{
+    if(balanced){
+      return(list(pos = pos.er, neg = neg.er))
+    } else {
+      return(list(pos = pos.er))
+    }
+  }
 }
