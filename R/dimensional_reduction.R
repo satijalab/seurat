@@ -2107,6 +2107,7 @@ RunLDA.default <- function(
   var_names <- colnames(object)
   object$lda_cluster_label <- labels
   lda_results <- MASS::lda(lda_cluster_label ~ ., object,...)
+  # object col is gene, row is cell
   lda_predictions <- predict(object = lda_results, newdata = object)
   feature.loadings <- lda_results$scaling
   cell.embeddings <- lda_predictions$x

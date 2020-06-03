@@ -570,7 +570,7 @@ FindTransferAnchors <- function(
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference")
   }
-  if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
+  if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject", "lda")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
   if (reduction %in% c('pcaproject', 'pcaqueryproject')) {
@@ -715,6 +715,44 @@ FindTransferAnchors <- function(
       rescale = FALSE,
       verbose = verbose
     )
+  }
+  
+  if (reduction == "lda") {
+    query <- ScaleData(query, features = features )
+    reference.data <- GetAssayData(object = reference, assay = reference.assay)[features, ]
+    query.data <- GetAssayData(object = query, assay = query.assay)[features, ]
+    
+    feature.mean <- rowMeans(x = reference.data)
+    feature.sd <- sqrt(
+      x = SparseRowVar2(
+        mat = as(object = reference.data, Class = "dgCMatrix"), 
+        mu = feature.mean, 
+        display_progress = FALSE
+      )
+    )
+    feature.sd[is.na(x = feature.sd)] <- 1
+    proj.data  <- query.data
+    proj.data <- FastSparseRowScaleWithKnownStats(
+      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mu = feature.mean,
+      sigma = feature.sd,
+      display_progress = FALSE
+    )
+    proj.data <- t(proj.data)
+    proj.data <- as.data.frame(proj.data)
+    colnames(proj.data) <-  gsub("-", ".", features)
+    rownames(proj.data)<- Cells(query)
+    reference.lda.model <-  Misc(object = reference[[reference.reduction]], slot = "model")
+    query.lda <- predict(object = reference.lda.model, newdata = proj.data )$x
+    combined.ob <- merge(x = reference, y = query)
+    combine.lda.embeddings <- rbind(Embeddings(reference[[reference.reduction]])[, dims], 
+                                    query.lda[, dims])
+    combined.ob[["ldaproject"]] <- CreateDimReducObject(embeddings = combine.lda.embeddings,
+                                                        key =  "projLDA_", 
+                                                        assay = reference.assay)
+    reduction <- "ldaproject"
+    l2.norm <- FALSE
+    k.filter <- NA
   }
   if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
