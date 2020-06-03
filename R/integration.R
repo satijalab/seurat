@@ -64,13 +64,13 @@ AnnotateAnchors <- function(
     FUN = function(x) {
       dataset <- anchors[x, 'dataset1']
       cell.names[[dataset]][anchors[x, "cell1"]]
-  })
+    })
   anchors$cell2 <- sapply(
     X = seq_len(length.out = nrow(x = anchors)),
     FUN = function(x) {
       dataset <- anchors[x, 'dataset2']
       cell.names[[dataset]][anchors[x, "cell2"]]
-  })
+    })
   # label datasets with their name if present
   if (!is.null(x = names(object.list))){
     anchors$dataset1 <- sapply(X = anchors$dataset1, FUN = function(x) {
@@ -116,15 +116,22 @@ AnnotateAnchors <- function(
       if (!inherits(x = annot.df, what = "data.frame")) {
         NA
       } else{
-        annot.df[x['cell1'], ]
-      }                    
+        if (is.factor(x = annot.df[x['cell1'], ])) {
+          as.character(x = annot.df[x['cell1'], ])
+        } else {
+          annot.df[x['cell1'], ]
+        }      }                    
     })
     anchors[, paste0("cell2.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
       annot.df <- annot.list[[x[['dataset2']]]]
       if (!inherits(x = annot.df, what = "data.frame")) {
         NA
       } else{
-        annot.df[x['cell2'], ]
+        if (is.factor(x = annot.df[x['cell2'], ])) {
+          as.character(x = annot.df[x['cell2'], ])
+        } else {
+          annot.df[x['cell2'], ]
+        }
       }                    
     })
     # column specifying whether the annotation matches across pair of datasets
