@@ -122,7 +122,7 @@ Project <- function(v1, v2) {
 TopDEGenesMixscape <- function(
   object, 
   ident.1, 
-  group.by = 'gene', 
+  gene.class = 'gene', 
   de.assay = "RNA", 
   test.use = "LR", 
   pval.cutoff = 5e-2,
@@ -135,7 +135,7 @@ TopDEGenesMixscape <- function(
       de.genes <- FindMarkers(
         object = object, 
         ident.1 = ident.1, 
-        group.by = group.by,
+        group.by = gene.class,
         assay = de.assay,
         test.use = test.use,
         logfc.threshold = logfc.threshold
@@ -192,7 +192,6 @@ RunMixscape <- function( object = NULL,
   }
   #de marker genes
   prtb_markers <- c()
-  
   #new metadata column for mixscape classification
   object[[new.class.name]] <- object[[gene.class]]
   object[[new.class.name]][,1] <- as.character(object[[new.class.name]][,1])
@@ -212,7 +211,7 @@ RunMixscape <- function( object = NULL,
     DefaultAssay(object.gene) <- assay
     
     # find de genes between guide positive and non-targeting
-    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay, logfc.threshold = logfc.threshold)
+    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay, logfc.threshold = logfc.threshold, gene.class = gene.class)
     prtb_markers[[gene]] <- de.genes
     
     # if fewer than 5 DE genes, call all guide cells NP 
@@ -228,7 +227,7 @@ RunMixscape <- function( object = NULL,
       
       while (! converged & n.iter < iter.num) {
         #message("Iteration ", n.iter + 1)
-
+        
         # Define pertubation vector using only the de genes
         Idents(object.gene) <- new.class.name
         nt.cells <- WhichCells(object.gene, idents = nt.class.name)
@@ -274,7 +273,7 @@ RunMixscape <- function( object = NULL,
           object.gene[[new.class.name]][,1] <- "NP"
           converged <- TRUE
         }
-
+        
         if (all(object.gene[[new.class.name]] == old.classes)) {
           converged <- TRUE
         }
