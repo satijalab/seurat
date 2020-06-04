@@ -1197,7 +1197,7 @@ RunUMAP.default <- function(
   if( is.list(object) ){
     names(object) <- c("idx", "dist")
   }
-  if( !is.null(reduction.model) ){
+  if( !is.null(reduction.model) & umap.method != "uwot-predict" ){
     warning("umap.method is set to uwot-predict, because reduction.model is not NULL")
     umap.method <- "uwot-predict"
   }
