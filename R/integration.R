@@ -561,7 +561,7 @@ FindTransferAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   scale = TRUE, 
   approx.pca = TRUE,
@@ -594,6 +594,11 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
+  reference <- DietSeurat(object = reference,
+                          assays = reference.assay, 
+                          dimreducs = reference.reduction )
+  query <- DietSeurat(object = query,
+                      assays = query.assay )
   if (normalization.method == "SCT") {
     features <- intersect(x = features, y = rownames(x = query))
     query <- GetResidual(object = query, features = features, verbose = FALSE)
@@ -2180,6 +2185,19 @@ FindAnchors <- function(
       max.features = max.features,
       projected = projected
     )
+    top.features <- sapply(X = unique(assay),
+                            FUN = function(a){
+                              assay.feature <- rownames(x = GetAssayData(object = object.pair,
+                                                                         slot = slot, 
+                                                                         assay = a))
+                             features <- intersect( assay.feature, top.features)
+                             return( features )
+                            })
+    if(length(top.features) == 2){
+      top.features <- intersect(top.features[[1]], top.features[[2]])
+    } else{ 
+      top.features <- as.vector(top.features)
+      }
     object.pair <- FilterAnchors(
       object = object.pair,
       assay = assay,
