@@ -289,7 +289,7 @@ RunMixscape <- function( object = NULL,
     object[[new.class.name]][Cells(object.gene),1] <- object.gene[[new.class.name]]
     
     #add global classifications of KO, NP and NT class
-    object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x," ")[[1]][2]))
+    object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x, ' (?=[^ ]+$)', perl=TRUE)[[1]][2]))
     object[[paste(new.class.name, ".global", sep = "")]][which(is.na(object[[paste(new.class.name, ".global", sep = "")]])),1] <- nt.class.name
     
   }
