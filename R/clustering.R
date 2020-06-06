@@ -1405,6 +1405,7 @@ FindModalityWeights  <- function(object,
                                     s.nn = NULL, 
                                     l2.norm = TRUE, 
                                     sd.scale = 1, 
+                                    farthest.snn = FALSE, 
                                     query = NULL, 
                                     cross.contant.list = NULL, 
                                     sigma.idx = NULL,
@@ -1542,14 +1543,29 @@ FindModalityWeights  <- function(object,
       message("Finding ", k.nn ," distant neighbors from snn graph") 
       pb <- txtProgressBar(min = 0, max = length(reduction.list) , style = 3)
     }
-    snn.far.nn.list <- lapply(X = 1:length(snn.graph.list),
-                              FUN = function(s) {
-                                distant_nn <- snn_nn(snn.graph = snn.graph.list[[s]],  k.nn = k.nn, far.nn = TRUE)
-                                if(verbose){
-                                  setTxtProgressBar(pb, s )
-                                }
-                                return(distant_nn)
-                              }  )
+    if(!farthest.snn){
+      snn.far.nn.list <- lapply(X = 1:length(snn.graph.list),
+                                FUN = function(s) {
+                                  distant_nn <- snn_nn(snn.graph = snn.graph.list[[s]],  k.nn = k.nn, far.nn = TRUE)
+                                  if(verbose){
+                                    setTxtProgressBar(pb, s )
+                                  }
+                                  return(distant_nn)
+                                }  )
+    } else{
+      snn.far.nn.list <- lapply(X = 1:length(snn.graph.list),
+                                FUN = function(s) {
+                                  distant_nn <- snn_nn_farthest(snn.graph = snn.graph.list[[s]], 
+                                                                k.nn = k.nn, 
+                                                                embeddings =   embeddings.list.norm[[s]] )
+                                  if(verbose){
+                                    setTxtProgressBar(pb, s )
+                                  }
+                                  return(distant_nn)
+                                }  )
+      
+    }
+
     names(snn.far.nn.list) <- unlist(reduction.list)
     if(verbose){
       close(pb)
@@ -1817,6 +1833,37 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
   return(nn.idx.snn)
 }
  
+snn_nn_farthest <- function(snn.graph, 
+                            k.nn,
+                            embeddings ){
+ 
+  edge <- Matrix::summary(snn.graph)
+  edge$x <- edge$x
+  nn.idx.snn.raw <- edge %>% 
+    dplyr::group_by(j)%>% dplyr::arrange( x,  .by_group = TRUE )
+  nn.idx.snn <- nn.idx.snn.raw %>% dplyr::filter(x == min(x))%>% 
+    dplyr::group_split( keep = F)
+  nn.idx.snn.raw <- nn.idx.snn.raw %>% dplyr::group_split( keep = F)
+
+  snn_farthest_nn <- list()
+    for (x in 1:length(nn.idx.snn)){
+    # snn kernel bandwidth
+      cells  <-     dplyr::pull(nn.idx.snn[[x]], i)
+    if (length(x = cells) < k.nn) {
+      cells <- dplyr::pull(nn.idx.snn.raw[[x]], i)
+      cells <- cells[1:k.nn]
+      select.cell <- cells
+    } else{
+      cells.dist <- rdist::cdist(X =  embeddings[x, , drop=F], Y =  embeddings[cells, ], metric = "euclidean")
+      cells.dist.order <- order(cells.dist, decreasing = TRUE)
+      select.cell <- cells[ cells.dist.order  ][1:k.nn]
+    }
+    snn_farthest_nn[[x]] <- select.cell
+    }
+  snn_farthest_nn <- Reduce(rbind, snn_farthest_nn)
+  rownames(snn_farthest_nn) <- rownames(embeddings)
+  return(snn_farthest_nn )
+}
 
 
 
