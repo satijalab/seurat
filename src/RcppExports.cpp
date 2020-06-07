@@ -265,6 +265,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fast_dist
+List fast_dist(NumericMatrix x, NumericMatrix y, List n);
+RcppExport SEXP _Seurat_fast_dist(SEXP xSEXP, SEXP ySEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type y(ySEXP);
+    Rcpp::traits::input_parameter< List >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_dist(x, y, n));
+    return rcpp_result_gen;
+END_RCPP
+}
 // FindWeightsC
 Eigen::SparseMatrix<double> FindWeightsC(Eigen::SparseMatrix<double> integration_matrix, NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
 RcppExport SEXP _Seurat_FindWeightsC(SEXP integration_matrixSEXP, SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
@@ -369,6 +382,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
+    {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
     {"_Seurat_SNNAnchor", (DL_FUNC) &_Seurat_SNNAnchor, 2},

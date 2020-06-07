@@ -934,28 +934,19 @@ NNdist <- function( nn.idx,
                     metric = "euclidean",
                     query.reduction.embedding = NULL, 
                     nearest.dist = NULL){
-  
   if( !is.list(nn.idx) ){
     nn.idx <- lapply(1:nrow(nn.idx), function(x) nn.idx[x,])
   }
   if(is.null( query.reduction.embedding)){
     query.reduction.embedding <- redunction.embedding
   }
+  nn.dist <- fast_dist(query.reduction.embedding, redunction.embedding, nn.idx)
   if(!is.null(nearest.dist)){
     nn.dist <- lapply(X = 1:nrow(query.reduction.embedding), 
                       FUN = function(x){
-                        r_dist =   rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
-                                                                Y = redunction.embedding[  nn.idx[[x]],], 
-                                                                metric = metric) - nearest.dist[x]  
+                        r_dist = nn.dist[[x]] - nearest.dist[x]  
                         r_dist[r_dist < 0] <- 0
                         return(r_dist)
-                      })
-  }else{
-    nn.dist <- lapply(X = 1:nrow(query.reduction.embedding), 
-                      FUN = function(x){
-                        correlation = as.matrix(  rdist::cdist( X = query.reduction.embedding[x,,drop = F], 
-                                                                Y = redunction.embedding[  nn.idx[[x]],], 
-                                                                metric = metric) )
                       })
   }
 
@@ -1836,36 +1827,28 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
 snn_nn_farthest <- function(snn.graph, 
                             k.nn,
                             embeddings ){
- 
   edge <- Matrix::summary(snn.graph)
   edge$x <- edge$x
   nn.idx.snn.raw <- edge %>% 
     dplyr::group_by(j)%>% dplyr::arrange( x,  .by_group = TRUE )
-  nn.idx.snn <- nn.idx.snn.raw %>% dplyr::filter(x == min(x))%>% 
+  nn.idx.snn <- nn.idx.snn.raw %>% dplyr::filter(x == min(x))%>% dplyr::select( -x)%>%
     dplyr::group_split( keep = F)
+  nn.idx.snn <- lapply(nn.idx.snn , function(nn) dplyr::pull(nn, i))
+  nn.dist <- fast_dist(x = embeddings, y = embeddings, n = nn.idx.snn)
   nn.idx.snn.raw <- nn.idx.snn.raw %>% dplyr::group_split( keep = F)
-
-  snn_farthest_nn <- list()
-    for (x in 1:length(nn.idx.snn)){
-    # snn kernel bandwidth
-      cells  <-     dplyr::pull(nn.idx.snn[[x]], i)
-    if (length(x = cells) < k.nn) {
-      cells <- dplyr::pull(nn.idx.snn.raw[[x]], i)
-      cells <- cells[1:k.nn]
-      select.cell <- cells
-    } else{
-      cells.dist <- rdist::cdist(X =  embeddings[x, , drop=F], Y =  embeddings[cells, ], metric = "euclidean")
-      cells.dist.order <- order(cells.dist, decreasing = TRUE)
-      select.cell <- cells[ cells.dist.order  ][1:k.nn]
-    }
-    snn_farthest_nn[[x]] <- select.cell
-    }
-  snn_farthest_nn <- Reduce(rbind, snn_farthest_nn)
+  snn_farthest_nn <- t(sapply( X = 1:length(nn.idx.snn), 
+                             FUN = function(x){
+                               if( length(nn.idx.snn[[x]]) < k.nn){
+                                 nn.x <-   dplyr::pull(nn.idx.snn.raw[[x]], i)[1:k.nn]
+                               } else {
+                                 cells.dist.order <- order(nn.dist[[x]], decreasing = TRUE)
+                                 nn.x <- nn.idx.snn[[x]][ cells.dist.order  ][1:k.nn]
+                               }
+                               return(nn.x)
+                             }))
   rownames(snn_farthest_nn) <- rownames(embeddings)
   return(snn_farthest_nn )
 }
-
-
 
 
 #' Dimensional reduction for FindModalityWeights.Multi
