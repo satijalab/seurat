@@ -1827,15 +1827,20 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
 snn_nn_farthest <- function(snn.graph, 
                             k.nn,
                             embeddings ){
+  # SNN graph to adjacency matrix
   edge <- Matrix::summary(snn.graph)
   edge$x <- edge$x
+  # neighors sort by edge weight
   nn.idx.snn.raw <- edge %>% 
     dplyr::group_by(j)%>% dplyr::arrange( x,  .by_group = TRUE )
+  # neighbors with smallest edge weight
   nn.idx.snn <- nn.idx.snn.raw %>% dplyr::filter(x == min(x))%>% dplyr::select( -x)%>%
     dplyr::group_split( keep = F)
   nn.idx.snn <- lapply(nn.idx.snn , function(nn) dplyr::pull(nn, i))
+  # Calculate distance of neighbors
   nn.dist <- fast_dist(x = embeddings, y = embeddings, n = nn.idx.snn)
   nn.idx.snn.raw <- nn.idx.snn.raw %>% dplyr::group_split( keep = F)
+  #select 20 farthest neighbors according to the distance
   snn_farthest_nn <- t(sapply( X = 1:length(nn.idx.snn), 
                              FUN = function(x){
                                if( length(nn.idx.snn[[x]]) < k.nn){
