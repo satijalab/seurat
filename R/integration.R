@@ -3432,6 +3432,7 @@ FindJointTransferAnchor <- function(reference,
       )
       combined.pca.cca <- rbind(reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]], projected.pca.cca )
       proj.embeddings.cca[[i]] <- combined.pca.cca
+
       } else{
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
@@ -3611,8 +3612,9 @@ FindJointTransferAnchor <- function(reference,
   Misc(iobject, slot = "nearest.dist") <-  query.weight$params$nearest.dist
   for (i in 1:length(projection.method.list)){
     if( projection.method.list[[i]] == "cca"){
+       iobject[[ paste0( reduction.list[[i]],"cca") ]] <- iobject[[ paste0( reduction.list[[i]],"project") ]]
        iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
-    }
+       }
   }
   anchor.set <- new(
     Class = "AnchorSet",
@@ -3634,6 +3636,7 @@ IngestNewData <- function(reference,
                           query, 
                           umap.name = "umap",
                           proj.reduction = "pcaproject", 
+                          anchor.reduction = NULL, 
                           reference.reduction = "pca", 
                           dims,
                           transfer.anchors = NULL,
@@ -3641,6 +3644,7 @@ IngestNewData <- function(reference,
                           transfer.identity = FALSE, 
                           verbose = TRUE,
                           append.to = NULL,
+                          ingest.group = "ingest", 
                           prediction.assay = 'prediction',
                           k.weight = 50,
                           k.filter = 200, 
@@ -3655,27 +3659,20 @@ IngestNewData <- function(reference,
   if (length(query) == 1) {
     query <- list(query)
   }
+  if( is.null(anchor.reduction)){
+    anchor.reduction <- proj.reduction
+  }
   objects <- lapply(
     X = 1:length(x = query),
     FUN = function(i) {
       # Find transfer anchors if not passed in
-      if (is.null(transfer.anchors)) {
-        transfer_anchor <- FindTransferAnchors(reference = reference,
-                                               query = query[[i]],
-                                               npcs = NULL,
-                                               dims = dims,
-                                               nn.method = 'annoy',
-                                               ...)
-      } else {
         if (is.list(transfer.anchors)){
           transfer_anchor <- transfer.anchors[[i]]
         } else {
           transfer_anchor <- transfer.anchors
         }
-      }
-
-      obj <- transfer_anchor@object.list[[1]]
       
+      obj <- transfer_anchor@object.list[[1]]
       # setting up an object with pcassay with PCA embedding as the data
       query.embedding <- t(Embeddings(obj, reduction = proj.reduction)[ , dims])
       suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
@@ -3683,9 +3680,10 @@ IngestNewData <- function(reference,
       # setting up metadata
       DefaultAssay(obj) <- 'pcassay'
       obj[[proj.reduction ]]@assay.used <- 'pcassay'
-      
+      obj[[anchor.reduction ]]@assay.used <- 'pcassay'
+
       # create a slim object that contains the PC embeddings as a new assay "pcassay"
-      merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = proj.reduction)
+      merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = c(anchor.reduction, proj.reduction))
       
       # prepapring metadata for batch correction
       integration.name <- "integrated"
@@ -3712,7 +3710,7 @@ IngestNewData <- function(reference,
         dr.weights <- lapply( X = obj@misc$proj.reduction,
                               FUN = function(r) obj[[r]])
       } else{
-        dr.weights <- merged.obj[[ proj.reduction ]]
+        dr.weights <- merged.obj[[ anchor.reduction ]]
       }
       #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
       merged.obj <- FindWeights(object = merged.obj, 
@@ -3738,10 +3736,12 @@ IngestNewData <- function(reference,
       merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
                                                   key = 'ipc_',
                                                   assay = 'pcassay')
-     if( !umap.alignment){
+       merged.obj@meta.data[ grep("_query", Cells(merged.obj)), ingest.group] <-"query"
+       merged.obj@meta.data[ grep("_reference", Cells(merged.obj)), ingest.group] <-"reference"
+       if( !umap.alignment){
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
-        return( merged.obj )
+       return( merged.obj )
      } 
       # extracting batch corrected PCA embedding for the query data
       query_pcs_corrected <- Embeddings(merged.obj[["int"]])[transfer_anchor@query.cells, dims]
@@ -3752,7 +3752,6 @@ IngestNewData <- function(reference,
                             assay = 'pcassay', 
                             reduction.key = paste0(toupper(umap.name), "_"),  
                             verbose = verbose)
-      
       # rename the cells
       rownames(query_pcs_corrected) <- gsub("\\_query", "", rownames(query_pcs_corrected))
       query_umap <- RenameCells( query_umap, new.names = gsub("\\_query", "", Cells(query_umap)))
