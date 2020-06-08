@@ -9,7 +9,8 @@ NULL
 #' Add info to anchor matrix
 #'
 #' @param object An \code{\link{AnchorSet}} object
-#' @param annotation Name in metadata to annotate anchors with
+#' @param vars Variables to pull for each object via FetchData
+#' @param slot Slot to pull feature data for 
 #
 #' @return Returns the anchor dataframe with additional columns for annotation
 #' metadata
@@ -18,7 +19,8 @@ NULL
 #' 
 AnnotateAnchors <- function(
   object,
-  annotation = NULL
+  vars = NULL,
+  slot = NULL
 ) {
   anchors <- slot(object = object, name = 'anchors')
   object.list <- slot(object = object, name = 'object.list')
@@ -64,13 +66,13 @@ AnnotateAnchors <- function(
     FUN = function(x) {
       dataset <- anchors[x, 'dataset1']
       cell.names[[dataset]][anchors[x, "cell1"]]
-  })
+    })
   anchors$cell2 <- sapply(
     X = seq_len(length.out = nrow(x = anchors)),
     FUN = function(x) {
       dataset <- anchors[x, 'dataset2']
       cell.names[[dataset]][anchors[x, "cell2"]]
-  })
+    })
   # label datasets with their name if present
   if (!is.null(x = names(object.list))){
     anchors$dataset1 <- sapply(X = anchors$dataset1, FUN = function(x) {
@@ -80,56 +82,58 @@ AnnotateAnchors <- function(
       names(x = object.list[x])
     })
   }
-  for(annot in annotation) {
-    annot.check <- unlist(x = lapply(X = object.list, FUN = function(x) {
-      annot %in% colnames(x = x[[]])
-    }))
-    if (all(!annot.check)) {
+  slot <- slot %||% character(length = length(x = vars))
+  if (length(x = slot) == 1) {
+    slot <- rep(x = slot, times = length(x = vars))
+  }
+  for(v in 1:length(x = vars)) {
+    var <- vars[v]
+    slot <- slot[v]
+    var.list <- lapply(X = object.list, FUN = function(x) {
+      tryCatch(
+        expr = FetchData(object = x, vars = var), 
+        error = function(e) {
+          return(FALSE)
+        }
+      )
+    })
+    if (all(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
       warning(
-        annot, " not in any objects metadata. Skipping annotation.", 
+        var, " not found in all objects", 
         call. = FALSE, 
         immediate. = TRUE
       )
       next
     }
-    if (!all(annot.check)) {
+    if (any(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
       warning(
-        annot, " not in all objects metadata. Filling missing objects with NA",
+        var, " not in all objects. Filling missing objects with NA",
         call. = FALSE,
         immediate. = TRUE
       )
     }
-    annot.list <- lapply(X = seq_along(along.with = object.list), FUN = function(x) {
-      if (!annot.check[x]) {
-        NA
-      } else {
-        object.list[[x]][[annot]]
-      }
-    })
     if (is.null(x = names(x = object.list))) {
-      names(x = annot.list) <- 1:length(x = object.list)
+      names(x = var.list) <- 1:length(x = object.list)
     } else {
-      names(x = annot.list) <- names(x = object.list)
+      names(x = var.list) <- names(x = object.list)
     }
-    anchors[, paste0("cell1.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
-      annot.df <- annot.list[[x[['dataset1']]]]
-      if (!inherits(x = annot.df, what = "data.frame")) {
-        NA
-      } else{
-        annot.df[x['cell1'], ]
-      }                    
-    })
-    anchors[, paste0("cell2.", annot)] <- apply(X = anchors, MARGIN = 1, function(x){
-      annot.df <- annot.list[[x[['dataset2']]]]
-      if (!inherits(x = annot.df, what = "data.frame")) {
-        NA
-      } else{
-        annot.df[x['cell2'], ]
-      }                    
-    })
+    for(i in c(1, 2)) {
+      cell <- paste0("cell", i)
+      anchors[, paste0(cell, ".", var)] <- apply(X = anchors, MARGIN = 1, function(x){
+        var.df <- var.list[[x[[paste0("dataset", i)]]]]
+        if (!inherits(x = var.df, what = "data.frame")) {
+          NA
+        } else {
+          if (is.factor(x = var.df[x[cell], ])) {
+            as.character(x = var.df[x[cell], ])
+          } else {
+            var.df[x[cell], ]
+          }}                    
+      })
+    }
     # column specifying whether the annotation matches across pair of datasets
-    anchors[, paste0(annot, ".match")] <- anchors[, paste0("cell1.", annot)] == 
-      anchors[, paste0("cell2.", annot)]
+    anchors[, paste0(var, ".match")] <- anchors[, paste0("cell1.", var)] == 
+      anchors[, paste0("cell2.", var)]
   }
   return(anchors)
 }
