@@ -1817,7 +1817,7 @@ snn_nn <- function(snn.graph, k.nn, far.nn = TRUE){
   nn.idx.snn <- edge %>% 
     dplyr::group_by(j)%>% dplyr::arrange( x,  .by_group = TRUE )%>%
     dplyr::slice(1:k.nn)%>% dplyr::select( -x) %>%
-    dplyr::group_split( keep = F) %>%
+    dplyr::group_split( .keep = F) %>%
     Reduce(cbind, .) %>%
     t()
   rownames(nn.idx.snn) <- colnames(snn.graph)
