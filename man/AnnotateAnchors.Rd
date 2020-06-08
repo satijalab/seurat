@@ -4,12 +4,14 @@
 \alias{AnnotateAnchors}
 \title{Add info to anchor matrix}
 \usage{
-AnnotateAnchors(object, annotation = NULL)
+AnnotateAnchors(object, vars = NULL, slot = NULL)
 }
 \arguments{
 \item{object}{An \code{\link{AnchorSet}} object}
 
-\item{annotation}{Name in metadata to annotate anchors with}
+\item{vars}{Variables to pull for each object via FetchData}
+
+\item{slot}{Slot to pull feature data for}
 }
 \value{
 Returns the anchor dataframe with additional columns for annotation
