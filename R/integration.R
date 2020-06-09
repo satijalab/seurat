@@ -594,11 +594,25 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
-  reference <- DietSeurat(object = reference,
-                          assays = reference.assay, 
-                          dimreducs = reference.reduction )
-  query <- DietSeurat(object = query,
-                      assays = query.assay )
+  if  (normalization.method == "SCT") {
+    reference <- DietSeurat(object = reference,
+                            assays = c(reference.assay, 
+                                       Misc(reference[[ reference.assay ]] ,
+                                            slot = "umi.assay") ),
+                            dimreducs = reference.reduction )
+    query <- DietSeurat(object = query,
+                        assays = c(query.assay, 
+                                   Misc(query[[ query.assay ]], 
+                                        slot = "umi.assay")) )
+    
+  } else {
+    reference <- DietSeurat(object = reference,
+                            assays = reference.assay,
+                            dimreducs = reference.reduction )
+    query <- DietSeurat(object = query,
+                        assays = query.assay )
+  }
+
   if (normalization.method == "SCT") {
     features <- intersect(x = features, y = rownames(x = query))
     query <- GetResidual(object = query, features = features, verbose = FALSE)
@@ -723,31 +737,39 @@ FindTransferAnchors <- function(
   }
   
   if (reduction == "lda") {
-    query <- ScaleData(query, features = features )
     reference.data <- GetAssayData(object = reference, assay = reference.assay)[features, ]
     query.data <- GetAssayData(object = query, assay = query.assay)[features, ]
     
-    feature.mean <- rowMeans(x = reference.data)
-    feature.sd <- sqrt(
-      x = SparseRowVar2(
-        mat = as(object = reference.data, Class = "dgCMatrix"), 
-        mu = feature.mean, 
+    if(normalization.method == "LogNormalize"){
+      feature.mean <- rowMeans(x = reference.data)
+      feature.sd <- sqrt(
+        x = SparseRowVar2(
+          mat = as(object = reference.data, Class = "dgCMatrix"), 
+          mu = feature.mean, 
+          display_progress = FALSE
+        )
+      )
+      feature.sd[is.na(x = feature.sd)] <- 1
+      proj.data  <- query.data
+      proj.data <- FastSparseRowScaleWithKnownStats(
+        mat = as(object = proj.data, Class = "dgCMatrix"),
+        mu = feature.mean,
+        sigma = feature.sd,
         display_progress = FALSE
       )
-    )
-    feature.sd[is.na(x = feature.sd)] <- 1
-    proj.data  <- query.data
-    proj.data <- FastSparseRowScaleWithKnownStats(
-      mat = as(object = proj.data, Class = "dgCMatrix"),
-      mu = feature.mean,
-      sigma = feature.sd,
-      display_progress = FALSE
-    )
-    proj.data <- t(proj.data)
-    proj.data <- as.data.frame(proj.data)
+      proj.data <- t(proj.data)
+      proj.data <- as.data.frame(proj.data)
+    }
+    proj.data <- as.data.frame(t(query.data))
     colnames(proj.data) <-  gsub("-", ".", features)
     rownames(proj.data)<- Cells(query)
     reference.lda.model <-  Misc(object = reference[[reference.reduction]], slot = "model")
+    lda.feature <- setdiff(colnames(reference.lda.model$means),   colnames(proj.data) )
+    if(length(lda.feature) != 0 ){
+      lda.feature.matrix <- matrix(data = 0, nrow = nrow(proj.data), ncol = length(lda.feature) )
+      colnames(lda.feature.matrix) <- lda.feature
+      proj.data <- cbind(proj.data, lda.feature.matrix )
+      }
     query.lda <- predict(object = reference.lda.model, newdata = proj.data )$x
     combined.ob <- merge(x = reference, y = query)
     combine.lda.embeddings <- rbind(Embeddings(reference[[reference.reduction]])[, dims], 
@@ -3602,6 +3624,13 @@ FindJointTransferAnchor <- function(reference,
     integration.name = 'integrated',
     slot = 'anchors'
   )
+  for (i in 1:length(projection.method.list)){
+    if( projection.method.list[[i]] == "cca"){
+       iobject[[ paste0( reduction.list[[i]],"cca") ]] <- iobject[[ paste0( reduction.list[[i]],"project") ]]
+       proj.reduction.list[[i]] <- paste0( reduction.list[[i]],"cca")
+       iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
+       }
+  }
 
   Misc(iobject, slot = "query.modality.weight") <- query.weight$first.modality.weight
   Misc(iobject, slot = "query.sigma.list") <- query.weight$params$sigma.list
@@ -3610,12 +3639,7 @@ FindJointTransferAnchor <- function(reference,
   Misc(iobject, slot = "reference.reduction") <- reduction.list
   Misc(iobject, slot = "reference.dims") <-  dims.list
   Misc(iobject, slot = "nearest.dist") <-  query.weight$params$nearest.dist
-  for (i in 1:length(projection.method.list)){
-    if( projection.method.list[[i]] == "cca"){
-       iobject[[ paste0( reduction.list[[i]],"cca") ]] <- iobject[[ paste0( reduction.list[[i]],"project") ]]
-       iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
-       }
-  }
+  
   anchor.set <- new(
     Class = "AnchorSet",
     object.list = list(iobject),
@@ -3673,6 +3697,9 @@ IngestNewData <- function(reference,
         }
       
       obj <- transfer_anchor@object.list[[1]]
+      obj@meta.data[ transfer.anchors@reference.cells , ingest.group] <- "reference"
+      obj@meta.data[ transfer.anchors@query.cells , ingest.group] <- "query"
+      
       # setting up an object with pcassay with PCA embedding as the data
       query.embedding <- t(Embeddings(obj, reduction = proj.reduction)[ , dims])
       suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
@@ -3722,7 +3749,6 @@ IngestNewData <- function(reference,
                                 sd.weight = sd.weight,
                                 eps = eps, 
                                 nn.method = nn.method)
-      
       merged.obj <- TransformDataMatrix(object = merged.obj, 
                                         new.assay.name = 'integrated', 
                                         features.to.integrate = rownames(obj), 
@@ -3736,8 +3762,6 @@ IngestNewData <- function(reference,
       merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
                                                   key = 'ipc_',
                                                   assay = 'pcassay')
-       merged.obj@meta.data[ grep("_query", Cells(merged.obj)), ingest.group] <-"query"
-       merged.obj@meta.data[ grep("_reference", Cells(merged.obj)), ingest.group] <-"reference"
        if( !umap.alignment){
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
