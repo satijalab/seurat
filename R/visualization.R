@@ -1958,11 +1958,7 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  cells <- if (is.null(x = idents)) {
-    Cells(x = object)
-  } else {
-    Cells(x = object)[Idents(object = object) %in% idents]
-  }
+  cells <- CellsByIdentities(object = object, idents = idents)
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
