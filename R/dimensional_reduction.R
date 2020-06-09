@@ -1131,7 +1131,7 @@ RunTSNE.Seurat <- function(
 #'
 RunUMAP.default <- function(
   object,
-  reduction.model = NULL,
+  reduction.key = 'UMAP_',
   assay = NULL,
   umap.method = 'uwot',
   n.neighbors = 30L,
@@ -1151,7 +1151,7 @@ RunUMAP.default <- function(
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
-  reduction.key = 'UMAP_',
+  reduction.model = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -1168,6 +1168,19 @@ RunUMAP.default <- function(
       immediate. = TRUE
     )
     options(Seurat.warn.umap.uwot = FALSE)
+  }
+  if( umap.method == "uwot-learn"){
+    return.model = TRUE
+    umap.method = "uwot"
+  } else{
+    return.model = FALSE
+  }
+  if( is.list(object) ){
+    names(object) <- c("idx", "dist")
+  }
+  if( !is.null(reduction.model) & umap.method != "uwot-predict" ){
+    warning("umap.method is set to uwot-predict, because reduction.model is not NULL")
+    umap.method <- "uwot-predict"
   }
   umap.output <- switch(
     EXPR = umap.method,
@@ -1211,55 +1224,49 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      umap(
-        X = object,
-        n_threads = nbrOfWorkers(),
-        n_neighbors = as.integer(x = n.neighbors),
-        n_components = as.integer(x = n.components),
-        metric = metric,
-        n_epochs = n.epochs,
-        learning_rate = learning.rate,
-        min_dist = min.dist,
-        spread = spread,
-        set_op_mix_ratio = set.op.mix.ratio,
-        local_connectivity = local.connectivity,
-        repulsion_strength = repulsion.strength,
-        negative_sample_rate = negative.sample.rate,
-        a = a,
-        b = b,
-        fast_sgd = uwot.sgd,
-        verbose = verbose
-      )
-    },
-    'uwot-learn' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
+      if( is.list(object) ){
+        umap(
+          X = NULL,
+          nn_method = object,
+          n_threads = nbrOfWorkers(),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
         )
-        metric <- 'cosine'
+      } else{
+        umap(
+          X = object,
+          n_threads = nbrOfWorkers(),
+          n_neighbors = as.integer(x = n.neighbors),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose, 
+          ret_model = return.model
+        )
       }
-      umap(
-        X = object,
-        n_threads = nbrOfWorkers(),
-        n_neighbors = as.integer(x = n.neighbors),
-        n_components = as.integer(x = n.components),
-        metric = metric,
-        n_epochs = n.epochs,
-        learning_rate = learning.rate,
-        min_dist = min.dist,
-        spread = spread,
-        set_op_mix_ratio = set.op.mix.ratio,
-        local_connectivity = local.connectivity,
-        repulsion_strength = repulsion.strength,
-        negative_sample_rate = negative.sample.rate,
-        a = a,
-        b = b,
-        fast_sgd = uwot.sgd,
-        verbose = verbose,
-        ret_model = TRUE
-      )
     },
     'uwot-predict' = {
       if (metric == 'correlation') {
@@ -1286,6 +1293,13 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
+      if(is.list(object)){
+        uwot_transform_nn(X = object,
+                          model = model, 
+                          n_threads = nbrOfWorkers(),
+                          n_epochs = n.epochs,
+                          verbose = verbose )
+      } else {
       umap_transform(
         X = object,
         model = model,
@@ -1293,80 +1307,19 @@ RunUMAP.default <- function(
         n_epochs = n.epochs,
         verbose = verbose
       )
-    },
-    'uwot-learn-nn' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
       }
-      umap(
-        X = NULL,
-        nn_method = object,
-        n_threads = nbrOfWorkers(),
-        n_neighbors = as.integer(x = n.neighbors),
-        n_components = as.integer(x = n.components),
-        metric = metric,
-        n_epochs = n.epochs,
-        learning_rate = learning.rate,
-        min_dist = min.dist,
-        spread = spread,
-        set_op_mix_ratio = set.op.mix.ratio,
-        local_connectivity = local.connectivity,
-        repulsion_strength = repulsion.strength,
-        negative_sample_rate = negative.sample.rate,
-        a = a,
-        b = b,
-        fast_sgd = uwot.sgd,
-        verbose = verbose,
-        ret_model = TRUE
-      )
-    },
-    'uwot-predict-nn' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
-      if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
-        stop(
-          "If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.",
-          call. = FALSE
-        )
-      }
-      model <- Misc(
-        object = reduction.model,
-        slot = "model"
-      )
-      if (length(x = model) == 0) {
-        stop(
-          "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
-          call. = FALSE
-        )
-      }
-      umap_transform(
-        X = object,
-        model = model,
-        n_threads = nbrOfWorkers(),
-        n_epochs = n.epochs,
-        verbose = verbose
-      )
     },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
-  if (umap.method == 'uwot-learn') {
+  if ( return.model ) {
     umap.model <- umap.output
     umap.output <- umap.output$embedding
   }
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
   if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
+  } else if ( is.list(object) ){
+    rownames(x = umap.output) <- rownames(x = object$idx)
   } else {
     rownames(x = umap.output) <- rownames(x = object)
   }
@@ -1376,7 +1329,7 @@ RunUMAP.default <- function(
     assay = assay,
     global = TRUE
   )
-  if (umap.method == 'uwot-learn') {
+  if (return.model ) {
     Misc(umap.reduction, slot = "model") <- umap.model
   }
   return(umap.reduction)
@@ -2135,6 +2088,7 @@ RunLDA.default <- function(
   var_names <- colnames(object)
   object$lda_cluster_label <- labels
   lda_results <- MASS::lda(lda_cluster_label ~ ., object,...)
+  # object col is gene, row is cell
   lda_predictions <- predict(object = lda_results, newdata = object)
   feature.loadings <- lda_results$scaling
   cell.embeddings <- lda_predictions$x

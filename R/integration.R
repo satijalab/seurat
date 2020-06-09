@@ -693,7 +693,7 @@ FindTransferAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   scale = TRUE, 
   approx.pca = TRUE,
@@ -702,7 +702,7 @@ FindTransferAnchors <- function(
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference")
   }
-  if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
+  if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject", "lda")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
   if (reduction %in% c('pcaproject', 'pcaqueryproject')) {
@@ -726,6 +726,25 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
+  if  (normalization.method == "SCT") {
+    reference <- DietSeurat(object = reference,
+                            assays = c(reference.assay, 
+                                       Misc(reference[[ reference.assay ]] ,
+                                            slot = "umi.assay") ),
+                            dimreducs = reference.reduction )
+    query <- DietSeurat(object = query,
+                        assays = c(query.assay, 
+                                   Misc(query[[ query.assay ]], 
+                                        slot = "umi.assay")) )
+    
+  } else {
+    reference <- DietSeurat(object = reference,
+                            assays = reference.assay,
+                            dimreducs = reference.reduction )
+    query <- DietSeurat(object = query,
+                        assays = query.assay )
+  }
+
   if (normalization.method == "SCT") {
     features <- intersect(x = features, y = rownames(x = query))
     query <- GetResidual(object = query, features = features, verbose = FALSE)
@@ -847,6 +866,52 @@ FindTransferAnchors <- function(
       rescale = FALSE,
       verbose = verbose
     )
+  }
+  
+  if (reduction == "lda") {
+    reference.data <- GetAssayData(object = reference, assay = reference.assay)[features, ]
+    query.data <- GetAssayData(object = query, assay = query.assay)[features, ]
+    
+    if(normalization.method == "LogNormalize"){
+      feature.mean <- rowMeans(x = reference.data)
+      feature.sd <- sqrt(
+        x = SparseRowVar2(
+          mat = as(object = reference.data, Class = "dgCMatrix"), 
+          mu = feature.mean, 
+          display_progress = FALSE
+        )
+      )
+      feature.sd[is.na(x = feature.sd)] <- 1
+      proj.data  <- query.data
+      proj.data <- FastSparseRowScaleWithKnownStats(
+        mat = as(object = proj.data, Class = "dgCMatrix"),
+        mu = feature.mean,
+        sigma = feature.sd,
+        display_progress = FALSE
+      )
+      proj.data <- t(proj.data)
+      proj.data <- as.data.frame(proj.data)
+    }
+    proj.data <- as.data.frame(t(query.data))
+    colnames(proj.data) <-  gsub("-", ".", features)
+    rownames(proj.data)<- Cells(query)
+    reference.lda.model <-  Misc(object = reference[[reference.reduction]], slot = "model")
+    lda.feature <- setdiff(colnames(reference.lda.model$means),   colnames(proj.data) )
+    if(length(lda.feature) != 0 ){
+      lda.feature.matrix <- matrix(data = 0, nrow = nrow(proj.data), ncol = length(lda.feature) )
+      colnames(lda.feature.matrix) <- lda.feature
+      proj.data <- cbind(proj.data, lda.feature.matrix )
+      }
+    query.lda <- predict(object = reference.lda.model, newdata = proj.data )$x
+    combined.ob <- merge(x = reference, y = query)
+    combine.lda.embeddings <- rbind(Embeddings(reference[[reference.reduction]])[, dims], 
+                                    query.lda[, dims])
+    combined.ob[["ldaproject"]] <- CreateDimReducObject(embeddings = combine.lda.embeddings,
+                                                        key =  "projLDA_", 
+                                                        assay = reference.assay)
+    reduction <- "ldaproject"
+    l2.norm <- FALSE
+    k.filter <- NA
   }
   if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
@@ -2342,6 +2407,19 @@ FindAnchors <- function(
       max.features = max.features,
       projected = projected
     )
+    top.features <- sapply(X = unique(assay),
+                            FUN = function(a){
+                              assay.feature <- rownames(x = GetAssayData(object = object.pair,
+                                                                         slot = slot, 
+                                                                         assay = a))
+                             features <- intersect( assay.feature, top.features)
+                             return( features )
+                            })
+    if(length(top.features) == 2){
+      top.features <- intersect(top.features[[1]], top.features[[2]])
+    } else{ 
+      top.features <- as.vector(top.features)
+      }
     object.pair <- FilterAnchors(
       object = object.pair,
       assay = assay,
@@ -2641,10 +2719,8 @@ FindWeights <- function(
                             sigma.list  = object@misc$query.sigma.list, 
                             nearest.dist = object@misc$nearest.dist)
     
-    distances <- knn_2_2$nn.dists
-    distances <- t(apply(  distances , MARGIN = 1, FUN = function(x) sort(x, decreasing = T)))
-    distances <- sqrt(log(distances)*(-1))
-    distances <-  1 - (distances / distances[, ncol(x = distances)])
+    distances <- knn_2_2$nn.dists + 1e-10
+    distances <-  1 - (distances / distances[, ncol(x = distances)])+ 1e-10
     cell.index <- knn_2_2$nn.idx
   } else{
     knn_2_2 <- NNHelper(
@@ -3578,6 +3654,7 @@ FindJointTransferAnchor <- function(reference,
       )
       combined.pca.cca <- rbind(reference[[ reduction.list[[i]] ]]@cell.embeddings[, dims.list[[i]]], projected.pca.cca )
       proj.embeddings.cca[[i]] <- combined.pca.cca
+
       } else{
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
@@ -3747,6 +3824,13 @@ FindJointTransferAnchor <- function(reference,
     integration.name = 'integrated',
     slot = 'anchors'
   )
+  for (i in 1:length(projection.method.list)){
+    if( projection.method.list[[i]] == "cca"){
+       iobject[[ paste0( reduction.list[[i]],"cca") ]] <- iobject[[ paste0( reduction.list[[i]],"project") ]]
+       proj.reduction.list[[i]] <- paste0( reduction.list[[i]],"cca")
+       iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
+       }
+  }
 
   Misc(iobject, slot = "query.modality.weight") <- query.weight$first.modality.weight
   Misc(iobject, slot = "query.sigma.list") <- query.weight$params$sigma.list
@@ -3755,11 +3839,7 @@ FindJointTransferAnchor <- function(reference,
   Misc(iobject, slot = "reference.reduction") <- reduction.list
   Misc(iobject, slot = "reference.dims") <-  dims.list
   Misc(iobject, slot = "nearest.dist") <-  query.weight$params$nearest.dist
-  for (i in 1:length(projection.method.list)){
-    if( projection.method.list[[i]] == "cca"){
-       iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
-    }
-  }
+  
   anchor.set <- new(
     Class = "AnchorSet",
     object.list = list(iobject),
@@ -3780,6 +3860,7 @@ IngestNewData <- function(reference,
                           query, 
                           umap.name = "umap",
                           proj.reduction = "pcaproject", 
+                          anchor.reduction = NULL, 
                           reference.reduction = "pca", 
                           dims,
                           transfer.anchors = NULL,
@@ -3787,6 +3868,7 @@ IngestNewData <- function(reference,
                           transfer.identity = FALSE, 
                           verbose = TRUE,
                           append.to = NULL,
+                          ingest.group = "ingest", 
                           prediction.assay = 'prediction',
                           k.weight = 50,
                           k.filter = 200, 
@@ -3801,26 +3883,22 @@ IngestNewData <- function(reference,
   if (length(query) == 1) {
     query <- list(query)
   }
+  if( is.null(anchor.reduction)){
+    anchor.reduction <- proj.reduction
+  }
   objects <- lapply(
     X = 1:length(x = query),
     FUN = function(i) {
       # Find transfer anchors if not passed in
-      if (is.null(transfer.anchors)) {
-        transfer_anchor <- FindTransferAnchors(reference = reference,
-                                               query = query[[i]],
-                                               npcs = NULL,
-                                               dims = dims,
-                                               nn.method = 'annoy',
-                                               ...)
-      } else {
         if (is.list(transfer.anchors)){
           transfer_anchor <- transfer.anchors[[i]]
         } else {
           transfer_anchor <- transfer.anchors
         }
-      }
-
+      
       obj <- transfer_anchor@object.list[[1]]
+      obj@meta.data[ transfer.anchors@reference.cells , ingest.group] <- "reference"
+      obj@meta.data[ transfer.anchors@query.cells , ingest.group] <- "query"
       
       # setting up an object with pcassay with PCA embedding as the data
       query.embedding <- t(Embeddings(obj, reduction = proj.reduction)[ , dims])
@@ -3829,9 +3907,10 @@ IngestNewData <- function(reference,
       # setting up metadata
       DefaultAssay(obj) <- 'pcassay'
       obj[[proj.reduction ]]@assay.used <- 'pcassay'
-      
+      obj[[anchor.reduction ]]@assay.used <- 'pcassay'
+
       # create a slim object that contains the PC embeddings as a new assay "pcassay"
-      merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = proj.reduction)
+      merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = c(anchor.reduction, proj.reduction))
       
       # prepapring metadata for batch correction
       integration.name <- "integrated"
@@ -3858,7 +3937,7 @@ IngestNewData <- function(reference,
         dr.weights <- lapply( X = obj@misc$proj.reduction,
                               FUN = function(r) obj[[r]])
       } else{
-        dr.weights <- merged.obj[[ proj.reduction ]]
+        dr.weights <- merged.obj[[ anchor.reduction ]]
       }
       #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
       merged.obj <- FindWeights(object = merged.obj, 
@@ -3870,7 +3949,6 @@ IngestNewData <- function(reference,
                                 sd.weight = sd.weight,
                                 eps = eps, 
                                 nn.method = nn.method)
-      
       merged.obj <- TransformDataMatrix(object = merged.obj, 
                                         new.assay.name = 'integrated', 
                                         features.to.integrate = rownames(obj), 
@@ -3884,10 +3962,10 @@ IngestNewData <- function(reference,
       merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
                                                   key = 'ipc_',
                                                   assay = 'pcassay')
-     if( !umap.alignment){
+       if( !umap.alignment){
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
-        return( merged.obj )
+       return( merged.obj )
      } 
       # extracting batch corrected PCA embedding for the query data
       query_pcs_corrected <- Embeddings(merged.obj[["int"]])[transfer_anchor@query.cells, dims]
@@ -3898,7 +3976,6 @@ IngestNewData <- function(reference,
                             assay = 'pcassay', 
                             reduction.key = paste0(toupper(umap.name), "_"),  
                             verbose = verbose)
-      
       # rename the cells
       rownames(query_pcs_corrected) <- gsub("\\_query", "", rownames(query_pcs_corrected))
       query_umap <- RenameCells( query_umap, new.names = gsub("\\_query", "", Cells(query_umap)))
