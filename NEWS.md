@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
 - Fixed integer overflow error in the WilcoxDETest function
+- Minor visual fixes in `DoHeatmap` group bar + labels
 
 ## [3.1.5] - 2020-04-14
 ### Added
