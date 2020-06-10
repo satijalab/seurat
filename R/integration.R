@@ -3864,9 +3864,12 @@ IngestNewData <- function(reference,
                           proj.reduction = "pcaproject", 
                           anchor.reduction = NULL, 
                           reference.reduction = "pca", 
+                          correct.embeddings = TRUE, 
+                          reference.assay = NULL,
+                          query.assay = NULL, 
                           dims,
                           transfer.anchors = NULL,
-                          umap.alignment = TRUE, 
+                          umap.alignment = FALSE, 
                           transfer.identity = FALSE, 
                           verbose = TRUE,
                           append.to = NULL,
@@ -3902,18 +3905,38 @@ IngestNewData <- function(reference,
       obj@meta.data[ transfer.anchors@reference.cells , ingest.group] <- "reference"
       obj@meta.data[ transfer.anchors@query.cells , ingest.group] <- "query"
       
-      # setting up an object with pcassay with PCA embedding as the data
-      query.embedding <- t(Embeddings(obj, reduction = proj.reduction)[ , dims])
-      suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
-      
-      # setting up metadata
-      DefaultAssay(obj) <- 'pcassay'
-      obj[[proj.reduction ]]@assay.used <- 'pcassay'
-      obj[[anchor.reduction ]]@assay.used <- 'pcassay'
-
-      # create a slim object that contains the PC embeddings as a new assay "pcassay"
-      merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = c(anchor.reduction, proj.reduction))
-      
+      if(correct.embeddings) {
+        # setting up an object with pcassay with PCA embedding as the data
+        query.embedding <- t(Embeddings(obj, reduction = proj.reduction)[ , dims])
+        suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
+        
+        # setting up metadata
+        DefaultAssay(obj) <- 'pcassay'
+        obj[[proj.reduction ]]@assay.used <- 'pcassay'
+        obj[[anchor.reduction ]]@assay.used <- 'pcassay'
+        
+        # create a slim object that contains the PC embeddings as a new assay "pcassay"
+        merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = c(anchor.reduction, proj.reduction))
+        
+      } else {
+        query.assay <- query.assay %||% DefaultAssay(query[[i]])
+        reference.assay <- reference.assay %||% DefaultAssay(reference)
+        features <- transfer_anchor@anchor.features
+        suppressWarnings(obj[[reference.assay]] <- CreateAssayObject(data = cbind(
+          GetAssayData(object = obj,
+                       assay = reference.assay, 
+                       slot = "data")[features, transfer_anchor@reference.cells ], 
+          GetAssayData(object = obj,
+                       assay = query.assay, 
+                       slot = "data")[features,transfer_anchor@query.cells ])
+          ))
+        # setting up metadata
+        DefaultAssay(obj) <- reference.assay
+        obj[[proj.reduction ]]@assay.used <- reference.assay
+        obj[[anchor.reduction ]]@assay.used <- reference.assay
+        merged.obj <- DietSeurat(obj, assays = reference.assay, dimreducs = c(anchor.reduction, proj.reduction))
+        
+        }
       # prepapring metadata for batch correction
       integration.name <- "integrated"
       filtered.anchors <- data.frame(transfer_anchor@anchors)
@@ -3959,11 +3982,14 @@ IngestNewData <- function(reference,
       integrated.matrix <- GetAssayData(object = merged.obj, 
                                         assay = 'integrated', 
                                         slot = "data")
-      
-      # saving the batch corrected PCA embeddings
-      merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
-                                                  key = 'ipc_',
-                                                  assay = 'pcassay')
+      if(correct.embeddings){
+        # saving the batch corrected PCA embeddings
+        merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
+                                                    key = 'ipc_',
+                                                    assay = 'pcassay')
+      } else {
+        merged.obj[["int"]] <- CreateAssayObject(data = integrated.matrix )
+      }
        if( !umap.alignment){
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
        merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
