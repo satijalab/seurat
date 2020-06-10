@@ -726,12 +726,14 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
+  reference[[reference.reduction  ]]@assay.used <- reference.assay
   if  (normalization.method == "SCT") {
     reference <- DietSeurat(object = reference,
                             assays = c(reference.assay, 
                                        Misc(reference[[ reference.assay ]] ,
                                             slot = "umi.assay") ),
-                            dimreducs = reference.reduction )
+                            dimreducs = reference.reduction,
+                            scale.data = T )
     query <- DietSeurat(object = query,
                         assays = c(query.assay, 
                                    Misc(query[[ query.assay ]], 
