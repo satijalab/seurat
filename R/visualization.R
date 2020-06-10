@@ -361,9 +361,15 @@ DoHeatmap <- function(
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
-        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% pbuild$layout$panel_params[[1]]$x$break_positions()
+        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% attr(x = pbuild$layout$panel_params[[1]]$x$get_breaks(), which = "pos")
         x <- data.frame(group = sort(x = group.use), x = x.divs)
-        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
+        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = function(y) {
+          if (isTRUE(x = draw.lines)) {
+            mean(x = y[-length(x = y)])
+          } else {
+            mean(x = y)
+          }
+        })
         label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
         plot <- plot + geom_text(
           stat = "identity",
