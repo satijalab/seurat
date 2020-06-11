@@ -345,6 +345,42 @@ PrepLDA <- function( object,
   return(projected_pcs)
 }
 
+#' @param object An object of class Seurat.
+#' @param assay Assay to use.
+#' @param labels Meta data column with target gene class labels.
+#' @param nt.label Name of non-targeting cell class.
+#' @param npcs Number of principle compontents to use.
+#' @param reduction Dimensionality reduction method to use.
+#' @param verbose Print progress bar.
+#' @export
+PrepLDA2 <- function( object,
+                      features = NULL,
+                      assay = "PRTB",
+                      labels = "gene",
+                      nt.label = "NT",
+                      npcs = 10,
+                      verbose = TRUE
+){
+  projected_pcs <- list()
+  gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
+  features <- features %||% rownames(object[[assay]])
+  VariableFeatures(object[[assay]]) <- features
+  object <- ScaleData(object,assay = assay,do.scale = F,do.center = T)
+  Idents(object) <- labels
+  for(g in gene_list) {
+    if (verbose){
+      print(g)
+    }
+    gene_subset <- subset(object, idents =c(g,nt.label))
+    DefaultAssay(gene_subset) <- assay
+    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F)
+    project_pca <- t(object[["PRTB"]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
+    colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
+    projected_pcs[[g]] <- project_pca
+  }
+  return(projected_pcs)
+}
+
 #' @param features Features to compute LDA on
 #'
 #' @rdname RunLDA
