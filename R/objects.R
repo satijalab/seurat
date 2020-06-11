@@ -7139,6 +7139,7 @@ ValidateDataForMerge <- function(assay, slot) {
       ncol = data.dims[2],
       dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
     )
+    mat <- as(object = mat, Class = "dgCMatrix")
   }
   return(mat)
 }
