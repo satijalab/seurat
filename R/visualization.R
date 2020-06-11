@@ -1091,8 +1091,8 @@ FeaturePlot <- function(
   } else {
     switch(
       EXPR = split.by,
-      ident = Idents(object = object)[cells],
-      object[[split.by, drop = TRUE]][cells]
+      ident = Idents(object = object)[cells, drop = TRUE],
+      object[[split.by, drop = TRUE]][cells, drop = TRUE]
     )
   }
   if (!is.factor(x = data$split)) {
@@ -1915,6 +1915,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' (default is 0). All cell groups with less than this expressing the given
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
+#' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
 #' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
@@ -1949,6 +1950,7 @@ DotPlot <- function(
   col.max = 2.5,
   dot.min = 0,
   dot.scale = 6,
+  idents = NULL,
   group.by = NULL,
   split.by = NULL,
   scale = TRUE,
@@ -1964,11 +1966,12 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  data.features <- FetchData(object = object, vars = features)
+  cells <- unlist(CellsByIdentities(object = object, idents = idents))
+  data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
-    Idents(object = object)
+    Idents(object = object)[cells, drop = TRUE]
   } else {
-    object[[group.by, drop = TRUE]]
+    object[[group.by, drop = TRUE]][cells, drop = TRUE]
   }
   if (!is.factor(x = data.features$id)) {
     data.features$id <- factor(x = data.features$id)
@@ -1976,9 +1979,9 @@ DotPlot <- function(
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- object[[split.by, drop = TRUE]]
+    splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
     if (length(x = unique(x = splits)) > length(x = cols)) {
-      stop("Not enought colors for the number of groups")
+      stop("Not enough colors for the number of groups")
     }
     cols <- cols[1:length(x = unique(x = splits))]
     names(x = cols) <- unique(x = splits)
