@@ -2019,7 +2019,7 @@ subset.AnchorSet <- function(
   }
   # Filter based on ident pairings
   if (!is.null(x = group.by)) {
-    anchors <- AnnotateAnchors(object = x, annotation = group.by)
+    anchors <- AnnotateAnchors(object = x, vars = group.by)
     if (!is.null(x = disallowed.ident.pairs) && !is.null(x = ident.matrix)) {
       stop("Please use either disallowed.ident.pairs OR ident.matrix, not both.")
     }
