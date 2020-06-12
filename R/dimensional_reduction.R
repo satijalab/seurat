@@ -2082,12 +2082,13 @@ RunLDA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  object <- data.frame(object)
-  var_gene <- colnames(object)[Rfast:::colVars(as.matrix(object)) > 1e-5]
+  object <- as.data.frame(object)
+  var_gene <- colnames(object)[ Rfast:::colVars(as.matrix(object)) > 1e-5   ]
   object <- object[, var_gene]
   var_names <- colnames(object)
   object$lda_cluster_label <- labels
   lda_results <- MASS::lda(lda_cluster_label ~ ., object,...)
+  lda_results$features <- setdiff(colnames(object),"lda_cluster_label")
   # object col is gene, row is cell
   lda_predictions <- predict(object = lda_results, newdata = object)
   feature.loadings <- lda_results$scaling
@@ -2194,3 +2195,58 @@ RunLDA.Assay <- function(
   return(reduction.data)
 }
 
+
+
+
+
+PredictLDA <- function(reference, 
+                       query,
+                       reference.assay = NULL,
+                       query.assay = NULL, 
+                       model,
+                       features = NULL,
+                       normalization.method = "LogNormalize", 
+                       slot = "data"
+){
+  reference.assay <- reference.assay %||% DefaultAssay(reference)
+  query.assay <- query.assay %||% DefaultAssay(query)
+  features <- features %||% VariableFeatures(reference)
+ 
+ query.data <- GetAssayData(object = query, assay = query.assay, slot = slot)
+ features <- intersect( features, rownames(query.data))
+ query.data <- query.data[features, ]
+ reference.data <- GetAssayData(object = reference, assay = reference.assay, slot = slot)[features, ]
+ proj.data <- as.data.frame(t(query.data))
+  if(normalization.method == "LogNormalize"){
+    feature.mean <- rowMeans(x = reference.data)
+    feature.sd <- sqrt(
+      x = SparseRowVar2(
+        mat = as(object = reference.data, Class = "dgCMatrix"), 
+        mu = feature.mean, 
+        display_progress = FALSE
+      )
+    )
+    feature.sd[is.na(x = feature.sd)] <- 1
+    proj.data  <- query.data
+    proj.data <- FastSparseRowScaleWithKnownStats(
+      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mu = feature.mean,
+      sigma = feature.sd,
+      display_progress = FALSE
+    )
+    proj.data <- t(proj.data)
+  }
+  colnames(proj.data) <-   features
+  rownames(proj.data)<- Cells(query)
+  reference.lda.model <-  model
+  lda.feature <- reference.lda.model$features
+  lda.feature <- setdiff(lda.feature, colnames(proj.data) )
+  if(length(lda.feature) != 0 ){
+    lda.feature.matrix <- matrix(data = 0, nrow = nrow(proj.data), ncol = length(lda.feature) )
+    colnames(lda.feature.matrix) <- lda.feature
+    proj.data <- cbind(proj.data, lda.feature.matrix )
+  }
+  proj.data <- as.data.frame(proj.data)
+  query.lda <- predict(object = reference.lda.model, newdata = proj.data )
+  return(query.lda)
+}

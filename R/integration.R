@@ -871,48 +871,20 @@ FindTransferAnchors <- function(
   }
   
   if (reduction == "lda") {
-    reference.data <- GetAssayData(object = reference, assay = reference.assay)[features, ]
-    query.data <- GetAssayData(object = query, assay = query.assay)[features, ]
-    
-    if(normalization.method == "LogNormalize"){
-      feature.mean <- rowMeans(x = reference.data)
-      feature.sd <- sqrt(
-        x = SparseRowVar2(
-          mat = as(object = reference.data, Class = "dgCMatrix"), 
-          mu = feature.mean, 
-          display_progress = FALSE
-        )
-      )
-      feature.sd[is.na(x = feature.sd)] <- 1
-      proj.data  <- query.data
-      proj.data <- FastSparseRowScaleWithKnownStats(
-        mat = as(object = proj.data, Class = "dgCMatrix"),
-        mu = feature.mean,
-        sigma = feature.sd,
-        display_progress = FALSE
-      )
-      proj.data <- t(proj.data)
-      proj.data <- as.data.frame(proj.data)
-    }
-    proj.data <- as.data.frame(t(query.data))
-    colnames(proj.data) <-  gsub("-", ".", features)
-    rownames(proj.data)<- Cells(query)
-    reference.lda.model <-  Misc(object = reference[[reference.reduction]], slot = "model")
-    lda.feature <- setdiff(colnames(reference.lda.model$means),   colnames(proj.data) )
-    if(length(lda.feature) != 0 ){
-      lda.feature.matrix <- matrix(data = 0, nrow = nrow(proj.data), ncol = length(lda.feature) )
-      colnames(lda.feature.matrix) <- lda.feature
-      proj.data <- cbind(proj.data, lda.feature.matrix )
-      }
-    query.lda <- predict(object = reference.lda.model, newdata = proj.data )$x
+    query.lda <- PredictLDA(reference = reference, 
+                            query = query,
+                            model = reference[[reference.reduction]]@misc$model,
+                            reference.assay = reference.assay,
+                            query.assay = query.assay, 
+                            features = features, 
+                            normalization.method = normalization.method )
     combined.ob <- merge(x = reference, y = query)
     combine.lda.embeddings <- rbind(Embeddings(reference[[reference.reduction]])[, dims], 
-                                    query.lda[, dims])
+                                    query.lda$x[, dims])
     combined.ob[["ldaproject"]] <- CreateDimReducObject(embeddings = combine.lda.embeddings,
                                                         key =  "projLDA_", 
                                                         assay = reference.assay)
     reduction <- "ldaproject"
-    l2.norm <- FALSE
     k.filter <- NA
   }
   if (l2.norm) {
