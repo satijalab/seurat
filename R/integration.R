@@ -86,54 +86,56 @@ AnnotateAnchors <- function(
   if (length(x = slot) == 1) {
     slot <- rep(x = slot, times = length(x = vars))
   }
-  for(v in 1:length(x = vars)) {
-    var <- vars[v]
-    slot <- slot[v]
-    var.list <- lapply(X = object.list, FUN = function(x) {
-      tryCatch(
-        expr = FetchData(object = x, vars = var), 
-        error = function(e) {
-          return(FALSE)
-        }
-      )
-    })
-    if (all(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
-      warning(
-        var, " not found in all objects", 
-        call. = FALSE, 
-        immediate. = TRUE
-      )
-      next
-    }
-    if (any(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
-      warning(
-        var, " not in all objects. Filling missing objects with NA",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-    }
-    if (is.null(x = names(x = object.list))) {
-      names(x = var.list) <- 1:length(x = object.list)
-    } else {
-      names(x = var.list) <- names(x = object.list)
-    }
-    for(i in c(1, 2)) {
-      cell <- paste0("cell", i)
-      anchors[, paste0(cell, ".", var)] <- apply(X = anchors, MARGIN = 1, function(x){
-        var.df <- var.list[[x[[paste0("dataset", i)]]]]
-        if (!inherits(x = var.df, what = "data.frame")) {
-          NA
-        } else {
-          if (is.factor(x = var.df[x[cell], ])) {
-            as.character(x = var.df[x[cell], ])
-          } else {
-            var.df[x[cell], ]
-          }}                    
+  if (length(x = vars) > 0) {
+    for(v in 1:length(x = vars)) {
+      var <- vars[v]
+      slot <- slot[v]
+      var.list <- lapply(X = object.list, FUN = function(x) {
+        tryCatch(
+          expr = FetchData(object = x, vars = var), 
+          error = function(e) {
+            return(FALSE)
+          }
+        )
       })
+      if (all(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
+        warning(
+          var, " not found in all objects", 
+          call. = FALSE, 
+          immediate. = TRUE
+        )
+        next
+      }
+      if (any(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
+        warning(
+          var, " not in all objects. Filling missing objects with NA",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      }
+      if (is.null(x = names(x = object.list))) {
+        names(x = var.list) <- 1:length(x = object.list)
+      } else {
+        names(x = var.list) <- names(x = object.list)
+      }
+      for(i in c(1, 2)) {
+        cell <- paste0("cell", i)
+        anchors[, paste0(cell, ".", var)] <- apply(X = anchors, MARGIN = 1, function(x){
+          var.df <- var.list[[x[[paste0("dataset", i)]]]]
+          if (!inherits(x = var.df, what = "data.frame")) {
+            NA
+          } else {
+            if (is.factor(x = var.df[x[cell], ])) {
+              as.character(x = var.df[x[cell], ])
+            } else {
+              var.df[x[cell], ]
+            }}                    
+        })
+      }
+      # column specifying whether the annotation matches across pair of datasets
+      anchors[, paste0(var, ".match")] <- anchors[, paste0("cell1.", var)] == 
+        anchors[, paste0("cell2.", var)]
     }
-    # column specifying whether the annotation matches across pair of datasets
-    anchors[, paste0(var, ".match")] <- anchors[, paste0("cell1.", var)] == 
-      anchors[, paste0("cell2.", var)]
   }
   return(anchors)
 }
