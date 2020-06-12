@@ -1835,7 +1835,7 @@ snn_nn_farthest <- function(snn.graph,
     dplyr::group_by(j)%>% dplyr::arrange( x,  .by_group = TRUE )
   # neighbors with smallest edge weight
   nn.idx.snn <- nn.idx.snn.raw %>% dplyr::filter(x == min(x))%>% dplyr::select( -x)%>%
-    dplyr::group_split( keep = F)
+    dplyr::group_split( .keep = F)
   nn.idx.snn <- lapply(nn.idx.snn , function(nn) dplyr::pull(nn, i))
   # Calculate distance of neighbors
   nn.dist <- fast_dist(x = embeddings, y = embeddings, n = nn.idx.snn)
@@ -1852,8 +1852,43 @@ snn_nn_farthest <- function(snn.graph,
                                return(nn.x)
                              }))
   rownames(snn_farthest_nn) <- rownames(embeddings)
+  if(any(is.na(snn_farthest_nn)) ){
+    warning("NA is detected, and SNN graph may be pruned")
+  }
   return(snn_farthest_nn )
 }
+
+
+ComputeSNNwidth <- function(snn.graph,
+                            embeddings, 
+                            k.nn, 
+                            l2.norm = TRUE, 
+                            farthest = TRUE) {
+  if ( l2.norm ) {
+    embeddings <- L2Norm(embeddings)
+  }
+  if ( farthest ) {
+    # find farthest euclidean neighbors
+    snn.idx <- snn_nn_farthest(snn.graph = snn.graph, embeddings = embeddings, k.nn = k.nn)
+  } else {
+    # find farthest jarccard neighbors
+    snn.idx <- snn_nn(snn.graph = snn.graph, k.nn = k.nn)
+  }
+  snn.width <- sapply(X = 1:nrow(embeddings),
+                                 FUN = function(x) {
+                                   dist <- rdist::cdist(X =  embeddings[x, , drop=F], 
+                                                Y = embeddings[snn.idx[x,], ],
+                                                metric = "euclidean"  )
+                                   return(mean(dist))
+                                 })
+  return( snn.width )
+}
+
+
+
+
+
+
 
 
 #' Dimensional reduction for FindModalityWeights.Multi
