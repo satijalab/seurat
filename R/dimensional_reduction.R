@@ -2270,7 +2270,6 @@ RunSPCA <- function(object,
   spca.embeddings <-  t( data ) %*% pca.results$u 
   sdev <- pca.results$d/sqrt(max(1, nrow(x = HSIC) - 1))
   colnames(spca.embeddings) <- paste0(reduction.key, 1:ncol(spca.embeddings))
-  View(RunPCA.default)
   object[[reduction.name]] <- CreateDimReducObject(embeddings = spca.embeddings,
                                                    loadings = pca.results$u, 
                                                    key = reduction.key,
