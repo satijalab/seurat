@@ -2250,3 +2250,31 @@ PredictLDA <- function(reference,
   query.lda <- predict(object = reference.lda.model, newdata = proj.data )
   return(query.lda)
 }
+
+ 
+
+RunSPCA <- function(object,
+                    assay = NULL, 
+                    features = NULL, 
+                    npcs = 50, 
+                    reduction.name = "spca", 
+                    reduction.key = "SPC_", 
+                    graph ){
+  assay <- assay %||% DefaultAssay(object)
+  DefaultAssay(object) <- assay
+  features <- features %||% VariableFeatures(object)
+  data <- GetAssayData(object = object, assay = assay, slot = "scale.data")[features , ]
+  HSIC = data %*% graph %*% t( data )
+  pca.results <- irlba(A = HSIC, nv = npcs )
+  rownames(pca.results$u) <- features
+  spca.embeddings <-  t( data ) %*% pca.results$u 
+  sdev <- pca.results$d/sqrt(max(1, nrow(x = HSIC) - 1))
+  colnames(spca.embeddings) <- paste0(reduction.key, 1:ncol(spca.embeddings))
+  View(RunPCA.default)
+  object[[reduction.name]] <- CreateDimReducObject(embeddings = spca.embeddings,
+                                                   loadings = pca.results$u, 
+                                                   key = reduction.key,
+                                                   stdev = sdev, 
+                                                   assay = assay)
+  return(object)
+}
