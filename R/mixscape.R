@@ -53,7 +53,6 @@ CalcPerturbScore <- function ( object,
             Idents(object) <- "rep1"
             replicate <- levels(Idents(object))
           }
-          
           all_diff = matrix(nrow = length(rownames(GetAssayData(object = object, assay = assay, slot = slot))), ncol = 0)
           
           for (r in replicate) {
@@ -61,8 +60,7 @@ CalcPerturbScore <- function ( object,
             
             #isolate nt cells
             all_cells <- Cells(rep1)
-            nt_cells <- Cells(rep1[,grep(nt.cell.class, rep1@meta.data[,gd.class], value = FALSE)])
-            
+            nt_cells <- Cells(rep1)[which(rep1@meta.data[,gd.class] == nt.cell.class)]
             #subset the objects based on guide ID
             all <- rep1[,all_cells]
             nt <- rep1[,nt_cells]
@@ -122,7 +120,7 @@ Project <- function(v1, v2) {
 TopDEGenesMixscape <- function(
   object, 
   ident.1, 
-  gene.class = 'gene', 
+  labels = 'gene', 
   de.assay = "RNA", 
   test.use = "LR", 
   pval.cutoff = 5e-2,
@@ -135,7 +133,7 @@ TopDEGenesMixscape <- function(
       de.genes <- FindMarkers(
         object = object, 
         ident.1 = ident.1, 
-        group.by = gene.class,
+        group.by = labels,
         assay = de.assay,
         test.use = test.use,
         logfc.threshold = logfc.threshold
@@ -160,7 +158,7 @@ DefineNormalMixscape <- function(x) {
 #' @param object An object of class Seurat.
 #' @param assay Assay to use.
 #' @param slot data slot to use.
-#' @param gene.class metadata column with target gene classifications.
+#' @param labels metadata column with target gene classifications.
 #' @param nt.class.name Classification name of non-targeting gRNA cells.
 #' @param new.class.name Name of mixscape classification to be stored in metadata.
 #' @param min.de.genes Required number of genes that are DE for method to separate perturbed and non-perturbed cells. 
@@ -173,7 +171,7 @@ DefineNormalMixscape <- function(x) {
 RunMixscape <- function( object = NULL,
                          assay = "PRTB",
                          slot = "scale.data",
-                         gene.class = "gene",
+                         labels = "gene",
                          nt.class.name = "NT",
                          new.class.name = "mixscape_class",
                          min.de.genes = 5,
@@ -187,23 +185,23 @@ RunMixscape <- function( object = NULL,
     assay <- DefaultAssay(object)
   }
   
-  if (is.null(gene.class) == TRUE){
+  if (is.null(labels) == TRUE){
     stop("Please specify target gene class metadata name")
   }
   #de marker genes
   prtb_markers <- c()
   #new metadata column for mixscape classification
-  object[[new.class.name]] <- object[[gene.class]]
+  object[[new.class.name]] <- object[[labels]]
   object[[new.class.name]][,1] <- as.character(object[[new.class.name]][,1])
   
-  genes <- setdiff(unique(object[[ gene.class]][,1]), y = nt.class.name)
+  genes <- setdiff(unique(object[[ labels]][,1]), y = nt.class.name)
   
   #pertubration vectors storage
   gv.list <- list(list())
   
   for (gene in genes){
     message("Processing ", gene)
-    Idents(object) <- gene.class
+    Idents(object) <- labels
     
     # Get object containing only guide of interest + non-targeting
     object.gene <- subset(object, idents = c(gene, nt.class.name))
@@ -211,7 +209,7 @@ RunMixscape <- function( object = NULL,
     DefaultAssay(object.gene) <- assay
     
     # find de genes between guide positive and non-targeting
-    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay, logfc.threshold = logfc.threshold, gene.class = gene.class)
+    de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, de.assay = de.assay, logfc.threshold = logfc.threshold, labels = labels)
     prtb_markers[[gene]] <- de.genes
     
     # if fewer than 5 DE genes, call all guide cells NP 
@@ -373,7 +371,11 @@ PrepLDA2 <- function( object,
     }
     gene_subset <- subset(object, idents =c(g,nt.label))
     DefaultAssay(gene_subset) <- assay
-    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F)
+    gene_set <- TopDEGenesMixscape(object = gene_subset,ident.1 = g, de.assay = assay, pval.cutoff = 0.2, labels = labels)
+    if (length(gene_set) < npcs) {
+      next;
+    }
+    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set)
     project_pca <- t(object[["PRTB"]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
     colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
     projected_pcs[[g]] <- project_pca
