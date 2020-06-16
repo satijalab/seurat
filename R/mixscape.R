@@ -311,8 +311,59 @@ RunMixscape <- function( object = NULL,
 #' @param verbose Print progress bar.
 #' @export
 PrepLDA <- function( object,
-                      de.assay = "RNA",
-                      pc.assay = "PRTB",
+                    de.assay = "RNA",
+                    pc.assay = "PRTB",
+                     assay = "PRTB",
+                     slot = "scale.data",
+                     cut.off = 0.25,
+                     labels = "gene",
+                     nt.label = "NT",
+                     npcs = 10,
+                     reduction = "pca",
+                     verbose = TRUE
+  
+){
+  avg_perturb=AverageExpression(object = object,assays = assay, slot = slot)
+  
+  #0.25 cutoff is somewhat arbitrary
+  prtb_features <- rownames(which(abs(avg_perturb[[assay]])>cut.off,arr.ind = T))
+  VariableFeatures(object[[assay]]) <- prtb_features
+  
+  projected_pcs <- list()
+  gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
+  
+  for(g in gene_list) {
+    
+    if (verbose){
+      print(g)
+    }
+    
+    Idents(object) <- labels
+    gene_subset <- subset(object, idents =c(g,nt.label))
+    DefaultAssay(gene_subset) <- assay
+    gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = F, do.center = T) %>% RunPCA(npcs = npcs ,verbose = F)
+    
+    project_pca=ProjectCellEmbeddings(reference = gene_subset,query = object ,reference.assay = assay ,query.assay = assay,dims = 1:npcs,verbose = F)
+   
+    colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
+    projected_pcs[[g]] <- project_pca
+  }
+  return(projected_pcs)
+}
+
+#' @param object An object of class Seurat.
+#' @param assay Assay to use.
+#' @param labels Meta data column with target gene class labels.
+#' @param nt.label Name of non-targeting cell class.
+#' @param npcs Number of principle compontents to use.
+#' @param reduction Dimensionality reduction method to use.
+#' @param verbose Print progress bar.
+#' @export
+PrepLDA2 <- function( object,
+                      features = NULL,
+                      assay.prtb = "PRTB",
+                      assay.gene = "RNA",
+                      logfc.threshold = 0.25,
                       labels = "gene",
                       nt.label = "NT",
                       npcs = 10,
@@ -336,6 +387,14 @@ PrepLDA <- function( object,
     DefaultAssay(gene_subset) <- pc.assay
     gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set, assay = pc.assay)
     project_pca <- t(object[[pc.assay]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
+    DefaultAssay(gene_subset) <- assay.prtb
+    gene_set <- TopDEGenesMixscape(object = gene_subset,ident.1 = g,de.assay = assay.gene,gene.class = labels,logfc.threshold = logfc.threshold)
+    if (length(gene_set) < (npcs+1)) {
+      next;
+    }
+    gene_subset <- ScaleData(gene_subset,features = gene_set,verbose = F)
+    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set)
+    project_pca <- ProjectCellEmbeddings(reference = gene_subset,query = object,dims = 1:npcs)
     colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
     projected_pcs[[g]] <- project_pca
   }
