@@ -17,7 +17,8 @@ FeatureScatter(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = "data"
+  slot = "data",
+  plot.cor = TRUE
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}}
 
 \item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
+
+\item{plot.cor}{Display correlation in plot title}
 }
 \value{
 A ggplot object

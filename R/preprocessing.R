@@ -875,10 +875,10 @@ Read10X <- function(
     if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    barcode.loc <- file.path(run, 'barcodes.tsv.gz')
-    gene.loc <- file.path(run, 'genes.tsv.gz')
+    barcode.loc <- file.path(run, 'barcodes.tsv')
+    gene.loc <- file.path(run, 'genes.tsv')
     features.loc <- file.path(run, 'features.tsv.gz')
-    matrix.loc <- file.path(run, 'matrix.mtx.gz')
+    matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
     if (!pre_ver_3) {
