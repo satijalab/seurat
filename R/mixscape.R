@@ -316,26 +316,25 @@ PrepLDA <- function( object,
                      labels = "gene",
                      nt.label = "NT",
                      npcs = 10,
-                     verbose = TRUE
+                     verbose = TRUE,
+                     logfc.threshold = 0.25
 ){
   projected_pcs <- list()
   gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
-  features <- rownames(object[[de.assay]])
-  VariableFeatures(object[[de.assay]]) <- features
-  object <- ScaleData(object ,assay = de.assay, do.scale = T, do.center = T)
   Idents(object) <- labels
   for(g in gene_list) {
     if (verbose){
       print(g)
     }
     gene_subset <- subset(object, idents =c(g,nt.label))
-    gene_set <- TopDEGenesMixscape(object = gene_subset, ident.1 = g, de.assay = de.assay, pval.cutoff = 0.05, labels = labels)
-    if (length(gene_set) < npcs) {
+    DefaultAssay(gene_subset) <- pc.assay
+    gene_set <- TopDEGenesMixscape(object = gene_subset,ident.1 = g,de.assay = de.assay,labels = labels,logfc.threshold = logfc.threshold)
+    if (length(gene_set) < (npcs+1)) {
       next;
     }
-    DefaultAssay(gene_subset) <- pc.assay
-    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set, assay = pc.assay)
-    project_pca <- t(object[[pc.assay]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
+    gene_subset <- ScaleData(gene_subset,features = gene_set,verbose = F)
+    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set)
+    project_pca <- ProjectCellEmbeddings(reference = gene_subset,query = object,dims = 1:npcs)
     colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
     projected_pcs[[g]] <- project_pca
   }
