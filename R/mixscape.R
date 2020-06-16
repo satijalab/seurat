@@ -1,11 +1,11 @@
-#'  Calculate Perturbation score in cells with gRNAs.
+#'  Function to calculate perturbation score for pooled CRISPR screen datasets.
 #'  @param object An object of class Seurat.
 #'  @param assay Name of Assay PRTB  signature is being calculated on.
 #'  @param slot Data slot to use for PRTB score calculation.
-#'  @param gd.class Metadata column containing gRNA classification.
+#'  @param gd.class Metadata column containing target gene classification.
 #'  @param nt.cell.class Non-targeting gRNA cell classification identity.
 #'  @param split.by Provide metadata column if multiple biological replicates exist to calculate PRTB score for every replicate separately.
-#'  @param num.neighbors Number of nearest neigbors to consider.
+#'  @param num.neighbors Number of nearest neighbors to consider.
 #'  @param ndims Number of dimensions to use from dimensionality reduction method.
 #'  @param reduction Reduction method used to calculate nearest neighbors.
 #'  @param new.assay.name Name for the new assay.
@@ -57,10 +57,9 @@ CalcPerturbScore <- function ( object,
           
           for (r in replicate) {
             rep1 <- object[, WhichCells(object = object, idents = r)]
-            
             #isolate nt cells
             all_cells <- Cells(rep1)
-            nt_cells <- Cells(rep1)[which(rep1@meta.data[,gd.class] == nt.cell.class)]
+            nt_cells <- Cells(rep1[,grep(nt.cell.class, rep1@meta.data[,gd.class], value = FALSE)])
             #subset the objects based on guide ID
             all <- rep1[,all_cells]
             nt <- rep1[,nt_cells]
@@ -108,13 +107,14 @@ Project <- function(v1, v2) {
   return(as.vector((v1 %*% v2) / (v2 %*% v2)))
 }
 
-#' Find top DE genes that pass some p value cutoff between cells with targeting and non-targeting gRNAs.
+#' Function to find top DE genes that pass some p value cutoff between cells with targeting and non-targeting gRNAs.
 #' @param object An object of class Seurat.
 #' @param ident.1 Target gene class to find DE genes for.
-#' @param group.by metadata column with target gene classification.
-#' @param assay Name of Assay DE is performed on.
+#' @param labels metadata column with target gene classification.
+#' @param de.assay Name of Assay DE is performed on.
 #' @param test.use 	Denotes which test to use. See all available tests on FindMarkers documentation.
 #' @param pval.cut.off P-value cut-off for selection of significantly DE genes.
+#' @param logfc.threshold Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells. Default is 0.25 Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @export
 #' 
 TopDEGenesMixscape <- function(
@@ -146,7 +146,7 @@ TopDEGenesMixscape <- function(
 }
 
 
-#' Define Normal distribution - returns list with mu and sd
+#' Function to define Normal distribution - returns list with mu (mean) and sd (standard deviation)
 #' @export
 DefineNormalMixscape <- function(x) {
   mu <- mean(x)
@@ -154,16 +154,16 @@ DefineNormalMixscape <- function(x) {
   return(list(mu = mu, sd = sd))
 }
 
-#' Identify perturbed and non-perturbed gRNA expressing cells.
+#' Function to identify perturbed and non-perturbed gRNA expressing cells.
 #' @param object An object of class Seurat.
-#' @param assay Assay to use.
-#' @param slot data slot to use.
+#' @param assay Assay to use for mixscape classification.
+#' @param slot Assay data slot to use.
 #' @param labels metadata column with target gene classifications.
 #' @param nt.class.name Classification name of non-targeting gRNA cells.
 #' @param new.class.name Name of mixscape classification to be stored in metadata.
-#' @param min.de.genes Required number of genes that are DE for method to separate perturbed and non-perturbed cells. 
+#' @param min.de.genes Required number of genes that are differentially expressed for method to separate perturbed and non-perturbed cells. 
 #' @param de.assay Assay to use when performing differential expression analysis. Usually RNA.
-#' @param iter.num Number of normalmixEM iterations to run if convergance does not occur.
+#' @param iter.num Number of normalmixEM iterations to run if convergence does not occur.
 #' @import mixtools
 #' @import reshape2
 #' @export
@@ -197,7 +197,9 @@ RunMixscape <- function( object = NULL,
   genes <- setdiff(unique(object[[ labels]][,1]), y = nt.class.name)
   
   #pertubration vectors storage
-  gv.list <- list(list())
+  #gv.list <- list(list())
+  #make list to store probabilities.
+  p_ko <- list()
   
   for (gene in genes){
     message("Processing ", gene)
@@ -236,10 +238,10 @@ RunMixscape <- function( object = NULL,
         pvec <- apply(X = dat, MARGIN = 2, FUN = Project, v2 = vec)
         
         #store pvec
-        gv<- melt(pvec)
-        gv$name <- nt.class.name
-        gv[intersect(rownames(gv), guide.cells),"name"] <- gene
-        gv.list[[gene]][[n.iter+1]] <- gv
+        #gv<- melt(pvec)
+        #gv$name <- nt.class.name
+        #gv[intersect(rownames(gv), guide.cells),"name"] <- gene
+        #gv.list[[gene]][[n.iter+1]] <- gv
         
         # define normal distributions mu & sd for guide and nt groups
         guide.norm <- DefineNormalMixscape(pvec[guide.cells])
@@ -289,71 +291,28 @@ RunMixscape <- function( object = NULL,
     #add global classifications of KO, NP and NT class
     object[[paste(new.class.name, ".global", sep = "")]] <- as.character(sapply(as.character(object[[new.class.name]][,1]), function(x) strsplit(x, ' (?=[^ ]+$)', perl=TRUE)[[1]][2]))
     object[[paste(new.class.name, ".global", sep = "")]][which(is.na(object[[paste(new.class.name, ".global", sep = "")]])),1] <- nt.class.name
-    
+    p_ko[[gene]] <- post.prob 
   }
+  #add posterior probabilities to seurat object as a meta data column.
+  names(p_ko) <- NULL
+  prob <- unlist(p_ko)
+  object <- AddMetaData(object, metadata = prob, col.name = "p_ko")
+  object$p_ko[names(which(is.na(object$p_ko)))] <- 0
   return(object)
 }
 
+#' Function to prepare data for Linear Discriminant Analysis.
 #' @param object An object of class Seurat.
-#' @param assay Assay to use.
-#' @param slot data slot to use.
-#' @param cut.off Absolute cut off value for selecting genes to use in PCA.
+#' @param de.assay Assay to use for selection of DE genes.
+#' @param pc.assay Assay to use for running Principle components analysis.
 #' @param labels Meta data column with target gene class labels.
 #' @param nt.label Name of non-targeting cell class.
-#' @param npcs Number of principle compontents to use.
-#' @param reduction Dimensionality reduction method to use.
+#' @param npcs Number of principle components to use.
 #' @param verbose Print progress bar.
 #' @export
 PrepLDA <- function( object,
-                     assay = "PRTB",
-                     slot = "scale.data",
-                     cut.off = 0.25,
-                     labels = "gene",
-                     nt.label = "NT",
-                     npcs = 10,
-                     reduction = "pca",
-                     verbose = TRUE
-  
-){
-  avg_perturb=AverageExpression(object = object,assays = assay, slot = slot)
-  
-  #0.25 cutoff is somewhat arbitrary
-  prtb_features <- rownames(which(abs(avg_perturb[[assay]])>cut.off,arr.ind = T))
-  VariableFeatures(object[[assay]]) <- prtb_features
-  
-  projected_pcs <- list()
-  gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
-  
-  for(g in gene_list) {
-    
-    if (verbose){
-      print(g)
-    }
-    
-    Idents(object) <- labels
-    gene_subset <- subset(object, idents =c(g,nt.label))
-    DefaultAssay(gene_subset) <- assay
-    gene_subset <- ScaleData(gene_subset,verbose = F,do.scale = F, do.center = T) %>% RunPCA(npcs = npcs ,verbose = F)
-    
-    project_pca=ProjectCellEmbeddings(reference = gene_subset,query = object ,reference.assay = assay ,query.assay = assay,dims = 1:npcs,verbose = F)
-   
-    colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
-    projected_pcs[[g]] <- project_pca
-  }
-  return(projected_pcs)
-}
-
-#' @param object An object of class Seurat.
-#' @param assay Assay to use.
-#' @param labels Meta data column with target gene class labels.
-#' @param nt.label Name of non-targeting cell class.
-#' @param npcs Number of principle compontents to use.
-#' @param reduction Dimensionality reduction method to use.
-#' @param verbose Print progress bar.
-#' @export
-PrepLDA2 <- function( object,
-                      features = NULL,
-                      assay = "PRTB",
+                      de.assay = "RNA",
+                      pc.assay = "PRTB",
                       labels = "gene",
                       nt.label = "NT",
                       npcs = 10,
@@ -361,30 +320,37 @@ PrepLDA2 <- function( object,
 ){
   projected_pcs <- list()
   gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
-  features <- features %||% rownames(object[[assay]])
-  VariableFeatures(object[[assay]]) <- features
-  object <- ScaleData(object,assay = assay,do.scale = F,do.center = T)
+  features <- rownames(object[[de.assay]])
+  VariableFeatures(object[[de.assay]]) <- features
+  object <- ScaleData(object ,assay = de.assay, do.scale = T, do.center = T)
   Idents(object) <- labels
   for(g in gene_list) {
     if (verbose){
       print(g)
     }
     gene_subset <- subset(object, idents =c(g,nt.label))
-    DefaultAssay(gene_subset) <- assay
-    gene_set <- TopDEGenesMixscape(object = gene_subset,ident.1 = g, de.assay = assay, pval.cutoff = 0.2, labels = labels)
+    gene_set <- TopDEGenesMixscape(object = gene_subset, ident.1 = g, de.assay = de.assay, pval.cutoff = 0.05, labels = labels)
     if (length(gene_set) < npcs) {
       next;
     }
-    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set)
-    project_pca <- t(object[["PRTB"]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
+    DefaultAssay(gene_subset) <- pc.assay
+    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set, assay = pc.assay)
+    project_pca <- t(object[[pc.assay]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
     colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
     projected_pcs[[g]] <- project_pca
   }
   return(projected_pcs)
 }
 
+#' Function to perform Linear Discriminant Analysis. 
+#' @param object An object of class Seurat.
+#' @param labels Meta data column with target gene class labels.
+#' @param assay Assay to use for performing Linear Discriminant Analysis (LDA).
 #' @param features Features to compute LDA on
-#'
+#' @param ndims.print Number of LDA dimensions to print.
+#' @param nfeatures.print Number of features to print for each LDA component.
+#' @param reduction.key Reduction key name.
+#' @param seed.use Set to 42 for reproducibility.
 #' @rdname RunLDA
 #' @export
 #' @method RunLDA Assay
@@ -421,7 +387,15 @@ RunLDA.Assay <- function(
 }
 
 #' @param reduction.name dimensional reduction name,  lda by default
-#'
+#' @param object An object of class Seurat.
+#' @param labels Meta data column with target gene class labels.
+#' @param assay Assay to use for performing Linear Discriminant Analysis (LDA).
+#' @param features Features to compute LDA on
+#' @param ndims.print Number of LDA dimensions to print.
+#' @param nfeatures.print Number of features to print for each LDA component.
+#' @param reduction.key Reduction key name.
+#' @param seed.use Set to 42 for reproducibility.
+#' @param project
 #' @rdname RunLDA
 #' @export
 #' @method RunLDA Seurat
@@ -523,23 +497,23 @@ RunLDA.default <- function(
   return(reduction.data)
 }
 
-#' DE and EnrichR pathway visualization plot
-#' 
-#' @inheritParams FindMarkers
+#' DE and EnrichR pathway visualization barplot
+#' @param object Name of object class Seurat.
+#' @param ident.1 Cell class identity 1.
+#' @param ident.2 Cell class identity 2. 
+#' @param balanced Option to display pathway enrichments for both negative and positive DE genes.If false, only positive DE gene will be displayed.
+#' @param logfc.threshold Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells. Default is 0.25 Increasing logfc.threshold speeds up the function, but can miss weaker signals.
+#' @param assay Assay to use for differential expression analysis.
+#' @param max.genes Maximun number of genes to use as input to enrichR.
+#' @param test.use Denotes which test to use for differential expression. options include: same options as in FindMarkers function.
+#' @param p.val.cutoff Cutoff to select DE genes.
+#' @param cols A list of colors to use for barplots.
+#' @param enirch.database Database to use from enrichR.
+#' @param num.pathway Number of pathways to display in barplot.
+#' @import enrichR
 #' @importFrom ggplot2
 #' @importFrom enrichR
-#' @param object Name of object class Seurat
-#' @param ident.1
-#' @param ident.2
-#' @param balanced
-#' @param logfc.threshold
-#' @param assay
-#' @param max.genes
-#' @param test.use
-#' @param p.val.cutoff
-#' @param cols
-#' @param enirch.database
-#' @param num.pathway
+#' @inheritParams FindMarkers
 #' @export
 
 DEenrichRPlot <- function(
