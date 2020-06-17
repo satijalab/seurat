@@ -496,6 +496,28 @@ RunLDA.default <- function(
   return(reduction.data)
 }
 
+MixscapeLDA <- function(
+  object,
+  assay = NULL,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed.use = 42,
+  pc.assay = "PRTB",
+  labels = "gene",
+  nt.label = "NT",
+  npcs = 10,
+  verbose = TRUE,
+  logfc.threshold = 0.25
+  
+) {
+  projected_pcs <- PrepLDA(object = object, de.assay = assay, pc.assay = pc.assay, labels = labels, nt.label = nt.label, npcs = npcs , verbose = verbose)
+  lda.lables <- object[[labels]][,]
+  object_lda <- RunLDA.default(object = projected_pcs, labels = lda.lables, assay = assay, verbose = verbose)
+  object[["lda"]] <- object_lda
+  return(object)
+}
+
 #' DE and EnrichR pathway visualization barplot
 #' @param object Name of object class Seurat.
 #' @param ident.1 Cell class identity 1.
