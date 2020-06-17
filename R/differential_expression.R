@@ -671,7 +671,7 @@ FindMarkers.default <- function(
   )
   if (is.null(x = reduction)) {
     diff.col <- ifelse(
-      test = slot == "scale.data" || test.use == 'roc',
+      test = slot == "scale.data",
       yes = "avg_diff",
       no = "avg_logFC"
     )
@@ -1572,7 +1572,7 @@ WilcoxDETest <- function(
   } else {
     if (getOption('Seurat.limma.wilcox.msg', TRUE) && overflow.check) {
       message(
-        "For a more efficient implementation of the Wilcoxon Rank Sum Test,", 
+        "For a more efficient implementation of the Wilcoxon Rank Sum Test,",
         "\n(default method for FindMarkers) please install the limma package",
         "\n--------------------------------------------",
         "\ninstall.packages('BiocManager')",
