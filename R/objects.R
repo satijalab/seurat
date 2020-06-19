@@ -873,7 +873,7 @@ CreateSeuratObject.Assay <- function(
     }
     if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
       warning("Some cells in meta.data not present in provided counts matrix.")
-      meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
+      meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), , drop = FALSE]
     }
     if (is.data.frame(x = meta.data)) {
       new.meta.data <- data.frame(row.names = colnames(x = counts))
