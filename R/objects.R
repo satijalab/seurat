@@ -745,7 +745,7 @@ CreateDimReducObject <- function(
 #' pbmc_small <- CreateSeuratObject(counts = pbmc_raw)
 #' pbmc_small
 #'
-CreateSeuratObject <- function(
+createSeuratObject <- function(
   counts,
   project = 'SeuratProject',
   assay = 'RNA',
@@ -812,6 +812,116 @@ CreateSeuratObject <- function(
     names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
     object[[names(x = n.calc)]] <- n.calc
   }
+  if (!is.null(x = meta.data)) {
+    object <- AddMetaData(object = object, metadata = meta.data)
+  }
+  return(object)
+}
+
+#' @inheritParams CreateAssayObject
+#'
+#' @rdname CreateSeuratObject
+#' @method CreateSeuratObject default
+#' @export
+#'
+CreateSeuratObject.default <- function(
+  counts,
+  project = 'SeuratProject',
+  assay = 'RNA',
+  names.field = 1,
+  names.delim = '_',
+  meta.data = NULL,
+  min.cells = 0,
+  min.features = 0,
+  ...
+) {
+  assay.data <- CreateAssayObject(
+    counts = counts,
+    min.cells = min.cells,
+    min.features = min.features
+  )
+  Key(object = assay.data) <- suppressWarnings(expr = UpdateKey(key = tolower(
+    x = assay
+  )))
+  return(CreateSeuratObject(
+    counts = assay.data,
+    project = project,
+    assay = assay,
+    names.field = names.field,
+    names.delim = names.delim,
+    meta.data = meta.data,
+    ...
+  ))
+}
+
+#' @rdname CreateSeuratObject
+#' @method CreateSeuratObject Assay
+#' @export
+#'
+CreateSeuratObject.Assay <- function(
+  counts,
+  project = 'SeuratProject',
+  assay = 'RNA',
+  names.field = 1,
+  names.delim = '_',
+  meta.data = NULL,
+  ...
+) {
+  if (!is.null(x = meta.data)) {
+    if (is.null(x = rownames(x = meta.data))) {
+      stop("Row names not set in metadata. Please ensure that rownames of metadata match column names of data matrix")
+    }
+    if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
+      warning("Some cells in meta.data not present in provided counts matrix.")
+      meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
+    }
+    if (is.data.frame(x = meta.data)) {
+      new.meta.data <- data.frame(row.names = colnames(x = counts))
+      for (ii in 1:ncol(x = meta.data)) {
+        new.meta.data[rownames(x = meta.data), colnames(x = meta.data)[ii]] <- meta.data[, ii, drop = FALSE]
+      }
+      meta.data <- new.meta.data
+    }
+  }
+  assay.list <- list(counts)
+  names(x = assay.list) <- assay
+  # Set idents
+  idents <- factor(x = unlist(x = lapply(
+    X = colnames(x = counts),
+    FUN = ExtractField,
+    field = names.field,
+    delim = names.delim
+  )))
+  if (any(is.na(x = idents))) {
+    warning(
+      "Input parameters result in NA values for initial cell identities. Setting all initial idents to the project name",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  # if there are more than 100 idents, set all idents to ... name
+  ident.levels <- length(x = unique(x = idents))
+  if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
+    idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
+  }
+  names(x = idents) <- colnames(x = counts)
+  object <- new(
+    Class = 'Seurat',
+    assays = assay.list,
+    meta.data = data.frame(row.names = colnames(x = counts)),
+    active.assay = assay,
+    active.ident = idents,
+    project.name = project,
+    version = packageVersion(pkg = 'Seurat')
+  )
+  object[['orig.ident']] <- idents
+  # Calculate nCount and nFeature
+  n.calc <- CalcN(object = counts)
+  if (!is.null(x = n.calc)) {
+    names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+    object[[names(x = n.calc)]] <- n.calc
+  }
+  # Add metadata
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -6910,7 +7020,7 @@ Projected <- function(object) {
 }
 
 # Subset cells in vst data
-# @param sct.info A vst.out list 
+# @param sct.info A vst.out list
 # @param cells vector of cells to retain
 # @param features vector of features to retain
 SubsetVST <- function(sct.info, cells, features) {
