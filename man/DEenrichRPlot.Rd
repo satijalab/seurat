@@ -93,7 +93,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 \item{...}{Arguments passed to other methods and to specific DE methods}
 }
 \value{
-
+Returns one (only enriched) or two (both enriched and depleted) 
+barplots with the top enriched/depleted GO terms from EnrichR.
 }
 \description{
 DE and EnrichR pathway visualization barplot

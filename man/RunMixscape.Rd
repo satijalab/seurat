@@ -29,7 +29,8 @@ RunMixscape(
 
 \item{nt.class.name}{Classification name of non-targeting gRNA cells.}
 
-\item{new.class.name}{Name of mixscape classification to be stored in metadata.}
+\item{new.class.name}{Name of mixscape classification to be stored in 
+metadata.}
 
 \item{min.de.genes}{Required number of genes that are differentially 
 expressed for method to separate perturbed and non-perturbed cells.}

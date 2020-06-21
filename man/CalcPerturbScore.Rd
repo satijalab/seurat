@@ -2,7 +2,7 @@
 % Please edit documentation in R/mixscape.R
 \name{CalcPerturbScore}
 \alias{CalcPerturbScore}
-\title{Function to calculate perturbation score for pooled CRISPR screen datasets.}
+\title{Calculate a perturbation score}
 \usage{
 CalcPerturbScore(
   object,
@@ -28,7 +28,8 @@ CalcPerturbScore(
 
 \item{nt.cell.class}{Non-targeting gRNA cell classification identity.}
 
-\item{split.by}{Provide metadata column if multiple biological replicates exist to calculate PRTB score for every replicate separately.}
+\item{split.by}{Provide metadata column if multiple biological replicates 
+exist to calculate PRTB score for every replicate separately.}
 
 \item{num.neighbors}{Number of nearest neighbors to consider.}
 
@@ -39,8 +40,14 @@ CalcPerturbScore(
 \item{new.assay.name}{Name for the new assay.}
 }
 \value{
-
+Returns a Seurat object with a new assay added containing the 
+perturbation scores for all cells in the data slot.
 }
 \description{
-Function to calculate perturbation score for pooled CRISPR screen datasets.
+Function to calculate perturbation score for pooled CRISPR screen datasets. 
+For each target cell (expressing one target gRNA), we identified 20 cells 
+from the control pool (non-targeting cells) with the most similar mRNA 
+expression profiles. The perturbation score is calculated by substracting the 
+averaged mRNA expression profile of the non-targeting neighbors from the mRNA 
+expression profile of the target cell.
 }

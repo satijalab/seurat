@@ -6,20 +6,28 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#'  Function to calculate perturbation score for pooled CRISPR screen datasets. For each target cell (expressing one target gRNA), we identified 20 cells from the control pool (non-targeting cells) with the most similar mRNA expression profiles. The perturbation score is calculated by substracting the averaged mRNA expression profile of the non-targeting neighbors from the mRNA expression profile of the target cell.
-#'  
+#' Calculate a perturbation score
+#' 
+#' Function to calculate perturbation score for pooled CRISPR screen datasets. 
+#' For each target cell (expressing one target gRNA), we identified 20 cells 
+#' from the control pool (non-targeting cells) with the most similar mRNA 
+#' expression profiles. The perturbation score is calculated by substracting the 
+#' averaged mRNA expression profile of the non-targeting neighbors from the mRNA 
+#' expression profile of the target cell.
 #'  
 #' @param object An object of class Seurat.
 #' @param assay Name of Assay PRTB  signature is being calculated on.
 #' @param slot Data slot to use for PRTB score calculation.
 #' @param gd.class Metadata column containing target gene classification.
 #' @param nt.cell.class Non-targeting gRNA cell classification identity.
-#' @param split.by Provide metadata column if multiple biological replicates exist to calculate PRTB score for every replicate separately.
+#' @param split.by Provide metadata column if multiple biological replicates 
+#' exist to calculate PRTB score for every replicate separately.
 #' @param num.neighbors Number of nearest neighbors to consider.
 #' @param ndims Number of dimensions to use from dimensionality reduction method.
 #' @param reduction Reduction method used to calculate nearest neighbors.
 #' @param new.assay.name Name for the new assay.
-#' @return Returns a Seurat object with a new assay added containing the perturbation scores for all cells in the data slot.
+#' @return Returns a Seurat object with a new assay added containing the 
+#' perturbation scores for all cells in the data slot.
 #' 
 #' @importFrom RANN nn2
 #' @export
@@ -55,16 +63,17 @@ CalcPerturbScore <- function(
   all_diff <- matrix(nrow = length(x = rownames(x = GetAssayData(object = object, assay = assay, slot = slot))), ncol = 0)
   for (r in replicate) {
     rep1 <- object[, WhichCells(object = object, idents = r)]
-    #isolate nt cells
+    # isolate nt cells
     all_cells <- Cells(x = rep1)
     nt_cells <- Cells(x = rep1[, grep(pattern = nt.cell.class, x = rep1[[]][, gd.class], value = FALSE)])
-    #subset the objects based on guide ID
+    # subset the objects based on guide ID
     all <- rep1[, all_cells]
     nt <- rep1[, nt_cells]
-    #get pca cell embeddings
+    # get pca cell embeddings
     all_mtx <- Embeddings(object = all, reduction = reduction)
     nt_mtx <- Embeddings(object = nt, reduction = reduction)
-    #run nn2 to find the 20 nearest NT neighbors for all cells. Use the same number of PCs as the ones you used for umap
+    # run nn2 to find the 20 nearest NT neighbors for all cells. Use the same 
+    # number of PCs as the ones you used for umap
     mtx <- nn2(
       data = nt_mtx[, 1:ndims], 
       query = all_mtx[, 1:ndims], 
@@ -106,7 +115,8 @@ CalcPerturbScore <- function(
 #' @param num.pathway Number of pathways to display in barplot.
 #' @param return.gene.list Return list of DE genes
 #' 
-#' @return Returns one (only enriched) or two (both enriched and depleted) barplots with the top enriched/depleted GO terms from EnrichR. 
+#' @return Returns one (only enriched) or two (both enriched and depleted) 
+#' barplots with the top enriched/depleted GO terms from EnrichR. 
 #' 
 #' @importFrom ggplot2 ggplot geom_bar coord_flip scale_fill_manual ylab ggtitle
 #' theme_classic theme element_text 
@@ -206,13 +216,15 @@ DEenrichRPlot <- function(
 }
 
 #' Function to identify perturbed and non-perturbed gRNA expressing cells.
+#' 
 #' @inheritParams FindMarkers
 #' @param object An object of class Seurat.
 #' @param assay Assay to use for mixscape classification.
 #' @param slot Assay data slot to use.
 #' @param labels metadata column with target gene classifications.
 #' @param nt.class.name Classification name of non-targeting gRNA cells.
-#' @param new.class.name Name of mixscape classification to be stored in metadata.
+#' @param new.class.name Name of mixscape classification to be stored in 
+#' metadata.
 #' @param min.de.genes Required number of genes that are differentially 
 #' expressed for method to separate perturbed and non-perturbed cells. 
 #' @param de.assay Assay to use when performing differential expression analysis. 
@@ -220,11 +232,15 @@ DEenrichRPlot <- function(
 #' @param iter.num Number of normalmixEM iterations to run if convergence does 
 #' not occur.
 #' @param verbose Display messages
-#' @return Returns Seurat object with with the followin information in the meta data:
+#' @return Returns Seurat object with with the following information in the 
+#' meta data:
 #' \describe{
-#'   \item{mixscape_class}{{Classification result with cells  being either classified as perturbed (KO) or non-perturbed (NP) based on their target gene class.}
+#'   \item{mixscape_class}{{Classification result with cells being either 
+#'   classified as perturbed (KO) or non-perturbed (NP) based on their target 
+#'   gene class.}
 #'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
-#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO (>0.5) or NP}
+#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
+#'   (>0.5) or NP}
 #' }
 #' 
 #' @export
@@ -257,9 +273,9 @@ RunMixscape <- function(
   if (is.null(x = labels)) {
     stop("Please specify target gene class metadata name")
   }
-  #de marker genes
+  # de marker genes
   prtb_markers <- c()
-  #new metadata column for mixscape classification
+  # new metadata column for mixscape classification
   object[[new.class.name]] <- object[[labels]]
   object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
   genes <- setdiff(
