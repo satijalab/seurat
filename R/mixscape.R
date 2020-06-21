@@ -19,8 +19,8 @@ NULL
 #' @param ndims Number of dimensions to use from dimensionality reduction method.
 #' @param reduction Reduction method used to calculate nearest neighbors.
 #' @param new.assay.name Name for the new assay.
-#' @return 
-#'  
+#' @return Returns a Seurat object with a new assay added containing the perturbation scores for all cells in the data slot.
+#' 
 #' @importFrom RANN nn2
 #' @export
 #' 
@@ -106,7 +106,7 @@ CalcPerturbScore <- function(
 #' @param num.pathway Number of pathways to display in barplot.
 #' @param return.gene.list Return list of DE genes
 #' 
-#' @return 
+#' @return Returns one (only enriched) or two (both enriched and depleted) barplots with the top enriched/depleted GO terms from EnrichR. 
 #' 
 #' @importFrom ggplot2 ggplot geom_bar coord_flip scale_fill_manual ylab ggtitle
 #' theme_classic theme element_text 
@@ -220,7 +220,12 @@ DEenrichRPlot <- function(
 #' @param iter.num Number of normalmixEM iterations to run if convergence does 
 #' not occur.
 #' @param verbose Display messages
-#' @return 
+#' @return Returns Seurat object with with the followin information in the meta data:
+#' \describe{
+#'   \item{mixscape_class}{{Classification result with cells  being either classified as perturbed (KO) or non-perturbed (NP) based on their target gene class.}
+#'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
+#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO (>0.5) or NP}
+#' }
 #' 
 #' @export
 #' 
