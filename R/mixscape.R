@@ -6,7 +6,7 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#'  Function to calculate perturbation score for pooled CRISPR screen datasets.
+#'  Function to calculate perturbation score for pooled CRISPR screen datasets. For each target cell (expressing one target gRNA), we identified 20 cells from the control pool (non-targeting cells) with the most similar mRNA expression profiles. The perturbation score is calculated by substracting the averaged mRNA expression profile of the non-targeting neighbors from the mRNA expression profile of the target cell.
 #'  
 #'  
 #' @param object An object of class Seurat.
