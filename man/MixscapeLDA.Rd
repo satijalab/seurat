@@ -2,7 +2,7 @@
 % Please edit documentation in R/mixscape.R
 \name{MixscapeLDA}
 \alias{MixscapeLDA}
-\title{Title}
+\title{Linear discriminant analysis on pooled CRISPR screen data.}
 \usage{
 MixscapeLDA(
   object,
@@ -47,8 +47,9 @@ X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 }
 \value{
-
+Returns a Seurat object with LDA added in the reduction slot.
 }
 \description{
-Description
+This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all 
+cells in the data. Finally, it uses the first 10 principle components from each projection as input to lda in MASS package together with mixscape class labels.
 }

@@ -47,7 +47,7 @@ perturbation scores for all cells in the data slot.
 Function to calculate perturbation score for pooled CRISPR screen datasets. 
 For each target cell (expressing one target gRNA), we identified 20 cells 
 from the control pool (non-targeting cells) with the most similar mRNA 
-expression profiles. The perturbation score is calculated by substracting the 
+expression profiles. The perturbation score is calculated by subtracting the 
 averaged mRNA expression profile of the non-targeting neighbors from the mRNA 
 expression profile of the target cell.
 }

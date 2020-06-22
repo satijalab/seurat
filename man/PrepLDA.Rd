@@ -35,8 +35,9 @@ X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 }
 \value{
-
+Returns a list of the first 10 PCs from each projection.
 }
 \description{
-Description
+This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all 
+cells in the data.
 }
