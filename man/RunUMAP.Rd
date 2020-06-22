@@ -11,6 +11,7 @@ RunUMAP(object, ...)
 
 \method{RunUMAP}{default}(
   object,
+  reduction.model = NULL,
   assay = NULL,
   umap.method = "uwot",
   n.neighbors = 30L,
@@ -59,6 +60,7 @@ RunUMAP(object, ...)
 
 \method{RunUMAP}{Seurat}(
   object,
+  reduction.model = NULL,
   dims = NULL,
   reduction = "pca",
   features = NULL,
@@ -93,12 +95,15 @@ RunUMAP(object, ...)
 
 \item{...}{Arguments passed to other methods and UMAP}
 
+\item{reduction.model}{\code{DimReduc} object that contains the umap model}
+
 \item{assay}{Assay to pull data for when using \code{features}, or assay used to construct Graph
 if running UMAP on a Graph}
 
 \item{umap.method}{UMAP implementation to run. Can be
 \describe{
   \item{\code{uwot}:}{Runs umap via the uwot R package}
+  \item{\code{uwot-learn}:}{Runs umap via the uwot R package and return the learned umap model}
   \item{\code{umap-learn}:}{Run the Seurat wrapper of the python umap-learn package}
 }}
 

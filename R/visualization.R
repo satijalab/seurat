@@ -346,11 +346,13 @@ DoHeatmap <- function(
       y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
       y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
       y.max <- y.pos + group.bar.height * y.range
+      x.min <- min(pbuild$layout$panel_params[[1]]$x.range) + 0.1
+      x.max <- max(pbuild$layout$panel_params[[1]]$x.range) - 0.1
       plot <- plot +
         annotation_raster(
           raster = t(x = cols[group.use2]),
-          xmin = -Inf,
-          xmax = Inf,
+          xmin = x.min,
+          xmax = x.max,
           ymin = y.pos,
           ymax = y.max
         ) +
@@ -359,9 +361,15 @@ DoHeatmap <- function(
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
-        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% pbuild$layout$panel_params[[1]]$x$break_positions()
+        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% attr(x = pbuild$layout$panel_params[[1]]$x$get_breaks(), which = "pos")
         x <- data.frame(group = sort(x = group.use), x = x.divs)
-        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
+        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = function(y) {
+          if (isTRUE(x = draw.lines)) {
+            mean(x = y[-length(x = y)])
+          } else {
+            mean(x = y)
+          }
+        })
         label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
         plot <- plot + geom_text(
           stat = "identity",
@@ -526,8 +534,8 @@ RidgePlot <- function(
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
 #' @param split.by A variable to split the violin plots by,
-#' @param multi.group  plot each group of the split violin plots by multiple or single violin shapes
-#' see \code{\link{FetchData}} for more details
+#' @param split.plot  plot each group of the split violin plots by multiple or
+#' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -557,12 +565,25 @@ VlnPlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = 'data',
-  multi.group = FALSE,
+  split.plot = FALSE,
   combine = TRUE
 ) {
+  if (
+    !is.null(x = split.by) &
+    getOption(x = 'Seurat.warn.vlnplot.split', default = TRUE)
+  ) {
+    message(
+      "The default behaviour of split.by has changed.\n",
+      "Separate violin plots are now plotted side-by-side.\n",
+      "To restore the old behaviour of a single split violin,\n",
+      "set split.plot = TRUE.
+      \nThis message will be shown once per session."
+    )
+    options(Seurat.warn.vlnplot.split = FALSE)
+  }
   return(ExIPlot(
     object = object,
-    type = ifelse(test = multi.group, yes = 'multiViolin', no = 'violin'),
+    type = ifelse(test = split.plot, yes = 'splitViolin', no = 'violin'),
     features = features,
     idents = idents,
     ncol = ncol,
@@ -1081,8 +1102,8 @@ FeaturePlot <- function(
   } else {
     switch(
       EXPR = split.by,
-      ident = Idents(object = object)[cells],
-      object[[split.by, drop = TRUE]][cells]
+      ident = Idents(object = object)[cells, drop = TRUE],
+      object[[split.by, drop = TRUE]][cells, drop = TRUE]
     )
   }
   if (!is.factor(x = data$split)) {
@@ -1666,10 +1687,13 @@ CellScatter <- function(
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
+#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom patchwork wrap_plots
+#'
 #' @export
 #'
 #' @aliases GenePlot
@@ -1688,28 +1712,51 @@ FeatureScatter <- function(
   shape.by = NULL,
   span = NULL,
   smooth = FALSE,
+  combine = TRUE,
   slot = 'data'
 ) {
   cells <- cells %||% colnames(x = object)
-  group.by <- group.by %||% Idents(object = object)[cells]
-  if (length(x = group.by) == 1) {
-    group.by <- object[[]][, group.by]
-  }
-  plot <- SingleCorPlot(
-    data = FetchData(
-      object = object,
-      vars = c(feature1, feature2),
-      cells = cells,
-      slot = slot
-    ),
-    col.by = group.by,
-    cols = cols,
-    pt.size = pt.size,
-    smooth = smooth,
-    legend.title = 'Identity',
-    span = span
+  object[['ident']] <- Idents(object = object)
+  group.by <- group.by %||% 'ident'
+  data <-  FetchData(
+    object = object,
+    vars = c(feature1, feature2, group.by),
+    cells = cells,
+    slot = slot
   )
-  return(plot)
+  if (isFALSE(x = feature1 %in% colnames(x = data))) {
+    stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
+  }
+  if (isFALSE(x = feature2 %in% colnames(x = data))) {
+    stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
+  }
+  data <- as.data.frame(x = data)
+  for (group in group.by) {
+    if (!is.factor(x = data[, group])) {
+      data[, group] <- factor(x = data[, group])
+    }
+  }
+  plots <- lapply(
+    X = group.by,
+    FUN = function(x) {
+      SingleCorPlot(
+        data = data[,c(feature1, feature2)],
+        col.by = data[, x],
+        cols = cols,
+        pt.size = pt.size,
+        smooth = smooth,
+        legend.title = 'Identity',
+        span = span
+      )
+    }
+  )
+  if (isTRUE(x = length(x = plots) == 1)) {
+    return(plots[[1]])
+  }
+  if (isTRUE(x = combine)) {
+    plots <- wrap_plots(plots, ncol = length(x = group.by))
+  }
+  return(plots)
 }
 
 #' View variable features
@@ -2104,6 +2151,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' (default is 0). All cell groups with less than this expressing the given
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
+#' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
 #' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
@@ -2138,6 +2186,7 @@ DotPlot <- function(
   col.max = 2.5,
   dot.min = 0,
   dot.scale = 6,
+  idents = NULL,
   group.by = NULL,
   split.by = NULL,
   scale = TRUE,
@@ -2153,11 +2202,12 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  data.features <- FetchData(object = object, vars = features)
+  cells <- unlist(CellsByIdentities(object = object, idents = idents))
+  data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
-    Idents(object = object)
+    Idents(object = object)[cells, drop = TRUE]
   } else {
-    object[[group.by, drop = TRUE]]
+    object[[group.by, drop = TRUE]][cells, drop = TRUE]
   }
   if (!is.factor(x = data.features$id)) {
     data.features$id <- factor(x = data.features$id)
@@ -2165,9 +2215,9 @@ DotPlot <- function(
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- object[[split.by, drop = TRUE]]
+    splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
     if (length(x = unique(x = splits)) > length(x = cols)) {
-      stop("Not enought colors for the number of groups")
+      stop("Not enough colors for the number of groups")
     }
     cols <- cols[1:length(x = unique(x = splits))]
     names(x = cols) <- unique(x = splits)
@@ -2221,9 +2271,9 @@ DotPlot <- function(
         return(data.use)
       }
     )
-   
 
-  
+
+
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
   if (!is.null(x = split.by)) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
@@ -2237,10 +2287,16 @@ DotPlot <- function(
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (!is.null(x = split.by)) {
     splits.use <- vapply(
-      X = strsplit(x = as.character(x = data.plot$id), split = '_'),
-      FUN = '[[',
+      X = as.character(x = data.plot$id),
+      FUN = gsub,
       FUN.VALUE = character(length = 1L),
-      2
+      pattern =  paste0(
+        '^((',
+        paste(sort(x = levels(x = object), decreasing = TRUE), collapse = '|'),
+        ')_)'
+      ),
+      replacement = '',
+      USE.NAMES = FALSE
     )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
@@ -3751,7 +3807,7 @@ BlendMap <- function(color.matrix) {
 #
 # @return An n x n matrix of blended colors
 #
-#' @importFrom grDevices rgb colorRamp
+#' @importFrom grDevices col2rgb
 #
 BlendMatrix <- function(
   n = 10,
@@ -3762,10 +3818,13 @@ BlendMatrix <- function(
   if (0 > col.threshold || col.threshold > 1) {
     stop("col.threshold must be between 0 and 1")
   }
-  C0 <- colorRamp(colors = negative.color)(1)
-  ramp <- colorRamp(colors = two.colors)
-  C1 <- ramp(x = 0)
-  C2 <- ramp(x = 1)
+  C0 <- as.vector(col2rgb(negative.color, alpha = TRUE))
+  C1 <- as.vector(col2rgb(two.colors[1], alpha = TRUE))
+  C2 <- as.vector(col2rgb(two.colors[2], alpha = TRUE))
+  blend_alpha <- (C1[4] + C2[4])/2
+  C0 <- C0[-4]
+  C1 <- C1[-4]
+  C2 <- C2[-4]
   merge.weight <- min(255 / (C1 + C2 +  C0 + 0.01))
   sigmoid <- function(x) {
     return(1 / (1 + exp(-x)))
@@ -3778,6 +3837,7 @@ BlendMatrix <- function(
     C0,
     C1,
     C2,
+    alpha,
     merge.weight
   ) {
     c.min <- sigmoid(5 * (1 / n - col.threshold))
@@ -3798,10 +3858,10 @@ BlendMatrix <- function(
     C_blend[C_blend > 255] <- 255
     C_blend[C_blend < 0] <- 0
     return(rgb(
-      red = C_blend[, 1],
-      green = C_blend[, 2],
-      blue = C_blend[, 3],
-      alpha = 255,
+      red = C_blend[1],
+      green = C_blend[2],
+      blue = C_blend[3],
+      alpha = alpha,
       maxColorValue = 255
     ))
   }
@@ -3816,6 +3876,7 @@ BlendMatrix <- function(
         C0 = C0,
         C1 = C1,
         C2 = C2,
+        alpha = blend_alpha,
         merge.weight = merge.weight
       )
     }
@@ -3914,7 +3975,7 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # Basically combines the codebase for VlnPlot and RidgePlot
 #
 # @param object Seurat object
-# @param type Plot type, choose from 'ridge', 'violin', or 'multiViolin'
+# @param type Plot type, choose from 'ridge', 'violin', or 'splitViolin'
 # @param features Features to plot (gene expression, metrics, PC scores,
 # anything that can be retreived by FetchData)
 # @param idents Which classes to include in the plot (default is all)
@@ -4002,6 +4063,10 @@ ExIPlot <- function(
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
     names(x = cols) <- sort(x = levels(x = split))
+    if ((length(x = cols) > 2) & (type == "splitViolin")) {
+      warning("Split violin is only supported for <3 groups, using multi-violin.")
+      type <- "violin"
+    }
   }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
@@ -4026,7 +4091,7 @@ ExIPlot <- function(
   label.fxn <- switch(
     EXPR = type,
     'violin' = ylab,
-    "multiViolin" = ylab,
+    "splitViolin" = ylab,
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -4984,11 +5049,11 @@ SingleExIPlot <- function(
   y.max <- y.max %||% max(data[, feature][is.finite(x = data[, feature])])
   if (type == 'violin' && !is.null(x = split)) {
     data$split <- split
-    vln.geom <- geom_split_violin
-    fill <- 'split'
-  } else if (type == 'multiViolin' && !is.null(x = split )) {
-    data$split <- split
     vln.geom <- geom_violin
+    fill <- 'split'
+  } else if (type == 'splitViolin' && !is.null(x = split )) {
+    data$split <- split
+    vln.geom <- geom_split_violin
     fill <- 'split'
     type <- 'violin'
   } else {
@@ -5010,7 +5075,7 @@ SingleExIPlot <- function(
         jitter <- geom_jitter(height = 0, size = pt.size)
       } else {
         jitter <- geom_jitter(
-          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9), 
+          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
           size = pt.size
         )
       }

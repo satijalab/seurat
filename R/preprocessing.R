@@ -539,24 +539,29 @@ GetResidual <- function(
       vst_out <- vst.set[[v]]
       # confirm that cells from SCT model also exist in the integrated object
       cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
-      vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
-      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
-      object.v <- subset(x = object, cells = cells.v)
-
-      object.v <- GetResidualVstOut(
-        object = object.v,
-        assay = assay,
-        umi.assay = umi.assay[[v]],
-        new_features = new_features,
-        vst_out = vst_out,
-        clip.range = clip.range,
-        verbose = verbose
-      )
-      new.scale.data <- cbind(
-        new.scale.data,
-        GetAssayData(object = object.v, assay = assay, slot ="scale.data" )[new_features, , drop = FALSE]
-      )
+      if (length(x = cells.v) != 0) {
+        vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
+        vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
+        object.v <- subset(x = object, cells = cells.v)
+        object.v <- GetResidualVstOut(
+          object = object.v,
+          assay = assay,
+          umi.assay = umi.assay[[v]],
+          new_features = new_features,
+          vst_out = vst_out,
+          clip.range = clip.range,
+          verbose = verbose
+        )
+        new.scale.data <- cbind(
+          new.scale.data,
+          GetAssayData(
+            object = object.v,
+            assay = assay,
+            slot ="scale.data")[new_features, , drop = FALSE]
+        )
+      }
     }
+
     object <- SetAssayData(
       object = object,
       assay = assay,
@@ -832,6 +837,7 @@ ReadAlevin <- function(base.path) {
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #' @param unique.features Make feature names unique (default TRUE)
+#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -857,7 +863,12 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
+Read10X <- function(
+  data.dir = NULL,
+  gene.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+) {
   full.data <- list()
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
@@ -888,7 +899,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
-    if (all(grepl(pattern = "\\-1$", x = cell.names))) {
+    if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
         FUN = ExtractField,
@@ -1122,24 +1133,23 @@ SampleUMI <- function(
 ) {
   data <- as(object = data, Class = "dgCMatrix")
   if (length(x = max.umi) == 1) {
-    return(
-      RunUMISampling(
-        data = data,
-        sample_val = max.umi,
-        upsample = upsample,
-        display_progress = verbose
-      )
+    new_data <- RunUMISampling(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
     )
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
+  } else {
+    new_data <- RunUMISamplingPerCell(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
+    )
   }
-  new_data = RunUMISamplingPerCell(
-    data = data,
-    sample_val = max.umi,
-    upsample = upsample,
-    display_progress = verbose
-  )
-  dimnames(new_data) <- dimnames(data)
+  dimnames(x = new_data) <- dimnames(x = data)
   return(new_data)
 }
 
@@ -2139,10 +2149,10 @@ RunALRA.Seurat <- function(
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
+#' Setting this can help reduce the effects of features that are only expressed in
 #' a very small number of cells. If regressing out latent variables and using a
 #' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
+#' @param block.size Default size for number of features to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,

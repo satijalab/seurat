@@ -20,7 +20,7 @@ VlnPlot(
   log = FALSE,
   ncol = NULL,
   slot = "data",
-  multi.group = FALSE,
+  split.plot = FALSE,
   combine = TRUE
 )
 }
@@ -57,8 +57,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{slot}{Use non-normalized counts data for plotting}
 
-\item{multi.group}{plot each group of the split violin plots by multiple or single violin shapes
-see \code{\link{FetchData}} for more details}
+\item{split.plot}{plot each group of the split violin plots by multiple or
+single violin shapes.}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}

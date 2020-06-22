@@ -1172,8 +1172,7 @@ LocalStruct <- function(
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param verbose Displays progress bar
 #'
-#' @return Returns a vector of values representing the entropy metric from each
-#' bootstrapped iteration.
+#' @return Returns a vector of values of the mixing metric for each cell
 #'
 #' @importFrom RANN nn2
 #' @importFrom pbapply pbsapply
