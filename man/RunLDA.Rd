@@ -2,40 +2,12 @@
 % Please edit documentation in R/generics.R, R/mixscape.R
 \name{RunLDA}
 \alias{RunLDA}
+\alias{RunLDA.default}
 \alias{RunLDA.Assay}
 \alias{RunLDA.Seurat}
-\alias{RunLDA.default}
 \title{Run Linear Discriminant Analysis}
 \usage{
 RunLDA(object, ...)
-
-\method{RunLDA}{Assay}(
-  object,
-  labels,
-  assay = NULL,
-  features = NULL,
-  verbose = TRUE,
-  ndims.print = 1:5,
-  nfeatures.print = 30,
-  reduction.key = "LDA_",
-  seed.use = 42,
-  ...
-)
-
-\method{RunLDA}{Seurat}(
-  object,
-  labels,
-  assay = NULL,
-  features = NULL,
-  verbose = TRUE,
-  ndims.print = 1:5,
-  nfeatures.print = 30,
-  reduction.name = "lda",
-  reduction.key = "LDA_",
-  seed.use = 42,
-  project = TRUE,
-  ...
-)
 
 \method{RunLDA}{default}(
   object,
@@ -45,37 +17,60 @@ RunLDA(object, ...)
   ndims.print = 1:5,
   nfeatures.print = 30,
   reduction.key = "LDA_",
-  seed.use = 42,
+  seed = 42,
+  ...
+)
+
+\method{RunLDA}{Assay}(
+  object,
+  assay,
+  labels,
+  features = NULL,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed = 42,
+  ...
+)
+
+\method{RunLDA}{Seurat}(
+  object,
+  assay = NULL,
+  labels,
+  features = NULL,
+  reduction.name = "lda",
+  reduction.key = "LDA_",
+  seed = 42,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
   ...
 )
 }
 \arguments{
-\item{object}{Input values for LDA (numeric), with observations as rows}
+\item{object}{An object of class Seurat.}
 
 \item{...}{Arguments passed to other methods}
 
-\item{labels}{Observation labels for LDA}
+\item{labels}{Meta data column with target gene class labels.}
 
-\item{assay}{Name of Assay LDA is being run on}
-
-\item{features}{Features to compute LDA on}
+\item{assay}{Assay to use for performing Linear Discriminant Analysis (LDA).}
 
 \item{verbose}{Print the top genes associated with high/low loadings for
 the PCs}
 
-\item{ndims.print}{PCs to print genes for}
+\item{ndims.print}{Number of LDA dimensions to print.}
 
-\item{nfeatures.print}{Number of genes to print for each PC}
+\item{nfeatures.print}{Number of features to print for each LDA component.}
 
-\item{reduction.key}{dimensional reduction key, specifies the string before
-the number for the dimension names. LDA by default}
+\item{reduction.key}{Reduction key name.}
 
-\item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
-NULL will not set a seed.}
+\item{seed}{Value for random seed}
 
-\item{reduction.name}{dimensional reduction name,  lda by default}
+\item{features}{Features to compute LDA on}
 
-\item{project}{}
+\item{reduction.name}{dimensional reduction name, lda by default}
 }
 \description{
 Run Linear Discriminant Analysis

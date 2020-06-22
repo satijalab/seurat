@@ -215,6 +215,294 @@ DEenrichRPlot <- function(
   return(p)
 }
 
+#' Title
+#' 
+#' Description
+#' 
+#' @inheritParams PrepLDA
+#' @inheritParams RunLDA
+#' 
+#' @return 
+#' 
+#' @export
+#' 
+MixscapeLDA <- function(
+  object,
+  assay = NULL,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed = 42,
+  pc.assay = "PRTB",
+  labels = "gene",
+  nt.label = "NT",
+  npcs = 10,
+  verbose = TRUE,
+  logfc.threshold = 0.25
+) {
+  projected_pcs <- PrepLDA(
+    object = object, 
+    de.assay = assay, 
+    pc.assay = pc.assay, 
+    labels = labels, 
+    nt.label = nt.label, 
+    npcs = npcs , 
+    verbose = verbose
+  )
+  lda.lables <- object[[labels]][,]
+  object_lda <- RunLDA(
+    object = projected_pcs, 
+    labels = lda.lables, 
+    assay = assay, 
+    verbose = verbose
+  )
+  object[["lda"]] <- object_lda
+  return(object)
+}
+
+#' Function to prepare data for Linear Discriminant Analysis.
+#' 
+#' Description
+#' 
+#' @param object An object of class Seurat.
+#' @param de.assay Assay to use for selection of DE genes.
+#' @param pc.assay Assay to use for running Principle components analysis.
+#' @param labels Meta data column with target gene class labels.
+#' @param nt.label Name of non-targeting cell class.
+#' @param npcs Number of principle components to use.
+#' @param verbose Print progress bar.
+#' @inheritParams FindMarkers
+#' @return 
+#' 
+#' @export
+#' 
+PrepLDA <- function( 
+  object,
+  de.assay = "RNA",
+  pc.assay = "PRTB",
+  labels = "gene",
+  nt.label = "NT",
+  npcs = 10,
+  verbose = TRUE,
+  logfc.threshold = 0.25
+) {
+  projected_pcs <- list()
+  gene_list <- setdiff(x = unique(x = object[[labels]][, 1]), y = nt.label)
+  Idents(object = object) <- labels
+  for (g in gene_list) {
+    if (verbose) {
+      message(g)
+    }
+    gene_subset <- subset(x = object, idents = c(g, nt.label))
+    DefaultAssay(object = gene_subset) <- pc.assay
+    gene_set <- TopDEGenesMixscape(
+      object = gene_subset,
+      ident.1 = g,
+      de.assay = de.assay,
+      labels = labels,
+      logfc.threshold = logfc.threshold
+    )
+    if (length(x = gene_set) < (npcs + 1)) {
+      next
+    }
+    gene_subset <- ScaleData(
+      object = gene_subset, 
+      features = gene_set, 
+      verbose = FALSE
+    )
+    gene_subset <- RunPCA(
+      object = gene_subset,
+      features = gene_set,
+      npcs = npcs,
+      verbose = FALSE
+    )
+    project_pca <- ProjectCellEmbeddings(
+      reference = gene_subset,
+      query = object,
+      dims = 1:npcs
+    )
+    colnames(x = project_pca) <- paste(g, colnames(x = project_pca), sep = "_")
+    projected_pcs[[g]] <- project_pca
+  }
+  return(projected_pcs)
+}
+
+#' @param object Input values for LDA (numeric), with observations as rows
+#' @param labels Observation labels for LDA
+#' @param assay Name of Assay LDA is being run on
+#' @param ndims.print PCs to print genes for
+#' @param nfeatures.print Number of genes to print for each PC
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. LDA by default
+#' @param seed Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'
+#' @importFrom MASS lda
+#' @importFrom stats predict
+#'
+#' @rdname RunLDA
+#' @export
+#' @method RunLDA default
+#'
+RunLDA.default <- function(
+  object,
+  labels,
+  assay = NULL,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed = 42,
+  ...
+) {
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
+  object <- data.frame(object)
+  var_names <- colnames(x = object)
+  object$lda_cluster_label <- labels
+  lda_results <- lda(formula = lda_cluster_label ~ ., data = object)
+  lda_predictions <- predict(object = lda_results, newdata = object)
+  lda_cv <-lda(
+    formula = lda_cluster_label ~ ., 
+    data = object, 
+    CV = TRUE
+  )$posterior
+  feature.loadings <- lda_results$scaling
+  cell.embeddings <- lda_predictions$x
+  lda.assignments <- lda_predictions$class
+  lda.posterior <- lda_predictions$posterior
+  colnames(x = lda.posterior) <- paste0("LDAP_", colnames(x = lda.posterior))
+  rownames(x = feature.loadings) <- var_names
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  rownames(x = cell.embeddings) <- rownames(x = object)
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    key = reduction.key,
+    misc = list(
+      assignments = lda.assignments, 
+      posterior = lda.posterior, 
+      model = lda_results, 
+      cv = lda_cv
+    )
+  )
+  if (verbose) {
+    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+  }
+  return(reduction.data)
+}
+
+
+#' Function to perform Linear Discriminant Analysis. 
+#' 
+#' @param ndims.print Number of LDA dimensions to print.
+#' @param nfeatures.print Number of features to print for each LDA component.
+#' @param reduction.key Reduction key name.
+#' 
+#' @rdname RunLDA
+#' @export
+#' @method RunLDA Assay
+#'
+RunLDA.Assay <- function(
+  object,
+  assay,
+  labels,
+  features = NULL,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "LDA_",
+  seed = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunLDA(
+    object = t(x = data.use),
+    assay = assay,
+    labels = labels,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed = seed,
+    ...
+  )
+  return(reduction.data)
+}
+
+#' @param object An object of class Seurat.
+#' @param assay Assay to use for performing Linear Discriminant Analysis (LDA).
+#' @param labels Meta data column with target gene class labels.
+#' @param features Features to compute LDA on
+#' @param reduction.name dimensional reduction name, lda by default
+#' @param reduction.key Reduction key name.
+#' @param seed Value for random seed
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param ndims.print Number of LDA dimensions to print.
+#' @param nfeatures.print Number of features to print for each LDA component.
+#' 
+#' @rdname RunLDA
+#' @export
+#' @method RunLDA Seurat
+#'
+RunLDA.Seurat <- function(
+  object,
+  assay = NULL,
+  labels,
+  features = NULL,
+  reduction.name = "lda",
+  reduction.key = "LDA_",
+  seed = 42,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  reduction.data <- RunLDA(
+    object = assay.data,
+    labels = labels,
+    features = features,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed = seed,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object$lda.assignments <- slot(object = object[[reduction.name]], name = "misc")[["assignments"]]
+  object <- AddMetaData(
+    object = object,
+    metadata = as.data.frame(
+      x = slot(object = object[[reduction.name]], name = "misc")[["posterior"]]
+    )
+  )
+  object <- LogSeuratCommand(object = object)
+  object <- ProjectDim(
+    object = object,
+    reduction = reduction.name,
+    assay = assay,
+    verbose = verbose,
+    dims.print = ndims.print,
+    nfeatures.print = nfeatures.print
+  )
+  Loadings(object = object[[reduction.name]]) <- Loadings(
+    object = object[[reduction.name]], 
+    projected = TRUE
+  )
+  return(object)
+}
+
 #' Function to identify perturbed and non-perturbed gRNA expressing cells.
 #' 
 #' @inheritParams FindMarkers
@@ -235,7 +523,7 @@ DEenrichRPlot <- function(
 #' @return Returns Seurat object with with the following information in the 
 #' meta data:
 #' \describe{
-#'   \item{mixscape_class}{{Classification result with cells being either 
+#'   \item{mixscape_class}{Classification result with cells being either 
 #'   classified as perturbed (KO) or non-perturbed (NP) based on their target 
 #'   gene class.}
 #'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
@@ -446,201 +734,4 @@ TopDEGenesMixscape <- function(
     error = function(e) {}
   )
   return(rownames(x = de.genes))
-}
-
-
-#' Function to prepare data for Linear Discriminant Analysis.
-#' @param object An object of class Seurat.
-#' @param de.assay Assay to use for selection of DE genes.
-#' @param pc.assay Assay to use for running Principle components analysis.
-#' @param labels Meta data column with target gene class labels.
-#' @param nt.label Name of non-targeting cell class.
-#' @param npcs Number of principle components to use.
-#' @param verbose Print progress bar.
-#' @export
-PrepLDA <- function( object,
-                     de.assay = "RNA",
-                     pc.assay = "PRTB",
-                     labels = "gene",
-                     nt.label = "NT",
-                     npcs = 10,
-                     verbose = TRUE
-){
-  projected_pcs <- list()
-  gene_list <- setdiff(unique(object[[labels]][,1]),nt.label)
-  features <- rownames(object[[de.assay]])
-  VariableFeatures(object[[de.assay]]) <- features
-  object <- ScaleData(object ,assay = de.assay, do.scale = T, do.center = T)
-  Idents(object) <- labels
-  for(g in gene_list) {
-    if (verbose){
-      print(g)
-    }
-    gene_subset <- subset(object, idents =c(g,nt.label))
-    gene_set <- TopDEGenesMixscape(object = gene_subset, ident.1 = g, de.assay = de.assay, pval.cutoff = 0.05, labels = labels)
-    if (length(gene_set) < npcs) {
-      next;
-    }
-    DefaultAssay(gene_subset) <- pc.assay
-    gene_subset <- RunPCA(gene_subset, npcs = npcs ,verbose = F,features = gene_set, assay = pc.assay)
-    project_pca <- t(object[[pc.assay]]@scale.data[rownames(gene_subset[["pca"]]@feature.loadings),])%*%gene_subset[["pca"]]@feature.loadings
-    colnames(project_pca) <- paste(g,colnames(project_pca),sep="_")
-    projected_pcs[[g]] <- project_pca
-  }
-  return(projected_pcs)
-}
-
-#' Function to perform Linear Discriminant Analysis. 
-#' @param object An object of class Seurat.
-#' @param labels Meta data column with target gene class labels.
-#' @param assay Assay to use for performing Linear Discriminant Analysis (LDA).
-#' @param features Features to compute LDA on
-#' @param ndims.print Number of LDA dimensions to print.
-#' @param nfeatures.print Number of features to print for each LDA component.
-#' @param reduction.key Reduction key name.
-#' @param seed.use Set to 42 for reproducibility.
-#' @rdname RunLDA
-#' @export
-#' @method RunLDA Assay
-#'
-RunLDA.Assay <- function(
-  object,
-  labels,
-  assay = NULL,
-  features = NULL,
-  verbose = TRUE,
-  ndims.print = 1:5,
-  nfeatures.print = 30,
-  reduction.key = "LDA_",
-  seed.use = 42,
-  ...
-) {
-  data.use <- PrepDR(
-    object = object,
-    features = features,
-    verbose = verbose
-  )
-  reduction.data <- RunLDA.default(
-    object = t(data.use),
-    labels = labels,
-    assay = assay,
-    verbose = verbose,
-    ndims.print = ndims.print,
-    nfeatures.print = nfeatures.print,
-    reduction.key = reduction.key,
-    seed.use = seed.use,
-    ...
-  )
-  return(reduction.data)
-}
-
-#' @param reduction.name dimensional reduction name,  lda by default
-#' @param object An object of class Seurat.
-#' @param labels Meta data column with target gene class labels.
-#' @param assay Assay to use for performing Linear Discriminant Analysis (LDA).
-#' @param features Features to compute LDA on
-#' @param ndims.print Number of LDA dimensions to print.
-#' @param nfeatures.print Number of features to print for each LDA component.
-#' @param reduction.key Reduction key name.
-#' @param seed.use Set to 42 for reproducibility.
-#' @param project 
-#' @rdname RunLDA
-#' @export
-#' @method RunLDA Seurat
-#'
-RunLDA.Seurat <- function(
-  object,
-  labels,
-  assay = NULL,
-  features = NULL,
-  verbose = TRUE,
-  ndims.print = 1:5,
-  nfeatures.print = 30,
-  reduction.name = "lda",
-  reduction.key = "LDA_",
-  seed.use = 42,
-  project = TRUE,
-  ...
-) {
-  assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
-  reduction.data <- RunLDA.Assay(
-    object = assay.data,
-    assay = assay,
-    labels = labels,
-    features = features,
-    verbose = FALSE,
-    ndims.print = ndims.print,
-    nfeatures.print = nfeatures.print,
-    reduction.key = reduction.key,
-    seed.use = seed.use,
-    ...
-  )
-  object[[reduction.name]] <- reduction.data
-  object$lda.assignments <- slot(object = object[[reduction.name]], name = "misc")[["assignments"]]
-  object <- AddMetaData(object = object, metadata = as.data.frame(x = slot(object = object[[reduction.name]], name = "misc")[["posterior"]]))
-  object <- LogSeuratCommand(object = object)
-  object <- ProjectDim(object = object,reduction = reduction.name,assay = assay,verbose = verbose,dims.print = ndims.print,nfeatures.print = nfeatures.print)
-  object[[reduction.name]]@feature.loadings <- object[[reduction.name]]@feature.loadings.projected
-  return(object)
-}
-
-#' @param object Input values for LDA (numeric), with observations as rows
-#' @param labels Observation labels for LDA
-#' @param assay Name of Assay LDA is being run on
-#' @param verbose Print the top genes associated with high/low loadings for
-#' the PCs
-#' @param ndims.print PCs to print genes for
-#' @param nfeatures.print Number of genes to print for each PC
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. LDA by default
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
-#'
-#' @importFrom MASS lda
-#'
-#' @rdname RunLDA
-#' @export
-#'
-RunLDA.default <- function(
-  object,
-  labels,
-  assay = NULL,
-  verbose = TRUE,
-  ndims.print = 1:5,
-  nfeatures.print = 30,
-  reduction.key = "LDA_",
-  seed.use = 42,
-  ...
-) {
-  if (!is.null(x = seed.use)) {
-    set.seed(seed = seed.use)
-  }
-  object <- data.frame(object)
-  var_names <- colnames(object)
-  object$lda_cluster_label <- labels
-  lda_results <- lda(lda_cluster_label ~ ., object,)
-  lda_predictions <- predict(object = lda_results, newdata = object)
-  lda_cv <-lda(CV=TRUE ,lda_cluster_label ~ ., object,)$posterior
-  
-  feature.loadings <- lda_results$scaling
-  cell.embeddings <- lda_predictions$x
-  lda.assignments <- lda_predictions$class
-  lda.posterior <- lda_predictions$posterior
-  colnames(x = lda.posterior) <- paste0("LDAP_", colnames(x = lda.posterior))
-  rownames(x = feature.loadings) <- var_names
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
-  rownames(x = cell.embeddings) <- rownames(x = object)
-  colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
-  reduction.data <- CreateDimReducObject(
-    embeddings = cell.embeddings,
-    loadings = feature.loadings,
-    assay = assay,
-    key = reduction.key,
-    misc = list(assignments=lda.assignments, posterior = lda.posterior, model = lda_results, cv = lda_cv)
-  )
-  if (verbose) {
-    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
-  }
-  return(reduction.data)
 }

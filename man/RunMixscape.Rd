@@ -48,7 +48,16 @@ not occur.}
 \item{verbose}{Display messages}
 }
 \value{
-
+Returns Seurat object with with the following information in the 
+meta data:
+\describe{
+  \item{mixscape_class}{Classification result with cells being either 
+  classified as perturbed (KO) or non-perturbed (NP) based on their target 
+  gene class.}
+  \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
+  \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
+  (>0.5) or NP}
+}
 }
 \description{
 Function to identify perturbed and non-perturbed gRNA expressing cells.
