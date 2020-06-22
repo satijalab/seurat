@@ -346,11 +346,13 @@ DoHeatmap <- function(
       y.range <- diff(x = pbuild$layout$panel_params[[1]]$y.range)
       y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + y.range * 0.015
       y.max <- y.pos + group.bar.height * y.range
+      x.min <- min(pbuild$layout$panel_params[[1]]$x.range) + 0.1
+      x.max <- max(pbuild$layout$panel_params[[1]]$x.range) - 0.1
       plot <- plot +
         annotation_raster(
           raster = t(x = cols[group.use2]),
-          xmin = -Inf,
-          xmax = Inf,
+          xmin = x.min,
+          xmax = x.max,
           ymin = y.pos,
           ymax = y.max
         ) +
@@ -359,9 +361,15 @@ DoHeatmap <- function(
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
-        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% pbuild$layout$panel_params[[1]]$x$break_positions()
+        x.divs <- pbuild$layout$panel_params[[1]]$x.major %||% attr(x = pbuild$layout$panel_params[[1]]$x$get_breaks(), which = "pos")
         x <- data.frame(group = sort(x = group.use), x = x.divs)
-        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
+        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = function(y) {
+          if (isTRUE(x = draw.lines)) {
+            mean(x = y[-length(x = y)])
+          } else {
+            mean(x = y)
+          }
+        })
         label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
         plot <- plot + geom_text(
           stat = "identity",
@@ -1083,8 +1091,8 @@ FeaturePlot <- function(
   } else {
     switch(
       EXPR = split.by,
-      ident = Idents(object = object)[cells],
-      object[[split.by, drop = TRUE]][cells]
+      ident = Idents(object = object)[cells, drop = TRUE],
+      object[[split.by, drop = TRUE]][cells, drop = TRUE]
     )
   }
   if (!is.factor(x = data$split)) {
@@ -1444,6 +1452,7 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param plot.cor Display correlation in plot title
 #'
 #' @return A ggplot object
 #'
@@ -1909,6 +1918,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' (default is 0). All cell groups with less than this expressing the given
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
+#' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
 #' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
@@ -1943,6 +1953,7 @@ DotPlot <- function(
   col.max = 2.5,
   dot.min = 0,
   dot.scale = 6,
+  idents = NULL,
   group.by = NULL,
   split.by = NULL,
   scale = TRUE,
@@ -1958,11 +1969,12 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  data.features <- FetchData(object = object, vars = features)
+  cells <- unlist(CellsByIdentities(object = object, idents = idents))
+  data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
-    Idents(object = object)
+    Idents(object = object)[cells, drop = TRUE]
   } else {
-    object[[group.by, drop = TRUE]]
+    object[[group.by, drop = TRUE]][cells, drop = TRUE]
   }
   if (!is.factor(x = data.features$id)) {
     data.features$id <- factor(x = data.features$id)
@@ -1970,9 +1982,9 @@ DotPlot <- function(
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- object[[split.by, drop = TRUE]]
+    splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
     if (length(x = unique(x = splits)) > length(x = cols)) {
-      stop("Not enought colors for the number of groups")
+      stop("Not enough colors for the number of groups")
     }
     cols <- cols[1:length(x = unique(x = splits))]
     names(x = cols) <- unique(x = splits)
@@ -3679,80 +3691,6 @@ DefaultDimReduc <- function(object, assay = NULL) {
     )
   }
   return(dim.reducs[min(index[[1]])])
-}
-
-# Plot guide counts, protein counts and rolling media of protein counts.
-#
-# @param object Seurat object.
-# @param guide.id name of guide to plot counts for.
-# @param protein.id name of protein to plot counts for.
-# @param nt.guide.id name of non-targeting control guide to compare protein/guide counts.
-# @param slot Use normalized counts for plotting.
-# @param guide.assay.name
-# @param protein.assay.name
-# @param guide.class name of meta.data column to pull cell/guide Idents from.
-# @param integer width of the rolling window for calculating rolling median.
-#' @importFrom zoo
-#' @importFrom ggplot2
-#' @importFrom reshape2
-#
-GuideProteinPlot <- function(object, 
-                             guide.id = NULL, 
-                             feature.id = NULL,
-                             nt.guide.id = "NTg5", 
-                             slot = "data", 
-                             guide.assay.name = "GDO", 
-                             feature.assay.name = "Pearson_blg",
-                             guide.class = "guide_ID",
-                             k.roll.median = 181) {
-  
-  if( k.roll.median %% 2 == 0){
-    stop("k.roll median needs to be an odd number.")
-  }
-  
-  else(
-    if (is.null(guide.id)  == TRUE){
-      stop("No guide ID not specified." ) 
-    }
-    else {
-      if (is.null(feature.id) == TRUE){
-        stop("No feature ID not specified." ) 
-      }
-      else {
-        
-        guide.counts = t(GetAssayData(object, slot = slot, assay = guide.assay.name))
-        feature.counts = t(GetAssayData(object, slot = slot, assay = feature.assay.name))
-        counts = as.data.frame(cbind(guide.counts, feature.counts))  
-      }
-    }
-  )
-  
-  ordered.counts = counts[order(counts[,guide.id],counts[,nt.guide.id], decreasing = TRUE),]
-  cells.use = Cells(x = object)[which(object[[guide.class]][, 1] %in% c(guide.id, nt.guide.id))]
-  df = ordered.counts[rownames(ordered.counts)[rownames(ordered.counts) %in% cells.use], c(guide.id, feature.id)]
-  
-  
-  roll.median = as.data.frame(rollmedian(df[,feature.id], k = k.roll.median, fill = numeric(0),align = c("center", "left", "right")))
-  
-  colnames(roll.median)[1] <- "rollmedian"
-  roll.median$number <- 1:nrow(roll.median)
-  roll.median$name <- "feature rolling median"
-  
-  df$number <- 1:nrow(df)
-  df.melt = melt(df, id.vars = "number")
-  
-  p <- ggplot(df.melt, aes(y = value, x= number)) +
-    geom_point(aes(fill = factor(variable)), shape = 21, size = 2.5, stroke = 0, alpha = 1/3) +
-    geom_line(data = roll.median, aes(y = rollmedian, x = number, color = name)) + 
-    scale_fill_manual(values=c("darkgoldenrod2", "slategray3"), labels=c(paste0("Guide: ", guide.id), paste(feature.assay.name, sep = "_", feature.id)))+
-    scale_color_manual(values = "black", name = "") +
-    theme_classic() +
-    xlab(label = "Ordered Cells") +
-    ylab(label = "Normalized Guide-Feature Counts") +
-    labs(fill = c("")) +
-    theme(axis.title = element_text(size = 12, face = "bold"), legend.text = element_text(size = 12, face = "bold"))
-  
-  return(p)
 }
 
 # Plot feature expression by identity

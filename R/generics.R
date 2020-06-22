@@ -801,6 +801,21 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
+#' Run Linear Discriminant Analysis
+#'
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname RunLDA
+#' @export RunLDA
+#'
+#' @aliases RunLDA
+#'
+RunLDA <- function(object, ...) {
+  UseMethod(generic = 'RunLDA', object = object)
+}
+
 #' Run Latent Semantic Indexing on binary count matrix
 #'
 #' For details about stored LSI calculation parameters, see
