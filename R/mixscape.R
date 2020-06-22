@@ -11,7 +11,7 @@ NULL
 #' Function to calculate perturbation score for pooled CRISPR screen datasets. 
 #' For each target cell (expressing one target gRNA), we identified 20 cells 
 #' from the control pool (non-targeting cells) with the most similar mRNA 
-#' expression profiles. The perturbation score is calculated by substracting the 
+#' expression profiles. The perturbation score is calculated by subtracting the 
 #' averaged mRNA expression profile of the non-targeting neighbors from the mRNA 
 #' expression profile of the target cell.
 #'  
@@ -215,14 +215,15 @@ DEenrichRPlot <- function(
   return(p)
 }
 
-#' Title
+#' Linear discriminant analysis on pooled CRISPR screen data.
 #' 
-#' Description
+#' This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all 
+#' cells in the data. Finally, it uses the first 10 principle components from each projection as input to lda in MASS package together with mixscape class labels.
 #' 
 #' @inheritParams PrepLDA
 #' @inheritParams RunLDA
 #' 
-#' @return 
+#' @return Returns a Seurat object with LDA added in the reduction slot.
 #' 
 #' @export
 #' 
@@ -262,7 +263,8 @@ MixscapeLDA <- function(
 
 #' Function to prepare data for Linear Discriminant Analysis.
 #' 
-#' Description
+#' This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all 
+#' cells in the data.
 #' 
 #' @param object An object of class Seurat.
 #' @param de.assay Assay to use for selection of DE genes.
@@ -272,7 +274,7 @@ MixscapeLDA <- function(
 #' @param npcs Number of principle components to use.
 #' @param verbose Print progress bar.
 #' @inheritParams FindMarkers
-#' @return 
+#' @return Returns a list of the first 10 PCs from each projection.
 #' 
 #' @export
 #' 
@@ -570,7 +572,7 @@ RunMixscape <- function(
     x = unique(object[[ labels]][, 1]), 
     y = nt.class.name
   )
-  # pertubration vectors storage, make list to store probabilities.
+  # perturbation vectors storage, make list to store probabilities.
   p_ko <- list()
   for (gene in genes) {
     if (verbose) {
@@ -603,7 +605,7 @@ RunMixscape <- function(
       n.iter <- 0
       old.classes <- object.gene[[new.class.name]]
       while (! converged & n.iter < iter.num) {
-        # Define pertubation vector using only the de genes
+        # Define perturbation vector using only the de genes
         Idents(object = object.gene) <- new.class.name
         nt.cells <- WhichCells(object = object.gene, idents = nt.class.name)
         guide.cells <- WhichCells(object = object.gene, idents = gene)
@@ -659,7 +661,7 @@ RunMixscape <- function(
     object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
     p_ko[[gene]] <- post.prob 
   }
-  # add posterior probabilities to seurat object as a meta data column.
+  # add posterior probabilities to Seurat object as a meta data column.
   names(x = p_ko) <- NULL
   prob <- unlist(x = p_ko)
   object <- AddMetaData(object = object, metadata = prob, col.name = "p_ko")
