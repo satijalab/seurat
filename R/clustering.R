@@ -1534,47 +1534,24 @@ FindModalityWeights  <- function(object,
       message("Finding ", k.nn ," distant neighbors from snn graph") 
       pb <- txtProgressBar(min = 0, max = length(reduction.list) , style = 3)
     }
-    if(!farthest.snn){
-      snn.far.nn.list <- lapply(X = 1:length(snn.graph.list),
-                                FUN = function(s) {
-                                  distant_nn <- snn_nn(snn.graph = snn.graph.list[[s]],  k.nn = k.nn, far.nn = TRUE)
-                                  if(verbose){
-                                    setTxtProgressBar(pb, s )
-                                  }
-                                  return(distant_nn)
-                                }  )
-    } else{
-      snn.far.nn.list <- lapply(X = 1:length(snn.graph.list),
-                                FUN = function(s) {
-                                  distant_nn <- snn_nn_farthest(snn.graph = snn.graph.list[[s]], 
-                                                                k.nn = k.nn, 
-                                                                embeddings =   embeddings.list.norm[[s]] )
-                                  if(verbose){
-                                    setTxtProgressBar(pb, s )
-                                  }
-                                  return(distant_nn)
-                                }  )
-      
-    }
-
-    names(snn.far.nn.list) <- unlist(reduction.list)
+    farthest_nn_dist <-  lapply(X = 1:length(snn.graph.list),
+                       FUN = function(s) {
+                         distant_nn <- ComputeSNNwidth(snn.graph = snn.graph.list[[s]],
+                                                       k.nn = k.nn, 
+                                                       l2.norm = FALSE,
+                                                       farthest = farthest.snn, 
+                                                       embeddings =  embeddings.list.norm[[s]],
+                                                       nearest.dist = nearest_dist[[s]] )
+                         if(verbose){
+                           setTxtProgressBar(pb, s )
+                         }
+                         return(distant_nn)
+                       }  )
+    names(farthest_nn_dist) <- unlist(reduction.list)
     if(verbose){
       close(pb)
     }
-    distant_nn_dist <- lapply( X = reduction.list, 
-                               FUN = function(r){
-                                 t(sapply(X = 1:ncol(object), 
-                                          FUN = function(x){
-                                            
-                                            r_dist <- rdist::cdist( X = embeddings.list.norm[[r]][ x, , drop = F],  
-                                                          Y = embeddings.list.norm[[r]][ snn.far.nn.list[[r]][x, ], ],
-                                                          metric = "euclidean" ) - nearest_dist[[r]][ x ]
-                                            r_dist[ r_dist < 0] <- 0
-                                            return(r_dist)
-                                          }))
-                                 
-                               })
-    modality_sd.list <- lapply( X = distant_nn_dist , function(d)  rowMeans(d)*sd.scale)
+    modality_sd.list <- lapply( X = farthest_nn_dist , function(d)  d*sd.scale)
   } else{
     if(verbose){
       message("Calculating sigma by ", sigma.idx, "th neighbor") 
@@ -1852,9 +1829,6 @@ snn_nn_farthest <- function(snn.graph,
                                return(nn.x)
                              }))
   rownames(snn_farthest_nn) <- rownames(embeddings)
-  if(any(is.na(snn_farthest_nn)) ){
-    warning("NA is detected, and SNN graph may be pruned")
-  }
   return(snn_farthest_nn )
 }
 
@@ -1863,7 +1837,8 @@ ComputeSNNwidth <- function(snn.graph,
                             embeddings, 
                             k.nn, 
                             l2.norm = TRUE, 
-                            farthest = TRUE) {
+                            farthest = TRUE, 
+                            nearest.dist = NULL) {
   if ( l2.norm ) {
     embeddings <- L2Norm(embeddings)
   }
@@ -1874,13 +1849,26 @@ ComputeSNNwidth <- function(snn.graph,
     # find farthest jarccard neighbors
     snn.idx <- snn_nn(snn.graph = snn.graph, k.nn = k.nn)
   }
-  snn.width <- sapply(X = 1:nrow(embeddings),
+ if(any(is.na(snn.idx)) ){
+   warning("NA is detected, and SNN graph may be pruned")
+ }
+  snn.width <- t(sapply(X = 1:nrow(embeddings),
                                  FUN = function(x) {
                                    dist <- rdist::cdist(X =  embeddings[x, , drop=F], 
                                                 Y = embeddings[snn.idx[x,], ],
                                                 metric = "euclidean"  )
-                                   return(mean(dist))
-                                 })
+                                   return(dist)
+                                 }))
+  if(!is.null(nearest.dist)){
+    snn.width <- apply(X = snn.width,
+           MARGIN = 2,
+           FUN =  function(x){
+           dist <-  x - nearest.dist
+           dist[dist<0] <- 0
+           return(dist)
+    } )
+  }
+  snn.width <- rowMeans(snn.width, na.rm = T) 
   return( snn.width )
 }
 
