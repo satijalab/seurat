@@ -1138,6 +1138,7 @@ RunUMAP.default <- function(
   n.components = 2L,
   metric = 'cosine',
   n.epochs = NULL,
+  smooth.nn = TRUE, 
   learning.rate = 1.0,
   min.dist = 0.3,
   spread = 1.0,
@@ -1228,6 +1229,7 @@ RunUMAP.default <- function(
         umap(
           X = NULL,
           nn_method = object,
+          smooth_nn = smooth.nn,
           n_threads = nbrOfWorkers(),
           n_components = as.integer(x = n.components),
           metric = metric,
