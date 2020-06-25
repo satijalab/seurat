@@ -6,33 +6,33 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Calculate a perturbation score
+#' Calculate a perturbation Signature
 #' 
-#' Function to calculate perturbation score for pooled CRISPR screen datasets. 
+#' Function to calculate perturbation signature for pooled CRISPR screen datasets. 
 #' For each target cell (expressing one target gRNA), we identified 20 cells 
 #' from the control pool (non-targeting cells) with the most similar mRNA 
-#' expression profiles. The perturbation score is calculated by subtracting the 
+#' expression profiles. The perturbation signature is calculated by subtracting the 
 #' averaged mRNA expression profile of the non-targeting neighbors from the mRNA 
 #' expression profile of the target cell.
 #'  
 #' @param object An object of class Seurat.
 #' @param assay Name of Assay PRTB  signature is being calculated on.
-#' @param slot Data slot to use for PRTB score calculation.
+#' @param slot Data slot to use for PRTB signature calculation.
 #' @param gd.class Metadata column containing target gene classification.
 #' @param nt.cell.class Non-targeting gRNA cell classification identity.
 #' @param split.by Provide metadata column if multiple biological replicates 
-#' exist to calculate PRTB score for every replicate separately.
+#' exist to calculate PRTB signature for every replicate separately.
 #' @param num.neighbors Number of nearest neighbors to consider.
 #' @param ndims Number of dimensions to use from dimensionality reduction method.
 #' @param reduction Reduction method used to calculate nearest neighbors.
 #' @param new.assay.name Name for the new assay.
 #' @return Returns a Seurat object with a new assay added containing the 
-#' perturbation scores for all cells in the data slot.
+#' perturbation signature for all cells in the data slot.
 #' 
 #' @importFrom RANN nn2
 #' @export
 #' 
-CalcPerturbScore <- function( 
+CalcPerturbSig <- function( 
   object, 
   assay = NULL,
   slot = "data", 
