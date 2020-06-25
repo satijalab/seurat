@@ -65,7 +65,7 @@ CalcPerturbSig <- function(
     rep1 <- object[, WhichCells(object = object, idents = r)]
     # isolate nt cells
     all_cells <- Cells(x = rep1)
-    nt_cells <- Cells(x = rep1[, grep(pattern = nt.cell.class, x = rep1[[]][, gd.class], value = FALSE)])
+    nt_cells <- Cells(x = rep1)[which(rep1@meta.data[,gd.class] == nt.cell.class)]
     # subset the objects based on guide ID
     all <- rep1[, all_cells]
     nt <- rep1[, nt_cells]

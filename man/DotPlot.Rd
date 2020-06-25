@@ -14,6 +14,7 @@ DotPlot(
   col.max = 2.5,
   dot.min = 0,
   dot.scale = 6,
+  idents = NULL,
   group.by = NULL,
   split.by = NULL,
   scale = TRUE,
@@ -43,6 +44,8 @@ will be set to this)}
 gene will have no dot drawn.}
 
 \item{dot.scale}{Scale the size of the points, similar to cex}
+
+\item{idents}{Identity classes to include in plot (default is all)}
 
 \item{group.by}{Factor to group the cells by}
 
