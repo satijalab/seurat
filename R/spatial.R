@@ -2010,6 +2010,7 @@ SpatialDimPlot <- function(
     object = object,
     group.by = group.by,
     images = images,
+    cols = cols,
     crop = crop,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
