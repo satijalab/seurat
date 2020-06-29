@@ -732,6 +732,12 @@ CreateSeuratObject.default <- function(
     min.cells = min.cells,
     min.features = min.features
   )
+  if (!is.null(x = meta.data)) {
+    common.cells <- intersect(
+      x = rownames(x = meta.data), y = colnames(x = assay.data)
+    )
+    meta.data <- meta.data[common.cells, , drop = FALSE]
+  }
   Key(object = assay.data) <- suppressWarnings(expr = UpdateKey(key = tolower(
     x = assay
   )))
