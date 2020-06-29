@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+- Added ability to create a Seurat object from an existing Assay object, or any
+object inheriting from the Assay class.
 
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
