@@ -578,6 +578,7 @@ RunMixscape <- function(
     if (verbose) {
       message("Processing ", gene)
     }
+    post.prob <- 0
     Idents(object = object) <- labels
     # Get object containing only guide of interest + non-targeting
     object.gene <- subset(x = object, idents = c(gene, nt.class.name))
@@ -628,8 +629,7 @@ RunMixscape <- function(
           maxrestarts = 100
         )
         # compute posterior prob 
-        lik.ratio <- dnorm(x = pvec[orig.guide.cells], mean = mm$mu[1], sd = mm$sigma[1]) /
-          dnorm(x = pvec[orig.guide.cells], mean = mm$mu[2], sd = mm$sigma[2])
+        lik.ratio <- dnorm(x = pvec[orig.guide.cells], mean = mm$mu[1], sd = mm$sigma[1])/dnorm(x = pvec[orig.guide.cells], mean = mm$mu[2], sd = mm$sigma[2])
         post.prob <- 1 / (1 + lik.ratio)
         # update classifications
         object.gene[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
