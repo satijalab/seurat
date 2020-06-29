@@ -727,6 +727,11 @@ CreateSeuratObject.default <- function(
   min.features = 0,
   ...
 ) {
+  if (!is.null(x = meta.data)) {
+    if (!all(rownames(x = meta.data) %in% colnames(x = counts))) {
+      warning("Some cells in meta.data not present in provided counts matrix")
+    }
+  }
   assay.data <- CreateAssayObject(
     counts = counts,
     min.cells = min.cells,
