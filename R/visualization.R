@@ -1488,10 +1488,12 @@ FeatureScatter <- function(
     cells = cells,
     slot = slot
   )
-  if (isFALSE(x = feature1 %in% colnames(x = data))) {
+  feature1 <- grep(pattern = paste0( feature1, "$"), colnames(data), value = T)
+  feature2 <- grep(pattern = paste0( feature2, "$"), colnames(data), value = T)
+  if (length(feature1) == 0) {
     stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
   }
-  if (isFALSE(x = feature2 %in% colnames(x = data))) {
+  if (length(feature2) == 0) {
     stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
   }
   data <- as.data.frame(x = data)
