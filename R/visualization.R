@@ -4712,7 +4712,7 @@ SingleExIPlot <- function(
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
-        vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
+        vln.geom(scale = 'width', adjust = adjust, trim = T ),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
