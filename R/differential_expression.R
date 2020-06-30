@@ -473,6 +473,7 @@ FindMarkers.default <- function(
   max.cells.per.ident = Inf,
   random.seed = 1,
   latent.vars = NULL,
+  random.latent = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -665,6 +666,7 @@ FindMarkers.default <- function(
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
+      random.latent = random.latent, 
       verbose = verbose
     ),
     stop("Unknown test: ", test.use)
@@ -735,6 +737,7 @@ FindMarkers.Seurat <- function(
   max.cells.per.ident = Inf,
   random.seed = 1,
   latent.vars = NULL,
+  random.latent = NULL, 
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -832,6 +835,7 @@ FindMarkers.Seurat <- function(
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     latent.vars = latent.vars,
+    random.latent = random.latent, 
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
@@ -1221,6 +1225,7 @@ LRDETest <- function(
   cells.1,
   cells.2,
   latent.vars = NULL,
+  random.latent = NULL, 
   verbose = TRUE
 ) {
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -1242,18 +1247,38 @@ LRDETest <- function(
         fmla <- as.formula(object = "group ~ GENE")
         fmla2 <- as.formula(object = "group ~ 1")
       } else {
-        model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
-        fmla <- as.formula(object = paste(
-          "group ~ GENE +",
-          paste(colnames(x = latent.vars), collapse = "+")
-        ))
-        fmla2 <- as.formula(object = paste(
-          "group ~",
-          paste(colnames(x = latent.vars), collapse = "+")
-        ))
+        
+        model.data <- cbind(GENE = data.use[x, ], group.info,  latent.vars)
+        if( is.null(x = random.latent) ){
+          fmla <- as.formula(object = paste(
+            "group ~ GENE +",
+            paste(colnames(x = latent.vars), collapse = "+")
+          ))
+          fmla2 <- as.formula(object = paste(
+            "group ~",
+            paste(colnames(x = latent.vars), collapse = "+")
+          ))
+          model1 <- glm(formula = fmla, data = model.data, family = "binomial")
+          model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
+          
+        } else{ 
+          latent.vars.name <- setdiff(colnames(x = latent.vars), random.latent )
+          fmla <- as.formula(object = paste(
+            "group ~ GENE +",
+            paste(latent.vars.name, collapse = "+"), "+", 
+            paste("(1|",random.latent, ")", collapse = "+")
+          ))
+          fmla2 <- as.formula(object = paste(
+            "group ~ ",
+            paste(latent.vars.name, collapse = "+"), "+", 
+            paste("(1|",random.latent, ")", collapse = "+")
+          ))
+          model1 <- lme4::glmer( formula = fmla , data = model.data, family = binomial(link = "logit"), control = lme4::glmerControl(optimizer = "bobyqa"),  nAGQ = 0, verbose = 0) 
+          model2 <- lme4::glmer( formula = fmla2 , data = model.data, family = binomial(link = "logit"), control = lme4::glmerControl(optimizer = "bobyqa"),  nAGQ = 0, verbose = 0) 
+          
+          }
       }
-      model1 <- glm(formula = fmla, data = model.data, family = "binomial")
-      model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
+
       lrtest <- lrtest(model1, model2)
       return(lrtest$Pr[2])
     }
