@@ -258,7 +258,7 @@ DoHeatmap <- function(
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
     object = object,
     slot = slot)[features, cells, drop = FALSE])))
-
+  
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -1237,7 +1237,7 @@ FeaturePlot <- function(
             if (unique.feature.exp == 0) {
               cols.grad <- cols[1]
             } else{
-            cols.grad <- cols
+              cols.grad <- cols
             }
           }
           plot <- suppressMessages(
@@ -1559,7 +1559,7 @@ VariableFeaturePlot <- function(
     assay = assay,
     selection.method = selection.method,
     status = TRUE
-    )
+  )
   var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
   hvf.info <- hvf.info[, c(1, 3)]
   axis.labels <- switch(
@@ -1904,7 +1904,8 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' @param object Seurat object
 #' @param assay Name of assay to use, defaults to the active assay
-#' @param features Input vector of features
+#' @param features Input vector of features, or named list of feature vectors 
+#' if feature-grouped panels are desired (replicates the functionality of the old SplitDotPlotGG)
 #' @param cols Colors to plot, can pass a single character giving the name of
 #' a palette from \code{RColorBrewer::brewer.pal.info}
 #' @param col.min Minimum scaled average expression threshold (everything smaller
@@ -1919,6 +1920,8 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param group.by Factor to group the cells by
 #' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
+#' @param cluster.idents Whether to order Identities by hierarchical clusters 
+#' based on given features, default is FALSE
 #' @param scale Determine whether the data is scaled, TRUE for default
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
@@ -1930,6 +1933,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank labs
 #' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
+#' facet_grid
 #' @export
 #'
 #' @aliases SplitDotPlotGG
@@ -1953,6 +1957,7 @@ DotPlot <- function(
   idents = NULL,
   group.by = NULL,
   split.by = NULL,
+  cluster.idents = FALSE,
   scale = TRUE,
   scale.by = 'radius',
   scale.min = NA,
@@ -1966,6 +1971,19 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
+  feature.groups <- NULL
+  if (is.list(features) | any(!is.na(names(features)))) {
+    feature.groups <- unlist(sapply(X = 1:length(features), 
+                                    FUN = function(x) { 
+                                      rep(names(features)[x], 
+                                          each = length(features[[x]])) 
+                                    }))
+    if (any(is.na(feature.groups))) {
+      warning("Some feature groups are unnamed.")
+    }
+    features <- unlist(features)
+    names(feature.groups) <- features
+  }
   cells <- unlist(CellsByIdentities(object = object, idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
@@ -2005,6 +2023,12 @@ DotPlot <- function(
     }
   )
   names(x = data.plot) <- unique(x = data.features$id)
+  if (cluster.idents) {
+    mat <- do.call(what = rbind, 
+                   args = lapply(X = data.plot, FUN = unlist))
+    mat <- scale(mat)
+    id.levels <- id.levels[hclust(dist(mat))$order]
+  }
   data.plot <- lapply(
     X = names(x = data.plot),
     FUN = function(x) {
@@ -2018,26 +2042,23 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
- if (length(x = levels(x = data.plot$id)) == 1) {
-   scale <- FALSE
-   warning("Only one identity present, the expression values will be not scaled.")
- }
-    avg.exp.scaled <- sapply(
-      X = unique(x = data.plot$features.plot),
-      FUN = function(x) {
-        data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
-        if (scale) {
-          data.use <- scale(x = data.use)
-          data.use <- MinMax(data = data.use, min = col.min, max = col.max)
-        } else {
-          data.use <- log(x = data.use)
-        }
-        return(data.use)
+  if (length(x = levels(x = data.plot$id)) == 1) {
+    scale <- FALSE
+    warning("Only one identity present, the expression values will be not scaled.")
+  }
+  avg.exp.scaled <- sapply(
+    X = unique(x = data.plot$features.plot),
+    FUN = function(x) {
+      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
+      if (scale) {
+        data.use <- scale(x = data.use)
+        data.use <- MinMax(data = data.use, min = col.min, max = col.max)
+      } else {
+        data.use <- log(x = data.use)
       }
-    )
-
-
-
+      return(data.use)
+    }
+  )
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
   if (!is.null(x = split.by)) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
@@ -2045,7 +2066,7 @@ DotPlot <- function(
   data.plot$avg.exp.scaled <- avg.exp.scaled
   data.plot$features.plot <- factor(
     x = data.plot$features.plot,
-    levels = rev(x = features)
+    levels = features
   )
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
@@ -2077,6 +2098,10 @@ DotPlot <- function(
   if (!is.na(x = scale.max)) {
     data.plot[data.plot$pct.exp > scale.max, 'pct.exp'] <- scale.max
   }
+  if (!is.null(feature.groups)) {
+    data.plot$feature.groups <- factor(feature.groups[data.plot$features.plot],
+                                       levels = unique(feature.groups))
+  }
   plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
     geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
@@ -2087,6 +2112,15 @@ DotPlot <- function(
       y = ifelse(test = is.null(x = split.by), yes = 'Identity', no = 'Split Identity')
     ) +
     theme_cowplot()
+  if (!is.null(feature.groups)) {
+    plot <- plot + facet_grid(
+      facets = ~feature.groups,
+      scales = "free_x",
+      space = "free_x",
+      switch = "y"
+    ) + theme(panel.spacing = unit(x = 1, units = "lines"),
+              strip.background = element_blank())
+  }
   if (!is.null(x = split.by)) {
     plot <- plot + scale_color_identity()
   } else if (length(x = cols) == 1) {
@@ -3422,7 +3456,7 @@ WhiteBackground <- function(...) {
 # AutoPointSize(data = df)
 #
 AutoPointSize <- function(data) {
-     return(min(1583 / nrow(x = data), 1))
+  return(min(1583 / nrow(x = data), 1))
 }
 
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
@@ -4437,11 +4471,11 @@ SingleCorPlot <- function(
     # )
     plot <- plot + stat_density2d(
       mapping = aes(fill = ..density.. ^ 0.25),
-        geom = 'tile',
-        contour = FALSE,
-        n = 200,
-        h = Bandwidth(data = data[, names.plot])
-      ) +
+      geom = 'tile',
+      contour = FALSE,
+      n = 200,
+      h = Bandwidth(data = data[, names.plot])
+    ) +
       # geom_tile(
       #   mapping = aes_string(
       #     x = 'x',
