@@ -1262,7 +1262,7 @@ LRDETest <- function(
           model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
           
         } else{ 
-          latent.vars.name <- setdiff(colnames(x = latent.vars), random.latent )
+          latent.vars.name <- c("1" ,setdiff(colnames(x = latent.vars), random.latent ))
           fmla <- as.formula(object = paste(
             "group ~ GENE +",
             paste(latent.vars.name, collapse = "+"), "+", 
@@ -1273,12 +1273,21 @@ LRDETest <- function(
             paste(latent.vars.name, collapse = "+"), "+", 
             paste("(1|",random.latent, ")", collapse = "+")
           ))
-          model1 <- lme4::glmer( formula = fmla , data = model.data, family = binomial(link = "logit"), control = lme4::glmerControl(optimizer = "bobyqa"),  nAGQ = 0, verbose = 0) 
-          model2 <- lme4::glmer( formula = fmla2 , data = model.data, family = binomial(link = "logit"), control = lme4::glmerControl(optimizer = "bobyqa"),  nAGQ = 0, verbose = 0) 
+          model1 <- lme4::glmer( formula = fmla ,
+                                 data = model.data,
+                                 family = binomial(link = "logit"), 
+                                 control = lme4::glmerControl(optimizer = "bobyqa"), 
+                                 nAGQ = 0, 
+                                 verbose = 0) 
           
+          model2 <- lme4::glmer( formula = fmla2 ,
+                                 data = model.data,
+                                 family = binomial(link = "logit"),
+                                 control = lme4::glmerControl(optimizer = "bobyqa"), 
+                                 nAGQ = 0, 
+                                 verbose = 0) 
           }
       }
-
       lrtest <- lrtest(model1, model2)
       return(lrtest$Pr[2])
     }
