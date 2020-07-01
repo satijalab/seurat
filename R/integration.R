@@ -729,25 +729,6 @@ FindTransferAnchors <- function(
   feature.mean <- NULL
   slot <- "data"
   reference[[reference.reduction  ]]@assay.used <- reference.assay
-  if  (normalization.method == "SCT") {
-    reference <- DietSeurat(object = reference,
-                            assays = c(reference.assay, 
-                                       Misc(reference[[ reference.assay ]] ,
-                                            slot = "umi.assay") ),
-                            dimreducs = reference.reduction,
-                            scale.data = T )
-    query <- DietSeurat(object = query,
-                        assays = c(query.assay, 
-                                   Misc(query[[ query.assay ]], 
-                                        slot = "umi.assay")) )
-    
-  } else {
-    reference <- DietSeurat(object = reference,
-                            assays = reference.assay,
-                            dimreducs = reference.reduction )
-    query <- DietSeurat(object = query,
-                        assays = query.assay )
-  }
 
   if (normalization.method == "SCT") {
     features <- intersect(x = features, y = rownames(x = query))
@@ -788,6 +769,16 @@ FindTransferAnchors <- function(
     feature.mean <- "SCT"
     slot <- "scale.data"
   }
+  reference <- DietSeurat(object = reference,
+                          assays = reference.assay,
+                          dimreducs = reference.reduction, 
+                          features = features, 
+                          scale.data = TRUE )
+  query <- DietSeurat(object = query,
+                      assays = query.assay, 
+                      features = features,
+                      scale.data = TRUE  )
+  
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
