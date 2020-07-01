@@ -473,6 +473,7 @@ FindMarkers.default <- function(
   max.cells.per.ident = Inf,
   random.seed = 1,
   latent.vars = NULL,
+  random.latent = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -665,6 +666,7 @@ FindMarkers.default <- function(
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
+      random.latent = random.latent, 
       verbose = verbose
     ),
     stop("Unknown test: ", test.use)
@@ -735,6 +737,7 @@ FindMarkers.Seurat <- function(
   max.cells.per.ident = Inf,
   random.seed = 1,
   latent.vars = NULL,
+  random.latent = NULL, 
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -832,6 +835,7 @@ FindMarkers.Seurat <- function(
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     latent.vars = latent.vars,
+    random.latent = random.latent, 
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
@@ -1221,6 +1225,7 @@ LRDETest <- function(
   cells.1,
   cells.2,
   latent.vars = NULL,
+  random.latent = NULL, 
   verbose = TRUE
 ) {
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -1242,18 +1247,47 @@ LRDETest <- function(
         fmla <- as.formula(object = "group ~ GENE")
         fmla2 <- as.formula(object = "group ~ 1")
       } else {
-        model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
-        fmla <- as.formula(object = paste(
-          "group ~ GENE +",
-          paste(colnames(x = latent.vars), collapse = "+")
-        ))
-        fmla2 <- as.formula(object = paste(
-          "group ~",
-          paste(colnames(x = latent.vars), collapse = "+")
-        ))
+        
+        model.data <- cbind(GENE = data.use[x, ], group.info,  latent.vars)
+        if( is.null(x = random.latent) ){
+          fmla <- as.formula(object = paste(
+            "group ~ GENE +",
+            paste(colnames(x = latent.vars), collapse = "+")
+          ))
+          fmla2 <- as.formula(object = paste(
+            "group ~",
+            paste(colnames(x = latent.vars), collapse = "+")
+          ))
+          model1 <- glm(formula = fmla, data = model.data, family = "binomial")
+          model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
+          
+        } else{ 
+          latent.vars.name <- c("1" ,setdiff(colnames(x = latent.vars), random.latent ))
+          fmla <- as.formula(object = paste(
+            "group ~ GENE +",
+            paste(latent.vars.name, collapse = "+"), "+", 
+            paste("(1|",random.latent, ")", collapse = "+")
+          ))
+          fmla2 <- as.formula(object = paste(
+            "group ~ ",
+            paste(latent.vars.name, collapse = "+"), "+", 
+            paste("(1|",random.latent, ")", collapse = "+")
+          ))
+          model1 <- lme4::glmer( formula = fmla ,
+                                 data = model.data,
+                                 family = binomial(link = "logit"), 
+                                 control = lme4::glmerControl(optimizer = "bobyqa"), 
+                                 nAGQ = 0, 
+                                 verbose = 0) 
+          
+          model2 <- lme4::glmer( formula = fmla2 ,
+                                 data = model.data,
+                                 family = binomial(link = "logit"),
+                                 control = lme4::glmerControl(optimizer = "bobyqa"), 
+                                 nAGQ = 0, 
+                                 verbose = 0) 
+          }
       }
-      model1 <- glm(formula = fmla, data = model.data, family = "binomial")
-      model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
       lrtest <- lrtest(model1, model2)
       return(lrtest$Pr[2])
     }
@@ -1597,4 +1631,111 @@ WilcoxDETest <- function(
     )
   }
   return(data.frame(p_val, row.names = rownames(x = data.use)))
+}
+
+
+
+# Generate perturb data
+PerturbScore <- function(object, 
+                         reduction,
+                         dims, 
+                         assay, 
+                         mean.type = c("amean", "gmean")[1], 
+                         slot, 
+                         group.by = NULL,
+                         ident.query,
+                         ident.ref,
+                         confound = NULL,
+                         features = rownames(object[[assay]]) , 
+                         k.nn = 30, 
+                         return.assay = TRUE, 
+                         return.nn = FALSE,
+                         downsample = NULL
+){
+  if(!is.null(group.by)){
+    Idents(object) <- object@meta.data[ ,group.by]
+  }
+  query.idx <- which( Idents(object) == ident.query)
+  if(!is.null(downsample)){
+    query.idx <- sample(query.idx, downsample)
+  }
+  query.cell <-  Cells(object)
+  ref.cell <-    Cells(object)[which( Idents(object) == ident.ref)]
+  try(meta.list <- split(object@meta.data, object@meta.data[,confound]), silent = TRUE)
+  if (!exists("meta.list")){
+    perturb.nn <- nn2(data = Embeddings(object, reduction = reduction)[ ref.cell, dims ], 
+                      query =  Embeddings(object, reduction = reduction)[ query.cell, dims ],
+                      k = k.nn )
+    ref.obj <- subset(object, cells = ref.cell )
+    predict.data <- PredictAssay(object = ref.obj, 
+                                 nn.idx = perturb.nn$nn.idx, 
+                                 assay = assay,
+                                 slot = slot, 
+                                 features = features ,
+                                 mean.type = mean.type, 
+                                 cells = query.cell, 
+                                 return.assay = FALSE)
+  } else{
+    predict.list <- list()
+    idx = 0
+    for (meta.m in meta.list){
+      Idents.m <- Idents(object)[rownames(meta.m)]
+      query.cell.m <-  rownames(meta.m)
+      if(!is.null(downsample)){
+        query.cell.m <- intersect(query.cell.m, query.cell)
+      }
+      ref.cell.m <-  rownames(meta.m)[which(Idents.m == ident.ref)]
+      idx = idx + 1
+      if(length(ref.cell.m) >  k.nn ){
+        perturb.nn.m <- nn2(data = Embeddings(object, reduction = reduction)[ ref.cell.m, dims ], 
+                            query =  Embeddings(object, reduction = reduction)[ query.cell.m, dims, drop = F ],
+                            k = k.nn )
+        ref.obj.m <- subset(object, cells = ref.cell.m )
+        predict.data.m <- PredictAssay(object = ref.obj.m, 
+                                       nn.idx = perturb.nn.m$nn.idx, 
+                                       assay = assay,
+                                       mean.type = mean.type,
+                                       slot = slot, 
+                                       features = features , 
+                                       cells = query.cell.m, 
+                                       return.assay = FALSE)
+        
+      } else{
+        warning("the number of ref cells is smaller than the size of neighbors, perturbation score will not be calculated")
+        predict.data.m <- GetAssayData(object = object, 
+                                       assay = assay, 
+                                       slot = slot  )[features, query.cell.m]
+      }
+      predict.list[[idx]] <- predict.data.m
+    }
+    predict.data <- Reduce(cbind, predict.list)
+    predict.data <- predict.data[, Cells(object)]
+  }
+  
+  if(return.assay){
+    object.assay <- GetAssayData(object = object, assay = assay, slot = slot)[features, ]
+    if(is(object.assay, 'sparseMatrix') ){
+      object.assay <- as.matrix(object.assay)
+    }
+    perturb.assay <- object.assay - predict.data
+    perturb.assay <- CreateAssayObject(data = as.sparse(perturb.assay))
+    VariableFeatures(perturb.assay) <- features
+    return(perturb.assay)
+  }else{
+    if(return.nn){
+      if( !is.null(confound)){
+        warnings("nn may not be correct")
+      }
+      ref.idx <- which( Idents(object) == ident.ref)
+      nn.ref <- perturb.nn$nn.idx
+      nn.ref <- sapply(1:ncol(nn.ref), function (x)  ref.idx[nn.ref[,x]] )
+      rownames(nn.ref) <- query.cell
+      return.list <- list(predict.data, nn.ref )
+      names(return.list) <- c("predict","nn")
+      return(return.list)
+    }else{
+      return(predict.data)
+    }
+  }
+  
 }
