@@ -3834,14 +3834,11 @@ IngestNewData <- function(reference,
                           query.assay = NULL, 
                           dims,
                           transfer.anchors = NULL,
-                          umap.alignment = FALSE, 
-                          transfer.identity = FALSE, 
+                          transfer.labels = NULL, 
                           verbose = TRUE,
-                          append.to = NULL,
                           ingest.group = "ingest", 
-                          prediction.assay = 'prediction',
+                          k.nn = 20, 
                           k.weight = 50,
-                          k.filter = 200, 
                           sd.weight = 1,
                           eps = 0,
                           nn.method = 'annoy',
@@ -3849,14 +3846,13 @@ IngestNewData <- function(reference,
   if( !is.null(transfer.anchors) && length(query) != length(transfer.anchors) ) {
     stop("Number of objects in the query object should be exactly the same in the transfer.anchors")
   }
-  append.to <- append.to %||% reference
   if (length(query) == 1) {
     query <- list(query)
   }
   if( is.null(anchor.reduction)){
     anchor.reduction <- proj.reduction
   }
-  objects <- lapply(
+  objects.list <- lapply(
     X = 1:length(x = query),
     FUN = function(i) {
       # Find transfer anchors if not passed in
@@ -3884,6 +3880,7 @@ IngestNewData <- function(reference,
         merged.obj <- DietSeurat(obj, assays = 'pcassay', dimreducs = c(anchor.reduction, proj.reduction))
         
       } else {
+        # correct gene expression
         query.assay <- query.assay %||% DefaultAssay(query[[i]])
         reference.assay <- reference.assay %||% DefaultAssay(reference)
         features <- transfer_anchor@anchor.features
@@ -3893,14 +3890,16 @@ IngestNewData <- function(reference,
                        slot = "data")[features, transfer_anchor@reference.cells ], 
           GetAssayData(object = obj,
                        assay = query.assay, 
-                       slot = "data")[features,transfer_anchor@query.cells ])
+                       slot = "data")[features, transfer_anchor@query.cells ])
           ))
         # setting up metadata
         DefaultAssay(obj) <- reference.assay
         obj[[proj.reduction ]]@assay.used <- reference.assay
         obj[[anchor.reduction ]]@assay.used <- reference.assay
-        merged.obj <- DietSeurat(obj, assays = reference.assay, dimreducs = c(anchor.reduction, proj.reduction))
-        
+        merged.obj <- DietSeurat(object = obj, 
+                                 assays = reference.assay,
+                                 dimreducs = c(anchor.reduction, proj.reduction)
+                                 )
         }
       # prepapring metadata for batch correction
       integration.name <- "integrated"
@@ -3924,6 +3923,7 @@ IngestNewData <- function(reference,
                                           features.integrate = rownames(obj), 
                                           verbose = verbose)
       if( length(obj@misc) == 7  ){
+        # multi-modal transfer
         dr.weights <- lapply( X = obj@misc$proj.reduction,
                               FUN = function(r) obj[[r]])
       } else{
@@ -3953,29 +3953,30 @@ IngestNewData <- function(reference,
                                                     key = 'ipc_',
                                                     assay = 'pcassay')
       } else {
+        # saving the batch corrected gene matrix
         merged.obj[["int"]] <- CreateAssayObject(data = integrated.matrix )
       }
-       if( !umap.alignment){
-       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
-       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+      if( length(obj@misc) != 7  ){
+        # single modality will find query reference NN
+      reference.embeddings <- Embeddings(object = merged.obj, 
+                                         reduction = "int" )[ transfer_anchor@reference.cells, ]
+      query.embeddings<- Embeddings(object = merged.obj, 
+                                   reduction = "int" )[ transfer_anchor@query.cells, ]
+      query_ref.nn <- NNHelper(data = reference.embeddings,
+                               query = query.embeddings,
+                               k = k.nn, 
+                               method = "annoy", 
+                               metric ="cosine")
+      rownames(query_ref.nn$nn.idx) <-  gsub("\\_query", "", transfer_anchor@query.cells)
+      merged.obj@neighbors$query_ref.nn <- query_ref.nn
+      }
+      merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
+      merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+       if( is.null(transfer.labels) ){
        return( merged.obj )
      } 
-      # extracting batch corrected PCA embedding for the query data
-      query_pcs_corrected <- Embeddings(merged.obj[["int"]])[transfer_anchor@query.cells, dims]
-      ## projecting query pca on the reference
-      query_umap <- RunUMAP(object = query_pcs_corrected,
-                            reduction.model = reference[[ umap.name ]],
-                            umap.method = 'uwot-predict',
-                            assay = 'pcassay', 
-                            reduction.key = paste0(toupper(umap.name), "_"),  
-                            verbose = verbose)
-      # rename the cells
-      rownames(query_pcs_corrected) <- gsub("\\_query", "", rownames(query_pcs_corrected))
-      query_umap <- RenameCells( query_umap, new.names = gsub("\\_query", "", Cells(query_umap)))
-      
       # transfer identities
-      if(transfer.identity){
-        refdata <- Idents(reference)
+        refdata <-transfer.labels
         filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
         reference.ids <- factor(x = filtered.anchors$id1, levels = unique(x = refdata))
         possible.ids <- levels(x = reference.ids)
@@ -3990,80 +3991,19 @@ IngestNewData <- function(reference,
         }
         prediction.scores <- t(x = transfer_weights) %*% prediction.mat
         colnames(x = prediction.scores) <- possible.ids
-        rownames(x = prediction.scores) <- transfer_anchor@query.cells
+        rownames(x = prediction.scores) <-   gsub("\\_query", "", transfer_anchor@query.cells)
         prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
-      } else {
-        prediction.scores <- NULL
-        prediction.ids <- NULL
-      }
-      query_embeddings <- list( Embeddings(query_umap), 
-                                query_pcs_corrected, 
-                                prediction.ids,
-                                prediction.scores)
-      names(query_embeddings) <- c(umap.name , reference.reduction, "ident","scores")
-      return( query_embeddings )
+        prediction.scores.max <- apply(X = prediction.scores, MARGIN = 1, function(x) max(x))
+        merged.obj$predicted.id <- c( prediction.ids, refdata)
+        merged.obj$predicted.id.score <- c(prediction.scores.max, rep(1, length( refdata )))
+      return( merged.obj )
     }
   )
-  if( !umap.alignment ){
-    return(objects[[1]])
-  }
-  if (length(objects) != length(query)) {
-    stop(
-      "Failed Projection",
-      call. = FALSE
-    )
-  }
-
-  get.umap <- function(x) x[[ umap.name ]]
-  get.pca <- function(x) x[[ reference.reduction ]]
-
-  # merging all umaps
-  merged.umaps <- rbind(Embeddings(append.to[[ umap.name ]]), do.call(rbind, lapply(objects, get.umap)))
-  # merging all pcas
-  merged.pcas <- rbind(Embeddings(append.to[[ reference.reduction ]])[, dims], do.call(rbind, lapply(objects, get.pca)))
-
-  # creating a merged object
-  merged.obj <- merge(append.to, query)
-  merged.obj[[ umap.name ]] <- CreateDimReducObject(embeddings = merged.umaps,
-                                               assay = DefaultAssay(reference))
-  
-  merged.obj[[ reference.reduction ]] <- CreateDimReducObject(embeddings = merged.pcas,
-                                              assay = DefaultAssay(reference))
-  # copy the loadings, and reference umap model 
-  Loadings(object = merged.obj[[reference.reduction]]) <- Loadings(object = reference, reduction = reference.reduction )[,dims ]
-  Misc(merged.obj[[umap.name]], slot = "model" ) <-  Misc(reference[[umap.name]], slot = "model" )
-  
-  if(transfer.identity){
-    get.ident <- function(x) x[["ident"]]
-    get.scores <- function(x, ids) x[["scores"]][,ids]
-    
-    # merging the identities
-    merged.idents <- c(as.character(Idents(append.to)), lapply(objects, get.ident))
-    Idents(merged.obj) <- merged.idents
-    
-    
-    # add prediction scores
-    reference.ids <- Idents(append.to)
-    possible.ids <- levels(x = append.to)
-    reference.scores <- matrix(nrow = ncol(x = append.to), ncol = length(x = possible.ids), data = 0)
-    if (!(prediction.assay %in% names(append.to@assays))) {
-      for(i in 1:length(x = possible.ids)) {
-        reference.scores[which(reference.ids == possible.ids[i]), i] = 1
-      }
-    }
-    else {
-      reference.scores <- t(GetAssayData(object = append.to,slot = 'data',assay = prediction.assay))
-    }
-    
-    colnames(reference.scores) <- possible.ids
-    merged.scores <- rbind(reference.scores, do.call(rbind, lapply(objects, get.scores, possible.ids)))
-    rownames(merged.scores) <- Cells(merged.obj)
-    max.score <- apply(merged.scores,1,max)
-    merged.obj <- AddMetaData(merged.obj,metadata = max.score, col.name = paste0(prediction.assay,".score.max"))
-    merged.obj[[prediction.assay]] <- CreateAssayObject(data = as.matrix(t(merged.scores)))
-    
-  }
-  return(merged.obj)
+   if( length(objects) == 1){
+     return(objects.list[[1]])
+   } else {
+     return(objects.list )
+   }
 }
 
 

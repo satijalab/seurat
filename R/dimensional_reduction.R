@@ -1133,6 +1133,8 @@ RunUMAP.default <- function(
   object,
   reduction.key = 'UMAP_',
   assay = NULL,
+  reduction.model = NULL,
+  return.model = FALSE, 
   umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
@@ -1151,7 +1153,6 @@ RunUMAP.default <- function(
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
-  reduction.model = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -1169,17 +1170,15 @@ RunUMAP.default <- function(
     )
     options(Seurat.warn.umap.uwot = FALSE)
   }
-  if( umap.method == "uwot-learn"){
-    return.model = TRUE
+  if( return.model ){
+    message("UMAP will return its model")
     umap.method = "uwot"
-  } else{
-    return.model = FALSE
   }
   if( is.list(object) ){
     names(object) <- c("idx", "dist")
   }
-  if( !is.null(reduction.model) & umap.method != "uwot-predict" ){
-    warning("umap.method is set to uwot-predict, because reduction.model is not NULL")
+  if( !is.null(reduction.model) ){
+    message("Running projection UMAP")
     umap.method <- "uwot-predict"
   }
   umap.output <- switch(
@@ -1279,7 +1278,7 @@ RunUMAP.default <- function(
       }
       if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
         stop(
-          "If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.",
+          "If running projection UMAP, please pass a DimReduc object with the model stored to reduction.model.",
           call. = FALSE
         )
       }
@@ -1498,13 +1497,14 @@ RunUMAP.Graph <- function(
 #'
 RunUMAP.Seurat <- function(
   object,
-  reduction.model = NULL,
   dims = NULL,
   reduction = 'pca',
   features = NULL,
   graph = NULL,
   assay = 'RNA',
   umap.method = 'uwot',
+  reduction.model = NULL,
+  return.model = FALSE, 
   n.neighbors = 30L,
   n.components = 2L,
   metric = 'cosine',
@@ -1564,6 +1564,7 @@ RunUMAP.Seurat <- function(
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     reduction.model = reduction.model,
+    return.model = return.model,
     assay = assay,
     umap.method = umap.method,
     n.neighbors = n.neighbors,
