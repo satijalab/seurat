@@ -258,7 +258,6 @@ DoHeatmap <- function(
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
     object = object,
     slot = slot)[features, cells, drop = FALSE])))
-  
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -1904,8 +1903,9 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' @param object Seurat object
 #' @param assay Name of assay to use, defaults to the active assay
-#' @param features Input vector of features, or named list of feature vectors 
-#' if feature-grouped panels are desired (replicates the functionality of the old SplitDotPlotGG)
+#' @param features Input vector of features, or named list of feature vectors
+#' if feature-grouped panels are desired (replicates the functionality of the
+#' old SplitDotPlotGG)
 #' @param cols Colors to plot, can pass a single character giving the name of
 #' a palette from \code{RColorBrewer::brewer.pal.info}
 #' @param col.min Minimum scaled average expression threshold (everything smaller
@@ -1918,9 +1918,10 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
-#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
+#' @param split.by Factor to split the groups by (replicates the functionality
+#' of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
-#' @param cluster.idents Whether to order Identities by hierarchical clusters 
+#' @param cluster.idents Whether to order identities by hierarchical clusters
 #' based on given features, default is FALSE
 #' @param scale Determine whether the data is scaled, TRUE for default
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
@@ -1931,9 +1932,11 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' @importFrom grDevices colorRampPalette
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank labs
-#' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
+#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point
+#' theme element_blank labs scale_color_identity scale_color_distiller
+#' scale_color_gradient guides guide_legend guide_colorbar
 #' facet_grid
+#'
 #' @export
 #'
 #' @aliases SplitDotPlotGG
@@ -1973,18 +1976,23 @@ DotPlot <- function(
   )
   feature.groups <- NULL
   if (is.list(features) | any(!is.na(names(features)))) {
-    feature.groups <- unlist(sapply(X = 1:length(features), 
-                                    FUN = function(x) { 
-                                      rep(names(features)[x], 
-                                          each = length(features[[x]])) 
-                                    }))
-    if (any(is.na(feature.groups))) {
-      warning("Some feature groups are unnamed.")
+    feature.groups <- unlist(x = sapply(
+      X = 1:length(features),
+      FUN = function(x) {
+        return(rep(x = names(x = features)[x], each = length(features[[x]])))
+      }
+    ))
+    if (any(is.na(x = feature.groups))) {
+      warning(
+        "Some feature groups are unnamed.",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
-    features <- unlist(features)
-    names(feature.groups) <- features
+    features <- unlist(x = features)
+    names(x = feature.groups) <- features
   }
-  cells <- unlist(CellsByIdentities(object = object, idents = idents))
+  cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -2024,10 +2032,12 @@ DotPlot <- function(
   )
   names(x = data.plot) <- unique(x = data.features$id)
   if (cluster.idents) {
-    mat <- do.call(what = rbind, 
-                   args = lapply(X = data.plot, FUN = unlist))
-    mat <- scale(mat)
-    id.levels <- id.levels[hclust(dist(mat))$order]
+    mat <- do.call(
+      what = rbind,
+      args = lapply(X = data.plot, FUN = unlist)
+    )
+    mat <- scale(x = mat)
+    id.levels <- id.levels[hclust(d = dist(x = mat))$order]
   }
   data.plot <- lapply(
     X = names(x = data.plot),
@@ -2044,7 +2054,11 @@ DotPlot <- function(
   }
   if (length(x = levels(x = data.plot$id)) == 1) {
     scale <- FALSE
-    warning("Only one identity present, the expression values will be not scaled.")
+    warning(
+      "Only one identity present, the expression values will be not scaled",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   avg.exp.scaled <- sapply(
     X = unique(x = data.plot$features.plot),
@@ -2098,9 +2112,11 @@ DotPlot <- function(
   if (!is.na(x = scale.max)) {
     data.plot[data.plot$pct.exp > scale.max, 'pct.exp'] <- scale.max
   }
-  if (!is.null(feature.groups)) {
-    data.plot$feature.groups <- factor(feature.groups[data.plot$features.plot],
-                                       levels = unique(feature.groups))
+  if (!is.null(x = feature.groups)) {
+    data.plot$feature.groups <- factor(
+      x = feature.groups[data.plot$features.plot],
+      levels = unique(x = feature.groups)
+    )
   }
   plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
     geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
@@ -2112,14 +2128,16 @@ DotPlot <- function(
       y = ifelse(test = is.null(x = split.by), yes = 'Identity', no = 'Split Identity')
     ) +
     theme_cowplot()
-  if (!is.null(feature.groups)) {
+  if (!is.null(x = feature.groups)) {
     plot <- plot + facet_grid(
       facets = ~feature.groups,
       scales = "free_x",
       space = "free_x",
       switch = "y"
-    ) + theme(panel.spacing = unit(x = 1, units = "lines"),
-              strip.background = element_blank())
+    ) + theme(
+      panel.spacing = unit(x = 1, units = "lines"),
+      strip.background = element_blank()
+    )
   }
   if (!is.null(x = split.by)) {
     plot <- plot + scale_color_identity()
