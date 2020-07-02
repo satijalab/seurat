@@ -1636,29 +1636,27 @@ WilcoxDETest <- function(
 
 
 # Generate perturb data
-PerturbScore <- function(object, 
-                         reduction,
-                         dims, 
-                         assay, 
-                         mean.type = c("amean", "gmean")[1], 
-                         slot, 
-                         group.by = NULL,
-                         ident.query,
-                         ident.ref,
-                         confound = NULL,
-                         features = rownames(object[[assay]]) , 
-                         k.nn = 30, 
-                         return.assay = TRUE, 
-                         return.nn = FALSE,
-                         downsample = NULL
+
+# Generate perturb data
+PerturbSignature <- function(object, 
+                             reduction,
+                             dims, 
+                             assay, 
+                             mean.type = c("amean", "gmean")[1], 
+                             slot, 
+                             group.by = NULL,
+                             ident.query,
+                             ident.ref,
+                             confound = NULL,
+                             features = rownames(object[[assay]]) , 
+                             k.nn = 30, 
+                             return.assay = TRUE
 ){
   if(!is.null(group.by)){
     Idents(object) <- object@meta.data[ ,group.by]
   }
   query.idx <- which( Idents(object) == ident.query)
-  if(!is.null(downsample)){
-    query.idx <- sample(query.idx, downsample)
-  }
+  
   query.cell <-  Cells(object)
   ref.cell <-    Cells(object)[which( Idents(object) == ident.ref)]
   try(meta.list <- split(object@meta.data, object@meta.data[,confound]), silent = TRUE)
@@ -1681,15 +1679,11 @@ PerturbScore <- function(object,
     for (meta.m in meta.list){
       Idents.m <- Idents(object)[rownames(meta.m)]
       query.cell.m <-  rownames(meta.m)
-      if(!is.null(downsample)){
-        query.cell.m <- intersect(query.cell.m, query.cell)
-      }
       ref.cell.m <-  rownames(meta.m)[which(Idents.m == ident.ref)]
       idx = idx + 1
       if(length(ref.cell.m) >  k.nn ){
         perturb.nn.m <- nn2(data = Embeddings(object, reduction = reduction)[ ref.cell.m, dims ], 
-                            query =  Embeddings(object, reduction = reduction)[ query.cell.m, dims, drop = F ],
-                            k = k.nn )
+                            query =  Embeddings(object, reduction = reduction)[ query.cell.m, dims, drop = F ], k = k.nn )
         ref.obj.m <- subset(object, cells = ref.cell.m )
         predict.data.m <- PredictAssay(object = ref.obj.m, 
                                        nn.idx = perturb.nn.m$nn.idx, 
@@ -1700,14 +1694,25 @@ PerturbScore <- function(object,
                                        cells = query.cell.m, 
                                        return.assay = FALSE)
         
-      } else{
-        warning("the number of ref cells is smaller than the size of neighbors, perturbation score will not be calculated")
-        predict.data.m <- GetAssayData(object = object, 
-                                       assay = assay, 
-                                       slot = slot  )[features, query.cell.m]
+      } else if( length(ref.cell.m) != 0){
+        warning("the number of ref cells is smaller than the size of neighbors, perturbation score will be calculated by averaging all reference cells")
+        ref.data.m<- GetAssayData(object = object, 
+                                  assay = assay, 
+                                  slot = slot  )[features, ref.cell.m]
+        if(  length(ref.cell.m) !=1){
+          ref.data.m <- rowMeans( ref.data.m )
+        }
+        predict.data.m <- sapply(query.cell.m, function(c)  ref.data.m)
+      } else {
+        warning("no reference cells, perturbation score will not be zero")
+        predict.data.m<- GetAssayData(object = object, 
+                                      assay = assay, 
+                                      slot = slot  )[features, query.cell.m, drop= F]
+        
       }
       predict.list[[idx]] <- predict.data.m
     }
+    
     predict.data <- Reduce(cbind, predict.list)
     predict.data <- predict.data[, Cells(object)]
   }
@@ -1718,24 +1723,11 @@ PerturbScore <- function(object,
       object.assay <- as.matrix(object.assay)
     }
     perturb.assay <- object.assay - predict.data
-    perturb.assay <- CreateAssayObject(data = as.sparse(perturb.assay))
+    perturb.assay <- CreateAssayObject(data = perturb.assay)
+    perturb.assay@data <- as.matrix( perturb.assay@data )
     VariableFeatures(perturb.assay) <- features
     return(perturb.assay)
   }else{
-    if(return.nn){
-      if( !is.null(confound)){
-        warnings("nn may not be correct")
-      }
-      ref.idx <- which( Idents(object) == ident.ref)
-      nn.ref <- perturb.nn$nn.idx
-      nn.ref <- sapply(1:ncol(nn.ref), function (x)  ref.idx[nn.ref[,x]] )
-      rownames(nn.ref) <- query.cell
-      return.list <- list(predict.data, nn.ref )
-      names(return.list) <- c("predict","nn")
-      return(return.list)
-    }else{
-      return(predict.data)
-    }
+    return(predict.data)
   }
-  
 }
