@@ -3863,8 +3863,19 @@ IngestNewData <- function(reference,
         }
       
       obj <- transfer_anchor@object.list[[1]]
-      obj@meta.data[ transfer.anchors@reference.cells , ingest.group] <- "reference"
-      obj@meta.data[ transfer.anchors@query.cells , ingest.group] <- "query"
+      # test if object is merged by reference and query
+      if( isFALSE(x = grepl("reference" ,Cells(obj)[ncol(reference)]) & 
+                  grepl("query"  ,Cells(obj)[ncol(reference)+1] ) ) ){
+        warnings("object is not merged by reference and query")
+        ref.cell.idx <- grep("_reference$", Cells(obj))
+        query.cell.idx <- setdiff(x = 1:ncol(obj), y = ref.cell.idx)
+      } else{
+        ref.cell.idx <- 1:ncol(reference) 
+        query.cell.idx <- (ncol(reference)+1): ncol(obj)
+      }
+
+      obj@meta.data[ ref.cell.idx, ingest.group] <- "reference"
+      obj@meta.data[ query.cell.idx , ingest.group] <- "query"
       
       if(correct.embeddings) {
         # setting up an object with pcassay with PCA embedding as the data
@@ -3887,10 +3898,10 @@ IngestNewData <- function(reference,
         suppressWarnings(obj[[reference.assay]] <- CreateAssayObject(data = cbind(
           GetAssayData(object = obj,
                        assay = reference.assay, 
-                       slot = "data")[features, transfer_anchor@reference.cells ], 
+                       slot = "data")[features, ref.cell.idx ], 
           GetAssayData(object = obj,
                        assay = query.assay, 
-                       slot = "data")[features, transfer_anchor@query.cells ])
+                       slot = "data")[features, query.cell.idx ])
           ))
         # setting up metadata
         DefaultAssay(obj) <- reference.assay
@@ -3959,9 +3970,9 @@ IngestNewData <- function(reference,
       if( length(obj@misc) != 7  ){
         # single modality will find query reference NN
       reference.embeddings <- Embeddings(object = merged.obj, 
-                                         reduction = "int" )[ transfer_anchor@reference.cells, ]
+                                         reduction = "int" )[ ref.cell.idx, ]
       query.embeddings<- Embeddings(object = merged.obj, 
-                                   reduction = "int" )[ transfer_anchor@query.cells, ]
+                                   reduction = "int" )[ query.cell.idx, ]
       query_ref.nn <- NNHelper(data = reference.embeddings,
                                query = query.embeddings,
                                k = k.nn, 
@@ -3972,6 +3983,8 @@ IngestNewData <- function(reference,
       }
       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+      merged.obj@misc$ref.cell.idx <- ref.cell.idx
+      merged.obj@misc$query.cell.idx <- query.cell.idx
        if( is.null(transfer.labels) ){
        return( merged.obj )
      } 
@@ -3994,8 +4007,11 @@ IngestNewData <- function(reference,
         rownames(x = prediction.scores) <-   gsub("\\_query", "", transfer_anchor@query.cells)
         prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
         prediction.scores.max <- apply(X = prediction.scores, MARGIN = 1, function(x) max(x))
-        merged.obj$predicted.id <- c( prediction.ids, refdata)
-        merged.obj$predicted.id.score <- c(prediction.scores.max, rep(1, length( refdata )))
+        merged.obj$predicted.id <- "other"
+        merged.obj$predicted.id[ref.cell.idx] <-  as.character(refdata)
+        merged.obj$predicted.id[query.cell.idx] <- prediction.ids
+        merged.obj$predicted.id.score <- 1
+        merged.obj$predicted.id.score[query.cell.idx] <- prediction.scores.max 
       return( merged.obj )
     }
   )
