@@ -1635,28 +1635,24 @@ WilcoxDETest <- function(
 
 
 
-# Generate perturb data
-
+ 
 # Generate perturb data
 PerturbSignature <- function(object, 
                              reduction,
                              dims, 
                              assay, 
                              mean.type = c("amean", "gmean")[1], 
-                             slot, 
+                             slot = "data", 
                              group.by = NULL,
-                             ident.query,
                              ident.ref,
                              confound = NULL,
                              features = rownames(object[[assay]]) , 
-                             k.nn = 30, 
+                             k.nn = 20, 
                              return.assay = TRUE
 ){
   if(!is.null(group.by)){
     Idents(object) <- object@meta.data[ ,group.by]
   }
-  query.idx <- which( Idents(object) == ident.query)
-  
   query.cell <-  Cells(object)
   ref.cell <-    Cells(object)[which( Idents(object) == ident.ref)]
   try(meta.list <- split(object@meta.data, object@meta.data[,confound]), silent = TRUE)
@@ -1731,3 +1727,37 @@ PerturbSignature <- function(object,
     return(predict.data)
   }
 }
+
+
+
+PerturbScore <- function( object,
+                          assay, 
+                          reduction,
+                          dims,
+                          perturb.assay,
+                          perturb.var,
+                          perturb.ref,
+                          confound.var,
+                          perturb.score.name = "perturb.score"
+){
+  object[[perturb.assay]] <-  PerturbSignature(object = object, 
+                                               reduction = reduction, 
+                                               dims = dims,
+                                               assay = assay,
+                                               group.by = perturb.var, 
+                                               ident.query = perturb.query,
+                                               ident.ref = perturb.ref,
+                                               features = perturb.feature ,
+                                               confound = confound.var,
+                                               return.assay = T)
+  averge.exp <- AverageExpression(object = object,    assays = perturb.assay, slot = "data")[[1]]
+  
+  global.perturb.vec <- averge.exp[ perturb.feature , as.character(perturb.query), drop=F] - 
+    averge.exp[ perturb.feature,as.character(perturb.ref), drop=F]
+  global.perturb.vec <- as.matrix(global.perturb.vec)
+  global.perturb.vec <- global.perturb.vec/ sqrt(sum(global.perturb.vec**2))
+  
+  object@meta.data[ , perturb.score.name] <-   t(object[[ perturb.assay ]]@data[perturb.feature , ]) %*% global.perturb.vec[perturb.feature, ,drop=F]
+  return(object)
+}
+
