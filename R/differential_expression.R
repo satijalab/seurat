@@ -1734,8 +1734,10 @@ PerturbScore <- function( object,
                           assay, 
                           reduction,
                           dims,
+                          perturb.feature, 
                           perturb.assay,
                           perturb.var,
+                          perturb.query, 
                           perturb.ref,
                           confound.var,
                           perturb.score.name = "perturb.score"
@@ -1745,12 +1747,13 @@ PerturbScore <- function( object,
                                                dims = dims,
                                                assay = assay,
                                                group.by = perturb.var, 
-                                               ident.query = perturb.query,
                                                ident.ref = perturb.ref,
                                                features = perturb.feature ,
                                                confound = confound.var,
                                                return.assay = T)
-  averge.exp <- AverageExpression(object = object,    assays = perturb.assay, slot = "data")[[1]]
+  Idents(object ) <- perturb.var
+  
+  averge.exp <- AverageExpression(object = object,  assays = perturb.assay, slot = "data")[[1]]
   
   global.perturb.vec <- averge.exp[ perturb.feature , as.character(perturb.query), drop=F] - 
     averge.exp[ perturb.feature,as.character(perturb.ref), drop=F]
