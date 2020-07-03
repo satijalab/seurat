@@ -1935,7 +1935,8 @@ BarcodeInflectionsPlot <- function(object) {
 #' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point
 #' theme element_blank labs scale_color_identity scale_color_distiller
 #' scale_color_gradient guides guide_legend guide_colorbar
-#' facet_grid
+#' facet_grid unit
+#' @importFrom stats dist hclust
 #'
 #' @export
 #'
