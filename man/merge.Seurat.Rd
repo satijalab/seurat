@@ -33,7 +33,7 @@ approach was applied to all objects.}
 
 \item{...}{Arguments passed to other methods}
 
-\item{project}{Sets the project name for the Seurat object.}
+\item{project}{\link{Project} name for the \code{Seurat} object}
 }
 \value{
 Merged object
