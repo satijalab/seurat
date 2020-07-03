@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - Added ability to create a Seurat object from an existing Assay object, or any
-object inheriting from the Assay class.
+object inheriting from the Assay class
+- Added ability to cluster idents and group features in `DotPlot`
 
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
