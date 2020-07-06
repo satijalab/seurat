@@ -13,6 +13,7 @@ object inheriting from the Assay class
 - Removed `add.iter` parameter from `RunTSNE` function
 - Fixed integer overflow error in the WilcoxDETest function
 - Minor visual fixes in `DoHeatmap` group bar + labels
+- Efficiency improvements in anchor scoring (`ScoreAnchors`)
 
 ## [3.1.5] - 2020-04-14
 ### Added
