@@ -29,11 +29,13 @@ DotPlot(
 
 \item{assay}{Name of assay to use, defaults to the active assay}
 
-\item{features}{Input vector of features, or named list of feature vectors 
-if feature-grouped panels are desired (replicates the functionality of the old SplitDotPlotGG)}
+\item{features}{Input vector of features, or named list of feature vectors
+if feature-grouped panels are desired (replicates the functionality of the
+old SplitDotPlotGG)}
 
-\item{cols}{Colors to plot, can pass a single character giving the name of
-a palette from \code{RColorBrewer::brewer.pal.info}}
+\item{cols}{Colors to plot: the name of a palette from 
+\code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient, 
+or 3+ colors defining multiple gradients (if split.by is set)}
 
 \item{col.min}{Minimum scaled average expression threshold (everything smaller
 will be set to this)}
@@ -51,10 +53,11 @@ gene will have no dot drawn.}
 
 \item{group.by}{Factor to group the cells by}
 
-\item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
+\item{split.by}{Factor to split the groups by (replicates the functionality
+of the old SplitDotPlotGG);
 see \code{\link{FetchData}} for more details}
 
-\item{cluster.idents}{Whether to order Identities by hierarchical clusters 
+\item{cluster.idents}{Whether to order identities by hierarchical clusters
 based on given features, default is FALSE}
 
 \item{scale}{Determine whether the data is scaled, TRUE for default}
