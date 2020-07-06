@@ -879,7 +879,7 @@ PredictAssay <- function(
         }
       }
     }
-    reference.data <- reference.data[features, ]
+    reference.data <- reference.data[features, ,drop=F]
   } else{
     if(is.null(dims)){
       stop("dims is empty")

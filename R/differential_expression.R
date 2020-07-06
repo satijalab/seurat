@@ -1653,6 +1653,7 @@ PerturbSignature <- function(object,
   if(!is.null(group.by)){
     Idents(object) <- object@meta.data[ ,group.by]
   }
+  object[[assay]]@data <- as.matrix(   object[[assay]]@data )
   query.cell <-  Cells(object)
   ref.cell <-    Cells(object)[which( Idents(object) == ident.ref)]
   try(meta.list <- split(object@meta.data, object@meta.data[,confound]), silent = TRUE)
@@ -1690,15 +1691,15 @@ PerturbSignature <- function(object,
                                        cells = query.cell.m, 
                                        return.assay = FALSE)
         
-      } else if( length(ref.cell.m) != 0){
-        warning("the number of ref cells is smaller than the size of neighbors, perturbation score will be calculated by averaging all reference cells")
+      } else if( length(ref.cell.m) > 5){
+        message("the number of ref cells is smaller than the size of neighbors, perturbation score will be calculated by averaging all reference cells")
         ref.data.m<- GetAssayData(object = object, 
                                   assay = assay, 
-                                  slot = slot  )[features, ref.cell.m]
-        if(  length(ref.cell.m) !=1){
+                                  slot = slot  )[features, ref.cell.m, drop=F]
+        ref.data.m <- as.matrix(ref.data.m)
           ref.data.m <- rowMeans( ref.data.m )
-        }
         predict.data.m <- sapply(query.cell.m, function(c)  ref.data.m)
+       rownames(predict.data.m) <- rownames( ref.data.m)
       } else {
         warning("no reference cells, perturbation score will not be zero")
         predict.data.m<- GetAssayData(object = object, 
@@ -1708,13 +1709,12 @@ PerturbSignature <- function(object,
       }
       predict.list[[idx]] <- predict.data.m
     }
-    
     predict.data <- Reduce(cbind, predict.list)
     predict.data <- predict.data[, Cells(object)]
   }
   
   if(return.assay){
-    object.assay <- GetAssayData(object = object, assay = assay, slot = slot)[features, ]
+    object.assay <- GetAssayData(object = object, assay = assay, slot = slot)[features, ,drop=F]
     if(is(object.assay, 'sparseMatrix') ){
       object.assay <- as.matrix(object.assay)
     }
@@ -1754,7 +1754,7 @@ PerturbScore <- function( object,
   Idents(object ) <- perturb.var
   
   averge.exp <- AverageExpression(object = object,  assays = perturb.assay, slot = "data")[[1]]
-  
+
   global.perturb.vec <- averge.exp[ perturb.feature , as.character(perturb.query), drop=F] - 
     averge.exp[ perturb.feature,as.character(perturb.ref), drop=F]
   global.perturb.vec <- as.matrix(global.perturb.vec)
