@@ -478,14 +478,24 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
+  # sets of methods with particular characteristics
+  # methods that are incompatible with pre-filtering
+  methods.noprefilter <- c("DESeq2")
+  # methods that use latent.vars
+  methods.latent <- c('negbinom', 'poisson', 'MAST', "LR")
+  # methods that require CheckDots
+  methods.checkdots <- c('wilcox', 'MAST', 'DESeq2')
+  # methods that do not use Bonferroni correction
+  methods.nocorrect <- c('roc')
+  
   features <- features %||% rownames(x = object)
-  methods.noprefiliter <- c("DESeq2")
-  if (test.use %in% methods.noprefiliter) {
+  # reset filtering parameters, if they had been specified to non-defaults
+  if (test.use %in% methods.noprefilter) {
     features <- rownames(x = object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
-  # error checking
+  # cell grouping error checking
   if (length(x = cells.1) == 0) {
     stop("Cell group 1 is empty - no cells with identity class ", cells.1)
   } else if (length(x = cells.2) == 0) {
@@ -590,14 +600,15 @@ FindMarkers.default <- function(
     }
   }
   # perform DE
-  if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
+  if (!(test.use %in% methods.latent) && !is.null(x = latent.vars)) {
     warning(
-      "'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests",
+      # TODO automate error message based on methods.latent
+      "'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests", 
       call. = FALSE,
       immediate. = TRUE
     )
   }
-  if (!test.use %in% c('wilcox', 'MAST', 'DESeq2')) {
+  if (!test.use %in% methods.checkdots) {
     CheckDots(...)
   }
   de.results <- switch(
@@ -684,7 +695,7 @@ FindMarkers.default <- function(
   if (only.pos) {
     de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
   }
-  if (test.use == "roc") {
+  if (test.use %in% methods.nocorrect) {
     de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
   } else {
     de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
@@ -740,6 +751,10 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   ...
 ) {
+  # sets of methods with particular characteristics 
+  # methods that use the 'counts' slot
+  methods.counts <- c("negbinom", "poisson", "DESeq2")
+  
   if (!is.null(x = group.by)) {
     if (!is.null(x = subset.ident)) {
       object <- subset(x = object, idents = subset.ident)
@@ -750,7 +765,7 @@ FindMarkers.Seurat <- function(
     stop("Please only specify either assay or reduction.")
   }
   data.slot <- ifelse(
-    test = test.use %in% c("negbinom", "poisson", "DESeq2"),
+    test = test.use %in% methods.counts,
     yes = 'counts',
     no = slot
   )
@@ -759,6 +774,8 @@ FindMarkers.Seurat <- function(
     data.use <-  GetAssayData(object = object[[assay]], slot = data.slot)
   } else {
     if (data.slot == "counts") {
+      # TODO automate error message based on methods.counts
+      # TODO this error might also show if a test not in methods.counts is specified but slot='count' is set
       stop("The following tests cannot be used when specifying a reduction as they assume a count model: negbinom, poisson, DESeq2")
     }
     data.use <- t(x = Embeddings(object = object, reduction = reduction))
