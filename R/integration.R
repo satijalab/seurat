@@ -3050,7 +3050,12 @@ ScoreAnchors <- function(
   anchor.new <- data.frame(
     'cell1' = anchor.df[, 1],
     'cell2' = anchor.df[, 2],
-    'score' = mapply(function(x,y) length(intersect(nbrsetA(x), nbrsetB(y))), anchor.df[, 1], anchor.df[, 2])
+    'score' = mapply(
+      FUN = function(x, y) {
+        length(x = intersect(x = nbrsetA(x = x), nbrsetB(x = y)))}, 
+      anchor.df[, 1], 
+      anchor.df[, 2]
+    )
   )
   # normalize the score
   max.score <- quantile(anchor.new$score, 0.9)
