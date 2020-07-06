@@ -710,50 +710,65 @@ CreateDimReducObject <- function(
   return(dim.reduc)
 }
 
-#' Create a Seurat object
-#'
-#' Create a Seurat object from a feature (e.g. gene) expression matrix. The expected format of the
-#' input matrix is features x cells.
-#'
-#'
-#' Note: In previous versions (<3.0), this function also accepted a parameter to set the expression
-#' threshold for a 'detected' feature (gene). This functionality has been removed to simplify the
-#' initialization process/assumptions. If you would still like to impose this threshold for your
-#' particular dataset, simply filter the input expression matrix before calling this function.
-#'
 #' @inheritParams CreateAssayObject
-#' @param project Sets the project name for the Seurat object.
-#' @param assay Name of the assay corresponding to the initial input data.
-#' @param names.field For the initial identity class for each cell, choose this field from the
-#' cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set
-#' names.field to 3 to set the initial identities to CELLTYPE.
-#' @param names.delim For the initial identity class for each cell, choose this delimiter from the
-#' cell's column name. E.g. If your cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
-#' separate the cell name into its component parts for picking the relevant field.
-#' @param meta.data Additional cell-level metadata to add to the Seurat object. Should be a data
-#' frame where the rows are cell names and the columns are additional metadata fields.
 #'
-#' @importFrom utils packageVersion
-#' @importFrom Matrix colSums
+#' @rdname CreateSeuratObject
+#' @method CreateSeuratObject default
 #' @export
 #'
-#' @examples
-#' pbmc_raw <- read.table(
-#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
-#'   as.is = TRUE
-#' )
-#' pbmc_small <- CreateSeuratObject(counts = pbmc_raw)
-#' pbmc_small
-#'
-CreateSeuratObject <- function(
+CreateSeuratObject.default <- function(
   counts,
   project = 'SeuratProject',
   assay = 'RNA',
+  names.field = 1,
+  names.delim = '_',
+  meta.data = NULL,
   min.cells = 0,
   min.features = 0,
+  ...
+) {
+  if (!is.null(x = meta.data)) {
+    if (!all(rownames(x = meta.data) %in% colnames(x = counts))) {
+      warning("Some cells in meta.data not present in provided counts matrix")
+    }
+  }
+  assay.data <- CreateAssayObject(
+    counts = counts,
+    min.cells = min.cells,
+    min.features = min.features
+  )
+  if (!is.null(x = meta.data)) {
+    common.cells <- intersect(
+      x = rownames(x = meta.data), y = colnames(x = assay.data)
+    )
+    meta.data <- meta.data[common.cells, , drop = FALSE]
+  }
+  Key(object = assay.data) <- suppressWarnings(expr = UpdateKey(key = tolower(
+    x = assay
+  )))
+  return(CreateSeuratObject(
+    counts = assay.data,
+    project = project,
+    assay = assay,
+    names.field = names.field,
+    names.delim = names.delim,
+    meta.data = meta.data,
+    ...
+  ))
+}
+
+#' @rdname CreateSeuratObject
+#' @method CreateSeuratObject Assay
+#' @export
+#'
+CreateSeuratObject.Assay <- function(
+  counts,
+  project = 'SeuratProject',
+  assay = 'RNA',
   names.field = 1,
-  names.delim = "_",
-  meta.data = NULL
+  names.delim = '_',
+  meta.data = NULL,
+  ...
 ) {
   if (!is.null(x = meta.data)) {
     if (is.null(x = rownames(x = meta.data))) {
@@ -761,7 +776,7 @@ CreateSeuratObject <- function(
     }
     if (length(x = setdiff(x = rownames(x = meta.data), y = colnames(x = counts)))) {
       warning("Some cells in meta.data not present in provided counts matrix.")
-      meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), ]
+      meta.data <- meta.data[intersect(x = rownames(x = meta.data), y = colnames(x = counts)), , drop = FALSE]
     }
     if (is.data.frame(x = meta.data)) {
       new.meta.data <- data.frame(row.names = colnames(x = counts))
@@ -771,35 +786,32 @@ CreateSeuratObject <- function(
       meta.data <- new.meta.data
     }
   }
-  assay.data <- CreateAssayObject(
-    counts = counts,
-    min.cells = min.cells,
-    min.features = min.features
-  )
-  Key(object = assay.data) <- paste0(tolower(x = assay), '_')
-  assay.list <- list(assay.data)
+  assay.list <- list(counts)
   names(x = assay.list) <- assay
-  init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
-    X = colnames(x = assay.data),
+    X = colnames(x = counts),
     FUN = ExtractField,
     field = names.field,
     delim = names.delim
   )))
   if (any(is.na(x = idents))) {
-    warning("Input parameters result in NA values for initial cell identities. Setting all initial idents to the project name")
+    warning(
+      "Input parameters result in NA values for initial cell identities. Setting all initial idents to the project name",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
-    idents <- rep.int(x = factor(x = project), times = ncol(x = assay.data))
+    idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
   }
-  names(x = idents) <- colnames(x = assay.data)
+  names(x = idents) <- colnames(x = counts)
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
-    meta.data = init.meta.data,
+    meta.data = data.frame(row.names = colnames(x = counts)),
     active.assay = assay,
     active.ident = idents,
     project.name = project,
@@ -807,11 +819,12 @@ CreateSeuratObject <- function(
   )
   object[['orig.ident']] <- idents
   # Calculate nCount and nFeature
-  n.calc <- CalcN(object = assay.data)
+  n.calc <- CalcN(object = counts)
   if (!is.null(x = n.calc)) {
     names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
     object[[names(x = n.calc)]] <- n.calc
   }
+  # Add metadata
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -6910,7 +6923,7 @@ Projected <- function(object) {
 }
 
 # Subset cells in vst data
-# @param sct.info A vst.out list 
+# @param sct.info A vst.out list
 # @param cells vector of cells to retain
 # @param features vector of features to retain
 SubsetVST <- function(sct.info, cells, features) {
