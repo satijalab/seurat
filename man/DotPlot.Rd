@@ -33,12 +33,12 @@ DotPlot(
 if feature-grouped panels are desired (replicates the functionality of the
 old SplitDotPlotGG)}
 
-\item{cols}{Colors to plot: the name of a palette from 
-\code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient, 
+\item{cols}{Colors to plot: the name of a palette from
+\code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient,
 or 3+ colors defining multiple gradients (if split.by is set)}
 
-\item{col.min}{Minimum scaled average expression threshold (everything smaller
-will be set to this)}
+\item{col.min}{Minimum scaled average expression threshold (everything
+smaller will be set to this)}
 
 \item{col.max}{Maximum scaled average expression threshold (everything larger
 will be set to this)}

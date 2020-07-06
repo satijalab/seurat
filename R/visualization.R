@@ -1906,11 +1906,11 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param features Input vector of features, or named list of feature vectors
 #' if feature-grouped panels are desired (replicates the functionality of the
 #' old SplitDotPlotGG)
-#' @param cols Colors to plot: the name of a palette from 
-#' \code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient, 
+#' @param cols Colors to plot: the name of a palette from
+#' \code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient,
 #' or 3+ colors defining multiple gradients (if split.by is set)
-#' @param col.min Minimum scaled average expression threshold (everything smaller
-#'  will be set to this)
+#' @param col.min Minimum scaled average expression threshold (everything
+#' smaller will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger
 #' will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot
@@ -1970,7 +1970,7 @@ DotPlot <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
-  split.colors <- !is.null(x = split.by) & !any(cols %in% rownames(x = brewer.pal.info))
+  split.colors <- !is.null(x = split.by) && !any(cols %in% rownames(x = brewer.pal.info))
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
