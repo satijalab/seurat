@@ -2481,26 +2481,28 @@ BlueAndRed <- function(k = 50) {
   return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
 }
 
-#' Cell selector
+#' Cell Selector
 #'
 #' Select points on a scatterplot and get information about them
 #'
 #' @param plot A ggplot2 plot
-#' @param object An optional Seurat object; if passes, will return an object with
-#' the identities of selected cells set to \code{ident}
+#' @param object An optional Seurat object; if passes, will return an object
+#' with the identities of selected cells set to \code{ident}
 #' @param ident An optional new identity class to assign the selected cells
-#' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
-#' recoloring based on selected cells, or using a smooth scatterplot, respectively
+#' @param ... Ignored
 #'
-#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
-#' a Seurat object with the selected cells identity classes set to \code{ident}
+#' @return If \code{object} is \code{NULL}, the names of the points selected;
+#' otherwise, a Seurat object with the selected cells identity classes set to
+#' \code{ident}
 #'
-#' @importFrom ggplot2 ggplot_build
+#' @importFrom ggplot2 scale_color_manual
+#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel
+#' @importFrom shiny fillRow plotOutput brushOpts reactiveValues observeEvent
+#' stopApp brushedPoints renderPlot runGadget
+#'
 #' @export
 #'
-# @aliases FeatureLocator
-#' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
-#' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+#' @seealso \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
@@ -2513,17 +2515,127 @@ BlueAndRed <- function(k = 50) {
 #' }
 #'
 CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
-  located <- PointLocator(plot = plot, ...)
-  data <- ggplot_build(plot = plot)$plot$data
-  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
-  if (inherits(x = object, what = 'Seurat')) {
-    if (!all(selected %in% Cells(x = object))) {
-      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+  # Set up the gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = "Cell Selector",
+      left = NULL
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = "plot",
+          height = '100%',
+          brush = brushOpts(
+            id = 'brush',
+            delay = 10,
+            clip = TRUE,
+            resetOnNew = TRUE
+          )
+        )
+      ),
+    )
+  )
+  # Get some plot information
+  if (inherits(x = plot, what = 'patchwork')) {
+    if (length(x = plot$patches$plots)) {
+      warning(
+        "Multiple plots passed, using last plot",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
-    Idents(object = object, cells = selected) <- ident
-    return(object)
+    class(x = plot) <- grep(
+      pattern = 'patchwork',
+      x = class(x = plot),
+      value = TRUE,
+      invert = TRUE
+    )
   }
-  return(selected)
+  col.aes <- GetColourAesthetics(plot = plot)$colour
+  geom.use <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(x = layer$geom)[1])
+    }
+  )
+  geom.use <- min(x = which(x = geom.use == 'GeomPoint'))
+  plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
+  plot.data$selected_ <- FALSE
+  plot.data$selected <- "Unselected"
+  rownames(x = plot.data) <- rownames(x = plot$data)
+  # Server function
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(data = plot.data, colour = col.aes)
+    # Event handlers
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        print(x = plot.env$plot)
+        selected <- rownames(x = plot.data)[plot.env$data$selected_]
+        if (inherits(x = object, what = 'Seurat')) {
+          if (!all(selected %in% Cells(x = object))) {
+            stop("Cannot find the selected cells in the Seurat object, please be sure you pass the same object used to generate the plot")
+          }
+          Idents(object = object, cells = selected) <- ident
+          selected <- object
+        }
+        stopApp(returnValue = selected)
+      }
+    )
+    observeEvent(
+      eventExpr = input$brush,
+      handlerExpr = {
+        plot.env$data <- brushedPoints(
+          df = plot.data,
+          brush = input$brush,
+          allRows = TRUE
+        )
+        plot.env$colour <- ifelse(
+          test = any(plot.env$data$selected_),
+          yes = 'selected_',
+          no = col.aes
+        )
+        plot.env$data$selected <- ifelse(
+          test = plot.env$data$selected_,
+          yes = 'Selected',
+          no = 'Unselected'
+        )
+      }
+    )
+    # Render the plot
+    output$plot <- renderPlot(expr = {
+      plot.env$plot <- if (plot.env$colour == col.aes) {
+        plot
+      } else {
+        p2 <- plot
+        if (inherits(x = p2$layers[[geom.use]]$data, what = 'waiver')) {
+          p2$data <- merge(x = p2$data, y = plot.env$data)
+        } else {
+          p2$layers[[geom.use]]$data <- merge(
+            x = p2$layers[[geom.use]]$data,
+            y = plot.env$data
+          )
+        }
+        colour <- if (is.null(x = p2$layers[[geom.use]]$mapping$colour)) {
+          p2$mapping$colour
+        } else {
+          p2$layers[[geom.use]]$mapping$colour
+        }
+        colour <- rlang::quo_set_expr(quo = colour, expr = substitute(selected))
+        if (is.null(x = p2$layers[[geom.use]]$mapping$colour)) {
+          p2$mapping$colour <- colour
+        } else {
+          p2$layers[[geom.use]]$mapping$colour <- colour
+        }
+        p2 + scale_color_manual(
+          values = c(Unselected = '#C3C3C3', Selected = '#DE2D26')
+        )
+      }
+      plot.env$plot
+    })
+  }
+  return(runGadget(app = ui, server = server))
 }
 
 #' Move outliers towards center on dimension reduction plot
@@ -3949,6 +4061,34 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
   return(plot.data)
 }
 
+# Get colour aesththics from a plot for a certain geom
+#
+# @param plot A ggplot2 object
+# @param geom Geom class to filter to
+# @param plot.first Use plot-wide colour aesthetics before geom-specific aesthetics
+#
+# @return A named list with values 'colour' for the colour aesthetic
+#
+GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(x = layer$geom)[1])
+    }
+  )
+  geoms <- which(x = geoms == geom)
+  if (!length(x = geoms)) {
+    stop("Cannot find a geom of class ", geom)
+  }
+  geoms <- min(geoms)
+  if (plot.first) {
+    colour <- as.character(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)[2]
+  } else {
+    colour <- as.character(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)[2]
+  }
+  return(list(colour = colour))
+}
+
 # Get X and Y aesthetics from a plot for a certain geom
 #
 # @param plot A ggplot2 object
@@ -4218,30 +4358,31 @@ PlotBuild <- function(data, dark.theme = FALSE, smooth = FALSE, ...) {
 # @importFrom SDMTools pnt.in.poly
 #
 PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
-  #   Convert the ggplot object to a data.frame
-  PackageCheck('SDMTools')
-  plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
-  npoints <- nrow(x = plot.data)
-  cat("Click around the cluster of points you wish to select\n")
-  cat("ie. select the vertecies of a shape around the cluster you\n")
-  cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
-  polygon <- locator(n = npoints, type = 'l')
-  polygon <- data.frame(polygon)
-  #   pnt.in.poly returns a data.frame of points
-  points.all <- SDMTools::pnt.in.poly(
-    pnts = plot.data[, c(1, 2)],
-    poly.pnts = polygon
-  )
-  #   Find the located points
-  points.located <- points.all[which(x = points.all$pip == 1), ]
-  #   If we're recoloring, do the recolor
-  if (recolor) {
-    no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
-    points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
-    plot.data$color <- points.all$color
-    PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
-  }
-  return(points.located[, c(1, 2)])
+  .Defunct(new = "CellSelector")
+  # #   Convert the ggplot object to a data.frame
+  # PackageCheck('SDMTools')
+  # plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
+  # npoints <- nrow(x = plot.data)
+  # cat("Click around the cluster of points you wish to select\n")
+  # cat("ie. select the vertecies of a shape around the cluster you\n")
+  # cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
+  # polygon <- locator(n = npoints, type = 'l')
+  # polygon <- data.frame(polygon)
+  # #   pnt.in.poly returns a data.frame of points
+  # points.all <- SDMTools::pnt.in.poly(
+  #   pnts = plot.data[, c(1, 2)],
+  #   poly.pnts = polygon
+  # )
+  # #   Find the located points
+  # points.located <- points.all[which(x = points.all$pip == 1), ]
+  # #   If we're recoloring, do the recolor
+  # if (recolor) {
+  #   no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
+  #   points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
+  #   plot.data$color <- points.all$color
+  #   PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
+  # }
+  # return(points.located[, c(1, 2)])
 }
 
 # Create quantile segments for quantiles on violin plots in ggplot2
