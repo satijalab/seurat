@@ -12,7 +12,6 @@ FindClusters(object, ...)
   object,
   modularity.fxn = 1,
   initial.membership = NULL,
-  weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
   method = "matrix",
@@ -32,7 +31,6 @@ FindClusters(object, ...)
   graph.name = NULL,
   modularity.fxn = 1,
   initial.membership = NULL,
-  weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
   method = "matrix",
@@ -54,7 +52,7 @@ FindClusters(object, ...)
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
-\item{initial.membership, weights, node.sizes}{Parameters to pass to the Python leidenalg function.}
+\item{initial.membership, node.sizes}{Parameters to pass to the Python leidenalg function.}
 
 \item{resolution}{Value of the resolution parameter, use a value above
 (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
