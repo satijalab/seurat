@@ -1488,15 +1488,15 @@ FeatureScatter <- function(
     cells = cells,
     slot = slot
   )
-  feature1 <- c(grep( pattern = paste0( "_", feature1, "$"), colnames(x = data), value = TRUE), feature1)[1]
-  feature2 <- c(grep( pattern = paste0( "_", feature2, "$"), colnames(x = data), value = TRUE), feature2)[1]
-  if (isFALSE(x = feature1 %in% colnames(x = data))) {
+  if ( !grepl(pattern = feature1,x = colnames(x = data)[1])) {
     stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
   }
-  if (isFALSE(x = feature2 %in% colnames(x = data))) {
+  if ( !grepl(pattern = feature2,x = colnames(x = data)[2])) {
     stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
   }
   data <- as.data.frame(x = data)
+  feature1 <-  colnames(x = data)[1]
+  feature2 <-  colnames(x = data)[2]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
