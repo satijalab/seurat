@@ -1786,7 +1786,9 @@ TransferData <- function(
                   "Number of columns in provided matrix : ", ncol(x = refdata), "\n",
                   "Number of columns required           : ", length(x = reference.cells)))
     }
-    colnames(x = refdata) <- paste0(colnames(x = refdata), "_reference")
+    if(   grepl( pattern = "_reference",x = reference.cells[1])){
+      colnames(x = refdata) <- paste0(colnames(x = refdata), "_reference")
+    }
     if (any(!colnames(x = refdata) == reference.cells)) {
       if (any(!colnames(x = refdata) %in% reference.cells) | any(!reference.cells %in% colnames(x = refdata))) {
         stop("Some (or all) of the column names of the provided refdata don't match the reference cells used in anchor finding.")
@@ -3798,7 +3800,8 @@ FindJointTransferAnchor <- function(reference,
        iobject[[ paste0( reduction.list[[i]],"project") ]]@cell.embeddings[ ]<-   proj.embeddings.cca[[i]]
        }
   }
-
+  Misc(iobject, slot = "query_ref.nn") <- nnQR
+  Misc(iobject, slot = "ref_query.nn") <- nnRQ
   Misc(iobject, slot = "query.modality.weight") <- query.weight$first.modality.weight
   Misc(iobject, slot = "query.sigma.list") <- query.weight$params$sigma.list
   Misc(iobject, slot = "reference.modality.weight") <- reference.weight$first.modality.weight
@@ -3864,15 +3867,15 @@ IngestNewData <- function(reference,
       
       obj <- transfer_anchor@object.list[[1]]
       # test if object is merged by reference and query
-      if( isFALSE(x = grepl("reference" ,Cells(obj)[ncol(reference)]) & 
-                  grepl("query"  ,Cells(obj)[ncol(reference)+1] ) ) ){
-        warnings("object is not merged by reference and query")
-        ref.cell.idx <- grep("_reference$", Cells(obj))
-        query.cell.idx <- setdiff(x = 1:ncol(obj), y = ref.cell.idx)
-      } else{
+      # if( isFALSE(x = grepl("reference" ,Cells(obj)[ncol(reference)]) & 
+      #             grepl("query"  ,Cells(obj)[ncol(reference)+1] ) ) ){
+      #   warnings("object is not merged by reference and query")
+      #   ref.cell.idx <- grep("_reference$", Cells(obj))
+      #   query.cell.idx <- setdiff(x = 1:ncol(obj), y = ref.cell.idx)
+      # } else{
         ref.cell.idx <- 1:ncol(reference) 
         query.cell.idx <- (ncol(reference)+1): ncol(obj)
-      }
+      #}
 
       obj@meta.data[ ref.cell.idx, ingest.group] <- "reference"
       obj@meta.data[ query.cell.idx , ingest.group] <- "query"
@@ -3911,7 +3914,7 @@ IngestNewData <- function(reference,
                                  assays = reference.assay,
                                  dimreducs = c(anchor.reduction, proj.reduction)
                                  )
-        }
+      }
       # prepapring metadata for batch correction
       integration.name <- "integrated"
       filtered.anchors <- data.frame(transfer_anchor@anchors)
@@ -3933,7 +3936,7 @@ IngestNewData <- function(reference,
                                           integration.name = 'integrated', 
                                           features.integrate = rownames(obj), 
                                           verbose = verbose)
-      if( length(obj@misc) == 7  ){
+      if( length(obj@misc) >= 7  ){
         # multi-modal transfer
         dr.weights <- lapply( X = obj@misc$proj.reduction,
                               FUN = function(r) obj[[r]])
@@ -3967,7 +3970,7 @@ IngestNewData <- function(reference,
         # saving the batch corrected gene matrix
         merged.obj[["int"]] <- CreateAssayObject(data = integrated.matrix )
       }
-      if( length(obj@misc) != 7  ){
+      if( length(obj@misc) >= 7  ){
         # single modality will find query reference NN
       reference.embeddings <- Embeddings(object = merged.obj, 
                                          reduction = "int" )[ ref.cell.idx, ]
@@ -3987,7 +3990,8 @@ IngestNewData <- function(reference,
       merged.obj@misc$query.cell.idx <- query.cell.idx
        if( is.null(transfer.labels) ){
        return( merged.obj )
-     } 
+       } 
+   
       # transfer identities
         refdata <-transfer.labels
         filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
