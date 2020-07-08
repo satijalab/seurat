@@ -849,8 +849,8 @@ FindTransferAnchors <- function(
   ## find anchors using CCA
   if (reduction == 'cca') {
     if (normalization.method == "LogNormalize") {
-      reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-      query <- ScaleData(object = query, features = features, verbose = FALSE)
+      reference <- ScaleData(object = reference, features = features, do.scale = scale,verbose = FALSE)
+      query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
     }
     combined.ob <- RunCCA(
       object1 = reference,
