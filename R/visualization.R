@@ -2497,8 +2497,8 @@ BlueAndRed <- function(k = 50) {
 #' otherwise, a Seurat object with the selected cells identity classes set to
 #' \code{ident}
 #'
-#' @importFrom ggplot2 scale_color_manual
-#' @importFrom miniUI miniPage gadgetTitleBar miniContentPanel
+#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton
+#' miniContentPanel
 #' @importFrom shiny fillRow plotOutput brushOpts reactiveValues observeEvent
 #' stopApp brushedPoints renderPlot runGadget
 #'
@@ -2521,7 +2521,7 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   ui <- miniPage(
     gadgetTitleBar(
       title = "Cell Selector",
-      left = NULL
+      left = miniTitleBarButton(inputId = "reset", label = "Reset")
     ),
     miniContentPanel(
       fillRow(
@@ -2554,26 +2554,20 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
       invert = TRUE
     )
   }
-  col.aes <- GetColourAesthetics(plot = plot)$colour
-  geom.use <- sapply(
-    X = plot$layers,
-    FUN = function(layer) {
-      return(class(x = layer$geom)[1])
-    }
-  )
-  geom.use <- min(x = which(x = geom.use == 'GeomPoint'))
+  xy.aes <- GetXYAesthetics(plot = plot)
+  dark.theme <- !is.null(x = plot$theme$plot.background$fill) &&
+    plot$theme$plot.background$fill == 'black'
   plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
   plot.data$selected_ <- FALSE
-  plot.data$selected <- "Unselected"
   rownames(x = plot.data) <- rownames(x = plot$data)
   # Server function
   server <- function(input, output, session) {
-    plot.env <- reactiveValues(data = plot.data, colour = col.aes)
+    plot.env <- reactiveValues(data = plot.data)
     # Event handlers
     observeEvent(
       eventExpr = input$done,
       handlerExpr = {
-        print(x = plot.env$plot)
+        PlotBuild(data = plot.env$data, dark.theme = dark.theme)
         selected <- rownames(x = plot.data)[plot.env$data$selected_]
         if (inherits(x = object, what = 'Seurat')) {
           if (!all(selected %in% Cells(x = object))) {
@@ -2586,56 +2580,34 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
       }
     )
     observeEvent(
+      eventExpr = input$reset,
+      handlerExpr = {
+        plot.env$data <- plot.data
+        session$resetBrush(brushId = 'brush')
+      }
+    )
+    observeEvent(
       eventExpr = input$brush,
       handlerExpr = {
         plot.env$data <- brushedPoints(
           df = plot.data,
           brush = input$brush,
+          xvar = xy.aes$x,
+          yvar = xy.aes$y,
           allRows = TRUE
         )
-        plot.env$colour <- ifelse(
-          test = any(plot.env$data$selected_),
-          yes = 'selected_',
-          no = col.aes
-        )
-        plot.env$data$selected <- ifelse(
+        plot.env$data$color <- ifelse(
           test = plot.env$data$selected_,
-          yes = 'Selected',
-          no = 'Unselected'
+          yes = '#DE2D26',
+          no = '#C3C3C3'
         )
       }
     )
     # Render the plot
-    output$plot <- renderPlot(expr = {
-      plot.env$plot <- if (plot.env$colour == col.aes) {
-        plot
-      } else {
-        p2 <- plot
-        if (inherits(x = p2$layers[[geom.use]]$data, what = 'waiver')) {
-          p2$data <- merge(x = p2$data, y = plot.env$data)
-        } else {
-          p2$layers[[geom.use]]$data <- merge(
-            x = p2$layers[[geom.use]]$data,
-            y = plot.env$data
-          )
-        }
-        colour <- if (is.null(x = p2$layers[[geom.use]]$mapping$colour)) {
-          p2$mapping$colour
-        } else {
-          p2$layers[[geom.use]]$mapping$colour
-        }
-        colour <- rlang::quo_set_expr(quo = colour, expr = substitute(selected))
-        if (is.null(x = p2$layers[[geom.use]]$mapping$colour)) {
-          p2$mapping$colour <- colour
-        } else {
-          p2$layers[[geom.use]]$mapping$colour <- colour
-        }
-        p2 + scale_color_manual(
-          values = c(Unselected = '#C3C3C3', Selected = '#DE2D26')
-        )
-      }
-      plot.env$plot
-    })
+    output$plot <- renderPlot(expr = PlotBuild(
+      data = plot.env$data,
+      dark.theme = dark.theme
+    ))
   }
   return(runGadget(app = ui, server = server))
 }
