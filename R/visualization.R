@@ -2535,7 +2535,8 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
           height = '100%',
           brush = brushOpts(
             id = 'brush',
-            delay = 10,
+            delay = 100,
+            delayType = 'debounce',
             clip = TRUE,
             resetOnNew = TRUE
           )
