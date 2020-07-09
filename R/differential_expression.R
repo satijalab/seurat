@@ -1658,19 +1658,8 @@ PerturbSignature <- function(object,
   ref.cell <-    Cells(object)[which( Idents(object) == ident.ref)]
   try(meta.list <- split(object@meta.data, object@meta.data[,confound]), silent = TRUE)
   if (!exists("meta.list")){
-    perturb.nn <- nn2(data = Embeddings(object, reduction = reduction)[ ref.cell, dims ], 
-                      query =  Embeddings(object, reduction = reduction)[ query.cell, dims ],
-                      k = k.nn )
-    ref.obj <- subset(object, cells = ref.cell )
-    predict.data <- PredictAssay(object = ref.obj, 
-                                 nn.idx = perturb.nn$nn.idx, 
-                                 assay = assay,
-                                 slot = slot, 
-                                 features = features ,
-                                 mean.type = mean.type, 
-                                 cells = query.cell, 
-                                 return.assay = FALSE)
-  } else{
+    meta.list <- list( object@meta.data)
+  } 
     predict.list <- list()
     idx = 0
     for (meta.m in meta.list){
@@ -1711,7 +1700,7 @@ PerturbSignature <- function(object,
     }
     predict.data <- Reduce(cbind, predict.list)
     predict.data <- predict.data[, Cells(object)]
-  }
+
   
   if(return.assay){
     object.assay <- GetAssayData(object = object, assay = assay, slot = slot)[features, ,drop=F]
@@ -1739,7 +1728,7 @@ PerturbScore <- function( object,
                           perturb.var,
                           perturb.query, 
                           perturb.ref,
-                          confound.var,
+                          confound.var = NULL,
                           perturb.score.name = "perturb.score"
 ){
   object[[perturb.assay]] <-  PerturbSignature(object = object, 
