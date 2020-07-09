@@ -1487,10 +1487,10 @@ FeatureScatter <- function(
     cells = cells,
     slot = slot
   )
-  if ( !grepl(pattern = feature1,x = colnames(x = data)[1])) {
+  if (!grepl(pattern = feature1, x = colnames(x = data)[1])) {
     stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
   }
-  if ( !grepl(pattern = feature2,x = colnames(x = data)[2])) {
+  if (!grepl(pattern = feature2, x = colnames(x = data)[2])) {
     stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
   }
   data <- as.data.frame(x = data)
