@@ -82,8 +82,8 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     if(node1.size() == 0) {
       stop("Matrix contained no network data.  Check format.");
     }
-
-    network = matrixToNetwork(node1, node2, edgeweights, modularityFunction);
+    int nNodes = std::max(SNN.cols(), SNN.rows());
+    network = matrixToNetwork(node1, node2, edgeweights, modularityFunction, nNodes);
     Rcpp::checkUserInterrupt();
   }
 

@@ -15,7 +15,7 @@ NULL
 #' @importFrom future nbrOfWorkers
 #'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
-#' @param initial.membership,weights,node.sizes Parameters to pass to the Python leidenalg function.
+#' @param initial.membership,node.sizes Parameters to pass to the Python leidenalg function.
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
@@ -40,7 +40,6 @@ FindClusters.default <- function(
   object,
   modularity.fxn = 1,
   initial.membership = NULL,
-  weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
   method = "matrix",
@@ -87,7 +86,6 @@ FindClusters.default <- function(
             method = method,
             partition.type = "RBConfigurationVertexPartition",
             initial.membership = initial.membership,
-            weights = weights,
             node.sizes = node.sizes,
             resolution.parameter = r,
             random.seed = random.seed,
@@ -125,7 +123,6 @@ FindClusters.default <- function(
           method = method,
           partition.type = "RBConfigurationVertexPartition",
           initial.membership = initial.membership,
-          weights = weights,
           node.sizes = node.sizes,
           resolution.parameter = r,
           random.seed = random.seed,
@@ -155,7 +152,6 @@ FindClusters.Seurat <- function(
   graph.name = NULL,
   modularity.fxn = 1,
   initial.membership = NULL,
-  weights = NULL,
   node.sizes = NULL,
   resolution = 0.8,
   method = "matrix",
@@ -181,7 +177,6 @@ FindClusters.Seurat <- function(
     object = object[[graph.name]],
     modularity.fxn = modularity.fxn,
     initial.membership = initial.membership,
-    weights = weights,
     node.sizes = node.sizes,
     resolution = resolution,
     method = method,
@@ -671,7 +666,7 @@ NNHelper <- function(data, query = data, k, method, ...) {
 # RBERVertexPartition, CPMVertexPartition, MutableVertexPartition,
 # SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python
 # module documentation for more details)
-# @param initial.membership,weights,node.sizes Parameters to pass to the Python leidenalg function.
+# @param initial.membership,node.sizes Parameters to pass to the Python leidenalg function.
 # @param resolution.parameter A parameter controlling the coarseness of the clusters
 # for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
 # partition types that accept a resolution parameter)
@@ -701,7 +696,6 @@ RunLeiden <- function(
     'SurpriseVertexPartition'
   ),
   initial.membership = NULL,
-  weights = NULL,
   node.sizes = NULL,
   resolution.parameter = 1,
   random.seed = 0,
@@ -720,17 +714,12 @@ RunLeiden <- function(
       },
     "igraph" = {
       input <- if (inherits(x = object, what = 'list')) {
-        if (is.null(x = weights)) {
-          graph_from_adj_list(adjlist = object)
-        } else {
-          graph_from_adj_list(adjlist = object)
+        graph_from_adj_list(adjlist = object)
+      } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
+        if (inherits(x = object, what = 'Graph')) {
+          object <- as(object = object, Class = "dgCMatrix")
         }
-      } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', "Matrix"))) {
-        if (is.null(x = weights)) {
-          graph_from_adjacency_matrix(adjmatrix = object)
-        } else {
           graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
-        }
       } else if (inherits(x = object, what = 'igraph')) {
         object
       } else {
@@ -747,7 +736,7 @@ RunLeiden <- function(
     object = input,
     partition_type = partition.type,
     initial_membership = initial.membership,
-    weights = weights,
+    weights = NULL,
     node_sizes = node.sizes,
     resolution_parameter = resolution.parameter,
     seed = random.seed,
