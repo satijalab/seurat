@@ -3044,33 +3044,20 @@ ScoreAnchors <- function(
   anchor.df <- as.data.frame(x = GetIntegrationData(object = object, integration.name = integration.name, slot = 'anchors'))
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "neighbors")
   offset <- length(x = neighbors$cells1)
-  anchor.df$cell2 <- anchor.df$cell2 + offset
-  # make within dataset df
-  if (verbose) {
-    message("Extracting within-dataset neighbors")
-  }
-  total.cells <- offset + length(neighbors$cells2)
-  nn.m1 <- ConstructNNMat(nn.idx = neighbors$nnaa$nn.idx[,1:k.score], offset1 = 0, offset2 = 0, dims = c(total.cells, total.cells))
-  nn.m2 <- ConstructNNMat(nn.idx = neighbors$nnab$nn.idx[,1:k.score], offset1 = 0, offset2 = offset, dims = c(total.cells, total.cells))
-  nn.m3 <- ConstructNNMat(nn.idx = neighbors$nnba$nn.idx[,1:k.score], offset1 = offset, offset2 = 0, dims = c(total.cells, total.cells))
-  nn.m4 <- ConstructNNMat(nn.idx = neighbors$nnbb$nn.idx[,1:k.score], offset1 = offset, offset2 = offset, dims = c(total.cells, total.cells))
-  k.matrix <- nn.m1 + nn.m2 + nn.m3 + nn.m4
-  anchor.only <- sparseMatrix(i = anchor.df[, 1], j = anchor.df[, 2], x = 1, dims = c(total.cells, total.cells))
-
-  if (do.cpp){
-    anchor.matrix <- SNNAnchor(k_matrix = k.matrix, anchor_only = anchor.only)
-  } else {
-    jaccard.dist <- tcrossprod(x = k.matrix)
-    anchor.matrix <- jaccard.dist * anchor.only
-  }
-
-  anchor.matrix <- as(object = anchor.matrix, Class = "dgTMatrix")
+  nbrsetA <- function(x) c(neighbors$nnaa$nn.idx[x, 1:k.score], neighbors$nnab$nn.idx[x, 1:k.score] + offset)
+  nbrsetB <- function(x) c(neighbors$nnba$nn.idx[x, 1:k.score], neighbors$nnbb$nn.idx[x, 1:k.score] + offset)
+  # score = number of shared neighbors
   anchor.new <- data.frame(
-    'cell1' = anchor.matrix@i + 1,
-    'cell2' = anchor.matrix@j + 1,
-    'score' = anchor.matrix@x
+    'cell1' = anchor.df[, 1],
+    'cell2' = anchor.df[, 2],
+    'score' = mapply(
+      FUN = function(x, y) {
+        length(x = intersect(x = nbrsetA(x = x), nbrsetB(x = y)))}, 
+      anchor.df[, 1], 
+      anchor.df[, 2]
+    )
   )
-  anchor.new$cell2 <- anchor.new$cell2 - offset
+  # normalize the score
   max.score <- quantile(anchor.new$score, 0.9)
   min.score <- quantile(anchor.new$score, 0.01)
   anchor.new$score <- anchor.new$score - min.score
