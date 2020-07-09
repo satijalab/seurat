@@ -116,7 +116,9 @@ default of 0.0 implies exact nearest neighbor search}
 assay.name_snn.}
 }
 \value{
-Returns the object with object@snn filled
+When running on a \code{\link{Seurat}} object, returns fills the
+\code{graphs} slot; names of graphs can be found with
+\code{Filter(function(x) inherits(object[[x]], "Graph"), names(object))}
 }
 \description{
 Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
