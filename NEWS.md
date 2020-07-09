@@ -14,6 +14,7 @@ object inheriting from the Assay class
 - Fixed integer overflow error in the WilcoxDETest function
 - Minor visual fixes in `DoHeatmap` group bar + labels
 - Efficiency improvements in anchor scoring (`ScoreAnchors`)
+- Fix bug in `FindClusters()` when the last node has no edges 
 
 ## [3.1.5] - 2020-04-14
 ### Added
