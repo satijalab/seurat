@@ -16,6 +16,7 @@ object inheriting from the Assay class
 - Efficiency improvements in anchor scoring (`ScoreAnchors`)
 - Fix bug in `FindClusters()` when the last node has no edges 
 - Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
+- Fix handling of keys in `FeatureScatter()` 
 
 ## [3.1.5] - 2020-04-14
 ### Added
