@@ -1908,10 +1908,11 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param features Input vector of features, or named list of feature vectors
 #' if feature-grouped panels are desired (replicates the functionality of the
 #' old SplitDotPlotGG)
-#' @param cols Colors to plot, can pass a single character giving the name of
-#' a palette from \code{RColorBrewer::brewer.pal.info}
-#' @param col.min Minimum scaled average expression threshold (everything smaller
-#'  will be set to this)
+#' @param cols Colors to plot: the name of a palette from
+#' \code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient,
+#' or 3+ colors defining multiple gradients (if split.by is set)
+#' @param col.min Minimum scaled average expression threshold (everything
+#' smaller will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger
 #' will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot
@@ -1939,6 +1940,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' scale_color_gradient guides guide_legend guide_colorbar
 #' facet_grid unit
 #' @importFrom stats dist hclust
+#' @importFrom RColorBrewer brewer.pal.info
 #'
 #' @export
 #'
@@ -1971,6 +1973,7 @@ DotPlot <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
+  split.colors <- !is.null(x = split.by) && !any(cols %in% rownames(x = brewer.pal.info))
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
@@ -2009,11 +2012,13 @@ DotPlot <- function(
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
     splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
-    if (length(x = unique(x = splits)) > length(x = cols)) {
-      stop("Not enough colors for the number of groups")
+    if (split.colors) {
+      if (length(x = unique(x = splits)) > length(x = cols)) {
+        stop("Not enough colors for the number of groups")
+      }
+      cols <- cols[1:length(x = unique(x = splits))]
+      names(x = cols) <- unique(x = splits)
     }
-    cols <- cols[1:length(x = unique(x = splits))]
-    names(x = cols) <- unique(x = splits)
     data.features$id <- paste(data.features$id, splits, sep = '_')
     unique.splits <- unique(x = splits)
     id.levels <- paste0(rep(x = id.levels, each = length(x = unique.splits)), "_", rep(x = unique(x = splits), times = length(x = id.levels)))
@@ -2077,7 +2082,7 @@ DotPlot <- function(
     }
   )
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
   }
   data.plot$avg.exp.scaled <- avg.exp.scaled
@@ -2087,7 +2092,7 @@ DotPlot <- function(
   )
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     splits.use <- vapply(
       X = as.character(x = data.plot$id),
       FUN = gsub,
@@ -2108,7 +2113,7 @@ DotPlot <- function(
       value = avg.exp.scaled
     )
   }
-  color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
+  color.by <- ifelse(test = split.colors, yes = 'colors', no = 'avg.exp.scaled')
   if (!is.na(x = scale.min)) {
     data.plot[data.plot$pct.exp < scale.min, 'pct.exp'] <- scale.min
   }
@@ -2142,14 +2147,14 @@ DotPlot <- function(
       strip.background = element_blank()
     )
   }
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     plot <- plot + scale_color_identity()
   } else if (length(x = cols) == 1) {
     plot <- plot + scale_color_distiller(palette = cols)
   } else {
     plot <- plot + scale_color_gradient(low = cols[1], high = cols[2])
   }
-  if (is.null(x = split.by)) {
+  if (!split.colors) {
     plot <- plot + guides(color = guide_colorbar(title = 'Average Expression'))
   }
   return(plot)
