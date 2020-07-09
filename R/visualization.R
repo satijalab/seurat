@@ -2144,10 +2144,11 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param features Input vector of features, or named list of feature vectors
 #' if feature-grouped panels are desired (replicates the functionality of the
 #' old SplitDotPlotGG)
-#' @param cols Colors to plot, can pass a single character giving the name of
-#' a palette from \code{RColorBrewer::brewer.pal.info}
-#' @param col.min Minimum scaled average expression threshold (everything smaller
-#'  will be set to this)
+#' @param cols Colors to plot: the name of a palette from
+#' \code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient,
+#' or 3+ colors defining multiple gradients (if split.by is set)
+#' @param col.min Minimum scaled average expression threshold (everything
+#' smaller will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger
 #' will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot
@@ -2175,6 +2176,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' scale_color_gradient guides guide_legend guide_colorbar
 #' facet_grid unit
 #' @importFrom stats dist hclust
+#' @importFrom RColorBrewer brewer.pal.info
 #'
 #' @export
 #'
@@ -2207,6 +2209,7 @@ DotPlot <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
+  split.colors <- !is.null(x = split.by) && !any(cols %in% rownames(x = brewer.pal.info))
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
@@ -2245,11 +2248,13 @@ DotPlot <- function(
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
     splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
-    if (length(x = unique(x = splits)) > length(x = cols)) {
-      stop("Not enough colors for the number of groups")
+    if (split.colors) {
+      if (length(x = unique(x = splits)) > length(x = cols)) {
+        stop("Not enough colors for the number of groups")
+      }
+      cols <- cols[1:length(x = unique(x = splits))]
+      names(x = cols) <- unique(x = splits)
     }
-    cols <- cols[1:length(x = unique(x = splits))]
-    names(x = cols) <- unique(x = splits)
     data.features$id <- paste(data.features$id, splits, sep = '_')
     unique.splits <- unique(x = splits)
     id.levels <- paste0(rep(x = id.levels, each = length(x = unique.splits)), "_", rep(x = unique(x = splits), times = length(x = id.levels)))
@@ -2313,7 +2318,7 @@ DotPlot <- function(
     }
   )
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
   }
   data.plot$avg.exp.scaled <- avg.exp.scaled
@@ -2323,7 +2328,7 @@ DotPlot <- function(
   )
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     splits.use <- vapply(
       X = as.character(x = data.plot$id),
       FUN = gsub,
@@ -2344,7 +2349,7 @@ DotPlot <- function(
       value = avg.exp.scaled
     )
   }
-  color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
+  color.by <- ifelse(test = split.colors, yes = 'colors', no = 'avg.exp.scaled')
   if (!is.na(x = scale.min)) {
     data.plot[data.plot$pct.exp < scale.min, 'pct.exp'] <- scale.min
   }
@@ -2378,14 +2383,14 @@ DotPlot <- function(
       strip.background = element_blank()
     )
   }
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     plot <- plot + scale_color_identity()
   } else if (length(x = cols) == 1) {
     plot <- plot + scale_color_distiller(palette = cols)
   } else {
     plot <- plot + scale_color_gradient(low = cols[1], high = cols[2])
   }
-  if (is.null(x = split.by)) {
+  if (!split.colors) {
     plot <- plot + guides(color = guide_colorbar(title = 'Average Expression'))
   }
   return(plot)
@@ -2719,26 +2724,28 @@ BlueAndRed <- function(k = 50) {
   return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
 }
 
-#' Cell selector
+#' Cell Selector
 #'
 #' Select points on a scatterplot and get information about them
 #'
 #' @param plot A ggplot2 plot
-#' @param object An optional Seurat object; if passes, will return an object with
-#' the identities of selected cells set to \code{ident}
+#' @param object An optional Seurat object; if passes, will return an object
+#' with the identities of selected cells set to \code{ident}
 #' @param ident An optional new identity class to assign the selected cells
-#' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
-#' recoloring based on selected cells, or using a smooth scatterplot, respectively
+#' @param ... Ignored
 #'
-#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
-#' a Seurat object with the selected cells identity classes set to \code{ident}
+#' @return If \code{object} is \code{NULL}, the names of the points selected;
+#' otherwise, a Seurat object with the selected cells identity classes set to
+#' \code{ident}
 #'
-#' @importFrom ggplot2 ggplot_build
+#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton
+#' miniContentPanel
+#' @importFrom shiny fillRow plotOutput brushOpts reactiveValues observeEvent
+#' stopApp brushedPoints renderPlot runGadget
+#'
 #' @export
 #'
-# @aliases FeatureLocator
-#' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
-#' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+#' @seealso \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
@@ -2751,17 +2758,100 @@ BlueAndRed <- function(k = 50) {
 #' }
 #'
 CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
-  located <- PointLocator(plot = plot, ...)
-  data <- ggplot_build(plot = plot)$plot$data
-  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
-  if (inherits(x = object, what = 'Seurat')) {
-    if (!all(selected %in% Cells(x = object))) {
-      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+  # Set up the gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = "Cell Selector",
+      left = miniTitleBarButton(inputId = "reset", label = "Reset")
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = "plot",
+          height = '100%',
+          brush = brushOpts(
+            id = 'brush',
+            delay = 100,
+            delayType = 'debounce',
+            clip = TRUE,
+            resetOnNew = FALSE
+          )
+        )
+      ),
+    )
+  )
+  # Get some plot information
+  if (inherits(x = plot, what = 'patchwork')) {
+    if (length(x = plot$patches$plots)) {
+      warning(
+        "Multiple plots passed, using last plot",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
-    Idents(object = object, cells = selected) <- ident
-    return(object)
+    class(x = plot) <- grep(
+      pattern = 'patchwork',
+      x = class(x = plot),
+      value = TRUE,
+      invert = TRUE
+    )
   }
-  return(selected)
+  xy.aes <- GetXYAesthetics(plot = plot)
+  dark.theme <- !is.null(x = plot$theme$plot.background$fill) &&
+    plot$theme$plot.background$fill == 'black'
+  plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
+  plot.data$selected_ <- FALSE
+  rownames(x = plot.data) <- rownames(x = plot$data)
+  # Server function
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(data = plot.data)
+    # Event handlers
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        PlotBuild(data = plot.env$data, dark.theme = dark.theme)
+        selected <- rownames(x = plot.data)[plot.env$data$selected_]
+        if (inherits(x = object, what = 'Seurat')) {
+          if (!all(selected %in% Cells(x = object))) {
+            stop("Cannot find the selected cells in the Seurat object, please be sure you pass the same object used to generate the plot")
+          }
+          Idents(object = object, cells = selected) <- ident
+          selected <- object
+        }
+        stopApp(returnValue = selected)
+      }
+    )
+    observeEvent(
+      eventExpr = input$reset,
+      handlerExpr = {
+        plot.env$data <- plot.data
+        session$resetBrush(brushId = 'brush')
+      }
+    )
+    observeEvent(
+      eventExpr = input$brush,
+      handlerExpr = {
+        plot.env$data <- brushedPoints(
+          df = plot.data,
+          brush = input$brush,
+          xvar = xy.aes$x,
+          yvar = xy.aes$y,
+          allRows = TRUE
+        )
+        plot.env$data$color <- ifelse(
+          test = plot.env$data$selected_,
+          yes = '#DE2D26',
+          no = '#C3C3C3'
+        )
+      }
+    )
+    # Render the plot
+    output$plot <- renderPlot(expr = PlotBuild(
+      data = plot.env$data,
+      dark.theme = dark.theme
+    ))
+  }
+  return(runGadget(app = ui, server = server))
 }
 
 #' Move outliers towards center on dimension reduction plot
@@ -4283,6 +4373,34 @@ GGpointToBase <- function(
   return(plot.data)
 }
 
+# Get colour aesththics from a plot for a certain geom
+#
+# @param plot A ggplot2 object
+# @param geom Geom class to filter to
+# @param plot.first Use plot-wide colour aesthetics before geom-specific aesthetics
+#
+# @return A named list with values 'colour' for the colour aesthetic
+#
+GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(x = layer$geom)[1])
+    }
+  )
+  geoms <- which(x = geoms == geom)
+  if (!length(x = geoms)) {
+    stop("Cannot find a geom of class ", geom)
+  }
+  geoms <- min(geoms)
+  if (plot.first) {
+    colour <- as.character(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)[2]
+  } else {
+    colour <- as.character(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)[2]
+  }
+  return(list(colour = colour))
+}
+
 # Get X and Y aesthetics from a plot for a certain geom
 #
 # @param plot A ggplot2 object
@@ -4552,30 +4670,31 @@ PlotBuild <- function(data, dark.theme = FALSE, smooth = FALSE, ...) {
 # @importFrom SDMTools pnt.in.poly
 #
 PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
-  #   Convert the ggplot object to a data.frame
-  PackageCheck('SDMTools')
-  plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
-  npoints <- nrow(x = plot.data)
-  cat("Click around the cluster of points you wish to select\n")
-  cat("ie. select the vertecies of a shape around the cluster you\n")
-  cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
-  polygon <- locator(n = npoints, type = 'l')
-  polygon <- data.frame(polygon)
-  #   pnt.in.poly returns a data.frame of points
-  points.all <- SDMTools::pnt.in.poly(
-    pnts = plot.data[, c(1, 2)],
-    poly.pnts = polygon
-  )
-  #   Find the located points
-  points.located <- points.all[which(x = points.all$pip == 1), ]
-  #   If we're recoloring, do the recolor
-  if (recolor) {
-    no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
-    points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
-    plot.data$color <- points.all$color
-    PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
-  }
-  return(points.located[, c(1, 2)])
+  .Defunct(new = "CellSelector")
+  # #   Convert the ggplot object to a data.frame
+  # PackageCheck('SDMTools')
+  # plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
+  # npoints <- nrow(x = plot.data)
+  # cat("Click around the cluster of points you wish to select\n")
+  # cat("ie. select the vertecies of a shape around the cluster you\n")
+  # cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
+  # polygon <- locator(n = npoints, type = 'l')
+  # polygon <- data.frame(polygon)
+  # #   pnt.in.poly returns a data.frame of points
+  # points.all <- SDMTools::pnt.in.poly(
+  #   pnts = plot.data[, c(1, 2)],
+  #   poly.pnts = polygon
+  # )
+  # #   Find the located points
+  # points.located <- points.all[which(x = points.all$pip == 1), ]
+  # #   If we're recoloring, do the recolor
+  # if (recolor) {
+  #   no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
+  #   points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
+  #   plot.data$color <- points.all$color
+  #   PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
+  # }
+  # return(points.located[, c(1, 2)])
 }
 
 # Create quantile segments for quantiles on violin plots in ggplot2

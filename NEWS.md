@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Added ability to create a Seurat object from an existing Assay object, or any
 object inheriting from the Assay class
 - Added ability to cluster idents and group features in `DotPlot`
+- Added ability to use RColorBrewer plaettes for split `DotPlots`
 
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
@@ -16,7 +17,10 @@ object inheriting from the Assay class
 - Efficiency improvements in anchor scoring (`ScoreAnchors`)
 - Fix bug in `FindClusters()` when the last node has no edges 
 - Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
-- Fix handling of keys in `FeatureScatter()` 
+- Fix handling of keys in `FeatureScatter()`
+- Change `CellSelector` to use Shiny gadgets instead of SDMTools
+- Mark `PointLocator` as defunct
+- Remove `SDMTools`
 
 ## [3.1.5] - 2020-04-14
 ### Added
