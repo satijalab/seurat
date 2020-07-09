@@ -22,7 +22,7 @@ will be prefixed with the name.}
 
 \item{filename}{Name of H5 file containing the feature barcode matrix}
 
-\item{assay}{Name of the assay corresponding to the initial input data.}
+\item{assay}{Name of the initial assay}
 
 \item{slice}{Name for the stored image of the tissue slice}
 
