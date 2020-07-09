@@ -2538,7 +2538,7 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
             delay = 100,
             delayType = 'debounce',
             clip = TRUE,
-            resetOnNew = TRUE
+            resetOnNew = FALSE
           )
         )
       ),
