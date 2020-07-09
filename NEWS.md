@@ -15,6 +15,7 @@ object inheriting from the Assay class
 - Minor visual fixes in `DoHeatmap` group bar + labels
 - Efficiency improvements in anchor scoring (`ScoreAnchors`)
 - Fix bug in `FindClusters()` when the last node has no edges 
+- Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
 
 ## [3.1.5] - 2020-04-14
 ### Added
