@@ -1867,7 +1867,7 @@ as.loom.Seurat <- function(
     stop("Please install loomR from GitHub before converting to a loom object")
   }
   CheckDots(..., fxns = 'loomR::create')
-  object <- UpdateSlots(object = object)
+  object <- UpdateSlots(object = x)
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
