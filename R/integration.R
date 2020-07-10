@@ -3941,7 +3941,10 @@ IngestNewData <- function(reference,
         dr.weights <- lapply( X = obj@misc$proj.reduction,
                               FUN = function(r) obj[[r]])
       } else{
-        dr.weights <- merged.obj[[ anchor.reduction ]]
+        
+        dr.weights <- merged.obj[[ proj.reduction ]]
+        #dr.weights <- merged.obj[[ anchor.reduction ]]
+        
       }
       #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
       merged.obj <- FindWeights(object = merged.obj, 
