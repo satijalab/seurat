@@ -889,7 +889,7 @@ DietSeurat <- function(
         }
       } else {
         if (counts) {
-          if (!is.null(x = features)) {
+          if (!is.null(x = features) && !IsMatrixEmpty(x = GetAssayData(object = object[[assay]], slot = "counts"))) {
             slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
           }
         } else {
