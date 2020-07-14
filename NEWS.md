@@ -21,6 +21,7 @@ object inheriting from the Assay class
 - Change `CellSelector` to use Shiny gadgets instead of SDMTools
 - Mark `PointLocator` as defunct
 - Remove `SDMTools`
+- Fixed data slot return in `AverageExpression` when subsetting features and returning a Seurat object
 
 ## [3.1.5] - 2020-04-14
 ### Added
