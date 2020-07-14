@@ -65,10 +65,10 @@ FindSpatiallyVariableFeatures(object, ...)
 \item{r.metric}{r value at which to report the "trans" value of the mark
 variogram}
 
-\item{x.cuts}{Number of divisions to make in the x direction, helps define 
+\item{x.cuts}{Number of divisions to make in the x direction, helps define
 the grid over which binning is performed}
 
-\item{y.cuts}{Number of divisions to make in the y direction, helps define 
+\item{y.cuts}{Number of divisions to make in the y direction, helps define
 the grid over which binning is performed}
 
 \item{verbose}{Print messages and progress}

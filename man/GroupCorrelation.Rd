@@ -32,7 +32,7 @@ data, or scale.data)}
 
 \item{ngroups}{Number of groups to split into}
 
-\item{do.plot}{Display the group correlation boxplot (via 
+\item{do.plot}{Display the group correlation boxplot (via
 \code{GroupCorrelationPlot})}
 }
 \value{

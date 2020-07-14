@@ -34,7 +34,7 @@ SpatiallyVariableFeatures(object, ...)
   \item \code{moransi}: See \code{\link{RunMoransI}} for details.
 }}
 
-\item{decreasing}{Return features in decreasing order (most spatially 
+\item{decreasing}{Return features in decreasing order (most spatially
 variable first).}
 
 \item{assay}{Name of assay to pull spatially variable features for}
