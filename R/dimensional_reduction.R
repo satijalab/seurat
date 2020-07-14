@@ -1293,7 +1293,8 @@ RunUMAP.default <- function(
         )
       }
       if(is.list(object)){
-        uwot_transform_nn(X = object,
+        umap_transform(X = NULL,
+                          nn_method = object, 
                           model = model, 
                           n_threads = nbrOfWorkers(),
                           n_epochs = n.epochs,
