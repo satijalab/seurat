@@ -81,7 +81,6 @@ Collate:
     'integration.R'
     'objects.R'
     'preprocessing.R'
-    'spatial.R'
     'tree.R'
     'utilities.R'
     'zzz.R'

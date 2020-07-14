@@ -28,6 +28,92 @@ PCAPlot <- function(object, ...) {
   return(SpecificDimPlot(object = object, ...))
 }
 
+#' @rdname SpatialPlot
+#' @export
+#'
+SpatialDimPlot <- function(
+  object,
+  group.by = NULL,
+  images = NULL,
+  cols = NULL,
+  crop = TRUE,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
+  facet.highlight = FALSE,
+  label = FALSE,
+  label.size = 7,
+  label.color = 'white',
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  stroke = 0.25,
+  label.box = TRUE,
+  interactive = FALSE,
+  information = NULL
+) {
+  return(SpatialPlot(
+    object = object,
+    group.by = group.by,
+    images = images,
+    cols = cols,
+    crop = crop,
+    cells.highlight = cells.highlight,
+    cols.highlight = cols.highlight,
+    facet.highlight = facet.highlight,
+    label = label,
+    label.size = label.size,
+    label.color = label.color,
+    repel = repel,
+    ncol = ncol,
+    combine = combine,
+    pt.size.factor = pt.size.factor,
+    alpha = alpha,
+    stroke = stroke,
+    label.box = label.box,
+    interactive = interactive,
+    information = information
+  ))
+}
+
+#' @rdname SpatialPlot
+#' @export
+#'
+SpatialFeaturePlot <- function(
+  object,
+  features,
+  images = NULL,
+  crop = TRUE,
+  slot = 'data',
+  min.cutoff = NA,
+  max.cutoff = NA,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  stroke = 0.25,
+  interactive = FALSE,
+  information = NULL
+) {
+  return(SpatialPlot(
+    object = object,
+    features = features,
+    images = images,
+    crop = crop,
+    slot = slot,
+    min.cutoff = min.cutoff,
+    max.cutoff = max.cutoff,
+    ncol = ncol,
+    combine = combine,
+    pt.size.factor = pt.size.factor,
+    alpha = alpha,
+    stroke = stroke,
+    interactive = interactive,
+    information = information
+  ))
+}
+
 #' @rdname DimPlot
 #' @export
 #'
