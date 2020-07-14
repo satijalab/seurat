@@ -287,29 +287,29 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 }
 
 #' Filter stray beads from Slide-seq puck
-#' 
-#' This function is useful for removing stray beads that fall outside the main 
-#' Slide-seq puck area. Essentially, it's a circular filter where you set a 
-#' center and radius defining a circle of beads to keep. If the center is not 
-#' set, it will be estimated from the bead coordinates (removing the 1st and 
+#'
+#' This function is useful for removing stray beads that fall outside the main
+#' Slide-seq puck area. Essentially, it's a circular filter where you set a
+#' center and radius defining a circle of beads to keep. If the center is not
+#' set, it will be estimated from the bead coordinates (removing the 1st and
 #' 99th quantile to avoid skewing the center by the stray beads). By default,
 #' this function will display a \code{\link{SpatialDimPlot}} showing which cells
 #' were removed for easy adjustment of the center and/or radius.
-#' 
+#'
 #' @param object Seurat object with slide-seq data
 #' @param image Name of the image where the coordinates are stored
-#' @param center Vector specifying the x and y coordinates for the center of the 
+#' @param center Vector specifying the x and y coordinates for the center of the
 #' inclusion circle
 #' @param radius Radius of the circle of inclusion
-#' @param do.plot Display a \code{\link{SpatialDimPlot}} with the cells being 
+#' @param do.plot Display a \code{\link{SpatialDimPlot}} with the cells being
 #' removed labeled.
-#' 
-#' @return Returns a Seurat object with only the subset of cells that pass the 
+#'
+#' @return Returns a Seurat object with only the subset of cells that pass the
 #' circular filter
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
-#' # This example uses the ssHippo dataset which you can download 
+#' # This example uses the ssHippo dataset which you can download
 #' # using the SeuratData package.
 #' library(SeuratData)
 #' data('ssHippo')
@@ -318,12 +318,12 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' # This radius looks to small so increase and repeat until satisfied
 #' }
 #' @export
-#' 
+#'
 FilterSlideSeq <- function(
-  object, 
-  image = "image", 
-  center = NULL, 
-  radius = NULL, 
+  object,
+  image = "image",
+  center = NULL,
+  radius = NULL,
   do.plot = TRUE
 ) {
   if (!inherits(x = object[[image]], what = "SlideSeq")) {
@@ -1265,7 +1265,6 @@ geom_spatial_interactive <-  function(
 # For plotting the tissue image
 #' @importFrom ggplot2 ggproto Geom aes ggproto_parent alpha draw_key_point
 #' @importFrom grid unit gpar editGrob pointsGrob viewport gTree addGrob grobName
-#' @export
 #'
 GeomSpatial <- ggproto(
   "GeomSpatial",
@@ -1355,7 +1354,6 @@ GeomSpatial <- ggproto(
 # https://ggplot2.tidyverse.org/articles/extending-ggplot2.html
 #' @importFrom ggplot2 layer
 #'
-#' @export
 #'
 geom_spatial <-  function(
   mapping = NULL,
@@ -1454,7 +1452,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
     MyMoran <- ape::Moran.I
     if (getOption('Seurat.Rfast2.msg', TRUE)) {
       message(
-        "For a more efficient implementation of the Morans I calculation,", 
+        "For a more efficient implementation of the Morans I calculation,",
         "\n(selection.method = 'moransi') please install the Rfast2 package",
         "\n--------------------------------------------",
         "\ninstall.packages('Rfast2')",
@@ -2139,12 +2137,12 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #'
 #' @param r.metric r value at which to report the "trans" value of the mark
 #' variogram
-#' @param x.cuts Number of divisions to make in the x direction, helps define 
-#' the grid over which binning is performed 
-#' @param y.cuts Number of divisions to make in the y direction, helps define 
-#' the grid over which binning is performed 
+#' @param x.cuts Number of divisions to make in the x direction, helps define
+#' the grid over which binning is performed
+#' @param y.cuts Number of divisions to make in the y direction, helps define
+#' the grid over which binning is performed
 #' @param verbose Print messages and progress
-#' 
+#'
 #' @method FindSpatiallyVariableFeatures default
 #' @rdname FindSpatiallyVariableFeatures
 #' @export
@@ -2166,9 +2164,9 @@ FindSpatiallyVariableFeatures.default <- function(
   }
   if (!is.null(x = x.cuts) & !is.null(x = y.cuts)) {
     binned.data <- BinData(
-      data = object, 
-      pos = spatial.location, 
-      x.cuts = x.cuts, 
+      data = object,
+      pos = spatial.location,
+      x.cuts = x.cuts,
       y.cuts = y.cuts,
       verbose = verbose
     )
@@ -2195,7 +2193,7 @@ FindSpatiallyVariableFeatures.default <- function(
 #' @param features If provided, only compute on given features. Otherwise,
 #' compute for all features.
 #' @param nfeatures Number of features to mark as the top spatially variable.
-#' 
+#'
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
 #' @export
@@ -2608,7 +2606,7 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 }
 
 #' @inheritParams FindSpatiallyVariableFeatures
-#' @param decreasing Return features in decreasing order (most spatially 
+#' @param decreasing Return features in decreasing order (most spatially
 #' variable first).
 #' @rdname SpatiallyVariableFeatures
 #' @export
@@ -3000,7 +2998,7 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
 #' @param group.assay Compute the gene groups based off the data in this assay.
 #' @param min.cells Only compute for genes in at least this many cells
 #' @param ngroups Number of groups to split into
-#' @param do.plot Display the group correlation boxplot (via 
+#' @param do.plot Display the group correlation boxplot (via
 #' \code{GroupCorrelationPlot})
 #'
 #' @return A Seurat object with the correlation stored in metafeatures
