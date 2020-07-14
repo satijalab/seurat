@@ -340,10 +340,22 @@ AverageExpression <- function(
       assay = names(x = data.return)[1],
       ...
     )
+    toRet <- SetAssayData(
+      object = toRet, 
+      assay = names(x = data.return)[1],
+      slot = "data",  
+      new.data = log1p(x = as.matrix(x = data.return[[1]]))
+    )
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+        toRet <- SetAssayData(
+          object = toRet, 
+          assay = names(x = data.return)[i],
+          slot = "data",  
+          new.data = log1p(x = as.matrix(x = data.return[[i]]))
+        )
       }
     }
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
@@ -356,7 +368,6 @@ AverageExpression <- function(
       ordered = TRUE
     )
     # finish setting up object if it is to be returned
-    toRet <- NormalizeData(object = toRet, verbose = verbose)
     toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
   } else {
