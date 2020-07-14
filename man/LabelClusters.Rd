@@ -11,6 +11,9 @@ LabelClusters(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  box = FALSE,
+  geom = "GeomPoint",
+  position = "median",
   ...
 )
 }
@@ -27,6 +30,15 @@ LabelClusters(
 \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}}
 
 \item{repel}{Use \code{geom_text_repel} to create nicely-repelled labels}
+
+\item{box}{Use geom_label/geom_label_repel (includes a box around the text
+labels)}
+
+\item{geom}{Name of geom to get X/Y aesthetic names for}
+
+\item{position}{How to place the label if repel = FALSE. If "median", place
+the label at the median position. If "nearest" place the label at the
+position of the nearest data point to the median.}
 
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}}
 }

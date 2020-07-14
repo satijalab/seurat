@@ -866,6 +866,7 @@ DimPlot <- function(
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 #' @param sort.cell Redundant with \code{order}. This argument is being
 #' deprecated. Please use \code{order} instead.
+#' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
@@ -919,6 +920,7 @@ FeaturePlot <- function(
   coord.fixed = FALSE,
   by.col = TRUE,
   sort.cell = NULL,
+  interactive = FALSE,
   combine = TRUE
 ) {
   # TODO: deprecate fully on 3.2.0
@@ -932,6 +934,15 @@ FeaturePlot <- function(
     if (isTRUE(x = sort.cell)) {
       order <- sort.cell
     }
+  }
+  if (interactive) {
+    return(IFeaturePlot(
+      object = object,
+      feature = features[1],
+      dims = dims,
+      reduction = reduction,
+      slot = slot
+    ))
   }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
@@ -1379,6 +1390,231 @@ FeaturePlot <- function(
     }
   }
   return(plots)
+}
+
+#' Visualize features in dimensional reduction space interactively
+#'
+#' @inheritParams FeaturePlot
+#' @param feature Feature to plot
+#'
+#' @return Returns the final plot as a ggplot object
+#'
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 theme element_text guides scale_color_gradientn
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow sidebarPanel selectInput plotOutput reactiveValues
+#' observeEvent stopApp observe updateSelectInput renderPlot runGadget
+#'
+#' @export
+#'
+IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
+  # Set initial data values
+  feature.label <- 'Feature to visualize'
+  assay.keys <- Key(object = object)[Assays(object = object)]
+  keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+  assay <- if (any(keyed)) {
+    names(x = which(x = keyed))[1]
+  } else {
+    DefaultAssay(object = object)
+  }
+  features <- sort(x = rownames(x = GetAssayData(
+    object = object,
+    slot = slot,
+    assay = assay
+  )))
+  assays.use <- vapply(
+    X = Assays(object = object),
+    FUN = function(x) {
+      return(!IsMatrixEmpty(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = x
+      )))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  assays.use <- sort(x = Assays(object = object)[assays.use])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims.reduc <- gsub(
+    pattern = Key(object = object[[reduction]]),
+    replacement = '',
+    x = colnames(x = object[[reduction]])
+  )
+  # Set up the gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        sidebarPanel(
+          selectInput(
+            inputId = 'assay',
+            label = 'Assay',
+            choices = assays.use,
+            selected = assay,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'feature',
+            label = feature.label,
+            choices = features,
+            selected = feature,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'reduction',
+            label = 'Dimensional reduction',
+            choices = Reductions(object = object),
+            selected = reduction,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'xdim',
+            label = 'X dimension',
+            choices = dims.reduc,
+            selected = as.character(x = dims[1]),
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'ydim',
+            label = 'Y dimension',
+            choices = dims.reduc,
+            selected = as.character(x = dims[2]),
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'palette',
+            label = 'Color scheme',
+            choices = names(x = FeaturePalettes),
+            selected = 'Seurat',
+            selectize = FALSE,
+            width = '100%'
+          ),
+          width = '100%'
+        ),
+        plotOutput(outputId = 'plot', height = '100%'),
+        flex = c(1, 4)
+      )
+    )
+  )
+  # Prepare plotting data
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  # Shiny server
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(
+      data = plot.data,
+      dims = paste0(Key(object = object[[reduction]]), dims),
+      feature = feature,
+      palette = 'Seurat'
+    )
+    # Observe events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observe(x = {
+      assay <- input$assay
+      feature.use <- input$feature
+      features.assay <- sort(x = rownames(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = assay
+      )))
+      feature.use <- ifelse(
+        test = feature.use %in% features.assay,
+        yes = feature.use,
+        no = features.assay[1]
+      )
+      reduc <- input$reduction
+      dims.reduc <- gsub(
+        pattern = Key(object = object[[reduc]]),
+        replacement = '',
+        x = colnames(x = object[[reduc]])
+      )
+      dims <- c(input$xdim, input$ydim)
+      for (i in seq_along(along.with = dims)) {
+        if (!dims[i] %in% dims.reduc) {
+          dims[i] <- dims.reduc[i]
+        }
+      }
+      updateSelectInput(
+        session = session,
+        inputId = 'xdim',
+        label = 'X dimension',
+        choices = dims.reduc,
+        selected = as.character(x = dims[1])
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'ydim',
+        label = 'Y dimension',
+        choices = dims.reduc,
+        selected = as.character(x = dims[2])
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = feature.label,
+        choices = features.assay,
+        selected = feature.use
+      )
+    })
+    observe(x = {
+      feature.use <- input$feature
+      feature.keyed <- paste0(Key(object = object[[input$assay]]), feature.use)
+      reduc <- input$reduction
+      dims <- c(input$xdim, input$ydim)
+      dims <- paste0(Key(object = object[[reduc]]), dims)
+      plot.data <- tryCatch(
+        expr = FetchData(
+          object = object,
+          vars = c(dims, feature.keyed),
+          slot = slot
+        ),
+        warning = function(...) {
+          return(plot.env$data)
+        },
+        error = function(...) {
+          return(plot.env$data)
+        }
+      )
+      dims <- colnames(x = plot.data)[1:2]
+      colnames(x = plot.data) <- c(dims, feature.use)
+      plot.env$data <- plot.data
+      plot.env$feature <- feature.use
+      plot.env$dims <- dims
+    })
+    observe(x = {
+      plot.env$palette <- input$palette
+    })
+    # Create the plot
+    output$plot <- renderPlot(expr = {
+      plot.env$plot <- SingleDimPlot(
+        data = plot.env$data,
+        dims = plot.env$dims,
+        col.by = plot.env$feature,
+        label = FALSE
+      ) +
+        theme_cowplot() +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        guides(color = NULL) +
+        scale_color_gradientn(
+          colors = FeaturePalettes[[plot.env$palette]],
+          guide = 'colorbar'
+        )
+      plot.env$plot
+    })
+  }
+  runGadget(app = ui, server = server)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2912,10 +3148,11 @@ FeatureLocator <- function(plot, ...) {
 #' @param plot A ggplot2 plot
 #' @param information An optional dataframe or matrix of extra information to be displayed on hover
 #' @param dark.theme Plot using a dark theme?
-#' @param ... Extra parameters to be passed to \code{plotly::layout}
+#' @param axes Display or hide x- and y-axes
+#' @param ... Extra parameters to be passed to \code{\link[plotly]{layout}}
 #'
 #' @importFrom ggplot2 ggplot_build
-#' @importFrom plotly plot_ly layout
+#' @importFrom plotly plot_ly layout add_annotations
 #' @export
 #'
 #' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
@@ -2930,53 +3167,37 @@ FeatureLocator <- function(plot, ...) {
 HoverLocator <- function(
   plot,
   information = NULL,
+  axes = TRUE,
   dark.theme = FALSE,
   ...
 ) {
-  #   Use GGpointToBase because we already have ggplot objects
-  #   with colors (which are annoying in plotly)
-  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+  # Use GGpointToBase because we already have ggplot objects
+  # with colors (which are annoying in plotly)
+  plot.build <- suppressWarnings(expr = GGpointToPlotlyBuild(
+    plot = plot,
+    information = information,
+    ...
+  ))
   data <- ggplot_build(plot = plot)$plot$data
-  rownames(x = plot.build) <- rownames(x = data)
-  #   Reset the names to 'x' and 'y'
-  names(x = plot.build) <- c(
-    'x',
-    'y',
-    names(x = plot.build)[3:length(x = plot.build)]
-  )
-  #   Add the names we're looking for (eg. cell name, gene name)
-  if (is.null(x = information)) {
-    plot.build$feature <- rownames(x = data)
+  # Set up axis labels here
+  # Also, a bunch of stuff to get axis lines done properly
+  if (axes) {
+    xaxis <- list(
+      title = names(x = data)[1],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
+    yaxis <- list(
+      title = names(x = data)[2],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
   } else {
-    info <- apply(
-      X = information,
-      MARGIN = 1,
-      FUN = function(x, names) {
-        return(paste0(names, ': ', x, collapse = '<br>'))
-      },
-      names = colnames(x = information)
-    )
-    data.info <- data.frame(
-      feature = paste(rownames(x = information), info, sep = '<br>'),
-      row.names = rownames(x = information)
-    )
-    plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    xaxis <- yaxis <- list(visible = FALSE)
   }
-  #   Set up axis labels here
-  #   Also, a bunch of stuff to get axis lines done properly
-  xaxis <- list(
-    title = names(x = data)[1],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  yaxis <- list(
-    title = names(x = data)[2],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  #   Check for dark theme
+  # Check for dark theme
   if (dark.theme) {
     title <- list(color = 'white')
     xaxis <- c(xaxis, color = 'white')
@@ -2986,11 +3207,11 @@ HoverLocator <- function(
     title = list(color = 'black')
     plotbg = 'white'
   }
-  #   The `~' means pull from the data passed (this is why we reset the names)
-  #   Use I() to get plotly to accept the colors from the data as is
-  #   Set hoverinfo to 'text' to override the default hover information
-  #   rather than append to it
-  p <- plotly::layout(
+  # The `~' means pull from the data passed (this is why we reset the names)
+  # Use I() to get plotly to accept the colors from the data as is
+  # Set hoverinfo to 'text' to override the default hover information
+  # rather than append to it
+  p <- layout(
     p = plot_ly(
       data = plot.build,
       x = ~x,
@@ -3009,13 +3230,15 @@ HoverLocator <- function(
     plot_bgcolor = plotbg,
     ...
   )
-  # add labels
+  # Add labels
   label.layer <- which(x = sapply(
     X = plot$layers,
-    FUN = function(x) class(x$geom)[1] == "GeomText")
-  )
+    FUN = function(x) {
+      return(inherits(x = x$geom, what = c('GeomText', 'GeomTextRepel')))
+    }
+  ))
   if (length(x = label.layer) == 1) {
-    p <- plotly::add_annotations(
+    p <- add_annotations(
       p = p,
       x = plot$layers[[label.layer]]$data[, 1],
       y = plot$layers[[label.layer]]$data[, 2],
@@ -3039,13 +3262,21 @@ HoverLocator <- function(
 #' @param split.by Split labels by some grouping label, useful when using
 #' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
+#' @param geom Name of geom to get X/Y aesthetic names for
+#' @param box Use geom_label/geom_label_repel (includes a box around the text
+#' labels)
+#' @param position How to place the label if repel = FALSE. If "median", place
+#' the label at the median position. If "nearest" place the label at the
+#' position of the nearest data point to the median.
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
 #' @importFrom stats median
-#' @importFrom ggrepel geom_text_repel
-#' @importFrom ggplot2 aes_string geom_text
+#' @importFrom ggrepel geom_text_repel geom_label_repel
+#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom RANN nn2
+#'
 #' @export
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
@@ -3061,9 +3292,12 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  box = FALSE,
+  geom = 'GeomPoint',
+  position = "median",
   ...
 ) {
-  xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
+  xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
@@ -3076,6 +3310,30 @@ LabelClusters <- function(
   groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
+  }
+  if (geom == 'GeomSpatial') {
+    pb <- ggplot_build(plot = plot)
+    data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
+    if (!pb$plot$plot_env$crop) {
+      # pretty hacky solution to learn the linear transform to put the data into
+      # the rescaled coordinates when not cropping in. Probably a better way to
+      # do this via ggplot
+      y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
+      data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
+      data$x <- data[, xynames["x"]]
+      data$y <- data[, xynames["y"]]
+      panel_params_image <- c()
+      panel_params_image$x.range <- c(0, ncol(x = pb$plot$plot_env$image))
+      panel_params_image$y.range <- c(0, nrow(x = pb$plot$plot_env$image))
+      suppressWarnings(panel_params_image$x$continuous_range <- c(0, ncol(x = pb$plot$plot_env$image)))
+      suppressWarnings(panel_params_image$y$continuous_range <- c(0, nrow(x = pb$plot$plot_env$image)))
+      image.xform <- pb$layout$coord$transform(data, panel_params_image)[, c("x", "y")]
+      plot.xform <- pb$layout$coord$transform(data, pb$layout$panel_params[[1]])[, c("x", "y")]
+      x.xform <- lm(data$x ~ plot.xform$x)
+      y.xform <- lm(data$y ~ plot.xform$y)
+      data[, xynames['y']] <- image.xform$y * y.xform$coefficients[2] + y.xform$coefficients[1]
+      data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
+    }
   }
   labels.loc <- lapply(
     X = groups,
@@ -3111,7 +3369,16 @@ LabelClusters <- function(
       return(data.medians)
     }
   )
+  if (position == "nearest") {
+    labels.loc <- lapply(X = labels.loc, FUN = function(x) {
+      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
+      nearest.point <- nn2(data = group.data[, 1:2], query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
+      x[1:2] <- group.data[nearest.point, 1:2]
+      return(x)
+    })
+  }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
     stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
@@ -3120,12 +3387,24 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
-  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
-  plot <- plot + geom.use(
-    data = labels.loc,
-    mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
-    ...
-  )
+  if (box) {
+    geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
+      show.legend = FALSE,
+      ...
+    )
+  } else {
+    geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
+      show.legend = FALSE,
+      ...
+    )
+  }
+
   return(plot)
 }
 
@@ -3794,6 +4073,7 @@ Col2Hex <- function(...) {
 # @return The default DimReduc, if possible
 #
 DefaultDimReduc <- function(object, assay = NULL) {
+  object <- UpdateSlots(object = object)
   assay <- assay %||% DefaultAssay(object = object)
   drs.use <- c('umap', 'tsne', 'pca')
   dim.reducs <- FilterObjects(object = object, classes.keep = 'DimReduc')
@@ -4003,19 +4283,71 @@ FacetTheme <- function(...) {
   ))
 }
 
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom grDevices colorRampPalette
+#'
+#'
+SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
+
+# Feature plot palettes
+#
+FeaturePalettes <- list(
+  'Spatial' = SpatialColors(n = 100),
+  'Seurat' = c('lightgrey', 'blue')
+)
+
 # Convert a ggplot2 scatterplot to base R graphics
 #
 # @param plot A ggplot2 scatterplot
 # @param do.plot Create the plot with base R graphics
+# @param cols A named vector of column names to pull. Vector names must be 'x',
+# 'y', 'colour', 'shape', and/or 'size'; vector values must be the names of
+# columns in plot data that correspond to these values. May pass only values that
+# differ from the default (eg. \code{cols = c('size' = 'point.size.factor')})
 # @param ... Extra parameters passed to PlotBuild
 #
 # @return A dataframe with the data that created the ggplot2 scatterplot
 #
 #' @importFrom ggplot2 ggplot_build
 #
-GGpointToBase <- function(plot, do.plot = TRUE, ...) {
+GGpointToBase <- function(
+  plot,
+  do.plot = TRUE,
+  cols = c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  ),
+  ...
+) {
   plot.build <- ggplot_build(plot = plot)
-  cols <- c('x', 'y', 'colour', 'shape', 'size')
+  default.cols <- c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  )
+  cols <- cols %||% default.cols
+  if (is.null(x = names(x = cols))) {
+    if (length(x = cols) > length(x = default.cols)) {
+      warning(
+        "Too many columns provided, selecting only first ",
+        length(x = default.cols),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cols <- cols[1:length(x = default.cols)]
+    }
+    names(x = cols) <- names(x = default.cols)[1:length(x = cols)]
+  }
+  cols <- c(
+    cols[intersect(x = names(x = default.cols), y = names(x = cols))],
+    default.cols[setdiff(x = names(x = default.cols), y = names(x = cols))]
+  )
+  cols <- cols[names(x = default.cols)]
   build.use <- which(x = vapply(
     X = plot.build$data,
     FUN = function(dat) {
@@ -4670,6 +5002,7 @@ SingleCorPlot <- function(
 # @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
 # (that can be pulled with FetchData) allowing for both different colors and different shapes on
 # cells.
+# @param alpha.by Mapping variable for the point alpha value
 # @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
 # points of interest are being buried. Provide either a full list of valid idents or a subset to be
 # plotted last (on top).
@@ -4699,6 +5032,7 @@ SingleDimPlot <- function(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha.by = NULL,
   order = NULL,
   label = FALSE,
   repel = FALSE,
@@ -4771,13 +5105,24 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
+  if (!is.null(x = alpha.by) && !alpha.by %in% colnames(x = data)) {
+    warning(
+      "Cannot find alpha variable ",
+      alpha.by,
+      " in data, setting to NULL",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    alpha.by <- NULL
+  }
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
         color = paste0("`", col.by, "`"),
-        shape = shape.by
+        shape = shape.by,
+        alpha = alpha.by
       ),
       size = pt.size
     ) +
