@@ -57,7 +57,7 @@ FindSpatiallyVariableFeatures(object, ...)
 \item{spatial.location}{Coordinates for each cell/spot/bead}
 
 \item{selection.method}{Method for selecting spatially variable features.
-#' \itemize{
+ \itemize{
   \item \code{markvariogram}: See \code{\link{RunMarkVario}} for details
   \item \code{moransi}: See \code{\link{RunMoransI}} for details.
 }}

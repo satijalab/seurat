@@ -2132,7 +2132,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @param object A Seurat object, assay, or expression matrix
 #' @param spatial.location Coordinates for each cell/spot/bead
 #' @param selection.method Method for selecting spatially variable features.
-#' #' \itemize{
+#'  \itemize{
 #'   \item \code{markvariogram}: See \code{\link{RunMarkVario}} for details
 #'   \item \code{moransi}: See \code{\link{RunMoransI}} for details.
 #' }
@@ -2607,6 +2607,9 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
 }
 
+#' @inheritParams FindSpatiallyVariableFeatures
+#' @param decreasing Return features in decreasing order (most spatially 
+#' variable first).
 #' @rdname SpatiallyVariableFeatures
 #' @export
 #' @method SpatiallyVariableFeatures Assay
@@ -2626,6 +2629,7 @@ SpatiallyVariableFeatures.Assay <- function(
   return(rownames(x = vf)[which(x = vf[, "variable"][, 1])])
 }
 
+#' @param Seurat object
 #' @param assay Name of assay to pull spatially variable features for
 #'
 #' @rdname SpatiallyVariableFeatures

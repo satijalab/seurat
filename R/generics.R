@@ -1115,7 +1115,8 @@ SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
-
+#' Get spatially variable feature information
+#' 
 #' @rdname SpatiallyVariableFeatures
 #' @export SpatiallyVariableFeatures
 #'
