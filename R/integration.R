@@ -689,7 +689,10 @@ FindTransferAnchors <- function(
         key = "ProjectPC_",
         assay = reference.assay
       )
-      combined.ob <- merge(x = reference, y = query)
+      combined.ob <- merge(
+        x = DietSeurat(object = reference, features = features), 
+        y = DietSeurat(object = query, features = features)
+      )
       combined.ob[["pcaproject"]] <- combined.pca
       old.loadings <- Loadings(object = reference[["pca"]])
       colnames(x = old.loadings) <- paste0("ProjectPC_", 1:ncol(x = old.loadings))
@@ -746,6 +749,45 @@ FindTransferAnchors <- function(
     command = command
   )
   return(anchor.set)
+}
+
+#' Get the predicted identity
+#' 
+#' Utility function to easily pull out the name of the class with the maximum 
+#' prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
+#' \code{\link{TransferData}} and want to have a vector with the predicted class.
+#' 
+#' @param object Seurat object
+#' @param assay Name of the assay holding the predictions
+#' @param slot Slot of the assay in which the prediction scores are stored
+#' @param score.filter Return "Unassigned" for any cell with a score less than 
+#' this value
+#' 
+#' @return Returns a vector of predicted class names
+#' 
+#' @examples 
+#' \dontrun{
+#'   prediction.assay <- TransferData(anchorset = anchors, refdata = reference$class)
+#'   query[["predictions"]] <- prediction.assay
+#'   query$predicted.id <- GetTransferPredictions(query)
+#' }
+#' @export
+#' 
+GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
+  dat <- GetAssayData(object[[assay]], slot = slot)
+  predictions <- apply(
+    X = dat, 
+    MARGIN = 2, 
+    FUN = function(x){
+      if (x['max'] < score.filter) {
+        "Unassigned"
+      } else {
+        x <- x[-which(x = names(x = x) == "max")]
+        names(x = which.max(x = x))
+      }
+    }
+  )
+  return(predictions)
 }
 
 #' Integrate data
@@ -1547,6 +1589,8 @@ SelectIntegrationFeatures <- function(
 #' @param verbose Print progress bars and output
 #' @param slot Slot to store the imputed data. Must be either "data" (default) 
 #' or "counts"
+#' @param prediction.assay Return an \code{Assay} object with the prediction
+#' scores for each class stored in the \code{data} slot. 
 #'
 #' @return If \code{refdata} is a vector, returns a data.frame with label 
 #' predictions. If \code{refdata} is a matrix, returns an Assay object where the 
@@ -1595,7 +1639,8 @@ TransferData <- function(
   eps = 0,
   do.cpp = TRUE,
   verbose = TRUE,
-  slot = "data"
+  slot = "data",
+  prediction.assay = FALSE
 ) {
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
@@ -1729,7 +1774,12 @@ TransferData <- function(
       row.names = query.cells,
       stringsAsFactors = FALSE)
     )
-    return(predictions)
+    if (prediction.assay) {
+      pa <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
+      return(pa)
+    } else {
+      return(predictions)
+    }
   } else {  # case for transferring features
     reference.cell.indices <- reference.cells[anchors$cell1]
     refdata.anchors <- refdata[, reference.cell.indices]

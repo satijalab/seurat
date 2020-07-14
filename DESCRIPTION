@@ -1,5 +1,5 @@
 Package: Seurat
-Version: 3.1.5.9015
+Version: 3.1.5.9915
 Date: 2020-07-09
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031> for more details.
@@ -37,6 +37,7 @@ Imports:
     ica,
     igraph,
     irlba,
+    jsonlite,
     KernSmooth,
     leiden (>= 0.3.1),
     lmtest,
@@ -45,7 +46,7 @@ Imports:
     miniUI,
     patchwork,
     pbapply,
-    plotly,
+    plotly (>= 4.9.0),
     png,
     RANN,
     RColorBrewer,
@@ -59,7 +60,9 @@ Imports:
     scales,
     sctransform (>= 0.2.0),
     shiny,
+    spatstat,
     stats,
+    tibble,
     tools,
     utils,
     uwot (>= 0.1.5)
@@ -78,6 +81,7 @@ Collate:
     'integration.R'
     'objects.R'
     'preprocessing.R'
+    'spatial.R'
     'tree.R'
     'utilities.R'
     'zzz.R'
@@ -97,6 +101,7 @@ Suggests:
     GenomeInfoDb,
     IRanges,
     rtracklayer,
+    Rfast2,
     monocle,
     Biobase,
     VGAM,
