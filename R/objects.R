@@ -198,6 +198,29 @@ IntegrationData <- setClass(
   )
 )
 
+#' @note \code{scalefactors} objects can be created with \code{scalefactors()}
+#'
+#' @param spot Spot full resolution scale factor
+#' @param fiducial Fiducial full resolution scale factor
+#' @param hires High resolutoin scale factor
+#' @param lowres Low resolution scale factor
+#'
+#' @rdname ScaleFactors
+#' @export
+#'
+scalefactors <- function(spot, fiducial, hires, lowres) {
+  object <- list(
+    spot = spot,
+    fiducial = fiducial,
+    hires = hires,
+    lowres = lowres
+  )
+  object <- sapply(X = object, FUN = as.numeric, simplify = FALSE, USE.NAMES = TRUE)
+  return(structure(.Data = object, class = 'scalefactors'))
+}
+
+setOldClass(Classes = c('scalefactors'))
+
 #' The SeuratCommand Class
 #'
 #' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
@@ -333,6 +356,122 @@ seurat <- setClass(
   )
 )
 
+#' The SpatialImage class
+#'
+#' The SpatialImage class is a virtual class representing spatial information for
+#' Seurat. All spatial image information must inherit from this class for use with
+#' \code{Seurat} objects
+#'
+#' @slot assay Name of assay to associate image data with; will give this image
+#' priority for visualization when the assay is set as the active/default assay
+#' in a \code{Seurat} object
+#' @slot key Key for the image
+#'
+#' @section Provided methods:
+#' These methods are defined on the \code{SpatialImage} object and should not be
+#' overwritten without careful thought
+#' \itemize{
+#'   \item \code{\link{DefaultAssay}} and \code{\link{DefaultAssay<-}}
+#'   \item \code{\link{Key}} and \code{\link{Key<-}}
+#'   \item \code{\link{IsGlobal}}
+#'   \item \code{\link{Radius}}; this method \emph{can} be overridden to provide
+#'   a spot radius for image objects
+#' }
+#'
+#' @section Required methods:
+#' All subclasses of the \code{SpatialImage} class must define the following methods;
+#' simply relying on the \code{SpatialImage} method will result in errors. For required
+#' parameters and their values, see the \code{Usage} and \code{Arguments} sections
+#' \describe{
+#'   \item{\code{\link{Cells}}}{Return the cell/spot barcodes associated with each position}
+#'   \item{\code{\link{dim}}}{Return the dimensions of the image for plotting in \code{(Y, X)} format}
+#'   \item{\code{\link{GetImage}}}{Return image data; by default, must return a grob object}
+#'   \item{\code{\link{GetTissueCoordinates}}}{Return tissue coordinates; by default,
+#'   must return a two-column data.frame with x-coordinates in the first column and y-coordiantes
+#'   in the second}
+#'   \item{\code{\link{Radius}}}{Return the spot radius; returns \code{NULL} by
+#'   default for use with non-spot image technologies}
+#'   \item{\code{\link{RenameCells}}}{Rename the cell/spot barcodes for this image}
+#'   \item{\code{\link{subset}} and \code{[}}{Subset the image data by cells/spots;
+#'   \code{[} should only take \code{i} for subsetting by cells/spots}
+#' }
+#' These methods are used throughout Seurat, so defining them and setting the proper
+#' defaults will allow subclasses of \code{SpatialImage} to work seamlessly
+#'
+#' @name SpatialImage-class
+#' @rdname SpatialImage-class
+#' @exportClass SpatialImage
+#'
+SpatialImage <- setClass(
+  Class = 'SpatialImage',
+  contains = 'VIRTUAL',
+  slots = list(
+    'assay' = 'character',
+    'key' = 'character'
+  )
+)
+
+#' The SlideSeq class
+#'
+#' The SlideSeq class represents spatial information from the Slide-seq platform
+#'
+#' @inheritSection SpatialImage Slots
+#' @slot coordinates ...
+#' @slot ...
+#'
+SlideSeq <- setClass(
+  Class = 'SlideSeq',
+  contains = 'SpatialImage',
+  slots = list(
+    'coordinates' = 'data.frame'
+  )
+)
+
+#' The STARmap class
+#'
+#' The STARmap class represents spatial information from the STARmap platform
+#'
+#' @inheritSection SpatialImage Slots
+#' @slot ...
+#'
+STARmap <- setClass(
+  Class = 'STARmap',
+  contains = 'SpatialImage',
+  slots = list(
+    'coordinates' = 'data.frame',
+    'qhulls' = 'data.frame'
+  )
+)
+
+#' The VisiumV1 class
+#'
+#' The VisiumV1 class represents spatial information from the 10X Genomics Visium
+#' platform
+#'
+#' @slot image A three-dimensional array with PNG image data, see
+#' \code{\link[png]{readPNG}} for more details
+#' @slot scale.factors An object of class \code{\link{scalefactors}}; see
+#' \code{\link{scalefactors}} for more information
+#' @slot coordinates A data frame with tissue coordinate information
+#' @slot spot.radius Single numeric value giving the radius of the spots
+#'
+#' @name VisiumV1-class
+#' @rdname VisiumV1-class
+#' @exportClass VisiumV1
+#'
+VisiumV1 <- setClass(
+  Class = 'VisiumV1',
+  contains = 'SpatialImage',
+  slots = list(
+    'image' = 'array',
+    'scale.factors' = 'scalefactors',
+    'coordinates' = 'data.frame',
+    'spot.radius' = 'numeric'
+  )
+)
+
+setClass(Class = 'SliceImage', contains = 'VisiumV1')
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -408,6 +547,36 @@ CellsByIdentities <- function(object, idents = NULL, cells = NULL) {
     cells.idents["NA"] <- names(x = which(x = is.na(x = Idents(object = object)[cells])))
   }
   return(cells.idents)
+}
+
+#' Get a vector of cell names associated with an image (or set of images)
+#'
+#' @param object Seurat object
+#' @param images Vector of image names
+#' @param unlist Return as a single vector of cell names as opposed to a list,
+#' named by image name.
+#'
+#' @return A vector of cell names
+#'
+#' @examples
+#' \dontrun{
+#' CellsByImage(object = object, images = "slice1")
+#' }
+#'
+CellsByImage <- function(object, images = NULL, unlist = FALSE) {
+  images <- images %||% Images(object = object)
+  cells <- sapply(
+    X = images,
+    FUN = function(x) {
+      Cells(x = object[[x]])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (unlist) {
+    cells <- unname(obj = unlist(x = cells))
+  }
+  return(cells)
 }
 
 #' Create an Assay object
@@ -1141,6 +1310,82 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   return(data.fetched)
 }
 
+#' Filter stray beads from Slide-seq puck
+#'
+#' This function is useful for removing stray beads that fall outside the main
+#' Slide-seq puck area. Essentially, it's a circular filter where you set a
+#' center and radius defining a circle of beads to keep. If the center is not
+#' set, it will be estimated from the bead coordinates (removing the 1st and
+#' 99th quantile to avoid skewing the center by the stray beads). By default,
+#' this function will display a \code{\link{SpatialDimPlot}} showing which cells
+#' were removed for easy adjustment of the center and/or radius.
+#'
+#' @param object Seurat object with slide-seq data
+#' @param image Name of the image where the coordinates are stored
+#' @param center Vector specifying the x and y coordinates for the center of the
+#' inclusion circle
+#' @param radius Radius of the circle of inclusion
+#' @param do.plot Display a \code{\link{SpatialDimPlot}} with the cells being
+#' removed labeled.
+#'
+#' @return Returns a Seurat object with only the subset of cells that pass the
+#' circular filter
+#'
+#' @examples
+#' \dontrun{
+#' # This example uses the ssHippo dataset which you can download
+#' # using the SeuratData package.
+#' library(SeuratData)
+#' data('ssHippo')
+#' # perform filtering of beads
+#' ssHippo.filtered <- FilterSlideSeq(ssHippo, radius = 2300)
+#' # This radius looks to small so increase and repeat until satisfied
+#' }
+#' @export
+#'
+FilterSlideSeq <- function(
+  object,
+  image = "image",
+  center = NULL,
+  radius = NULL,
+  do.plot = TRUE
+) {
+  if (!inherits(x = object[[image]], what = "SlideSeq")) {
+    warning(
+      "This fxn is intended for filtering SlideSeq data and is untested ",
+      "outside of that context."
+    )
+  }
+  dat <- GetTissueCoordinates(object[[image]])
+  if (is.null(x = center)) {
+    # heuristic for determining center of puck
+    center <- c()
+    x.vals <- dat[, 1]
+    center[1] <- mean(
+      x = x.vals[x.vals < quantile(x = x.vals, probs = 0.99) &
+                   x.vals > quantile(x = x.vals, probs = 0.01)]
+    )
+    y.vals <- dat[, 2]
+    center[2] <- mean(
+      x = y.vals[y.vals < quantile(x = y.vals, probs = 0.99) &
+                   y.vals > quantile(x = y.vals, probs = 0.01)]
+    )
+  }
+  if (is.null(x = radius)) {
+    stop("Please provide a radius.")
+  }
+  dists <- apply(X = dat, MARGIN = 1, FUN = function(x) {
+    as.numeric(dist(rbind(x[c(1, 2)], center)))
+  })
+  cells.to.remove <- names(x = which(x = (dists > radius)))
+  if (do.plot){
+    Idents(object) <- "keep"
+    object <- SetIdent(object = object, cells = cells.to.remove, value = "remove")
+    print(SpatialDimPlot(object = object))
+  }
+  return(subset(x = object, cells = cells.to.remove, invert = TRUE))
+}
+
 #' Get integation data
 #'
 #' @param object Seurat object
@@ -1158,6 +1403,38 @@ GetIntegrationData <- function(object, integration.name, slot) {
   }
   int.data <- tools[[integration.name]]
   return(slot(object = int.data, name = slot))
+}
+
+#' Pull spatial image names
+#'
+#' List the names of \code{SpatialImage} objects present in a \code{Seurat} object.
+#' If \code{assay} is provided, limits search to images associated with that assay
+#'
+#' @param object A \code{Seurat} object
+#' @param assay Name of assay to limit search to
+#'
+#' @return A list of image names
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' Images(object)
+#' }
+#'
+Images <- function(object, assay = NULL) {
+  object <- UpdateSlots(object = object)
+  images <- names(x = slot(object = object, name = 'images'))
+  if (!is.null(x = assay)) {
+    assays <- c(assay, DefaultAssay(object = object[[assay]]))
+    images <- Filter(
+      f = function(x) {
+        return(DefaultAssay(object = object[[x]]) %in% assays)
+      },
+      x = images
+    )
+  }
+  return(images)
 }
 
 #' Log a command
@@ -2758,6 +3035,45 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
   return(params[[value]])
 }
 
+#' @rdname Cells
+#' @method Cells SlideSeq
+#' @export
+#'
+Cells.SlideSeq <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x)))
+}
+
+#' @param x,object An object inheriting from \code{SpatialImage}
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method Cells SpatialImage
+#' @export
+#'
+Cells.SpatialImage <- function(x) {
+  stop(
+    "'Cells' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @rdname Cells
+#' @method Cells STARmap
+#' @export
+#'
+Cells.STARmap <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x)))
+}
+
+#' @rdname Cells
+#' @method Cells VisiumV1
+#' @export
+#'
+Cells.VisiumV1 <- function(x) {
+  return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
+}
+
 #' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay Assay
@@ -2806,6 +3122,15 @@ DefaultAssay.Seurat <- function(object, ...) {
 DefaultAssay.SeuratCommand <- function(object, ...) {
   object <- UpdateSlots(object = object)
   return(slot(object = object, name = 'assay.used'))
+}
+
+#' @rdname DefaultAssay
+#' @method DefaultAssay SpatialImage
+#' @export
+#'
+DefaultAssay.SpatialImage <- function(object, ...) {
+  CheckDots(...)
+  return(slot(object = object, name = 'assay'))
 }
 
 #' @export
@@ -2857,6 +3182,16 @@ DefaultAssay.SeuratCommand <- function(object, ...) {
     stop("Cannot find assay ", value)
   }
   slot(object = object, name = 'active.assay') <- value
+  return(object)
+}
+
+#' @rdname DefaultAssay
+#' @method DefaultAssay<- SpatialImage
+#' @export
+#'
+"DefaultAssay<-.SpatialImage" <- function(object, ..., value) {
+  CheckDots(...)
+  slot(object = object, name = 'assay') <- value
   return(object)
 }
 
@@ -2944,6 +3279,191 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
     object = GetAssay(object = object, assay = assay),
     slot = slot
   ))
+}
+
+#' @param image Name of \code{SpatialImage} object to pull image data for; if
+#' \code{NULL}, will attempt to select an image automatically
+#'
+#' @rdname GetImage
+#' @method GetImage Seurat
+#' @export
+#'
+GetImage.Seurat <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  image = NULL,
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  image <- image %||% DefaultImage(object = object)
+  if (is.null(x = image)) {
+    stop("No images present in this Seurat object", call. = FALSE)
+  }
+  return(GetImage(object = object[[image]], mode = mode, ...))
+}
+
+#' @method GetImage SlideSeq
+#' @export
+#'
+GetImage.SlideSeq <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  return(NullImage(mode = mode))
+}
+
+#' @inheritParams GetImage
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method GetImage SpatialImage
+#' @export
+#'
+GetImage.SpatialImage <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  stop(
+    "'GetImage' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @method GetImage STARmap
+#' @export
+#'
+GetImage.STARmap <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  return(NullImage(mode = mode))
+}
+
+#' @importFrom plotly raster2uri
+#' @importFrom grDevices as.raster
+#' @importFrom grid rasterGrob unit
+#'
+#' @rdname GetImage
+#' @method GetImage VisiumV1
+#' @export
+#'
+GetImage.VisiumV1 <- function(
+  object,
+  mode = c('grob', 'raster', 'plotly', 'raw'),
+  ...
+) {
+  mode <- match.arg(arg = mode)
+  image <- slot(object = object, name = 'image')
+  image <- switch(
+    EXPR = mode,
+    'grob' = rasterGrob(
+      image = image,
+      width = unit(x = 1, units = 'npc'),
+      height = unit(x = 1, units = 'npc')
+    ),
+    'raster' = as.raster(x = image),
+    'plotly' = list(
+      source = raster2uri(r = GetImage(object = object, mode = 'raster')),
+      xref = 'x',
+      yref = 'y',
+      # x = -7,
+      # y = -7,
+      sizex = ncol(x = object),
+      sizey = nrow(x = object),
+      sizing = 'stretch',
+      opacity = 1,
+      layer = 'below'
+    ),
+    'raw' = image,
+    stop("Unknown image mode: ", mode, call. = FALSE)
+  )
+  return(image)
+}
+
+#' @param image Name of \code{SpatialImage} object to get coordinates for; if
+#' \code{NULL}, will attempt to select an image automatically
+#'
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates Seurat
+#' @export
+#'
+GetTissueCoordinates.Seurat <- function(object, image = NULL, ...) {
+  image <- image %||% DefaultImage(object = object)
+  if (is.null(x = image)) {
+    stop("No images present in this Seurat object", call. = FALSE)
+  }
+  return(GetTissueCoordinates(object = object[[image]], ...))
+}
+
+#' @method GetTissueCoordinates SlideSeq
+#' @export
+#'
+GetTissueCoordinates.SlideSeq <- function(object, ...) {
+  coords <- slot(object = object, name = 'coordinates')
+  colnames(x = coords) <- c('x', 'y')
+  # coords$y <- -rev(x = coords$y) + 1
+  # coords$y <- FlipCoords(x = coords$y)
+  coords$cells <- rownames(x = coords)
+  return(coords)
+}
+
+#' @inheritParams GetTissueCoordinates
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method GetTissueCoordinates SpatialImage
+#' @export
+#'
+GetTissueCoordinates.SpatialImage <- function(object, ...) {
+  stop(
+    "'GetTissueCoordinates' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @param qhulls return qhulls instead of centroids
+#' @method GetTissueCoordinates STARmap
+#' @export
+#'
+GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
+  if (qhulls) {
+    return(slot(object = object, name = 'qhulls'))
+  }
+  return(slot(object = object, name = 'coordinates'))
+}
+
+#' @param scale A factor to scale the coordinates by; choose from: 'tissue',
+#' 'fiducial', 'hires', 'lowres', or \code{NULL} for no scaling
+#' @param cols Columns of tissue coordinates data.frame to pull
+#'
+#' @rdname GetTissueCoordinates
+#' @method GetTissueCoordinates VisiumV1
+#' @export
+#'
+GetTissueCoordinates.VisiumV1 <- function(
+  object,
+  scale = 'lowres',
+  cols = c('imagerow', 'imagecol'),
+  ...
+) {
+  cols <- cols %||% colnames(x = slot(object = object, name = 'coordinates'))
+  if (!is.null(x = scale)) {
+    coordinates <- slot(object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
+    scale <- match.arg(arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
+    scale.use <- ScaleFactors(object = object)[[scale]]
+    coordinates <- coordinates * scale.use
+  } else {
+    coordinates <- slot(object = object, name = 'coordinates')[, cols]
+  }
+  return(coordinates)
 }
 
 #' @param selection.method Which method to pull; choose one from \code{c('sctransform', 'sct')}
@@ -3138,6 +3658,14 @@ IsGlobal.DimReduc <- function(object) {
   return(slot(object = object, name = 'global'))
 }
 
+#' @rdname IsGlobal
+#' @method IsGlobal SpatialImage
+#' @export
+#'
+IsGlobal.SpatialImage <- function(object) {
+  return(TRUE)
+}
+
 #' @param slot Name of slot to store JackStraw scores to
 #' Can shorten to 'empirical', 'fake', 'full', or 'overall'
 #'
@@ -3255,6 +3783,16 @@ Key.Seurat <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @method Key SpatialImage
+#' @export
+#'
+Key.SpatialImage <- function(object, ...) {
+  CheckDots(...)
+  object <- UpdateSlots(object = object)
+  return(slot(object = object, name = 'key'))
+}
+
+#' @rdname Key
 #' @export
 #' @method Key<- Assay
 #'
@@ -3299,6 +3837,18 @@ Key.Seurat <- function(object, ...) {
     }
     slot(object = object, name = s) <- mat
   }
+  slot(object = object, name = 'key') <- value
+  return(object)
+}
+
+#' @rdname Key
+#' @method Key<- SpatialImage
+#' @export
+#'
+"Key<-.SpatialImage" <- function(object, ..., value) {
+  CheckDots(...)
+  object <- UpdateSlots(object = object)
+  value <- UpdateKey(key = value)
   slot(object = object, name = 'key') <- value
   return(object)
 }
@@ -3666,6 +4216,40 @@ Project.Seurat <- function(object, ...) {
   object <- UpdateSlots(object = object)
   slot(object = object, name = 'project.name') <- as.character(x = value)
   return(object)
+}
+
+#' @rdname Radius
+#' @method Radius SlideSeq
+#' @export
+#'
+Radius.SlideSeq <- function(object) {
+  return(0.005)
+}
+
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method Radius SpatialImage
+#' @export
+#'
+Radius.SpatialImage <- function(object) {
+  return(NULL)
+}
+
+#' @rdname Radius
+#' @method Radius STARmap
+#' @export
+#'
+Radius.STARmap <- function(object) {
+  return(NULL)
+}
+
+#' @rdname Radius
+#' @method Radius VisiumV1
+#' @export
+#'
+Radius.VisiumV1 <- function(object) {
+  return(slot(object = object, name = 'spot.radius'))
 }
 
 #' @param assay Name of assay to store
@@ -4322,6 +4906,57 @@ RenameCells.Seurat <- function(
   return(object)
 }
 
+#' @method RenameCells SlideSeq
+#' @export
+#'
+RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
+  return(RenameCells.VisiumV1(object = object, new.names = new.names))
+}
+
+#' @inheritParams  RenameCells
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method RenameCells SpatialImage
+#' @export
+#'
+RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
+  stop(
+    "'RenameCells' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @method RenameCells STARmap
+#' @export
+#'
+RenameCells.STARmap <- function(object, new.names = NULL, ...) {
+  names(x = new.names) <- Cells(x = object)
+  object <- RenameCells.VisiumV1(object = object, new.names = new.names)
+  qhulls <- GetTissueCoordinates(object = object, qhull = TRUE)
+  qhulls$cell <- new.names[qhulls$cell]
+  slot(object = object, name = "qhulls") <- qhulls
+  return(object)
+}
+
+#' @rdname RenameCells
+#' @method RenameCells VisiumV1
+#' @export
+#'
+RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
+  if (is.null(x = new.names)) {
+    return(object)
+  } else if (length(x = new.names) != length(x = Cells(x = object))) {
+    stop("Wrong number of cell/spot names", call. = FALSE)
+  }
+  names(x = new.names) <- Cells(x = object)
+  coordinates <- GetTissueCoordinates(object = object, scale = NULL, cols = NULL)
+  rownames(x = coordinates) <- new.names[rownames(x = coordinates)]
+  slot(object = object, name = 'coordinates') <- coordinates
+  return(object)
+}
+
 #' @rdname Idents
 #' @export
 #' @method RenameIdents Seurat
@@ -4351,6 +4986,14 @@ RenameIdents.Seurat <- function(object, ...) {
     Idents(object = object, cells = cells.idents[[i]]) <- ident.pairs[[i]]
   }
   return(object)
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors VisiumV1
+#' @export
+#'
+ScaleFactors.VisiumV1 <- function(object, ...) {
+  return(slot(object = object, name = 'scale.factors'))
 }
 
 #' @param slot Where to store the new data
@@ -4501,6 +5144,47 @@ SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
   object <- UpdateSlots(object = object)
   Idents(object = object, cells = cells) <- value
   return(object)
+}
+
+#' @inheritParams FindSpatiallyVariableFeatures
+#' @param decreasing Return features in decreasing order (most spatially
+#' variable first).
+#' @rdname SpatiallyVariableFeatures
+#' @export
+#' @method SpatiallyVariableFeatures Assay
+#'
+SpatiallyVariableFeatures.Assay <- function(
+  object,
+  selection.method = "markvariogram",
+  decreasing = TRUE,
+  ...
+) {
+  CheckDots(...)
+  vf <- SVFInfo(object = object, selection.method = selection.method, status = TRUE)
+  vf <- vf[rownames(x = vf)[which(x = vf[, "variable"][, 1])], ]
+  if (!is.null(x = decreasing)) {
+    vf <- vf[order(x = vf[, "rank"], decreasing = !decreasing), ]
+  }
+  return(rownames(x = vf)[which(x = vf[, "variable"][, 1])])
+}
+
+#' @param Seurat object
+#' @param assay Name of assay to pull spatially variable features for
+#'
+#' @rdname SpatiallyVariableFeatures
+#' @export
+#' @method SpatiallyVariableFeatures Seurat
+#'
+SpatiallyVariableFeatures.Seurat <- function(
+  object,
+  assay = NULL,
+  selection.method = "markvariogram",
+  decreasing = TRUE,
+  ...
+) {
+  CheckDots(...)
+  assay <- assay %||% DefaultAssay(object = object)
+  return(SpatiallyVariableFeatures(object = object[[assay]], selection.method = selection.method, decreasing = decreasing))
 }
 
 #' @inheritParams Idents
@@ -4708,6 +5392,69 @@ SubsetData.Seurat <- function(
   slot(object = object, name = "active.ident") <- Idents(object = object)[cells]
   slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells, ]
   return(object)
+}
+
+#' @param selection.method Which method to pull. Options: markvariogram, moransi
+#' @param status Add variable status to the resulting data.frame
+#'
+#' @rdname SVFInfo
+#' @export
+#' @method SVFInfo Assay
+#'
+SVFInfo.Assay <- function(
+  object,
+  selection.method = c("markvariogram", "moransi"),
+  status = FALSE,
+  ...
+) {
+  CheckDots(...)
+  vars <- switch(
+    EXPR = selection.method,
+    'markvariogram' = grep(pattern = "r.metric", x = colnames(x = object[[]]), value = TRUE),
+    'moransi' = grep(pattern = 'moransi', x = colnames(x = object[[]]), value = TRUE),
+    stop("Unknown method: '", selection.method, "'", call. = FALSE)
+  )
+  tryCatch(
+    expr = svf.info <- object[[vars]],
+    error = function(e) {
+      stop(
+        "Unable to find highly variable feature information for method '",
+        selection.method,
+        "'",
+        call. = FALSE
+      )
+    }
+  )
+  colnames(x = svf.info) <- vars
+  if (status) {
+    svf.info$variable <- object[[paste0(selection.method, '.spatially.variable')]]
+    svf.info$rank <- object[[paste0(selection.method, '.spatially.variable.rank')]]
+  }
+  return(svf.info)
+}
+
+#' @param assay Name of assay to pull highly variable feature information for
+#'
+#' @importFrom tools file_path_sans_ext
+#'
+#' @rdname SVFInfo
+#' @export
+#' @method SVFInfo Seurat
+#'
+SVFInfo.Seurat <- function(
+  object,
+  selection.method = c("markvariogram", "moransi"),
+  assay = NULL,
+  status = FALSE,
+  ...
+) {
+  CheckDots(...)
+  assay <- assay %||% DefaultAssay(object = object)
+  return(SVFInfo(
+    object = GetAssay(object = object, assay = assay),
+    selection.method = selection.method,
+    status = status
+  ))
 }
 
 #' @param slot Name of tool to pull
@@ -5496,6 +6243,35 @@ WriteH5AD.Seurat <- function(
   return(slot(object = x, name = i))
 }
 
+#' @method [ SlideSeq
+#' @export
+#'
+"[.SlideSeq" <- function(x, i, ...) {
+  return(subset(x = x, cells = i, ...))
+}
+
+#' @param i,cells A vector of cells to keep
+#'
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method [ SpatialImage
+#' @export
+#'
+"[.SpatialImage" <- function(x, i, ...) {
+  stop(
+    "'[' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @method [ VisiumV1
+#' @export
+#'
+"[.VisiumV1" <- function(x, i, ...) {
+  return(subset(x = x, cells = i))
+}
+
 #' @export
 #' @method [[ Assay
 #'
@@ -5647,6 +6423,45 @@ dim.DimReduc <- function(x) {
 dim.Seurat <- function(x) {
   x <- UpdateSlots(object = x)
   return(dim(x = GetAssay(object = x)))
+}
+
+#' @method dim SlideSeq
+#' @export
+#'
+dim.SlideSeq <- function(x) {
+  # return(dim(x = GetImage(object = x, mode = 'raw')))
+  return(c(599, 600))
+}
+
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method dim SpatialImage
+#' @export
+#'
+dim.SpatialImage <- function(x) {
+  stop(
+    "'dim' must be implemented for all subclasses of 'SpatialImage'",
+    call. = FALSE
+  )
+}
+
+#' @method dim STARmap
+#' @export
+#'
+dim.STARmap <- function(x) {
+  coords <- GetTissueCoordinates(object = x)
+  return(c(
+    max(coords[, 1]) - min(coords[, 1]),
+    max(coords[, 2]) - min(coords[, 2])
+  ))
+}
+
+#' @method dim VisiumV1
+#' @export
+#'
+dim.VisiumV1 <- function(x) {
+  return(dim(x = GetImage(object = x)$raster))
 }
 
 #' @export
@@ -6340,6 +7155,46 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   return(x)
 }
 
+#' @method subset SlideSeq
+#' @export
+#'
+subset.SlideSeq <- function(x, cells, ...) {
+  x <- subset.VisiumV1(x = x, cells = cells, ...)
+  return(x)
+}
+
+#' @method subset STARmap
+#' @export
+#'
+subset.STARmap <- function(x, cells, ...) {
+  x <- subset.VisiumV1(x = x, cells = cells, ...)
+  qhulls <- GetTissueCoordinates(object = x, qhulls = TRUE)
+  qhulls <- qhulls[qhulls$cell %in% cells, ]
+  slot(object = x, name = 'qhulls') <- qhulls
+  return(x)
+}
+
+#' @rdname SpatialImage-class
+#' @name SpatialImage-class
+#'
+#' @method subset SpatialImage
+#' @export
+#'
+subset.SpatialImage <- function(x, cells, ...) {
+  stop("'subset' must be implemented for all subclasses of 'SpatialImage'")
+}
+
+#' @method subset VisiumV1
+#' @export
+#'
+subset.VisiumV1 <- function(x, cells, ...) {
+  coordinates <- GetTissueCoordinates(object = x, scale = NULL, cols = NULL)
+  cells <- cells[cells %in% rownames(x = coordinates)]
+  coordinates <- coordinates[cells, ]
+  slot(object = x, name = 'coordinates') <- coordinates
+  return(x)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -6925,6 +7780,23 @@ setMethod(
   }
 )
 
+setMethod(
+  f = 'show',
+  signature = 'SpatialImage',
+  definition = function(object) {
+    object <- UpdateSlots(object = object)
+    cat(
+      "Spatial data from the",
+      class(x = object),
+      "technology for",
+      length(x = Cells(x = object)),
+      "samples\n"
+    )
+    cat("Associated assay:", DefaultAssay(object = object), "\n")
+    cat("Image key:", Key(object = object), "\n")
+  }
+)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -6994,6 +7866,25 @@ CalcN <- function(object) {
   ))
 }
 
+# Get the default image of an object
+#
+# Attempts to find all images associated with the default assay of the object.
+# If none present, finds all images present in the object. Returns the name of
+# the first image
+#
+# @param object A Seurat object
+#
+# @return The name of the default image
+#
+DefaultImage <- function(object) {
+  object <- UpdateSlots(object = object)
+  images <- Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) < 1) {
+    images <- Images(object = object)
+  }
+  return(images[[1]])
+}
+
 # Get the names of objects within a Seurat object that are of a certain class
 #
 # @param object A Seurat object
@@ -7061,6 +7952,26 @@ FindObject <- function(object, name) {
     }
   }
   return(NULL)
+}
+
+# Return a null image
+#
+# @param mode Image representation to return
+# see \code{\link{GetImage}} for more details
+#
+#' @importFrom grid nullGrob
+#' @importFrom grDevices as.raster
+#
+NullImage <- function(mode) {
+  image <- switch(
+    EXPR = mode,
+    'grob' = nullGrob(),
+    'raster' = as.raster(x = new(Class = 'matrix')),
+    'plotly' = list('visible' = FALSE),
+    'raw' = NULL,
+    stop("Unknown image mode: ", mode, call. = FALSE)
+  )
+  return(image)
 }
 
 # Check to see if projected loadings have been set
