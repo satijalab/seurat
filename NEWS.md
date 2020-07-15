@@ -2,13 +2,13 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
-
+## [3.2.0] - 2020-07-15
 ### Added
 - Added ability to create a Seurat object from an existing Assay object, or any
 object inheriting from the Assay class
 - Added ability to cluster idents and group features in `DotPlot`
 - Added ability to use RColorBrewer plaettes for split `DotPlots`
+- Added visualization and analysis functionality for spatially resolved datasets (Visium, Slide-seq). 
 
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
