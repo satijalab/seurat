@@ -3973,7 +3973,7 @@ IngestNewData <- function(reference,
         # saving the batch corrected gene matrix
         merged.obj[["int"]] <- CreateAssayObject(data = integrated.matrix )
       }
-      if( length(obj@misc) >= 7  ){
+
         # single modality will find query reference NN
       reference.embeddings <- Embeddings(object = merged.obj, 
                                          reduction = "int" )[ ref.cell.idx, ]
@@ -3986,7 +3986,7 @@ IngestNewData <- function(reference,
                                metric ="cosine")
       rownames(query_ref.nn$nn.idx) <-  gsub("\\_query", "", transfer_anchor@query.cells)
       merged.obj@neighbors$query_ref.nn <- query_ref.nn
-      }
+
       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
       merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
       merged.obj@misc$ref.cell.idx <- ref.cell.idx
