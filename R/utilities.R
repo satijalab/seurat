@@ -340,10 +340,22 @@ AverageExpression <- function(
       assay = names(x = data.return)[1],
       ...
     )
+    toRet <- SetAssayData(
+      object = toRet,
+      assay = names(x = data.return)[1],
+      slot = "data",
+      new.data = log1p(x = as.matrix(x = data.return[[1]]))
+    )
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+        toRet <- SetAssayData(
+          object = toRet,
+          assay = names(x = data.return)[i],
+          slot = "data",
+          new.data = log1p(x = as.matrix(x = data.return[[i]]))
+        )
       }
     }
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
@@ -356,7 +368,6 @@ AverageExpression <- function(
       ordered = TRUE
     )
     # finish setting up object if it is to be returned
-    toRet <- NormalizeData(object = toRet, verbose = verbose)
     toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
   } else {
@@ -971,6 +982,69 @@ GeneSymbolThesarus <- function(
     synonyms <- unlist(x = synonyms)
   }
   return(synonyms)
+}
+
+#' Compute the correlation of features broken down by groups with another
+#' covariate
+#'
+#' @param object Seurat object
+#' @param assay Assay to pull the data from
+#' @param slot Slot in the assay to pull feature expression data from (counts,
+#' data, or scale.data)
+#' @param var Variable with which to correlate the features
+#' @param group.assay Compute the gene groups based off the data in this assay.
+#' @param min.cells Only compute for genes in at least this many cells
+#' @param ngroups Number of groups to split into
+#' @param do.plot Display the group correlation boxplot (via
+#' \code{GroupCorrelationPlot})
+#'
+#' @return A Seurat object with the correlation stored in metafeatures
+#'
+#' @export
+#'
+GroupCorrelation <- function(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  var = NULL,
+  group.assay = NULL,
+  min.cells = 5,
+  ngroups = 6,
+  do.plot = TRUE
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  group.assay <- group.assay %||% assay
+  var <- var %||% paste0("nCount_", group.assay)
+  gene.grp <- GetFeatureGroups(
+    object = object,
+    assay = group.assay,
+    min.cells = min.cells,
+    ngroups = ngroups
+  )
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- data[rowMeans(x = data) != 0, ]
+  grp.cors <- apply(
+    X = data,
+    MARGIN = 1,
+    FUN = function(x) {
+      cor(x = x, y = object[[var]])
+    }
+  )
+  grp.cors <- grp.cors[names(x = gene.grp)]
+  grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
+  grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
+  colnames(x = grp.cors) <- c("cor", "feature_grp")
+  object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
+  object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
+  if (do.plot) {
+    print(GroupCorrelationPlot(
+      object = object,
+      assay = assay,
+      feature.group = "feature.grp",
+      cor = paste0(var, "_cor")
+    ))
+  }
+  return(object)
 }
 
 #' Calculate the variance to mean ratio of logged values
@@ -1714,6 +1788,17 @@ MaxN <- function(x, N = 2){
     N <- length(x)
   }
   sort(x, partial = len - N + 1)[len - N + 1]
+}
+
+# Given a range from cut, compute the mean
+#
+# @x range from cut as a string (e.g. (10, 20] )
+# @return returns a numeric with the mean of the range
+#
+MeanRange <- function(x) {
+  left <- gsub(pattern = "\\]", replacement = "", x = sub(pattern = "\\([[:digit:]\\.e+]*,", x = x, replacement = ""))
+  right <- gsub(pattern = "\\(", replacement = "", x = sub(pattern = ",[[:digit:]\\.e+]*]", x = x, replacement = ""))
+  return(mean(c(as.numeric(x = left), as.numeric(x = right))))
 }
 
 # Melt a data frame

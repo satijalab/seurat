@@ -6,8 +6,10 @@
 \alias{Key.Assay}
 \alias{Key.DimReduc}
 \alias{Key.Seurat}
+\alias{Key.SpatialImage}
 \alias{Key<-.Assay}
 \alias{Key<-.DimReduc}
+\alias{Key<-.SpatialImage}
 \title{Get a key}
 \usage{
 Key(object, ...)
@@ -20,9 +22,13 @@ Key(object, ...) <- value
 
 \method{Key}{Seurat}(object, ...)
 
+\method{Key}{SpatialImage}(object, ...)
+
 \method{Key}{Assay}(object, ...) <- value
 
 \method{Key}{DimReduc}(object, ...) <- value
+
+\method{Key}{SpatialImage}(object, ...) <- value
 }
 \arguments{
 \item{object}{An object}

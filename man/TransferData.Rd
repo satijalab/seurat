@@ -15,7 +15,8 @@ TransferData(
   eps = 0,
   do.cpp = TRUE,
   verbose = TRUE,
-  slot = "data"
+  slot = "data",
+  prediction.assay = FALSE
 )
 }
 \arguments{
@@ -54,6 +55,9 @@ dimensional reduction}
 
 \item{slot}{Slot to store the imputed data. Must be either "data" (default) 
 or "counts"}
+
+\item{prediction.assay}{Return an \code{Assay} object with the prediction
+scores for each class stored in the \code{data} slot.}
 }
 \value{
 If \code{refdata} is a vector, returns a data.frame with label 

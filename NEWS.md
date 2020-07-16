@@ -2,12 +2,34 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [3.2.0] - 2020-07-15
+### Added
+- Added ability to create a Seurat object from an existing Assay object, or any
+object inheriting from the Assay class
+- Added ability to cluster idents and group features in `DotPlot`
+- Added ability to use RColorBrewer plaettes for split `DotPlots`
+- Added visualization and analysis functionality for spatially resolved datasets (Visium, Slide-seq). 
+
+### Changes
+- Removed `add.iter` parameter from `RunTSNE` function
+- Fixed integer overflow error in the WilcoxDETest function
+- Minor visual fixes in `DoHeatmap` group bar + labels
+- Efficiency improvements in anchor scoring (`ScoreAnchors`)
+- Fix bug in `FindClusters()` when the last node has no edges 
+- Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
+- Fix handling of keys in `FeatureScatter()`
+- Change `CellSelector` to use Shiny gadgets instead of SDMTools
+- Mark `PointLocator` as defunct
+- Remove `SDMTools`
+- Fixed data slot return in `AverageExpression` when subsetting features and returning a Seurat object
+
 ## [3.1.5] - 2020-04-14
 ### Added
 - New `scale` parameter in `DotPlot` 
 - New `keep.sparse parameter in `CreateGeneActivityMatrix` for a more memory efficient option
 - Added ability to store model learned by UMAP and project new data
-- New `stip.suffix` option in `Read10X`
+- New `strip.suffix` option in `Read10X`. **This changes the default behavior of `Read10X`**.
+  A trailing `-1` present in all cell names will not be removed by default.
 - Added `group.by` parameter to `FeatureScatter`
 
 ### Changes

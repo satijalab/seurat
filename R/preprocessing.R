@@ -166,8 +166,8 @@ CalculateBarcodeInflections <- function(
 #' @param upstream Number of bases upstream to consider
 #' @param downstream Number of bases downstream to consider
 #' @param keep.sparse Leave the matrix as a sparse matrix. Setting this option to
-#' TRUE will take much longer but will use less memory. This can be useful if 
-#' you have a very large matrix that cannot fit into memory when converted to 
+#' TRUE will take much longer but will use less memory. This can be useful if
+#' you have a very large matrix that cannot fit into memory when converted to
 #' a dense form.
 #' @param verbose Print progress/messages
 #'
@@ -539,24 +539,29 @@ GetResidual <- function(
       vst_out <- vst.set[[v]]
       # confirm that cells from SCT model also exist in the integrated object
       cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
-      vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
-      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
-      object.v <- subset(x = object, cells = cells.v)
-
-      object.v <- GetResidualVstOut(
-        object = object.v,
-        assay = assay,
-        umi.assay = umi.assay[[v]],
-        new_features = new_features,
-        vst_out = vst_out,
-        clip.range = clip.range,
-        verbose = verbose
-      )
-      new.scale.data <- cbind(
-        new.scale.data,
-        GetAssayData(object = object.v, assay = assay, slot ="scale.data" )[new_features, , drop = FALSE]
-      )
+      if (length(x = cells.v) != 0) {
+        vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
+        vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
+        object.v <- subset(x = object, cells = cells.v)
+        object.v <- GetResidualVstOut(
+          object = object.v,
+          assay = assay,
+          umi.assay = umi.assay[[v]],
+          new_features = new_features,
+          vst_out = vst_out,
+          clip.range = clip.range,
+          verbose = verbose
+        )
+        new.scale.data <- cbind(
+          new.scale.data,
+          GetAssayData(
+            object = object.v,
+            assay = assay,
+            slot ="scale.data")[new_features, , drop = FALSE]
+        )
+      }
     }
+
     object <- SetAssayData(
       object = object,
       assay = assay,
@@ -570,6 +575,127 @@ GetResidual <- function(
   }
   }
   return(object)
+}
+
+#' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
+#'
+#' @inheritParams Read10X
+#' @inheritParams CreateSeuratObject
+#' @param filename Name of H5 file containing the feature barcode matrix
+#' @param slice Name for the stored image of the tissue slice
+#' @param filter.matrix Only keep spots that have been determined to be over
+#' tissue
+#' @param to.upper Converts all feature names to upper case. Can be useful when
+#' analyses require comparisons between human and mouse gene names for example.
+#' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#'
+#' @return A \code{Seurat} object
+#'
+#' @importFrom png readPNG
+#' @importFrom grid rasterGrob
+#' @importFrom jsonlite fromJSON
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
+#' Load10X_Spatial(data.dir = data_dir)
+#' }
+#'
+Load10X_Spatial <- function(
+  data.dir,
+  filename = 'filtered_feature_bc_matrix.h5',
+  assay = 'Spatial',
+  slice = 'slice1',
+  filter.matrix = TRUE,
+  to.upper = FALSE,
+  ...
+) {
+  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+  if (to.upper) {
+    rownames(x = data) <- toupper(x = rownames(x = data))
+  }
+  object <- CreateSeuratObject(counts = data, assay = assay)
+  image <- Read10X_Image(
+    image.dir = file.path(data.dir, 'spatial'),
+    filter.matrix = filter.matrix
+  )
+  image <- image[Cells(x = object)]
+  DefaultAssay(object = image) <- assay
+  object[[slice]] <- image
+  return(object)
+}
+
+#' Load STARmap data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene name, qhull, and centroid files.
+#' @param counts.file name of file containing the counts matrix (csv)
+#' @param gene.file name of file containing the gene names (csv)
+#' @param qhull.file name of file containing the hull coordinates (tsv)
+#' @param centroid.file name of file containing the centroid positions (tsv)
+#' @param assay Name of assay to associate spatial data to
+#' @param image Name of "image" object storing spatial coordinates
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom methods new
+#' @importFrom utils read.csv read.table
+#'
+#' @seealso \code{\link{STARmap}}
+#'
+#' @export
+#'
+LoadSTARmap <- function(
+  data.dir,
+  counts.file = "cell_barcode_count.csv",
+  gene.file = "genes.csv",
+  qhull.file = "qhulls.tsv",
+  centroid.file = "centroids.tsv",
+  assay = "Spatial",
+  image = "image"
+) {
+  if (!dir.exists(paths = data.dir)) {
+    stop("Cannot find directory ", data.dir, call. = FALSE)
+  }
+  counts <- read.csv(
+    file = file.path(data.dir, counts.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  gene.names <- read.csv(
+    file = file.path(data.dir, gene.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  qhulls <- read.table(
+    file = file.path(data.dir, qhull.file),
+    sep = '\t',
+    col.names = c('cell', 'y', 'x'),
+    as.is = TRUE
+  )
+  centroids <- read.table(
+    file = file.path(data.dir, centroid.file),
+    sep = '\t',
+    as.is = TRUE,
+    col.names = c('y', 'x')
+  )
+  colnames(x = counts) <- gene.names[, 1]
+  rownames(x = counts) <- paste0('starmap', seq(1:nrow(x = counts)))
+  counts <- as.matrix(x = counts)
+  rownames(x = centroids) <- rownames(x = counts)
+  qhulls$cell <- paste0('starmap', qhulls$cell)
+  centroids <- as.matrix(x = centroids)
+  starmap <- CreateSeuratObject(counts = t(x = counts), assay = assay)
+  starmap[[image]] <- new(
+    Class = 'STARmap',
+    assay = assay,
+    coordinates = as.data.frame(x = centroids),
+    qhulls = qhulls
+  )
+  return(starmap)
 }
 
 #' Normalize raw data
@@ -1061,6 +1187,83 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   }
 }
 
+#' Load a 10X Genomics Visium Image
+#'
+#' @param image.dir Path to directory with 10X Genomics visium image data;
+#' should include files \code{tissue_lowres_iamge.png},
+#' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
+#' @param filter.matrix Filter spot/feature matrix to only include spots that
+#' have been determined to be over tissue.
+#' @param ... Ignored for now
+#'
+#' @return A \code{\link{VisiumV1}} object
+#'
+#' @importFrom png readPNG
+#' @importFrom jsonlite fromJSON
+#'
+#' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
+#'
+#' @export
+#'
+Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
+  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
+  scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
+  tissue.positions <- read.csv(
+    file = file.path(image.dir, 'tissue_positions_list.csv'),
+    col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
+    header = FALSE,
+    as.is = TRUE,
+    row.names = 1
+  )
+  if (filter.matrix) {
+    tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
+  }
+  unnormalized.radius <- scale.factors$fiducial_diameter_fullres * scale.factors$tissue_lowres_scalef
+  spot.radius <-  unnormalized.radius / max(dim(x = image))
+  return(new(
+    Class = 'VisiumV1',
+    image = image,
+    scale.factors = scalefactors(
+      spot = scale.factors$tissue_hires_scalef,
+      fiducial = scale.factors$fiducial_diameter_fullres,
+      hires = scale.factors$tissue_hires_scalef,
+      scale.factors$tissue_lowres_scalef
+    ),
+    coordinates = tissue.positions,
+    spot.radius = spot.radius
+  ))
+}
+
+#' Load Slide-seq spatial data
+#'
+#' @param coord.file Path to csv file containing bead coordinate positions
+#' @param assay Name of assay to associate image to
+#'
+#' @return A \code{\link{SlideSeq}} object
+#'
+#' @importFrom utils read.csv
+#'
+#' @seealso \code{\link{SlideSeq}}
+#'
+#' @export
+#'
+ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
+  if (!file.exists(paths = coord.file)) {
+    stop("Cannot find coord file ", coord.file, call. = FALSE)
+  }
+  slide.seq <- new(
+    Class = 'SlideSeq',
+    assay = assay,
+    coordinates = read.csv(
+      file = coord.file,
+      header = TRUE,
+      as.is = TRUE,
+      row.names = 1
+    )
+  )
+  return(slide.seq)
+}
+
 #' Normalize raw data to fractions
 #'
 #' Normalize count data to relative counts per cell by dividing by the total
@@ -1096,6 +1299,109 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
   norm.data <- data
   norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
   return(norm.data)
+}
+
+#' Run the mark variogram computation on a given position matrix and expression
+#' matrix.
+#'
+#' Wraps the functionality of markvario from the spatstat package.
+#'
+#' @param spatial.location A 2 column matrix giving the spatial locations of
+#' each of the data points also in data
+#' @param data Matrix containing the data used as "marks" (e.g. gene expression)
+#' @param ... Arguments passed to markvario
+#'
+#' @importFrom spatstat markvario ppp
+#'
+#' @export
+#'
+RunMarkVario <- function(
+  spatial.location,
+  data,
+  ...
+) {
+  pp <- ppp(
+    x = spatial.location[, 1],
+    y = spatial.location[, 2],
+    xrange = range(spatial.location[, 1]),
+    yrange = range(spatial.location[, 2])
+  )
+  if (nbrOfWorkers() > 1) {
+    chunks <- nbrOfWorkers()
+    features <- rownames(x = data)
+    features <- split(
+      x = features,
+      f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
+    )
+    mv <- future_lapply(X = features, FUN = function(x) {
+      pp[["marks"]] <- as.data.frame(x = t(x = data[x, ]))
+      markvario(X = pp, normalise = TRUE, ...)
+    })
+    mv <- unlist(x = mv, recursive = FALSE)
+    names(x = mv) <- rownames(x = data)
+  } else {
+    pp[["marks"]] <- as.data.frame(x = t(x = data))
+    mv <- markvario(X = pp, normalise = TRUE, ...)
+  }
+  return(mv)
+}
+
+#' Compute Moran's I value.
+#'
+#' Wraps the functionality of the Moran.I function from the ape package.
+#' Weights are computed as 1/distance.
+#'
+#' @param data Expression matrix
+#' @param pos Position matrix
+#' @param verbose Display messages/progress
+#'
+#' @importFrom stats dist
+#' @importFrom ape Moran.I
+#'
+#' @export
+#'
+RunMoransI <- function(data, pos, verbose = TRUE) {
+  mysapply <- sapply
+  if (verbose) {
+    message("Computing Moran's I")
+    mysapply <- pbsapply
+  }
+  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
+  if (Rfast2.installed) {
+    MyMoran <- Rfast2::moranI
+  } else {
+    MyMoran <- ape::Moran.I
+    if (getOption('Seurat.Rfast2.msg', TRUE)) {
+      message(
+        "For a more efficient implementation of the Morans I calculation,",
+        "\n(selection.method = 'moransi') please install the Rfast2 package",
+        "\n--------------------------------------------",
+        "\ninstall.packages('Rfast2')",
+        "\n--------------------------------------------",
+        "\nAfter installation of Rfast2, Seurat will automatically use the more ",
+        "\nefficient implementation (no further action necessary).",
+        "\nThis message will be shown once per session"
+      )
+      options(Seurat.Rfast2.msg = FALSE)
+    }
+  }
+  pos.dist <- dist(x = pos)
+  pos.dist.mat <- as.matrix(x = pos.dist)
+  # weights as 1/dist^2
+  weights <- 1/pos.dist.mat^2
+  diag(x = weights) <- 0
+  results <- mysapply(X = 1:nrow(x = data), FUN = function(x) {
+    tryCatch(
+      expr = MyMoran(data[x, ], weights),
+      error = function(x) c(1,1,1,1)
+    )
+  })
+  results <- data.frame(
+    observed = unlist(x = results[1, ]),
+    p.value = unlist(x = results[2, ])
+  )
+  rownames(x = results) <- rownames(x = data)
+  return(results)
 }
 
 #' Sample UMI
@@ -1714,6 +2020,176 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @param object A Seurat object, assay, or expression matrix
+#' @param spatial.location Coordinates for each cell/spot/bead
+#' @param selection.method Method for selecting spatially variable features.
+#'  \itemize{
+#'   \item \code{markvariogram}: See \code{\link{RunMarkVario}} for details
+#'   \item \code{moransi}: See \code{\link{RunMoransI}} for details.
+#' }
+#'
+#' @param r.metric r value at which to report the "trans" value of the mark
+#' variogram
+#' @param x.cuts Number of divisions to make in the x direction, helps define
+#' the grid over which binning is performed
+#' @param y.cuts Number of divisions to make in the y direction, helps define
+#' the grid over which binning is performed
+#' @param verbose Print messages and progress
+#'
+#' @method FindSpatiallyVariableFeatures default
+#' @rdname FindSpatiallyVariableFeatures
+#' @export
+#'
+#'
+FindSpatiallyVariableFeatures.default <- function(
+  object,
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  verbose = TRUE,
+  ...
+) {
+  # error check dimensions
+  if (ncol(x = object) != nrow(x = spatial.location)) {
+    stop("Please provide the same number of observations as spatial locations.")
+  }
+  if (!is.null(x = x.cuts) & !is.null(x = y.cuts)) {
+    binned.data <- BinData(
+      data = object,
+      pos = spatial.location,
+      x.cuts = x.cuts,
+      y.cuts = y.cuts,
+      verbose = verbose
+    )
+    object <- binned.data$data
+    spatial.location <- binned.data$pos
+  }
+  svf.info <- switch(
+    EXPR = selection.method,
+    'markvariogram' = RunMarkVario(
+      spatial.location = spatial.location,
+      data = object
+    ),
+    'moransi' = RunMoransI(
+      data = object,
+      pos = spatial.location,
+      verbose = verbose
+    ),
+    stop("Invalid selection method. Please choose one of: markvariogram, moransi.")
+  )
+  return(svf.info)
+}
+
+#' @param slot Slot in the Assay to pull data from
+#' @param features If provided, only compute on given features. Otherwise,
+#' compute for all features.
+#' @param nfeatures Number of features to mark as the top spatially variable.
+#'
+#' @method FindSpatiallyVariableFeatures Assay
+#' @rdname FindSpatiallyVariableFeatures
+#' @export
+#'
+FindSpatiallyVariableFeatures.Assay <- function(
+  object,
+  slot = "scale.data",
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  features = NULL,
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = nfeatures,
+  verbose = TRUE,
+  ...
+) {
+  features <- features %||% rownames(x = object)
+  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
+    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
+    features <- features[! features %in% features.computed]
+  }
+  data <- GetAssayData(object = object, slot = slot)
+  data <- as.matrix(x = data[features, ])
+  data <- data[RowVar(x = data) > 0, ]
+  if (nrow(x = data) != 0) {
+    svf.info <- FindSpatiallyVariableFeatures(
+      object = data,
+      spatial.location = spatial.location,
+      selection.method = selection.method,
+      r.metric = r.metric,
+      x.cuts = x.cuts,
+      y.cuts = y.cuts,
+      verbose = verbose,
+      ...
+    )
+  } else {
+    svf.info <- c()
+  }
+  if (selection.method == "markvariogram") {
+    if ("markvariogram" %in% names(x = Misc(object = object))) {
+      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+    }
+    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
+    svf.info <- ComputeRMetric(mv = svf.info, r.metric)
+    svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
+  }
+  if (selection.method == "moransi") {
+    colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
+    svf.info <- svf.info[order(svf.info[, 2], -abs(svf.info[, 1])), , drop = FALSE]
+  }
+  var.name <- paste0(selection.method, ".spatially.variable")
+  var.name.rank <- paste0(var.name, ".rank")
+  svf.info[[var.name]] <- FALSE
+  svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
+  svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
+  object[[names(x = svf.info)]] <- svf.info
+  return(object)
+}
+
+#' @param assay Assay to pull the features (marks) from
+#' @param image Name of image to pull the coordinates from
+#'
+#' @method FindSpatiallyVariableFeatures Seurat
+#' @rdname FindSpatiallyVariableFeatures
+#' @export
+#'
+FindSpatiallyVariableFeatures.Seurat <- function(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  features = NULL,
+  image = NULL,
+  selection.method = c('markvariogram', 'moransi'),
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = 2000,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% rownames(x = object[[assay]])
+  image <- image %||% DefaultImage(object = object)
+  tc <- GetTissueCoordinates(object = object[[image]])
+  # check if markvariogram has been run on necessary features
+  # only run for new ones
+  object[[assay]] <- FindSpatiallyVariableFeatures(
+    object = object[[assay]],
+    slot = slot,
+    features = features,
+    spatial.location = tc,
+    selection.method = selection.method,
+    r.metric = r.metric,
+    x.cuts = x.cuts,
+    y.cuts = y.cuts,
+    nfeatures = nfeatures,
+    verbose = verbose,
+    ...
+  )
+  object <- LogSeuratCommand(object = object)
+}
+
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
@@ -2144,10 +2620,10 @@ RunALRA.Seurat <- function(
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
+#' Setting this can help reduce the effects of features that are only expressed in
 #' a very small number of cells. If regressing out latent variables and using a
 #' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
+#' @param block.size Default size for number of features to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
@@ -2503,6 +2979,47 @@ ScaleData.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Bin spatial regions into grid and average expression values
+#
+# @param dat Expression data
+# @param pos Position information/coordinates for each sample
+# @param x.cuts Number of cuts to make in the x direction (defines grid along
+# with y.cuts)
+# @param y.cuts Number of cuts to make in the y direction
+#
+# @return returns a list with positions as centers of the bins and average
+# expression within the bins
+#
+#' @importFrom Matrix rowMeans
+#
+BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts, verbose = TRUE) {
+  if (verbose) {
+    message("Binning spatial data")
+  }
+  pos$x.cuts <- cut(x = pos[, 1], breaks = x.cuts)
+  pos$y.cuts <- cut(x = pos[, 2], breaks = y.cuts)
+  pos$bin <- paste0(pos$x.cuts, "_", pos$y.cuts)
+  all.bins <- unique(x = pos$bin)
+  new.pos <- matrix(data = numeric(), nrow = length(x = all.bins), ncol = 2)
+  new.dat <- matrix(data = numeric(), nrow = nrow(x = data), ncol = length(x = all.bins))
+  for(i in 1:length(x = all.bins)) {
+    samples <- rownames(x = pos)[which(x = pos$bin == all.bins[i])]
+    dat <- data[, samples]
+    if (is.null(x = dim(x = dat))) {
+      new.dat[, i] <- dat
+    } else {
+      new.dat[, i] <- rowMeans(data[, samples])
+    }
+    new.pos[i, 1] <- mean(pos[samples, "x"])
+    new.pos[i, 2] <- mean(pos[samples, "y"])
+  }
+  rownames(x = new.dat) <- rownames(x = data)
+  colnames(x = new.dat) <- all.bins
+  rownames(x = new.pos) <- all.bins
+  colnames(x = new.pos) <- colnames(x = pos)[1:2]
+  return(list(data = new.dat, pos = new.pos))
+}
+
 # Sample classification from MULTI-seq
 #
 # Identify singlets, doublets and negative cells from multiplexing experiments.
@@ -2580,6 +3097,27 @@ ClassifyCells <- function(data, q) {
   }
   names(x = calls) <- rownames(x = data)
   return(calls)
+}
+
+# Computes the metric at a given r (radius) value and stores in meta.features
+#
+# @param mv Results of running markvario
+# @param r.metric r value at which to report the "trans" value of the mark
+# variogram
+#
+# @return Returns a data.frame with r.metric values
+#
+#
+ComputeRMetric <- function(mv, r.metric = 5) {
+  r.metric.results <- unlist(x = lapply(
+    X = mv,
+    FUN = function(x) {
+      x$trans[which.min(x = abs(x = x$r - r.metric))]
+    }
+  ))
+  r.metric.results <- as.data.frame(x = r.metric.results)
+  colnames(r.metric.results) <- paste0("r.metric.", r.metric)
+  return(r.metric.results)
 }
 
 # Normalize a given data matrix

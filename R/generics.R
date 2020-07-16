@@ -115,6 +115,9 @@ as.sparse <- function(x, ...) {
 #'
 #' @return A vector of cell names
 #'
+#' @note The default method simply calls \code{\link[base]{colnames}} on \code{x};
+#' other methods are provided for objects where colnames aren't necessarily cell names
+#'
 #' @rdname Cells
 #' @export Cells
 #'
@@ -139,6 +142,60 @@ Cells <- function(x) {
 #'
 Command <- function(object, ...) {
   UseMethod(generic = 'Command', object = object)
+}
+
+#' Create a \code{Seurat} object
+#'
+#' Create a \code{Seurat} object from raw data
+#'
+#' @param counts Either a \code{\link[base]{matrix}}-like object with
+#' unnormalized data with cells as columns and features as rows or an
+#' \code{\link{Assay}}-derived object
+#' @param project \link{Project} name for the \code{Seurat} object
+#' @param assay Name of the initial assay
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's name. E.g. If your cells are named as
+#' BARCODE_CLUSTER_CELLTYPE in the input matrix, set \code{names.field} to 3 to
+#' set the initial identities to CELLTYPE.
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name. E.g. If your cells are named as
+#' BARCODE-CLUSTER-CELLTYPE, set this to \dQuote{-} to separate the cell name
+#' into its component parts for picking the relevant field.
+#' @param meta.data Additional cell-level metadata to add to the Seurat object.
+#' Should be a \code{\link[base]{data.frame}} where the rows are cell names and
+#' the columns are additional metadata fields.
+#' @param ... Arguments passed to other methods
+#'
+#' @note In previous versions (<3.0), this function also accepted a parameter to
+#' set the expression threshold for a \sQuote{detected} feature (gene). This
+#' functionality has been removed to simplify the initialization
+#' process/assumptions. If you would still like to impose this threshold for
+#' your particular dataset, simply filter the input expression matrix before
+#' calling this function.
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @rdname CreateSeuratObject
+#' @export
+#'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(counts = pbmc_raw)
+#' pbmc_small
+#'
+CreateSeuratObject <- function(
+  counts,
+  project = 'CreateSeuratObject',
+  assay = 'RNA',
+  names.field = 1,
+  names.delim = '_',
+  meta.data = NULL,
+  ...
+) {
+  UseMethod(generic = 'CreateSeuratObject', object = counts)
 }
 
 #' Get and set the default assay
@@ -281,7 +338,9 @@ FindMarkers <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return Returns the object with object@@snn filled
+#' @return When running on a \code{\link{Seurat}} object, returns fills the
+#' \code{graphs} slot; names of graphs can be found with
+#' \code{Filter(function(x) inherits(object[[x]], "Graph"), names(object))}
 #'
 #' @examples
 #' pbmc_small
@@ -325,6 +384,21 @@ FindVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
+#' Find spatially variable features
+#'
+#' Identify features whose variability in expression can be explained to some
+#' degree by spatial location.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname FindSpatiallyVariableFeatures
+#' @export FindSpatiallyVariableFeatures
+#'
+FindSpatiallyVariableFeatures <- function(object, ...) {
+  UseMethod(generic = 'FindSpatiallyVariableFeatures', object = object)
+}
+
 #' Get an Assay object from a given Seurat object.
 #'
 #' @param object An object
@@ -354,6 +428,45 @@ GetAssay <- function(object, ...) {
 #'
 GetAssayData <- function(object, ...) {
   UseMethod(generic = 'GetAssayData', object = object)
+}
+
+#' Get image data
+#'
+#' @param object An object
+#' @param mode How to return the image; should accept one of 'grob', 'raster',
+#' 'plotly', or 'raw'
+#' @param ... Arguments passed to other methods
+#'
+#' @return Image data, varying depending on the value of \code{mode}:
+#' \describe{
+#'  \item{'grob'}{An object representing image data inheriting from \code{grob} objects (eg. \code{rastergrob})}
+#'  \item{'raster'}{An object of class \code{raster}}
+#'  \item{'plotly'}{A list with image data suitable for Plotly rendering, see \code{\link[plotly]{layout}} for more details}
+#'  \item{'raw'}{The raw image data as stored in the object}
+#' }
+#'
+#' @seealso \code{\link[plotly]{layout}}
+#'
+#' @rdname GetImage
+#' @export GetImage
+#'
+GetImage <- function(object, mode = c('grob', 'raster', 'plotly', 'raw'), ...) {
+  mode <- match.arg(arg = mode)
+  UseMethod(generic = 'GetImage', object = object)
+}
+
+#' Get tissue coordinates
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return A data.frame with tissue coordinates
+#'
+#' @rdname GetTissueCoordinates
+#' @export GetTissueCoordinates
+#'
+GetTissueCoordinates <- function(object, ...) {
+  UseMethod(generic = 'GetTissueCoordinates', object = object)
 }
 
 #' Get highly variable feature information
@@ -421,7 +534,6 @@ Idents <- function(object, ... ) {
 #' the associated object will remain even if its original assay was deleted
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods
 #'
 #' @return \code{TRUE} if the object is global/persistent otherwise \code{FALSE}
 #'
@@ -431,7 +543,7 @@ Idents <- function(object, ... ) {
 #' @examples
 #' IsGlobal(pbmc_small[['pca']])
 #'
-IsGlobal <- function(object, ...) {
+IsGlobal <- function(object) {
   UseMethod(generic = 'IsGlobal', object = object)
 }
 
@@ -449,7 +561,7 @@ JS <- function(object, ...) {
 
 #' Set JackStraw information
 #'
-#' @inherit JS
+#' @inheritParams JS
 #' @param value JackStraw information
 #'
 #' @rdname JS
@@ -596,6 +708,19 @@ Project <- function(object, ...) {
 #'
 "Project<-" <- function(object, ..., value) {
   UseMethod(generic = 'Project<-', object = object)
+}
+
+#' Get the spot radius from an image
+#'
+#' @param object An image object
+#'
+#' @return The radius size
+#'
+#' @rdname Radius
+#' @export Radius
+#'
+Radius <- function(object) {
+  UseMethod(generic = 'Radius', object = object)
 }
 
 #' Read from and write to h5ad files
@@ -901,7 +1026,7 @@ RunUMAP <- function(object, ...) {
 #' Scale and center the data.
 #'
 #' Scales and centers features in the dataset. If variables are provided in vars.to.regress,
-#' they are individually regressed against each feautre, and the resulting residuals are
+#' they are individually regressed against each feature, and the resulting residuals are
 #' then scaled and centered.
 #'
 #' ScaleData now incorporates the functionality of the function formerly known
@@ -909,9 +1034,9 @@ RunUMAP <- function(object, ...) {
 #' and then scaled the residuals). To make use of the regression functionality,
 #' simply pass the variables you want to remove to the vars.to.regress parameter.
 #'
-#' Setting center to TRUE will center the expression for each feautre by subtracting
-#' the average expression for that feautre. Setting scale to TRUE will scale the
-#' expression level for each feautre by dividing the centered feautre expression
+#' Setting center to TRUE will center the expression for each feature by subtracting
+#' the average expression for that feature. Setting scale to TRUE will scale the
+#' expression level for each feature by dividing the centered feature expression
 #' levels by their standard deviations if center is TRUE and by their root mean
 #' square otherwise.
 #'
@@ -923,6 +1048,20 @@ RunUMAP <- function(object, ...) {
 #'
 ScaleData <- function(object, ...) {
   UseMethod(generic = 'ScaleData', object = object)
+}
+
+#' Get image scale factors
+#'
+#' @param object An object to get scale factors from
+#' @param ... Arguments passed to other methods
+#'
+#' @return An object of class \code{scalefactors}
+#'
+#' @rdname ScaleFactors
+#' @export ScaleFactors
+#'
+ScaleFactors <- function(object, ...) {
+  UseMethod(generic = 'ScaleFactors', object = object)
 }
 
 #' Compute Jackstraw scores significance.
@@ -976,6 +1115,15 @@ SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
+#' Get spatially variable feature information
+#' 
+#' @rdname SpatiallyVariableFeatures
+#' @export SpatiallyVariableFeatures
+#'
+SpatiallyVariableFeatures <- function(object, ...){
+  UseMethod(generic = 'SpatiallyVariableFeatures', object = object)
+}
+
 #' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents
@@ -1026,6 +1174,17 @@ SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
 }
 
+#' Get spatially variable feature information
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname SVFInfo
+#' @export SVFInfo
+#'
+SVFInfo <- function(object, ...) {
+  UseMethod(generic = 'SVFInfo', object = object)
+}
 #' Get and set additional tool data
 #'
 #' Use \code{Tool} to get tool data. If no additional arguments are provided,
