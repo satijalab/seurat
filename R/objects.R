@@ -8012,10 +8012,19 @@ SubsetVST <- function(sct.info, cells, features) {
 #
 Top <- function(data, num, balanced) {
   top <- if (balanced) {
+    if(num > nrow(data)){
+      warning("ncells is bigger than the object cell number, and ncells is forced to down to the object cell number" )
+      num <- nrow(data)
+    }
     num <- round(x = num / 2)
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
+    
+    # remove duplicates
+    if ( positive[num] == negative[num] ){
+      negative <- negative[-num] 
+    }
     list(positive = positive, negative = negative)
   } else {
     data <- data[rev(x = order(abs(x = data))), , drop = FALSE]
