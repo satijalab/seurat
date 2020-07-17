@@ -749,7 +749,7 @@ RunLSI.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object)
+  assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunLSI(
     object = assay.data,
@@ -1487,7 +1487,7 @@ RunUMAP.Seurat <- function(
   reduction = 'pca',
   features = NULL,
   graph = NULL,
-  assay = DefaultAssay(object),
+  assay = DefaultAssay(object = object),
   slot = 'data',
   umap.method = 'uwot',
   n.neighbors = 30L,
