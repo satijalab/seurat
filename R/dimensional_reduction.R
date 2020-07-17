@@ -1417,6 +1417,7 @@ RunUMAP.Graph <- function(
 #' @param graph Name of graph on which to run UMAP
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
+#' @param slot The slot used to pull data for when using \code{features}. data slot is by default. 
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
 #'   \item{\code{uwot}:}{Runs umap via the uwot R package}
@@ -1486,7 +1487,8 @@ RunUMAP.Seurat <- function(
   reduction = 'pca',
   features = NULL,
   graph = NULL,
-  assay = 'RNA',
+  assay = DefaultAssay(object),
+  slot = 'data',
   umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
@@ -1515,7 +1517,7 @@ RunUMAP.Seurat <- function(
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
   if (!is.null(x = features)) {
-    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, , drop = FALSE]))
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
