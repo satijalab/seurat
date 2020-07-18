@@ -1803,7 +1803,7 @@ fftRtsne <- function(X,
   if (is.null(version_number)){
     message("First line of fast_tsne output is")
     message(ft.out[1])
-    stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1.0+, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   } else {
     version_number <- gsub('= t-SNE v', '', version_number)
   }
@@ -1925,7 +1925,7 @@ fftRtsne <- function(X,
   writeBin(object = as.numeric(x = momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = final_momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = learning_rate), con = f, size = 8)
-  if (!(version_number %in% c("1.1.0", "1.0"))) {
+  if (!(version_number %in% c('1.1.0', '1.0'))) {
     writeBin(object = as.numeric(x = max_step_norm), f, size = 8)
   }
   writeBin(object = as.integer(x = K), con = f, size = 4) #K
