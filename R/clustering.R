@@ -1636,7 +1636,7 @@ FindModalityWeights.exp  <- function(object,
                                  verbose = TRUE
 ){
   if(is.null(s.nn)){
-    s.nn <- k.nn*2
+    s.nn <- k.nn
   }
   if(is.null(sigma.idx)){
     sigma.idx <- 20
