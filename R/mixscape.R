@@ -669,6 +669,166 @@ RunMixscape <- function(
   return(object)
 }
 
+#' Function to identify perturbed and non-perturbed gRNA expressing cells that accounts for multiple treatments/conditions/chemical perturbations.
+#' 
+#' @inheritParams FindMarkers
+#' @param object An object of class Seurat.
+#' @param assay Assay to use for mixscape classification.
+#' @param slot Assay data slot to use.
+#' @param labels metadata column with target gene classifications.
+#' @param nt.class.name Classification name of non-targeting gRNA cells.
+#' @param new.class.name Name of mixscape classification to be stored in 
+#' metadata.
+#' @param min.de.genes Required number of genes that are differentially 
+#' expressed for method to separate perturbed and non-perturbed cells. 
+#' @param de.assay Assay to use when performing differential expression analysis. 
+#' Usually RNA.
+#' @param iter.num Number of normalmixEM iterations to run if convergence does 
+#' not occur.
+#' @param verbose Display messages
+#' @return Returns Seurat object with with the following information in the 
+#' meta data:
+#' \describe{
+#'   \item{mixscape_class}{Classification result with cells being either 
+#'   classified as perturbed (KO) or non-perturbed (NP) based on their target 
+#'   gene class.}
+#'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
+#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
+#'   (>0.5) or NP}
+#' }
+#' 
+#' @export
+#' 
+RunMixscape2 <- function (object = NULL, 
+                          assay = "PRTB", 
+                          slot = "scale.data", 
+                          labels = "gene", 
+                          nt.class.name = "NT", 
+                          new.class.name = "mixscape_class", 
+                          min.de.genes = 5, 
+                          de.assay = "RNA", 
+                          logfc.threshold = 0.25, 
+                          iter.num = 10, 
+                          verbose = TRUE, 
+                          split.by = NULL) 
+{
+  mixtools.installed <- PackageCheck("mixtools", error = FALSE)
+  if (!mixtools.installed[1]) {
+    stop("Please install the mixtools package to use RunMixscape", 
+         "\nThis can be accomplished with the following command: ", 
+         "\n----------------------------------------", "\ninstall.packages('mixtools')", 
+         "\n----------------------------------------", call. = FALSE)
+  }
+  assay <- assay %||% DefaultAssay(object = object)
+  if (is.null(x = labels)) {
+    stop("Please specify target gene class metadata name")
+  }
+  prtb_markers <- c()
+  object[[new.class.name]] <- object[[labels]]
+  object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
+  object[["p_ko"]] <- 0
+  
+  if(is.null(x=split.by)){
+    splt.b <- "con1"
+    Idents(object = object) <- splt.b
+  }
+  else{
+    splt.b <- as.character(unique(object[[split.by]][,1]))
+    Idents(object = object) <- split.by
+  }
+  
+  #p_ko <- list()
+  
+  for (s in splt.b){
+    object.s <- subset(x = object, idents = s)
+    genes <- setdiff(x = unique(object.s[[labels]][, 1]), y = nt.class.name)
+    
+    for (gene in genes) {
+      if (isTRUE(verbose)) {
+        message("Processing ", gene)
+      }
+      post.prob <- 0
+      Idents(object = object.s) <- labels
+      object.gene <- subset(x = object.s, idents = c(gene, nt.class.name))
+      orig.guide.cells <- WhichCells(object = object.gene, 
+                                     idents = gene)
+      DefaultAssay(object = object.gene) <- assay
+      de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, 
+                                     de.assay = de.assay, logfc.threshold = logfc.threshold, 
+                                     labels = labels)
+      prtb_markers[[gene]] <- de.genes
+      nt.cells <- which(object.gene[[new.class.name]] == nt.class.name)
+      
+      if (length(x = de.genes) < min.de.genes) {
+        if (isTRUE(verbose)) {
+          message("Fewer than ", min.de.genes, " DE genes for ", 
+                  gene, ". Assigning cells as NP.")
+        }
+        object.gene[[new.class.name]][orig.guide.cells, 1] <- paste(gene, " NP", sep = "")
+      }
+      else {
+        object.gene <- ScaleData(object = object.gene, features = de.genes, verbose = FALSE)
+        dat <- GetAssayData(object = object.gene[[assay]], slot = slot)[de.genes, ]
+        converged <- FALSE
+        n.iter <- 0
+        old.classes <- object.gene[[new.class.name]]
+        while (!converged & n.iter < iter.num) {
+          Idents(object = object.gene) <- new.class.name
+          #nt.cells <- WhichCells(object = object.gene, idents = nt.class.name)
+          guide.cells <- WhichCells(object = object.gene, idents = gene)
+          vec <- rowMeans(x = dat[, guide.cells]) - rowMeans(x = dat[, nt.cells])
+          pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
+          guide.norm <- DefineNormalMixscape(pvec[guide.cells])
+          nt.norm <- DefineNormalMixscape(pvec[nt.cells])
+          mm <- mixtools::normalmixEM(x = pvec, mu = c(nt.norm$mu, 
+                                                       guide.norm$mu), sigma = c(nt.norm$sd, guide.norm$sd), 
+                                      k = 2, mean.constr = c(nt.norm$mu, NA), sd.constr = c(nt.norm$sd, 
+                                                                                            NA), verb = FALSE, maxit = 5000, maxrestarts = 100)
+          lik.ratio <- dnorm(x = pvec[orig.guide.cells], 
+                             mean = mm$mu[1], sd = mm$sigma[1])/dnorm(x = pvec[orig.guide.cells], 
+                                                                      mean = mm$mu[2], sd = mm$sigma[2])
+          post.prob <- 1/(1 + lik.ratio)
+          object.gene[[new.class.name]][names(x = which(post.prob > 
+                                                          0.5)), 1] <- gene
+          object.gene[[new.class.name]][names(x = which(post.prob < 
+                                                          0.5)), 1] <- paste(gene, " NP", sep = "")
+          if (length(x = which(x = object.gene[[new.class.name]] == 
+                               gene)) < min.de.genes) {
+            if (isTRUE(verbose)) {
+              message("Fewer than ", min.de.genes, " cells assigned as ", 
+                      gene, "Assigning all to NP.")
+            }
+            object.gene[[new.class.name]][, 1] <- "NP"
+            converged <- TRUE
+          }
+          if (all(object.gene[[new.class.name]] == old.classes)) {
+            converged <- TRUE
+          }
+          old.classes <- object.gene[[new.class.name]]
+          n.iter <- n.iter + 1
+        }
+        object.gene[[new.class.name]][object.gene[[new.class.name]] == 
+                                        gene, 1] <- paste(gene, " KO", sep = "")
+      }
+      
+      object[[new.class.name]][Cells(object.gene), 1] <- object.gene[[new.class.name]]
+      object[[paste(new.class.name, ".global", sep = "")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
+      object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
+      #p_ko[[gene]] <- post.prob
+      
+      object[["p_ko"]][Cells(object.gene)[-c(nt.cells)],1] <- post.prob
+    }
+    
+  }
+  
+  #names(x = p_ko) <- NULL
+  #prob <- unlist(x = p_ko)
+  #object <- AddMetaData(object = object, metadata = prob, col.name = "p_ko")
+  #object$p_ko[names(x = which(x = is.na(x = object$p_ko)))] <- 0
+  return(object)
+}
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
