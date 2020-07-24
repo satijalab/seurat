@@ -201,7 +201,9 @@ DEenrichRPlot <- function(
     ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) +
     theme_classic() +
     theme(axis.text.y = element_text(size = 12, face = "bold"))
+  
   if (isTRUE(x = balanced)) {
+    
     p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
     geom_bar(stat = "identity") +
     coord_flip() + xlab("Pathway") +
@@ -505,170 +507,6 @@ RunLDA.Seurat <- function(
   return(object)
 }
 
-#' Function to identify perturbed and non-perturbed gRNA expressing cells.
-#' 
-#' @inheritParams FindMarkers
-#' @param object An object of class Seurat.
-#' @param assay Assay to use for mixscape classification.
-#' @param slot Assay data slot to use.
-#' @param labels metadata column with target gene classifications.
-#' @param nt.class.name Classification name of non-targeting gRNA cells.
-#' @param new.class.name Name of mixscape classification to be stored in 
-#' metadata.
-#' @param min.de.genes Required number of genes that are differentially 
-#' expressed for method to separate perturbed and non-perturbed cells. 
-#' @param de.assay Assay to use when performing differential expression analysis. 
-#' Usually RNA.
-#' @param iter.num Number of normalmixEM iterations to run if convergence does 
-#' not occur.
-#' @param verbose Display messages
-#' @return Returns Seurat object with with the following information in the 
-#' meta data:
-#' \describe{
-#'   \item{mixscape_class}{Classification result with cells being either 
-#'   classified as perturbed (KO) or non-perturbed (NP) based on their target 
-#'   gene class.}
-#'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
-#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
-#'   (>0.5) or NP}
-#' }
-#' 
-#' @export
-#' 
-RunMixscape <- function( 
-  object = NULL,
-  assay = "PRTB",
-  slot = "scale.data",
-  labels = "gene",
-  nt.class.name = "NT",
-  new.class.name = "mixscape_class",
-  min.de.genes = 5,
-  de.assay = "RNA",
-  logfc.threshold = 0.25,
-  iter.num = 10,
-  verbose = TRUE
-) {
-  mixtools.installed <- PackageCheck("mixtools", error = FALSE)
-  if (!mixtools.installed[1]) {
-    stop(
-      "Please install the mixtools package to use RunMixscape",
-      "\nThis can be accomplished with the following command: ",
-      "\n----------------------------------------",
-      "\ninstall.packages('mixtools')",
-      "\n----------------------------------------",
-      call. = FALSE
-    )
-  }
-  assay <- assay %||% DefaultAssay(object = object)
-  if (is.null(x = labels)) {
-    stop("Please specify target gene class metadata name")
-  }
-  # de marker genes
-  prtb_markers <- c()
-  # new metadata column for mixscape classification
-  object[[new.class.name]] <- object[[labels]]
-  object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
-  genes <- setdiff(
-    x = unique(object[[ labels]][, 1]), 
-    y = nt.class.name
-  )
-  # perturbation vectors storage, make list to store probabilities.
-  p_ko <- list()
-  for (gene in genes) {
-    if (verbose) {
-      message("Processing ", gene)
-    }
-    post.prob <- 0
-    Idents(object = object) <- labels
-    # Get object containing only guide of interest + non-targeting
-    object.gene <- subset(x = object, idents = c(gene, nt.class.name))
-    orig.guide.cells <- WhichCells(object = object.gene, idents = gene)
-    DefaultAssay(object = object.gene) <- assay
-    # find de genes between guide positive and non-targeting
-    de.genes <- TopDEGenesMixscape(
-      object.gene, 
-      ident.1 = gene, 
-      de.assay = de.assay, 
-      logfc.threshold = logfc.threshold, 
-      labels = labels
-    )
-    prtb_markers[[gene]] <- de.genes
-    # if fewer than 5 DE genes, call all guide cells NP 
-    if (length(x = de.genes) < min.de.genes) {
-      if (verbose) {
-        message("Fewer than ",min.de.genes, " DE genes for ", gene, ". Assigning cells as NP.")
-      }
-      object.gene[[new.class.name]][orig.guide.cells, 1] <- paste(gene, " NP", sep = "")
-    } else {
-      object.gene <- ScaleData(object = object.gene, features = de.genes, verbose = FALSE) 
-      dat <- GetAssayData(object = object.gene[[assay]], slot = slot)[de.genes, ]
-      converged <- FALSE
-      n.iter <- 0
-      old.classes <- object.gene[[new.class.name]]
-      while (! converged & n.iter < iter.num) {
-        # Define perturbation vector using only the de genes
-        Idents(object = object.gene) <- new.class.name
-        nt.cells <- WhichCells(object = object.gene, idents = nt.class.name)
-        guide.cells <- WhichCells(object = object.gene, idents = gene)
-        vec <- rowMeans(x = dat[, guide.cells]) - rowMeans(x = dat[, nt.cells])
-        # project cells onto new perturbation vector
-        pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
-        # define normal distributions mu & sd for guide and nt groups
-        guide.norm <- DefineNormalMixscape(pvec[guide.cells])
-        nt.norm <- DefineNormalMixscape(pvec[nt.cells])
-        # construct mixture model using normalmixEM from mixtools
-        mm <- mixtools::normalmixEM(
-          x = pvec, 
-          mu = c(nt.norm$mu, guide.norm$mu), 
-          sigma = c(nt.norm$sd, guide.norm$sd),
-          k = 2, 
-          mean.constr = c(nt.norm$mu, NA),
-          sd.constr = c(nt.norm$sd, NA), 
-          verb = FALSE,
-          maxit = 5000,
-          maxrestarts = 100
-        )
-        # compute posterior prob 
-        lik.ratio <- dnorm(x = pvec[orig.guide.cells], mean = mm$mu[1], sd = mm$sigma[1])/dnorm(x = pvec[orig.guide.cells], mean = mm$mu[2], sd = mm$sigma[2])
-        post.prob <- 1 / (1 + lik.ratio)
-        # update classifications
-        object.gene[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
-        object.gene[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
-        if (length(x = which(x = object.gene[[new.class.name]] == gene)) < min.de.genes ){
-          if (verbose) {
-            message("Fewer than ", min.de.genes, " cells assigned as ", gene, "Assigning all to NP.")
-          }
-          object.gene[[new.class.name]][, 1] <- "NP"
-          converged <- TRUE
-        }
-        if (all(object.gene[[new.class.name]] == old.classes)) {
-          converged <- TRUE
-        }
-        old.classes <- object.gene[[new.class.name]]
-        n.iter <- n.iter + 1
-      }
-      object.gene[[new.class.name]][object.gene[[new.class.name]] == gene, 1] <- paste(gene, " KO", sep = "")
-    }
-    # assign classifications back to original object
-    object[[new.class.name]][Cells(object.gene), 1] <- object.gene[[new.class.name]]
-    # add global classifications of KO, NP and NT class
-    object[[paste(new.class.name, ".global", sep = "")]] <- as.character(x = sapply(
-      X = as.character(x = object[[new.class.name]][, 1]), 
-      FUN = function(x) {
-        strsplit(x = x, split = ' (?=[^ ]+$)', perl = TRUE)[[1]][2]
-      }
-    ))
-    object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
-    p_ko[[gene]] <- post.prob 
-  }
-  # add posterior probabilities to Seurat object as a meta data column.
-  names(x = p_ko) <- NULL
-  prob <- unlist(x = p_ko)
-  object <- AddMetaData(object = object, metadata = prob, col.name = "p_ko")
-  object$p_ko[names(x = which(x = is.na(x = object$p_ko)))] <- 0
-  return(object)
-}
-
 #' Function to identify perturbed and non-perturbed gRNA expressing cells that accounts for multiple treatments/conditions/chemical perturbations.
 #' 
 #' @inheritParams FindMarkers
@@ -699,7 +537,7 @@ RunMixscape <- function(
 #' 
 #' @export
 #' 
-RunMixscape2 <- function (object = NULL, 
+RunMixscape <- function (object = NULL, 
                           assay = "PRTB", 
                           slot = "scale.data", 
                           labels = "gene", 
@@ -814,8 +652,7 @@ RunMixscape2 <- function (object = NULL,
       object[[new.class.name]][Cells(object.gene), 1] <- object.gene[[new.class.name]]
       object[[paste(new.class.name, ".global", sep = "")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
-      #p_ko[[gene]] <- post.prob
-      
+
       object[["p_ko"]][Cells(object.gene)[-c(nt.cells)],1] <- post.prob
     }
     
@@ -828,7 +665,89 @@ RunMixscape2 <- function (object = NULL,
   return(object)
 }
 
+#' Differential expression heatmap for mixscape
+#'
+#' Draws a heatmap of single cell feature expression with cells ordered by their mixscape ko probabilities.
+#' @inheritParams FindMarkers
+#' @inheritParams DoHeatmap
+#' @param max.cells.group Number of cells per identity to plot.
+#' @param max.genes Total number of DE genes to plot.
+#' @param balanced Plot an equal number of genes with both groups of cells.
+#' @param order.by.prob Order cells on heatmap based on their mixscape ko probability from highest to lowest score.
+#' @return A ggplot object.
+#'
+#' @importFrom stats median
+#' @importFrom scales hue_pal
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @export
+#'
+#' @examples
 
+MixscapeHeatmap=function(
+  object,
+  ident.1=NULL,
+  ident.2=NULL,
+  balanced=TRUE,
+  logfc.threshold = 0.25,
+  assay="RNA",
+  max.genes = 100,
+  test.use='wilcox',
+  max.cells.group = NULL,
+  order.by.prob = T,
+  ...
+) 
+{ 
+  DefaultAssay(object=object)<-assay
+  if(is.numeric(max.genes)){
+    all.markers = FindMarkers(object, ident.1 = ident.1,ident.2 = ident.2, only.pos = F, logfc.threshold = logfc.threshold,test.use= test.use)
+    if (balanced){
+      pos.markers=subset(all.markers, avg_logFC>(logfc.threshold))
+      neg.markers=subset(all.markers, avg_logFC<(-logfc.threshold))
+      if (length(rownames(subset(pos.markers, p_val<0.05)))<max.genes ){
+        marker.list=c(rownames(subset(pos.markers, p_val<0.05)))
+        if (length(rownames(subset(neg.markers, p_val<0.05)))<max.genes){
+          marker.list=c(marker.list,rownames(subset(neg.markers, p_val<0.05)))
+        } else {
+          marker.list=c(marker.list, rownames(subset(neg.markers, p_val<0.05))[1:max.genes])
+        }
+      } else {
+        marker.list=c(rownames(subset(pos.markers, p_val<0.05))[1:max.genes])
+        if (length(rownames(subset(neg.markers, p_val<0.05)))<max.genes){
+          marker.list=c(marker.list,rownames(subset(neg.markers, p_val<0.05)))
+        } else {
+          marker.list=c(marker.list, rownames(subset(neg.markers, p_val<0.05))[1:max.genes])
+        }
+      }
+    } else {
+      pos.markers=subset(all.markers, avg_logFC>(logfc.threshold))
+      if (length(rownames(subset(pos.markers, p_val<0.05)))<max.genes ){
+        marker.list=c(rownames(subset(pos.markers, p_val<0.05)))
+      } else{
+        marker.list=c(rownames(subset(pos.markers, p_val<0.05))[1:max.genes])
+      }
+    }
+      if(is.null(max.cells.group)){
+        sub <- subset(object, idents = c(ident.1,ident.2))
+      }
+      
+      else{
+        sub <- subset(object, idents = c(ident.1, ident.2), downsample = max.cells.group)
+      }
+    
+    sub <- ScaleData(sub, features = marker.list)
+    
+    if(isTRUE(order.by.prob)){
+      p_ko <- sub$p_ko[, drop = FALSE]
+      ordered.cells <- names(sort(p_ko, decreasing = T))
+      plot=DoHeatmap(sub, features = marker.list, label = T, cells =ordered.cells ,...)
+    }
+    
+    else{
+    plot=DoHeatmap(sub, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
+    }
+    return(plot)
+  }
+}
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
