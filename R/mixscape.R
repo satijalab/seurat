@@ -168,6 +168,7 @@ DEenrichRPlot <- function(
     test.use = test.use, 
     assay = assay
   )
+  
   pos.markers <- all.markers[all.markers[, 2] > logfc.threshold & all.markers[, 1] < p.val.cutoff, , drop = FALSE]
   pos.markers.list <- rownames(x = pos.markers)[1:min(max.genes, nrow(x = pos.markers))]
   pos.er <- enrichR::enrichr(genes = pos.markers.list, databases = enrich.database)
@@ -187,32 +188,55 @@ DEenrichRPlot <- function(
     neg.er$term <- neg.er[, paste(enrich.database, sep = ".", "Term")]
     neg.er <- neg.er[1:num.pathway, ]
     neg.er$term <- factor(x = neg.er$term, levels = neg.er$term[order(neg.er$log10pval)])
-    gene.list <- list(pos = pos.er, neg = neg.er)
+    
+      if(length(neg.er$term) = 0){
+        gene.list <- list(pos = pos.er)
+      }
+  
+      else{
+        gene.list <- list(pos = pos.er, neg = neg.er)
+      }
+    
   }
   if (return.gene.list) {
     return(gene.list)
   }
   
   p <- ggplot(data = pos.er, aes_string(x = "term", y = "log10pval")) +
-    geom_bar(stat = "identity") +
+    geom_bar(stat = "identity", fill = "dodgerblue") +
     coord_flip() + xlab("Pathway") +
     scale_fill_manual(values = cols, drop = FALSE) +
     ylab("-log10(pval)") +
     ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) +
     theme_classic() +
-    theme(axis.text.y = element_text(size = 12, face = "bold"))
-  
+    geom_text(aes(label = term,y = 0),
+              size = 5,
+              color = "black",
+              position = position_dodge(1), 
+              hjust = 0)+
+    theme(axis.title.y= element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank())
+    
   if (isTRUE(x = balanced)) {
     
     p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
-    geom_bar(stat = "identity") +
-    coord_flip() + xlab("Pathway") +
-    scale_fill_manual(values = cols, drop = FALSE) +
-    ylab("-log10(pval)") +
-    ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
-    theme_classic() +
-    theme(axis.text.y = element_text(size = 12, face = "bold"))
-    p <- wrap_plots(p, p2)
+      geom_bar(stat = "identity", fill = "indianred2") +
+      coord_flip() + xlab("Pathway") +
+      scale_fill_manual(values = cols, drop = FALSE) +
+      ylab("-log10(pval)") +
+      ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
+      theme_classic() +
+      geom_text(aes(label = term,y = 0),
+                size = 5,
+                color = "black",
+                position = position_dodge(1), 
+                hjust = 0)+
+      theme(axis.title.y= element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank())
+    p <- p+p2
+    
   }
   return(p)
 }
