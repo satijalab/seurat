@@ -989,6 +989,7 @@ RunTSNE.matrix <- function(
     'Rtsne' = Rtsne(
       X = object,
       dims = dim.embed,
+      pca = FALSE,
       ... # PCA/is_distance
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
@@ -1099,7 +1100,6 @@ RunTSNE.Seurat <- function(
       tsne.method = tsne.method,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      pca = FALSE,
       ...
     )
   } else if (!is.null(x = features)) {
@@ -1110,7 +1110,6 @@ RunTSNE.Seurat <- function(
       tsne.method = tsne.method,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      pca = FALSE,
       ...
     )
   } else {
@@ -1813,7 +1812,7 @@ fftRtsne <- function(X,
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
-  if (version_number == '1.0' && df != 1.0) {
+  if (version_number == '1.0.0' && df != 1.0) {
     stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
@@ -1927,7 +1926,7 @@ fftRtsne <- function(X,
   writeBin(object = as.numeric(x = momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = final_momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = learning_rate), con = f, size = 8)
-  if (!(version_number %in% c('1.1.0', '1.0'))) {
+  if (!(version_number %in% c('1.1.0', '1.0.0'))) {
     writeBin(object = as.numeric(x = max_step_norm), f, size = 8)
   }
   writeBin(object = as.integer(x = K), con = f, size = 4) #K
@@ -1945,7 +1944,7 @@ fftRtsne <- function(X,
   writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4)
   writeBin(object = tX, con = f)
   writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
-  if (version_number != "1.0") {
+  if (version_number != "1.0.0") {
     writeBin(object = as.numeric(x = df), con = f, size = 8)
   }
   writeBin(object = as.integer(x = load_affinities), con = f, size = 4)
@@ -1954,7 +1953,7 @@ fftRtsne <- function(X,
   }
   close(con = f)
 
-  if (version_number == "1.0") {
+  if (version_number == "1.0.0") {
     flag <- system2(
       command = fast_tsne_path,
       args = c(data_path, result_path, nthreads)
