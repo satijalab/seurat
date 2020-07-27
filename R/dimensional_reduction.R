@@ -989,6 +989,7 @@ RunTSNE.matrix <- function(
     'Rtsne' = Rtsne(
       X = object,
       dims = dim.embed,
+      pca = FALSE,
       ... # PCA/is_distance
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
@@ -1099,7 +1100,6 @@ RunTSNE.Seurat <- function(
       tsne.method = tsne.method,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      pca = FALSE,
       ...
     )
   } else if (!is.null(x = features)) {
@@ -1110,7 +1110,6 @@ RunTSNE.Seurat <- function(
       tsne.method = tsne.method,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      pca = FALSE,
       ...
     )
   } else {
@@ -1736,8 +1735,8 @@ EmpiricalP <- function(x, nullval) {
 
 # FIt-SNE helper function for calling fast_tsne from R
 #
-# Based on Kluger Lab FIt-SNE v1.1.0 code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
-# commit d2cf403 on Feb 8, 2019
+# Based on Kluger Lab FIt-SNE v1.2.1 code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
+# commit 601608ed42e4be2765970910927da20f0b0bf9b9 on June 25, 2020
 #
 #' @importFrom utils file_test
 #
@@ -1745,19 +1744,18 @@ fftRtsne <- function(X,
   dims = 2,
   perplexity = 30,
   theta = 0.5,
-  check_duplicates = TRUE,
-  max_iter = 1000,
+  max_iter = 750,
   fft_not_bh = TRUE,
   ann_not_vptree = TRUE,
   stop_early_exag_iter = 250,
   exaggeration_factor = 12.0,
   no_momentum_during_exag = FALSE,
-  start_late_exag_iter = -1.0,
+  start_late_exag_iter = -1,
   late_exag_coeff = 1.0,
   mom_switch_iter = 250,
   momentum = 0.5,
   final_momentum = 0.8,
-  learning_rate = 200,
+  learning_rate = 'auto',
   n_trees = 50,
   search_k = -1,
   rand_seed = -1,
@@ -1766,7 +1764,8 @@ fftRtsne <- function(X,
   min_num_intervals = 50,
   K = -1,
   sigma = -30,
-  initialization = NULL,
+  initialization = 'pca',
+  max_step_norm = 5,
   data_path = NULL,
   result_path = NULL,
   load_affinities = NULL,
@@ -1801,19 +1800,19 @@ fftRtsne <- function(X,
   }
   # check fast_tsne version
   ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
-  if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
-    version_number <- '1.1.0'
-  } else if (grepl(pattern = '= t-SNE v1.0', x = ft.out[1])) {
-    version_number <- '1.0'
-  } else {
+  version_number <- regmatches(ft.out[1], regexpr('= t-SNE v[0-9.]+', ft.out[1]))
+  if (is.null(version_number)){
     message("First line of fast_tsne output is")
     message(ft.out[1])
-    stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1.0+, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+  } else {
+    version_number <- gsub('= t-SNE v', '', version_number)
   }
+
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
-  if (version_number == '1.0' && df != 1.0) {
+  if (version_number == '1.0.0' && df != 1.0) {
     stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
@@ -1834,6 +1833,9 @@ fftRtsne <- function(X,
   if (!is.numeric(x = exaggeration_factor)) {
     stop("exaggeration_factor should be numeric")
   }
+  if (!is.numeric(df)) {
+    stop("df should be numeric")
+  }
   if (!is.wholenumber(x = dims) || dims <= 0) {
     stop("Incorrect dimensionality.")
   }
@@ -1843,10 +1845,52 @@ fftRtsne <- function(X,
     } else if (perplexity == 0) {
       search_k <- n_trees * max(perplexity_list) * 3
     } else {
-      search_k <- n_trees * K * 3
+      search_k <- n_trees * K
     }
   }
+
+  if (is.character(learning_rate) && learning_rate =='auto') {
+    learning_rate = max(200, nrow(X)/exaggeration_factor)
+  }
+  if (is.character(start_late_exag_iter) && start_late_exag_iter =='auto') {
+    if (late_exag_coeff > 0) {
+      start_late_exag_iter = stop_early_exag_iter
+    } else {
+      start_late_exag_iter = -1
+    }
+  }
+
+  if (is.character(initialization) && initialization =='pca') {
+    if (rand_seed != -1)  {
+      set.seed(rand_seed)
+    }
+    if (requireNamespace("rsvd")) {
+      message('Using rsvd() to compute the top PCs for initialization.')
+      X_c <- scale(X, center=T, scale=F)
+      rsvd_out <- rsvd(X_c, k=dims)
+      X_top_pcs <- rsvd_out$u %*% diag(rsvd_out$d, nrow=dims)
+    } else if(requireNamespace("irlba")) {
+      message('Using irlba() to compute the top PCs for initialization.')
+      X_colmeans <- colMeans(X)
+      irlba_out <- irlba(X,nv=dims, center=X_colmeans)
+      X_top_pcs <- irlba_out$u %*% diag(irlba_out$d, nrow=dims)
+    }else{
+      stop("By default, FIt-SNE initializes the embedding with the
+                     top PCs. We use either rsvd or irlba for fast computation.
+                     To use this functionality, please install the rsvd package
+                     with install.packages('rsvd') or the irlba package with
+                     install.packages('ilrba').  Otherwise, set initialization
+                     to NULL for random initialization, or any N by dims matrix
+                     for custom initialization.")
+    }
+    initialization <- 0.0001*(X_top_pcs/sd(X_top_pcs[,1]))
+
+  } else if (is.character(initialization) && initialization == 'random'){
+    message('Random initialization')
+    initialization = NULL
+  }
   nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
+
   if (is.null(load_affinities)) {
     load_affinities <- 0
   } else {
@@ -1858,18 +1902,23 @@ fftRtsne <- function(X,
       load_affinities <- 0
     }
   }
+
   knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
+  tX <- as.numeric(t(X))
+
   f <- file(description = data_path, open = "wb")
   n = nrow(x = X)
   D = ncol(x = X)
   writeBin(object = as.integer(x = n), con = f, size = 4)
   writeBin(object = as.integer(x = D), con = f, size = 4)
-  writeBin(object = as.numeric(x = theta), con = f, size = 8) #theta
-  writeBin(object = as.numeric(x = perplexity), con = f, size = 8) #theta
+  writeBin(object = as.numeric(x = theta), con = f, size = 8)
+  writeBin(object = as.numeric(x = perplexity), con = f, size = 8)
+
   if (perplexity == 0) {
     writeBin(object = as.integer(x = length(x = perplexity_list)), con = f, size = 4)
     writeBin(object = perplexity_list, con = f)
   }
+
   writeBin(object = as.integer(x = dims), con = f, size = 4) #theta
   writeBin(object = as.integer(x = max_iter), con = f, size = 4)
   writeBin(object = as.integer(x = stop_early_exag_iter), con = f, size = 4)
@@ -1877,6 +1926,9 @@ fftRtsne <- function(X,
   writeBin(object = as.numeric(x = momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = final_momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = learning_rate), con = f, size = 8)
+  if (!(version_number %in% c('1.1.0', '1.0.0'))) {
+    writeBin(object = as.numeric(x = max_step_norm), f, size = 8)
+  }
   writeBin(object = as.integer(x = K), con = f, size = 4) #K
   writeBin(object = as.numeric(x = sigma), con = f, size = 8) #sigma
   writeBin(object = as.integer(x = nbody_algo), con = f, size = 4)  #not barnes hut
@@ -1890,10 +1942,9 @@ fftRtsne <- function(X,
   writeBin(object = as.integer(x = nterms), con = f, size = 4)
   writeBin(object = as.numeric(x = intervals_per_integer), con = f, size = 8)
   writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4)
-  tX = c(t(X))
   writeBin(object = tX, con = f)
   writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
-  if (version_number != "1.0") {
+  if (version_number != "1.0.0") {
     writeBin(object = as.numeric(x = df), con = f, size = 8)
   }
   writeBin(object = as.integer(x = load_affinities), con = f, size = 4)
@@ -1901,10 +1952,11 @@ fftRtsne <- function(X,
     writeBin(object = c(t(x = initialization)), con = f)
   }
   close(con = f)
-  if (version_number == "1.0") {
+
+  if (version_number == "1.0.0") {
     flag <- system2(
-     command = fast_tsne_path,
-     args = c(data_path, result_path, nthreads)
+      command = fast_tsne_path,
+      args = c(data_path, result_path, nthreads)
     )
   } else {
     flag <- system2(
@@ -1912,9 +1964,11 @@ fftRtsne <- function(X,
       args = c(version_number, data_path, result_path, nthreads)
     )
   }
+
   if (flag != 0) {
     stop('tsne call failed')
   }
+
   f <- file(description = result_path, open = "rb")
   n <- readBin(con = f, what = integer(), n = 1, size = 4)
   d <- readBin(con = f, what = integer(), n = 1, size = 4)
