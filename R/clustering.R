@@ -1242,7 +1242,7 @@ MultiModalNN.exp <- function(object,
 
 FindMultiModelNeighbors  <-  function(object, 
                                      modality.weight = NULL,
-                                     prune.SNN = 1/20, 
+                                     prune.SNN = 1/15, 
                                      knn.graph.name = "jknn",
                                      snn.graph.name = "jsnn",
                                      joint.nn.name = "joint.nn",
