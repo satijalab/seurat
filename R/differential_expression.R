@@ -531,7 +531,6 @@ FindMarkers.Assay <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  reduction = NULL,
   logfc.threshold = 0.25,
   test.use = 'wilcox',
   min.pct = 0.1,
@@ -540,6 +539,7 @@ FindMarkers.Assay <- function(
   only.pos = FALSE,
   max.cells.per.ident = Inf,
   random.seed = 1,
+  latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -557,44 +557,26 @@ FindMarkers.Assay <- function(
     numeric()
   )
   
-  FindMarkers_ValidateCellGroups(
-    object = data.use,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    min.cells.group = min.cells.group
-  )
-  featureselection <- FindMarkers_FeatureSelection(
+  de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
     counts = counts,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    use.reduction = FALSE,
+    reduction = NULL,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
     min.diff.pct = min.diff.pct,
-    only.pos = only.pos,
-    pseudocount.use = pseudocount.use
-  )
-  de.results <- FindMarkers_DE(
-    object = data.use,
-    slot = data.slot,
-    counts = counts,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = featureselection$features,
-    use.reduction = FALSE,
-    test.use = test.use,
     verbose = verbose,
     only.pos = only.pos,
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     latent.vars = latent.vars,
     min.cells.feature = min.cells.feature,
-    total.diff = featureselection$total.diff,
-    data.alpha = featureselection$data.alpha,
+    min.cells.group = min.cells.group,
+    pseudocount.use = pseudocount.use,
     ...
   )
   return(de.results)
@@ -617,6 +599,7 @@ FindMarkers.DimReduc <- function(
   only.pos = FALSE,
   max.cells.per.ident = Inf,
   random.seed = 1,
+  latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -624,50 +607,30 @@ FindMarkers.DimReduc <- function(
   
 ) {
   if (test.use %in% DEmethods_counts()) {
-    stop("The following tests cannot be used for differential expression on a DimReduc as they assume a count model: ",
+    stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
          paste(DEmethods_counts(), collapse=", "))
   }
   
   data.use <- t(x = Embeddings(object = object))
   
-  FindMarkers_ValidateCellGroups(
+  de.results <- FindMarkers(
     object = data.use,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    min.cells.group = min.cells.group
-  )
-  featureselection <- FindMarkers_FeatureSelection(
-    object = data.use,
-    slot = 'data',
-    counts = numeric(),
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    use.reduction = TRUE,
+    reduction = TRUE,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
     min.diff.pct = min.diff.pct,
-    only.pos = only.pos,
-    pseudocount.use = pseudocount.use
-  )
-  de.results <- FindMarkers_DE(
-    object = data.use,
-    slot = 'data',
-    counts = numeric(),
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = featureselection$features,
-    use.reduction = TRUE,
-    test.use = test.use,
     verbose = verbose,
     only.pos = only.pos,
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     latent.vars = latent.vars,
     min.cells.feature = min.cells.feature,
-    total.diff = featureselection$total.diff,
-    data.alpha = featureselection$data.alpha,
+    min.cells.group = min.cells.group,
+    pseudocount.use = pseudocount.use,
     ...
   )
   return(de.results)
@@ -725,23 +688,14 @@ FindMarkers.Seurat <- function(
   if (!is.null(x = assay) && !is.null(x = reduction)) {
     stop("Please only specify either assay or reduction.")
   }
-  data.slot <- ifelse(
-    test = test.use %in% DEmethods_counts(),
-    yes = 'counts',
-    no = slot
-  )
   # select which data to use
   if (is.null(x = reduction)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <-  GetAssayData(object = object[[assay]], slot = data.slot)
+    data.use <- object[[assay]]
+    cellnames.use <-  colnames(x = data.use)
   } else {
-    if (test.use %in% DEmethods_counts()) {
-      stop("The following tests cannot be used when specifying a reduction as they assume a count model: ",
-           paste(DEmethods_counts(), collapse=", "))
-    } else if (data.slot == "counts") {
-      stop("Cannot use a reduction with slot='counts' specified.")
-    }
-    data.use <- t(x = Embeddings(object = object, reduction = reduction))
+    data.use <- object[[reduction]]
+    cellnames.use <- rownames(data.use)
   }
   # convert idents to cells
   if (is.null(x = ident.1)) {
@@ -762,8 +716,8 @@ FindMarkers.Seurat <- function(
     ident.2 <- tree$tip.label[GetRightDescendants(tree = tree, node = ident.2)]
   }
   if (length(x = as.vector(x = ident.1)) > 1 &&
-      any(as.character(x = ident.1) %in% colnames(x = data.use))) {
-    bad.cells <- colnames(x = data.use)[which(x = !as.character(x = ident.1) %in% colnames(x = data.use))]
+      any(as.character(x = ident.1) %in% cellnames.use)) {
+    bad.cells <- cellnames.use[which(x = !as.character(x = ident.1) %in% cellnames.use)]
     if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
@@ -772,18 +726,19 @@ FindMarkers.Seurat <- function(
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2)) > 1 &&
-      any(as.character(x = ident.2) %in% colnames(x = data.use))) {
-    bad.cells <- colnames(x = data.use)[which(!as.character(x = ident.2) %in% colnames(x = data.use))]
+      any(as.character(x = ident.2) %in% cellnames.use)) {
+    bad.cells <- cellnames.use[which(!as.character(x = ident.2) %in% cellnames.use)]
     if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
     if (is.null(x = ident.2)) {
-      ident.2 <- setdiff(x = colnames(x = data.use), y = ident.1)
+      ident.2 <- setdiff(x = cellnames.use, y = ident.1)
     } else {
       ident.2 <- WhichCells(object = object, idents = ident.2)
     }
   }
+  # fetch latent.vars
   if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
       object = object,
@@ -791,50 +746,24 @@ FindMarkers.Seurat <- function(
       cells = c(ident.1, ident.2)
     )
   }
-  counts <- switch(
-    EXPR = data.slot,
-    'scale.data' = GetAssayData(object = object, assay = assay, slot = "counts"),
-    numeric()
-  )
-  
-  FindMarkers_ValidateCellGroups(
+  de.results <- FindMarkers(
     object = data.use,
-    cells.1 = ident.1,
-    cells.2 = ident.2,
-    min.cells.group = min.cells.group
-  )
-  featureselection <- FindMarkers_FeatureSelection(
-    object = data.use,
-    slot = data.slot,
-    counts = counts,
+    slot = slot,
     cells.1 = ident.1,
     cells.2 = ident.2,
     features = features,
-    use.reduction = !is.null(x = reduction),
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
     min.diff.pct = min.diff.pct,
-    only.pos = only.pos,
-    pseudocount.use = pseudocount.use
-  )
-  de.results <- FindMarkers_DE(
-    object = data.use,
-    slot = data.slot,
-    counts = counts,
-    cells.1 = ident.1,
-    cells.2 = ident.2,
-    features = featureselection$features,
-    use.reduction = !is.null(x = reduction),
-    test.use = test.use,
     verbose = verbose,
     only.pos = only.pos,
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     latent.vars = latent.vars,
     min.cells.feature = min.cells.feature,
-    total.diff = featureselection$total.diff,
-    data.alpha = featureselection$data.alpha,
+    min.cells.group = min.cells.group,
+    pseudocount.use = pseudocount.use,
     ...
   )
   return(de.results)
