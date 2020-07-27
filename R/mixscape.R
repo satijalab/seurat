@@ -189,7 +189,7 @@ DEenrichRPlot <- function(
     neg.er <- neg.er[1:num.pathway, ]
     neg.er$term <- factor(x = neg.er$term, levels = neg.er$term[order(neg.er$log10pval)])
     
-      if(length(neg.er$term) = 0){
+      if(length(neg.er$term) == 0){
         gene.list <- list(pos = pos.er)
       }
   
@@ -707,11 +707,11 @@ RunMixscape <- function (object = NULL,
 #'
 #' @examples
 
-MixscapeHeatmap=function(
+MixscapeHeatmap <- function(
   object,
-  ident.1=NULL,
-  ident.2=NULL,
-  balanced=TRUE,
+  ident.1 = NULL,
+  ident.2 = NULL,
+  balanced = TRUE,
   logfc.threshold = 0.25,
   assay="RNA",
   max.genes = 100,
@@ -721,33 +721,37 @@ MixscapeHeatmap=function(
   ...
 ) 
 { 
-  DefaultAssay(object=object)<-assay
+  DefaultAssay(object = object) <- assay
   if(is.numeric(max.genes)){
-    all.markers = FindMarkers(object, ident.1 = ident.1,ident.2 = ident.2, only.pos = F, logfc.threshold = logfc.threshold,test.use= test.use)
+    all.markers <- FindMarkers(object, ident.1 = ident.1, ident.2 = ident.2, only.pos = F, logfc.threshold = logfc.threshold,test.use = test.use)
+    
     if (balanced){
-      pos.markers=subset(all.markers, avg_logFC>(logfc.threshold))
-      neg.markers=subset(all.markers, avg_logFC<(-logfc.threshold))
-      if (length(rownames(subset(pos.markers, p_val<0.05)))<max.genes ){
-        marker.list=c(rownames(subset(pos.markers, p_val<0.05)))
-        if (length(rownames(subset(neg.markers, p_val<0.05)))<max.genes){
-          marker.list=c(marker.list,rownames(subset(neg.markers, p_val<0.05)))
+      pos.markers <- subset(all.markers, avg_logFC > (logfc.threshold))
+      neg.markers <- subset(all.markers, avg_logFC < (-logfc.threshold))
+      
+      if (length(rownames(subset(pos.markers, p_val < 0.05))) < max.genes ){
+        marker.list=c(rownames(subset(pos.markers, p_val < 0.05)))
+        if (length(rownames(subset(neg.markers, p_val < 0.05))) < max.genes){
+          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < 0.05)))
         } else {
-          marker.list=c(marker.list, rownames(subset(neg.markers, p_val<0.05))[1:max.genes])
+          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < 0.05))[1:max.genes])
         }
       } else {
-        marker.list=c(rownames(subset(pos.markers, p_val<0.05))[1:max.genes])
-        if (length(rownames(subset(neg.markers, p_val<0.05)))<max.genes){
-          marker.list=c(marker.list,rownames(subset(neg.markers, p_val<0.05)))
+        marker.list <- c(rownames(subset(pos.markers, p_val < 0.05))[1:max.genes])
+        if (length(rownames(subset(neg.markers, p_val < 0.05))) < max.genes){
+          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < 0.05)))
         } else {
-          marker.list=c(marker.list, rownames(subset(neg.markers, p_val<0.05))[1:max.genes])
+          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < 0.05))[1:max.genes])
         }
       }
-    } else {
-      pos.markers=subset(all.markers, avg_logFC>(logfc.threshold))
-      if (length(rownames(subset(pos.markers, p_val<0.05)))<max.genes ){
-        marker.list=c(rownames(subset(pos.markers, p_val<0.05)))
+    } 
+    
+    else {
+      pos.markers <- subset(all.markers, avg_logFC > (logfc.threshold))
+      if (length(rownames(subset(pos.markers, p_val < 0.05))) < max.genes ){
+        marker.list <- c(rownames(subset(pos.markers, p_val < 0.05)))
       } else{
-        marker.list=c(rownames(subset(pos.markers, p_val<0.05))[1:max.genes])
+        marker.list <- c(rownames(subset(pos.markers, p_val < 0.05))[1:max.genes])
       }
     }
       if(is.null(max.cells.group)){
@@ -763,13 +767,13 @@ MixscapeHeatmap=function(
     if(isTRUE(order.by.prob)){
       p_ko <- sub$p_ko[, drop = FALSE]
       ordered.cells <- names(sort(p_ko, decreasing = T))
-      plot=DoHeatmap(sub, features = marker.list, label = T, cells =ordered.cells ,...)
+      p <- DoHeatmap(sub, features = marker.list, label = T, cells = ordered.cells ,...)
     }
     
     else{
-    plot=DoHeatmap(sub, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
+    p <- DoHeatmap(sub, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
     }
-    return(plot)
+    return(p)
   }
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
