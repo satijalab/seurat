@@ -478,46 +478,208 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
-  FindMarkers_ValidateCellGroups(
+  ValidateCellGroups(
     object = object,
     cells.1 = cells.1,
     cells.2 = cells.2,
     min.cells.group = min.cells.group
   )
-  featureselection <- FindMarkers_FeatureSelection(
-    object = object,
-    slot = slot,
-    counts = counts,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = features,
-    use.reduction = !is.null(x = reduction),
-    logfc.threshold = logfc.threshold,
-    test.use = test.use,
-    min.pct = min.pct,
-    min.diff.pct = min.diff.pct,
-    only.pos = only.pos,
-    pseudocount.use = pseudocount.use
+  # reset parameters so no feature filtering is performed
+  if (test.use %in% DEmethods_noprefilter()) {
+    features <- rownames(x = object)
+    min.diff.pct <- -Inf
+    logfc.threshold <- 0
+  }
+  features <- features %||% rownames(x = object)
+  # feature selection (based on percentages)
+  data <- switch(
+    EXPR = slot,
+    'scale.data' = counts,
+    object
   )
-  de.results <- FindMarkers_DE(
-    object = object,
-    slot = slot,
-    counts = counts,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = featureselection$features,
-    use.reduction = !is.null(x = reduction),
-    test.use = test.use,
-    verbose = verbose,
-    only.pos = only.pos,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    latent.vars = latent.vars,
-    min.cells.feature = min.cells.feature,
-    total.diff = featureselection$total.diff,
-    data.alpha = featureselection$data.alpha,
-    ...
+  if (is.null(x = reduction)) {
+    thresh.min <- 0
+    pct.1 <- round(
+      x = rowSums(x = data[features, cells.1, drop = FALSE] > thresh.min) /
+        length(x = cells.1),
+      digits = 3
+    )
+    pct.2 <- round(
+      x = rowSums(x = data[features, cells.2, drop = FALSE] > thresh.min) /
+        length(x = cells.2),
+      digits = 3
+    )
+    data.alpha <- cbind(pct.1, pct.2)
+    colnames(x = data.alpha) <- c("pct.1", "pct.2")
+    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
+    names(x = alpha.min) <- rownames(x = data.alpha)
+    features <- names(x = which(x = alpha.min > min.pct))
+    if (length(x = features) == 0) {
+      stop("No features pass min.pct threshold")
+    }
+    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
+    features <- names(
+      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+    )
+    if (length(x = features) == 0) {
+      stop("No features pass min.diff.pct threshold")
+    }
+  } else {
+    data.alpha <- data.frame(
+      pct.1 = rep(x = NA, times = length(x = features)),
+      pct.2 = rep(x = NA, times = length(x = features))
+    )
+  }
+  
+  # feature selection (based on average difference)
+  mean.fxn <- if (is.null(x = reduction) && slot != "scale.data") {
+    switch(
+      EXPR = slot,
+      'data' = function(x) {
+        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
+      },
+      function(x) {
+        return(log(x = rowMeans(x = x) + pseudocount.use))
+      }
+    )
+  } else {
+    rowMeans
+  }
+  data.1 <- mean.fxn(data[features, cells.1, drop = FALSE])
+  data.2 <- mean.fxn(data[features, cells.2, drop = FALSE])
+  total.diff <- (data.1 - data.2)
+  if (is.null(x = reduction) && slot != "scale.data") {
+    features.diff <- if (only.pos) {
+      names(x = which(x = total.diff > logfc.threshold))
+    } else {
+      names(x = which(x = abs(x = total.diff) > logfc.threshold))
+    }
+    features <- intersect(x = features, y = features.diff)
+    if (length(x = features) == 0) {
+      stop("No features pass logfc.threshold threshold")
+    }
+  }
+  # subsample cell groups if they are too large
+  if (max.cells.per.ident < Inf) {
+    set.seed(seed = random.seed)
+    # Should be cells.1 and cells.2?
+    if (length(x = cells.1) > max.cells.per.ident) {
+      cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
+    }
+    if (length(x = cells.2) > max.cells.per.ident) {
+      cells.2 <- sample(x = cells.2, size = max.cells.per.ident)
+    }
+    if (!is.null(x = latent.vars)) {
+      latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
+    }
+  }
+  
+  # perform DE
+  if (!(test.use %in% DEmethods_latent()) && !is.null(x = latent.vars)) {
+    warning(
+      "'latent.vars' is only used for the following tests: ",
+      paste(DEmethods_latent(), collapse=", "),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  if (!test.use %in% DEmethods_checkdots()) {
+    CheckDots(...)
+  }
+  de.results <- switch(
+    EXPR = test.use,
+    'wilcox' = WilcoxDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose,
+      ...
+    ),
+    'bimod' = DiffExpTest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    'roc' = MarkerTest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    't' = DiffTTest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    'negbinom' = GLMDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      min.cells = min.cells.feature,
+      latent.vars = latent.vars,
+      test.use = test.use,
+      verbose = verbose
+    ),
+    'poisson' = GLMDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      min.cells = min.cells.feature,
+      latent.vars = latent.vars,
+      test.use = test.use,
+      verbose = verbose
+    ),
+    'MAST' = MASTDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      latent.vars = latent.vars,
+      verbose = verbose,
+      ...
+    ),
+    "DESeq2" = DESeq2DETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose,
+      ...
+    ),
+    "LR" = LRDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      latent.vars = latent.vars,
+      verbose = verbose
+    ),
+    stop("Unknown test: ", test.use)
   )
+  if (is.null(x = reduction)) {
+    diff.col <- ifelse(
+      test = slot == "scale.data",
+      yes = "avg_diff",
+      no = "avg_logFC"
+    )
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
+  } else {
+    diff.col <- "avg_diff"
+    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
+  }
+  if (only.pos) {
+    de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
+  }
+  if (test.use %in% DEmethods_nocorrect()) {
+    de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
+  } else {
+    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
+    de.results$p_val_adj = p.adjust(
+      p = de.results$p_val,
+      method = "bonferroni",
+      n = nrow(x = object)
+    )
+  }
   return(de.results)
 }
 
@@ -1037,280 +1199,6 @@ DiffTTest <- function(
   return(to.return)
 }
 
-# FindMarkers helper function
-# Perform DE test and return results
-FindMarkers_DE <- function(
-  object,
-  slot,
-  counts,
-  cells.1,
-  cells.2,
-  features,
-  use.reduction, #logical
-  test.use,
-  min.diff.pct,
-  verbose,
-  only.pos,
-  max.cells.per.ident,
-  random.seed,
-  latent.vars,
-  min.cells.feature,
-  total.diff,
-  data.alpha,
-  ...
-) {
-  # subsample cell groups if they are too large
-  if (max.cells.per.ident < Inf) {
-    set.seed(seed = random.seed)
-    # Should be cells.1 and cells.2?
-    if (length(x = cells.1) > max.cells.per.ident) {
-      cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
-    }
-    if (length(x = cells.2) > max.cells.per.ident) {
-      cells.2 <- sample(x = cells.2, size = max.cells.per.ident)
-    }
-    if (!is.null(x = latent.vars)) {
-      latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
-    }
-  }
-  
-  # perform DE
-  if (!(test.use %in% DEmethods_latent()) && !is.null(x = latent.vars)) {
-    warning(
-      "'latent.vars' is only used for the following tests: ",
-      paste(DEmethods_latent(), collapse=", "),
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
-  if (!test.use %in% DEmethods_checkdots()) {
-    CheckDots(...)
-  }
-  de.results <- switch(
-    EXPR = test.use,
-    'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
-    ),
-    'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose,
-      ...
-    ),
-    "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
-    ),
-    "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose
-    ),
-    stop("Unknown test: ", test.use)
-  )
-  if (!use.reduction) {
-    diff.col <- ifelse(
-      test = slot == "scale.data",
-      yes = "avg_diff",
-      no = "avg_logFC"
-    )
-    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
-    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-  } else {
-    diff.col <- "avg_diff"
-    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
-  }
-  if (only.pos) {
-    de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
-  }
-  if (test.use %in% DEmethods_nocorrect()) {
-    de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
-  } else {
-    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
-    de.results$p_val_adj = p.adjust(
-      p = de.results$p_val,
-      method = "bonferroni",
-      n = nrow(x = object)
-    )
-  }
-  return(de.results)
-}
-
-# FindMarkers helper function
-# returns filtered feature list based on percentages and average difference
-FindMarkers_FeatureSelection <- function(
-  object,
-  slot,
-  counts,
-  cells.1,
-  cells.2,
-  features,
-  use.reduction, #logical
-  logfc.threshold,
-  test.use,
-  min.pct,
-  min.diff.pct,
-  only.pos,
-  pseudocount.use
-) {
-  if (test.use %in% DEmethods_noprefilter()) {
-    features <- rownames(x = object)
-    min.diff.pct <- -Inf
-    logfc.threshold <- 0
-  }
-  
-  features <- features %||% rownames(x = object)
-  
-  # feature selection (based on percentages)
-  data <- switch(
-    EXPR = slot,
-    'scale.data' = counts,
-    object
-  )
-  if (!use.reduction) {
-    thresh.min <- 0
-    pct.1 <- round(
-      x = rowSums(x = data[features, cells.1, drop = FALSE] > thresh.min) /
-        length(x = cells.1),
-      digits = 3
-    )
-    pct.2 <- round(
-      x = rowSums(x = data[features, cells.2, drop = FALSE] > thresh.min) /
-        length(x = cells.2),
-      digits = 3
-    )
-    data.alpha <- cbind(pct.1, pct.2)
-    colnames(x = data.alpha) <- c("pct.1", "pct.2")
-    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
-    names(x = alpha.min) <- rownames(x = data.alpha)
-    features <- names(x = which(x = alpha.min > min.pct))
-    if (length(x = features) == 0) {
-      stop("No features pass min.pct threshold")
-    }
-    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-    features <- names(
-      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
-    )
-    if (length(x = features) == 0) {
-      stop("No features pass min.diff.pct threshold")
-    }
-  } else {
-    data.alpha <- data.frame(
-      pct.1 = rep(x = NA, times = length(x = features)),
-      pct.2 = rep(x = NA, times = length(x = features))
-    )
-  }
-  
-  # feature selection (based on average difference)
-  mean.fxn <- if (!use.reduction && slot != "scale.data") {
-    switch(
-      EXPR = slot,
-      'data' = function(x) {
-        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
-      },
-      function(x) {
-        return(log(x = rowMeans(x = x) + pseudocount.use))
-      }
-    )
-  } else {
-    rowMeans
-  }
-  data.1 <- mean.fxn(data[features, cells.1, drop = FALSE])
-  data.2 <- mean.fxn(data[features, cells.2, drop = FALSE])
-  total.diff <- (data.1 - data.2)
-  if (!use.reduction && slot != "scale.data") {
-    features.diff <- if (only.pos) {
-      names(x = which(x = total.diff > logfc.threshold))
-    } else {
-      names(x = which(x = abs(x = total.diff) > logfc.threshold))
-    }
-    features <- intersect(x = features, y = features.diff)
-    if (length(x = features) == 0) {
-      stop("No features pass logfc.threshold threshold")
-    }
-  }
-  return(list("features" = features, "total.diff" = total.diff, "data.alpha" = data.alpha))
-}
-
-# FindMarkers helper function
-# Cell grouping error checking
-FindMarkers_ValidateCellGroups <- function(
-  object,
-  cells.1,
-  cells.2,
-  min.cells.group
-) {
-  if (length(x = cells.1) == 0) {
-    stop("Cell group 1 is empty - no cells with identity class ", cells.1)
-  } else if (length(x = cells.2) == 0) {
-    stop("Cell group 2 is empty - no cells with identity class ", cells.2)
-    return(NULL)
-  } else if (length(x = cells.1) < min.cells.group) {
-    stop("Cell group 1 has fewer than ", min.cells.group, " cells")
-  } else if (length(x = cells.2) < min.cells.group) {
-    stop("Cell group 2 has fewer than ", min.cells.group, " cells")
-  } else if (any(!cells.1 %in% colnames(x = object))) {
-    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.1) %in% colnames(x = object))]
-    stop(
-      "The following cell names provided to cells.1 are not present: ",
-      paste(bad.cells, collapse = ", ")
-    )
-  } else if (any(!cells.2 %in% colnames(x = object))) {
-    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.2) %in% colnames(x = object))]
-    stop(
-      "The following cell names provided to cells.2 are not present: ",
-      paste(bad.cells, collapse = ", ")
-    )
-  }
-}
-
 # Tests for UMI-count based data
 #
 # Identifies differentially expressed genes between two groups of cells using
@@ -1740,6 +1628,37 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
     theta.fit[to.fix] <- min.theta
   }
   return(theta.fit)
+}
+
+# FindMarkers helper function for cell grouping error checking
+ValidateCellGroups <- function(
+  object,
+  cells.1,
+  cells.2,
+  min.cells.group
+) {
+  if (length(x = cells.1) == 0) {
+    stop("Cell group 1 is empty - no cells with identity class ", cells.1)
+  } else if (length(x = cells.2) == 0) {
+    stop("Cell group 2 is empty - no cells with identity class ", cells.2)
+    return(NULL)
+  } else if (length(x = cells.1) < min.cells.group) {
+    stop("Cell group 1 has fewer than ", min.cells.group, " cells")
+  } else if (length(x = cells.2) < min.cells.group) {
+    stop("Cell group 2 has fewer than ", min.cells.group, " cells")
+  } else if (any(!cells.1 %in% colnames(x = object))) {
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.1) %in% colnames(x = object))]
+    stop(
+      "The following cell names provided to cells.1 are not present: ",
+      paste(bad.cells, collapse = ", ")
+    )
+  } else if (any(!cells.2 %in% colnames(x = object))) {
+    bad.cells <- colnames(x = object)[which(x = !as.character(x = cells.2) %in% colnames(x = object))]
+    stop(
+      "The following cell names provided to cells.2 are not present: ",
+      paste(bad.cells, collapse = ", ")
+    )
+  }
 }
 
 # Differential expression using Wilcoxon Rank Sum
