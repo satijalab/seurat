@@ -8011,11 +8011,22 @@ SubsetVST <- function(sct.info, cells, features) {
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
 #
 Top <- function(data, num, balanced) {
+  nr <- nrow(x = data)
+  if (num > nr) {
+    warning("Requested number is larger than the number of available items (", 
+            nr, "). Setting to ", nr , ".", call. = FALSE)
+    num <- nr
+  }
   top <- if (balanced) {
     num <- round(x = num / 2)
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
+    
+    # remove duplicates
+    if (positive[num] == negative[num]) {
+      negative <- negative[-num] 
+    }
     list(positive = positive, negative = negative)
   } else {
     data <- data[rev(x = order(abs(x = data))), , drop = FALSE]
