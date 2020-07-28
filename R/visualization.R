@@ -2784,7 +2784,7 @@ SpatialPlot <- function(
     if (interactive) {
       return(ISpatialDimPlot(
         object = object,
-        image = image,
+        image = images[1],
         group.by = group.by,
         alpha = alpha
       ))

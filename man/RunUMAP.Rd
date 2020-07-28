@@ -65,7 +65,8 @@ RunUMAP(object, ...)
   reduction = "pca",
   features = NULL,
   graph = NULL,
-  assay = "RNA",
+  assay = DefaultAssay(object = object),
+  slot = "data",
   umap.method = "uwot",
   n.neighbors = 30L,
   n.components = 2L,
@@ -187,6 +188,8 @@ set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL 
 on features}
 
 \item{graph}{Name of graph on which to run UMAP}
+
+\item{slot}{The slot used to pull data for when using \code{features}. data slot is by default.}
 
 \item{reduction.name}{Name to store dimensional reduction under in the Seurat object}
 }
