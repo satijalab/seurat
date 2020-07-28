@@ -2357,7 +2357,7 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = 'anchors'
   )
-  anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
+  anchors.cells2 <- unique(nn.cells2[anchors[, "cell2"]])
   if (is.null(x = features)) {
     data.use <- Embeddings(reduction)[nn.cells2, dims]
   } else {
@@ -2366,13 +2366,13 @@ FindWeights <- function(
   knn_2_2 <- NNHelper(
     data = data.use[anchors.cells2, ],
     query = data.use,
-    k = k + 1,
+    k = k,
     method = nn.method,
     eps = eps
   )
-  distances <- knn_2_2$nn.dists[, -1]
+  distances <- knn_2_2$nn.dists
   distances <- 1 - (distances / distances[, ncol(x = distances)])
-  cell.index <- knn_2_2$nn.idx[, -1]
+  cell.index <- knn_2_2$nn.idx
   integration.matrix <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -2380,7 +2380,6 @@ FindWeights <- function(
   )
   if (cpp) {
     weights <- FindWeightsC(
-      integration_matrix = as(integration.matrix, "dgCMatrix"),
       cells2 = 0:(length(x = nn.cells2) - 1),
       distances = as.matrix(x = distances),
       anchor_cells2 = anchors.cells2,
@@ -2404,9 +2403,15 @@ FindWeights <- function(
       wt <- distances[cell, ]
       cellnames <- anchors.cells2[cell.index[cell, ]]
       names(x = wt) <- cellnames
+      k.used <- 0 #number of anchors used so far; a cell in the neighbor list may contribute to multiple anchors
       for (i in cellnames){
         anchor.index <- which(rownames(integration.matrix) == i)
-        dist.weights[anchor.index, cell] <- wt[[i]]
+        for (j in anchor.index) {
+          dist.weights[j, cell] <- wt[[i]]
+          k.used <- k.used + 1
+          if (k.used == k) break
+        }
+        if (k.used == k) break
       }
       if (verbose) setTxtProgressBar(pb, cell)
     }
