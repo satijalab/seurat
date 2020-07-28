@@ -478,19 +478,19 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
-  ValidateCellGroups(
-    object = object,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    min.cells.group = min.cells.group
-  )
+  features <- features %||% rownames(x = object)
   # reset parameters so no feature filtering is performed
   if (test.use %in% DEmethods_noprefilter()) {
     features <- rownames(x = object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
-  features <- features %||% rownames(x = object)
+  ValidateCellGroups(
+    object = object,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    min.cells.group = min.cells.group
+  )
   # feature selection (based on percentages)
   data <- switch(
     EXPR = slot,
@@ -530,7 +530,6 @@ FindMarkers.default <- function(
       pct.2 = rep(x = NA, times = length(x = features))
     )
   }
-  
   # feature selection (based on average difference)
   mean.fxn <- if (is.null(x = reduction) && slot != "scale.data") {
     switch(
@@ -573,7 +572,6 @@ FindMarkers.default <- function(
       latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
     }
   }
-  
   # perform DE
   if (!(test.use %in% DEmethods_latent()) && !is.null(x = latent.vars)) {
     warning(
@@ -841,7 +839,7 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   ...
 ) {
- if (!is.null(x = group.by)) {
+  if (!is.null(x = group.by)) {
     if (!is.null(x = subset.ident)) {
       object <- subset(x = object, idents = subset.ident)
     }
