@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
 - Added support for FIt-SNE v1.2+
+- Fix for `Spatial*Plot` when running with interactive=TRUE
 
 ## [3.2.0] - 2020-07-15
 ### Added
