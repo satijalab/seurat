@@ -1503,6 +1503,7 @@ RunUMAP.Seurat <- function(
   features = NULL,
   graph = NULL,
   assay = DefaultAssay(object = object),
+  nn.name = NULL, 
   slot = 'data',
   umap.method = 'uwot',
   reduction.model = NULL,
@@ -1558,6 +1559,8 @@ RunUMAP.Seurat <- function(
         call. = FALSE
       )
     }
+  }  else if (!is.null( x = nn.name)){
+    data.use <- object[[nn.name]]
   } else if (!is.null(x = graph)) {
     data.use <- object[[graph]]
   } else {
