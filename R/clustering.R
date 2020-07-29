@@ -2282,6 +2282,7 @@ FilterADT <- function(object,
                       slot = "data", 
                       overlap.cutoff = 10, 
                       k.nn = 30, 
+                      nn.method = "annoy", 
                       positive.probs = 0.9,
                       negative.probs = 0.1
 ){
@@ -2290,11 +2291,10 @@ FilterADT <- function(object,
   adt.cutoff.list.low <- list()
   adt.data <- GetAssayData(object = object, assay = assay, slot = slot )
   feature.adt.set <- rownames(adt.data)
-  reduction.nn <- NNHelper(data = object[[reduction]]@cell.embeddings[, dims], 
+  reduction.nn <- NNHelper(data = L2Norm(object[[reduction]]@cell.embeddings[, dims]), 
                          k = k.nn, 
-                         method = "annoy",
-                         metric = "cosine")
-  overlap.pos <- function(x, y ) length(intersect(x, y))
+                         method = nn.method)
+
   for (f in 1:length(feature.adt.set)){
     feature.adt <- feature.adt.set[f]
     adt.cutoff.list.high[[f]] <- quantile(x = adt.data[feature.adt, ], probs = positive.probs)
@@ -2303,12 +2303,13 @@ FilterADT <- function(object,
       adt.cutoff.list.high[[f]] <- quantile(x = adt.data[feature.adt, ], probs = 1)
     }
     positive.idx <- which(adt.data[feature.adt, ] >=  adt.cutoff.list.high[[f]] )
- 
+    
+    overlap.pos <- function(x, y ) length(intersect(x, y))
     positive.nn.cover <- apply(X = reduction.nn $nn.idx[ positive.idx ,-1, drop= F], 
                                MARGIN = 1 ,
                                y = positive.idx, 
                                FUN =  overlap.pos)
-    count.overlap.list[[f]] <- sum(positive.nn.cover > overlap.cutoff)
+    count.overlap.list[[f]] <- mean(positive.nn.cover > overlap.cutoff)
   }
   
   names(count.overlap.list) <- names(adt.cutoff.list.high) <- names(adt.cutoff.list.low) <- feature.adt.set
