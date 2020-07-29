@@ -2052,6 +2052,7 @@ PrepDR <- function(
   return(data.use)
 }
 
+
 #' @param object Input values for LDA (numeric), with observations as rows
 #' @param labels Observation labels for LDA
 #' @param assay Name of Assay LDA is being run on
