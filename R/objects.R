@@ -8017,6 +8017,9 @@ Top <- function(data, num, balanced) {
             nr, "). Setting to ", nr , ".", call. = FALSE)
     num <- nr
   }
+  if (num == 1) {
+    balanced <- FALSE
+  }
   top <- if (balanced) {
     num <- round(x = num / 2)
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
