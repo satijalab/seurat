@@ -8017,8 +8017,11 @@ Top <- function(data, num, balanced) {
             nr, "). Setting to ", nr , ".", call. = FALSE)
     num <- nr
   }
+  if (num == 1) {
+    balanced <- FALSE
+  }
   top <- if (balanced) {
-    num <- ceiling(x = num / 2)
+    num <- round(x = num / 2)
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
