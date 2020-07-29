@@ -1433,6 +1433,7 @@ RunUMAP.Graph <- function(
 #' @param graph Name of graph on which to run UMAP
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
+#' @param nn.name Name of knn output on which to run UMAP
 #' @param slot The slot used to pull data for when using \code{features}. data slot is by default. 
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
@@ -1488,6 +1489,7 @@ RunUMAP.Graph <- function(
 #' @param reduction.name Name to store dimensional reduction under in the Seurat object
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. UMAP by default
+#' @param return.model whether UMAP will return the uwot modal
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed
 #' @param verbose Controls verbosity
