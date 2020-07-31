@@ -158,7 +158,9 @@ DEenrichRPlot <- function(
     stop("please set max.genes")
   }
   assay <- assay %||% DefaultAssay(object = object)
+  
   DefaultAssay(object = object) <- assay
+  
   all.markers <- FindMarkers(
     object = object, 
     ident.1 = ident.1,
@@ -170,6 +172,13 @@ DEenrichRPlot <- function(
   )
   
   pos.markers <- all.markers[all.markers[, 2] > logfc.threshold & all.markers[, 1] < p.val.cutoff, , drop = FALSE]
+  
+  if(nrow(pos.markers) == 0){
+    message("No positive markers pass the logfc.thershold")
+    pos.er <- c()
+  }
+  
+  else{
   pos.markers.list <- rownames(x = pos.markers)[1:min(max.genes, nrow(x = pos.markers))]
   pos.er <- enrichR::enrichr(genes = pos.markers.list, databases = enrich.database)
   pos.er <- do.call(what = cbind, args = pos.er)
@@ -178,6 +187,7 @@ DEenrichRPlot <- function(
   pos.er <- pos.er[1:num.pathway, ]
   pos.er$term <- factor(x = pos.er$term, levels = pos.er$term[order(pos.er$log10pval)])
   gene.list <- list(pos = pos.er)
+  }
   
   if (isTRUE(x = balanced)) {
     neg.markers <- all.markers[all.markers[, 2] < logfc.threshold & all.markers[, 1] < p.val.cutoff, , drop = FALSE]
@@ -189,12 +199,19 @@ DEenrichRPlot <- function(
     neg.er <- neg.er[1:num.pathway, ]
     neg.er$term <- factor(x = neg.er$term, levels = neg.er$term[order(neg.er$log10pval)])
     
-      if(length(neg.er$term) == 0){
-        gene.list <- list(pos = pos.er)
+      if(isTRUE(length(neg.er$term) == 0) & isTRUE(length(pos.er == 0))){
+        stop("No positive or negative marker genes identified")
       }
   
       else{
-        gene.list <- list(pos = pos.er, neg = neg.er)
+        if(isTRUE(length(neg.er$term) == 0)){
+          
+        gene.list <- list(pos = pos.er)
+        
+        }
+        else{
+          gene.list <- list(pos = pos.er, neg = neg.er)
+        }
       }
     
   }
@@ -202,6 +219,35 @@ DEenrichRPlot <- function(
     return(gene.list)
   }
   
+  if(nrow(pos.markers) == 0){
+    message("No positive markers to plot")
+
+    if (isTRUE(x = balanced)) {
+      
+      p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
+        geom_bar(stat = "identity", fill = "indianred2") +
+        coord_flip() + xlab("Pathway") +
+        scale_fill_manual(values = cols, drop = FALSE) +
+        ylab("-log10(pval)") +
+        ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
+        theme_classic() +
+        geom_text(aes(label = term,y = 0),
+                  size = 5,
+                  color = "black",
+                  position = position_dodge(1), 
+                  hjust = 0)+
+        theme(axis.title.y= element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank())
+      p <- p2
+      
+    }
+    else{
+      stop("Nothing to plot")
+    }
+  }
+  
+  else {
   p <- ggplot(data = pos.er, aes_string(x = "term", y = "log10pval")) +
     geom_bar(stat = "identity", fill = "dodgerblue") +
     coord_flip() + xlab("Pathway") +
@@ -217,7 +263,6 @@ DEenrichRPlot <- function(
     theme(axis.title.y= element_blank(),
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank())
-    
   if (isTRUE(x = balanced)) {
     
     p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
@@ -238,6 +283,8 @@ DEenrichRPlot <- function(
     p <- p+p2
     
   }
+  }
+  
   return(p)
 }
 
@@ -718,6 +765,7 @@ MixscapeHeatmap <- function(
   test.use='wilcox',
   max.cells.group = NULL,
   order.by.prob = T,
+  group.by = NULL,
   ...
 ) 
 { 
@@ -755,23 +803,38 @@ MixscapeHeatmap <- function(
       }
     }
       if(is.null(max.cells.group)){
-        sub <- subset(object, idents = c(ident.1,ident.2))
+        if(is.null(group.by)){
+        sub2 <- subset(object, idents = c(ident.1,ident.2))
+        }
+        else{
+          sub2 <- subset(object, idents = c(ident.1,ident.2))
+          Idents(sub2) <- group.by
+        }
       }
       
       else{
-        sub <- subset(object, idents = c(ident.1, ident.2), downsample = max.cells.group)
+        if (is.null(group.by)){
+          sub2 <- subset(object, idents = c(ident.1, ident.2), downsample = max.cells.group)
+          
+        }
+        else{
+          sub <- subset(object, idents = c(ident.1,ident.2))
+          Idents(sub) <- group.by
+          sub2 <- subset(sub, downsample = max.cells.group)
+        }
+        
       }
     
-    sub <- ScaleData(sub, features = marker.list)
+    sub2 <- ScaleData(sub2, features = marker.list)
     
     if(isTRUE(order.by.prob)){
-      p_ko <- sub$p_ko[, drop = FALSE]
+      p_ko <- sub2$p_ko[, drop = FALSE]
       ordered.cells <- names(sort(p_ko, decreasing = T))
-      p <- DoHeatmap(sub, features = marker.list, label = T, cells = ordered.cells ,...)
+      p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells ,...)
     }
     
     else{
-    p <- DoHeatmap(sub, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
+    p <- DoHeatmap(sub2, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
     }
     return(p)
   }
