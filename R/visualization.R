@@ -6299,7 +6299,7 @@ MultiExIPlot <- function(
     }
     gtable_stack <- function(g1, g2){
       g1$grobs <- c(g1$grobs, g2$grobs)
-      g1$layout <- transform(g1$layout, z= z-max(z), name="g2")
+      g1$layout <- transform(g1$layout, z = z-max(z), name = "g2")
       g1$layout <- rbind(g1$layout, g2$layout)
       return(g1)
     }

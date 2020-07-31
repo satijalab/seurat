@@ -17,6 +17,7 @@ RidgePlot(
   log = FALSE,
   ncol = NULL,
   slot = "data",
+  stack = FALSE,
   combine = TRUE
 )
 }
@@ -46,6 +47,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 \item{ncol}{Number of columns if multiple plots are displayed}
 
 \item{slot}{Use non-normalized counts data for plotting}
+
+\item{stack}{Horizontally stack plots for each feature}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}

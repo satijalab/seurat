@@ -28,6 +28,7 @@ Imports:
     future,
     future.apply,
     ggplot2 (>= 3.0.0),
+    ggplotify,
     ggrepel,
     ggridges,
     graphics,

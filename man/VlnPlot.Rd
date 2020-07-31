@@ -21,6 +21,7 @@ VlnPlot(
   ncol = NULL,
   slot = "data",
   split.plot = FALSE,
+  stack = FALSE,
   combine = TRUE
 )
 }
@@ -59,6 +60,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{split.plot}{plot each group of the split violin plots by multiple or
 single violin shapes.}
+
+\item{stack}{Horizontally stack plots for each feature}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
