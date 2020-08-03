@@ -4,6 +4,8 @@
 \alias{FindMarkers}
 \alias{FindMarkersNode}
 \alias{FindMarkers.default}
+\alias{FindMarkers.Assay}
+\alias{FindMarkers.DimReduc}
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
 \usage{
@@ -16,7 +18,47 @@ FindMarkers(object, ...)
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  reduction = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  ...
+)
+
+\method{FindMarkers}{Assay}(
+  object,
+  slot = "data",
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  ...
+)
+
+\method{FindMarkers}{DimReduc}(
+  object,
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
@@ -74,8 +116,6 @@ expressing}
 \item{cells.2}{Vector of cell names belonging to group 2}
 
 \item{features}{Genes to test. Default is to use all genes}
-
-\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -162,6 +202,8 @@ use all other cells for comparison; if an object of class \code{phylo} or
 \item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
 
 \item{assay}{Assay to use in differential expression testing}
+
+\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 }
 \value{
 data.frame with a ranked list of putative markers as rows, and associated
