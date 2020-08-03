@@ -85,10 +85,6 @@ IntegrateDataC <- function(integration_matrix, weights, expression_cells2) {
     .Call('_Seurat_IntegrateDataC', PACKAGE = 'Seurat', integration_matrix, weights, expression_cells2)
 }
 
-SNNAnchor <- function(k_matrix, anchor_only) {
-    .Call('_Seurat_SNNAnchor', PACKAGE = 'Seurat', k_matrix, anchor_only)
-}
-
 ComputeSNN <- function(nn_ranked, prune) {
     .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune)
 }

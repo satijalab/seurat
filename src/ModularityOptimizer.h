@@ -153,7 +153,7 @@ public:
 };
 
 
-std::shared_ptr<Network> matrixToNetwork(IVector& node1, IVector& node2, DVector& edgeWeight1, int modularityFunction);
+std::shared_ptr<Network> matrixToNetwork(IVector& node1, IVector& node2, DVector& edgeWeight1, int modularityFunction, int nNodes);
 std::shared_ptr<Network> readInputFile(std::string fname, int modularityFunction);
 std::vector<std::string> split(const std::string& s, char delimiter);
 };

@@ -4,18 +4,19 @@
 \alias{IsGlobal}
 \alias{IsGlobal.default}
 \alias{IsGlobal.DimReduc}
+\alias{IsGlobal.SpatialImage}
 \title{Is an object global/persistent?}
 \usage{
-IsGlobal(object, ...)
+IsGlobal(object)
 
-\method{IsGlobal}{default}(object, ...)
+\method{IsGlobal}{default}(object)
 
-\method{IsGlobal}{DimReduc}(object, ...)
+\method{IsGlobal}{DimReduc}(object)
+
+\method{IsGlobal}{SpatialImage}(object)
 }
 \arguments{
 \item{object}{An object}
-
-\item{...}{Arguments passed to other methods}
 }
 \value{
 \code{TRUE} if the object is global/persistent otherwise \code{FALSE}
