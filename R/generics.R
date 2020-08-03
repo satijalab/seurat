@@ -924,21 +924,6 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
-#' Run Linear Discriminant Analysis on gene expression
-#'
-#' Run fastica algorithm from the ica package for LDA dimensionality reduction.
-#' For details about stored LDA calculation parameters, see
-#' \code{PrintICAParams}.
-#'
-#' @param object Seurat object
-#'
-#' @rdname RunLDA
-#' @export RunLDA
-#'
-RunLDA <- function(object, ...) {
-  UseMethod(generic = "RunLDA", object = object)
-}
-
 #' Run Latent Semantic Indexing on binary count matrix
 #'
 #' For details about stored LSI calculation parameters, see
