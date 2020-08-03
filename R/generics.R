@@ -411,6 +411,7 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #'
 FoldChange <- function(object, ...) {
   UseMethod(generic = 'FoldChange', object = object)
+}
 
 #' Get an Assay object from a given Seurat object.
 #'
