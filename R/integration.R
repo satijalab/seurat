@@ -3693,7 +3693,7 @@ FindJointTransferAnchor <- function(reference,
                        l2.norm = FALSE,  
                        nearest.dist = reference.weight$params$nearest.dist,
                        sigma.list = reference.weight$params$sigma.list )
-  
+
   nnQQ <- MultiModalNN(object = query, 
                        query = query, 
                        k.nn = k.nn, 
