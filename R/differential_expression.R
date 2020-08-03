@@ -449,7 +449,7 @@ FindConservedMarkers <- function(
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #'
-#' @importFrom Matrix rowSums rowMeans
+#' @importFrom Matrix rowMeans
 #' @importFrom stats p.adjust
 #'
 #' @rdname FindMarkers
@@ -463,7 +463,6 @@ FindMarkers.default <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
-  reduction = NULL,
   logfc.threshold = 0.25,
   test.use = 'wilcox',
   min.pct = 0.1,
@@ -478,6 +477,12 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
+  ValidateCellGroups(
+    object = object,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    min.cells.group = min.cells.group
+  )
   features <- features %||% rownames(x = object)
   # reset parameters so no feature filtering is performed
   if (test.use %in% DEmethods_noprefilter()) {
@@ -485,69 +490,52 @@ FindMarkers.default <- function(
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
-  ValidateCellGroups(
-    object = object,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    min.cells.group = min.cells.group
-  )
-  # feature selection (based on percentages)
   data <- switch(
     EXPR = slot,
     'scale.data' = counts,
     object
   )
-  if (is.null(x = reduction)) {
-    thresh.min <- 0
-    pct.1 <- round(
-      x = rowSums(x = data[features, cells.1, drop = FALSE] > thresh.min) /
-        length(x = cells.1),
-      digits = 3
-    )
-    pct.2 <- round(
-      x = rowSums(x = data[features, cells.2, drop = FALSE] > thresh.min) /
-        length(x = cells.2),
-      digits = 3
-    )
-    data.alpha <- cbind(pct.1, pct.2)
-    colnames(x = data.alpha) <- c("pct.1", "pct.2")
-    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
-    names(x = alpha.min) <- rownames(x = data.alpha)
-    features <- names(x = which(x = alpha.min > min.pct))
-    if (length(x = features) == 0) {
-      stop("No features pass min.pct threshold")
+  mean.fxn <- switch(
+    EXPR = slot,
+    'data' = function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
+    },
+    'scale.data' = rowMeans,
+    function(x) {
+      return(log(x = rowMeans(x = x) + pseudocount.use))
     }
-    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-    features <- names(
-      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
-    )
-    if (length(x = features) == 0) {
-      stop("No features pass min.diff.pct threshold")
-    }
-  } else {
-    data.alpha <- data.frame(
-      pct.1 = rep(x = NA, times = length(x = features)),
-      pct.2 = rep(x = NA, times = length(x = features))
-    )
+  )
+  diff.col <- ifelse(
+    test = slot == "scale.data",
+    yes = "avg_diff",
+    no = "avg_logFC"
+  )
+  fc.results <- FoldChange(
+    object = data,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    mean.fxn = mean.fxn,
+    fc.name = diff.col
+  )
+  # feature selection (based on percentages)
+  alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
+  names(x = alpha.min) <- rownames(x = fc.results)
+  features <- names(x = which(x = alpha.min > min.pct))
+  if (length(x = features) == 0) {
+    stop("No features pass min.pct threshold")
   }
-  # feature selection (based on average difference)
-  mean.fxn <- if (is.null(x = reduction) && slot != "scale.data") {
-    switch(
-      EXPR = slot,
-      'data' = function(x) {
-        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
-      },
-      function(x) {
-        return(log(x = rowMeans(x = x) + pseudocount.use))
-      }
-    )
-  } else {
-    rowMeans
+  alpha.diff <- alpha.min - pmin(fc.results$pct.1, fc.results$pct.2)
+  features <- names(
+    x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+  )
+  if (length(x = features) == 0) {
+    stop("No features pass min.diff.pct threshold")
   }
-  data.1 <- mean.fxn(data[features, cells.1, drop = FALSE])
-  data.2 <- mean.fxn(data[features, cells.2, drop = FALSE])
-  total.diff <- (data.1 - data.2)
-  if (is.null(x = reduction) && slot != "scale.data") {
+  # feature selection (based on logFC)
+  if (slot != "scale.data") {
+    total.diff <- fc.results$avg_logFC
+    names(total.diff) <- rownames(fc.results)
     features.diff <- if (only.pos) {
       names(x = which(x = total.diff > logfc.threshold))
     } else {
@@ -561,7 +549,6 @@ FindMarkers.default <- function(
   # subsample cell groups if they are too large
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
-    # Should be cells.1 and cells.2?
     if (length(x = cells.1) > max.cells.per.ident) {
       cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
     }
@@ -572,99 +559,18 @@ FindMarkers.default <- function(
       latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
     }
   }
-  # perform DE
-  if (!(test.use %in% DEmethods_latent()) && !is.null(x = latent.vars)) {
-    warning(
-      "'latent.vars' is only used for the following tests: ",
-      paste(DEmethods_latent(), collapse=", "),
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
-  if (!test.use %in% DEmethods_checkdots()) {
-    CheckDots(...)
-  }
-  de.results <- switch(
-    EXPR = test.use,
-    'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
-    ),
-    'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
-    'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      min.cells = min.cells.feature,
-      latent.vars = latent.vars,
-      test.use = test.use,
-      verbose = verbose
-    ),
-    'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose,
-      ...
-    ),
-    "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose,
-      ...
-    ),
-    "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      latent.vars = latent.vars,
-      verbose = verbose
-    ),
-    stop("Unknown test: ", test.use)
+  de.results <- PerformDE(
+    object = object,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    test.use = test.use,
+    verbose = verbose,
+    min.cells.feature = min.cells.feature,
+    latent.vars = latent.vars,
+    ...
   )
-  if (is.null(x = reduction)) {
-    diff.col <- ifelse(
-      test = slot == "scale.data",
-      yes = "avg_diff",
-      no = "avg_logFC"
-    )
-    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
-    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-  } else {
-    diff.col <- "avg_diff"
-    de.results[, diff.col] <- total.diff[rownames(x = de.results)]
-  }
+  de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
   if (only.pos) {
     de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
   }
@@ -716,7 +622,6 @@ FindMarkers.Assay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
-  
   de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
@@ -724,7 +629,6 @@ FindMarkers.Assay <- function(
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    reduction = NULL,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
@@ -770,29 +674,64 @@ FindMarkers.DimReduc <- function(
     stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
          paste(DEmethods_counts(), collapse=", "))
   }
-  
-  data.use <- t(x = Embeddings(object = object))
-  
-  de.results <- FindMarkers(
-    object = data.use,
+  data <- t(x = Embeddings(object = object))
+  ValidateCellGroups(
+    object = data,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    min.cells.group = min.cells.group
+  )
+  features <- features %||% rownames(x = data)
+  # reset parameters so no feature filtering is performed
+  if (test.use %in% DEmethods_noprefilter()) {
+    features <- rownames(x = data)
+    min.diff.pct <- -Inf
+    logfc.threshold <- 0
+  }
+  fc.results <- FoldChange(
+    object = object,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features  
+  )
+  # subsample cell groups if they are too large
+  if (max.cells.per.ident < Inf) {
+    set.seed(seed = random.seed)
+    if (length(x = cells.1) > max.cells.per.ident) {
+      cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
+    }
+    if (length(x = cells.2) > max.cells.per.ident) {
+      cells.2 <- sample(x = cells.2, size = max.cells.per.ident)
+    }
+    if (!is.null(x = latent.vars)) {
+      latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
+    }
+  }
+  de.results <- PerformDE(
+    object = data,
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
-    reduction = TRUE,
-    logfc.threshold = logfc.threshold,
     test.use = test.use,
-    min.pct = min.pct,
-    min.diff.pct = min.diff.pct,
     verbose = verbose,
-    only.pos = only.pos,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    latent.vars = latent.vars,
     min.cells.feature = min.cells.feature,
-    min.cells.group = min.cells.group,
-    pseudocount.use = pseudocount.use,
+    latent.vars = latent.vars,
     ...
   )
+  de.results <- cbind(de.results, fc.results)
+  if (only.pos) {
+    de.results <- de.results[de.results$avg_diff > 0, , drop = FALSE]
+  }
+  if (test.use %in% DEmethods_nocorrect()) {
+    de.results <- de.results[order(-de.results$power, -de.results$avg_diff), ]
+  } else {
+    de.results <- de.results[order(de.results$p_val, -de.results$avg_diff), ]
+    de.results$p_val_adj = p.adjust(
+      p = de.results$p_val,
+      method = "bonferroni",
+      n = nrow(x = object)
+    )
+  }
   return(de.results)
 }
 
@@ -808,8 +747,6 @@ FindMarkers.DimReduc <- function(
 #' @param assay Assay to use in differential expression testing
 #' @param slot Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 #' \code{slot} will be set to "counts"
-#'
-#' @importFrom methods is
 #'
 #' @rdname FindMarkers
 #' @export
@@ -857,60 +794,25 @@ FindMarkers.Seurat <- function(
     data.use <- object[[reduction]]
     cellnames.use <- rownames(data.use)
   }
-  # convert idents to cells
-  if (is.null(x = ident.1)) {
-    stop("Please provide ident.1")
-  } else if ((length(x = ident.1) == 1 && ident.1[1] == 'clustertree') || is(object = ident.1, class2 = 'phylo')) {
-    if (is.null(x = ident.2)) {
-      stop("Please pass a node to 'ident.2' to run FindMarkers on a tree")
-    }
-    tree <- if (is(object = ident.1, class2 = 'phylo')) {
-      ident.1
-    } else {
-      Tool(object = object, slot = 'BuildClusterTree')
-    }
-    if (is.null(x = tree)) {
-      stop("Please run 'BuildClusterTree' or pass an object of class 'phylo' as 'ident.1'")
-    }
-    ident.1 <- tree$tip.label[GetLeftDescendants(tree = tree, node = ident.2)]
-    ident.2 <- tree$tip.label[GetRightDescendants(tree = tree, node = ident.2)]
-  }
-  if (length(x = as.vector(x = ident.1)) > 1 &&
-      any(as.character(x = ident.1) %in% cellnames.use)) {
-    bad.cells <- cellnames.use[which(x = !as.character(x = ident.1) %in% cellnames.use)]
-    if (length(x = bad.cells) > 0) {
-      stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
-    }
-  } else {
-    ident.1 <- WhichCells(object = object, idents = ident.1)
-  }
-  # if NULL for ident.2, use all other cells
-  if (length(x = as.vector(x = ident.2)) > 1 &&
-      any(as.character(x = ident.2) %in% cellnames.use)) {
-    bad.cells <- cellnames.use[which(!as.character(x = ident.2) %in% cellnames.use)]
-    if (length(x = bad.cells) > 0) {
-      stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
-    }
-  } else {
-    if (is.null(x = ident.2)) {
-      ident.2 <- setdiff(x = cellnames.use, y = ident.1)
-    } else {
-      ident.2 <- WhichCells(object = object, idents = ident.2)
-    }
-  }
+  cells <- IdentsToCells(
+    object = object,
+    ident.1 = ident.1,
+    ident.2 = ident.2,
+    cellnames.use = cellnames.use
+  )
   # fetch latent.vars
   if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
       object = object,
       vars = latent.vars,
-      cells = c(ident.1, ident.2)
+      cells = c(cells$cells.1, cells$cells.2)
     )
   }
   de.results <- FindMarkers(
     object = data.use,
     slot = slot,
-    cells.1 = ident.1,
-    cells.2 = ident.2,
+    cells.1 = cells$cells.1,
+    cells.2 = cells$cells.2,
     features = features,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
@@ -927,6 +829,184 @@ FindMarkers.Seurat <- function(
     ...
   )
   return(de.results)
+}
+
+#' @param object An object
+#' @param cells.1 Vector of cell names belonging to group 1
+#' @param cells.2 Vector of cell names belonging to group 2
+#' @param features Genes to calculate fold change for; default is to use all genes
+#' @param mean.fxn Function to use for fold change or average difference calculation
+#' @param fc.name Name of fold change column in output data.frame
+#' 
+#' @importFrom Matrix rowSums
+#' 
+#' @rdname FoldChange
+#' @export
+#' @method FoldChange default
+#'
+FoldChange.default <- function(
+  object,
+  cells.1,
+  cells.2,
+  features,
+  mean.fxn,
+  fc.name = "avg_logFC"
+) {
+  features <- features %||% rownames(x = object)
+  # Calculate percent expressed
+  thresh.min <- 0
+  pct.1 <- round(
+    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+      length(x = cells.1),
+    digits = 3
+  )
+  pct.2 <- round(
+    x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
+      length(x = cells.2),
+    digits = 3
+  )
+  # Calculate fold change
+  data.1 <- mean.fxn(object[features, cells.1, drop = FALSE])
+  data.2 <- mean.fxn(object[features, cells.2, drop = FALSE])
+  fc <- (data.1 - data.2)
+  fc.results <- as.data.frame(cbind(fc, pct.1, pct.2))
+  colnames(fc.results) <- c(fc.name, "pct.1", "pct.2")
+  return(fc.results)
+}
+
+
+#' 
+#' @importFrom Matrix rowMeans
+#' 
+#' @rdname FoldChange
+#' @export
+#' @method FoldChange Assay
+#'
+FoldChange.Assay <- function(
+  object,
+  cells.1,
+  cells.2,
+  features,
+  slot,
+  pseudocount.use = 1
+) {
+  data <- GetAssayData(object = object, slot = slot)
+  mean.fxn <- switch(
+    EXPR = slot,
+    'data' = function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
+    },
+    'scale.data' = rowMeans,
+    function(x) {
+      return(log(x = rowMeans(x = x) + pseudocount.use))
+    }
+  )
+  fc.name <- ifelse(
+    test = slot == "scale.data",
+    yes = "avg_diff",
+    no = "avg_logFC"
+  )
+  FoldChange(
+    object = data,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name
+  )
+}
+
+#'
+#' @importFrom Matrix rowMeans
+#' 
+#' @rdname FoldChange
+#' @export
+#' @method FoldChange DimReduc
+#' 
+FoldChange.DimReduc <- function(
+  object,
+  cells.1,
+  cells.2,
+  features, 
+  slot = NULL,
+  pseudocount.use = NULL,
+  fc.name = "avg_diff"
+) {
+  data <- t(x = Embeddings(object = object))
+  features <- features %||% rownames(x = data)
+  # Calculate avg difference
+  data.1 <- rowMeans(data[features, cells.1, drop = FALSE])
+  data.2 <- rowMeans(data[features, cells.2, drop = FALSE])
+  fc <- (data.1 - data.2)
+  fc.results <- data.frame(fc)
+  colnames(fc.results) <- fc.name
+  return(fc.results)
+}
+
+#'
+#' @param ident.1 Identity class to calculate fold change for; pass an object of class
+#' \code{phylo} or 'clustertree' to calculate fold change for a node in a cluster tree;
+#' passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run
+#' @param ident.2 A second identity class for comparison; if \code{NULL},
+#' use all other cells for comparison; if an object of class \code{phylo} or
+#' 'clustertree' is passed to \code{ident.1}, must pass a node to calculate fold change for
+#' @param reduction Reduction to use - will calculate average difference on cell embeddings
+#' @param group.by Regroup cells into a different identity class prior to calculating fold change (see example)
+#' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
+#' @param assay Assay to use in fold change calculation
+#' @param slot Slot to pull data from
+#' @param pseudocount.use Pseudocount to add to averaged expression values when
+#' calculating logFC. 1 by default.
+#' 
+#' @rdname FoldChange
+#' @export
+#' @method FoldChange Seurat
+#' 
+FoldChange.Seurat <- function(
+  object,
+  ident.1 = NULL,
+  ident.2 = NULL,
+  group.by = NULL,
+  subset.ident = NULL,
+  assay = NULL,
+  slot = 'data',
+  reduction = NULL,
+  features = NULL,
+  pseudocount.use = 1
+) {
+  if (!is.null(x = group.by)) {
+    if (!is.null(x = subset.ident)) {
+      object <- subset(x = object, idents = subset.ident)
+    }
+    Idents(object = object) <- group.by
+  }
+  if (!is.null(x = assay) && !is.null(x = reduction)) {
+    stop("Please only specify either assay or reduction.")
+  }
+  # select which data to use
+  if (is.null(x = reduction)) {
+    assay <- assay %||% DefaultAssay(object = object)
+    data.use <- object[[assay]]
+    cellnames.use <-  colnames(x = data.use)
+  } else {
+    data.use <- object[[reduction]]
+    cellnames.use <- rownames(data.use)
+  }
+  cells <- IdentsToCells(
+    object = object,
+    ident.1 = ident.1,
+    ident.2 = ident.2,
+    cellnames.use = cellnames.use
+  )
+  fc.results <- FoldChange(
+    object = data.use,
+    cells.1 = cells$cells.1,
+    cells.2 = cells$cells.2,
+    features = features,
+    slot = slot,
+    pseudocount.use = pseudocount.use
+  )
+  return(fc.results)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1313,6 +1393,61 @@ GLMDETest <- function(
   return(to.return)
 }
 
+# Helper function for FindMarkers.Seurat and FoldChange.Seurat
+# Convert idents to cells
+#
+#' @importFrom methods is
+#
+IdentsToCells <- function(
+  object,
+  ident.1,
+  ident.2,
+  cellnames.use
+) {
+  # 
+  if (is.null(x = ident.1)) {
+    stop("Please provide ident.1")
+  } else if ((length(x = ident.1) == 1 && ident.1[1] == 'clustertree') || is(object = ident.1, class2 = 'phylo')) {
+    if (is.null(x = ident.2)) {
+      stop("Please pass a node to 'ident.2' to run FindMarkers on a tree")
+    }
+    tree <- if (is(object = ident.1, class2 = 'phylo')) {
+      ident.1
+    } else {
+      Tool(object = object, slot = 'BuildClusterTree')
+    }
+    if (is.null(x = tree)) {
+      stop("Please run 'BuildClusterTree' or pass an object of class 'phylo' as 'ident.1'")
+    }
+    ident.1 <- tree$tip.label[GetLeftDescendants(tree = tree, node = ident.2)]
+    ident.2 <- tree$tip.label[GetRightDescendants(tree = tree, node = ident.2)]
+  }
+  if (length(x = as.vector(x = ident.1)) > 1 &&
+      any(as.character(x = ident.1) %in% cellnames.use)) {
+    bad.cells <- cellnames.use[which(x = !as.character(x = ident.1) %in% cellnames.use)]
+    if (length(x = bad.cells) > 0) {
+      stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
+    }
+  } else {
+    ident.1 <- WhichCells(object = object, idents = ident.1)
+  }
+  # if NULL for ident.2, use all other cells
+  if (length(x = as.vector(x = ident.2)) > 1 &&
+      any(as.character(x = ident.2) %in% cellnames.use)) {
+    bad.cells <- cellnames.use[which(!as.character(x = ident.2) %in% cellnames.use)]
+    if (length(x = bad.cells) > 0) {
+      stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
+    }
+  } else {
+    if (is.null(x = ident.2)) {
+      ident.2 <- setdiff(x = cellnames.use, y = ident.1)
+    } else {
+      ident.2 <- WhichCells(object = object, idents = ident.2)
+    }
+  }
+  return(list(cells.1 = ident.1, cells.2 = ident.2))
+}
+
 # Perform differential expression testing using a logistic regression framework
 #
 # Constructs a logistic regression model predicting group membership based on a
@@ -1556,6 +1691,100 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
     'freq2'
   )
   return(ret)
+}
+
+PerformDE <- function(
+  object,
+  cells.1,
+  cells.2,
+  features,
+  test.use,
+  verbose,
+  min.cells.feature,
+  latent.vars,
+  ...
+) {
+  if (!(test.use %in% DEmethods_latent()) && !is.null(x = latent.vars)) {
+    warning(
+      "'latent.vars' is only used for the following tests: ",
+      paste(DEmethods_latent(), collapse=", "),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  if (!test.use %in% DEmethods_checkdots()) {
+    CheckDots(...)
+  }
+  de.results <- switch(
+    EXPR = test.use,
+    'wilcox' = WilcoxDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose,
+      ...
+    ),
+    'bimod' = DiffExpTest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    'roc' = MarkerTest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    't' = DiffTTest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    'negbinom' = GLMDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      min.cells = min.cells.feature,
+      latent.vars = latent.vars,
+      test.use = test.use,
+      verbose = verbose
+    ),
+    'poisson' = GLMDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      min.cells = min.cells.feature,
+      latent.vars = latent.vars,
+      test.use = test.use,
+      verbose = verbose
+    ),
+    'MAST' = MASTDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      latent.vars = latent.vars,
+      verbose = verbose,
+      ...
+    ),
+    "DESeq2" = DESeq2DETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose,
+      ...
+    ),
+    "LR" = LRDETest(
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      latent.vars = latent.vars,
+      verbose = verbose
+    ),
+    stop("Unknown test: ", test.use)
+  )
+  return(de.results)
 }
 
 # given a UMI count matrix, estimate NB theta parameter for each gene

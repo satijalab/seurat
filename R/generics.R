@@ -381,6 +381,20 @@ FindVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
+#' FoldChange
+#' 
+#' Calculate log fold change and percent expressed of features for identity classes
+#' 
+#' If the slot is scale.data or a reduction is specified, average difference
+#' is returned instead of log fold change
+#' 
+#' @rdname FoldChange
+#' @export FoldChange
+#'
+FoldChange <- function(object, ...) {
+  UseMethod(generic = 'FoldChange', object = object)
+}
+
 #' Get an Assay object from a given Seurat object.
 #'
 #' @param object An object
