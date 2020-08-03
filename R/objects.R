@@ -1460,10 +1460,15 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   if (which.frame < 1) {
     stop("'LogSeuratCommand' cannot be called at the top level", call. = FALSE)
   }
-  command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
-  command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
-  call.string <- command.name
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  if (as.character(x = sys.calls()[[1]])[1] == "do.call") {
+    call.string <- deparse(expr = sys.calls()[[1]])
+    command.name <- as.character(x = sys.calls()[[1]])[2]
+  } else {
+    command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
+    command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
+    call.string <- command.name
+    command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  }
   #capture function arguments
   argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
   argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
@@ -8016,6 +8021,9 @@ Top <- function(data, num, balanced) {
     warning("Requested number is larger than the number of available items (", 
             nr, "). Setting to ", nr , ".", call. = FALSE)
     num <- nr
+  }
+  if (num == 1) {
+    balanced <- FALSE
   }
   top <- if (balanced) {
     num <- round(x = num / 2)
