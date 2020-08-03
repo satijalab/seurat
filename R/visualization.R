@@ -7126,3 +7126,81 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
   colnames(x = data) <- df.names
   return(data)
 }
+
+
+
+#' Geneate neighbors dimplot
+#' @param object
+#' @nn.idx the neighbor index of all cells
+#' @param ... Additional parameters passed to \code{DimPlot}
+#' 
+#' @export
+#' 
+NNPlot <- function(object,
+                   reduction, 
+                   nn.idx, 
+                   cells,
+                   dims = 1:2, 
+                   label = FALSE,
+                   label.size = 4,
+                   repel = TRUE,
+                   highlight.size = 2,
+                   pt.size = 1,
+                   highlight.col = c("#377eb8", "#e41a1c"),
+                   other.col = "#bdbdbd",
+                   order = c("self", "neighbors", "other"), 
+                   show.all.cells = TRUE, 
+                   highlight = TRUE,
+                   group.by = NULL, 
+                   cols = NULL,
+                   ...){
+  if (length(cells) > 1) {
+    neighbor.cells <- apply(nn.idx[cells , -1], 2, function(x) Cells(object)[x])
+  } else {
+    neighbor.cells <- Cells(object)[nn.idx[cells , -1]]
+  }
+  neighbor.cells <- as.vector(neighbor.cells)
+  neighbor.cells <- neighbor.cells[!is.na(neighbor.cells)]
+  object$nn.col <- "other"
+  object@meta.data[neighbor.cells,"nn.col" ] <- "neighbors" 
+  object@meta.data[cells,"nn.col" ] <- "self"
+  
+  object$nn.col <- factor(object$nn.col , levels = c("self", "neighbors", "other"))
+  
+  if ( ! show.all.cells){
+    object <- subset(object, 
+                     cells = WhichCells(object,
+                                        expression = nn.col != "other"))
+  } 
+  
+  highlight.info <- SetHighlight(cells.highlight = c(cells, neighbor.cells),
+                                 cells.all = Cells(object),
+                                 sizes.highlight = highlight.size,
+                                 pt.size = pt.size, 
+                                 cols.highlight = "red")
+  
+  if (highlight){
+    NN.plot <- DimPlot(object,
+                       reduction = reduction, 
+                       dims = dims , 
+                       group.by = "nn.col", 
+                       cols = c(other.col, rev(highlight.col)), 
+                       label = label, 
+                       order =  order, 
+                       pt.size = highlight.info$size,
+                       label.size = label.size, 
+                       repel = repel )
+  } else{
+    NN.plot <- DimPlot(object,
+                       reduction = reduction, 
+                       dims = dims , 
+                       split.by  = "nn.col", 
+                       group.by = group.by, 
+                       cols = cols, 
+                       label = label, 
+                       pt.size = highlight.info$size,
+                       label.size = label.size, 
+                       repel = repel )
+  }
+  return(NN.plot)
+}
