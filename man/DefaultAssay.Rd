@@ -8,7 +8,9 @@
 \alias{DefaultAssay.Graph}
 \alias{DefaultAssay.Seurat}
 \alias{DefaultAssay.SeuratCommand}
+\alias{DefaultAssay.SpatialImage}
 \alias{DefaultAssay<-.Seurat}
+\alias{DefaultAssay<-.SpatialImage}
 \title{Get and set the default assay}
 \usage{
 DefaultAssay(object, ...)
@@ -25,7 +27,11 @@ DefaultAssay(object, ...) <- value
 
 \method{DefaultAssay}{SeuratCommand}(object, ...)
 
+\method{DefaultAssay}{SpatialImage}(object, ...)
+
 \method{DefaultAssay}{Seurat}(object, ...) <- value
+
+\method{DefaultAssay}{SpatialImage}(object, ...) <- value
 }
 \arguments{
 \item{object}{An object}

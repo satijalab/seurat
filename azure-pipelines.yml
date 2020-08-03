@@ -22,5 +22,5 @@ jobs:
     steps:
       - script: |
           R CMD build .
-          R CMD check --as-cran -no-manual Seurat_*
+          R CMD check --as-cran --no-manual Seurat_*
         displayName: 'R CMD Check'

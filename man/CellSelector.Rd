@@ -3,7 +3,7 @@
 \name{CellSelector}
 \alias{CellSelector}
 \alias{FeatureLocator}
-\title{Cell selector}
+\title{Cell Selector}
 \usage{
 CellSelector(plot, object = NULL, ident = "SelectedCells", ...)
 
@@ -12,17 +12,17 @@ FeatureLocator(plot, ...)
 \arguments{
 \item{plot}{A ggplot2 plot}
 
-\item{object}{An optional Seurat object; if passes, will return an object with
-the identities of selected cells set to \code{ident}}
+\item{object}{An optional Seurat object; if passes, will return an object
+with the identities of selected cells set to \code{ident}}
 
 \item{ident}{An optional new identity class to assign the selected cells}
 
-\item{...}{Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
-recoloring based on selected cells, or using a smooth scatterplot, respectively}
+\item{...}{Ignored}
 }
 \value{
-If \code{object} is \code{NULL}, the names of the points selected; otherwise,
-a Seurat object with the selected cells identity classes set to \code{ident}
+If \code{object} is \code{NULL}, the names of the points selected;
+otherwise, a Seurat object with the selected cells identity classes set to
+\code{ident}
 }
 \description{
 Select points on a scatterplot and get information about them
@@ -39,6 +39,5 @@ pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCe
 
 }
 \seealso{
-\code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
-\code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+\code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }

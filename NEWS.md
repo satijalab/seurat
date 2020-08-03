@@ -2,13 +2,37 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
-
+## [unreleased]
 ### Added
+- Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
+
+### Changes
+- Allow setting `slot` parameter in `RunUMAP`
+- Added support for FIt-SNE v1.2+
+- Fix for `Spatial*Plot` when running with interactive=TRUE
+- Set max for number of items returned by `Top` and remove duplicate items when balanced=TRUE
+- Fix logging bug when functions were run via `do.call()`
+
+## [3.2.0] - 2020-07-15
+### Added
+- Added ability to create a Seurat object from an existing Assay object, or any
+object inheriting from the Assay class
+- Added ability to cluster idents and group features in `DotPlot`
+- Added ability to use RColorBrewer plaettes for split `DotPlots`
+- Added visualization and analysis functionality for spatially resolved datasets (Visium, Slide-seq). 
 
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
 - Fixed integer overflow error in the WilcoxDETest function
+- Minor visual fixes in `DoHeatmap` group bar + labels
+- Efficiency improvements in anchor scoring (`ScoreAnchors`)
+- Fix bug in `FindClusters()` when the last node has no edges 
+- Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
+- Fix handling of keys in `FeatureScatter()`
+- Change `CellSelector` to use Shiny gadgets instead of SDMTools
+- Mark `PointLocator` as defunct
+- Remove `SDMTools`
+- Fixed data slot return in `AverageExpression` when subsetting features and returning a Seurat object
 
 ## [3.1.5] - 2020-04-14
 ### Added

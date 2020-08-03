@@ -311,18 +311,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// SNNAnchor
-Eigen::SparseMatrix<double> SNNAnchor(Eigen::SparseMatrix<double> k_matrix, Eigen::SparseMatrix<double> anchor_only);
-RcppExport SEXP _Seurat_SNNAnchor(SEXP k_matrixSEXP, SEXP anchor_onlySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type k_matrix(k_matrixSEXP);
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type anchor_only(anchor_onlySEXP);
-    rcpp_result_gen = Rcpp::wrap(SNNAnchor(k_matrix, anchor_only));
-    return rcpp_result_gen;
-END_RCPP
-}
 // ComputeSNN
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
@@ -385,7 +373,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
-    {"_Seurat_SNNAnchor", (DL_FUNC) &_Seurat_SNNAnchor, 2},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},

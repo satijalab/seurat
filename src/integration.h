@@ -24,10 +24,6 @@ Eigen::SparseMatrix<double> IntegrateDataC(
   Eigen::SparseMatrix<double> weights,
   Eigen::SparseMatrix<double> expression_cells2
 );
-Eigen::SparseMatrix<double> SNNAnchor(
-  Eigen::SparseMatrix<double> k_matrix, 
-  Eigen::SparseMatrix<double> anchor_only
-);
 //----------------------------------------------------
 
 #endif//CORRECT_EXPRESSION
