@@ -4,6 +4,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [unreleased]
 ### Added
+- Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
 
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
