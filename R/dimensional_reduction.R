@@ -1169,15 +1169,23 @@ RunUMAP.default <- function(
     )
     options(Seurat.warn.umap.uwot = FALSE)
   }
-  if( return.model ){
-    message("UMAP will return its model")
+  if (umap.method == 'uwot-learn') {
+    warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
+    return.model <- TRUE
+  }
+  if (return.model) {
+    if (verbose) {
+      message("UMAP will return its model")
+    }
     umap.method = "uwot"
   }
-  if( is.list(object) ){
+  if (is.list(object)) {
     names(object) <- c("idx", "dist")
   }
-  if( !is.null(reduction.model) ){
-    message("Running projection UMAP")
+  if (!is.null(reduction.model)) {
+    if (verbose){
+      message("Running UMAP projection")
+    }
     umap.method <- "uwot-predict"
   }
   umap.output <- switch(
@@ -1222,7 +1230,7 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      if( is.list(object) ){
+      if (is.list(object)) {
         umap(
           X = NULL,
           nn_method = object,
@@ -1243,7 +1251,7 @@ RunUMAP.default <- function(
           verbose = verbose,
           ret_model = return.model
         )
-      } else{
+      } else {
         umap(
           X = object,
           n_threads = nbrOfWorkers(),
@@ -1291,7 +1299,7 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
-      if(is.list(object)){
+      if (is.list(object)) {
         umap_transform(X = NULL,
                        nn_method = object, 
                        model = model, 
@@ -1310,14 +1318,14 @@ RunUMAP.default <- function(
     },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
-  if ( return.model ) {
+  if (return.model) {
     umap.model <- umap.output
     umap.output <- umap.output$embedding
   }
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
   if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
-  } else if ( is.list(object) ){
+  } else if (is.list(object)) {
     rownames(x = umap.output) <- rownames(x = object$idx)
   } else {
     rownames(x = umap.output) <- rownames(x = object)
@@ -1328,7 +1336,7 @@ RunUMAP.default <- function(
     assay = assay,
     global = TRUE
   )
-  if (return.model ) {
+  if (return.model) {
     Misc(umap.reduction, slot = "model") <- umap.model
   }
   return(umap.reduction)
@@ -1489,7 +1497,7 @@ RunUMAP.Graph <- function(
 #' @param reduction.name Name to store dimensional reduction under in the Seurat object
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. UMAP by default
-#' @param return.model whether UMAP will return the uwot modal
+#' @param return.model whether UMAP will return the uwot model
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed
 #' @param verbose Controls verbosity
