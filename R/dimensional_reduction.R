@@ -1171,6 +1171,7 @@ RunUMAP.default <- function(
   }
   if (umap.method == 'uwot-learn') {
     warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
+    umap.method <- "uwot"
     return.model <- TRUE
   }
   if (return.model) {
@@ -1179,11 +1180,11 @@ RunUMAP.default <- function(
     }
     umap.method = "uwot"
   }
-  if (is.list(object)) {
-    names(object) <- c("idx", "dist")
+  if (is.list(x = object)) {
+    names(x = object) <- c("idx", "dist")
   }
-  if (!is.null(reduction.model)) {
-    if (verbose){
+  if (!is.null(x = reduction.model)) {
+    if (verbose) {
       message("Running UMAP projection")
     }
     umap.method <- "uwot-predict"
@@ -1230,7 +1231,7 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      if (is.list(object)) {
+      if (is.list(x = object)) {
         umap(
           X = NULL,
           nn_method = object,
@@ -1299,13 +1300,15 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
-      if (is.list(object)) {
-        umap_transform(X = NULL,
-                       nn_method = object, 
-                       model = model, 
-                       n_threads = nbrOfWorkers(),
-                       n_epochs = n.epochs,
-                       verbose = verbose )
+      if (is.list(x = object)) {
+        umap_transform(
+          X = NULL,
+          nn_method = object, 
+          model = model, 
+          n_threads = nbrOfWorkers(),
+          n_epochs = n.epochs,
+          verbose = verbose 
+        )
       } else {
         umap_transform(
           X = object,
@@ -1325,7 +1328,7 @@ RunUMAP.default <- function(
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
   if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
-  } else if (is.list(object)) {
+  } else if (is.list(x = object)) {
     rownames(x = umap.output) <- rownames(x = object$idx)
   } else {
     rownames(x = umap.output) <- rownames(x = object)
