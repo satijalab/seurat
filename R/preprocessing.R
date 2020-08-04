@@ -1510,6 +1510,7 @@ SCTransform <- function(
   new.assay.name = 'SCT',
   do.correct.umi = TRUE,
   ncells = NULL,
+  residual.features = NULL,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
@@ -1573,6 +1574,11 @@ SCTransform <- function(
   vst.args[['n_cells']] <- ncells
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+  if (!is.null(residual.features)) {
+    do.correct.umi <- FALSE
+    vst.args[['return_corrected_umi']] <- FALSE
+    vst.args[['residual_type']] <-  'none'
+  }
   if (conserve.memory) {
     return.only.var.genes <- TRUE
   }
@@ -1589,6 +1595,14 @@ SCTransform <- function(
     vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
   } else {
     vst.out <- do.call(what = 'vst', args = vst.args)
+    if (!is.null(residual.features)) {
+      residual.features <- intersect(rownames(vst.out$gene_attr), residual.features)
+      residual.feature.mat <- get_residuals(vst_out = vst.out, 
+                                            umi = umi[residual.features, , drop = FALSE] 
+      )
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr <- NULL
+    } 
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
       nm = rownames(x = vst.out$gene_attr)
@@ -1602,6 +1616,9 @@ SCTransform <- function(
     top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
+  }
+  if(!is.null(residual.features)){
+    top.features <- rownames(vst.out$y) 
   }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
