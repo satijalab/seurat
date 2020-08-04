@@ -2094,14 +2094,6 @@ FindAnchors <- function(
       max.features = max.features,
       projected = projected
     )
-    top.features <- sapply(X = unique(assay),
-                           FUN = function(a){
-                             assay.feature <- rownames(x = GetAssayData(object = object.pair,
-                                                                        slot = slot, 
-                                                                        assay = a))
-                             features <- intersect( assay.feature, top.features)
-                             return( features )
-                           })
     if(length(top.features) == 2){
       top.features <- intersect(top.features[[1]], top.features[[2]])
     } else{ 
