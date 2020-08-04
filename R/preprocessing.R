@@ -1469,6 +1469,7 @@ SampleUMI <- function(
 #' @param new.assay.name Name for the new assay containing the normalized data
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param ncells Number of subsampling cells used to build NB regression; default is NULL
+#' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
