@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ## [unreleased]
 ### Added
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
+- Enable named color vectors in `DoHeatmap()`
 
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
