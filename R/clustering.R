@@ -1384,7 +1384,6 @@ snn_nn <- function(snn.graph,
   } else {
     direction <- (-1)
   }
-  browser()
   edge <- summary(snn.graph)
   edge$x <- edge$x * direction
   nn.idx.snn <- edge %>% 

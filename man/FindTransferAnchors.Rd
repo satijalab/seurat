@@ -10,6 +10,7 @@ FindTransferAnchors(
   normalization.method = c("LogNormalize", "SCT"),
   reference.assay = NULL,
   query.assay = NULL,
+  reference.reduction = "pca",
   reduction = "pcaproject",
   project.query = FALSE,
   features = NULL,
@@ -20,8 +21,9 @@ FindTransferAnchors(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
+  scale = TRUE,
   approx.pca = TRUE,
   verbose = TRUE
 )
