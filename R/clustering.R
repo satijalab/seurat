@@ -62,21 +62,18 @@ AnnoyNN <- function(data,
 #' Load the Annoy neighbors and C++ index from RDS
 #' 
 #' @param file the name of the file where the nn object is saved by SaveAnnoyNN
-#' @importFrom uwot create_ann
 #' @export
 #' 
 ReadAnnoyNN <- function(file){
   file <- path.expand(file)
   nn <- readRDS(file)
   if (!is.null( nn$annoy_index.dir)) {
-    annoy_index <- create_ann(name = nn$metric, ndim =  nn$ndim)
+    annoy_index <- CreateAnn(name = nn$metric, ndim =  nn$ndim)
     annoy_index$load( nn$annoy_index.dir)
     nn$annoy_index <- annoy_index
   }
   return(nn)
 }
-
-
 
 #' Save the Annoy neighbors and C++ index to RDS
 #' 
@@ -641,6 +638,29 @@ AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE)
     }
   }
   return(list(nn.idx = idx, nn.dists = dist))
+}
+
+# Create an Annoy index
+#
+# @note Function exists because it's not exported from \pkg{uwot}
+#
+# @param name Distance metric name
+# @param ndim Number of dimensions
+#
+# @return An nn index object
+#
+#' @importFrom methods new
+#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
+#
+CreateAnn <- function(name, ndim) {
+  return(switch(
+    EXPR = name,
+    cosine = new(Class = AnnoyAngular, ndim),
+    manhattan = new(Class = AnnoyManhattan, ndim),
+    euclidean = new(Class = AnnoyEuclidean, ndim),
+    hamming = new(Class = AnnoyHamming, ndim),
+    stop("BUG: unknown Annoy metric '", name, "'")
+  ))
 }
 
 # Group single cells that make up their own cluster in with the cluster they are
