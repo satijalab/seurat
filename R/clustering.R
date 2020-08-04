@@ -62,6 +62,7 @@ AnnoyNN <- function(data,
 #' Load the Annoy neighbors and C++ index from RDS
 #' 
 #' @param file the name of the file where the nn object is saved by SaveAnnoyNN
+#' 
 #' @export
 #' 
 ReadAnnoyNN <- function(file){
@@ -81,6 +82,8 @@ ReadAnnoyNN <- function(file){
 #' @param file the name of the file where the nn object is saved
 #' @param annoy_index_name suffix name for C++ index, which is saved 
 #' in a separate file
+#' 
+#' @export
 #' 
 SaveAnnoyNN <- function( nn,
                          file,
