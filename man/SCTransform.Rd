@@ -10,6 +10,7 @@ SCTransform(
   new.assay.name = "SCT",
   do.correct.umi = TRUE,
   ncells = NULL,
+  residual.features = NULL,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
@@ -34,6 +35,8 @@ SCTransform(
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
 \item{ncells}{Number of subsampling cells used to build NB regression; default is NULL}
+
+\item{residual.features}{Genes to calculate residual features for; default is NULL (all genes)}
 
 \item{variable.features.n}{Use this many features as variable features after
 ranking by residual variance; default is 3000}

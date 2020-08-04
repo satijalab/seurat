@@ -62,14 +62,14 @@ AnnoyNN <- function(data,
 #' Load the Annoy neighbors and C++ index from RDS
 #' 
 #' @param file the name of the file where the nn object is saved by SaveAnnoyNN
-#' 
+#' @importFrom uwot create_ann
 #' @export
 #' 
 ReadAnnoyNN <- function(file){
   file <- path.expand(file)
   nn <- readRDS(file)
   if (!is.null( nn$annoy_index.dir)) {
-    annoy_index <- uwot:::create_ann(name = nn$metric, ndim =  nn$ndim)
+    annoy_index <- create_ann(name = nn$metric, ndim =  nn$ndim)
     annoy_index$load( nn$annoy_index.dir)
     nn$annoy_index <- annoy_index
   }
