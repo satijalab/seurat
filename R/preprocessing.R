@@ -1578,7 +1578,7 @@ SCTransform <- function(
   if (!is.null(residual.features)) {
     do.correct.umi <- FALSE
     vst.args[['return_corrected_umi']] <- FALSE
-    vst.args[['residual_type']] <-  'none'
+    vst.args[['residual_type']] <- 'none'
   }
   if (conserve.memory) {
     return.only.var.genes <- TRUE
@@ -1597,7 +1597,7 @@ SCTransform <- function(
   } else {
     vst.out <- do.call(what = 'vst', args = vst.args)
     if (!is.null(residual.features)) {
-      residual.features <- intersect(rownames(vst.out$gene_attr), residual.features)
+      residual.features <- intersect(rownames(x = vst.out$gene_attr), residual.features)
       residual.feature.mat <- get_residuals(vst_out = vst.out, 
                                             umi = umi[residual.features, , drop = FALSE] 
       )
@@ -1619,7 +1619,7 @@ SCTransform <- function(
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
   if(!is.null(residual.features)){
-    top.features <- rownames(vst.out$y) 
+    top.features <- rownames(x = vst.out$y) 
   }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')

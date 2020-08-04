@@ -470,7 +470,7 @@ FindMappingAnchors <- function(
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference")
   }
-  if( is.null(reference.nn) ){
+  if (is.null(reference.nn)) {
     stop("reference.nn should be provided")
   }
   projected = TRUE
@@ -520,10 +520,10 @@ FindMappingAnchors <- function(
     assay = reference.assay
   )
   combined.ob.counts <- as.sparse(matrix(data = 0,
-                                         nrow = length(features), 
-                                         ncol = ncol(reference)+ncol(query) ) )
-  rownames(combined.ob.counts) <- features
-  colnames(combined.ob.counts) <- c(Cells(reference), Cells(query))
+                                         nrow = length(x = features), 
+                                         ncol = ncol(x = reference)+ncol(x = query) ) )
+  rownames(x = combined.ob.counts) <- features
+  colnames(x = combined.ob.counts) <- c(Cells(reference), Cells(query))
   combined.ob <- CreateSeuratObject(counts = combined.ob.counts)
 
   combined.ob[[reduction]] <- combined.pca
@@ -536,10 +536,10 @@ FindMappingAnchors <- function(
   }
   slot <- "data"
   k.nn <- max(k.score, k.anchor)  
-  if( ncol(reference.nn$nn.idx) < (k.nn+1)){
+  if( ncol(x = reference.nn$nn.idx) < (k.nn+1)){
     stop("k.score is larger than reference.nn")
   }
-  projected.pca <- L2Norm(projected.pca)
+  projected.pca <- L2Norm(mat = projected.pca)
   if (verbose) {
     message("Finding query neighbors")
   }
@@ -1344,7 +1344,7 @@ MapQueryData <- function(reference,
   if (!is.null(anchorset) && length(query) != length(anchorset)) {
     stop("Number of objects in the query object should be exactly the same in the anchorset")
   }
-  if (length(query) == 1) {
+  if (length(x = query) == 1) {
     query <- list(query)
   }
   if (is.null(anchor.reduction)) {
@@ -1361,13 +1361,13 @@ MapQueryData <- function(reference,
       }
       obj <- transfer_anchor@object.list[[1]]
       # test if object is merged by reference and query
-      ref.cell.idx <- 1:ncol(reference) 
-      query.cell.idx <- (ncol(reference)+1): ncol(obj)
+      ref.cell.idx <- 1:ncol(x = reference) 
+      query.cell.idx <- (ncol(x = reference)+1):ncol(x = obj)
       obj@meta.data[ ref.cell.idx, ident.var] <- "reference"
       obj@meta.data[ query.cell.idx , ident.var] <- "query"
       
       # setting up an object with pcassay with PCA embedding as the data
-      query.embedding <- t(Embeddings(obj, reduction = proj.reduction)[ , dims])
+      query.embedding <- t(Embeddings(object = obj, reduction = proj.reduction)[ , dims])
       suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
       
       # setting up metadata
@@ -1376,7 +1376,7 @@ MapQueryData <- function(reference,
       obj[[anchor.reduction ]]@assay.used <- 'pcassay'
       
       # create a slim object that contains the PC embeddings as a new assay "pcassay"
-      merged.obj <- DietSeurat(obj, assays = 'pcassay',
+      merged.obj <- DietSeurat(object = obj, assays = 'pcassay',
                                dimreducs = c(anchor.reduction, proj.reduction))
       
       # prepapring metadata for batch correction
@@ -1397,7 +1397,7 @@ MapQueryData <- function(reference,
       # perform batch-correction on the PC values using the new object
       merged.obj <- FindIntegrationMatrix(object = merged.obj, 
                                           integration.name = 'integrated', 
-                                          features.integrate = rownames(obj), 
+                                          features.integrate = rownames(x = obj), 
                                           verbose = verbose)
       dr.weights <- merged.obj[[ anchor.reduction ]]
       #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
@@ -1412,7 +1412,7 @@ MapQueryData <- function(reference,
                                 nn.method = nn.method)
       merged.obj <- TransformDataMatrix(object = merged.obj, 
                                         new.assay.name = 'integrated', 
-                                        features.to.integrate = rownames(obj), 
+                                        features.to.integrate = rownames(x = obj), 
                                         integration.name = integration.name)
       # extracting batch corrcted data
       integrated.matrix <- GetAssayData(object = merged.obj, 
@@ -1423,9 +1423,9 @@ MapQueryData <- function(reference,
                                                   key = 'ipc_',
                                                   assay = 'pcassay')
       # single modality will find query reference NN
-      reference.embeddings <- L2Norm(Embeddings(object = merged.obj, 
+      reference.embeddings <- L2Norm(mat = Embeddings(object = merged.obj, 
                                                 reduction = "int" )[ ref.cell.idx, ])
-      query.embeddings<- L2Norm(Embeddings(object = merged.obj, 
+      query.embeddings<- L2Norm(mat = Embeddings(object = merged.obj, 
                                            reduction = "int" )[ query.cell.idx, ])
       
       query_ref.nn <- NNHelper(data = reference.embeddings,
@@ -1434,19 +1434,21 @@ MapQueryData <- function(reference,
                                method = "annoy", 
                                metric ="euclidean",
                                nn.idx = reference.nnidx)
-      rownames(query_ref.nn$nn.idx) <-  gsub("\\_query", "", transfer_anchor@query.cells)
+      rownames(x = query_ref.nn$nn.idx) <-  gsub(pattern = "\\_query", 
+                                                 replacement = "", 
+                                                 x = transfer_anchor@query.cells)
       merged.obj@neighbors$query_ref.nn <- query_ref.nn
-      merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
-      merged.obj <- RenameCells( merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+      merged.obj <- RenameCells( object = merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
+      merged.obj <- RenameCells( object = merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
       merged.obj@misc$ref.cell.idx <- ref.cell.idx
       merged.obj@misc$query.cell.idx <- query.cell.idx
-      if( is.null(transfer.labels) && is.null(transfer.expression) ){
-        return( merged.obj )
+      if (is.null(transfer.labels) && is.null(transfer.expression)) {
+        return (merged.obj)
       } 
       if (!is.null(transfer.labels)) {
         # transfer identities
         refdata <- transfer.labels
-        if( is.factor( refdata)){
+        if (is.factor(x = refdata)) {
           possible.ids <- levels(x = refdata)
         } else {
           possible.ids <- sort(unique(x = refdata))
@@ -1466,13 +1468,15 @@ MapQueryData <- function(reference,
         }
         prediction.scores <- t(x = transfer_weights) %*% prediction.mat
         colnames(x = prediction.scores) <- possible.ids
-        rownames(x = prediction.scores) <-   gsub("\\_query", "", transfer_anchor@query.cells)
+        rownames(x = prediction.scores) <- gsub(pattern = "\\_query", 
+                                                  replacement = "", 
+                                                  x = transfer_anchor@query.cells)
         prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
         prediction.scores.max <- apply(X = prediction.scores, MARGIN = 1, function(x) max(x))
         merged.obj$predicted.id <- "other"
-        merged.obj$predicted.id[ref.cell.idx] <-  as.character(refdata)
+        merged.obj$predicted.id[ref.cell.idx] <-  as.character(x = refdata)
         merged.obj$predicted.id[query.cell.idx] <- prediction.ids
-        merged.obj$predicted.id <- factor(  merged.obj$predicted.id, levels = possible.ids)
+        merged.obj$predicted.id <- factor(x = merged.obj$predicted.id, levels = possible.ids)
         merged.obj$predicted.id.score <- 1
         merged.obj$predicted.id.score[query.cell.idx] <- prediction.scores.max 
       }
@@ -1481,11 +1485,13 @@ MapQueryData <- function(reference,
         refdata.anchors.exp <- refdata.exp[, filtered.anchors[, "cell1"]]
         nfeatures <- nrow(x = refdata.exp)
         if (verbose) {
-          message(paste0("Transfering ", nfeatures, " features onto reference data"))
+          message(paste0("Transfering ", nfeatures, " features from reference data"))
         }
         new.data <- refdata.anchors.exp %*% transfer_weights
         rownames(x = new.data) <- rownames(x = refdata.exp)
-        colnames(x = new.data) <- gsub("\\_query", "", transfer_anchor@query.cells)
+        colnames(x = new.data) <- gsub(pattern = "\\_query",
+                                       replacement = "", 
+                                       x = transfer_anchor@query.cells)
         new.data <- as.matrix(new.data)
         merge.transfer.data <- cbind(transfer.expression, new.data)
         merged.obj[["transfer"]] <- CreateAssayObject(data = merge.transfer.data)
@@ -1493,7 +1499,7 @@ MapQueryData <- function(reference,
       return (merged.obj)
     }
   )
-  if (length(objects) == 1) {
+  if (length(x = objects) == 1) {
     return (objects.list[[1]])
   } else {
     return (objects.list)
