@@ -974,7 +974,7 @@ MultiModalNN <- function(object,
   query.cell.num <- nrow(x = query.redunction_embedding[[1]])
   reduction.num <- length(x = query.redunction_embedding)
   if (verbose) {
-    message("Finding multi-modal nearest neighbors")
+    message("Finding multi-modal neighbors")
     pb <- txtProgressBar(min = 0, max = reduction.num, style = 3)
   }
   redunction_nn <- lapply(X = 1:reduction.num, 
@@ -990,7 +990,7 @@ MultiModalNN <- function(object,
                              return (nn_x)
                            })
   if (verbose) {
-    close(pb)
+    close(con = pb)
   }
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(X = redunction_nn , 
@@ -999,14 +999,25 @@ MultiModalNN <- function(object,
                     FUN = function(x)  Reduce(f = union, 
                                               x = lapply(X = redunction_nn, 
                                                          FUN = function(y) y[x,] )))
+  if (verbose) {
+    message("Calculating distance of multi-modal neighbors")
+    pb <- txtProgressBar(min = 0, max = reduction.num, style = 3)
+  }
   # calculate euclidean distance of all neighbors
   nn_dist <- lapply(X = 1:reduction.num,  
                     FUN = function(r) {
-                      NNdist(nn.idx = nn_idx,
+                      nndist <- NNdist(nn.idx = nn_idx,
                              redunction.embedding = redunction_embedding[[r]], 
                              query.reduction.embedding = query.redunction_embedding[[r]], 
                              nearest.dist = nearest.dist[[r]])
+                      if (verbose) {
+                        setTxtProgressBar(pb = pb, value = r)
+                      }
+                      return (nndist)
                     })
+  if (verbose) {
+    close(con = pb)
+  }
   # modality weighted distance
   if (length(x = sigma.list[[1]]) == 1) {
     sigma.list <- lapply(X = sigma.list, FUN = function(x) rep(x = x, ncol(x = object) ))
@@ -1092,7 +1103,7 @@ FindMultiModelNeighbors  <- function(object,
     }
   } else {
     if (verbose) {
-      message("Constructing joint KNN graph")
+      message("Constructing multi-modal KNN graph")
     }
     j <- as.numeric(x = t(x = select_nn ))
     i <- ((1:length(x = j)) - 1) %/% k.nn + 1
@@ -1107,13 +1118,19 @@ FindMultiModelNeighbors  <- function(object,
   nn.matrix <- as.Graph(x = nn.matrix)
   suppressWarnings(object[[knn.graph.name]] <- nn.matrix)
   if (verbose) {
-    message("Constructing joint SNN graph")
+    message("Constructing multi-modal SNN graph")
   }
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN )
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(object)
   suppressWarnings(object[[snn.graph.name]] <- as(object = snn.matrix, Class = "Graph"))
   object@neighbors[[joint.nn.name]] <- joint.nn
   object@meta.data[, modality.weight.name] <- modality.weight$first.modality.weight
+  
+  # add command log
+  suppressWarnings(object[[ modality.weight$command@name ]] <- modality.weight$command)
+  command <- LogSeuratCommand(object = object, return.command = TRUE)
+  command@params$modality.weight  <- NULL
+  suppressWarnings(object[[ command@name ]] <- command)
   return (object)
 }
 
@@ -1245,7 +1262,6 @@ FindModalityWeights  <- function(object,
                                      cells = Cells(query),
                                      return.assay = FALSE )
   }
-  
   within_impute_dist <- lapply( X = reduction.list, 
                                 FUN = function(r) {
                                  r_dist <- sqrt(rowSums((query.embeddings.list.norm[[r]] -
@@ -1355,8 +1371,12 @@ FindModalityWeights  <- function(object,
                             "modality1_nn2_kernel",  "modality2_nn1_kernel",
                             "modality1_score", "modality2_score")
   score.mat <- as.data.frame(x = score.mat)
-  weight.list <- list(modality1.weight, params, score.mat)
-  names(x = weight.list) <- c("first.modality.weight", "params", "score.matrix")
+
+  # unlist the input paramters
+  command <- LogSeuratCommand(object = object, return.command = TRUE)
+  command@params <- lapply(X =  command@params , FUN = function (l) unlist(x = l))
+  weight.list <- list(modality1.weight, params, score.mat, command)
+  names(x = weight.list) <- c("first.modality.weight", "params", "score.matrix", "command")
   return (weight.list)
 }
 

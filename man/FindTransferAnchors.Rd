@@ -21,7 +21,7 @@ FindTransferAnchors(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "annoy",
+  nn.method = "rann",
   eps = 0,
   scale = TRUE,
   approx.pca = TRUE,

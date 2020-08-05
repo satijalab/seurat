@@ -6,140 +6,6 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Add info to anchor matrix
-#'
-#' @param object An \code{\link{AnchorSet}} object
-#' @param vars Variables to pull for each object via FetchData
-#' @param slot Slot to pull feature data for 
-#
-#' @return Returns the anchor dataframe with additional columns for annotation
-#' metadata
-#' 
-#' @export
-#' 
-AnnotateAnchors <- function(
-  object,
-  vars = NULL,
-  slot = NULL
-) {
-  anchors <- slot(object = object, name = 'anchors')
-  object.list <- slot(object = object, name = 'object.list')
-  object.list <- lapply(X = object.list, FUN = DietSeurat)
-  # transfer or integration?
-  if (length(x = object.list) == 1) {
-    ref <- subset(
-      x = object.list[[1]], 
-      cells = slot(object = object, name = "reference.cells"),
-      recompute = FALSE
-    )
-    ref.names <- unname(obj = sapply(
-      X = Cells(x = ref), 
-      FUN = function(x) {
-        x <- unlist(x = strsplit(x = x, split = "_"))
-        paste(x[1:(length(x = x) - 1)], collapse = "_")
-      }))
-    ref <- RenameCells(object = ref, new.names = ref.names)
-    query <- subset(
-      x = object.list[[1]],
-      cells = slot(object = object, name = "query.cells"),
-      recompute = FALSE
-    )
-    query.names <- unname(obj = sapply(
-      X = Cells(x = query), 
-      FUN = function(x) {
-        x <- unlist(x = strsplit(x = x, split = "_"))
-        paste(x[1:(length(x = x) - 1)], collapse = "_")
-      }))
-    query <- RenameCells(object = query, new.names = query.names)
-    object.list <- list(reference = ref, query = query)
-    anchors <- as.data.frame(x = anchors)
-    anchors$dataset1 <- "reference"
-    anchors$dataset2 <- "query"
-  }
-  # reorder columns
-  anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
-  colnames(x = anchors)[5] <- "anchor.score"
-  # replace index with cell name
-  cell.names <- lapply(X = object.list, FUN = Cells)
-  anchors$cell1 <- sapply(
-    X = seq_len(length.out = nrow(x = anchors)),
-    FUN = function(x) {
-      dataset <- anchors[x, 'dataset1']
-      cell.names[[dataset]][anchors[x, "cell1"]]
-    })
-  anchors$cell2 <- sapply(
-    X = seq_len(length.out = nrow(x = anchors)),
-    FUN = function(x) {
-      dataset <- anchors[x, 'dataset2']
-      cell.names[[dataset]][anchors[x, "cell2"]]
-    })
-  # label datasets with their name if present
-  if (!is.null(x = names(object.list))){
-    anchors$dataset1 <- sapply(X = anchors$dataset1, FUN = function(x) {
-      names(x = object.list[x])
-    })
-    anchors$dataset2 <- sapply(X = anchors$dataset2, FUN = function(x) {
-      names(x = object.list[x])
-    })
-  }
-  slot <- slot %||% character(length = length(x = vars))
-  if (length(x = slot) == 1) {
-    slot <- rep(x = slot, times = length(x = vars))
-  }
-  if (length(x = vars) > 0) {
-    for(v in 1:length(x = vars)) {
-      var <- vars[v]
-      slot <- slot[v]
-      var.list <- lapply(X = object.list, FUN = function(x) {
-        tryCatch(
-          expr = FetchData(object = x, vars = var), 
-          error = function(e) {
-            return(FALSE)
-          }
-        )
-      })
-      if (all(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
-        warning(
-          var, " not found in all objects", 
-          call. = FALSE, 
-          immediate. = TRUE
-        )
-        next
-      }
-      if (any(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
-        warning(
-          var, " not in all objects. Filling missing objects with NA",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-      }
-      if (is.null(x = names(x = object.list))) {
-        names(x = var.list) <- 1:length(x = object.list)
-      } else {
-        names(x = var.list) <- names(x = object.list)
-      }
-      for(i in c(1, 2)) {
-        cell <- paste0("cell", i)
-        anchors[, paste0(cell, ".", var)] <- apply(X = anchors, MARGIN = 1, function(x){
-          var.df <- var.list[[x[[paste0("dataset", i)]]]]
-          if (!inherits(x = var.df, what = "data.frame")) {
-            NA
-          } else {
-            if (is.factor(x = var.df[x[cell], ])) {
-              as.character(x = var.df[x[cell], ])
-            } else {
-              var.df[x[cell], ]
-            }}                    
-        })
-      }
-      # column specifying whether the annotation matches across pair of datasets
-      anchors[, paste0(var, ".match")] <- anchors[, paste0("cell1.", var)] == 
-        anchors[, paste0("cell2.", var)]
-    }
-  }
-  return(anchors)
-}
-
 #' Find integration anchors
 #'
 #' Find a set of anchors between a list of \code{\link{Seurat}} objects. 
@@ -695,7 +561,7 @@ FindTransferAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "annoy",
+  nn.method = "rann",
   eps = 0,
   scale = TRUE, 
   approx.pca = TRUE,
