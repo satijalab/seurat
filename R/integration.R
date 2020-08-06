@@ -550,7 +550,6 @@ FindTransferAnchors <- function(
   normalization.method = c("LogNormalize", "SCT"),
   reference.assay = NULL,
   query.assay = NULL,
-  reference.reduction = "pca", 
   reduction = "pcaproject",
   project.query = FALSE,
   features = NULL,
@@ -563,14 +562,13 @@ FindTransferAnchors <- function(
   max.features = 200,
   nn.method = "rann",
   eps = 0,
-  scale = TRUE, 
   approx.pca = TRUE,
   verbose = TRUE
 ) {
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference")
   }
-  if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject", "lda")) {
+  if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
   if (reduction %in% c('pcaproject', 'pcaqueryproject')) {
@@ -594,8 +592,6 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
-  reference[[reference.reduction  ]]@assay.used <- reference.assay
-
   if (normalization.method == "SCT") {
     features <- intersect(x = features, y = rownames(x = query))
     query <- GetResidual(object = query, features = features, verbose = FALSE)
@@ -635,16 +631,6 @@ FindTransferAnchors <- function(
     feature.mean <- "SCT"
     slot <- "scale.data"
   }
-  reference <- DietSeurat(object = reference,
-                          assays = reference.assay,
-                          dimreducs = reference.reduction, 
-                          features = features, 
-                          scale.data = TRUE )
-  query <- DietSeurat(object = query,
-                      assays = query.assay, 
-                      features = features,
-                      scale.data = TRUE  )
-  
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
     if (project.query) {
@@ -692,14 +678,12 @@ FindTransferAnchors <- function(
       }
       projected.pca <- ProjectCellEmbeddings(
         reference = reference,
-        reduction = reference.reduction, 
         query = query,
         dims = dims,
-        scale = scale,
         feature.mean = feature.mean,
         verbose = verbose
       )
-      ref.pca <- Embeddings(object = reference[[reference.reduction]])[, dims]
+      ref.pca <- Embeddings(object = reference[["pca"]])[, dims]
       combined.pca <- CreateDimReducObject(
         embeddings = as.matrix(x = rbind(ref.pca, projected.pca))[, dims],
         key = "ProjectPC_",
@@ -710,7 +694,7 @@ FindTransferAnchors <- function(
         y = DietSeurat(object = query, features = features)
       )
       combined.ob[["pcaproject"]] <- combined.pca
-      old.loadings <- Loadings(object = reference[[reference.reduction]])
+      old.loadings <- Loadings(object = reference[["pca"]])
       colnames(x = old.loadings) <- paste0("ProjectPC_", 1:ncol(x = old.loadings))
       Loadings(object = combined.ob[["pcaproject"]]) <- old.loadings[, dims]
     }
@@ -718,8 +702,8 @@ FindTransferAnchors <- function(
   ## find anchors using CCA
   if (reduction == 'cca') {
     if (normalization.method == "LogNormalize") {
-      reference <- ScaleData(object = reference, features = features, do.scale = scale,verbose = FALSE)
-      query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
+      reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+      query <- ScaleData(object = query, features = features, verbose = FALSE)
     }
     combined.ob <- RunCCA(
       object1 = reference,
@@ -730,24 +714,6 @@ FindTransferAnchors <- function(
       rescale = FALSE,
       verbose = verbose
     )
-  }
-  
-  if (reduction == "lda") {
-    query.lda <- PredictLDA(reference = reference, 
-                            query = query,
-                            model = reference[[reference.reduction]]@misc$model,
-                            reference.assay = reference.assay,
-                            query.assay = query.assay, 
-                            features = features, 
-                            normalization.method = normalization.method )
-    combined.ob <- merge(x = reference, y = query)
-    combine.lda.embeddings <- rbind(Embeddings(reference[[reference.reduction]])[, dims], 
-                                    query.lda$x[, dims])
-    combined.ob[["ldaproject"]] <- CreateDimReducObject(embeddings = combine.lda.embeddings,
-                                                        key =  "projLDA_", 
-                                                        assay = reference.assay)
-    reduction <- "ldaproject"
-    k.filter <- NA
   }
   if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
@@ -2026,97 +1992,6 @@ FilterAnchors <- function(
   return(object)
 }
 
-
-
-FilterMultiModalAnchors <- function(
-  object, 
-  reference.assay.list, 
-  query.assay.list, 
-  slot = "data",
-  features.list,
-  k.nn = 20, 
-  s.nn = 20, 
-  k.filter = 200,
-  integration.name = 'integrated',
-  verbose = TRUE
-){
-  features.list <- lapply(X = 1:length(features.list), function(f){
-    feature = unique(features.list[[f]])
-    feature = intersect(feature,  rownames(object[[query.assay.list[[f]] ]] ))
-    return(feature)
-  } )
-  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-  nn.cells1 <- neighbors$cells1
-  nn.cells2 <- neighbors$cells2
-  
-  cn.data1 <- lapply(1:length(reference.assay.list), 
-                     FUN = function(r){   
-                       L2Norm(
-                         mat = as.matrix(x = t(x = GetAssayData(
-                           object = object[[reference.assay.list[[r]] ]],
-                           slot = slot)[ features.list[[r]] , nn.cells1])),
-                         MARGIN = 1)
-                       }) 
-  
-  cn.data2 <- lapply(1:length(reference.assay.list), 
-                     FUN = function(r){   
-                       L2Norm(
-                         mat = as.matrix(x = t(x = GetAssayData(
-                           object = object[[query.assay.list[[r]] ]],
-                           slot = slot)[ features.list[[r]] , nn.cells2])),
-                         MARGIN = 1)
-                     }) 
-  reference.top <-  subset(object, cells = nn.cells1)
-  nfeature.list <- list()
-  DimR.list<- list()
-  for (r in 1:length( reference.assay.list )){
-    nfeature.list[[r]] <-  1:ncol( cn.data1[[r]])
-    colnames(cn.data1[[r]]) <- paste0(reference.assay.list[[r]], "_", nfeature.list[[r]] )
-    DimR.list[[r]] <-  paste0(reference.assay.list[[r]],".DimR" )
-    reference.top[[ DimR.list[[r]]  ]] <- CreateDimReducObject( embeddings = cn.data1[[r]], 
-                                                             key = paste0(reference.assay.list[[r]], "_"),
-                                                             assay =  reference.assay.list[[r]] )  
-    }
-  
-  refernce.top.weight <- FindModalityWeights(object = reference.top,
-                                           reduction.list = DimR.list,
-                                           dims.list = nfeature.list, 
-                                           l2.norm = F,
-                                           snn.far.nn = T, 
-                                           k.nn = k.nn , 
-                                           s.nn =  s.nn, 
-                                           verbose = F
-   )
-  
-  nn <- MultiModalNN(object = cn.data2,
-               query = cn.data1,
-               k.nn = k.filter, 
-               knn.range = 2*k.filter,
-               modality.weight = refernce.top.weight$first.modality.weight, 
-               l2.norm =  FALSE, 
-               nearest.dist = refernce.top.weight$params$nearest.dist,
-               sigma.list = refernce.top.weight$params$sigma.list)
-
-  anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
-  position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
-  })
-  anchors <- anchors[!is.na(x = position), ]
-  if (verbose) {
-    message("\tRetained ", nrow(x = anchors), " anchors")
-  }
-  object <- SetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = "anchors",
-    new.data = anchors
-  )
-  return(object)
-  
-}
-
-
-
 FindAnchors <- function(
   object.pair,
   assay,
@@ -2172,19 +2047,6 @@ FindAnchors <- function(
       max.features = max.features,
       projected = projected
     )
-    top.features <- sapply(X = unique(assay),
-                            FUN = function(a){
-                              assay.feature <- rownames(x = GetAssayData(object = object.pair,
-                                                                         slot = slot, 
-                                                                         assay = a))
-                             features <- intersect( assay.feature, top.features)
-                             return( features )
-                            })
-    if(length(top.features) == 2){
-      top.features <- intersect(top.features[[1]], top.features[[2]])
-    } else{ 
-      top.features <- as.vector(top.features)
-      }
     object.pair <- FilterAnchors(
       object = object.pair,
       assay = assay,
@@ -2979,11 +2841,9 @@ ParseRow <- function(clustering, i){
 ProjectCellEmbeddings <- function(
   reference,
   query,
-  reduction = "pca", 
   reference.assay = NULL,
   query.assay = NULL,
   dims = 1:50,
-  scale = TRUE, 
   verbose = TRUE,
   feature.mean = NULL,
   feature.sd = NULL
@@ -2991,11 +2851,12 @@ ProjectCellEmbeddings <- function(
   if (verbose) {
     message("Projecting PCA")
   }
+  reduction <- "pca"
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-
+  
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
@@ -3004,10 +2865,9 @@ ProjectCellEmbeddings <- function(
     object = query,
     assay = query.assay,
     slot = "data")[features, ]
-
+  
   if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
-    if(scale){
     feature.sd <- sqrt(
       x = SparseRowVar2(
         mat = as(object = reference.data, Class = "dgCMatrix"), 
@@ -3016,9 +2876,6 @@ ProjectCellEmbeddings <- function(
       )
     )
     feature.sd[is.na(x = feature.sd)] <- 1
-    } else {
-      feature.sd <- rep(x = 1, nrow( reference.data))
-    }
     feature.mean[is.na(x = feature.mean)] <- 1
   }
   proj.data <- GetAssayData(
