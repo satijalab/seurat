@@ -455,11 +455,11 @@ FindMappingAnchors <- function(
   reference.reduction = "pca", 
   reduction = "pcaproject",
   features = NULL,
-  npcs = 30,
+  npcs = NULL,
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
-  k.filter = 200,
+  k.filter = NA,
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
@@ -1470,23 +1470,31 @@ MapQueryData <- function(reference,
           prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
         }
         prediction.scores <- t(x = transfer_weights) %*% prediction.mat
-        colnames(x = prediction.scores) <- paste0("predicted_", possible.ids)
+        colnames(x = prediction.scores) <- possible.ids
         rownames(x = prediction.scores) <- gsub(pattern = "\\_query", 
                                                   replacement = "", 
                                                   x = transfer_anchor@query.cells)
         prediction.ids <- possible.ids[apply(X = prediction.scores,
                                              MARGIN = 1, 
                                              FUN = which.max)]
-
         prediction.scores.max <- apply(X = prediction.scores, 
                                        MARGIN = 1, 
                                        function(x) max(x))
-        Misc(object = merged.obj, slot = "prediction.scores") <- 
-          as.matrix(x = prediction.scores)
+        
+        # prediction score matrix for query
+        prediction.ids <- factor(x = prediction.ids, levels = possible.ids)
+        predictions <- data.frame(
+          predicted.id = prediction.ids,
+          predicted.id.score = prediction.scores.max,
+          prediction.score = as.matrix(prediction.scores),
+          row.names = rownames(x = prediction.scores),
+          stringsAsFactors = FALSE)
+        merged.obj@misc$predictions <- predictions
+ 
+         # prediction scores for query and reference
         merged.obj$predicted.id <- "other"
         merged.obj$predicted.id[ref.cell.idx] <- as.character(x = refdata)
         merged.obj$predicted.id[query.cell.idx] <- prediction.ids
-        merged.obj$predicted.id <- factor(x = merged.obj$predicted.id, levels = possible.ids)
         merged.obj$predicted.id.score <- 1
         merged.obj$predicted.id.score[query.cell.idx] <- prediction.scores.max 
       }
