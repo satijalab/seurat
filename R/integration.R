@@ -1388,6 +1388,7 @@ MapQueryData <- function(reference,
                                        integration.name = 'integrated', 
                                        slot = "anchors",
                                        new.data = filtered.anchors)
+      
       # filling the neighbors slot in the new object
       merged.obj <- SetIntegrationData(object = merged.obj,
                                        integration.name = 'integrated', 
@@ -1440,20 +1441,20 @@ MapQueryData <- function(reference,
                                                  replacement = "", 
                                                  x = transfer_anchor@query.cells)
       merged.obj@neighbors$query_ref.nn <- query_ref.nn
-      merged.obj <- RenameCells( object = merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
-      merged.obj <- RenameCells( object = merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+      merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
+      merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
       merged.obj@misc$ref.cell.idx <- ref.cell.idx
       merged.obj@misc$query.cell.idx <- query.cell.idx
-      if (is.null(transfer.labels) && is.null(transfer.expression)) {
+      if (is.null(x = transfer.labels) && is.null(x = transfer.expression)) {
         return (merged.obj)
       } 
-      if (!is.null(transfer.labels)) {
+      if (!is.null(x = transfer.labels)) {
         # transfer identities
         refdata <- transfer.labels
         if (is.factor(x = refdata)) {
           possible.ids <- levels(x = refdata)
         } else {
-          possible.ids <- sort(unique(x = refdata))
+          possible.ids <- sort(x = unique(x = refdata))
         }
         filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
         reference.ids <- factor(x = filtered.anchors$id1, levels = possible.ids)
@@ -1469,20 +1470,27 @@ MapQueryData <- function(reference,
           prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
         }
         prediction.scores <- t(x = transfer_weights) %*% prediction.mat
-        colnames(x = prediction.scores) <- possible.ids
+        colnames(x = prediction.scores) <- paste0("predicted_", possible.ids)
         rownames(x = prediction.scores) <- gsub(pattern = "\\_query", 
                                                   replacement = "", 
                                                   x = transfer_anchor@query.cells)
-        prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
-        prediction.scores.max <- apply(X = prediction.scores, MARGIN = 1, function(x) max(x))
+        prediction.ids <- possible.ids[apply(X = prediction.scores,
+                                             MARGIN = 1, 
+                                             FUN = which.max)]
+
+        prediction.scores.max <- apply(X = prediction.scores, 
+                                       MARGIN = 1, 
+                                       function(x) max(x))
+        Misc(object = merged.obj, slot = "prediction.scores") <- 
+          as.matrix(x = prediction.scores)
         merged.obj$predicted.id <- "other"
-        merged.obj$predicted.id[ref.cell.idx] <-  as.character(x = refdata)
+        merged.obj$predicted.id[ref.cell.idx] <- as.character(x = refdata)
         merged.obj$predicted.id[query.cell.idx] <- prediction.ids
         merged.obj$predicted.id <- factor(x = merged.obj$predicted.id, levels = possible.ids)
         merged.obj$predicted.id.score <- 1
         merged.obj$predicted.id.score[query.cell.idx] <- prediction.scores.max 
       }
-      if (!is.null(transfer.expression)) {
+      if (!is.null(x = transfer.expression)) {
         refdata.exp <-  transfer.expression
         refdata.anchors.exp <- refdata.exp[, filtered.anchors[, "cell1"]]
         nfeatures <- nrow(x = refdata.exp)
