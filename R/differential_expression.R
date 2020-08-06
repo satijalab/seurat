@@ -525,14 +525,16 @@ FindMarkers.default <- function(
   names(x = alpha.min) <- rownames(x = fc.results)
   features <- names(x = which(x = alpha.min > min.pct))
   if (length(x = features) == 0) {
-    stop("No features pass min.pct threshold")
+    warning("No features pass min.pct threshold; returning empty data.frame")
+    return(fc.results[features, ])
   }
   alpha.diff <- alpha.min - pmin(fc.results$pct.1, fc.results$pct.2)
   features <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
   if (length(x = features) == 0) {
-    stop("No features pass min.diff.pct threshold")
+    warning("No features pass min.diff.pct threshold; returning empty data.frame")
+    return(fc.results[features, ])
   }
   # feature selection (based on logFC)
   if (slot != "scale.data") {
@@ -545,7 +547,8 @@ FindMarkers.default <- function(
     }
     features <- intersect(x = features, y = features.diff)
     if (length(x = features) == 0) {
-      stop("No features pass logfc.threshold threshold")
+      warning("No features pass logfc.threshold threshold; returning empty data.frame")
+      return(fc.results[features, ])
     }
   }
   # subsample cell groups if they are too large
