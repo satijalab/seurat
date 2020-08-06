@@ -8,7 +8,6 @@ TransferData(
   anchorset,
   refdata,
   weight.reduction = "pcaproject",
-  multi.modal = FALSE,
   l2.norm = FALSE,
   dims = 1:30,
   k.weight = 50,

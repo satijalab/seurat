@@ -1646,7 +1646,7 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
-  
+
   if (inherits(x = refdata, what = c("character", "factor"))) {
     if (length(x = refdata) != length(x = reference.cells)) {
       stop(paste0("Please provide a vector that is the same length as the number of reference cells",
@@ -1684,7 +1684,7 @@ TransferData <- function(
     query <- ScaleData(object = query, features = features, verbose = FALSE)
     query <- RunPCA(object = query, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query[['pca']])
-    
+
     #fill with 0s
     ref.pca <- matrix(
       data = 0,

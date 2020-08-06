@@ -971,6 +971,23 @@ RunPCA <- function(object, ...) {
   UseMethod(generic = 'RunPCA', object = object)
 }
 
+#' Run Supervised Principal Component Analysis
+#'
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods and IRLBA
+#'
+#' @return Returns Seurat object with the SPCA calculation stored in the reductions slot
+#'
+#' @export
+#'
+#' @rdname RunSPCA
+#' @export RunSPCA
+#'
+RunSPCA <- function(object, ...) {
+  UseMethod(generic = 'RunSPCA', object = object)
+}
+
 #' Run t-distributed Stochastic Neighbor Embedding
 #'
 #' Run t-SNE dimensionality reduction on selected features. Has the option of

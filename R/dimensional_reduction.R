@@ -2125,34 +2125,126 @@ PrepDR <- function(
 }
 
 
-
+# Calculate supervised PCA
+#
 #' @param assay Which dimensions to examine
 #' @param features Threshold to use for the proportion test of PC
 #' 
 #' significance (see Details)
-#'
-RunSPCA <- function(object,
+#' @export
+#' @method RunSPCA Seurat
+RunSPCA.Seurat <- function(object,
                     assay = NULL, 
                     features = NULL, 
                     npcs = 50, 
                     reduction.name = "spca", 
                     reduction.key = "SPC_", 
-                    graph ){
+                    graph = NULL, 
+                    verbose = TRUE, 
+                    seed.use = 42,
+                    ...){
   assay <- assay %||% DefaultAssay(object)
-  DefaultAssay(object) <- assay
-  features <- features %||% VariableFeatures(object)
-  data <- GetAssayData(object = object, assay = assay, slot = "scale.data")[features , ]
-  HSIC = data %*% graph %*% t( data )
-  pca.results <- irlba(A = HSIC, nv = npcs )
-  rownames(pca.results$u) <- features
-  spca.embeddings <-  t( data ) %*% pca.results$u 
-  sdev <- pca.results$d/sqrt(max(1, nrow(x = HSIC) - 1))
-  colnames(spca.embeddings) <- paste0(reduction.key, 1:ncol(spca.embeddings))
-  object[[reduction.name]] <- CreateDimReducObject(embeddings = spca.embeddings,
-                                                   loadings = pca.results$u, 
-                                                   key = reduction.key,
-                                                   stdev = sdev, 
-                                                   assay = assay)
+  assay.data <- GetAssay(object = object, assay = assay)
+  if (is.null(x = graph)) {
+    stop("Graph is not provided")
+  } else if (is.character(x = graph)) {
+    graph <- object[[graph]]
+  }
+  reduction.data <- RunSPCA(object = assay.data, 
+                            assay = assay, 
+                            features = features, 
+                            npcs = npcs, 
+                            reduction.name = reduction.name, 
+                            reduction.key = reduction.key,
+                            graph = graph,
+                            verbose = verbose, 
+                            seed.use = seed.use,
+                            ...)
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
+
+
+# Calculate supervised PCA
+#
+#' @param assay Which dimensions to examine
+#' @param features Threshold to use for the proportion test of PC
+#' 
+#' significance (see Details)
+#' @importFrom irlba irlba
+#'
+#' @rdname RunPCA
+#' @export
+RunSPCA.default <- function(object,
+                            assay = NULL, 
+                            npcs = 50, 
+                            reduction.name = "spca", 
+                            reduction.key = "SPC_", 
+                            graph = NULL, 
+                            verbose = TRUE,
+                            seed.use = 42,
+                            ...){
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  npcs <- min(npcs, nrow(x = object) - 1)
+  if (verbose) {
+    message("Matrix multiplication")
+  }
+  HSIC = object %*% graph %*% t(object)
+  pca.results <- irlba(A = HSIC, nv = npcs )
+  feature.loadings <- pca.results$u
+  rownames(x = feature.loadings) <- rownames(x = object)
+  cell.embeddings <-  t(object) %*% feature.loadings
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings) <-
+    paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  sdev <- pca.results$d/sqrt(max(1, nrow(x = HSIC) - 1))
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    stdev = sdev,
+    key = reduction.key
+  )
+  return(reduction.data)
+}
+
+
+# Calculate supervised PCA
+#
+#' @param assay Which dimensions to examine
+#' @param features Threshold to use for the proportion test of PC
+#' 
+#' significance (see Details)
+#' @rdname RunSPCA
+#' @export
+#' @method RunSPCA Assay
+#' 
+RunSPCA.Assay <- function(object,
+                            assay = NULL, 
+                            features = NULL, 
+                            npcs = 50, 
+                            reduction.name = "spca", 
+                            reduction.key = "SPC_", 
+                            graph = NULL, 
+                            verbose = TRUE,
+                            seed.use = 42,
+                            ...){
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunSPCA(object = data.use, 
+                            assay = assay, 
+                            npcs = npcs, 
+                            reduction.name = reduction.name, 
+                            reduction.key = reduction.key,
+                            graph = graph,
+                            verbose = verbose, 
+                            seed.use = seed.use,
+                            ...)
+  return(reduction.data)
+}
