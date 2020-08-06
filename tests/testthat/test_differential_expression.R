@@ -69,7 +69,11 @@ results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.
 test_that("logfc.threshold works", {
   expect_equal(nrow(x = results), 112)
   expect_gte(min(abs(x = results$avg_logFC)), 2)
-  expect_error(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, logfc.threshold = 100, verbose = FALSE))
+})
+
+results <- expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, logfc.threshold = 100, verbose = FALSE))
+test_that("logfc.threshold warns when none met", {
+  expect_equal(nrow(x = results), 0)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.pct = 0.5, verbose = FALSE))
@@ -78,10 +82,20 @@ test_that("min.pct works", {
   expect_gte(min(apply(X = results, MARGIN = 1, FUN = function(x) max(x[3], x[4]))), 0.5)
 })
 
+results <- expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.pct = 1.0, verbose = FALSE))
+test_that("min.pct warns when none met", {
+  expect_equal(nrow(x = results), 0)
+})
+
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.diff.pct = 0.5, verbose = FALSE))
 test_that("min.diff.pct works", {
   expect_equal(nrow(x = results), 43)
   expect_gte(min(apply(X = results, MARGIN = 1, FUN = function(x) abs(x[4] - x[3]))), 0.5)
+})
+
+results <- expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.diff.pct = 1.0, verbose = FALSE))
+test_that("min.diff.pct warns when none met", {
+  expect_equal(nrow(x = results), 0)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, only.pos = TRUE, verbose = FALSE))
