@@ -926,25 +926,38 @@ NNdist <- function( nn.idx,
 #' @param verbose Whether or not to print output to the console
 #'
 #' @return return a list containing nn index and nn multi-model distance
-#' @export
+#'
 #' 
 MultiModalNN <- function(object, 
                          query = NULL,
                          modality.weight = NULL,
-                         k.nn =  modality.weight$params$k.nn, 
-                         reduction.list =  modality.weight$params$reduction.list,
-                         dims.list = modality.weight$params$dims.list,
+                         k.nn =   NULL, 
+                         reduction.list = NULL,
+                         dims.list = NULL,
                          knn.range = 200,
                          kernel.power = 1, 
-                         nearest.dist = modality.weight$params$nearest.dist,
-                         sigma.list = modality.weight$params$sigma.list,
-                         l2.norm =  modality.weight$params$l2.norm, 
+                         nearest.dist = NULL,
+                         sigma.list = NULL,
+                         l2.norm =  NULL, 
                          verbose = TRUE
 ){
-  modality.weight.value <- list(modality.weight$first.modality.weight, 1 - modality.weight$first.modality.weight)
+  k.nn <-  k.nn %||% slot(object = modality.weight, name = "params")$k.nn
+  reduction.list <- reduction.list %||% 
+    slot(object = modality.weight, name = "params")$reduction.list
+  dims.list = dims.list %||% 
+    slot(object = modality.weight, name = "params")$dims.list
+  nearest.dist = nearest.dist %||% 
+    slot(object = modality.weight, name = "params")$nearest.dist
+  sigma.list =sigma.list %||%
+    slot(object = modality.weight, name = "params")$sigma.list
+  l2.norm = l2.norm %||% 
+    slot(object = modality.weight, name = "params")$l2.norm
+  modality.weight.value <- list(modality.weight@first.modality.weight,
+                                1 - modality.weight@first.modality.weight)
   names(x = modality.weight.value) <- unlist(x = reduction.list)
+  
   if (class(x = object)[1] == "Seurat") {
-    redunction_embedding <- lapply( X = 1:length(x = reduction.list), 
+    redunction_embedding <- lapply(X = 1:length(x = reduction.list), 
                                     FUN = function(x) {
                                       Embeddings(object = object, 
                                                  reduction = reduction.list[[x]] )[ ,dims.list[[x]] ]
@@ -993,9 +1006,9 @@ MultiModalNN <- function(object,
     close(con = pb)
   }
   # union of rna and adt nn, remove itself from neighobors
-  redunction_nn <- lapply(X = redunction_nn , 
-                          FUN = function(x)  x$nn.idx[, -1]  )
-  nn_idx <- lapply( X = 1:query.cell.num , 
+  redunction_nn <- lapply(X = redunction_nn, 
+                          FUN = function(x)  x$nn.idx[, -1] )
+  nn_idx <- lapply(X = 1:query.cell.num , 
                     FUN = function(x)  Reduce(f = union, 
                                               x = lapply(X = redunction_nn, 
                                                          FUN = function(y) y[x,] )))
@@ -1072,7 +1085,7 @@ MultiModalNN <- function(object,
 
 FindMultiModelNeighbors  <- function(object, 
                                      modality.weight = NULL,
-                                     k.nn = modality.weight$params$k.nn,
+                                     k.nn = NULL,
                                      prune.SNN = 1/15, 
                                      knn.graph.name = "jknn",
                                      snn.graph.name = "jsnn",
@@ -1082,12 +1095,17 @@ FindMultiModelNeighbors  <- function(object,
                                      weighted.graph = FALSE,
                                      verbose = TRUE
 ){
+  k.nn <- k.nn %||% slot(object = modality.weight, name = "params")$k.nn
+  first.assay <- slot(object = modality.weight, name = "modality.assay")[1]
   joint.nn <- MultiModalNN(object = object, 
+                           k.nn = k.nn, 
                            modality.weight = modality.weight,
                            knn.range = knn.range, 
                            verbose = verbose )
   select_nn <- joint.nn$nn.idx
   select_nn_dist <- joint.nn$nn.dists 
+  
+  # compute KNN graph
   if (weighted.graph) {
     if(verbose){
       message("Constructing joint weighted knn graph")
@@ -1116,22 +1134,33 @@ FindMultiModelNeighbors  <- function(object,
   rownames(x = nn.matrix) <-  colnames(x = nn.matrix) <- colnames(x = object)
   nn.matrix <- nn.matrix + t(nn.matrix) - t(nn.matrix)*nn.matrix
   nn.matrix <- as.Graph(x = nn.matrix)
-  suppressWarnings(object[[knn.graph.name]] <- nn.matrix)
+  slot(object = nn.matrix, name = "assay.used") <- first.assay
+  object[[knn.graph.name]] <- nn.matrix
+  
+  # compute SNN graph
   if (verbose) {
     message("Constructing multi-modal SNN graph")
   }
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN )
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(object)
-  suppressWarnings(object[[snn.graph.name]] <- as(object = snn.matrix, Class = "Graph"))
+  snn.matrix <- as.Graph(x = snn.matrix )
+  slot(object = snn.matrix, name = "assay.used") <- first.assay
+  object[[snn.graph.name]] <- snn.matrix
+ 
+  # add neighbors and modality weights
   object@neighbors[[joint.nn.name]] <- joint.nn
-  object@meta.data[, modality.weight.name] <- modality.weight$first.modality.weight
+  object@meta.data[, modality.weight.name] <- modality.weight@first.modality.weight
   
   # add command log
-  suppressWarnings(object[[ modality.weight$command@name ]] <- modality.weight$command)
-  command <- LogSeuratCommand(object = object, return.command = TRUE)
-  command@params$modality.weight  <- NULL
-  suppressWarnings(object[[ command@name ]] <- command)
-  return (object)
+   modality.weight.command <- slot(object = modality.weight, name = "command")
+   slot(object = modality.weight.command, name = "assay.used") <- first.assay
+   object[[ modality.weight.command@name ]] <- modality.weight.command
+   command <- LogSeuratCommand(object = object, return.command = TRUE)
+   command@params$modality.weight  <- NULL
+   slot(object = command, name = "assay.used") <- first.assay
+   object[[ command@name ]] <- command
+  
+   return (object)
 }
 
 
@@ -1342,7 +1371,7 @@ FindModalityWeights  <- function(object,
                   snn.far.nn ,
                   modality_sd.list, 
                   nearest_dist)
-  names(x = params) <- c("reduction.list", "dims.list", "l2.norm", "k.nn" , 
+  names(x = params) <- c("reduction.list", "dims.list", "l2.norm", "k.nn", 
                      "sigma.idx", "snn.far.nn", "sigma.list", "nearest.dist")
   modality_score <-  lapply( X = reduction.list,
                              FUN = function(r) {
@@ -1375,9 +1404,19 @@ FindModalityWeights  <- function(object,
   # unlist the input paramters
   command <- LogSeuratCommand(object = object, return.command = TRUE)
   command@params <- lapply(X =  command@params , FUN = function (l) unlist(x = l))
-  weight.list <- list(modality1.weight, params, score.mat, command)
-  names(x = weight.list) <- c("first.modality.weight", "params", "score.matrix", "command")
-  return (weight.list)
+
+  modality.assay <- sapply( X = reduction.list , 
+                          FUN = function (r) slot(object[[r]], name = "assay.used"))
+
+  modality.weights <- new(
+    Class = "ModalityWeights",
+    first.modality.weight = modality1.weight,
+    modality.assay = modality.assay, 
+    params = params,
+    score.matrix = score.mat,
+    command = command
+  )
+  return (modality.weights)
 }
 
 

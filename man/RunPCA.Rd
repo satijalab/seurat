@@ -63,6 +63,7 @@ RunPCA(object, ...)
   reduction.name = "spca",
   reduction.key = "SPC_",
   graph = NULL,
+  verbose = TRUE,
   seed.use = 42,
   ...
 )
