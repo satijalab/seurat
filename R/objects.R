@@ -56,15 +56,16 @@ AnchorSet <- setClass(
 
 #' The ModalityWeights Class
 #'
-#' The ModalityWeights class is an intermediate data storage class that stores the anchors and other
+#' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
 #' related information needed for performing downstream analyses - namely data integration
 #' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModelNeighbors}}).
 #'
-#' @slot first.modality.weight List of objects used to create anchors
-#' @slot modality.assay Names of assays for the list of dimentional reduction
-#' @slot params List of cell names in the reference dataset - needed when performing data
-#' transfer.
-#' @slot score.matrix Position of reference object/s in object.list
+#' @slot first.modality.weight A vector of value representing for the modality weights of
+#' the first modality
+#' @slot modality.assay Names of assays for the list of dimentional reductions
+#' @slot params A list of paramters used in the FindModalityWeights
+#' @slot score.matrix a score matrix representing cross and within-modality prediction
+#' score, and kernel value
 #' @slot command Store log of parameters that were used
 #'
 #' @name ModalityWeights-class

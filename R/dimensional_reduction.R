@@ -2124,15 +2124,12 @@ PrepDR <- function(
   return(data.use)
 }
 
-
-# Calculate supervised PCA
-#
-#' @param assay Which dimensions to examine
-#' @param features Threshold to use for the proportion test of PC
-#' 
-#' significance (see Details)
+#' @param reduction.name dimensional reduction name, spca by default
+#' @param graph the name of a graph used supervised by SPCA
+#' @rdname RunsPCA
 #' @export
 #' @method RunSPCA Seurat
+#' 
 RunSPCA.Seurat <- function(object,
                     assay = NULL, 
                     features = NULL, 
@@ -2165,17 +2162,19 @@ RunSPCA.Seurat <- function(object,
   return(object)
 }
 
-
-
-# Calculate supervised PCA
-#
-#' @param assay Which dimensions to examine
-#' @param features Threshold to use for the proportion test of PC
-#' 
-#' significance (see Details)
+#' @param assay Name of Assay SPCA is being run on
+#' @param npcs Total Number of SPCs to compute and store (50 by default)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the SPCs
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. SPC by default
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'  
+#'  
 #' @importFrom irlba irlba
 #'
-#' @rdname RunPCA
+#' @rdname RunSPCA
 #' @export
 RunSPCA.default <- function(object,
                             assay = NULL, 
@@ -2211,13 +2210,9 @@ RunSPCA.default <- function(object,
   return(reduction.data)
 }
 
-
-# Calculate supervised PCA
-#
-#' @param assay Which dimensions to examine
-#' @param features Threshold to use for the proportion test of PC
+#' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
+#' using the variable features for the Assay. 
 #' 
-#' significance (see Details)
 #' @rdname RunSPCA
 #' @export
 #' @method RunSPCA Assay
