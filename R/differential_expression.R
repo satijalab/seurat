@@ -475,6 +475,8 @@ FindMarkers.default <- function(
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
   ...
 ) {
   ValidateCellGroups(
@@ -495,7 +497,7 @@ FindMarkers.default <- function(
     'scale.data' = counts,
     object
   )
-  mean.fxn <- switch(
+  mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'data' = function(x) {
       return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
@@ -505,7 +507,7 @@ FindMarkers.default <- function(
       return(log(x = rowMeans(x = x) + pseudocount.use))
     }
   )
-  diff.col <- ifelse(
+  diff.col <- fc.name %||% ifelse(
     test = slot == "scale.data",
     yes = "avg_diff",
     no = "avg_logFC"
@@ -609,6 +611,7 @@ FindMarkers.Assay <- function(
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
+  mean.fxn = NULL,
   ...
 ) {
   data.slot <- ifelse(
@@ -641,11 +644,13 @@ FindMarkers.Assay <- function(
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
+    mean.fxn = mean.fxn,
     ...
   )
   return(de.results)
 }
 
+#' @importFrom Matrix rowMeans
 #' @rdname FindMarkers
 #' @export
 #' @method FindMarkers DimReduc
@@ -667,6 +672,7 @@ FindMarkers.DimReduc <- function(
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
+  mean.fxn = rowMeans,
   ...
   
 ) {
@@ -747,6 +753,10 @@ FindMarkers.DimReduc <- function(
 #' @param assay Assay to use in differential expression testing
 #' @param slot Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 #' \code{slot} will be set to "counts"
+#' @param mean.fxn Function to use for fold change or average difference calculation 
+#' (see example in \code{\link{FoldChange}})
+#' @param fc.name Name of the fold change, average difference, or custom function column 
+#' in the output data.frame (see in \code{\link{FoldChange}})
 #'
 #' @rdname FindMarkers
 #' @export
@@ -774,6 +784,8 @@ FindMarkers.Seurat <- function(
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
   ...
 ) {
   if (!is.null(x = group.by)) {
@@ -826,6 +838,7 @@ FindMarkers.Seurat <- function(
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
+    mean.fxn = mean.fxn,
     ...
   )
   return(de.results)
@@ -835,8 +848,6 @@ FindMarkers.Seurat <- function(
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
 #' @param features Genes to calculate fold change for; default is to use all genes
-#' @param mean.fxn Function to use for fold change or average difference calculation
-#' @param fc.name Name of fold change column in output data.frame
 #' 
 #' @importFrom Matrix rowSums
 #' 
@@ -850,7 +861,7 @@ FoldChange.default <- function(
   cells.2,
   features,
   mean.fxn,
-  fc.name = "avg_logFC"
+  fc.name
 ) {
   features <- features %||% rownames(x = object)
   # Calculate percent expressed
@@ -888,10 +899,12 @@ FoldChange.Assay <- function(
   cells.2,
   features,
   slot,
-  pseudocount.use = 1
+  pseudocount.use = 1,
+  fc.name = NULL,
+  mean.fxn = NULL
 ) {
   data <- GetAssayData(object = object, slot = slot)
-  mean.fxn <- switch(
+  mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
     'data' = function(x) {
       return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
@@ -901,7 +914,7 @@ FoldChange.Assay <- function(
       return(log(x = rowMeans(x = x) + pseudocount.use))
     }
   )
-  fc.name <- ifelse(
+  fc.name <- fc.name %||% ifelse(
     test = slot == "scale.data",
     yes = "avg_diff",
     no = "avg_logFC"
@@ -930,13 +943,16 @@ FoldChange.DimReduc <- function(
   features, 
   slot = NULL,
   pseudocount.use = NULL,
-  fc.name = "avg_diff"
+  fc.name = NULL,
+  mean.fxn = NULL
 ) {
+  mean.fxn <- mean.fxn %||% rowMeans
+  fc.name <- fc.name %||% "avg_diff"
   data <- t(x = Embeddings(object = object))
   features <- features %||% rownames(x = data)
   # Calculate avg difference
-  data.1 <- rowMeans(data[features, cells.1, drop = FALSE])
-  data.2 <- rowMeans(data[features, cells.2, drop = FALSE])
+  data.1 <- mean.fxn(data[features, cells.1, drop = FALSE])
+  data.2 <- mean.fxn(data[features, cells.2, drop = FALSE])
   fc <- (data.1 - data.2)
   fc.results <- data.frame(fc)
   colnames(fc.results) <- fc.name
@@ -951,12 +967,18 @@ FoldChange.DimReduc <- function(
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to calculate fold change for
 #' @param reduction Reduction to use - will calculate average difference on cell embeddings
-#' @param group.by Regroup cells into a different identity class prior to calculating fold change (see example)
-#' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
+#' @param group.by Regroup cells into a different identity class prior to 
+#' calculating fold change (see example in \code{\link{FindMarkers}})
+#' @param subset.ident Subset a particular identity class prior to regrouping. 
+#' Only relevant if group.by is set (see example in \code{\link{FindMarkers}})
 #' @param assay Assay to use in fold change calculation
 #' @param slot Slot to pull data from
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
+#' @param mean.fxn Function to use for fold change or average difference calculation 
+#' (see example)
+#' @param fc.name Name of the fold change, average difference, or custom function column
+#' in the output data.frame (see example)
 #' 
 #' @rdname FoldChange
 #' @export
@@ -972,7 +994,9 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL
 ) {
   if (!is.null(x = group.by)) {
     if (!is.null(x = subset.ident)) {
@@ -1004,7 +1028,9 @@ FoldChange.Seurat <- function(
     cells.2 = cells$cells.2,
     features = features,
     slot = slot,
-    pseudocount.use = pseudocount.use
+    pseudocount.use = pseudocount.use,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name
   )
   return(fc.results)
 }
