@@ -1632,7 +1632,6 @@ TransferData <- function(
   anchorset,
   refdata,
   weight.reduction = 'pcaproject',
-  multi.modal = FALSE, 
   l2.norm = FALSE,
   dims = 1:30,
   k.weight = 50,
@@ -1647,7 +1646,7 @@ TransferData <- function(
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
-
+  
   if (inherits(x = refdata, what = c("character", "factor"))) {
     if (length(x = refdata) != length(x = reference.cells)) {
       stop(paste0("Please provide a vector that is the same length as the number of reference cells",
@@ -1663,9 +1662,7 @@ TransferData <- function(
                   "Number of columns in provided matrix : ", ncol(x = refdata), "\n",
                   "Number of columns required           : ", length(x = reference.cells)))
     }
-    if(   grepl( pattern = "_reference",x = reference.cells[1])){
-      colnames(x = refdata) <- paste0(colnames(x = refdata), "_reference")
-    }
+    colnames(x = refdata) <- paste0(colnames(x = refdata), "_reference")
     if (any(!colnames(x = refdata) == reference.cells)) {
       if (any(!colnames(x = refdata) %in% reference.cells) | any(!reference.cells %in% colnames(x = refdata))) {
         stop("Some (or all) of the column names of the provided refdata don't match the reference cells used in anchor finding.")
@@ -1687,7 +1684,7 @@ TransferData <- function(
     query <- ScaleData(object = query, features = features, verbose = FALSE)
     query <- RunPCA(object = query, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query[['pca']])
-
+    
     #fill with 0s
     ref.pca <- matrix(
       data = 0,
@@ -1715,13 +1712,7 @@ TransferData <- function(
       new.names = paste0(Cells(x = weight.reduction), "_query")
     )
   } else {
-    if(multi.modal){
-      weight.reduction <- lapply( X = combined.ob@misc$proj.reduction,
-                                  FUN = function(r) combined.ob[[r]])
-      names(weight.reduction) <- unlist(combined.ob@misc$proj.reduction)
-    } else{
-      weight.reduction <- combined.ob[[weight.reduction]]
-    }
+    weight.reduction <- combined.ob[[weight.reduction]]
   }
   combined.ob <- SetIntegrationData(
     object = combined.ob,
@@ -2314,53 +2305,22 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = 'anchors'
   )
-  k <- min(k, nrow(anchors) - 1)
   anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
   if (is.null(x = features)) {
-    if(is.list(reduction)){
-      message("Multi-modal anchors transfer")
-      query.data.use <- lapply(X = reduction, 
-                               FUN = function(reduc){ 
-                                 Embeddings(reduc)[nn.cells2, ]
-                               })  
-      
-      data.use <- lapply(X = reduction, 
-                         FUN = function(reduc){ 
-                           Embeddings(reduc)[anchors.cells2, ]
-                         })  
-      
-    } else{
-      data.use <- Embeddings(reduction)[nn.cells2, dims]
-    }
+    data.use <- Embeddings(reduction)[nn.cells2, dims]
   } else {
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
   }
-  
-  if( is.list( reduction )){
-    knn_2_2 <- MultiModalNN(object = data.use, 
-                            query = query.data.use,
-                            k.nn = k, 
-                            knn.range = max(200, 5*k),
-                            l2.norm =  FALSE, 
-                            modality.weight = object@misc$query.modality.weight, 
-                            sigma.list  = object@misc$query.sigma.list, 
-                            nearest.dist = object@misc$nearest.dist)
-    
-    distances <- knn_2_2$nn.dists + 1e-10
-    distances <-  1 - (distances / distances[, ncol(x = distances)])+ 1e-10
-    cell.index <- knn_2_2$nn.idx
-  } else{
-    knn_2_2 <- NNHelper(
-      data = data.use[anchors.cells2, ],
-      query = data.use,
-      k = k + 1,
-      method = nn.method,
-      eps = eps
-    )
-    distances <- knn_2_2$nn.dists[, -1]
-    distances <- 1 - (distances / distances[, ncol(x = distances)])
-    cell.index <- knn_2_2$nn.idx[, -1]
-  }
+  knn_2_2 <- NNHelper(
+    data = data.use[anchors.cells2, ],
+    query = data.use,
+    k = k + 1,
+    method = nn.method,
+    eps = eps
+  )
+  distances <- knn_2_2$nn.dists[, -1]
+  distances <- 1 - (distances / distances[, ncol(x = distances)])
+  cell.index <- knn_2_2$nn.idx[, -1]
   integration.matrix <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
