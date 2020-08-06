@@ -1409,11 +1409,13 @@ MapQueryData <- function(reference,
                                 k = k.weight, 
                                 sd.weight = sd.weight,
                                 eps = eps, 
-                                nn.method = nn.method)
+                                nn.method = nn.method,
+                                verbose = verbose)
       merged.obj <- TransformDataMatrix(object = merged.obj, 
                                         new.assay.name = 'integrated', 
                                         features.to.integrate = rownames(x = obj), 
-                                        integration.name = integration.name)
+                                        integration.name = integration.name,
+                                        verbose = verbose)
       # extracting batch corrcted data
       integrated.matrix <- GetAssayData(object = merged.obj, 
                                         assay = 'integrated', 
