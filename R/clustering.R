@@ -1067,7 +1067,7 @@ MultiModalNN <- function(object,
   select_dist <- t(sapply( X = 1:query.cell.num, 
                            FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][ 1:k.nn ])
   )
-  select_dist <- 1 - select_dist
+  select_dist <- sqrt((1 - select_dist)/2)
   rownames(x = select_nn) <- rownames(x = select_dist) <- Cells(query)
   joint.nn <- list(select_nn, select_dist)
   names(x = joint.nn) <- c("nn.idx", "nn.dists")
