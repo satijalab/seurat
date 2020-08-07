@@ -96,12 +96,12 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
     std::string key = all_rownames[i];
     if (mat1_map.count(key)){
       for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it1(mat1, mat1_map[key]); it1; ++it1){
-        tripletList.push_back(T(i, it1.col(), it1.value()));
+        tripletList.emplace_back(i, it1.col(), it1.value());
       }
     }
     if (mat2_map.count(key)){
       for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it2(mat2, mat2_map[key]); it2; ++it2){
-        tripletList.push_back(T(i, num_col1 + it2.col(), it2.value()));
+        tripletList.emplace_back(i, num_col1 + it2.col(), it2.value());
       }
     }
   }
