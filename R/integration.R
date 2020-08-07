@@ -1861,6 +1861,58 @@ AdjustSampleTree <- function(x, reference.objects) {
   return(x)
 }
 
+# Add info to anchor matrix
+#
+# @param object Seurat object
+# @param toolname Name in tool slot to pull from
+# @param annotation Name in metadata to annotate anchors with
+# @param object.list List of objects using in FindIntegrationAnchors call
+#
+# @return Returns the anchor dataframe with additional columns for annotation
+# metadata
+
+AnnotateAnchors <- function(
+  object,
+  toolname = "integrated",
+  annotation = NULL,
+  object.list = NULL
+) {
+  anchors <- GetIntegrationData(
+    object = object,
+    integration.name = toolname,
+    slot = 'anchors'
+  )
+  for(i in annotation) {
+    if (! i %in% colnames(x = object[[]])) {
+      warning(i, " not in object metadata")
+      next
+    }
+    if(!is.null(x = object.list)) {
+      anchors[, paste0("cell1.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
+        as.character(object.list[[as.numeric(x[["dataset1"]])]][[]][as.numeric(x[["cell1"]]), i])
+      })
+      anchors[, paste0("cell2.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
+        as.character(object.list[[as.numeric(x[["dataset2"]])]][[]][as.numeric(x[["cell2"]]), i])
+      })
+    } else {
+      cells1 <- GetIntegrationData(
+        object = object,
+        integration.name = toolname,
+        slot = 'neighbors'
+      )$cells1
+      cells2 <- GetIntegrationData(
+        object = object,
+        integration.name = toolname,
+        slot = 'neighbors'
+      )$cells2
+      anchors[, paste0("cell1.", i)] <- object[[i]][cells1[anchors$cell1], , drop = TRUE]
+      anchors[, paste0("cell2.", i)] <- object[[i]][cells2[anchors$cell2], , drop = TRUE]
+      anchors[, paste0(i, ".match")] <- anchors[, paste0("cell1.", i)] == anchors[, paste0("cell2.", i)]
+    }
+  }
+  return(anchors)
+}
+
 # Build tree of datasets based on cell similarity
 #
 # @param similarity.matrix Dataset similarity matrix
@@ -2816,7 +2868,7 @@ ProjectCellEmbeddings <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-  
+
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
@@ -2825,7 +2877,7 @@ ProjectCellEmbeddings <- function(
     object = query,
     assay = query.assay,
     slot = "data")[features, ]
-  
+
   if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
     feature.sd <- sqrt(
