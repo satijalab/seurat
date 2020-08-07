@@ -5079,7 +5079,16 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
         call. = FALSE
       )
     }
-    new.data <- new.data[new.features, colnames(x = object), drop = FALSE]
+    new.cells <- na.omit(object = match(
+      x = new.cells,
+      table = colnames(x = object)
+    ))
+    if (is.unsorted(x = new.features)) {
+      new.data <- new.data[new.features, , drop = FALSE]
+    }
+    if (is.unsorted(x = new.cells)) {
+      new.data <- new.data[, new.cells, drop = FALSE]
+    }
     if (slot %in% c('counts', 'data') && !all(dim(x = new.data) == dim(x = object))) {
       stop(
         "Attempting to add a different number of cells and/or features",
@@ -6624,7 +6633,9 @@ merge.Assay <- function(
       )
     }
     # only keep cells that made it through counts filtering params
-    merged.data <- merged.data[, colnames(x = combined.assay)]
+    if (!all.equal(target = colnames(x = combined.assay), current = colnames(x = merged.data))) {
+      merged.data <- merged.data[, colnames(x = combined.assay)]
+    }
     combined.assay <- SetAssayData(
       object = combined.assay,
       slot = "data",
