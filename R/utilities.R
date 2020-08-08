@@ -1238,7 +1238,7 @@ RegroupIdents <- function(object, metadata) {
 #' @export
 #'
 RowMergeSparseMatrices <- function(mat1, mat2) {
-  all.mat <- c(mat1, mat2)
+  all.mat <- c(list(mat1), mat2)
   all.rownames <- list()
   all.colnames <- list()
   use.cbind <- TRUE
