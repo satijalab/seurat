@@ -117,9 +117,12 @@ Eigen::SparseMatrix<double> RowMergeMatricesList(
    std::vector< std::string > all_rownames
 ) {
   // Convert Rcpp lists to c++ vectors
-  std::vector<Eigen::SparseMatrix<double, Eigen::RowMajor>> mat_vec(mat_list.size()); 
-  std::vector<std::vector<std::string>> rownames_vec(mat_rownames.size());
-  std::vector<std::unordered_map<std::string, int>> map_vec(mat_list.size());
+  std::vector<Eigen::SparseMatrix<double, Eigen::RowMajor>> mat_vec; 
+  mat_vec.reserve(mat_list.size());
+  std::vector<std::vector<std::string>> rownames_vec;
+  rownames_vec.reserve(mat_rownames.size());
+  std::vector<std::unordered_map<std::string, int>> map_vec;
+  map_vec.reserve(mat_list.size());
   int num_cols = 0;
   int num_nZero = 0;
   // offsets keep track of which column to add in to
