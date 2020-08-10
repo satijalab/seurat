@@ -1227,7 +1227,7 @@ RegroupIdents <- function(object, metadata) {
 #' with zeros in the matrix not containing the row.
 #'
 #' @param mat1 First matrix
-#' @param mat2 Second matrix
+#' @param mat2 Second matrix or list of matrices
 #'
 #' @return A merged matrix
 #'
@@ -1237,34 +1237,37 @@ RegroupIdents <- function(object, metadata) {
 #
 #' @export
 #'
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if (inherits(x = mat1, what = "data.frame")) {
-    mat1 <- as.matrix(x = mat1)
+RowMergeSparseMatrices <- function(mat1, mat2) {
+  all.mat <- c(list(mat1), mat2)
+  all.rownames <- list()
+  all.colnames <- list()
+  use.cbind <- TRUE
+  for(i in 1:length(x = all.mat)) {
+    if (inherits(x = all.mat[[i]], what = "data.frame")) {
+      all.mat[[i]] <- as.matrix(x = all.mat[[i]])
+    }
+    all.rownames[[i]] <- rownames(x = all.mat[[i]])
+    all.colnames[[i]] <- colnames(x = all.mat[[i]])
+    # use cbind if all matrices have the same rownames
+    if (i > 1) {
+      if (!isTRUE(x = all.equal(target = all.rownames[[i]], current = all.rownames[[i - 1]]))) {
+        use.cbind <- FALSE
+      }
+    }
   }
-  if (inherits(x = mat2, what = "data.frame")) {
-    mat2 <- as.matrix(x = mat2)
-  }
-  mat1.names <- rownames(x = mat1)
-  mat2.names <- rownames(x = mat2)
-  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
-    new.mat <- cbind(mat1, mat2)
+  if (isTRUE(x = use.cbind)) {
+    new.mat <- do.call(what = cbind, args = all.mat)
   } else {
-    mat1 <- as(object = mat1, Class = "RsparseMatrix")
-    mat2 <- as(object = mat2, Class = "RsparseMatrix")
-    all.names <- union(x = mat1.names, y = mat2.names)
-    new.mat <- RowMergeMatrices(
-      mat1 = mat1,
-      mat2 = mat2,
-      mat1_rownames = mat1.names,
-      mat2_rownames = mat2.names,
+    all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
+    all.names <- unique(x = do.call(what = c, args = all.rownames))
+    new.mat <- RowMergeMatricesList(
+      mat_list = all.mat, 
+      mat_rownames = all.rownames, 
       all_rownames = all.names
     )
     rownames(x = new.mat) <- make.unique(names = all.names)
   }
-  colnames(x = new.mat) <- make.unique(names = c(
-    colnames(x = mat1),
-    colnames(x = mat2)
-  ))
+  colnames(x = new.mat) <- make.unique(names = c(do.call(what = c, all.colnames)))
   return(new.mat)
 }
 
