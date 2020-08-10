@@ -265,4 +265,25 @@ test_that("passing an expression works", {
   expect_equal(lyz.pos[30], "CTTGATTGATCTTC")
 })
 
-
+# Tests for small other functions
+# ------------------------------------------------------------------------------
+test_that("Top works", {
+  dat <- Embeddings(object = pbmc_small[['pca']])[, 1, drop = FALSE]
+  expect_warning(Top(data = dat, num = 1000, balanced = FALSE))
+  tpc1 <- Top(data = dat, num = 20, balanced = FALSE)
+  expect_equal(length(x = tpc1), 20)
+  expect_equal(tpc1[1], "ACGTGATGCCATGA")
+  expect_equal(tpc1[20], "GTCATACTTCGCCT")
+  tpc1b <- Top(data = dat, num = 20, balanced = TRUE)
+  expect_equal(length(x = tpc1b), 2)
+  expect_equal(names(tpc1b), c("positive", "negative"))
+  expect_equal(length(tpc1b[[1]]), 10)
+  expect_equal(length(tpc1b[[2]]), 10)
+  expect_equal(tpc1b[[1]][1], "GTCATACTTCGCCT")
+  expect_equal(tpc1b[[1]][10], "CTTGATTGATCTTC")
+  expect_equal(tpc1b[[2]][1], "ACGTGATGCCATGA")
+  expect_equal(tpc1b[[2]][10], "ATTGTAGATTCCCG")
+  tpc1.sub <- Top(data = dat[1:79, , drop = FALSE], num = 79, balanced = TRUE)
+  expect_equal(length(tpc1.sub[[1]]), 40)
+  expect_equal(length(tpc1.sub[[2]]), 39)
+})

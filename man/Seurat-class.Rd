@@ -28,9 +28,11 @@ and the original identity class (orig.ident); more information is added using \c
 
 \item{\code{graphs}}{A list of \code{\link{Graph-class}} objects}
 
-\item{\code{neighbors}}{...}
+\item{\code{neighbors}}{Unused at this time}
 
 \item{\code{reductions}}{A list of dimmensional reduction objects for this object}
+
+\item{\code{images}}{A list of spatial image objects}
 
 \item{\code{project.name}}{Name of the project}
 

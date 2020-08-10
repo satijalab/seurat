@@ -4,16 +4,18 @@
 \alias{HoverLocator}
 \title{Hover Locator}
 \usage{
-HoverLocator(plot, information = NULL, dark.theme = FALSE, ...)
+HoverLocator(plot, information = NULL, axes = TRUE, dark.theme = FALSE, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot}
 
 \item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 
+\item{axes}{Display or hide x- and y-axes}
+
 \item{dark.theme}{Plot using a dark theme?}
 
-\item{...}{Extra parameters to be passed to \code{plotly::layout}}
+\item{...}{Extra parameters to be passed to \code{\link[plotly]{layout}}}
 }
 \description{
 Get quick information from a scatterplot by hovering over points
