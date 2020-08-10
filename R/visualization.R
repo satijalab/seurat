@@ -311,7 +311,11 @@ DoHeatmap <- function(
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
       default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
-      cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      if (!is.null(x = names(x = group.colors))) { 
+        cols <- unname(obj = group.colors[levels(x = group.use)])
+      } else {
+        cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      }
       if (any(is.na(x = cols))) {
         cols[is.na(x = cols)] <- default.colors[is.na(x = cols)]
         cols <- Col2Hex(cols)
