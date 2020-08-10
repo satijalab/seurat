@@ -59,7 +59,7 @@ CalcPerturbSig <- function(
   } else {
     Idents(object = object) <- "rep1"
   }
-  replicate <- levels(x = object)
+  replicate <- unique(Idents(object))
   all_diff <- matrix(nrow = length(x = rownames(x = GetAssayData(object = object, assay = assay, slot = slot))), ncol = 0)
   for (r in replicate) {
     rep1 <- object[, WhichCells(object = object, idents = r)]
@@ -683,7 +683,6 @@ RunMixscape <- function (object = NULL,
         old.classes <- object.gene[[new.class.name]]
         while (!converged & n.iter < iter.num) {
           Idents(object = object.gene) <- new.class.name
-          #nt.cells <- WhichCells(object = object.gene, idents = nt.class.name)
           guide.cells <- WhichCells(object = object.gene, idents = gene)
           vec <- rowMeans(x = dat[, guide.cells]) - rowMeans(x = dat[, nt.cells])
           pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
@@ -729,10 +728,6 @@ RunMixscape <- function (object = NULL,
     
   }
   
-  #names(x = p_ko) <- NULL
-  #prob <- unlist(x = p_ko)
-  #object <- AddMetaData(object = object, metadata = prob, col.name = "p_ko")
-  #object$p_ko[names(x = which(x = is.na(x = object$p_ko)))] <- 0
   return(object)
 }
 

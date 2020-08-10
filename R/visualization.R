@@ -2919,9 +2919,12 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  box = FALSE,
+  geom = 'GeomPoint',
+  position = "median",
   ...
 ) {
-  xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
+  xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
@@ -2934,6 +2937,30 @@ LabelClusters <- function(
   groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
+  }
+  if (geom == 'GeomSpatial') {
+    pb <- ggplot_build(plot = plot)
+    data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
+    if (!pb$plot$plot_env$crop) {
+      # pretty hacky solution to learn the linear transform to put the data into
+      # the rescaled coordinates when not cropping in. Probably a better way to
+      # do this via ggplot
+      y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
+      data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
+      data$x <- data[, xynames["x"]]
+      data$y <- data[, xynames["y"]]
+      panel_params_image <- c()
+      panel_params_image$x.range <- c(0, ncol(x = pb$plot$plot_env$image))
+      panel_params_image$y.range <- c(0, nrow(x = pb$plot$plot_env$image))
+      suppressWarnings(panel_params_image$x$continuous_range <- c(0, ncol(x = pb$plot$plot_env$image)))
+      suppressWarnings(panel_params_image$y$continuous_range <- c(0, nrow(x = pb$plot$plot_env$image)))
+      image.xform <- pb$layout$coord$transform(data, panel_params_image)[, c("x", "y")]
+      plot.xform <- pb$layout$coord$transform(data, pb$layout$panel_params[[1]])[, c("x", "y")]
+      x.xform <- lm(data$x ~ plot.xform$x)
+      y.xform <- lm(data$y ~ plot.xform$y)
+      data[, xynames['y']] <- image.xform$y * y.xform$coefficients[2] + y.xform$coefficients[1]
+      data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
+    }
   }
   labels.loc <- lapply(
     X = groups,
@@ -2969,7 +2996,16 @@ LabelClusters <- function(
       return(data.medians)
     }
   )
+  if (position == "nearest") {
+    labels.loc <- lapply(X = labels.loc, FUN = function(x) {
+      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
+      nearest.point <- nn2(data = group.data[, 1:2], query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
+      x[1:2] <- group.data[nearest.point, 1:2]
+      return(x)
+    })
+  }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
     stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
@@ -2978,12 +3014,24 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
-  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
-  plot <- plot + geom.use(
-    data = labels.loc,
-    mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
-    ...
-  )
+  if (box) {
+    geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
+      show.legend = FALSE,
+      ...
+    )
+  } else {
+    geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
+      show.legend = FALSE,
+      ...
+    )
+  }
+  
   return(plot)
 }
 
