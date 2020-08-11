@@ -367,12 +367,9 @@ export(RunCCA)
 export(RunICA)
 export(RunLDA)
 export(RunLSI)
-<<<<<<< HEAD
 export(RunMixscape)
-=======
 export(RunMarkVario)
 export(RunMoransI)
->>>>>>> develop
 export(RunPCA)
 export(RunTSNE)
 export(RunUMAP)
@@ -542,13 +539,10 @@ importFrom(ggplot2,stat_density2d)
 importFrom(ggplot2,stat_qq)
 importFrom(ggplot2,sym)
 importFrom(ggplot2,theme)
-<<<<<<< HEAD
 importFrom(ggplot2,theme_classic)
-=======
 importFrom(ggplot2,theme_void)
 importFrom(ggplot2,transform_position)
 importFrom(ggplot2,unit)
->>>>>>> develop
 importFrom(ggplot2,vars)
 importFrom(ggplot2,waiver)
 importFrom(ggplot2,xlab)
