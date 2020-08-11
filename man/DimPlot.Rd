@@ -21,6 +21,8 @@ DimPlot(
   order = NULL,
   label = FALSE,
   label.size = 4,
+  label.color = "black",
+  label.box = FALSE,
   repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = "#DE2D26",
@@ -69,6 +71,11 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 \item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
+
+\item{label.color}{Sets the color of the label text}
+
+\item{label.box}{Whether to put a box around the label text (geom_text vs
+geom_label)}
 
 \item{repel}{Repel labels}
 
