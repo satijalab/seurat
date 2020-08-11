@@ -92,6 +92,7 @@ CalcPerturbSig <- function(
     rownames(x = new_expr) <- rownames(x = GetAssayData(object = nt, assay = assay, slot = slot))
     colnames(x = new_expr) <- all_cells
     diff <- new_expr - GetAssayData(object = rep1, slot = slot, assay = assay)[, colnames(x = new_expr)]
+    diff <- as(Class = "dgCMatrix", object = diff)
     all_diff <- cbind(all_diff, diff)
   } 
   all_diff <- as(Class = "dgCMatrix", object = all_diff)
