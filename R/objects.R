@@ -4913,7 +4913,9 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
 #'
 RenameCells.Neighbor <- function(object, old.names = NULL, new.names = NULL, ...) {
   CheckDots(...)
-  browser()
+  neighbor.names <- Cells(x = object)
+  names(x = new.names) <- old.names
+  slot(object = object, name = "cell.names") <- unname(obj = new.names[neighbor.names])
   return(object)
 }
 
@@ -5005,7 +5007,7 @@ RenameCells.Seurat <- function(
     )
   }
   # Rename the Neighbor
-  for(i in Neighbor(object = object)) {
+  for(i in Neighbors(object = object)) {
     object[[i]] <- RenameCells(
       object = object[[i]],
       old.names = old.names,
