@@ -281,7 +281,7 @@ FindNeighbors.default <- function(
       searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric)
-    nn.ranked <- nn.ranked$nn.idx
+    nn.ranked <- Indices(object = nn.ranked)
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -514,7 +514,7 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
     k = k,
     search.k = search.k,
     include.distance = include.distance)
-  return(nn)
+  return(list(nn = nn, idx = idx))
 }
 
 # Build the annoy index
@@ -643,11 +643,22 @@ NNHelper <- function(data, query = data, k, method, ...) {
       EXPR = method,
       "rann" = {
         args <- args[intersect(x = names(x = args), y = names(x = formals(fun = nn2)))]
-        do.call(what = 'nn2', args = args)
+        results <- do.call(what = 'nn2', args = args)
+        Neighbor(
+          nn.idx = results$nn.idx, 
+          nn.dist = results$nn.dists, 
+          cell.names = rownames(x = query)
+        )
       },
       "annoy" = {
         args <- args[intersect(x = names(x = args), y = names(x = formals(fun = AnnoyNN)))]
-        do.call(what = 'AnnoyNN', args = args)
+        results <- do.call(what = 'AnnoyNN', args = args)
+        Neighbor(
+          nn.idx = results$nn$nn.idx, 
+          nn.dist = results$nn$nn.dists, 
+          alg.idx = results$idx,
+          cell.names = rownames(x = query)
+        )
       },
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )

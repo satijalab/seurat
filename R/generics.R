@@ -224,6 +224,18 @@ DefaultAssay <- function(object, ...) {
   UseMethod(generic = 'DefaultAssay<-', object = object)
 }
 
+#' Get the Neighbor nearest neighbors distance matrix
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname Distances
+#' @export Distances
+#'
+Distances <- function(object, ...) {
+  UseMethod(generic = 'Distances', object = object)
+}
+
 #' Get cell embeddings
 #'
 #' @param object An object
@@ -524,6 +536,20 @@ Idents <- function(object, ... ) {
 #'
 "Idents<-" <- function(object, ..., value) {
   UseMethod(generic = 'Idents<-', object = object)
+}
+
+#' Get and set Neighbor nearest neighbor index matrices
+#' 
+#' @param object An object
+#' @param ... Arguments passed to other methods;
+#'
+#' @return A matrix with the nearest neighbor indices
+#'
+#' @rdname Indices
+#' @export Indices
+#'
+Indices <- function(object, ...) {
+  UseMethod(generic = "Indices", object = object)
 }
 
 #' Is an object global/persistent?

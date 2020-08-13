@@ -221,6 +221,32 @@ scalefactors <- function(spot, fiducial, hires, lowres) {
 
 setOldClass(Classes = c('scalefactors'))
 
+#' The Neighbor class
+#' 
+#' The Neighbor class is used to store the results of neighbor finding 
+#' algorithms
+#' 
+#' @slot nn.idx Matrix containing the nearest neighbor indices
+#' @slot nn.dist Matrix containing the nearest neighbor distances
+#' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy 
+#' index
+#' @slot cell.names Names of the cells for which the neighbors have been 
+#' computed. 
+#' 
+#' @name Neighbor-class
+#' @rdname Neighbor-class
+#' @exportClass Neighbor
+#' 
+Neighbor <- setClass(
+  Class = 'Neighbor',
+  slots = c(
+    nn.idx = 'matrix',
+    nn.dist = 'matrix',
+    alg.idx = 'ANY',
+    cell.names = 'character'
+  )
+)
+
 #' The SeuratCommand Class
 #'
 #' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
@@ -1518,6 +1544,36 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   }
   object[[command.name]] <- seurat.command
   return(object)
+}
+
+#' Pull Neighbor or Neighbor names
+#'
+#' Lists the names of \code{\link{Neighbor}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Neighbors object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Neighbor object
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Neighbor} objects
+#' in this Seurat object. Otherwise, the \code{Neighbor} object requested
+#'
+#' @export
+#'
+Neighbors <- function(object, slot = NULL) {
+  neighbors <- FilterObjects(object = object, classes.keep = "Neighbor")
+  if (is.null(x = slot)) {
+    return(neighbors)
+  }
+  if (!slot %in% neighbors) {
+    warning(
+      "Cannot find a Neighbor object of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'neighbors')[[slot]])
 }
 
 #' Pull DimReducs or DimReduc names
@@ -3041,6 +3097,14 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 }
 
 #' @rdname Cells
+#' @method Cells Neighbor
+#' @export
+#' 
+Cells.Neighbor <- function(x) {
+  return(slot(object = x, name = "cell.names"))
+}
+
+#' @rdname Cells
 #' @method Cells SlideSeq
 #' @export
 #'
@@ -3198,6 +3262,17 @@ DefaultAssay.SpatialImage <- function(object, ...) {
   CheckDots(...)
   slot(object = object, name = 'assay') <- value
   return(object)
+}
+
+#' @rdname Distances
+#' @export
+#' @method Distances Neighbor
+#' 
+Distances.Neighbor <- function(object) {
+  object <- UpdateSlots(object = object)
+  distances <- slot(object = object, name = "nn.dist")
+  rownames(x = distances) <- slot(object = object, name = "cell.names")
+  return(distances)
 }
 
 #' @rdname Embeddings
@@ -3644,6 +3719,16 @@ Idents.Seurat <- function(object, ...) {
     object <- droplevels(x = object)
   }
   return(object)
+}
+
+#' @rdname Indices
+#' @export
+#' @method Indices Neighbor
+Indices.Neighbor <- function(object) {
+  object <- UpdateSlots(object = object)
+  indices <- slot(object = object, name = "nn.idx")
+  rownames(x = indices) <- slot(object = object, name = "cell.names")
+  return(indices)
 }
 
 #' @rdname IsGlobal
@@ -4822,6 +4907,17 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
+#' @rdname RenameCells
+#' @export
+#' @method RenameCells Neighbor
+#'
+RenameCells.Neighbor <- function(object, old.names = NULL, new.names = NULL, ...) {
+  CheckDots(...)
+  browser()
+  return(object)
+}
+
+
 #' @param for.merge Only rename slots needed for merging Seurat objects.
 #' Currently only renames the raw.data and meta.data slots.
 #' @param add.cell.id prefix to add cell names
@@ -4906,6 +5002,14 @@ RenameCells.Seurat <- function(
     object[[i]] <- RenameCells(
       object = object[[i]],
       new.names = unname(obj = new.cell.names[Cells(x = object[[i]])])
+    )
+  }
+  # Rename the Neighbor
+  for(i in Neighbor(object = object)) {
+    object[[i]] <- RenameCells(
+      object = object[[i]],
+      old.names = old.names,
+      new.names = new.cell.names
     )
   }
   return(object)
@@ -6432,6 +6536,13 @@ dim.DimReduc <- function(x) {
 }
 
 #' @export
+#' @method dim Neighbor
+#'
+dim.Neighbor <- function(x) {
+  return(dim(x = Indices(object = x)))
+}
+
+#' @export
 #' @method dim Seurat
 #'
 dim.Seurat <- function(x) {
@@ -7156,6 +7267,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     }
   }
   slot(object = x, name = 'graphs') <- list()
+  slot(object = x, name = 'neighbors') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   # subset images
   for (image in Images(object = x)) {
@@ -7362,6 +7474,15 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
       }
       'reductions'
+    } else if (inherits(x = value, what = "Neighbor")) {
+       # Ensure all cells are present in the Seurat object
+      if (length(x = Cells(x = value)) > length(x = Cells(x = x))) {
+        stop(
+          "Cannot add more cells in Neighbor object than are present in the Seurat object.",
+          call. = FALSE
+        )
+      }
+      'neighbors'
     } else if (inherits(x = value, what = 'SeuratCommand')) {
       # Ensure Assay that SeuratCommand is associated with is present in the Seurat object
       if (is.null(x = DefaultAssay(object = value))) {
@@ -7697,6 +7818,20 @@ setMethod(
       "Scored for:",
       nrow(x = scored),
       "dimensions.\n"
+    )
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'Neighbor',
+  definition = function(object) {
+    cat(
+      "A Neighbor object containing the",
+      ncol(x = object),
+      "nearest neighbors for",
+      nrow(x = object), 
+      "cells"
     )
   }
 )
