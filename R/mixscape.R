@@ -597,7 +597,7 @@ RunLDA.Seurat <- function(
 #' not occur.
 #' @param verbose Display messages
 #' @return Returns Seurat object with with the following information in the 
-#' meta data:
+#' meta data and tools slots:
 #' \describe{
 #'   \item{mixscape_class}{Classification result with cells being either 
 #'   classified as perturbed (KO) or non-perturbed (NP) based on their target 
@@ -605,11 +605,12 @@ RunLDA.Seurat <- function(
 #'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
 #'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
 #'   (>0.5) or NP}
+#'   \item{perturbation score}{Perturbation scores for every cells calculated in the first iteration of the function.}
 #' }
 #' 
 #' @export
 #' 
-RunMixscape <- function (object = NULL, 
+RunMixscape2 <- function (object = NULL, 
                           assay = "PRTB", 
                           slot = "scale.data", 
                           labels = "gene", 
@@ -647,7 +648,8 @@ RunMixscape <- function (object = NULL,
     Idents(object = object) <- split.by
   }
   
-  #p_ko <- list()
+  #create list to store perturbation scores.
+  gv.list <- list()
   
   for (s in splt.b){
     object.s <- subset(x = object, idents = s)
@@ -687,6 +689,15 @@ RunMixscape <- function (object = NULL,
           guide.cells <- WhichCells(object = object.gene, idents = gene)
           vec <- rowMeans(x = dat[, guide.cells]) - rowMeans(x = dat[, nt.cells])
           pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
+          
+          if(n.iter == 0){
+            #store pvec
+            gv<- melt(pvec)
+            gv[,labels] <- "NT"
+            gv[intersect(rownames(gv), guide.cells),labels] <- gene
+            gv.list[[gene]][[n.iter+1]] <- gv
+          }
+          
           guide.norm <- DefineNormalMixscape(pvec[guide.cells])
           nt.norm <- DefineNormalMixscape(pvec[nt.cells])
           mm <- mixtools::normalmixEM(x = pvec, mu = c(nt.norm$mu, 
@@ -723,12 +734,13 @@ RunMixscape <- function (object = NULL,
       object[[new.class.name]][Cells(object.gene), 1] <- object.gene[[new.class.name]]
       object[[paste(new.class.name, ".global", sep = "")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
-
+      
       object[["p_ko"]][Cells(object.gene)[-c(nt.cells)],1] <- post.prob
     }
     
   }
-  
+  gv.list2 <- gv.list[names(gv.list)[-1]] 
+  Tool(object) <- unlist(gv.list2, recursive = F)
   return(object)
 }
 
