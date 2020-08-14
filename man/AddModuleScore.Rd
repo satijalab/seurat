@@ -21,9 +21,11 @@ AddModuleScore(
 \arguments{
 \item{object}{Seurat object}
 
-\item{features}{Feature expression programs in list}
+\item{features}{A list of vectors of features for expression programs; each
+entry should be a vector of feature names}
 
-\item{pool}{List of features to check expression levels agains, defaults to \code{rownames(x = object)}}
+\item{pool}{List of features to check expression levels agains, defaults to
+\code{rownames(x = object)}}
 
 \item{nbin}{Number of bins of aggregate expression levels for all analyzed features}
 
@@ -33,7 +35,10 @@ AddModuleScore(
 
 \item{assay}{Name of assay to use}
 
-\item{name}{Name for the expression programs}
+\item{name}{Name for the expression programs; will append a number to the
+end for each entry in \code{features} (eg. if \code{features} has three 
+programs, the results will be stored as \code{name1}, \code{name2},
+\code{name3}, respectively)}
 
 \item{seed}{Set a random seed. If NULL, seed is not set.}
 

@@ -14,13 +14,18 @@ NULL
 #' randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Feature expression programs in list
-#' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
+#' @param features A list of vectors of features for expression programs; each
+#' entry should be a vector of feature names
+#' @param pool List of features to check expression levels agains, defaults to
+#' \code{rownames(x = object)}
 #' @param nbin Number of bins of aggregate expression levels for all analyzed features
 #' @param ctrl Number of control features selected from the same bin per analyzed feature
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
-#' @param name Name for the expression programs
+#' @param name Name for the expression programs; will append a number to the
+#' end for each entry in \code{features} (eg. if \code{features} has three 
+#' programs, the results will be stored as \code{name1}, \code{name2},
+#' \code{name3}, respectively)
 #' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names database;
