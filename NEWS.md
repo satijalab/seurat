@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
 - Enable named color vectors in `DoHeatmap()`
+- Add `label.color` and `label.box` parameters to `DimPlot`
 
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
@@ -14,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Set max for number of items returned by `Top` and remove duplicate items when balanced=TRUE
 - Fix logging bug when functions were run via `do.call()`
 - Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
+
 
 ## [3.2.0] - 2020-07-15
 ### Added
