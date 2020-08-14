@@ -47,6 +47,9 @@ useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
     \item{\code{label}}{Whether to label the clusters}
     \item{\code{label.size}}{Sets size of labels}
+    \item{\code{label.color}}{Sets the color of the label text}
+    \item{\code{label.box}}{Whether to put a box around the label text (geom_text vs
+geom_label)}
     \item{\code{repel}}{Repel labels}
     \item{\code{cells.highlight}}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply
