@@ -1468,7 +1468,7 @@ SampleUMI <- function(
 #' @param assay Name of assay to pull the count data from; default is 'RNA'
 #' @param new.assay.name Name for the new assay containing the normalized data
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
-#' @param ncells Number of subsampling cells used to build NB regression; default is NULL
+#' @param ncells Number of subsampling cells used to build NB regression; default is 5000
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
@@ -1509,7 +1509,7 @@ SCTransform <- function(
   assay = 'RNA',
   new.assay.name = 'SCT',
   do.correct.umi = TRUE,
-  ncells = NULL,
+  ncells = 5000,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
@@ -1524,6 +1524,16 @@ SCTransform <- function(
 ) {
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
+  }
+  if (getOption('Seurat.warn.sct.ncells', TRUE)) {
+    warning(
+      "The default number of cells for SCTransform has changed from all cells to 5000.",
+      "\nTo use all cells, change ncells to NULL",
+      "\nThis message will be shown once per session",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    options(Seurat.warn.sct.ncells = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
@@ -1570,7 +1580,7 @@ SCTransform <- function(
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
-  vst.args[['n_cells']] <- ncells
+  vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
   if (conserve.memory) {
