@@ -1819,6 +1819,23 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
   ))
 }
 
+#' Get nearest neighbors for given cell
+#'
+#' Return a vector of cell names of the nearest n cells.
+#'
+#' @param object \code{\link{Neighbor}} object
+#' @param cell Cell of interest
+#' @param n Number of neighbors to return
+#'
+#' @return Returns a vector of cell names
+#'
+#' @export
+#'
+TopNeighbors <- function(object, cell, n = 5) {
+  indices <- Indices(object = object)[cell, 1:n]
+  return(Cells(x = object)[indices])
+}
+
 #' Update old Seurat object to accomodate new features
 #'
 #' Updates Seurat objects to new structure for storing data/calculations.
