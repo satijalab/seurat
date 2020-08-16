@@ -789,6 +789,35 @@ RunModularityClustering <- function(
   return(clusters)
 }
 
+# Find subclusters under one cluster
+#' @param object a seurat object
+#' @param cluster the cluster needed to be subclustered
+#' @param graph.name the name of graph used for clustering
+#' @param subcluster.name the name of sub cluster added in the meta.data
+#' @param resolution.sub Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
+
+FindSubCluster <- function(object, 
+                           cluster, 
+                           graph.name,
+                           subcluster.name = "sub.cluster",
+                           resolution.sub = 1, 
+                           algorithm = 1
+){
+  sub.obj <- subset(object, idents = cluster)
+  sub.obj[[graph.name]]   <- as.Graph(object[[graph.name]][Cells(sub.obj), Cells(sub.obj)])
+  sub.obj <- FindClusters(sub.obj, graph.name = graph.name, resolution = resolution.sub, algorithm = algorithm)
+  Idents(sub.obj) <- paste(cluster , Idents(sub.obj), sep = "_")
+  
+  object@meta.data[, subcluster.name] <- as.character(Idents(object))
+  object@meta.data[Cells(sub.obj), subcluster.name] <- as.character(Idents(sub.obj))
+  return(object)
+}
+
+
 #' Predict expression value from knn
 #'
 #' @param object The object used to calculate knn
