@@ -101,3 +101,7 @@ DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
     .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
 }
 
+SNN_SmallestNonzero_Dist <- function(snn, mat, n, nearest_dist) {
+    .Call('_Seurat_SNN_SmallestNonzero_Dist', PACKAGE = 'Seurat', snn, mat, n, nearest_dist)
+}
+

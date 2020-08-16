@@ -1437,78 +1437,44 @@ FindModalityWeights  <- function(object,
   return (modality.weights)
 }
 
-
-#' Find farthest jarccard neighbors from snn graph
-#' @param snn.graph a SNN graph
-#' @param k.nn the number of neighbors is calculated from the SNN graph
-#' @param far.nn Return farthest neighbors in SNN graph
-#' 
-#' @importFrom Matrix summary
-#' @importFrom dplyr group_by arrange slice select group_split
-#' 
-#' 
-snn_nn <- function(snn.graph,
-                   k.nn, 
-                   far.nn = TRUE
-                   ){
-  if (far.nn) {
-    direction <- 1
-  } else {
-    direction <- (-1)
-  }
-  edge <- summary(snn.graph)
-  edge$x <- edge$x * direction
-  nn.idx.snn <- edge %>% 
-    group_by(j) %>% 
-    arrange(x,  .by_group = TRUE)%>%
-    slice(1:k.nn) %>% 
-    select( -x) %>%
-    group_split( .keep = FALSE) %>%
-    Reduce(f = cbind, .) %>%
-    t()
-  rownames(x = nn.idx.snn) <- colnames(x = snn.graph)
-  return (nn.idx.snn)
-}
-
 #' Calculate mean distance of the farthest neighbors from SNN graph
-#' @param snn.graph a SNN graph
-#' @param embeddings a cell embeddings used to calculate neighbor distance
+#' 
+#' This function will compute the average distance of the farthest k.nn 
+#' neighbors with the lowest nonzero SNN edge weight. First, for each cell it 
+#' finds the k.nn neighbors with the smallest edge weight. If there are multiple
+#' cells with the same edge weight at the k.nn-th index, consider all of those 
+#' cells in the next step. Next, it computes the euclidean distance to all k.nn
+#' cells in the space defined by the embeddings matrix and returns the average 
+#' distance to the farthest k.nn cells. 
+#' 
+#' @param snn.graph An SNN graph
+#' @param embeddings The cell embeddings used to calculate neighbor distances
 #' @param k.nn The number of neighbors to calculate
-#' @param l2.norm Perform L2 normalization on the cell embeddings after
-#' dimensional reduction
-#' @param nearest.dist The list of distance to the nearest neighbors
+#' @param l2.norm Perform L2 normalization on the cell embeddings
+#' @param nearest.dist The vector of distance to the nearest neighbors to 
+#' subtract off from distance calculations
 #' 
-#' @importFrom rdist cdist
 #' 
-ComputeSNNwidth <- function(snn.graph,
-                            embeddings, 
-                            k.nn, 
-                            l2.norm = TRUE, 
-                            nearest.dist = NULL) {
+ComputeSNNwidth <- function(
+  snn.graph,
+  embeddings, 
+  k.nn, 
+  l2.norm = TRUE, 
+  nearest.dist = NULL
+) {
   if (l2.norm) {
     embeddings <- L2Norm(mat = embeddings)
   }
-    # find farthest jarccard neighbors
-    snn.idx <- snn_nn(snn.graph = snn.graph, k.nn = k.nn)
- if (any(is.na(x = snn.idx))) {
-   warning("NA is detected, and SNN graph may be pruned")
- }
-  snn.width <- t(sapply(X = 1:nrow(x = embeddings),
-                                 FUN = function(x) {
-                                   dist <- cdist(X = embeddings[x, , drop = FALSE], 
-                                                Y = embeddings[snn.idx[x,], ],
-                                                metric = "euclidean")
-                                   return (dist)
-                                 }))
-  if (!is.null(x = nearest.dist)) {
-    snn.width <- apply(X = snn.width,
-           MARGIN = 2,
-           FUN =  function(x) {
-           dist <- x - nearest.dist
-           dist[ dist < 0 ] <- 0
-           return (dist)
-    })
+  nearest.dist <- nearest.dist %||% rep(x = 0, times = ncol(x = snn.graph))
+  if (length(x = nearest.dist) != ncol(x = snn.graph)) {
+    stop("Please provide a vector for nearest.dist that has as many elements as",
+         " there are columns in the snn.graph (", ncol(x = snn.graph), ").")
   }
-  snn.width <- rowMeans(x = snn.width, na.rm = TRUE) 
+  snn.width <- SNN_SmallestNonzero_Dist(
+    snn = snn.graph,
+    mat = embeddings,
+    n = k.nn, 
+    nearest_dist = nearest.dist
+  )
   return (snn.width)
 }
