@@ -96,12 +96,12 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
     std::string key = all_rownames[i];
     if (mat1_map.count(key)){
       for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it1(mat1, mat1_map[key]); it1; ++it1){
-        tripletList.push_back(T(i, it1.col(), it1.value()));
+        tripletList.emplace_back(i, it1.col(), it1.value());
       }
     }
     if (mat2_map.count(key)){
       for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it2(mat2, mat2_map[key]); it2; ++it2){
-        tripletList.push_back(T(i, num_col1 + it2.col(), it2.value()));
+        tripletList.emplace_back(i, num_col1 + it2.col(), it2.value());
       }
     }
   }
@@ -109,6 +109,57 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   combined_mat.setFromTriplets(tripletList.begin(), tripletList.end());
   return combined_mat;
 }
+
+// [[Rcpp::export]]
+Eigen::SparseMatrix<double> RowMergeMatricesList(
+   List mat_list, 
+   List mat_rownames, 
+   std::vector< std::string > all_rownames
+) {
+  // Convert Rcpp lists to c++ vectors
+  std::vector<Eigen::SparseMatrix<double, Eigen::RowMajor>> mat_vec; 
+  mat_vec.reserve(mat_list.size());
+  std::vector<std::vector<std::string>> rownames_vec;
+  rownames_vec.reserve(mat_rownames.size());
+  std::vector<std::unordered_map<std::string, int>> map_vec;
+  map_vec.reserve(mat_list.size());
+  int num_cols = 0;
+  int num_nZero = 0;
+  // offsets keep track of which column to add in to
+  std::vector<int> offsets(mat_list.size());
+  for (unsigned int i = 0; i < mat_list.size(); i++) {
+    mat_vec.emplace_back(Rcpp::as<Eigen::SparseMatrix<double, Eigen::RowMajor>>(mat_list.at(i)));
+    rownames_vec.push_back(mat_rownames[i]);
+    // Set up hash maps for rowname based lookup
+    std::unordered_map<std::string, int> mat_map;
+    for (unsigned int j = 0; j < rownames_vec[i].size(); j++) {
+      mat_map[rownames_vec[i][j]] = j;
+    }
+    map_vec.emplace_back(mat_map);
+    offsets.emplace_back(num_cols);
+    num_cols += mat_vec[i].cols();
+    num_nZero += mat_vec[i].nonZeros();
+  }
+  // set up tripletList for new matrix creation
+  std::vector<T> tripletList;
+  int num_rows = all_rownames.size();
+  tripletList.reserve(num_nZero);
+  // loop over all rows and add nonzero entries to tripletList
+  for(int i = 0; i < num_rows; i++) {
+    std::string key = all_rownames[i];
+    for(int j = 0; j < mat_vec.size(); j++) {
+      if (map_vec[j].count(key)) {
+        for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it1(mat_vec[j], map_vec[j][key]); it1; ++it1){
+          tripletList.emplace_back(i, it1.col() + offsets[j], it1.value());
+        }
+      }
+    }
+  }
+  Eigen::SparseMatrix<double> combined_mat(num_rows, num_cols);
+  combined_mat.setFromTriplets(tripletList.begin(), tripletList.end());
+  return combined_mat;
+}
+
 
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress = true){

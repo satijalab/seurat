@@ -311,7 +311,11 @@ DoHeatmap <- function(
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
       default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
-      cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      if (!is.null(x = names(x = group.colors))) {
+        cols <- unname(obj = group.colors[levels(x = group.use)])
+      } else {
+        cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      }
       if (any(is.na(x = cols))) {
         cols[is.na(x = cols)] <- default.colors[is.na(x = cols)]
         cols <- Col2Hex(cols)
@@ -707,6 +711,9 @@ ColorDimSplit <- function(
 #' either a full list of valid idents or a subset to be plotted last (on top)
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param label.color Sets the color of the label text
+#' @param label.box Whether to put a box around the label text (geom_text vs
+#' geom_label)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -755,6 +762,8 @@ DimPlot <- function(
   order = NULL,
   label = FALSE,
   label.size = 4,
+  label.color = 'black',
+  label.box = FALSE,
   repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
@@ -809,7 +818,9 @@ DimPlot <- function(
           id = x,
           repel = repel,
           size = label.size,
-          split.by = split.by
+          split.by = split.by,
+          box = label.box,
+          color = label.color
         )
       }
       if (!is.null(x = split.by)) {
@@ -4488,8 +4499,8 @@ LabelClusters <- function(
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
+  pb <- ggplot_build(plot = plot)
   if (geom == 'GeomSpatial') {
-    pb <- ggplot_build(plot = plot)
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
       # pretty hacky solution to learn the linear transform to put the data into
@@ -4512,6 +4523,7 @@ LabelClusters <- function(
       data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
     }
   }
+  data <- cbind(data, color = pb$data[[1]][[1]])
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -4543,6 +4555,7 @@ LabelClusters <- function(
         )))
       }
       data.medians[, id] <- group
+      data.medians$color <- data.use$color[1]
       return(data.medians)
     }
   )
@@ -4571,7 +4584,7 @@ LabelClusters <- function(
       mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
       show.legend = FALSE,
       ...
-    )
+    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
@@ -4581,7 +4594,6 @@ LabelClusters <- function(
       ...
     )
   }
-  
   return(plot)
 }
 
@@ -5385,7 +5397,7 @@ ExIPlot <- function(
   }
   if (stack & !is.null(x = y.max)) {
     warning("`y.max` is ignored when `stack` is set to True")
-  } 
+  }
   if (!stack) {
     ncol <- ncol %||% ifelse(
       test = length(x = features) > 9,
@@ -5453,7 +5465,7 @@ ExIPlot <- function(
         log = log
       )
     )
-  } else { 
+  } else {
     lapply(
       X = features,
       FUN = function(x) {
@@ -5683,7 +5695,7 @@ GeomSpatial <- ggproto(
       just = c("left", "bottom")
     )
     img.grob <- GetImage(object = image)
-    
+
     img <- editGrob(grob = img.grob, vp = vp)
     # spot.size <- slot(object = image, name = "spot.radius")
     spot.size <- Radius(object = image)
@@ -6263,8 +6275,8 @@ MultiExIPlot <- function(
     data = data,
     mapping = aes_string(x = 'expression', y = 'ident', fill = fill)[c(2, 3, 1)]
   ) +
-    labs(x = 'Expression Level', y = 'Identity', fill = NULL) + 
-    theme_cowplot() + 
+    labs(x = 'Expression Level', y = 'Identity', fill = NULL) +
+    theme_cowplot() +
     scale_x_continuous(expand = c(0, 0))
   dummy <- plot + geom_rect(xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf)
   plot <- do.call(what = '+', args = list(plot, geom))
@@ -6281,7 +6293,7 @@ MultiExIPlot <- function(
   }
   if (length(x = unique(x = data$feature)) > 10 && is.null(split) && is.null(cols)) {
     dummy <- dummy +
-      facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) + 
+      facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(
         panel.spacing = unit(0, 'lines'),
         panel.background = element_rect(fill = NA, color = "black"),
@@ -6310,7 +6322,7 @@ MultiExIPlot <- function(
     g2$layout$b[panels] <- g2$layout$b[panels] - 1
     new_strips <- gtable_select(g2, panels | strips)
     plot <- as.ggplot(gtable_stack(g1, new_strips))
-  } 
+  }
   if (!is.null(x = cols)) {
     if (!is.null(x = split)) {
       idents <- unique(x = as.vector(x = data$ident))
@@ -7310,7 +7322,7 @@ SingleSpatialPlot <- function(
         data = data,
         mapping = aes_string(fill = col.by, group = 'cell')
       ) + coord_fixed() + theme_cowplot()
-      
+
     },
     stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
   )

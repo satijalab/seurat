@@ -1460,10 +1460,15 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   if (which.frame < 1) {
     stop("'LogSeuratCommand' cannot be called at the top level", call. = FALSE)
   }
-  command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
-  command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
-  call.string <- command.name
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  if (as.character(x = sys.calls()[[1]])[1] == "do.call") {
+    call.string <- deparse(expr = sys.calls()[[1]])
+    command.name <- as.character(x = sys.calls()[[1]])[2]
+  } else {
+    command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
+    command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
+    call.string <- command.name
+    command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  }
   #capture function arguments
   argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
   argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
@@ -5074,7 +5079,16 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
         call. = FALSE
       )
     }
-    new.data <- new.data[new.features, colnames(x = object), drop = FALSE]
+    new.cells <- na.omit(object = match(
+      x = new.cells,
+      table = colnames(x = object)
+    ))
+    if (is.unsorted(x = new.features)) {
+      new.data <- new.data[new.features, , drop = FALSE]
+    }
+    if (is.unsorted(x = new.cells)) {
+      new.data <- new.data[, new.cells, drop = FALSE]
+    }
     if (slot %in% c('counts', 'data') && !all(dim(x = new.data) == dim(x = object))) {
       stop(
         "Attempting to add a different number of cells and/or features",
@@ -6591,17 +6605,12 @@ merge.Assay <- function(
     }
   }
   # Merge the counts (if present)
-  merged.counts <- ValidateDataForMerge(assay = assays[[1]], slot = "counts")
-  keys <- Key(object = assays[[1]])
-  for (i in 2:length(x = assays)) {
-    merged.counts <- RowMergeSparseMatrices(
-      mat1 = merged.counts,
-      mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "counts")
-    )
-    if (length(Key(object = assays[[i]]) > 0)) {
-      keys[i] <- Key(object = assays[[i]])
-    }
-  }
+  counts.mats <- lapply(X = assays, FUN = ValidateDataForMerge, slot = "counts")
+  keys <- sapply(X = assays, FUN = Key)
+  merged.counts <- RowMergeSparseMatrices(
+    mat1 = counts.mats[[1]],
+    mat2 = counts.mats[2:length(x = counts.mats)]
+  )
   combined.assay <- CreateAssayObject(
     counts = merged.counts,
     min.cells = -1,
@@ -6611,15 +6620,15 @@ merge.Assay <- function(
     Key(object = combined.assay) <- keys[1]
   }
   if (merge.data) {
-    merged.data <- ValidateDataForMerge(assay = assays[[1]], slot = "data")
-    for (i in 2:length(x = assays)) {
-      merged.data <- RowMergeSparseMatrices(
-        mat1 = merged.data,
-        mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "data")
-      )
-    }
+    data.mats <- lapply(X = assays, FUN = ValidateDataForMerge, slot = "data")
+    merged.data <- RowMergeSparseMatrices(
+      mat1 = data.mats[[1]],
+      mat2 = data.mats[2:length(x = data.mats)]
+    )
     # only keep cells that made it through counts filtering params
-    merged.data <- merged.data[, colnames(x = combined.assay)]
+    if (!all.equal(target = colnames(x = combined.assay), current = colnames(x = merged.data))) {
+      merged.data <- merged.data[, colnames(x = combined.assay)]
+    }
     combined.assay <- SetAssayData(
       object = combined.assay,
       slot = "data",

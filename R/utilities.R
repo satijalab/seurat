@@ -8,26 +8,35 @@ NULL
 
 #' Calculate module scores for feature expression programs in single cells
 #'
-#' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control feature sets.
-#' All analyzed features are binned based on averaged expression, and the control features are
-#' randomly selected from each bin.
+#' Calculate the average expression levels of each program (cluster) on single
+#' cell level, subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the
+#' control features are randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Feature expression programs in list
-#' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
-#' @param nbin Number of bins of aggregate expression levels for all analyzed features
-#' @param ctrl Number of control features selected from the same bin per analyzed feature
+#' @param features A list of vectors of features for expression programs; each
+#' entry should be a vector of feature names
+#' @param pool List of features to check expression levels agains, defaults to
+#' \code{rownames(x = object)}
+#' @param nbin Number of bins of aggregate expression levels for all
+#' analyzed features
+#' @param ctrl Number of control features selected from the same bin per
+#' analyzed feature
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
-#' @param name Name for the expression programs
+#' @param name Name for the expression programs; will append a number to the
+#' end for each entry in \code{features} (eg. if \code{features} has three
+#' programs, the results will be stored as \code{name1}, \code{name2},
+#' \code{name3}, respectively)
 #' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
-#' don't match features in \code{object}? Searches the HGNC's gene names database;
-#' see \code{\link{UpdateSymbolList}} for more details
+#' don't match features in \code{object}? Searches the HGNC's gene names
+#' database; see \code{\link{UpdateSymbolList}} for more details
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
-#' @return Returns a Seurat object with module scores added to object meta data
+#' @return Returns a Seurat object with module scores added to object meta data;
+#' each module is stored as \code{name#} for each module program present in
+#' \code{features}
 #'
 #' @importFrom ggplot2 cut_number
 #' @importFrom Matrix rowMeans colMeans
@@ -1227,7 +1236,7 @@ RegroupIdents <- function(object, metadata) {
 #' with zeros in the matrix not containing the row.
 #'
 #' @param mat1 First matrix
-#' @param mat2 Second matrix
+#' @param mat2 Second matrix or list of matrices
 #'
 #' @return A merged matrix
 #'
@@ -1237,34 +1246,37 @@ RegroupIdents <- function(object, metadata) {
 #
 #' @export
 #'
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if (inherits(x = mat1, what = "data.frame")) {
-    mat1 <- as.matrix(x = mat1)
+RowMergeSparseMatrices <- function(mat1, mat2) {
+  all.mat <- c(list(mat1), mat2)
+  all.rownames <- list()
+  all.colnames <- list()
+  use.cbind <- TRUE
+  for(i in 1:length(x = all.mat)) {
+    if (inherits(x = all.mat[[i]], what = "data.frame")) {
+      all.mat[[i]] <- as.matrix(x = all.mat[[i]])
+    }
+    all.rownames[[i]] <- rownames(x = all.mat[[i]])
+    all.colnames[[i]] <- colnames(x = all.mat[[i]])
+    # use cbind if all matrices have the same rownames
+    if (i > 1) {
+      if (!isTRUE(x = all.equal(target = all.rownames[[i]], current = all.rownames[[i - 1]]))) {
+        use.cbind <- FALSE
+      }
+    }
   }
-  if (inherits(x = mat2, what = "data.frame")) {
-    mat2 <- as.matrix(x = mat2)
-  }
-  mat1.names <- rownames(x = mat1)
-  mat2.names <- rownames(x = mat2)
-  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
-    new.mat <- cbind(mat1, mat2)
+  if (isTRUE(x = use.cbind)) {
+    new.mat <- do.call(what = cbind, args = all.mat)
   } else {
-    mat1 <- as(object = mat1, Class = "RsparseMatrix")
-    mat2 <- as(object = mat2, Class = "RsparseMatrix")
-    all.names <- union(x = mat1.names, y = mat2.names)
-    new.mat <- RowMergeMatrices(
-      mat1 = mat1,
-      mat2 = mat2,
-      mat1_rownames = mat1.names,
-      mat2_rownames = mat2.names,
+    all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
+    all.names <- unique(x = do.call(what = c, args = all.rownames))
+    new.mat <- RowMergeMatricesList(
+      mat_list = all.mat,
+      mat_rownames = all.rownames,
       all_rownames = all.names
     )
     rownames(x = new.mat) <- make.unique(names = all.names)
   }
-  colnames(x = new.mat) <- make.unique(names = c(
-    colnames(x = mat1),
-    colnames(x = mat2)
-  ))
+  colnames(x = new.mat) <- make.unique(names = c(do.call(what = c, all.colnames)))
   return(new.mat)
 }
 
