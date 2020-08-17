@@ -538,7 +538,33 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
-#' Get and set Neighbor nearest neighbor index matrices
+#' Get Neighbor algorithm index 
+#' 
+#' @param object An object
+#' @param ... Arguments passed to other methods;
+#'
+#' @return Returns the value in the alg.idx slot of the Neighbor object
+#'
+#' @rdname Index
+#' @export Index
+#'
+Index <- function(object, ...) {
+  UseMethod(generic = "Index", object = object)
+}
+
+#' @inheritParams Index
+#' @param value The index to store
+#'
+#' @return \code{Idents<-}: A Neighbor bject with the index stored
+#'
+#' @rdname Index
+#' @export Index<-
+#'
+"Index<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Index<-', object = object)
+}
+
+#' Get Neighbor nearest neighbor index matrices
 #' 
 #' @param object An object
 #' @param ... Arguments passed to other methods;

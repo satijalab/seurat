@@ -350,6 +350,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP isnull(SEXP);
+
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
@@ -376,6 +378,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
+    {"isnull", (DL_FUNC) &isnull, 1},
     {NULL, NULL, 0}
 };
 

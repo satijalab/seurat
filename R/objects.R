@@ -230,6 +230,9 @@ setOldClass(Classes = c('scalefactors'))
 #' @slot nn.dist Matrix containing the nearest neighbor distances
 #' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy 
 #' index
+#' @slot alg.info Any information associated with the algorithm that may be 
+#' needed downstream (e.g. distance metric used with annoy is needed when 
+#' reading in from stored file).
 #' @slot cell.names Names of the cells for which the neighbors have been 
 #' computed. 
 #' 
@@ -243,6 +246,7 @@ Neighbor <- setClass(
     nn.idx = 'matrix',
     nn.dist = 'matrix',
     alg.idx = 'ANY',
+    alg.info = 'list',
     cell.names = 'character'
   )
 )
@@ -3735,6 +3739,27 @@ Idents.Seurat <- function(object, ...) {
   if (drop) {
     object <- droplevels(x = object)
   }
+  return(object)
+}
+
+#' @rdname Index
+#' @export
+#' @method Index Neighbor
+Index.Neighbor <- function(object) {
+  object <- UpdateSlots(object = object)
+  index <- slot(object = object, name = "alg.idx")
+  if (is.null.externalptr(index$.pointer)) {
+    return(NULL)
+  }
+  return(index)
+}
+
+#' @rdname Index
+#' @export
+#' @method Index<- Neighbor
+"Index<-.Neighbor" <- function(object, ..., value) {
+  CheckDots(...)
+  slot(object = object, name = "alg.idx") <- value
   return(object)
 }
 

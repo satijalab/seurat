@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
+#include <Rinternals.h>
 
 using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]

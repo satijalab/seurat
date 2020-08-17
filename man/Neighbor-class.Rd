@@ -19,6 +19,10 @@ algorithms
 \item{\code{alg.idx}}{The neighbor finding index (if applicable). E.g. the annoy 
 index}
 
+\item{\code{alg.info}}{Any information associated with the algorithm that may be 
+needed downstream (e.g. distance metric used with annoy is needed when 
+reading in from stored file).}
+
 \item{\code{cell.names}}{Names of the cells for which the neighbors have been 
 computed.}
 }}

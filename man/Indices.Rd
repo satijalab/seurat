@@ -3,7 +3,7 @@
 \name{Indices}
 \alias{Indices}
 \alias{Indices.Neighbor}
-\title{Get and set Neighbor nearest neighbor index matrices}
+\title{Get Neighbor nearest neighbor index matrices}
 \usage{
 Indices(object, ...)
 
@@ -18,5 +18,5 @@ Indices(object, ...)
 A matrix with the nearest neighbor indices
 }
 \description{
-Get and set Neighbor nearest neighbor index matrices
+Get Neighbor nearest neighbor index matrices
 }
