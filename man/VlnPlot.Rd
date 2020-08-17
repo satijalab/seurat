@@ -22,7 +22,9 @@ VlnPlot(
   slot = "data",
   split.plot = FALSE,
   stack = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  fill.by = "feature",
+  flip = F
 )
 }
 \arguments{
@@ -64,7 +66,11 @@ single violin shapes.}
 \item{stack}{Horizontally stack plots for each feature}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-ggplot object. If \code{FALSE}, return a list of ggplot objects}
+ggplot object. If \code{FALSE}, return a list of ggplot}
+
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
+
+\item{flip}{flip plot orientation (Identities on x-axis)}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

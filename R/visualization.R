@@ -483,7 +483,8 @@ HTOHeatmap <- function(
 #' @param slot Use non-normalized counts data for plotting
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-#' ggplot object. If \code{FALSE}, return a list of ggplot objects
+#' ggplot object. If \code{FALSE}, return a list of ggplot 
+#' @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -507,7 +508,8 @@ RidgePlot <- function(
   ncol = NULL,
   slot = 'data',
   stack = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  fill.by = 'feature'
 ) {
   return(ExIPlot(
     object = object,
@@ -524,7 +526,8 @@ RidgePlot <- function(
     log = log,
     slot = slot,
     stack = stack,
-    combine = combine
+    combine = combine,
+    fill.by = fill.by
   ))
 }
 
@@ -569,7 +572,9 @@ VlnPlot <- function(
   slot = 'data',
   split.plot = FALSE,
   stack = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  fill.by = 'feature',
+  flip = F
 ) {
   if (
     !is.null(x = split.by) &
@@ -602,7 +607,9 @@ VlnPlot <- function(
     log = log,
     slot = slot,
     stack = stack,
-    combine = combine
+    combine = combine,
+    fill.by = fill.by,
+    flip = flip
   ))
 }
 
@@ -5350,6 +5357,8 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
+# @param flip flip plot orientation (Identities on x-axis)
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 # \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -5376,7 +5385,9 @@ ExIPlot <- function(
   log = FALSE,
   slot = 'data',
   stack = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  fill.by = NULL,
+  flip = F
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -5450,7 +5461,9 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        log = log
+        log = log,
+        fill.by = fill.by,
+        flip = flip
       )
     )
   } else { 
@@ -6144,18 +6157,18 @@ MakeLabels <- function(data) {
 # @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
 # @param log plot Y axis on log scale
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
 # @param seed.use Random seed to use. If NULL, don't set a seed
+# @param flip flip plot orientation (Identities on x-axis)
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
 # @import ggplot2
-# @import ggplotify
 #' @importFrom stats rnorm dist hclust
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot ggplotGrob aes_string facet_grid theme labs geom_rect geom_violin geom_jitter ylim position_jitterdodge
-#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
-#' @importFrom ggplotify as.ggplot
+#' @importFrom ggplot2 ggplot aes_string facet_grid theme labs geom_rect geom_violin geom_jitter ylim position_jitterdodge
+#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous scale_y_continuous waiver
 #' @importFrom cowplot theme_cowplot
 #'
 MultiExIPlot <- function(
@@ -6169,8 +6182,13 @@ MultiExIPlot <- function(
   pt.size = 0,
   cols = NULL,
   seed.use = 42,
-  log = FALSE
+  log = FALSE,
+  fill.by = NULL,
+  flip = NULL
 ) {
+  if (!(fill.by %in% c("feature", "ident"))) {
+    stop("`fill.by` must be either `feature` or `ident`")
+  }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -6218,6 +6236,8 @@ MultiExIPlot <- function(
     features.order <- orderings[[length(orderings)]]
     data$feature <- factor(data$feature, levels = unique(x = sort(x = data$feature))[features.order])
     data$ident <- factor(data$ident, levels = unique(x = sort(x = data$ident))[rev(x = idents.order)])
+  } else {
+    data$feature <- factor(data$feature, levels = unique(data$feature))
   }
   if (log) {
     noise <- rnorm(n = nrow(x = data)) / 200
@@ -6235,15 +6255,14 @@ MultiExIPlot <- function(
   if (type == 'violin' && !is.null(x = split)) {
     data$split <- rep_len(x = split, length.out = nrow(data))
     vln.geom <- geom_violin
-    fill <- 'split'
+    fill.by <- 'split'
   } else if (type == 'splitViolin' && !is.null(x = split)) {
     data$split <- rep_len(x = split, length.out = nrow(data))
     vln.geom <- geom_split_violin
-    fill <- 'split'
+    fill.by <- 'split'
     type <- 'violin'
   } else {
     vln.geom <- geom_violin
-    fill <- 'feature'
   }
   switch(
     EXPR = type,
@@ -6259,58 +6278,49 @@ MultiExIPlot <- function(
     },
     stop("Unknown plot type: ", type)
   )
+  if (flip) {
+    x <- 'ident'
+    x.label <- 'Identity'
+    y <- 'expression'
+    y.label <- 'Expression Level'
+  } else {
+    y <- 'ident'
+    y.label <- 'Identity'
+    x <- 'expression'
+    x.label <- 'Expression Level'
+  }
   plot <- ggplot(
     data = data,
-    mapping = aes_string(x = 'expression', y = 'ident', fill = fill)[c(2, 3, 1)]
+    mapping = aes_string(x = x, y = y, fill = fill.by)[c(2, 3, 1)]
   ) +
-    labs(x = 'Expression Level', y = 'Identity', fill = NULL) + 
-    theme_cowplot() + 
-    scale_x_continuous(expand = c(0, 0))
-  dummy <- plot + geom_rect(xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf)
+    labs(x = x.label, y = y.label, fill = NULL) + 
+    theme_cowplot() 
   plot <- do.call(what = '+', args = list(plot, geom))
-  plot <- plot +
-    facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
-    FacetTheme(
-      panel.spacing = unit(0, 'lines'),
-      panel.background = element_rect(fill = NA, color = "black"),
-      legend.position = 'none',
-      axis.text.x = element_text(size = 7),
-      strip.text.x = element_text(angle = -90))
-  if (log) {
-    plot <- plot + scale_x_log10()
-  }
-  if (length(x = unique(x = data$feature)) > 10 && is.null(split) && is.null(cols)) {
-    dummy <- dummy +
-      facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) + 
+  if (flip) {
+    plot <- plot +
+      scale_y_continuous(expand = c(0, 0)) + 
+      facet_grid(feature ~ ., scales = (if (same.y.lims) 'fixed' else 'free')) +
+      FacetTheme(
+        panel.spacing = unit(0, 'lines'),
+        panel.background = element_rect(fill = NA, color = "black"),
+        legend.position = 'none',
+        axis.text.y = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text.y.right = element_text(angle = 0))
+  } else {
+    plot <- plot +
+      scale_x_continuous(expand = c(0, 0)) +
+      facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(
         panel.spacing = unit(0, 'lines'),
         panel.background = element_rect(fill = NA, color = "black"),
         legend.position = 'none',
         axis.text.x = element_text(size = 7),
         strip.text.x = element_text(angle = -90))
-    # add background colors by underlaying a 'dummy' plot
-    g1 <- ggplotGrob(plot)
-    g2 <- ggplotGrob(dummy)
-    gtable_select <- function (x, ...) {
-      matches <- c(...)
-      x$layout <- x$layout[matches, , drop = FALSE]
-      x$grobs <- x$grobs[matches]
-      return(x)
-    }
-    gtable_stack <- function(g1, g2){
-      g1$grobs <- c(g1$grobs, g2$grobs)
-      g1$layout$z <- g1$layout$z - max(g1$layout$z)
-      g1$layout$name <- "g2"
-      g1$layout <- rbind(g1$layout, g2$layout)
-      return(g1)
-    }
-    panels <- grepl(pattern="panel", g2$layout$name)
-    strips <- grepl(pattern="strip-t", g2$layout$name)
-    g2$layout$t[panels] <- g2$layout$t[panels] - 1
-    g2$layout$b[panels] <- g2$layout$b[panels] - 1
-    new_strips <- gtable_select(g2, panels | strips)
-    plot <- as.ggplot(gtable_stack(g1, new_strips))
-  } 
+  }
+  if (log) {
+    plot <- plot + scale_x_log10()
+  }
   if (!is.null(x = cols)) {
     if (!is.null(x = split)) {
       idents <- unique(x = as.vector(x = data$ident))
