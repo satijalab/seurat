@@ -972,8 +972,12 @@ RunPCA <- function(object, ...) {
 }
 
 #' Run Supervised Principal Component Analysis
-#'
-#'
+#' 
+#' Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel. 
+#' SPCA is used to capture a linear transformation which maximizes its dependency to
+#' the given cell-cell kernel. We use SNN graph as the kernel to supervise the linear
+#' matrix factorization.
+#'    
 #' @param object An object
 #' @param ... Arguments passed to other methods and IRLBA
 #'

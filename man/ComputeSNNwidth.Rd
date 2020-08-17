@@ -12,18 +12,6 @@ ComputeSNNwidth(
   nearest.dist = NULL
 )
 }
-\arguments{
-\item{snn.graph}{An SNN graph}
-
-\item{embeddings}{The cell embeddings used to calculate neighbor distances}
-
-\item{k.nn}{The number of neighbors to calculate}
-
-\item{l2.norm}{Perform L2 normalization on the cell embeddings}
-
-\item{nearest.dist}{The vector of distance to the nearest neighbors to 
-subtract off from distance calculations}
-}
 \description{
 This function will compute the average distance of the farthest k.nn 
 neighbors with the lowest nonzero SNN edge weight. First, for each cell it 

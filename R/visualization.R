@@ -7133,11 +7133,13 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
 
 
 
-#' Geneate neighbors dimplot
-#' @param object
-#' @nn.idx the neighbor index of all cells
-#' @param ... Additional parameters passed to \code{DimPlot}
+#' Highlight Neighbors in DimPlot
 #' 
+#' It will color the query cells and the neighbors of the query cells in the
+#' DimPlot
+#' 
+#' @inheritParams DimPlot
+#' @param nn.idx the neighbor index of all cells
 #' @export
 #' 
 NNPlot <- function(object,
@@ -7166,24 +7168,21 @@ NNPlot <- function(object,
   neighbor.cells <- as.vector(neighbor.cells)
   neighbor.cells <- neighbor.cells[!is.na(neighbor.cells)]
   object$nn.col <- "other"
-  object@meta.data[neighbor.cells,"nn.col" ] <- "neighbors" 
-  object@meta.data[cells,"nn.col" ] <- "self"
-  
+  object[["nn.col"]][neighbor.cells, ] <- "neighbors" 
+  object[["nn.col"]][cells, ] <- "self" 
   object$nn.col <- factor(object$nn.col , levels = c("self", "neighbors", "other"))
   
-  if ( ! show.all.cells){
+  if (!show.all.cells) {
     object <- subset(object, 
                      cells = WhichCells(object,
                                         expression = nn.col != "other"))
   } 
-  
   highlight.info <- SetHighlight(cells.highlight = c(cells, neighbor.cells),
                                  cells.all = Cells(object),
                                  sizes.highlight = highlight.size,
                                  pt.size = pt.size, 
                                  cols.highlight = "red")
-  
-  if (highlight){
+  if (highlight) {
     NN.plot <- DimPlot(object,
                        reduction = reduction, 
                        dims = dims , 
@@ -7194,7 +7193,7 @@ NNPlot <- function(object,
                        pt.size = highlight.info$size,
                        label.size = label.size, 
                        repel = repel )
-  } else{
+  } else {
     NN.plot <- DimPlot(object,
                        reduction = reduction, 
                        dims = dims , 
