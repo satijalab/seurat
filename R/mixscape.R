@@ -610,7 +610,7 @@ RunLDA.Seurat <- function(
 #' 
 #' @export
 #' 
-RunMixscape2 <- function (object = NULL, 
+RunMixscape <- function (object = NULL, 
                           assay = "PRTB", 
                           slot = "scale.data", 
                           labels = "gene", 
@@ -846,6 +846,83 @@ MixscapeHeatmap <- function(
     }
     return(p)
   }
+}
+
+
+#' Function to plot perturbation score distributions. 
+#'
+#' Density plots to visualize perturbation scores calculated from RunMixscape function.
+#' @param object An object of class Seurat.
+#' @param target.gene.ident Class identity for cells sharing the same perturbation. Name should be the same as the one used to run mixscape.
+#' @param group.by Option to split densities based on mixscape classification. Default is set to NULL and plots cells by original class ID.
+#' @param col Specify color of target gene class or knockout cell class. For control non-targeting and non-perturbed cells, colors are set to different shades of grey. 
+#' @return A ggplot object.
+#'
+#' @importFrom stats median
+#' @importFrom scales hue_pal
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' @export
+#'
+#' @examples
+PlotPerturbScore <- function(object = NULL,
+                             target.gene.ident = NULL,
+                             group.by = NULL,
+                             col = NULL
+)
+{
+  prtb_score <- object@tools$RunMixscape[[target.gene.ident]]
+  prtb_score[,2] <- as.factor(prtb_score[,2])
+  colnames(prtb_score)[2] <- "gene"
+  
+  if(is.null(group.by)){
+    cols <- setNames(object = c("grey49", col), nm = c(setdiff(unique(prtb_score[,"gene"]),target.gene.ident), target.gene.ident))
+    p <- ggplot(prtb_score, aes(x=value, color = gene)) + geom_density() + theme_classic()
+    
+    top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
+    
+    prtb_score$y.jitter <- prtb_score$value 
+    
+    prtb_score$y.jitter[prtb_score[,"gene"] == setdiff(unique(prtb_score[,"gene"]),target.gene.ident)] <- runif(prtb_score$y.jitter[prtb_score[,"gene"] == setdiff(unique(prtb_score[,"gene"]),target.gene.ident)],0.001,(top_r/10))
+    
+    prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident] <- runif(prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident],-(top_r/10),0)
+    
+    
+    p2 <- p+ scale_color_manual(values=cols, drop=FALSE) +geom_density(size=1.5) +geom_point(data = prtb_score, aes(x = value, y = y.jitter), size = 0.1) +theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +ylab("Cell density")+ xlab("perturbation score") +theme(legend.key.size = unit(1, "cm"), legend.text = element_text(colour="black", size=14), legend.title = element_blank())
+    
+  }
+  
+  else{
+    cols <- setNames(object = c("grey49", "grey79", col), nm = c(setdiff(unique(prtb_score[,"gene"]),target.gene.ident), paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO")))
+    
+    #add mixscape classifications
+    prtb_score$mix <- as.character(prtb_score[,"gene"])
+    classes <- unique(object[[group.by]][,1])
+    
+    #define KO and NP cells
+    ko.cells <- Cells(object)[sapply(object[[group.by]], FUN = function(x) grep(paste0(target.gene.ident, " KO"), x))]
+    np.cells <- Cells(object)[sapply(object[[group.by]], FUN = function(x) grep(paste0(target.gene.ident, " NP"), x))]
+    prtb_score[np.cells, "mix"] <- paste0(target.gene.ident, " NP")
+    prtb_score[ko.cells, "mix"] <- paste0(target.gene.ident, " KO")
+    
+    prtb_score[,"mix"] <- as.factor(prtb_score[,"mix"])
+    
+    p <- ggplot(prtb_score, aes(x=value, color = mix)) + geom_density() + theme_classic()
+    
+    top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
+    
+    prtb_score$y.jitter <- prtb_score$value 
+    
+    prtb_score$y.jitter[prtb_score[,"mix"] == setdiff(unique(prtb_score[,"mix"]),c(paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO")))] <- runif(prtb_score$y.jitter[prtb_score[,"mix"] == setdiff(unique(prtb_score[,"mix"]),c(paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO")))],0.001,(top_r/10))
+    
+    prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " KO")] <- runif(prtb_score$y.jitter[prtb_score[,"mix"] == paste0(target.gene.ident, " KO")],-(top_r/10),0)
+    prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " NP")] <- runif(prtb_score$y.jitter[prtb_score[,"mix"] == paste0(target.gene.ident, " NP")],-(top_r/10),0)
+    
+    
+    p2 <- p+ scale_color_manual(values=cols, drop=FALSE) +geom_density(size=1.5) +geom_point(data = prtb_score, aes(x = value, y = y.jitter), size = 0.1) +theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +ylab("Cell density")+ xlab("perturbation score") +theme(legend.key.size = unit(1, "cm"), legend.text = element_text(colour="black", size=14), legend.title = element_blank())
+    
+  }
+  return(p2)
+  
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
