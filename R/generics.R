@@ -71,6 +71,18 @@ as.loom <- function(x, ...) {
   UseMethod(generic = 'as.loom', object = x)
 }
 
+#' Convert objects to Neighbor ojbects
+#' 
+#' @param x An object to convert to \code{Neighbor}
+#' @param ... Arguments passed to other methods
+#' 
+#' @rdname as.Neighbor
+#' @export as.Neighbor
+#' 
+as.Neighbor <- function(x, ...) {
+  UseMethod(generic = 'as.Neighbor', object = x)
+}
+
 #' Convert objects to Seurat objects
 #'
 #' @param x An object to convert to class \code{Seurat}

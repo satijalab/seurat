@@ -2176,6 +2176,28 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
+#' @param weighted If TRUE, fill entries in Graph matrix with value from the 
+#' nn.dist slot of the Neighbor object
+#' @rdname as.Graph
+#' @export
+#' @method as.Graph Neighbor
+#'
+as.Graph.Neighbor <- function(x, weighted = TRUE, ...) {
+  CheckDots(...)
+  j <- as.integer(x = Indices(object = x) - 1)
+  i <- as.integer(x = rep(x = (1:nrow(x = x)) - 1, times = ncol(x = x)))
+  if (weighted) {
+    vals <- as.vector(x = Distances(object = x))
+  } else {
+    vals <- 1
+  }
+  graph <- new(Class = "dgTMatrix", i = i, j = j, x = vals, Dim = as.integer(x = c(nrow(x = x), nrow(x = x))))
+  rownames(x = graph) <- Cells(x = x)
+  colnames(x = graph) <- Cells(x = x)
+  graph <- as.Graph.Matrix(x = graph)
+  return(graph)
+}
+
 #' @details
 #' The Seurat method for \code{as.loom} will try to automatically fill in datasets based on data presence.
 #' For example, if an assay's scaled data slot isn't filled, then dimensional reduction and graph information
@@ -2347,6 +2369,22 @@ as.loom.Seurat <- function(
   # Store assay
   hdf5r::h5attr(x = lfile, which = 'assay') <- assay
   return(lfile)
+}
+
+#' @rdname as.Neighbor
+#' @export
+#' @method as.Neighbor Graph
+#'
+as.Neighbor.Graph <- function(
+  x,
+  ...
+) {
+  nn.mats <- GraphToNeighborHelper(mat = x)
+  return(Neighbor(
+    nn.idx = nn.mats[[1]], 
+    nn.dist = nn.mats[[2]], 
+    cell.names = rownames(x = x)
+  ))
 }
 
 #' @param slot Slot to store expression data as
@@ -3289,7 +3327,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @export
 #' @method Distances Neighbor
 #' 
-Distances.Neighbor <- function(object) {
+Distances.Neighbor <- function(object, ...) {
   object <- UpdateSlots(object = object)
   distances <- slot(object = object, name = "nn.dist")
   rownames(x = distances) <- slot(object = object, name = "cell.names")
@@ -3745,7 +3783,7 @@ Idents.Seurat <- function(object, ...) {
 #' @rdname Index
 #' @export
 #' @method Index Neighbor
-Index.Neighbor <- function(object) {
+Index.Neighbor <- function(object, ...) {
   object <- UpdateSlots(object = object)
   index <- slot(object = object, name = "alg.idx")
   if (is.null.externalptr(index$.pointer)) {
@@ -3766,7 +3804,7 @@ Index.Neighbor <- function(object) {
 #' @rdname Indices
 #' @export
 #' @method Indices Neighbor
-Indices.Neighbor <- function(object) {
+Indices.Neighbor <- function(object, ...) {
   object <- UpdateSlots(object = object)
   indices <- slot(object = object, name = "nn.idx")
   rownames(x = indices) <- slot(object = object, name = "cell.names")
@@ -4949,6 +4987,7 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
+#' @param old.names vector of old cell names
 #' @rdname RenameCells
 #' @export
 #' @method RenameCells Neighbor

@@ -7,7 +7,7 @@
 \usage{
 Indices(object, ...)
 
-\method{Indices}{Neighbor}(object)
+\method{Indices}{Neighbor}(object, ...)
 }
 \arguments{
 \item{object}{An object}

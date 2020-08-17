@@ -11,7 +11,7 @@ Index(object, ...)
 
 Index(object, ...) <- value
 
-\method{Index}{Neighbor}(object)
+\method{Index}{Neighbor}(object, ...)
 
 \method{Index}{Neighbor}(object, ...) <- value
 }

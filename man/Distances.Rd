@@ -7,7 +7,7 @@
 \usage{
 Distances(object, ...)
 
-\method{Distances}{Neighbor}(object)
+\method{Distances}{Neighbor}(object, ...)
 }
 \arguments{
 \item{object}{An object}

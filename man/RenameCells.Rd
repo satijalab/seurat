@@ -34,6 +34,8 @@ RenameCells(object, ...)
 
 \item{new.names}{vector of new cell names}
 
+\item{old.names}{vector of old cell names}
+
 \item{add.cell.id}{prefix to add cell names}
 
 \item{for.merge}{Only rename slots needed for merging Seurat objects.

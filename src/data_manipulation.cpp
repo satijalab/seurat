@@ -497,4 +497,53 @@ Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, Numeri
   return(mat);
 }
 
+template <typename S>
+std::vector<size_t> sort_indexes(const std::vector<S> &v) {
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::stable_sort(idx.begin(), idx.end(),
+                   [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+  return idx;
+}
+
+//[[Rcpp::export]]
+List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat) {
+  mat = mat.transpose();
+  //determine the number of neighbors
+  int n = 0;
+  for(Eigen::SparseMatrix<double>::InnerIterator it(mat, 0); it; ++it) {
+    n += 1;
+  }
+  Eigen::MatrixXd nn_idx(mat.rows(), n);
+  Eigen::MatrixXd nn_dist(mat.rows(), n);
+  
+  for (int k=0; k<mat.outerSize(); ++k){
+    int n_k = 0;
+    std::vector<double> row_idx;
+    std::vector<double> row_dist;
+    row_idx.reserve(n);
+    row_dist.reserve(n);
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+      if (n_k > (n-1)) {
+        Rcpp::stop("Not all cells have an equal number of neighbors.");
+      }
+      row_idx.push_back(it.row() + 1);
+      row_dist.push_back(it.value());
+      n_k += 1;
+    }
+    if (n_k != n) {
+      Rcpp::Rcout << n << ":::" << n_k << std::endl;
+      Rcpp::stop("Not all cells have an equal number of neighbors.");
+    }
+    //order the idx based on dist
+    std::vector<size_t> idx_order = sort_indexes(row_dist);
+    for(int i = 0; i < n; ++i) {
+      nn_idx(k, i) = row_idx[idx_order[i]];
+      nn_dist(k, i) = row_dist[idx_order[i]];
+    }
+  }
+  List neighbors = List::create(nn_idx, nn_dist);
+  return(neighbors);
+}
 
