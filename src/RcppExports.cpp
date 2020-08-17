@@ -68,6 +68,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// RowMergeMatricesList
+Eigen::SparseMatrix<double> RowMergeMatricesList(List mat_list, List mat_rownames, std::vector< std::string > all_rownames);
+RcppExport SEXP _Seurat_RowMergeMatricesList(SEXP mat_listSEXP, SEXP mat_rownamesSEXP, SEXP all_rownamesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type mat_list(mat_listSEXP);
+    Rcpp::traits::input_parameter< List >::type mat_rownames(mat_rownamesSEXP);
+    Rcpp::traits::input_parameter< std::vector< std::string > >::type all_rownames(all_rownamesSEXP);
+    rcpp_result_gen = Rcpp::wrap(RowMergeMatricesList(mat_list, mat_rownames, all_rownames));
+    return rcpp_result_gen;
+END_RCPP
+}
 // LogNorm
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress);
 RcppExport SEXP _Seurat_LogNorm(SEXP dataSEXP, SEXP scale_factorSEXP, SEXP display_progressSEXP) {
@@ -369,6 +382,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
     {"_Seurat_RunUMISamplingPerCell", (DL_FUNC) &_Seurat_RunUMISamplingPerCell, 4},
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
+    {"_Seurat_RowMergeMatricesList", (DL_FUNC) &_Seurat_RowMergeMatricesList, 3},
     {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 3},
     {"_Seurat_FastRowScale", (DL_FUNC) &_Seurat_FastRowScale, 5},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},

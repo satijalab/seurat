@@ -836,9 +836,9 @@ RunPCA.default <- function(
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
       if (weight.by.var) {
-        cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
-      } else {
         cell.embeddings <- pca.results$x
+      } else {
+        cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
       }
     }
   }

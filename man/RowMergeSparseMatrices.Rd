@@ -9,7 +9,7 @@ RowMergeSparseMatrices(mat1, mat2)
 \arguments{
 \item{mat1}{First matrix}
 
-\item{mat2}{Second matrix}
+\item{mat2}{Second matrix or list of matrices}
 }
 \value{
 A merged matrix
