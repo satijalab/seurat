@@ -579,7 +579,7 @@ VlnPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = 'feature',
-  flip = F
+  flip = FALSE
 ) {
   if (
     !is.null(x = split.by) &
