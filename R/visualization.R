@@ -5507,8 +5507,16 @@ ExIPlot <- function(
   }
   label.fxn <- switch(
     EXPR = type,
-    'violin' = if (stack) xlab else ylab,
-    "splitViolin" = if (stack) xlab else ylab,
+    'violin' = if (stack) {
+      xlab 
+    } else {
+      ylab
+    },
+    "splitViolin" = if (stack) {
+      xlab 
+    } else {
+      ylab
+    },
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
