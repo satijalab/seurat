@@ -487,8 +487,8 @@ HTOHeatmap <- function(
 #' @param slot Use non-normalized counts data for plotting
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-#' ggplot object. If \code{FALSE}, return a list of ggplot 
-#' @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
+#' ggplot object. If \code{FALSE}, return a list of ggplot
+#' @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -579,7 +579,7 @@ VlnPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = 'feature',
-  flip = F
+  flip = FALSE
 ) {
   if (
     !is.null(x = split.by) &
@@ -5370,7 +5370,7 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
-# @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param flip flip plot orientation (identities on x-axis)
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -5400,17 +5400,26 @@ ExIPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = NULL,
-  flip = F
+  flip = FALSE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
-  if (stack & !is.null(x = ncol)) {
-    warning("`ncol` is ignored when `stack` is set to True")
-  }
-  if (stack & !is.null(x = y.max)) {
-    warning("`y.max` is ignored when `stack` is set to True")
-  }
-  if (!stack) {
+  if (isTRUE(x = stack)) {
+    if (!is.null(x = ncol)) {
+      warning(
+        "'ncol' is ignored with 'stack' is TRUE",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (!is.null(x = y.max)) {
+      warning(
+        "'y.max' is ignored when 'stack' is TRUE",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  } else {
     ncol <- ncol %||% ifelse(
       test = length(x = features) > 9,
       yes = 4,
@@ -5497,8 +5506,16 @@ ExIPlot <- function(
   )
   label.fxn <- switch(
     EXPR = type,
-    'violin' = if (stack) xlab else ylab,
-    "splitViolin" = if (stack) xlab else ylab,
+    'violin' = if (stack) {
+      xlab 
+    } else {
+      ylab
+    },
+    "splitViolin" = if (stack) {
+      xlab 
+    } else {
+      ylab
+    },
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -6167,19 +6184,20 @@ MakeLabels <- function(data) {
 # @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
 # @param log plot Y axis on log scale
-# @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param seed.use Random seed to use. If NULL, don't set a seed
 # @param flip flip plot orientation (identities on x-axis)
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
-# @import ggplot2
-#' @importFrom stats rnorm dist hclust
-#' @importFrom utils globalVariables
-#' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string facet_grid theme labs geom_rect geom_violin geom_jitter ylim position_jitterdodge
-#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous scale_y_continuous waiver
 #' @importFrom cowplot theme_cowplot
+#' @importFrom utils globalVariables
+#' @importFrom stats rnorm dist hclust
+#' @importFrom ggridges geom_density_ridges theme_ridges
+#' @importFrom ggplot2 ggplot aes_string facet_grid theme labs geom_rect
+#' geom_violin geom_jitter ylim position_jitterdodge scale_fill_manual
+#' scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous
+#' scale_y_continuous waiver
 #'
 MultiExIPlot <- function(
   data,
@@ -6218,11 +6236,11 @@ MultiExIPlot <- function(
     avgs.matrix <- sapply(
       X = split(x = data, f = data$ident),
       FUN = function(df) {
-        tapply(
+        return(tapply(
           X = df$expression,
           INDEX = df$feature,
           FUN = mean
-        )
+        ))
       }
     )
     idents.order <- hclust(d = dist(x = t(x = L2Norm(mat = avgs.matrix, MARGIN = 2))))$order
@@ -6243,11 +6261,17 @@ MultiExIPlot <- function(
         c(y, x)
       }
     }
-    features.order <- orderings[[length(orderings)]]
-    data$feature <- factor(data$feature, levels = unique(x = sort(x = data$feature))[features.order])
-    data$ident <- factor(data$ident, levels = unique(x = sort(x = data$ident))[rev(x = idents.order)])
+    features.order <- orderings[[length(x = orderings)]]
+    data$feature <- factor(
+      x = data$feature,
+      levels = unique(x = sort(x = data$feature))[features.order]
+    )
+    data$ident <- factor(
+      x = data$ident,
+      levels = unique(x = sort(x = data$ident))[rev(x = idents.order)]
+    )
   } else {
-    data$feature <- factor(data$feature, levels = unique(data$feature))
+    data$feature <- factor(x = data$feature, levels = unique(x = data$feature))
   }
   if (log) {
     noise <- rnorm(n = nrow(x = data)) / 200
@@ -6257,7 +6281,12 @@ MultiExIPlot <- function(
   }
   for (f in unique(x = data$feature)) {
     if (all(data$expression[(data$feature == f)] == data$expression[(data$feature == f)][1])) {
-      warning(paste0("All cells have the same value of ", f, "."))
+      warning(
+        "All cells have the same value of ",
+        f,
+        call. = FALSE,
+        immediate. = TRUE
+      )
     } else {
       data$expression[(data$feature == f)] <- data$expression[(data$feature == f)] + noise[(data$feature == f)]
     }
@@ -6303,12 +6332,12 @@ MultiExIPlot <- function(
     data = data,
     mapping = aes_string(x = x, y = y, fill = fill.by)[c(2, 3, 1)]
   ) +
-    labs(x = x.label, y = y.label, fill = NULL) + 
-    theme_cowplot() 
+    labs(x = x.label, y = y.label, fill = NULL) +
+    theme_cowplot()
   plot <- do.call(what = '+', args = list(plot, geom))
   if (flip) {
     plot <- plot +
-      scale_y_continuous(expand = c(0, 0)) + 
+      scale_y_continuous(expand = c(0, 0)) +
       facet_grid(feature ~ ., scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(
         panel.spacing = unit(0, 'lines'),

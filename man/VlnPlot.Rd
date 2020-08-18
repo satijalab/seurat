@@ -24,7 +24,7 @@ VlnPlot(
   stack = FALSE,
   combine = TRUE,
   fill.by = "feature",
-  flip = F
+  flip = FALSE
 )
 }
 \arguments{
