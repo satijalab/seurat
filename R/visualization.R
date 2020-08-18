@@ -546,6 +546,7 @@ RidgePlot <- function(
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
+#' @param flip flip plot orientation (identities on x-axis)
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -5370,7 +5371,7 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
-# @param flip flip plot orientation (Identities on x-axis)
+# @param flip flip plot orientation (identities on x-axis)
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 # \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -6171,7 +6172,7 @@ MakeLabels <- function(data) {
 # @param log plot Y axis on log scale
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident' 
 # @param seed.use Random seed to use. If NULL, don't set a seed
-# @param flip flip plot orientation (Identities on x-axis)
+# @param flip flip plot orientation (identities on x-axis)
 #
 # @return A ggplot-based Expression-by-Identity plot
 #

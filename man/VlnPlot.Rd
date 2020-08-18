@@ -70,7 +70,7 @@ ggplot object. If \code{FALSE}, return a list of ggplot}
 
 \item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 
-\item{flip}{flip plot orientation (Identities on x-axis)}
+\item{flip}{flip plot orientation (identities on x-axis)}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

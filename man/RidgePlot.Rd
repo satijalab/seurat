@@ -19,8 +19,7 @@ RidgePlot(
   slot = "data",
   stack = FALSE,
   combine = TRUE,
-  fill.by = "feature",
-  flip = F
+  fill.by = "feature"
 )
 }
 \arguments{
@@ -56,8 +55,6 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 ggplot object. If \code{FALSE}, return a list of ggplot}
 
 \item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
-
-\item{flip}{flip plot orientation (Identities on x-axis)}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if
