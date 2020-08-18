@@ -5462,42 +5462,39 @@ ExIPlot <- function(
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
   }
-  plots <- if (stack) {
-    return(
-      MultiExIPlot(
+  if (isTRUE(x = stack)) {
+    return(MultiExIPlot(
+      type = type,
+      data = data,
+      idents = idents,
+      split = split,
+      sort = sort,
+      same.y.lims = same.y.lims,
+      adjust = adjust,
+      cols = cols,
+      pt.size = pt.size,
+      log = log,
+      fill.by = fill.by,
+      flip = flip
+    ))
+  }
+  plots <- lapply(
+    X = features,
+    FUN = function(x) {
+      return(SingleExIPlot(
         type = type,
-        data = data,
+        data = data[, x, drop = FALSE],
         idents = idents,
         split = split,
         sort = sort,
-        same.y.lims = same.y.lims,
+        y.max = y.max,
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        log = log,
-        fill.by = fill.by,
-        flip = flip
-      )
-    )
-  } else {
-    lapply(
-      X = features,
-      FUN = function(x) {
-        return(SingleExIPlot(
-          type = type,
-          data = data[, x, drop = FALSE],
-          idents = idents,
-          split = split,
-          sort = sort,
-          y.max = y.max,
-          adjust = adjust,
-          cols = cols,
-          pt.size = pt.size,
-          log = log
-        ))
-      }
-    )
-  }
+        log = log
+      ))
+    }
+  )
   label.fxn <- switch(
     EXPR = type,
     'violin' = if (stack) xlab else ylab,
