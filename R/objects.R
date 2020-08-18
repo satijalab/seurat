@@ -3786,6 +3786,9 @@ Idents.Seurat <- function(object, ...) {
 Index.Neighbor <- function(object, ...) {
   object <- UpdateSlots(object = object)
   index <- slot(object = object, name = "alg.idx")
+  if (is.null(x = index)) {
+    return(NULL)
+  }
   if (is.null.externalptr(index$.pointer)) {
     return(NULL)
   }
