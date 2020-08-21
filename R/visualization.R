@@ -704,8 +704,9 @@ ColorDimSplit <- function(
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
-#' @param do.shuffle Whether to randomly shuffle the order of points. This can be
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
 #' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
 #' @param label.color Sets the color of the label text
@@ -757,7 +758,8 @@ DimPlot <- function(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
-  do.shuffle = FALSE,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
   label.color = 'black',
@@ -775,6 +777,10 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -792,11 +798,6 @@ DimPlot <- function(
   }
   if (!is.null(x = split.by)) {
     data[, split.by] <- object[[split.by, drop = TRUE]]
-  }
-  if (do.shuffle) {
-    set.seed(1)
-    idx <- sample(1:nrow(data))
-    data <- data[idx, ]
   }
   plots <- lapply(
     X = group.by,
