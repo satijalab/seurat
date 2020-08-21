@@ -704,6 +704,8 @@ ColorDimSplit <- function(
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
+#' @param do.shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
 #' @param label.color Sets the color of the label text
@@ -755,6 +757,7 @@ DimPlot <- function(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  do.shuffle = FALSE,
   label = FALSE,
   label.size = 4,
   label.color = 'black',
@@ -789,6 +792,11 @@ DimPlot <- function(
   }
   if (!is.null(x = split.by)) {
     data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
+  if (do.shuffle) {
+    set.seed(1)
+    idx <- sample(1:nrow(data))
+    data <- data[idx, ]
   }
   plots <- lapply(
     X = group.by,
