@@ -982,7 +982,7 @@ RunPCA <- function(object, ...) {
 #' @param ... Arguments passed to other methods and IRLBA
 #'
 #' @return Returns Seurat object with the SPCA calculation stored in the reductions slot
-#'
+#' @references Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ. Supervised principal component analysis: Visualization, classification and regression on subspaces and submanifolds. Pattern Recognition. 2011 Jul 1;44(7):1357-71.
 #' @export
 #'
 #' @rdname RunSPCA
