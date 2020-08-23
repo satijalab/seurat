@@ -1525,16 +1525,6 @@ SCTransform <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  if (getOption('Seurat.warn.sct.ncells', TRUE)) {
-    warning(
-      "The default number of cells for SCTransform has changed from all cells to 5000.",
-      "\nTo use all cells, change ncells to NULL",
-      "\nThis message will be shown once per session",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-    options(Seurat.warn.sct.ncells = FALSE)
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
