@@ -19,6 +19,8 @@ DimPlot(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
   label.color = "black",
@@ -67,6 +69,11 @@ different colors and different shapes on cells}
 \item{order}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
+
+\item{shuffle}{Whether to randomly shuffle the order of points. This can be
+useful for crowded plots if points of interest are being buried. (default is FALSE)}
+
+\item{seed}{Sets the seed if randomly shuffling the order of points.}
 
 \item{label}{Whether to label the clusters}
 

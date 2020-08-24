@@ -1301,7 +1301,12 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        umap_transform(
+        if (packageVersion(pkg = "uwot") <= '0.1.8.9000') {
+          stop("This uwot functionality requires uwot version >= 0.1.8.9000",
+               "Installing the latest version from github can be done with", 
+               "remotes::install_github('jlmelville/uwot')")
+        }
+        uwot::umap_transform(
           X = NULL,
           nn_method = object, 
           model = model, 
