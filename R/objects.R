@@ -58,7 +58,7 @@ AnchorSet <- setClass(
 #'
 #' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
 #' related information needed for performing downstream analyses - namely data integration
-#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModelNeighbors}}).
+#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
 #'
 #' @slot first.modality.weight A vector of value representing for the modality weights of
 #' the first modality
@@ -7672,8 +7672,10 @@ setMethod(
   f = 'show',
   signature = 'ModalityWeights',
   definition = function(object) {
-    cat('A ModalityWeights object containing modality weights between', paste(slot(object = object, name = "modality.assay"), collapse = " and "), "assays \n",
-        "This can be used as input to FindMultiModelNeighbors.")
+    cat(
+      'A ModalityWeights object containing modality weights between',
+      paste(slot(object = object, name = "modality.assay"), collapse = " and "),
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
   }
 )
 
