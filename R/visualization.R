@@ -7157,7 +7157,9 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
 #' 
 #' @inheritParams DimPlot
 #' @param nn.idx the neighbor index of all cells
+#' @param query.cells cells used to find their neighbors
 #' @param show.all.cells Show all cells or only query and neighbor cells
+#' 
 #' @export
 #' 
 NNPlot <- function(
