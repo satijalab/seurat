@@ -957,7 +957,7 @@ NNdist <- function(
 # @param l2.norm Perform L2 normalization on the cell embeddings after
 # dimensional reduction
 # @param verbose Print output to the console
-#
+# @importFrom pbapply pblapply
 # @return return a list containing nn index and nn multimodal distance
 # 
 MultiModalNN <- function(
@@ -974,6 +974,11 @@ MultiModalNN <- function(
   l2.norm =  NULL, 
   verbose = TRUE
 ){
+  my.lapply <- ifelse(
+    test = verbose,
+    yes = pblapply,
+    no = lapply
+  )
   k.nn <-  k.nn %||% slot(object = modality.weight, name = "params")$k.nn
   reduction.list <- reduction.list %||% 
     slot(object = modality.weight, name = "params")$reduction.list
@@ -1027,9 +1032,8 @@ MultiModalNN <- function(
   reduction.num <- length(x = query.reduction_embedding)
   if (verbose) {
     message("Finding multi-modal neighbors")
-    pb <- txtProgressBar(min = 0, max = reduction.num, style = 3)
   }
-  redunction_nn <- lapply(
+  redunction_nn <- my.lapply(
     X = 1:reduction.num, 
     FUN = function(x) {
       nn_x <- NNHelper(
@@ -1039,15 +1043,9 @@ MultiModalNN <- function(
         method = 'annoy',
         metric = "euclidean"
       ) 
-      if (verbose) {
-        setTxtProgressBar(pb = pb, value = x)
-      }
       return (nn_x)
     }
   )
-  if (verbose) {
-    close(con = pb)
-  }
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(
     X = redunction_nn, 
@@ -1067,10 +1065,9 @@ MultiModalNN <- function(
   )
   if (verbose) {
     message("Calculating distance of multi-modal neighbors")
-    pb <- txtProgressBar(min = 0, max = reduction.num, style = 3)
   }
   # calculate euclidean distance of all neighbors
-  nn_dist <- lapply(
+  nn_dist <- my.lapply(
     X = 1:reduction.num,  
     FUN = function(r) {
       nndist <- NNdist(
@@ -1079,15 +1076,9 @@ MultiModalNN <- function(
         query.embeddings = query.reduction_embedding[[r]], 
         nearest.dist = nearest.dist[[r]]
       )
-      if (verbose) {
-        setTxtProgressBar(pb = pb, value = r)
-      }
       return(nndist)
    }
   )
-  if (verbose) {
-    close(con = pb)
-  }
   # modality weighted distance
   if (length(x = sigma.list[[1]]) == 1) {
     sigma.list <- lapply(X = sigma.list, FUN = function(x) rep(x = x, ncol(x = object)))
@@ -1283,7 +1274,7 @@ FindMultiModalNeighbors  <- function(
 #' @param smooth Smoothing modality score across each individual modality 
 #' neighbors. 
 #' @param verbose Display messages
-#'
+#' @importFrom pbapply pblapply
 #' @return Returns a \code{ModalityWeights} object that can be used as input to 
 #' \code{\link{FindMultiModalNeighbors}}
 #' @export
@@ -1304,6 +1295,11 @@ FindModalityWeights  <- function(
   smooth = FALSE, 
   verbose = TRUE
 ) {
+  my.lapply <- ifelse(
+    test = verbose,
+    yes = pblapply,
+    no = lapply
+  )
   reduction.set <- unlist(x = reduction.list)
   names(x = reduction.list) <- names(x = dims.list) <- 
     names(x = cross.contant.list) <- reduction.set
@@ -1342,9 +1338,9 @@ FindModalityWeights  <- function(
   }
   if (verbose) {
     message("Finding ", k.nn, " nearest neighbors for each modality.") 
-    pb <- txtProgressBar(min = 0, max = length(x = reduction.list), style = 3)
   }
-  nn.list <- lapply(
+  
+  nn.list <- my.lapply(
     X = reduction.list, 
     FUN = function(r) {
       nn.r <- NNHelper(
@@ -1355,16 +1351,11 @@ FindModalityWeights  <- function(
         metric = "euclidean"
       )
       rownames(x = nn.r$nn.idx) <- Cells(x = query)
-      if (verbose) {
-        setTxtProgressBar(pb = pb, value = which(reduction.list == r))
-      }
       return(nn.r)
     }
   )
   sigma.nn.list <- nn.list
-  if (verbose) {
-    close(con = pb)
-  }
+
   if (sigma.idx > k.nn || s.nn > k.nn) {
     nn.list <- lapply(
       X = nn.list, 
@@ -1439,9 +1430,8 @@ FindModalityWeights  <- function(
     )
     if (verbose) {
       message("Finding ", k.nn, " distant neighbors from snn graph") 
-      pb <- txtProgressBar(min = 0, max = length(x = reduction.list), style = 3)
     }
-    farthest_nn_dist <- lapply(
+    farthest_nn_dist <- my.lapply(
       X = 1:length(x = snn.graph.list),
       FUN = function(s) {
         distant_nn <- ComputeSNNwidth(
@@ -1451,16 +1441,10 @@ FindModalityWeights  <- function(
           embeddings =  embeddings.list.norm[[s]],
           nearest.dist = nearest_dist[[s]]
         )
-        if (verbose) {
-          setTxtProgressBar(pb = pb, value = s)
-        }
         return (distant_nn)
       }
     )
     names(x = farthest_nn_dist) <- unlist(x = reduction.list)
-    if (verbose) {
-      close(con = pb)
-    }
     modality_sd.list <- lapply( 
       X = farthest_nn_dist, 
       FUN =  function(sd)  sd * sd.scale
