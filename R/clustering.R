@@ -1482,13 +1482,13 @@ FindModalityWeights  <- function(
   within_impute_kernel <- lapply(
     X = reduction.list,
     FUN = function(r) {
-      exp(-1 * (within_impute_dist[[r]] / modality_sd.list[[r]]) ** 1) 
+      exp(-1 * (within_impute_dist[[r]] / modality_sd.list[[r]]) ) 
     }
   )
   cross_impute_kernel <- lapply(
     X = reduction.list,
     FUN = function(r) {
-      exp(-1 * (cross_impute_dist[[r]] / modality_sd.list[[r]]) ** 1) 
+      exp(-1 * (cross_impute_dist[[r]] / modality_sd.list[[r]]) ) 
     }
   )
   params <- list(
