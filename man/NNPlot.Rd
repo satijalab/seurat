@@ -8,20 +8,17 @@ NNPlot(
   object,
   reduction,
   nn.idx,
-  cells,
+  query.cells,
   dims = 1:2,
   label = FALSE,
   label.size = 4,
-  repel = TRUE,
-  highlight.size = 2,
+  repel = FALSE,
+  sizes.highlight = 2,
   pt.size = 1,
-  highlight.col = c("#377eb8", "#e41a1c"),
-  other.col = "#bdbdbd",
+  cols.highlight = c("#377eb8", "#e41a1c"),
+  na.value = "#bdbdbd",
   order = c("self", "neighbors", "other"),
   show.all.cells = TRUE,
-  highlight = TRUE,
-  group.by = NULL,
-  cols = NULL,
   ...
 )
 }
@@ -32,7 +29,7 @@ NNPlot(
 
 \item{nn.idx}{the neighbor index of all cells}
 
-\item{cells}{Vector of cells to plot (default is all cells)}
+\item{query.cells}{cells used to find their neighbors}
 
 \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 
@@ -42,19 +39,21 @@ NNPlot(
 
 \item{repel}{Repel labels}
 
+\item{sizes.highlight}{Size of highlighted cells; will repeat to the length
+groups in cells.highlight}
+
 \item{pt.size}{Adjust point size for plotting}
+
+\item{cols.highlight}{A vector of colors to highlight the cells as; will
+repeat to the length groups in cells.highlight}
+
+\item{na.value}{Color value for NA points when using custom scale}
 
 \item{order}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
 
-\item{group.by}{Name of one or more metadata columns to group (color) cells by
-(for example, orig.ident); pass 'ident' to group by identity class}
-
-\item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
-or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
-See \code{\link{DiscretePalette}} for details.}
+\item{show.all.cells}{Show all cells or only query and neighbor cells}
 
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }
