@@ -43,6 +43,7 @@ Imports:
     lmtest,
     MASS,
     Matrix (>= 1.2-14),
+    matrixStats,
     miniUI,
     patchwork,
     pbapply,
