@@ -14,7 +14,7 @@ FastRowScale(mat, center = TRUE, scale = TRUE, scale_max = 10)
 \item{scale}{a logical value indicating whether to scale the rows}
 
 \item{scale_max}{clip all values greater than scale_max to scale_max. Don't
-clip if NULL.}
+clip if Inf.}
 }
 \value{
 Returns the center/scaled matrix
