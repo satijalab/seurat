@@ -871,6 +871,52 @@ ExpVar <- function(x) {
   return(log1p(x = var(x = expm1(x = x))))
 }
 
+#' Scale and/or center matrix rowwise
+#' 
+#' Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) 
+#' in R except in the case of NA values.
+#' 
+#' @param mat A matrix
+#' @param center a logical value indicating whether to center the rows
+#' @param scale a logical value indicating whether to scale the rows
+#' @param scale_max clip all values greater than scale_max to scale_max. Don't
+#' clip if Inf.
+#' @return Returns the center/scaled matrix
+#' 
+#' @importFrom matrixStats rowMeans2 rowSds rowSums2
+#' 
+#' @export
+#' 
+FastRowScale <- function(
+  mat,
+  center = TRUE,
+  scale = TRUE, 
+  scale_max = 10
+) {
+  # inspired by https://www.r-bloggers.com/a-faster-scale-function/
+  if (center) {
+    rm <- rowMeans2(x = mat, na.rm = TRUE)
+  }
+  if (scale) {
+    if (center) {
+      rsd <- rowSds(mat, center = rm)
+    } else {
+      rsd <- sqrt(x = rowSums2(x = mat^2)/(ncol(x = mat) - 1))
+    }
+  }
+  if (center) {
+    mat <- mat - rm
+  }
+  if (scale) {
+    mat <- mat / rsd
+  }
+  if (scale_max != Inf) {
+    mat[mat > scale_max] <- scale_max
+  }
+  return(mat)
+}
+
+
 #' Get updated synonyms for gene symbols
 #'
 #' Find current gene symbols based on old or alias symbols using the gene

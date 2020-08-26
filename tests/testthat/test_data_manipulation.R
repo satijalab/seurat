@@ -52,18 +52,18 @@ test_that("Log Normalization returns expected values", {
 # --------------------------------------------------------------------------------
 context("Fast Scale Data Functions")
 
-mat <- matrix(seq(0.001, 0.1, 0.001), nrow = 10, ncol = 10)
+mat <- matrix(rnorm(n = 10*15), nrow = 10, ncol = 15)
 
 # should be the equivalent of t(scale(t(mat)))
 test_that("Fast implementation of row scaling returns expected values", {
-  expect_equal(t(scale(t(mat))[1:10, 1:10]), FastRowScale(mat, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), center = FALSE))[1:10, 1:10],
-               FastRowScale(mat, center = FALSE, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), scale = FALSE))[1:10, 1:10],
-               FastRowScale(mat, scale = FALSE, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:10, 1:10],
-               FastRowScale(mat, scale = FALSE, center = F, display_progress = FALSE))
-  mat.clipped <- FastRowScale(mat, scale_max = 0.2, display_progress = F)
+  expect_equal(t(scale(t(mat)))[1:10, 1:15], FastRowScale(mat))
+  expect_equal(t(scale(t(mat), center = FALSE))[1:10, 1:15],
+               FastRowScale(mat, center = FALSE))
+  expect_equal(t(scale(t(mat), scale = FALSE))[1:10, 1:15],
+               FastRowScale(mat, scale = FALSE))
+  expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:10, 1:15],
+               FastRowScale(mat, scale = FALSE, center = F))
+  mat.clipped <- FastRowScale(mat, scale_max = 0.2)
   expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 

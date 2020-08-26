@@ -174,40 +174,6 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   return data;
 }
 
-/* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R.
-   Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
-
-// [[Rcpp::export]]
-Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true,
-                             double scale_max = 10, bool display_progress = true){
-  Progress p(mat.rows(), display_progress);
-  Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
-  for(int i=0; i < mat.rows(); ++i){
-    p.increment();
-    Eigen::ArrayXd r = mat.row(i).array();
-    double rowMean = r.mean();
-    double rowSdev = 1;
-    if(scale == true){
-      if(center == true){
-        rowSdev = sqrt((r - rowMean).square().sum() / (mat.cols() - 1));
-      }
-      else{
-        rowSdev = sqrt(r.square().sum() / (mat.cols() - 1));
-      }
-    }
-    if(center == false){
-      rowMean = 0;
-    }
-    scaled_mat.row(i) = (r - rowMean) / rowSdev;
-    for(int s=0; s<scaled_mat.row(i).size(); ++s){
-      if(scaled_mat(i, s) > scale_max){
-        scaled_mat(i, s) = scale_max;
-      }
-    }
-  }
-  return scaled_mat;
-}
-
 /* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R.
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 

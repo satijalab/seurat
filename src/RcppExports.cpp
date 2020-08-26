@@ -94,21 +94,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// FastRowScale
-Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale, bool center, double scale_max, bool display_progress);
-RcppExport SEXP _Seurat_FastRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
-    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
-    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(FastRowScale(mat, scale, center, scale_max, display_progress));
-    return rcpp_result_gen;
-END_RCPP
-}
 // Standardize
 NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
@@ -357,7 +342,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
     {"_Seurat_RowMergeMatricesList", (DL_FUNC) &_Seurat_RowMergeMatricesList, 3},
     {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 3},
-    {"_Seurat_FastRowScale", (DL_FUNC) &_Seurat_FastRowScale, 5},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 5},
     {"_Seurat_FastSparseRowScaleWithKnownStats", (DL_FUNC) &_Seurat_FastSparseRowScaleWithKnownStats, 7},
