@@ -5462,7 +5462,7 @@ ExIPlot <- function(
       cols <- Interleave(cols, InvertHex(hexadecimal = cols))
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
-    names(x = cols) <- sort(x = levels(x = split))
+    names(x = cols) <- levels(x = split)
     if ((length(x = cols) > 2) & (type == "splitViolin")) {
       warning("Split violin is only supported for <3 groups, using multi-violin.")
       type <- "violin"
@@ -6337,23 +6337,25 @@ MultiExIPlot <- function(
   plot <- do.call(what = '+', args = list(plot, geom))
   if (flip) {
     plot <- plot +
-      scale_y_continuous(expand = c(0, 0)) +
+      scale_y_continuous(
+        expand = c(0, 0), 
+        labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
       facet_grid(feature ~ ., scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(
         panel.spacing = unit(0, 'lines'),
         panel.background = element_rect(fill = NA, color = "black"),
-        legend.position = 'none',
         axis.text.y = element_text(size = 7),
         axis.text.x = element_text(angle = 45, hjust = 1),
         strip.text.y.right = element_text(angle = 0))
   } else {
     plot <- plot +
-      scale_x_continuous(expand = c(0, 0)) +
+      scale_x_continuous(
+        expand = c(0, 0), 
+        labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
       facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(
         panel.spacing = unit(0, 'lines'),
         panel.background = element_rect(fill = NA, color = "black"),
-        legend.position = 'none',
         axis.text.x = element_text(size = 7),
         strip.text.x = element_text(angle = -90))
   }
