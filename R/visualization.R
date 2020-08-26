@@ -7193,14 +7193,14 @@ NNPlot <- function(
   }
   neighbor.cells <- as.vector(x = neighbor.cells)
   neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
-  object$nn.col <- "other"
+  object[["nn.col"]] <- "other"
   object[["nn.col"]][neighbor.cells, ] <- "neighbors" 
   object[["nn.col"]][query.cells, ] <- "self" 
-  object$nn.col <- factor(x = object$nn.col, levels = c("self", "neighbors", "other"))
+  object[["nn.col"]] <- factor(x = object[["nn.col"]], levels = c("self", "neighbors", "other"))
   if (!show.all.cells) {
     object <- subset(
       x = object, 
-      cells = WhichCells(object, expression = nn.col != "other")
+      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
     )
    nn.cols  <- c(rev(x = cols.highlight))
    nn.pt.size <- sizes.highlight
