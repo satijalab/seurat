@@ -8,26 +8,35 @@ NULL
 
 #' Calculate module scores for feature expression programs in single cells
 #'
-#' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control feature sets.
-#' All analyzed features are binned based on averaged expression, and the control features are
-#' randomly selected from each bin.
+#' Calculate the average expression levels of each program (cluster) on single
+#' cell level, subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the
+#' control features are randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Feature expression programs in list
-#' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
-#' @param nbin Number of bins of aggregate expression levels for all analyzed features
-#' @param ctrl Number of control features selected from the same bin per analyzed feature
+#' @param features A list of vectors of features for expression programs; each
+#' entry should be a vector of feature names
+#' @param pool List of features to check expression levels agains, defaults to
+#' \code{rownames(x = object)}
+#' @param nbin Number of bins of aggregate expression levels for all
+#' analyzed features
+#' @param ctrl Number of control features selected from the same bin per
+#' analyzed feature
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
-#' @param name Name for the expression programs
+#' @param name Name for the expression programs; will append a number to the
+#' end for each entry in \code{features} (eg. if \code{features} has three
+#' programs, the results will be stored as \code{name1}, \code{name2},
+#' \code{name3}, respectively)
 #' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
-#' don't match features in \code{object}? Searches the HGNC's gene names database;
-#' see \code{\link{UpdateSymbolList}} for more details
+#' don't match features in \code{object}? Searches the HGNC's gene names
+#' database; see \code{\link{UpdateSymbolList}} for more details
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
-#' @return Returns a Seurat object with module scores added to object meta data
+#' @return Returns a Seurat object with module scores added to object meta data;
+#' each module is stored as \code{name#} for each module program present in
+#' \code{features}
 #'
 #' @importFrom ggplot2 cut_number
 #' @importFrom Matrix rowMeans colMeans
@@ -1307,8 +1316,8 @@ RowMergeSparseMatrices <- function(mat1, mat2) {
     all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
     all.names <- unique(x = do.call(what = c, args = all.rownames))
     new.mat <- RowMergeMatricesList(
-      mat_list = all.mat, 
-      mat_rownames = all.rownames, 
+      mat_list = all.mat,
+      mat_rownames = all.rownames,
       all_rownames = all.names
     )
     rownames(x = new.mat) <- make.unique(names = all.names)

@@ -126,7 +126,7 @@ Eigen::SparseMatrix<double> RowMergeMatricesList(
   int num_cols = 0;
   int num_nZero = 0;
   // offsets keep track of which column to add in to
-  std::vector<int> offsets(mat_list.size());
+  std::vector<int> offsets;
   for (unsigned int i = 0; i < mat_list.size(); i++) {
     mat_vec.emplace_back(Rcpp::as<Eigen::SparseMatrix<double, Eigen::RowMajor>>(mat_list.at(i)));
     rownames_vec.push_back(mat_rownames[i]);
@@ -136,7 +136,7 @@ Eigen::SparseMatrix<double> RowMergeMatricesList(
       mat_map[rownames_vec[i][j]] = j;
     }
     map_vec.emplace_back(mat_map);
-    offsets.emplace_back(num_cols);
+    offsets.push_back(num_cols);
     num_cols += mat_vec[i].cols();
     num_nZero += mat_vec[i].nonZeros();
   }

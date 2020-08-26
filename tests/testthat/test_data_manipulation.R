@@ -27,6 +27,14 @@ test_that("Row merging done correctly", {
   expect_equal(length(m3), 280)
 })
 
+test_that("Row merging with a list done correctly", {
+  m3 <- RowMergeMatricesList(mat_list = list(m1, m2), mat_rownames = list(m1.names, m2.names), all_rownames = all.names)
+  expect_equal(m3[1, 14], -0.17)
+  expect_equal(m3[3, 2], -1.4)
+  expect_equal(m3[14, 18], -0.43)
+  expect_equal(length(m3), 280)
+})
+
 # Tests for log normalization
 # --------------------------------------------------------------------------------
 context("Log Normalization")
