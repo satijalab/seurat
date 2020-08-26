@@ -871,7 +871,7 @@ ExpVar <- function(x) {
 #' @param center a logical value indicating whether to center the rows
 #' @param scale a logical value indicating whether to scale the rows
 #' @param scale_max clip all values greater than scale_max to scale_max. Don't
-#' clip if NULL.
+#' clip if Inf.
 #' @return Returns the center/scaled matrix
 #' 
 #' @importFrom matrixStats rowMeans2 rowSds rowSums2
@@ -901,7 +901,7 @@ FastRowScale <- function(
   if (scale) {
     mat <- mat / rsd
   }
-  if (!is.null(x = scale_max)) {
+  if (scale_max != Inf) {
     mat[mat > scale_max] <- scale_max
   }
   return(mat)
