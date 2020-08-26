@@ -1,0 +1,30 @@
+on:
+    push:
+        branches:
+            - master
+            - develop
+    pull_request:
+
+jobs:
+    r-cmd-check:
+
+        if: "!contains(github.event.head_commit.message, 'ci-skip')"
+
+        name: R CMD check
+        container:
+            image: satijalab/seurat:develop
+        runs-on: self-hosted 
+        
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Check
+              run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning", check_dir = "check")
+              shell: Rscript {0}
+
+            - name: Upload check results
+              if: failure()
+              uses: actions/upload-artifact@master
+              with:
+                  name: results
+                  path: check

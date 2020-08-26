@@ -704,8 +704,14 @@ ColorDimSplit <- function(
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param label.color Sets the color of the label text
+#' @param label.box Whether to put a box around the label text (geom_text vs
+#' geom_label)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -752,8 +758,12 @@ DimPlot <- function(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
+  label.color = 'black',
+  label.box = FALSE,
   repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
@@ -767,6 +777,10 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -808,7 +822,9 @@ DimPlot <- function(
           id = x,
           repel = repel,
           size = label.size,
-          split.by = split.by
+          split.by = split.by, 
+          box = label.box,
+          color = label.color
         )
       }
       if (!is.null(x = split.by)) {
@@ -4490,8 +4506,8 @@ LabelClusters <- function(
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
+  pb <- ggplot_build(plot = plot)
   if (geom == 'GeomSpatial') {
-    pb <- ggplot_build(plot = plot)
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
       # pretty hacky solution to learn the linear transform to put the data into
@@ -4514,6 +4530,7 @@ LabelClusters <- function(
       data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
     }
   }
+  data <- cbind(data, color = pb$data[[1]][[1]])
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -4545,6 +4562,7 @@ LabelClusters <- function(
         )))
       }
       data.medians[, id] <- group
+      data.medians$color <- data.use$color[1]
       return(data.medians)
     }
   )
@@ -4573,7 +4591,7 @@ LabelClusters <- function(
       mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
       show.legend = FALSE,
       ...
-    )
+    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
