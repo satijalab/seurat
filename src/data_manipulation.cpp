@@ -127,7 +127,7 @@ Eigen::SparseMatrix<double> RowMergeMatricesList(
   int num_cols = 0;
   int num_nZero = 0;
   // offsets keep track of which column to add in to
-  std::vector<int> offsets(mat_list.size());
+  std::vector<int> offsets;
   for (unsigned int i = 0; i < mat_list.size(); i++) {
     mat_vec.emplace_back(Rcpp::as<Eigen::SparseMatrix<double, Eigen::RowMajor>>(mat_list.at(i)));
     rownames_vec.push_back(mat_rownames[i]);
@@ -137,7 +137,7 @@ Eigen::SparseMatrix<double> RowMergeMatricesList(
       mat_map[rownames_vec[i][j]] = j;
     }
     map_vec.emplace_back(mat_map);
-    offsets.emplace_back(num_cols);
+    offsets.push_back(num_cols);
     num_cols += mat_vec[i].cols();
     num_nZero += mat_vec[i].nonZeros();
   }
@@ -173,40 +173,6 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
     }
   }
   return data;
-}
-
-/* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R.
-   Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
-
-// [[Rcpp::export]]
-Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true,
-                             double scale_max = 10, bool display_progress = true){
-  Progress p(mat.rows(), display_progress);
-  Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
-  for(int i=0; i < mat.rows(); ++i){
-    p.increment();
-    Eigen::ArrayXd r = mat.row(i).array();
-    double rowMean = r.mean();
-    double rowSdev = 1;
-    if(scale == true){
-      if(center == true){
-        rowSdev = sqrt((r - rowMean).square().sum() / (mat.cols() - 1));
-      }
-      else{
-        rowSdev = sqrt(r.square().sum() / (mat.cols() - 1));
-      }
-    }
-    if(center == false){
-      rowMean = 0;
-    }
-    scaled_mat.row(i) = (r - rowMean) / rowSdev;
-    for(int s=0; s<scaled_mat.row(i).size(); ++s){
-      if(scaled_mat(i, s) > scale_max){
-        scaled_mat(i, s) = scale_max;
-      }
-    }
-  }
-  return scaled_mat;
 }
 
 /* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R.
