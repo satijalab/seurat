@@ -7568,6 +7568,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           call. = FALSE
         )
       }
+      if (!all(Cells(x = value) %in% Cells(x = x))) {
+        stop(
+          "Cannot add cells in Neighbor object that aren't present in the Seurat object.",
+          call. = FALSE
+        )
+      }
       'neighbors'
     } else if (inherits(x = value, what = 'SeuratCommand')) {
       # Ensure Assay that SeuratCommand is associated with is present in the Seurat object
@@ -7626,7 +7632,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage')) && !all(Cells(x = value) == Cells(x = x))) {
+      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage', 'Neighbor')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
