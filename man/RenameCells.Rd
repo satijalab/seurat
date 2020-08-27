@@ -4,6 +4,7 @@
 \alias{RenameCells}
 \alias{RenameCells.Assay}
 \alias{RenameCells.DimReduc}
+\alias{RenameCells.Neighbor}
 \alias{RenameCells.Seurat}
 \alias{RenameCells.VisiumV1}
 \title{Rename cells}
@@ -13,6 +14,8 @@ RenameCells(object, ...)
 \method{RenameCells}{Assay}(object, new.names = NULL, ...)
 
 \method{RenameCells}{DimReduc}(object, new.names = NULL, ...)
+
+\method{RenameCells}{Neighbor}(object, old.names = NULL, new.names = NULL, ...)
 
 \method{RenameCells}{Seurat}(
   object,
@@ -30,6 +33,8 @@ RenameCells(object, ...)
 \item{...}{Arguments passed to other methods}
 
 \item{new.names}{vector of new cell names}
+
+\item{old.names}{vector of old cell names}
 
 \item{add.cell.id}{prefix to add cell names}
 

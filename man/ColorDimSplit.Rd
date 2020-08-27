@@ -45,6 +45,9 @@ different colors and different shapes on cells}
     \item{\code{order}}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
+    \item{\code{shuffle}}{Whether to randomly shuffle the order of points. This can be
+useful for crowded plots if points of interest are being buried. (default is FALSE)}
+    \item{\code{seed}}{Sets the seed if randomly shuffling the order of points.}
     \item{\code{label}}{Whether to label the clusters}
     \item{\code{label.size}}{Sets size of labels}
     \item{\code{label.color}}{Sets the color of the label text}

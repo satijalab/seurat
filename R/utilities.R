@@ -539,6 +539,29 @@ CollapseSpeciesExpressionMatrix <- function(
   return(object)
 }
 
+# Create an Annoy index
+#
+# @note Function exists because it's not exported from \pkg{uwot}
+#
+# @param name Distance metric name
+# @param ndim Number of dimensions
+#
+# @return An nn index object
+#
+#' @importFrom methods new
+#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
+#
+CreateAnn <- function(name, ndim) {
+  return(switch(
+    EXPR = name,
+    cosine = new(Class = AnnoyAngular, ndim),
+    manhattan = new(Class = AnnoyManhattan, ndim),
+    euclidean = new(Class = AnnoyEuclidean, ndim),
+    hamming = new(Class = AnnoyHamming, ndim),
+    stop("BUG: unknown Annoy metric '", name, "'")
+  ))
+}
+
 #' Run a custom distance function on an input data matrix
 #'
 #' @author Jean Fan
@@ -871,6 +894,52 @@ ExpVar <- function(x) {
   return(log1p(x = var(x = expm1(x = x))))
 }
 
+#' Scale and/or center matrix rowwise
+#' 
+#' Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) 
+#' in R except in the case of NA values.
+#' 
+#' @param mat A matrix
+#' @param center a logical value indicating whether to center the rows
+#' @param scale a logical value indicating whether to scale the rows
+#' @param scale_max clip all values greater than scale_max to scale_max. Don't
+#' clip if Inf.
+#' @return Returns the center/scaled matrix
+#' 
+#' @importFrom matrixStats rowMeans2 rowSds rowSums2
+#' 
+#' @export
+#' 
+FastRowScale <- function(
+  mat,
+  center = TRUE,
+  scale = TRUE, 
+  scale_max = 10
+) {
+  # inspired by https://www.r-bloggers.com/a-faster-scale-function/
+  if (center) {
+    rm <- rowMeans2(x = mat, na.rm = TRUE)
+  }
+  if (scale) {
+    if (center) {
+      rsd <- rowSds(mat, center = rm)
+    } else {
+      rsd <- sqrt(x = rowSums2(x = mat^2)/(ncol(x = mat) - 1))
+    }
+  }
+  if (center) {
+    mat <- mat - rm
+  }
+  if (scale) {
+    mat <- mat / rsd
+  }
+  if (scale_max != Inf) {
+    mat[mat > scale_max] <- scale_max
+  }
+  return(mat)
+}
+
+
 #' Get updated synonyms for gene symbols
 #'
 #' Find current gene symbols based on old or alias symbols using the gene
@@ -1195,6 +1264,44 @@ PercentageFeatureSet <- function(
     return(object)
   }
   return(percent.featureset)
+}
+
+#' Load the Annoy index file
+#' 
+#' @param object Neighbor object
+#' @param file Path to file with annoy index 
+#' 
+#' @return Returns the Neighbor object with the index stored
+#' @export
+#' 
+LoadAnnoyIndex <- function(object, file){
+  metric <- slot(object = object, name = "alg.info")$metric
+  ndim <- slot(object = object, name = "alg.info")$ndim
+  if (is.null(x = metric)) {
+    stop("Provided Neighbor object wasn't generated with annoy")
+  }
+  annoy.idx <- CreateAnn(name = metric, ndim = ndim)
+  annoy.idx$load(path.expand(path = file))
+  Index(object = object) <- annoy.idx
+  return(object)
+}
+
+#' Save the Annoy index
+#' 
+#' @param object A Neighbor object with the annoy index stored
+#' @param file Path to file to write index to
+#' 
+#' @export
+#' 
+SaveAnnoyIndex <- function(
+  object,
+  file
+) {
+  index <- Index(object = object)
+  if (is.null(x = index)) {
+    stop("Index for provided Neighbor object is NULL")
+  }
+  index$save(path.expand(path = file))
 }
 
 #' Regroup idents based on meta.data info
@@ -1701,6 +1808,14 @@ IsMatrixEmpty <- function(x) {
   matrix.dims <- dim(x = x)
   matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
   return(all(matrix.dims == 0) || matrix.na)
+}
+
+# Check if externalptr is null
+# From https://stackoverflow.com/questions/26666614/how-do-i-check-if-an-externalptr-is-null-from-within-r
+#
+is.null.externalptr <- function(pointer) {
+  stopifnot(is(pointer, "externalptr"))
+  .Call("isnull", pointer)
 }
 
 # Check whether an assay has been processed by sctransform

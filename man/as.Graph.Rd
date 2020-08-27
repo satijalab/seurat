@@ -4,6 +4,7 @@
 \alias{as.Graph}
 \alias{as.Graph.Matrix}
 \alias{as.Graph.matrix}
+\alias{as.Graph.Neighbor}
 \title{Convert a matrix (or Matrix) to the Graph class.}
 \usage{
 as.Graph(x, ...)
@@ -11,11 +12,16 @@ as.Graph(x, ...)
 \method{as.Graph}{Matrix}(x, ...)
 
 \method{as.Graph}{matrix}(x, ...)
+
+\method{as.Graph}{Neighbor}(x, weighted = TRUE, ...)
 }
 \arguments{
 \item{x}{The matrix to convert}
 
 \item{...}{Arguments passed to other methods (ignored for now)}
+
+\item{weighted}{If TRUE, fill entries in Graph matrix with value from the 
+nn.dist slot of the Neighbor object}
 }
 \description{
 Convert a matrix (or Matrix) to the Graph class.
