@@ -1517,7 +1517,7 @@ MapQueryData <- function(reference,
       return (merged.obj)
     }
   )
-  if (length(x = objects) == 1) {
+  if (length(x = objects.list) == 1) {
     return (objects.list[[1]])
   } else {
     return (objects.list)
