@@ -77,6 +77,10 @@ ReplaceColsC <- function(mat, col_idx, replacement) {
     .Call('_Seurat_ReplaceColsC', PACKAGE = 'Seurat', mat, col_idx, replacement)
 }
 
+GraphToNeighborHelper <- function(mat) {
+    .Call('_Seurat_GraphToNeighborHelper', PACKAGE = 'Seurat', mat)
+}
+
 FindWeightsC <- function(integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress) {
     .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress)
 }
