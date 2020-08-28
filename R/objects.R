@@ -222,24 +222,24 @@ scalefactors <- function(spot, fiducial, hires, lowres) {
 setOldClass(Classes = c('scalefactors'))
 
 #' The Neighbor class
-#' 
-#' The Neighbor class is used to store the results of neighbor finding 
+#'
+#' The Neighbor class is used to store the results of neighbor finding
 #' algorithms
-#' 
+#'
 #' @slot nn.idx Matrix containing the nearest neighbor indices
 #' @slot nn.dist Matrix containing the nearest neighbor distances
-#' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy 
+#' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy
 #' index
-#' @slot alg.info Any information associated with the algorithm that may be 
-#' needed downstream (e.g. distance metric used with annoy is needed when 
+#' @slot alg.info Any information associated with the algorithm that may be
+#' needed downstream (e.g. distance metric used with annoy is needed when
 #' reading in from stored file).
-#' @slot cell.names Names of the cells for which the neighbors have been 
-#' computed. 
-#' 
+#' @slot cell.names Names of the cells for which the neighbors have been
+#' computed.
+#'
 #' @name Neighbor-class
 #' @rdname Neighbor-class
 #' @exportClass Neighbor
-#' 
+#'
 Neighbor <- setClass(
   Class = 'Neighbor',
   slots = c(
@@ -2176,7 +2176,7 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
-#' @param weighted If TRUE, fill entries in Graph matrix with value from the 
+#' @param weighted If TRUE, fill entries in Graph matrix with value from the
 #' nn.dist slot of the Neighbor object
 #' @rdname as.Graph
 #' @export
@@ -2381,8 +2381,8 @@ as.Neighbor.Graph <- function(
 ) {
   nn.mats <- GraphToNeighborHelper(mat = x)
   return(Neighbor(
-    nn.idx = nn.mats[[1]], 
-    nn.dist = nn.mats[[2]], 
+    nn.idx = nn.mats[[1]],
+    nn.dist = nn.mats[[2]],
     cell.names = rownames(x = x)
   ))
 }
@@ -3158,7 +3158,7 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 #' @rdname Cells
 #' @method Cells Neighbor
 #' @export
-#' 
+#'
 Cells.Neighbor <- function(x) {
   return(slot(object = x, name = "cell.names"))
 }
@@ -3326,7 +3326,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @rdname Distances
 #' @export
 #' @method Distances Neighbor
-#' 
+#'
 Distances.Neighbor <- function(object, ...) {
   object <- UpdateSlots(object = object)
   distances <- slot(object = object, name = "nn.dist")
@@ -7564,13 +7564,13 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
        # Ensure all cells are present in the Seurat object
       if (length(x = Cells(x = value)) > length(x = Cells(x = x))) {
         stop(
-          "Cannot add more cells in Neighbor object than are present in the Seurat object.",
+          "Cannot have more cells in the Neighbor object than are present in the Seurat object.",
           call. = FALSE
         )
       }
       if (!all(Cells(x = value) %in% Cells(x = x))) {
         stop(
-          "Cannot add cells in Neighbor object that aren't present in the Seurat object.",
+          "Cannot add cells in the Neighbor object that aren't present in the Seurat object.",
           call. = FALSE
         )
       }
@@ -7922,7 +7922,7 @@ setMethod(
       "A Neighbor object containing the",
       ncol(x = object),
       "nearest neighbors for",
-      nrow(x = object), 
+      nrow(x = object),
       "cells"
     )
   }
@@ -8249,7 +8249,7 @@ SubsetVST <- function(sct.info, cells, features) {
 Top <- function(data, num, balanced) {
   nr <- nrow(x = data)
   if (num > nr) {
-    warning("Requested number is larger than the number of available items (", 
+    warning("Requested number is larger than the number of available items (",
             nr, "). Setting to ", nr , ".", call. = FALSE)
     num <- nr
   }
@@ -8261,10 +8261,10 @@ Top <- function(data, num, balanced) {
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
-    
+
     # remove duplicates
     if (positive[num] == negative[num]) {
-      negative <- negative[-num] 
+      negative <- negative[-num]
     }
     list(positive = positive, negative = negative)
   } else {
