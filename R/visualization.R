@@ -311,7 +311,7 @@ DoHeatmap <- function(
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
       default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
-      if (!is.null(x = names(x = group.colors))) { 
+      if (!is.null(x = names(x = group.colors))) {
         cols <- unname(obj = group.colors[levels(x = group.use)])
       } else {
         cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
@@ -822,7 +822,7 @@ DimPlot <- function(
           id = x,
           repel = repel,
           size = label.size,
-          split.by = split.by, 
+          split.by = split.by,
           box = label.box,
           color = label.color
         )
@@ -3963,6 +3963,11 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
   plot.data$selected_ <- FALSE
   rownames(x = plot.data) <- rownames(x = plot$data)
+  colnames(x = plot.data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = plot.data)
+  )
   # Server function
   server <- function(input, output, session) {
     plot.env <- reactiveValues(data = plot.data)
