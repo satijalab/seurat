@@ -6,98 +6,6 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Run Annoy approximate nearest neighbors algorithm
-#' 
-#' @details
-#' if `return.annoy_index = TRUE`, the returned object from AnnoySearch also contains
-#' a `metric` field (corresponding to the `metric` argument to this function), a `ndim` 
-#' field (the number of dimensions), and an `annoy_index` field which 
-#' is the index object.
-#
-#' @param data Data to build the index with
-#' @param query A set of data to be queried against data
-#' @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
-#' "hamming"
-#' @param n.trees More trees gives higher precision when querying
-#' @param k Number of neighbors
-#' @param search.k During the query it will inspect up to search_k nodes which
-#' gives you a run-time tradeoff between better accuracy and speed.
-#' @param include.distance Include the corresponding distances
-#' @param nn.idx the precomputed AnnoyBuildIndex index
-#' @param return.annoy_index Return the index built by AnnoyBuildIndex?
-#'
-#' @export
-#'   
-AnnoyNN <- function(data, 
-                    query = data,
-                    metric = "euclidean", 
-                    n.trees = 50, 
-                    k,
-                    search.k = -1,
-                    include.distance = TRUE,
-                    nn.idx = NULL,
-                    return.annoy_index = FALSE) {
-  if (is.null(nn.idx)) {
-    idx <- AnnoyBuildIndex(
-      data = data,
-      metric = metric,
-      n.trees = n.trees)
-  } else {
-    idx <- nn.idx
-  }
-  nn <- AnnoySearch(
-    index = idx,
-    query = query,
-    k = k,
-    search.k = search.k,
-    include.distance = include.distance)
-  if (return.annoy_index) {
-    nn$metric <- metric
-    nn$ndim <- ncol(query)
-    nn$annoy_index <- idx
-  }
-  return(nn)
-}
-
-#' Load the Annoy neighbors and C++ index from RDS
-#' 
-#' @param file the name of the file where the nn object is saved by SaveAnnoyNN
-#' 
-#' @export
-#' 
-ReadAnnoyNN <- function(file){
-  file <- path.expand(file)
-  nn <- readRDS(file)
-  if (!is.null( nn$annoy_index.dir)) {
-    annoy_index <- CreateAnn(name = nn$metric, ndim =  nn$ndim)
-    annoy_index$load( nn$annoy_index.dir)
-    nn$annoy_index <- annoy_index
-  }
-  return(nn)
-}
-
-#' Save the Annoy neighbors and C++ index to RDS
-#' 
-#' @param nn the output from AnnoyNN with return.annoy_index = T
-#' @param file the name of the file where the nn object is saved
-#' @param annoy_index_name suffix name for C++ index, which is saved 
-#' in a separate file
-#' 
-#' @export
-#' 
-SaveAnnoyNN <- function( nn,
-                         file,
-                         annoy_index_name = "annoy_index"
-){
-  file <- path.expand(file)
-  if (!is.null(nn$annoy_index)) {
-    file.annoy_index <- paste(file, annoy_index_name, sep = ".")
-    nn$annoy_index$save(file.annoy_index)
-    nn$annoy_index.dir <- file.annoy_index
-  }
-  saveRDS(object = nn, file = file)
-}
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -592,11 +500,19 @@ FindNeighbors.Seurat <- function(
 # @param k Number of neighbors
 # @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances
+# @param include.distance Include the corresponding distances
+# @param index optional index object, will be recomputed if not provided
 #
-AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
-                    search.k = -1, include.distance = TRUE) {
-  idx <- AnnoyBuildIndex(
+AnnoyNN <- function(data, 
+                    query = data, 
+                    metric = "euclidean", 
+                    n.trees = 50, 
+                    k,
+                    search.k = -1, 
+                    include.distance = TRUE,
+                    index = NULL
+                    ) {
+  idx <- index %||% AnnoyBuildIndex(
     data = data,
     metric = metric,
     n.trees = n.trees)

@@ -20,8 +20,7 @@ MapQueryData(
   sd.weight = 1,
   eps = 0,
   nn.method = "annoy",
-  reference.nnidx = NULL,
-  ...
+  reference.index = NULL
 )
 }
 \arguments{
@@ -60,7 +59,7 @@ cell-anchor weights matrix}
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
 
-\item{reference.nnidx}{Precomputed Annoy NN index object returned by AnnoyNN}
+\item{reference.index}{Optional precomputed Neighbors index object returned by NNHelper with cache.index = TRUE}
 }
 \description{
 Map query cells to reference dimensional reduction
