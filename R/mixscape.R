@@ -637,7 +637,7 @@ RunMixscape <- function (object = NULL,
   prtb_markers <- c()
   object[[new.class.name]] <- object[[labels]]
   object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
-  object[["p_ko"]] <- 0
+  object[[paste0(new.class.name,"_p_ko")]] <- 0
   
   if(is.null(x=split.by)){
     splt.b <- "con1"
@@ -735,7 +735,7 @@ RunMixscape <- function (object = NULL,
       object[[paste(new.class.name, ".global", sep = "")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
       
-      object[["p_ko"]][Cells(object.gene)[-c(nt.cells)],1] <- post.prob
+      object[[paste0(new.class.name,"_p_ko")]][Cells(object.gene)[-c(nt.cells)],1] <- post.prob
     }
     
   }
@@ -774,6 +774,7 @@ MixscapeHeatmap <- function(
   max.cells.group = NULL,
   order.by.prob = T,
   group.by = NULL,
+  mixscape.class = "mixscape_class",
   ...
 ) 
 { 
@@ -836,8 +837,8 @@ MixscapeHeatmap <- function(
     sub2 <- ScaleData(sub2, features = marker.list)
     
     if(isTRUE(order.by.prob)){
-      p_ko <- sub2$p_ko[, drop = FALSE]
-      ordered.cells <- names(sort(p_ko, decreasing = T))
+      p_ko <- sub2[[paste(mixscape.class, "p_ko", sep = "_")]][,1, drop = FALSE]
+      ordered.cells <- rownames(p_ko)[order(p_ko[,1], decreasing = T)]
       p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells ,...)
     }
     
