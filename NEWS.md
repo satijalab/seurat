@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Set max for number of items returned by `Top` and remove duplicate items when balanced=TRUE
 - Fix logging bug when functions were run via `do.call()`
 - Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
+- Fix issue where feature names with dashes crashed `CellSelector`
 
 ### Deprecated
 - `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
