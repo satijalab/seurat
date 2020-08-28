@@ -198,6 +198,57 @@ test_that("Merging Assays handles case when data not present", {
   expect_equal(nnzero(x = GetAssayData(object = z, slot = "data")), 0)
 })
 
+# Tests for Neighbor object
+# ------------------------------------------------------------------------------
+context("Neighbor")
+
+# converting to Graph and back
+
+n.rann.ob <- NNHelper(
+  data = Embeddings(object = pbmc_small[["pca"]]), 
+  query = Embeddings(object = pbmc_small[["pca"]]), 
+  k = 10, 
+  method = "rann")
+
+test_that("Neighbor object methods work", {
+  expect_equal(dim(x = Indices(object = n.rann.ob)), c(80, 10))
+  expect_equal(dim(x = n.rann.ob), c(80, 10))
+  expect_equal(as.numeric(Indices(object = n.rann.ob)[1, 7]), 45, )
+  expect_equal(dim(x = Distances(object = n.rann.ob)), c(80, 10))
+  expect_equal(as.numeric(Distances(object = n.rann.ob)[2, 2]), 2.643759, tolerance = 1e-6)
+  expect_equal(length(x = Cells(x = n.rann.ob)), 80)
+  expect_equal(Cells(x = n.rann.ob)[c(1, 20, 80)], c("ATGCCAGAACGACT", "TACATCACGCTAAC", "CTTGATTGATCTTC"))
+  pbmc_small[["n.ob"]] <- n.rann.ob
+  pbmc_small <- RenameCells(object = pbmc_small, add.cell.id = "test")
+  expect_equal(Cells(x = pbmc_small[['n.ob']])[1], c("test_ATGCCAGAACGACT"))
+  expect_equal(TopNeighbors(object = n.rann.ob, cell = "ATGCCAGAACGACT", n = 5)[5], "GATATAACACGCAT")
+  expect_equal(length(TopNeighbors(object = n.rann.ob, cell = "ATGCCAGAACGACT", n = 7)), 7)
+  nrg <- as.Graph(x = n.rann.ob)
+  expect_true(inherits(x = nrg, what = "Graph"))
+  expect_equal(as.numeric(Distances(object = n.rann.ob)[2, 3]), nrg[2, Indices(object = n.rann.ob)[2, 3]])
+  nro2 <- as.Neighbor(x = nrg)
+  expect_true(inherits(x = nro2, what = "Neighbor"))
+  expect_equal(Distances(object = n.rann.ob)[2, 3], Distances(object = nro2)[2, 3])
+  expect_equal(Indices(object = n.rann.ob)[1, 6], Indices(object = nro2)[1, 6])
+})  
+
+n.annoy.ob <- NNHelper(
+  data = Embeddings(object = pbmc_small[["pca"]]), 
+  query = Embeddings(object = pbmc_small[["pca"]]), 
+  k = 10, 
+  method = "annoy",
+  cache.index = TRUE)
+idx.file <-  tempfile()
+SaveAnnoyIndex(object = n.annoy.ob, file = idx.file)
+nao2 <- LoadAnnoyIndex(object = n.annoy.ob, file = idx.file)
+
+test_that("Saving/Loading annoy index", {
+  expect_error(SaveAnnoyIndex(object = n.rann.ob, file = idx.file))
+  expect_equal(head(Indices(n.annoy.ob)), head(Indices(nao2)))
+  expect_equal(head(Distances(n.annoy.ob)), head(Distances(nao2)))
+  expect_false(is.null(x = Index(nao2)))
+})
+
 # Tests for FetchData
 # ------------------------------------------------------------------------------
 context("FetchData")
@@ -265,4 +316,25 @@ test_that("passing an expression works", {
   expect_equal(lyz.pos[30], "CTTGATTGATCTTC")
 })
 
-
+# Tests for small other functions
+# ------------------------------------------------------------------------------
+test_that("Top works", {
+  dat <- Embeddings(object = pbmc_small[['pca']])[, 1, drop = FALSE]
+  expect_warning(Top(data = dat, num = 1000, balanced = FALSE))
+  tpc1 <- Top(data = dat, num = 20, balanced = FALSE)
+  expect_equal(length(x = tpc1), 20)
+  expect_equal(tpc1[1], "ACGTGATGCCATGA")
+  expect_equal(tpc1[20], "GTCATACTTCGCCT")
+  tpc1b <- Top(data = dat, num = 20, balanced = TRUE)
+  expect_equal(length(x = tpc1b), 2)
+  expect_equal(names(tpc1b), c("positive", "negative"))
+  expect_equal(length(tpc1b[[1]]), 10)
+  expect_equal(length(tpc1b[[2]]), 10)
+  expect_equal(tpc1b[[1]][1], "GTCATACTTCGCCT")
+  expect_equal(tpc1b[[1]][10], "CTTGATTGATCTTC")
+  expect_equal(tpc1b[[2]][1], "ACGTGATGCCATGA")
+  expect_equal(tpc1b[[2]][10], "ATTGTAGATTCCCG")
+  tpc1.sub <- Top(data = dat[1:79, , drop = FALSE], num = 79, balanced = TRUE)
+  expect_equal(length(tpc1.sub[[1]]), 40)
+  expect_equal(length(tpc1.sub[[2]]), 39)
+})

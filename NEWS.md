@@ -2,6 +2,22 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+### Added
+- Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
+- Enable named color vectors in `DoHeatmap()`
+- Add `label.color` and `label.box` parameters to `DimPlot`
+- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting.
+
+### Changes
+- Allow setting `slot` parameter in `RunUMAP`
+- Added support for FIt-SNE v1.2+
+- Fix for `Spatial*Plot` when running with interactive=TRUE
+- Set max for number of items returned by `Top` and remove duplicate items when balanced=TRUE
+- Fix logging bug when functions were run via `do.call()`
+- Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
+
+
 ## [3.2.0] - 2020-07-15
 ### Added
 - Added ability to create a Seurat object from an existing Assay object, or any
