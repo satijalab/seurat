@@ -621,7 +621,9 @@ RunMixscape <- function (object = NULL,
                           logfc.threshold = 0.25, 
                           iter.num = 10, 
                           verbose = TRUE, 
-                          split.by = NULL) 
+                          split.by = NULL,
+                         fine.mode = FALSE, 
+                         fine.mode.labels = NULL) 
 {
   mixtools.installed <- PackageCheck("mixtools", error = FALSE)
   if (!mixtools.installed[1]) {
@@ -665,13 +667,31 @@ RunMixscape <- function (object = NULL,
       orig.guide.cells <- WhichCells(object = object.gene, 
                                      idents = gene)
       DefaultAssay(object = object.gene) <- assay
-      de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, 
-                                     de.assay = de.assay, logfc.threshold = logfc.threshold, 
-                                     labels = labels)
-      prtb_markers[[gene]] <- de.genes
+      
+      if( isTRUE(fine.mode)){
+        guides <- setdiff(x = unique(object.gene[[fine.mode.labels]][, 1]), y = nt.class.name)
+        all.de.genes <- c()
+        for (gd in guides)
+        {
+          de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gd, 
+                                         de.assay = de.assay, logfc.threshold = logfc.threshold, 
+                                         labels = fine.mode.labels)
+          all.de.genes <- c(all.de.genes, de.genes)
+          
+        }
+        all.de.genes <- unique(all.de.genes)
+      }
+      
+      else{
+        all.de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene, 
+                                           de.assay = de.assay, logfc.threshold = logfc.threshold, 
+                                           labels = labels)
+      }
+      
+      prtb_markers[[gene]] <- all.de.genes
       nt.cells <- which(object.gene[[new.class.name]] == nt.class.name)
       
-      if (length(x = de.genes) < min.de.genes) {
+      if (length(x = all.de.genes) < min.de.genes) {
         if (isTRUE(verbose)) {
           message("Fewer than ", min.de.genes, " DE genes for ", 
                   gene, ". Assigning cells as NP.")
@@ -679,8 +699,8 @@ RunMixscape <- function (object = NULL,
         object.gene[[new.class.name]][orig.guide.cells, 1] <- paste(gene, " NP", sep = "")
       }
       else {
-        object.gene <- ScaleData(object = object.gene, features = de.genes, verbose = FALSE)
-        dat <- GetAssayData(object = object.gene[[assay]], slot = slot)[de.genes, ]
+        object.gene <- ScaleData(object = object.gene, features = all.de.genes, verbose = FALSE)
+        dat <- GetAssayData(object = object.gene[[assay]], slot = slot)[all.de.genes, ]
         converged <- FALSE
         n.iter <- 0
         old.classes <- object.gene[[new.class.name]]
