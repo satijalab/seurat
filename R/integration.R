@@ -2020,7 +2020,7 @@ FilterAnchors <- function(
 
   anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
   position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
+    which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
   })
   anchors <- anchors[!is.na(x = position), ]
   if (verbose) {
@@ -2128,7 +2128,7 @@ FindAnchorPairs <- function(
   verbose = TRUE
 ) {
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-  max.nn <- c(ncol(x = neighbors$nnab$nn.idx), ncol(x = neighbors$nnba$nn.idx))
+  max.nn <- c(ncol(x = neighbors$nnab), ncol(x = neighbors$nnba))
   if (any(k.anchor > max.nn)) {
     message(paste0('warning: requested k.anchor = ', k.anchor, ', only ', min(max.nn), ' in dataset'))
     k.anchor <- min(max.nn)
@@ -2140,7 +2140,7 @@ FindAnchorPairs <- function(
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
   cell1.index <-  suppressWarnings(which(colnames(x = object) == nn.cells1, arr.ind = TRUE))
-  ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
+  ncell <- 1:nrow(x = neighbors$nnab)
   ncell <- ncell[ncell %in% cell1.index]
   anchors <- list()
   # pre allocate vector
@@ -2149,9 +2149,9 @@ FindAnchorPairs <- function(
   anchors$score <- anchors$cell1 + 1
   idx <- 0
   for (cell in ncell) {
-    neighbors.ab <- neighbors$nnab$nn.idx[cell, 1:k.anchor]
+    neighbors.ab <- Indices(object = neighbors$nnab)[cell, 1:k.anchor]
     mutual.neighbors <- which(
-      x = neighbors$nnba$nn.idx[neighbors.ab, 1:k.anchor, drop = FALSE] == cell,
+      x = Indices(neighbors$nnba)[neighbors.ab, 1:k.anchor, drop = FALSE] == cell,
       arr.ind = TRUE
     )[, 1]
     for (i in neighbors.ab[mutual.neighbors]){
@@ -2370,9 +2370,9 @@ FindWeights <- function(
     method = nn.method,
     eps = eps
   )
-  distances <- knn_2_2$nn.dists
+  distances <- Distances(object = knn_2_2)
   distances <- 1 - (distances / distances[, ncol(x = distances)])
-  cell.index <- knn_2_2$nn.idx
+  cell.index <- Indices(object = knn_2_2)
   integration.matrix <- GetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -3099,8 +3099,8 @@ ScoreAnchors <- function(
   anchor.df <- as.data.frame(x = GetIntegrationData(object = object, integration.name = integration.name, slot = 'anchors'))
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "neighbors")
   offset <- length(x = neighbors$cells1)
-  nbrsetA <- function(x) c(neighbors$nnaa$nn.idx[x, 1:k.score], neighbors$nnab$nn.idx[x, 1:k.score] + offset)
-  nbrsetB <- function(x) c(neighbors$nnba$nn.idx[x, 1:k.score], neighbors$nnbb$nn.idx[x, 1:k.score] + offset)
+  nbrsetA <- function(x) c(Indices(object = neighbors$nnaa)[x, 1:k.score], Indices(object = neighbors$nnab)[x, 1:k.score] + offset)
+  nbrsetB <- function(x) c(Indices(neighbors$nnba)[x, 1:k.score], Indices(neighbors$nnbb)[x, 1:k.score] + offset)
   # score = number of shared neighbors
   anchor.new <- data.frame(
     'cell1' = anchor.df[, 1],
