@@ -4,6 +4,7 @@
 \alias{Cells}
 \alias{Cells.default}
 \alias{Cells.DimReduc}
+\alias{Cells.Neighbor}
 \alias{Cells.SlideSeq}
 \alias{Cells.STARmap}
 \alias{Cells.VisiumV1}
@@ -14,6 +15,8 @@ Cells(x)
 \method{Cells}{default}(x)
 
 \method{Cells}{DimReduc}(x)
+
+\method{Cells}{Neighbor}(x)
 
 \method{Cells}{SlideSeq}(x)
 
