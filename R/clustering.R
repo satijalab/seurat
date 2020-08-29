@@ -1062,7 +1062,7 @@ MultiModalNN <- function(
   # union of rna and adt nn, remove itself from neighobors
   redunction_nn <- lapply(
     X = redunction_nn, 
-    FUN = function(x)  x$nn.idx[, -1]
+    FUN = function(x)  Indices(object = x)[, -1]
   )
   nn_idx <- lapply(
     X = 1:query.cell.num , 
@@ -1352,7 +1352,6 @@ FindModalityWeights  <- function(
   if (verbose) {
     message("Finding ", k.nn, " nearest neighbors for each modality.") 
   }
-  
   nn.list <- my.lapply(
     X = reduction.list, 
     FUN = function(r) {
@@ -1363,7 +1362,6 @@ FindModalityWeights  <- function(
         method = "annoy", 
         metric = "euclidean"
       )
-      rownames(x = nn.r$nn.idx) <- Cells(x = query)
       return(nn.r)
     }
   )
@@ -1373,13 +1371,13 @@ FindModalityWeights  <- function(
     nn.list <- lapply(
       X = nn.list, 
       FUN = function(nn){
-        nn$nn.idx <- nn$nn.idx[, 1:k.nn]
-        nn$nn.dists <- nn$nn.dists[, 1:k.nn]
+        slot(object = nn, name = "nn.idx") <- Indices(object = nn)[, 1:knn]
+        slot(object = nn, name = "nn.dists") <- Distances(object = nn)[, 1:knn]
         return(nn)
       }
     )
   }
-  nearest_dist <- lapply(X = reduction.list, FUN = function(r) nn.list[[r]]$nn.dists[, 2])
+  nearest_dist <- lapply(X = reduction.list, FUN = function(r) Distances(object = nn.list[[r]])[, 2])
   within_impute <- list()
   cross_impute <- list()
   # Calculating within and cross modality distance
@@ -1392,7 +1390,7 @@ FindModalityWeights  <- function(
     )
     within_impute[[r]] <- PredictAssay(
       object = object, 
-      nn.idx =  nn.list[[r]]$nn.idx,
+      nn.idx =  Indices(object = nn.list[[r]]),
       reduction = reduction.norm,
       dims = 1:ncol(x = embeddings.list.norm[[r]]), 
       verbose = FALSE,
@@ -1400,7 +1398,7 @@ FindModalityWeights  <- function(
     )
     cross_impute[[r]] <- PredictAssay(
       object = object,
-      nn.idx = nn.list[[setdiff(x = reduction.set, y = r )]]$nn.idx,
+      nn.idx = Indices(object = nn.list[[setdiff(x = reduction.set, y = r )]]),
       reduction = reduction.norm, 
       dims = 1:ncol(x = embeddings.list.norm[[r]]), 
       verbose = FALSE,
@@ -1434,7 +1432,7 @@ FindModalityWeights  <- function(
       X = sigma.nn.list,
       FUN = function(nn) {
         snn.matrix <- ComputeSNN(
-          nn_ranked =  nn$nn.idx[, 1:s.nn],
+          nn_ranked =  Indices(object = nn)[, 1:s.nn],
           prune = prune.SNN
         )
         colnames(x = snn.matrix) <- rownames(x = snn.matrix) <- Cells(x = object)
@@ -1469,7 +1467,7 @@ FindModalityWeights  <- function(
     modality_sd.list <- lapply(
       X = reduction.list , 
       FUN =  function(r) {
-        rdist <- sigma.nn.list[[r]]$nn.dists[, sigma.idx] - nearest_dist[[r]]
+        rdist <- Distances(object = sigma.nn.list[[r]])[, sigma.idx] - nearest_dist[[r]]
         rdist <- rdist * sd.scale
         return (rdist)
       }
@@ -1510,7 +1508,7 @@ FindModalityWeights  <- function(
       X = reduction.list, 
       FUN = function(r) {
         apply(
-          X = nn.list[[r]]$nn.idx,
+          X = Indices(object = nn.list[[r]]),
           MARGIN = 1, 
           FUN = function(nn)  mean(x = modality_score[[r]][nn[-1]])
         ) 
