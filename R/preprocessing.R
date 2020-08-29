@@ -184,6 +184,15 @@ CreateGeneActivityMatrix <- function(
   keep.sparse = FALSE,
   verbose = TRUE
 ) {
+  .Deprecated(
+    new = 'Signac::GeneActivity',
+    msg = paste(
+      "CreateGeneActivityMatrix functionality is being moved to Signac.",
+      "Equivalent functionality can be",
+      "achieved via the Signac::GeneActivity function; for",
+      "more information on Signac, please see https://github.com/timoast/Signac"
+    )
+  )
   if (!PackageCheck('GenomicRanges', error = FALSE)) {
     stop("Please install GenomicRanges from Bioconductor.")
   }
@@ -2793,13 +2802,15 @@ ScaleData.default <- function(
         row <- chunks[index, ]
         group <- row[[1]]
         block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
-        data.scale <- scale.function(
+        arg.list <- list(
           mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
+        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+        data.scale <- do.call(what = scale.function, args = arg.list)
         dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
         CheckGC()
@@ -2841,13 +2852,15 @@ ScaleData.default <- function(
       for (i in 1:max.block) {
         my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
         my.inds <- my.inds[my.inds <= length(x = features)]
-        data.scale <- scale.function(
+        arg.list <- list(
           mat = object[features[my.inds], split.cells[[x]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
+        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+        data.scale <- do.call(what = scale.function, args = arg.list)
         dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], split.cells[[x]]])
         scaled.data[features[my.inds], split.cells[[x]]] <- data.scale
         rm(data.scale)

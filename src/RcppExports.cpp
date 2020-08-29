@@ -94,21 +94,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// FastRowScale
-Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale, bool center, double scale_max, bool display_progress);
-RcppExport SEXP _Seurat_FastRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
-    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
-    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(FastRowScale(mat, scale, center, scale_max, display_progress));
-    return rcpp_result_gen;
-END_RCPP
-}
 // Standardize
 NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
@@ -278,6 +263,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// GraphToNeighborHelper
+List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat);
+RcppExport SEXP _Seurat_GraphToNeighborHelper(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(GraphToNeighborHelper(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fast_dist
 List fast_dist(NumericMatrix x, NumericMatrix y, List n);
 RcppExport SEXP _Seurat_fast_dist(SEXP xSEXP, SEXP ySEXP, SEXP nSEXP) {
@@ -377,6 +373,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP isnull(SEXP);
+
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
@@ -384,7 +382,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RowMergeMatrices", (DL_FUNC) &_Seurat_RowMergeMatrices, 5},
     {"_Seurat_RowMergeMatricesList", (DL_FUNC) &_Seurat_RowMergeMatricesList, 3},
     {"_Seurat_LogNorm", (DL_FUNC) &_Seurat_LogNorm, 3},
-    {"_Seurat_FastRowScale", (DL_FUNC) &_Seurat_FastRowScale, 5},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 5},
     {"_Seurat_FastSparseRowScaleWithKnownStats", (DL_FUNC) &_Seurat_FastSparseRowScaleWithKnownStats, 7},
@@ -398,6 +395,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
+    {"_Seurat_GraphToNeighborHelper", (DL_FUNC) &_Seurat_GraphToNeighborHelper, 1},
     {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
@@ -405,6 +403,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
     {"_Seurat_SNN_SmallestNonzero_Dist", (DL_FUNC) &_Seurat_SNN_SmallestNonzero_Dist, 4},
+    {"isnull", (DL_FUNC) &isnull, 1},
     {NULL, NULL, 0}
 };
 
