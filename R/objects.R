@@ -7322,7 +7322,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
       expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
-        return(NULL)
+        if (e$message == "Cannot find features provided") {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7338,7 +7342,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     x[[dimreduc]] <- tryCatch(
       expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
       error = function(e) {
-        return(NULL)
+        if (e$message %in% c("Cannot find cell provided", "Cannot find features provided")) {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
