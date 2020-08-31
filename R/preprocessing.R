@@ -184,6 +184,15 @@ CreateGeneActivityMatrix <- function(
   keep.sparse = FALSE,
   verbose = TRUE
 ) {
+  .Deprecated(
+    new = 'Signac::GeneActivity',
+    msg = paste(
+      "CreateGeneActivityMatrix functionality is being moved to Signac.",
+      "Equivalent functionality can be",
+      "achieved via the Signac::GeneActivity function; for",
+      "more information on Signac, please see https://github.com/timoast/Signac"
+    )
+  )
   if (!PackageCheck('GenomicRanges', error = FALSE)) {
     stop("Please install GenomicRanges from Bioconductor.")
   }
