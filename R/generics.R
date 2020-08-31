@@ -433,8 +433,10 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' 
 #' @examples
 #' # Calculate log-base-2 fold change with a pseudocount of 1, with output column named "avg_log2FC"
-#' FoldChange(object = pbmc_small, ident.1 = 1, ident.2 = 2, mean.fxn = function(x) log(x = rowMeans(x = x) + 1, base = 2), fc.name = "avg_log2FC")
-#' 
+#' \dontrun{
+#' FoldChange(object = pbmc_small, ident.1 = 1, ident.2 = 2, 
+#' mean.fxn = function(x) log(x = rowMeans(x = x) + 1, base = 2), fc.name = "avg_log2FC")
+#' }
 #' 
 #' @rdname FoldChange
 #' @export FoldChange

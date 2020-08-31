@@ -448,6 +448,10 @@ FindConservedMarkers <- function(
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
+#' @param mean.fxn Function to use for fold change or average difference calculation 
+#' (see FoldChange example)
+#' @param fc.name Name of the fold change, average difference, or custom function column
+#' in the output data.frame (see FoldChange example)
 #'
 #' @importFrom Matrix rowMeans
 #' @importFrom stats p.adjust
@@ -851,6 +855,7 @@ FindMarkers.Seurat <- function(
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
 #' @param features Genes to calculate fold change for; default is to use all genes
+#' @param ... Not used
 #' 
 #' @importFrom Matrix rowSums
 #' 
@@ -864,7 +869,8 @@ FoldChange.default <- function(
   cells.2,
   features,
   mean.fxn,
-  fc.name
+  fc.name,
+  ...
 ) {
   features <- features %||% rownames(x = object)
   # Calculate percent expressed
@@ -904,7 +910,8 @@ FoldChange.Assay <- function(
   slot,
   pseudocount.use = 1,
   fc.name = NULL,
-  mean.fxn = NULL
+  mean.fxn = NULL,
+  ...
 ) {
   data <- GetAssayData(object = object, slot = slot)
   mean.fxn <- mean.fxn %||% switch(
@@ -947,7 +954,8 @@ FoldChange.DimReduc <- function(
   slot = NULL,
   pseudocount.use = NULL,
   fc.name = NULL,
-  mean.fxn = NULL
+  mean.fxn = NULL,
+  ...
 ) {
   mean.fxn <- mean.fxn %||% rowMeans
   fc.name <- fc.name %||% "avg_diff"
@@ -999,7 +1007,8 @@ FoldChange.Seurat <- function(
   features = NULL,
   pseudocount.use = 1,
   mean.fxn = NULL,
-  fc.name = NULL
+  fc.name = NULL,
+  ...
 ) {
   if (!is.null(x = group.by)) {
     if (!is.null(x = subset.ident)) {

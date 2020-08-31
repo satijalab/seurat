@@ -10,9 +10,19 @@
 \usage{
 FoldChange(object, ...)
 
-\method{FoldChange}{default}(object, cells.1, cells.2, features, mean.fxn, fc.name = "avg_logFC")
+\method{FoldChange}{default}(object, cells.1, cells.2, features, mean.fxn, fc.name, ...)
 
-\method{FoldChange}{Assay}(object, cells.1, cells.2, features, slot, pseudocount.use = 1)
+\method{FoldChange}{Assay}(
+  object,
+  cells.1,
+  cells.2,
+  features,
+  slot,
+  pseudocount.use = 1,
+  fc.name = NULL,
+  mean.fxn = NULL,
+  ...
+)
 
 \method{FoldChange}{DimReduc}(
   object,
@@ -21,7 +31,9 @@ FoldChange(object, ...)
   features,
   slot = NULL,
   pseudocount.use = NULL,
-  fc.name = "avg_diff"
+  fc.name = NULL,
+  mean.fxn = NULL,
+  ...
 )
 
 \method{FoldChange}{Seurat}(
@@ -34,11 +46,16 @@ FoldChange(object, ...)
   slot = "data",
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  ...
 )
 }
 \arguments{
 \item{object}{An object}
+
+\item{...}{Not used}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
 
@@ -46,9 +63,11 @@ FoldChange(object, ...)
 
 \item{features}{Genes to calculate fold change for; default is to use all genes}
 
-\item{mean.fxn}{Function to use for fold change or average difference calculation}
+\item{mean.fxn}{Function to use for fold change or average difference calculation 
+(see example)}
 
-\item{fc.name}{Name of fold change column in output data.frame}
+\item{fc.name}{Name of the fold change, average difference, or custom function column
+in the output data.frame (see example)}
 
 \item{slot}{Slot to pull data from}
 
@@ -63,9 +82,11 @@ passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
 use all other cells for comparison; if an object of class \code{phylo} or
 'clustertree' is passed to \code{ident.1}, must pass a node to calculate fold change for}
 
-\item{group.by}{Regroup cells into a different identity class prior to calculating fold change (see example)}
+\item{group.by}{Regroup cells into a different identity class prior to 
+calculating fold change (see example in \code{\link{FindMarkers}})}
 
-\item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
+\item{subset.ident}{Subset a particular identity class prior to regrouping. 
+Only relevant if group.by is set (see example in \code{\link{FindMarkers}})}
 
 \item{assay}{Assay to use in fold change calculation}
 
@@ -76,5 +97,14 @@ Calculate log fold change and percent expressed of features for identity classes
 }
 \details{
 If the slot is scale.data or a reduction is specified, average difference
-is returned instead of log fold change
+is returned instead of log fold change and the column is named "avg_diff".
+Otherwise, (natural) log fold change is returned with column named "avg_logFC".
+}
+\examples{
+# Calculate log-base-2 fold change with a pseudocount of 1, with output column named "avg_log2FC"
+\dontrun{
+FoldChange(object = pbmc_small, ident.1 = 1, ident.2 = 2, 
+mean.fxn = function(x) log(x = rowMeans(x = x) + 1, base = 2), fc.name = "avg_log2FC")
+}
+
 }
