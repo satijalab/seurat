@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [unreleased]
 ### Added
+- Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
+- Enable named color vectors in `DoHeatmap()`
+- Add `label.color` and `label.box` parameters to `DimPlot`
+- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting.
 
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
@@ -11,6 +15,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Fix for `Spatial*Plot` when running with interactive=TRUE
 - Set max for number of items returned by `Top` and remove duplicate items when balanced=TRUE
 - Fix logging bug when functions were run via `do.call()`
+- Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
+- Fix issue where feature names with dashes crashed `CellSelector`
+- Fix issue where errors in subsetting were being swallowed
+
+### Deprecated
+- `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
 
 ## [3.2.0] - 2020-07-15
 ### Added

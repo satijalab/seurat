@@ -281,7 +281,7 @@ FindNeighbors.default <- function(
       searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric)
-    nn.ranked <- nn.ranked$nn.idx
+    nn.ranked <- Indices(object = nn.ranked)
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -514,6 +514,8 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
     k = k,
     search.k = search.k,
     include.distance = include.distance)
+  nn$idx <- idx
+  nn$alg.info <- list(metric = metric, ndim = ncol(x = data))
   return(nn)
 }
 
@@ -633,12 +635,13 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @param query Data to query against data
 # @param k Number of nearest neighbors to compute
 # @param method Nearest neighbor method to use: "rann", "annoy"
+# @param cache.index Store algorithm index with results for reuse
 # @param ... additional parameters to specific neighbor finding method
 #
-NNHelper <- function(data, query = data, k, method, ...) {
+NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
-  return(
+  results <- (
     switch(
       EXPR = method,
       "rann" = {
@@ -652,6 +655,16 @@ NNHelper <- function(data, query = data, k, method, ...) {
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )
   )
+  n.ob <- Neighbor(
+    nn.idx = results$nn.idx,
+    nn.dist = results$nn.dists,
+    alg.info = results$alg.info %||% list(),
+    cell.names = rownames(x = query)
+  )
+  if (isTRUE(x = cache.index) && !is.null(x = results$idx)) {
+    slot(object = n.ob, name = "alg.idx") <- results$idx
+  }
+  return(n.ob)
 }
 
 # Run Leiden clustering algorithm
