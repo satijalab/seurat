@@ -801,3 +801,790 @@ RunModularityClustering <- function(
   )
   return(clusters)
 }
+
+#' Find subclusters under one cluster
+#'
+#' @inheritParams FindClusters
+#' @param cluster the cluster to be sub-clustered
+#' @param subcluster.name the name of sub cluster added in the meta.data
+#' 
+#' @return return a object with sub cluster labels in the sub-cluster.name variable
+#' @export
+#' 
+FindSubCluster <- function(
+  object, 
+  cluster, 
+  graph.name,
+  subcluster.name = "sub.cluster",
+  resolution = 0.5, 
+  algorithm = 1
+) {
+  sub.cell <- WhichCells(object = object, idents = cluster)
+  sub.graph <- as.Graph(x = object[[graph.name]][sub.cell, sub.cell])
+  sub.clusters <- FindClusters(
+    object = sub.graph, 
+    graph.name = graph.name, 
+    resolution = resolution,
+    algorithm = algorithm
+  )
+  sub.clusters[, 1] <- paste(cluster,  sub.clusters[, 1], sep = "_")
+  object[[subcluster.name]] <- as.character(x = Idents(object = object))
+  object[[subcluster.name]][sub.cell, ] <- sub.clusters[, 1]
+  return(object)
+}
+
+
+#' Predict value from nearest neighbors
+#' 
+#' This function will predict expression or cell embeddings from its k nearest 
+#' neighbors index. For each cell, it will average its k neighbors value to get 
+#' its new imputed value. It can average expression value in assays and cell 
+#' embeddings from dimensional reductions.
+#'
+#' @param object The object used to calculate knn
+#' @param nn.idx k near neighbour indices. A cells x k matrix.
+#' @param assay Assay used for prediction
+#' @param reduction Cell embedding of the reduction used for prediction
+#' @param dims Number of dimensions of cell embedding
+#' @param return.assay Return an assay or a predicted matrix
+#' @param slot slot used for prediction
+#' @param features features used for prediction
+#' @param mean.function the function used to calculate row mean
+#' @param seed Sets the random seed to check if the nearest neighbor is query 
+#' cell
+#' @param verbose Print progress
+#'
+#' @return return an assay containing predicted expression value in the data 
+#' slot
+#' @export
+#' 
+PredictAssay <- function(
+  object,
+  nn.idx,
+  assay,
+  reduction = NULL,
+  dims = NULL, 
+  return.assay = TRUE,
+  slot = "scale.data",
+  features = NULL,
+  mean.function = rowMeans,
+  seed = 4273,
+  verbose = TRUE
+){
+  if (!inherits(x = mean.function, what = 'function')) {
+    stop("'mean.function' must be a function")
+  }
+  if (is.null(x = reduction)) {
+    reference.data <- GetAssayData(
+      object = object,
+      assay = assay,
+      slot = slot
+    )
+    features <- features %||% VariableFeatures(object = object[[assay]])  
+    if (length(x = features) == 0) {
+      features <- rownames(x = reference.data)
+      if (verbose) {
+        message("VariableFeatures are empty in the ", assay,
+                " assay, features in the ", slot, " slot will be used" )
+      }
+    }
+    reference.data <- reference.data[features, , drop = FALSE]
+  } else {
+    if (is.null(x = dims)) {
+      stop("dims is empty")
+    }
+    reference.data <- t(x = Embeddings(object = object, reduction = reduction)[, dims])
+  }
+  set.seed(seed = seed)
+  nn.check <- sample(x = 1:nrow(x = nn.idx), size = min(50, nrow(x = nn.idx)))
+  if (all(nn.idx[nn.check, 1] == nn.check)) {
+    if(verbose){
+      message("The nearest neighbor is the query cell itself, and it will not be used for prediction")
+    }
+    nn.idx <- nn.idx[,-1]
+  }
+  predicted <- apply(
+    X = nn.idx,
+    MARGIN = 1,
+    FUN = function(x) mean.function(reference.data[, x] )
+  ) 
+  colnames(x = predicted) <- Cells(x = object)
+  if (return.assay) {
+    predicted.assay <- CreateAssayObject(data = predicted)
+    return (predicted.assay)
+  } else {
+    return (predicted)
+  }
+}
+
+# Calculate NN distance for the given nn.idx
+# @param nn.idx The nearest neighbors position index
+# @param embeddings cell embeddings
+# @param metric distance metric 
+# @param query.embeddings query cell embeddings
+# @param nearest.dist The list of distance to the nearest neighbors
+# 
+NNdist <- function(
+  nn.idx, 
+  embeddings, 
+  metric = "euclidean",
+  query.embeddings = NULL, 
+  nearest.dist = NULL
+) {
+  if (!is.list(x = nn.idx)) {
+    nn.idx <- lapply(X = 1:nrow(x = nn.idx), FUN = function(x) nn.idx[x, ])
+  }
+  query.embeddings <- query.embeddings %||% embeddings
+  nn.dist <- fast_dist(
+    x = query.embeddings,
+    y = embeddings,
+    n = nn.idx
+  )
+  if (!is.null(x = nearest.dist)) {
+    nn.dist <- lapply(
+      X = 1:nrow(x = query.embeddings), 
+      FUN = function(x) {
+        r_dist = nn.dist[[x]] - nearest.dist[x]  
+        r_dist[r_dist < 0] <- 0
+        return(r_dist)
+      }
+    )
+  }
+  return(nn.dist)
+}
+
+
+# Find multimodal neighbors 
+#
+# @param object The object used to calculate knn
+# @param query The query object when query and reference are different
+# @param modality.weight A \code{\link{ModalityWeights}} object generated by 
+# \code{\link{FindModalityWeights}}
+# @param k.nn .Number of nearest multi-model neighbors to compute
+# @param reduction.list A list of reduction name 
+# @param dims.list A list of dimentions used for the reduction
+# @param knn.range The number of approximate neighbors to compute
+# @param kernel.power The power for the exponential kernel
+# @param nearest.dist The list of distance to the nearest neighbors
+# @param sigma.list The list of kernel width
+# @param l2.norm Perform L2 normalization on the cell embeddings after
+# dimensional reduction
+# @param verbose Print output to the console
+# @importFrom pbapply pblapply
+# @return return a list containing nn index and nn multimodal distance
+# 
+MultiModalNN <- function(
+  object, 
+  query = NULL,
+  modality.weight = NULL,
+  k.nn = NULL, 
+  reduction.list = NULL,
+  dims.list = NULL,
+  knn.range = 200,
+  kernel.power = 1, 
+  nearest.dist = NULL,
+  sigma.list = NULL,
+  l2.norm =  NULL, 
+  verbose = TRUE
+){
+  my.lapply <- ifelse(
+    test = verbose,
+    yes = pblapply,
+    no = lapply
+  )
+  k.nn <-  k.nn %||% slot(object = modality.weight, name = "params")$k.nn
+  reduction.list <- reduction.list %||% 
+    slot(object = modality.weight, name = "params")$reduction.list
+  dims.list = dims.list %||% 
+    slot(object = modality.weight, name = "params")$dims.list
+  nearest.dist = nearest.dist %||% 
+    slot(object = modality.weight, name = "params")$nearest.dist
+  sigma.list =sigma.list %||%
+    slot(object = modality.weight, name = "params")$sigma.list
+  l2.norm = l2.norm %||% 
+    slot(object = modality.weight, name = "params")$l2.norm
+  fmw <- slot(object = modality.weight, name = "first.modality.weight")
+  modality.weight.value <- list(fmw, 1 - fmw)
+  names(x = modality.weight.value) <- unlist(x = reduction.list)
+  if (inherits(x = object, what = "Seurat")) {
+    reduction_embedding <- lapply(
+      X = 1:length(x = reduction.list), 
+      FUN = function(x) {
+        Embeddings(object = object, reduction = reduction.list[[x]])[, dims.list[[x]]]
+      }
+    )
+  } else {
+    reduction_embedding <- object
+  }
+  if (is.null(x = query)) {
+    query.reduction_embedding <- reduction_embedding
+    query <- object
+  } else {
+    if (inherits(x = object, what = "Seurat")) {
+      query.reduction_embedding <- lapply(
+        X = 1:length(x = reduction.list), 
+        FUN = function(x) {
+          Embeddings(object = query, reduction = reduction.list[[x]] )[, dims.list[[x]]]
+        }
+      )
+    } else {
+      query.reduction_embedding <- query
+    }
+  }
+  if (l2.norm) {
+    query.reduction_embedding <- lapply(
+      X = query.reduction_embedding,
+      FUN = function(x)  L2Norm(mat = x)
+    )
+    reduction_embedding <- lapply(
+      X = reduction_embedding, 
+      FUN = function(x) L2Norm(mat = x)
+    )
+  }
+  query.cell.num <- nrow(x = query.reduction_embedding[[1]])
+  reduction.num <- length(x = query.reduction_embedding)
+  if (verbose) {
+    message("Finding multi-modal neighbors")
+  }
+  redunction_nn <- my.lapply(
+    X = 1:reduction.num, 
+    FUN = function(x) {
+      nn_x <- NNHelper(
+        data = reduction_embedding[[x]], 
+        query = query.reduction_embedding[[x]],
+        k = knn.range,
+        method = 'annoy',
+        metric = "euclidean"
+      ) 
+      return (nn_x)
+    }
+  )
+  # union of rna and adt nn, remove itself from neighobors
+  redunction_nn <- lapply(
+    X = redunction_nn, 
+    FUN = function(x)  Indices(object = x)[, -1]
+  )
+  nn_idx <- lapply(
+    X = 1:query.cell.num , 
+    FUN = function(x) {
+      Reduce(
+        f = union, 
+        x = lapply(
+          X = redunction_nn, 
+          FUN = function(y) y[x, ]
+        )
+      )
+    }
+  )
+  if (verbose) {
+    message("Calculating distance of multi-modal neighbors")
+  }
+  # calculate euclidean distance of all neighbors
+  nn_dist <- my.lapply(
+    X = 1:reduction.num,  
+    FUN = function(r) {
+      nndist <- NNdist(
+        nn.idx = nn_idx,
+        embeddings = reduction_embedding[[r]], 
+        query.embeddings = query.reduction_embedding[[r]], 
+        nearest.dist = nearest.dist[[r]]
+      )
+      return(nndist)
+   }
+  )
+  # modality weighted distance
+  if (length(x = sigma.list[[1]]) == 1) {
+    sigma.list <- lapply(X = sigma.list, FUN = function(x) rep(x = x, ncol(x = object)))
+  }
+  nn_weighted_dist <- lapply(
+    X = 1:reduction.num,  
+    FUN = function(r) {
+      lapply(
+        X = 1:query.cell.num,
+        FUN = function(x) { 
+          exp(-1*(nn_dist[[r]][[x]] / sigma.list[[r]][x] ) ** kernel.power) * modality.weight.value[[r]][x] 
+        }
+      )
+    }
+  )
+  nn_weighted_dist <- sapply(
+    X = 1:query.cell.num, 
+    FUN =  function(x) { 
+      Reduce(
+        f = "+", 
+        x = lapply(
+          X = 1:reduction.num, 
+          FUN = function(r) nn_weighted_dist[[r]][[x]]
+        )
+      ) 
+    }
+  )
+  # select k nearest joint neighbors
+  select_order <- lapply(
+    X = nn_weighted_dist,
+    FUN = function(dist) {
+      order(dist, decreasing = TRUE)
+  })
+  select_nn <- t(x = sapply(
+    X = 1:query.cell.num,
+    FUN = function(x) nn_idx[[x]][select_order[[x]]][1:k.nn]
+    )
+  )
+  select_dist <- t(x = sapply(
+    X = 1:query.cell.num, 
+    FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
+  )
+  select_dist <- sqrt(x = (1 - select_dist) / 2)
+  rownames(x = select_nn) <- rownames(x = select_dist) <- Cells(x = query)
+  joint.nn <- list(select_nn, select_dist)
+  names(x = joint.nn) <- c("nn.idx", "nn.dists")
+  return(joint.nn)
+}
+
+
+#' Construct multimodal neighbors, KNN and SNN Graph 
+#' 
+#' This function will construct multimodal neighbors, Kth Nearest Neighbors 
+#' (KNN) and Shared Nearest Neighbor (SNN) Graphs. According to the input 
+#' \code{modality.weight}, it constructs a cell-specific weighted joint kernel. 
+#' Then, for each cell, it will find \code{knn.range}s individual modal 
+#' neighbors, and get the union of those neighbors. Next, it will find 
+#' \code{k.nn} multimodal neighbors by the weighted joint kernel. Given the set 
+#' of multimodal neighbors, we construct its KNN and SNN Graph. 
+#' 
+#' @param object A Seurat object
+#' @param modality.weight A \code{\link{ModalityWeights}} object generated by 
+#' \code{\link{FindModalityWeights}}
+#' @param k.nn the number of multi-modal neighbors computed
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when computing
+#' the neighborhood overlap for the SNN construction
+#' @param knn.graph.name The name of multimodal knn graph
+#' @param snn.graph.name The name of multimodal snn graph
+#' @param joint.nn.name The name of multimodal neighbors
+#' @param modality.weight.name The variable name of first modality weights 
+#' stored in the meta.data. 
+#' @param knn.range The number of approximate neighbors to compute
+#' @param weighted.graph Add consider neighbor distance as the edges to 
+#' construct KNN graph
+#' @param verbose Print progress bars and output 
+#' 
+#' @return return an object containing multimodal KNN, SNN and neighbors
+#' @export
+
+FindMultiModalNeighbors  <- function(
+  object, 
+  modality.weight = NULL,
+  k.nn = NULL,
+  prune.SNN = 1/15, 
+  knn.graph.name = "jknn",
+  snn.graph.name = "jsnn",
+  joint.nn.name = "joint.nn",
+  modality.weight.name = "first.modality.weight",
+  knn.range = 200,
+  weighted.graph = FALSE,
+  verbose = TRUE
+) {
+  k.nn <- k.nn %||% slot(object = modality.weight, name = "params")$k.nn
+  first.assay <- slot(object = modality.weight, name = "modality.assay")[1]
+  joint.nn <- MultiModalNN(
+    object = object, 
+    k.nn = k.nn, 
+    modality.weight = modality.weight,
+    knn.range = knn.range, 
+    verbose = verbose
+  )
+  select_nn <- joint.nn$nn.idx
+  select_nn_dist <- joint.nn$nn.dists 
+  # compute KNN graph
+  if (weighted.graph) {
+    if (verbose) {
+      message("Constructing joint weighted knn graph")
+    }
+    joint.nn$nn.dists <- t(x = apply(
+      X = joint.nn$nn.dists,
+      MARGIN = 1, 
+      FUN = function(x) log2(k.nn) * x / sum(x))
+    )
+    nn.matrix <- sparseMatrix(
+      i = 1:ncol(x = object),
+      j = 1:ncol(x = object),
+      x = 1
+    )
+    for (i in 1:ncol(x = object)) {
+      nn.matrix[i, select_nn[i, ]] <- joint.nn$nn.dists[i, ]
+    }
+  } else {
+    if (verbose) {
+      message("Constructing multi-modal KNN graph")
+    }
+    j <- as.numeric(x = t(x = select_nn ))
+    i <- ((1:length(x = j)) - 1) %/% k.nn + 1
+    nn.matrix <- sparseMatrix(
+      i = i,
+      j = j,
+      x = 1, 
+      dims = c(ncol(x = object), ncol(x = object))
+    )
+    diag(x = nn.matrix) <- 1
+  }
+  rownames(x = nn.matrix) <-  colnames(x = nn.matrix) <- colnames(x = object)
+  nn.matrix <- nn.matrix + t(x = nn.matrix) - t(x = nn.matrix) * nn.matrix
+  nn.matrix <- as.Graph(x = nn.matrix)
+  slot(object = nn.matrix, name = "assay.used") <- first.assay
+  object[[knn.graph.name]] <- nn.matrix
+  
+  # compute SNN graph
+  if (verbose) {
+    message("Constructing multi-modal SNN graph")
+  }
+  snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN)
+  rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(x = object)
+  snn.matrix <- as.Graph(x = snn.matrix )
+  slot(object = snn.matrix, name = "assay.used") <- first.assay
+  object[[snn.graph.name]] <- snn.matrix
+
+  # add neighbors and modality weights
+  object@neighbors[[joint.nn.name]] <- joint.nn
+  object[[modality.weight.name]] <- modality.weight@first.modality.weight
+  
+  # add command log
+   modality.weight.command <- slot(object = modality.weight, name = "command")
+   slot(object = modality.weight.command, name = "assay.used") <- first.assay
+   object[[modality.weight.command@name]] <- modality.weight.command
+   command <- LogSeuratCommand(object = object, return.command = TRUE)
+   command@params$modality.weight  <- NULL
+   slot(object = command, name = "assay.used") <- first.assay
+   object[[command@name]] <- command
+   return (object)
+}
+
+
+#' Calculate modality weights
+#' 
+#' This function calculates cell-specific modality weights which are used to 
+#' construct the multimodal kernel to find multimodal neighbors. It finds 
+#' neighbors from each modality and performs within- and cross- modality 
+#' prediction to calculate modality weights. 
+#'
+#' @param object A Seurat object
+#' @param reduction.list A list of name of dimension reduction 
+#' @param dims.list A list of number of dimensions to use
+#' @param k.nn How many neighbors (k) to use
+#' @param snn.far.nn Use SNN to find farthest neighbors to calculate
+#' the kernel width
+#' @param s.nn How many neighbors (k) to use from the SNN graph
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when computing
+#'  the neighborhood overlap for the SNN construction. 
+#' @param l2.norm Perform L2 normalization on the cell embeddings after
+#' dimensional reduction
+#' @param sd.scale  The scaling factor for kernel width, and the default is 1. 
+#' @param query A Seurat object used as the query when query and reference
+#' objects are different. snn.far.nn does not support for query object. 
+#' @param cross.contant.list the minimal cross-modality prediction similarity 
+#' used in the modality score calculation. 
+#' @param sigma.idx Use sigma.idx-th neighbor's distance as the kernel width. 
+#' When snn.far.nn is TRUE, this parameter is not used
+#' @param smooth Smoothing modality score across each individual modality 
+#' neighbors. 
+#' @param verbose Display messages
+#' @importFrom pbapply pblapply
+#' @return Returns a \code{ModalityWeights} object that can be used as input to 
+#' \code{\link{FindMultiModalNeighbors}}
+#' @export
+#' 
+FindModalityWeights  <- function(
+  object, 
+  reduction.list, 
+  dims.list, 
+  k.nn = 20, 
+  snn.far.nn = TRUE, 
+  s.nn = k.nn, 
+  prune.SNN = 0, 
+  l2.norm = TRUE, 
+  sd.scale = 1, 
+  query = NULL, 
+  cross.contant.list = list(1e-4, 1e-4), 
+  sigma.idx = k.nn,
+  smooth = FALSE, 
+  verbose = TRUE
+) {
+  my.lapply <- ifelse(
+    test = verbose,
+    yes = pblapply,
+    no = lapply
+  )
+  reduction.set <- unlist(x = reduction.list)
+  names(x = reduction.list) <- names(x = dims.list) <- 
+    names(x = cross.contant.list) <- reduction.set
+  embeddings.list <- lapply(
+    X = reduction.list, 
+    FUN = function(r) Embeddings(object = object, reduction = r)[, dims.list[[r]]]
+  )
+  if (l2.norm) {
+    embeddings.list.norm <- lapply(
+      X = embeddings.list,
+      FUN = function(embeddings) L2Norm(mat = embeddings)
+    ) 
+  } else {
+    embeddings.list.norm <- embeddings.list
+  }
+  if (is.null(x = query)) {
+    query.embeddings.list.norm <- embeddings.list.norm
+    query <- object
+  } else { 
+    if (snn.far.nn) {
+      stop("query does not support to use snn to find distant neighbors")
+    }
+    query.embeddings.list <- lapply( 
+      X = reduction.list, 
+      FUN = function(r) {
+        Embeddings(object = query, reduction = r)[, dims.list[[r]]]
+      }
+    )
+    if (l2.norm) {
+      query.embeddings.list <- lapply(
+        X = query.embeddings.list,
+        FUN = function(embeddings) L2Norm(mat = embeddings)
+      ) 
+    }  
+    query.embeddings.list.norm <- query.embeddings.list
+  }
+  if (verbose) {
+    message("Finding ", k.nn, " nearest neighbors for each modality.") 
+  }
+  nn.list <- my.lapply(
+    X = reduction.list, 
+    FUN = function(r) {
+      nn.r <- NNHelper(
+        data = embeddings.list.norm[[r]],
+        query = query.embeddings.list.norm[[r]],
+        k = max(k.nn, sigma.idx, s.nn), 
+        method = "annoy", 
+        metric = "euclidean"
+      )
+      return(nn.r)
+    }
+  )
+  sigma.nn.list <- nn.list
+
+  if (sigma.idx > k.nn || s.nn > k.nn) {
+    nn.list <- lapply(
+      X = nn.list, 
+      FUN = function(nn){
+        slot(object = nn, name = "nn.idx") <- Indices(object = nn)[, 1:knn]
+        slot(object = nn, name = "nn.dists") <- Distances(object = nn)[, 1:knn]
+        return(nn)
+      }
+    )
+  }
+  nearest_dist <- lapply(X = reduction.list, FUN = function(r) Distances(object = nn.list[[r]])[, 2])
+  within_impute <- list()
+  cross_impute <- list()
+  # Calculating within and cross modality distance
+  for (r in reduction.set) {
+    reduction.norm <- paste0(r, ".norm")
+    object[[ reduction.norm ]] <- CreateDimReducObject(
+      embeddings = embeddings.list.norm[[r]],
+      key = paste0("norm", Key(object = object[[r]])), 
+      assay = DefaultAssay(object = object[[r]])
+    )
+    within_impute[[r]] <- PredictAssay(
+      object = object, 
+      nn.idx =  Indices(object = nn.list[[r]]),
+      reduction = reduction.norm,
+      dims = 1:ncol(x = embeddings.list.norm[[r]]), 
+      verbose = FALSE,
+      return.assay = FALSE
+    )
+    cross_impute[[r]] <- PredictAssay(
+      object = object,
+      nn.idx = Indices(object = nn.list[[setdiff(x = reduction.set, y = r )]]),
+      reduction = reduction.norm, 
+      dims = 1:ncol(x = embeddings.list.norm[[r]]), 
+      verbose = FALSE,
+      return.assay = FALSE
+    )
+  }
+  within_impute_dist <- lapply(
+    X = reduction.list, 
+    FUN = function(r) {
+     r_dist <- sqrt(x = rowSums(x = (query.embeddings.list.norm[[r]] - t(x = within_impute[[r]])) ** 2))
+     r_dist <- r_dist -  nearest_dist[[r]]
+     r_dist[r_dist < 0] <- 0
+     return(r_dist)
+    }
+  )
+  cross_impute_dist <- lapply( 
+    X = reduction.list, 
+    FUN = function(r) {
+      r_dist <-  sqrt(x = rowSums(x = (query.embeddings.list.norm[[r]] - t(x = cross_impute[[r]])) ** 2))
+      r_dist <- r_dist - nearest_dist[[r]]
+      r_dist[r_dist < 0] <-0
+      return(r_dist)
+    }
+  )
+  # calculate kernel width
+  if (snn.far.nn) {
+    if (verbose) {
+      message("Constructing SNN graphs for each modality by ", s.nn, " nearest neighbors") 
+    }
+    snn.graph.list <- lapply(
+      X = sigma.nn.list,
+      FUN = function(nn) {
+        snn.matrix <- ComputeSNN(
+          nn_ranked =  Indices(object = nn)[, 1:s.nn],
+          prune = prune.SNN
+        )
+        colnames(x = snn.matrix) <- rownames(x = snn.matrix) <- Cells(x = object)
+        return (snn.matrix)
+      }
+    )
+    if (verbose) {
+      message("Finding ", k.nn, " distant neighbors from snn graph") 
+    }
+    farthest_nn_dist <- my.lapply(
+      X = 1:length(x = snn.graph.list),
+      FUN = function(s) {
+        distant_nn <- ComputeSNNwidth(
+          snn.graph = snn.graph.list[[s]],
+          k.nn = k.nn, 
+          l2.norm = FALSE,
+          embeddings =  embeddings.list.norm[[s]],
+          nearest.dist = nearest_dist[[s]]
+        )
+        return (distant_nn)
+      }
+    )
+    names(x = farthest_nn_dist) <- unlist(x = reduction.list)
+    modality_sd.list <- lapply( 
+      X = farthest_nn_dist, 
+      FUN =  function(sd)  sd * sd.scale
+    )
+  } else {
+    if (verbose) {
+      message("Calculating sigma by ", sigma.idx, "th neighbor") 
+    }
+    modality_sd.list <- lapply(
+      X = reduction.list , 
+      FUN =  function(r) {
+        rdist <- Distances(object = sigma.nn.list[[r]])[, sigma.idx] - nearest_dist[[r]]
+        rdist <- rdist * sd.scale
+        return (rdist)
+      }
+    )  
+  }
+  # Calculating within and cross modality kernel, and modalit weights
+  within_impute_kernel <- lapply(
+    X = reduction.list,
+    FUN = function(r) {
+      exp(-1 * (within_impute_dist[[r]] / modality_sd.list[[r]]) ) 
+    }
+  )
+  cross_impute_kernel <- lapply(
+    X = reduction.list,
+    FUN = function(r) {
+      exp(-1 * (cross_impute_dist[[r]] / modality_sd.list[[r]]) ) 
+    }
+  )
+  params <- list(
+    "reduction.list" = reduction.list,
+    "dims.list" = dims.list,
+    "l2.norm" = l2.norm,
+    "k.nn" = k.nn, 
+    "sigma.idx" = sigma.idx,
+    "snn.far.nn" = snn.far.nn ,
+    "sigma.list" = modality_sd.list, 
+    "nearest.dist" = nearest_dist
+  )
+  modality_score <-  lapply( 
+    X = reduction.list,
+    FUN = function(r) {
+      score <- within_impute_kernel[[r]] / (cross_impute_kernel[[r]] + cross.contant.list[[r]])
+      score <- MinMax(data = score, min = 0, max = 200)
+    }
+  )
+  if (smooth) {
+    modality_score <- lapply(
+      X = reduction.list, 
+      FUN = function(r) {
+        apply(
+          X = Indices(object = nn.list[[r]]),
+          MARGIN = 1, 
+          FUN = function(nn)  mean(x = modality_score[[r]][nn[-1]])
+        ) 
+      }
+    )
+  }
+  modality1.weight <- exp(x = modality_score[[1]]) / (exp(x = modality_score[[1]]) + exp(x = modality_score[[2]]))
+  score.mat<- cbind(
+    Reduce(f = cbind, x = within_impute_dist), 
+    Reduce(f = cbind, x = cross_impute_dist), 
+    Reduce(f = cbind, x = within_impute_kernel), 
+    Reduce(f = cbind, x = cross_impute_kernel), 
+    Reduce(f = cbind, x = modality_score)
+  )
+  colnames(x = score.mat) <- c(
+    "modality1_nn1", "modality2_nn2", "modality1_nn2",  "modality2_nn1", 
+    "modality1_nn1_kernel", "modality2_nn2_kernel", "modality1_nn2_kernel",
+    "modality2_nn1_kernel", "modality1_score", "modality2_score"
+  )
+  score.mat <- as.data.frame(x = score.mat)
+  # unlist the input parameters
+  command <- LogSeuratCommand(object = object, return.command = TRUE)
+  command@params <- lapply(X =  command@params , FUN = function (l) unlist(x = l))
+  modality.assay <- sapply(
+    X = reduction.list , 
+    FUN = function (r) slot(object[[r]], name = "assay.used")
+  )
+  modality.weights <- new(
+    Class = "ModalityWeights",
+    first.modality.weight = modality1.weight,
+    modality.assay = modality.assay, 
+    params = params,
+    score.matrix = score.mat,
+    command = command
+  )
+  return (modality.weights)
+}
+
+# Calculate mean distance of the farthest neighbors from SNN graph
+# 
+# This function will compute the average distance of the farthest k.nn 
+# neighbors with the lowest nonzero SNN edge weight. First, for each cell it 
+# finds the k.nn neighbors with the smallest edge weight. If there are multiple
+# cells with the same edge weight at the k.nn-th index, consider all of those 
+# cells in the next step. Next, it computes the euclidean distance to all k.nn
+# cells in the space defined by the embeddings matrix and returns the average 
+# distance to the farthest k.nn cells. 
+# 
+# @param snn.graph An SNN graph
+# @param embeddings The cell embeddings used to calculate neighbor distances
+# @param k.nn The number of neighbors to calculate
+# @param l2.norm Perform L2 normalization on the cell embeddings
+# @param nearest.dist The vector of distance to the nearest neighbors to 
+# subtract off from distance calculations
+# 
+# 
+ComputeSNNwidth <- function(
+  snn.graph,
+  embeddings, 
+  k.nn, 
+  l2.norm = TRUE, 
+  nearest.dist = NULL
+) {
+  if (l2.norm) {
+    embeddings <- L2Norm(mat = embeddings)
+  }
+  nearest.dist <- nearest.dist %||% rep(x = 0, times = ncol(x = snn.graph))
+  if (length(x = nearest.dist) != ncol(x = snn.graph)) {
+    stop("Please provide a vector for nearest.dist that has as many elements as",
+         " there are columns in the snn.graph (", ncol(x = snn.graph), ").")
+  }
+  snn.width <- SNN_SmallestNonzero_Dist(
+    snn = snn.graph,
+    mat = embeddings,
+    n = k.nn, 
+    nearest_dist = nearest.dist
+  )
+  return (snn.width)
+}

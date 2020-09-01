@@ -52,6 +52,37 @@ AnchorSet <- setClass(
   )
 )
 
+
+
+#' The ModalityWeights Class
+#'
+#' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
+#' related information needed for performing downstream analyses - namely data integration
+#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+#'
+#' @slot first.modality.weight A vector of value representing for the modality weights of
+#' the first modality
+#' @slot modality.assay Names of assays for the list of dimentional reductions
+#' @slot params A list of paramters used in the FindModalityWeights
+#' @slot score.matrix a score matrix representing cross and within-modality prediction
+#' score, and kernel value
+#' @slot command Store log of parameters that were used
+#'
+#' @name ModalityWeights-class
+#' @rdname ModalityWeights-class
+#' @exportClass ModalityWeights
+#'
+ModalityWeights <- setClass(
+  Class = "ModalityWeights",
+  slots = list(
+    first.modality.weight = "vector",
+    modality.assay = "vector",
+    params = "list",
+    score.matrix = "data.frame",
+    command = "ANY"
+  )
+)
+
 #' The Assay Class
 #'
 #' The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
@@ -7854,6 +7885,18 @@ setMethod(
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
         "This can be used as input to IntegrateData or TransferData.")
+  }
+)
+
+
+setMethod(
+  f = 'show',
+  signature = 'ModalityWeights',
+  definition = function(object) {
+    cat(
+      'A ModalityWeights object containing modality weights between',
+      paste(slot(object = object, name = "modality.assay"), collapse = " and "),
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
   }
 )
 

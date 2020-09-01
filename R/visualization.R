@@ -7152,3 +7152,85 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
   colnames(x = data) <- df.names
   return(data)
 }
+
+
+
+#' Highlight Neighbors in DimPlot
+#' 
+#' It will color the query cells and the neighbors of the query cells in the
+#' DimPlot
+#' 
+#' @inheritParams DimPlot
+#' @param nn.idx the neighbor index of all cells
+#' @param query.cells cells used to find their neighbors
+#' @param show.all.cells Show all cells or only query and neighbor cells
+#' 
+#' @export
+#' 
+NNPlot <- function(
+  object,
+  reduction, 
+  nn.idx, 
+  query.cells,
+  dims = 1:2, 
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  sizes.highlight = 2,
+  pt.size = 1,
+  cols.highlight = c("#377eb8", "#e41a1c"),
+  na.value =  "#bdbdbd",
+  order = c("self", "neighbors", "other"), 
+  show.all.cells = TRUE, 
+  ...
+) {
+  if (is.list(nn.idx)){
+    nn.idx <- nn.idx$nn.idx
+  }
+  if (length(x = query.cells) > 1) {
+    neighbor.cells <- apply(
+      X = nn.idx[query.cells, -1], 
+      MARGIN = 2, 
+      FUN = function(x) Cells(x = object)[x]
+    )
+  } else {
+    neighbor.cells <- Cells(x = object)[nn.idx[query.cells , -1]]
+  }
+  neighbor.cells <- as.vector(x = neighbor.cells)
+  neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
+  object[["nn.col"]] <- "other"
+  object[["nn.col"]][neighbor.cells, ] <- "neighbors" 
+  object[["nn.col"]][query.cells, ] <- "self" 
+  object[["nn.col"]] <- factor(x = object[["nn.col"]], levels = c("self", "neighbors", "other"))
+  if (!show.all.cells) {
+    object <- subset(
+      x = object, 
+      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
+    )
+   nn.cols  <- c(rev(x = cols.highlight))
+   nn.pt.size <- sizes.highlight
+  } else {
+    highlight.info <- SetHighlight(
+      cells.highlight = c(query.cells, neighbor.cells),
+      cells.all = Cells(x = object),
+      sizes.highlight = sizes.highlight,
+      pt.size = pt.size, 
+      cols.highlight = "red"
+    )
+    nn.cols  <- c(na.value, rev(x = cols.highlight))
+    nn.pt.size <- highlight.info$size
+  }
+  NN.plot <- DimPlot(
+    object = object,
+    reduction = reduction, 
+    dims = dims, 
+    group.by = "nn.col", 
+    cols = nn.cols, 
+    label = label, 
+    order =  order, 
+    pt.size = nn.pt.size ,
+    label.size = label.size, 
+    repel = repel 
+  )
+  return(NN.plot)
+}

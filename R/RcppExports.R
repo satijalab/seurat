@@ -81,6 +81,10 @@ GraphToNeighborHelper <- function(mat) {
     .Call('_Seurat_GraphToNeighborHelper', PACKAGE = 'Seurat', mat)
 }
 
+fast_dist <- function(x, y, n) {
+    .Call('_Seurat_fast_dist', PACKAGE = 'Seurat', x, y, n)
+}
+
 FindWeightsC <- function(integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress) {
     .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress)
 }
@@ -99,5 +103,9 @@ WriteEdgeFile <- function(snn, filename, display_progress) {
 
 DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
     .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
+}
+
+SNN_SmallestNonzero_Dist <- function(snn, mat, n, nearest_dist) {
+    .Call('_Seurat_SNN_SmallestNonzero_Dist', PACKAGE = 'Seurat', snn, mat, n, nearest_dist)
 }
 
