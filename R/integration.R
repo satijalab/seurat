@@ -748,14 +748,6 @@ FindTransferAnchors <- function(
                         counts = FALSE,
                         features = features,
                         scale.data = FALSE  )
-    reference <- RenameCells(
-      object = reference,
-      new.names = paste0(Cells(x = reference), "_", "reference")
-    )
-    query <- RenameCells(
-      object = query,
-      new.names = paste0(Cells(x = query), "_", "query")
-    )
     ## find anchors using PCA projection
     projected.pca <- ProjectCellEmbeddings(
       reference = reference,
