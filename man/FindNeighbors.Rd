@@ -21,6 +21,9 @@ FindNeighbors(object, ...)
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 )
 
@@ -35,6 +38,9 @@ FindNeighbors(object, ...)
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 )
 
@@ -48,6 +54,9 @@ FindNeighbors(object, ...)
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 )
 
@@ -67,6 +76,9 @@ FindNeighbors(object, ...)
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 )
 }
@@ -102,6 +114,14 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{force.recalc}{Force recalculation of SNN.}
 
+\item{l2.norm}{Take L2Norm of the data}
+
+\item{return.neighbor}{Return result as Neighbor object
+(default is SNN graph). Not used with distance matrix input.}
+
+\item{cache.index}{Include cached index in returned Neighbor object
+(only relevant if return.neighbor = TRUE)}
+
 \item{features}{Features to use as input for building the SNN}
 
 \item{reduction}{Reduction to use as input for building the SNN}
@@ -112,8 +132,9 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
-\item{graph.name}{Optional naming parameter for stored SNN graph. Default is
-assay.name_snn.}
+\item{graph.name}{Optional naming parameter for stored SNN graph
+(or Neighbor object, if return.neighbor = TRUE). 
+Default is assay.name_snn.}
 }
 \value{
 When running on a \code{\link{Seurat}} object, returns fills the

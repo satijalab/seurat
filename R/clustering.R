@@ -229,6 +229,11 @@ FindClusters.Seurat <- function(
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
 #' @param force.recalc Force recalculation of SNN.
+#' @param l2.norm Take L2Norm of the data
+#' @param return.neighbor Return result as Neighbor object
+#' (default is SNN graph). Not used with distance matrix input.
+#' @param cache.index Include cached index in returned Neighbor object
+#' (only relevant if return.neighbor = TRUE)
 #'
 #' @importFrom RANN nn2
 #' @importFrom methods as
@@ -248,6 +253,9 @@ FindNeighbors.default <- function(
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 ) {
   CheckDots(...)
@@ -269,6 +277,9 @@ FindNeighbors.default <- function(
     )
     k.param <- n.cells - 1
   }
+  if (l2.norm) {
+    object <- L2Norm(mat = object)
+  }
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
     if (verbose) {
@@ -280,7 +291,12 @@ FindNeighbors.default <- function(
       method = nn.method,
       searchtype = "standard",
       eps = nn.eps,
-      metric = annoy.metric)
+      metric = annoy.metric,
+      cache.index = cache.index
+    )
+    if (return.neighbor) {
+      return(nn.ranked)
+    }
     nn.ranked <- Indices(object = nn.ranked)
   } else {
     if (verbose) {
@@ -332,6 +348,9 @@ FindNeighbors.Assay <- function(
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 ) {
   CheckDots(...)
@@ -347,6 +366,9 @@ FindNeighbors.Assay <- function(
     nn.eps = nn.eps,
     verbose = verbose,
     force.recalc = force.recalc,
+    l2.norm = l2.norm,
+    return.neighbor = return.neighbor,
+    cache.index = cache.index,
     ...
   )
   return(neighbor.graphs)
@@ -366,6 +388,9 @@ FindNeighbors.dist <- function(
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 ) {
   CheckDots(...)
@@ -380,6 +405,9 @@ FindNeighbors.dist <- function(
     annoy.metric = annoy.metric,
     verbose = verbose,
     force.recalc = force.recalc,
+    l2.norm = l2.norm,
+    return.neighbor = return.neighbor,
+    cache.index = cache.index,
     ...
   ))
 }
@@ -389,8 +417,9 @@ FindNeighbors.dist <- function(
 #' @param reduction Reduction to use as input for building the SNN
 #' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
-#' @param graph.name Optional naming parameter for stored SNN graph. Default is
-#' assay.name_snn.
+#' @param graph.name Optional naming parameter for stored SNN graph
+#' (or Neighbor object, if return.neighbor = TRUE). 
+#' Default is assay.name_snn.
 #'
 #' @importFrom igraph graph.adjacency plot.igraph E
 #'
@@ -414,6 +443,9 @@ FindNeighbors.Seurat <- function(
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
+  l2.norm = FALSE,
+  return.neighbor = FALSE,
+  cache.index = FALSE,
   ...
 ) {
   CheckDots(...)
@@ -435,6 +467,9 @@ FindNeighbors.Seurat <- function(
       nn.eps = nn.eps,
       verbose = verbose,
       force.recalc = force.recalc,
+      l2.norm = l2.norm,
+      return.neighbor = return.neighbor,
+      cache.index = cache.index,
       ...
     )
   } else {
@@ -451,13 +486,21 @@ FindNeighbors.Seurat <- function(
       nn.eps = nn.eps,
       verbose = verbose,
       force.recalc = force.recalc,
+      l2.norm = l2.norm,
+      return.neighbor = return.neighbor,
+      cache.index = cache.index,
       ...
     )
   }
-  graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
-  for (ii in 1:length(x = graph.name)) {
-    DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
-    object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
+  if (return.neighbor) {
+    graph.name <- graph.name %||% paste0(assay, "_snn")
+    object[[graph.name]] <- neighbor.graphs
+  } else {
+    graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
+    for (ii in 1:length(x = graph.name)) {
+      DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
+      object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
+    }
   }
   if (do.plot) {
     if (!"tsne" %in% names(x = object@reductions)) {
