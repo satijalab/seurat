@@ -1301,7 +1301,7 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        if (packageVersion(pkg = "uwot") <= '0.1.8.9000') {
+        if (packageVersion(pkg = "uwot") < '0.1.8.9000') {
           stop("This uwot functionality requires uwot version >= 0.1.8.9000",
                "Installing the latest version from github can be done with", 
                "remotes::install_github('jlmelville/uwot')")
@@ -1437,6 +1437,25 @@ RunUMAP.Graph <- function(
   )
   return(umap)
 }
+
+#' @rdname RunUMAP
+#' @method RunUMAP Neighbor
+#' @export
+#'
+RunUMAP.Neighbor <- function(
+  object,
+  reduction.model,
+  ...
+) {
+  neighborlist <- list("idx" = Indices(object), 
+                       "dist" = Distances(object))
+  RunUMAP(
+    object = neighborlist,
+    reduction.model = reduction.model,
+    ...
+  )
+}
+
 
 #' @param reduction.model \code{DimReduc} object that contains the umap model
 #' @param dims Which dimensions to use as input features, used only if

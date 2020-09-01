@@ -500,11 +500,19 @@ FindNeighbors.Seurat <- function(
 # @param k Number of neighbors
 # @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances
+# @param include.distance Include the corresponding distances
+# @param index optional index object, will be recomputed if not provided
 #
-AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
-                    search.k = -1, include.distance = TRUE) {
-  idx <- AnnoyBuildIndex(
+AnnoyNN <- function(data, 
+                    query = data, 
+                    metric = "euclidean", 
+                    n.trees = 50, 
+                    k,
+                    search.k = -1, 
+                    include.distance = TRUE,
+                    index = NULL
+                    ) {
+  idx <- index %||% AnnoyBuildIndex(
     data = data,
     metric = metric,
     n.trees = n.trees)
@@ -525,6 +533,7 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
 # @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
 # "hamming"
 # @param n.trees More trees gives higher precision when querying
+# 
 #' @importFrom RcppAnnoy AnnoyEuclidean AnnoyAngular AnnoyManhattan AnnoyHamming
 #
 AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
@@ -544,14 +553,18 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
   return(a)
 }
 
-# Search the annoy index
+# Search an Annoy approximate nearest neighbor index
 #
-# @param Annoy index, build with AnnoyBuildIndex
+# @param Annoy index, built with AnnoyBuildIndex
 # @param query A set of data to be queried against the index
 # @param k Number of neighbors
 # @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
-# @ param include.distance Include the corresponding distances
+# @param include.distance Include the corresponding distances in the result
+#
+# @return A list with 'nn.idx' (for each element in 'query', the index of the 
+# nearest k elements in the index) and 'nn.dists' (the distances of the nearest
+# k elements)
 #
 AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
@@ -573,6 +586,29 @@ AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE)
     }
   }
   return(list(nn.idx = idx, nn.dists = dist))
+}
+
+# Create an Annoy index
+#
+# @note Function exists because it's not exported from \pkg{uwot}
+#
+# @param name Distance metric name
+# @param ndim Number of dimensions
+#
+# @return An nn index object
+#
+#' @importFrom methods new
+#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
+#
+CreateAnn <- function(name, ndim) {
+  return(switch(
+    EXPR = name,
+    cosine = new(Class = AnnoyAngular, ndim),
+    manhattan = new(Class = AnnoyManhattan, ndim),
+    euclidean = new(Class = AnnoyEuclidean, ndim),
+    hamming = new(Class = AnnoyHamming, ndim),
+    stop("BUG: unknown Annoy metric '", name, "'")
+  ))
 }
 
 # Group single cells that make up their own cluster in with the cluster they are
