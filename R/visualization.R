@@ -311,7 +311,7 @@ DoHeatmap <- function(
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
       default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
-      if (!is.null(x = names(x = group.colors))) { 
+      if (!is.null(x = names(x = group.colors))) {
         cols <- unname(obj = group.colors[levels(x = group.use)])
       } else {
         cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
@@ -822,7 +822,7 @@ DimPlot <- function(
           id = x,
           repel = repel,
           size = label.size,
-          split.by = split.by, 
+          split.by = split.by,
           box = label.box,
           color = label.color
         )
@@ -3963,6 +3963,11 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
   plot.data$selected_ <- FALSE
   rownames(x = plot.data) <- rownames(x = plot$data)
+  colnames(x = plot.data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = plot.data)
+  )
   # Server function
   server <- function(input, output, session) {
     plot.env <- reactiveValues(data = plot.data)
@@ -7146,4 +7151,86 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
   # Restore original names
   colnames(x = data) <- df.names
   return(data)
+}
+
+
+
+#' Highlight Neighbors in DimPlot
+#' 
+#' It will color the query cells and the neighbors of the query cells in the
+#' DimPlot
+#' 
+#' @inheritParams DimPlot
+#' @param nn.idx the neighbor index of all cells
+#' @param query.cells cells used to find their neighbors
+#' @param show.all.cells Show all cells or only query and neighbor cells
+#' 
+#' @export
+#' 
+NNPlot <- function(
+  object,
+  reduction, 
+  nn.idx, 
+  query.cells,
+  dims = 1:2, 
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  sizes.highlight = 2,
+  pt.size = 1,
+  cols.highlight = c("#377eb8", "#e41a1c"),
+  na.value =  "#bdbdbd",
+  order = c("self", "neighbors", "other"), 
+  show.all.cells = TRUE, 
+  ...
+) {
+  if (is.list(nn.idx)){
+    nn.idx <- nn.idx$nn.idx
+  }
+  if (length(x = query.cells) > 1) {
+    neighbor.cells <- apply(
+      X = nn.idx[query.cells, -1], 
+      MARGIN = 2, 
+      FUN = function(x) Cells(x = object)[x]
+    )
+  } else {
+    neighbor.cells <- Cells(x = object)[nn.idx[query.cells , -1]]
+  }
+  neighbor.cells <- as.vector(x = neighbor.cells)
+  neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
+  object[["nn.col"]] <- "other"
+  object[["nn.col"]][neighbor.cells, ] <- "neighbors" 
+  object[["nn.col"]][query.cells, ] <- "self" 
+  object[["nn.col"]] <- factor(x = object[["nn.col"]], levels = c("self", "neighbors", "other"))
+  if (!show.all.cells) {
+    object <- subset(
+      x = object, 
+      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
+    )
+   nn.cols  <- c(rev(x = cols.highlight))
+   nn.pt.size <- sizes.highlight
+  } else {
+    highlight.info <- SetHighlight(
+      cells.highlight = c(query.cells, neighbor.cells),
+      cells.all = Cells(x = object),
+      sizes.highlight = sizes.highlight,
+      pt.size = pt.size, 
+      cols.highlight = "red"
+    )
+    nn.cols  <- c(na.value, rev(x = cols.highlight))
+    nn.pt.size <- highlight.info$size
+  }
+  NN.plot <- DimPlot(
+    object = object,
+    reduction = reduction, 
+    dims = dims, 
+    group.by = "nn.col", 
+    cols = nn.cols, 
+    label = label, 
+    order =  order, 
+    pt.size = nn.pt.size ,
+    label.size = label.size, 
+    repel = repel 
+  )
+  return(NN.plot)
 }
