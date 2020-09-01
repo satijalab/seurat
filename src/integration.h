@@ -8,7 +8,6 @@ using namespace Rcpp;
 
 //----------------------------------------------------
 Eigen::SparseMatrix<double> FindWeightsC(
-  Eigen::SparseMatrix<double> integration_matrix, 
   NumericVector cells2,
   Eigen::MatrixXd distances, 
   std::vector<std::string> anchor_cells2,
