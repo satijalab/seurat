@@ -19,7 +19,7 @@ FindIntegrationAnchors(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   verbose = TRUE
 )

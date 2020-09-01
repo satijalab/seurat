@@ -141,7 +141,7 @@ FindIntegrationAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   verbose = TRUE
 ) {
@@ -713,7 +713,7 @@ FindTransferAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   approx.pca = TRUE,
   verbose = TRUE
@@ -2358,7 +2358,7 @@ FilterAnchors <- function(
   integration.name = 'integrated',
   features = NULL,
   k.filter = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   verbose = TRUE
 ) {
@@ -2424,7 +2424,7 @@ FindAnchors <- function(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
   nn.idx1 = NULL,
   nn.idx2 = NULL,
   eps = 0,
@@ -2621,7 +2621,7 @@ FindNN <- function(
   nn.dims = dims,
   nn.reduction = reduction,
   k = 300,
-  nn.method = "rann",
+  nn.method = "annoy",
   nn.idx1 = NULL,
   nn.idx2 = NULL,
   eps = 0,
@@ -2727,7 +2727,7 @@ FindWeights <- function(
   features = NULL,
   k = 300,
   sd.weight = 1,
-  nn.method = "rann",
+  nn.method = "annoy",
   eps = 0,
   verbose = TRUE,
   cpp = FALSE
