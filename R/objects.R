@@ -52,6 +52,37 @@ AnchorSet <- setClass(
   )
 )
 
+
+
+#' The ModalityWeights Class
+#'
+#' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
+#' related information needed for performing downstream analyses - namely data integration
+#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+#'
+#' @slot first.modality.weight A vector of value representing for the modality weights of
+#' the first modality
+#' @slot modality.assay Names of assays for the list of dimentional reductions
+#' @slot params A list of paramters used in the FindModalityWeights
+#' @slot score.matrix a score matrix representing cross and within-modality prediction
+#' score, and kernel value
+#' @slot command Store log of parameters that were used
+#'
+#' @name ModalityWeights-class
+#' @rdname ModalityWeights-class
+#' @exportClass ModalityWeights
+#'
+ModalityWeights <- setClass(
+  Class = "ModalityWeights",
+  slots = list(
+    first.modality.weight = "vector",
+    modality.assay = "vector",
+    params = "list",
+    score.matrix = "data.frame",
+    command = "ANY"
+  )
+)
+
 #' The Assay Class
 #'
 #' The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
@@ -222,24 +253,24 @@ scalefactors <- function(spot, fiducial, hires, lowres) {
 setOldClass(Classes = c('scalefactors'))
 
 #' The Neighbor class
-#' 
-#' The Neighbor class is used to store the results of neighbor finding 
+#'
+#' The Neighbor class is used to store the results of neighbor finding
 #' algorithms
-#' 
+#'
 #' @slot nn.idx Matrix containing the nearest neighbor indices
 #' @slot nn.dist Matrix containing the nearest neighbor distances
-#' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy 
+#' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy
 #' index
-#' @slot alg.info Any information associated with the algorithm that may be 
-#' needed downstream (e.g. distance metric used with annoy is needed when 
+#' @slot alg.info Any information associated with the algorithm that may be
+#' needed downstream (e.g. distance metric used with annoy is needed when
 #' reading in from stored file).
-#' @slot cell.names Names of the cells for which the neighbors have been 
-#' computed. 
-#' 
+#' @slot cell.names Names of the cells for which the neighbors have been
+#' computed.
+#'
 #' @name Neighbor-class
 #' @rdname Neighbor-class
 #' @exportClass Neighbor
-#' 
+#'
 Neighbor <- setClass(
   Class = 'Neighbor',
   slots = c(
@@ -2176,7 +2207,7 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
-#' @param weighted If TRUE, fill entries in Graph matrix with value from the 
+#' @param weighted If TRUE, fill entries in Graph matrix with value from the
 #' nn.dist slot of the Neighbor object
 #' @rdname as.Graph
 #' @export
@@ -2381,8 +2412,8 @@ as.Neighbor.Graph <- function(
 ) {
   nn.mats <- GraphToNeighborHelper(mat = x)
   return(Neighbor(
-    nn.idx = nn.mats[[1]], 
-    nn.dist = nn.mats[[2]], 
+    nn.idx = nn.mats[[1]],
+    nn.dist = nn.mats[[2]],
     cell.names = rownames(x = x)
   ))
 }
@@ -3158,7 +3189,7 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 #' @rdname Cells
 #' @method Cells Neighbor
 #' @export
-#' 
+#'
 Cells.Neighbor <- function(x) {
   return(slot(object = x, name = "cell.names"))
 }
@@ -3326,7 +3357,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 #' @rdname Distances
 #' @export
 #' @method Distances Neighbor
-#' 
+#'
 Distances.Neighbor <- function(object, ...) {
   object <- UpdateSlots(object = object)
   distances <- slot(object = object, name = "nn.dist")
@@ -7322,7 +7353,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
       expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
-        return(NULL)
+        if (e$message == "Cannot find features provided") {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7338,7 +7373,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     x[[dimreduc]] <- tryCatch(
       expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
       error = function(e) {
-        return(NULL)
+        if (e$message %in% c("Cannot find cell provided", "Cannot find features provided")) {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7564,7 +7603,13 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
        # Ensure all cells are present in the Seurat object
       if (length(x = Cells(x = value)) > length(x = Cells(x = x))) {
         stop(
-          "Cannot add more cells in Neighbor object than are present in the Seurat object.",
+          "Cannot have more cells in the Neighbor object than are present in the Seurat object.",
+          call. = FALSE
+        )
+      }
+      if (!all(Cells(x = value) %in% Cells(x = x))) {
+        stop(
+          "Cannot add cells in the Neighbor object that aren't present in the Seurat object.",
           call. = FALSE
         )
       }
@@ -7626,7 +7671,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage')) && !all(Cells(x = value) == Cells(x = x))) {
+      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage', 'Neighbor')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
@@ -7843,6 +7888,18 @@ setMethod(
   }
 )
 
+
+setMethod(
+  f = 'show',
+  signature = 'ModalityWeights',
+  definition = function(object) {
+    cat(
+      'A ModalityWeights object containing modality weights between',
+      paste(slot(object = object, name = "modality.assay"), collapse = " and "),
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
+  }
+)
+
 setMethod(
   f = 'show',
   signature = 'Assay',
@@ -7916,7 +7973,7 @@ setMethod(
       "A Neighbor object containing the",
       ncol(x = object),
       "nearest neighbors for",
-      nrow(x = object), 
+      nrow(x = object),
       "cells"
     )
   }
@@ -8243,7 +8300,7 @@ SubsetVST <- function(sct.info, cells, features) {
 Top <- function(data, num, balanced) {
   nr <- nrow(x = data)
   if (num > nr) {
-    warning("Requested number is larger than the number of available items (", 
+    warning("Requested number is larger than the number of available items (",
             nr, "). Setting to ", nr , ".", call. = FALSE)
     num <- nr
   }
@@ -8255,10 +8312,10 @@ Top <- function(data, num, balanced) {
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
-    
+
     # remove duplicates
     if (positive[num] == negative[num]) {
-      negative <- negative[-num] 
+      negative <- negative[-num]
     }
     list(positive = positive, negative = negative)
   } else {

@@ -11,7 +11,6 @@ typedef Eigen::Triplet<double> T;
 
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> FindWeightsC(
-  Eigen::SparseMatrix<double> integration_matrix, 
   NumericVector cells2,
   Eigen::MatrixXd distances, 
   std::vector<std::string> anchor_cells2,
@@ -43,18 +42,20 @@ Eigen::SparseMatrix<double> FindWeightsC(
   for(auto const &cell : cells2){
     Eigen::VectorXd dist = distances.row(cell);
     Eigen::VectorXd indices = cell_index.row(cell);
-    for(int i=0; i<indices.size(); ++i){
+    int k=0; //number of anchors used so far; a cell in the neighbor list may contribute to multiple anchors
+    for(int i=0; i<indices.size() && k<indices.size(); ++i){ //index in neighbor list
       std::vector<int> mnn_idx = cell_map[indices[i]-1];
-      for(int j=0; j<mnn_idx.size(); ++j){
+      for(int j=0; j<mnn_idx.size() && k<indices.size(); ++j){
         double to_add = 1 - exp(-1 * dist[i] * anchor_score[mnn_idx[j]]/2 * pow(1/sd, 2));
         tripletList.push_back(T(mnn_idx[j], cell, to_add));
+        k++;
       }
     }
     p.increment();
   }
   Eigen::SparseMatrix<double> return_mat;
   if(min_dist == 0){
-    Eigen::SparseMatrix<double> dist_weights(integration_matrix.rows(), cells2.size());
+    Eigen::SparseMatrix<double> dist_weights(integration_matrix_rownames.size(), cells2.size());
     dist_weights.setFromTriplets(tripletList.begin(), tripletList.end(), [] (const double&, const double &b) { return b; });
     Eigen::VectorXd colSums = dist_weights.transpose() * Eigen::VectorXd::Ones(dist_weights.rows());
     for (int k=0; k < dist_weights.outerSize(); ++k){
@@ -64,7 +65,7 @@ Eigen::SparseMatrix<double> FindWeightsC(
     }
     return_mat = dist_weights;
   } else {
-    Eigen::MatrixXd dist_weights = Eigen::MatrixXd::Constant(integration_matrix.rows(), cells2.size(), min_dist);
+    Eigen::MatrixXd dist_weights = Eigen::MatrixXd::Constant(integration_matrix_rownames.size(), cells2.size(), min_dist);
     for(int i = 0; i < dist_weights.cols(); ++i){
       for(int j = 0; j < dist_weights.rows(); ++j){
         dist_weights(j, i) = 1 - exp(-1 * dist_weights(j, i) * anchor_score[j]/2 * pow(1/sd, 2));
