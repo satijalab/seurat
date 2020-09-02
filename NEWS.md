@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 - `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
 - `ReadAlevin` and `ReadAlevinCsv` deprecated in favor of `SeuratWrappers::ReadAlevin`
+- `ReadH5AD` and `WriteH5AD` deprecated in favor of h5Seurat/H5AD functionality found in SeuratDisk
+- `as.loom` and `as.Seurat.loom` deprecated in favor of functionality found in SeuratDisk
 
 ## [3.2.0] - 2020-07-15
 ### Added
@@ -29,14 +31,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 object inheriting from the Assay class
 - Added ability to cluster idents and group features in `DotPlot`
 - Added ability to use RColorBrewer plaettes for split `DotPlots`
-- Added visualization and analysis functionality for spatially resolved datasets (Visium, Slide-seq). 
+- Added visualization and analysis functionality for spatially resolved datasets (Visium, Slide-seq).
 
 ### Changes
 - Removed `add.iter` parameter from `RunTSNE` function
 - Fixed integer overflow error in the WilcoxDETest function
 - Minor visual fixes in `DoHeatmap` group bar + labels
 - Efficiency improvements in anchor scoring (`ScoreAnchors`)
-- Fix bug in `FindClusters()` when the last node has no edges 
+- Fix bug in `FindClusters()` when the last node has no edges
 - Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
 - Fix handling of keys in `FeatureScatter()`
 - Change `CellSelector` to use Shiny gadgets instead of SDMTools
@@ -46,7 +48,7 @@ object inheriting from the Assay class
 
 ## [3.1.5] - 2020-04-14
 ### Added
-- New `scale` parameter in `DotPlot` 
+- New `scale` parameter in `DotPlot`
 - New `keep.sparse parameter in `CreateGeneActivityMatrix` for a more memory efficient option
 - Added ability to store model learned by UMAP and project new data
 - New `strip.suffix` option in `Read10X`. **This changes the default behavior of `Read10X`**.
@@ -67,7 +69,7 @@ object inheriting from the Assay class
 - Update `assay.used` slot for `DimReduc`s when Assay is renamed
 
 ## [3.1.4] - 2020-02-20
-### Changes 
+### Changes
 - Fixes to `DoHeatmap` to remain compatible with ggplot2 v3.3
 - Adoption of `patchwork` framework to replace `CombinePlots`
 
@@ -82,7 +84,7 @@ object inheriting from the Assay class
 - Fixes for keys with underscores
 - Fix issue with leiden option for `FindClusters`
 - Fix for data transfer when using sctransform
-- SDMTools moved to Suggests as package is orphaned 
+- SDMTools moved to Suggests as package is orphaned
 
 ## [3.1.2] - 2019-12-11
 ### Added
@@ -131,7 +133,7 @@ object inheriting from the Assay class
 - Updates `ReadH5AD` to distinguish FVF methods
 - Fixes to UpdateSeuratObject for v2 objects
 - Sink all output from stdout to stderr
-- Fix to scale.data cell ordering after subsetting 
+- Fix to scale.data cell ordering after subsetting
 - Enable `Assay` specification in `BuildClusterTree`
 - Fix `FeaturePlot` when using both `blend` and `split.by`
 - Fix to `WhichCells` when passing `cells` and `invert`
@@ -202,7 +204,7 @@ object inheriting from the Assay class
 
 ### Changed
 - DiffusionMap dependency replaced with destiny to avoid archival
-- Java dependency removed and functionality rewritten in Rcpp 
+- Java dependency removed and functionality rewritten in Rcpp
 - Speed and efficiency improvements for Rcpp code
 - More robust duplicate handling in CellCycleScoring
 
