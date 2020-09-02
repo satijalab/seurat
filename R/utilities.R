@@ -675,6 +675,14 @@ ExportToCellbrowser <- function(
   skip.reductions = FALSE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratWrappers::ExportToCellbrowser",
+    msg = paste(
+      "Cell browser functionality is moving to SeuratWrappers",
+      "For more details, please see https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   vars <- c(...)
   if (is.null(x = vars)) {
     vars <- c("nCount_RNA", "nFeature_RNA")
@@ -895,25 +903,25 @@ ExpVar <- function(x) {
 }
 
 #' Scale and/or center matrix rowwise
-#' 
-#' Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) 
+#'
+#' Performs row scaling and/or centering. Equivalent to using t(scale(t(mat)))
 #' in R except in the case of NA values.
-#' 
+#'
 #' @param mat A matrix
 #' @param center a logical value indicating whether to center the rows
 #' @param scale a logical value indicating whether to scale the rows
 #' @param scale_max clip all values greater than scale_max to scale_max. Don't
 #' clip if Inf.
 #' @return Returns the center/scaled matrix
-#' 
+#'
 #' @importFrom matrixStats rowMeans2 rowSds rowSums2
-#' 
+#'
 #' @export
-#' 
+#'
 FastRowScale <- function(
   mat,
   center = TRUE,
-  scale = TRUE, 
+  scale = TRUE,
   scale_max = 10
 ) {
   # inspired by https://www.r-bloggers.com/a-faster-scale-function/
@@ -1267,13 +1275,13 @@ PercentageFeatureSet <- function(
 }
 
 #' Load the Annoy index file
-#' 
+#'
 #' @param object Neighbor object
-#' @param file Path to file with annoy index 
-#' 
+#' @param file Path to file with annoy index
+#'
 #' @return Returns the Neighbor object with the index stored
 #' @export
-#' 
+#'
 LoadAnnoyIndex <- function(object, file){
   metric <- slot(object = object, name = "alg.info")$metric
   ndim <- slot(object = object, name = "alg.info")$ndim
@@ -1287,12 +1295,12 @@ LoadAnnoyIndex <- function(object, file){
 }
 
 #' Save the Annoy index
-#' 
+#'
 #' @param object A Neighbor object with the annoy index stored
 #' @param file Path to file to write index to
-#' 
+#'
 #' @export
-#' 
+#'
 SaveAnnoyIndex <- function(
   object,
   file
@@ -1400,6 +1408,14 @@ RowMergeSparseMatrices <- function(mat1, mat2) {
 #' }
 #'
 StopCellbrowser <- function() {
+  .Deprecated(
+    new = "SeuratWrappers::StopCellbrowser",
+    msg = paste(
+      "Cell browser functionality is moving to SeuratWrappers",
+      "For more details, please see https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (py_module_available(module = "cellbrowser")) {
     cb <- import(module = "cellbrowser")
     cb$cellbrowser$stop()

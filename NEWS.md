@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 - `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
 - `ReadAlevin` and `ReadAlevinCsv` deprecated in favor of `SeuratWrappers::ReadAlevin`
+- `ExportToCellbrowser` and `StopCellbrowser` deprecated in favor of `SeuratWrappers::ExportToCellbrowser` and `SeuratWrappers::StopCellbrowser`
 - `ReadH5AD` and `WriteH5AD` deprecated in favor of h5Seurat/H5AD functionality found in SeuratDisk
 - `as.loom` and `as.Seurat.loom` deprecated in favor of functionality found in SeuratDisk
 
