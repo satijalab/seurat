@@ -3,7 +3,7 @@
 NULL
 
 cluster.ape <- paste(
-  "Cluster tree functionality reqiures 'ape'",
+  "Cluster tree functionality requires 'ape'",
   "please install with 'install.packages('ape')'"
 )
 
