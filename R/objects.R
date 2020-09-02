@@ -2244,11 +2244,19 @@ as.loom.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratDisk::as.loom",
+    msg = paste(
+      "as.loom is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = '\n'
+    )
+  )
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR from GitHub before converting to a loom object")
   }
   CheckDots(..., fxns = 'loomR::create')
-  object <- UpdateSlots(object = x)
+  x <- UpdateSlots(object = x)
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
@@ -2590,6 +2598,14 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    package = "SeuratDisk",
+    msg = paste(
+      "Functionality for loading loom files to Seurat objects is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = "\n"
+    )
+  )
   CheckDots(...)
   # Shouldn't be necessary
   if (!PackageCheck('loomR', error = FALSE)) {
@@ -4477,6 +4493,15 @@ ReadH5AD.H5File <- function(
   ...
 ) {
   CheckDots(...)
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   # Pull assay data
   # If X is an H5D, assume scaled
   # Otherwise, if file$exists(name = 'raw'), assume X is normalized
@@ -6001,6 +6026,15 @@ WriteH5AD.Seurat <- function(
   overwrite = FALSE,
   ...
 ) {
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   message("WriteH5AD is not currently operational, please use as.loom")
   .NotYetImplemented()
   if (!PackageCheck('hdf5r', error = FALSE)) {
