@@ -581,10 +581,10 @@ FindTransferAnchors <- function(
   if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
-  if (mapping && is.null(reference.neighbors)) {
+  if (mapping && is.null(x = reference.neighbors)) {
     stop("With mapping = TRUE, reference.neighbors must be provided. Use NNHelper to generate the Neighbor object.")
   }
-  if (mapping && !(reference.neighbors %in% Neighbors(reference))) {
+  if (mapping && !(reference.neighbors %in% Neighbors(object = reference))) {
     stop("With mapping = TRUE, reference.neighbors not found in Neighbor slot of the reference. Use NNHelper to generate the Neighbor object.")
   }
   if (mapping && reduction != "pcaproject") {
@@ -612,7 +612,7 @@ FindTransferAnchors <- function(
   DefaultAssay(object = query) <- query.assay
   feature.mean <- NULL
   slot <- "data"
-  if (normalization.method == "SCT" & !mapping) {
+  if (normalization.method == "SCT" && !mapping) {
     features <- intersect(x = features, y = rownames(x = query))
     query <- GetResidual(object = query, features = features, verbose = FALSE)
     query[[query.assay]] <- CreateAssayObject(
@@ -661,7 +661,13 @@ FindTransferAnchors <- function(
         if (normalization.method == "LogNormalize") {
           query <- ScaleData(object = query, features = features, verbose = FALSE)
         }
-        query <- RunPCA(object = query, npcs = npcs, verbose = FALSE, features = features, approx = approx.pca)
+        query <- RunPCA(
+          object = query, 
+          npcs = npcs, 
+          verbose = FALSE, 
+          features = features, 
+          approx = approx.pca
+        )
       }
       projected.pca <- ProjectCellEmbeddings(
         reference = query,
@@ -671,7 +677,7 @@ FindTransferAnchors <- function(
       )
       query.pca <- Embeddings(object = query[["pca"]])[, dims]
       combined.pca <- CreateDimReducObject(
-        embeddings = as.matrix(x = rbind(projected.pca,query.pca))[, dims],
+        embeddings = as.matrix(x = rbind(projected.pca, query.pca))[, dims],
         key = "ProjectPC_",
         assay = reference.assay
       )
@@ -737,17 +743,23 @@ FindTransferAnchors <- function(
   }
   if (mapping) {
     if (normalization.method == "SCT") {
-      features <- intersect(x = features, y = rownames(x = query[[query.assay]]@scale.data))
+      features <- intersect(
+        x = features, 
+        y = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data"))
+      )
       # move scale.data to data slot
-      query[[query.assay]] <- CreateAssayObject(data = GetAssayData(object = query[[query.assay]],
-                                                                    slot = "scale.data")[features, ])
+      query[[query.assay]] <- CreateAssayObject(
+        data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
+      )
       feature.mean <- "SCT"
     }
-    query <- DietSeurat(object = query,
-                        assays = query.assay,
-                        counts = FALSE,
-                        features = features,
-                        scale.data = FALSE  )
+    query <- DietSeurat(
+      object = query,
+      assays = query.assay,
+      counts = FALSE,
+      features = features,
+      scale.data = FALSE  
+    )
     ## find anchors using PCA projection
     projected.pca <- ProjectCellEmbeddings(
       reference = reference,
@@ -763,11 +775,13 @@ FindTransferAnchors <- function(
       key = "ProjectPC_",
       assay = reference.assay
     )
-    combined.ob.counts <- as.sparse(matrix(data = 0,
-                                           nrow = length(x = features), 
-                                           ncol = ncol(x = reference)+ncol(x = query) ) )
+    combined.ob.counts <- as.sparse(x = matrix(
+      data = 0,
+      nrow = length(x = features), 
+      ncol = ncol(x = reference) + ncol(x = query)
+    ))
     rownames(x = combined.ob.counts) <- features
-    colnames(x = combined.ob.counts) <- c(Cells(reference), Cells(query))
+    colnames(x = combined.ob.counts) <- c(Cells(x = reference), Cells(x = query))
     combined.ob <- CreateSeuratObject(counts = combined.ob.counts)
     
     combined.ob[[reduction]] <- combined.pca
@@ -782,17 +796,20 @@ FindTransferAnchors <- function(
   slot <- "data"
   if (mapping) {
     k.nn <- max(k.score, k.anchor)  
-    if( ncol(x = Indices(reference[[reference.neighbors]])) < (k.nn+1)){
-      stop("k.score or k.anchor is larger than the number of neighbors contained in reference.nn. Recompute reference.nn using NNHelper with k >= k.score and k >= k.anchor")
+    if( ncol(x = Indices(reference[[reference.neighbors]])) < (k.nn + 1)){
+      stop("k.score or k.anchor is larger than the number of neighbors",
+           "contained in reference.nn. Recompute reference.nn using",
+           "FindNeighbors with k >= k.score and k >= k.anchor")
     }
     projected.pca <- L2Norm(mat = projected.pca)
     if (verbose) {
       message("Finding query neighbors")
     }
-    query.neighbors <- NNHelper(data = projected.pca, 
-                                k = k.nn+1, 
-                                method = nn.method,
-                                cache.index = TRUE
+    query.neighbors <- NNHelper(
+      data = projected.pca, 
+      k = k.nn + 1, 
+      method = nn.method,
+      cache.index = TRUE
     )
     anchors <- FindAnchors(
       object.pair = combined.ob,
