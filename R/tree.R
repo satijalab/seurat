@@ -2,6 +2,11 @@
 #'
 NULL
 
+cluster.ape <- paste(
+  "Cluster tree functionality reqiures 'ape'",
+  "please install with 'install.packages('ape')'"
+)
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,7 +38,6 @@ NULL
 #'
 #' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'
-#' @importFrom ape as.phylo
 #' @importFrom pbapply pblapply
 #' @importFrom stats dist hclust
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -56,6 +60,9 @@ BuildClusterTree <- function(
   reorder.numeric = FALSE,
   verbose = TRUE
 ) {
+  if (!PackageCheck('ape', error = FALSE)) {
+    stop(cluster.ape, call. = FALSE)
+  }
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = graph)) {
     idents <- levels(x = object)
@@ -127,7 +134,7 @@ BuildClusterTree <- function(
     )[[1]]
     data.dist <- dist(x = t(x = data.avg[features, ]))
   }
-  data.tree <- as.phylo(x = hclust(d = data.dist))
+  data.tree <- ape::as.phylo(x = hclust(d = data.dist))
   Tool(object = object) <- data.tree
   if (reorder) {
     if (verbose) {
@@ -154,9 +161,6 @@ BuildClusterTree <- function(
       verbose = verbose
     )
   }
-  # if (do.plot) {
-  #   PlotClusterTree(object)
-  # }
   return(object)
 }
 
