@@ -14,7 +14,8 @@ FindNeighbors(object, ...)
   object,
   distance.matrix = FALSE,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "rann",
   annoy.metric = "euclidean",
@@ -22,7 +23,6 @@ FindNeighbors(object, ...)
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 )
@@ -31,7 +31,8 @@ FindNeighbors(object, ...)
   object,
   features = NULL,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "rann",
   annoy.metric = "euclidean",
@@ -39,7 +40,6 @@ FindNeighbors(object, ...)
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 )
@@ -47,7 +47,8 @@ FindNeighbors(object, ...)
 \method{FindNeighbors}{dist}(
   object,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "rann",
   annoy.metric = "euclidean",
@@ -55,7 +56,6 @@ FindNeighbors(object, ...)
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 )
@@ -67,7 +67,8 @@ FindNeighbors(object, ...)
   assay = NULL,
   features = NULL,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "rann",
   annoy.metric = "euclidean",
@@ -77,7 +78,6 @@ FindNeighbors(object, ...)
   do.plot = FALSE,
   graph.name = NULL,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 )
@@ -93,12 +93,15 @@ be set automatically}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
+\item{return.neighbor}{Return result as \code{\link{Neighbor}} object. Not 
+used with distance matrix input.}
+
 \item{compute.SNN}{also compute the shared nearest neighbor graph}
 
 \item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when
 computing the neighborhood overlap for the SNN construction. Any edges with
 values less than or equal to this will be set to 0 and removed from the SNN
-graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+graph. Essentially sets the stringency of pruning (0 --- no pruning, 1 ---
 prune everything).}
 
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
@@ -112,29 +115,25 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{verbose}{Whether or not to print output to the console}
 
-\item{force.recalc}{Force recalculation of SNN.}
+\item{force.recalc}{Force recalculation of (S)NN.}
 
 \item{l2.norm}{Take L2Norm of the data}
-
-\item{return.neighbor}{Return result as Neighbor object
-(default is SNN graph). Not used with distance matrix input.}
 
 \item{cache.index}{Include cached index in returned Neighbor object
 (only relevant if return.neighbor = TRUE)}
 
-\item{features}{Features to use as input for building the SNN}
+\item{features}{Features to use as input for building the (S)NN}
 
-\item{reduction}{Reduction to use as input for building the SNN}
+\item{reduction}{Reduction to use as input for building the (S)NN}
 
 \item{dims}{Dimensions of reduction to use as input}
 
-\item{assay}{Assay to use in construction of SNN}
+\item{assay}{Assay to use in construction of (S)NN}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
-\item{graph.name}{Optional naming parameter for stored SNN graph
-(or Neighbor object, if return.neighbor = TRUE). 
-Default is assay.name_snn.}
+\item{graph.name}{Optional naming parameter for stored (S)NN graph
+(or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.}
 }
 \value{
 When running on a \code{\link{Seurat}} object, returns fills the

@@ -215,11 +215,13 @@ FindClusters.Seurat <- function(
 #' distance matrix; note, for objects of class \code{dist}, this parameter will
 #' be set automatically
 #' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param return.neighbor Return result as \code{\link{Neighbor}} object. Not 
+#' used with distance matrix input.
 #' @param compute.SNN also compute the shared nearest neighbor graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
 #' values less than or equal to this will be set to 0 and removed from the SNN
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' graph. Essentially sets the stringency of pruning (0 --- no pruning, 1 ---
 #' prune everything).
 #' @param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
@@ -228,10 +230,8 @@ FindClusters.Seurat <- function(
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
-#' @param force.recalc Force recalculation of SNN.
+#' @param force.recalc Force recalculation of (S)NN.
 #' @param l2.norm Take L2Norm of the data
-#' @param return.neighbor Return result as Neighbor object
-#' (default is SNN graph). Not used with distance matrix input.
 #' @param cache.index Include cached index in returned Neighbor object
 #' (only relevant if return.neighbor = TRUE)
 #'
@@ -246,7 +246,8 @@ FindNeighbors.default <- function(
   object,
   distance.matrix = FALSE,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = 'rann',
   annoy.metric = "euclidean",
@@ -254,7 +255,6 @@ FindNeighbors.default <- function(
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 ) {
@@ -295,7 +295,10 @@ FindNeighbors.default <- function(
       cache.index = cache.index
     )
     if (return.neighbor) {
-      return(nn.ranked)
+      if (compute.SNN) {
+        warning("The SNN graph is not computed if return.neighbor is TRUE.", call. = FALSE)
+      }
+      return(list(nn = nn.ranked))
     }
     nn.ranked <- Indices(object = nn.ranked)
   } else {
@@ -341,7 +344,8 @@ FindNeighbors.Assay <- function(
   object,
   features = NULL,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = 'rann',
   annoy.metric = "euclidean",
@@ -349,7 +353,6 @@ FindNeighbors.Assay <- function(
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 ) {
@@ -381,7 +384,8 @@ FindNeighbors.Assay <- function(
 FindNeighbors.dist <- function(
   object,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "rann",
   annoy.metric = "euclidean",
@@ -389,7 +393,6 @@ FindNeighbors.dist <- function(
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 ) {
@@ -412,14 +415,13 @@ FindNeighbors.dist <- function(
   ))
 }
 
-#' @param assay Assay to use in construction of SNN
-#' @param features Features to use as input for building the SNN
-#' @param reduction Reduction to use as input for building the SNN
+#' @param assay Assay to use in construction of (S)NN
+#' @param features Features to use as input for building the (S)NN
+#' @param reduction Reduction to use as input for building the (S)NN
 #' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
-#' @param graph.name Optional naming parameter for stored SNN graph
-#' (or Neighbor object, if return.neighbor = TRUE). 
-#' Default is assay.name_snn.
+#' @param graph.name Optional naming parameter for stored (S)NN graph
+#' (or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.
 #'
 #' @importFrom igraph graph.adjacency plot.igraph E
 #'
@@ -434,7 +436,8 @@ FindNeighbors.Seurat <- function(
   assay = NULL,
   features = NULL,
   k.param = 20,
-  compute.SNN = TRUE,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "rann",
   annoy.metric = "euclidean",
@@ -444,13 +447,11 @@ FindNeighbors.Seurat <- function(
   do.plot = FALSE,
   graph.name = NULL,
   l2.norm = FALSE,
-  return.neighbor = FALSE,
   cache.index = FALSE,
   ...
 ) {
   CheckDots(...)
   if (!is.null(x = dims)) {
-    # assay <- assay %||% DefaultAssay(object = object)
     assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
     if (max(dims) > ncol(x = data.use)) {
@@ -492,15 +493,12 @@ FindNeighbors.Seurat <- function(
       ...
     )
   }
-  if (return.neighbor) {
-    graph.name <- graph.name %||% paste0(assay, "_snn")
-    object[[graph.name]] <- neighbor.graphs
-  } else {
-    graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
-    for (ii in 1:length(x = graph.name)) {
+  graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
+  for (ii in 1:length(x = graph.name)) {
+    if (inherits(x = neighbor.graphs[[ii]], what = "Graph")) {
       DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
-      object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
     }
+    object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
   }
   if (do.plot) {
     if (!"tsne" %in% names(x = object@reductions)) {
