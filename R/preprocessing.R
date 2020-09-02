@@ -873,6 +873,14 @@ MULTIseqDemux <- function(
 #' }
 #'
 ReadAlevinCsv <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -920,6 +928,14 @@ ReadAlevinCsv <- function(base.path) {
 #' }
 #'
 ReadAlevin <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
