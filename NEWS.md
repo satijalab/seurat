@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ### Deprecated
 - `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
+- `ReadAlevin` and `ReadAlevinCsv` in favor of `SeuratWrappers::ReadAlevin`
 
 ## [3.2.0] - 2020-07-15
 ### Added
