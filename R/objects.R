@@ -2244,11 +2244,19 @@ as.loom.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratDisk::as.loom",
+    msg = paste(
+      "as.loom is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = '\n'
+    )
+  )
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR from GitHub before converting to a loom object")
   }
   CheckDots(..., fxns = 'loomR::create')
-  object <- UpdateSlots(object = x)
+  x <- UpdateSlots(object = x)
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
@@ -2590,6 +2598,14 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    package = "SeuratDisk",
+    msg = paste(
+      "Functionality for loading loom files to Seurat objects is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = "\n"
+    )
+  )
   CheckDots(...)
   # Shouldn't be necessary
   if (!PackageCheck('loomR', error = FALSE)) {
