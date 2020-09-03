@@ -52,6 +52,37 @@ AnchorSet <- setClass(
   )
 )
 
+
+
+#' The ModalityWeights Class
+#'
+#' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
+#' related information needed for performing downstream analyses - namely data integration
+#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+#'
+#' @slot first.modality.weight A vector of value representing for the modality weights of
+#' the first modality
+#' @slot modality.assay Names of assays for the list of dimentional reductions
+#' @slot params A list of paramters used in the FindModalityWeights
+#' @slot score.matrix a score matrix representing cross and within-modality prediction
+#' score, and kernel value
+#' @slot command Store log of parameters that were used
+#'
+#' @name ModalityWeights-class
+#' @rdname ModalityWeights-class
+#' @exportClass ModalityWeights
+#'
+ModalityWeights <- setClass(
+  Class = "ModalityWeights",
+  slots = list(
+    first.modality.weight = "vector",
+    modality.assay = "vector",
+    params = "list",
+    score.matrix = "data.frame",
+    command = "ANY"
+  )
+)
+
 #' The Assay Class
 #'
 #' The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
@@ -2244,11 +2275,19 @@ as.loom.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratDisk::as.loom",
+    msg = paste(
+      "as.loom is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = '\n'
+    )
+  )
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR from GitHub before converting to a loom object")
   }
   CheckDots(..., fxns = 'loomR::create')
-  object <- UpdateSlots(object = x)
+  x <- UpdateSlots(object = x)
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
@@ -2590,6 +2629,14 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    package = "SeuratDisk",
+    msg = paste(
+      "Functionality for loading loom files to Seurat objects is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = "\n"
+    )
+  )
   CheckDots(...)
   # Shouldn't be necessary
   if (!PackageCheck('loomR', error = FALSE)) {
@@ -4477,6 +4524,15 @@ ReadH5AD.H5File <- function(
   ...
 ) {
   CheckDots(...)
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   # Pull assay data
   # If X is an H5D, assume scaled
   # Otherwise, if file$exists(name = 'raw'), assume X is normalized
@@ -6001,6 +6057,15 @@ WriteH5AD.Seurat <- function(
   overwrite = FALSE,
   ...
 ) {
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   message("WriteH5AD is not currently operational, please use as.loom")
   .NotYetImplemented()
   if (!PackageCheck('hdf5r', error = FALSE)) {
@@ -7854,6 +7919,18 @@ setMethod(
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
         "This can be used as input to IntegrateData or TransferData.")
+  }
+)
+
+
+setMethod(
+  f = 'show',
+  signature = 'ModalityWeights',
+  definition = function(object) {
+    cat(
+      'A ModalityWeights object containing modality weights between',
+      paste(slot(object = object, name = "modality.assay"), collapse = " and "),
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
   }
 )
 

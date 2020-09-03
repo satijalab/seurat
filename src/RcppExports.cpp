@@ -274,13 +274,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// FindWeightsC
-Eigen::SparseMatrix<double> FindWeightsC(Eigen::SparseMatrix<double> integration_matrix, NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
-RcppExport SEXP _Seurat_FindWeightsC(SEXP integration_matrixSEXP, SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
+// fast_dist
+List fast_dist(NumericMatrix x, NumericMatrix y, List n);
+RcppExport SEXP _Seurat_fast_dist(SEXP xSEXP, SEXP ySEXP, SEXP nSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type integration_matrix(integration_matrixSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type y(ySEXP);
+    Rcpp::traits::input_parameter< List >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_dist(x, y, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FindWeightsC
+Eigen::SparseMatrix<double> FindWeightsC(NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
+RcppExport SEXP _Seurat_FindWeightsC(SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type cells2(cells2SEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type distances(distancesSEXP);
     Rcpp::traits::input_parameter< std::vector<std::string> >::type anchor_cells2(anchor_cells2SEXP);
@@ -290,7 +302,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type min_dist(min_distSEXP);
     Rcpp::traits::input_parameter< double >::type sd(sdSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(FindWeightsC(integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress));
+    rcpp_result_gen = Rcpp::wrap(FindWeightsC(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -345,6 +357,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// SNN_SmallestNonzero_Dist
+std::vector<double> SNN_SmallestNonzero_Dist(Eigen::SparseMatrix<double> snn, Eigen::MatrixXd mat, int n, std::vector<double> nearest_dist);
+RcppExport SEXP _Seurat_SNN_SmallestNonzero_Dist(SEXP snnSEXP, SEXP matSEXP, SEXP nSEXP, SEXP nearest_distSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type snn(snnSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type nearest_dist(nearest_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(SNN_SmallestNonzero_Dist(snn, mat, n, nearest_dist));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 RcppExport SEXP isnull(SEXP);
 
@@ -369,11 +395,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
     {"_Seurat_GraphToNeighborHelper", (DL_FUNC) &_Seurat_GraphToNeighborHelper, 1},
-    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
+    {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
+    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 9},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
+    {"_Seurat_SNN_SmallestNonzero_Dist", (DL_FUNC) &_Seurat_SNN_SmallestNonzero_Dist, 4},
     {"isnull", (DL_FUNC) &isnull, 1},
     {NULL, NULL, 0}
 };

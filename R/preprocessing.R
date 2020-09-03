@@ -873,6 +873,14 @@ MULTIseqDemux <- function(
 #' }
 #'
 ReadAlevinCsv <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -920,6 +928,14 @@ ReadAlevinCsv <- function(base.path) {
 #' }
 #'
 ReadAlevin <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -1365,7 +1381,6 @@ RunMarkVario <- function(
 #' @param verbose Display messages/progress
 #'
 #' @importFrom stats dist
-#' @importFrom ape Moran.I
 #'
 #' @export
 #'
@@ -1378,6 +1393,11 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
   Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
   if (Rfast2.installed) {
     MyMoran <- Rfast2::moranI
+  } else if (!PackageCheck('ape', error = FALSE)) {
+    stop(
+      "'RunMoransI' requires either Rfast2 or ape to be installed",
+      call. = FALSE
+    )
   } else {
     MyMoran <- ape::Moran.I
     if (getOption('Seurat.Rfast2.msg', TRUE)) {
@@ -1478,6 +1498,7 @@ SampleUMI <- function(
 #' @param new.assay.name Name for the new assay containing the normalized data
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param ncells Number of subsampling cells used to build NB regression; default is NULL
+#' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
@@ -1519,6 +1540,7 @@ SCTransform <- function(
   new.assay.name = 'SCT',
   do.correct.umi = TRUE,
   ncells = NULL,
+  residual.features = NULL,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
@@ -1582,6 +1604,11 @@ SCTransform <- function(
   vst.args[['n_cells']] <- ncells
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+  if (!is.null(residual.features)) {
+    do.correct.umi <- FALSE
+    vst.args[['return_corrected_umi']] <- FALSE
+    vst.args[['residual_type']] <- 'none'
+  }
   if (conserve.memory) {
     return.only.var.genes <- TRUE
   }
@@ -1598,6 +1625,14 @@ SCTransform <- function(
     vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
   } else {
     vst.out <- do.call(what = 'vst', args = vst.args)
+    if (!is.null(residual.features)) {
+      residual.features <- intersect(rownames(x = vst.out$gene_attr), residual.features)
+      residual.feature.mat <- get_residuals(vst_out = vst.out, 
+                                            umi = umi[residual.features, , drop = FALSE] 
+      )
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr <- NULL
+    } 
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
       nm = rownames(x = vst.out$gene_attr)
@@ -1611,6 +1646,9 @@ SCTransform <- function(
     top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
+  }
+  if(!is.null(residual.features)){
+    top.features <- rownames(x = vst.out$y) 
   }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')

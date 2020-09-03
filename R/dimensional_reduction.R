@@ -1301,7 +1301,7 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        if (packageVersion(pkg = "uwot") <= '0.1.8.9000') {
+        if (packageVersion(pkg = "uwot") < '0.1.8.9000') {
           stop("This uwot functionality requires uwot version >= 0.1.8.9000",
                "Installing the latest version from github can be done with", 
                "remotes::install_github('jlmelville/uwot')")
@@ -1437,6 +1437,25 @@ RunUMAP.Graph <- function(
   )
   return(umap)
 }
+
+#' @rdname RunUMAP
+#' @method RunUMAP Neighbor
+#' @export
+#'
+RunUMAP.Neighbor <- function(
+  object,
+  reduction.model,
+  ...
+) {
+  neighborlist <- list("idx" = Indices(object), 
+                       "dist" = Distances(object))
+  RunUMAP(
+    object = neighborlist,
+    reduction.model = reduction.model,
+    ...
+  )
+}
+
 
 #' @param reduction.model \code{DimReduc} object that contains the umap model
 #' @param dims Which dimensions to use as input features, used only if
@@ -2127,4 +2146,130 @@ PrepDR <- function(
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
   return(data.use)
+}
+
+#' @param assay Name of Assay SPCA is being run on
+#' @param npcs Total Number of SPCs to compute and store (50 by default)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the SPCs
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. SPC by default
+#' @param graph Graph used supervised by SPCA
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'  
+#' @importFrom irlba irlba
+#'
+#' @rdname RunSPCA
+#' @export
+RunSPCA.default <- function(
+  object,
+  assay = NULL, 
+  npcs = 50, 
+  reduction.key = "SPC_", 
+  graph = NULL, 
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  npcs <- min(npcs, nrow(x = object) - 1)
+  if (verbose) {
+    message("Matrix multiplication")
+  }
+  HSIC <- object %*% graph %*% t(x = object)
+  pca.results <- irlba(A = HSIC, nv = npcs)
+  feature.loadings <- pca.results$u
+  rownames(x = feature.loadings) <- rownames(x = object)
+  cell.embeddings <- t(object) %*% feature.loadings
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings) <-
+    paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  sdev <- pca.results$d / sqrt(max(1, nrow(x = HSIC) - 1))
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    stdev = sdev,
+    key = reduction.key
+  )
+  return(reduction.data)
+}
+
+#' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
+#' using the variable features for the Assay. 
+#' 
+#' @rdname RunSPCA
+#' @export
+#' @method RunSPCA Assay
+#' 
+RunSPCA.Assay <- function(
+  object,
+  assay = NULL, 
+  features = NULL, 
+  npcs = 50, 
+  reduction.key = "SPC_", 
+  graph = NULL, 
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunSPCA(
+    object = data.use, 
+    assay = assay, 
+    npcs = npcs, 
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose, 
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
+#' @param reduction.name dimensional reduction name, spca by default
+#' @rdname RunsPCA
+#' @export
+#' @method RunSPCA Seurat
+#' 
+RunSPCA.Seurat <- function(
+  object,
+  assay = NULL, 
+  features = NULL, 
+  npcs = 50, 
+  reduction.name = "spca", 
+  reduction.key = "SPC_", 
+  graph = NULL, 
+  verbose = TRUE, 
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  if (is.null(x = graph)) {
+    stop("Graph is not provided")
+  } else if (is.character(x = graph)) {
+    graph <- object[[graph]]
+  }
+  reduction.data <- RunSPCA(
+    object = assay.data, 
+    assay = assay, 
+    features = features, 
+    npcs = npcs, 
+    reduction.name = reduction.name, 
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose, 
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  return(object)
 }
