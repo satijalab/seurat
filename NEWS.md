@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
 - Fix issue where feature names with dashes crashed `CellSelector`
 - Fix issue where errors in subsetting were being swallowed
+- Fix issue where labeling uncropped spatial plots was broken
 
 ### Deprecated
 - `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
