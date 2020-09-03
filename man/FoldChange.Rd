@@ -6,21 +6,22 @@
 \alias{FoldChange.Assay}
 \alias{FoldChange.DimReduc}
 \alias{FoldChange.Seurat}
-\title{FoldChange}
+\title{Fold Change}
 \usage{
 FoldChange(object, ...)
 
-\method{FoldChange}{default}(object, cells.1, cells.2, features, mean.fxn, fc.name, ...)
+\method{FoldChange}{default}(object, cells.1, cells.2, mean.fxn, fc.name, features = NULL, ...)
 
 \method{FoldChange}{Assay}(
   object,
   cells.1,
   cells.2,
-  features,
-  slot,
+  features = NULL,
+  slot = "data",
   pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
+  base = 2,
   ...
 )
 
@@ -28,7 +29,7 @@ FoldChange(object, ...)
   object,
   cells.1,
   cells.2,
-  features,
+  features = NULL,
   slot = NULL,
   pseudocount.use = NULL,
   fc.name = NULL,
@@ -48,31 +49,34 @@ FoldChange(object, ...)
   features = NULL,
   pseudocount.use = 1,
   mean.fxn = NULL,
+  base = 2,
   fc.name = NULL,
   ...
 )
 }
 \arguments{
-\item{object}{An object}
+\item{object}{A Seurat object}
 
-\item{...}{Not used}
+\item{...}{Arguments passed to other methods}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
 
 \item{cells.2}{Vector of cell names belonging to group 2}
 
-\item{features}{Genes to calculate fold change for; default is to use all genes}
-
-\item{mean.fxn}{Function to use for fold change or average difference calculation 
-(see example)}
+\item{mean.fxn}{Function to use for fold change or average difference calculation}
 
 \item{fc.name}{Name of the fold change, average difference, or custom function column
-in the output data.frame (see example)}
+in the output data.frame}
+
+\item{features}{Features to calculate fold change for.
+If NULL, use all features}
 
 \item{slot}{Slot to pull data from}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
+
+\item{base}{The base with respect to which logarithms are computed.}
 
 \item{ident.1}{Identity class to calculate fold change for; pass an object of class
 \code{phylo} or 'clustertree' to calculate fold change for a node in a cluster tree;
@@ -92,19 +96,19 @@ Only relevant if group.by is set (see example in \code{\link{FindMarkers}})}
 
 \item{reduction}{Reduction to use - will calculate average difference on cell embeddings}
 }
+\value{
+Returns a data.frame
+}
 \description{
-Calculate log fold change and percent expressed of features for identity classes
+Calculate log fold change and percentage of cells expressing each feature
+for different identity classes.
 }
 \details{
-If the slot is scale.data or a reduction is specified, average difference
+If the slot is \code{scale.data} or a reduction is specified, average difference
 is returned instead of log fold change and the column is named "avg_diff".
-Otherwise, (natural) log fold change is returned with column named "avg_logFC".
+Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 }
 \examples{
-# Calculate log-base-2 fold change with a pseudocount of 1, with output column named "avg_log2FC"
-\dontrun{
-FoldChange(object = pbmc_small, ident.1 = 1, ident.2 = 2, 
-mean.fxn = function(x) log(x = rowMeans(x = x) + 1, base = 2), fc.name = "avg_log2FC")
-}
+FoldChange(pbmc_small, ident.1 = 1)
 
 }

@@ -423,24 +423,23 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindSpatiallyVariableFeatures', object = object)
 }
 
-#' FoldChange
+#' Fold Change
 #' 
-#' Calculate log fold change and percent expressed of features for identity classes
+#' Calculate log fold change and percentage of cells expressing each feature
+#' for different identity classes.
 #' 
-#' If the slot is scale.data or a reduction is specified, average difference
+#' If the slot is \code{scale.data} or a reduction is specified, average difference
 #' is returned instead of log fold change and the column is named "avg_diff".
-#' Otherwise, (natural) log fold change is returned with column named "avg_logFC".
+#' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 #' 
 #' @examples
-#' # Calculate log-base-2 fold change with a pseudocount of 1, with output column named "avg_log2FC"
-#' \dontrun{
-#' FoldChange(object = pbmc_small, ident.1 = 1, ident.2 = 2, 
-#' mean.fxn = function(x) log(x = rowMeans(x = x) + 1, base = 2), fc.name = "avg_log2FC")
-#' }
+#' FoldChange(pbmc_small, ident.1 = 1)
 #' 
+#' @param object A Seurat object
+#' @param ... Arguments passed to other methods
 #' @rdname FoldChange
 #' @export FoldChange
-#'
+#' @return Returns a data.frame
 FoldChange <- function(object, ...) {
   UseMethod(generic = 'FoldChange', object = object)
 }
