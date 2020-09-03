@@ -2491,10 +2491,12 @@ FindAnchorPairs <- function(
   anchors$cell2 <- anchors$cell1
   anchors$score <- anchors$cell1 + 1
   idx <- 0
+  indices.ab <- Indices(object = neighbors$nnab)
+  indices.ba <- Indices(object = neighbors$nnba)
   for (cell in ncell) {
-    neighbors.ab <- Indices(object = neighbors$nnab)[cell, 1:k.anchor]
+    neighbors.ab <- indices.ab[cell, 1:k.anchor]
     mutual.neighbors <- which(
-      x = Indices(neighbors$nnba)[neighbors.ab, 1:k.anchor, drop = FALSE] == cell,
+      x = indices.ba[neighbors.ab, 1:k.anchor, drop = FALSE] == cell,
       arr.ind = TRUE
     )[, 1]
     for (i in neighbors.ab[mutual.neighbors]){
@@ -3452,8 +3454,12 @@ ScoreAnchors <- function(
   anchor.df <- as.data.frame(x = GetIntegrationData(object = object, integration.name = integration.name, slot = 'anchors'))
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "neighbors")
   offset <- length(x = neighbors$cells1)
-  nbrsetA <- function(x) c(Indices(object = neighbors$nnaa)[x, 1:k.score], Indices(object = neighbors$nnab)[x, 1:k.score] + offset)
-  nbrsetB <- function(x) c(Indices(neighbors$nnba)[x, 1:k.score], Indices(neighbors$nnbb)[x, 1:k.score] + offset)
+  indices.aa <- Indices(object = neighbors$nnaa)
+  indices.bb <- Indices(object = neighbors$nnbb)
+  indices.ab <- Indices(object = neighbors$nnab)
+  indices.ba <- Indices(object = neighbors$nnba)
+  nbrsetA <- function(x) c(indices.aa[x, 1:k.score], indices.ab[x, 1:k.score] + offset)
+  nbrsetB <- function(x) c(indices.ba[x, 1:k.score], indices.bb[x, 1:k.score] + offset)
   # score = number of shared neighbors
   anchor.new <- data.frame(
     'cell1' = anchor.df[, 1],

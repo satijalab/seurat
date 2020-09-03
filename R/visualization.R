@@ -3639,12 +3639,10 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
-#' @param \dots Additional arguments to ape::plot.phylo
+#' @param \dots Additional arguments to
+#' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
-#'
-#' @importFrom ape plot.phylo
-#' @importFrom ape nodelabels
 #'
 #' @export
 #'
@@ -3653,12 +3651,15 @@ JackStrawPlot <- function(
 #' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
+  if (!PackageCheck('ape', error = FALSE)) {
+    stop(cluster.ape, call. = FALSE)
+  }
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  plot.phylo(x = data.tree, direction = "downwards", ...)
-  nodelabels()
+  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::nodelabels()
 }
 
 #' Visualize Dimensional Reduction genes

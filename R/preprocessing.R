@@ -873,6 +873,14 @@ MULTIseqDemux <- function(
 #' }
 #'
 ReadAlevinCsv <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -920,6 +928,14 @@ ReadAlevinCsv <- function(base.path) {
 #' }
 #'
 ReadAlevin <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -1365,7 +1381,6 @@ RunMarkVario <- function(
 #' @param verbose Display messages/progress
 #'
 #' @importFrom stats dist
-#' @importFrom ape Moran.I
 #'
 #' @export
 #'
@@ -1378,6 +1393,11 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
   Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
   if (Rfast2.installed) {
     MyMoran <- Rfast2::moranI
+  } else if (!PackageCheck('ape', error = FALSE)) {
+    stop(
+      "'RunMoransI' requires either Rfast2 or ape to be installed",
+      call. = FALSE
+    )
   } else {
     MyMoran <- ape::Moran.I
     if (getOption('Seurat.Rfast2.msg', TRUE)) {
