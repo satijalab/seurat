@@ -3703,13 +3703,13 @@ VizDimLoadings <- function(
 ) {
   if (is.null(x = ncol)) { 
     ncol <- 2 
-    if (length(x = features) == 1) { 
+    if (length(x = dims) == 1) { 
       ncol <- 1 
     } 
-    if (length(x = features) > 6) { 
+    if (length(x = dims) > 6) { 
       ncol <- 3 
     } 
-    if (length(x = features) > 9) { 
+    if (length(x = dims) > 9) { 
       ncol <- 4 
     } 
   } 
