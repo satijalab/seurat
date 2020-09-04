@@ -450,7 +450,7 @@ FindConservedMarkers <- function(
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
-#' @param mean.fxn Function to use for fold change or average difference calculation 
+#' @param mean.fxn Function to use for fold change or average difference calculation
 #' (see FoldChange example)
 #' @param fc.name Name of the fold change, average difference, or custom function column
 #' in the output data.frame (see FoldChange example)
@@ -483,6 +483,7 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
+  base = 2,
   ...
 ) {
   ValidateCellGroups(
@@ -524,7 +525,8 @@ FindMarkers.default <- function(
     cells.2 = cells.2,
     features = features,
     mean.fxn = mean.fxn,
-    fc.name = diff.col
+    fc.name = diff.col,
+    base = base
   )
   # feature selection (based on percentages)
   alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
@@ -601,7 +603,7 @@ FindMarkers.default <- function(
 #' @rdname FindMarkers
 #' @export
 #' @method FindMarkers Assay
-#' 
+#'
 FindMarkers.Assay <- function(
   object,
   slot = "data",
@@ -621,6 +623,7 @@ FindMarkers.Assay <- function(
   min.cells.group = 3,
   pseudocount.use = 1,
   mean.fxn = NULL,
+  base = 2,
   ...
 ) {
   data.slot <- ifelse(
@@ -654,6 +657,7 @@ FindMarkers.Assay <- function(
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
+    base = base,
     ...
   )
   return(de.results)
@@ -663,7 +667,7 @@ FindMarkers.Assay <- function(
 #' @rdname FindMarkers
 #' @export
 #' @method FindMarkers DimReduc
-#' 
+#'
 FindMarkers.DimReduc <- function(
   object,
   cells.1 = NULL,
@@ -683,7 +687,7 @@ FindMarkers.DimReduc <- function(
   pseudocount.use = 1,
   mean.fxn = rowMeans,
   ...
-  
+
 ) {
   if (test.use %in% DEmethods_counts()) {
     stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
@@ -707,7 +711,7 @@ FindMarkers.DimReduc <- function(
     object = object,
     cells.1 = cells.1,
     cells.2 = cells.2,
-    features = features  
+    features = features
   )
   # subsample cell groups if they are too large
   if (max.cells.per.ident < Inf) {
@@ -762,10 +766,11 @@ FindMarkers.DimReduc <- function(
 #' @param assay Assay to use in differential expression testing
 #' @param slot Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 #' \code{slot} will be set to "counts"
-#' @param mean.fxn Function to use for fold change or average difference calculation 
+#' @param mean.fxn Function to use for fold change or average difference calculation
 #' (see example in \code{\link{FoldChange}})
-#' @param fc.name Name of the fold change, average difference, or custom function column 
+#' @param fc.name Name of the fold change, average difference, or custom function column
 #' in the output data.frame (see in \code{\link{FoldChange}})
+#' @param base The base with respect to which logarithms are computed.
 #'
 #' @rdname FindMarkers
 #' @export
@@ -795,6 +800,7 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
+  base = 2,
   ...
 ) {
   if (!is.null(x = group.by)) {
@@ -848,6 +854,7 @@ FindMarkers.Seurat <- function(
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
+    base = base,
     ...
   )
   return(de.results)
@@ -923,10 +930,16 @@ FoldChange.Assay <- function(
       return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
     }
   )
+  # Omit the decimal value of e from the column name if base == exp(1)
+  base.text <- ifelse(
+    test = base == exp(1),
+    yes = "",
+    no = base
+  )
   fc.name <- fc.name %||% ifelse(
     test = slot == "scale.data",
     yes = "avg_diff",
-    no = paste0("avg_log", base, "_FC")
+    no = paste0("avg_log", base.text, "_FC")
   )
   FoldChange(
     object = data,
@@ -946,7 +959,7 @@ FoldChange.DimReduc <- function(
   object,
   cells.1,
   cells.2,
-  features = NULL, 
+  features = NULL,
   slot = NULL,
   pseudocount.use = NULL,
   fc.name = NULL,
@@ -973,9 +986,9 @@ FoldChange.DimReduc <- function(
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to calculate fold change for
 #' @param reduction Reduction to use - will calculate average difference on cell embeddings
-#' @param group.by Regroup cells into a different identity class prior to 
+#' @param group.by Regroup cells into a different identity class prior to
 #' calculating fold change (see example in \code{\link{FindMarkers}})
-#' @param subset.ident Subset a particular identity class prior to regrouping. 
+#' @param subset.ident Subset a particular identity class prior to regrouping.
 #' Only relevant if group.by is set (see example in \code{\link{FindMarkers}})
 #' @param assay Assay to use in fold change calculation
 #' @param slot Slot to pull data from
@@ -985,7 +998,7 @@ FoldChange.DimReduc <- function(
 #' @param base The base with respect to which logarithms are computed.
 #' @param fc.name Name of the fold change, average difference, or custom function column
 #' in the output data.frame
-#' 
+#'
 #' @rdname FoldChange
 #' @export
 #' @method FoldChange Seurat
@@ -1114,8 +1127,8 @@ DEmethods_latent <- function() {
 }
 
 # returns tests that require CheckDots
-DEmethods_checkdots <- function() { 
-  c('wilcox', 'MAST', 'DESeq2') 
+DEmethods_checkdots <- function() {
+  c('wilcox', 'MAST', 'DESeq2')
 }
 
 # returns tests that do not use Bonferroni correction on the DE results
@@ -1438,7 +1451,7 @@ IdentsToCells <- function(
   ident.2,
   cellnames.use
 ) {
-  # 
+  #
   if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
   } else if ((length(x = ident.1) == 1 && ident.1[1] == 'clustertree') || is(object = ident.1, class2 = 'phylo')) {

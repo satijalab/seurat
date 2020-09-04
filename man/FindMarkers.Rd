@@ -32,6 +32,7 @@ FindMarkers(object, ...)
   pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
+  base = 2,
   ...
 )
 
@@ -54,6 +55,7 @@ FindMarkers(object, ...)
   min.cells.group = 3,
   pseudocount.use = 1,
   mean.fxn = NULL,
+  base = 2,
   ...
 )
 
@@ -102,6 +104,7 @@ FindMarkers(object, ...)
   pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
+  base = 2,
   ...
 )
 }
@@ -195,11 +198,13 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
-\item{mean.fxn}{Function to use for fold change or average difference calculation 
+\item{mean.fxn}{Function to use for fold change or average difference calculation
 (see example in \code{\link{FoldChange}})}
 
-\item{fc.name}{Name of the fold change, average difference, or custom function column 
+\item{fc.name}{Name of the fold change, average difference, or custom function column
 in the output data.frame (see in \code{\link{FoldChange}})}
+
+\item{base}{The base with respect to which logarithms are computed.}
 
 \item{ident.1}{Identity class to define markers for; pass an object of class
 \code{phylo} or 'clustertree' to find markers for a node in a cluster tree;
