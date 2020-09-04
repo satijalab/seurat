@@ -263,6 +263,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// GraphToNeighborHelper
+List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat);
+RcppExport SEXP _Seurat_GraphToNeighborHelper(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(GraphToNeighborHelper(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // FindWeightsC
 Eigen::SparseMatrix<double> FindWeightsC(Eigen::SparseMatrix<double> integration_matrix, NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
 RcppExport SEXP _Seurat_FindWeightsC(SEXP integration_matrixSEXP, SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
@@ -335,6 +346,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP isnull(SEXP);
+
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
@@ -355,11 +368,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
+    {"_Seurat_GraphToNeighborHelper", (DL_FUNC) &_Seurat_GraphToNeighborHelper, 1},
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
+    {"isnull", (DL_FUNC) &isnull, 1},
     {NULL, NULL, 0}
 };
 

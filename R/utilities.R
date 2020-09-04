@@ -539,6 +539,29 @@ CollapseSpeciesExpressionMatrix <- function(
   return(object)
 }
 
+# Create an Annoy index
+#
+# @note Function exists because it's not exported from \pkg{uwot}
+#
+# @param name Distance metric name
+# @param ndim Number of dimensions
+#
+# @return An nn index object
+#
+#' @importFrom methods new
+#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
+#
+CreateAnn <- function(name, ndim) {
+  return(switch(
+    EXPR = name,
+    cosine = new(Class = AnnoyAngular, ndim),
+    manhattan = new(Class = AnnoyManhattan, ndim),
+    euclidean = new(Class = AnnoyEuclidean, ndim),
+    hamming = new(Class = AnnoyHamming, ndim),
+    stop("BUG: unknown Annoy metric '", name, "'")
+  ))
+}
+
 #' Run a custom distance function on an input data matrix
 #'
 #' @author Jean Fan
@@ -1243,6 +1266,44 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
+#' Load the Annoy index file
+#' 
+#' @param object Neighbor object
+#' @param file Path to file with annoy index 
+#' 
+#' @return Returns the Neighbor object with the index stored
+#' @export
+#' 
+LoadAnnoyIndex <- function(object, file){
+  metric <- slot(object = object, name = "alg.info")$metric
+  ndim <- slot(object = object, name = "alg.info")$ndim
+  if (is.null(x = metric)) {
+    stop("Provided Neighbor object wasn't generated with annoy")
+  }
+  annoy.idx <- CreateAnn(name = metric, ndim = ndim)
+  annoy.idx$load(path.expand(path = file))
+  Index(object = object) <- annoy.idx
+  return(object)
+}
+
+#' Save the Annoy index
+#' 
+#' @param object A Neighbor object with the annoy index stored
+#' @param file Path to file to write index to
+#' 
+#' @export
+#' 
+SaveAnnoyIndex <- function(
+  object,
+  file
+) {
+  index <- Index(object = object)
+  if (is.null(x = index)) {
+    stop("Index for provided Neighbor object is NULL")
+  }
+  index$save(path.expand(path = file))
+}
+
 #' Regroup idents based on meta.data info
 #'
 #' For cells in each ident, set a new identity based on the most common value
@@ -1747,6 +1808,14 @@ IsMatrixEmpty <- function(x) {
   matrix.dims <- dim(x = x)
   matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
   return(all(matrix.dims == 0) || matrix.na)
+}
+
+# Check if externalptr is null
+# From https://stackoverflow.com/questions/26666614/how-do-i-check-if-an-externalptr-is-null-from-within-r
+#
+is.null.externalptr <- function(pointer) {
+  stopifnot(is(pointer, "externalptr"))
+  .Call("isnull", pointer)
 }
 
 # Check whether an assay has been processed by sctransform
