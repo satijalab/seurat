@@ -102,13 +102,15 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{force.recalc}{Force recalculation of SNN.}
 
-\item{features}{Features to use as input for building the SNN}
+\item{features}{Features to use as input for building the SNN; used only when
+\code{dims} is \code{NULL}}
 
 \item{reduction}{Reduction to use as input for building the SNN}
 
 \item{dims}{Dimensions of reduction to use as input}
 
-\item{assay}{Assay to use in construction of SNN}
+\item{assay}{Assay to use in construction of SNN; used only when \code{dims}
+is \code{NULL}}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
