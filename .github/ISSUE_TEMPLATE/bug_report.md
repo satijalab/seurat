@@ -11,7 +11,7 @@ assignees: ''
 
 <!-- Before posting an issue, ensure that the bug is reproducible by re-running the code that produced the issue in a new R session.-->
 
-<!-- Please include a minimal reproducible code example. You can use the small test data included in euratSeurat (`pbmc_small`) to demonstrate the issue, or a public dataset (for example, a dataset used in the Seurat vignettes: https://satijalab.org/seurat/vignettes.html). If you cannot reproduce the issue using a public dataset, please still provide code that reproduces the issue on your data and we will try to address it. -->
+<!-- Please include a minimal reproducible code example. You can use the small test data included in Seurat (`pbmc_small`) to demonstrate the issue, or a public dataset (for example, a dataset available through SeuratData https://github.com/satijalab/seurat-data). If you cannot reproduce the issue using a public dataset, please still provide code that reproduces the issue on your data and we will try to address it. -->
 
 <!-- Please include the output of `sessionInfo()` and your operating system in your issue. -->
 
