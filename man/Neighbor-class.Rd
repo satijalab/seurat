@@ -6,7 +6,7 @@
 \alias{Neighbor}
 \title{The Neighbor class}
 \description{
-The Neighbor class is used to store the results of neighbor finding 
+The Neighbor class is used to store the results of neighbor finding
 algorithms
 }
 \section{Slots}{
@@ -16,14 +16,14 @@ algorithms
 
 \item{\code{nn.dist}}{Matrix containing the nearest neighbor distances}
 
-\item{\code{alg.idx}}{The neighbor finding index (if applicable). E.g. the annoy 
+\item{\code{alg.idx}}{The neighbor finding index (if applicable). E.g. the annoy
 index}
 
-\item{\code{alg.info}}{Any information associated with the algorithm that may be 
-needed downstream (e.g. distance metric used with annoy is needed when 
+\item{\code{alg.info}}{Any information associated with the algorithm that may be
+needed downstream (e.g. distance metric used with annoy is needed when
 reading in from stored file).}
 
-\item{\code{cell.names}}{Names of the cells for which the neighbors have been 
+\item{\code{cell.names}}{Names of the cells for which the neighbors have been
 computed.}
 }}
 
