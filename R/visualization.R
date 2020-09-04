@@ -717,6 +717,9 @@ ColorDimSplit <- function(
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
 #' @param label.color Sets the color of the label text
@@ -768,6 +771,8 @@ DimPlot <- function(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
   label.color = 'black',
@@ -785,6 +790,10 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -3643,12 +3652,10 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
-#' @param \dots Additional arguments to ape::plot.phylo
+#' @param \dots Additional arguments to
+#' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
-#'
-#' @importFrom ape plot.phylo
-#' @importFrom ape nodelabels
 #'
 #' @export
 #'
@@ -3657,12 +3664,15 @@ JackStrawPlot <- function(
 #' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
+  if (!PackageCheck('ape', error = FALSE)) {
+    stop(cluster.ape, call. = FALSE)
+  }
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  plot.phylo(x = data.tree, direction = "downwards", ...)
-  nodelabels()
+  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::nodelabels()
 }
 
 #' Visualize Dimensional Reduction genes
@@ -3704,16 +3714,18 @@ VizDimLoadings <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  ncol <- ncol %||% 2
-  if (length(x = dims) == 1) {
-    ncol <- 1
-  }
-  if (length(x = dims) > 6) {
-    ncol <- 3
-  }
-  if (length(x = dims) > 9) {
-    ncol <- 4
-  }
+  if (is.null(x = ncol)) { 
+    ncol <- 2 
+    if (length(x = dims) == 1) { 
+      ncol <- 1 
+    } 
+    if (length(x = dims) > 6) { 
+      ncol <- 3 
+    } 
+    if (length(x = dims) > 9) { 
+      ncol <- 4 
+    } 
+  } 
   loadings <- Loadings(object = object[[reduction]], projected = projected)
   features <- lapply(
     X = dims,
@@ -3967,6 +3979,11 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
   plot.data$selected_ <- FALSE
   rownames(x = plot.data) <- rownames(x = plot$data)
+  colnames(x = plot.data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = plot.data)
+  )
   # Server function
   server <- function(input, output, session) {
     plot.env <- reactiveValues(data = plot.data)
@@ -4511,24 +4528,8 @@ LabelClusters <- function(
   if (geom == 'GeomSpatial') {
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
-      # pretty hacky solution to learn the linear transform to put the data into
-      # the rescaled coordinates when not cropping in. Probably a better way to
-      # do this via ggplot
       y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
-      data$x <- data[, xynames["x"]]
-      data$y <- data[, xynames["y"]]
-      panel_params_image <- c()
-      panel_params_image$x.range <- c(0, ncol(x = pb$plot$plot_env$image))
-      panel_params_image$y.range <- c(0, nrow(x = pb$plot$plot_env$image))
-      suppressWarnings(panel_params_image$x$continuous_range <- c(0, ncol(x = pb$plot$plot_env$image)))
-      suppressWarnings(panel_params_image$y$continuous_range <- c(0, nrow(x = pb$plot$plot_env$image)))
-      image.xform <- pb$layout$coord$transform(data, panel_params_image)[, c("x", "y")]
-      plot.xform <- pb$layout$coord$transform(data, pb$layout$panel_params[[1]])[, c("x", "y")]
-      x.xform <- lm(data$x ~ plot.xform$x)
-      y.xform <- lm(data$y ~ plot.xform$y)
-      data[, xynames['y']] <- image.xform$y * y.xform$coefficients[2] + y.xform$coefficients[1]
-      data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
     }
   }
   data <- cbind(data, color = pb$data[[1]][[1]])
