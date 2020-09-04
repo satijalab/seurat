@@ -671,6 +671,7 @@ RunMixscape <- function (object = NULL,
       if( isTRUE(fine.mode)){
         guides <- setdiff(x = unique(object.gene[[fine.mode.labels]][, 1]), y = nt.class.name)
         all.de.genes <- c()
+        
         for (gd in guides)
         {
           de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gd, 
@@ -759,8 +760,9 @@ RunMixscape <- function (object = NULL,
     }
     
   }
-  gv.list2 <- gv.list[names(gv.list)[-1]] 
+  gv.list2 <- gv.list[names(gv.list)] 
   Tool(object) <- unlist(gv.list2, recursive = F)
+  Idents(object = object) <- new.class.name
   return(object)
 }
 
