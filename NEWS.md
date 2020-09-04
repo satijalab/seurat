@@ -7,7 +7,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
 - Enable named color vectors in `DoHeatmap()`
 - Add `label.color` and `label.box` parameters to `DimPlot`
-- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting.
+- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting
+- Added new stacked violin plot functionality
 
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
