@@ -384,8 +384,10 @@ FindNeighbors.dist <- function(
   ))
 }
 
-#' @param assay Assay to use in construction of SNN
-#' @param features Features to use as input for building the SNN
+#' @param assay Assay to use in construction of SNN; used only when \code{dims}
+#' is \code{NULL}
+#' @param features Features to use as input for building the SNN; used only when
+#' \code{dims} is \code{NULL}
 #' @param reduction Reduction to use as input for building the SNN
 #' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
@@ -418,7 +420,6 @@ FindNeighbors.Seurat <- function(
 ) {
   CheckDots(...)
   if (!is.null(x = dims)) {
-    # assay <- assay %||% DefaultAssay(object = object)
     assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
     if (max(dims) > ncol(x = data.use)) {
@@ -737,7 +738,7 @@ RunLeiden <- function(
         object
       } else {
         stop(
-          "Method for Leiden not found for class", class(x = object), 
+          "Method for Leiden not found for class", class(x = object),
            call. = FALSE
         )
       }
