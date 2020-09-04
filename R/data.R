@@ -7,7 +7,7 @@
 #'   \item{s.genes}{Genes associated with S-phase}
 #'   \item{g2m.genes}{Genes associated with G2M-phase}
 #' }
-#' @source \url{http://science.sciencemag.org/content/352/6282/189}
+#' @source \url{https://science.sciencemag.org/content/352/6282/189}
 #'
 "cc.genes"
 

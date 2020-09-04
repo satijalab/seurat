@@ -42,5 +42,5 @@ object <- MULTIseqDemux(object)
 
 }
 \references{
-\url{https://www.biorxiv.org/content/early/2018/08/08/387241}
+\url{https://www.biorxiv.org/content/10.1101/387241v1}
 }
