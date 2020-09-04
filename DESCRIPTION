@@ -14,7 +14,7 @@ Authors@R: c(
   person(given = 'Patrick', family = 'Roelli', email = 'proelli@nygenome.org', role = 'ctb'),
   person(given = "Yuhan", family = "Hao", email = 'yhao@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0002-1810-0822'))
   )
-URL: https://www.satijalab.org/seurat, https://github.com/satijalab/seurat
+URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:

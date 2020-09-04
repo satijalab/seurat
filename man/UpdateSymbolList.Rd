@@ -5,7 +5,7 @@
 \alias{GeneSymbolThesarus}
 \title{Get updated synonyms for gene symbols}
 \source{
-\url{https://www.genenames.org/} \url{https://rest.genenames.org/}
+\url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 }
 \usage{
 GeneSymbolThesarus(
