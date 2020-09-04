@@ -763,7 +763,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #'
 #' @export
 #'
-#' @references \url{https://www.biorxiv.org/content/early/2018/08/08/387241}
+#' @references \url{https://www.biorxiv.org/content/10.1101/387241v1}
 #'
 #' @examples
 #' \dontrun{

@@ -3,6 +3,7 @@
 ## Test environments
 * local Ubuntu 16.04.6 install, R 3.6.1
 * local Ubuntu 18.04.4 install, R 4.0.1
+* local Ubuntu 20.04 install, R 4.0.2
 * local Windows 10 install, R 4.0.0
 * Ubuntu 16.04.6 (on travis-ci), R 4.0.0, R devel
 * macOS 10.13.6 (on travis-ci), R 4.0.2
@@ -38,4 +39,4 @@ There were 3 NOTEs:
 
 There are three pacakges that imports Seurat: scMappR, Signac, and SoupX; this update does not impact their functionality
 
-There are four packages that suggest Seurat: BisqueRNA, clustree, nanny, Rmagic, singleCellHaystack, treefit; this update does not impact their functionality.
+There are eight packages that suggest Seurat: BisqueRNA, clustree, DIscBIO, nanny, Rmagic, scSorter, singleCellHaystack, treefit; this update does not impact their functionality.
