@@ -3701,18 +3701,6 @@ VizDimLoadings <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  if (is.null(x = ncol)) { 
-    ncol <- 2 
-    if (length(x = features) == 1) { 
-      ncol <- 1 
-    } 
-    if (length(x = features) > 6) { 
-      ncol <- 3 
-    } 
-    if (length(x = features) > 9) { 
-      ncol <- 4 
-    } 
-  } 
   loadings <- Loadings(object = object[[reduction]], projected = projected)
   features <- lapply(
     X = dims,
@@ -3727,6 +3715,18 @@ VizDimLoadings <- function(
     FUN = unlist,
     use.names = FALSE
   )
+  if (is.null(x = ncol)) {
+    ncol <- 2
+    if (length(x = features) == 1) {
+      ncol <- 1
+    }
+    if (length(x = features) > 6) {
+      ncol <- 3
+    }
+    if (length(x = features) > 9) {
+      ncol <- 4
+    }
+  }
   loadings <- loadings[unlist(x = features), dims, drop = FALSE]
   names(x = features) <- colnames(x = loadings) <- as.character(x = dims)
   plots <- lapply(
