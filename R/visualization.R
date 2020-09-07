@@ -311,7 +311,11 @@ DoHeatmap <- function(
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
       default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
-      cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      if (!is.null(x = names(x = group.colors))) {
+        cols <- unname(obj = group.colors[levels(x = group.use)])
+      } else {
+        cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      }
       if (any(is.na(x = cols))) {
         cols[is.na(x = cols)] <- default.colors[is.na(x = cols)]
         cols <- Col2Hex(cols)
@@ -481,8 +485,10 @@ HTOHeatmap <- function(
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param slot Use non-normalized counts data for plotting
+#' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-#' ggplot object. If \code{FALSE}, return a list of ggplot objects
+#' ggplot object. If \code{FALSE}, return a list of ggplot
+#' @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -505,7 +511,9 @@ RidgePlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = 'data',
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = 'feature'
 ) {
   return(ExIPlot(
     object = object,
@@ -521,7 +529,9 @@ RidgePlot <- function(
     group.by = group.by,
     log = log,
     slot = slot,
-    combine = combine
+    stack = stack,
+    combine = combine,
+    fill.by = fill.by
   ))
 }
 
@@ -536,6 +546,7 @@ RidgePlot <- function(
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
+#' @param flip flip plot orientation (identities on x-axis)
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -565,7 +576,10 @@ VlnPlot <- function(
   ncol = NULL,
   slot = 'data',
   split.plot = FALSE,
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = 'feature',
+  flip = FALSE
 ) {
   if (
     !is.null(x = split.by) &
@@ -597,7 +611,10 @@ VlnPlot <- function(
     split.by = split.by,
     log = log,
     slot = slot,
-    combine = combine
+    stack = stack,
+    combine = combine,
+    fill.by = fill.by,
+    flip = flip
   ))
 }
 
@@ -700,8 +717,14 @@ ColorDimSplit <- function(
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param label.color Sets the color of the label text
+#' @param label.box Whether to put a box around the label text (geom_text vs
+#' geom_label)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -748,8 +771,12 @@ DimPlot <- function(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
+  label.color = 'black',
+  label.box = FALSE,
   repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
@@ -763,6 +790,10 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -804,7 +835,9 @@ DimPlot <- function(
           id = x,
           repel = repel,
           size = label.size,
-          split.by = split.by
+          split.by = split.by,
+          box = label.box,
+          color = label.color
         )
       }
       if (!is.null(x = split.by)) {
@@ -2784,7 +2817,7 @@ SpatialPlot <- function(
     if (interactive) {
       return(ISpatialDimPlot(
         object = object,
-        image = image,
+        image = images[1],
         group.by = group.by,
         alpha = alpha
       ))
@@ -3619,12 +3652,10 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
-#' @param \dots Additional arguments to ape::plot.phylo
+#' @param \dots Additional arguments to
+#' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
-#'
-#' @importFrom ape plot.phylo
-#' @importFrom ape nodelabels
 #'
 #' @export
 #'
@@ -3633,12 +3664,15 @@ JackStrawPlot <- function(
 #' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
+  if (!PackageCheck('ape', error = FALSE)) {
+    stop(cluster.ape, call. = FALSE)
+  }
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  plot.phylo(x = data.tree, direction = "downwards", ...)
-  nodelabels()
+  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::nodelabels()
 }
 
 #' Visualize Dimensional Reduction genes
@@ -3680,16 +3714,18 @@ VizDimLoadings <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  ncol <- ncol %||% 2
-  if (length(x = dims) == 1) {
-    ncol <- 1
-  }
-  if (length(x = dims) > 6) {
-    ncol <- 3
-  }
-  if (length(x = dims) > 9) {
-    ncol <- 4
-  }
+  if (is.null(x = ncol)) { 
+    ncol <- 2 
+    if (length(x = dims) == 1) { 
+      ncol <- 1 
+    } 
+    if (length(x = dims) > 6) { 
+      ncol <- 3 
+    } 
+    if (length(x = dims) > 9) { 
+      ncol <- 4 
+    } 
+  } 
   loadings <- Loadings(object = object[[reduction]], projected = projected)
   features <- lapply(
     X = dims,
@@ -3943,6 +3979,11 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
   plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
   plot.data$selected_ <- FALSE
   rownames(x = plot.data) <- rownames(x = plot$data)
+  colnames(x = plot.data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = plot.data)
+  )
   # Server function
   server <- function(input, output, session) {
     plot.env <- reactiveValues(data = plot.data)
@@ -4483,30 +4524,15 @@ LabelClusters <- function(
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
+  pb <- ggplot_build(plot = plot)
   if (geom == 'GeomSpatial') {
-    pb <- ggplot_build(plot = plot)
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
-      # pretty hacky solution to learn the linear transform to put the data into
-      # the rescaled coordinates when not cropping in. Probably a better way to
-      # do this via ggplot
       y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
       data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
-      data$x <- data[, xynames["x"]]
-      data$y <- data[, xynames["y"]]
-      panel_params_image <- c()
-      panel_params_image$x.range <- c(0, ncol(x = pb$plot$plot_env$image))
-      panel_params_image$y.range <- c(0, nrow(x = pb$plot$plot_env$image))
-      suppressWarnings(panel_params_image$x$continuous_range <- c(0, ncol(x = pb$plot$plot_env$image)))
-      suppressWarnings(panel_params_image$y$continuous_range <- c(0, nrow(x = pb$plot$plot_env$image)))
-      image.xform <- pb$layout$coord$transform(data, panel_params_image)[, c("x", "y")]
-      plot.xform <- pb$layout$coord$transform(data, pb$layout$panel_params[[1]])[, c("x", "y")]
-      x.xform <- lm(data$x ~ plot.xform$x)
-      y.xform <- lm(data$y ~ plot.xform$y)
-      data[, xynames['y']] <- image.xform$y * y.xform$coefficients[2] + y.xform$coefficients[1]
-      data[, xynames['x']] <- image.xform$x *x.xform$coefficients[2] + x.xform$coefficients[1]
     }
   }
+  data <- cbind(data, color = pb$data[[1]][[1]])
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -4538,6 +4564,7 @@ LabelClusters <- function(
         )))
       }
       data.medians[, id] <- group
+      data.medians$color <- data.use$color[1]
       return(data.medians)
     }
   )
@@ -4566,7 +4593,7 @@ LabelClusters <- function(
       mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
       show.legend = FALSE,
       ...
-    )
+    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
   } else {
     geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
     plot <- plot + geom.use(
@@ -4576,7 +4603,6 @@ LabelClusters <- function(
       ...
     )
   }
-
   return(plot)
 }
 
@@ -5331,7 +5357,8 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # anything that can be retreived by FetchData)
 # @param idents Which classes to include in the plot (default is all)
 # @param ncol Number of columns if multiple plots are displayed
-# @param sort Sort identity classes (on the x-axis) by the average expression of the attribute being potted
+# @param sort Sort identity classes (on the x-axis) by the average expression of the attribute being potted,
+# or, if stack is True, sort both identity classes and features by hierarchical clustering
 # @param y.max Maximum y axis value
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param adjust Adjust parameter for geom_violin
@@ -5341,8 +5368,11 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
 # @param slot Use non-normalized counts data for plotting
+# @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident'
+# @param flip flip plot orientation (identities on x-axis)
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 # \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -5368,15 +5398,35 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   slot = 'data',
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = NULL,
+  flip = FALSE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
-  ncol <- ncol %||% ifelse(
-    test = length(x = features) > 9,
-    yes = 4,
-    no = min(length(x = features), 3)
-  )
+  if (isTRUE(x = stack)) {
+    if (!is.null(x = ncol)) {
+      warning(
+        "'ncol' is ignored with 'stack' is TRUE",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (!is.null(x = y.max)) {
+      warning(
+        "'y.max' is ignored when 'stack' is TRUE",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  } else {
+    ncol <- ncol %||% ifelse(
+      test = length(x = features) > 9,
+      yes = 4,
+      no = min(length(x = features), 3)
+    )
+  }
   data <- FetchData(object = object, vars = features, slot = slot)
   features <- colnames(x = data)
   if (is.null(x = idents)) {
@@ -5413,7 +5463,7 @@ ExIPlot <- function(
       cols <- Interleave(cols, InvertHex(hexadecimal = cols))
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
-    names(x = cols) <- sort(x = levels(x = split))
+    names(x = cols) <- levels(x = split)
     if ((length(x = cols) > 2) & (type == "splitViolin")) {
       warning("Split violin is only supported for <3 groups, using multi-violin.")
       type <- "violin"
@@ -5421,6 +5471,22 @@ ExIPlot <- function(
   }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
+  }
+  if (isTRUE(x = stack)) {
+    return(MultiExIPlot(
+      type = type,
+      data = data,
+      idents = idents,
+      split = split,
+      sort = sort,
+      same.y.lims = same.y.lims,
+      adjust = adjust,
+      cols = cols,
+      pt.size = pt.size,
+      log = log,
+      fill.by = fill.by,
+      flip = flip
+    ))
   }
   plots <- lapply(
     X = features,
@@ -5441,8 +5507,16 @@ ExIPlot <- function(
   )
   label.fxn <- switch(
     EXPR = type,
-    'violin' = ylab,
-    "splitViolin" = ylab,
+    'violin' = if (stack) {
+      xlab 
+    } else {
+      ylab
+    },
+    "splitViolin" = if (stack) {
+      xlab 
+    } else {
+      ylab
+    },
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -6098,6 +6172,230 @@ MakeLabels <- function(data) {
   labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
   labels[, colnames(x = data)[3]] <- groups
   return(labels)
+}
+
+
+# Plot expression of multiple features by identity on a plot
+#
+# @param data Data to plot
+# @param idents Idents to use
+# @param type Make either a 'ridge' or 'violin' plot
+# @param sort Sort identity classes and features based on hierarchical clustering
+# @param same.y.lims Indicates whether to use the same ylim for each feature
+# @param adjust Adjust parameter for geom_violin
+# @param cols Colors to use for plotting
+# @param log plot Y axis on log scale
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident'
+# @param seed.use Random seed to use. If NULL, don't set a seed
+# @param flip flip plot orientation (identities on x-axis)
+#
+# @return A ggplot-based Expression-by-Identity plot
+#
+#' @importFrom cowplot theme_cowplot
+#' @importFrom utils globalVariables
+#' @importFrom stats rnorm dist hclust
+#' @importFrom ggridges geom_density_ridges theme_ridges
+#' @importFrom ggplot2 ggplot aes_string facet_grid theme labs geom_rect
+#' geom_violin geom_jitter ylim position_jitterdodge scale_fill_manual
+#' scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous
+#' scale_y_continuous waiver
+#'
+MultiExIPlot <- function(
+  data,
+  idents,
+  split = NULL,
+  type = 'violin',
+  sort = FALSE,
+  same.y.lims = same.y.lims,
+  adjust = 1,
+  pt.size = 0,
+  cols = NULL,
+  seed.use = 42,
+  log = FALSE,
+  fill.by = NULL,
+  flip = NULL
+) {
+  if (!(fill.by %in% c("feature", "ident"))) {
+    stop("`fill.by` must be either `feature` or `ident`")
+  }
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  if (!is.data.frame(x = data) || ncol(x = data) < 2) {
+    stop("MultiExIPlot requires a data frame with >1 column")
+  }
+  data <- Melt(x = data)
+  data <- data.frame(
+    feature = data$cols,
+    expression = data$vals,
+    ident = rep_len(x = idents, length.out = nrow(x = data))
+  )
+  if ((is.character(x = sort) && nchar(x = sort) > 0) || sort) {
+    data$feature <- as.vector(x = data$feature)
+    data$ident <- as.vector(x = data$ident)
+    # build matrix of average expression (#-features by #-idents), lexical ordering
+    avgs.matrix <- sapply(
+      X = split(x = data, f = data$ident),
+      FUN = function(df) {
+        return(tapply(
+          X = df$expression,
+          INDEX = df$feature,
+          FUN = mean
+        ))
+      }
+    )
+    idents.order <- hclust(d = dist(x = t(x = L2Norm(mat = avgs.matrix, MARGIN = 2))))$order
+    avgs.matrix <- avgs.matrix[,idents.order]
+    avgs.matrix <- L2Norm(mat = avgs.matrix, MARGIN = 1)
+    # order feature clusters by position of their "rank-1 idents"
+    position <- apply(X = avgs.matrix, MARGIN = 1, FUN = which.max)
+    mat <- hclust(d = dist(x = avgs.matrix))$merge
+    orderings <- list()
+    for (i in 1:nrow(mat)) {
+      x <- if (mat[i,1] < 0) -mat[i,1] else orderings[[mat[i,1]]]
+      y <- if (mat[i,2] < 0) -mat[i,2] else orderings[[mat[i,2]]]
+      x.pos <- min(x = position[x])
+      y.pos <- min(x = position[y])
+      orderings[[i]] <- if (x.pos < y.pos) {
+        c(x, y)
+      } else {
+        c(y, x)
+      }
+    }
+    features.order <- orderings[[length(x = orderings)]]
+    data$feature <- factor(
+      x = data$feature,
+      levels = unique(x = sort(x = data$feature))[features.order]
+    )
+    data$ident <- factor(
+      x = data$ident,
+      levels = unique(x = sort(x = data$ident))[rev(x = idents.order)]
+    )
+  } else {
+    data$feature <- factor(x = data$feature, levels = unique(x = data$feature))
+  }
+  if (log) {
+    noise <- rnorm(n = nrow(x = data)) / 200
+    data$expression <- data$expression + 1
+  } else {
+    noise <- rnorm(n = nrow(x = data)) / 100000
+  }
+  for (f in unique(x = data$feature)) {
+    if (all(data$expression[(data$feature == f)] == data$expression[(data$feature == f)][1])) {
+      warning(
+        "All cells have the same value of ",
+        f,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    } else {
+      data$expression[(data$feature == f)] <- data$expression[(data$feature == f)] + noise[(data$feature == f)]
+    }
+  }
+  if (type == 'violin' && !is.null(x = split)) {
+    data$split <- rep_len(x = split, length.out = nrow(data))
+    vln.geom <- geom_violin
+    fill.by <- 'split'
+  } else if (type == 'splitViolin' && !is.null(x = split)) {
+    data$split <- rep_len(x = split, length.out = nrow(data))
+    vln.geom <- geom_split_violin
+    fill.by <- 'split'
+    type <- 'violin'
+  } else {
+    vln.geom <- geom_violin
+  }
+  switch(
+    EXPR = type,
+    'violin' = {
+      geom <- list(vln.geom(scale = 'width', adjust = adjust, trim = TRUE))
+    },
+    'ridge' = {
+      geom <- list(
+        geom_density_ridges(scale = 4),
+        theme_ridges(),
+        scale_y_discrete(expand = c(0.01, 0))
+      )
+    },
+    stop("Unknown plot type: ", type)
+  )
+  if (flip) {
+    x <- 'ident'
+    x.label <- 'Identity'
+    y <- 'expression'
+    y.label <- 'Expression Level'
+  } else {
+    y <- 'ident'
+    y.label <- 'Identity'
+    x <- 'expression'
+    x.label <- 'Expression Level'
+  }
+  plot <- ggplot(
+    data = data,
+    mapping = aes_string(x = x, y = y, fill = fill.by)[c(2, 3, 1)]
+  ) +
+    labs(x = x.label, y = y.label, fill = NULL) +
+    theme_cowplot()
+  plot <- do.call(what = '+', args = list(plot, geom))
+  if (flip) {
+    plot <- plot +
+      scale_y_continuous(
+        expand = c(0, 0), 
+        labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
+      facet_grid(feature ~ ., scales = (if (same.y.lims) 'fixed' else 'free')) +
+      FacetTheme(
+        panel.spacing = unit(0, 'lines'),
+        panel.background = element_rect(fill = NA, color = "black"),
+        axis.text.y = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text.y.right = element_text(angle = 0))
+  } else {
+    plot <- plot +
+      scale_x_continuous(
+        expand = c(0, 0), 
+        labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
+      facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
+      FacetTheme(
+        panel.spacing = unit(0, 'lines'),
+        panel.background = element_rect(fill = NA, color = "black"),
+        axis.text.x = element_text(size = 7),
+        strip.text.x = element_text(angle = -90))
+  }
+  if (log) {
+    plot <- plot + scale_x_log10()
+  }
+  if (!is.null(x = cols)) {
+    if (!is.null(x = split)) {
+      idents <- unique(x = as.vector(x = data$ident))
+      splits <- unique(x = as.vector(x = data$split))
+      labels <- if (length(x = splits) == 2) {
+        splits
+      } else {
+        unlist(x = lapply(
+          X = idents,
+          FUN = function(pattern, x) {
+            x.mod <- gsub(
+              pattern = paste0(pattern, '.'),
+              replacement = paste0(pattern, ': '),
+              x = x,
+              fixed = TRUE
+            )
+            x.keep <- grep(pattern = ': ', x = x.mod, fixed = TRUE)
+            x.return <- x.mod[x.keep]
+            names(x = x.return) <- x[x.keep]
+            return(x.return)
+          },
+          x = unique(x = as.vector(x = data$split))
+        ))
+      }
+      if (is.null(x = names(x = labels))) {
+        names(x = labels) <- labels
+      }
+    } else {
+      labels <- levels(x = droplevels(data$ident))
+    }
+    plot <- plot + scale_fill_manual(values = cols, labels = labels)
+  }
+  return(plot)
 }
 
 # Create a scatterplot with data from a ggplot2 scatterplot

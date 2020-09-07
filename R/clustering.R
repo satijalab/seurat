@@ -281,7 +281,7 @@ FindNeighbors.default <- function(
       searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric)
-    nn.ranked <- nn.ranked$nn.idx
+    nn.ranked <- Indices(object = nn.ranked)
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -384,8 +384,10 @@ FindNeighbors.dist <- function(
   ))
 }
 
-#' @param assay Assay to use in construction of SNN
-#' @param features Features to use as input for building the SNN
+#' @param assay Assay to use in construction of SNN; used only when \code{dims}
+#' is \code{NULL}
+#' @param features Features to use as input for building the SNN; used only when
+#' \code{dims} is \code{NULL}
 #' @param reduction Reduction to use as input for building the SNN
 #' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
@@ -418,7 +420,6 @@ FindNeighbors.Seurat <- function(
 ) {
   CheckDots(...)
   if (!is.null(x = dims)) {
-    # assay <- assay %||% DefaultAssay(object = object)
     assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
     if (max(dims) > ncol(x = data.use)) {
@@ -514,6 +515,8 @@ AnnoyNN <- function(data, query = data, metric = "euclidean", n.trees = 50, k,
     k = k,
     search.k = search.k,
     include.distance = include.distance)
+  nn$idx <- idx
+  nn$alg.info <- list(metric = metric, ndim = ncol(x = data))
   return(nn)
 }
 
@@ -633,12 +636,13 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @param query Data to query against data
 # @param k Number of nearest neighbors to compute
 # @param method Nearest neighbor method to use: "rann", "annoy"
+# @param cache.index Store algorithm index with results for reuse
 # @param ... additional parameters to specific neighbor finding method
 #
-NNHelper <- function(data, query = data, k, method, ...) {
+NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
-  return(
+  results <- (
     switch(
       EXPR = method,
       "rann" = {
@@ -652,6 +656,16 @@ NNHelper <- function(data, query = data, k, method, ...) {
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )
   )
+  n.ob <- Neighbor(
+    nn.idx = results$nn.idx,
+    nn.dist = results$nn.dists,
+    alg.info = results$alg.info %||% list(),
+    cell.names = rownames(x = query)
+  )
+  if (isTRUE(x = cache.index) && !is.null(x = results$idx)) {
+    slot(object = n.ob, name = "alg.idx") <- results$idx
+  }
+  return(n.ob)
 }
 
 # Run Leiden clustering algorithm
@@ -724,7 +738,7 @@ RunLeiden <- function(
         object
       } else {
         stop(
-          "Method for Leiden not found for class", class(x = object), 
+          "Method for Leiden not found for class", class(x = object),
            call. = FALSE
         )
       }

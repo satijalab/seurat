@@ -749,7 +749,7 @@ RunLSI.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object)
+  assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunLSI(
     object = assay.data,
@@ -836,9 +836,9 @@ RunPCA.default <- function(
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
       if (weight.by.var) {
-        cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
-      } else {
         cell.embeddings <- pca.results$x
+      } else {
+        cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
       }
     }
   }
@@ -989,6 +989,7 @@ RunTSNE.matrix <- function(
     'Rtsne' = Rtsne(
       X = object,
       dims = dim.embed,
+      pca = FALSE,
       ... # PCA/is_distance
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
@@ -1099,7 +1100,6 @@ RunTSNE.Seurat <- function(
       tsne.method = tsne.method,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      pca = FALSE,
       ...
     )
   } else if (!is.null(x = features)) {
@@ -1110,7 +1110,6 @@ RunTSNE.Seurat <- function(
       tsne.method = tsne.method,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      pca = FALSE,
       ...
     )
   } else {
@@ -1131,8 +1130,10 @@ RunTSNE.Seurat <- function(
 #'
 RunUMAP.default <- function(
   object,
-  reduction.model = NULL,
+  reduction.key = 'UMAP_',
   assay = NULL,
+  reduction.model = NULL,
+  return.model = FALSE, 
   umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
@@ -1151,7 +1152,6 @@ RunUMAP.default <- function(
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
-  reduction.key = 'UMAP_',
   verbose = TRUE,
   ...
 ) {
@@ -1168,6 +1168,26 @@ RunUMAP.default <- function(
       immediate. = TRUE
     )
     options(Seurat.warn.umap.uwot = FALSE)
+  }
+  if (umap.method == 'uwot-learn') {
+    warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
+    umap.method <- "uwot"
+    return.model <- TRUE
+  }
+  if (return.model) {
+    if (verbose) {
+      message("UMAP will return its model")
+    }
+    umap.method = "uwot"
+  }
+  if (is.list(x = object)) {
+    names(x = object) <- c("idx", "dist")
+  }
+  if (!is.null(x = reduction.model)) {
+    if (verbose) {
+      message("Running UMAP projection")
+    }
+    umap.method <- "uwot-predict"
   }
   umap.output <- switch(
     EXPR = umap.method,
@@ -1211,55 +1231,49 @@ RunUMAP.default <- function(
         )
         metric <- 'cosine'
       }
-      umap(
-        X = object,
-        n_threads = nbrOfWorkers(),
-        n_neighbors = as.integer(x = n.neighbors),
-        n_components = as.integer(x = n.components),
-        metric = metric,
-        n_epochs = n.epochs,
-        learning_rate = learning.rate,
-        min_dist = min.dist,
-        spread = spread,
-        set_op_mix_ratio = set.op.mix.ratio,
-        local_connectivity = local.connectivity,
-        repulsion_strength = repulsion.strength,
-        negative_sample_rate = negative.sample.rate,
-        a = a,
-        b = b,
-        fast_sgd = uwot.sgd,
-        verbose = verbose
-      )
-    },
-    'uwot-learn' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
+      if (is.list(x = object)) {
+        umap(
+          X = NULL,
+          nn_method = object,
+          n_threads = nbrOfWorkers(),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose,
+          ret_model = return.model
         )
-        metric <- 'cosine'
+      } else {
+        umap(
+          X = object,
+          n_threads = nbrOfWorkers(),
+          n_neighbors = as.integer(x = n.neighbors),
+          n_components = as.integer(x = n.components),
+          metric = metric,
+          n_epochs = n.epochs,
+          learning_rate = learning.rate,
+          min_dist = min.dist,
+          spread = spread,
+          set_op_mix_ratio = set.op.mix.ratio,
+          local_connectivity = local.connectivity,
+          repulsion_strength = repulsion.strength,
+          negative_sample_rate = negative.sample.rate,
+          a = a,
+          b = b,
+          fast_sgd = uwot.sgd,
+          verbose = verbose, 
+          ret_model = return.model
+        )
       }
-      umap(
-        X = object,
-        n_threads = nbrOfWorkers(),
-        n_neighbors = as.integer(x = n.neighbors),
-        n_components = as.integer(x = n.components),
-        metric = metric,
-        n_epochs = n.epochs,
-        learning_rate = learning.rate,
-        min_dist = min.dist,
-        spread = spread,
-        set_op_mix_ratio = set.op.mix.ratio,
-        local_connectivity = local.connectivity,
-        repulsion_strength = repulsion.strength,
-        negative_sample_rate = negative.sample.rate,
-        a = a,
-        b = b,
-        fast_sgd = uwot.sgd,
-        verbose = verbose,
-        ret_model = TRUE
-      )
     },
     'uwot-predict' = {
       if (metric == 'correlation') {
@@ -1272,11 +1286,11 @@ RunUMAP.default <- function(
       }
       if (is.null(x = reduction.model) || !inherits(x = reduction.model, what = 'DimReduc')) {
         stop(
-          "If using uwot-predict, please pass a DimReduc object with the model stored to reduction.model.",
+          "If running projection UMAP, please pass a DimReduc object with the model stored to reduction.model.",
           call. = FALSE
         )
       }
-      model <- reduction.model %||% Misc(
+      model <- Misc(
         object = reduction.model,
         slot = "model"
       )
@@ -1286,23 +1300,41 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
-      umap_transform(
-        X = object,
-        model = model,
-        n_threads = nbrOfWorkers(),
-        n_epochs = n.epochs,
-        verbose = verbose
-      )
+      if (is.list(x = object)) {
+        if (packageVersion(pkg = "uwot") <= '0.1.8.9000') {
+          stop("This uwot functionality requires uwot version >= 0.1.8.9000",
+               "Installing the latest version from github can be done with", 
+               "remotes::install_github('jlmelville/uwot')")
+        }
+        uwot::umap_transform(
+          X = NULL,
+          nn_method = object, 
+          model = model, 
+          n_threads = nbrOfWorkers(),
+          n_epochs = n.epochs,
+          verbose = verbose 
+        )
+      } else {
+        umap_transform(
+          X = object,
+          model = model,
+          n_threads = nbrOfWorkers(),
+          n_epochs = n.epochs,
+          verbose = verbose
+        )
+      }
     },
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
-  if (umap.method == 'uwot-learn') {
+  if (return.model) {
     umap.model <- umap.output
     umap.output <- umap.output$embedding
   }
   colnames(x = umap.output) <- paste0(reduction.key, 1:ncol(x = umap.output))
   if (inherits(x = object, what = 'dist')) {
     rownames(x = umap.output) <- attr(x = object, "Labels")
+  } else if (is.list(x = object)) {
+    rownames(x = umap.output) <- rownames(x = object$idx)
   } else {
     rownames(x = umap.output) <- rownames(x = object)
   }
@@ -1312,7 +1344,7 @@ RunUMAP.default <- function(
     assay = assay,
     global = TRUE
   )
-  if (umap.method == 'uwot-learn') {
+  if (return.model) {
     Misc(umap.reduction, slot = "model") <- umap.model
   }
   return(umap.reduction)
@@ -1417,6 +1449,8 @@ RunUMAP.Graph <- function(
 #' @param graph Name of graph on which to run UMAP
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
+#' @param nn.name Name of knn output on which to run UMAP
+#' @param slot The slot used to pull data for when using \code{features}. data slot is by default. 
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
 #'   \item{\code{uwot}:}{Runs umap via the uwot R package}
@@ -1471,6 +1505,7 @@ RunUMAP.Graph <- function(
 #' @param reduction.name Name to store dimensional reduction under in the Seurat object
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. UMAP by default
+#' @param return.model whether UMAP will return the uwot model
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed
 #' @param verbose Controls verbosity
@@ -1481,13 +1516,16 @@ RunUMAP.Graph <- function(
 #'
 RunUMAP.Seurat <- function(
   object,
-  reduction.model = NULL,
   dims = NULL,
   reduction = 'pca',
   features = NULL,
   graph = NULL,
-  assay = 'RNA',
+  assay = DefaultAssay(object = object),
+  nn.name = NULL, 
+  slot = 'data',
   umap.method = 'uwot',
+  reduction.model = NULL,
+  return.model = FALSE, 
   n.neighbors = 30L,
   n.components = 2L,
   metric = 'cosine',
@@ -1515,7 +1553,7 @@ RunUMAP.Seurat <- function(
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
   if (!is.null(x = features)) {
-    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, , drop = FALSE]))
+    data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -1539,6 +1577,8 @@ RunUMAP.Seurat <- function(
         call. = FALSE
       )
     }
+  }  else if (!is.null( x = nn.name)){
+    data.use <- object[[nn.name]]
   } else if (!is.null(x = graph)) {
     data.use <- object[[graph]]
   } else {
@@ -1547,6 +1587,7 @@ RunUMAP.Seurat <- function(
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     reduction.model = reduction.model,
+    return.model = return.model,
     assay = assay,
     umap.method = umap.method,
     n.neighbors = n.neighbors,
@@ -1734,8 +1775,8 @@ EmpiricalP <- function(x, nullval) {
 
 # FIt-SNE helper function for calling fast_tsne from R
 #
-# Based on Kluger Lab FIt-SNE v1.1.0 code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
-# commit d2cf403 on Feb 8, 2019
+# Based on Kluger Lab FIt-SNE v1.2.1 code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
+# commit 601608ed42e4be2765970910927da20f0b0bf9b9 on June 25, 2020
 #
 #' @importFrom utils file_test
 #
@@ -1743,19 +1784,18 @@ fftRtsne <- function(X,
   dims = 2,
   perplexity = 30,
   theta = 0.5,
-  check_duplicates = TRUE,
-  max_iter = 1000,
+  max_iter = 750,
   fft_not_bh = TRUE,
   ann_not_vptree = TRUE,
   stop_early_exag_iter = 250,
   exaggeration_factor = 12.0,
   no_momentum_during_exag = FALSE,
-  start_late_exag_iter = -1.0,
+  start_late_exag_iter = -1,
   late_exag_coeff = 1.0,
   mom_switch_iter = 250,
   momentum = 0.5,
   final_momentum = 0.8,
-  learning_rate = 200,
+  learning_rate = 'auto',
   n_trees = 50,
   search_k = -1,
   rand_seed = -1,
@@ -1764,7 +1804,8 @@ fftRtsne <- function(X,
   min_num_intervals = 50,
   K = -1,
   sigma = -30,
-  initialization = NULL,
+  initialization = 'pca',
+  max_step_norm = 5,
   data_path = NULL,
   result_path = NULL,
   load_affinities = NULL,
@@ -1799,19 +1840,19 @@ fftRtsne <- function(X,
   }
   # check fast_tsne version
   ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
-  if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
-    version_number <- '1.1.0'
-  } else if (grepl(pattern = '= t-SNE v1.0', x = ft.out[1])) {
-    version_number <- '1.0'
-  } else {
+  version_number <- regmatches(ft.out[1], regexpr('= t-SNE v[0-9.]+', ft.out[1]))
+  if (is.null(version_number)){
     message("First line of fast_tsne output is")
     message(ft.out[1])
-    stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1.0+, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+  } else {
+    version_number <- gsub('= t-SNE v', '', version_number)
   }
+
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
-  if (version_number == '1.0' && df != 1.0) {
+  if (version_number == '1.0.0' && df != 1.0) {
     stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
@@ -1832,6 +1873,9 @@ fftRtsne <- function(X,
   if (!is.numeric(x = exaggeration_factor)) {
     stop("exaggeration_factor should be numeric")
   }
+  if (!is.numeric(df)) {
+    stop("df should be numeric")
+  }
   if (!is.wholenumber(x = dims) || dims <= 0) {
     stop("Incorrect dimensionality.")
   }
@@ -1841,10 +1885,52 @@ fftRtsne <- function(X,
     } else if (perplexity == 0) {
       search_k <- n_trees * max(perplexity_list) * 3
     } else {
-      search_k <- n_trees * K * 3
+      search_k <- n_trees * K
     }
   }
+
+  if (is.character(learning_rate) && learning_rate =='auto') {
+    learning_rate = max(200, nrow(X)/exaggeration_factor)
+  }
+  if (is.character(start_late_exag_iter) && start_late_exag_iter =='auto') {
+    if (late_exag_coeff > 0) {
+      start_late_exag_iter = stop_early_exag_iter
+    } else {
+      start_late_exag_iter = -1
+    }
+  }
+
+  if (is.character(initialization) && initialization =='pca') {
+    if (rand_seed != -1)  {
+      set.seed(rand_seed)
+    }
+    if (requireNamespace("rsvd")) {
+      message('Using rsvd() to compute the top PCs for initialization.')
+      X_c <- scale(X, center=T, scale=F)
+      rsvd_out <- rsvd(X_c, k=dims)
+      X_top_pcs <- rsvd_out$u %*% diag(rsvd_out$d, nrow=dims)
+    } else if(requireNamespace("irlba")) {
+      message('Using irlba() to compute the top PCs for initialization.')
+      X_colmeans <- colMeans(X)
+      irlba_out <- irlba(X,nv=dims, center=X_colmeans)
+      X_top_pcs <- irlba_out$u %*% diag(irlba_out$d, nrow=dims)
+    }else{
+      stop("By default, FIt-SNE initializes the embedding with the
+                     top PCs. We use either rsvd or irlba for fast computation.
+                     To use this functionality, please install the rsvd package
+                     with install.packages('rsvd') or the irlba package with
+                     install.packages('ilrba').  Otherwise, set initialization
+                     to NULL for random initialization, or any N by dims matrix
+                     for custom initialization.")
+    }
+    initialization <- 0.0001*(X_top_pcs/sd(X_top_pcs[,1]))
+
+  } else if (is.character(initialization) && initialization == 'random'){
+    message('Random initialization')
+    initialization = NULL
+  }
   nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
+
   if (is.null(load_affinities)) {
     load_affinities <- 0
   } else {
@@ -1856,18 +1942,23 @@ fftRtsne <- function(X,
       load_affinities <- 0
     }
   }
+
   knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
+  tX <- as.numeric(t(X))
+
   f <- file(description = data_path, open = "wb")
   n = nrow(x = X)
   D = ncol(x = X)
   writeBin(object = as.integer(x = n), con = f, size = 4)
   writeBin(object = as.integer(x = D), con = f, size = 4)
-  writeBin(object = as.numeric(x = theta), con = f, size = 8) #theta
-  writeBin(object = as.numeric(x = perplexity), con = f, size = 8) #theta
+  writeBin(object = as.numeric(x = theta), con = f, size = 8)
+  writeBin(object = as.numeric(x = perplexity), con = f, size = 8)
+
   if (perplexity == 0) {
     writeBin(object = as.integer(x = length(x = perplexity_list)), con = f, size = 4)
     writeBin(object = perplexity_list, con = f)
   }
+
   writeBin(object = as.integer(x = dims), con = f, size = 4) #theta
   writeBin(object = as.integer(x = max_iter), con = f, size = 4)
   writeBin(object = as.integer(x = stop_early_exag_iter), con = f, size = 4)
@@ -1875,6 +1966,9 @@ fftRtsne <- function(X,
   writeBin(object = as.numeric(x = momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = final_momentum), con = f, size = 8)
   writeBin(object = as.numeric(x = learning_rate), con = f, size = 8)
+  if (!(version_number %in% c('1.1.0', '1.0.0'))) {
+    writeBin(object = as.numeric(x = max_step_norm), f, size = 8)
+  }
   writeBin(object = as.integer(x = K), con = f, size = 4) #K
   writeBin(object = as.numeric(x = sigma), con = f, size = 8) #sigma
   writeBin(object = as.integer(x = nbody_algo), con = f, size = 4)  #not barnes hut
@@ -1888,10 +1982,9 @@ fftRtsne <- function(X,
   writeBin(object = as.integer(x = nterms), con = f, size = 4)
   writeBin(object = as.numeric(x = intervals_per_integer), con = f, size = 8)
   writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4)
-  tX = c(t(X))
   writeBin(object = tX, con = f)
   writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
-  if (version_number != "1.0") {
+  if (version_number != "1.0.0") {
     writeBin(object = as.numeric(x = df), con = f, size = 8)
   }
   writeBin(object = as.integer(x = load_affinities), con = f, size = 4)
@@ -1899,10 +1992,11 @@ fftRtsne <- function(X,
     writeBin(object = c(t(x = initialization)), con = f)
   }
   close(con = f)
-  if (version_number == "1.0") {
+
+  if (version_number == "1.0.0") {
     flag <- system2(
-     command = fast_tsne_path,
-     args = c(data_path, result_path, nthreads)
+      command = fast_tsne_path,
+      args = c(data_path, result_path, nthreads)
     )
   } else {
     flag <- system2(
@@ -1910,9 +2004,11 @@ fftRtsne <- function(X,
       args = c(version_number, data_path, result_path, nthreads)
     )
   }
+
   if (flag != 0) {
     stop('tsne call failed')
   }
+
   f <- file(description = result_path, open = "rb")
   n <- readBin(con = f, what = integer(), n = 1, size = 4)
   d <- readBin(con = f, what = integer(), n = 1, size = 4)

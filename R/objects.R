@@ -221,6 +221,36 @@ scalefactors <- function(spot, fiducial, hires, lowres) {
 
 setOldClass(Classes = c('scalefactors'))
 
+#' The Neighbor class
+#'
+#' The Neighbor class is used to store the results of neighbor finding
+#' algorithms
+#'
+#' @slot nn.idx Matrix containing the nearest neighbor indices
+#' @slot nn.dist Matrix containing the nearest neighbor distances
+#' @slot alg.idx The neighbor finding index (if applicable). E.g. the annoy
+#' index
+#' @slot alg.info Any information associated with the algorithm that may be
+#' needed downstream (e.g. distance metric used with annoy is needed when
+#' reading in from stored file).
+#' @slot cell.names Names of the cells for which the neighbors have been
+#' computed.
+#'
+#' @name Neighbor-class
+#' @rdname Neighbor-class
+#' @exportClass Neighbor
+#'
+Neighbor <- setClass(
+  Class = 'Neighbor',
+  slots = c(
+    nn.idx = 'matrix',
+    nn.dist = 'matrix',
+    alg.idx = 'ANY',
+    alg.info = 'list',
+    cell.names = 'character'
+  )
+)
+
 #' The SeuratCommand Class
 #'
 #' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
@@ -1460,10 +1490,15 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   if (which.frame < 1) {
     stop("'LogSeuratCommand' cannot be called at the top level", call. = FALSE)
   }
-  command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
-  command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
-  call.string <- command.name
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  if (as.character(x = sys.calls()[[1]])[1] == "do.call") {
+    call.string <- deparse(expr = sys.calls()[[1]])
+    command.name <- as.character(x = sys.calls()[[1]])[2]
+  } else {
+    command.name <- as.character(x = deparse(expr = sys.calls()[[which.frame]]))
+    command.name <- gsub(pattern = "\\.Seurat", replacement = "", x = command.name)
+    call.string <- command.name
+    command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  }
   #capture function arguments
   argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
   argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
@@ -1513,6 +1548,36 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   }
   object[[command.name]] <- seurat.command
   return(object)
+}
+
+#' Pull Neighbor or Neighbor names
+#'
+#' Lists the names of \code{\link{Neighbor}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Neighbors object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Neighbor object
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Neighbor} objects
+#' in this Seurat object. Otherwise, the \code{Neighbor} object requested
+#'
+#' @export
+#'
+Neighbors <- function(object, slot = NULL) {
+  neighbors <- FilterObjects(object = object, classes.keep = "Neighbor")
+  if (is.null(x = slot)) {
+    return(neighbors)
+  }
+  if (!slot %in% neighbors) {
+    warning(
+      "Cannot find a Neighbor object of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'neighbors')[[slot]])
 }
 
 #' Pull DimReducs or DimReduc names
@@ -1756,6 +1821,23 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
     num = ncells,
     balanced = balanced
   ))
+}
+
+#' Get nearest neighbors for given cell
+#'
+#' Return a vector of cell names of the nearest n cells.
+#'
+#' @param object \code{\link{Neighbor}} object
+#' @param cell Cell of interest
+#' @param n Number of neighbors to return
+#'
+#' @return Returns a vector of cell names
+#'
+#' @export
+#'
+TopNeighbors <- function(object, cell, n = 5) {
+  indices <- Indices(object = object)[cell, 1:n]
+  return(Cells(x = object)[indices])
 }
 
 #' Update old Seurat object to accomodate new features
@@ -2094,6 +2176,28 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
+#' @param weighted If TRUE, fill entries in Graph matrix with value from the
+#' nn.dist slot of the Neighbor object
+#' @rdname as.Graph
+#' @export
+#' @method as.Graph Neighbor
+#'
+as.Graph.Neighbor <- function(x, weighted = TRUE, ...) {
+  CheckDots(...)
+  j <- as.integer(x = Indices(object = x) - 1)
+  i <- as.integer(x = rep(x = (1:nrow(x = x)) - 1, times = ncol(x = x)))
+  if (weighted) {
+    vals <- as.vector(x = Distances(object = x))
+  } else {
+    vals <- 1
+  }
+  graph <- new(Class = "dgTMatrix", i = i, j = j, x = vals, Dim = as.integer(x = c(nrow(x = x), nrow(x = x))))
+  rownames(x = graph) <- Cells(x = x)
+  colnames(x = graph) <- Cells(x = x)
+  graph <- as.Graph.Matrix(x = graph)
+  return(graph)
+}
+
 #' @details
 #' The Seurat method for \code{as.loom} will try to automatically fill in datasets based on data presence.
 #' For example, if an assay's scaled data slot isn't filled, then dimensional reduction and graph information
@@ -2140,11 +2244,19 @@ as.loom.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratDisk::as.loom",
+    msg = paste(
+      "as.loom is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = '\n'
+    )
+  )
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR from GitHub before converting to a loom object")
   }
   CheckDots(..., fxns = 'loomR::create')
-  object <- UpdateSlots(object = x)
+  x <- UpdateSlots(object = x)
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
@@ -2265,6 +2377,22 @@ as.loom.Seurat <- function(
   # Store assay
   hdf5r::h5attr(x = lfile, which = 'assay') <- assay
   return(lfile)
+}
+
+#' @rdname as.Neighbor
+#' @export
+#' @method as.Neighbor Graph
+#'
+as.Neighbor.Graph <- function(
+  x,
+  ...
+) {
+  nn.mats <- GraphToNeighborHelper(mat = x)
+  return(Neighbor(
+    nn.idx = nn.mats[[1]],
+    nn.dist = nn.mats[[2]],
+    cell.names = rownames(x = x)
+  ))
 }
 
 #' @param slot Slot to store expression data as
@@ -2470,6 +2598,14 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    package = "SeuratDisk",
+    msg = paste(
+      "Functionality for loading loom files to Seurat objects is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = "\n"
+    )
+  )
   CheckDots(...)
   # Shouldn't be necessary
   if (!PackageCheck('loomR', error = FALSE)) {
@@ -3036,6 +3172,14 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 }
 
 #' @rdname Cells
+#' @method Cells Neighbor
+#' @export
+#'
+Cells.Neighbor <- function(x) {
+  return(slot(object = x, name = "cell.names"))
+}
+
+#' @rdname Cells
 #' @method Cells SlideSeq
 #' @export
 #'
@@ -3193,6 +3337,17 @@ DefaultAssay.SpatialImage <- function(object, ...) {
   CheckDots(...)
   slot(object = object, name = 'assay') <- value
   return(object)
+}
+
+#' @rdname Distances
+#' @export
+#' @method Distances Neighbor
+#'
+Distances.Neighbor <- function(object, ...) {
+  object <- UpdateSlots(object = object)
+  distances <- slot(object = object, name = "nn.dist")
+  rownames(x = distances) <- slot(object = object, name = "cell.names")
+  return(distances)
 }
 
 #' @rdname Embeddings
@@ -3639,6 +3794,40 @@ Idents.Seurat <- function(object, ...) {
     object <- droplevels(x = object)
   }
   return(object)
+}
+
+#' @rdname Index
+#' @export
+#' @method Index Neighbor
+Index.Neighbor <- function(object, ...) {
+  object <- UpdateSlots(object = object)
+  index <- slot(object = object, name = "alg.idx")
+  if (is.null(x = index)) {
+    return(NULL)
+  }
+  if (is.null.externalptr(index$.pointer)) {
+    return(NULL)
+  }
+  return(index)
+}
+
+#' @rdname Index
+#' @export
+#' @method Index<- Neighbor
+"Index<-.Neighbor" <- function(object, ..., value) {
+  CheckDots(...)
+  slot(object = object, name = "alg.idx") <- value
+  return(object)
+}
+
+#' @rdname Indices
+#' @export
+#' @method Indices Neighbor
+Indices.Neighbor <- function(object, ...) {
+  object <- UpdateSlots(object = object)
+  indices <- slot(object = object, name = "nn.idx")
+  rownames(x = indices) <- slot(object = object, name = "cell.names")
+  return(indices)
 }
 
 #' @rdname IsGlobal
@@ -4304,6 +4493,15 @@ ReadH5AD.H5File <- function(
   ...
 ) {
   CheckDots(...)
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   # Pull assay data
   # If X is an H5D, assume scaled
   # Otherwise, if file$exists(name = 'raw'), assume X is normalized
@@ -4817,6 +5015,20 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
+#' @param old.names vector of old cell names
+#' @rdname RenameCells
+#' @export
+#' @method RenameCells Neighbor
+#'
+RenameCells.Neighbor <- function(object, old.names = NULL, new.names = NULL, ...) {
+  CheckDots(...)
+  neighbor.names <- Cells(x = object)
+  names(x = new.names) <- old.names
+  slot(object = object, name = "cell.names") <- unname(obj = new.names[neighbor.names])
+  return(object)
+}
+
+
 #' @param for.merge Only rename slots needed for merging Seurat objects.
 #' Currently only renames the raw.data and meta.data slots.
 #' @param add.cell.id prefix to add cell names
@@ -4901,6 +5113,14 @@ RenameCells.Seurat <- function(
     object[[i]] <- RenameCells(
       object = object[[i]],
       new.names = unname(obj = new.cell.names[Cells(x = object[[i]])])
+    )
+  }
+  # Rename the Neighbor
+  for(i in Neighbors(object = object)) {
+    object[[i]] <- RenameCells(
+      object = object[[i]],
+      old.names = old.names,
+      new.names = new.cell.names
     )
   }
   return(object)
@@ -5074,7 +5294,16 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
         call. = FALSE
       )
     }
-    new.data <- new.data[new.features, colnames(x = object), drop = FALSE]
+    new.cells <- na.omit(object = match(
+      x = new.cells,
+      table = colnames(x = object)
+    ))
+    if (is.unsorted(x = new.features)) {
+      new.data <- new.data[new.features, , drop = FALSE]
+    }
+    if (is.unsorted(x = new.cells)) {
+      new.data <- new.data[, new.cells, drop = FALSE]
+    }
     if (slot %in% c('counts', 'data') && !all(dim(x = new.data) == dim(x = object))) {
       stop(
         "Attempting to add a different number of cells and/or features",
@@ -5797,6 +6026,15 @@ WriteH5AD.Seurat <- function(
   overwrite = FALSE,
   ...
 ) {
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   message("WriteH5AD is not currently operational, please use as.loom")
   .NotYetImplemented()
   if (!PackageCheck('hdf5r', error = FALSE)) {
@@ -6418,6 +6656,13 @@ dim.DimReduc <- function(x) {
 }
 
 #' @export
+#' @method dim Neighbor
+#'
+dim.Neighbor <- function(x) {
+  return(dim(x = Indices(object = x)))
+}
+
+#' @export
 #' @method dim Seurat
 #'
 dim.Seurat <- function(x) {
@@ -6591,17 +6836,12 @@ merge.Assay <- function(
     }
   }
   # Merge the counts (if present)
-  merged.counts <- ValidateDataForMerge(assay = assays[[1]], slot = "counts")
-  keys <- Key(object = assays[[1]])
-  for (i in 2:length(x = assays)) {
-    merged.counts <- RowMergeSparseMatrices(
-      mat1 = merged.counts,
-      mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "counts")
-    )
-    if (length(Key(object = assays[[i]]) > 0)) {
-      keys[i] <- Key(object = assays[[i]])
-    }
-  }
+  counts.mats <- lapply(X = assays, FUN = ValidateDataForMerge, slot = "counts")
+  keys <- sapply(X = assays, FUN = Key)
+  merged.counts <- RowMergeSparseMatrices(
+    mat1 = counts.mats[[1]],
+    mat2 = counts.mats[2:length(x = counts.mats)]
+  )
   combined.assay <- CreateAssayObject(
     counts = merged.counts,
     min.cells = -1,
@@ -6611,15 +6851,15 @@ merge.Assay <- function(
     Key(object = combined.assay) <- keys[1]
   }
   if (merge.data) {
-    merged.data <- ValidateDataForMerge(assay = assays[[1]], slot = "data")
-    for (i in 2:length(x = assays)) {
-      merged.data <- RowMergeSparseMatrices(
-        mat1 = merged.data,
-        mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "data")
-      )
-    }
+    data.mats <- lapply(X = assays, FUN = ValidateDataForMerge, slot = "data")
+    merged.data <- RowMergeSparseMatrices(
+      mat1 = data.mats[[1]],
+      mat2 = data.mats[2:length(x = data.mats)]
+    )
     # only keep cells that made it through counts filtering params
-    merged.data <- merged.data[, colnames(x = combined.assay)]
+    if (!all.equal(target = colnames(x = combined.assay), current = colnames(x = merged.data))) {
+      merged.data <- merged.data[, colnames(x = combined.assay)]
+    }
     combined.assay <- SetAssayData(
       object = combined.assay,
       slot = "data",
@@ -7116,7 +7356,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
       expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
-        return(NULL)
+        if (e$message == "Cannot find features provided") {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7132,7 +7376,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     x[[dimreduc]] <- tryCatch(
       expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
       error = function(e) {
-        return(NULL)
+        if (e$message %in% c("Cannot find cell provided", "Cannot find features provided")) {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7147,6 +7395,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     }
   }
   slot(object = x, name = 'graphs') <- list()
+  slot(object = x, name = 'neighbors') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   # subset images
   for (image in Images(object = x)) {
@@ -7353,6 +7602,21 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         slot(object = value, name = 'cell.embeddings') <- value[[Cells(x = x), ]]
       }
       'reductions'
+    } else if (inherits(x = value, what = "Neighbor")) {
+       # Ensure all cells are present in the Seurat object
+      if (length(x = Cells(x = value)) > length(x = Cells(x = x))) {
+        stop(
+          "Cannot have more cells in the Neighbor object than are present in the Seurat object.",
+          call. = FALSE
+        )
+      }
+      if (!all(Cells(x = value) %in% Cells(x = x))) {
+        stop(
+          "Cannot add cells in the Neighbor object that aren't present in the Seurat object.",
+          call. = FALSE
+        )
+      }
+      'neighbors'
     } else if (inherits(x = value, what = 'SeuratCommand')) {
       # Ensure Assay that SeuratCommand is associated with is present in the Seurat object
       if (is.null(x = DefaultAssay(object = value))) {
@@ -7410,7 +7674,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       # Add other object to Seurat object
       # Ensure cells match in value and order
-      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage')) && !all(Cells(x = value) == Cells(x = x))) {
+      if (!inherits(x = value, what = c('SeuratCommand', 'NULL', 'SpatialImage', 'Neighbor')) && !all(Cells(x = value) == Cells(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
@@ -7688,6 +7952,20 @@ setMethod(
       "Scored for:",
       nrow(x = scored),
       "dimensions.\n"
+    )
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'Neighbor',
+  definition = function(object) {
+    cat(
+      "A Neighbor object containing the",
+      ncol(x = object),
+      "nearest neighbors for",
+      nrow(x = object),
+      "cells"
     )
   }
 )
@@ -8011,11 +8289,25 @@ SubsetVST <- function(sct.info, cells, features) {
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
 #
 Top <- function(data, num, balanced) {
+  nr <- nrow(x = data)
+  if (num > nr) {
+    warning("Requested number is larger than the number of available items (",
+            nr, "). Setting to ", nr , ".", call. = FALSE)
+    num <- nr
+  }
+  if (num == 1) {
+    balanced <- FALSE
+  }
   top <- if (balanced) {
     num <- round(x = num / 2)
     data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
+
+    # remove duplicates
+    if (positive[num] == negative[num]) {
+      negative <- negative[-num]
+    }
     list(positive = positive, negative = negative)
   } else {
     data <- data[rev(x = order(abs(x = data))), , drop = FALSE]
