@@ -1,7 +1,7 @@
 ---
 name: "\U0001F4DADocumentation"
 about: An issue related to documentation at https://satijalab.org/seurat/
-title: '[Doc] '
+title: ''
 labels: documentation
 assignees: ''
 

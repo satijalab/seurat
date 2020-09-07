@@ -1,7 +1,7 @@
 ---
 name: "❓Analysis question"
 about: Ask a question about the analysis of single-cell data
-title: '[Q] '
+title: ''
 labels: question
 assignees: ''
 

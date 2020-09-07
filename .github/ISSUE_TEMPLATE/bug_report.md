@@ -1,7 +1,7 @@
 ---
 name: "\U0001F41BBug report"
 about: Describe a bug you've seen with a reproducible example
-title: '[Bug] '
+title: ''
 labels: bug
 assignees: ''
 
