@@ -2680,6 +2680,10 @@ FindNN <- function(
 }
 
 # @param reduction a DimReduc object containing cells in the query object
+# @param reverse Compute weights matrix for reference anchors that are nearest
+# to query cells. Used in mapping metric to perform projection of query cells
+# back from reference space.
+
 FindWeights <- function(
   object,
   reduction = NULL,
@@ -2691,6 +2695,7 @@ FindWeights <- function(
   sd.weight = 1,
   nn.method = "annoy",
   eps = 0,
+  reverse = FALSE,
   verbose = TRUE,
   cpp = FALSE
 ) {
@@ -2709,19 +2714,49 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = 'anchors'
   )
-  anchors.cells2 <- unique(nn.cells2[anchors[, "cell2"]])
-  if (is.null(x = features)) {
-    data.use <- Embeddings(reduction)[nn.cells2, dims]
+  if (reverse) {
+    anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
+    anchors.cells1 <- nn.cells1[anchors[, "cell1"]]
+    to.keep <- !duplicated(x = anchors.cells1)
+    anchors.cells1 <- anchors.cells1[to.keep]
+    anchors.cells2 <- anchors.cells2[to.keep]
+    if (is.null(x = features)) {
+      data.use <- Embeddings(object = reduction)[nn.cells1, dims]
+      data.use.query <- Embeddings(object = reduction)[nn.cells2, dims]
+    } else {
+      data.use <- t(x = GetAssayData(
+        object = object, 
+        slot = 'data', 
+        assay = assay)[features, nn.cells1]
+      )
+      data.use.query <- t(x = GetAssayData(
+        object = object,
+        slot = 'data',
+        assay = assay)[features, nn.cells2]
+      )
+    }
+    knn_2_2 <- Seurat:::NNHelper(
+      data = data.use[anchors.cells1, ],
+      query = data.use.query,
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
   } else {
-    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
+    anchors.cells2 <- unique(x = nn.cells2[anchors[, "cell2"]])
+    if (is.null(x = features)) {
+      data.use <- Embeddings(reduction)[nn.cells2, dims]
+    } else {
+      data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
+    }
+    knn_2_2 <- NNHelper(
+      data = data.use[anchors.cells2, ],
+      query = data.use,
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
   }
-  knn_2_2 <- NNHelper(
-    data = data.use[anchors.cells2, ],
-    query = data.use,
-    k = k,
-    method = nn.method,
-    eps = eps
-  )
   distances <- Distances(object = knn_2_2)
   distances <- 1 - (distances / distances[, ncol(x = distances)])
   cell.index <- Indices(object = knn_2_2)
