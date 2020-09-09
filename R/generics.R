@@ -988,34 +988,6 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
-#' Run Latent Semantic Indexing on binary count matrix
-#'
-#' For details about stored LSI calculation parameters, see
-#' \code{PrintLSIParams}.
-#'
-#' @note RunLSI is being moved to Signac. Equivalent functionality can be
-#' achieved via the Signac::RunTFIDF and Signac::RunSVD functions;
-#' for more information on Signac, please see
-#' \url{https://github.com/timoast/Signac}
-#'
-#' @param object Seurat object
-#' @param ... Arguments passed to other methods
-#'
-#' @rdname RunLSI
-#' @export RunLSI
-#'
-RunLSI <- function(object, ...) {
-  .Deprecated(
-    new = 'Signac::RunTFIDF',
-    msg = paste(
-      "RunLSI is being moved to Signac. Equivalent functionality can be",
-      "achieved via the Signac::RunTFIDF and Signac::RunSVD functions; for",
-      "more information on Signac, please see https://github.com/timoast/Signac"
-    )
-  )
-  UseMethod(generic = "RunLSI", object = object)
-}
-
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
