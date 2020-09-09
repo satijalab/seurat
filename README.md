@@ -3,7 +3,7 @@
 [![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat)
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat)
 
-# Seurat v3.2.0
+# Seurat v3.2.1
 
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
