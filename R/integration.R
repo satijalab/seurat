@@ -510,6 +510,9 @@ FindIntegrationAnchors <- function(
 #' \code{\link{RANN}})
 #' @param approx.pca Use truncated singular value decomposition to approximate 
 #' PCA
+#' @param mapping.score.k Compute and store nearest k query neighbors. Only set 
+#' if using in the context of mapping and computing the mapping score to enable
+#' reuse of neighbor calculations.
 #' @param verbose Print progress bars and output
 #'
 #' @return Returns an \code{AnchorSet} object that can be used as input to 
@@ -573,6 +576,7 @@ FindTransferAnchors <- function(
   nn.method = "annoy",
   eps = 0,
   approx.pca = TRUE,
+  mapping.score.k = NULL,
   verbose = TRUE
 ) {
   if (length(x = reference) > 1 | length(x = query) > 1) {
@@ -807,10 +811,13 @@ FindTransferAnchors <- function(
     }
     query.neighbors <- NNHelper(
       data = projected.pca, 
-      k = k.nn + 1, 
+      k = max(mapping.score.k, k.nn + 1), 
       method = nn.method,
       cache.index = TRUE
     )
+    query.neighbors.sub <- query.neighbors
+    slot(object = query.neighbors.sub, name = "nn.idx") <- Indices(query.neighbors)[, 1:(k.nn + 1)]
+    slot(object = query.neighbors.sub, name = "nn.dist") <- Distances(query.neighbors)[, 1:(k.nn + 1)]
     anchors <- FindAnchors(
       object.pair = combined.ob,
       assay = c(reference.assay, query.assay),
@@ -818,7 +825,7 @@ FindTransferAnchors <- function(
       cells1 = colnames(x = reference),
       cells2 = colnames(x = query),
       reduction = reduction,
-      internal.neighbors = list(reference[[reference.neighbors]], query.neighbors),
+      internal.neighbors = list(reference[[reference.neighbors]], query.neighbors.sub),
       dims = dims,
       k.anchor = k.anchor,
       k.filter = NA,
@@ -826,7 +833,7 @@ FindTransferAnchors <- function(
       max.features = max.features,
       nn.method = nn.method,
       nn.idx1 = Index(reference[[reference.neighbors]]),
-      nn.idx2 = Index(query.neighbors),
+      nn.idx2 = Index(query.neighbors.sub),
       eps = eps,
       projected = projected,
       verbose = verbose
@@ -861,6 +868,9 @@ FindTransferAnchors <- function(
     anchor.features = features,
     command = command
   )
+  if (mapping) {
+    slot(object = anchor.set, name = "neighbors") <- list(query.neighbors = query.neighbors)
+  }
   return(anchor.set)
 }
 
