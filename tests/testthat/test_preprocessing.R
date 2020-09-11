@@ -137,7 +137,7 @@ object <- ScaleData(object = object, features = rownames(x = object), verbose = 
 
 test_that("split.by option works", {
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-               GetAssayData(object = g1, slot = "scale.data"))  
+               GetAssayData(object = g1, slot = "scale.data"))
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
                GetAssayData(object = g2, slot = "scale.data"))
 })
@@ -147,7 +147,7 @@ g2 <- ScaleData(object = g2, features = rownames(x = g2), vars.to.regress = "nCo
 object <- ScaleData(object = object, features = rownames(x = object), verbose = FALSE, split.by = "group", vars.to.regress = "nCount_RNA")
 test_that("split.by option works with regression", {
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-               GetAssayData(object = g1, slot = "scale.data"))  
+               GetAssayData(object = g1, slot = "scale.data"))
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
                GetAssayData(object = g2, slot = "scale.data"))
 })
@@ -214,7 +214,7 @@ downsampled.umis <- SampleUMI(
 )
 downsampled.umis.p.cell <- SampleUMI(
   data = GetAssayData(object = object, slot = "counts"),
-  max.umi = seq(50, 840, 10),
+  max.umi = seq(50, 1640, 20),
   verbose = FALSE,
   upsample = TRUE
 )
