@@ -2,6 +2,12 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [unreleased]
+### Added
+
+### Changes
+- Set the seed in `WhichCells` regardless of whether or not `idents` is passed
+
 ## [3.2.1] - 2020-09-04
 ### Added
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
