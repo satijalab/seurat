@@ -7349,7 +7349,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x)) && is.null(x = features)) {
     return(x)
   }
-  if (!all(all.cells %in% cells)) {
+  if (!all(colnames(x = x) %in% cells)) {
     slot(object = x, name = 'graphs') <- list()
     slot(object = x, name = 'neighbors') <- list()
   }
