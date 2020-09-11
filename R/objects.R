@@ -7349,6 +7349,10 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x)) && is.null(x = features)) {
     return(x)
   }
+  if (!all(all.cells %in% cells)) {
+    slot(object = x, name = 'graphs') <- list()
+    slot(object = x, name = 'neighbors') <- list()
+  }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
   # Filter Assay objects
   for (assay in assays) {
@@ -7394,8 +7398,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
       x[[names(x = n.calc)]] <- n.calc
     }
   }
-  slot(object = x, name = 'graphs') <- list()
-  slot(object = x, name = 'neighbors') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   # subset images
   for (image in Images(object = x)) {
