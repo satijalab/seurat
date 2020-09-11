@@ -5909,6 +5909,9 @@ WhichCells.Seurat <- function(
   ...
 ) {
   CheckDots(...)
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
   object <- UpdateSlots(object = object)
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
@@ -5916,9 +5919,6 @@ WhichCells.Seurat <- function(
   }
   cell.order <- cells
   if (!is.null(x = idents)) {
-    if (!is.null(x = seed)) {
-      set.seed(seed = seed)
-    }
     if (any(!idents %in% levels(x = Idents(object = object)))) {
       stop(
         "Cannot find the following identities in the object: ",
