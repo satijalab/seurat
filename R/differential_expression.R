@@ -58,6 +58,9 @@ FindAllMarkers <- function(
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
   return.thresh = 1e-2,
   ...
 ) {
@@ -131,6 +134,9 @@ FindAllMarkers <- function(
           min.cells.feature = min.cells.feature,
           min.cells.group = min.cells.group,
           pseudocount.use = pseudocount.use,
+          mean.fxn = mean.fxn,
+          fc.name = fc.name,
+          base = base,
           ...
         )
       },
@@ -450,10 +456,7 @@ FindConservedMarkers <- function(
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
-#' @param mean.fxn Function to use for fold change or average difference calculation
-#' (see FoldChange example)
-#' @param fc.name Name of the fold change, average difference, or custom function column
-#' in the output data.frame (see FoldChange example)
+#' @param fc.results TODO
 #'
 #' @importFrom Matrix rowMeans
 #' @importFrom stats p.adjust
@@ -481,9 +484,7 @@ FindMarkers.default <- function(
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
-  mean.fxn = NULL,
-  fc.name = NULL,
-  base = 2,
+  fc.results = NULL,
   ...
 ) {
   ValidateCellGroups(
@@ -504,30 +505,6 @@ FindMarkers.default <- function(
     'scale.data' = counts,
     object
   )
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'data' = function(x) {
-      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use))
-    },
-    'scale.data' = rowMeans,
-    function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use))
-    }
-  )
-  diff.col <- fc.name %||% ifelse(
-    test = slot == "scale.data",
-    yes = "avg_diff",
-    no = "avg_logFC"
-  )
-  fc.results <- FoldChange(
-    object = data,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = features,
-    mean.fxn = mean.fxn,
-    fc.name = diff.col,
-    base = base
-  )
   # feature selection (based on percentages)
   alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
   names(x = alpha.min) <- rownames(x = fc.results)
@@ -546,7 +523,7 @@ FindMarkers.default <- function(
   }
   # feature selection (based on logFC)
   if (slot != "scale.data") {
-    total.diff <- fc.results$avg_logFC
+    total.diff <- fc.results[, 1] #first column is logFC
     names(total.diff) <- rownames(fc.results)
     features.diff <- if (only.pos) {
       names(x = which(x = total.diff > logfc.threshold))
@@ -585,12 +562,12 @@ FindMarkers.default <- function(
   )
   de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
   if (only.pos) {
-    de.results <- de.results[de.results[, diff.col] > 0, , drop = FALSE]
+    de.results <- de.results[de.results[, 1] > 0, , drop = FALSE]
   }
   if (test.use %in% DEmethods_nocorrect()) {
-    de.results <- de.results[order(-de.results$power, -de.results[, diff.col]), ]
+    de.results <- de.results[order(-de.results$power, -de.results[, 1]), ]
   } else {
-    de.results <- de.results[order(de.results$p_val, -de.results[, diff.col]), ]
+    de.results <- de.results[order(de.results$p_val, -de.results[, 1]), ]
     de.results$p_val_adj = p.adjust(
       p = de.results$p_val,
       method = "bonferroni",
@@ -623,6 +600,7 @@ FindMarkers.Assay <- function(
   min.cells.group = 3,
   pseudocount.use = 1,
   mean.fxn = NULL,
+  fc.name = NULL,
   base = 2,
   ...
 ) {
@@ -636,6 +614,16 @@ FindMarkers.Assay <- function(
     EXPR = data.slot,
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
+  )
+  fc.results <- FoldChange(
+    object = object,
+    slot = data.slot,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name,
+    base = base
   )
   de.results <- FindMarkers(
     object = data.use,
@@ -656,8 +644,7 @@ FindMarkers.Assay <- function(
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
-    mean.fxn = mean.fxn,
-    base = base,
+    fc.results = fc.results,
     ...
   )
   return(de.results)
@@ -939,7 +926,7 @@ FoldChange.Assay <- function(
   fc.name <- fc.name %||% ifelse(
     test = slot == "scale.data",
     yes = "avg_diff",
-    no = paste0("avg_log", base.text, "_FC")
+    no = paste0("avg_log", base.text, "FC")
   )
   FoldChange(
     object = data,
