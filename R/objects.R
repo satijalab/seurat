@@ -32,6 +32,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
 #' @slot anchor.features The features used when performing anchor finding.
+#' @slot neighbors List containing Neighbor objects for reuse later (e.g. mapping)
 #' @slot command Store log of parameters that were used
 #'
 #' @name AnchorSet-class
@@ -48,11 +49,10 @@ AnchorSet <- setClass(
     anchors = "ANY",
     offsets = "ANY",
     anchor.features = "ANY",
+    neighbors = "list",
     command = "ANY"
   )
 )
-
-
 
 #' The ModalityWeights Class
 #'

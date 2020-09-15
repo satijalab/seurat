@@ -510,6 +510,9 @@ FindIntegrationAnchors <- function(
 #' \code{\link{RANN}})
 #' @param approx.pca Use truncated singular value decomposition to approximate 
 #' PCA
+#' @param mapping.score.k Compute and store nearest k query neighbors. Only set 
+#' if using in the context of mapping and computing the mapping score to enable
+#' reuse of neighbor calculations.
 #' @param verbose Print progress bars and output
 #'
 #' @return Returns an \code{AnchorSet} object that can be used as input to 
@@ -573,6 +576,7 @@ FindTransferAnchors <- function(
   nn.method = "annoy",
   eps = 0,
   approx.pca = TRUE,
+  mapping.score.k = NULL,
   verbose = TRUE
 ) {
   if (length(x = reference) > 1 | length(x = query) > 1) {
@@ -807,10 +811,13 @@ FindTransferAnchors <- function(
     }
     query.neighbors <- NNHelper(
       data = projected.pca, 
-      k = k.nn + 1, 
+      k = max(mapping.score.k, k.nn + 1), 
       method = nn.method,
       cache.index = TRUE
     )
+    query.neighbors.sub <- query.neighbors
+    slot(object = query.neighbors.sub, name = "nn.idx") <- Indices(query.neighbors)[, 1:(k.nn + 1)]
+    slot(object = query.neighbors.sub, name = "nn.dist") <- Distances(query.neighbors)[, 1:(k.nn + 1)]
     anchors <- FindAnchors(
       object.pair = combined.ob,
       assay = c(reference.assay, query.assay),
@@ -818,7 +825,7 @@ FindTransferAnchors <- function(
       cells1 = colnames(x = reference),
       cells2 = colnames(x = query),
       reduction = reduction,
-      internal.neighbors = list(reference[[reference.neighbors]], query.neighbors),
+      internal.neighbors = list(reference[[reference.neighbors]], query.neighbors.sub),
       dims = dims,
       k.anchor = k.anchor,
       k.filter = NA,
@@ -826,7 +833,7 @@ FindTransferAnchors <- function(
       max.features = max.features,
       nn.method = nn.method,
       nn.idx1 = Index(reference[[reference.neighbors]]),
-      nn.idx2 = Index(query.neighbors),
+      nn.idx2 = Index(query.neighbors.sub),
       eps = eps,
       projected = projected,
       verbose = verbose
@@ -861,6 +868,9 @@ FindTransferAnchors <- function(
     anchor.features = features,
     command = command
   )
+  if (mapping) {
+    slot(object = anchor.set, name = "neighbors") <- list(query.neighbors = query.neighbors)
+  }
   return(anchor.set)
 }
 
@@ -2680,6 +2690,10 @@ FindNN <- function(
 }
 
 # @param reduction a DimReduc object containing cells in the query object
+# @param reverse Compute weights matrix for reference anchors that are nearest
+# to query cells. Used in mapping metric to perform projection of query cells
+# back from reference space.
+
 FindWeights <- function(
   object,
   reduction = NULL,
@@ -2691,6 +2705,7 @@ FindWeights <- function(
   sd.weight = 1,
   nn.method = "annoy",
   eps = 0,
+  reverse = FALSE,
   verbose = TRUE,
   cpp = FALSE
 ) {
@@ -2709,19 +2724,49 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = 'anchors'
   )
-  anchors.cells2 <- unique(nn.cells2[anchors[, "cell2"]])
-  if (is.null(x = features)) {
-    data.use <- Embeddings(reduction)[nn.cells2, dims]
+  if (reverse) {
+    anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
+    anchors.cells1 <- nn.cells1[anchors[, "cell1"]]
+    to.keep <- !duplicated(x = anchors.cells1)
+    anchors.cells1 <- anchors.cells1[to.keep]
+    anchors.cells2 <- anchors.cells2[to.keep]
+    if (is.null(x = features)) {
+      data.use <- Embeddings(object = reduction)[nn.cells1, dims]
+      data.use.query <- Embeddings(object = reduction)[nn.cells2, dims]
+    } else {
+      data.use <- t(x = GetAssayData(
+        object = object, 
+        slot = 'data', 
+        assay = assay)[features, nn.cells1]
+      )
+      data.use.query <- t(x = GetAssayData(
+        object = object,
+        slot = 'data',
+        assay = assay)[features, nn.cells2]
+      )
+    }
+    knn_2_2 <- Seurat:::NNHelper(
+      data = data.use[anchors.cells1, ],
+      query = data.use.query,
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
   } else {
-    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
+    anchors.cells2 <- unique(x = nn.cells2[anchors[, "cell2"]])
+    if (is.null(x = features)) {
+      data.use <- Embeddings(reduction)[nn.cells2, dims]
+    } else {
+      data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
+    }
+    knn_2_2 <- NNHelper(
+      data = data.use[anchors.cells2, ],
+      query = data.use,
+      k = k,
+      method = nn.method,
+      eps = eps
+    )
   }
-  knn_2_2 <- NNHelper(
-    data = data.use[anchors.cells2, ],
-    query = data.use,
-    k = k,
-    method = nn.method,
-    eps = eps
-  )
   distances <- Distances(object = knn_2_2)
   distances <- 1 - (distances / distances[, ncol(x = distances)])
   cell.index <- Indices(object = knn_2_2)

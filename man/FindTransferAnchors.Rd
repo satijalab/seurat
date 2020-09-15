@@ -26,6 +26,7 @@ FindTransferAnchors(
   nn.method = "annoy",
   eps = 0,
   approx.pca = TRUE,
+  mapping.score.k = NULL,
   verbose = TRUE
 )
 }
@@ -92,6 +93,10 @@ annoy}
 
 \item{approx.pca}{Use truncated singular value decomposition to approximate 
 PCA}
+
+\item{mapping.score.k}{Compute and store nearest k query neighbors. Only set 
+if using in the context of mapping and computing the mapping score to enable
+reuse of neighbor calculations.}
 
 \item{verbose}{Print progress bars and output}
 }
