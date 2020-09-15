@@ -456,7 +456,7 @@ FindConservedMarkers <- function(
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
-#' @param fc.results TODO
+#' @param fc.results data.frame from FoldChange
 #'
 #' @importFrom Matrix rowMeans
 #' @importFrom stats p.adjust

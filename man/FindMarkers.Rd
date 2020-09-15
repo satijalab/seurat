@@ -30,9 +30,7 @@ FindMarkers(object, ...)
   min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
-  mean.fxn = NULL,
-  fc.name = NULL,
-  base = 2,
+  fc.results = NULL,
   ...
 )
 
@@ -55,6 +53,7 @@ FindMarkers(object, ...)
   min.cells.group = 3,
   pseudocount.use = 1,
   mean.fxn = NULL,
+  fc.name = NULL,
   base = 2,
   ...
 )
@@ -197,6 +196,8 @@ of the two groups, currently only used for poisson and negative binomial tests}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
+
+\item{fc.results}{data.frame from FoldChange}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation
 (see example in \code{\link{FoldChange}})}
