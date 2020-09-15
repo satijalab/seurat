@@ -415,8 +415,10 @@ FindNeighbors.dist <- function(
   ))
 }
 
-#' @param assay Assay to use in construction of (S)NN
-#' @param features Features to use as input for building the (S)NN
+#' @param assay Assay to use in construction of (S)NN; used only when \code{dims}
+#' is \code{NULL}
+#' @param features Features to use as input for building the (S)NN; used only when
+#' \code{dims} is \code{NULL}
 #' @param reduction Reduction to use as input for building the (S)NN
 #' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
@@ -814,7 +816,7 @@ RunLeiden <- function(
         object
       } else {
         stop(
-          "Method for Leiden not found for class", class(x = object), 
+          "Method for Leiden not found for class", class(x = object),
            call. = FALSE
         )
       }

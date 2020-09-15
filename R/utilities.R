@@ -970,7 +970,7 @@ FastRowScale <- function(
 #' where each entry is the current symbol found for each symbol provided and the
 #' names are the provided symbols. Otherwise, a named vector with the same information.
 #'
-#' @source \url{https://www.genenames.org/} \url{http://rest.genenames.org/}
+#' @source \url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom httr GET accept_json timeout status_code content

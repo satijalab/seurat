@@ -17,7 +17,9 @@ RidgePlot(
   log = FALSE,
   ncol = NULL,
   slot = "data",
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = "feature"
 )
 }
 \arguments{
@@ -47,8 +49,12 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{slot}{Use non-normalized counts data for plotting}
 
+\item{stack}{Horizontally stack plots for each feature}
+
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-ggplot object. If \code{FALSE}, return a list of ggplot objects}
+ggplot object. If \code{FALSE}, return a list of ggplot}
+
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

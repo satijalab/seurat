@@ -122,13 +122,15 @@ default of 0.0 implies exact nearest neighbor search}
 \item{cache.index}{Include cached index in returned Neighbor object
 (only relevant if return.neighbor = TRUE)}
 
-\item{features}{Features to use as input for building the (S)NN}
+\item{features}{Features to use as input for building the (S)NN; used only when
+\code{dims} is \code{NULL}}
 
 \item{reduction}{Reduction to use as input for building the (S)NN}
 
 \item{dims}{Dimensions of reduction to use as input}
 
-\item{assay}{Assay to use in construction of (S)NN}
+\item{assay}{Assay to use in construction of (S)NN; used only when \code{dims}
+is \code{NULL}}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 

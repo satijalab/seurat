@@ -1,13 +1,14 @@
 # News
 All notable changes to Seurat will be documented in this file.
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [unreleased]
+## [3.2.1] - 2020-09-04
 ### Added
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
 - Enable named color vectors in `DoHeatmap()`
 - Add `label.color` and `label.box` parameters to `DimPlot`
-- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting.
+- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting
+- Added new stacked violin plot functionality
 
 ### Changes
 - Allow setting `slot` parameter in `RunUMAP`
@@ -18,6 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
 - Fix issue where feature names with dashes crashed `CellSelector`
 - Fix issue where errors in subsetting were being swallowed
+- Fix issue where labeling uncropped spatial plots was broken
 
 ### Deprecated
 - `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
