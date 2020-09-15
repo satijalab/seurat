@@ -343,6 +343,10 @@ FindIntegrationAnchors <- function(
             x = rownames(x = Loadings(object = object.1[["pca"]])),
             y = rownames(x = Loadings(object = object.2[["pca"]]))
           )
+          common.features <- intersect(
+            common.features,
+            anchor.features
+          )
           object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
           projected.embeddings.1<- t(x = GetAssayData(object = object.1, slot = "scale.data")[common.features, ]) %*%
             Loadings(object = object.2[["pca"]])[common.features, ]
