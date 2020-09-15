@@ -8,41 +8,41 @@ NULL
 
 #' Find integration anchors
 #'
-#' Find a set of anchors between a list of \code{\link{Seurat}} objects. 
+#' Find a set of anchors between a list of \code{\link{Seurat}} objects.
 #' These  anchors can later be used to integrate the objects using the
 #' \code{\link{IntegrateData}} function.
-#' 
-#' The main steps of this procedure are outlined below. For a more detailed 
-#' description of the methodology, please see Stuart, Butler, et al Cell 2019: 
+#'
+#' The main steps of this procedure are outlined below. For a more detailed
+#' description of the methodology, please see Stuart, Butler, et al Cell 2019:
 #' \url{https://doi.org/10.1016/j.cell.2019.05.031};
 #' \url{https://doi.org/10.1101/460147}
-#' 
-#' First, determine anchor.features if not explicitly specified using 
-#' \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations 
+#'
+#' First, determine anchor.features if not explicitly specified using
+#' \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations
 #' of reference and query datasets:
-#' 
+#'
 #' \itemize{
-#'   \item{Perform dimensional reduction on the dataset pair as specified via 
-#'   the \code{reduction} parameter. If \code{l2.norm} is set to \code{TRUE}, 
+#'   \item{Perform dimensional reduction on the dataset pair as specified via
+#'   the \code{reduction} parameter. If \code{l2.norm} is set to \code{TRUE},
 #'   perform L2 normalization of the embedding vectors.}
-#'   \item{Identify anchors - pairs of cells from each dataset 
+#'   \item{Identify anchors - pairs of cells from each dataset
 #'   that are contained within each other's neighborhoods (also known as mutual
 #'   nearest neighbors).}
 #'   \item{Filter low confidence anchors to ensure anchors in the low dimension
-#'   space are in broad agreement with the high dimensional measurements. This 
-#'   is done by looking at the neighbors of each query cell in the reference 
+#'   space are in broad agreement with the high dimensional measurements. This
+#'   is done by looking at the neighbors of each query cell in the reference
 #'   dataset using \code{max.features} to define this space. If the reference
-#'   cell isn't found within the first \code{k.filter} neighbors, remove the 
+#'   cell isn't found within the first \code{k.filter} neighbors, remove the
 #'   anchor.}
-#'   \item{Assign each remaining anchor a score. For each anchor cell, determine 
-#'   the nearest \code{k.score} anchors within its own dataset and within its 
+#'   \item{Assign each remaining anchor a score. For each anchor cell, determine
+#'   the nearest \code{k.score} anchors within its own dataset and within its
 #'   pair's dataset. Based on these neighborhoods, construct an overall neighbor
 #'   graph and then compute the shared neighbor overlap between anchor and query
-#'   cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+#'   cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on
 #'   these scores to dampen outlier effects and rescale to range between 0-1.}
 #' }
 #'
-#' @param object.list A list of \code{\link{Seurat}} objects between which to 
+#' @param object.list A list of \code{\link{Seurat}} objects between which to
 #' find anchors for downstream integration.
 #' @param assay A vector of assay names specifying which assay to use when
 #' constructing anchors. If NULL, the current default assay for each object is
@@ -87,45 +87,45 @@ NULL
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param verbose Print progress bars and output
 #'
-#' @return Returns an \code{\link{AnchorSet}} object that can be used as input to 
-#' \code{\link{IntegrateData}}. 
-#' 
-#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#' @return Returns an \code{\link{AnchorSet}} object that can be used as input to
+#' \code{\link{IntegrateData}}.
+#'
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
 #' j.cell.2019.05.031}
-#' 
+#'
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
 #' library(SeuratData)
 #' data("panc8")
-#' 
+#'
 #' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
 #' # split the object by dataset
 #' pancreas.list <- SplitObject(panc8, split.by = "tech")
-#' 
+#'
 #' # perform standard preprocessing on each object
 #' for (i in 1:length(pancreas.list)) {
 #'   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
 #'   pancreas.list[[i]] <- FindVariableFeatures(
-#'     pancreas.list[[i]], selection.method = "vst", 
+#'     pancreas.list[[i]], selection.method = "vst",
 #'     nfeatures = 2000, verbose = FALSE
 #'   )
 #' }
-#' 
+#'
 #' # find anchors
 #' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
-#' 
+#'
 #' # integrate data
 #' integrated <- IntegrateData(anchorset = anchors)
 #' }
-#' 
+#'
 FindIntegrationAnchors <- function(
   object.list = NULL,
   assay = NULL,
@@ -431,40 +431,40 @@ FindIntegrationAnchors <- function(
 
 #' Find transfer anchors
 #'
-#' Find a set of anchors between a reference and query object. These 
-#' anchors can later be used to transfer data from the reference to 
+#' Find a set of anchors between a reference and query object. These
+#' anchors can later be used to transfer data from the reference to
 #' query object using the \code{\link{TransferData}} object.
 #'
-#' The main steps of this procedure are outlined below. For a more detailed 
+#' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
 #' \url{https://doi.org/10.1016/j.cell.2019.05.031};
 #' \url{https://doi.org/10.1101/460147}
-#' 
+#'
 #' \itemize{
-#' 
-#'   \item{Perform dimensional reduction. Exactly what is done here depends on 
-#'   the values set for the \code{reduction} and \code{project.query} 
-#'   parameters. If \code{reduction = "pcaproject"}, a PCA is performed on 
-#'   either the reference (if \code{project.query = FALSE}) or the query (if 
+#'
+#'   \item{Perform dimensional reduction. Exactly what is done here depends on
+#'   the values set for the \code{reduction} and \code{project.query}
+#'   parameters. If \code{reduction = "pcaproject"}, a PCA is performed on
+#'   either the reference (if \code{project.query = FALSE}) or the query (if
 #'   \code{project.query = TRUE}), using the \code{features} specified. The data
-#'   from the other dataset is then projected onto this learned PCA structure. 
-#'   If \code{reduction = "cca"}, then CCA is performed on the reference and 
-#'   query for this dimensional reduction step. If \code{l2.norm} is set to 
+#'   from the other dataset is then projected onto this learned PCA structure.
+#'   If \code{reduction = "cca"}, then CCA is performed on the reference and
+#'   query for this dimensional reduction step. If \code{l2.norm} is set to
 #'   \code{TRUE}, perform L2 normalization of the embedding vectors.}
-#'   \item{Identify anchors between the reference and query - pairs of cells 
-#'   from each dataset that are contained within each other's neighborhoods 
+#'   \item{Identify anchors between the reference and query - pairs of cells
+#'   from each dataset that are contained within each other's neighborhoods
 #'   (also known as mutual nearest neighbors).}
 #'   \item{Filter low confidence anchors to ensure anchors in the low dimension
-#'   space are in broad agreement with the high dimensional measurements. This 
-#'   is done by looking at the neighbors of each query cell in the reference 
+#'   space are in broad agreement with the high dimensional measurements. This
+#'   is done by looking at the neighbors of each query cell in the reference
 #'   dataset using \code{max.features} to define this space. If the reference
-#'   cell isn't found within the first \code{k.filter} neighbors, remove the 
+#'   cell isn't found within the first \code{k.filter} neighbors, remove the
 #'   anchor.}
-#'   \item{Assign each remaining anchor a score. For each anchor cell, determine 
-#'   the nearest \code{k.score} anchors within its own dataset and within its 
+#'   \item{Assign each remaining anchor a score. For each anchor cell, determine
+#'   the nearest \code{k.score} anchors within its own dataset and within its
 #'   pair's dataset. Based on these neighborhoods, construct an overall neighbor
 #'   graph and then compute the shared neighbor overlap between anchor and query
-#'   cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+#'   cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on
 #'   these scores to dampen outlier effects and rescale to range between 0-1.}
 #' }
 #'
@@ -473,87 +473,87 @@ FindIntegrationAnchors <- function(
 #' @param mapping Computes anchors suitable for use in in the
 #' \code{\link{MapQueryData}} function
 #' @param reference.assay Name of the Assay to use from reference
-#' @param reference.neighbors Name of the Neighbor to use from the reference, 
+#' @param reference.neighbors Name of the Neighbor to use from the reference,
 #' generated by NNHelper (only relevant when \code{mapping = TRUE})
 #' @param query.assay Name of the Assay to use from query
-#' @param reduction Dimensional reduction to perform when finding anchors. 
+#' @param reduction Dimensional reduction to perform when finding anchors.
 #' Options are:
 #' \itemize{
-#'    \item{pcaproject: Project the PCA from the reference onto the query. We 
+#'    \item{pcaproject: Project the PCA from the reference onto the query. We
 #'    recommend using PCA when reference and query datasets are from scRNA-seq}
 #'    \item{cca: Run a CCA on the reference and query }
 #' }
 #' @param reference.reduction Dimensional reduction to use from the reference
 #' (only relevant when \code{mapping = TRUE})
-#' @param project.query Project the PCA from the query dataset onto the 
-#' reference. Use only in rare cases where the query dataset has a much larger 
+#' @param project.query Project the PCA from the query dataset onto the
+#' reference. Use only in rare cases where the query dataset has a much larger
 #' cell number, but the reference dataset has a unique assay for transfer.
 #' @param features Features to use for dimensional reduction. If not specified,
-#' set as variable features of the reference object which are also present in 
-#' the query. 
-#' @param normalization.method Name of normalization method used: LogNormalize 
+#' set as variable features of the reference object which are also present in
+#' the query.
+#' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT.
-#' @param npcs Number of PCs to compute on reference. If null, then use an 
+#' @param npcs Number of PCs to compute on reference. If null, then use an
 #' existing PCA structure in the reference object
-#' @param l2.norm Perform L2 normalization on the cell embeddings after 
+#' @param l2.norm Perform L2 normalization on the cell embeddings after
 #' dimensional reduction
-#' @param dims Which dimensions to use from the reduction to specify the 
+#' @param dims Which dimensions to use from the reduction to specify the
 #' neighbor search space
 #' @param k.anchor How many neighbors (k) to use when finding anchors
 #' @param k.filter How many neighbors (k) to use when filtering anchors
 #' @param k.score How many neighbors (k) to use when scoring anchors
-#' @param max.features The maximum number of features to use when specifying the 
+#' @param max.features The maximum number of features to use when specifying the
 #' neighborhood search space in the anchor filtering
 #' @param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
-#' @param eps Error bound on the neighbor finding algorithm (from 
+#' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
-#' @param approx.pca Use truncated singular value decomposition to approximate 
+#' @param approx.pca Use truncated singular value decomposition to approximate
 #' PCA
-#' @param mapping.score.k Compute and store nearest k query neighbors. Only set 
+#' @param mapping.score.k Compute and store nearest k query neighbors. Only set
 #' if using in the context of mapping and computing the mapping score to enable
 #' reuse of neighbor calculations.
 #' @param verbose Print progress bars and output
 #'
-#' @return Returns an \code{AnchorSet} object that can be used as input to 
-#' \code{\link{TransferData}}, or \code{\link{MapQueryData}} when 
+#' @return Returns an \code{AnchorSet} object that can be used as input to
+#' \code{\link{TransferData}}, or \code{\link{MapQueryData}} when
 #' \code{mapping = TRUE}
-#' 
-#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#'
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
 #' j.cell.2019.05.031};
-#' 
+#'
 #' @export
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
 #' library(SeuratData)
 #' data("pbmc3k")
-#' 
+#'
 #' # for demonstration, split the object into reference and query
 #' pbmc.reference <- pbmc3k[, 1:1350]
 #' pbmc.query <- pbmc3k[, 1351:2700]
-#' 
+#'
 #' # perform standard preprocessing on each object
 #' pbmc.reference <- NormalizeData(pbmc.reference)
 #' pbmc.reference <- FindVariableFeatures(pbmc.reference)
 #' pbmc.reference <- ScaleData(pbmc.reference)
-#' 
+#'
 #' pbmc.query <- NormalizeData(pbmc.query)
 #' pbmc.query <- FindVariableFeatures(pbmc.query)
 #' pbmc.query <- ScaleData(pbmc.query)
-#' 
+#'
 #' # find anchors
 #' anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
-#' 
+#'
 #' # transfer labels
 #' predictions <- TransferData(
-#'   anchorset = anchors, 
+#'   anchorset = anchors,
 #'   refdata = pbmc.reference$seurat_annotations
 #' )
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
-#' 
+#'
 FindTransferAnchors <- function(
   reference,
   query,
@@ -666,10 +666,10 @@ FindTransferAnchors <- function(
           query <- ScaleData(object = query, features = features, verbose = FALSE)
         }
         query <- RunPCA(
-          object = query, 
-          npcs = npcs, 
-          verbose = FALSE, 
-          features = features, 
+          object = query,
+          npcs = npcs,
+          verbose = FALSE,
+          features = features,
           approx = approx.pca
         )
       }
@@ -720,7 +720,7 @@ FindTransferAnchors <- function(
         assay = reference.assay
       )
       combined.ob <- merge(
-        x = DietSeurat(object = reference, features = features), 
+        x = DietSeurat(object = reference, features = features),
         y = DietSeurat(object = query, features = features)
       )
       combined.ob[["pcaproject"]] <- combined.pca
@@ -748,7 +748,7 @@ FindTransferAnchors <- function(
   if (mapping) {
     if (normalization.method == "SCT") {
       features <- intersect(
-        x = features, 
+        x = features,
         y = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data"))
       )
       # move scale.data to data slot
@@ -762,12 +762,12 @@ FindTransferAnchors <- function(
       assays = query.assay,
       counts = FALSE,
       features = features,
-      scale.data = FALSE  
+      scale.data = FALSE
     )
     ## find anchors using PCA projection
     projected.pca <- ProjectCellEmbeddings(
       reference = reference,
-      reduction = reference.reduction, 
+      reduction = reference.reduction,
       query = query,
       dims = dims,
       feature.mean = feature.mean,
@@ -781,13 +781,13 @@ FindTransferAnchors <- function(
     )
     combined.ob.counts <- as.sparse(x = matrix(
       data = 0,
-      nrow = length(x = features), 
+      nrow = length(x = features),
       ncol = ncol(x = reference) + ncol(x = query)
     ))
     rownames(x = combined.ob.counts) <- features
     colnames(x = combined.ob.counts) <- c(Cells(x = reference), Cells(x = query))
     combined.ob <- CreateSeuratObject(counts = combined.ob.counts)
-    
+
     combined.ob[[reduction]] <- combined.pca
     old.loadings <- Loadings(object = reference[[reference.reduction]])
     colnames(x = old.loadings) <- paste0("ProjectPC_", 1:ncol(x = old.loadings))
@@ -799,7 +799,7 @@ FindTransferAnchors <- function(
   }
   slot <- "data"
   if (mapping) {
-    k.nn <- max(k.score, k.anchor)  
+    k.nn <- max(k.score, k.anchor)
     if( ncol(x = Indices(reference[[reference.neighbors]])) < (k.nn + 1)){
       stop("k.score or k.anchor is larger than the number of neighbors",
            "contained in reference.nn. Recompute reference.nn using",
@@ -810,8 +810,8 @@ FindTransferAnchors <- function(
       message("Finding query neighbors")
     }
     query.neighbors <- NNHelper(
-      data = projected.pca, 
-      k = max(mapping.score.k, k.nn + 1), 
+      data = projected.pca,
+      k = max(mapping.score.k, k.nn + 1),
       method = nn.method,
       cache.index = TRUE
     )
@@ -875,32 +875,32 @@ FindTransferAnchors <- function(
 }
 
 #' Get the predicted identity
-#' 
-#' Utility function to easily pull out the name of the class with the maximum 
-#' prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
+#'
+#' Utility function to easily pull out the name of the class with the maximum
+#' prediction. This is useful if you've set \code{prediction.assay = TRUE} in
 #' \code{\link{TransferData}} and want to have a vector with the predicted class.
-#' 
+#'
 #' @param object Seurat object
 #' @param assay Name of the assay holding the predictions
 #' @param slot Slot of the assay in which the prediction scores are stored
-#' @param score.filter Return "Unassigned" for any cell with a score less than 
+#' @param score.filter Return "Unassigned" for any cell with a score less than
 #' this value
-#' 
+#'
 #' @return Returns a vector of predicted class names
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
 #'   prediction.assay <- TransferData(anchorset = anchors, refdata = reference$class)
 #'   query[["predictions"]] <- prediction.assay
 #'   query$predicted.id <- GetTransferPredictions(query)
 #' }
 #' @export
-#' 
+#'
 GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
   dat <- GetAssayData(object[[assay]], slot = slot)
   predictions <- apply(
-    X = dat, 
-    MARGIN = 2, 
+    X = dat,
+    MARGIN = 2,
     FUN = function(x){
       if (x['max'] < score.filter) {
         "Unassigned"
@@ -915,89 +915,89 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 
 #' Integrate data
 #'
-#' Perform dataset integration using a pre-computed \code{\link{AnchorSet}}. 
+#' Perform dataset integration using a pre-computed \code{\link{AnchorSet}}.
 #'
-#' The main steps of this procedure are outlined below. For a more detailed 
+#' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
 #' \url{https://doi.org/10.1016/j.cell.2019.05.031};
 #' \url{https://doi.org/10.1101/460147}
-#' 
+#'
 #' For pairwise integration:
-#' 
+#'
 #' \itemize{
 #'   \item{Construct a weights matrix that defines the association between each
 #'   query cell and each anchor. These weights are computed as 1 - the distance
-#'   between the query cell and the anchor divided by the distance of the query 
-#'   cell to the \code{k.weight}th anchor multiplied by the anchor score 
-#'   computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian 
+#'   between the query cell and the anchor divided by the distance of the query
+#'   cell to the \code{k.weight}th anchor multiplied by the anchor score
+#'   computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian
 #'   kernel width a bandwidth defined by \code{sd.weight} and normalize across
 #'   all \code{k.weight} anchors.}
-#'   \item{Compute the anchor integration matrix as the difference between the 
+#'   \item{Compute the anchor integration matrix as the difference between the
 #'   two expression matrices for every pair of anchor cells}
-#'   \item{Compute the transformation matrix as the product of the integration 
+#'   \item{Compute the transformation matrix as the product of the integration
 #'   matrix and the weights matrix.}
-#'   \item{Subtract the transformation matrix from the original expression 
+#'   \item{Subtract the transformation matrix from the original expression
 #'   matrix.}
 #' }
-#' 
+#'
 #' For multiple dataset integration, we perform iterative pairwise integration.
-#' To determine the order of integration (if not specified via 
-#' \code{sample.tree}), we 
+#' To determine the order of integration (if not specified via
+#' \code{sample.tree}), we
 #' \itemize{
-#'   \item{Define a distance between datasets as the total number of cells in 
-#'   the smaller dataset divided by the total number of anchors between the two 
+#'   \item{Define a distance between datasets as the total number of cells in
+#'   the smaller dataset divided by the total number of anchors between the two
 #'   datasets.}
 #'   \item{Compute all pairwise distances between datasets}
-#'   \item{Cluster this distance matrix to determine a guide tree}  
-#' } 
-#' 
+#'   \item{Cluster this distance matrix to determine a guide tree}
+#' }
 #'
-#' @param anchorset An \code{\link{AnchorSet}} object generated by 
+#'
+#' @param anchorset An \code{\link{AnchorSet}} object generated by
 #' \code{\link{FindIntegrationAnchors}}
 #' @param new.assay.name Name for the new assay containing the integrated data
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT
-#' @param features Vector of features to use when computing the PCA to determine 
-#' the weights. Only set if you want a different set from those used in the 
+#' @param features Vector of features to use when computing the PCA to determine
+#' the weights. Only set if you want a different set from those used in the
 #' anchor finding process
-#' @param features.to.integrate Vector of features to integrate. By default, 
+#' @param features.to.integrate Vector of features to integrate. By default,
 #' will use the features used in anchor finding.
 #' @param dims Number of dimensions to use in the anchor weighting procedure
 #' @param k.weight Number of neighbors to consider when weighting anchors
-#' @param weight.reduction Dimension reduction to use when calculating anchor 
+#' @param weight.reduction Dimension reduction to use when calculating anchor
 #' weights. This can be one of:
 #' \itemize{
-#'    \item{A string, specifying the name of a dimension reduction present in 
+#'    \item{A string, specifying the name of a dimension reduction present in
 #'    all objects to be integrated}
-#'    \item{A vector of strings, specifying the name of a dimension reduction to 
+#'    \item{A vector of strings, specifying the name of a dimension reduction to
 #'    use for each object to be integrated}
-#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to 
+#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
 #'    use for each object in the integration}
-#'    \item{NULL, in which case a new PCA will be calculated and used to 
+#'    \item{NULL, in which case a new PCA will be calculated and used to
 #'    calculate anchor weights}
 #' }
-#' Note that, if specified, the requested dimension reduction will only be used 
-#' for calculating anchor weights in the first merge between reference and 
+#' Note that, if specified, the requested dimension reduction will only be used
+#' for calculating anchor weights in the first merge between reference and
 #' query, as the merged object will subsequently contain more cells than was in
 #' query, and weights will need to be calculated for all cells in the object.
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
-#' @param sample.tree Specify the order of integration. If NULL, will compute 
+#' @param sample.tree Specify the order of integration. If NULL, will compute
 #' automatically.
-#' @param preserve.order Do not reorder objects based on size for each pairwise 
+#' @param preserve.order Do not reorder objects based on size for each pairwise
 #' integration.
 #' @param do.cpp Run cpp code where applicable
-#' @param eps Error bound on the neighbor finding algorithm (from 
+#' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
 #' @param verbose Print progress bars and output
 #'
-#' @return Returns a \code{\link{Seurat}} object with a new integrated 
-#' \code{\link{Assay}}. If \code{normalization.method = "LogNormalize"}, the 
-#' integrated data is returned to the \code{data} slot and can be treated as 
+#' @return Returns a \code{\link{Seurat}} object with a new integrated
+#' \code{\link{Assay}}. If \code{normalization.method = "LogNormalize"}, the
+#' integrated data is returned to the \code{data} slot and can be treated as
 #' log-normalized, corrected data. If \code{normalization.method = "SCT"}, the
 #' integrated data is returned to the \code{scale.data} slot and can be treated
-#' as centered, corrected Pearson residuals.  
+#' as centered, corrected Pearson residuals.
 #'
-#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
 #' j.cell.2019.05.031}
 #'
@@ -1007,27 +1007,27 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
 #' library(SeuratData)
 #' data("panc8")
-#' 
+#'
 #' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
 #' # split the object by dataset
 #' pancreas.list <- SplitObject(panc8, split.by = "tech")
-#' 
+#'
 #' # perform standard preprocessing on each object
 #' for (i in 1:length(pancreas.list)) {
 #'   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
 #'   pancreas.list[[i]] <- FindVariableFeatures(
-#'     pancreas.list[[i]], selection.method = "vst", 
+#'     pancreas.list[[i]], selection.method = "vst",
 #'     nfeatures = 2000, verbose = FALSE
 #'   )
 #' }
-#' 
+#'
 #' # find anchors
 #' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
-#' 
+#'
 #' # integrate data
 #' integrated <- IntegrateData(anchorset = anchors)
 #' }
-#' 
+#'
 IntegrateData <- function(
   anchorset,
   new.assay.name = "integrated",
@@ -1056,11 +1056,11 @@ IntegrateData <- function(
   )
   if (!is.null(x = features.to.integrate)) {
     features.to.integrate <- intersect(
-      x = features.to.integrate,  
+      x = features.to.integrate,
       y = Reduce(
         f = intersect,
         x = lapply(
-          X = object.list, 
+          X = object.list,
           FUN = rownames
         )
       )
@@ -1071,8 +1071,8 @@ IntegrateData <- function(
       assay <- DefaultAssay(object = object.list[[i]])
       if (length(x = setdiff(x = features.to.integrate, y = features)) != 0) {
         object.list[[i]] <- GetResidual(
-          object = object.list[[i]], 
-          features = setdiff(x = features.to.integrate, y = features), 
+          object = object.list[[i]],
+          features = setdiff(x = features.to.integrate, y = features),
           verbose = verbose
         )
       }
@@ -1277,44 +1277,58 @@ LocalStruct <- function(
   return(local.struct)
 }
 
-#' Map query cells to reference dimensional reduction
-#' 
+#' Map query cells to reference dimensional reduction.
+#' Returns a modified query object, containing: a Neighbor object (query_ref.nn)
+#' to use with RunUMAP and a reduction model; predicted identities and prediction
+#' scores in metadata and per-class prediction scores in an Assay for each identity
+#' in transfer.labels; Assay with imputed values for each matrix in transfer.expression.
+#'
 #' @param reference \code{\link{Seurat}} object to use as the reference
 #' @param query \code{\link{Seurat}} object to use as the query
-#' @param proj.reduction Name of the projected dimensional reduction in the query 
+#' @param proj.reduction Name of the projected dimensional reduction in the query
 #' from \code{\link{FindTransferAnchors}} with \code{mapping = TRUE}
 #' @param anchor.reduction Name of the dimensional reduction used to calculate
 #' cell-anchor weights matrix
-#' @param anchorset An \code{\link{AnchorSet}} object generated by 
+#' @param anchorset An \code{\link{AnchorSet}} object generated by
 #' \code{\link{FindTransferAnchors}} with \code{mapping = TRUE}
-#' @param transfer.labels Identities to transfer to the query
-#' @param transfer.expression Expression values to transfer to the query
+#' @param transfer.labels Identities to transfer to the query.
+#' Can be a list of multiple identities to transfer.
+#' The list must be named if it has >1 element, default name for 1 element is "id".
+#' Element names are used to name metadata fields and prediction score assay.
+#' @param transfer.expression Expression values to transfer to the query.
+#' Can be a list of multiple expression matrices to transfer.
+#' The list must be named if it has >1 element, default name for 1 element is
+#' "transfer". Element names are used to name the transferred assays in the query.
 #' @param ident.var The name of variable to distinguish reference and query cells
 #' @param k.nn How many neighbors (k) to use
 #' @param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
-#' @param reference.neighbors Optional; name of the Neighbor to use from the reference 
+#' @param reference.neighbors Optional; name of the Neighbor to use from the reference
 #' (generated by NNHelper with cache.index = TRUE)
+#' @param return.intermediate Return intermediate results in the query object
+#' (projected PCA as DimReduc, corrected PCA as DimReduc,
+#' integration weights as IntegrationData)
 #' @inheritParams IntegrateData
-#' 
+#'
 #' @export
-#' 
+#'
 MapQueryData <- function(reference,
-                     query, 
-                     proj.reduction = "pcaproject", 
-                     anchor.reduction = NULL, 
+                     query,
+                     proj.reduction = "pcaproject",
+                     anchor.reduction = NULL,
                      dims,
                      anchorset = NULL,
-                     transfer.labels = NULL, 
-                     transfer.expression = NULL, 
+                     transfer.labels = NULL,
+                     transfer.expression = NULL,
                      verbose = TRUE,
-                     ident.var = "ref.ident", 
-                     k.nn = 20, 
+                     ident.var = "ref.ident",
+                     k.nn = 20,
                      k.weight = 50,
                      sd.weight = 1,
                      eps = 0,
                      nn.method = 'annoy',
-                     reference.neighbors = NULL
+                     reference.neighbors = NULL,
+                     return.intermediate = FALSE
                      ) {
   if (!is.null(anchorset) && length(query) != length(anchorset)) {
     stop("Number of objects in the query object should be exactly the same in the anchorset")
@@ -1330,6 +1344,24 @@ MapQueryData <- function(reference,
   if (is.null(anchor.reduction)) {
     anchor.reduction <- proj.reduction
   }
+  if (!is.null(transfer.labels) && !is.list(transfer.labels)) {
+    transfer.labels <- list(transfer.labels)
+    if (is.null(names(transfer.labels))) {
+      names(transfer.labels) <- "id"
+    }
+  }
+  if (!is.null(transfer.labels) && is.null(names(transfer.labels))) {
+    stop("transfer.labels must be a named list if it contains 2 or more elements")
+  }
+  if (!is.null(transfer.expression) && !is.list(transfer.expression)) {
+    transfer.expression <- list(transfer.expression)
+    if (is.null(names(transfer.expression))) {
+      names(transfer.expression) <- "transfer"
+    }
+  }
+  if (!is.null(transfer.expression) && is.null(names(transfer.expression))) {
+    stop("transfer.expression must be a named list if it contains 2 or more elements")
+  }
   objects.list <- lapply(
     X = 1:length(x = query),
     FUN = function(i) {
@@ -1341,155 +1373,168 @@ MapQueryData <- function(reference,
       }
       obj <- transfer_anchor@object.list[[1]]
       # test if object is merged by reference and query
-      ref.cell.idx <- 1:ncol(x = reference) 
+      ref.cell.idx <- 1:ncol(x = reference)
       query.cell.idx <- (ncol(x = reference)+1):ncol(x = obj)
       obj@meta.data[ ref.cell.idx, ident.var] <- "reference"
       obj@meta.data[ query.cell.idx , ident.var] <- "query"
-      
+
       # setting up an object with pcassay with PCA embedding as the data
       query.embedding <- t(Embeddings(object = obj, reduction = proj.reduction)[ , dims])
       suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
-      
+
       # setting up metadata
       DefaultAssay(obj) <- 'pcassay'
       obj[[proj.reduction ]]@assay.used <- 'pcassay'
       obj[[anchor.reduction ]]@assay.used <- 'pcassay'
-      
+
       # create a slim object that contains the PC embeddings as a new assay "pcassay"
       merged.obj <- DietSeurat(object = obj, assays = 'pcassay',
                                dimreducs = c(anchor.reduction, proj.reduction))
-      
-      # prepapring metadata for batch correction
+
+      # preparing metadata for batch correction
       integration.name <- "integrated"
       filtered.anchors <- data.frame(transfer_anchor@anchors)
-      
+
       # filling the anchors slot in the new object
-      merged.obj <- SetIntegrationData(object = merged.obj, 
-                                       integration.name = 'integrated', 
+      merged.obj <- SetIntegrationData(object = merged.obj,
+                                       integration.name = 'integrated',
                                        slot = "anchors",
                                        new.data = filtered.anchors)
-      
+
       # filling the neighbors slot in the new object
       merged.obj <- SetIntegrationData(object = merged.obj,
-                                       integration.name = 'integrated', 
-                                       slot = "neighbors", 
-                                       new.data = list(cells1 = transfer_anchor@reference.cells, 
+                                       integration.name = 'integrated',
+                                       slot = "neighbors",
+                                       new.data = list(cells1 = transfer_anchor@reference.cells,
                                                        cells2 = transfer_anchor@query.cells))
       # perform batch-correction on the PC values using the new object
-      merged.obj <- FindIntegrationMatrix(object = merged.obj, 
-                                          integration.name = 'integrated', 
-                                          features.integrate = rownames(x = obj), 
+      merged.obj <- FindIntegrationMatrix(object = merged.obj,
+                                          integration.name = 'integrated',
+                                          features.integrate = rownames(x = obj),
                                           verbose = verbose)
       dr.weights <- merged.obj[[ anchor.reduction ]]
-      #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an 
-      merged.obj <- FindWeights(object = merged.obj, 
-                                integration.name = integration.name, 
+      #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an
+      merged.obj <- FindWeights(object = merged.obj,
+                                integration.name = integration.name,
                                 reduction = dr.weights,
-                                cpp = TRUE, 
+                                cpp = TRUE,
                                 dims = dims,
-                                k = k.weight, 
+                                k = k.weight,
                                 sd.weight = sd.weight,
-                                eps = eps, 
+                                eps = eps,
                                 nn.method = nn.method,
                                 verbose = verbose)
-      merged.obj <- TransformDataMatrix(object = merged.obj, 
-                                        new.assay.name = 'integrated', 
-                                        features.to.integrate = rownames(x = obj), 
+      merged.obj <- TransformDataMatrix(object = merged.obj,
+                                        new.assay.name = 'integrated',
+                                        features.to.integrate = rownames(x = obj),
                                         integration.name = integration.name,
                                         verbose = verbose)
       # extracting batch corrcted data
-      integrated.matrix <- GetAssayData(object = merged.obj, 
-                                        assay = 'integrated', 
+      integrated.matrix <- GetAssayData(object = merged.obj,
+                                        assay = 'integrated',
                                         slot = "data")
       # saving the batch corrected PCA embeddings
       merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
                                                   key = 'ipc_',
                                                   assay = 'pcassay')
       # single modality will find query reference NN
-      reference.embeddings <- L2Norm(mat = Embeddings(object = merged.obj, 
+      reference.embeddings <- L2Norm(mat = Embeddings(object = merged.obj,
                                                 reduction = "int" )[ ref.cell.idx, ])
-      query.embeddings<- L2Norm(mat = Embeddings(object = merged.obj, 
+      query.embeddings<- L2Norm(mat = Embeddings(object = merged.obj,
                                            reduction = "int" )[ query.cell.idx, ])
-      rownames(query.embeddings) <-  gsub(pattern = "\\_query", 
-                                          replacement = "", 
+      rownames(query.embeddings) <-  gsub(pattern = "\\_query",
+                                          replacement = "",
                                           x = transfer_anchor@query.cells)
       query_ref.nn <- NNHelper(data = reference.embeddings,
                                query = query.embeddings,
-                               k = k.nn, 
-                               method = "annoy", 
+                               k = k.nn,
+                               method = "annoy",
                                metric ="euclidean",
                                nn.idx = reference.index)
       merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
       merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+      # This function returns the original query object modified
+      query.modified <- query[[i]]
+      query.modified[["query_ref.nn"]] <- query_ref.nn
+      if (isTRUE(x = return.intermediate)) {
+        merged.obj <- merged.obj[,query.cell.idx]
+        # Must add this Assay because it's linked to the two following DimReducs
+        query.modified[["pcassay"]] <- merged.obj[["pcassay"]]
+        query.modified[["pcaproject"]] <- merged.obj[["pcaproject"]] #DimReduc
+        query.modified[["pcacorrected"]] <- merged.obj[["int"]] #DimReduc
+        query.modified@tools$integrated <- merged.obj@tools$integrated
+      }
       if (!is.null(x = transfer.labels)) {
         # transfer identities
-        refdata <- transfer.labels
-        if (is.factor(x = refdata)) {
-          possible.ids <- levels(x = refdata)
-        } else {
-          possible.ids <- sort(x = unique(x = refdata))
-        }
-        filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
-        reference.ids <- factor(x = filtered.anchors$id1, levels = possible.ids)
-        prediction.mat <- matrix(nrow = nrow(x = filtered.anchors), 
-                                 ncol = length(x = possible.ids), 
-                                 data = 0)
-        transfer_weights <-  GetIntegrationData(
-          object = merged.obj,
-          integration.name = "integrated",
-          slot = 'weights'
-        )
-        for (i in 1:length(x = possible.ids)) {
-          prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
-        }
-        prediction.scores <- t(x = transfer_weights) %*% prediction.mat
-        colnames(x = prediction.scores) <- possible.ids
-        rownames(x = prediction.scores) <- gsub(pattern = "\\_query", 
-                                                  replacement = "", 
+        for (j in 1:length(transfer.labels)) {
+          refdata <- transfer.labels[[j]]
+          refdata.name <- names(transfer.labels)[[j]]
+          if (is.factor(x = refdata)) {
+            possible.ids <- levels(x = refdata)
+          } else {
+            possible.ids <- sort(x = unique(x = refdata))
+          }
+          filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
+          reference.ids <- factor(x = filtered.anchors$id1, levels = possible.ids)
+          prediction.mat <- matrix(nrow = nrow(x = filtered.anchors),
+                                   ncol = length(x = possible.ids),
+                                   data = 0)
+          transfer_weights <-  GetIntegrationData(
+            object = merged.obj,
+            integration.name = "integrated",
+            slot = 'weights'
+          )
+          for (i in 1:length(x = possible.ids)) {
+            prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
+          }
+          prediction.scores <- t(x = transfer_weights) %*% prediction.mat
+          colnames(x = prediction.scores) <- possible.ids
+          rownames(x = prediction.scores) <- gsub(pattern = "\\_query",
+                                                  replacement = "",
                                                   x = transfer_anchor@query.cells)
-        prediction.ids <- possible.ids[apply(X = prediction.scores,
-                                             MARGIN = 1, 
-                                             FUN = which.max)]
-        prediction.scores.max <- apply(X = prediction.scores, 
-                                       MARGIN = 1, 
-                                       function(x) max(x))
-        
-        # prediction score matrix for query
-        prediction.ids <- factor(x = prediction.ids, levels = possible.ids)
-        predictions <- data.frame(
-          predicted.id = prediction.ids,
-          predicted.id.score = prediction.scores.max,
-          prediction.score = as.matrix(prediction.scores),
-          row.names = rownames(x = prediction.scores),
-          stringsAsFactors = FALSE)
-        merged.obj@misc$predictions <- predictions
- 
-         # prediction scores for query and reference
-        merged.obj$predicted.id <- "other"
-        merged.obj$predicted.id[ref.cell.idx] <- as.character(x = refdata)
-        merged.obj$predicted.id[query.cell.idx] <- prediction.ids
-        merged.obj$predicted.id.score <- 1
-        merged.obj$predicted.id.score[query.cell.idx] <- prediction.scores.max 
+          prediction.scores <- data.frame(prediction.score = as.matrix(prediction.scores))
+          prediction.ids <- possible.ids[apply(X = prediction.scores,
+                                               MARGIN = 1,
+                                               FUN = which.max)]
+          prediction.scores.max <- apply(X = prediction.scores,
+                                         MARGIN = 1,
+                                         function(x) max(x))
+          # Add identity and score as metadata columns
+          query.modified <- AddMetaData(object = query.modified,
+                      metadata = prediction.ids,
+                      col.name = paste0("predicted.", refdata.name))
+          query.modified <- AddMetaData(object = query.modified,
+                      metadata = prediction.scores.max,
+                      col.name = paste0("predicted.", refdata.name, ".score"))
+          # Add prediction scores for all classes as an Assay
+          query.modified[[paste0("prediction.score.",refdata.name)]] <- CreateAssayObject(data = t(as.matrix(prediction.scores)))
+        }
       }
       if (!is.null(x = transfer.expression)) {
-        refdata.exp <-  transfer.expression
-        refdata.anchors.exp <- refdata.exp[, filtered.anchors[, "cell1"]]
-        nfeatures <- nrow(x = refdata.exp)
-        if (verbose) {
-          message(paste0("Transfering ", nfeatures, " features from reference data"))
+        # transfer expression
+        for (j in 1:length(transfer.expression)) {
+          refdata.exp <-  transfer.expression[[j]]
+          refdata.exp.name <- names(transfer.expression)[[j]]
+          refdata.anchors.exp <- refdata.exp[, filtered.anchors[, "cell1"]]
+          nfeatures <- nrow(x = refdata.exp)
+          transfer_weights <-  GetIntegrationData(
+            object = merged.obj,
+            integration.name = "integrated",
+            slot = 'weights'
+          )
+          if (verbose) {
+            message(paste0("Transfering ", nfeatures, " features from reference data"))
+          }
+          new.data <- refdata.anchors.exp %*% transfer_weights
+          rownames(x = new.data) <- rownames(x = refdata.exp)
+          colnames(x = new.data) <- gsub(pattern = "\\_query",
+                                         replacement = "",
+                                         x = transfer_anchor@query.cells)
+          # Add imputed values as an Assay
+          query.modified[[refdata.exp.name]] <- CreateAssayObject(data = as.matrix(new.data))
         }
-        new.data <- refdata.anchors.exp %*% transfer_weights
-        rownames(x = new.data) <- rownames(x = refdata.exp)
-        colnames(x = new.data) <- gsub(pattern = "\\_query",
-                                       replacement = "", 
-                                       x = transfer_anchor@query.cells)
-        new.data <- as.matrix(new.data)
-        merge.transfer.data <- cbind(transfer.expression, new.data)
-        merged.obj[["transfer"]] <- CreateAssayObject(data = merge.transfer.data)
       }
-      merged.obj <- merged.obj[,query.cell.idx]
-      merged.obj[["query_ref.nn"]] <- query_ref.nn
-      return (merged.obj)
+      return (query.modified)
     }
   )
   if (length(x = objects.list) == 1) {
@@ -1566,24 +1611,24 @@ MixingMetric <- function(
 }
 
 #' Prepare an object list normalized with sctransform for integration.
-#' 
-#' This function takes in a list of objects that have been normalized with the 
+#'
+#' This function takes in a list of objects that have been normalized with the
 #' \code{\link{SCTransform}} method and performs the following steps:
 #' \itemize{
-#'   \item{If anchor.features is a numeric value, calls \code{\link{SelectIntegrationFeatures}} 
+#'   \item{If anchor.features is a numeric value, calls \code{\link{SelectIntegrationFeatures}}
 #'   to determine the features to use in the downstream integration procedure.}
-#'   \item{Ensures that the sctransform residuals for the features specified 
-#'   to anchor.features are present in each object in the list. This is 
-#'   necessary because the default behavior of \code{\link{SCTransform}} is to 
-#'   only store the residuals for the features determined to be variable. 
-#'   Residuals are recomputed for missing features using the stored model 
+#'   \item{Ensures that the sctransform residuals for the features specified
+#'   to anchor.features are present in each object in the list. This is
+#'   necessary because the default behavior of \code{\link{SCTransform}} is to
+#'   only store the residuals for the features determined to be variable.
+#'   Residuals are recomputed for missing features using the stored model
 #'   parameters via the \code{\link{GetResidual}} function.}
 #'   \item{Subsets the \code{scale.data} slot to only contain the residuals for
 #'   anchor.features for efficiency in downstream processing. }
 #' }
 #'
 #' @param object.list A list of \code{\link{Seurat}} objects to prepare for integration
-#' @param assay The name of the \code{\link{Assay}} to use for integration. This can be a 
+#' @param assay The name of the \code{\link{Assay}} to use for integration. This can be a
 #' single name if all the assays to be integrated have the same name, or a character vector
 #' containing the name of each \code{\link{Assay}} in each object to be integrated. The
 #' specified assays must have been normalized using \code{\link{SCTransform}}.
@@ -1608,35 +1653,35 @@ MixingMetric <- function(
 #' @importFrom future.apply future_lapply
 #'
 #' @export
-#' @examples 
+#' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
 #' library(SeuratData)
 #' data("panc8")
-#' 
+#'
 #' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
 #' # split the object by dataset and take the first 2 to integrate
 #' pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
-#' 
+#'
 #' # perform SCTransform normalization
 #' pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
-#' 
+#'
 #' # select integration features and prep step
 #' features <- SelectIntegrationFeatures(pancreas.list)
 #' pancreas.list <- PrepSCTIntegration(
-#'   pancreas.list, 
+#'   pancreas.list,
 #'   anchor.features = features
 #' )
-#' 
+#'
 #' # downstream integration steps
 #' anchors <- FindIntegrationAnchors(
-#'   pancreas.list, 
-#'   normalization.method = "SCT", 
+#'   pancreas.list,
+#'   normalization.method = "SCT",
 #'   anchor.features = features
 #' )
 #' pancreas.integrated <- IntegrateData(anchors)
 #' }
-#' 
+#'
 PrepSCTIntegration <- function(
   object.list,
   assay = NULL,
@@ -1755,41 +1800,41 @@ PrepSCTIntegration <- function(
 #' Select integration features
 #'
 #' Choose the features to use when integrating multiple datasets. This function
-#' ranks features by the number of datasets they are deemed variable in, 
-#' breaking ties by the median variable feature rank across datasets. It returns 
+#' ranks features by the number of datasets they are deemed variable in,
+#' breaking ties by the median variable feature rank across datasets. It returns
 #' the top scoring features by this ranking.
-#' 
+#'
 #' If for any assay in the list, \code{\link{FindVariableFeatures}} hasn't been
 #' run, this method will try to run it using the \code{fvf.nfeatures} parameter
 #' and any additional ones specified through the \dots.
 #'
 #' @param object.list List of seurat objects
 #' @param nfeatures Number of features to return
-#' @param assay Name or vector of assay names (one for each object) from which 
-#' to pull the variable features. 
+#' @param assay Name or vector of assay names (one for each object) from which
+#' to pull the variable features.
 #' @param verbose Print messages
-#' @param fvf.nfeatures nfeatures for \code{\link{FindVariableFeatures}}. Used 
-#' if \code{VariableFeatures} have not been set for any object in 
+#' @param fvf.nfeatures nfeatures for \code{\link{FindVariableFeatures}}. Used
+#' if \code{VariableFeatures} have not been set for any object in
 #' \code{object.list}.
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
 #' @return A vector of selected features
 #'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
 #' library(SeuratData)
 #' data("panc8")
-#' 
+#'
 #' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
-#' # split the object by dataset and take the first 2 
+#' # split the object by dataset and take the first 2
 #' pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
-#' 
+#'
 #' # perform SCTransform normalization
 #' pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
-#' 
+#'
 #' # select integration features
 #' features <- SelectIntegrationFeatures(pancreas.list)
 #' }
@@ -1862,64 +1907,64 @@ SelectIntegrationFeatures <- function(
 
 #' Transfer data
 #'
-#' Transfer categorical or continuous data across single-cell datasets. For 
+#' Transfer categorical or continuous data across single-cell datasets. For
 #' transferring categorical information, pass a vector from the reference
-#' dataset (e.g. \code{refdata = reference$celltype}). For transferring 
-#' continuous information, pass a matrix from the reference dataset (e.g. 
+#' dataset (e.g. \code{refdata = reference$celltype}). For transferring
+#' continuous information, pass a matrix from the reference dataset (e.g.
 #' \code{refdata = GetAssayData(reference[['RNA']])}).
 #'
-#' The main steps of this procedure are outlined below. For a more detailed 
+#' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
 #' \url{https://doi.org/10.1016/j.cell.2019.05.031};
 #' \url{https://doi.org/10.1101/460147}
-#' 
+#'
 #' For both transferring discrete labels and also feature imputation, we first
 #' compute the weights matrix.
-#' 
+#'
 #' \itemize{
 #'   \item{Construct a weights matrix that defines the association between each
 #'   query cell and each anchor. These weights are computed as 1 - the distance
-#'   between the query cell and the anchor divided by the distance of the query 
-#'   cell to the \code{k.weight}th anchor multiplied by the anchor score 
-#'   computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian 
+#'   between the query cell and the anchor divided by the distance of the query
+#'   cell to the \code{k.weight}th anchor multiplied by the anchor score
+#'   computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian
 #'   kernel width a bandwidth defined by \code{sd.weight} and normalize across
 #'   all \code{k.weight} anchors.}
 #' }
-#' 
-#' The main difference between label transfer (classification) and feature 
-#' imputation is what gets multiplied by the weights matrix. For label transfer, 
+#'
+#' The main difference between label transfer (classification) and feature
+#' imputation is what gets multiplied by the weights matrix. For label transfer,
 #' we perform the following steps:
-#' 
+#'
 #' \itemize{
-#'   \item{Create a binary classification matrix, the rows corresponding to each 
+#'   \item{Create a binary classification matrix, the rows corresponding to each
 #'   possible class and the columns corresponding to the anchors. If the
-#'   reference cell in the anchor pair is a member of a certain class, that 
+#'   reference cell in the anchor pair is a member of a certain class, that
 #'   matrix entry is filled with a 1, otherwise 0.}
-#'   \item{Multiply this classification matrix by the transpose of weights 
+#'   \item{Multiply this classification matrix by the transpose of weights
 #'   matrix to compute a prediction score for each class for each cell in the
 #'   query dataset.}
 #' }
-#' 
+#'
 #' For feature imputation, we perform the following step:
 #' \itemize{
 #'   \item{Multiply the expression matrix for the reference anchor cells by the
-#'   weights matrix. This returns a predicted expression matrix for the 
+#'   weights matrix. This returns a predicted expression matrix for the
 #'   specified features for each cell in the query dataset.}
 #' }
-#' 
 #'
-#' @param anchorset An \code{\link{AnchorSet}} object generated by 
+#'
+#' @param anchorset An \code{\link{AnchorSet}} object generated by
 #' \code{\link{FindTransferAnchors}}
 #' @param refdata Data to transfer. Should be either a vector where the names
 #' correspond to reference cells, or a matrix, where the column names correspond
 #' to the reference cells.
-#' @param weight.reduction Dimensional reduction to use for the weighting 
+#' @param weight.reduction Dimensional reduction to use for the weighting
 #' anchors. Options are:
 #' \itemize{
 #'    \item{pcaproject: Use the projected PCA used for anchor building}
 #'    \item{pca: Use an internal PCA on the query only}
 #'    \item{cca: Use the CCA used for anchor building}
-#'    \item{custom DimReduc: User provided \code{\link{DimReduc}} object 
+#'    \item{custom DimReduc: User provided \code{\link{DimReduc}} object
 #'    computed on the query cells}
 #' }
 #' @param l2.norm Perform L2 normalization on the cell embeddings after
@@ -1927,51 +1972,51 @@ SelectIntegrationFeatures <- function(
 #' @param dims Number of dimensions to use in the anchor weighting procedure
 #' @param k.weight Number of neighbors to consider when weighting anchors
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
-#' @param eps Error bound on the neighbor finding algorithm (from 
+#' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
 #' @param do.cpp Run cpp code where applicable
 #' @param verbose Print progress bars and output
-#' @param slot Slot to store the imputed data. Must be either "data" (default) 
+#' @param slot Slot to store the imputed data. Must be either "data" (default)
 #' or "counts"
 #' @param prediction.assay Return an \code{Assay} object with the prediction
-#' scores for each class stored in the \code{data} slot. 
+#' scores for each class stored in the \code{data} slot.
 #'
-#' @return If \code{refdata} is a vector, returns a data.frame with label 
-#' predictions. If \code{refdata} is a matrix, returns an Assay object where the 
+#' @return If \code{refdata} is a vector, returns a data.frame with label
+#' predictions. If \code{refdata} is a matrix, returns an Assay object where the
 #' imputed data has been stored in the provided slot.
 #'
-#' @references Stuart T, Butler A, et al. Comprehensive Integration of 
+#' @references Stuart T, Butler A, et al. Comprehensive Integration of
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
 #' j.cell.2019.05.031}
-#' 
+#'
 #' @export
-#' @examples 
+#' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
 #' library(SeuratData)
 #' data("pbmc3k")
-#' 
+#'
 #' # for demonstration, split the object into reference and query
 #' pbmc.reference <- pbmc3k[, 1:1350]
 #' pbmc.query <- pbmc3k[, 1351:2700]
-#' 
+#'
 #' # perform standard preprocessing on each object
 #' pbmc.reference <- NormalizeData(pbmc.reference)
 #' pbmc.reference <- FindVariableFeatures(pbmc.reference)
 #' pbmc.reference <- ScaleData(pbmc.reference)
-#' 
+#'
 #' pbmc.query <- NormalizeData(pbmc.query)
 #' pbmc.query <- FindVariableFeatures(pbmc.query)
 #' pbmc.query <- ScaleData(pbmc.query)
-#' 
+#'
 #' # find anchors
 #' anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
-#' 
+#'
 #' # transfer labels
 #' predictions <- TransferData(anchorset = anchors, refdata = pbmc.reference$seurat_annotations)
 #' pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 #' }
-#' 
+#'
 TransferData <- function(
   anchorset,
   refdata,
@@ -2440,7 +2485,7 @@ FindAnchors <- function(
     )
     if(length(top.features) == 2){
       top.features <- intersect(top.features[[1]], top.features[[2]])
-    } else{ 
+    } else{
       top.features <- as.vector(top.features)
     }
     object.pair <- FilterAnchors(
@@ -2735,8 +2780,8 @@ FindWeights <- function(
       data.use.query <- Embeddings(object = reduction)[nn.cells2, dims]
     } else {
       data.use <- t(x = GetAssayData(
-        object = object, 
-        slot = 'data', 
+        object = object,
+        slot = 'data',
         assay = assay)[features, nn.cells1]
       )
       data.use.query <- t(x = GetAssayData(
@@ -3255,11 +3300,11 @@ ParseRow <- function(clustering, i){
 ProjectCellEmbeddings <- function(
   reference,
   query,
-  reduction = "pca", 
+  reduction = "pca",
   reference.assay = NULL,
   query.assay = NULL,
   dims = 1:50,
-  scale = TRUE, 
+  scale = TRUE,
   verbose = TRUE,
   feature.mean = NULL,
   feature.sd = NULL
@@ -3284,8 +3329,8 @@ ProjectCellEmbeddings <- function(
     if(scale){
       feature.sd <- sqrt(
         x = SparseRowVar2(
-          mat = as(object = reference.data, Class = "dgCMatrix"), 
-          mu = feature.mean, 
+          mat = as(object = reference.data, Class = "dgCMatrix"),
+          mu = feature.mean,
           display_progress = FALSE
         )
       )
@@ -3511,8 +3556,8 @@ ScoreAnchors <- function(
     'cell2' = anchor.df[, 2],
     'score' = mapply(
       FUN = function(x, y) {
-        length(x = intersect(x = nbrsetA(x = x), nbrsetB(x = y)))}, 
-      anchor.df[, 1], 
+        length(x = intersect(x = nbrsetA(x = x), nbrsetB(x = y)))},
+      anchor.df[, 1],
       anchor.df[, 2]
     )
   )
