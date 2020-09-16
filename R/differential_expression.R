@@ -906,9 +906,6 @@ FoldChange.Assay <- function(
   data <- GetAssayData(object = object, slot = slot)
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
-    'counts' = function(x) {
-      return(log(rowMeans(x = x), base = base))
-    },
     'data' = function(x) {
       return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
     },
