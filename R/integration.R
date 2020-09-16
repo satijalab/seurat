@@ -1278,6 +1278,7 @@ LocalStruct <- function(
 }
 
 #' Map query cells to reference dimensional reduction.
+#' 
 #' Returns a modified query object, containing: a Neighbor object (query_ref.nn)
 #' to use with RunUMAP and a reduction model; predicted identities and prediction
 #' scores in metadata and per-class prediction scores in an Assay for each identity
@@ -1299,7 +1300,6 @@ LocalStruct <- function(
 #' Can be a list of multiple expression matrices to transfer.
 #' The list must be named if it has >1 element, default name for 1 element is
 #' "transfer". Element names are used to name the transferred assays in the query.
-#' @param ident.var The name of variable to distinguish reference and query cells
 #' @param k.nn How many neighbors (k) to use
 #' @param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
@@ -1312,61 +1312,59 @@ LocalStruct <- function(
 #'
 #' @export
 #'
-MapQueryData <- function(reference,
-                     query,
-                     proj.reduction = "pcaproject",
-                     anchor.reduction = NULL,
-                     dims,
-                     anchorset = NULL,
-                     transfer.labels = NULL,
-                     transfer.expression = NULL,
-                     verbose = TRUE,
-                     ident.var = "ref.ident",
-                     k.nn = 20,
-                     k.weight = 50,
-                     sd.weight = 1,
-                     eps = 0,
-                     nn.method = 'annoy',
-                     reference.neighbors = NULL,
-                     return.intermediate = FALSE
-                     ) {
-  if (!is.null(anchorset) && length(query) != length(anchorset)) {
+MapQueryData <- function(
+  reference,
+  query,
+  proj.reduction = "pcaproject",
+  anchor.reduction = NULL,
+  dims,
+  anchorset = NULL,
+  transfer.labels = NULL,
+  transfer.expression = NULL,
+  verbose = TRUE,
+  k.nn = 20,
+  k.weight = 50,
+  sd.weight = 1,
+  eps = 0,
+  nn.method = 'annoy',
+  reference.neighbors = NULL,
+  return.intermediate = FALSE
+) {
+  if (!is.null(x = anchorset) && length(x = query) != length(x = anchorset)) {
     stop("Number of objects in the query object should be exactly the same in the anchorset")
   }
-  if (is.null(reference.neighbors) || !(reference.neighbors %in% Neighbors(reference))) {
-    reference.index = NULL
+  if (is.null(x = reference.neighbors) || !(reference.neighbors %in% Neighbors(object = reference))) {
+    reference.index <- NULL
   } else {
-    reference.index = Index(reference[[reference.neighbors]])
+    reference.index <- Index(object = reference[[reference.neighbors]])
   }
   if (length(x = query) == 1) {
     query <- list(query)
   }
-  if (is.null(anchor.reduction)) {
-    anchor.reduction <- proj.reduction
-  }
-  if (!is.null(transfer.labels) && !is.list(transfer.labels)) {
+  anchor.reduction <- anchor.reduction %||% proj.reduction
+  if (!is.null(x = transfer.labels) && !is.list(x = transfer.labels)) {
     transfer.labels <- list(transfer.labels)
-    if (is.null(names(transfer.labels))) {
-      names(transfer.labels) <- "id"
+    if (is.null(x = names(x = transfer.labels))) {
+      names(x = transfer.labels) <- "id"
     }
   }
-  if (!is.null(transfer.labels) && is.null(names(transfer.labels))) {
+  if (!is.null(x = transfer.labels) && is.null(x = names(x = transfer.labels))) {
     stop("transfer.labels must be a named list if it contains 2 or more elements")
   }
-  if (!is.null(transfer.expression) && !is.list(transfer.expression)) {
+  if (!is.null(x = transfer.expression) && !is.list(x = transfer.expression)) {
     transfer.expression <- list(transfer.expression)
-    if (is.null(names(transfer.expression))) {
-      names(transfer.expression) <- "transfer"
+    if (is.null(x = names(x = transfer.expression))) {
+      names(x = transfer.expression) <- "transfer"
     }
   }
-  if (!is.null(transfer.expression) && is.null(names(transfer.expression))) {
+  if (!is.null(x = transfer.expression) && is.null(x = names(x = transfer.expression))) {
     stop("transfer.expression must be a named list if it contains 2 or more elements")
   }
   objects.list <- lapply(
     X = 1:length(x = query),
     FUN = function(i) {
       # Find transfer anchors if not passed in
-      if (is.list(anchorset)){
+      if (is.list(x = anchorset)){
         transfer_anchor <- anchorset[[i]]
       } else {
         transfer_anchor <- anchorset
@@ -1374,101 +1372,119 @@ MapQueryData <- function(reference,
       obj <- transfer_anchor@object.list[[1]]
       # test if object is merged by reference and query
       ref.cell.idx <- 1:ncol(x = reference)
-      query.cell.idx <- (ncol(x = reference)+1):ncol(x = obj)
-      obj@meta.data[ ref.cell.idx, ident.var] <- "reference"
-      obj@meta.data[ query.cell.idx , ident.var] <- "query"
-
+      query.cell.idx <- (ncol(x = reference) + 1):ncol(x = obj)
       # setting up an object with pcassay with PCA embedding as the data
-      query.embedding <- t(Embeddings(object = obj, reduction = proj.reduction)[ , dims])
-      suppressWarnings(obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
-
+      query.embedding <- t(x = Embeddings(object = obj, reduction = proj.reduction)[ , dims])
+      suppressWarnings(expr = obj[["pcassay"]] <- CreateAssayObject(data = query.embedding))
       # setting up metadata
-      DefaultAssay(obj) <- 'pcassay'
-      obj[[proj.reduction ]]@assay.used <- 'pcassay'
-      obj[[anchor.reduction ]]@assay.used <- 'pcassay'
-
+      DefaultAssay(object = obj) <- 'pcassay'
+      DefaultAssay(object = obj[[proj.reduction]]) <- 'pcassay'
+      DefaultAssay(object = obj[[anchor.reduction]]) <- 'pcassay'
       # create a slim object that contains the PC embeddings as a new assay "pcassay"
-      merged.obj <- DietSeurat(object = obj, assays = 'pcassay',
-                               dimreducs = c(anchor.reduction, proj.reduction))
-
+      merged.obj <- DietSeurat(
+        object = obj,
+        assays = 'pcassay',
+        dimreducs = c(anchor.reduction, proj.reduction)
+      )
       # preparing metadata for batch correction
       integration.name <- "integrated"
       filtered.anchors <- data.frame(transfer_anchor@anchors)
-
       # filling the anchors slot in the new object
-      merged.obj <- SetIntegrationData(object = merged.obj,
-                                       integration.name = 'integrated',
-                                       slot = "anchors",
-                                       new.data = filtered.anchors)
-
+      merged.obj <- SetIntegrationData(
+        object = merged.obj,
+        integration.name = 'integrated',
+        slot = "anchors",
+        new.data = filtered.anchors
+      )
       # filling the neighbors slot in the new object
-      merged.obj <- SetIntegrationData(object = merged.obj,
-                                       integration.name = 'integrated',
-                                       slot = "neighbors",
-                                       new.data = list(cells1 = transfer_anchor@reference.cells,
-                                                       cells2 = transfer_anchor@query.cells))
+      merged.obj <- SetIntegrationData(
+        object = merged.obj,
+        integration.name = 'integrated',
+        slot = "neighbors",
+        new.data = list(cells1 = transfer_anchor@reference.cells,
+                        cells2 = transfer_anchor@query.cells)
+      )
       # perform batch-correction on the PC values using the new object
-      merged.obj <- FindIntegrationMatrix(object = merged.obj,
-                                          integration.name = 'integrated',
-                                          features.integrate = rownames(x = obj),
-                                          verbose = verbose)
-      dr.weights <- merged.obj[[ anchor.reduction ]]
-      #note that since we're correcting PCs or transferring labels, we should use a lower k here, but we may want this to be an
-      merged.obj <- FindWeights(object = merged.obj,
-                                integration.name = integration.name,
-                                reduction = dr.weights,
-                                cpp = TRUE,
-                                dims = dims,
-                                k = k.weight,
-                                sd.weight = sd.weight,
-                                eps = eps,
-                                nn.method = nn.method,
-                                verbose = verbose)
-      merged.obj <- TransformDataMatrix(object = merged.obj,
-                                        new.assay.name = 'integrated',
-                                        features.to.integrate = rownames(x = obj),
-                                        integration.name = integration.name,
-                                        verbose = verbose)
-      # extracting batch corrcted data
-      integrated.matrix <- GetAssayData(object = merged.obj,
-                                        assay = 'integrated',
-                                        slot = "data")
+      merged.obj <- FindIntegrationMatrix(
+        object = merged.obj,
+        integration.name = 'integrated',
+        features.integrate = rownames(x = obj),
+        verbose = verbose
+      )
+      dr.weights <- merged.obj[[anchor.reduction]]
+      # note that since we're correcting PCs or transferring labels, 
+      # we should use a lower k here, but we may want this to be an
+      merged.obj <- FindWeights(
+        object = merged.obj,
+        integration.name = integration.name,
+        reduction = dr.weights,
+        cpp = TRUE,
+        dims = dims,
+        k = k.weight,
+        sd.weight = sd.weight,
+        eps = eps,
+        nn.method = nn.method,
+        verbose = verbose
+      )
+      merged.obj <- TransformDataMatrix(
+        object = merged.obj,
+        new.assay.name = 'integrated',
+        features.to.integrate = rownames(x = obj),
+        integration.name = integration.name,
+        verbose = verbose
+      )
+      # extracting batch corrected data
+      integrated.matrix <- GetAssayData(
+        object = merged.obj,
+        assay = 'integrated',
+        slot = "data"
+      )
       # saving the batch corrected PCA embeddings
-      merged.obj[["int"]] <- CreateDimReducObject(embeddings = as.matrix(t(integrated.matrix)),
-                                                  key = 'ipc_',
-                                                  assay = 'pcassay')
+      merged.obj[["int"]] <- CreateDimReducObject(
+        embeddings = as.matrix(x = t(x = integrated.matrix)),
+        key = 'ipc_',
+        assay = 'pcassay'
+      )
       # single modality will find query reference NN
-      reference.embeddings <- L2Norm(mat = Embeddings(object = merged.obj,
-                                                reduction = "int" )[ ref.cell.idx, ])
-      query.embeddings<- L2Norm(mat = Embeddings(object = merged.obj,
-                                           reduction = "int" )[ query.cell.idx, ])
-      rownames(query.embeddings) <-  gsub(pattern = "\\_query",
-                                          replacement = "",
-                                          x = transfer_anchor@query.cells)
-      query_ref.nn <- NNHelper(data = reference.embeddings,
-                               query = query.embeddings,
-                               k = k.nn,
-                               method = "annoy",
-                               metric ="euclidean",
-                               nn.idx = reference.index)
-      merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_query", "", Cells(merged.obj)))
-      merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_reference", "", Cells(merged.obj)))
+      reference.embeddings <- L2Norm(
+        mat = Embeddings(object = merged.obj,
+        reduction = "int")[ref.cell.idx, ]
+      )
+      query.embeddings<- L2Norm(
+        mat = Embeddings(object = merged.obj,
+        reduction = "int")[query.cell.idx, ]
+      )
+      rownames(x = query.embeddings) <-  gsub(
+        pattern = "\\_query",
+        replacement = "",
+        x = transfer_anchor@query.cells
+      )
+      query_ref.nn <- NNHelper(
+        data = reference.embeddings,
+        query = query.embeddings,
+        k = k.nn,
+        method = "annoy",
+        metric ="euclidean",
+        nn.idx = reference.index
+      )
+      merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_query", "", Cells(x = merged.obj)))
+      merged.obj <- RenameCells(object = merged.obj, new.names = gsub("\\_reference", "", Cells(x = merged.obj)))
       # This function returns the original query object modified
       query.modified <- query[[i]]
       query.modified[["query_ref.nn"]] <- query_ref.nn
       if (isTRUE(x = return.intermediate)) {
-        merged.obj <- merged.obj[,query.cell.idx]
+        merged.obj <- merged.obj[, query.cell.idx]
         # Must add this Assay because it's linked to the two following DimReducs
         query.modified[["pcassay"]] <- merged.obj[["pcassay"]]
         query.modified[["pcaproject"]] <- merged.obj[["pcaproject"]] #DimReduc
         query.modified[["pcacorrected"]] <- merged.obj[["int"]] #DimReduc
-        query.modified@tools$integrated <- merged.obj@tools$integrated
+        query.modified@tools$integrated <- Tool(object = merged.obj, slot = "integrated")
       }
       if (!is.null(x = transfer.labels)) {
         # transfer identities
-        for (j in 1:length(transfer.labels)) {
+        for (j in 1:length(x = transfer.labels)) {
           refdata <- transfer.labels[[j]]
-          refdata.name <- names(transfer.labels)[[j]]
+          refdata.name <- names(x = transfer.labels)[[j]]
           if (is.factor(x = refdata)) {
             possible.ids <- levels(x = refdata)
           } else {
@@ -1476,45 +1492,53 @@ MapQueryData <- function(reference,
           }
           filtered.anchors$id1 <- refdata[filtered.anchors[, "cell1"]]
           reference.ids <- factor(x = filtered.anchors$id1, levels = possible.ids)
-          prediction.mat <- matrix(nrow = nrow(x = filtered.anchors),
-                                   ncol = length(x = possible.ids),
-                                   data = 0)
+          prediction.mat <- matrix(
+            data = 0,
+            nrow = nrow(x = filtered.anchors),
+            ncol = length(x = possible.ids)
+          )
           transfer_weights <-  GetIntegrationData(
             object = merged.obj,
             integration.name = "integrated",
             slot = 'weights'
           )
           for (i in 1:length(x = possible.ids)) {
-            prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
+            prediction.mat[which(x = reference.ids == possible.ids[i]), i] = 1
           }
           prediction.scores <- t(x = transfer_weights) %*% prediction.mat
           colnames(x = prediction.scores) <- possible.ids
-          rownames(x = prediction.scores) <- gsub(pattern = "\\_query",
-                                                  replacement = "",
-                                                  x = transfer_anchor@query.cells)
-          prediction.scores <- data.frame(prediction.score = as.matrix(prediction.scores))
-          prediction.ids <- possible.ids[apply(X = prediction.scores,
-                                               MARGIN = 1,
-                                               FUN = which.max)]
-          prediction.scores.max <- apply(X = prediction.scores,
-                                         MARGIN = 1,
-                                         function(x) max(x))
+          rownames(x = prediction.scores) <- gsub(
+            pattern = "\\_query",
+            replacement = "",
+            x = transfer_anchor@query.cells
+          )
+          prediction.scores <- data.frame(prediction.score = as.matrix(x = prediction.scores))
+          prediction.ids <- possible.ids[apply(
+            X = prediction.scores,
+            MARGIN = 1,
+            FUN = which.max
+          )]
+          prediction.scores.max <- apply(X = prediction.scores, MARGIN = 1, FUN = max)
           # Add identity and score as metadata columns
-          query.modified <- AddMetaData(object = query.modified,
-                      metadata = prediction.ids,
-                      col.name = paste0("predicted.", refdata.name))
-          query.modified <- AddMetaData(object = query.modified,
-                      metadata = prediction.scores.max,
-                      col.name = paste0("predicted.", refdata.name, ".score"))
+          query.modified <- AddMetaData(
+            object = query.modified,
+            metadata = prediction.ids,
+            col.name = paste0("predicted.", refdata.name)
+          )
+          query.modified <- AddMetaData(
+            object = query.modified,
+            metadata = prediction.scores.max,
+            col.name = paste0("predicted.", refdata.name, ".score")
+          )
           # Add prediction scores for all classes as an Assay
-          query.modified[[paste0("prediction.score.",refdata.name)]] <- CreateAssayObject(data = t(as.matrix(prediction.scores)))
+          query.modified[[paste0("prediction.score.", refdata.name)]] <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
         }
       }
       if (!is.null(x = transfer.expression)) {
         # transfer expression
-        for (j in 1:length(transfer.expression)) {
+        for (j in 1:length(x = transfer.expression)) {
           refdata.exp <-  transfer.expression[[j]]
-          refdata.exp.name <- names(transfer.expression)[[j]]
+          refdata.exp.name <- names(x = transfer.expression)[[j]]
           refdata.anchors.exp <- refdata.exp[, filtered.anchors[, "cell1"]]
           nfeatures <- nrow(x = refdata.exp)
           transfer_weights <-  GetIntegrationData(
@@ -1527,11 +1551,13 @@ MapQueryData <- function(reference,
           }
           new.data <- refdata.anchors.exp %*% transfer_weights
           rownames(x = new.data) <- rownames(x = refdata.exp)
-          colnames(x = new.data) <- gsub(pattern = "\\_query",
-                                         replacement = "",
-                                         x = transfer_anchor@query.cells)
+          colnames(x = new.data) <- gsub(
+            pattern = "\\_query",
+            replacement = "",
+            x = transfer_anchor@query.cells
+          )
           # Add imputed values as an Assay
-          query.modified[[refdata.exp.name]] <- CreateAssayObject(data = as.matrix(new.data))
+          query.modified[[refdata.exp.name]] <- CreateAssayObject(data = as.matrix(x = new.data))
         }
       }
       return (query.modified)
@@ -2790,7 +2816,7 @@ FindWeights <- function(
         assay = assay)[features, nn.cells2]
       )
     }
-    knn_2_2 <- Seurat:::NNHelper(
+    knn_2_2 <- NNHelper(
       data = data.use[anchors.cells1, ],
       query = data.use.query,
       k = k,
