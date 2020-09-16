@@ -1277,7 +1277,7 @@ LocalStruct <- function(
   return(local.struct)
 }
 
-#' Map query cells to reference dimensional reduction.
+#' Map query cells to a reference
 #'
 #' Returns a modified query object, containing: a Neighbor object (query_ref.nn)
 #' to use with RunUMAP and a reduction model; predicted identities and prediction
