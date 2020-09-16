@@ -347,6 +347,7 @@ FindClusters <- function(object, ...) {
 #' @export FindMarkers
 #'
 #' @aliases FindMarkersNode
+#' @seealso \code{FoldChange}
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
@@ -421,6 +422,28 @@ FindVariableFeatures <- function(object, ...) {
 #'
 FindSpatiallyVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindSpatiallyVariableFeatures', object = object)
+}
+
+#' Fold Change
+#' 
+#' Calculate log fold change and percentage of cells expressing each feature
+#' for different identity classes.
+#' 
+#' If the slot is \code{scale.data} or a reduction is specified, average difference
+#' is returned instead of log fold change and the column is named "avg_diff".
+#' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
+#' 
+#' @examples
+#' FoldChange(pbmc_small, ident.1 = 1)
+#' 
+#' @param object A Seurat object
+#' @param ... Arguments passed to other methods
+#' @rdname FoldChange
+#' @export FoldChange
+#' @return Returns a data.frame
+#' @seealso \code{FindMarkers}
+FoldChange <- function(object, ...) {
+  UseMethod(generic = 'FoldChange', object = object)
 }
 
 #' Get an Assay object from a given Seurat object.
