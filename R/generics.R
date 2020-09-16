@@ -347,6 +347,7 @@ FindClusters <- function(object, ...) {
 #' @export FindMarkers
 #'
 #' @aliases FindMarkersNode
+#' @seealso \code{FoldChange}
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
@@ -440,6 +441,7 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' @rdname FoldChange
 #' @export FoldChange
 #' @return Returns a data.frame
+#' @seealso \code{FindMarkers}
 FoldChange <- function(object, ...) {
   UseMethod(generic = 'FoldChange', object = object)
 }

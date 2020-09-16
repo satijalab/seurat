@@ -115,11 +115,13 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
-\item{mean.fxn}{Function to use for fold change or average difference calculation
-(see example in \code{\link{FoldChange}})}
+\item{mean.fxn}{Function to use for fold change or average difference calculation.
+If NULL, the appropriate function will be chose according to the slot used}
 
 \item{fc.name}{Name of the fold change, average difference, or custom function column
-in the output data.frame (see in \code{\link{FoldChange}})}
+in the output data.frame. If NULL, the fold change column will be named
+according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
+slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 

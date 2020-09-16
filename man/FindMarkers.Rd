@@ -199,11 +199,13 @@ calculating logFC. 1 by default.}
 
 \item{fc.results}{data.frame from FoldChange}
 
-\item{mean.fxn}{Function to use for fold change or average difference calculation
-(see example in \code{\link{FoldChange}})}
+\item{mean.fxn}{Function to use for fold change or average difference calculation.
+If NULL, the appropriate function will be chose according to the slot used}
 
 \item{fc.name}{Name of the fold change, average difference, or custom function column
-in the output data.frame (see in \code{\link{FoldChange}})}
+in the output data.frame. If NULL, the fold change column will be named
+according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
+slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 
@@ -277,4 +279,7 @@ https://github.com/RGLab/MAST/
 Love MI, Huber W and Anders S (2014). "Moderated estimation of
 fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+}
+\seealso{
+\code{FoldChange}
 }
