@@ -1278,7 +1278,7 @@ LocalStruct <- function(
 }
 
 #' Map query cells to reference dimensional reduction.
-#' 
+#'
 #' Returns a modified query object, containing: a Neighbor object (query_ref.nn)
 #' to use with RunUMAP and a reduction model; predicted identities and prediction
 #' scores in metadata and per-class prediction scores in an Assay for each identity
@@ -1412,7 +1412,7 @@ MapQueryData <- function(
         verbose = verbose
       )
       dr.weights <- merged.obj[[anchor.reduction]]
-      # note that since we're correcting PCs or transferring labels, 
+      # note that since we're correcting PCs or transferring labels,
       # we should use a lower k here, but we may want this to be an
       merged.obj <- FindWeights(
         object = merged.obj,
@@ -1474,10 +1474,15 @@ MapQueryData <- function(
       query.modified[["query_ref.nn"]] <- query_ref.nn
       if (isTRUE(x = return.intermediate)) {
         merged.obj <- merged.obj[, query.cell.idx]
-        # Must add this Assay because it's linked to the two following DimReducs
-        query.modified[["pcassay"]] <- merged.obj[["pcassay"]]
-        query.modified[["pcaproject"]] <- merged.obj[["pcaproject"]] #DimReduc
-        query.modified[["pcacorrected"]] <- merged.obj[["int"]] #DimReduc
+        # Add projected PCA
+        pca1 <- merged.obj[[proj.reduction]]
+        DefaultAssay(object = pca1) <- DefaultAssay(object = query.modified)
+        query.modified[[proj.reduction]] <- pca1
+        # Add corrected PCA
+        pca2 <- merged.obj[["int"]]
+        DefaultAssay(object = pca2) <- DefaultAssay(object = query.modified)
+        query.modified[["pcacorrected"]] <- pca2
+        # Add IntegrationData
         query.modified@tools$integrated <- Tool(object = merged.obj, slot = "integrated")
       }
       if (!is.null(x = transfer.labels)) {
