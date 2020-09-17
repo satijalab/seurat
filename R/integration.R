@@ -2338,6 +2338,10 @@ FilterAnchors <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
+  if (min(length(x = nn.cells1), length(x = nn.cells2)) < k.filter) {
+    warning("Number of cells is less than k.filter. Retaining all anchors.")
+    k.filter <- min(length(x = nn.cells1), length(x = nn.cells2))
+  }
   cn.data1 <- L2Norm(
     mat = as.matrix(x = t(x = GetAssayData(
       object = object[[assay[1]]],
@@ -3341,6 +3345,10 @@ RunIntegration <- function(
 ) {
   cells1 <- colnames(x = reference)
   cells2 <- colnames(x = query)
+  if (nrow(x = filtered.anchors) < k.weight) {
+    warning("Number of anchors is less than k.weight. Lowering k.weight for sample pair.")
+    k.weight <- nrow(x = filtered.anchors)
+  }
   merged.obj <- merge(x = reference, y = query, merge.data = TRUE)
   cell1.offset <- GetCellOffsets(
     anchors = filtered.anchors,
