@@ -649,6 +649,9 @@ CreateAssayObject <- function(
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
   } else if (!missing(x = counts)) {
+    if (!inherits(x = counts, what = 'dgCMatrix')) {
+      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    }
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       warning(
@@ -674,9 +677,6 @@ CreateAssayObject <- function(
     }
     if (nrow(x = counts) > 0 && is.null(x = rownames(x = counts))) {
       stop("No feature names (rownames) names present in the input matrix")
-    }
-    if (!inherits(x = counts, what = 'dgCMatrix')) {
-      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
     }
     # Filter based on min.features
     if (min.features > 0) {
