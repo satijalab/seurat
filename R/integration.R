@@ -1279,10 +1279,10 @@ LocalStruct <- function(
 
 #' Map query cells to a reference
 #'
-#' Returns a modified query object, containing: a Neighbor object (query_ref.nn)
-#' to use with RunUMAP and a reduction model; predicted identities and prediction
-#' scores in metadata and per-class prediction scores in an Assay for each identity
-#' in transfer.labels; Assay with imputed values for each matrix in transfer.expression.
+#' Correct batch effects of query projected dimension reduction,transfer 
+#' categorical or continuous data from reference datasets.
+#' 
+#' \code{refdata = GetAssayData(reference[['RNA']])})
 #'
 #' @param reference \code{\link{Seurat}} object to use as the reference
 #' @param query \code{\link{Seurat}} object to use as the query
@@ -1309,7 +1309,10 @@ LocalStruct <- function(
 #' (projected PCA as DimReduc, corrected PCA as DimReduc,
 #' integration weights as IntegrationData)
 #' @inheritParams IntegrateData
-#'
+#' @return Returns a modified query object, containing: a Neighbor object (query_ref.nn)
+#' to use with RunUMAP and a reduction model; predicted identities and prediction
+#' scores in metadata and per-class prediction scores in an Assay for each identity
+#' in transfer.labels; Assay with imputed values for each matrix in transfer.expression.
 #' @export
 #'
 MapQueryData <- function(
