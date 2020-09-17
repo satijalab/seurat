@@ -72,13 +72,13 @@ as.loom <- function(x, ...) {
 }
 
 #' Convert objects to Neighbor ojbects
-#' 
+#'
 #' @param x An object to convert to \code{Neighbor}
 #' @param ... Arguments passed to other methods
-#' 
+#'
 #' @rdname as.Neighbor
 #' @export as.Neighbor
-#' 
+#'
 as.Neighbor <- function(x, ...) {
   UseMethod(generic = 'as.Neighbor', object = x)
 }
@@ -425,17 +425,17 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 }
 
 #' Fold Change
-#' 
+#'
 #' Calculate log fold change and percentage of cells expressing each feature
 #' for different identity classes.
-#' 
+#'
 #' If the slot is \code{scale.data} or a reduction is specified, average difference
 #' is returned instead of log fold change and the column is named "avg_diff".
 #' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
-#' 
+#'
 #' @examples
 #' FoldChange(pbmc_small, ident.1 = 1)
-#' 
+#'
 #' @param object A Seurat object
 #' @param ... Arguments passed to other methods
 #' @rdname FoldChange
@@ -573,8 +573,8 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
-#' Get Neighbor algorithm index 
-#' 
+#' Get Neighbor algorithm index
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods;
 #'
@@ -600,7 +600,7 @@ Index <- function(object, ...) {
 }
 
 #' Get Neighbor nearest neighbor index matrices
-#' 
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods;
 #'
@@ -704,6 +704,28 @@ Loadings <- function(object, ...) {
 #'
 "Loadings<-" <- function(object, ..., value) {
   UseMethod(generic = 'Loadings<-', object = object)
+}
+
+#' Metric for evaluating mapping success
+#'
+#' This metric was designed to help identify query cells that aren't well
+#' represented in the reference dataset. The intuition for the score is that we
+#' are going to project the query cells into a reference-defined space and then
+#' project them back onto the query. By comparing the neighborhoods before and
+#' after projection, we identify cells who's local neighborhoods are the most
+#' affected by this transformation. This could be because there is a population
+#' of query cells that aren't present in the reference or the state of the cells
+#' in the query is significantly different from the equivalent cell type in the
+#' reference.
+#'
+#' @param anchors Set of anchors
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname MappingScore
+#' @export MappingScore
+#'
+MappingScore <- function(anchors, ...) {
+  UseMethod(generic = "MappingScore", object = anchors)
 }
 
 #' Access miscellaneous data
@@ -1031,19 +1053,19 @@ RunPCA <- function(object, ...) {
 }
 
 #' Run Supervised Principal Component Analysis
-#' 
-#' Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel. 
+#'
+#' Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
 #' SPCA is used to capture a linear transformation which maximizes its dependency to
 #' the given cell-cell kernel. We use SNN graph as the kernel to supervise the linear
 #' matrix factorization.
-#'    
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods and IRLBA
 #'
 #' @return Returns Seurat object with the SPCA calculation stored in the reductions slot
-#' @references Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ. 
-#' Supervised principal component analysis: Visualization, classification and 
-#' regression on subspaces and submanifolds. 
+#' @references Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ.
+#' Supervised principal component analysis: Visualization, classification and
+#' regression on subspaces and submanifolds.
 #' Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{https://www.sciencedirect.com/science/article/pii/S0031320310005819?casa_token=AZMFg5OtPnAAAAAA:_Udu7GJ7G2ed1-XSmr-3IGSISUwcHfMpNtCj-qacXH5SBC4nwzVid36GXI3r8XG8dK5WOQui};
 #' @export
 #'
@@ -1199,7 +1221,7 @@ SetIdent <- function(object, ...) {
 }
 
 #' Get spatially variable feature information
-#' 
+#'
 #' @rdname SpatiallyVariableFeatures
 #' @export SpatiallyVariableFeatures
 #'
