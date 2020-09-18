@@ -37,18 +37,18 @@ PredictAssay(
 
 \item{mean.function}{the function used to calculate row mean}
 
-\item{seed}{Sets the random seed to check if the nearest neighbor is query 
+\item{seed}{Sets the random seed to check if the nearest neighbor is query
 cell}
 
 \item{verbose}{Print progress}
 }
 \value{
-return an assay containing predicted expression value in the data 
+return an assay containing predicted expression value in the data
 slot
 }
 \description{
-This function will predict expression or cell embeddings from its k nearest 
-neighbors index. For each cell, it will average its k neighbors value to get 
-its new imputed value. It can average expression value in assays and cell 
+This function will predict expression or cell embeddings from its k nearest
+neighbors index. For each cell, it will average its k neighbors value to get
+its new imputed value. It can average expression value in assays and cell
 embeddings from dimensional reductions.
 }

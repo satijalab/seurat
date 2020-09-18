@@ -72,13 +72,13 @@ as.loom <- function(x, ...) {
 }
 
 #' Convert objects to Neighbor ojbects
-#' 
+#'
 #' @param x An object to convert to \code{Neighbor}
 #' @param ... Arguments passed to other methods
-#' 
+#'
 #' @rdname as.Neighbor
 #' @export as.Neighbor
-#' 
+#'
 as.Neighbor <- function(x, ...) {
   UseMethod(generic = 'as.Neighbor', object = x)
 }
@@ -573,8 +573,8 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
-#' Get Neighbor algorithm index 
-#' 
+#' Get Neighbor algorithm index
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods;
 #'
@@ -600,7 +600,7 @@ Index <- function(object, ...) {
 }
 
 #' Get Neighbor nearest neighbor index matrices
-#' 
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods;
 #'
@@ -1199,7 +1199,7 @@ SetIdent <- function(object, ...) {
 }
 
 #' Get spatially variable feature information
-#' 
+#'
 #' @rdname SpatiallyVariableFeatures
 #' @export SpatiallyVariableFeatures
 #'

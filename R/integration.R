@@ -1279,9 +1279,9 @@ LocalStruct <- function(
 
 #' Map query cells to a reference
 #'
-#' Correct batch effects of query projected dimension reduction,transfer 
+#' Correct batch effects of query projected dimension reduction,transfer
 #' categorical or continuous data from reference datasets.
-#' 
+#'
 #' \code{refdata = GetAssayData(reference[['RNA']])})
 #'
 #' @param reference \code{\link{Seurat}} object to use as the reference
