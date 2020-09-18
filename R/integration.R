@@ -1585,7 +1585,8 @@ MapQueryData <- function(
 #' @param query.neighbors Neighbors object computed on query cells
 #' @param ref.embeddings Reference embeddings matrix
 #' @param query.embeddings Query embeddings matrix
-#' @param k Number of anchors to use in projection steps when computing weights
+#' @param kanchors Number of anchors to use in projection steps when computing
+#' weights
 #' @param ndim Number of dimensions to use when working with low dimensional
 #' projections of the data
 #' @param ksmooth Number of cells to average over when computing transition
@@ -1611,7 +1612,7 @@ MappingScore.default <- function(
   query.neighbors,
   ref.embeddings,
   query.embeddings,
-  k = 50,
+  kanchors = 50,
   ndim = 50,
   ksmooth = 100,
   ksnn = 20,
@@ -1654,7 +1655,7 @@ MappingScore.default <- function(
       integration.name = "IT1",
       reduction = dr.weights,
       dims = 1:ncol(x = dr.weights),
-      k = k,
+      k = kanchors,
       sd.weight = 1,
       eps = 0,
       nn.method = nn.method,
@@ -1693,7 +1694,7 @@ MappingScore.default <- function(
     integration.name = "IT1",
     reduction = dr.weights,
     dims = 1:ndim,
-    k = k,
+    k = kanchors,
     sd.weight = 1,
     eps = 0,
     nn.method = nn.method,
@@ -1787,10 +1788,7 @@ MappingScore.default <- function(
 #'
 MappingScore.AnchorSet <- function(
   anchors,
-  query.neighbors,
-  ref.embeddings,
-  query.embeddings,
-  k = 50,
+  kanchors = 50,
   ndim = 50,
   ksmooth = 100,
   ksnn = 20,
@@ -1802,22 +1800,36 @@ MappingScore.AnchorSet <- function(
   ...
 ) {
   CheckDots(...)
-  # reduce size of anchorset combined object
   combined.object <- slot(object = anchors, name = "object.list")[[1]]
-  combined.object <- DietSeurat(object = combined.object)
-  combined.object <- subset(
-    x = combined.object,
-    features = c(rownames(x = combined.object)[1])
-  )
   combined.object <- RenameCells(
     object = combined.object,
     new.names = unname(obj = sapply(
       X = Cells(x = combined.object),
-      FUN = function(x) {
-        x <- gsub(pattern = "_reference", replacement = "", x = x)
-        x <- gsub(pattern = "_query", replacement = "", x = x)
-      }
+      FUN = RemoveLastField
     ))
+  )
+  query.cells <- sapply(
+    X = slot(object = anchors, name = "query.cells"),
+    FUN = RemoveLastField
+  )
+  ref.cells <- sapply(
+    X = slot(object = anchors, name = "reference.cells"),
+    FUN = RemoveLastField
+  )
+  query.embeddings <- Embeddings(object = subset(
+    x = combined.object[["pcaproject.l2"]],
+    cells = query.cells
+  ))
+  ref.embeddings <- Embeddings(object = subset(
+    x = combined.object[["pcaproject.l2"]],
+    cells = ref.cells
+  ))
+  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
+  # reduce size of anchorset combined object
+  combined.object <- DietSeurat(object = combined.object)
+  combined.object <- subset(
+    x = combined.object,
+    features = c(rownames(x = combined.object)[1])
   )
   for (i in colnames(x = combined.object[[]])) {
     combined.object[[i]] <- NULL
@@ -1828,7 +1840,7 @@ MappingScore.AnchorSet <- function(
     query.neighbors = query.neighbors,
     ref.embeddings = ref.embeddings,
     query.embeddings = query.embeddings,
-    k = k,
+    kanchors = kanchors,
     ndim = ndim,
     ksmooth = ksmooth,
     ksnn = ksnn,
@@ -1839,7 +1851,6 @@ MappingScore.AnchorSet <- function(
     verbose = verbose
   ))
 }
-
 
 #' Calculates a mixing metric
 #'

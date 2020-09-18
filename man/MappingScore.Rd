@@ -14,7 +14,7 @@ MappingScore(anchors, ...)
   query.neighbors,
   ref.embeddings,
   query.embeddings,
-  k = 50,
+  kanchors = 50,
   ndim = 50,
   ksmooth = 100,
   ksnn = 20,
@@ -28,10 +28,7 @@ MappingScore(anchors, ...)
 
 \method{MappingScore}{AnchorSet}(
   anchors,
-  query.neighbors,
-  ref.embeddings,
-  query.embeddings,
-  k = 50,
+  kanchors = 50,
   ndim = 50,
   ksmooth = 100,
   ksnn = 20,
@@ -58,7 +55,8 @@ Anchorset object returned}
 
 \item{query.embeddings}{Query embeddings matrix}
 
-\item{k}{Number of anchors to use in projection steps when computing weights}
+\item{kanchors}{Number of anchors to use in projection steps when computing
+weights}
 
 \item{ndim}{Number of dimensions to use when working with low dimensional
 projections of the data}
