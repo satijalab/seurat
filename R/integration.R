@@ -1626,6 +1626,19 @@ MappingScore.default <- function(
   CheckDots(...)
   # Input checks
   start.time <- Sys.time()
+  if (ncol(x = query.neighbors) < ksmooth) {
+    message("Recomputing query neighborhoods.\nSetting mapping.score.k in ",
+            "FindTransferAnchors to the ksmooth \nvalue here (",
+            ksmooth, "), can bypass this calculation in future runs.")
+    query.neighbors <- FindNeighbors(
+      object = query.embeddings,
+      k.param = ksmooth,
+      nn.method = nn.method,
+      cache.index = TRUE,
+      return.neighbor = TRUE,
+      verbose = FALSE
+    )$nn
+  }
   ref.cells <- rownames(x = ref.embeddings)
   query.cells <- rownames(query.embeddings)
   # Project reference values onto query
