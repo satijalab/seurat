@@ -1764,6 +1764,21 @@ CheckGC <- function() {
   }
 }
 
+# Create an empty dummy assay to replace existing assay
+#
+CreateDummyAssay <- function(assay) {
+  cm <- as.sparse(x = matrix(
+    data = 0,
+    nrow = nrow(x = assay),
+    ncol = ncol(x = assay)
+  ))
+  rownames(x = cm) <- rownames(x = assay)
+  colnames(x = cm) <- colnames(x = assay)
+  return(CreateAssayObject(
+    counts = cm
+  ))
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -1959,6 +1974,22 @@ Melt <- function(x) {
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
     vals = unlist(x = x, use.names = FALSE)
   ))
+}
+
+# Modify parameters in calling environment
+#
+# Used exclusively for helper parameter validation functions
+#
+# @param param name of parameter to change
+# @param value new value for parameter
+#
+ModifyParam <- function(param, value) {
+  # modify in original function environment
+  env1 <- sys.frame(which = length(x = sys.frames()) - 2)
+  env1[[param]] <- value
+  # also modify in validation function environment
+  env2 <- sys.frame(which = length(x = sys.frames()) - 1)
+  env2[[param]] <- value
 }
 
 # Give hints for old paramters and their newer counterparts
