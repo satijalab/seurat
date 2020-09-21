@@ -275,7 +275,7 @@ test_that("FindTransferAnchors with default SCT works", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(302, 3))
+  expect_equal(dim(anchor.mat), c(298, 3))
   expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.4497248624), tolerance = 1e7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
@@ -312,7 +312,7 @@ test_that("FindTransferAnchors with default SCT works", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(319, 3))
+  expect_equal(dim(anchor.mat), c(322, 3))
   expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.9565217391), tolerance = 1e7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
@@ -342,7 +342,7 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(287, 3))
+  expect_equal(dim(anchor.mat), c(288, 3))
   expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.6141124587), tolerance = 1e7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
@@ -369,7 +369,7 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(279, 3))
+  expect_equal(dim(anchor.mat), c(280, 3))
   expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.6428571429), tolerance = 1e7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
@@ -377,3 +377,4 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(anchors@anchor.features[1], "NKG7")
   expect_equal(anchors@neighbors, list())
 })
+
