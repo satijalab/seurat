@@ -3214,7 +3214,7 @@ GetResidualVstOut <- function(
     umi = umi,
     residual_type = "pearson",
     res_clip_range = c(clip.min, clip.max),
-    show_progress = verbose
+    verbosity = verbose
   )
   new_residual <- as.matrix(x = new_residual)
   # centered data

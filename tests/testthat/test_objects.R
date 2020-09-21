@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------------
 context("Metadata")
 
+pbmc_small <- suppressWarnings(suppressMessages(UpdateSeuratObject(pbmc_small)))
 cluster_letters <- LETTERS[Idents(object = pbmc_small)]
 names(cluster_letters) <- colnames(x = pbmc_small)
 cluster_letters_shuffled <- sample(x = cluster_letters)
@@ -205,9 +206,9 @@ context("Neighbor")
 # converting to Graph and back
 
 n.rann.ob <- NNHelper(
-  data = Embeddings(object = pbmc_small[["pca"]]), 
-  query = Embeddings(object = pbmc_small[["pca"]]), 
-  k = 10, 
+  data = Embeddings(object = pbmc_small[["pca"]]),
+  query = Embeddings(object = pbmc_small[["pca"]]),
+  k = 10,
   method = "rann")
 
 test_that("Neighbor object methods work", {
@@ -230,12 +231,12 @@ test_that("Neighbor object methods work", {
   expect_true(inherits(x = nro2, what = "Neighbor"))
   expect_equal(Distances(object = n.rann.ob)[2, 3], Distances(object = nro2)[2, 3])
   expect_equal(Indices(object = n.rann.ob)[1, 6], Indices(object = nro2)[1, 6])
-})  
+})
 
 n.annoy.ob <- NNHelper(
-  data = Embeddings(object = pbmc_small[["pca"]]), 
-  query = Embeddings(object = pbmc_small[["pca"]]), 
-  k = 10, 
+  data = Embeddings(object = pbmc_small[["pca"]]),
+  query = Embeddings(object = pbmc_small[["pca"]]),
+  k = 10,
   method = "annoy",
   cache.index = TRUE)
 idx.file <-  tempfile()
