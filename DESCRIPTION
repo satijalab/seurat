@@ -58,7 +58,7 @@ Imports:
     rsvd,
     Rtsne,
     scales,
-    sctransform (>= 0.2.0),
+    sctransform (>= 0.3.0),
     shiny,
     spatstat,
     stats,
