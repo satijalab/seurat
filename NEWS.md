@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Retain Graph and Neighbor objects when subsetting only on features
 - Fix data.frame input to `CreateAssayObject()` when data.frame has no rownames.
 - Default annoy search to sequential if not using multicore future plans.
+- Require sctransform >= 0.3.0
 
 ## [3.2.1] - 2020-09-04
 ### Added
