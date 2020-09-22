@@ -1595,7 +1595,7 @@ SCTransform <- function(
   }
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['show_progress']] <- verbose
+  vst.args[['verbosity']] <- verbose
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
