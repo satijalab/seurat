@@ -3714,18 +3714,18 @@ VizDimLoadings <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  if (is.null(x = ncol)) { 
-    ncol <- 2 
-    if (length(x = dims) == 1) { 
-      ncol <- 1 
-    } 
-    if (length(x = dims) > 6) { 
-      ncol <- 3 
-    } 
-    if (length(x = dims) > 9) { 
-      ncol <- 4 
-    } 
-  } 
+  if (is.null(x = ncol)) {
+    ncol <- 2
+    if (length(x = dims) == 1) {
+      ncol <- 1
+    }
+    if (length(x = dims) > 6) {
+      ncol <- 3
+    }
+    if (length(x = dims) > 9) {
+      ncol <- 4
+    }
+  }
   loadings <- Loadings(object = object[[reduction]], projected = projected)
   features <- lapply(
     X = dims,
@@ -5508,12 +5508,12 @@ ExIPlot <- function(
   label.fxn <- switch(
     EXPR = type,
     'violin' = if (stack) {
-      xlab 
+      xlab
     } else {
       ylab
     },
     "splitViolin" = if (stack) {
-      xlab 
+      xlab
     } else {
       ylab
     },
@@ -6339,7 +6339,7 @@ MultiExIPlot <- function(
   if (flip) {
     plot <- plot +
       scale_y_continuous(
-        expand = c(0, 0), 
+        expand = c(0, 0),
         labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
       facet_grid(feature ~ ., scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(
@@ -6351,7 +6351,7 @@ MultiExIPlot <- function(
   } else {
     plot <- plot +
       scale_x_continuous(
-        expand = c(0, 0), 
+        expand = c(0, 0),
         labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
       facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
       FacetTheme(

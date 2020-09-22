@@ -72,13 +72,13 @@ as.loom <- function(x, ...) {
 }
 
 #' Convert objects to Neighbor ojbects
-#' 
+#'
 #' @param x An object to convert to \code{Neighbor}
 #' @param ... Arguments passed to other methods
-#' 
+#'
 #' @rdname as.Neighbor
 #' @export as.Neighbor
-#' 
+#'
 as.Neighbor <- function(x, ...) {
   UseMethod(generic = 'as.Neighbor', object = x)
 }
@@ -347,6 +347,7 @@ FindClusters <- function(object, ...) {
 #' @export FindMarkers
 #'
 #' @aliases FindMarkersNode
+#' @seealso \code{FoldChange}
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
@@ -421,6 +422,28 @@ FindVariableFeatures <- function(object, ...) {
 #'
 FindSpatiallyVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindSpatiallyVariableFeatures', object = object)
+}
+
+#' Fold Change
+#' 
+#' Calculate log fold change and percentage of cells expressing each feature
+#' for different identity classes.
+#' 
+#' If the slot is \code{scale.data} or a reduction is specified, average difference
+#' is returned instead of log fold change and the column is named "avg_diff".
+#' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
+#' 
+#' @examples
+#' FoldChange(pbmc_small, ident.1 = 1)
+#' 
+#' @param object A Seurat object
+#' @param ... Arguments passed to other methods
+#' @rdname FoldChange
+#' @export FoldChange
+#' @return Returns a data.frame
+#' @seealso \code{FindMarkers}
+FoldChange <- function(object, ...) {
+  UseMethod(generic = 'FoldChange', object = object)
 }
 
 #' Get an Assay object from a given Seurat object.
@@ -550,8 +573,8 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
-#' Get Neighbor algorithm index 
-#' 
+#' Get Neighbor algorithm index
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods;
 #'
@@ -577,7 +600,7 @@ Index <- function(object, ...) {
 }
 
 #' Get Neighbor nearest neighbor index matrices
-#' 
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods;
 #'
@@ -988,34 +1011,6 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
-#' Run Latent Semantic Indexing on binary count matrix
-#'
-#' For details about stored LSI calculation parameters, see
-#' \code{PrintLSIParams}.
-#'
-#' @note RunLSI is being moved to Signac. Equivalent functionality can be
-#' achieved via the Signac::RunTFIDF and Signac::RunSVD functions;
-#' for more information on Signac, please see
-#' \url{https://github.com/timoast/Signac}
-#'
-#' @param object Seurat object
-#' @param ... Arguments passed to other methods
-#'
-#' @rdname RunLSI
-#' @export RunLSI
-#'
-RunLSI <- function(object, ...) {
-  .Deprecated(
-    new = 'Signac::RunTFIDF',
-    msg = paste(
-      "RunLSI is being moved to Signac. Equivalent functionality can be",
-      "achieved via the Signac::RunTFIDF and Signac::RunSVD functions; for",
-      "more information on Signac, please see https://github.com/timoast/Signac"
-    )
-  )
-  UseMethod(generic = "RunLSI", object = object)
-}
-
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
@@ -1204,7 +1199,7 @@ SetIdent <- function(object, ...) {
 }
 
 #' Get spatially variable feature information
-#' 
+#'
 #' @rdname SpatiallyVariableFeatures
 #' @export SpatiallyVariableFeatures
 #'

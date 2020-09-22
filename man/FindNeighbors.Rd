@@ -93,7 +93,7 @@ be set automatically}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{return.neighbor}{Return result as \code{\link{Neighbor}} object. Not 
+\item{return.neighbor}{Return result as \code{\link{Neighbor}} object. Not
 used with distance matrix input.}
 
 \item{compute.SNN}{also compute the shared nearest neighbor graph}
