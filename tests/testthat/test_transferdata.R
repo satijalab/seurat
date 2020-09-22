@@ -24,7 +24,7 @@ test_that("TransferData default work", {
   expect_equal(colnames(preds.standard)[c(1, 5)], c("predicted.id", "prediction.score.max"))
   expect_equal(rownames(preds.standard), Cells(query))
   expect_equal(preds.standard[1, 1], "1")
-  expect_equal(preds.standard[1, 5], 0.4273605371)
+  expect_equal(preds.standard[1, 5], 0.4273605371, tolerance = 1e-7)
   expect_equal(as.vector(rowSums(as.matrix(preds.standard[, 2:4]))), rep(1, times = ncol(query)))
   expect_true(inherits(preds.standard, "data.frame"))
   # continuous assay data
@@ -34,8 +34,8 @@ test_that("TransferData default work", {
   expect_equal(GetAssayData(pred.assay, slot = "scale.data"), new("matrix"))
   expect_equal(colnames(pred.assay), Cells(query))
   expect_equal(rownames(pred.assay), rownames(ref[["RNA"]]))
-  expect_equal(sum(GetAssayData(pred.assay)[1, ]), 64.64129231)
-  expect_equal(sum(GetAssayData(pred.assay)[, 1]), 281.090076)
+  expect_equal(sum(GetAssayData(pred.assay)[1, ]), 64.64129231, tolerance = 1e-7)
+  expect_equal(sum(GetAssayData(pred.assay)[, 1]), 281.090076, tolerance = 1e-7)
   expect_true(inherits(pred.assay, "Assay"))
   expect_equal(pred.assay@var.features, logical(0))
   expect_equal(ncol(pred.assay@meta.features), 0)
@@ -50,8 +50,8 @@ test_that("TransferData can return predictions assay, ", {
   expect_equal(colnames(pred.assay), Cells(query))
   expect_equal(pred.assay@var.features, logical(0))
   expect_equal(ncol(pred.assay@meta.features), 0)
-  expect_equal(sum(GetAssayData(pred.assay)[1, ]), 26.52830352)
-  expect_equal(sum(GetAssayData(pred.assay)[, 1]), 1.427360537)
+  expect_equal(sum(GetAssayData(pred.assay)[1, ]), 26.52830352, tolerance = 1e-7)
+  expect_equal(sum(GetAssayData(pred.assay)[, 1]), 1.427360537, tolerance = 1e-7)
   expect_equal(as.vector(colSums(GetAssayData(pred.assay)[1:3, ])), rep(1, ncol(query)))
 })
 
@@ -70,12 +70,12 @@ test_that("TransferData handles weight.reduction properly, ", {
   # weight.reduction = "pca
   pca.preds <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, weight.reduction = "pca", verbose = FALSE)
   expect_true(inherits(pca.preds, "data.frame"))
-  expect_equal(sum(pca.preds[, 2]), 27.70926483)
+  expect_equal(sum(pca.preds[, 2]), 27.70926483, tolerance = 1e-7)
   # weight.reduction = "cca"
   anchors.cca <- FindTransferAnchors(reference = ref, query = query, k.filter = 50, reduction = "cca")
   cca.preds <- TransferData(anchorset = anchors.cca, refdata = ref$RNA_snn_res.1, weight.reduction = "cca", verbose = FALSE)
   expect_true(inherits(cca.preds, "data.frame"))
-  expect_equal(sum(cca.preds[, 2]), 43.71942783)
+  expect_equal(sum(cca.preds[, 2]), 43.71942783, tolerance = 1e-7)
 })
 
 test_that("TransferData with l2.norm works", {
@@ -85,7 +85,7 @@ test_that("TransferData with l2.norm works", {
   expect_equal(colnames(preds)[c(1, 5)], c("predicted.id", "prediction.score.max"))
   expect_equal(rownames(preds), Cells(query))
   expect_equal(preds[1, 1], "0")
-  expect_equal(preds[1, 5], 0.3964849387)
+  expect_equal(preds[1, 5], 0.3964849387, tolerance = 1e-7)
   expect_equal(as.vector(rowSums(as.matrix(preds[, 2:4]))), rep(1, times = ncol(query)))
   expect_true(inherits(preds, "data.frame"))
 })
@@ -97,7 +97,7 @@ test_that("TransferData with other k.weight works", {
   expect_equal(colnames(preds)[c(1, 5)], c("predicted.id", "prediction.score.max"))
   expect_equal(rownames(preds), Cells(query))
   expect_equal(preds[1, 1], "2")
-  expect_equal(preds[1, 5], 0.6144913743)
+  expect_equal(preds[1, 5], 0.6144913743, tolerance = 1e-7)
   expect_equal(as.vector(rowSums(as.matrix(preds[, 2:4]))), rep(1, times = ncol(query)))
   expect_true(inherits(preds, "data.frame"))
 })
