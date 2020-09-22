@@ -343,6 +343,10 @@ FindIntegrationAnchors <- function(
             x = rownames(x = Loadings(object = object.1[["pca"]])),
             y = rownames(x = Loadings(object = object.2[["pca"]]))
           )
+          common.features <- intersect(
+            x = common.features,
+            y = anchor.features
+          )
           object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
           projected.embeddings.1<- t(x = GetAssayData(object = object.1, slot = "scale.data")[common.features, ]) %*%
             Loadings(object = object.2[["pca"]])[common.features, ]
@@ -2423,31 +2427,37 @@ FilterAnchors <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
-  cn.data1 <- L2Norm(
-    mat = as.matrix(x = t(x = GetAssayData(
-      object = object[[assay[1]]],
-      slot = slot)[features, nn.cells1])),
-    MARGIN = 1)
-  cn.data2 <- L2Norm(
-    mat = as.matrix(x = t(x = GetAssayData(
-      object = object[[assay[2]]],
-      slot = slot)[features, nn.cells2])),
-    MARGIN = 1)
-  nn <- NNHelper(
-    data = cn.data2[nn.cells2, ],
-    query = cn.data1[nn.cells1, ],
-    k = k.filter,
-    method = nn.method,
-    eps = eps
-  )
-
-  anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
-  position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
-  })
-  anchors <- anchors[!is.na(x = position), ]
-  if (verbose) {
-    message("\tRetained ", nrow(x = anchors), " anchors")
+  if (min(length(x = nn.cells1), length(x = nn.cells2)) < k.filter) {
+    warning("Number of anchor cells is less than k.filter. Retaining all anchors.")
+    k.filter <- min(length(x = nn.cells1), length(x = nn.cells2))
+    anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
+  } else {
+    cn.data1 <- L2Norm(
+      mat = as.matrix(x = t(x = GetAssayData(
+        object = object[[assay[1]]],
+        slot = slot)[features, nn.cells1])),
+      MARGIN = 1)
+    cn.data2 <- L2Norm(
+      mat = as.matrix(x = t(x = GetAssayData(
+        object = object[[assay[2]]],
+        slot = slot)[features, nn.cells2])),
+      MARGIN = 1)
+    nn <- NNHelper(
+      data = cn.data2[nn.cells2, ],
+      query = cn.data1[nn.cells1, ],
+      k = k.filter,
+      method = nn.method,
+      eps = eps
+    )
+    
+    anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
+    position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+      which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
+    })
+    anchors <- anchors[!is.na(x = position), ]
+    if (verbose) {
+      message("\tRetained ", nrow(x = anchors), " anchors")
+    }
   }
   object <- SetIntegrationData(
     object = object,
@@ -3461,6 +3471,10 @@ RunIntegration <- function(
 ) {
   cells1 <- colnames(x = reference)
   cells2 <- colnames(x = query)
+  if (nrow(x = filtered.anchors) < k.weight) {
+    warning("Number of anchors is less than k.weight. Lowering k.weight for sample pair.")
+    k.weight <- nrow(x = filtered.anchors)
+  }
   merged.obj <- merge(x = reference, y = query, merge.data = TRUE)
   cell1.offset <- GetCellOffsets(
     anchors = filtered.anchors,
