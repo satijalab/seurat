@@ -744,17 +744,6 @@ FindTransferAnchors <- function(
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
   }
-  # if not filtering anchors, we can slim down query and combined.ob
-  if (is.na(x = k.filter)) {
-    query <- DietSeurat(
-      object = query,
-      assays = query.assay,
-      counts = FALSE,
-      features = features,
-      scale.data = FALSE
-    )
-    combined.ob[[query.assay]] <- CreateDummyAssay(assay = combined.ob[[query.assay]])
-  }
   precomputed.neighbors <- list(ref.neighbors = NULL, query.neighbors = NULL)
   nn.idx1 <- NULL
   nn.idx2 <- NULL
