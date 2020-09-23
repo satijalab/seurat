@@ -1576,13 +1576,13 @@ SCTransform <- function(
   if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
     stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
   }
-  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
+  if (any(c('cell_attr', 'verbosity', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
     warning(
       'the following arguments will be ignored because they are set within this function:',
       paste(
         c(
           'cell_attr',
-          'show_progress',
+          'verbosity',
           'return_cell_attr',
           'return_gene_attr',
           'return_corrected_umi'
@@ -1595,7 +1595,7 @@ SCTransform <- function(
   }
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['show_progress']] <- verbose
+  vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
@@ -1650,7 +1650,7 @@ SCTransform <- function(
       vst.out$umi_corrected <- correct_counts(
         x = vst.out,
         umi = umi,
-        show_progress = verbose
+        verbosity = as.numeric(x = verbose) * 2
       )
     }
   }
@@ -3313,7 +3313,7 @@ GetResidualVstOut <- function(
     umi = umi,
     residual_type = "pearson",
     res_clip_range = c(clip.min, clip.max),
-    verbosity = verbose
+    verbosity = as.numeric(x = verbose) * 2
   )
   new_residual <- as.matrix(x = new_residual)
   # centered data
