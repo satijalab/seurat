@@ -2,9 +2,7 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [3.2.1] - DATE HERE
-### Added
-
+## [3.2.2] - 2020-09-25
 ### Changes
 - Set the seed in `WhichCells` regardless of whether or not `idents` is passed
 - Retain Graph and Neighbor objects when subsetting only on features
