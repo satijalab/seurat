@@ -2260,11 +2260,13 @@ TransferData <- function(
         transfer.results[[rd]] <- new.assay
       } else {
         if (rd.name %in% Assays(object = query)) {
-          warning(
+          message(
             rd.name,
-            " already present in query. Overwriting existing assay.",
-            immediate. = TRUE
+            " already present in query. ",
+            "Storing as ",
+            paste0("predicted_", rd.name)
           )
+          rd.name <- paste0("predicted_", rd.name)
         }
         query[[rd.name]] <- new.assay
       }
