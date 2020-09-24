@@ -235,7 +235,7 @@ AddModuleScore <- function(
 #' @param assays Which assays to use. Default is all assays
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)
+#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
 #' @param slot Slot to use; will be overriden by \code{use.scale} and \code{use.counts}
 #' @param use.scale Use scaled values for feature expression
 #' @param use.counts Use count values for feature expression
@@ -246,6 +246,7 @@ AddModuleScore <- function(
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #'
 #' @importFrom Matrix rowMeans
+#' @importFrom stats model.matrix as.formula
 #' @export
 #'
 #' @examples
@@ -256,7 +257,7 @@ AverageExpression <- function(
   assays = NULL,
   features = NULL,
   return.seurat = FALSE,
-  add.ident = NULL,
+  group.by = 'ident',
   slot = 'data',
   use.scale = FALSE,
   use.counts = FALSE,
@@ -275,18 +276,9 @@ AverageExpression <- function(
     }
     slot <- 'counts'
   }
-  fxn.average <- switch(
-    EXPR = slot,
-    'data' = function(x) {
-      rowMeans(x = expm1(x = x))
-    },
-    rowMeans
-  )
+  features <- features %||% rownames(x = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
-  ident.orig <- Idents(object = object)
-  orig.levels <- levels(x = Idents(object = object))
-  ident.new <- c()
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
     if (length(assays) == 0) {
@@ -295,15 +287,32 @@ AverageExpression <- function(
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
     }
   }
-  if (!is.null(x = add.ident)) {
-    new.data <- FetchData(object = object, vars = add.ident)
-    new.ident <- paste(
-      Idents(object)[rownames(x = new.data)],
-      new.data[, 1],
-      sep = '_'
-    )
-    Idents(object, cells = rownames(new.data)) <- new.ident
+  data <- FetchData(object = object, vars = rev(group.by))
+  for (i in 1:ncol(x = data)) {
+    data[, i] <- as.factor(x = data[, i])
   }
+  category.matrix <- model.matrix(object = as.formula(
+    object = paste0(
+      '~0+',
+      paste0(
+        "data[,",
+        1:length(group.by),
+        "]",
+        collapse = ":")
+    )))
+  colsums <- colSums(category.matrix)
+  category.matrix <- category.matrix[, colsums > 0]
+  category.matrix <- Sweep(
+    x = category.matrix,
+    MARGIN = 2,
+    STATS = colsums,
+    FUN = "/")
+  colnames(category.matrix) <- sapply(
+    X = colnames(category.matrix),
+    FUN = function(name) {
+      name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+    })
   data.return <- list()
   for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
@@ -311,35 +320,17 @@ AverageExpression <- function(
       assay = assays[i],
       slot = slot
     )
-    features.assay <- features
-    if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
-      features.assay <- rownames(x = data.use)
+    features.assay <- intersect(x = features, y = rownames(x = data.use))
+    if (length(x = features.assay) > 0) {
+      data.use <- data.use[features.assay, ]
     }
-    data.all <- list(data.frame(row.names = features.assay))
-    for (j in levels(x = Idents(object))) {
-      temp.cells <- WhichCells(object = object, idents = j)
-      features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
-      if (length(x = temp.cells) == 1) {
-        data.temp <- (data.use[features.assay, temp.cells])
-        # transform data if needed (alternative: apply fxn.average to single value above)
-        # if (!(use.scale | use.counts)) { # equivalent: slot.use == "data"
-        if (slot == 'data') {
-          data.temp <- expm1(x = data.temp)
-        }
-      }
-      if (length(x = temp.cells) > 1 ) {
-        data.temp <- fxn.average(data.use[features.assay, temp.cells, drop = FALSE])
-      }
-      data.all[[j]] <- data.temp
-      if (verbose) {
-        message(paste("Finished averaging", assays[i], "for cluster", j))
-      }
-      if (i == 1) {
-        ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
-      }
+    if (slot == 'data') {
+      data.use <- expm1(x = data.use)
     }
-    names(x = ident.new) <- levels(x = Idents(object))
-    data.return[[i]] <- do.call(cbind, data.all)
+    if (any(data.use == Inf)) {
+      warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
+    }
+    data.return[[i]] <- data.use %*% category.matrix
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
