@@ -1684,9 +1684,9 @@ MappingScore.default <- function(
   ## Perform projection of ref pca values using weights matrix
   ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
-  query.cells.projected <- crossprod(
-    x = ref.pca,
-    y = as.matrix(x = weights.matrix)
+  query.cells.projected <- Matrix::crossprod(
+    x = as(object = ref.pca, Class = "dgCMatrix"),
+    y = weights.matrix
   )
   colnames(x = query.cells.projected) <- query.cells
   rownames(x = query.cells.projected) <- colnames(x = ref.pca)
@@ -1722,9 +1722,12 @@ MappingScore.default <- function(
   )
   ## Project back onto query
   orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
-  query.cells.back.corrected <- t(
-    x = crossprod(x = orig.pca, y = as.matrix(x = weights.matrix))[1:ndim, ]
+  query.cells.back.corrected <- Matrix::t(
+    x = Matrix::crossprod(
+      x = as(object = orig.pca, Class = "dgCMatrix"),
+      y = weights.matrix)[1:ndim, ]
   )
+  query.cells.back.corrected <- as.matrix(x = query.cells.back.corrected)
   rownames(x = query.cells.back.corrected) <- query.cells
   query.cells.pca <- query.embeddings[query.cells, 1:ndim]
   if (verbose) {
