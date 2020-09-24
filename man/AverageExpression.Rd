@@ -9,7 +9,7 @@ AverageExpression(
   assays = NULL,
   features = NULL,
   return.seurat = FALSE,
-  add.ident = NULL,
+  group.by = "ident",
   slot = "data",
   use.scale = FALSE,
   use.counts = FALSE,
@@ -26,7 +26,7 @@ AverageExpression(
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{add.ident}{Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)}
+\item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
 
 \item{slot}{Slot to use; will be overriden by \code{use.scale} and \code{use.counts}}
 
