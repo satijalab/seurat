@@ -794,6 +794,21 @@ FindTransferAnchors <- function(
     projected = projected,
     verbose = verbose
   )
+  reductions <- slot(object = combined.ob, name = "reductions")
+  for (i in unique(x = c(reference.assay, query.assay))) {
+    dummy.assay <- paste0(i, "DUMMY")
+    suppressWarnings(
+      expr = combined.ob[[dummy.assay]] <- CreateDummyAssay(assay = combined.ob[[i]])
+    )
+    DefaultAssay(combined.ob) <- dummy.assay
+    combined.ob[[i]] <- NULL
+    suppressWarnings(
+      expr = combined.ob[[i]] <- combined.ob[[dummy.assay]]
+    )
+    DefaultAssay(combined.ob) <- i
+    combined.ob[[dummy.assay]] <- NULL
+  }
+  slot(object = combined.ob, name = "reductions") <- reductions
   command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
   anchor.set <- new(
     Class = "AnchorSet",
