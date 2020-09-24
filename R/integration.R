@@ -2220,11 +2220,11 @@ TransferData <- function(
       if (is.null(x = query)){
         prediction.scores <- cbind(prediction.scores, max = prediction.max)
       }
-      predictions <- (data.frame(
+      predictions <- data.frame(
         predicted.id = prediction.ids,
         prediction.score = as.matrix(prediction.scores),
         row.names = query.cells,
-        stringsAsFactors = FALSE)
+        stringsAsFactors = FALSE
       )
       if (prediction.assay || !is.null(x = query)) {
         predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
@@ -2259,6 +2259,13 @@ TransferData <- function(
       if (is.null(x = query)) {
         transfer.results[[rd]] <- new.assay
       } else {
+        if (rd.name %in% Assays(object = query)) {
+          warning(
+            rd.name,
+            " already present in query. Overwriting existing assay.",
+            immediate. = TRUE
+          )
+        }
         query[[rd.name]] <- new.assay
       }
     }
