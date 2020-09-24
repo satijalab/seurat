@@ -16,7 +16,7 @@ NULL
 #' @param object Seurat object
 #' @param features A list of vectors of features for expression programs; each
 #' entry should be a vector of feature names
-#' @param pool List of features to check expression levels agains, defaults to
+#' @param pool List of features to check expression levels against, defaults to
 #' \code{rownames(x = object)}
 #' @param nbin Number of bins of aggregate expression levels for all
 #' analyzed features

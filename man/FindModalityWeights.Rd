@@ -46,24 +46,24 @@ dimensional reduction}
 \item{query}{A Seurat object used as the query when query and reference
 objects are different. snn.far.nn does not support for query object.}
 
-\item{cross.contant.list}{the minimal cross-modality prediction similarity 
+\item{cross.contant.list}{the minimal cross-modality prediction similarity
 used in the modality score calculation.}
 
-\item{sigma.idx}{Use sigma.idx-th neighbor's distance as the kernel width. 
+\item{sigma.idx}{Use sigma.idx-th neighbor's distance as the kernel width.
 When snn.far.nn is TRUE, this parameter is not used}
 
-\item{smooth}{Smoothing modality score across each individual modality 
+\item{smooth}{Smoothing modality score across each individual modality
 neighbors.}
 
 \item{verbose}{Display messages}
 }
 \value{
-Returns a \code{ModalityWeights} object that can be used as input to 
+Returns a \code{ModalityWeights} object that can be used as input to
 \code{\link{FindMultiModalNeighbors}}
 }
 \description{
-This function calculates cell-specific modality weights which are used to 
-construct the multimodal kernel to find multimodal neighbors. It finds 
-neighbors from each modality and performs within- and cross- modality 
+This function calculates cell-specific modality weights which are used to
+construct the multimodal kernel to find multimodal neighbors. It finds
+neighbors from each modality and performs within- and cross- modality
 prediction to calculate modality weights.
 }

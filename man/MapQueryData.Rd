@@ -77,7 +77,7 @@ scores in metadata and per-class prediction scores in an Assay for each identity
 in transfer.labels; Assay with imputed values for each matrix in transfer.expression.
 }
 \description{
-Correct batch effects of query projected dimension reduction,transfer 
+Correct batch effects of query projected dimension reduction,transfer
 categorical or continuous data from reference datasets.
 }
 \details{
