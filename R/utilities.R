@@ -330,7 +330,7 @@ AverageExpression <- function(
     if (any(data.use == Inf)) {
       warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
     }
-    data.return[[i]] <- as.matrix(data.use %*% as.sparse(category.matrix))
+    data.return[[i]] <- as.matrix(x = (data.use %*% as.sparse(x = category.matrix)))
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
