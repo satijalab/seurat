@@ -7458,7 +7458,7 @@ NNPlot <- function(
 ) {
   if (class(nn.idx) == "Neighbor") {
     rownames(nn.idx@nn.idx) <- Cells(nn.idx)
-    nn.idx <- nn.idx@nn.idx
+    nn.idx <- Indices(object = nn.idx)
   }
   if (length(x = query.cells) > 1) {
     neighbor.cells <- apply(
