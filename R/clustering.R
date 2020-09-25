@@ -1221,10 +1221,13 @@ MultiModalNN <- function(
     FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
   )
   select_dist <- sqrt(x = (1 - select_dist) / 2)
-  rownames(x = select_nn) <- rownames(x = select_dist) <- Cells(x = query)
-  joint.nn <- list(select_nn, select_dist)
-  names(x = joint.nn) <- c("nn.idx", "nn.dists")
-  return(joint.nn)
+  weighted.nn <- Neighbor(
+    nn.idx = select_nn,
+    nn.dist = select_dist,
+    alg.info = list(),
+    cell.names = Cells(x = query)
+  )
+  return(weighted.nn)
 }
 
 
@@ -1255,7 +1258,7 @@ MultiModalNN <- function(
 #' the neighborhood overlap for the SNN construction
 #' @param knn.graph.name The name of multimodal knn graph
 #' @param snn.graph.name The name of multimodal snn graph
-#' @param joint.nn.name The name of multimodal neighbors
+#' @param weighted.nn.name The name of multimodal neighbors
 #' @param modality.weight.name The variable name of first modality weights
 #' stored in the meta.data.
 #' @param knn.range The number of approximate neighbors to compute
@@ -1281,7 +1284,7 @@ FindMultiModalNeighbors  <- function(
   knn.range = 200,
   knn.graph.name = "wknn",
   snn.graph.name = "wsnn",
-  joint.nn.name = "joint.nn",
+  weighted.nn.name = "weighted.nn",
   modality.weight = NULL,
   prune.SNN = 1/15,
   weighted.graph = FALSE,
@@ -1301,22 +1304,22 @@ FindMultiModalNeighbors  <- function(
   }
   k.nn <- k.nn %||% slot(object = modality.weight, name = "params")$k.nn
   first.assay <- slot(object = modality.weight, name = "modality.assay")[1]
-  joint.nn <- MultiModalNN(
+  weighted.nn <- MultiModalNN(
     object = object,
     k.nn = k.nn,
     modality.weight = modality.weight,
     knn.range = knn.range,
     verbose = verbose
   )
-  select_nn <- joint.nn$nn.idx
-  select_nn_dist <- joint.nn$nn.dists
+  select_nn <- weighted.nn@nn.idx
+  select_nn_dist <- weighted.nn@nn.dist
   # compute KNN graph
   if (weighted.graph) {
     if (verbose) {
       message("Constructing joint weighted knn graph")
     }
-    joint.nn$nn.dists <- t(x = apply(
-      X = joint.nn$nn.dists,
+    weighted.nn@nn.dists <- t(x = apply(
+      X = weighted.nn@nn.dists,
       MARGIN = 1,
       FUN = function(x) log2(k.nn) * x / sum(x))
     )
@@ -1326,7 +1329,7 @@ FindMultiModalNeighbors  <- function(
       x = 1
     )
     for (i in 1:ncol(x = object)) {
-      nn.matrix[i, select_nn[i, ]] <- joint.nn$nn.dists[i, ]
+      nn.matrix[i, select_nn[i, ]] <- weighted.nn@nn.dists[i, ]
     }
   } else {
     if (verbose) {
@@ -1359,7 +1362,7 @@ FindMultiModalNeighbors  <- function(
   object[[snn.graph.name]] <- snn.matrix
 
   # add neighbors and modality weights
-  object@neighbors[[joint.nn.name]] <- joint.nn
+  object[[weighted.nn.name]] <- weighted.nn
   object[[modality.weight.name]] <- modality.weight@first.modality.weight
 
   # add command log
