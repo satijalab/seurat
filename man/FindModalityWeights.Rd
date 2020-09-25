@@ -21,49 +21,19 @@ FindModalityWeights(
   verbose = TRUE
 )
 }
-\arguments{
-\item{object}{A Seurat object}
-
-\item{reduction.list}{A list of name of dimension reduction}
-
-\item{dims.list}{A list of number of dimensions to use}
-
-\item{k.nn}{How many neighbors (k) to use}
-
-\item{snn.far.nn}{Use SNN to find farthest neighbors to calculate
-the kernel width}
-
-\item{s.nn}{How many neighbors (k) to use from the SNN graph}
-
-\item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when computing
-the neighborhood overlap for the SNN construction.}
-
-\item{l2.norm}{Perform L2 normalization on the cell embeddings after
-dimensional reduction}
-
-\item{sd.scale}{The scaling factor for kernel width, and the default is 1.}
-
-\item{query}{A Seurat object used as the query when query and reference
-objects are different. snn.far.nn does not support for query object.}
-
-\item{cross.contant.list}{the minimal cross-modality prediction similarity
-used in the modality score calculation.}
-
-\item{sigma.idx}{Use sigma.idx-th neighbor's distance as the kernel width.
-When snn.far.nn is TRUE, this parameter is not used}
-
-\item{smooth}{Smoothing modality score across each individual modality
-neighbors.}
-
-\item{verbose}{Display messages}
-}
-\value{
-Returns a \code{ModalityWeights} object that can be used as input to
-\code{\link{FindMultiModalNeighbors}}
-}
 \description{
 This function calculates cell-specific modality weights which are used to
 construct the multimodal kernel to find multimodal neighbors. It finds
 neighbors from each modality and performs within- and cross- modality
 prediction to calculate modality weights.
+}
+\details{
+the kernel width
+ the neighborhood overlap for the SNN construction.
+dimensional reduction
+objects are different. snn.far.nn does not support for query object.
+used in the modality score calculation.
+When snn.far.nn is TRUE, this parameter is not used
+neighbors.
+\code{\link{FindMultiModalNeighbors}}
 }
