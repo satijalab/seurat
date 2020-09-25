@@ -7456,7 +7456,7 @@ NNPlot <- function(
   show.all.cells = TRUE, 
   ...
 ) {
-  if (class(nn.idx) == "Neighbor") {
+  if (inherits(x = nn.idx, what = 'Neighbor')) {
     rownames(nn.idx@nn.idx) <- Cells(nn.idx)
     nn.idx <- Indices(object = nn.idx)
   }
