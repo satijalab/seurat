@@ -57,6 +57,10 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }
+\value{
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
+}
 \description{
 It will color the query cells and the neighbors of the query cells in the
 DimPlot
