@@ -836,9 +836,9 @@ RunPCA.default <- function(
       feature.loadings <- pca.results$rotation
       sdev <- pca.results$sdev
       if (weight.by.var) {
-        cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
-      } else {
         cell.embeddings <- pca.results$x
+      } else {
+        cell.embeddings <- pca.results$x / (pca.results$sdev[1:npcs] * sqrt(x = ncol(x = object) - 1))
       }
     }
   }
@@ -1133,7 +1133,7 @@ RunUMAP.default <- function(
   reduction.key = 'UMAP_',
   assay = NULL,
   reduction.model = NULL,
-  return.model = FALSE, 
+  return.model = FALSE,
   umap.method = 'uwot',
   n.neighbors = 30L,
   n.components = 2L,
@@ -1270,7 +1270,7 @@ RunUMAP.default <- function(
           a = a,
           b = b,
           fast_sgd = uwot.sgd,
-          verbose = verbose, 
+          verbose = verbose,
           ret_model = return.model
         )
       }
@@ -1301,13 +1301,18 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        umap_transform(
+        if (packageVersion(pkg = "uwot") <= '0.1.8.9000') {
+          stop("This uwot functionality requires uwot version >= 0.1.8.9000",
+               "Installing the latest version from github can be done with",
+               "remotes::install_github('jlmelville/uwot')")
+        }
+        uwot::umap_transform(
           X = NULL,
-          nn_method = object, 
-          model = model, 
+          nn_method = object,
+          model = model,
           n_threads = nbrOfWorkers(),
           n_epochs = n.epochs,
-          verbose = verbose 
+          verbose = verbose
         )
       } else {
         umap_transform(
@@ -1445,7 +1450,7 @@ RunUMAP.Graph <- function(
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
 #' @param nn.name Name of knn output on which to run UMAP
-#' @param slot The slot used to pull data for when using \code{features}. data slot is by default. 
+#' @param slot The slot used to pull data for when using \code{features}. data slot is by default.
 #' @param umap.method UMAP implementation to run. Can be
 #' \describe{
 #'   \item{\code{uwot}:}{Runs umap via the uwot R package}
@@ -1516,11 +1521,11 @@ RunUMAP.Seurat <- function(
   features = NULL,
   graph = NULL,
   assay = DefaultAssay(object = object),
-  nn.name = NULL, 
+  nn.name = NULL,
   slot = 'data',
   umap.method = 'uwot',
   reduction.model = NULL,
-  return.model = FALSE, 
+  return.model = FALSE,
   n.neighbors = 30L,
   n.components = 2L,
   metric = 'cosine',

@@ -8,26 +8,35 @@ NULL
 
 #' Calculate module scores for feature expression programs in single cells
 #'
-#' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control feature sets.
-#' All analyzed features are binned based on averaged expression, and the control features are
-#' randomly selected from each bin.
+#' Calculate the average expression levels of each program (cluster) on single
+#' cell level, subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the
+#' control features are randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Feature expression programs in list
-#' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
-#' @param nbin Number of bins of aggregate expression levels for all analyzed features
-#' @param ctrl Number of control features selected from the same bin per analyzed feature
+#' @param features A list of vectors of features for expression programs; each
+#' entry should be a vector of feature names
+#' @param pool List of features to check expression levels against, defaults to
+#' \code{rownames(x = object)}
+#' @param nbin Number of bins of aggregate expression levels for all
+#' analyzed features
+#' @param ctrl Number of control features selected from the same bin per
+#' analyzed feature
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
-#' @param name Name for the expression programs
+#' @param name Name for the expression programs; will append a number to the
+#' end for each entry in \code{features} (eg. if \code{features} has three
+#' programs, the results will be stored as \code{name1}, \code{name2},
+#' \code{name3}, respectively)
 #' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
-#' don't match features in \code{object}? Searches the HGNC's gene names database;
-#' see \code{\link{UpdateSymbolList}} for more details
+#' don't match features in \code{object}? Searches the HGNC's gene names
+#' database; see \code{\link{UpdateSymbolList}} for more details
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
-#' @return Returns a Seurat object with module scores added to object meta data
+#' @return Returns a Seurat object with module scores added to object meta data;
+#' each module is stored as \code{name#} for each module program present in
+#' \code{features}
 #'
 #' @importFrom ggplot2 cut_number
 #' @importFrom Matrix rowMeans colMeans
@@ -530,6 +539,29 @@ CollapseSpeciesExpressionMatrix <- function(
   return(object)
 }
 
+# Create an Annoy index
+#
+# @note Function exists because it's not exported from \pkg{uwot}
+#
+# @param name Distance metric name
+# @param ndim Number of dimensions
+#
+# @return An nn index object
+#
+#' @importFrom methods new
+#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
+#
+CreateAnn <- function(name, ndim) {
+  return(switch(
+    EXPR = name,
+    cosine = new(Class = AnnoyAngular, ndim),
+    manhattan = new(Class = AnnoyManhattan, ndim),
+    euclidean = new(Class = AnnoyEuclidean, ndim),
+    hamming = new(Class = AnnoyHamming, ndim),
+    stop("BUG: unknown Annoy metric '", name, "'")
+  ))
+}
+
 #' Run a custom distance function on an input data matrix
 #'
 #' @author Jean Fan
@@ -643,6 +675,14 @@ ExportToCellbrowser <- function(
   skip.reductions = FALSE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratWrappers::ExportToCellbrowser",
+    msg = paste(
+      "Cell browser functionality is moving to SeuratWrappers",
+      "For more details, please see https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   vars <- c(...)
   if (is.null(x = vars)) {
     vars <- c("nCount_RNA", "nFeature_RNA")
@@ -862,6 +902,52 @@ ExpVar <- function(x) {
   return(log1p(x = var(x = expm1(x = x))))
 }
 
+#' Scale and/or center matrix rowwise
+#'
+#' Performs row scaling and/or centering. Equivalent to using t(scale(t(mat)))
+#' in R except in the case of NA values.
+#'
+#' @param mat A matrix
+#' @param center a logical value indicating whether to center the rows
+#' @param scale a logical value indicating whether to scale the rows
+#' @param scale_max clip all values greater than scale_max to scale_max. Don't
+#' clip if Inf.
+#' @return Returns the center/scaled matrix
+#'
+#' @importFrom matrixStats rowMeans2 rowSds rowSums2
+#'
+#' @export
+#'
+FastRowScale <- function(
+  mat,
+  center = TRUE,
+  scale = TRUE,
+  scale_max = 10
+) {
+  # inspired by https://www.r-bloggers.com/a-faster-scale-function/
+  if (center) {
+    rm <- rowMeans2(x = mat, na.rm = TRUE)
+  }
+  if (scale) {
+    if (center) {
+      rsd <- rowSds(mat, center = rm)
+    } else {
+      rsd <- sqrt(x = rowSums2(x = mat^2)/(ncol(x = mat) - 1))
+    }
+  }
+  if (center) {
+    mat <- mat - rm
+  }
+  if (scale) {
+    mat <- mat / rsd
+  }
+  if (scale_max != Inf) {
+    mat[mat > scale_max] <- scale_max
+  }
+  return(mat)
+}
+
+
 #' Get updated synonyms for gene symbols
 #'
 #' Find current gene symbols based on old or alias symbols using the gene
@@ -884,7 +970,7 @@ ExpVar <- function(x) {
 #' where each entry is the current symbol found for each symbol provided and the
 #' names are the provided symbols. Otherwise, a named vector with the same information.
 #'
-#' @source \url{https://www.genenames.org/} \url{http://rest.genenames.org/}
+#' @source \url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom httr GET accept_json timeout status_code content
@@ -1188,6 +1274,44 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
+#' Load the Annoy index file
+#'
+#' @param object Neighbor object
+#' @param file Path to file with annoy index
+#'
+#' @return Returns the Neighbor object with the index stored
+#' @export
+#'
+LoadAnnoyIndex <- function(object, file){
+  metric <- slot(object = object, name = "alg.info")$metric
+  ndim <- slot(object = object, name = "alg.info")$ndim
+  if (is.null(x = metric)) {
+    stop("Provided Neighbor object wasn't generated with annoy")
+  }
+  annoy.idx <- CreateAnn(name = metric, ndim = ndim)
+  annoy.idx$load(path.expand(path = file))
+  Index(object = object) <- annoy.idx
+  return(object)
+}
+
+#' Save the Annoy index
+#'
+#' @param object A Neighbor object with the annoy index stored
+#' @param file Path to file to write index to
+#'
+#' @export
+#'
+SaveAnnoyIndex <- function(
+  object,
+  file
+) {
+  index <- Index(object = object)
+  if (is.null(x = index)) {
+    stop("Index for provided Neighbor object is NULL")
+  }
+  index$save(path.expand(path = file))
+}
+
 #' Regroup idents based on meta.data info
 #'
 #' For cells in each ident, set a new identity based on the most common value
@@ -1227,7 +1351,7 @@ RegroupIdents <- function(object, metadata) {
 #' with zeros in the matrix not containing the row.
 #'
 #' @param mat1 First matrix
-#' @param mat2 Second matrix
+#' @param mat2 Second matrix or list of matrices
 #'
 #' @return A merged matrix
 #'
@@ -1237,34 +1361,37 @@ RegroupIdents <- function(object, metadata) {
 #
 #' @export
 #'
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if (inherits(x = mat1, what = "data.frame")) {
-    mat1 <- as.matrix(x = mat1)
+RowMergeSparseMatrices <- function(mat1, mat2) {
+  all.mat <- c(list(mat1), mat2)
+  all.rownames <- list()
+  all.colnames <- list()
+  use.cbind <- TRUE
+  for(i in 1:length(x = all.mat)) {
+    if (inherits(x = all.mat[[i]], what = "data.frame")) {
+      all.mat[[i]] <- as.matrix(x = all.mat[[i]])
+    }
+    all.rownames[[i]] <- rownames(x = all.mat[[i]])
+    all.colnames[[i]] <- colnames(x = all.mat[[i]])
+    # use cbind if all matrices have the same rownames
+    if (i > 1) {
+      if (!isTRUE(x = all.equal(target = all.rownames[[i]], current = all.rownames[[i - 1]]))) {
+        use.cbind <- FALSE
+      }
+    }
   }
-  if (inherits(x = mat2, what = "data.frame")) {
-    mat2 <- as.matrix(x = mat2)
-  }
-  mat1.names <- rownames(x = mat1)
-  mat2.names <- rownames(x = mat2)
-  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
-    new.mat <- cbind(mat1, mat2)
+  if (isTRUE(x = use.cbind)) {
+    new.mat <- do.call(what = cbind, args = all.mat)
   } else {
-    mat1 <- as(object = mat1, Class = "RsparseMatrix")
-    mat2 <- as(object = mat2, Class = "RsparseMatrix")
-    all.names <- union(x = mat1.names, y = mat2.names)
-    new.mat <- RowMergeMatrices(
-      mat1 = mat1,
-      mat2 = mat2,
-      mat1_rownames = mat1.names,
-      mat2_rownames = mat2.names,
+    all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
+    all.names <- unique(x = do.call(what = c, args = all.rownames))
+    new.mat <- RowMergeMatricesList(
+      mat_list = all.mat,
+      mat_rownames = all.rownames,
       all_rownames = all.names
     )
     rownames(x = new.mat) <- make.unique(names = all.names)
   }
-  colnames(x = new.mat) <- make.unique(names = c(
-    colnames(x = mat1),
-    colnames(x = mat2)
-  ))
+  colnames(x = new.mat) <- make.unique(names = c(do.call(what = c, all.colnames)))
   return(new.mat)
 }
 
@@ -1281,6 +1408,14 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 #' }
 #'
 StopCellbrowser <- function() {
+  .Deprecated(
+    new = "SeuratWrappers::StopCellbrowser",
+    msg = paste(
+      "Cell browser functionality is moving to SeuratWrappers",
+      "For more details, please see https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (py_module_available(module = "cellbrowser")) {
     cb <- import(module = "cellbrowser")
     cb$cellbrowser$stop()
@@ -1689,6 +1824,14 @@ IsMatrixEmpty <- function(x) {
   matrix.dims <- dim(x = x)
   matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
   return(all(matrix.dims == 0) || matrix.na)
+}
+
+# Check if externalptr is null
+# From https://stackoverflow.com/questions/26666614/how-do-i-check-if-an-externalptr-is-null-from-within-r
+#
+is.null.externalptr <- function(pointer) {
+  stopifnot(is(pointer, "externalptr"))
+  .Call("isnull", pointer)
 }
 
 # Check whether an assay has been processed by sctransform

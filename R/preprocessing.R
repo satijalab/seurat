@@ -184,6 +184,15 @@ CreateGeneActivityMatrix <- function(
   keep.sparse = FALSE,
   verbose = TRUE
 ) {
+  .Deprecated(
+    new = 'Signac::GeneActivity',
+    msg = paste(
+      "CreateGeneActivityMatrix functionality is being moved to Signac.",
+      "Equivalent functionality can be",
+      "achieved via the Signac::GeneActivity function; for",
+      "more information on Signac, please see https://github.com/timoast/Signac"
+    )
+  )
   if (!PackageCheck('GenomicRanges', error = FALSE)) {
     stop("Please install GenomicRanges from Bioconductor.")
   }
@@ -754,7 +763,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #'
 #' @export
 #'
-#' @references \url{https://www.biorxiv.org/content/early/2018/08/08/387241}
+#' @references \url{https://www.biorxiv.org/content/10.1101/387241v1}
 #'
 #' @examples
 #' \dontrun{
@@ -864,6 +873,14 @@ MULTIseqDemux <- function(
 #' }
 #'
 ReadAlevinCsv <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -911,6 +928,14 @@ ReadAlevinCsv <- function(base.path) {
 #' }
 #'
 ReadAlevin <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -1356,7 +1381,6 @@ RunMarkVario <- function(
 #' @param verbose Display messages/progress
 #'
 #' @importFrom stats dist
-#' @importFrom ape Moran.I
 #'
 #' @export
 #'
@@ -1369,6 +1393,11 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
   Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
   if (Rfast2.installed) {
     MyMoran <- Rfast2::moranI
+  } else if (!PackageCheck('ape', error = FALSE)) {
+    stop(
+      "'RunMoransI' requires either Rfast2 or ape to be installed",
+      call. = FALSE
+    )
   } else {
     MyMoran <- ape::Moran.I
     if (getOption('Seurat.Rfast2.msg', TRUE)) {
@@ -1547,13 +1576,13 @@ SCTransform <- function(
   if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
     stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
   }
-  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
+  if (any(c('cell_attr', 'verbosity', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
     warning(
       'the following arguments will be ignored because they are set within this function:',
       paste(
         c(
           'cell_attr',
-          'show_progress',
+          'verbosity',
           'return_cell_attr',
           'return_gene_attr',
           'return_corrected_umi'
@@ -1566,7 +1595,7 @@ SCTransform <- function(
   }
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['show_progress']] <- verbose
+  vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
@@ -1621,7 +1650,7 @@ SCTransform <- function(
       vst.out$umi_corrected <- correct_counts(
         x = vst.out,
         umi = umi,
-        show_progress = verbose
+        verbosity = as.numeric(x = verbose) * 2
       )
     }
   }
@@ -2793,13 +2822,15 @@ ScaleData.default <- function(
         row <- chunks[index, ]
         group <- row[[1]]
         block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
-        data.scale <- scale.function(
+        arg.list <- list(
           mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
+        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+        data.scale <- do.call(what = scale.function, args = arg.list)
         dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
         CheckGC()
@@ -2841,13 +2872,15 @@ ScaleData.default <- function(
       for (i in 1:max.block) {
         my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
         my.inds <- my.inds[my.inds <= length(x = features)]
-        data.scale <- scale.function(
+        arg.list <- list(
           mat = object[features[my.inds], split.cells[[x]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
+        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+        data.scale <- do.call(what = scale.function, args = arg.list)
         dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], split.cells[[x]]])
         scaled.data[features[my.inds], split.cells[[x]]] <- data.scale
         rm(data.scale)
@@ -3280,7 +3313,7 @@ GetResidualVstOut <- function(
     umi = umi,
     residual_type = "pearson",
     res_clip_range = c(clip.min, clip.max),
-    show_progress = verbose
+    verbosity = as.numeric(x = verbose) * 2
   )
   new_residual <- as.matrix(x = new_residual)
   # centered data

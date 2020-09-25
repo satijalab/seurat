@@ -4,6 +4,7 @@
 # ------------------------------------------------------------------------------
 context("Metadata")
 
+pbmc_small <- suppressWarnings(suppressMessages(UpdateSeuratObject(pbmc_small)))
 cluster_letters <- LETTERS[Idents(object = pbmc_small)]
 names(cluster_letters) <- colnames(x = pbmc_small)
 cluster_letters_shuffled <- sample(x = cluster_letters)
@@ -196,6 +197,57 @@ test_that("Merging Assays handles case when data not present", {
   expect_equal(unname(colSums(x = GetAssayData(object = y, slot = "data"))[1:80]), rep.int(x = 0, times = 80))
   z <- merge(x = pbmc.assay2, y = pbmc.assay2, merge.data = TRUE)
   expect_equal(nnzero(x = GetAssayData(object = z, slot = "data")), 0)
+})
+
+# Tests for Neighbor object
+# ------------------------------------------------------------------------------
+context("Neighbor")
+
+# converting to Graph and back
+
+n.rann.ob <- NNHelper(
+  data = Embeddings(object = pbmc_small[["pca"]]),
+  query = Embeddings(object = pbmc_small[["pca"]]),
+  k = 10,
+  method = "rann")
+
+test_that("Neighbor object methods work", {
+  expect_equal(dim(x = Indices(object = n.rann.ob)), c(80, 10))
+  expect_equal(dim(x = n.rann.ob), c(80, 10))
+  expect_equal(as.numeric(Indices(object = n.rann.ob)[1, 7]), 45, )
+  expect_equal(dim(x = Distances(object = n.rann.ob)), c(80, 10))
+  expect_equal(as.numeric(Distances(object = n.rann.ob)[2, 2]), 2.643759, tolerance = 1e-6)
+  expect_equal(length(x = Cells(x = n.rann.ob)), 80)
+  expect_equal(Cells(x = n.rann.ob)[c(1, 20, 80)], c("ATGCCAGAACGACT", "TACATCACGCTAAC", "CTTGATTGATCTTC"))
+  pbmc_small[["n.ob"]] <- n.rann.ob
+  pbmc_small <- RenameCells(object = pbmc_small, add.cell.id = "test")
+  expect_equal(Cells(x = pbmc_small[['n.ob']])[1], c("test_ATGCCAGAACGACT"))
+  expect_equal(TopNeighbors(object = n.rann.ob, cell = "ATGCCAGAACGACT", n = 5)[5], "GATATAACACGCAT")
+  expect_equal(length(TopNeighbors(object = n.rann.ob, cell = "ATGCCAGAACGACT", n = 7)), 7)
+  nrg <- as.Graph(x = n.rann.ob)
+  expect_true(inherits(x = nrg, what = "Graph"))
+  expect_equal(as.numeric(Distances(object = n.rann.ob)[2, 3]), nrg[2, Indices(object = n.rann.ob)[2, 3]])
+  nro2 <- as.Neighbor(x = nrg)
+  expect_true(inherits(x = nro2, what = "Neighbor"))
+  expect_equal(Distances(object = n.rann.ob)[2, 3], Distances(object = nro2)[2, 3])
+  expect_equal(Indices(object = n.rann.ob)[1, 6], Indices(object = nro2)[1, 6])
+})
+
+n.annoy.ob <- NNHelper(
+  data = Embeddings(object = pbmc_small[["pca"]]),
+  query = Embeddings(object = pbmc_small[["pca"]]),
+  k = 10,
+  method = "annoy",
+  cache.index = TRUE)
+idx.file <-  tempfile()
+SaveAnnoyIndex(object = n.annoy.ob, file = idx.file)
+nao2 <- LoadAnnoyIndex(object = n.annoy.ob, file = idx.file)
+
+test_that("Saving/Loading annoy index", {
+  expect_error(SaveAnnoyIndex(object = n.rann.ob, file = idx.file))
+  expect_equal(head(Indices(n.annoy.ob)), head(Indices(nao2)))
+  expect_equal(head(Distances(n.annoy.ob)), head(Distances(nao2)))
+  expect_false(is.null(x = Index(nao2)))
 })
 
 # Tests for FetchData

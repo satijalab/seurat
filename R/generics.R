@@ -71,6 +71,18 @@ as.loom <- function(x, ...) {
   UseMethod(generic = 'as.loom', object = x)
 }
 
+#' Convert objects to Neighbor ojbects
+#'
+#' @param x An object to convert to \code{Neighbor}
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname as.Neighbor
+#' @export as.Neighbor
+#'
+as.Neighbor <- function(x, ...) {
+  UseMethod(generic = 'as.Neighbor', object = x)
+}
+
 #' Convert objects to Seurat objects
 #'
 #' @param x An object to convert to class \code{Seurat}
@@ -222,6 +234,18 @@ DefaultAssay <- function(object, ...) {
 #'
 "DefaultAssay<-" <- function(object, ..., value) {
   UseMethod(generic = 'DefaultAssay<-', object = object)
+}
+
+#' Get the Neighbor nearest neighbors distance matrix
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname Distances
+#' @export Distances
+#'
+Distances <- function(object, ...) {
+  UseMethod(generic = 'Distances', object = object)
 }
 
 #' Get cell embeddings
@@ -524,6 +548,46 @@ Idents <- function(object, ... ) {
 #'
 "Idents<-" <- function(object, ..., value) {
   UseMethod(generic = 'Idents<-', object = object)
+}
+
+#' Get Neighbor algorithm index
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods;
+#'
+#' @return Returns the value in the alg.idx slot of the Neighbor object
+#'
+#' @rdname Index
+#' @export Index
+#'
+Index <- function(object, ...) {
+  UseMethod(generic = "Index", object = object)
+}
+
+#' @inheritParams Index
+#' @param value The index to store
+#'
+#' @return \code{Idents<-}: A Neighbor bject with the index stored
+#'
+#' @rdname Index
+#' @export Index<-
+#'
+"Index<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Index<-', object = object)
+}
+
+#' Get Neighbor nearest neighbor index matrices
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods;
+#'
+#' @return A matrix with the nearest neighbor indices
+#'
+#' @rdname Indices
+#' @export Indices
+#'
+Indices <- function(object, ...) {
+  UseMethod(generic = "Indices", object = object)
 }
 
 #' Is an object global/persistent?
@@ -1116,7 +1180,7 @@ SetIdent <- function(object, ...) {
 }
 
 #' Get spatially variable feature information
-#' 
+#'
 #' @rdname SpatiallyVariableFeatures
 #' @export SpatiallyVariableFeatures
 #'
