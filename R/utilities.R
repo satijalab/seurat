@@ -361,12 +361,13 @@ AverageExpression <- function(
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
       DefaultAssay(object = toRet) <- DefaultAssay(object = object)
     }
-    Idents(toRet, cells = colnames(x = toRet)) <- ident.new[colnames(x = toRet)]
-    Idents(object = toRet) <- factor(
-      x = Idents(object = toRet),
-      levels = as.character(x = orig.levels),
-      ordered = TRUE
-    )
+    if ('ident' %in% group.by) {
+      first.cells <- c()
+      for (i in ncol(x = category.matrix)) {
+        first.cells <- Position(x = category.matrix[,i], f = function(x) {x > 0})
+      }
+      Idents(object = toRet) <- Idents(object = object)[first.cells]
+    }
     # finish setting up object if it is to be returned
     toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
