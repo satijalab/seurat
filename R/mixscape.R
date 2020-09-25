@@ -585,7 +585,7 @@ RunLDA.Seurat <- function(
 #' @param object An object of class Seurat.
 #' @param assay Assay to use for mixscape classification.
 #' @param slot Assay data slot to use.
-#' @param labels metadata column with target gene classifications.
+#' @param labels metadata column with target gene labels.
 #' @param nt.class.name Classification name of non-targeting gRNA cells.
 #' @param new.class.name Name of mixscape classification to be stored in 
 #' metadata.
@@ -596,6 +596,9 @@ RunLDA.Seurat <- function(
 #' @param iter.num Number of normalmixEM iterations to run if convergence does 
 #' not occur.
 #' @param verbose Display messages
+#' @param split.by metadata column with experimental condition/cell type classification information. This is meant to be used to account for cases a perturbation is condition/cell type -specific. 
+#' @param fine.mode When this is equal to TRUE, DE genes for each target gene class will be calculated for each gRNA separately and pooled into one DE list for calculating the perturbation score of every cell and their subsequent classification.
+#' @param fine.mode.labels metadata column with gRNA ID labels.
 #' @return Returns Seurat object with with the following information in the 
 #' meta data and tools slots:
 #' \describe{
@@ -605,7 +608,7 @@ RunLDA.Seurat <- function(
 #'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
 #'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
 #'   (>0.5) or NP}
-#'   \item{perturbation score}{Perturbation scores for every cells calculated in the first iteration of the function.}
+#'   \item{perturbation score}{Perturbation scores for every cell calculated in the first iteration of the function.}
 #' }
 #' 
 #' @export
@@ -620,10 +623,10 @@ RunMixscape <- function (object = NULL,
                           de.assay = "RNA", 
                           logfc.threshold = 0.25, 
                           iter.num = 10, 
-                          verbose = TRUE, 
+                          verbose = FALSE, 
                           split.by = NULL,
                          fine.mode = FALSE, 
-                         fine.mode.labels = NULL) 
+                         fine.mode.labels = "guide_ID") 
 {
   mixtools.installed <- PackageCheck("mixtools", error = FALSE)
   if (!mixtools.installed[1]) {
@@ -688,7 +691,7 @@ RunMixscape <- function (object = NULL,
                                            de.assay = de.assay, logfc.threshold = logfc.threshold, 
                                            labels = labels)
       }
-      
+    
       prtb_markers[[gene]] <- all.de.genes
       nt.cells <- which(object.gene[[new.class.name]] == nt.class.name)
       
@@ -774,7 +777,7 @@ RunMixscape <- function (object = NULL,
 #' @param max.cells.group Number of cells per identity to plot.
 #' @param max.genes Total number of DE genes to plot.
 #' @param balanced Plot an equal number of genes with both groups of cells.
-#' @param order.by.prob Order cells on heatmap based on their mixscape ko probability from highest to lowest score.
+#' @param order.by.prob Order cells on heatmap based on their mixscape knockout probability from highest to lowest score.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -889,8 +892,8 @@ MixscapeHeatmap <- function(
 #' @examples
 PlotPerturbScore <- function(object = NULL,
                              target.gene.ident = NULL,
-                             group.by = NULL,
-                             col = NULL
+                             group.by = "mixscape_class",
+                             col = "orange2"
 )
 {
   prtb_score <- object@tools$RunMixscape[[target.gene.ident]]
