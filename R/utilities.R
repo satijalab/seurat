@@ -363,8 +363,8 @@ AverageExpression <- function(
     }
     if ('ident' %in% group.by) {
       first.cells <- c()
-      for (i in ncol(x = category.matrix)) {
-        first.cells <- Position(x = category.matrix[,i], f = function(x) {x > 0})
+      for (i in 1:ncol(x = category.matrix)) {
+        first.cells <- c(first.cells, Position(x = category.matrix[,i], f = function(x) {x > 0}))
       }
       Idents(object = toRet) <- Idents(object = object)[first.cells]
     }
