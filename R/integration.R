@@ -1582,6 +1582,296 @@ MapQueryData <- function(
   }
 }
 
+#' @param anchors AnchorSet object or just anchor matrix from the
+#' Anchorset object returned from FindTransferAnchors
+#' @param combined.object  Combined object (ref + query) from the
+#' Anchorset object returned
+#' @param query.neighbors Neighbors object computed on query cells
+#' @param ref.embeddings Reference embeddings matrix
+#' @param query.embeddings Query embeddings matrix
+#' @param kanchors Number of anchors to use in projection steps when computing
+#' weights
+#' @param ndim Number of dimensions to use when working with low dimensional
+#' projections of the data
+#' @param ksmooth Number of cells to average over when computing transition
+#' probabilities
+#' @param ksnn Number of cells to average over when determining the kernel
+#' bandwidth from the SNN graph
+#' @param snn.prune Amount of pruning to apply to edges in SNN graph
+#' @param subtract.first.nn Option to the scoring function when computing
+#' distances to subtract the distance to the first nearest neighbor
+#' @param nn.method Nearest neighbor method to use (annoy or RANN)
+#' @param query.weights Query weights matrix for reuse
+#' @param verbose Display messages/progress
+#' @param ... Reserved for internal use
+#'
+#' @return Returns a vector of cell scores
+#'
+#' @rdname MappingScore
+#' @export
+#'
+MappingScore.default <- function(
+  anchors,
+  combined.object,
+  query.neighbors,
+  ref.embeddings,
+  query.embeddings,
+  kanchors = 50,
+  ndim = 50,
+  ksmooth = 100,
+  ksnn = 20,
+  snn.prune = 0,
+  subtract.first.nn = TRUE,
+  nn.method = "annoy",
+  query.weights = NULL,
+  verbose = TRUE,
+  ...
+) {
+  CheckDots(...)
+  # Input checks
+  start.time <- Sys.time()
+  if (ncol(x = query.neighbors) < ksmooth) {
+    message("Recomputing query neighborhoods.\nSetting mapping.score.k in ",
+            "FindTransferAnchors to the ksmooth \nvalue here (",
+            ksmooth, "), can bypass this calculation in future runs.")
+    query.neighbors <- FindNeighbors(
+      object = query.embeddings,
+      k.param = ksmooth,
+      nn.method = nn.method,
+      cache.index = TRUE,
+      return.neighbor = TRUE,
+      verbose = FALSE
+    )$nn
+  }
+  ref.cells <- rownames(x = ref.embeddings)
+  query.cells <- rownames(query.embeddings)
+  # Project reference values onto query
+  if (verbose) {
+    message("Projecting reference PCA onto query")
+  }
+  ## Need to set up an IntegrationData object to use FindWeights here
+  int.mat <- matrix(data = NA, nrow = nrow(x = anchors), ncol = 0)
+  rownames(x = int.mat) <- query.cells[anchors[, "cell2"]]
+  slot(object = combined.object, name = 'tools')[["IT1"]] <- new(
+    Class = "IntegrationData",
+    anchors = anchors,
+    neighbors = list(cells1 = ref.cells, cells2 = query.cells),
+    integration.matrix = int.mat
+  )
+  ## Finding weights of anchors in query pca space
+  ref.pca.orig <- ref.embeddings[, 1:ndim]
+  query.pca.orig <- query.embeddings[, 1:ndim]
+  dr.weights <- suppressWarnings(expr = CreateDimReducObject(
+    embeddings = rbind(query.pca.orig, ref.pca.orig)
+  ))
+  if (!is.null(x = query.weights)) {
+    weights.matrix <- query.weights
+  } else {
+    combined.object <- FindWeights(
+      object = combined.object,
+      integration.name = "IT1",
+      reduction = dr.weights,
+      dims = 1:ncol(x = dr.weights),
+      k = kanchors,
+      sd.weight = 1,
+      eps = 0,
+      nn.method = nn.method,
+      cpp = TRUE,
+      verbose = verbose
+    )
+    weights.matrix <- GetIntegrationData(
+      object = combined.object,
+      integration.name = "IT1",
+      slot = "weights"
+    )
+  }
+  ## Perform projection of ref pca values using weights matrix
+  ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
+  rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
+  query.cells.projected <- Matrix::crossprod(
+    x = as(object = ref.pca, Class = "dgCMatrix"),
+    y = weights.matrix
+  )
+  colnames(x = query.cells.projected) <- query.cells
+  rownames(x = query.cells.projected) <- colnames(x = ref.pca)
+
+  # Re-project the query cells back onto query
+  if (verbose) {
+    message("Projecting back the query cells into original PCA space")
+  }
+  ## Compute new weights
+  dr.weights <- suppressWarnings(CreateDimReducObject(
+    embeddings = rbind(
+      t(x = as.matrix(x = query.cells.projected)),
+      ref.pca.orig[ref.cells, ]
+    ),
+  ))
+  combined.object <- FindWeights(
+    object = combined.object,
+    integration.name = "IT1",
+    reduction = dr.weights,
+    dims = 1:ndim,
+    k = kanchors,
+    sd.weight = 1,
+    eps = 0,
+    nn.method = nn.method,
+    reverse = TRUE,
+    cpp = TRUE,
+    verbose = verbose
+  )
+  weights.matrix <- GetIntegrationData(
+    object = combined.object,
+    integration.name = "IT1",
+    slot = "weights"
+  )
+  ## Project back onto query
+  orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
+  query.cells.back.corrected <- Matrix::t(
+    x = Matrix::crossprod(
+      x = as(object = orig.pca, Class = "dgCMatrix"),
+      y = weights.matrix)[1:ndim, ]
+  )
+  query.cells.back.corrected <- as.matrix(x = query.cells.back.corrected)
+  rownames(x = query.cells.back.corrected) <- query.cells
+  query.cells.pca <- query.embeddings[query.cells, 1:ndim]
+  if (verbose) {
+    message("Computing scores:")
+    message("    Finding neighbors of original query cells")
+  }
+  ## Compute original neighborhood of query cells
+  if (is.null(x = query.neighbors)) {
+    query.neighbors <- NNHelper(
+      data = query.cells.pca,
+      query = query.cells.pca,
+      k = max(ksmooth, ksnn),
+      method = nn.method,
+      cache.index = TRUE
+    )
+  }
+  if (verbose) {
+    message("    Finding neighbors of transformed query cells")
+  }
+  ## Compute new neighborhood of query cells after projections
+  if (nn.method == "annoy") {
+    if (is.null(x = Index(object = query.neighbors))) {
+      corrected.neighbors <- NNHelper(
+        data = query.cells.pca,
+        query = query.cells.back.corrected,
+        k = max(ksmooth, ksnn),
+        method = nn.method,
+        cache.index = TRUE
+      )
+    } else {
+      corrected.neighbors <- AnnoySearch(
+        index = Index(object = query.neighbors),
+        query = query.cells.back.corrected,
+        k = max(ksmooth, ksnn)
+      )
+      corrected.neighbors <- Neighbor(
+        nn.idx = corrected.neighbors$nn.idx,
+        nn.dist = corrected.neighbors$nn.dists
+      )
+    }
+  }
+  if (verbose) {
+    message("    Computing query SNN")
+  }
+  snn <- ComputeSNN(
+    nn_ranked = Indices(query.neighbors)[, 1:ksnn],
+    prune = snn.prune
+  )
+  query.cells.pca <- t(x = query.cells.pca)
+  if (verbose) {
+    message("    Determining bandwidth and computing transition probabilities")
+  }
+  scores <- ScoreHelper(
+    snn = snn,
+    query_pca = query.cells.pca,
+    query_dists = Distances(object = query.neighbors),
+    corrected_nns = Indices(object = corrected.neighbors),
+    k_snn = ksnn,
+    subtract_first_nn = subtract.first.nn,
+    display_progress = verbose
+  )
+  scores[scores > 1] <- 1
+  names(x = scores) <- query.cells
+  end.time <- Sys.time()
+  if (verbose) {
+    message("Total elapsed time: ", end.time - start.time)
+  }
+  return(scores)
+}
+
+#' @rdname MappingScore
+#' @export
+#' @method MappingScore AnchorSet
+#'
+MappingScore.AnchorSet <- function(
+  anchors,
+  kanchors = 50,
+  ndim = 50,
+  ksmooth = 100,
+  ksnn = 20,
+  snn.prune = 0,
+  subtract.first.nn = TRUE,
+  nn.method = "annoy",
+  query.weights = NULL,
+  verbose = TRUE,
+  ...
+) {
+  CheckDots(...)
+  combined.object <- slot(object = anchors, name = "object.list")[[1]]
+  combined.object <- RenameCells(
+    object = combined.object,
+    new.names = unname(obj = sapply(
+      X = Cells(x = combined.object),
+      FUN = RemoveLastField
+    ))
+  )
+  query.cells <- sapply(
+    X = slot(object = anchors, name = "query.cells"),
+    FUN = RemoveLastField
+  )
+  ref.cells <- sapply(
+    X = slot(object = anchors, name = "reference.cells"),
+    FUN = RemoveLastField
+  )
+  query.embeddings <- Embeddings(object = subset(
+    x = combined.object[["pcaproject.l2"]],
+    cells = query.cells
+  ))
+  ref.embeddings <- Embeddings(object = subset(
+    x = combined.object[["pcaproject.l2"]],
+    cells = ref.cells
+  ))
+  query.neighbors <- slot(object = anchors, name = "neighbors")[["query.neighbors"]]
+  # reduce size of anchorset combined object
+  combined.object <- DietSeurat(object = combined.object)
+  combined.object <- subset(
+    x = combined.object,
+    features = c(rownames(x = combined.object)[1])
+  )
+  for (i in colnames(x = combined.object[[]])) {
+    combined.object[[i]] <- NULL
+  }
+  return(MappingScore(
+    anchors = slot(object = anchors, name = "anchors"),
+    combined.object = combined.object,
+    query.neighbors = query.neighbors,
+    ref.embeddings = ref.embeddings,
+    query.embeddings = query.embeddings,
+    kanchors = kanchors,
+    ndim = ndim,
+    ksmooth = ksmooth,
+    ksnn = ksnn,
+    snn.prune = snn.prune,
+    subtract.first.nn = subtract.first.nn,
+    nn.method = nn.method,
+    query.weights = query.weights,
+    verbose = verbose
+  ))
+}
+
 #' Calculates a mixing metric
 #'
 #' Here we compute a measure of how well mixed a composite dataset is. To
