@@ -7456,8 +7456,9 @@ NNPlot <- function(
   show.all.cells = TRUE, 
   ...
 ) {
-  if (is.list(nn.idx)){
-    nn.idx <- nn.idx$nn.idx
+  if (class(nn.idx) == "Neighbor") {
+    rownames(nn.idx@nn.idx) <- Cells(nn.idx)
+    nn.idx <- nn.idx@nn.idx
   }
   if (length(x = query.cells) > 1) {
     neighbor.cells <- apply(
@@ -7473,7 +7474,7 @@ NNPlot <- function(
   object[["nn.col"]] <- "other"
   object[["nn.col"]][neighbor.cells, ] <- "neighbors" 
   object[["nn.col"]][query.cells, ] <- "self" 
-  object[["nn.col"]] <- factor(x = object[["nn.col"]], levels = c("self", "neighbors", "other"))
+  object$nn.col <- factor(x = object$nn.col, levels = c("self", "neighbors", "other"))
   if (!show.all.cells) {
     object <- subset(
       x = object, 
