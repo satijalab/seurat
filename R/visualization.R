@@ -7457,7 +7457,7 @@ NNPlot <- function(
   ...
 ) {
   if (inherits(x = nn.idx, what = 'Neighbor')) {
-    rownames(nn.idx@nn.idx) <- Cells(nn.idx)
+    rownames(x = slot(object = nn.idx, name = 'nn.idx')) <- Cells(x = nn.idx)
     nn.idx <- Indices(object = nn.idx)
   }
   if (length(x = query.cells) > 1) {
