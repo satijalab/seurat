@@ -28,7 +28,7 @@ CalcPerturbSig(
 
 \item{nt.cell.class}{Non-targeting gRNA cell classification identity.}
 
-\item{split.by}{Provide metadata column if multiple biological replicates 
+\item{split.by}{Provide metadata column if multiple biological replicates
 exist to calculate PRTB signature for every replicate separately.}
 
 \item{num.neighbors}{Number of nearest neighbors to consider.}
@@ -40,14 +40,14 @@ exist to calculate PRTB signature for every replicate separately.}
 \item{new.assay.name}{Name for the new assay.}
 }
 \value{
-Returns a Seurat object with a new assay added containing the 
+Returns a Seurat object with a new assay added containing the
 perturbation signature for all cells in the data slot.
 }
 \description{
-Function to calculate perturbation signature for pooled CRISPR screen datasets. 
-For each target cell (expressing one target gRNA), we identified 20 cells 
-from the control pool (non-targeting cells) with the most similar mRNA 
-expression profiles. The perturbation signature is calculated by subtracting the 
-averaged mRNA expression profile of the non-targeting neighbors from the mRNA 
+Function to calculate perturbation signature for pooled CRISPR screen datasets.
+For each target cell (expressing one target gRNA), we identified 20 cells
+from the control pool (non-targeting cells) with the most similar mRNA
+expression profiles. The perturbation signature is calculated by subtracting the
+averaged mRNA expression profile of the non-targeting neighbors from the mRNA
 expression profile of the target cell.
 }

@@ -24,7 +24,7 @@ AddModuleScore(
 \item{features}{A list of vectors of features for expression programs; each
 entry should be a vector of feature names}
 
-\item{pool}{List of features to check expression levels agains, defaults to
+\item{pool}{List of features to check expression levels against, defaults to
 \code{rownames(x = object)}}
 
 \item{nbin}{Number of bins of aggregate expression levels for all

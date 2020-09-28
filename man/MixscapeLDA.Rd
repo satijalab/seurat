@@ -50,6 +50,6 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 Returns a Seurat object with LDA added in the reduction slot.
 }
 \description{
-This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all 
+This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all
 cells in the data. Finally, it uses the first 10 principle components from each projection as input to lda in MASS package together with mixscape class labels.
 }

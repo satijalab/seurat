@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 3.2.0.9018
-Date: 2020-08-28
+Version: 3.2.2.9001
+Date: 2020-09-28
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031> for more details.
 Authors@R: c(
@@ -14,20 +14,19 @@ Authors@R: c(
   person(given = 'Patrick', family = 'Roelli', email = 'proelli@nygenome.org', role = 'ctb'),
   person(given = "Yuhan", family = "Hao", email = 'yhao@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0002-1810-0822'))
   )
-URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
+URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
-    R (>= 3.4.0),
+    R (>= 3.6.0),
     methods,
 Imports:
-    ape,
     cluster,
     cowplot,
     fitdistrplus,
     future,
     future.apply,
-    ggplot2 (>= 3.0.0),
+    ggplot2 (>= 3.3.0),
     ggrepel,
     ggridges,
     graphics,
@@ -59,7 +58,7 @@ Imports:
     rsvd,
     Rtsne,
     scales,
-    sctransform (>= 0.2.0),
+    sctransform (>= 0.3.0),
     shiny,
     spatstat,
     stats,
@@ -90,6 +89,7 @@ RoxygenNote: 7.1.1
 Encoding: UTF-8
 Suggests:
     loomR,
+    ape,
     testthat,
     hdf5r,
     S4Vectors,

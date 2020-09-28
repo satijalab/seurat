@@ -18,15 +18,15 @@ GetTransferPredictions(
 
 \item{slot}{Slot of the assay in which the prediction scores are stored}
 
-\item{score.filter}{Return "Unassigned" for any cell with a score less than 
+\item{score.filter}{Return "Unassigned" for any cell with a score less than
 this value}
 }
 \value{
 Returns a vector of predicted class names
 }
 \description{
-Utility function to easily pull out the name of the class with the maximum 
-prediction. This is useful if you've set \code{prediction.assay = TRUE} in 
+Utility function to easily pull out the name of the class with the maximum
+prediction. This is useful if you've set \code{prediction.assay = TRUE} in
 \code{\link{TransferData}} and want to have a vector with the predicted class.
 }
 \examples{

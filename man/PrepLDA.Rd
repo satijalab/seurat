@@ -38,6 +38,6 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 Returns a list of the first 10 PCs from each projection.
 }
 \description{
-This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all 
+This function performs unsupervised PCA on each mixscape class separately and projects each subspace onto all
 cells in the data.
 }

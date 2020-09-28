@@ -23,7 +23,6 @@ globalVariables(
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #'
-#' @importFrom ape drop.tip
 #' @importFrom stats setNames
 #'
 #' @export
@@ -73,6 +72,9 @@ FindAllMarkers <- function(
   if (is.null(x = node)) {
     idents.all <- sort(x = unique(x = Idents(object = object)))
   } else {
+    if (!PackageCheck('ape', error = FALSE)) {
+      stop(cluster.ape, call. = FALSE)
+    }
     tree <- Tool(object = object, slot = 'BuildClusterTree')
     if (is.null(x = tree)) {
       stop("Please run 'BuildClusterTree' before finding markers on nodes")
@@ -90,7 +92,7 @@ FindAllMarkers <- function(
       node,
       as.numeric(x = setdiff(x = descendants, y = keep.children))
     )
-    tree <- drop.tip(phy = tree, tip = drop.children)
+    tree <- ape::drop.tip(phy = tree, tip = drop.children)
     new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }

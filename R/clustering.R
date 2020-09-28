@@ -384,8 +384,10 @@ FindNeighbors.dist <- function(
   ))
 }
 
-#' @param assay Assay to use in construction of SNN
-#' @param features Features to use as input for building the SNN
+#' @param assay Assay to use in construction of SNN; used only when \code{dims}
+#' is \code{NULL}
+#' @param features Features to use as input for building the SNN; used only when
+#' \code{dims} is \code{NULL}
 #' @param reduction Reduction to use as input for building the SNN
 #' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
@@ -418,7 +420,6 @@ FindNeighbors.Seurat <- function(
 ) {
   CheckDots(...)
   if (!is.null(x = dims)) {
-    # assay <- assay %||% DefaultAssay(object = object)
     assay <- DefaultAssay(object = object[[reduction]])
     data.use <- Embeddings(object = object[[reduction]])
     if (max(dims) > ncol(x = data.use)) {
@@ -552,12 +553,18 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
 # @ param include.distance Include the corresponding distances
+#' @importFrom future plan
+#' @importFrom future.apply future_lapply
 #
 AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   convert <- methods::is(index, "Rcpp_AnnoyAngular")
+  if (!inherits(x = plan(), what = "multicore")) {
+    oplan <- plan(strategy = "sequential")
+    on.exit(plan(oplan), add = TRUE)
+  }
   res <- future_lapply(X = 1:n, FUN = function(x) {
     res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance
@@ -737,7 +744,7 @@ RunLeiden <- function(
         object
       } else {
         stop(
-          "Method for Leiden not found for class", class(x = object), 
+          "Method for Leiden not found for class", class(x = object),
            call. = FALSE
         )
       }

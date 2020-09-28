@@ -649,6 +649,9 @@ CreateAssayObject <- function(
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
   } else if (!missing(x = counts)) {
+    if (!inherits(x = counts, what = 'dgCMatrix')) {
+      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    }
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       warning(
@@ -674,9 +677,6 @@ CreateAssayObject <- function(
     }
     if (nrow(x = counts) > 0 && is.null(x = rownames(x = counts))) {
       stop("No feature names (rownames) names present in the input matrix")
-    }
-    if (!inherits(x = counts, what = 'dgCMatrix')) {
-      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
     }
     # Filter based on min.features
     if (min.features > 0) {
@@ -2244,11 +2244,19 @@ as.loom.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratDisk::as.loom",
+    msg = paste(
+      "as.loom is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = '\n'
+    )
+  )
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR from GitHub before converting to a loom object")
   }
   CheckDots(..., fxns = 'loomR::create')
-  object <- UpdateSlots(object = x)
+  x <- UpdateSlots(object = x)
   # Set the default assay to make life easy
   assay <- assay %||% DefaultAssay(object = x)
   DefaultAssay(object = x) <- assay
@@ -2590,6 +2598,14 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
+  .Deprecated(
+    package = "SeuratDisk",
+    msg = paste(
+      "Functionality for loading loom files to Seurat objects is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk/tree/feat/loom",
+      sep = "\n"
+    )
+  )
   CheckDots(...)
   # Shouldn't be necessary
   if (!PackageCheck('loomR', error = FALSE)) {
@@ -4477,6 +4493,15 @@ ReadH5AD.H5File <- function(
   ...
 ) {
   CheckDots(...)
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   # Pull assay data
   # If X is an H5D, assume scaled
   # Otherwise, if file$exists(name = 'raw'), assume X is normalized
@@ -4896,7 +4921,7 @@ ReorderIdent.Seurat <- function(
     yes = function(x) {
       return(max(x) + 1 - x)
     },
-    no = Same
+    no = identity
   )
   new.levels <- names(x = rfxn(x = sort(x = tapply(
     X = data.use,
@@ -5884,6 +5909,9 @@ WhichCells.Seurat <- function(
   ...
 ) {
   CheckDots(...)
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
   object <- UpdateSlots(object = object)
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
@@ -5891,9 +5919,6 @@ WhichCells.Seurat <- function(
   }
   cell.order <- cells
   if (!is.null(x = idents)) {
-    if (!is.null(x = seed)) {
-      set.seed(seed = seed)
-    }
     if (any(!idents %in% levels(x = Idents(object = object)))) {
       stop(
         "Cannot find the following identities in the object: ",
@@ -6001,6 +6026,15 @@ WriteH5AD.Seurat <- function(
   overwrite = FALSE,
   ...
 ) {
+  .Deprecated(
+    package = 'SeuratDisk',
+    msg = paste(
+      "Functionality for reading and writing H5AD files is being moved to SeuratDisk",
+      "For more details, please see https://github.com/mojaveazure/seurat-disk",
+      "and https://mojaveazure.github.io/seurat-disk/index.html",
+      sep = "\n"
+    )
+  )
   message("WriteH5AD is not currently operational, please use as.loom")
   .NotYetImplemented()
   if (!PackageCheck('hdf5r', error = FALSE)) {
@@ -7315,6 +7349,10 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x)) && is.null(x = features)) {
     return(x)
   }
+  if (!all(colnames(x = x) %in% cells)) {
+    slot(object = x, name = 'graphs') <- list()
+    slot(object = x, name = 'neighbors') <- list()
+  }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
   # Filter Assay objects
   for (assay in assays) {
@@ -7322,7 +7360,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
       expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
-        return(NULL)
+        if (e$message == "Cannot find features provided") {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7338,7 +7380,11 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     x[[dimreduc]] <- tryCatch(
       expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
       error = function(e) {
-        return(NULL)
+        if (e$message %in% c("Cannot find cell provided", "Cannot find features provided")) {
+          return(NULL)
+        } else {
+          stop(e)
+        }
       }
     )
   }
@@ -7352,8 +7398,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
       x[[names(x = n.calc)]] <- n.calc
     }
   }
-  slot(object = x, name = 'graphs') <- list()
-  slot(object = x, name = 'neighbors') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   # subset images
   for (image in Images(object = x)) {

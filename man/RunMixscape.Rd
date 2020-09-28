@@ -32,20 +32,20 @@ RunMixscape(
 
 \item{nt.class.name}{Classification name of non-targeting gRNA cells.}
 
-\item{new.class.name}{Name of mixscape classification to be stored in 
+\item{new.class.name}{Name of mixscape classification to be stored in
 metadata.}
 
-\item{min.de.genes}{Required number of genes that are differentially 
+\item{min.de.genes}{Required number of genes that are differentially
 expressed for method to separate perturbed and non-perturbed cells.}
 
-\item{de.assay}{Assay to use when performing differential expression analysis. 
+\item{de.assay}{Assay to use when performing differential expression analysis.
 Usually RNA.}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
-\item{iter.num}{Number of normalmixEM iterations to run if convergence does 
+\item{iter.num}{Number of normalmixEM iterations to run if convergence does
 not occur.}
 
 \item{verbose}{Display messages}
@@ -57,14 +57,14 @@ not occur.}
 \item{fine.mode.labels}{metadata column with gRNA ID labels.}
 }
 \value{
-Returns Seurat object with with the following information in the 
+Returns Seurat object with with the following information in the
 meta data and tools slots:
 \describe{
-  \item{mixscape_class}{Classification result with cells being either 
-  classified as perturbed (KO) or non-perturbed (NP) based on their target 
+  \item{mixscape_class}{Classification result with cells being either
+  classified as perturbed (KO) or non-perturbed (NP) based on their target
   gene class.}
   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
-  \item{p_ko}{Posterior probabilities used to determine if a cell is KO 
+  \item{p_ko}{Posterior probabilities used to determine if a cell is KO
   (>0.5) or NP}
   \item{perturbation score}{Perturbation scores for every cell calculated in the first iteration of the function.}
 }
