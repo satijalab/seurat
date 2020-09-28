@@ -18,6 +18,7 @@ query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
 query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
 
 anchors2 <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list[[1]]), k.filter = NA, verbose = FALSE)))
+anchors3 <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
 
 # Tests for IntegrateEmbeddings
 # ------------------------------------------------------------------------------
@@ -25,7 +26,7 @@ context("IntegrateEmbeddings")
 
 test_that("IntegrateEmbeddings validates properly", {
   expect_error(IntegrateEmbeddings(anchorset = anchors2))
-  expect_error(IntegrateEmbeddings(anchorset = anchors2, reduction = "pca"), k.weight = 100)
+  expect_error(IntegrateEmbeddings(anchorset = anchors2, reduction = "pca", k.weight = 100))
   expect_error(IntegrateEmbeddings(anchorset = anchors2, reduction = c("pca", "pca2"), k.weight = 40))
   expect_error(IntegrateEmbeddings(anchorset = anchors2, reduction = "pca", k.weight = 40, weight.reduction = c(ref[['pca']])))
   pca3 <- RenameCells(object = ref[['pca']], new.names = paste0(Cells(ref), "_test"))
@@ -36,14 +37,13 @@ test_that("IntegrateEmbeddings validates properly", {
 test_that("IntegrateEmbeddings with two objects default works", {
   skip_on_cran()
   int2 <- IntegrateEmbeddings(anchorset = anchors2, reduction = "pca", k.weight = 40, verbose = FALSE)
-  expect_equal(Reductions(int3), "integrated_pca")
+  expect_equal(Reductions(int2), "integrated_pca")
   expect_equal(sum(Embeddings(int2[['integrated_pca']])[1,]), -3.13050872287, tolerance = 1e-6)
   expect_equal(sum(Embeddings(int2[['integrated_pca']])[,1]), -5.78790844887, tolerance = 1e-6)
 })
 
 test_that("IntegrateEmbeddings with three objects default works", {
   skip_on_cran()
-  anchors3 <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
   int3 <- IntegrateEmbeddings(anchorset = anchors3, reduction = "pca", k.weight = 40, verbose = FALSE)
   expect_equal(Reductions(int3), "integrated_pca")
   expect_equal(sum(Embeddings(int3[['integrated_pca']])[1,]), 0.221867815987, tolerance = 1e-6)
@@ -97,8 +97,8 @@ test_that("Input validates correctly ", {
   expect_error(IntegrateData(anchorset = anchors2, k.weight = 50, weight.reduction = "BAD"))
   expect_error(IntegrateData(anchorset = anchors2, reductions.to.integrate = "pca"))
   skip_on_cran()
-  expect_warning(IntegrateData(anchorset = anchors2, k.weight = 50, features = c(rownames(ref), "BAD")))
-  expect_warning(IntegrateData(anchorset = anchors2, k.weight = 50, dims = 1:1000))
+  #expect_warning(IntegrateData(anchorset = anchors2, k.weight = 50, features = c(rownames(ref), "BAD")))
+  #expect_warning(IntegrateData(anchorset = anchors2, k.weight = 50, dims = 1:1000))
 })
 
 

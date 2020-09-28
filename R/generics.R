@@ -613,6 +613,45 @@ Indices <- function(object, ...) {
   UseMethod(generic = "Indices", object = object)
 }
 
+#' Integrate low dimensional embeddings
+#'
+#' Perform dataset integration using a pre-computed Anchorset of specified low
+#' dimensional representations.
+#'
+#' The main steps of this procedure are identical to \code{\link{IntegrateData}}
+#' with one key distinction. When computing the weights matrix, the distance
+#' calculations are performed in the full space of integrated embeddings when
+#' integrating more than two datasets, as opposed to a reduced PCA space which
+#' is the default behavior in \code{\link{IntegrateData}}.
+#'
+#' @param anchorset An AnchorSet object
+#' @param new.reduction.name Name for new integrated dimensional reduction.
+#' Defaults to "integrated_" + name of first reduction.
+#' @param reductions Name of reductions to be integrated. Can be either a single
+#' string if reduction is present in all objects or a vector of strings, one for
+#' each object.
+#' @param dims.to.integrate Number of dimensions to return integrated values for
+#' @param weight.reduction Dimension reduction to use when calculating anchor
+#' weights. This can be one of:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in
+#'    all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to
+#'    use for each object to be integrated}
+#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+#'    use for each object in the integration}
+#'    \item{NULL, in which case the full corrected space is used for computing
+#'    anchor weights.}
+#' }
+#' @param ... Reserved for internal use
+#'
+#' @rdname IntegrateEmbeddings
+#' @export IntegrateEmbeddings
+#'
+IntegrateEmbeddings <- function(anchorset, ...) {
+  UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
+}
+
 #' Is an object global/persistent?
 #'
 #' Typically, when removing \code{Assay} objects from an \code{Seurat} object,

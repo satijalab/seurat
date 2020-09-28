@@ -41,6 +41,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #'
 AnchorSet <- setClass(
   Class = "AnchorSet",
+  contains = 'VIRTUAL',
   slots = list(
     object.list = "list",
     reference.cells = "vector",
@@ -52,6 +53,34 @@ AnchorSet <- setClass(
     neighbors = "list",
     command = "ANY"
   )
+)
+
+#' The TransferAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name TransferAnchorSet-class
+#' @rdname TransferAnchorSet-class
+#' @exportClass TransferAnchorSet
+#'
+TransferAnchorSet <- setClass(
+  Class = "TransferAnchorSet",
+  contains = "AnchorSet"
+)
+
+#' The IntegrationAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name IntegrationAnchorSet-class
+#' @rdname IntegrationAnchorSet-class
+#' @exportClass IntegrationAnchorSet
+#'
+IntegrationAnchorSet <- setClass(
+  Class = "IntegrationAnchorSet",
+  contains = "AnchorSet"
 )
 
 #' The ModalityWeights Class

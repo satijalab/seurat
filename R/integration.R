@@ -422,7 +422,7 @@ FindIntegrationAnchors <- function(
   all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
   all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
   command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
-  anchor.set <- new(Class = "AnchorSet",
+  anchor.set <- new(Class = "IntegrationAnchorSet",
                     object.list = object.list,
                     reference.objects = reference %||% seq_along(object.list),
                     anchors = all.anchors,
@@ -864,7 +864,7 @@ FindTransferAnchors <- function(
   }
   command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
   anchor.set <- new(
-    Class = "AnchorSet",
+    Class = "TransferAnchorSet",
     object.list = list(combined.ob),
     reference.cells = colnames(x = reference),
     query.cells = colnames(x = query),
@@ -1186,67 +1186,13 @@ IntegrateData <- function(
   }
 }
 
-#' Integrate low dimensional embeddings
-#'
-#' Perform dataset integration using a pre-computed Anchorset of specified low
-#' dimensional representations.
-#'
-#' The main steps of this procedure are identical to \code{\link{IntegrateData}}
-#' with one key distinction. When computing the weights matrix, the distance
-#' calculations are performed in the full space of integrated embeddings when
-#' integrating more than two datasets, as opposed to a reduced PCA space which
-#' is the default behavior in \code{\link{IntegrateData}}.
-#'
 #' @inheritParams IntegrateData
-#' @param new.reduction.name Name for new integrated dimensional reduction.
-#' Defaults to "integrated_" + name of first reduction.
-#' @param reductions Name of reductions to be integrated. Can be either a single
-#' string if reduction is present in all objects or a vector of strings, one for
-#' each object.
-#' @param dims.to.integrate Number of dimensions to return integrated values for
-#' @param weight.reduction Dimension reduction to use when calculating anchor
-#' weights. This can be one of:
-#' \itemize{
-#'    \item{A string, specifying the name of a dimension reduction present in
-#'    all objects to be integrated}
-#'    \item{A vector of strings, specifying the name of a dimension reduction to
-#'    use for each object to be integrated}
-#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
-#'    use for each object in the integration}
-#'    \item{NULL, in which case the full corrected space is used for computing
-#'    anchor weights.}
-#' }
-#' @examples
-#' \dontrun{
 #'
-#' library(SeuratData)
-#' data("panc8")
-#'
-#' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
-#' # split the object by dataset
-#' pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
-#'
-#' # perform standard preprocessing on each object
-#' for (i in 1:length(pancreas.list)) {
-#'  pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
-#'  pancreas.list[[i]] <- FindVariableFeatures(
-#'    pancreas.list[[i]], selection.method = "vst",
-#'    nfeatures = 2000, verbose = FALSE
-#'  )
-#'  pancreas.list[[i]] <- ScaleData(pancreas.list[[i]], verbose = FALSE)
-#'  pancreas.list[[i]] <- RunPCA(pancreas.list[[i]], verbose = FALSE)
-#'}
-#'
-#' # find anchors
-#' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
-
-#' # integrate embeddings
-#' integrated <- IntegrateEmbeddings(anchorset = anchors, reductions = "pca")
-#' }
-#'
+#' @rdname IntegrateEmbeddings
 #' @export
+#' @method IntegrateEmbeddings IntegrationAnchorSet
 #'
-IntegrateEmbeddings <- function(
+IntegrateEmbeddings.IntegrationAnchorSet <- function(
   anchorset,
   new.reduction.name = NULL,
   reductions = NULL,
@@ -1256,12 +1202,14 @@ IntegrateEmbeddings <- function(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
+  CheckDots(...)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
   anchors <- slot(object = anchorset, name = 'anchors')
-  ValidateParams_IntegrateEmbeddings(
+  ValidateParams_IntegrateEmbeddings_IntegrationAnchors(
     anchorset = anchorset,
     object.list = object.list,
     reductions = reductions,
@@ -1362,6 +1310,98 @@ IntegrateEmbeddings <- function(
   unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
   suppressWarnings(unintegrated <- LogSeuratCommand(object = unintegrated))
   return(unintegrated)
+}
+#' @param reference Reference object used in anchorset construction
+#' @param query Query object used in anchorset construction
+#' @param anchorset.reduction Option to correct the query embeddings computed
+#' in the anchorset.
+#' @param reuse.weights.matrix Can be used in conjunction with the store.weights
+#' parameter in TransferData to reuse a precomputed weights matrix.
+#'
+#' @rdname IntegrateEmbeddings
+#' @export
+#' @method IntegrateEmbeddings TransferAnchorSet
+#'
+IntegrateEmbeddings.TransferAnchorSet <- function(
+  anchorset,
+  reference,
+  query,
+  new.reduction.name = NULL,
+  reductions = NULL,
+  anchorset.reduction = FALSE,
+  dims.to.integrate = NULL,
+  k.weight = 100,
+  weight.reduction = NULL,
+  reuse.weights.matrix = FALSE,
+  sd.weight = 1,
+  preserve.order = FALSE,
+  verbose = TRUE,
+  ...
+) {
+  CheckDots(...)
+  combined.object <- slot(object = anchorset, name = 'object.list')[[1]]
+  anchors <- slot(object = anchorset, name = 'anchors')
+  weights.matrix <- NULL
+  ValidateParams_IntegrateEmbeddings_TransferAnchors(
+    anchorset = anchorset,
+    combined.object = combined.object,
+    reference = reference,
+    query = query,
+    reductions = reductions,
+    anchorset.reduction = anchorset.reduction,
+    new.reduction.name = new.reduction.name,
+    dims.to.integrate = dims.to.integrate,
+    k.weight = k.weight,
+    weight.reduction = weight.reduction,
+    reuse.weights.matrix = reuse.weights.matrix
+  )
+  object.list <- list(reference, query)
+  # make DimReducs into Assays temporarily
+  intdr.assay <- DefaultAssay(object = object.list[[1]][[reductions[[1]]]])
+  int.assay <- DefaultAssay(object = object.list[[1]])
+  dims.names <- paste0("drtointegrate-", dims.to.integrate)
+  for (i in 1:length(x = object.list)) {
+    embeddings <- t(x = Embeddings(
+      object = object.list[[i]], reduction = reductions[[i]]
+    )[ , dims.to.integrate])
+    rownames(x = embeddings) <- dims.names
+    fake.assay <- suppressWarnings(
+      expr = CreateAssayObject(
+        data = embeddings)
+    )
+    object.list[[i]][['drtointegrate']] <- fake.assay
+    DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
+  }
+  slot(object = anchorset, name = "object.list") <- object.list
+  new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  slot(object = anchorset, name = "reference.objects") <- 1
+  anchors <- as.data.frame(x = anchors)
+  anchors$dataset1 <- 1
+  anchors$dataset2 <- 2
+  slot(object = anchorset, name = "anchors") <- anchors
+  integrated.embeddings<- MapQuery(
+    anchorset = anchorset,
+    reference = object.list[[1]],
+    new.assay.name = new.reduction.name.safe,
+    normalization.method = "LogNormalize",
+    features = dims.names,
+    features.to.integrate = dims.names,
+    dims = NULL,
+    k.weight = k.weight,
+    weight.reduction = weight.reduction,
+    weights.matrix = weights.matrix,
+    sd.weight = sd.weight,
+    preserve.order = preserve.order,
+    do.cpp = TRUE,
+    verbose = verbose
+  )
+  integrated.embeddings <- as.matrix(x = integrated.embeddings)
+  query[[new.reduction.name]]  <- CreateDimReducObject(
+    embeddings = t(x = integrated.embeddings[, Cells(x = query)]),
+    assay = DefaultAssay(object = query[[reductions[1]]]),
+    key = paste0(new.reduction.name.safe, "_")
+  )
+  return(query)
 }
 
 #' Calculate the local structure preservation metric
@@ -3451,6 +3491,7 @@ MapQuery <- function(
   dims = 1:30,
   k.weight = 100,
   weight.reduction = NULL,
+  weights.matrix = NULL,
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
@@ -3494,6 +3535,7 @@ MapQuery <- function(
         cellnames.list = cellnames.list,
         features.to.integrate = features.to.integrate,
         weight.reduction = weight.reduction,
+        weights.matrix = weights.matrix,
         features = features,
         dims = dims,
         do.cpp = do.cpp,
@@ -3929,6 +3971,7 @@ RunIntegration <- function(
   new.assay.name,
   features.to.integrate,
   weight.reduction,
+  weights.matrix = NULL,
   features,
   dims,
   do.cpp,
@@ -3980,65 +4023,74 @@ RunIntegration <- function(
     verbose = verbose
   )
   assay <- DefaultAssay(object = merged.obj)
-  if (is.null(x = weight.reduction) && !is.null(x = dims)) {
-    if (normalization.method == "SCT"){
-      # recenter residuals
-      centered.resids <- ScaleData(
-        object = GetAssayData(object = merged.obj, assay = assay, slot = "data"),
-        do.scale = FALSE,
-        do.center = TRUE,
-        verbose = FALSE
+  if (is.null(x = weights.matrix)) {
+    if (is.null(x = weight.reduction) && !is.null(x = dims)) {
+      if (normalization.method == "SCT"){
+        # recenter residuals
+        centered.resids <- ScaleData(
+          object = GetAssayData(object = merged.obj, assay = assay, slot = "data"),
+          do.scale = FALSE,
+          do.center = TRUE,
+          verbose = FALSE
+        )
+        merged.obj[["pca"]] <- RunPCA(
+          object = centered.resids[features, ],
+          assay = assay,
+          npcs = max(dims),
+          verbose = FALSE,
+          features = features
+        )
+      } else {
+        merged.obj <- ScaleData(
+          object = merged.obj,
+          features = features,
+          verbose = FALSE
+        )
+        merged.obj <- RunPCA(
+          object = merged.obj,
+          npcs = max(dims),
+          verbose = FALSE,
+          features = features
+        )
+      }
+      dr.weights <- merged.obj[['pca']]
+    } else if(is.null(x = weight.reduction) && is.null(x = dims)) {
+      dr.weights <- CreateDimReducObject(
+        embeddings = as.matrix(x = t(x = GetAssayData(object = merged.obj))),
+        key = "int_",
+        assay = "ToIntegrate"
       )
-      merged.obj[["pca"]] <- RunPCA(
-        object = centered.resids[features, ],
-        assay = assay,
-        npcs = max(dims),
-        verbose = FALSE,
-        features = features
-      )
+      dims <- 1:ncol(x = dr.weights)
     } else {
-      merged.obj <- ScaleData(
-        object = merged.obj,
-        features = features,
-        verbose = FALSE
-      )
-      merged.obj <- RunPCA(
-        object = merged.obj,
-        npcs = max(dims),
-        verbose = FALSE,
-        features = features
-      )
+      dr <- weight.reduction[[2]]
+      if (!all(cells2 %in% rownames(x = dr))) {
+        stop("Query cells not present in supplied DimReduc object. Set weight.reduction to a DimReduc object containing the query cells.")
+      }
+      if (inherits(x = dr, what = "DimReduc")) {
+        dr.weights <- dr
+      } else {
+        dr.weights <- query[[dr]]
+      }
     }
-    dr.weights <- merged.obj[['pca']]
-  } else if(is.null(x = weight.reduction) && is.null(x = dims)) {
-    dr.weights <- CreateDimReducObject(
-      embeddings = as.matrix(x = t(x = GetAssayData(object = merged.obj))),
-      key = "int_",
-      assay = "ToIntegrate"
+    merged.obj <- FindWeights(
+      object = merged.obj,
+      integration.name = integration.name,
+      reduction = dr.weights,
+      cpp = do.cpp,
+      dims = dims,
+      k = k.weight,
+      sd.weight = sd.weight,
+      eps = eps,
+      verbose = verbose
     )
-    dims <- 1:ncol(x = dr.weights)
   } else {
-    dr <- weight.reduction[[2]]
-    if (!all(cells2 %in% rownames(x = dr))) {
-      stop("Query cells not present in supplied DimReduc object. Set weight.reduction to a DimReduc object containing the query cells.")
-    }
-    if (inherits(x = dr, what = "DimReduc")) {
-      dr.weights <- dr
-    } else {
-      dr.weights <- query[[dr]]
-    }
+    merged.obj <- SetIntegrationData(
+      object = merged.obj,
+      integration.name = "integrated",
+      slot = "weights",
+      new.data = weights.matrix
+    )
   }
-  merged.obj <- FindWeights(
-    object = merged.obj,
-    integration.name = integration.name,
-    reduction = dr.weights,
-    cpp = do.cpp,
-    dims = dims,
-    k = k.weight,
-    sd.weight = sd.weight,
-    eps = eps,
-    verbose = verbose
-  )
   merged.obj <- TransformDataMatrix(
     object = merged.obj,
     new.assay.name = new.assay.name,
@@ -4196,7 +4248,10 @@ TransformDataMatrix <- function(
   return(object)
 }
 
-ValidateParams_IntegrateEmbeddings <- function(
+# Internal function to validate the parameters for IntegrateEmbeddings run on
+# an IntegrationAnchorSet object
+#
+ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   anchorset,
   object.list,
   new.reduction.name,
@@ -4285,4 +4340,119 @@ ValidateParams_IntegrateEmbeddings <- function(
   }
   new.reduction.name <- new.reduction.name %||% paste0("integrated_", reductions[1])
   ModifyParam(param = "new.reduction.name", value = new.reduction.name)
+}
+
+# Internal function to validate the parameters for IntegrateEmbeddings run on
+# a TransferAnchorSet object
+#
+ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
+  anchorset,
+  combined.object ,
+  reference,
+  query,
+  reductions,
+  anchorset.reduction,
+  new.reduction.name,
+  dims.to.integrate,
+  k.weight,
+  weight.reduction,
+  reuse.weights.matrix
+) {
+  if (missing(x = reference)) {
+    stop("Please provide the reference object.", call. = FALSE)
+  }
+  if (missing(x = query)) {
+    stop("Please provide the query object.", call. = FALSE)
+  }
+  reference.cells <- slot(object = anchorset, name = "reference.cells")
+  reference.cells <- gsub(pattern = "_reference", replacement = "", x = reference.cells)
+  if (!isTRUE(x = all.equal(target = reference.cells, current = Cells(x = reference)))) {
+    stop("The set of cells used as a reference in the AnchorSet does not match ",
+         "the set of cells provided in the reference object.")
+  }
+  query.cells <- slot(object = anchorset, name = "query.cells")
+  query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
+  if (!isTRUE(x = all.equal(target = query.cells, current = Cells(x = query)))) {
+    stop("The set of cells used as a query in the AnchorSet does not match ",
+         "the set of cells provided in the query object.")
+  }
+  if (isTRUE(x = anchorset.reduction)) {
+    if (length(x = reductions) != 1) {
+      stop("Please provide a single reduction name to reductions if setting ",
+           "anchorset.reduction = TRUE")
+    }
+    reference.cells <- Cells(x = reference)
+    reference.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(reference.cells, "_reference"), ]
+    rownames(x = reference.embeddings) <- reference.cells
+    reference[[reductions]] <- CreateDimReducObject(embeddings = reference.embeddings, assay = DefaultAssay(object = reference))
+    ModifyParam(param = "reference", value = reference)
+    query.cells <- Cells(x = query)
+    query.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(query.cells, "_query"), ]
+    rownames(x = query.embeddings) <- query.cells
+    query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
+    ModifyParam(param = "query", value = query)
+    ModifyParam(param = "reductions", value = c(reductions, reductions))
+  } else {
+    if (length(x = reductions) == 1) {
+      ModifyParam(param = "reductions", value = c(reductions, reductions))
+    }
+    if (!reductions[2] %in% Reductions(object = query)) {
+      stop("The reduction '", reductions[1], "' is not present in the provided ",
+           "query object.")
+    }
+    if (!reductions[1] %in% Reductions(object = reference)) {
+      stop("The reduction '", reductions[1], "' is not present in the provided ",
+           "reference object.")
+    }
+  }
+  if (new.reduction.name %in% Reductions(object = query)) {
+    warning("Specified new.reduction.name (", new.reduction.name, ") is already ",
+            "present in the query object. Setting to ",
+            paste0("integrated_", new.reduction.name), " and continuing.")
+    ModifyParam(param = "new.reduction.name", value = new.reduction.name)
+  }
+  min.ndim <- min(ncol(x = query[[reductions[2]]]), ncol(x = reference[[reductions[1]]]))
+  if (is.null(x = dims.to.integrate)) {
+    dims.to.integrate <- 1:min.ndim
+  } else {
+    if (max(dims.to.integrate) > min.ndim) {
+      dims.to.integrate <- dims.to.integrate[dims.to.integrate <= min.ndim]
+      warning("Max dims.to.integrate is larger than the max dims for at least ",
+              "one of the reductions specified. Setting dims.to.integrate to ",
+              paste(dims.to.integrate, collapse = ","), " and continuing.",
+              immediate. = TRUE, call. = FALSE)
+    }
+  }
+  ModifyParam(param = "dims.to.integrate", value = dims.to.integrate)
+  if (isTRUE(x = reuse.weights.matrix)) {
+    weights.matrix <- Tool(object = query, slot = "TransferData")$weights.matrix
+    if (nrow(x = weights.matrix) != nrow(x = slot(object = anchorset, name = "anchors"))) {
+      stop("The number of anchors in the weights matrix stored in the query (",
+           nrow(x = weights.matrix), ") doesn't match the number of anchors ",
+           "in the anchorset (", nrow(x = slot(object = anchorset, name = "anchors")),
+           ").", call. = FALSE)
+    }
+    ModifyParam(param = 'weights.matrix', value = weights.matrix)
+  } else {
+    if (k.weight > ncol(x = query)) {
+      stop("k.weight (", k.weight, ") is set larger than the number of cells in ",
+           "the query object (", ncol(x = query), "). Please choose a smaller ",
+           "k.weight.", call. = FALSE)
+    }
+    if (inherits(x = weight.reduction, what = "character")) {
+      if (!weight.reduction %in% Reductions(object = query)) {
+        stop("The weight.reduction ", weight.reduction, " is not present in the ",
+             "query object.", call. = FALSE)
+      }
+    }
+    if (inherits(x = weight.reduction, what = "DimReduc")) {
+      if (!isTRUE(all.equal(
+        target = Cells(x = weight.reduction),
+        current = Cells(x = query)
+      ))) {
+        stop("Cell names in the provided weight.reduction  don't ",
+             "match with the cell names in the query object.", call. = FALSE)
+      }
+    }
+  }
 }
