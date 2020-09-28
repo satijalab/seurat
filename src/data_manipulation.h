@@ -35,15 +35,18 @@ Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, 
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
                             NumericVector mu,
                             bool display_progress);
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
-                              NumericVector mu, 
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
+                              NumericVector mu,
                               NumericVector sd,
                               double vmax,
                               bool display_progress);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
+template <typename S>
+std::vector<size_t> sort_indexes(const std::vector<S> &v);
+List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION

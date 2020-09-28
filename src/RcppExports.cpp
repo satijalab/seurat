@@ -319,6 +319,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ScoreHelper
+std::vector<double> ScoreHelper(Eigen::SparseMatrix<double> snn, Eigen::MatrixXd query_pca, Eigen::MatrixXd query_dists, Eigen::MatrixXd corrected_nns, int k_snn, bool subtract_first_nn, bool display_progress);
+RcppExport SEXP _Seurat_ScoreHelper(SEXP snnSEXP, SEXP query_pcaSEXP, SEXP query_distsSEXP, SEXP corrected_nnsSEXP, SEXP k_snnSEXP, SEXP subtract_first_nnSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type snn(snnSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type query_pca(query_pcaSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type query_dists(query_distsSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type corrected_nns(corrected_nnsSEXP);
+    Rcpp::traits::input_parameter< int >::type k_snn(k_snnSEXP);
+    Rcpp::traits::input_parameter< bool >::type subtract_first_nn(subtract_first_nnSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(ScoreHelper(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ComputeSNN
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
@@ -398,6 +415,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_fast_dist", (DL_FUNC) &_Seurat_fast_dist, 3},
     {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 9},
     {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
+    {"_Seurat_ScoreHelper", (DL_FUNC) &_Seurat_ScoreHelper, 7},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
