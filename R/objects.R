@@ -649,6 +649,9 @@ CreateAssayObject <- function(
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
   } else if (!missing(x = counts)) {
+    if (!inherits(x = counts, what = 'dgCMatrix')) {
+      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    }
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       warning(
@@ -674,9 +677,6 @@ CreateAssayObject <- function(
     }
     if (nrow(x = counts) > 0 && is.null(x = rownames(x = counts))) {
       stop("No feature names (rownames) names present in the input matrix")
-    }
-    if (!inherits(x = counts, what = 'dgCMatrix')) {
-      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
     }
     # Filter based on min.features
     if (min.features > 0) {
@@ -5909,6 +5909,9 @@ WhichCells.Seurat <- function(
   ...
 ) {
   CheckDots(...)
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
   object <- UpdateSlots(object = object)
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
@@ -5916,9 +5919,6 @@ WhichCells.Seurat <- function(
   }
   cell.order <- cells
   if (!is.null(x = idents)) {
-    if (!is.null(x = seed)) {
-      set.seed(seed = seed)
-    }
     if (any(!idents %in% levels(x = Idents(object = object)))) {
       stop(
         "Cannot find the following identities in the object: ",
@@ -7349,6 +7349,10 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   if (all(cells %in% Cells(x = x)) && length(x = cells) == length(x = Cells(x = x)) && is.null(x = features)) {
     return(x)
   }
+  if (!all(colnames(x = x) %in% cells)) {
+    slot(object = x, name = 'graphs') <- list()
+    slot(object = x, name = 'neighbors') <- list()
+  }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
   # Filter Assay objects
   for (assay in assays) {
@@ -7394,8 +7398,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
       x[[names(x = n.calc)]] <- n.calc
     }
   }
-  slot(object = x, name = 'graphs') <- list()
-  slot(object = x, name = 'neighbors') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   # subset images
   for (image in Images(object = x)) {

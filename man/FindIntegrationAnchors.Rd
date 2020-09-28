@@ -25,7 +25,7 @@ FindIntegrationAnchors(
 )
 }
 \arguments{
-\item{object.list}{A list of \code{\link{Seurat}} objects between which to 
+\item{object.list}{A list of \code{\link{Seurat}} objects between which to
 find anchors for downstream integration.}
 
 \item{assay}{A vector of assay names specifying which assay to use when
@@ -87,42 +87,42 @@ annoy}
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns an \code{\link{AnchorSet}} object that can be used as input to 
+Returns an \code{\link{AnchorSet}} object that can be used as input to
 \code{\link{IntegrateData}}.
 }
 \description{
-Find a set of anchors between a list of \code{\link{Seurat}} objects. 
+Find a set of anchors between a list of \code{\link{Seurat}} objects.
 These  anchors can later be used to integrate the objects using the
 \code{\link{IntegrateData}} function.
 }
 \details{
-The main steps of this procedure are outlined below. For a more detailed 
-description of the methodology, please see Stuart, Butler, et al Cell 2019: 
+The main steps of this procedure are outlined below. For a more detailed
+description of the methodology, please see Stuart, Butler, et al Cell 2019:
 \url{https://doi.org/10.1016/j.cell.2019.05.031};
 \url{https://doi.org/10.1101/460147}
 
-First, determine anchor.features if not explicitly specified using 
-\code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations 
+First, determine anchor.features if not explicitly specified using
+\code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations
 of reference and query datasets:
 
 \itemize{
-  \item{Perform dimensional reduction on the dataset pair as specified via 
-  the \code{reduction} parameter. If \code{l2.norm} is set to \code{TRUE}, 
+  \item{Perform dimensional reduction on the dataset pair as specified via
+  the \code{reduction} parameter. If \code{l2.norm} is set to \code{TRUE},
   perform L2 normalization of the embedding vectors.}
-  \item{Identify anchors - pairs of cells from each dataset 
+  \item{Identify anchors - pairs of cells from each dataset
   that are contained within each other's neighborhoods (also known as mutual
   nearest neighbors).}
   \item{Filter low confidence anchors to ensure anchors in the low dimension
-  space are in broad agreement with the high dimensional measurements. This 
-  is done by looking at the neighbors of each query cell in the reference 
+  space are in broad agreement with the high dimensional measurements. This
+  is done by looking at the neighbors of each query cell in the reference
   dataset using \code{max.features} to define this space. If the reference
-  cell isn't found within the first \code{k.filter} neighbors, remove the 
+  cell isn't found within the first \code{k.filter} neighbors, remove the
   anchor.}
-  \item{Assign each remaining anchor a score. For each anchor cell, determine 
-  the nearest \code{k.score} anchors within its own dataset and within its 
+  \item{Assign each remaining anchor a score. For each anchor cell, determine
+  the nearest \code{k.score} anchors within its own dataset and within its
   pair's dataset. Based on these neighborhoods, construct an overall neighbor
   graph and then compute the shared neighbor overlap between anchor and query
-  cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on 
+  cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on
   these scores to dampen outlier effects and rescale to range between 0-1.}
 }
 }
@@ -140,7 +140,7 @@ pancreas.list <- SplitObject(panc8, split.by = "tech")
 for (i in 1:length(pancreas.list)) {
   pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
   pancreas.list[[i]] <- FindVariableFeatures(
-    pancreas.list[[i]], selection.method = "vst", 
+    pancreas.list[[i]], selection.method = "vst",
     nfeatures = 2000, verbose = FALSE
   )
 }
@@ -154,7 +154,7 @@ integrated <- IntegrateData(anchorset = anchors)
 
 }
 \references{
-Stuart T, Butler A, et al. Comprehensive Integration of 
+Stuart T, Butler A, et al. Comprehensive Integration of
 Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
 j.cell.2019.05.031}
 }

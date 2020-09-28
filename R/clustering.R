@@ -553,12 +553,18 @@ AnnoyBuildIndex <- function(data, metric = "euclidean", n.trees = 50) {
 # @param search.k During the query it will inspect up to search_k nodes which
 # gives you a run-time tradeoff between better accuracy and speed.
 # @ param include.distance Include the corresponding distances
+#' @importFrom future plan
+#' @importFrom future.apply future_lapply
 #
 AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE) {
   n <- nrow(x = query)
   idx <- matrix(nrow = n,  ncol = k)
   dist <- matrix(nrow = n, ncol = k)
   convert <- methods::is(index, "Rcpp_AnnoyAngular")
+  if (!inherits(x = plan(), what = "multicore")) {
+    oplan <- plan(strategy = "sequential")
+    on.exit(plan(oplan), add = TRUE)
+  }
   res <- future_lapply(X = 1:n, FUN = function(x) {
     res <- index$getNNsByVectorList(query[x, ], k, search.k, include.distance)
     # Convert from Angular to Cosine distance

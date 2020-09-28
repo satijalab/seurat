@@ -2,6 +2,14 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.2.2] - 2020-09-25
+### Changes
+- Set the seed in `WhichCells` regardless of whether or not `idents` is passed
+- Retain Graph and Neighbor objects when subsetting only on features
+- Fix data.frame input to `CreateAssayObject()` when data.frame has no rownames.
+- Default annoy search to sequential if not using multicore future plans.
+- Require sctransform >= 0.3.0
+
 ## [3.2.1] - 2020-09-04
 ### Added
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`

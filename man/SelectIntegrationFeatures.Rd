@@ -18,13 +18,13 @@ SelectIntegrationFeatures(
 
 \item{nfeatures}{Number of features to return}
 
-\item{assay}{Name or vector of assay names (one for each object) from which 
+\item{assay}{Name or vector of assay names (one for each object) from which
 to pull the variable features.}
 
 \item{verbose}{Print messages}
 
-\item{fvf.nfeatures}{nfeatures for \code{\link{FindVariableFeatures}}. Used 
-if \code{VariableFeatures} have not been set for any object in 
+\item{fvf.nfeatures}{nfeatures for \code{\link{FindVariableFeatures}}. Used
+if \code{VariableFeatures} have not been set for any object in
 \code{object.list}.}
 
 \item{...}{Additional parameters to \code{\link{FindVariableFeatures}}}
@@ -34,8 +34,8 @@ A vector of selected features
 }
 \description{
 Choose the features to use when integrating multiple datasets. This function
-ranks features by the number of datasets they are deemed variable in, 
-breaking ties by the median variable feature rank across datasets. It returns 
+ranks features by the number of datasets they are deemed variable in,
+breaking ties by the median variable feature rank across datasets. It returns
 the top scoring features by this ranking.
 }
 \details{
@@ -50,7 +50,7 @@ library(SeuratData)
 data("panc8")
 
 # panc8 is a merged Seurat object containing 8 separate pancreas datasets
-# split the object by dataset and take the first 2 
+# split the object by dataset and take the first 2
 pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
 
 # perform SCTransform normalization
