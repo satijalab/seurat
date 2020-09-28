@@ -1186,6 +1186,184 @@ IntegrateData <- function(
   }
 }
 
+#' Integrate low dimensional embeddings
+#'
+#' Perform dataset integration using a pre-computed Anchorset of specified low
+#' dimensional representations.
+#'
+#' The main steps of this procedure are identical to \code{\link{IntegrateData}}
+#' with one key distinction. When computing the weights matrix, the distance
+#' calculations are performed in the full space of integrated embeddings when
+#' integrating more than two datasets, as opposed to a reduced PCA space which
+#' is the default behavior in \code{\link{IntegrateData}}.
+#'
+#' @inheritParams IntegrateData
+#' @param new.reduction.name Name for new integrated dimensional reduction.
+#' Defaults to "integrated_" + name of first reduction.
+#' @param reductions Name of reductions to be integrated. Can be either a single
+#' string if reduction is present in all objects or a vector of strings, one for
+#' each object.
+#' @param dims.to.integrate Number of dimensions to return integrated values for
+#' @param weight.reduction Dimension reduction to use when calculating anchor
+#' weights. This can be one of:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in
+#'    all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to
+#'    use for each object to be integrated}
+#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+#'    use for each object in the integration}
+#'    \item{NULL, in which case the full corrected space is used for computing
+#'    anchor weights.}
+#' }
+#' @examples
+#' \dontrun{
+#'
+#' library(SeuratData)
+#' data("panc8")
+#'
+#' # panc8 is a merged Seurat object containing 8 separate pancreas datasets
+#' # split the object by dataset
+#' pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+#'
+#' # perform standard preprocessing on each object
+#' for (i in 1:length(pancreas.list)) {
+#'  pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
+#'  pancreas.list[[i]] <- FindVariableFeatures(
+#'    pancreas.list[[i]], selection.method = "vst",
+#'    nfeatures = 2000, verbose = FALSE
+#'  )
+#'  pancreas.list[[i]] <- ScaleData(pancreas.list[[i]], verbose = FALSE)
+#'  pancreas.list[[i]] <- RunPCA(pancreas.list[[i]], verbose = FALSE)
+#'}
+#'
+#' # find anchors
+#' anchors <- FindIntegrationAnchors(object.list = pancreas.list)
+
+#' # integrate embeddings
+#' integrated <- IntegrateEmbeddings(anchorset = anchors, reductions = "pca")
+#' }
+#'
+#' @export
+#'
+IntegrateEmbeddings <- function(
+  anchorset,
+  new.reduction.name = NULL,
+  reductions = NULL,
+  dims.to.integrate = NULL,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
+  verbose = TRUE
+) {
+  reference.datasets <- slot(object = anchorset, name = 'reference.objects')
+  object.list <- slot(object = anchorset, name = 'object.list')
+  anchors <- slot(object = anchorset, name = 'anchors')
+  ValidateParams_IntegrateEmbeddings(
+    anchorset = anchorset,
+    object.list = object.list,
+    reductions = reductions,
+    new.reduction.name = new.reduction.name,
+    dims.to.integrate = dims.to.integrate,
+    k.weight = k.weight,
+    weight.reduction = weight.reduction,
+    sample.tree = sample.tree
+  )
+  unintegrated <- merge(
+    x = object.list[[1]],
+    y = object.list[2:length(x = object.list)]
+  )
+  # make DimReducs into Assays temporarily
+  intdr.assay <- DefaultAssay(object = object.list[[1]][[reductions[[1]]]])
+  int.assay <- DefaultAssay(object = object.list[[1]])
+  dims.names <- paste0("drtointegrate-", dims.to.integrate)
+  for (i in 1:length(x = object.list)) {
+    embeddings <- t(x = Embeddings(
+      object = object.list[[i]], reduction = reductions[[i]]
+    )[ , dims.to.integrate])
+    rownames(x = embeddings) <- dims.names
+    fake.assay <- suppressWarnings(
+      expr = CreateAssayObject(
+        data = embeddings)
+    )
+    object.list[[i]][['drtointegrate']] <- fake.assay
+    DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
+  }
+  slot(object = anchorset, name = "object.list") <- object.list
+  new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  reference.integrated <- PairwiseIntegrateReference(
+    anchorset = anchorset,
+    new.assay.name = new.reduction.name.safe,
+    normalization.method = "LogNormalize",
+    features = dims.names,
+    features.to.integrate = dims.names,
+    dims = NULL,
+    k.weight = k.weight,
+    weight.reduction = weight.reduction,
+    sd.weight = sd.weight,
+    sample.tree = sample.tree,
+    preserve.order = preserve.order,
+    do.cpp = TRUE,
+    verbose = verbose
+  )
+  if (length(x = reference.datasets) == length(x = object.list)) {
+    reference.dr <- CreateDimReducObject(
+      embeddings = as.matrix(x = t(GetAssayData(reference.integrated[[new.reduction.name.safe]]))),
+      assay = intdr.assay,
+      key = paste0(new.reduction.name.safe, "_")
+    )
+    DefaultAssay(object = reference.integrated) <- int.assay
+    reference.integrated[["drtointegrate"]] <- NULL
+    reference.integrated[[new.reduction.name.safe]] <- NULL
+    reference.integrated[[new.reduction.name]] <- reference.dr
+    return(reference.integrated)
+  }
+  active.assay <- DefaultAssay(object = object.list[reference.datasets][[1]])
+  reference.integrated[[active.assay]] <- NULL
+  reference.integrated[[active.assay]] <- CreateAssayObject(
+    data = GetAssayData(
+      object = reference.integrated[[new.reduction.name.safe]],
+      slot = 'data'
+    )
+  )
+  DefaultAssay(object = reference.integrated) <- active.assay
+  reference.integrated[[new.reduction.name.safe]] <- NULL
+  VariableFeatures(object = reference.integrated) <- dims.names
+  # Extract the query objects (if any) and map to reference
+  integrated.data <- MapQuery(
+    anchorset = anchorset,
+    reference = reference.integrated,
+    new.assay.name = new.reduction.name.safe,
+    normalization.method = "LogNormalize",
+    features = dims.names,
+    features.to.integrate = dims.names,
+    dims = NULL,
+    k.weight = k.weight,
+    weight.reduction = weight.reduction,
+    sd.weight = sd.weight,
+    sample.tree = sample.tree,
+    preserve.order = preserve.order,
+    do.cpp = TRUE,
+    verbose = verbose
+  )
+  unintegrated[[new.reduction.name]] <- CreateDimReducObject(
+    embeddings = as.matrix(x = t(x = integrated.data)),
+    assay = intdr.assay,
+    key = paste0(new.reduction.name.safe, "_")
+  )
+  unintegrated <- SetIntegrationData(
+    object = unintegrated,
+    integration.name = "Integration",
+    slot = "anchors",
+    new.data = anchors
+  )
+  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+  suppressWarnings(unintegrated <- LogSeuratCommand(object = unintegrated))
+  return(unintegrated)
+}
+
 #' Calculate the local structure preservation metric
 #'
 #' Calculates a metric that describes how well the local structure of each group
@@ -2739,7 +2917,7 @@ FilterAnchors <- function(
       method = nn.method,
       eps = eps
     )
-    
+
     anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
     position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
       which(x = anchors[x, "cell2"] == Indices(object = nn)[anchors[x, "cell1"], ])[1]
@@ -3587,7 +3765,7 @@ PairwiseIntegrateReference <- function(
     new.data = sample.tree
   )
   unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
-  unintegrated <- LogSeuratCommand(object = unintegrated)
+  suppressWarnings(expr = unintegrated <- LogSeuratCommand(object = unintegrated))
   return(unintegrated)
 }
 
@@ -3802,7 +3980,7 @@ RunIntegration <- function(
     verbose = verbose
   )
   assay <- DefaultAssay(object = merged.obj)
-  if (is.null(x = weight.reduction)) {
+  if (is.null(x = weight.reduction) && !is.null(x = dims)) {
     if (normalization.method == "SCT"){
       # recenter residuals
       centered.resids <- ScaleData(
@@ -3832,6 +4010,13 @@ RunIntegration <- function(
       )
     }
     dr.weights <- merged.obj[['pca']]
+  } else if(is.null(x = weight.reduction) && is.null(x = dims)) {
+    dr.weights <- CreateDimReducObject(
+      embeddings = as.matrix(x = t(x = GetAssayData(object = merged.obj))),
+      key = "int_",
+      assay = "ToIntegrate"
+    )
+    dims <- 1:ncol(x = dr.weights)
   } else {
     dr <- weight.reduction[[2]]
     if (!all(cells2 %in% rownames(x = dr))) {
@@ -4009,4 +4194,95 @@ TransformDataMatrix <- function(
   )
   object[[new.assay.name]] <- new.assay
   return(object)
+}
+
+ValidateParams_IntegrateEmbeddings <- function(
+  anchorset,
+  object.list,
+  new.reduction.name,
+  reductions,
+  dims.to.integrate,
+  k.weight,
+  weight.reduction,
+  sample.tree
+) {
+  nobs <- length(x = object.list)
+  if (is.null(x = reductions)) {
+    stop("Please specify the name of the reductions you want to integrate. This ",
+         "should be either a single name of a reduction present in all objects ",
+         "or a vector of names, one for each object used in creating the ",
+         "anchorset.", call. = FALSE)
+  } else {
+    if (length(x = reductions) == 1) {
+      reductions <- rep(x = reductions, times = nobs)
+      ModifyParam(param = "reductions", value = reductions)
+    }
+    min.ndim <- Inf
+    for (i in 1:nobs) {
+      if (!reductions[i] %in% Reductions(object = object.list[[i]])) {
+        stop("The reduction '", reductions[i], "' is not present in object number ",
+             i, ".", call. = FALSE)
+      }
+      min.ndim <- min(min.ndim, ncol(x = object.list[[i]][[reductions[i]]]))
+    }
+  }
+  if (is.null(x = dims.to.integrate)) {
+    dims.to.integrate <- 1:min.ndim
+  } else {
+    if (max(dims.to.integrate) > min.ndim) {
+      dims.to.integrate <- dims.to.integrate[dims.to.integrate <= min.ndim]
+      warning("Max dims.to.integrate is larger than the max dims for at least ",
+              "one of the reductions specified. Setting dims.to.integrate to ",
+              dims.to.integrate, " and continuing.", immediate. = TRUE, call. = FALSE)
+    }
+  }
+  ModifyParam(param = 'dims.to.integrate', value = dims.to.integrate)
+  if (!is.null(x = weight.reduction)) {
+    if (inherits(x = weight.reduction, what = "character")) {
+      if (length(x = weight.reduction) == 1) {
+        weight.reduction <- rep(x = weight.reduction, times = nobs)
+      }
+      ModifyParam(param = 'weight.reduction', value = weight.reduction)
+      for (i in 1:nobs) {
+        if (!weight.reduction[[i]] %in% Reductions(object = object.list[[i]])) {
+          stop("weight.reduction (", weight.reduction[[i]], ") is not present ",
+               "in object number ", i, ".", call. = FALSE)
+        }
+      }
+    }
+    if (inherits(x = weight.reduction[[1]], what = "DimReduc")) {
+      if (length(x = weight.reduction) != nobs) {
+        stop("Please provide one weight.reduction for each object. ",
+             length(x = weight.reduction), " provided, ", nobs, " required.",
+             call. = FALSE)
+      }
+      for (i in 1:nobs) {
+        if (!isTRUE(all.equal(
+          target = Cells(x = weight.reduction[[i]]),
+          current = Cells(x = object.list[[i]])))
+        ) {
+          stop("Cell names in the provided weight.reduction ", i, " don't ",
+               "match with the cell names in object ", i, ".", call. = FALSE)
+        }
+      }
+    }
+  }
+  min.object.size <- min(sapply(X = object.list, FUN = ncol))
+  if (k.weight > min.object.size) {
+    stop("k.weight (", k.weight, ") is set larger than the number of cells in ",
+         "the smallest object (", min.object.size, "). Please choose a smaller ",
+         "k.weight.", call. = FALSE)
+  }
+  if (!is.null(x = sample.tree)) {
+    if (ncol(x = sample.tree) != 2) {
+      stop("Invalid sample tree. Please provide a two column matrix specifying
+           the order of integration.")
+    }
+    if (min(sample.tree) < (-1 * nobs)) {
+      stop("Invalid sample tree. Dataset index greater than the number of ",
+           "objects was provided.")
+    }
+  }
+  new.reduction.name <- new.reduction.name %||% paste0("integrated_", reductions[1])
+  ModifyParam(param = "new.reduction.name", value = new.reduction.name)
 }
