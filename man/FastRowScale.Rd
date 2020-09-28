@@ -20,6 +20,6 @@ clip if Inf.}
 Returns the center/scaled matrix
 }
 \description{
-Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) 
+Performs row scaling and/or centering. Equivalent to using t(scale(t(mat)))
 in R except in the case of NA values.
 }

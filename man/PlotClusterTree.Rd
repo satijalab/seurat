@@ -9,7 +9,8 @@ PlotClusterTree(object, ...)
 \arguments{
 \item{object}{Seurat object}
 
-\item{\dots}{Additional arguments to ape::plot.phylo}
+\item{\dots}{Additional arguments to
+\code{\link[ape:plot.phylo]{ape::plot.phylo}}}
 }
 \value{
 Plots dendogram (must be precomputed using BuildClusterTree), returns no value

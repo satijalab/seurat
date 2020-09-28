@@ -20,7 +20,7 @@ as.Graph(x, ...)
 
 \item{...}{Arguments passed to other methods (ignored for now)}
 
-\item{weighted}{If TRUE, fill entries in Graph matrix with value from the 
+\item{weighted}{If TRUE, fill entries in Graph matrix with value from the
 nn.dist slot of the Neighbor object}
 }
 \description{
