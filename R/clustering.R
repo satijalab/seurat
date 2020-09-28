@@ -1495,8 +1495,8 @@ FindModalityWeights  <- function(
     nn.list <- lapply(
       X = nn.list,
       FUN = function(nn){
-        slot(object = nn, name = "nn.idx") <- Indices(object = nn)[, 1:knn]
-        slot(object = nn, name = "nn.dists") <- Distances(object = nn)[, 1:knn]
+        slot(object = nn, name = "nn.idx") <- Indices(object = nn)[, 1:k.nn]
+        slot(object = nn, name = "nn.dists") <- Distances(object = nn)[, 1:k.nn]
         return(nn)
       }
     )
