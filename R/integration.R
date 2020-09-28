@@ -2359,12 +2359,15 @@ TransferData <- function(
     label.transfer = label.transfer
   )
   if (!inherits(x = weight.reduction, what = "DimReduc") && weight.reduction == 'pca') {
-    message("Running PCA on query dataset")
+    if (verbose) {
+      message("Running PCA on query dataset")
+    }
     features <- slot(object = anchorset, name = "anchor.features")
-    query.ob <- combined.ob[features, query.cells]
+    query.ob <- query
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
     query.ob <- RunPCA(object = query.ob, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query.ob[['pca']])
+    rownames(x = query.pca) <- paste0(rownames(x = query.pca), "_query")
     #fill with 0s
     ref.pca <- matrix(
       data = 0,
@@ -2372,6 +2375,7 @@ TransferData <- function(
       ncol = ncol(x = query.pca),
       dimnames = list(reference.cells, colnames(x = query.pca))
     )
+    rm(query.ob)
     combined.pca.embeddings <- rbind(ref.pca, query.pca)[colnames(x = combined.ob), ]
     combined.pca <- CreateDimReducObject(
       embeddings = combined.pca.embeddings,
@@ -4319,6 +4323,10 @@ ValidateParams_TransferData <- function(
         !weight.reduction %in% Reductions(object = combined.ob)) {
       stop("Specified weight.reduction (", weight.reduction, ") is not present ",
            "in the provided anchorset.", call. = FALSE)
+    }
+    if (weight.reduction == "pca" && is.null(x = query)) {
+      stop("To use an internal PCA on the query only for weight.reduction, ",
+           "please provide the query object.", call. = FALSE)
     }
   }
   if (inherits(x = weight.reduction, "DimReduc")) {
