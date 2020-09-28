@@ -2,6 +2,10 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+### Changes
+- `Same` deprecated in favor of `base::identity`
+
 ## [3.2.2] - 2020-09-25
 ### Changes
 - Set the seed in `WhichCells` regardless of whether or not `idents` is passed

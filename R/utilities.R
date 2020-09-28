@@ -2102,6 +2102,7 @@ RandomName <- function(length = 5L, ...) {
 # @return Returns x
 #
 Same <- function(x) {
+  .Deprecated(new = 'base::identity', package = NULL)
   return(x)
 }
 
