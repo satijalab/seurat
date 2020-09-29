@@ -818,57 +818,6 @@ Radius <- function(object) {
   UseMethod(generic = 'Radius', object = object)
 }
 
-#' Read from and write to h5ad files
-#'
-#' Utilize the Anndata h5ad file format for storing and sharing single-cell expression
-#' data. Provided are tools for writing objects to h5ad files, as well as reading
-#' h5ad files into a Seurat object
-#'
-#' @details
-#' \code{ReadH5AD} and \code{WriteH5AD} will try to automatically fill slots based
-#' on data type and presence. For example, objects will be filled with scaled and
-#' normalized data if \code{adata.X} is a dense matrix and \code{raw} is present
-#' (when reading), or if the \code{scale.data} slot is filled (when writing). The
-#' following is a list of how objects will be filled
-#' \describe{
-#'   \item{\code{adata.X} is dense and \code{adata.raw} is filled; \code{ScaleData} is filled}{Objects will be filled with scaled and normalized data}
-#'   \item{
-#'     \code{adata.X} is sparse and \code{adata.raw} is filled; \code{NormalizeData} has been run, \code{ScaleData} has not been run
-#'   }{
-#'     Objects will be filled with normalized and raw data
-#'   }
-#'   \item{\code{adata.X} is sparse and \code{adata.raw} is not filled; \code{NormalizeData} has not been run}{Objects will be filled with raw data only}
-#' }
-#' In addition, dimensional reduction information and nearest-neighbor graphs will
-#' be searched for and added if and only if scaled data is being added.
-#'
-#' When reading: project name is \code{basename(file)}; identity classes will be
-#' set as the project name; all cell-level metadata from \code{adata.obs} will be
-#' taken; feature level metadata from \code{data.var} and \code{adata.raw.var}
-#' (if present) will be merged and stored in assay \code{meta.features}; highly
-#' variable features will be set if \code{highly_variable} is present in feature-level
-#' metadata; dimensional reduction objects will be given the assay name provided
-#' to the function call; graphs will be named \code{assay_method} if method is
-#' present, otherwise \code{assay_adata}
-#'
-#' When writing: only one assay will be written; all dimensional reductions and
-#' graphs associated with that assay will be stored, no other reductions or graphs
-#' will be written; active identity classes will be stored in \code{adata.obs} as
-#' \code{active_ident}
-#'
-#' @param file Name of h5ad file, or an H5File object for reading in
-#'
-#' @return \code{ReadH5AD}: A Seurat object with data from the h5ad file
-#'
-#' @aliases ReadH5AD
-#'
-#' @rdname h5ad
-#' @export ReadH5AD
-#'
-ReadH5AD <- function(file, ...) {
-  UseMethod(generic = 'ReadH5AD', object = file)
-}
-
 #' Rename cells
 #'
 #' Change the cell names in all the different parts of an object. Can
@@ -1356,15 +1305,4 @@ VariableFeatures <- function(object, ...) {
 #'
 WhichCells <- function(object, ...) {
   UseMethod(generic = 'WhichCells', object = object)
-}
-
-#' @param object An object
-#' @param ... arguments passed to other methods
-#'
-#' @return \code{WriteH5AD}: None, writes to disk
-#'
-#' @rdname h5ad
-#'
-WriteH5AD <- function(object, ...) {
-  UseMethod(generic = 'WriteH5AD', object = object)
 }
