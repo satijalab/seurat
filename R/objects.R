@@ -1466,6 +1466,36 @@ GetIntegrationData <- function(object, integration.name, slot) {
   return(slot(object = int.data, name = slot))
 }
 
+#' Pull Graph or Graph names
+#'
+#' Lists the names of \code{\link{Graph}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Graph object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Graph object
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Graph} objects
+#' in this Seurat object. Otherwise, the \code{Graph} object requested
+#'
+#' @export
+#'
+Graphs <- function(object, slot = NULL) {
+  graphs <- FilterObjects(object = object, classes.keep = "Graph")
+  if (is.null(x = slot)) {
+    return(graphs)
+  }
+  if (!slot %in% graphs) {
+    warning(
+      "Cannot find a Graph object of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'graphs')[[slot]])
+}
+
 #' Pull spatial image names
 #'
 #' List the names of \code{SpatialImage} objects present in a \code{Seurat} object.
