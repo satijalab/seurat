@@ -57,20 +57,6 @@ as.Graph <- function(x, ...) {
   UseMethod(generic = "as.Graph", object = x)
 }
 
-#' Convert objects to loom objects
-#'
-#' @param x An object to convert to class \code{loom}
-#' @inheritParams loomR::create
-#'
-#' @seealso \code{\link[loomR]{create}}
-#'
-#' @rdname as.loom
-#' @export as.loom
-#'
-as.loom <- function(x, ...) {
-  UseMethod(generic = 'as.loom', object = x)
-}
-
 #' Convert objects to Neighbor ojbects
 #'
 #' @param x An object to convert to \code{Neighbor}
