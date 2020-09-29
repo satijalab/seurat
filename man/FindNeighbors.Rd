@@ -6,12 +6,13 @@
 \alias{FindNeighbors.Assay}
 \alias{FindNeighbors.dist}
 \alias{FindNeighbors.Seurat}
-\title{SNN Graph Construction}
+\title{(Shared) Nearest-neighbor graph construction}
 \usage{
 FindNeighbors(object, ...)
 
 \method{FindNeighbors}{default}(
   object,
+  query = NULL,
   distance.matrix = FALSE,
   k.param = 20,
   return.neighbor = FALSE,
@@ -24,6 +25,7 @@ FindNeighbors(object, ...)
   force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
+  index = NULL,
   ...
 )
 
@@ -87,6 +89,9 @@ FindNeighbors(object, ...)
 
 \item{...}{Arguments passed to other methods}
 
+\item{query}{Matrix of data to query against object. If missing, defaults to
+object.}
+
 \item{distance.matrix}{Boolean value of whether the provided matrix is a
 distance matrix; note, for objects of class \code{dist}, this parameter will
 be set automatically}
@@ -122,6 +127,9 @@ default of 0.0 implies exact nearest neighbor search}
 \item{cache.index}{Include cached index in returned Neighbor object
 (only relevant if return.neighbor = TRUE)}
 
+\item{index}{Precomputed index. Useful if querying new data against existing
+index to avoid recomputing.}
+
 \item{features}{Features to use as input for building the (S)NN; used only when
 \code{dims} is \code{NULL}}
 
@@ -138,15 +146,19 @@ is \code{NULL}}
 (or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.}
 }
 \value{
-When running on a \code{\link{Seurat}} object, returns fills the
-\code{graphs} slot; names of graphs can be found with
-\code{Filter(function(x) inherits(object[[x]], "Graph"), names(object))}
+This function can either return a \code{\link{Neighbor}} object
+with the KNN information or a list of \code{\link{Graph}} objects with
+the KNN and SNN depending on the settings of \code{return.neighbor} and
+\code{compute.SNN}. When running on a \code{\link{Seurat}} object, this
+returns the \code{\link{Seurat}} object with the Graphs or Neighbor objects
+stored in their respective slots. Names of the Graph or Neighbor object can
+be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
 }
 \description{
-Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-first determine the k-nearest neighbors of each cell. We use this knn graph
-to construct the SNN graph by calculating the neighborhood overlap
-(Jaccard index) between every cell and its k.param nearest neighbors.
+Computes the \code{k.param} nearest neighbors for a given dataset. Can also
+optionally (via \code{compute.SNN}), construct a shared nearest neighbor
+graph by calculating the neighborhood overlap (Jaccard index) between every
+cell and its \code{k.param} nearest neighbors.
 }
 \examples{
 pbmc_small
