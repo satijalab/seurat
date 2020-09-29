@@ -1766,6 +1766,21 @@ CheckGC <- function() {
   }
 }
 
+# Create an empty dummy assay to replace existing assay
+#
+CreateDummyAssay <- function(assay) {
+  cm <- as.sparse(x = matrix(
+    data = 0,
+    nrow = nrow(x = assay),
+    ncol = ncol(x = assay)
+  ))
+  rownames(x = cm) <- rownames(x = assay)
+  colnames(x = cm) <- colnames(x = assay)
+  return(CreateAssayObject(
+    counts = cm
+  ))
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
