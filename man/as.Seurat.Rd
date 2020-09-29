@@ -28,6 +28,8 @@ as.Seurat(x, ...)
 
 \item{assay}{Name to store expression matrices as}
 
+\item{verbose}{Show progress updates}
+
 \item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
 set to \code{NULL} if only normalized data are present}
 

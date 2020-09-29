@@ -2246,6 +2246,7 @@ as.Neighbor.Graph <- function(
 }
 
 #' @param slot Slot to store expression data as
+#' @param verbose Show progress updates
 #'
 #' @importFrom utils packageVersion
 #'
