@@ -749,6 +749,7 @@ MULTIseqDemux <- function(
 #'   Otherwise a sparse matrix containing the expression data will be returned.
 #'
 #' @importFrom Matrix readMM
+#' @importFrom utils read.delim
 #'
 #' @export
 #'
