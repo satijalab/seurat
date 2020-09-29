@@ -353,19 +353,23 @@ FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
 }
 
-#' SNN Graph Construction
+#' (Shared) Nearest-neighbor graph construction
 #'
-#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-#' first determine the k-nearest neighbors of each cell. We use this knn graph
-#' to construct the SNN graph by calculating the neighborhood overlap
-#' (Jaccard index) between every cell and its k.param nearest neighbors.
+#' Computes the \code{k.param} nearest neighbors for a given dataset. Can also
+#' optionally (via \code{compute.SNN}), construct a shared nearest neighbor
+#' graph by calculating the neighborhood overlap (Jaccard index) between every
+#' cell and its \code{k.param} nearest neighbors.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return When running on a \code{\link{Seurat}} object, returns fills the
-#' \code{graphs} slot; names of graphs can be found with
-#' \code{Filter(function(x) inherits(object[[x]], "Graph"), names(object))}
+#' @return This function can either return a \code{\link{Neighbor}} object
+#' with the KNN information or a list of \code{\link{Graph}} objects with
+#' the KNN and SNN depending on the settings of \code{return.neighbor} and
+#' \code{compute.SNN}. When running on a \code{\link{Seurat}} object, this
+#' returns the \code{\link{Seurat}} object with the Graphs or Neighbor objects
+#' stored in their respective slots. Names of the Graph or Neighbor object can
+#' be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
 #'
 #' @examples
 #' pbmc_small

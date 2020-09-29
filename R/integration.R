@@ -1593,7 +1593,7 @@ MappingScore.default <- function(
       cache.index = TRUE,
       return.neighbor = TRUE,
       verbose = FALSE
-    )$nn
+    )
   }
   ref.cells <- rownames(x = ref.embeddings)
   query.cells <- rownames(query.embeddings)
