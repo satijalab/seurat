@@ -1331,7 +1331,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   anchors$dataset1 <- 1
   anchors$dataset2 <- 2
   slot(object = anchorset, name = "anchors") <- anchors
-  integrated.embeddings<- MapQuery(
+  integrated.embeddings <- MapQuery(
     anchorset = anchorset,
     reference = object.list[[1]],
     new.assay.name = new.reduction.name.safe,
@@ -1353,6 +1353,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     assay = DefaultAssay(object = query[[reductions[1]]]),
     key = paste0(new.reduction.name.safe, "_")
   )
+  query[[reductions[[1]]]] <- NULL
   return(query)
 }
 
@@ -4742,12 +4743,14 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
            "reference object.")
     }
   }
+  new.reduction.name <- new.reduction.name %||% paste0("integrated_", reductions[1])
   if (new.reduction.name %in% Reductions(object = query)) {
     warning("Specified new.reduction.name (", new.reduction.name, ") is already ",
             "present in the query object. Setting to ",
             paste0("integrated_", new.reduction.name), " and continuing.")
-    ModifyParam(param = "new.reduction.name", value = new.reduction.name)
+    new.reduction.name <- paste0("integrated_", new.reduction.name)
   }
+  ModifyParam(param = "new.reduction.name", value = new.reduction.name)
   min.ndim <- min(ncol(x = query[[reductions[2]]]), ncol(x = reference[[reductions[1]]]))
   if (is.null(x = dims.to.integrate)) {
     dims.to.integrate <- 1:min.ndim
