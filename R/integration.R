@@ -614,6 +614,13 @@ FindTransferAnchors <- function(
     # ensure all residuals required are computed
     query <- GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE)
     reference <- GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE)
+    features <- intersect(
+      x = features,
+      y = intersect(
+        x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
+        y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+      )
+    )
     query[[query.assay]] <- CreateAssayObject(
       data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
     )
@@ -4376,12 +4383,18 @@ ValidateParams_FindTransferAnchors <- function(
   }
   # features must be in both reference and query
   feature.slot <- ifelse(test = normalization.method == "SCT", yes = "counts", no = "data")
-  query.features <- rownames(x = GetAssayData(object = query[[query.assay]], slot = feature.slot))
-  ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay]], slot = feature.slot))
+  query.assay.check <- query.assay
+  reference.assay.check <- reference.assay
+  if (normalization.method == "SCT") {
+    query.assay.check <- Misc(object = query[[query.assay]], slot = "umi.assay")
+    reference.assay.check <- Misc(object = reference[[reference.assay]], slot = "umi.assay")
+  }
   if (!is.null(x = features)) {
     if (project.query) {
+      ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay.check]], slot = feature.slot))
       features.new <- intersect(x = features, y = ref.features)
     } else {
+      query.features <- rownames(x = GetAssayData(object = query[[query.assay.check]], slot = feature.slot))
       features.new <- intersect(x = features, y = query.features)
     }
     if (length(x = features.new) != length(x = features)) {
