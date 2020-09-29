@@ -1841,17 +1841,6 @@ RemoveLastField <- function(string, delim = "_") {
   }
 }
 
-# Return what was passed
-#
-# @param x anything
-#
-# @return Returns x
-#
-Same <- function(x) {
-  .Deprecated(new = 'base::identity', package = NULL)
-  return(x)
-}
-
 # Sweep out array summaries
 #
 # Reimplmentation of \code{\link[base]{sweep}} to maintain compatability with
