@@ -1510,12 +1510,12 @@ SCTransform <- function(
     vst.out <- do.call(what = 'vst', args = vst.args)
     if (!is.null(residual.features)) {
       residual.features <- intersect(rownames(x = vst.out$gene_attr), residual.features)
-      residual.feature.mat <- get_residuals(vst_out = vst.out, 
-                                            umi = umi[residual.features, , drop = FALSE] 
+      residual.feature.mat <- get_residuals(vst_out = vst.out,
+                                            umi = umi[residual.features, , drop = FALSE]
       )
       vst.out$y <- residual.feature.mat
       vst.out$gene_attr <- NULL
-    } 
+    }
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
       nm = rownames(x = vst.out$gene_attr)
@@ -1531,7 +1531,7 @@ SCTransform <- function(
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
   if(!is.null(residual.features)){
-    top.features <- rownames(x = vst.out$y) 
+    top.features <- rownames(x = vst.out$y)
   }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
@@ -2304,233 +2304,6 @@ NormalizeData.Seurat <- function(
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  return(object)
-}
-
-#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
-#' @param q  The number of additional power iterations in randomized SVD when
-#' computing rank k approximation. By default, q=10.
-#' @param quantile.prob The quantile probability to use when calculating threshold.
-#' By default, quantile.prob = 0.001.
-#' @param use.mkl Use the Intel MKL based implementation of SVD. Needs to be
-#' installed from https://github.com/KlugerLab/rpca-mkl. \strong{Note}: this requires
-#' the \href{https://github.com/satijalab/seurat-wrappers}{SeuratWrappers} implementation
-#' of \code{RunALRA}
-#' @param mkl.seed Only relevant if \code{use.mkl = TRUE}. Set the seed for the random
-#' generator for the Intel MKL implementation of SVD. Any number <0 will
-#' use the current timestamp. If \code{use.mkl = FALSE}, set the seed using
-#' \code{\link{set.seed}()} function as usual.
-#'
-#' @rdname RunALRA
-#' @export
-#'
-RunALRA.default <- function(
-  object,
-  k = NULL,
-  q = 10,
-  quantile.prob = 0.001,
-  use.mkl = FALSE,
-  mkl.seed = -1,
-  ...
-) {
-  CheckDots(...)
-  A.norm <- t(x = as.matrix(x = object))
-  message("Identifying non-zero values")
-  originally.nonzero <- A.norm > 0
-  message("Computing Randomized SVD")
-  if (use.mkl) {
-    warning(
-      "Using the Intel MKL-based implementation of SVD requires RunALRA from SeuratWrappers\n",
-      "For more details, see https://github.com/satijalab/seurat-wrappers\n",
-      "Continuing with standard SVD implementation",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
-  fastDecomp.noc <- rsvd(A = A.norm, k = k, q = q)
-  A.norm.rank.k <- fastDecomp.noc$u[, 1:k] %*%
-    diag(x = fastDecomp.noc$d[1:k]) %*%
-    t(x = fastDecomp.noc$v[,1:k])
-  message(sprintf("Find the %f quantile of each gene", quantile.prob))
-  A.norm.rank.k.mins <- abs(x = apply(
-    X = A.norm.rank.k,
-    MARGIN = 2,
-    FUN = function(x) {
-      return(quantile(x = x, probs = quantile.prob))
-    }
-  ))
-  message("Thresholding by the most negative value of each gene")
-  A.norm.rank.k.cor <- replace(
-    x = A.norm.rank.k,
-    list = A.norm.rank.k <= A.norm.rank.k.mins[col(A.norm.rank.k)],
-    values = 0
-  )
-  sd.nonzero <- function(x) {
-    return(sd(x[!x == 0]))
-  }
-  sigma.1 <- apply(X = A.norm.rank.k.cor, MARGIN = 2, FUN = sd.nonzero)
-  sigma.2 <- apply(X = A.norm, MARGIN = 2, FUN = sd.nonzero)
-  mu.1 <- colSums(x = A.norm.rank.k.cor) / colSums(x = !!A.norm.rank.k.cor)
-  mu.2 <- colSums(x = A.norm) / colSums(x = !!A.norm)
-  toscale <- !is.na(sigma.1) & !is.na(sigma.2) & !(sigma.1 == 0 & sigma.2 == 0) & !(sigma.1 == 0)
-  message(sprintf(fmt = "Scaling all except for %d columns", sum(!toscale)))
-  sigma.1.2 <- sigma.2 / sigma.1
-  toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
-  A.norm.rank.k.temp <- A.norm.rank.k.cor[, toscale]
-  A.norm.rank.k.temp <- Sweep(
-    x = A.norm.rank.k.temp,
-    MARGIN = 2,
-    STATS = sigma.1.2[toscale],
-    FUN = "*"
-  )
-  A.norm.rank.k.temp <- Sweep(
-    x = A.norm.rank.k.temp,
-    MARGIN = 2,
-    STATS = toadd[toscale],
-    FUN = "+"
-  )
-  A.norm.rank.k.cor.sc <- A.norm.rank.k.cor
-  A.norm.rank.k.cor.sc[, toscale] <- A.norm.rank.k.temp
-  A.norm.rank.k.cor.sc[A.norm.rank.k.cor == 0] <- 0
-  lt0 <- A.norm.rank.k.cor.sc < 0
-  A.norm.rank.k.cor.sc[lt0] <- 0
-  message(sprintf(
-    fmt = "%.2f%% of the values became negative in the scaling process and were set to zero",
-    100 * sum(lt0) / prod(dim(x = A.norm))
-  ))
-  A.norm.rank.k.cor.sc[originally.nonzero & A.norm.rank.k.cor.sc == 0] <-
-    A.norm[originally.nonzero & A.norm.rank.k.cor.sc == 0]
-  colnames(x = A.norm.rank.k) <- colnames(x = A.norm.rank.k.cor.sc) <-
-    colnames(x = A.norm.rank.k.cor) <- colnames(x = A.norm)
-  original.nz <- sum(A.norm > 0) / prod(dim(x = A.norm))
-  completed.nz <- sum(A.norm.rank.k.cor.sc > 0) / prod(dim(x = A.norm))
-  message(sprintf(
-    fmt = "The matrix went from %.2f%% nonzero to %.2f%% nonzero",
-    100 * original.nz,
-    100 * completed.nz
-  ))
-  return(A.norm.rank.k.cor.sc)
-}
-
-#' @param assay Assay to use
-#' @param slot slot to use
-#' @param setDefaultAssay If TRUE, will set imputed results as default Assay
-#' @param genes.use genes to impute
-#' @param K Number of singular values to compute when choosing k. Must be less
-#' than the smallest dimension of the matrix. Default 100 or smallest dimension.
-#' @param thresh The threshold for ''significance'' when choosing k. Default 1e-10.
-#' @param noise.start Index for which all smaller singular values are considered noise.
-#' Default K - 20.
-#' @param q.k Number of additional power iterations when choosing k. Default 2.
-#' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
-#'
-#' @importFrom rsvd rsvd
-#' @importFrom Matrix Matrix
-#' @importFrom stats sd setNames quantile
-#'
-#' @rdname RunALRA
-#' @export
-#' @method RunALRA Seurat
-#'
-RunALRA.Seurat <- function(
-  object,
-  k = NULL,
-  q = 10,
-  quantile.prob = 0.001,
-  use.mkl = FALSE,
-  mkl.seed=-1,
-  assay = NULL,
-  slot = "data",
-  setDefaultAssay = TRUE,
-  genes.use = NULL,
-  K = NULL,
-  thresh = 6,
-  noise.start = NULL,
-  q.k = 2,
-  k.only = FALSE,
-  ...
-) {
-  if (!is.null(x = k) && k.only) {
-    warning("Stop: k is already given, set k.only = FALSE or k = NULL")
-  }
-  genes.use <- genes.use %||% rownames(x = object)
-  assay <- assay %||% DefaultAssay(object = object)
-  alra.previous <- Tool(object = object, slot = 'RunALRA')
-  alra.info <- list()
-  # Check if k is already stored
-  if (is.null(x = k) & !is.null(alra.previous[["k"]])) {
-    k <- alra.previous[["k"]]
-    message("Using previously computed value of k")
-  }
-  data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
-  # Choose k with heuristics if k is not given
-  if (is.null(x = k)) {
-    # set K based on data dimension
-    if (is.null(x = K)) {
-      K <- 100
-      if (K > min(dim(x = data.used))) {
-        K <- min(dim(x = data.used))
-        warning("For best performance, we recommend using ALRA on expression matrices larger than 100 by 100")
-      }
-    }
-    if (K > min(dim(x = data.used))) {
-      stop("For an m by n data, K must be smaller than the min(m,n)")
-    }
-    # set noise.start based on K
-    if (is.null(x = noise.start)) {
-      noise.start <- K - 20
-      if (noise.start <= 0) {
-        noise.start <- max(K - 5, 1)
-      }
-    }
-    if (noise.start > K - 5) {
-      stop("There need to be at least 5 singular values considered noise")
-    }
-    noise.svals <- noise.start:K
-    if (use.mkl) {
-      warning(
-        "Using the Intel MKL-based implementation of SVD requires RunALRA from SeuratWrappers\n",
-        "For more details, see https://github.com/satijalab/seurat-wrappers\n",
-        "Continuing with standard SVD implementation",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-    }
-    rsvd.out <- rsvd(A = t(x = as.matrix(x = data.used)), k = K, q = q.k)
-    diffs <- rsvd.out$d[1:(length(x = rsvd.out$d)-1)] - rsvd.out$d[2:length(x = rsvd.out$d)]
-    mu <- mean(x = diffs[noise.svals - 1])
-    sigma <- sd(x = diffs[noise.svals - 1])
-    num_of_sds <- (diffs - mu) / sigma
-    k <- max(which(x = num_of_sds > thresh))
-    alra.info[["d"]] <- rsvd.out$d
-    alra.info[["k"]] <- k
-    alra.info[["diffs"]] <- diffs
-    Tool(object = object) <- alra.info
-  }
-  if (k.only) {
-    message("Chose rank k = ", k, ", WITHOUT performing ALRA")
-    return(object)
-  }
-  message("Rank k = ", k)
-  # Perform ALRA on data.used
-  output.alra <- RunALRA(
-    object = data.used,
-    k = k,
-    q = q,
-    quantile.prob = quantile.prob,
-    use.mkl = use.mkl,
-    mkl.seed = mkl.seed
-  )
-  # Save ALRA data in object@assay
-  data.alra <- Matrix(data = t(x = output.alra), sparse = TRUE)
-  rownames(x = data.alra) <- genes.use
-  colnames(x = data.alra) <- colnames(x = object)
-  assay.alra <- CreateAssayObject(data = data.alra)
-  object[["alra"]] <- assay.alra
-  if (setDefaultAssay) {
-    message("Setting default assay as alra")
-    DefaultAssay(object = object) <- "alra"
-  }
   return(object)
 }
 

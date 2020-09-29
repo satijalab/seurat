@@ -54,7 +54,6 @@ Imports:
     reticulate,
     rlang,
     ROCR,
-    rsvd,
     Rtsne,
     scales,
     sctransform (>= 0.3.0),
@@ -87,6 +86,7 @@ RoxygenNote: 7.1.1
 Encoding: UTF-8
 Suggests:
     ape,
+    rsvd,
     testthat,
     hdf5r,
     S4Vectors,

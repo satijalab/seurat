@@ -874,54 +874,6 @@ ReorderIdent <- function(object, var, ...) {
   UseMethod(generic = 'ReorderIdent', object = object)
 }
 
-#' Run Adaptively-thresholded Low Rank Approximation (ALRA)
-#'
-#' Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
-#' Computes the k-rank approximation to A_norm and adjusts it according to the
-#' error distribution learned from the negative values. Described in
-#' Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
-#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
-#'
-#' @note RunALRA and associated functions are being moved to SeuratWrappers;
-#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @rdname RunALRA
-#' @export RunALRA
-#'
-#' @author Jun Zhao, George Linderman
-#' @references Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
-#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
-#' @seealso \code{\link{ALRAChooseKPlot}}
-#'
-#' @examples
-#' pbmc_small
-#' # Example 1: Simple usage, with automatic choice of k.
-#' pbmc_small_alra <- RunALRA(object = pbmc_small)
-#' \dontrun{
-#' # Example 2: Visualize choice of k, then run ALRA
-#' # First, choose K
-#' pbmc_small_alra <- RunALRA(pbmc_small, k.only=TRUE)
-#' # Plot the spectrum, spacings, and p-values which are used to choose k
-#' ggouts <- ALRAChooseKPlot(pbmc_small_alra)
-#' do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
-#' # Run ALRA with the chosen k
-#' pbmc_small_alra <- RunALRA(pbmc_small_alra)
-#' }
-#'
-RunALRA <- function(object, ...) {
-  .Deprecated(
-    new = 'SeruatWrappers::RunALRA',
-    msg = paste(
-      'RunALRA and associated functions are being moved to SeuratWrappers;',
-      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
-    )
-  )
-  UseMethod(generic = 'RunALRA', object = object)
-}
-
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
