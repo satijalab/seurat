@@ -1323,7 +1323,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
-    object.list[[i]] <- DietSeurat(object = object.list[[i]], assay = "drtointegrate")
+    object.list[[i]] <- DietSeurat(object = object.list[[i]], assays = "drtointegrate")
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
