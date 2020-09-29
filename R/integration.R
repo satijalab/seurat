@@ -1323,6 +1323,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
+    object.list[[i]] <- DietSeurat(object = object.list[[i]], assay = "drtointegrate")
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
@@ -1342,6 +1343,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     k.weight = k.weight,
     weight.reduction = weight.reduction,
     weights.matrix = weights.matrix,
+    no.offset = TRUE,
     sd.weight = sd.weight,
     preserve.order = preserve.order,
     do.cpp = TRUE,
@@ -3514,6 +3516,7 @@ MapQuery <- function(
   k.weight = 100,
   weight.reduction = NULL,
   weights.matrix = NULL,
+  no.offset = FALSE,
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
@@ -3558,6 +3561,7 @@ MapQuery <- function(
         features.to.integrate = features.to.integrate,
         weight.reduction = weight.reduction,
         weights.matrix = weights.matrix,
+        no.offset = no.offset,
         features = features,
         dims = dims,
         do.cpp = do.cpp,
@@ -3994,6 +3998,7 @@ RunIntegration <- function(
   features.to.integrate,
   weight.reduction,
   weights.matrix = NULL,
+  no.offset = FALSE,
   features,
   dims,
   do.cpp,
@@ -4009,20 +4014,25 @@ RunIntegration <- function(
     k.weight <- nrow(x = filtered.anchors)
   }
   merged.obj <- merge(x = reference, y = query, merge.data = TRUE)
-  cell1.offset <- GetCellOffsets(
-    anchors = filtered.anchors,
-    dataset = 1,
-    cell = 1,
-    cellnames.list = cellnames.list,
-    cellnames = cells1
-  )
-  cell2.offset <- GetCellOffsets(
-    anchors = filtered.anchors,
-    dataset = 2,
-    cell = 2,
-    cellnames.list = cellnames.list,
-    cellnames = cells2
-  )
+  if (no.offset) {
+    cell1.offset <- filtered.anchors[, 1]
+    cell2.offset <- filtered.anchors[, 2]
+  } else {
+    cell1.offset <- GetCellOffsets(
+      anchors = filtered.anchors,
+      dataset = 1,
+      cell = 1,
+      cellnames.list = cellnames.list,
+      cellnames = cells1
+    )
+    cell2.offset <- GetCellOffsets(
+      anchors = filtered.anchors,
+      dataset = 2,
+      cell = 2,
+      cellnames.list = cellnames.list,
+      cellnames = cells2
+    )
+  }
   filtered.anchors[, 1] <- cell1.offset
   filtered.anchors[, 2] <- cell2.offset
   integration.name <- "integrated"
