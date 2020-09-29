@@ -1317,7 +1317,7 @@ RunUMAP.Neighbor <- function(
   reduction.model,
   ...
 ) {
-  neighborlist <- list("idx" = Indices(object), 
+  neighborlist <- list("idx" = Indices(object),
                        "dist" = Distances(object))
   RunUMAP(
     object = neighborlist,
@@ -1789,32 +1789,34 @@ fftRtsne <- function(X,
     }
   }
 
-  if (is.character(initialization) && initialization =='pca') {
+  if (is.character(initialization) && initialization == 'pca') {
     if (rand_seed != -1)  {
       set.seed(rand_seed)
     }
-    if (requireNamespace("rsvd")) {
+    if (requireNamespace("rsvd", quietly = TRUE)) {
       message('Using rsvd() to compute the top PCs for initialization.')
-      X_c <- scale(X, center=T, scale=F)
-      rsvd_out <- rsvd(X_c, k=dims)
-      X_top_pcs <- rsvd_out$u %*% diag(rsvd_out$d, nrow=dims)
-    } else if(requireNamespace("irlba")) {
+      X_c <- scale(x = X, center = TRUE, scale = FALSE)
+      rsvd_out <- rsvd::rsvd(A = X_c, k = dims)
+      X_top_pcs <- rsvd_out$u %*% diag(x = rsvd_out$d, nrow = dims)
+    } else if (requireNamespace("irlba", quietly = TRUE)) {
       message('Using irlba() to compute the top PCs for initialization.')
-      X_colmeans <- colMeans(X)
-      irlba_out <- irlba(X,nv=dims, center=X_colmeans)
-      X_top_pcs <- irlba_out$u %*% diag(irlba_out$d, nrow=dims)
-    }else{
-      stop("By default, FIt-SNE initializes the embedding with the
-                     top PCs. We use either rsvd or irlba for fast computation.
-                     To use this functionality, please install the rsvd package
-                     with install.packages('rsvd') or the irlba package with
-                     install.packages('ilrba').  Otherwise, set initialization
-                     to NULL for random initialization, or any N by dims matrix
-                     for custom initialization.")
+      X_colmeans <- colMeans(x = X)
+      irlba_out <- irlba::irlba(A = X, nv = dims, center = X_colmeans)
+      X_top_pcs <- irlba_out$u %*% diag(x = irlba_out$d, nrow = dims)
+    } else {
+      stop(
+        "By default, FIt-SNE initializes the embedding with the
+        top PCs. We use either rsvd or irlba for fast computation.
+        To use this functionality, please install the rsvd package
+        with install.packages('rsvd') or the irlba package with
+        install.packages('ilrba').  Otherwise, set initialization
+        to NULL for random initialization, or any N by dims matrix
+        for custom initialization."
+      )
     }
     initialization <- 0.0001*(X_top_pcs/sd(X_top_pcs[,1]))
 
-  } else if (is.character(initialization) && initialization == 'random'){
+  } else if (is.character(x = initialization) && initialization == 'random') {
     message('Random initialization')
     initialization = NULL
   }
@@ -2027,17 +2029,17 @@ PrepDR <- function(
 #' @param graph Graph used supervised by SPCA
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
-#'  
+#'
 #' @importFrom irlba irlba
 #'
 #' @rdname RunSPCA
 #' @export
 RunSPCA.default <- function(
   object,
-  assay = NULL, 
-  npcs = 50, 
-  reduction.key = "SPC_", 
-  graph = NULL, 
+  assay = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
   verbose = TRUE,
   seed.use = 42,
   ...
@@ -2068,19 +2070,19 @@ RunSPCA.default <- function(
 }
 
 #' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
-#' using the variable features for the Assay. 
-#' 
+#' using the variable features for the Assay.
+#'
 #' @rdname RunSPCA
 #' @export
 #' @method RunSPCA Assay
-#' 
+#'
 RunSPCA.Assay <- function(
   object,
-  assay = NULL, 
-  features = NULL, 
-  npcs = 50, 
-  reduction.key = "SPC_", 
-  graph = NULL, 
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
   verbose = TRUE,
   seed.use = 42,
   ...
@@ -2091,12 +2093,12 @@ RunSPCA.Assay <- function(
     verbose = verbose
   )
   reduction.data <- RunSPCA(
-    object = data.use, 
-    assay = assay, 
-    npcs = npcs, 
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
     reduction.key = reduction.key,
     graph = graph,
-    verbose = verbose, 
+    verbose = verbose,
     seed.use = seed.use,
     ...
   )
@@ -2107,16 +2109,16 @@ RunSPCA.Assay <- function(
 #' @rdname RunsPCA
 #' @export
 #' @method RunSPCA Seurat
-#' 
+#'
 RunSPCA.Seurat <- function(
   object,
-  assay = NULL, 
-  features = NULL, 
-  npcs = 50, 
-  reduction.name = "spca", 
-  reduction.key = "SPC_", 
-  graph = NULL, 
-  verbose = TRUE, 
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.name = "spca",
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
   seed.use = 42,
   ...
 ) {
@@ -2128,14 +2130,14 @@ RunSPCA.Seurat <- function(
     graph <- object[[graph]]
   }
   reduction.data <- RunSPCA(
-    object = assay.data, 
-    assay = assay, 
-    features = features, 
-    npcs = npcs, 
-    reduction.name = reduction.name, 
+    object = assay.data,
+    assay = assay,
+    features = features,
+    npcs = npcs,
+    reduction.name = reduction.name,
     reduction.key = reduction.key,
     graph = graph,
-    verbose = verbose, 
+    verbose = verbose,
     seed.use = seed.use,
     ...
   )
