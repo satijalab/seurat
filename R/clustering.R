@@ -1332,6 +1332,7 @@ FindMultiModalNeighbors  <- function(
     )
     for (i in 1:ncol(x = object)) {
       nn.matrix[i, select_nn[i, ]] <- select_nn_dist[i, ]
+    slot(object = weighted.nn, name = "nn.dist") <- select_nn_dist
     }
   } else {
     if (verbose) {
