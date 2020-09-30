@@ -909,7 +909,6 @@ FindSubCluster <- function(
   sub.graph <- as.Graph(x = object[[graph.name]][sub.cell, sub.cell])
   sub.clusters <- FindClusters(
     object = sub.graph,
-    graph.name = graph.name,
     resolution = resolution,
     algorithm = algorithm
   )
