@@ -58,7 +58,7 @@ AnchorSet <- setClass(
 #'
 #' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
 #' related information needed for performing downstream analyses - namely data integration
-#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+#' (\code{FindModalityWeights}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
 #'
 #' @slot first.modality.weight A vector of value representing for the modality weights of
 #' the first modality
@@ -2079,12 +2079,12 @@ UpdateSeuratObject <- function(object) {
 #' @param cells Names of cells for row name of nn.idx and nn.dist
 #' @return Returns a Neighbor object compatible with latest changes
 #'
-#'
 #' @export
 #'
-UpdateNeighbor <- function(nn,
-                           cells
-                           ){
+UpdateNeighbor <- function(
+  nn,
+  cells
+) {
   n.ob <- Neighbor(
     nn.idx = nn$nn.idx,
     nn.dist = nn$nn.dists,

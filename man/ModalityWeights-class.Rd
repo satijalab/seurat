@@ -8,7 +8,7 @@
 \description{
 The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
 related information needed for performing downstream analyses - namely data integration
-(\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+(\code{FindModalityWeights}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
 }
 \section{Slots}{
 
