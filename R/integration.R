@@ -4332,6 +4332,9 @@ ValidateParams_FindTransferAnchors <- function(
     stop("Please select either LogNormalize or SCT, for the normalization.method parameter.",
          call. = FALSE)
   }
+  if (normalization.method == "SCT") {
+    ModifyParam(param = "k.filter", value = NA)
+  }
   if (!is.na(x = k.filter) && k.filter > ncol(x = query)) {
     warning("k.filter is larger than the number of cells present in the query.\n",
             "Continuing without anchor filtering.",
