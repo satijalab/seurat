@@ -10,7 +10,7 @@ IntegrateEmbeddings(anchorset, ...)
 
 \method{IntegrateEmbeddings}{IntegrationAnchorSet}(
   anchorset,
-  new.reduction.name = NULL,
+  new.reduction.name = "integrated_dr",
   reductions = NULL,
   dims.to.integrate = NULL,
   k.weight = 100,
@@ -26,7 +26,7 @@ IntegrateEmbeddings(anchorset, ...)
   anchorset,
   reference,
   query,
-  new.reduction.name = NULL,
+  new.reduction.name = "integrated_dr",
   reductions = NULL,
   anchorset.reduction = FALSE,
   dims.to.integrate = NULL,

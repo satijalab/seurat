@@ -1153,7 +1153,7 @@ IntegrateData <- function(
 #'
 IntegrateEmbeddings.IntegrationAnchorSet <- function(
   anchorset,
-  new.reduction.name = NULL,
+  new.reduction.name = "integrated_dr",
   reductions = NULL,
   dims.to.integrate = NULL,
   k.weight = 100,
@@ -1164,6 +1164,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   verbose = TRUE,
   ...
 ) {
+  .NotYetImplemented()
   CheckDots(...)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -1172,7 +1173,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     anchorset = anchorset,
     object.list = object.list,
     reductions = reductions,
-    new.reduction.name = new.reduction.name,
     dims.to.integrate = dims.to.integrate,
     k.weight = k.weight,
     weight.reduction = weight.reduction,
@@ -1272,8 +1272,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
 }
 #' @param reference Reference object used in anchorset construction
 #' @param query Query object used in anchorset construction
-#' @param anchorset.reduction Option to correct the query embeddings computed
-#' in the anchorset.
 #' @param reuse.weights.matrix Can be used in conjunction with the store.weights
 #' parameter in TransferData to reuse a precomputed weights matrix.
 #'
@@ -1285,9 +1283,8 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   anchorset,
   reference,
   query,
-  new.reduction.name = NULL,
-  reductions = NULL,
-  anchorset.reduction = FALSE,
+  new.reduction.name = "integrated_dr",
+  reductions = 'pcaproject',
   dims.to.integrate = NULL,
   k.weight = 100,
   weight.reduction = NULL,
@@ -1308,7 +1305,6 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     query = query,
     reductions = reductions,
     anchorset.reduction = anchorset.reduction,
-    new.reduction.name = new.reduction.name,
     dims.to.integrate = dims.to.integrate,
     k.weight = k.weight,
     weight.reduction = weight.reduction,
@@ -4619,7 +4615,6 @@ ValidateParams_TransferData <- function(
 ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   anchorset,
   object.list,
-  new.reduction.name,
   reductions,
   dims.to.integrate,
   k.weight,
@@ -4703,8 +4698,6 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
            "objects was provided.")
     }
   }
-  new.reduction.name <- new.reduction.name %||% paste0("integrated_", reductions[1])
-  ModifyParam(param = "new.reduction.name", value = new.reduction.name)
 }
 
 # Internal function to validate the parameters for IntegrateEmbeddings run on
@@ -4716,8 +4709,6 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   reference,
   query,
   reductions,
-  anchorset.reduction,
-  new.reduction.name,
   dims.to.integrate,
   k.weight,
   weight.reduction,
@@ -4741,37 +4732,26 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
     stop("The set of cells used as a query in the AnchorSet does not match ",
          "the set of cells provided in the query object.")
   }
-  if (isTRUE(x = anchorset.reduction)) {
-    if (length(x = reductions) != 1) {
-      stop("Please provide a single reduction name to reductions if setting ",
-           "anchorset.reduction = TRUE")
-    }
-    reference.cells <- Cells(x = reference)
-    reference.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(reference.cells, "_reference"), ]
-    rownames(x = reference.embeddings) <- reference.cells
-    reference[[reductions]] <- CreateDimReducObject(embeddings = reference.embeddings, assay = DefaultAssay(object = reference))
-    ModifyParam(param = "reference", value = reference)
-    query.cells <- Cells(x = query)
-    query.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(query.cells, "_query"), ]
-    rownames(x = query.embeddings) <- query.cells
-    query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
-    ModifyParam(param = "query", value = query)
-    ModifyParam(param = "reductions", value = c(reductions, reductions))
-  } else {
-    if (length(x = reductions) == 1) {
-      ModifyParam(param = "reductions", value = c(reductions, reductions))
-    }
-    if (!reductions[2] %in% Reductions(object = query)) {
-      stop("The reduction '", reductions[1], "' is not present in the provided ",
-           "query object.")
-    }
-    if (!reductions[1] %in% Reductions(object = reference)) {
-      stop("The reduction '", reductions[1], "' is not present in the provided ",
-           "reference object.")
-    }
+  if (length(x = reductions) != 1) {
+    stop("Please provide a single reduction name to reductions that is present ",
+         "in the anchorset.", call. = FALSE)
   }
-  new.reduction.name <- new.reduction.name %||% paste0("integrated_", reductions[1])
-  ModifyParam(param = "new.reduction.name", value = new.reduction.name)
+  if (!reduction %in% Reductions(object = combined.object)) {
+    stop("Please specify a reduction that is present in the anchorset: ",
+         paste(Reductions(object = combined.object), collapse = ", "), call. = FALSE)
+  }
+  reference.cells <- Cells(x = reference)
+  reference.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(reference.cells, "_reference"), ]
+  rownames(x = reference.embeddings) <- reference.cells
+  reference[[reductions]] <- CreateDimReducObject(embeddings = reference.embeddings, assay = DefaultAssay(object = reference))
+  ModifyParam(param = "reference", value = reference)
+  query.cells <- Cells(x = query)
+  query.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(query.cells, "_query"), ]
+  rownames(x = query.embeddings) <- query.cells
+  query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
+  ModifyParam(param = "query", value = query)
+  ModifyParam(param = "reductions", value = c(reductions, reductions))
+
   min.ndim <- min(ncol(x = query[[reductions[2]]]), ncol(x = reference[[reductions[1]]]))
   if (is.null(x = dims.to.integrate)) {
     dims.to.integrate <- 1:min.ndim
