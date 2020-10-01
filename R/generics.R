@@ -862,6 +862,26 @@ Project <- function(object, ...) {
   UseMethod(generic = 'Project<-', object = object)
 }
 
+#' Project query into UMAP coordinates of a reference
+#'
+#' This function will take a query dataset and project it into the coordinates
+#' of a provided reference UMAP. This is essentially a wrapper around two steps:
+#' \itemize{
+#'   \item{FindNeighbors - Find the nearest reference cell neighbors and their
+#'   distances for each query cell.}
+#'   \item{RunUMAP - Perform umap projection by providing the neighbor set
+#'   calculated above and the umap model previously computed in the reference.}
+#' }
+#'
+#' @param query Query dataset
+#'
+#' @rdname ProjectUMAP
+#' @export ProjectUMAP
+#'
+ProjectUMAP <- function(query, ...) {
+  UseMethod(generic = "ProjectUMAP", object = query)
+}
+
 #' Get the spot radius from an image
 #'
 #' @param object An image object

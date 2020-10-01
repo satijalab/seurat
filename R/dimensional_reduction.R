@@ -311,6 +311,161 @@ ProjectDim <- function(
   return(object)
 }
 
+#' @param query.dims Dimensions (columns) to use from query
+#' @param reference.dims Dimensions (columns) to use from reference
+#' @param ... Additional parameters to \code{\link{RunUMAP}}
+#'
+#' @inheritParams FindNeighbors
+#' @inheritParams RunUMAP
+#'
+#' @rdname ProjectUMAP
+#' @export
+#'
+ProjectUMAP.default <- function(
+  query,
+  query.dims = NULL,
+  reference,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  annoy.metric = "euclidean",
+  l2.norm = TRUE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  ...
+) {
+  reference.dims <- reference.dims %||% 1:ncol(x = reference)
+  query.dims <- query.dims %||% 1:ncol(x = query)
+  if (any(reference.dims > ncol(x = reference))) {
+    stop("Reference dims is larger than the number of dimensions present.", call. = FALSE)
+  }
+  if (any(query.dims > ncol(x = query))) {
+    stop("Query dims is larger than the number of dimensions present.", call. = FALSE)
+  }
+  if (length(x = Misc(object = reduction.model, slot = 'model')) == 0) {
+    stop(
+      "The provided reduction.model does not have a model stored. Please try ",
+      "running umot-learn on the object first", call. = FALSE
+    )
+  }
+  query.neighbor <- FindNeighbors(
+    object = reference[, reference.dims],
+    query = query[, query.dims],
+    k.param = k.param,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
+    cache.index = cache.index,
+    index = index,
+    return.neighbor = TRUE,
+    l2.norm = TRUE
+  )
+  proj.umap <- RunUMAP(object = query.neighbor, reduction.model = reduction.model, ...)
+  return(list(proj.umap = proj.umap, query.neighbor = query.neighbor))
+}
+
+#' @rdname ProjectUMAP
+#' @export
+#' @method ProjectUMAP DimReduc
+#'
+ProjectUMAP.DimReduc <- function(
+  query,
+  query.dims = NULL,
+  reference,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  annoy.metric = "euclidean",
+  l2.norm = TRUE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  ...
+) {
+  proj.umap <- ProjectUMAP(
+    query = Embeddings(object = query),
+    query.dims = query.dims,
+    reference = Embeddings(object = reference),
+    reference.dims = reference.dims,
+    k.param = k.param,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
+    l2.norm = l2.norm,
+    cache.index = cache.index,
+    index = index,
+    neighbor.name = neighbor.name,
+    reduction.model = reduction.model,
+    ...
+  )
+  return(proj.umap)
+}
+
+#' @param reference Reference dataset
+#' @param query.reduction Name of reduction to use from the query for neighbor
+#' finding
+#' @param reference.reduction Name of reduction to use from the reference for
+#' neighbor finding
+#' @param neighbor.name Name to store neighbor information in the query
+#' @param reduction.name Name of projected UMAP to store in the query
+#' @param reduction.key Value for the projected UMAP key
+#' @rdname ProjectUMAP
+#' @export
+#' @method ProjectUMAP Seurat
+#'
+ProjectUMAP.Seurat <- function(
+  query,
+  query.reduction,
+  query.dims = NULL,
+  reference,
+  reference.reduction,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  annoy.metric = "euclidean",
+  l2.norm = TRUE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  reduction.name = "proj_umap",
+  reduction.key = "projumap_",
+  ...
+) {
+  if (!query.reduction %in% Reductions(object = query)) {
+    stop("The query.reduction (", query.reduction, ") is not present in the ",
+         "provided query", call. = FALSE)
+  }
+  if (!reference.reduction %in% Reductions(object = reference)) {
+    stop("The reference.reduction (", reference.reduction, ") is not present in the ",
+         "provided reference.", call. = FALSE)
+  }
+  if (!reduction.model %in% Reductions(object = reference)) {
+    stop("The reduction.model (", reduction.model, ") is not present in the ",
+         "provided reference.", call. = FALSE)
+  }
+  proj.umap <- ProjectUMAP(
+    query = query[[query.reduction]],
+    query.dims = query.dims,
+    reference = reference[[reference.reduction]],
+    reference.dims = reference.dims,
+    k.param = k.param,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
+    l2.norm = l2.norm,
+    cache.index = cache.index,
+    index = index,
+    neighbor.name = neighbor.name,
+    reduction.model = reference[[reduction.model]],
+    reduction.key = reduction.key,
+    ...
+  )
+  query[[reduction.name]] <- proj.umap$proj.umap
+  query[[neighbor.name]] <- proj.umap$query.neighbor
+  return(query)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1317,7 +1472,7 @@ RunUMAP.Neighbor <- function(
   reduction.model,
   ...
 ) {
-  neighborlist <- list("idx" = Indices(object), 
+  neighborlist <- list("idx" = Indices(object),
                        "dist" = Distances(object))
   RunUMAP(
     object = neighborlist,
@@ -2027,17 +2182,17 @@ PrepDR <- function(
 #' @param graph Graph used supervised by SPCA
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
-#'  
+#'
 #' @importFrom irlba irlba
 #'
 #' @rdname RunSPCA
 #' @export
 RunSPCA.default <- function(
   object,
-  assay = NULL, 
-  npcs = 50, 
-  reduction.key = "SPC_", 
-  graph = NULL, 
+  assay = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
   verbose = TRUE,
   seed.use = 42,
   ...
@@ -2068,19 +2223,19 @@ RunSPCA.default <- function(
 }
 
 #' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
-#' using the variable features for the Assay. 
-#' 
+#' using the variable features for the Assay.
+#'
 #' @rdname RunSPCA
 #' @export
 #' @method RunSPCA Assay
-#' 
+#'
 RunSPCA.Assay <- function(
   object,
-  assay = NULL, 
-  features = NULL, 
-  npcs = 50, 
-  reduction.key = "SPC_", 
-  graph = NULL, 
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
   verbose = TRUE,
   seed.use = 42,
   ...
@@ -2091,12 +2246,12 @@ RunSPCA.Assay <- function(
     verbose = verbose
   )
   reduction.data <- RunSPCA(
-    object = data.use, 
-    assay = assay, 
-    npcs = npcs, 
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
     reduction.key = reduction.key,
     graph = graph,
-    verbose = verbose, 
+    verbose = verbose,
     seed.use = seed.use,
     ...
   )
@@ -2107,16 +2262,16 @@ RunSPCA.Assay <- function(
 #' @rdname RunsPCA
 #' @export
 #' @method RunSPCA Seurat
-#' 
+#'
 RunSPCA.Seurat <- function(
   object,
-  assay = NULL, 
-  features = NULL, 
-  npcs = 50, 
-  reduction.name = "spca", 
-  reduction.key = "SPC_", 
-  graph = NULL, 
-  verbose = TRUE, 
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.name = "spca",
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
   seed.use = 42,
   ...
 ) {
@@ -2128,14 +2283,14 @@ RunSPCA.Seurat <- function(
     graph <- object[[graph]]
   }
   reduction.data <- RunSPCA(
-    object = assay.data, 
-    assay = assay, 
-    features = features, 
-    npcs = npcs, 
-    reduction.name = reduction.name, 
+    object = assay.data,
+    assay = assay,
+    features = features,
+    npcs = npcs,
+    reduction.name = reduction.name,
     reduction.key = reduction.key,
     graph = graph,
-    verbose = verbose, 
+    verbose = verbose,
     seed.use = seed.use,
     ...
   )
