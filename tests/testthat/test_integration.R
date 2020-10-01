@@ -311,7 +311,7 @@ test_that("FindTransferAnchors with default SCT works", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(322, 3))
+  expect_equal(dim(anchor.mat), c(323, 3))
   expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.9565217391), tolerance = 1e7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
