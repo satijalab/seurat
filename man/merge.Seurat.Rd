@@ -15,6 +15,7 @@
   y = NULL,
   add.cell.ids = NULL,
   merge.data = TRUE,
+  merge.dr = NULL,
   project = "SeuratProject",
   ...
 )
@@ -32,6 +33,8 @@ corresponding values to the start of each objects' cell names.}
 approach was applied to all objects.}
 
 \item{...}{Arguments passed to other methods}
+
+\item{merge.dr}{Merge specified DimReducs that are present in all objects.}
 
 \item{project}{\link{Project} name for the \code{Seurat} object}
 }

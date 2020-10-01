@@ -6932,6 +6932,40 @@ merge.Assay <- function(
   return(combined.assay)
 }
 
+#' @rdname merge.DimReduc
+#' @export
+#' @method merge DimReduc
+#'
+merge.DimReduc <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  ...
+) {
+  CheckDots(...)
+  drs <- c(x, y)
+  if (!is.null(x = add.cell.ids)) {
+    for (i in 1:length(x = drs)) {
+      drs[[i]] <- RenameCells(object = drs[[i]], new.names = add.cell.ids[i])
+    }
+  }
+  embeddings.mat <- list()
+  min.dim <- Inf
+  for (i in 1:length(x = drs)) {
+    embeddings.mat[[i]] <- Embeddings(object = drs[[i]])
+    min.dim <- min(min.dim, ncol(x = embeddings.mat[[i]]))
+  }
+  embeddings.mat <- lapply(X = embeddings.mat, FUN = function(x) x[, 1:min.dim])
+  embeddings.mat <- do.call(what = rbind, args = embeddings.mat)
+  merged.dr <- CreateDimReducObject(
+    embeddings = embeddings.mat,
+    assay = DefaultAssay(object = drs[[1]]),
+    key = Key(object = drs[[1]]),
+    global = IsGlobal(object = drs[[1]])
+  )
+  return(merged.dr)
+}
+
 #' Merge Seurat Objects
 #'
 #' Merge two or more objects.
@@ -6953,6 +6987,7 @@ merge.Assay <- function(
 #' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
+#' @param merge.dr Merge specified DimReducs that are present in all objects.
 #' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
@@ -6974,6 +7009,7 @@ merge.Seurat <- function(
   y = NULL,
   add.cell.ids = NULL,
   merge.data = TRUE,
+  merge.dr = NULL,
   project = "SeuratProject",
   ...
 ) {
@@ -7102,10 +7138,32 @@ merge.Seurat <- function(
       index <- index + 1L
     }
   }
+  # Merge DimReducs
+  combined.reductions <- list()
+  if (!is.null(x = merge.dr)) {
+    for (dr in merge.dr) {
+      drs.to.merge <- list()
+      for (i in 1:length(x = objects)) {
+        if (!dr %in% Reductions(object = objects[[i]])) {
+          warning("The DimReduc ", dr, " is not present in all objects being ",
+                  "merged. Skipping and continuing.", call. = FALSE, immediate. = TRUE)
+          break
+        }
+        drs.to.merge[[i]] <- objects[[i]][[dr]]
+      }
+      if (length(x = drs.to.merge) == length(x = objects)) {
+        combined.reductions[[dr]] <- merge(
+          x = drs.to.merge[[1]],
+          y = drs.to.merge[2:length(x = drs.to.merge)]
+        )
+      }
+    }
+  }
   # Create merged Seurat object
   merged.object <- new(
     Class = 'Seurat',
     assays = combined.assays,
+    reductions = combined.reductions,
     images = combined.images,
     meta.data = combined.meta.data,
     active.assay = new.default.assay,
