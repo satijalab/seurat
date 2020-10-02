@@ -4982,7 +4982,7 @@ ReorderIdent.Seurat <- function(
     yes = function(x) {
       return(max(x) + 1 - x)
     },
-    no = Same
+    no = identity
   )
   new.levels <- names(x = rfxn(x = sort(x = tapply(
     X = data.use,

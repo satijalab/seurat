@@ -2153,6 +2153,7 @@ RemoveLastField <- function(string, delim = "_") {
 # @return Returns x
 #
 Same <- function(x) {
+  .Deprecated(new = 'base::identity', package = NULL)
   return(x)
 }
 
