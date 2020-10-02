@@ -31,7 +31,7 @@ IntegrateEmbeddings(anchorset, ...)
   dims.to.integrate = NULL,
   k.weight = 100,
   weight.reduction = NULL,
-  reuse.weights.matrix = FALSE,
+  reuse.weights.matrix = TRUE,
   sd.weight = 1,
   preserve.order = FALSE,
   verbose = TRUE,

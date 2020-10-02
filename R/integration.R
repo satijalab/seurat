@@ -1288,7 +1288,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   dims.to.integrate = NULL,
   k.weight = 100,
   weight.reduction = NULL,
-  reuse.weights.matrix = FALSE,
+  reuse.weights.matrix = TRUE,
   sd.weight = 1,
   preserve.order = FALSE,
   verbose = TRUE,
@@ -2336,7 +2336,7 @@ TransferData <- function(
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
-  store.weights = FALSE
+  store.weights = TRUE
 ) {
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
@@ -4170,12 +4170,10 @@ ValidateParams_FindTransferAnchors <- function(
   ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay.check]], slot = feature.slot))
   query.features <- rownames(x = GetAssayData(object = query[[query.assay.check]], slot = feature.slot))
   if (normalization.method == "SCT") {
-    query.assay.check <- Misc(object = query[[query.assay]], slot = "umi.assay")
-    query.umi.features <- rownames(x = Misc(object = query[[query.assay.check]])$vst.out$gene_attr)
-    query.features <- unique(c(query.features, query.umi.features))
-    reference.assay.check <- Misc(object = reference[[reference.assay]], slot = "umi.assay")
-    ref.umi.features <- rownames(x = Misc(object = reference[[reference.assay.check]])$vst.out$gene_attr)
-    ref.features <- unique(c(ref.features, ref.umi.features))
+    query.model.features <- rownames(x = Misc(object = query[[query.assay]])$vst.out$gene_attr)
+    query.features <- unique(c(query.features, query.model.features))
+    ref.model.features <- rownames(x = Misc(object = reference[[reference.assay]])$vst.out$gene_attr)
+    ref.features <- unique(c(ref.features, ref.model.features))
   }
   if (!is.null(x = features)) {
     if (project.query) {

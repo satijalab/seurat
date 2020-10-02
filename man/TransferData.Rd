@@ -18,7 +18,7 @@ TransferData(
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
-  store.weights = FALSE
+  store.weights = TRUE
 )
 }
 \arguments{
