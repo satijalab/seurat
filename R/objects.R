@@ -6950,12 +6950,18 @@ merge.DimReduc <- function(
     }
   }
   embeddings.mat <- list()
-  min.dim <- Inf
+  min.dim <- c()
   for (i in 1:length(x = drs)) {
     embeddings.mat[[i]] <- Embeddings(object = drs[[i]])
-    min.dim <- min(min.dim, ncol(x = embeddings.mat[[i]]))
+    min.dim <- c(min.dim, ncol(x = embeddings.mat[[i]]))
   }
-  embeddings.mat <- lapply(X = embeddings.mat, FUN = function(x) x[, 1:min.dim])
+  if (length(x = unique(x = min.dim)) > 1) {
+    min.dim <- min(min.dim)
+    warning("Reductions contain differing numbers of dimensions, merging first ",
+            min.dim, call. = FALSE, immediate. = TRUE)
+    embeddings.mat <- lapply(X = embeddings.mat, FUN = function(x) x[, 1:min.dim])
+
+  }
   embeddings.mat <- do.call(what = rbind, args = embeddings.mat)
   merged.dr <- CreateDimReducObject(
     embeddings = embeddings.mat,
@@ -6974,7 +6980,11 @@ merge.DimReduc <- function(
 #' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
-#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
+#' The merge will optionally merge reductions depending on the values passed to
+#' \code{merge.dr} if they have the same name across objects. Here only the
+#' embeddings slots will be merged and if there are differing numbers of
+#' dimensions across objects, only the first N shared dimensions will be merged.
+#' The merge will not preserve graphs, logged commands, or feature-level metadata
 #' that were present in the original objects. If add.cell.ids isn't specified
 #' and any cell names are duplicated, cell names will be appended with _X, where
 #' X is the numeric index of the object in c(x, y).
@@ -6988,6 +6998,8 @@ merge.DimReduc <- function(
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
 #' @param merge.dr Merge specified DimReducs that are present in all objects.
+#' Will only merge the embeddings slots for the first N dimensions that are
+#' shared across all objects.
 #' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
