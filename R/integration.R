@@ -2329,7 +2329,7 @@ TransferData <- function(
   query = NULL,
   weight.reduction = 'pcaproject',
   l2.norm = FALSE,
-  dims = 1:30,
+  dims = NULL,
   k.weight = 50,
   sd.weight = 1,
   eps = 0,
@@ -2344,6 +2344,7 @@ TransferData <- function(
   query.cells <- slot(object = anchorset, name = "query.cells")
   label.transfer <- list()
   ValidateParams_TransferData(
+    anchorset = anchorset,
     combined.ob = combined.ob,
     anchors = anchors,
     reference.cells = reference.cells,
@@ -4261,6 +4262,7 @@ ValidateParams_FindTransferAnchors <- function(
 # Helper function to validate parameters for TransferData
 #
 ValidateParams_TransferData <- function(
+  anchorset,
   combined.ob,
   anchors,
   reference.cells,
@@ -4375,10 +4377,17 @@ ValidateParams_TransferData <- function(
     }
   }
   if (inherits(x = weight.reduction, "DimReduc")) {
+    if (is.null(x = dims)) {
+      stop("Please specify dims", call. = FALSE)
+    }
     if (max(dims) > ncol(x = weight.reduction)) {
       stop("The max of dims specified (", max(dims), ") is greater than the ",
            "number of dimensions in the given DimReduc (",
            ncol(x = weight.reduction), ").", call. = FALSE)
+    }
+  } else {
+    if (is.null(x = dims)) {
+      ModifyParam(param = "dims", value = slot(object = anchorset, name = "command")$dims)
     }
   }
   if (!is.null(x = query)) {
