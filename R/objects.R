@@ -6965,6 +6965,8 @@ merge.DimReduc <- function(
   embeddings.mat <- do.call(what = rbind, args = embeddings.mat)
   merged.dr <- CreateDimReducObject(
     embeddings = embeddings.mat,
+    loadings = Loadings(object = drs[[1]], projected = FALSE),
+    projected = Loadings(object = drs[[1]], projected = TRUE),
     assay = DefaultAssay(object = drs[[1]]),
     key = Key(object = drs[[1]]),
     global = IsGlobal(object = drs[[1]])
@@ -6981,13 +6983,14 @@ merge.DimReduc <- function(
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
 #' The merge will optionally merge reductions depending on the values passed to
-#' \code{merge.dr} if they have the same name across objects. Here only the
+#' \code{merge.dr} if they have the same name across objects. Here the
 #' embeddings slots will be merged and if there are differing numbers of
 #' dimensions across objects, only the first N shared dimensions will be merged.
-#' The merge will not preserve graphs, logged commands, or feature-level metadata
-#' that were present in the original objects. If add.cell.ids isn't specified
-#' and any cell names are duplicated, cell names will be appended with _X, where
-#' X is the numeric index of the object in c(x, y).
+#' The feature loadings slots will be filled by the values present in the first
+#' object.The merge will not preserve graphs, logged commands, or feature-level
+#' metadata that were present in the original objects. If add.cell.ids isn't
+#' specified and any cell names are duplicated, cell names will be appended
+#' with _X, where X is the numeric index of the object in c(x, y).
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
