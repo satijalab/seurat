@@ -1500,10 +1500,11 @@ MapQuery <- function(
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
+
   query <- do.call(
     what = TransferData,
     args = c(list(
-      anchorset = anchors,
+      anchorset = anchorset,
       reference = reference,
       query = query,
       refdata = refdata,
@@ -1515,7 +1516,7 @@ MapQuery <- function(
   query <- do.call(
     what = IntegrateEmbeddings,
     args = c(list(
-      anchorset = anchors,
+      anchorset = anchorset,
       reference = reference,
       query = query,
       new.reduction.name = new.reduction.name,

@@ -328,8 +328,8 @@ ProjectUMAP.default <- function(
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
-  annoy.metric = "euclidean",
-  l2.norm = TRUE,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
   cache.index = TRUE,
   index = NULL,
   neighbor.name = "query_ref.nn",
@@ -359,7 +359,7 @@ ProjectUMAP.default <- function(
     cache.index = cache.index,
     index = index,
     return.neighbor = TRUE,
-    l2.norm = TRUE
+    l2.norm = l2.norm
   )
   proj.umap <- RunUMAP(object = query.neighbor, reduction.model = reduction.model, ...)
   return(list(proj.umap = proj.umap, query.neighbor = query.neighbor))
@@ -376,8 +376,8 @@ ProjectUMAP.DimReduc <- function(
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
-  annoy.metric = "euclidean",
-  l2.norm = TRUE,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
   cache.index = TRUE,
   index = NULL,
   neighbor.name = "query_ref.nn",
@@ -423,8 +423,8 @@ ProjectUMAP.Seurat <- function(
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
-  annoy.metric = "euclidean",
-  l2.norm = TRUE,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
   cache.index = TRUE,
   index = NULL,
   neighbor.name = "query_ref.nn",
