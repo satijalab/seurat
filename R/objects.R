@@ -6962,6 +6962,48 @@ merge.Assay <- function(
   return(combined.assay)
 }
 
+#' @rdname merge.DimReduc
+#' @export
+#' @method merge DimReduc
+#'
+merge.DimReduc <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  ...
+) {
+  CheckDots(...)
+  drs <- c(x, y)
+  if (!is.null(x = add.cell.ids)) {
+    for (i in 1:length(x = drs)) {
+      drs[[i]] <- RenameCells(object = drs[[i]], new.names = add.cell.ids[i])
+    }
+  }
+  embeddings.mat <- list()
+  min.dim <- c()
+  for (i in 1:length(x = drs)) {
+    embeddings.mat[[i]] <- Embeddings(object = drs[[i]])
+    min.dim <- c(min.dim, ncol(x = embeddings.mat[[i]]))
+  }
+  if (length(x = unique(x = min.dim)) > 1) {
+    min.dim <- min(min.dim)
+    warning("Reductions contain differing numbers of dimensions, merging first ",
+            min.dim, call. = FALSE, immediate. = TRUE)
+    embeddings.mat <- lapply(X = embeddings.mat, FUN = function(x) x[, 1:min.dim])
+
+  }
+  embeddings.mat <- do.call(what = rbind, args = embeddings.mat)
+  merged.dr <- CreateDimReducObject(
+    embeddings = embeddings.mat,
+    loadings = Loadings(object = drs[[1]], projected = FALSE),
+    projected = Loadings(object = drs[[1]], projected = TRUE),
+    assay = DefaultAssay(object = drs[[1]]),
+    key = Key(object = drs[[1]]),
+    global = IsGlobal(object = drs[[1]])
+  )
+  return(merged.dr)
+}
+
 #' Merge Seurat Objects
 #'
 #' Merge two or more objects.
@@ -6970,10 +7012,15 @@ merge.Assay <- function(
 #' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
-#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-#' that were present in the original objects. If add.cell.ids isn't specified
-#' and any cell names are duplicated, cell names will be appended with _X, where
-#' X is the numeric index of the object in c(x, y).
+#' The merge will optionally merge reductions depending on the values passed to
+#' \code{merge.dr} if they have the same name across objects. Here the
+#' embeddings slots will be merged and if there are differing numbers of
+#' dimensions across objects, only the first N shared dimensions will be merged.
+#' The feature loadings slots will be filled by the values present in the first
+#' object.The merge will not preserve graphs, logged commands, or feature-level
+#' metadata that were present in the original objects. If add.cell.ids isn't
+#' specified and any cell names are duplicated, cell names will be appended
+#' with _X, where X is the numeric index of the object in c(x, y).
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -6983,6 +7030,9 @@ merge.Assay <- function(
 #' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
+#' @param merge.dr Merge specified DimReducs that are present in all objects.
+#' Will only merge the embeddings slots for the first N dimensions that are
+#' shared across all objects.
 #' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
@@ -7004,6 +7054,7 @@ merge.Seurat <- function(
   y = NULL,
   add.cell.ids = NULL,
   merge.data = TRUE,
+  merge.dr = NULL,
   project = "SeuratProject",
   ...
 ) {
@@ -7132,10 +7183,32 @@ merge.Seurat <- function(
       index <- index + 1L
     }
   }
+  # Merge DimReducs
+  combined.reductions <- list()
+  if (!is.null(x = merge.dr)) {
+    for (dr in merge.dr) {
+      drs.to.merge <- list()
+      for (i in 1:length(x = objects)) {
+        if (!dr %in% Reductions(object = objects[[i]])) {
+          warning("The DimReduc ", dr, " is not present in all objects being ",
+                  "merged. Skipping and continuing.", call. = FALSE, immediate. = TRUE)
+          break
+        }
+        drs.to.merge[[i]] <- objects[[i]][[dr]]
+      }
+      if (length(x = drs.to.merge) == length(x = objects)) {
+        combined.reductions[[dr]] <- merge(
+          x = drs.to.merge[[1]],
+          y = drs.to.merge[2:length(x = drs.to.merge)]
+        )
+      }
+    }
+  }
   # Create merged Seurat object
   merged.object <- new(
     Class = 'Seurat',
     assays = combined.assays,
+    reductions = combined.reductions,
     images = combined.images,
     meta.data = combined.meta.data,
     active.assay = new.default.assay,
