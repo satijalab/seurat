@@ -1,4 +1,4 @@
-# Seurat v3.2.0
+# Seurat v3.2.2
 
 ## Test environments
 * local Ubuntu 16.04.6 install, R 3.6.1
