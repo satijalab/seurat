@@ -8048,14 +8048,23 @@ setMethod(
 
 setMethod(
   f = 'show',
-  signature = 'AnchorSet',
+  signature = 'TransferAnchorSet',
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData or TransferData.")
+        "This can be used as input to TransferData.")
   }
 )
 
+setMethod(
+  f = 'show',
+  signature = 'IntegrateAnchorSet',
+  definition = function(object) {
+    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
+        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
+        "This can be used as input to IntegrateData.")
+  }
+)
 
 setMethod(
   f = 'show',
