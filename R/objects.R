@@ -7295,7 +7295,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   # subset the embedding
   if ("model" %in% names(x = Misc(object = x)) &&
       "embedding" %in% names(x = Misc(object = x, slot = "model"))) {
-    Misc(object = x, slot = 'model')[["embedding"]] <- if (is.null(x = cells)) {
+    updated.model <- if (is.null(x = cells)) {
       new(Class = 'matrix')
     } else {
       # embedding does not have rownames, need cell indexes
@@ -7306,6 +7306,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
         Misc(object = x, slot = 'model')[["embedding"]][cell.index, ]
       }
     }
+   suppressWarnings(expr = Misc(object = x, slot = 'model')[["embedding"]] <- updated.model)
   }
   slot(object = x, name = 'cell.embeddings') <- if (is.null(x = cells)) {
     new(Class = 'matrix')
