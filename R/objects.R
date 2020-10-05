@@ -7293,17 +7293,17 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   }
   # If there is a model in the misc slot (from RunUMAP(return.model=TRUE))
   # subset the embedding
-  if ("model" %in% names(x = slot(object = x, name = 'misc')) &&
-      "embedding" %in% names(x = slot(object = x, name = 'misc')[["model"]])) {
-    slot(object = x, name = 'misc')[["model"]][["embedding"]] <- if (is.null(x = cells)) {
+  if ("model" %in% names(x = Misc(object = x)) &&
+      "embedding" %in% names(x = Misc(object = x, slot = "model"))) {
+    Misc(object = x, slot = 'model')[["embedding"]] <- if (is.null(x = cells)) {
       new(Class = 'matrix')
     } else {
       # embedding does not have rownames, need cell indexes
       if (is.numeric(x = cells)) {
-        slot(object = x, name = 'misc')[["model"]][["embedding"]][cells, ]
+        Misc(object = x, slot = 'model')[["embedding"]][cells, ]
       } else {
         cell.index <- match(cells, Cells(x = x))
-        slot(object = x, name = 'misc')[["model"]][["embedding"]][cell.index, ]
+        Misc(object = x, slot = 'model')[["embedding"]][cell.index, ]
       }
     }
   }
