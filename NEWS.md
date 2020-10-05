@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Changes
 - `Same` deprecated in favor of `base::identity`
+- Fix in `DietSeurat` to work with specialized `Assay` objects
 
 ## [3.2.2] - 2020-09-25
 ### Changes
