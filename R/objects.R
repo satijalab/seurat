@@ -1077,39 +1077,27 @@ DietSeurat <- function(
     if (!(assay %in% assays)) {
       object[[assay]] <- NULL
     } else {
-      features.assay <- features %||% rownames(x = object[[assay]])
-      features.assay <- intersect(x = features.assay, y = rownames(x = object[[assay]]))
-      if (length(x = features.assay) == 0) {
-        if (assay == DefaultAssay(object = object)) {
-          stop("The default assay is slated to be removed, please change the default assay")
-        } else {
-          warning("No features found in assay '", assay, "', removing...")
-          object[[assay]] <- NULL
-        }
-      } else {
-        if (counts) {
-          if (!is.null(x = features) && !IsMatrixEmpty(x = GetAssayData(object = object[[assay]], slot = "counts"))) {
-            slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+      if (!is.null(x = features)) {
+        features.assay <- intersect(x = features, y = rownames(x = object[[assay]]))
+        if (length(x = features.assay) == 0) {
+          if (assay == DefaultAssay(object = object)) {
+            stop("The default assay is slated to be removed, please change the default assay")
+          } else {
+            warning("No features found in assay '", assay, "', removing...")
+            object[[assay]] <- NULL
           }
         } else {
-          slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+          object[[assay]] <- subset(x = object[[assay]], features = features.assay)
         }
-        if (data) {
-          if (!is.null(x = features)) {
-            slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
-          }
-        } else {
-          stop('data = FALSE currently not supported')
-          slot(object = object[[assay]], name = 'data') <- new(Class = 'matrix')
-        }
-        features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
-        if (scale.data && length(x = features.scaled) > 0) {
-          if (! all(rownames(x = slot(object = object[[assay]], name = 'scale.data')) %in% features.scaled)) {
-            slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
-          }
-        } else {
-          slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
-        }
+      }
+      if (!counts) {
+        slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+      }
+      if (!data) {
+        stop('data = FALSE currently not supported')
+      }
+      if (!scale.data) {
+        slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
       }
     }
   }
