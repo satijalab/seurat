@@ -1164,7 +1164,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   verbose = TRUE,
   ...
 ) {
-  .NotYetImplemented()
   CheckDots(...)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -1178,18 +1177,24 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     weight.reduction = weight.reduction,
     sample.tree = sample.tree
   )
+  if (!inherits(x = reductions, what = "DimReduc") && reductions == "pca") {
+    stop("pca option not implemented yet.", call. = FALSE)
+  }
   unintegrated <- merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
   )
   # make DimReducs into Assays temporarily
-  intdr.assay <- DefaultAssay(object = object.list[[1]][[reductions[[1]]]])
+  intdr.assay <- DefaultAssay(object = reductions)
   int.assay <- DefaultAssay(object = object.list[[1]])
   dims.names <- paste0("drtointegrate-", dims.to.integrate)
+  cell.names.map <- Cells(x = unintegrated)
+  names(x = cell.names.map) <- make.unique(names = unname(obj = do.call(
+    what = c,
+    args = sapply(X = object.list, FUN = Cells)))
+  )
   for (i in 1:length(x = object.list)) {
-    embeddings <- t(x = Embeddings(
-      object = object.list[[i]], reduction = reductions[[i]]
-    )[ , dims.to.integrate])
+    embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
       expr = CreateAssayObject(
@@ -4416,36 +4421,32 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   sample.tree
 ) {
   nobs <- length(x = object.list)
-  if (is.null(x = reductions)) {
-    stop("Please specify the name of the reductions you want to integrate. This ",
-         "should be either a single name of a reduction present in all objects ",
-         "or a vector of names, one for each object used in creating the ",
-         "anchorset.", call. = FALSE)
-  } else {
-    if (length(x = reductions) == 1) {
-      reductions <- rep(x = reductions, times = nobs)
-      ModifyParam(param = "reductions", value = reductions)
-    }
-    min.ndim <- Inf
-    for (i in 1:nobs) {
-      if (!reductions[i] %in% Reductions(object = object.list[[i]])) {
-        stop("The reduction '", reductions[i], "' is not present in object number ",
-             i, ".", call. = FALSE)
-      }
-      min.ndim <- min(min.ndim, ncol(x = object.list[[i]][[reductions[i]]]))
-    }
+  if (!inherits(x = reductions, what = "DimReduc") && reductions != "pca") {
+    stop("Please provide either the string 'pca' or a single pre-computed ",
+         "DimReduc object to the reductions parameter", call. = FALSE)
   }
-  if (is.null(x = dims.to.integrate)) {
-    dims.to.integrate <- 1:min.ndim
-  } else {
-    if (max(dims.to.integrate) > min.ndim) {
-      dims.to.integrate <- dims.to.integrate[dims.to.integrate <= min.ndim]
-      warning("Max dims.to.integrate is larger than the max dims for at least ",
-              "one of the reductions specified. Setting dims.to.integrate to ",
-              dims.to.integrate, " and continuing.", immediate. = TRUE, call. = FALSE)
+  if (inherits(x = reductions, what = "DimReduc")) {
+    all.cells <- make.unique(names = unname(obj = do.call(
+      what = c,
+      args = sapply(X = object.list, FUN = Cells)))
+    )
+    if (nrow(x = reductions) != length(x = all.cells)) {
+      stop("The number of cells in the reduction provided (", nrow(x = reductions),
+           ") doesn't match the number of cells in the objects used to build the ",
+           "AnchorSet (", length(x = all.cells), ").", call. = FALSE)
     }
+    if (!all(Cells(x = reductions) %in% all.cells)) {
+      stop("The cell names in the reduction provided don't match the cell names ",
+           "present in the objects used to build the AnchorSet", call. = FALSE)
+    }
+    dims.to.integrate <- dims.to.integrate %||% 1:ncol(x = reductions)
+    if (max(dims.to.integrate) > ncol(x = reductions)) {
+      warning("Max dims.to.integrate is larger than the number of dimensions in ",
+              "the provided reduction. Setting dims.to.integrate to 1:",
+              ncol(x = reductions), " and continuing.", immediate. = TRUE, call. = FALSE)
+    }
+    ModifyParam(param = 'dims.to.integrate', value = 1:ncol(x = reductions))
   }
-  ModifyParam(param = 'dims.to.integrate', value = dims.to.integrate)
   if (!is.null(x = weight.reduction)) {
     if (inherits(x = weight.reduction, what = "character")) {
       if (length(x = weight.reduction) == 1) {
