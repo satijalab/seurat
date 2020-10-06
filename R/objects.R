@@ -8051,14 +8051,14 @@ setMethod(
   signature = 'TransferAnchorSet',
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
-        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
+        "anchors between the reference and query Seurat objects. \n",
         "This can be used as input to TransferData.")
   }
 )
 
 setMethod(
   f = 'show',
-  signature = 'IntegrateAnchorSet',
+  signature = 'IntegrationAnchorSet',
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
