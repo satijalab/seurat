@@ -1080,6 +1080,9 @@ DefineNormalMixscape <- function(x) {
 # @return Returns Seurat object with assay updated with new features
 #
 GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
+  if (length(x = features) == 0) {
+    return(object)
+  }
   if (verbose) {
     message("Computing perturbation signature for missing features.")
   }
@@ -1094,7 +1097,11 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
     stop("Cannot find previously run CalcPertubSig command. Please make sure you've run CalcPerturbSig to create the provided assay.")
   }
   command <- names(x = command.match)
-  split.by <- Command(object = object, command = command, value = "split.by")
+  if ("split.by" %in% names(x = slot(object = Command(object = object, command = command), name ="params"))) {
+    split.by <- Command(object = object, command = command, value = "split.by")
+  } else {
+    split.by <- NULL
+  }
   gd.class <- Command(object = object, command = command, value = "gd.class")
   nt.cell.class <- Command(object = object, command = command, value = "nt.cell.class")
   slot <- Command(object = object, command = command, value = "slot")
