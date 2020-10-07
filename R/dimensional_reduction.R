@@ -1050,8 +1050,9 @@ RunUMAP.default <- function(
     }
     umap.method = "uwot"
   }
-  if (is.list(x = object)) {
-    names(x = object) <- c("idx", "dist")
+  if (inherits(x = object, what = "Neighbor")) {
+    object <- list( idx = Indices(object), 
+                    dist = Distances(object) )
   }
   if (!is.null(x = reduction.model)) {
     if (verbose) {
