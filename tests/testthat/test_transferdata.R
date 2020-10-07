@@ -65,7 +65,7 @@ test_that("TransferData handles weight.reduction properly, ", {
   }))
   expect_error(TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, weight.reduction = custom.dr, dims = 1:100))
   preds <-TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, verbose = FALSE)
-  cdr.preds <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, weight.reduction = custom.dr, verbose = FALSE)
+  cdr.preds <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, weight.reduction = custom.dr, verbose = FALSE, dims = 1:30)
   expect_equal(preds, cdr.preds)
   # weight.reduction = "pca
   pca.preds <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, weight.reduction = "pca", verbose = FALSE)
@@ -135,3 +135,4 @@ test_that("TransferData can return a modified query object ", {
   query <- TransferData(anchorset = anchors, refdata = ref$RNA_snn_res.1, query = query, store.weights = TRUE, verbose = FALSE)
   expect_equal(dim(Tool(query, slot = "TransferData")$weights.matrix), c(128, 80))
 })
+

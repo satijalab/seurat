@@ -11,14 +11,14 @@ TransferData(
   query = NULL,
   weight.reduction = "pcaproject",
   l2.norm = FALSE,
-  dims = 1:30,
+  dims = NULL,
   k.weight = 50,
   sd.weight = 1,
   eps = 0,
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
-  store.weights = FALSE
+  store.weights = TRUE
 )
 }
 \arguments{

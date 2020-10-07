@@ -617,6 +617,51 @@ Indices <- function(object, ...) {
   UseMethod(generic = "Indices", object = object)
 }
 
+#' Integrate low dimensional embeddings
+#'
+#' Perform dataset integration using a pre-computed Anchorset of specified low
+#' dimensional representations.
+#'
+#' The main steps of this procedure are identical to \code{\link{IntegrateData}}
+#' with one key distinction. When computing the weights matrix, the distance
+#' calculations are performed in the full space of integrated embeddings when
+#' integrating more than two datasets, as opposed to a reduced PCA space which
+#' is the default behavior in \code{\link{IntegrateData}}.
+#'
+#' @param anchorset An AnchorSet object
+#' @param new.reduction.name Name for new integrated dimensional reduction.
+#' @param reductions Name of reductions to be integrated. For a
+#' TransferAnchorSet, this should be the name of a reduction present in the
+#' anchorset object (for example, "pcaproject"). For an IntegrationAnchorSet,
+#' this should be a \code{\link{DimReduc}} object containing all cells present
+#' in the anchorset object.
+#' @param dims.to.integrate Number of dimensions to return integrated values for
+#' @param weight.reduction Dimension reduction to use when calculating anchor
+#' weights. This can be one of:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in
+#'    all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to
+#'    use for each object to be integrated}
+#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+#'    use for each object in the integration}
+#'    \item{NULL, in which case the full corrected space is used for computing
+#'    anchor weights.}
+#' }
+#' @param ... Reserved for internal use
+#'
+#' @return When called on a TransferAnchorSet (from FindTransferAnchors), this
+#' will return the query object with the integrated embeddings stored in a new
+#' reduction. When called on an IntegrationAnchorSet (from IntegrateData), this
+#' will return a merged object with the integrated reduction stored.
+#'
+#' @rdname IntegrateEmbeddings
+#' @export IntegrateEmbeddings
+#'
+IntegrateEmbeddings <- function(anchorset, ...) {
+  UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
+}
+
 #' Is an object global/persistent?
 #'
 #' Typically, when removing \code{Assay} objects from an \code{Seurat} object,
@@ -821,6 +866,26 @@ Project <- function(object, ...) {
 #'
 "Project<-" <- function(object, ..., value) {
   UseMethod(generic = 'Project<-', object = object)
+}
+
+#' Project query into UMAP coordinates of a reference
+#'
+#' This function will take a query dataset and project it into the coordinates
+#' of a provided reference UMAP. This is essentially a wrapper around two steps:
+#' \itemize{
+#'   \item{FindNeighbors - Find the nearest reference cell neighbors and their
+#'   distances for each query cell.}
+#'   \item{RunUMAP - Perform umap projection by providing the neighbor set
+#'   calculated above and the umap model previously computed in the reference.}
+#' }
+#'
+#' @param query Query dataset
+#'
+#' @rdname ProjectUMAP
+#' @export ProjectUMAP
+#'
+ProjectUMAP <- function(query, ...) {
+  UseMethod(generic = "ProjectUMAP", object = query)
 }
 
 #' Get the spot radius from an image
