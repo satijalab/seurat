@@ -4421,6 +4421,9 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   sample.tree
 ) {
   nobs <- length(x = object.list)
+  if (is.null(x = reductions)) {
+    stop("Must supply reductions to integrate")
+  }
   if (!inherits(x = reductions, what = "DimReduc") && reductions != "pca") {
     stop("Please provide either the string 'pca' or a single pre-computed ",
          "DimReduc object to the reductions parameter", call. = FALSE)
