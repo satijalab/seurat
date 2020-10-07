@@ -2869,7 +2869,6 @@ ProjectCellEmbeddings <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
