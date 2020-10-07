@@ -2071,28 +2071,6 @@ UpdateSeuratObject <- function(object) {
   )
 }
 
-
-#' Update old neighbor output to neighbor object
-#'
-#'
-#' @param nn Neighbor list containing nn.idx and nn.dist
-#' @param cells Names of cells for row name of nn.idx and nn.dist
-#' @return Returns a Neighbor object compatible with latest changes
-#'
-#' @export
-#'
-UpdateNeighbor <- function(
-  nn,
-  cells
-) {
-  n.ob <- Neighbor(
-    nn.idx = nn$nn.idx,
-    nn.dist = nn$nn.dists,
-    cell.names = cells
-  )
- return (n.ob)
-}
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
