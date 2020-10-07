@@ -631,9 +631,11 @@ Indices <- function(object, ...) {
 #' @param anchorset An AnchorSet object
 #' @param new.reduction.name Name for new integrated dimensional reduction.
 #' Defaults to "integrated_" + name of first reduction.
-#' @param reductions Name of reductions to be integrated. Can be either a single
-#' string if reduction is present in all objects or a vector of strings, one for
-#' each object.
+#' @param reductions Name of reductions to be integrated. For a
+#' TransferAnchorSet, this should be the name of a reduction present in the
+#' anchorset object (for example, "pcaproject"). For a IntegrationAnchorSet,
+#' this should be a \code{\link{DimReduc}} object containing all cells present
+#' in the anchorset object.
 #' @param dims.to.integrate Number of dimensions to return integrated values for
 #' @param weight.reduction Dimension reduction to use when calculating anchor
 #' weights. This can be one of:
