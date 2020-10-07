@@ -1177,9 +1177,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     weight.reduction = weight.reduction,
     sample.tree = sample.tree
   )
-  if (!inherits(x = reductions, what = "DimReduc") && reductions == "pca") {
-    stop("pca option not implemented yet.", call. = FALSE)
-  }
   unintegrated <- merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
@@ -1477,7 +1474,12 @@ LocalStruct <- function(
 #' \code{\link{IntegrateEmbeddings}}
 #' @param projectumap.args A named list of additional arguments to
 #' \code{\link{ProjectUMAP}}
-#' @return Returns
+#' @return Returns a modified query Seurat object containing new Assays
+#' corresponding to the features transferred and/or their corresponding prediction
+#' scores from TransferData. An integrated reduction from IntegrateEmbeddings.
+#' And an projected umap reduction of the query cells projected into the
+#' reference umap.
+#'
 #' @export
 #'
 MapQuery <- function(
@@ -4424,11 +4426,10 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   if (is.null(x = reductions)) {
     stop("Must supply reductions to integrate")
   }
-  if (!inherits(x = reductions, what = "DimReduc") && reductions != "pca") {
-    stop("Please provide either the string 'pca' or a single pre-computed ",
-         "DimReduc object to the reductions parameter", call. = FALSE)
-  }
-  if (inherits(x = reductions, what = "DimReduc")) {
+  if (!inherits(x = reductions, what = "DimReduc")) {
+    stop("Please provide a single pre-computed DimReduc object to the ",
+         "reductions parameter", call. = FALSE)
+  } else {
     all.cells <- make.unique(names = unname(obj = do.call(
       what = c,
       args = sapply(X = object.list, FUN = Cells)))

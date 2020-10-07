@@ -43,8 +43,7 @@ IntegrateEmbeddings(anchorset, ...)
 
 \item{...}{Reserved for internal use}
 
-\item{new.reduction.name}{Name for new integrated dimensional reduction.
-Defaults to "integrated_" + name of first reduction.}
+\item{new.reduction.name}{Name for new integrated dimensional reduction.}
 
 \item{reductions}{Name of reductions to be integrated. For a
 TransferAnchorSet, this should be the name of a reduction present in the
@@ -85,6 +84,12 @@ integration.}
 
 \item{reuse.weights.matrix}{Can be used in conjunction with the store.weights
 parameter in TransferData to reuse a precomputed weights matrix.}
+}
+\value{
+When called on a TransferAnchorSet (from FindTransferAnchors), this
+will return the query object with the integrated embeddings stored in a new
+reduction. When called on an IntegrationAnchorSet (from IntegrateData), this
+will return a merged object with the integrated reduction stored.
 }
 \description{
 Perform dataset integration using a pre-computed Anchorset of specified low

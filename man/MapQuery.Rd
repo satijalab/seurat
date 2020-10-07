@@ -37,8 +37,7 @@ MapQuery(
   \code{\link{GetAssayData}} and provide that matrix here.}
 }}
 
-\item{new.reduction.name}{Name for new integrated dimensional reduction.
-Defaults to "integrated_" + name of first reduction.}
+\item{new.reduction.name}{Name for new integrated dimensional reduction.}
 
 \item{reference.reduction}{Name of reduction to use from the reference for
 neighbor finding}
@@ -57,7 +56,11 @@ neighbor finding}
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns
+Returns a modified query Seurat object containing new Assays
+corresponding to the features transferred and/or their corresponding prediction
+scores from TransferData. An integrated reduction from IntegrateEmbeddings.
+And an projected umap reduction of the query cells projected into the
+reference umap.
 }
 \description{
 This is a convenience wrapper function around the following three functions
