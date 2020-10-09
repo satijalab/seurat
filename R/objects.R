@@ -41,6 +41,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #'
 AnchorSet <- setClass(
   Class = "AnchorSet",
+  contains = 'VIRTUAL',
   slots = list(
     object.list = "list",
     reference.cells = "vector",
@@ -52,6 +53,34 @@ AnchorSet <- setClass(
     neighbors = "list",
     command = "ANY"
   )
+)
+
+#' The TransferAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name TransferAnchorSet-class
+#' @rdname TransferAnchorSet-class
+#' @exportClass TransferAnchorSet
+#'
+TransferAnchorSet <- setClass(
+  Class = "TransferAnchorSet",
+  contains = "AnchorSet"
+)
+
+#' The IntegrationAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name IntegrationAnchorSet-class
+#' @rdname IntegrationAnchorSet-class
+#' @exportClass IntegrationAnchorSet
+#'
+IntegrationAnchorSet <- setClass(
+  Class = "IntegrationAnchorSet",
+  contains = "AnchorSet"
 )
 
 #' The ModalityWeights Class
@@ -1464,6 +1493,36 @@ GetIntegrationData <- function(object, integration.name, slot) {
   }
   int.data <- tools[[integration.name]]
   return(slot(object = int.data, name = slot))
+}
+
+#' Pull Graph or Graph names
+#'
+#' Lists the names of \code{\link{Graph}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Graph object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Graph object
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Graph} objects
+#' in this Seurat object. Otherwise, the \code{Graph} object requested
+#'
+#' @export
+#'
+Graphs <- function(object, slot = NULL) {
+  graphs <- FilterObjects(object = object, classes.keep = "Graph")
+  if (is.null(x = slot)) {
+    return(graphs)
+  }
+  if (!slot %in% graphs) {
+    warning(
+      "Cannot find a Graph object of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'graphs')[[slot]])
 }
 
 #' Pull spatial image names
@@ -7989,14 +8048,23 @@ setMethod(
 
 setMethod(
   f = 'show',
-  signature = 'AnchorSet',
+  signature = 'TransferAnchorSet',
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
-        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData or TransferData.")
+        "anchors between the reference and query Seurat objects. \n",
+        "This can be used as input to TransferData.")
   }
 )
 
+setMethod(
+  f = 'show',
+  signature = 'IntegrationAnchorSet',
+  definition = function(object) {
+    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
+        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
+        "This can be used as input to IntegrateData.")
+  }
+)
 
 setMethod(
   f = 'show',

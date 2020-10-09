@@ -211,6 +211,8 @@ FindClusters.Seurat <- function(
   return(object)
 }
 
+#' @param query Matrix of data to query against object. If missing, defaults to
+#' object.
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix; note, for objects of class \code{dist}, this parameter will
 #' be set automatically
@@ -234,6 +236,8 @@ FindClusters.Seurat <- function(
 #' @param l2.norm Take L2Norm of the data
 #' @param cache.index Include cached index in returned Neighbor object
 #' (only relevant if return.neighbor = TRUE)
+#' @param index Precomputed index. Useful if querying new data against existing
+#' index to avoid recomputing.
 #'
 #' @importFrom RANN nn2
 #' @importFrom methods as
@@ -244,6 +248,7 @@ FindClusters.Seurat <- function(
 #'
 FindNeighbors.default <- function(
   object,
+  query = NULL,
   distance.matrix = FALSE,
   k.param = 20,
   return.neighbor = FALSE,
@@ -256,6 +261,7 @@ FindNeighbors.default <- function(
   force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
+  index = NULL,
   ...
 ) {
   CheckDots(...)
@@ -279,7 +285,9 @@ FindNeighbors.default <- function(
   }
   if (l2.norm) {
     object <- L2Norm(mat = object)
+    query <- query %iff% L2Norm(mat = query)
   }
+  query <- query %||% object
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
     if (verbose) {
@@ -287,18 +295,20 @@ FindNeighbors.default <- function(
     }
     nn.ranked <- NNHelper(
       data = object,
+      query = query,
       k = k.param,
       method = nn.method,
       searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric,
-      cache.index = cache.index
+      cache.index = cache.index,
+      index = index
     )
     if (return.neighbor) {
       if (compute.SNN) {
         warning("The SNN graph is not computed if return.neighbor is TRUE.", call. = FALSE)
       }
-      return(list(nn = nn.ranked))
+      return(nn.ranked)
     }
     nn.ranked <- Indices(object = nn.ranked)
   } else {
@@ -494,6 +504,9 @@ FindNeighbors.Seurat <- function(
       cache.index = cache.index,
       ...
     )
+  }
+  if (length(x = neighbor.graphs) == 1) {
+    neighbor.graphs <- list(nn = neighbor.graphs)
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
   for (ii in 1:length(x = graph.name)) {
