@@ -23,6 +23,7 @@ FindTransferAnchors(
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   approx.pca = TRUE,
   mapping.score.k = NULL,
@@ -87,6 +88,9 @@ neighborhood search space in the anchor filtering}
 
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
+
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}

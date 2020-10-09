@@ -21,6 +21,7 @@ MappingScore(anchors, ...)
   snn.prune = 0,
   subtract.first.nn = TRUE,
   nn.method = "annoy",
+  n.trees = 50,
   query.weights = NULL,
   verbose = TRUE,
   ...
@@ -35,6 +36,7 @@ MappingScore(anchors, ...)
   snn.prune = 0,
   subtract.first.nn = TRUE,
   nn.method = "annoy",
+  n.trees = 50,
   query.weights = NULL,
   verbose = TRUE,
   ...
@@ -73,6 +75,9 @@ bandwidth from the SNN graph}
 distances to subtract the distance to the first nearest neighbor}
 
 \item{nn.method}{Nearest neighbor method to use (annoy or RANN)}
+
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
 \item{query.weights}{Query weights matrix for reuse}
 
