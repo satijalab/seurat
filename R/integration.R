@@ -1188,7 +1188,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   cell.names.map <- Cells(x = unintegrated)
   names(x = cell.names.map) <- make.unique(names = unname(obj = do.call(
     what = c,
-    args = sapply(X = object.list, FUN = Cells)))
+    args = lapply(X = object.list, FUN = Cells)))
   )
   for (i in 1:length(x = object.list)) {
     embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
@@ -4432,7 +4432,7 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   } else {
     all.cells <- make.unique(names = unname(obj = do.call(
       what = c,
-      args = sapply(X = object.list, FUN = Cells)))
+      args = lapply(X = object.list, FUN = Cells)))
     )
     if (nrow(x = reductions) != length(x = all.cells)) {
       stop("The number of cells in the reduction provided (", nrow(x = reductions),
