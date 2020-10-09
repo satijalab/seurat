@@ -328,6 +328,7 @@ ProjectUMAP.default <- function(
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "cosine",
   l2.norm = FALSE,
   cache.index = TRUE,
@@ -355,6 +356,7 @@ ProjectUMAP.default <- function(
     query = query[, query.dims],
     k.param = k.param,
     nn.method = nn.method,
+    n.trees = n.trees,
     annoy.metric = annoy.metric,
     cache.index = cache.index,
     index = index,
@@ -376,6 +378,7 @@ ProjectUMAP.DimReduc <- function(
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "cosine",
   l2.norm = FALSE,
   cache.index = TRUE,
@@ -391,6 +394,7 @@ ProjectUMAP.DimReduc <- function(
     reference.dims = reference.dims,
     k.param = k.param,
     nn.method = nn.method,
+    n.trees = 50,
     annoy.metric = annoy.metric,
     l2.norm = l2.norm,
     cache.index = cache.index,
@@ -423,6 +427,7 @@ ProjectUMAP.Seurat <- function(
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "cosine",
   l2.norm = FALSE,
   cache.index = TRUE,
@@ -452,6 +457,7 @@ ProjectUMAP.Seurat <- function(
     reference.dims = reference.dims,
     k.param = k.param,
     nn.method = nn.method,
+    n.trees = n.trees,
     annoy.metric = annoy.metric,
     l2.norm = l2.norm,
     cache.index = cache.index,
@@ -1206,7 +1212,7 @@ RunUMAP.default <- function(
     umap.method = "uwot"
   }
   if (inherits(x = object, what = "Neighbor")) {
-    object <- list( idx = Indices(object), 
+    object <- list( idx = Indices(object),
                     dist = Distances(object) )
   }
   if (!is.null(x = reduction.model)) {

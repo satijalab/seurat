@@ -19,6 +19,7 @@ FindNeighbors(object, ...)
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -37,6 +38,7 @@ FindNeighbors(object, ...)
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -53,6 +55,7 @@ FindNeighbors(object, ...)
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -73,6 +76,7 @@ FindNeighbors(object, ...)
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -111,6 +115,9 @@ prune everything).}
 
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
+
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
 \item{annoy.metric}{Distance metric for annoy. Options include: euclidean,
 cosine, manhattan, and hamming}

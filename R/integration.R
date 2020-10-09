@@ -84,6 +84,8 @@ NULL
 #' neighborhood search space in the anchor filtering
 #' @param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
+#' @param n.trees More trees gives higher precision when using annoy approximate
+#' nearest neighbor search
 #' @param eps Error bound on the neighbor finding algorithm (from RANN)
 #' @param verbose Print progress bars and output
 #'
@@ -142,6 +144,7 @@ FindIntegrationAnchors <- function(
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   verbose = TRUE
 ) {
@@ -252,6 +255,7 @@ FindIntegrationAnchors <- function(
           data = Embeddings(object = object.list[[x]][[nn.reduction]])[, dims],
           k = k.neighbor + 1,
           method = nn.method,
+          n.trees = n.trees,
           eps = eps
         )
       }
@@ -410,6 +414,7 @@ FindIntegrationAnchors <- function(
         k.score = k.score,
         max.features = max.features,
         nn.method = nn.method,
+        n.trees = n.trees,
         eps = eps,
         verbose = verbose
       )
@@ -512,6 +517,8 @@ FindIntegrationAnchors <- function(
 #' neighborhood search space in the anchor filtering
 #' @param nn.method Method for nearest neighbor finding. Options include: rann,
 #' annoy
+#' @param n.trees More trees gives higher precision when using annoy approximate
+#' nearest neighbor search
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
 #' @param approx.pca Use truncated singular value decomposition to approximate
@@ -579,6 +586,7 @@ FindTransferAnchors <- function(
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   approx.pca = TRUE,
   mapping.score.k = NULL,
@@ -604,6 +612,7 @@ FindTransferAnchors <- function(
     k.score = k.score,
     max.features = max.features,
     nn.method = nn.method,
+    n.trees = n.trees,
     eps = eps,
     approx.pca = approx.pca,
     mapping.score.k = mapping.score.k
@@ -769,6 +778,7 @@ FindTransferAnchors <- function(
       data = Embeddings(object = combined.ob[[reduction]])[Cells(x = query), ],
       k = max(mapping.score.k, k.nn + 1),
       method = nn.method,
+      n.trees = n.trees,
       cache.index = TRUE
     )
     query.neighbors.sub <- query.neighbors
@@ -799,6 +809,7 @@ FindTransferAnchors <- function(
     k.score = k.score,
     max.features = max.features,
     nn.method = nn.method,
+    n.trees = n.trees,
     nn.idx1 = nn.idx1,
     nn.idx2 = nn.idx2,
     eps = eps,
@@ -1565,6 +1576,8 @@ MapQuery <- function(
 #' @param subtract.first.nn Option to the scoring function when computing
 #' distances to subtract the distance to the first nearest neighbor
 #' @param nn.method Nearest neighbor method to use (annoy or RANN)
+#' @param n.trees More trees gives higher precision when using annoy approximate
+#' nearest neighbor search
 #' @param query.weights Query weights matrix for reuse
 #' @param verbose Display messages/progress
 #' @param ... Reserved for internal use
@@ -1587,6 +1600,7 @@ MappingScore.default <- function(
   snn.prune = 0,
   subtract.first.nn = TRUE,
   nn.method = "annoy",
+  n.trees = 50,
   query.weights = NULL,
   verbose = TRUE,
   ...
@@ -1602,6 +1616,7 @@ MappingScore.default <- function(
       object = query.embeddings,
       k.param = ksmooth,
       nn.method = nn.method,
+      n.trees = n.trees,
       cache.index = TRUE,
       return.neighbor = TRUE,
       verbose = FALSE
@@ -1640,6 +1655,7 @@ MappingScore.default <- function(
       sd.weight = 1,
       eps = 0,
       nn.method = nn.method,
+      n.trees = n.trees,
       cpp = TRUE,
       verbose = verbose
     )
@@ -1679,6 +1695,7 @@ MappingScore.default <- function(
     sd.weight = 1,
     eps = 0,
     nn.method = nn.method,
+    n.trees = n.trees,
     reverse = TRUE,
     cpp = TRUE,
     verbose = verbose
@@ -1709,6 +1726,7 @@ MappingScore.default <- function(
       query = query.cells.pca,
       k = max(ksmooth, ksnn),
       method = nn.method,
+      n.trees = n.trees,
       cache.index = TRUE
     )
   }
@@ -1723,6 +1741,7 @@ MappingScore.default <- function(
         query = query.cells.back.corrected,
         k = max(ksmooth, ksnn),
         method = nn.method,
+        n.treees = n.trees,
         cache.index = TRUE
       )
     } else {
@@ -1779,6 +1798,7 @@ MappingScore.AnchorSet <- function(
   snn.prune = 0,
   subtract.first.nn = TRUE,
   nn.method = "annoy",
+  n.trees = 50,
   query.weights = NULL,
   verbose = TRUE,
   ...
@@ -1831,6 +1851,7 @@ MappingScore.AnchorSet <- function(
     snn.prune = snn.prune,
     subtract.first.nn = subtract.first.nn,
     nn.method = nn.method,
+    n.trees = n.trees,
     query.weights = query.weights,
     verbose = verbose
   ))
@@ -2276,6 +2297,8 @@ SelectIntegrationFeatures <- function(
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
+#' @param n.trees More trees gives higher precision when using annoy approximate
+#' nearest neighbor search
 #' @param verbose Print progress bars and output
 #' @param slot Slot to store the imputed data. Must be either "data" (default)
 #' or "counts"
@@ -2341,6 +2364,7 @@ TransferData <- function(
   k.weight = 50,
   sd.weight = 1,
   eps = 0,
+  n.trees = 50,
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
@@ -2366,6 +2390,7 @@ TransferData <- function(
     k.weight = k.weight,
     sd.weight = sd.weight,
     eps = eps,
+    n.trees = n.trees,
     verbose = verbose,
     slot = slot,
     prediction.assay = prediction.assay,
@@ -2442,6 +2467,7 @@ TransferData <- function(
     k = k.weight,
     sd.weight = sd.weight,
     eps = eps,
+    n.trees = n.trees,
     cpp = TRUE,
     verbose = verbose
   )
@@ -2735,6 +2761,7 @@ FilterAnchors <- function(
   features = NULL,
   k.filter = 200,
   nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   verbose = TRUE
 ) {
@@ -2770,6 +2797,7 @@ FilterAnchors <- function(
       query = cn.data1[nn.cells1, ],
       k = k.filter,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps
     )
 
@@ -2807,6 +2835,7 @@ FindAnchors <- function(
   k.score = 30,
   max.features = 200,
   nn.method = "annoy",
+  n.trees = 50,
   nn.idx1 = NULL,
   nn.idx2 = NULL,
   eps = 0,
@@ -2830,6 +2859,7 @@ FindAnchors <- function(
     nn.reduction = nn.reduction,
     k = k.neighbor,
     nn.method = nn.method,
+    n.trees = n.trees,
     nn.idx1 = nn.idx1,
     nn.idx2 = nn.idx2,
     eps = eps,
@@ -2864,6 +2894,7 @@ FindAnchors <- function(
       features = top.features,
       k.filter = k.filter,
       nn.method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       verbose = verbose
     )
@@ -3007,6 +3038,7 @@ FindNN <- function(
   nn.reduction = reduction,
   k = 300,
   nn.method = "annoy",
+  n.trees = 50,
   nn.idx1 = NULL,
   nn.idx2 = NULL,
   eps = 0,
@@ -3042,6 +3074,7 @@ FindNN <- function(
       data = dims.cells1.self,
       k = k + 1,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       index = nn.idx1
     )
@@ -3054,6 +3087,7 @@ FindNN <- function(
       data = dims.cells2.self,
       k = k + 1,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       index = nn.idx1
     )
@@ -3064,6 +3098,7 @@ FindNN <- function(
       query = Embeddings(object = object[[reduction.2]])[cells1, ],
       k = k,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       index = nn.idx2
     )
@@ -3072,6 +3107,7 @@ FindNN <- function(
       query = Embeddings(object = object[[reduction]])[cells2, ],
       k = k,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       index = nn.idx1
     )
@@ -3084,6 +3120,7 @@ FindNN <- function(
       query = dims.cells1.opposite,
       k = k,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       index = nn.idx2
     )
@@ -3092,6 +3129,7 @@ FindNN <- function(
       query = dims.cells2.opposite,
       k = k,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps,
       index = nn.idx1
     )
@@ -3120,6 +3158,7 @@ FindWeights <- function(
   k = 300,
   sd.weight = 1,
   nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   reverse = FALSE,
   verbose = TRUE,
@@ -3166,6 +3205,7 @@ FindWeights <- function(
       query = data.use.query,
       k = k,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps
     )
   } else {
@@ -3180,6 +3220,7 @@ FindWeights <- function(
       query = data.use,
       k = k,
       method = nn.method,
+      n.trees = n.trees,
       eps = eps
     )
   }
@@ -4096,6 +4137,7 @@ ValidateParams_FindTransferAnchors <- function(
   k.score,
   max.features,
   nn.method,
+  n.trees,
   eps,
   approx.pca,
   mapping.score.k
@@ -4284,6 +4326,7 @@ ValidateParams_TransferData <- function(
   k.weight,
   sd.weight,
   eps,
+  n.trees,
   verbose,
   slot,
   prediction.assay,

@@ -15,6 +15,7 @@ TransferData(
   k.weight = 50,
   sd.weight = 1,
   eps = 0,
+  n.trees = 50,
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
@@ -62,6 +63,9 @@ dimensional reduction}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}
+
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
 \item{verbose}{Print progress bars and output}
 

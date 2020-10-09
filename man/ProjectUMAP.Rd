@@ -16,6 +16,7 @@ ProjectUMAP(query, ...)
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "cosine",
   l2.norm = FALSE,
   cache.index = TRUE,
@@ -32,6 +33,7 @@ ProjectUMAP(query, ...)
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "cosine",
   l2.norm = FALSE,
   cache.index = TRUE,
@@ -50,6 +52,7 @@ ProjectUMAP(query, ...)
   reference.dims = NULL,
   k.param = 20,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "cosine",
   l2.norm = FALSE,
   cache.index = TRUE,
@@ -76,6 +79,9 @@ ProjectUMAP(query, ...)
 
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
+
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
 \item{annoy.metric}{Distance metric for annoy. Options include: euclidean,
 cosine, manhattan, and hamming}

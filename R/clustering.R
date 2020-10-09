@@ -229,6 +229,8 @@ FindClusters.Seurat <- function(
 #' annoy
 #' @param annoy.metric Distance metric for annoy. Options include: euclidean,
 #' cosine, manhattan, and hamming
+#' @param n.trees More trees gives higher precision when using annoy approximate
+#' nearest neighbor search
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
@@ -255,6 +257,7 @@ FindNeighbors.default <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -298,6 +301,7 @@ FindNeighbors.default <- function(
       query = query,
       k = k.param,
       method = nn.method,
+      n.trees = n.trees,
       searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric,
@@ -358,6 +362,7 @@ FindNeighbors.Assay <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -375,6 +380,7 @@ FindNeighbors.Assay <- function(
     compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
     nn.method = nn.method,
+    n.trees = n.trees,
     annoy.metric = annoy.metric,
     nn.eps = nn.eps,
     verbose = verbose,
@@ -398,6 +404,7 @@ FindNeighbors.dist <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -415,6 +422,7 @@ FindNeighbors.dist <- function(
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
     nn.method = nn.method,
+    n.trees = n.trees,
     annoy.metric = annoy.metric,
     verbose = verbose,
     force.recalc = force.recalc,
@@ -452,6 +460,7 @@ FindNeighbors.Seurat <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -476,6 +485,7 @@ FindNeighbors.Seurat <- function(
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.method = nn.method,
+      n.trees = n.trees,
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
@@ -495,6 +505,7 @@ FindNeighbors.Seurat <- function(
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.method = nn.method,
+      n.trees = n.trees,
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
