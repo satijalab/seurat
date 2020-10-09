@@ -8,7 +8,7 @@ FindMultiModalNeighbors(
   object,
   reduction.list,
   dims.list,
-  modality.weight.name = "first.modality.weight",
+  modality.weight.name = NULL,
   k.nn = 20,
   l2.norm = TRUE,
   sd.scale = 1,

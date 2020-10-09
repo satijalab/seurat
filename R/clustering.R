@@ -1299,7 +1299,7 @@ FindMultiModalNeighbors  <- function(
   object,
   reduction.list,
   dims.list,
-  modality.weight.name = "first.modality.weight",
+  modality.weight.name = NULL,
   k.nn = 20,
   l2.norm = TRUE,
   sd.scale = 1,
@@ -1328,6 +1328,7 @@ FindMultiModalNeighbors  <- function(
       verbose = verbose
    )
   }
+  modality.weight.name <- modality.weight.name %||% paste0(DefaultAssay(object = object[[reduction.list[[1]]]]), ".weight")
   k.nn <- k.nn %||% slot(object = modality.weight, name = "params")$k.nn
   first.assay <- slot(object = modality.weight, name = "modality.assay")[1]
   weighted.nn <- MultiModalNN(
