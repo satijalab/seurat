@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changes
 - `Same` deprecated in favor of `base::identity`
 - Fix in `DietSeurat` to work with specialized `Assay` objects
+- Fix p-value return when using the `ape` implementation of Moran's I
 
 ## [3.2.2] - 2020-09-25
 ### Changes

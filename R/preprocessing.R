@@ -1425,9 +1425,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
       error = function(x) c(1,1,1,1)
     )
   })
+  pcol <- ifelse(test = Rfast2.installed, yes = 2, no = 4)
   results <- data.frame(
     observed = unlist(x = results[1, ]),
-    p.value = unlist(x = results[2, ])
+    p.value = unlist(x = results[pcol, ])
   )
   rownames(x = results) <- rownames(x = data)
   return(results)
