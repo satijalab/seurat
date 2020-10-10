@@ -7142,11 +7142,20 @@ merge.Seurat <- function(
         X = assays.merge,
         FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
       )) == length(x = assays.merge)))
-      for (a in 1:length(x = assays.merge)) {
-        assays.merge[[a]] <- SetAssayData(
-          object = assays.merge[[a]],
-          slot = "scale.data",
-          new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+      if (length(x = scaled.features) > 0) {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+        }
+      } else {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = new(Class = "matrix"))
+        }
       }
     }
     merged.assay <- merge(
