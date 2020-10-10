@@ -6964,7 +6964,7 @@ merge.Assay <- function(
     for (i in 1:length(x = assays)) {
       vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
       umi.assay.old <- Misc(object = assays[[i]], slot = "umi.assay")
-      if (!is.null(x = vst.set.old)) {
+      if (!is.null(x = vst.set.old) && length(x = vst.set.old) > 1) {
         for (j in 1:length(x = vst.set.old)) {
           vst.set.new[[idx]] <- vst.set.old[[j]]
           umi.assay.new[[idx]] <- umi.assay.old[[j]]
