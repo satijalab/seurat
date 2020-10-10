@@ -2200,7 +2200,7 @@ RunSPCA.default <- function(
   npcs = 50,
   reduction.key = "SPC_",
   graph = NULL,
-  verbose = TRUE,
+  verbose = FALSE,
   seed.use = 42,
   ...
 ) {
@@ -2209,7 +2209,7 @@ RunSPCA.default <- function(
   }
   npcs <- min(npcs, nrow(x = object) - 1)
   if (verbose) {
-    message("Matrix multiplication")
+    message("Computing sPCA transformation")
   }
   HSIC <- object %*% graph %*% t(x = object)
   pca.results <- irlba(A = HSIC, nv = npcs)
