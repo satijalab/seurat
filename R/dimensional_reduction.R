@@ -434,8 +434,8 @@ ProjectUMAP.Seurat <- function(
   index = NULL,
   neighbor.name = "query_ref.nn",
   reduction.model,
-  reduction.name = "proj_umap",
-  reduction.key = "projumap_",
+  reduction.name = "ref.umap",
+  reduction.key = "refUMAP_",
   ...
 ) {
   if (!query.reduction %in% Reductions(object = query)) {
