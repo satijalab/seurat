@@ -14,7 +14,7 @@ RunSPCA(object, ...)
   npcs = 50,
   reduction.key = "SPC_",
   graph = NULL,
-  verbose = TRUE,
+  verbose = FALSE,
   seed.use = 42,
   ...
 )
