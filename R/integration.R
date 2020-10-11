@@ -621,15 +621,26 @@ FindTransferAnchors <- function(
   feature.mean <- NULL
   if (normalization.method == "SCT") {
     # ensure all residuals required are computed
-    query <- GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE)
-    reference <- GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE)
-    features <- intersect(
-      x = features,
-      y = intersect(
-        x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
-        y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+    query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
+    if (is.null(x = reference.reduction)) {
+      reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+      features <- intersect(
+        x = features,
+        y = intersect(
+          x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
+          y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+        )
       )
-    )
+      reference[[reference.assay]] <- CreateAssayObject(
+        data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
+      )
+      reference <- SetAssayData(
+        object = reference,
+        slot = "scale.data",
+        assay = reference.assay,
+        new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
+      )
+    }
     query[[query.assay]] <- CreateAssayObject(
       data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
     )
@@ -638,15 +649,6 @@ FindTransferAnchors <- function(
       slot = "scale.data",
       assay = query.assay,
       new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "data"))
-    )
-    reference[[reference.assay]] <- CreateAssayObject(
-      data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
-    )
-    reference <- SetAssayData(
-      object = reference,
-      slot = "scale.data",
-      assay = reference.assay,
-      new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
     )
     feature.mean <- "SCT"
   }
@@ -1498,7 +1500,7 @@ MapQuery <- function(
   query,
   reference,
   refdata,
-  new.reduction.name = "integrated_dr",
+  new.reduction.name = paste0("ref.", reference.reduction),
   reference.reduction,
   reduction.model,
   transferdata.args = list(),
@@ -1518,7 +1520,6 @@ MapQuery <- function(
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
-
   query <- do.call(
     what = TransferData,
     args = c(list(

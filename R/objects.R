@@ -6964,7 +6964,7 @@ merge.Assay <- function(
     for (i in 1:length(x = assays)) {
       vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
       umi.assay.old <- Misc(object = assays[[i]], slot = "umi.assay")
-      if (!is.null(x = vst.set.old)) {
+      if (!is.null(x = vst.set.old) && length(x = vst.set.old) > 1) {
         for (j in 1:length(x = vst.set.old)) {
           vst.set.new[[idx]] <- vst.set.old[[j]]
           umi.assay.new[[idx]] <- umi.assay.old[[j]]
@@ -7142,11 +7142,20 @@ merge.Seurat <- function(
         X = assays.merge,
         FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
       )) == length(x = assays.merge)))
-      for (a in 1:length(x = assays.merge)) {
-        assays.merge[[a]] <- SetAssayData(
-          object = assays.merge[[a]],
-          slot = "scale.data",
-          new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+      if (length(x = scaled.features) > 0) {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+        }
+      } else {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = new(Class = "matrix"))
+        }
       }
     }
     merged.assay <- merge(

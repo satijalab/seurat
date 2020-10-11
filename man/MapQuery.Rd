@@ -9,7 +9,7 @@ MapQuery(
   query,
   reference,
   refdata,
-  new.reduction.name = "integrated_dr",
+  new.reduction.name = paste0("ref.", reference.reduction),
   reference.reduction,
   reduction.model,
   transferdata.args = list(),
