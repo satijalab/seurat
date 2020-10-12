@@ -8451,9 +8451,6 @@ UpdateKey <- function(key) {
 # @return \code{object} with the latest slot definitions
 #
 UpdateSlots <- function(object) {
-  # if (inherits(x = object, what = 'DimReduc')) {
-  #   browser()
-  # }
   object.list <- sapply(
     X = slotNames(x = object),
     FUN = function(x) {
