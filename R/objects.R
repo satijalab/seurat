@@ -3832,7 +3832,7 @@ IsGlobal.default <- function(object) {
 #'
 IsGlobal.DimReduc <- function(object) {
   object <- UpdateSlots(object = object)
-  return(slot(object = object, name = 'global'))
+  return(isTRUE(x = slot(object = object, name = 'global')))
 }
 
 #' @rdname IsGlobal
@@ -3996,6 +3996,7 @@ Key.SpatialImage <- function(object, ...) {
 "Key<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
   object <- UpdateSlots(object = object)
+  value <- UpdateKey(key = value)
   old.key <- Key(object = object)
   slots <- Filter(
     f = function(x) {
@@ -4006,11 +4007,15 @@ Key.SpatialImage <- function(object, ...) {
   for (s in slots) {
     mat <- slot(object = object, name = s)
     if (!IsMatrixEmpty(x = mat)) {
-      colnames(x = mat) <- sub(
-        pattern = paste0('^', old.key),
-        replacement = value,
-        x = colnames(x = mat)
-      )
+      colnames(x = mat) <- if (is.null(x = colnames(x = mat))) {
+        paste0(value, seq.int(from = 1, to = ncol(x = mat)))
+      } else {
+        sub(
+          pattern = paste0('^', old.key),
+          replacement = value,
+          x = colnames(x = mat)
+        )
+      }
     }
     slot(object = object, name = s) <- mat
   }
@@ -8446,6 +8451,9 @@ UpdateKey <- function(key) {
 # @return \code{object} with the latest slot definitions
 #
 UpdateSlots <- function(object) {
+  # if (inherits(x = object, what = 'DimReduc')) {
+  #   browser()
+  # }
   object.list <- sapply(
     X = slotNames(x = object),
     FUN = function(x) {
