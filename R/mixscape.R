@@ -629,6 +629,9 @@ RunLDA.Seurat <- function(
 #' metadata.
 #' @param min.de.genes Required number of genes that are differentially
 #' expressed for method to separate perturbed and non-perturbed cells.
+#' @param min.cells Minimum number of cells in target gene class. If fewer than
+#' this many cells are assigned to a target gene class during classification,
+#' all are assigned NP.
 #' @param de.assay Assay to use when performing differential expression analysis.
 #' Usually RNA.
 #' @param iter.num Number of normalmixEM iterations to run if convergence does
@@ -665,6 +668,7 @@ RunMixscape <- function(
   nt.class.name = "NT",
   new.class.name = "mixscape_class",
   min.de.genes = 5,
+  min.cells = 5,
   de.assay = "RNA",
   logfc.threshold = 0.25,
   iter.num = 10,
@@ -808,7 +812,7 @@ RunMixscape <- function(
           object[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
           if (length(x = which(x = object[[new.class.name]] == gene & object[[split.by]] == s)) < min.de.genes) {
             if (verbose) {
-              message("Fewer than ", min.de.genes, " cells assigned as ",
+              message("Fewer than ", min.cells, " cells assigned as ",
                       gene, "Assigning all to NP.")
             }
             object[[new.class.name]][guide.cells, 1] <- "NP"

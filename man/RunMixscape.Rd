@@ -12,6 +12,7 @@ RunMixscape(
   nt.class.name = "NT",
   new.class.name = "mixscape_class",
   min.de.genes = 5,
+  min.cells = 5,
   de.assay = "RNA",
   logfc.threshold = 0.25,
   iter.num = 10,
@@ -37,6 +38,10 @@ metadata.}
 
 \item{min.de.genes}{Required number of genes that are differentially
 expressed for method to separate perturbed and non-perturbed cells.}
+
+\item{min.cells}{Minimum number of cells in target gene class. If fewer than
+this many cells are assigned to a target gene class during classification,
+all are assigned NP.}
 
 \item{de.assay}{Assay to use when performing differential expression analysis.
 Usually RNA.}
