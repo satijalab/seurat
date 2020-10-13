@@ -691,18 +691,13 @@ RunMixscape <- function(
   object[[paste0(new.class.name, "_p_ko")]] <- 0
   #create list to store perturbation scores.
   gv.list <- list()
-
-  if (is.null(x = split.by)) {
-    splt.b <- "con1"
-    Idents(object = object) <- splt.b
-  } else {
-    splt.b <- as.character(x = unique(x = object[[split.by]][, 1]))
-    Idents(object = object) <- splt.b
-  }
+  split.by <- split.by %||% "con1"
+  splits <- as.character(x = unique(x = object[[split.by]][, 1]))
 
   # determine gene sets across all splits/groups
   cells.s.list <- list()
-  for (s in splt.b) {
+  for (s in splits) {
+    Idents(object = object) <- split.by
     cells.s <- WhichCells(object = object, idents = s)
     cells.s.list[[s]] <- cells.s
     genes <- setdiff(x = unique(x = object[[labels]][cells.s, 1]), y = nt.class.name)
@@ -751,13 +746,14 @@ RunMixscape <- function(
   all_markers <- unique(x = unlist(x = prtb_markers))
   missing_genes <- all_markers[!all_markers %in% rownames(x = object[[assay]])]
   object <- GetMissingPerturb(object = object, assay = assay, features = missing_genes, verbose = verbose)
-  for (s in splt.b) {
+  for (s in splits) {
     cells.s <- cells.s.list[[s]]
     genes <- setdiff(x = unique(x = object[[labels]][cells.s, 1]), y = nt.class.name)
     if (verbose) {
       message("Classifying cells for: ")
     }
     for (gene in genes) {
+      Idents(object = object) <- labels
       post.prob <- 0
       orig.guide.cells <- intersect(x = WhichCells(object = object, idents = gene), y = cells.s)
       nt.cells <- intersect(x = WhichCells(object = object, idents = nt.class.name), y = cells.s)
@@ -810,7 +806,7 @@ RunMixscape <- function(
           post.prob <- 1/(1 + lik.ratio)
           object[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
           object[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
-          if (length(x = which(x = object[[new.class.name]] == gene)) < min.de.genes) {
+          if (length(x = which(x = object[[new.class.name]] == gene & object[[split.by]] == s)) < min.de.genes) {
             if (verbose) {
               message("Fewer than ", min.de.genes, " cells assigned as ",
                       gene, "Assigning all to NP.")
@@ -824,7 +820,7 @@ RunMixscape <- function(
           old.classes <- object[[new.class.name]][all.cells, ]
           n.iter <- n.iter + 1
         }
-        object[[new.class.name]][object[[new.class.name]] == gene, 1] <- paste(gene, " KO", sep = "")
+        object[[new.class.name]][which(x = object[[new.class.name]] == gene & object[[split.by]] == s), 1] <- paste(gene, " KO", sep = "")
       }
       object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
