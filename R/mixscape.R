@@ -695,8 +695,12 @@ RunMixscape <- function(
   object[[paste0(new.class.name, "_p_ko")]] <- 0
   #create list to store perturbation scores.
   gv.list <- list()
-  split.by <- split.by %||% "con1"
-  splits <- as.character(x = unique(x = object[[split.by]][, 1]))
+
+  if (is.null(x = split.by)) {
+    split.by <- splits <- "con1"
+  } else {
+    splits <- as.character(x = unique(x = object[[split.by]][, 1]))
+  }
 
   # determine gene sets across all splits/groups
   cells.s.list <- list()
@@ -810,7 +814,7 @@ RunMixscape <- function(
           post.prob <- 1/(1 + lik.ratio)
           object[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
           object[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
-          if (length(x = which(x = object[[new.class.name]] == gene & object[[split.by]] == s)) < min.de.genes) {
+          if (length(x = which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s)) < min.de.genes) {
             if (verbose) {
               message("Fewer than ", min.cells, " cells assigned as ",
                       gene, "Assigning all to NP.")
@@ -824,7 +828,7 @@ RunMixscape <- function(
           old.classes <- object[[new.class.name]][all.cells, ]
           n.iter <- n.iter + 1
         }
-        object[[new.class.name]][which(x = object[[new.class.name]] == gene & object[[split.by]] == s), 1] <- paste(gene, " KO", sep = "")
+        object[[new.class.name]][which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s), 1] <- paste(gene, " KO", sep = "")
       }
       object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
