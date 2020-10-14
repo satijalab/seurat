@@ -17,6 +17,8 @@ NULL
 #'
 #' @param object An object of class Seurat.
 #' @param assay Name of Assay PRTB  signature is being calculated on.
+#' @param features Features to compute PRTB signature for. Defaults to the
+#' variable features set in the assay specified.
 #' @param slot Data slot to use for PRTB signature calculation.
 #' @param gd.class Metadata column containing target gene classification.
 #' @param nt.cell.class Non-targeting gRNA cell classification identity.
@@ -26,6 +28,7 @@ NULL
 #' @param ndims Number of dimensions to use from dimensionality reduction method.
 #' @param reduction Reduction method used to calculate nearest neighbors.
 #' @param new.assay.name Name for the new assay.
+#' @param verbose Display progress + messages
 #' @return Returns a Seurat object with a new assay added containing the
 #' perturbation signature for all cells in the data slot.
 #'
@@ -35,6 +38,7 @@ NULL
 CalcPerturbSig <- function(
   object,
   assay = NULL,
+  features = NULL,
   slot = "data",
   gd.class = "guide_ID",
   nt.cell.class = "NT",
@@ -42,7 +46,8 @@ CalcPerturbSig <- function(
   num.neighbors = NULL,
   reduction = "pca",
   ndims = 15,
-  new.assay.name = "PRTB"
+  new.assay.name = "PRTB",
+  verbose = TRUE
 ) {
   assay <- assay %||% DefaultAssay(object = object )
   if (is.null(x = reduction)) {
@@ -54,50 +59,59 @@ CalcPerturbSig <- function(
   if (is.null(x = ndims)) {
     stop("Please provide number of ", reduction, " dimensions to consider")
   }
+  features <- features %||% VariableFeatures(object = object[[assay]])
+  if (length(x = features) == 0) {
+    features <- rownames(x = GetAssayData(object = object[[assay]], slot = slot))
+  }
   if (! is.null(x = split.by)) {
     Idents(object = object) <-  split.by
   } else {
     Idents(object = object) <- "rep1"
   }
-  replicate <- unique(Idents(object))
-  all_diff <- matrix(nrow = length(x = rownames(x = GetAssayData(object = object, assay = assay, slot = slot))), ncol = 0)
+  replicate <- unique(x = Idents(object = object))
+  all_diff <- list()
+  all_nt_cells <- Cells(x = object)[which(x = object[[]][gd.class] == nt.cell.class)]
+  all_neighbors <- list()
   for (r in replicate) {
-    rep1 <- object[, WhichCells(object = object, idents = r)]
-    # isolate nt cells
-    all_cells <- Cells(x = rep1)
-    nt_cells <- Cells(x = rep1)[which(rep1@meta.data[,gd.class] == nt.cell.class)]
-    # subset the objects based on guide ID
-    all <- rep1[, all_cells]
-    nt <- rep1[, nt_cells]
+    if (verbose) {
+      message("Processing ", r)
+    }
+    all_cells <- WhichCells(object = object, idents = r)
+    nt_cells <- intersect(x = all_nt_cells, all_cells)
     # get pca cell embeddings
-    all_mtx <- Embeddings(object = all, reduction = reduction)
-    nt_mtx <- Embeddings(object = nt, reduction = reduction)
+    all_mtx <- Embeddings(object = object, reduction = reduction)[all_cells, ]
+    nt_mtx <- Embeddings(object = object, reduction = reduction)[nt_cells, ]
     # run nn2 to find the 20 nearest NT neighbors for all cells. Use the same
     # number of PCs as the ones you used for umap
-    mtx <- nn2(
+    neighbors <- NNHelper(
       data = nt_mtx[, 1:ndims],
       query = all_mtx[, 1:ndims],
-      k = num.neighbors
+      k = num.neighbors,
+      method = "rann"
     )
-    nt_data <- expm1(x = GetAssayData(object = nt, assay = assay, slot = slot))
-    new_expr <- pbsapply(X = 1:length(x = all_cells), FUN = function(i) {
-      index <- mtx$nn.idx[i,]
-      nt_cells20 <- nt_cells[index]
-      avg_nt <- rowMeans(x = nt_data[, nt_cells20])
-      avg_nt <- as.matrix(x = avg_nt)
-      colnames(x = avg_nt) <- all_cells[i]
-      return(avg_nt)
-    })
-    new_expr <- log1p(x = new_expr)
-    rownames(x = new_expr) <- rownames(x = GetAssayData(object = nt, assay = assay, slot = slot))
-    colnames(x = new_expr) <- all_cells
-    diff <- new_expr - GetAssayData(object = rep1, slot = slot, assay = assay)[, colnames(x = new_expr)]
-    diff <- as(Class = "dgCMatrix", object = diff)
-    all_diff <- cbind(all_diff, diff)
+    diff <- PerturbDiff(
+      object = object,
+      assay = assay,
+      slot = slot,
+      all_cells = all_cells,
+      nt_cells = nt_cells,
+      features = features,
+      neighbors = neighbors,
+      verbose = verbose
+    )
+    all_diff[[r]] <- diff
+    all_neighbors[[make.names(names = paste0(new.assay.name, "_", r))]] <- neighbors
   }
-  all_diff <- as(Class = "dgCMatrix", object = all_diff)
-  prtb.assay <- CreateAssayObject(data =  all_diff[, colnames(x = object)], min.cells = -Inf, min.features = -Inf)
+  slot(object = object, name = "tools")[[paste("CalcPerturbSig", assay, reduction, sep = ".")]] <- all_neighbors
+  all_diff <- do.call(what = cbind, args = all_diff)
+  prtb.assay <- suppressWarnings(
+    expr = CreateAssayObject(
+      data =  all_diff[, colnames(x = object)],
+      min.cells = -Inf,
+      min.features = -Inf
+    ))
   object[[new.assay.name]] <- prtb.assay
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -365,20 +379,39 @@ PrepLDA <- function(
   projected_pcs <- list()
   gene_list <- setdiff(x = unique(x = object[[labels]][, 1]), y = nt.label)
   Idents(object = object) <- labels
+  DefaultAssay(object = object) <- pc.assay
+  all_genes <- list()
+  nt.cells <- WhichCells(object = object, idents = nt.label)
+  for (g in gene_list) {
+    if (verbose) {
+      message(g)
+    }
+    gd.cells <- WhichCells(object = object, idents = g)
+    gene_set <- TopDEGenesMixscape(
+      object = object,
+      ident.1 = gd.cells,
+      ident.2 = nt.cells,
+      de.assay = de.assay,
+      logfc.threshold = logfc.threshold,
+      labels = labels,
+      verbose = verbose
+    )
+    if (length(x = gene_set) < (npcs + 1)) {
+      all_genes[[g]] <- character()
+      next
+    }
+    all_genes[[g]] <- gene_set
+  }
+  all_markers <- unique(x = unlist(x = all_genes))
+  missing_genes <- all_markers[!all_markers %in% rownames(x = object[[pc.assay]])]
+  object <- GetMissingPerturb(object = object, assay = pc.assay, features = missing_genes, verbose = verbose)
   for (g in gene_list) {
     if (verbose) {
       message(g)
     }
     gene_subset <- subset(x = object, idents = c(g, nt.label))
-    DefaultAssay(object = gene_subset) <- pc.assay
-    gene_set <- TopDEGenesMixscape(
-      object = gene_subset,
-      ident.1 = g,
-      de.assay = de.assay,
-      labels = labels,
-      logfc.threshold = logfc.threshold
-    )
-    if (length(x = gene_set) < (npcs + 1)) {
+    gene_set <- all_genes[[g]]
+    if (length(x = gene_set) == 0) {
       next
     }
     gene_subset <- ScaleData(
@@ -395,7 +428,8 @@ PrepLDA <- function(
     project_pca <- ProjectCellEmbeddings(
       reference = gene_subset,
       query = object,
-      dims = 1:npcs
+      dims = 1:npcs,
+      verbose = FALSE
     )
     colnames(x = project_pca) <- paste(g, colnames(x = project_pca), sep = "_")
     projected_pcs[[g]] <- project_pca
@@ -579,7 +613,10 @@ RunLDA.Seurat <- function(
   return(object)
 }
 
-#' Function to identify perturbed and non-perturbed gRNA expressing cells that accounts for multiple treatments/conditions/chemical perturbations.
+#' Run Mixscape
+#'
+#' Function to identify perturbed and non-perturbed gRNA expressing cells that
+#' accounts for multiple treatments/conditions/chemical perturbations.
 #'
 #' @inheritParams FindMarkers
 #' @importFrom ggplot2 geom_density position_dodge
@@ -592,13 +629,21 @@ RunLDA.Seurat <- function(
 #' metadata.
 #' @param min.de.genes Required number of genes that are differentially
 #' expressed for method to separate perturbed and non-perturbed cells.
+#' @param min.cells Minimum number of cells in target gene class. If fewer than
+#' this many cells are assigned to a target gene class during classification,
+#' all are assigned NP.
 #' @param de.assay Assay to use when performing differential expression analysis.
 #' Usually RNA.
 #' @param iter.num Number of normalmixEM iterations to run if convergence does
 #' not occur.
 #' @param verbose Display messages
-#' @param split.by metadata column with experimental condition/cell type classification information. This is meant to be used to account for cases a perturbation is condition/cell type -specific.
-#' @param fine.mode When this is equal to TRUE, DE genes for each target gene class will be calculated for each gRNA separately and pooled into one DE list for calculating the perturbation score of every cell and their subsequent classification.
+#' @param split.by metadata column with experimental condition/cell type
+#' classification information. This is meant to be used to account for cases a
+#' perturbation is condition/cell type -specific.
+#' @param fine.mode When this is equal to TRUE, DE genes for each target gene
+#' class will be calculated for each gRNA separately and pooled into one DE list
+#' for calculating the perturbation score of every cell and their subsequent
+#' classification.
 #' @param fine.mode.labels metadata column with gRNA ID labels.
 #' @return Returns Seurat object with with the following information in the
 #' meta data and tools slots:
@@ -609,163 +654,188 @@ RunLDA.Seurat <- function(
 #'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
 #'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO
 #'   (>0.5) or NP}
-#'   \item{perturbation score}{Perturbation scores for every cell calculated in the first iteration of the function.}
+#'   \item{perturbation score}{Perturbation scores for every cell calculated in
+#'   the first iteration of the function.}
 #' }
 #'
 #' @export
 #'
-RunMixscape <- function (object = NULL,
-                          assay = "PRTB",
-                          slot = "scale.data",
-                          labels = "gene",
-                          nt.class.name = "NT",
-                          new.class.name = "mixscape_class",
-                          min.de.genes = 5,
-                          de.assay = "RNA",
-                          logfc.threshold = 0.25,
-                          iter.num = 10,
-                          verbose = FALSE,
-                          split.by = NULL,
-                         fine.mode = FALSE,
-                         fine.mode.labels = "guide_ID")
-{
+RunMixscape <- function(
+  object,
+  assay = "PRTB",
+  slot = "scale.data",
+  labels = "gene",
+  nt.class.name = "NT",
+  new.class.name = "mixscape_class",
+  min.de.genes = 5,
+  min.cells = 5,
+  de.assay = "RNA",
+  logfc.threshold = 0.25,
+  iter.num = 10,
+  verbose = FALSE,
+  split.by = NULL,
+  fine.mode = FALSE,
+  fine.mode.labels = "guide_ID"
+) {
   mixtools.installed <- PackageCheck("mixtools", error = FALSE)
   if (!mixtools.installed[1]) {
     stop("Please install the mixtools package to use RunMixscape",
          "\nThis can be accomplished with the following command: ",
-         "\n----------------------------------------", "\ninstall.packages('mixtools')",
+         "\n----------------------------------------",
+         "\ninstall.packages('mixtools')",
          "\n----------------------------------------", call. = FALSE)
   }
   assay <- assay %||% DefaultAssay(object = object)
   if (is.null(x = labels)) {
     stop("Please specify target gene class metadata name")
   }
-  prtb_markers <- c()
+  prtb_markers <- list()
   object[[new.class.name]] <- object[[labels]]
   object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
-  object[[paste0(new.class.name,"_p_ko")]] <- 0
-
-  if(is.null(x=split.by)){
-    splt.b <- "con1"
-    Idents(object = object) <- splt.b
-  }
-  else{
-    splt.b <- as.character(unique(object[[split.by]][,1]))
-    Idents(object = object) <- split.by
-  }
-
+  object[[paste0(new.class.name, "_p_ko")]] <- 0
   #create list to store perturbation scores.
   gv.list <- list()
 
-  for (s in splt.b){
-    object.s <- subset(x = object, idents = s)
-    genes <- setdiff(x = unique(object.s[[labels]][, 1]), y = nt.class.name)
+  if (is.null(x = split.by)) {
+    split.by <- splits <- "con1"
+  } else {
+    splits <- as.character(x = unique(x = object[[split.by]][, 1]))
+  }
 
+  # determine gene sets across all splits/groups
+  cells.s.list <- list()
+  for (s in splits) {
+    Idents(object = object) <- split.by
+    cells.s <- WhichCells(object = object, idents = s)
+    cells.s.list[[s]] <- cells.s
+    genes <- setdiff(x = unique(x = object[[labels]][cells.s, 1]), y = nt.class.name)
+    Idents(object = object) <- labels
     for (gene in genes) {
-      if (isTRUE(verbose)) {
+      if (isTRUE(x = verbose)) {
         message("Processing ", gene)
       }
-      post.prob <- 0
-      Idents(object = object.s) <- labels
-      object.gene <- subset(x = object.s, idents = c(gene, nt.class.name))
-      orig.guide.cells <- WhichCells(object = object.gene,
-                                     idents = gene)
-      DefaultAssay(object = object.gene) <- assay
-
-      if( isTRUE(fine.mode)){
-        guides <- setdiff(x = unique(object.gene[[fine.mode.labels]][, 1]), y = nt.class.name)
+      orig.guide.cells <- intersect(x = WhichCells(object = object, idents = gene), y = cells.s)
+      nt.cells <- intersect(x = WhichCells(object = object, idents = nt.class.name), y = cells.s)
+      if (isTRUE(x = fine.mode)) {
+        guides <- setdiff(x = unique(x = object[[fine.mode.labels]][orig.guide.cells, 1]), y = nt.class.name)
         all.de.genes <- c()
-
-        for (gd in guides)
-        {
-          de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gd,
-                                         de.assay = de.assay, logfc.threshold = logfc.threshold,
-                                         labels = fine.mode.labels)
+        for (gd in guides) {
+          gd.cells <- rownames(x = object[[]][orig.guide.cells, ])[which(x = object[[]][orig.guide.cells, fine.mode.labels] == gd)]
+          de.genes <- TopDEGenesMixscape(
+            object = object,
+            ident.1 = gd.cells,
+            ident.2 = nt.cells,
+            de.assay = de.assay,
+            logfc.threshold = logfc.threshold,
+            labels = fine.mode.labels,
+            verbose = verbose
+          )
           all.de.genes <- c(all.de.genes, de.genes)
 
         }
         all.de.genes <- unique(all.de.genes)
+      } else {
+        all.de.genes <- TopDEGenesMixscape(
+          object = object,
+          ident.1 = orig.guide.cells,
+          ident.2 = nt.cells,
+          de.assay = de.assay,
+          logfc.threshold = logfc.threshold,
+          labels = labels,
+          verbose = verbose
+        )
       }
-
-      else{
-        all.de.genes <- TopDEGenesMixscape(object.gene, ident.1 = gene,
-                                           de.assay = de.assay, logfc.threshold = logfc.threshold,
-                                           labels = labels)
-      }
-
-      prtb_markers[[gene]] <- all.de.genes
-      nt.cells <- which(object.gene[[new.class.name]] == nt.class.name)
-
+      prtb_markers[[s]][[gene]] <- all.de.genes
       if (length(x = all.de.genes) < min.de.genes) {
-        if (isTRUE(verbose)) {
-          message("Fewer than ", min.de.genes, " DE genes for ",
-                  gene, ". Assigning cells as NP.")
-        }
-        object.gene[[new.class.name]][orig.guide.cells, 1] <- paste(gene, " NP", sep = "")
+        prtb_markers[[s]][[gene]] <- character()
       }
-      else {
-        object.gene <- ScaleData(object = object.gene, features = all.de.genes, verbose = FALSE)
-        dat <- GetAssayData(object = object.gene[[assay]], slot = slot)[all.de.genes, ]
+    }
+  }
+  all_markers <- unique(x = unlist(x = prtb_markers))
+  missing_genes <- all_markers[!all_markers %in% rownames(x = object[[assay]])]
+  object <- GetMissingPerturb(object = object, assay = assay, features = missing_genes, verbose = verbose)
+  for (s in splits) {
+    cells.s <- cells.s.list[[s]]
+    genes <- setdiff(x = unique(x = object[[labels]][cells.s, 1]), y = nt.class.name)
+    if (verbose) {
+      message("Classifying cells for: ")
+    }
+    for (gene in genes) {
+      Idents(object = object) <- labels
+      post.prob <- 0
+      orig.guide.cells <- intersect(x = WhichCells(object = object, idents = gene), y = cells.s)
+      nt.cells <- intersect(x = WhichCells(object = object, idents = nt.class.name), y = cells.s)
+      all.cells <- c(orig.guide.cells, nt.cells)
+      if (length(x = prtb_markers[[s]][[gene]]) == 0) {
+        if (verbose) {
+          message("  Fewer than ", min.de.genes, " DE genes for ", gene,
+                  ". Assigning cells as NP.")
+        }
+        object[[new.class.name]][orig.guide.cells, 1] <- paste0(gene, " NP")
+      } else {
+        if (verbose) {
+          message("  ", gene)
+        }
+        de.genes <- prtb_markers[[s]][[gene]]
+        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells]
+        if (slot == "scale.data") {
+          dat <- ScaleData(object = dat, features = de.genes, verbose = FALSE)
+        }
         converged <- FALSE
         n.iter <- 0
-        old.classes <- object.gene[[new.class.name]]
-        while (!converged & n.iter < iter.num) {
-          Idents(object = object.gene) <- new.class.name
-          guide.cells <- WhichCells(object = object.gene, idents = gene)
-          vec <- rowMeans(x = dat[, guide.cells]) - rowMeans(x = dat[, nt.cells])
+        old.classes <- object[[new.class.name]][all.cells, ]
+        while (!converged && n.iter < iter.num) {
+          Idents(object = object) <- new.class.name
+          guide.cells <- intersect(x = WhichCells(object = object, idents = gene), y = cells.s)
+          vec <- rowMeans2(x = dat[, guide.cells]) - rowMeans2(x = dat[, nt.cells])
           pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
-
-          if(n.iter == 0){
+          if (n.iter == 0){
             #store pvec
-            gv <- as.data.frame(pvec)
-            gv[,labels] <- "NT"
-            gv[intersect(rownames(gv), guide.cells),labels] <- gene
-            gv.list[[gene]][[n.iter+1]] <- gv
+            gv <- as.data.frame(x = pvec)
+            gv[, labels] <- "NT"
+            gv[intersect(x = rownames(x = gv), y = guide.cells), labels] <- gene
+            gv.list[[gene]][[s]] <- gv
           }
-
           guide.norm <- DefineNormalMixscape(pvec[guide.cells])
           nt.norm <- DefineNormalMixscape(pvec[nt.cells])
-          mm <- mixtools::normalmixEM(x = pvec, mu = c(nt.norm$mu,
-                                                       guide.norm$mu), sigma = c(nt.norm$sd, guide.norm$sd),
-                                      k = 2, mean.constr = c(nt.norm$mu, NA), sd.constr = c(nt.norm$sd,
-                                                                                            NA), verb = FALSE, maxit = 5000, maxrestarts = 100)
-          lik.ratio <- dnorm(x = pvec[orig.guide.cells],
-                             mean = mm$mu[1], sd = mm$sigma[1])/dnorm(x = pvec[orig.guide.cells],
-                                                                      mean = mm$mu[2], sd = mm$sigma[2])
+          mm <- mixtools::normalmixEM(
+            x = pvec,
+            mu = c(nt.norm$mu, guide.norm$mu),
+            sigma = c(nt.norm$sd, guide.norm$sd),
+            k = 2,
+            mean.constr = c(nt.norm$mu, NA),
+            sd.constr = c(nt.norm$sd, NA),
+            verb = FALSE,
+            maxit = 5000,
+            maxrestarts = 100
+          )
+          lik.ratio <- dnorm(x = pvec[orig.guide.cells], mean = mm$mu[1], sd = mm$sigma[1]) /
+            dnorm(x = pvec[orig.guide.cells], mean = mm$mu[2], sd = mm$sigma[2])
           post.prob <- 1/(1 + lik.ratio)
-          object.gene[[new.class.name]][names(x = which(post.prob >
-                                                          0.5)), 1] <- gene
-          object.gene[[new.class.name]][names(x = which(post.prob <
-                                                          0.5)), 1] <- paste(gene, " NP", sep = "")
-          if (length(x = which(x = object.gene[[new.class.name]] ==
-                               gene)) < min.de.genes) {
-            if (isTRUE(verbose)) {
-              message("Fewer than ", min.de.genes, " cells assigned as ",
+          object[[new.class.name]][names(x = which(post.prob > 0.5)), 1] <- gene
+          object[[new.class.name]][names(x = which(post.prob < 0.5)), 1] <- paste(gene, " NP", sep = "")
+          if (length(x = which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s)) < min.de.genes) {
+            if (verbose) {
+              message("Fewer than ", min.cells, " cells assigned as ",
                       gene, "Assigning all to NP.")
             }
-            object.gene[[new.class.name]][, 1] <- "NP"
+            object[[new.class.name]][guide.cells, 1] <- "NP"
             converged <- TRUE
           }
-          if (all(object.gene[[new.class.name]] == old.classes)) {
+          if (all(object[[new.class.name]][all.cells, ] == old.classes)) {
             converged <- TRUE
           }
-          old.classes <- object.gene[[new.class.name]]
+          old.classes <- object[[new.class.name]][all.cells, ]
           n.iter <- n.iter + 1
         }
-        object.gene[[new.class.name]][object.gene[[new.class.name]] ==
-                                        gene, 1] <- paste(gene, " KO", sep = "")
+        object[[new.class.name]][which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s), 1] <- paste(gene, " KO", sep = "")
       }
-
-      object[[new.class.name]][Cells(object.gene), 1] <- object.gene[[new.class.name]]
-      object[[paste(new.class.name, ".global", sep = "")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
-      object[[paste(new.class.name, ".global", sep = "")]][which(x = is.na(x = object[[paste(new.class.name, ".global", sep = "")]])), 1] <- nt.class.name
-
-      object[[paste0(new.class.name,"_p_ko")]][Cells(object.gene)[-c(nt.cells)],1] <- post.prob
+      object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
+      object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
+      object[[paste0(new.class.name, "_p_ko")]][names(x = post.prob), 1] <- post.prob
     }
-
   }
-  gv.list2 <- gv.list[names(gv.list)]
-  Tool(object) <- unlist(gv.list2, recursive = F)
+  Tool(object = object) <- gv.list
   Idents(object = object) <- new.class.name
   return(object)
 }
@@ -877,77 +947,121 @@ MixscapeHeatmap <- function(
 
 #' Function to plot perturbation score distributions.
 #'
-#' Density plots to visualize perturbation scores calculated from RunMixscape function.
+#' Density plots to visualize perturbation scores calculated from RunMixscape
+#' function.
+#'
 #' @param object An object of class Seurat.
-#' @param target.gene.ident Class identity for cells sharing the same perturbation. Name should be the same as the one used to run mixscape.
-#' @param group.by Option to split densities based on mixscape classification. Default is set to NULL and plots cells by original class ID.
-#' @param col Specify color of target gene class or knockout cell class. For control non-targeting and non-perturbed cells, colors are set to different shades of grey.
+#' @param target.gene.ident Class identity for cells sharing the same
+#' perturbation. Name should be the same as the one used to run mixscape.
+#' @param group.by Option to split densities based on mixscape classification.
+#' Default is set to NULL and plots cells by original class ID.
+#' @param col Specify color of target gene class or knockout cell class. For
+#' control non-targeting and non-perturbed cells, colors are set to different
+#' shades of grey.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
+#' geom_density theme_classic
 #' @export
 #'
-PlotPerturbScore <- function(object = NULL,
-                             target.gene.ident = NULL,
-                             group.by = "mixscape_class",
-                             col = "orange2"
-)
-{
-  prtb_score <- object@tools$RunMixscape[[target.gene.ident]]
-  prtb_score[,2] <- as.factor(prtb_score[,2])
-  colnames(prtb_score)[2] <- "gene"
-
-  if(is.null(group.by)){
-    cols <- setNames(object = c("grey49", col), nm = c(setdiff(unique(prtb_score[,"gene"]),target.gene.ident), target.gene.ident))
-    p <- ggplot(prtb_score, aes_string(x = "pvec", color = "gene")) + geom_density() + theme_classic()
-
-    top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
-
-    prtb_score$y.jitter <- prtb_score$pvec
-
-    prtb_score$y.jitter[prtb_score[,"gene"] == setdiff(unique(prtb_score[,"gene"]),target.gene.ident)] <- runif(prtb_score$y.jitter[prtb_score[,"gene"] == setdiff(unique(prtb_score[,"gene"]),target.gene.ident)],0.001,(top_r/10))
-
-    prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident] <- runif(prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident],-(top_r/10),0)
-
-
-    p2 <- p+ scale_color_manual(values=cols, drop=FALSE) +geom_density(size=1.5) +geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +ylab("Cell density")+ xlab("perturbation score") +theme(legend.key.size = unit(1, "cm"), legend.text = element_text(colour="black", size=14), legend.title = element_blank())
-
+PlotPerturbScore <- function(
+  object,
+  target.gene.ident = NULL,
+  group.by = "mixscape_class",
+  col = "orange2"
+) {
+  prtb_score_list <- Tool(object = object, slot = "RunMixscape")[[target.gene.ident]]
+  plot_list <- list()
+  Idents(object = object) <- group.by
+  for (i in 1:length(x = prtb_score_list)) {
+    prtb_score <- prtb_score_list[[i]]
+    prtb_score[, 2] <- as.factor(x = prtb_score[, 2])
+    gd <- setdiff(x = unique(x = prtb_score[, "gene"]), y = target.gene.ident)
+    colnames(x = prtb_score)[2] <- "gene"
+    if (is.null(x = group.by)) {
+      cols <- setNames(
+        object = c("grey49", col),
+        nm = c(gd, target.gene.ident)
+      )
+      p <- ggplot(data = prtb_score, mapping = aes_string(x = "pvec", color = "gene")) +
+        geom_density() + theme_classic()
+      top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
+      prtb_score$y.jitter <- prtb_score$pvec
+      prtb_score$y.jitter[prtb_score[, "gene"] == gd] <- runif(
+        n = prtb_score$y.jitter[prtb_score[, "gene"] == gd],
+        min = 0.001,
+        max = top_r / 10
+      )
+      prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident] <- runif(
+        n = prtb_score$y.jitter[prtb_score[, "gene"] == target.gene.ident],
+        min = -top_r / 10,
+        max = 0
+      )
+      p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
+        geom_density(size = 1.5) +
+        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
+        ylab("Cell density") + xlab("perturbation score") +
+        theme(legend.key.size = unit(1, "cm"),
+              legend.text = element_text(colour = "black", size = 14),
+              legend.title = element_blank()
+        )
+    } else {
+      cols <- setNames(
+        object = c("grey49", "grey79", col),
+        nm = c(gd, paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO"))
+      )
+      #add mixscape classifications
+      prtb_score$mix <- as.character(x = prtb_score[, "gene"])
+      classes <- unique(x = object[[group.by]][, 1])
+      #define KO and NP cells
+      ko.cells <- WhichCells(object = object, idents = paste0(target.gene.ident, " KO"))
+      np.cells <- WhichCells(object = object, idents = paste0(target.gene.ident, " NP"))
+      prtb_score[np.cells, "mix"] <- paste0(target.gene.ident, " NP")
+      prtb_score[ko.cells, "mix"] <- paste0(target.gene.ident, " KO")
+      prtb_score[, "mix"] <- as.factor(x = prtb_score[,"mix"])
+      p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+        geom_density() + theme_classic()
+      top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
+      prtb_score$y.jitter <- prtb_score$pvec
+      gd2 <- setdiff(
+        x = unique(x = prtb_score[, "mix"]),
+        y = c(paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO"))
+      )
+      prtb_score$y.jitter[prtb_score[, "mix"] == gd2] <- runif(
+        n = prtb_score$y.jitter[prtb_score[, "mix"] == gd2],
+        min = 0.001,
+        max = top_r / 10
+      )
+      prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " KO")] <- runif(
+        n = prtb_score$y.jitter[prtb_score[, "mix"] == paste0(target.gene.ident, " KO")],
+        min = -top_r / 10,
+        max = 0
+      )
+      prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " NP")] <- runif(
+        n = prtb_score$y.jitter[prtb_score[, "mix"] == paste0(target.gene.ident, " NP")],
+        min = -top_r / 10,
+        max = 0
+      )
+      p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
+        geom_density(size = 1.5) +
+        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
+        ylab("Cell density") + xlab("perturbation score") +
+        theme(legend.key.size = unit(1, "cm"),
+              legend.text = element_text(colour ="black", size = 14),
+              legend.title = element_blank()
+        )
+    }
+    plot_list[[i]] <- p2
   }
-
-  else{
-    cols <- setNames(object = c("grey49", "grey79", col), nm = c(setdiff(unique(prtb_score[,"gene"]),target.gene.ident), paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO")))
-
-    #add mixscape classifications
-    prtb_score$mix <- as.character(prtb_score[,"gene"])
-    classes <- unique(object[[group.by]][,1])
-
-    #define KO and NP cells
-    ko.cells <- Cells(object)[sapply(object[[group.by]], FUN = function(x) grep(paste0(target.gene.ident, " KO"), x))]
-    np.cells <- Cells(object)[sapply(object[[group.by]], FUN = function(x) grep(paste0(target.gene.ident, " NP"), x))]
-    prtb_score[np.cells, "mix"] <- paste0(target.gene.ident, " NP")
-    prtb_score[ko.cells, "mix"] <- paste0(target.gene.ident, " KO")
-
-    prtb_score[,"mix"] <- as.factor(prtb_score[,"mix"])
-
-    p <- ggplot(prtb_score, aes_string(x = "pvec", color = "mix")) + geom_density() + theme_classic()
-
-    top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
-
-    prtb_score$y.jitter <- prtb_score$pvec
-
-    prtb_score$y.jitter[prtb_score[,"mix"] == setdiff(unique(prtb_score[,"mix"]),c(paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO")))] <- runif(prtb_score$y.jitter[prtb_score[,"mix"] == setdiff(unique(prtb_score[,"mix"]),c(paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO")))],0.001,(top_r/10))
-
-    prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " KO")] <- runif(prtb_score$y.jitter[prtb_score[,"mix"] == paste0(target.gene.ident, " KO")],-(top_r/10),0)
-    prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " NP")] <- runif(prtb_score$y.jitter[prtb_score[,"mix"] == paste0(target.gene.ident, " NP")],-(top_r/10),0)
-
-
-    p2 <- p+ scale_color_manual(values=cols, drop=FALSE) +geom_density(size=1.5) +geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +ylab("Cell density")+ xlab("perturbation score") +theme(legend.key.size = unit(1, "cm"), legend.text = element_text(colour="black", size=14), legend.title = element_blank())
-
+  if (length(x = plot_list) == 1) {
+    return(plot_list[[1]])
+  } else {
+    return(plot_list)
   }
-  return(p2)
-
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
@@ -959,6 +1073,123 @@ DefineNormalMixscape <- function(x) {
   mu <- mean(x)
   sd <- sd(x)
   return(list(mu = mu, sd = sd))
+}
+
+# Get missing perturbation signature for missing features
+#
+# @param object Seurat object
+# @param assay Perturbation signature assay name
+# @param features vector of features to compute for
+# @param verbose display progress
+# @return Returns Seurat object with assay updated with new features
+#
+GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
+  if (length(x = features) == 0) {
+    return(object)
+  }
+  if (verbose) {
+    message("Computing perturbation signature for missing features.")
+  }
+  command <- grep(pattern = "CalcPerturbSig", x = Command(object = object), value = TRUE)
+  command.match <- sapply(X = command, FUN = function(x) {
+    Command(object = object, command = x, value = "new.assay.name") == assay
+  })
+  if (length(x = which(x = command.match)) > 1) {
+    stop("Ambiguous command log.")
+  }
+  if(length(x = which(x = command.match)) == 0) {
+    stop("Cannot find previously run CalcPertubSig command. Please make sure you've run CalcPerturbSig to create the provided assay.")
+  }
+  command <- names(x = command.match)
+  if ("split.by" %in% names(x = slot(object = Command(object = object, command = command), name ="params"))) {
+    split.by <- Command(object = object, command = command, value = "split.by")
+  } else {
+    split.by <- NULL
+  }
+  gd.class <- Command(object = object, command = command, value = "gd.class")
+  nt.cell.class <- Command(object = object, command = command, value = "nt.cell.class")
+  slot <- Command(object = object, command = command, value = "slot")
+  assay.orig <- Command(object = object, command = command, value = "assay")
+  old.idents <- Idents(object = object)
+  if (! is.null(x = split.by)) {
+    Idents(object = object) <-  split.by
+  } else {
+    Idents(object = object) <- "rep1"
+  }
+  replicate <- unique(x = Idents(object = object))
+  all_diff <- list()
+  all_nt_cells <- Cells(x = object)[which(x = object[[]][gd.class] == nt.cell.class)]
+  features <- setdiff(x = features, y = rownames(x = object[[assay]]))
+  for (r in replicate) {
+    # isolate nt cells
+    all_cells <- WhichCells(object = object, idents = r)
+    nt_cells <- intersect(x = all_nt_cells, all_cells)
+    # pull previously computed neighbors
+    neighbors <- Tool(object = object, slot = command)[[make.names(names = paste0(assay, "_", r))]]
+    diff <- PerturbDiff(
+      object = object,
+      assay = assay.orig,
+      slot = slot,
+      all_cells = all_cells,
+      nt_cells = nt_cells,
+      features = features,
+      neighbors = neighbors,
+      verbose = verbose
+    )
+    all_diff[[r]] <- diff
+  }
+  all_diff <- do.call(what = cbind, args = all_diff)
+  all_diff <- all_diff[, colnames(x = object[[assay]]), drop = FALSE]
+  new.assay <- CreateAssayObject(
+    data = rbind(
+      GetAssayData(object = object[[assay]], slot = "data"),
+      all_diff
+    ),
+    min.cells = 0,
+    min.features = 0
+  )
+  new.assay <- SetAssayData(
+    object = new.assay,
+    slot = "scale.data",
+    new.data = GetAssayData(object = object[[assay]], slot = "scale.data")
+  )
+  object[[assay]] <- new.assay
+  Idents(object = object) <- old.idents
+  return(object)
+}
+
+# Helper function to compute the perturbation differences - enables reuse in
+# GetMissingPerturb
+#
+# @param object Seurat object
+# @param assay assay to use
+# @param slot slot to use
+# @param all_cells vector of cell names to compute difference for
+# @param nt_cells vector of nt cell names
+# @param features vector of features to compute for
+# @param neighbors Neighbor object containing indices of nearest NT cells
+# @param verbose display progress bar
+# @return returns matrix of perturbation differences
+#
+#' @importFrom matrixStats rowMeans2
+#'
+PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neighbors, verbose) {
+  nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, slot = slot)[features, nt_cells, drop = FALSE]))
+  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
+  new_expr <- mysapply(X = all_cells, FUN = function(i) {
+    index <- Indices(object = neighbors)[i, ]
+    nt_cells20 <- nt_cells[index]
+    avg_nt <- rowMeans2(x = nt_data[, nt_cells20, drop = FALSE])
+    avg_nt <- as.matrix(x = avg_nt)
+    colnames(x = avg_nt) <- i
+    return(avg_nt)
+  })
+  new_expr <- matrix(data = new_expr, nrow = length(x = features))
+  new_expr <- log1p(x = new_expr)
+  rownames(x = new_expr) <- rownames(x = nt_data)
+  colnames(x = new_expr) <- all_cells
+  diff <- new_expr - as.matrix(GetAssayData(object = object, slot = slot, assay = assay)[features, colnames(x = new_expr), drop = FALSE])
+  return(diff)
 }
 
 # Helper function to project cells onto the perturbation vector
@@ -973,7 +1204,8 @@ ProjectVec <- function(v1, v2) {
 # with targeting and non-targeting gRNAs.
 #
 # @param object An object of class Seurat.
-# @param ident.1 Target gene class to find DE genes for.
+# @param ident.1 Target gene class or cells to find DE genes for.
+# @param ident.2 Non-targetting class or cells
 # @param labels metadata column with target gene classification.
 # @param de.assay Name of Assay DE is performed on.
 # @param test.use 	Denotes which test to use. See all available tests on
@@ -989,6 +1221,7 @@ ProjectVec <- function(v1, v2) {
 TopDEGenesMixscape <- function(
   object,
   ident.1,
+  ident.2 = NULL,
   labels = 'gene',
   de.assay = "RNA",
   test.use = "LR",
@@ -1005,6 +1238,7 @@ TopDEGenesMixscape <- function(
       de.genes <- FindMarkers(
         object = object,
         ident.1 = ident.1,
+        ident.2 = ident.2,
         group.by = labels,
         assay = de.assay,
         test.use = test.use,

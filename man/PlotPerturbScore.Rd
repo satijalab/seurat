@@ -5,7 +5,7 @@
 \title{Function to plot perturbation score distributions.}
 \usage{
 PlotPerturbScore(
-  object = NULL,
+  object,
   target.gene.ident = NULL,
   group.by = "mixscape_class",
   col = "orange2"
@@ -14,15 +14,20 @@ PlotPerturbScore(
 \arguments{
 \item{object}{An object of class Seurat.}
 
-\item{target.gene.ident}{Class identity for cells sharing the same perturbation. Name should be the same as the one used to run mixscape.}
+\item{target.gene.ident}{Class identity for cells sharing the same
+perturbation. Name should be the same as the one used to run mixscape.}
 
-\item{group.by}{Option to split densities based on mixscape classification. Default is set to NULL and plots cells by original class ID.}
+\item{group.by}{Option to split densities based on mixscape classification.
+Default is set to NULL and plots cells by original class ID.}
 
-\item{col}{Specify color of target gene class or knockout cell class. For control non-targeting and non-perturbed cells, colors are set to different shades of grey.}
+\item{col}{Specify color of target gene class or knockout cell class. For
+control non-targeting and non-perturbed cells, colors are set to different
+shades of grey.}
 }
 \value{
 A ggplot object.
 }
 \description{
-Density plots to visualize perturbation scores calculated from RunMixscape function.
+Density plots to visualize perturbation scores calculated from RunMixscape
+function.
 }

@@ -7,6 +7,7 @@
 CalcPerturbSig(
   object,
   assay = NULL,
+  features = NULL,
   slot = "data",
   gd.class = "guide_ID",
   nt.cell.class = "NT",
@@ -14,13 +15,17 @@ CalcPerturbSig(
   num.neighbors = NULL,
   reduction = "pca",
   ndims = 15,
-  new.assay.name = "PRTB"
+  new.assay.name = "PRTB",
+  verbose = TRUE
 )
 }
 \arguments{
 \item{object}{An object of class Seurat.}
 
 \item{assay}{Name of Assay PRTB  signature is being calculated on.}
+
+\item{features}{Features to compute PRTB signature for. Defaults to the
+variable features set in the assay specified.}
 
 \item{slot}{Data slot to use for PRTB signature calculation.}
 
@@ -38,6 +43,8 @@ exist to calculate PRTB signature for every replicate separately.}
 \item{ndims}{Number of dimensions to use from dimensionality reduction method.}
 
 \item{new.assay.name}{Name for the new assay.}
+
+\item{verbose}{Display progress + messages}
 }
 \value{
 Returns a Seurat object with a new assay added containing the

@@ -2,16 +2,17 @@
 % Please edit documentation in R/mixscape.R
 \name{RunMixscape}
 \alias{RunMixscape}
-\title{Function to identify perturbed and non-perturbed gRNA expressing cells that accounts for multiple treatments/conditions/chemical perturbations.}
+\title{Run Mixscape}
 \usage{
 RunMixscape(
-  object = NULL,
+  object,
   assay = "PRTB",
   slot = "scale.data",
   labels = "gene",
   nt.class.name = "NT",
   new.class.name = "mixscape_class",
   min.de.genes = 5,
+  min.cells = 5,
   de.assay = "RNA",
   logfc.threshold = 0.25,
   iter.num = 10,
@@ -38,6 +39,10 @@ metadata.}
 \item{min.de.genes}{Required number of genes that are differentially
 expressed for method to separate perturbed and non-perturbed cells.}
 
+\item{min.cells}{Minimum number of cells in target gene class. If fewer than
+this many cells are assigned to a target gene class during classification,
+all are assigned NP.}
+
 \item{de.assay}{Assay to use when performing differential expression analysis.
 Usually RNA.}
 
@@ -50,9 +55,14 @@ not occur.}
 
 \item{verbose}{Display messages}
 
-\item{split.by}{metadata column with experimental condition/cell type classification information. This is meant to be used to account for cases a perturbation is condition/cell type -specific.}
+\item{split.by}{metadata column with experimental condition/cell type
+classification information. This is meant to be used to account for cases a
+perturbation is condition/cell type -specific.}
 
-\item{fine.mode}{When this is equal to TRUE, DE genes for each target gene class will be calculated for each gRNA separately and pooled into one DE list for calculating the perturbation score of every cell and their subsequent classification.}
+\item{fine.mode}{When this is equal to TRUE, DE genes for each target gene
+class will be calculated for each gRNA separately and pooled into one DE list
+for calculating the perturbation score of every cell and their subsequent
+classification.}
 
 \item{fine.mode.labels}{metadata column with gRNA ID labels.}
 }
@@ -66,9 +76,11 @@ meta data and tools slots:
   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
   \item{p_ko}{Posterior probabilities used to determine if a cell is KO
   (>0.5) or NP}
-  \item{perturbation score}{Perturbation scores for every cell calculated in the first iteration of the function.}
+  \item{perturbation score}{Perturbation scores for every cell calculated in
+  the first iteration of the function.}
 }
 }
 \description{
-Function to identify perturbed and non-perturbed gRNA expressing cells that accounts for multiple treatments/conditions/chemical perturbations.
+Function to identify perturbed and non-perturbed gRNA expressing cells that
+accounts for multiple treatments/conditions/chemical perturbations.
 }
