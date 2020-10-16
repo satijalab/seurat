@@ -645,14 +645,15 @@ RunLDA.Seurat <- function(
 #' for calculating the perturbation score of every cell and their subsequent
 #' classification.
 #' @param fine.mode.labels metadata column with gRNA ID labels.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @return Returns Seurat object with with the following information in the
 #' meta data and tools slots:
 #' \describe{
 #'   \item{mixscape_class}{Classification result with cells being either
-#'   classified as perturbed (KO) or non-perturbed (NP) based on their target
+#'   classified as perturbed (KO, by default) or non-perturbed (NP) based on their target
 #'   gene class.}
-#'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
-#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO
+#'   \item{mixscape_class.global}{Global classification result (perturbed, NP or NT)}
+#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO (default). Name of this item will change to match prtb.type parameter setting.
 #'   (>0.5) or NP}
 #'   \item{perturbation score}{Perturbation scores for every cell calculated in
 #'   the first iteration of the function.}
@@ -833,7 +834,7 @@ RunMixscape <- function(
       }
       object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
-      object[[paste0(new.class.name,"_prtb_prob")]][names(x = post.prob), 1] <- post.prob
+      object[[paste0(new.class.name,"_p_", tolower(prtb.type))]][names(x = post.prob), 1] <- post.prob
     }
   }
   Tool(object = object) <- gv.list
@@ -959,6 +960,7 @@ MixscapeHeatmap <- function(
 #' @param col Specify color of target gene class or knockout cell class. For
 #' control non-targeting and non-perturbed cells, colors are set to different
 #' shades of grey.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
