@@ -455,10 +455,8 @@ CellCycleScoring <- function(
 ) {
   name <- 'Cell.Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
-  if(is.null(ctrl)) {
+  if (is.null(x = ctrl)) {
     ctrl <- min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
-  } else {
-    ctrl <- ctrl
   }
   object.cc <- AddModuleScore(
     object = object,
