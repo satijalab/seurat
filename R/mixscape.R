@@ -852,6 +852,7 @@ RunMixscape <- function(
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout probability from highest to lowest score.
 #' @param  mixscape.class metadata column with mixscape classifications.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -872,6 +873,7 @@ MixscapeHeatmap <- function(
   order.by.prob = T,
   group.by = NULL,
   mixscape.class = "mixscape_class",
+  prtb.type = "KO",
   ...
 )
 {
@@ -934,7 +936,7 @@ MixscapeHeatmap <- function(
     sub2 <- ScaleData(sub2, features = marker.list)
 
     if(isTRUE(order.by.prob)){
-      p_ko <- sub2[[paste(mixscape.class, "prtb_prob", sep = "_")]][,1, drop = FALSE]
+      p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(prtb.type) )]][,1, drop = FALSE]
       ordered.cells <- rownames(p_ko)[order(p_ko[,1], decreasing = T)]
       p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells ,...)
     }

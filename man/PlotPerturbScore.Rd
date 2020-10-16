@@ -8,7 +8,8 @@ PlotPerturbScore(
   object,
   target.gene.ident = NULL,
   group.by = "mixscape_class",
-  col = "orange2"
+  col = "orange2",
+  prtb.type = "KO"
 )
 }
 \arguments{
@@ -23,6 +24,8 @@ Default is set to NULL and plots cells by original class ID.}
 \item{col}{Specify color of target gene class or knockout cell class. For
 control non-targeting and non-perturbed cells, colors are set to different
 shades of grey.}
+
+\item{prtb.type}{specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.}
 }
 \value{
 A ggplot object.
