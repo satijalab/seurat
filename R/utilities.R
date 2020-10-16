@@ -423,8 +423,8 @@ CaseMatch <- function(search, match) {
 #' Defaults to value equivalent to minimum number of features
 #' present in 's.features' and 'g2m.features'.
 #' @param set.ident If true, sets identity to phase assignments
-#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #' Stashes old identities in 'old.ident'
+#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #'
 #' @return A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
 #'
