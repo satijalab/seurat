@@ -7351,7 +7351,8 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
-      expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
+      # because subset is also an argument, we need to explictly use the base::subset function
+      expr = base::subset(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
         if (e$message == "Cannot find features provided") {
           return(NULL)
