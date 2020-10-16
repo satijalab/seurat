@@ -694,7 +694,7 @@ RunMixscape <- function(
   prtb_markers <- list()
   object[[new.class.name]] <- object[[labels]]
   object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
-  object[[paste0(new.class.name, "_prtb_prob")]] <- 0
+  object[[paste0(new.class.name, "_p_", tolower(x = prtb.type))]] <- 0
   #create list to store perturbation scores.
   gv.list <- list()
 
