@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix bug in FindMarkers when using MAST with a latent variable
 - Updates to `Key<-.DimReduc` that allow handling of empty reduction column names
 - Allow setting `ctrl` in `CellCycleScoring`
+- Modify subset.Seurat to allow specialized Assay subsetting methods
 
 ## [3.2.2] - 2020-09-25
 ### Changes
