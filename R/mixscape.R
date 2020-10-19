@@ -645,14 +645,15 @@ RunLDA.Seurat <- function(
 #' for calculating the perturbation score of every cell and their subsequent
 #' classification.
 #' @param fine.mode.labels metadata column with gRNA ID labels.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @return Returns Seurat object with with the following information in the
 #' meta data and tools slots:
 #' \describe{
 #'   \item{mixscape_class}{Classification result with cells being either
-#'   classified as perturbed (KO) or non-perturbed (NP) based on their target
+#'   classified as perturbed (KO, by default) or non-perturbed (NP) based on their target
 #'   gene class.}
-#'   \item{mixscape_class.global}{Global classification result (KO, NP or NT)}
-#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO
+#'   \item{mixscape_class.global}{Global classification result (perturbed, NP or NT)}
+#'   \item{p_ko}{Posterior probabilities used to determine if a cell is KO (default). Name of this item will change to match prtb.type parameter setting.
 #'   (>0.5) or NP}
 #'   \item{perturbation score}{Perturbation scores for every cell calculated in
 #'   the first iteration of the function.}
@@ -675,7 +676,8 @@ RunMixscape <- function(
   verbose = FALSE,
   split.by = NULL,
   fine.mode = FALSE,
-  fine.mode.labels = "guide_ID"
+  fine.mode.labels = "guide_ID",
+  prtb.type = "KO"
 ) {
   mixtools.installed <- PackageCheck("mixtools", error = FALSE)
   if (!mixtools.installed[1]) {
@@ -692,7 +694,7 @@ RunMixscape <- function(
   prtb_markers <- list()
   object[[new.class.name]] <- object[[labels]]
   object[[new.class.name]][, 1] <- as.character(x = object[[new.class.name]][, 1])
-  object[[paste0(new.class.name, "_p_ko")]] <- 0
+  object[[paste0(new.class.name, "_p_", tolower(x = prtb.type))]] <- 0
   #create list to store perturbation scores.
   gv.list <- list()
 
@@ -828,11 +830,11 @@ RunMixscape <- function(
           old.classes <- object[[new.class.name]][all.cells, ]
           n.iter <- n.iter + 1
         }
-        object[[new.class.name]][which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s), 1] <- paste(gene, " KO", sep = "")
+        object[[new.class.name]][which(x = object[[new.class.name]] == gene & Cells(x = object) %in% cells.s), 1] <- paste(gene, prtb.type, sep = " ")
       }
       object[[paste0(new.class.name, ".global")]] <- as.character(x = sapply(X = as.character(x = object[[new.class.name]][, 1]), FUN = function(x) {strsplit(x = x, split = " (?=[^ ]+$)", perl = TRUE)[[1]][2]}))
       object[[paste0(new.class.name, ".global")]][which(x = is.na(x = object[[paste0(new.class.name, ".global")]])), 1] <- nt.class.name
-      object[[paste0(new.class.name, "_p_ko")]][names(x = post.prob), 1] <- post.prob
+      object[[paste0(new.class.name,"_p_", tolower(prtb.type))]][names(x = post.prob), 1] <- post.prob
     }
   }
   Tool(object = object) <- gv.list
@@ -850,6 +852,7 @@ RunMixscape <- function(
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout probability from highest to lowest score.
 #' @param  mixscape.class metadata column with mixscape classifications.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -870,6 +873,7 @@ MixscapeHeatmap <- function(
   order.by.prob = T,
   group.by = NULL,
   mixscape.class = "mixscape_class",
+  prtb.type = "KO",
   ...
 )
 {
@@ -932,7 +936,7 @@ MixscapeHeatmap <- function(
     sub2 <- ScaleData(sub2, features = marker.list)
 
     if(isTRUE(order.by.prob)){
-      p_ko <- sub2[[paste(mixscape.class, "p_ko", sep = "_")]][,1, drop = FALSE]
+      p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(prtb.type) )]][,1, drop = FALSE]
       ordered.cells <- rownames(p_ko)[order(p_ko[,1], decreasing = T)]
       p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells ,...)
     }
@@ -958,6 +962,7 @@ MixscapeHeatmap <- function(
 #' @param col Specify color of target gene class or knockout cell class. For
 #' control non-targeting and non-perturbed cells, colors are set to different
 #' shades of grey.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -970,7 +975,8 @@ PlotPerturbScore <- function(
   object,
   target.gene.ident = NULL,
   group.by = "mixscape_class",
-  col = "orange2"
+  col = "orange2",
+  prtb.type = "KO"
 ) {
   prtb_score_list <- Tool(object = object, slot = "RunMixscape")[[target.gene.ident]]
   plot_list <- list()
@@ -1011,16 +1017,16 @@ PlotPerturbScore <- function(
     } else {
       cols <- setNames(
         object = c("grey49", "grey79", col),
-        nm = c(gd, paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO"))
+        nm = c(gd, paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
       )
       #add mixscape classifications
       prtb_score$mix <- as.character(x = prtb_score[, "gene"])
       classes <- unique(x = object[[group.by]][, 1])
       #define KO and NP cells
-      ko.cells <- WhichCells(object = object, idents = paste0(target.gene.ident, " KO"))
+      ko.cells <- WhichCells(object = object, idents = paste(target.gene.ident, prtb.type, sep = " "))
       np.cells <- WhichCells(object = object, idents = paste0(target.gene.ident, " NP"))
       prtb_score[np.cells, "mix"] <- paste0(target.gene.ident, " NP")
-      prtb_score[ko.cells, "mix"] <- paste0(target.gene.ident, " KO")
+      prtb_score[ko.cells, "mix"] <- paste(target.gene.ident, paste(prtb.type), sep = " ")
       prtb_score[, "mix"] <- as.factor(x = prtb_score[,"mix"])
       p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
         geom_density() + theme_classic()
@@ -1028,15 +1034,15 @@ PlotPerturbScore <- function(
       prtb_score$y.jitter <- prtb_score$pvec
       gd2 <- setdiff(
         x = unique(x = prtb_score[, "mix"]),
-        y = c(paste0(target.gene.ident, " NP"), paste0(target.gene.ident, " KO"))
+        y = c(paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
       )
       prtb_score$y.jitter[prtb_score[, "mix"] == gd2] <- runif(
         n = prtb_score$y.jitter[prtb_score[, "mix"] == gd2],
         min = 0.001,
         max = top_r / 10
       )
-      prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " KO")] <- runif(
-        n = prtb_score$y.jitter[prtb_score[, "mix"] == paste0(target.gene.ident, " KO")],
+      prtb_score$y.jitter[prtb_score$mix == paste(target.gene.ident, prtb.type, sep = " ")] <- runif(
+        n = prtb_score$y.jitter[prtb_score[, "mix"] == paste(target.gene.ident, prtb.type, sep = " ")],
         min = -top_r / 10,
         max = 0
       )

@@ -17,6 +17,7 @@ MixscapeHeatmap(
   order.by.prob = T,
   group.by = NULL,
   mixscape.class = "mixscape_class",
+  prtb.type = "KO",
   ...
 )
 }
@@ -89,6 +90,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 \item{group.by}{Regroup cells into a different identity class prior to performing differential expression (see example)}
 
 \item{mixscape.class}{metadata column with mixscape classifications.}
+
+\item{prtb.type}{specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
 }
