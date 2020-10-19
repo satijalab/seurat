@@ -853,6 +853,8 @@ RunMixscape <- function(
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout probability from highest to lowest score.
 #' @param  mixscape.class metadata column with mixscape classifications.
 #' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
+#' @param fc.name Name of the fold change, average difference, or custom function column
+#' in the output data.frame. Default is avg_log2FC
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -874,16 +876,16 @@ MixscapeHeatmap <- function(
   group.by = NULL,
   mixscape.class = "mixscape_class",
   prtb.type = "KO",
+  fc.name = "avg_log2FC",
   ...
 )
 {
   DefaultAssay(object = object) <- assay
   if(is.numeric(max.genes)){
     all.markers <- FindMarkers(object, ident.1 = ident.1, ident.2 = ident.2, only.pos = F, logfc.threshold = logfc.threshold,test.use = test.use)
-
     if (balanced){
-      pos.markers <- subset(all.markers, avg_logFC > (logfc.threshold))
-      neg.markers <- subset(all.markers, avg_logFC < (-logfc.threshold))
+      pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
+      neg.markers <- all.markers[which(all.markers[,fc.name] < (-logfc.threshold)),]
 
       if (length(rownames(subset(pos.markers, p_val < 0.05))) < max.genes ){
         marker.list=c(rownames(subset(pos.markers, p_val < 0.05)))
@@ -903,7 +905,7 @@ MixscapeHeatmap <- function(
     }
 
     else {
-      pos.markers <- subset(all.markers, avg_logFC > (logfc.threshold))
+      pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
       if (length(rownames(subset(pos.markers, p_val < 0.05))) < max.genes ){
         marker.list <- c(rownames(subset(pos.markers, p_val < 0.05)))
       } else{
