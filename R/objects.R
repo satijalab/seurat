@@ -32,6 +32,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
 #' @slot anchor.features The features used when performing anchor finding.
+#' @slot neighbors List containing Neighbor objects for reuse later (e.g. mapping)
 #' @slot command Store log of parameters that were used
 #'
 #' @name AnchorSet-class
@@ -40,6 +41,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #'
 AnchorSet <- setClass(
   Class = "AnchorSet",
+  contains = 'VIRTUAL',
   slots = list(
     object.list = "list",
     reference.cells = "vector",
@@ -48,6 +50,64 @@ AnchorSet <- setClass(
     anchors = "ANY",
     offsets = "ANY",
     anchor.features = "ANY",
+    neighbors = "list",
+    command = "ANY"
+  )
+)
+
+#' The TransferAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name TransferAnchorSet-class
+#' @rdname TransferAnchorSet-class
+#' @exportClass TransferAnchorSet
+#'
+TransferAnchorSet <- setClass(
+  Class = "TransferAnchorSet",
+  contains = "AnchorSet"
+)
+
+#' The IntegrationAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name IntegrationAnchorSet-class
+#' @rdname IntegrationAnchorSet-class
+#' @exportClass IntegrationAnchorSet
+#'
+IntegrationAnchorSet <- setClass(
+  Class = "IntegrationAnchorSet",
+  contains = "AnchorSet"
+)
+
+#' The ModalityWeights Class
+#'
+#' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
+#' related information needed for performing downstream analyses - namely data integration
+#' (\code{FindModalityWeights}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+#'
+#' @slot first.modality.weight A vector of value representing for the modality weights of
+#' the first modality
+#' @slot modality.assay Names of assays for the list of dimentional reductions
+#' @slot params A list of paramters used in the FindModalityWeights
+#' @slot score.matrix a score matrix representing cross and within-modality prediction
+#' score, and kernel value
+#' @slot command Store log of parameters that were used
+#'
+#' @name ModalityWeights-class
+#' @rdname ModalityWeights-class
+#' @exportClass ModalityWeights
+#'
+ModalityWeights <- setClass(
+  Class = "ModalityWeights",
+  slots = list(
+    first.modality.weight = "vector",
+    modality.assay = "vector",
+    params = "list",
+    score.matrix = "data.frame",
     command = "ANY"
   )
 )
@@ -1433,6 +1493,36 @@ GetIntegrationData <- function(object, integration.name, slot) {
   }
   int.data <- tools[[integration.name]]
   return(slot(object = int.data, name = slot))
+}
+
+#' Pull Graph or Graph names
+#'
+#' Lists the names of \code{\link{Graph}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Graph object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Graph object
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Graph} objects
+#' in this Seurat object. Otherwise, the \code{Graph} object requested
+#'
+#' @export
+#'
+Graphs <- function(object, slot = NULL) {
+  graphs <- FilterObjects(object = object, classes.keep = "Graph")
+  if (is.null(x = slot)) {
+    return(graphs)
+  }
+  if (!slot %in% graphs) {
+    warning(
+      "Cannot find a Graph object of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'graphs')[[slot]])
 }
 
 #' Pull spatial image names
@@ -6874,7 +6964,7 @@ merge.Assay <- function(
     for (i in 1:length(x = assays)) {
       vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
       umi.assay.old <- Misc(object = assays[[i]], slot = "umi.assay")
-      if (!is.null(x = vst.set.old)) {
+      if (!is.null(x = vst.set.old) && length(x = vst.set.old) > 1) {
         for (j in 1:length(x = vst.set.old)) {
           vst.set.new[[idx]] <- vst.set.old[[j]]
           umi.assay.new[[idx]] <- umi.assay.old[[j]]
@@ -6901,6 +6991,48 @@ merge.Assay <- function(
   return(combined.assay)
 }
 
+#' @rdname merge.DimReduc
+#' @export
+#' @method merge DimReduc
+#'
+merge.DimReduc <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  ...
+) {
+  CheckDots(...)
+  drs <- c(x, y)
+  if (!is.null(x = add.cell.ids)) {
+    for (i in 1:length(x = drs)) {
+      drs[[i]] <- RenameCells(object = drs[[i]], new.names = add.cell.ids[i])
+    }
+  }
+  embeddings.mat <- list()
+  min.dim <- c()
+  for (i in 1:length(x = drs)) {
+    embeddings.mat[[i]] <- Embeddings(object = drs[[i]])
+    min.dim <- c(min.dim, ncol(x = embeddings.mat[[i]]))
+  }
+  if (length(x = unique(x = min.dim)) > 1) {
+    min.dim <- min(min.dim)
+    warning("Reductions contain differing numbers of dimensions, merging first ",
+            min.dim, call. = FALSE, immediate. = TRUE)
+    embeddings.mat <- lapply(X = embeddings.mat, FUN = function(x) x[, 1:min.dim])
+
+  }
+  embeddings.mat <- do.call(what = rbind, args = embeddings.mat)
+  merged.dr <- CreateDimReducObject(
+    embeddings = embeddings.mat,
+    loadings = Loadings(object = drs[[1]], projected = FALSE),
+    projected = Loadings(object = drs[[1]], projected = TRUE),
+    assay = DefaultAssay(object = drs[[1]]),
+    key = Key(object = drs[[1]]),
+    global = IsGlobal(object = drs[[1]])
+  )
+  return(merged.dr)
+}
+
 #' Merge Seurat Objects
 #'
 #' Merge two or more objects.
@@ -6909,10 +7041,15 @@ merge.Assay <- function(
 #' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
-#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-#' that were present in the original objects. If add.cell.ids isn't specified
-#' and any cell names are duplicated, cell names will be appended with _X, where
-#' X is the numeric index of the object in c(x, y).
+#' The merge will optionally merge reductions depending on the values passed to
+#' \code{merge.dr} if they have the same name across objects. Here the
+#' embeddings slots will be merged and if there are differing numbers of
+#' dimensions across objects, only the first N shared dimensions will be merged.
+#' The feature loadings slots will be filled by the values present in the first
+#' object.The merge will not preserve graphs, logged commands, or feature-level
+#' metadata that were present in the original objects. If add.cell.ids isn't
+#' specified and any cell names are duplicated, cell names will be appended
+#' with _X, where X is the numeric index of the object in c(x, y).
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -6922,6 +7059,9 @@ merge.Assay <- function(
 #' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
+#' @param merge.dr Merge specified DimReducs that are present in all objects.
+#' Will only merge the embeddings slots for the first N dimensions that are
+#' shared across all objects.
 #' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
@@ -6943,6 +7083,7 @@ merge.Seurat <- function(
   y = NULL,
   add.cell.ids = NULL,
   merge.data = TRUE,
+  merge.dr = NULL,
   project = "SeuratProject",
   ...
 ) {
@@ -7001,11 +7142,20 @@ merge.Seurat <- function(
         X = assays.merge,
         FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
       )) == length(x = assays.merge)))
-      for (a in 1:length(x = assays.merge)) {
-        assays.merge[[a]] <- SetAssayData(
-          object = assays.merge[[a]],
-          slot = "scale.data",
-          new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+      if (length(x = scaled.features) > 0) {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+        }
+      } else {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = new(Class = "matrix"))
+        }
       }
     }
     merged.assay <- merge(
@@ -7071,10 +7221,32 @@ merge.Seurat <- function(
       index <- index + 1L
     }
   }
+  # Merge DimReducs
+  combined.reductions <- list()
+  if (!is.null(x = merge.dr)) {
+    for (dr in merge.dr) {
+      drs.to.merge <- list()
+      for (i in 1:length(x = objects)) {
+        if (!dr %in% Reductions(object = objects[[i]])) {
+          warning("The DimReduc ", dr, " is not present in all objects being ",
+                  "merged. Skipping and continuing.", call. = FALSE, immediate. = TRUE)
+          break
+        }
+        drs.to.merge[[i]] <- objects[[i]][[dr]]
+      }
+      if (length(x = drs.to.merge) == length(x = objects)) {
+        combined.reductions[[dr]] <- merge(
+          x = drs.to.merge[[1]],
+          y = drs.to.merge[2:length(x = drs.to.merge)]
+        )
+      }
+    }
+  }
   # Create merged Seurat object
   merged.object <- new(
     Class = 'Seurat',
     assays = combined.assays,
+    reductions = combined.reductions,
     images = combined.images,
     meta.data = combined.meta.data,
     active.assay = new.default.assay,
@@ -7885,11 +8057,32 @@ setMethod(
 
 setMethod(
   f = 'show',
-  signature = 'AnchorSet',
+  signature = 'TransferAnchorSet',
+  definition = function(object) {
+    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
+        "anchors between the reference and query Seurat objects. \n",
+        "This can be used as input to TransferData.")
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'IntegrationAnchorSet',
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData or TransferData.")
+        "This can be used as input to IntegrateData.")
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'ModalityWeights',
+  definition = function(object) {
+    cat(
+      'A ModalityWeights object containing modality weights between',
+      paste(slot(object = object, name = "modality.assay"), collapse = " and "),
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
   }
 )
 

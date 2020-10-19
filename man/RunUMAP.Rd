@@ -4,6 +4,7 @@
 \alias{RunUMAP}
 \alias{RunUMAP.default}
 \alias{RunUMAP.Graph}
+\alias{RunUMAP.Neighbor}
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
@@ -58,6 +59,8 @@ RunUMAP(object, ...)
   reduction.key = "UMAP_",
   ...
 )
+
+\method{RunUMAP}{Neighbor}(object, reduction.model, ...)
 
 \method{RunUMAP}{Seurat}(
   object,
