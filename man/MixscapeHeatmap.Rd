@@ -19,6 +19,7 @@ MixscapeHeatmap(
   mixscape.class = "mixscape_class",
   prtb.type = "KO",
   fc.name = "avg_log2FC",
+  pval.cutoff = 0.05,
   ...
 )
 }
@@ -98,6 +99,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 in the output data.frame. Default is avg_log2FC}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
+
+\item{pval.cut.off}{P-value cut-off for selection of significantly DE genes.}
 }
 \value{
 A ggplot object.
