@@ -1374,7 +1374,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   )
   query <- RenameCells(
     object = query,
-    new.names = gsub(pattern = "_query", replacement = "", x = Cells(x = query))
+    new.names = gsub(pattern = "_query$", replacement = "", x = Cells(x = query))
   )
   query[[reductions[[1]]]] <- NULL
   return(query)
