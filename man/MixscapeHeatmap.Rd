@@ -18,6 +18,7 @@ MixscapeHeatmap(
   group.by = NULL,
   mixscape.class = "mixscape_class",
   prtb.type = "KO",
+  fc.name = "avg_log2FC",
   ...
 )
 }
@@ -92,6 +93,9 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 \item{mixscape.class}{metadata column with mixscape classifications.}
 
 \item{prtb.type}{specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.}
+
+\item{fc.name}{Name of the fold change, average difference, or custom function column
+in the output data.frame. Default is avg_log2FC}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
 }
