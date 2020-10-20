@@ -855,6 +855,7 @@ RunMixscape <- function(
 #' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @param fc.name Name of the fold change, average difference, or custom function column
 #' in the output data.frame. Default is avg_log2FC
+#' @param pval.cut.off P-value cut-off for selection of significantly DE genes.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -877,6 +878,7 @@ MixscapeHeatmap <- function(
   mixscape.class = "mixscape_class",
   prtb.type = "KO",
   fc.name = "avg_log2FC",
+  pval.cutoff = 5e-2,
   ...
 )
 {
@@ -887,29 +889,29 @@ MixscapeHeatmap <- function(
       pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
       neg.markers <- all.markers[which(all.markers[,fc.name] < (-logfc.threshold)),]
 
-      if (length(rownames(subset(pos.markers, p_val < 0.05))) < max.genes ){
-        marker.list=c(rownames(subset(pos.markers, p_val < 0.05)))
-        if (length(rownames(subset(neg.markers, p_val < 0.05))) < max.genes){
-          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < 0.05)))
+      if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
+        marker.list=c(rownames(subset(pos.markers, p_val < pval.cutoff)))
+        if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
+          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
         } else {
-          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < 0.05))[1:max.genes])
+          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val <pval.cutoff))[1:max.genes])
         }
       } else {
-        marker.list <- c(rownames(subset(pos.markers, p_val < 0.05))[1:max.genes])
-        if (length(rownames(subset(neg.markers, p_val < 0.05))) < max.genes){
-          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < 0.05)))
+        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff))[1:max.genes])
+        if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
+          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
         } else {
-          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < 0.05))[1:max.genes])
+          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < pval.cutoff))[1:max.genes])
         }
       }
     }
 
     else {
       pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
-      if (length(rownames(subset(pos.markers, p_val < 0.05))) < max.genes ){
-        marker.list <- c(rownames(subset(pos.markers, p_val < 0.05)))
+      if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
+        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff)))
       } else{
-        marker.list <- c(rownames(subset(pos.markers, p_val < 0.05))[1:max.genes])
+        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff))[1:max.genes])
       }
     }
       if(is.null(max.cells.group)){
