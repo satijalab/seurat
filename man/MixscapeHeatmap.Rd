@@ -14,7 +14,7 @@ MixscapeHeatmap(
   max.genes = 100,
   test.use = "wilcox",
   max.cells.group = NULL,
-  order.by.prob = T,
+  order.by.prob = TRUE,
   group.by = NULL,
   mixscape.class = "mixscape_class",
   prtb.type = "KO",
@@ -87,24 +87,27 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{max.cells.group}{Number of cells per identity to plot.}
 
-\item{order.by.prob}{Order cells on heatmap based on their mixscape knockout probability from highest to lowest score.}
+\item{order.by.prob}{Order cells on heatmap based on their mixscape knockout
+probability from highest to lowest score.}
 
 \item{group.by}{Regroup cells into a different identity class prior to performing differential expression (see example)}
 
 \item{mixscape.class}{metadata column with mixscape classifications.}
 
-\item{prtb.type}{specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.}
+\item{prtb.type}{specify type of CRISPR perturbation expected for labeling
+mixscape classifications. Default is KO.}
 
-\item{fc.name}{Name of the fold change, average difference, or custom function column
-in the output data.frame. Default is avg_log2FC}
+\item{fc.name}{Name of the fold change, average difference, or custom
+function column in the output data.frame. Default is avg_log2FC}
+
+\item{pval.cutoff}{P-value cut-off for selection of significantly DE genes.}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
-
-\item{pval.cut.off}{P-value cut-off for selection of significantly DE genes.}
 }
 \value{
 A ggplot object.
 }
 \description{
-Draws a heatmap of single cell feature expression with cells ordered by their mixscape ko probabilities.
+Draws a heatmap of single cell feature expression with cells ordered by their
+mixscape ko probabilities.
 }

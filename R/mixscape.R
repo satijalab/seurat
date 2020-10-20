@@ -844,18 +844,22 @@ RunMixscape <- function(
 
 #' Differential expression heatmap for mixscape
 #'
-#' Draws a heatmap of single cell feature expression with cells ordered by their mixscape ko probabilities.
+#' Draws a heatmap of single cell feature expression with cells ordered by their
+#' mixscape ko probabilities.
+#'
 #' @inheritParams FindMarkers
 #' @inheritParams DoHeatmap
 #' @param max.cells.group Number of cells per identity to plot.
 #' @param max.genes Total number of DE genes to plot.
 #' @param balanced Plot an equal number of genes with both groups of cells.
-#' @param order.by.prob Order cells on heatmap based on their mixscape knockout probability from highest to lowest score.
-#' @param  mixscape.class metadata column with mixscape classifications.
-#' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
-#' @param fc.name Name of the fold change, average difference, or custom function column
-#' in the output data.frame. Default is avg_log2FC
-#' @param pval.cut.off P-value cut-off for selection of significantly DE genes.
+#' @param order.by.prob Order cells on heatmap based on their mixscape knockout
+#' probability from highest to lowest score.
+#' @param mixscape.class metadata column with mixscape classifications.
+#' @param prtb.type specify type of CRISPR perturbation expected for labeling
+#' mixscape classifications. Default is KO.
+#' @param fc.name Name of the fold change, average difference, or custom
+#' function column in the output data.frame. Default is avg_log2FC
+#' @param pval.cutoff P-value cut-off for selection of significantly DE genes.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -873,7 +877,7 @@ MixscapeHeatmap <- function(
   max.genes = 100,
   test.use='wilcox',
   max.cells.group = NULL,
-  order.by.prob = T,
+  order.by.prob = TRUE,
   group.by = NULL,
   mixscape.class = "mixscape_class",
   prtb.type = "KO",
