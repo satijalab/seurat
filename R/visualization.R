@@ -2813,6 +2813,12 @@ SpatialPlot <- function(
     stop("Please specific either group.by or features, not both.")
   }
   images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) == 0) {
+    images <- Images(object = object)
+  }
+  if (length(x = images) < 1) {
+    stop("Could not find any spatial image information")
+  }
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
@@ -2891,12 +2897,6 @@ SpatialPlot <- function(
     )
     colnames(x = data) <- features
     rownames(x = data) <- Cells(x = object)
-  }
-  if (length(x = images) == 0) {
-    images <- Images(object = object)
-  }
-  if (length(x = images) < 1) {
-    stop("Could not find any spatial image information")
   }
   features <- colnames(x = data)
   colnames(x = data) <- features
