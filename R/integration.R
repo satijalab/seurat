@@ -1499,10 +1499,10 @@ MapQuery <- function(
   anchorset,
   query,
   reference,
-  refdata,
+  refdata = NULL,
   new.reduction.name = paste0("ref.", reference.reduction),
   reference.reduction,
-  reduction.model,
+  reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
   projectumap.args = list(),
@@ -1520,18 +1520,23 @@ MapQuery <- function(
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
-  query <- do.call(
-    what = TransferData,
-    args = c(list(
-      anchorset = anchorset,
-      reference = reference,
-      query = query,
-      refdata = refdata,
-      store.weights = TRUE,
-      verbose = verbose
+  reuse.weights.matrix <- FALSE
+  if (!is.null(refdata)) {
+    query <- do.call(
+      what = TransferData,
+      args = c(list(
+        anchorset = anchorset,
+        reference = reference,
+        query = query,
+        refdata = refdata,
+        store.weights = TRUE,
+        verbose = verbose
       ), transferdata.args
+      )
     )
-  )
+    reuse.weights.matrix <- TRUE
+  }
+
   query <- do.call(
     what = IntegrateEmbeddings,
     args = c(list(
@@ -1539,22 +1544,24 @@ MapQuery <- function(
       reference = reference,
       query = query,
       new.reduction.name = new.reduction.name,
-      reuse.weights.matrix = TRUE,
+      reuse.weights.matrix = reuse.weights.matrix,
       verbose = verbose
       ), integrateembeddings.args
     )
   )
-  query <- do.call(
-    what = ProjectUMAP,
-    args = c(list(
-      query = query,
-      query.reduction = new.reduction.name,
-      reference = reference,
-      reference.reduction = reference.reduction,
-      reduction.model = reduction.model
+  if (!is.null(reduction.model)) {
+    query <- do.call(
+      what = ProjectUMAP,
+      args = c(list(
+        query = query,
+        query.reduction = new.reduction.name,
+        reference = reference,
+        reference.reduction = reference.reduction,
+        reduction.model = reduction.model
       ), projectumap.args
+      )
     )
-  )
+  }
   return(query)
 }
 
