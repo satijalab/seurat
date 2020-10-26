@@ -1525,7 +1525,7 @@ MapQuery <- function(
   }
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
   reuse.weights.matrix <- FALSE
-  if (!is.null(refdata)) {
+  if (!is.null(x = refdata)) {
     query <- do.call(
       what = TransferData,
       args = c(list(
@@ -1535,7 +1535,7 @@ MapQuery <- function(
         refdata = refdata,
         store.weights = TRUE,
         verbose = verbose
-      ), transferdata.args
+        ), transferdata.args
       )
     )
     reuse.weights.matrix <- TRUE
@@ -1553,7 +1553,7 @@ MapQuery <- function(
       ), integrateembeddings.args
     )
   )
-  if (!is.null(reduction.model)) {
+  if (!is.null(x = reduction.model)) {
     query <- do.call(
       what = ProjectUMAP,
       args = c(list(
@@ -1562,7 +1562,7 @@ MapQuery <- function(
         reference = reference,
         reference.reduction = reference.reduction,
         reduction.model = reduction.model
-      ), projectumap.args
+        ), projectumap.args
       )
     )
   }
