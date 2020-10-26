@@ -1372,6 +1372,10 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     assay = DefaultAssay(object = query[[reductions[1]]]),
     key = paste0(new.reduction.name.safe, "_")
   )
+  query <- RenameCells(
+    object = query,
+    new.names = gsub(pattern = "_query$", replacement = "", x = Cells(x = query))
+  )
   query[[reductions[[1]]]] <- NULL
   return(query)
 }
@@ -4590,14 +4594,12 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
     stop("Please specify a reduction that is present in the anchorset: ",
          paste(Reductions(object = combined.object), collapse = ", "), call. = FALSE)
   }
-  reference.cells <- Cells(x = reference)
-  reference.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(reference.cells, "_reference"), ]
-  rownames(x = reference.embeddings) <- reference.cells
+  reference <- RenameCells(object = reference, new.names = paste0(Cells(x = reference), "_reference"))
+  reference.embeddings <- Embeddings(object = combined.object[[reductions]])[Cells(x = reference), ]
   reference[[reductions]] <- CreateDimReducObject(embeddings = reference.embeddings, assay = DefaultAssay(object = reference))
   ModifyParam(param = "reference", value = reference)
-  query.cells <- Cells(x = query)
-  query.embeddings <- Embeddings(object = combined.object[[reductions]])[paste0(query.cells, "_query"), ]
-  rownames(x = query.embeddings) <- query.cells
+  query <- RenameCells(object = query, new.names = paste0(Cells(x = query), "_query"))
+  query.embeddings <- Embeddings(object = combined.object[[reductions]])[Cells(x = query), ]
   query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
   ModifyParam(param = "query", value = query)
   ModifyParam(param = "reductions", value = c(reductions, reductions))
