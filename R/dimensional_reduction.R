@@ -337,8 +337,11 @@ ProjectUMAP.default <- function(
   reduction.model,
   ...
 ) {
-  reference.dims <- reference.dims %||% 1:ncol(x = reference)
   query.dims <- query.dims %||% 1:ncol(x = query)
+  reference.dims <- reference.dims %||% query.dims
+ if (length(x = reference.dims) != length(x = query.dims)) {
+    stop("Length of Reference and Query number of dimensions are not equal")
+   }
   if (any(reference.dims > ncol(x = reference))) {
     stop("Reference dims is larger than the number of dimensions present.", call. = FALSE)
   }
