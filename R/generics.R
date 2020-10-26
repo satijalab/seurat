@@ -1102,6 +1102,21 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
+#' Run Linear Discriminant Analysis
+#'
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname RunLDA
+#' @export RunLDA
+#'
+#' @aliases RunLDA
+#'
+RunLDA <- function(object, ...) {
+  UseMethod(generic = 'RunLDA', object = object)
+}
+
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation

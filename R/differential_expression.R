@@ -562,7 +562,7 @@ FindMarkers.default <- function(
   )
   de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
   if (only.pos) {
-    de.results <- de.results[de.results[, 1] > 0, , drop = FALSE]
+    de.results <- de.results[de.results[, 2] > 0, , drop = FALSE]
   }
   if (test.use %in% DEmethods_nocorrect()) {
     de.results <- de.results[order(-de.results$power, -de.results[, 1]), ]
