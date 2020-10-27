@@ -845,7 +845,7 @@ FindTransferAnchors <- function(
   )
   if (!is.null(x = precomputed.neighbors[["query.neighbors"]])) {
     slot(object = anchor.set, name = "neighbors") <- list(
-      query.neighbors = precomputed.neighbors[["query.neighbors"]])
+      query.neighbors = query.neighbors)
   }
   return(anchor.set)
 }
@@ -1620,7 +1620,7 @@ MappingScore.default <- function(
   CheckDots(...)
   # Input checks
   start.time <- Sys.time()
-  if (ncol(x = query.neighbors) < ksmooth) {
+  if (is.null(x = query.neighbors) || ncol(x = query.neighbors) < ksmooth) {
     message("Recomputing query neighborhoods.\nSetting mapping.score.k in ",
             "FindTransferAnchors to the ksmooth \nvalue here (",
             ksmooth, "), can bypass this calculation in future runs.")
