@@ -1631,9 +1631,6 @@ MASTDETest <- function(
   if (!PackageCheck('MAST', error = FALSE)) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
-  if (length(x = latent.vars) > 0) {
-    latent.vars <- scale(x = latent.vars)
-  }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   latent.vars <- latent.vars %||% group.info
   group.info[cells.1, "group"] <- "Group1"
@@ -1647,6 +1644,7 @@ MASTDETest <- function(
   rownames(x = fdat) <- fdat[, 1]
   sca <- MAST::FromMatrix(
     exprsArray = as.matrix(x = data.use),
+    check_sanity = FALSE,
     cData = latent.vars,
     fData = fdat
   )

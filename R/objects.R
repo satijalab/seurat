@@ -1137,39 +1137,27 @@ DietSeurat <- function(
     if (!(assay %in% assays)) {
       object[[assay]] <- NULL
     } else {
-      features.assay <- features %||% rownames(x = object[[assay]])
-      features.assay <- intersect(x = features.assay, y = rownames(x = object[[assay]]))
-      if (length(x = features.assay) == 0) {
-        if (assay == DefaultAssay(object = object)) {
-          stop("The default assay is slated to be removed, please change the default assay")
-        } else {
-          warning("No features found in assay '", assay, "', removing...")
-          object[[assay]] <- NULL
-        }
-      } else {
-        if (counts) {
-          if (!is.null(x = features) && !IsMatrixEmpty(x = GetAssayData(object = object[[assay]], slot = "counts"))) {
-            slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+      if (!is.null(x = features)) {
+        features.assay <- intersect(x = features, y = rownames(x = object[[assay]]))
+        if (length(x = features.assay) == 0) {
+          if (assay == DefaultAssay(object = object)) {
+            stop("The default assay is slated to be removed, please change the default assay")
+          } else {
+            warning("No features found in assay '", assay, "', removing...")
+            object[[assay]] <- NULL
           }
         } else {
-          slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+          object[[assay]] <- subset(x = object[[assay]], features = features.assay)
         }
-        if (data) {
-          if (!is.null(x = features)) {
-            slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
-          }
-        } else {
-          stop('data = FALSE currently not supported')
-          slot(object = object[[assay]], name = 'data') <- new(Class = 'matrix')
-        }
-        features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
-        if (scale.data && length(x = features.scaled) > 0) {
-          if (! all(rownames(x = slot(object = object[[assay]], name = 'scale.data')) %in% features.scaled)) {
-            slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
-          }
-        } else {
-          slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
-        }
+      }
+      if (!counts) {
+        slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+      }
+      if (!data) {
+        stop('data = FALSE currently not supported')
+      }
+      if (!scale.data) {
+        slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
       }
     }
   }
@@ -3934,7 +3922,7 @@ IsGlobal.default <- function(object) {
 #'
 IsGlobal.DimReduc <- function(object) {
   object <- UpdateSlots(object = object)
-  return(slot(object = object, name = 'global'))
+  return(isTRUE(x = slot(object = object, name = 'global')))
 }
 
 #' @rdname IsGlobal
@@ -4098,6 +4086,7 @@ Key.SpatialImage <- function(object, ...) {
 "Key<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
   object <- UpdateSlots(object = object)
+  value <- UpdateKey(key = value)
   old.key <- Key(object = object)
   slots <- Filter(
     f = function(x) {
@@ -4108,11 +4097,15 @@ Key.SpatialImage <- function(object, ...) {
   for (s in slots) {
     mat <- slot(object = object, name = s)
     if (!IsMatrixEmpty(x = mat)) {
-      colnames(x = mat) <- sub(
-        pattern = paste0('^', old.key),
-        replacement = value,
-        x = colnames(x = mat)
-      )
+      colnames(x = mat) <- if (is.null(x = colnames(x = mat))) {
+        paste0(value, seq.int(from = 1, to = ncol(x = mat)))
+      } else {
+        sub(
+          pattern = paste0('^', old.key),
+          replacement = value,
+          x = colnames(x = mat)
+        )
+      }
     }
     slot(object = object, name = s) <- mat
   }
@@ -7530,7 +7523,8 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
-      expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
+      # because subset is also an argument, we need to explictly use the base::subset function
+      expr = base::subset(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
         if (e$message == "Cannot find features provided") {
           return(NULL)
