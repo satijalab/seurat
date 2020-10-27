@@ -81,12 +81,20 @@ GraphToNeighborHelper <- function(mat) {
     .Call('_Seurat_GraphToNeighborHelper', PACKAGE = 'Seurat', mat)
 }
 
-FindWeightsC <- function(integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress) {
-    .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress)
+fast_dist <- function(x, y, n) {
+    .Call('_Seurat_fast_dist', PACKAGE = 'Seurat', x, y, n)
+}
+
+FindWeightsC <- function(cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress) {
+    .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress)
 }
 
 IntegrateDataC <- function(integration_matrix, weights, expression_cells2) {
     .Call('_Seurat_IntegrateDataC', PACKAGE = 'Seurat', integration_matrix, weights, expression_cells2)
+}
+
+ScoreHelper <- function(snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress) {
+    .Call('_Seurat_ScoreHelper', PACKAGE = 'Seurat', snn, query_pca, query_dists, corrected_nns, k_snn, subtract_first_nn, display_progress)
 }
 
 ComputeSNN <- function(nn_ranked, prune) {
@@ -99,5 +107,9 @@ WriteEdgeFile <- function(snn, filename, display_progress) {
 
 DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
     .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
+}
+
+SNN_SmallestNonzero_Dist <- function(snn, mat, n, nearest_dist) {
+    .Call('_Seurat_SNN_SmallestNonzero_Dist', PACKAGE = 'Seurat', snn, mat, n, nearest_dist)
 }
 

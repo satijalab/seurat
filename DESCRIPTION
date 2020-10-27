@@ -17,6 +17,7 @@ Authors@R: c(
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://mojaveazure.github.io/loomR
+Remotes: jlmelville/uwot
 Depends:
     R (>= 3.6.0),
     methods,
@@ -79,6 +80,7 @@ Collate:
     'differential_expression.R'
     'dimensional_reduction.R'
     'integration.R'
+    'mixscape.R'
     'objects.R'
     'preprocessing.R'
     'tree.R'
@@ -106,4 +108,6 @@ Suggests:
     Biobase,
     VGAM,
     limma,
-    metap
+    metap,
+    enrichR,
+    mixtools

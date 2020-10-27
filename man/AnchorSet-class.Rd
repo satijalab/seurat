@@ -30,6 +30,8 @@ the anchor.}
 
 \item{\code{anchor.features}}{The features used when performing anchor finding.}
 
+\item{\code{neighbors}}{List containing Neighbor objects for reuse later (e.g. mapping)}
+
 \item{\code{command}}{Store log of parameters that were used}
 }}
 

@@ -67,3 +67,60 @@ Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked,
   WriteEdgeFile(SNN, filename, display_progress);
   return SNN;
 }
+
+template <typename S>
+std::vector<size_t> sort_indexes(const std::vector<S> &v) {
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::stable_sort(idx.begin(), idx.end(),
+                   [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+  return idx;
+}
+
+// [[Rcpp::export]]
+std::vector<double> SNN_SmallestNonzero_Dist(
+    Eigen::SparseMatrix<double> snn,
+    Eigen::MatrixXd mat,
+    int n,
+    std::vector<double> nearest_dist
+) {
+  std::vector<double> results;
+  for (int i=0; i < snn.outerSize(); ++i){
+    // create vectors to store the nonzero snn elements and their indices
+    std::vector<double> nonzero;
+    std::vector<size_t> nonzero_idx;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(snn, i); it; ++it) {
+      nonzero.push_back(it.value());
+      nonzero_idx.push_back(it.row());
+    }
+    std::vector<size_t> nonzero_order = sort_indexes(nonzero);
+    int n_i = n;
+    if (n_i > nonzero_order.size()) n_i = nonzero_order.size();
+    std::vector<double> dists;
+    for (int j = 0; j < nonzero_order.size(); ++j) {
+      // compute euclidean distances to cells with small edge weights
+      // if multiple entries have same value as nth element, calc dist to all
+      size_t cell = nonzero_idx[nonzero_order[j]];
+      if(dists.size() < n_i  || nonzero[nonzero_order[j]] == nonzero[nonzero_order[n_i-1]]) {
+        double res = (mat.row(cell) - mat.row(i)).norm();
+        if (nearest_dist[i] > 0) {
+          res = res - nearest_dist[i];
+          if (res < 0) res = 0;
+        }
+        dists.push_back(res);
+      } else {
+        break;
+      }
+    }
+    double avg_dist;
+    if (dists.size() > n_i) {
+      std::sort(dists.rbegin(), dists.rend());
+      avg_dist = std::accumulate(dists.begin(), dists.begin() + n_i, 0.0) / n_i;
+    } else {
+      avg_dist = std::accumulate(dists.begin(), dists.end(), 0.0) / dists.size();
+    }
+    results.push_back(avg_dist);
+  }
+  return results;
+}
