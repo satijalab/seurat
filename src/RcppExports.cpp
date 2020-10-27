@@ -58,7 +58,6 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
 RcppExport SEXP _Seurat_RowMergeMatrices(SEXP mat1SEXP, SEXP mat2SEXP, SEXP mat1_rownamesSEXP, SEXP mat2_rownamesSEXP, SEXP all_rownamesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double, Eigen::RowMajor> >::type mat1(mat1SEXP);
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double, Eigen::RowMajor> >::type mat2(mat2SEXP);
     Rcpp::traits::input_parameter< std::vector< std::string > >::type mat1_rownames(mat1_rownamesSEXP);
@@ -73,7 +72,6 @@ Eigen::SparseMatrix<double> RowMergeMatricesList(List mat_list, List mat_rowname
 RcppExport SEXP _Seurat_RowMergeMatricesList(SEXP mat_listSEXP, SEXP mat_rownamesSEXP, SEXP all_rownamesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type mat_list(mat_listSEXP);
     Rcpp::traits::input_parameter< List >::type mat_rownames(mat_rownamesSEXP);
     Rcpp::traits::input_parameter< std::vector< std::string > >::type all_rownames(all_rownamesSEXP);
@@ -86,7 +84,6 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
 RcppExport SEXP _Seurat_LogNorm(SEXP dataSEXP, SEXP scale_factorSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type data(dataSEXP);
     Rcpp::traits::input_parameter< int >::type scale_factor(scale_factorSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
@@ -99,7 +96,6 @@ NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress
 RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress));
@@ -111,7 +107,6 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, 
 RcppExport SEXP _Seurat_FastSparseRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
@@ -126,7 +121,6 @@ Eigen::MatrixXd FastSparseRowScaleWithKnownStats(Eigen::SparseMatrix<double> mat
 RcppExport SEXP _Seurat_FastSparseRowScaleWithKnownStats(SEXP matSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type sigma(sigmaSEXP);
@@ -143,7 +137,6 @@ Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
 RcppExport SEXP _Seurat_FastCov(SEXP matSEXP, SEXP centerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
     rcpp_result_gen = Rcpp::wrap(FastCov(mat, center));
@@ -155,7 +148,6 @@ Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool cen
 RcppExport SEXP _Seurat_FastCovMats(SEXP mat1SEXP, SEXP mat2SEXP, SEXP centerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
@@ -168,7 +160,6 @@ Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
 RcppExport SEXP _Seurat_FastRBind(SEXP mat1SEXP, SEXP mat2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
     rcpp_result_gen = Rcpp::wrap(FastRBind(mat1, mat2));
@@ -180,7 +171,6 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
 RcppExport SEXP _Seurat_FastExpMean(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(FastExpMean(mat, display_progress));
@@ -192,7 +182,6 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu, b
 RcppExport SEXP _Seurat_SparseRowVar2(SEXP matSEXP, SEXP muSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
@@ -205,7 +194,6 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, NumericVector mu,
 RcppExport SEXP _Seurat_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
@@ -220,7 +208,6 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progres
 RcppExport SEXP _Seurat_FastLogVMR(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(FastLogVMR(mat, display_progress));
@@ -232,7 +219,6 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 RcppExport SEXP _Seurat_RowVar(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type x(xSEXP);
     rcpp_result_gen = Rcpp::wrap(RowVar(x));
     return rcpp_result_gen;
@@ -243,7 +229,6 @@ Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progr
 RcppExport SEXP _Seurat_SparseRowVar(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(SparseRowVar(mat, display_progress));
@@ -255,7 +240,6 @@ Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, Numeri
 RcppExport SEXP _Seurat_ReplaceColsC(SEXP matSEXP, SEXP col_idxSEXP, SEXP replacementSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type col_idx(col_idxSEXP);
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type replacement(replacementSEXP);
@@ -268,7 +252,6 @@ List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat);
 RcppExport SEXP _Seurat_GraphToNeighborHelper(SEXP matSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     rcpp_result_gen = Rcpp::wrap(GraphToNeighborHelper(mat));
     return rcpp_result_gen;
@@ -279,7 +262,6 @@ Eigen::SparseMatrix<double> FindWeightsC(Eigen::SparseMatrix<double> integration
 RcppExport SEXP _Seurat_FindWeightsC(SEXP integration_matrixSEXP, SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type integration_matrix(integration_matrixSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type cells2(cells2SEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type distances(distancesSEXP);
@@ -299,7 +281,6 @@ Eigen::SparseMatrix<double> IntegrateDataC(Eigen::SparseMatrix<double> integrati
 RcppExport SEXP _Seurat_IntegrateDataC(SEXP integration_matrixSEXP, SEXP weightsSEXP, SEXP expression_cells2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type integration_matrix(integration_matrixSEXP);
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type weights(weightsSEXP);
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type expression_cells2(expression_cells2SEXP);
@@ -312,7 +293,6 @@ Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type nn_ranked(nn_rankedSEXP);
     Rcpp::traits::input_parameter< double >::type prune(pruneSEXP);
     rcpp_result_gen = Rcpp::wrap(ComputeSNN(nn_ranked, prune));
@@ -323,7 +303,6 @@ END_RCPP
 void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool display_progress);
 RcppExport SEXP _Seurat_WriteEdgeFile(SEXP snnSEXP, SEXP filenameSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type snn(snnSEXP);
     Rcpp::traits::input_parameter< String >::type filename(filenameSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
@@ -336,7 +315,6 @@ Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked, double pr
 RcppExport SEXP _Seurat_DirectSNNToFile(SEXP nn_rankedSEXP, SEXP pruneSEXP, SEXP display_progressSEXP, SEXP filenameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type nn_ranked(nn_rankedSEXP);
     Rcpp::traits::input_parameter< double >::type prune(pruneSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
