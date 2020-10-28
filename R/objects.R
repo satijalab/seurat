@@ -4968,7 +4968,7 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
         Misc(object, slot = "vst.set") <- lapply(
           X = Misc(object = object, slot = "vst.set"),
           FUN = function(x) {
-            new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
+            new.names.vst <- new.names[which(x = rownames(x$cell_attr) %in% Cells(x = object))]
             x$cells_step1 <- new.names.vst
             rownames(x = x$cell_attr) <- new.names.vst
             return(x)
