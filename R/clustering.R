@@ -1246,8 +1246,8 @@ MultiModalNN <- function(
     X = 1:query.cell.num,
     FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
   )
+  select_dist <- select_dist / (length(dims.list) - 1)
   select_dist <- sqrt(x = (1 - select_dist) / 2)
-  select_dist[is.na(select_dist)] <- 0
   weighted.nn <- Neighbor(
     nn.idx = select_nn,
     nn.dist = select_dist,
