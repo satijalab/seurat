@@ -104,7 +104,7 @@ IntegrationAnchorSet <- setClass(
 ModalityWeights <- setClass(
   Class = "ModalityWeights",
   slots = list(
-    first.modality.weight = "vector",
+    modality.weights = "list",
     modality.assay = "vector",
     params = "list",
     score.matrix = "data.frame",
