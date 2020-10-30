@@ -1115,12 +1115,7 @@ MultiModalNN <- function(
   score.mat = slot(object = modality.weight, name = "score.matrix")
   modality.weight.value <- slot(object = modality.weight, name = "modality.weights")
   names(x = modality.weight.value) <- unlist(x = reduction.list)
-  modality.weight.value <- lapply(
-    X = modality.weight.value,
-    FUN = function(modality.weight) {
-      1 - modality.weight
-    }
-  )
+
   if (inherits(x = object, what = "Seurat")) {
     reduction_embedding <- lapply(
       X = 1:length(x = reduction.list),
