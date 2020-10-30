@@ -758,28 +758,6 @@ NormalizeData <- function(object, ...) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
-#' Identify cells matching certain criteria
-#'
-#' Returns a list of cells that match a particular set of criteria such as
-#' identity class, high/low values for particular PCs, ect..
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods and \code{FetchData}
-#'
-#' @return A vector of cell names
-#'
-#' @rdname OldWhichCells
-#' @export OldWhichCells
-#'
-#' @examples
-#' \dontrun{
-#' OldWhichCells(object = pbmc_small, ident.keep = 2)
-#' }
-#'
-OldWhichCells <- function(object, ...) {
-  UseMethod(generic = 'OldWhichCells', object = object)
-}
-
 #' Get and set project information
 #'
 #' @param object An object
@@ -1140,30 +1118,6 @@ StashIdent <- function(object, save.name, ...) {
 #'
 Stdev <- function(object, ...) {
   UseMethod(generic = 'Stdev', object = object)
-}
-
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @rdname SubsetData
-#' @export SubsetData
-#'
-#' @examples
-#' \dontrun{
-#' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
-#' pbmc1
-#' }
-#'
-SubsetData <- function(object, ...) {
-  UseMethod(generic = 'SubsetData', object = object)
 }
 
 #' Get spatially variable feature information
