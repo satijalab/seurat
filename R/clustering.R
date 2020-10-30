@@ -1684,8 +1684,8 @@ FindModalityWeights  <- function(
   modality_weights <- lapply(
     X = reduction.list,
     FUN = function(r) {
-      cross.list = reduction.list[setdiff(x = reduction.set, y = r)]
-      exp(x = modality_score[[r]]) / do.call(kit::psum, lapply(modality_score[names(cross.list)], exp))
+      #cross.list = reduction.list[setdiff(x = reduction.set, y = r)]
+      exp(x = modality_score[[r]]) / do.call(kit::psum, lapply(modality_score, exp))
     }
   )
   cross_impute_dist <- unlist(cross_impute_dist, recursive = FALSE)
