@@ -9,7 +9,7 @@ using namespace Rcpp;
 
 typedef Eigen::Triplet<double> T;
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> FindWeightsC(
   NumericVector cells2,
   Eigen::MatrixXd distances,
@@ -85,7 +85,7 @@ Eigen::SparseMatrix<double> FindWeightsC(
   return(return_mat);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> IntegrateDataC(
   Eigen::SparseMatrix<double> integration_matrix,
   Eigen::SparseMatrix<double> weights,

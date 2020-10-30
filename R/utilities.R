@@ -418,9 +418,13 @@ CaseMatch <- function(search, match) {
 #' @param object A Seurat object
 #' @param s.features A vector of features associated with S phase
 #' @param g2m.features A vector of features associated with G2M phase
+#' @param ctrl Number of control features selected from the same bin per
+#' analyzed feature supplied to \code{\link{AddModuleScore}}.
+#' Defaults to value equivalent to minimum number of features
+#' present in 's.features' and 'g2m.features'.
 #' @param set.ident If true, sets identity to phase assignments
-#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #' Stashes old identities in 'old.ident'
+#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #'
 #' @return A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
 #'
@@ -445,16 +449,20 @@ CellCycleScoring <- function(
   object,
   s.features,
   g2m.features,
+  ctrl = NULL,
   set.ident = FALSE,
   ...
 ) {
   name <- 'Cell.Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
+  if (is.null(x = ctrl)) {
+    ctrl <- min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
+  }
   object.cc <- AddModuleScore(
     object = object,
     features = features,
     name = name,
-    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1))),
+    ctrl = ctrl,
     ...
   )
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
@@ -1492,6 +1500,21 @@ CheckGC <- function() {
   }
 }
 
+# Create an empty dummy assay to replace existing assay
+#
+CreateDummyAssay <- function(assay) {
+  cm <- as.sparse(x = matrix(
+    data = 0,
+    nrow = nrow(x = assay),
+    ncol = ncol(x = assay)
+  ))
+  rownames(x = cm) <- rownames(x = assay)
+  colnames(x = cm) <- colnames(x = assay)
+  return(CreateAssayObject(
+    counts = cm
+  ))
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -1687,6 +1710,22 @@ Melt <- function(x) {
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
     vals = unlist(x = x, use.names = FALSE)
   ))
+}
+
+# Modify parameters in calling environment
+#
+# Used exclusively for helper parameter validation functions
+#
+# @param param name of parameter to change
+# @param value new value for parameter
+#
+ModifyParam <- function(param, value) {
+  # modify in original function environment
+  env1 <- sys.frame(which = length(x = sys.frames()) - 2)
+  env1[[param]] <- value
+  # also modify in validation function environment
+  env2 <- sys.frame(which = length(x = sys.frames()) - 1)
+  env2[[param]] <- value
 }
 
 # Give hints for old paramters and their newer counterparts

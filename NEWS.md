@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Changes
 - `Same` deprecated in favor of `base::identity`
+- Fix in `DietSeurat` to work with specialized `Assay` objects
+- Fix p-value return when using the `ape` implementation of Moran's I
+- Fix bug in FindMarkers when using MAST with a latent variable
+- Updates to `Key<-.DimReduc` that allow handling of empty reduction column names
+- Allow setting `ctrl` in `CellCycleScoring`
+- Modify subset.Seurat to allow specialized Assay subsetting methods
+- Fix image selection in interactive spatial plots
+- Update Rcpp functions with `export(rng=FALSE)` to avoid potential future warnings
 
 ## [3.2.2] - 2020-09-25
 ### Changes

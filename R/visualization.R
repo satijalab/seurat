@@ -1808,6 +1808,7 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param plot.cor Display correlation in plot title
 #'
 #' @return A ggplot object
 #'
@@ -1833,7 +1834,8 @@ FeatureScatter <- function(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  plot.cor = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
@@ -1868,7 +1870,8 @@ FeatureScatter <- function(
         pt.size = pt.size,
         smooth = smooth,
         legend.title = 'Identity',
-        span = span
+        span = span,
+        plot.cor = plot.cor
       )
     }
   )
@@ -2901,6 +2904,12 @@ SpatialPlot <- function(
     stop("Please specific either group.by or features, not both.")
   }
   images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) == 0) {
+    images <- Images(object = object)
+  }
+  if (length(x = images) < 1) {
+    stop("Could not find any spatial image information")
+  }
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
@@ -2979,12 +2988,6 @@ SpatialPlot <- function(
     )
     colnames(x = data) <- features
     rownames(x = data) <- Cells(x = object)
-  }
-  if (length(x = images) == 0) {
-    images <- Images(object = object)
-  }
-  if (length(x = images) < 1) {
-    stop("Could not find any spatial image information")
   }
   features <- colnames(x = data)
   colnames(x = data) <- features
@@ -6708,7 +6711,8 @@ SingleCorPlot <- function(
   rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
-  span = NULL
+  span = NULL,
+  plot.cor = TRUE
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -6731,7 +6735,12 @@ SingleCorPlot <- function(
     }
     stop(msg, call. = FALSE)
   }
-  plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  if (plot.cor == TRUE){
+    plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  }
+  else(
+    plot.cor <- ""
+  )
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = rows.highlight,

@@ -41,6 +41,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #'
 AnchorSet <- setClass(
   Class = "AnchorSet",
+  contains = 'VIRTUAL',
   slots = list(
     object.list = "list",
     reference.cells = "vector",
@@ -54,11 +55,39 @@ AnchorSet <- setClass(
   )
 )
 
+#' The TransferAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name TransferAnchorSet-class
+#' @rdname TransferAnchorSet-class
+#' @exportClass TransferAnchorSet
+#'
+TransferAnchorSet <- setClass(
+  Class = "TransferAnchorSet",
+  contains = "AnchorSet"
+)
+
+#' The IntegrationAnchorSet Class
+#'
+#' Inherits from the Anchorset class. Implemented mainly for method dispatch
+#' purposes.  See \code{\link{AnchorSet}} for slot details.
+#'
+#' @name IntegrationAnchorSet-class
+#' @rdname IntegrationAnchorSet-class
+#' @exportClass IntegrationAnchorSet
+#'
+IntegrationAnchorSet <- setClass(
+  Class = "IntegrationAnchorSet",
+  contains = "AnchorSet"
+)
+
 #' The ModalityWeights Class
 #'
 #' The ModalityWeights class is an intermediate data storage class that stores the modality weight and other
 #' related information needed for performing downstream analyses - namely data integration
-#' (\code{\link{FindModalityWeights}}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
+#' (\code{FindModalityWeights}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
 #'
 #' @slot first.modality.weight A vector of value representing for the modality weights of
 #' the first modality
@@ -1108,39 +1137,27 @@ DietSeurat <- function(
     if (!(assay %in% assays)) {
       object[[assay]] <- NULL
     } else {
-      features.assay <- features %||% rownames(x = object[[assay]])
-      features.assay <- intersect(x = features.assay, y = rownames(x = object[[assay]]))
-      if (length(x = features.assay) == 0) {
-        if (assay == DefaultAssay(object = object)) {
-          stop("The default assay is slated to be removed, please change the default assay")
-        } else {
-          warning("No features found in assay '", assay, "', removing...")
-          object[[assay]] <- NULL
-        }
-      } else {
-        if (counts) {
-          if (!is.null(x = features) && !IsMatrixEmpty(x = GetAssayData(object = object[[assay]], slot = "counts"))) {
-            slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+      if (!is.null(x = features)) {
+        features.assay <- intersect(x = features, y = rownames(x = object[[assay]]))
+        if (length(x = features.assay) == 0) {
+          if (assay == DefaultAssay(object = object)) {
+            stop("The default assay is slated to be removed, please change the default assay")
+          } else {
+            warning("No features found in assay '", assay, "', removing...")
+            object[[assay]] <- NULL
           }
         } else {
-          slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+          object[[assay]] <- subset(x = object[[assay]], features = features.assay)
         }
-        if (data) {
-          if (!is.null(x = features)) {
-            slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
-          }
-        } else {
-          stop('data = FALSE currently not supported')
-          slot(object = object[[assay]], name = 'data') <- new(Class = 'matrix')
-        }
-        features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
-        if (scale.data && length(x = features.scaled) > 0) {
-          if (! all(rownames(x = slot(object = object[[assay]], name = 'scale.data')) %in% features.scaled)) {
-            slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
-          }
-        } else {
-          slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
-        }
+      }
+      if (!counts) {
+        slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+      }
+      if (!data) {
+        stop('data = FALSE currently not supported')
+      }
+      if (!scale.data) {
+        slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
       }
     }
   }
@@ -1464,6 +1481,36 @@ GetIntegrationData <- function(object, integration.name, slot) {
   }
   int.data <- tools[[integration.name]]
   return(slot(object = int.data, name = slot))
+}
+
+#' Pull Graph or Graph names
+#'
+#' Lists the names of \code{\link{Graph}} objects present in
+#' a Seurat object. If slot is provided, pulls specified Graph object.
+#'
+#' @param object A Seurat object
+#' @param slot Name of Graph object
+#'
+#' @return If \code{slot} is \code{NULL}, the names of all \code{Graph} objects
+#' in this Seurat object. Otherwise, the \code{Graph} object requested
+#'
+#' @export
+#'
+Graphs <- function(object, slot = NULL) {
+  graphs <- FilterObjects(object = object, classes.keep = "Graph")
+  if (is.null(x = slot)) {
+    return(graphs)
+  }
+  if (!slot %in% graphs) {
+    warning(
+      "Cannot find a Graph object of name ",
+      slot,
+      " in this Seurat object",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  return(slot(object = object, name = 'graphs')[[slot]])
 }
 
 #' Pull spatial image names
@@ -3297,7 +3344,7 @@ IsGlobal.default <- function(object) {
 #'
 IsGlobal.DimReduc <- function(object) {
   object <- UpdateSlots(object = object)
-  return(slot(object = object, name = 'global'))
+  return(isTRUE(x = slot(object = object, name = 'global')))
 }
 
 #' @rdname IsGlobal
@@ -3461,6 +3508,7 @@ Key.SpatialImage <- function(object, ...) {
 "Key<-.DimReduc" <- function(object, ..., value) {
   CheckDots(...)
   object <- UpdateSlots(object = object)
+  value <- UpdateKey(key = value)
   old.key <- Key(object = object)
   slots <- Filter(
     f = function(x) {
@@ -3471,11 +3519,15 @@ Key.SpatialImage <- function(object, ...) {
   for (s in slots) {
     mat <- slot(object = object, name = s)
     if (!IsMatrixEmpty(x = mat)) {
-      colnames(x = mat) <- sub(
-        pattern = paste0('^', old.key),
-        replacement = value,
-        x = colnames(x = mat)
-      )
+      colnames(x = mat) <- if (is.null(x = colnames(x = mat))) {
+        paste0(value, seq.int(from = 1, to = ncol(x = mat)))
+      } else {
+        sub(
+          pattern = paste0('^', old.key),
+          replacement = value,
+          x = colnames(x = mat)
+        )
+      }
     }
     slot(object = object, name = s) <- mat
   }
@@ -5199,7 +5251,7 @@ merge.Assay <- function(
     for (i in 1:length(x = assays)) {
       vst.set.old <- Misc(object = assays[[i]], slot = "vst.set")
       umi.assay.old <- Misc(object = assays[[i]], slot = "umi.assay")
-      if (!is.null(x = vst.set.old)) {
+      if (!is.null(x = vst.set.old) && length(x = vst.set.old) > 1) {
         for (j in 1:length(x = vst.set.old)) {
           vst.set.new[[idx]] <- vst.set.old[[j]]
           umi.assay.new[[idx]] <- umi.assay.old[[j]]
@@ -5226,6 +5278,48 @@ merge.Assay <- function(
   return(combined.assay)
 }
 
+#' @rdname merge.DimReduc
+#' @export
+#' @method merge DimReduc
+#'
+merge.DimReduc <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  ...
+) {
+  CheckDots(...)
+  drs <- c(x, y)
+  if (!is.null(x = add.cell.ids)) {
+    for (i in 1:length(x = drs)) {
+      drs[[i]] <- RenameCells(object = drs[[i]], new.names = add.cell.ids[i])
+    }
+  }
+  embeddings.mat <- list()
+  min.dim <- c()
+  for (i in 1:length(x = drs)) {
+    embeddings.mat[[i]] <- Embeddings(object = drs[[i]])
+    min.dim <- c(min.dim, ncol(x = embeddings.mat[[i]]))
+  }
+  if (length(x = unique(x = min.dim)) > 1) {
+    min.dim <- min(min.dim)
+    warning("Reductions contain differing numbers of dimensions, merging first ",
+            min.dim, call. = FALSE, immediate. = TRUE)
+    embeddings.mat <- lapply(X = embeddings.mat, FUN = function(x) x[, 1:min.dim])
+
+  }
+  embeddings.mat <- do.call(what = rbind, args = embeddings.mat)
+  merged.dr <- CreateDimReducObject(
+    embeddings = embeddings.mat,
+    loadings = Loadings(object = drs[[1]], projected = FALSE),
+    projected = Loadings(object = drs[[1]], projected = TRUE),
+    assay = DefaultAssay(object = drs[[1]]),
+    key = Key(object = drs[[1]]),
+    global = IsGlobal(object = drs[[1]])
+  )
+  return(merged.dr)
+}
+
 #' Merge Seurat Objects
 #'
 #' Merge two or more objects.
@@ -5234,10 +5328,15 @@ merge.Assay <- function(
 #' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
-#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-#' that were present in the original objects. If add.cell.ids isn't specified
-#' and any cell names are duplicated, cell names will be appended with _X, where
-#' X is the numeric index of the object in c(x, y).
+#' The merge will optionally merge reductions depending on the values passed to
+#' \code{merge.dr} if they have the same name across objects. Here the
+#' embeddings slots will be merged and if there are differing numbers of
+#' dimensions across objects, only the first N shared dimensions will be merged.
+#' The feature loadings slots will be filled by the values present in the first
+#' object.The merge will not preserve graphs, logged commands, or feature-level
+#' metadata that were present in the original objects. If add.cell.ids isn't
+#' specified and any cell names are duplicated, cell names will be appended
+#' with _X, where X is the numeric index of the object in c(x, y).
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -5247,6 +5346,9 @@ merge.Assay <- function(
 #' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
+#' @param merge.dr Merge specified DimReducs that are present in all objects.
+#' Will only merge the embeddings slots for the first N dimensions that are
+#' shared across all objects.
 #' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
@@ -5268,6 +5370,7 @@ merge.Seurat <- function(
   y = NULL,
   add.cell.ids = NULL,
   merge.data = TRUE,
+  merge.dr = NULL,
   project = "SeuratProject",
   ...
 ) {
@@ -5326,11 +5429,20 @@ merge.Seurat <- function(
         X = assays.merge,
         FUN = function(x) rownames(x = GetAssayData(object = x, slot = "scale.data")))
       )) == length(x = assays.merge)))
-      for (a in 1:length(x = assays.merge)) {
-        assays.merge[[a]] <- SetAssayData(
-          object = assays.merge[[a]],
-          slot = "scale.data",
-          new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+      if (length(x = scaled.features) > 0) {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = GetAssayData(object = assays.merge[[a]], slot = "scale.data")[scaled.features, ])
+        }
+      } else {
+        for (a in 1:length(x = assays.merge)) {
+          assays.merge[[a]] <- SetAssayData(
+            object = assays.merge[[a]],
+            slot = "scale.data",
+            new.data = new(Class = "matrix"))
+        }
       }
     }
     merged.assay <- merge(
@@ -5396,10 +5508,32 @@ merge.Seurat <- function(
       index <- index + 1L
     }
   }
+  # Merge DimReducs
+  combined.reductions <- list()
+  if (!is.null(x = merge.dr)) {
+    for (dr in merge.dr) {
+      drs.to.merge <- list()
+      for (i in 1:length(x = objects)) {
+        if (!dr %in% Reductions(object = objects[[i]])) {
+          warning("The DimReduc ", dr, " is not present in all objects being ",
+                  "merged. Skipping and continuing.", call. = FALSE, immediate. = TRUE)
+          break
+        }
+        drs.to.merge[[i]] <- objects[[i]][[dr]]
+      }
+      if (length(x = drs.to.merge) == length(x = objects)) {
+        combined.reductions[[dr]] <- merge(
+          x = drs.to.merge[[1]],
+          y = drs.to.merge[2:length(x = drs.to.merge)]
+        )
+      }
+    }
+  }
   # Create merged Seurat object
   merged.object <- new(
     Class = 'Seurat',
     assays = combined.assays,
+    reductions = combined.reductions,
     images = combined.images,
     meta.data = combined.meta.data,
     active.assay = new.default.assay,
@@ -5683,7 +5817,8 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
-      expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
+      # because subset is also an argument, we need to explictly use the base::subset function
+      expr = base::subset(x = x[[assay]], cells = cells, features = assay.features),
       error = function(e) {
         if (e$message == "Cannot find features provided") {
           return(NULL)
@@ -6210,14 +6345,23 @@ setMethod(
 
 setMethod(
   f = 'show',
-  signature = 'AnchorSet',
+  signature = 'TransferAnchorSet',
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
-        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData or TransferData.")
+        "anchors between the reference and query Seurat objects. \n",
+        "This can be used as input to TransferData.")
   }
 )
 
+setMethod(
+  f = 'show',
+  signature = 'IntegrationAnchorSet',
+  definition = function(object) {
+    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
+        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
+        "This can be used as input to IntegrateData.")
+  }
+)
 
 setMethod(
   f = 'show',

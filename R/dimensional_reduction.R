@@ -311,6 +311,170 @@ ProjectDim <- function(
   return(object)
 }
 
+#' @param query.dims Dimensions (columns) to use from query
+#' @param reference.dims Dimensions (columns) to use from reference
+#' @param ... Additional parameters to \code{\link{RunUMAP}}
+#'
+#' @inheritParams FindNeighbors
+#' @inheritParams RunUMAP
+#'
+#' @rdname ProjectUMAP
+#' @export
+#'
+ProjectUMAP.default <- function(
+  query,
+  query.dims = NULL,
+  reference,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  ...
+) {
+  query.dims <- query.dims %||% 1:ncol(x = query)
+  reference.dims <- reference.dims %||% query.dims
+ if (length(x = reference.dims) != length(x = query.dims)) {
+    stop("Length of Reference and Query number of dimensions are not equal")
+   }
+  if (any(reference.dims > ncol(x = reference))) {
+    stop("Reference dims is larger than the number of dimensions present.", call. = FALSE)
+  }
+  if (any(query.dims > ncol(x = query))) {
+    stop("Query dims is larger than the number of dimensions present.", call. = FALSE)
+  }
+  if (length(x = Misc(object = reduction.model, slot = 'model')) == 0) {
+    stop(
+      "The provided reduction.model does not have a model stored. Please try ",
+      "running umot-learn on the object first", call. = FALSE
+    )
+  }
+  query.neighbor <- FindNeighbors(
+    object = reference[, reference.dims],
+    query = query[, query.dims],
+    k.param = k.param,
+    nn.method = nn.method,
+    n.trees = n.trees,
+    annoy.metric = annoy.metric,
+    cache.index = cache.index,
+    index = index,
+    return.neighbor = TRUE,
+    l2.norm = l2.norm
+  )
+  proj.umap <- RunUMAP(object = query.neighbor, reduction.model = reduction.model, ...)
+  return(list(proj.umap = proj.umap, query.neighbor = query.neighbor))
+}
+
+#' @rdname ProjectUMAP
+#' @export
+#' @method ProjectUMAP DimReduc
+#'
+ProjectUMAP.DimReduc <- function(
+  query,
+  query.dims = NULL,
+  reference,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  ...
+) {
+  proj.umap <- ProjectUMAP(
+    query = Embeddings(object = query),
+    query.dims = query.dims,
+    reference = Embeddings(object = reference),
+    reference.dims = reference.dims,
+    k.param = k.param,
+    nn.method = nn.method,
+    n.trees = 50,
+    annoy.metric = annoy.metric,
+    l2.norm = l2.norm,
+    cache.index = cache.index,
+    index = index,
+    neighbor.name = neighbor.name,
+    reduction.model = reduction.model,
+    ...
+  )
+  return(proj.umap)
+}
+
+#' @param reference Reference dataset
+#' @param query.reduction Name of reduction to use from the query for neighbor
+#' finding
+#' @param reference.reduction Name of reduction to use from the reference for
+#' neighbor finding
+#' @param neighbor.name Name to store neighbor information in the query
+#' @param reduction.name Name of projected UMAP to store in the query
+#' @param reduction.key Value for the projected UMAP key
+#' @rdname ProjectUMAP
+#' @export
+#' @method ProjectUMAP Seurat
+#'
+ProjectUMAP.Seurat <- function(
+  query,
+  query.reduction,
+  query.dims = NULL,
+  reference,
+  reference.reduction,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  reduction.name = "ref.umap",
+  reduction.key = "refUMAP_",
+  ...
+) {
+  if (!query.reduction %in% Reductions(object = query)) {
+    stop("The query.reduction (", query.reduction, ") is not present in the ",
+         "provided query", call. = FALSE)
+  }
+  if (!reference.reduction %in% Reductions(object = reference)) {
+    stop("The reference.reduction (", reference.reduction, ") is not present in the ",
+         "provided reference.", call. = FALSE)
+  }
+  if (!reduction.model %in% Reductions(object = reference)) {
+    stop("The reduction.model (", reduction.model, ") is not present in the ",
+         "provided reference.", call. = FALSE)
+  }
+  proj.umap <- ProjectUMAP(
+    query = query[[query.reduction]],
+    query.dims = query.dims,
+    reference = reference[[reference.reduction]],
+    reference.dims = reference.dims,
+    k.param = k.param,
+    nn.method = nn.method,
+    n.trees = n.trees,
+    annoy.metric = annoy.metric,
+    l2.norm = l2.norm,
+    cache.index = cache.index,
+    index = index,
+    neighbor.name = neighbor.name,
+    reduction.model = reference[[reduction.model]],
+    reduction.key = reduction.key,
+    ...
+  )
+  query[[reduction.name]] <- proj.umap$proj.umap
+  query[[neighbor.name]] <- proj.umap$query.neighbor
+  return(query)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1050,8 +1214,9 @@ RunUMAP.default <- function(
     }
     umap.method = "uwot"
   }
-  if (is.list(x = object)) {
-    names(x = object) <- c("idx", "dist")
+  if (inherits(x = object, what = "Neighbor")) {
+    object <- list( idx = Indices(object),
+                    dist = Distances(object) )
   }
   if (!is.null(x = reduction.model)) {
     if (verbose) {
@@ -2040,7 +2205,7 @@ RunSPCA.default <- function(
   npcs = 50,
   reduction.key = "SPC_",
   graph = NULL,
-  verbose = TRUE,
+  verbose = FALSE,
   seed.use = 42,
   ...
 ) {
@@ -2049,7 +2214,7 @@ RunSPCA.default <- function(
   }
   npcs <- min(npcs, nrow(x = object) - 1)
   if (verbose) {
-    message("Matrix multiplication")
+    message("Computing sPCA transformation")
   }
   HSIC <- object %*% graph %*% t(x = object)
   pca.results <- irlba(A = HSIC, nv = npcs)
