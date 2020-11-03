@@ -20,7 +20,7 @@ Additional_repositories: https://mojaveazure.github.io/loomR
 Remotes: jlmelville/uwot
 Depends:
     R (>= 3.6.0),
-    methods,
+    methods
 Imports:
     cluster,
     cowplot,
