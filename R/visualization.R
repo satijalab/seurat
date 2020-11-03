@@ -563,7 +563,7 @@ VlnPlot <- function(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -5519,6 +5519,7 @@ ExIPlot <- function(
     )
   }
   data <- FetchData(object = object, vars = features, slot = slot)
+  pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
