@@ -1553,11 +1553,9 @@ MapQuery <- function(
       ), integrateembeddings.args
     )
   )
+  slot(object = query, name = "tools")$TransferData <- NULL
+
   if (!is.null(x = reduction.model)) {
-    umap.model <- Misc(object = Reductions(object = reference, 
-                                           slot = reduction.model),
-                                           slot = "model")
-    if (is.null(umap.model$nn_index)) {
     query <- do.call(
       what = ProjectUMAP,
       args = c(list(
@@ -1568,17 +1566,7 @@ MapQuery <- function(
         reduction.model = reduction.model
         ), projectumap.args
       )
-    )} else {
-      query <- RunUMAP(object = query, 
-                       reduction.model = reference[[reduction.model]], 
-                       reduction = new.reduction.name, 
-                       dims = 1:ncol(query[[ new.reduction.name]]@cell.embeddings), 
-                       reduction.key = "refUMAP_",
-                       reduction.name = "ref.umap" )
-      
-    }
-    
-    
+    ) 
   }
   return(query)
 }
