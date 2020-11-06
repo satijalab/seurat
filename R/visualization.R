@@ -6610,7 +6610,7 @@ SetHighlight <- function(
   plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
   plot.order[is.na(x = plot.order)] <- 'Unselected'
   highlight[is.na(x = highlight)] <- 'Unselected'
-  highlight <- as.factor(x = highlight)
+  highlight <- factor(x = highlight, levels = plot.order)
   return(list(
     plot.order = plot.order,
     highlight = highlight,
