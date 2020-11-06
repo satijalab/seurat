@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix image selection in interactive spatial plots
 - Update Rcpp functions with `export(rng=FALSE)` to avoid potential future warnings
 - Fix RenameCells bug for integrated SCT assays
+- Fix highlight order with proper factor levels when using `SetHighlight` in plots
 
 ## [3.2.2] - 2020-09-25
 ### Changes
