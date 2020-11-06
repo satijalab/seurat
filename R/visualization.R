@@ -7160,11 +7160,12 @@ SingleExIPlot <- function(
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
-        jitter <- geom_jitter(height = 0, size = pt.size)
+        jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
       } else {
         jitter <- geom_jitter(
           position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-          size = pt.size
+          size = pt.size,
+          show.legend = FALSE
         )
       }
       log.scale <- scale_y_log10()
@@ -7181,7 +7182,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size)
+      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)
