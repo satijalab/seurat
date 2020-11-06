@@ -799,6 +799,7 @@ DimPlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   object[['ident']] <- Idents(object = object)
   orig.groups <- group.by
+  title <- !is.null(x = group.by)
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   for (group in group.by) {
@@ -851,12 +852,11 @@ DimPlot <- function(
             }
           )
       }
-      plot <- if (length(x = group.by) == 1) {
-        plot + labs(title = NULL)
-      } else {
+      plot <- if (isTRUE(x = title)) {
         plot + CenterTitle()
+      } else {
+        plot + labs(title = NULL)
       }
-      return(plot)
     }
   )
   if (!is.null(x = split.by)) {
