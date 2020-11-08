@@ -799,9 +799,9 @@ DimPlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   object[['ident']] <- Idents(object = object)
   orig.groups <- group.by
-  title <- !is.null(x = group.by)
   group.by <- group.by %||% 'ident'
-  data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
+  data <- cbind(data, object[[group.by]][cells, , drop = FALSE])
+  group.by <- colnames(x = data)[3:ncol(x = data)]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
@@ -852,10 +852,10 @@ DimPlot <- function(
             }
           )
       }
-      plot <- if (isTRUE(x = title)) {
-        plot + CenterTitle()
-      } else {
+      plot <- if (is.null(x = orig.groups)) {
         plot + labs(title = NULL)
+      } else {
+        plot + CenterTitle()
       }
     }
   )
