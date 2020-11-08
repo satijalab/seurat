@@ -8,7 +8,7 @@ VlnPlot(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
