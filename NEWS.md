@@ -3,6 +3,9 @@ All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+### Added
+- Titles added to `DimPlot` when specifying `group.by` parameter
+
 ### Changes
 - `Same` deprecated in favor of `base::identity`
 - Fix in `DietSeurat` to work with specialized `Assay` objects
