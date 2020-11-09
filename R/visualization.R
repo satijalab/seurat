@@ -203,7 +203,7 @@ DimHeatmap <- function(
 #' @importFrom stats median
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
-#' ggplot_build aes_string
+#' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
 #'
@@ -744,7 +744,7 @@ ColorDimSplit <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom rlang !!
-#' @importFrom ggplot2 facet_wrap vars sym
+#' @importFrom ggplot2 facet_wrap vars sym labs
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
@@ -800,7 +800,8 @@ DimPlot <- function(
   object[['ident']] <- Idents(object = object)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
-  data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
+  data <- cbind(data, object[[group.by]][cells, , drop = FALSE])
+  group.by <- colnames(x = data)[3:ncol(x = data)]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
@@ -851,7 +852,11 @@ DimPlot <- function(
             }
           )
       }
-      return(plot)
+      plot <- if (is.null(x = orig.groups)) {
+        plot + labs(title = NULL)
+      } else {
+        plot + CenterTitle()
+      }
     }
   )
   if (!is.null(x = split.by)) {
@@ -1216,7 +1221,8 @@ FeaturePlot <- function(
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
         theme_cowplot() +
-        theme(plot.title = element_text(hjust = 0.5))
+        CenterTitle()
+        # theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
         plot <- LabelClusters(
@@ -4755,6 +4761,17 @@ SeuratTheme <- function() {
   return(DarkTheme() + NoLegend() + NoGrid() + SeuratAxes())
 }
 
+#' @importFrom ggplot2 theme element_text
+#'
+#' @rdname SeuratTheme
+#' @export
+#'
+#' @aliases CenterTitle
+#'
+CenterTitle <- function(...) {
+  return(theme(plot.title = element_text(hjust = 0.5), validate = TRUE, ...))
+}
+
 #' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_rect element_text element_line margin
@@ -6838,8 +6855,8 @@ SingleCorPlot <- function(
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string labs geom_text guides
-#'  scale_color_brewer scale_color_manual element_rect guide_legend discrete_scale
+#' @importFrom ggplot2 ggplot aes_string labs guides scale_color_brewer
+#' scale_color_manual element_rect guide_legend discrete_scale
 #'
 SingleDimPlot <- function(
   data,
@@ -6943,7 +6960,8 @@ SingleDimPlot <- function(
       size = pt.size
     ) +
     guides(color = guide_legend(override.aes = list(size = 3))) +
-    labs(color = NULL)
+    labs(color = NULL, title = col.by) +
+    CenterTitle()
   if (label && !is.null(x = col.by)) {
     plot <- LabelClusters(
       plot = plot,
