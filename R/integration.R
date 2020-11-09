@@ -762,6 +762,41 @@ FindTransferAnchors <- function(
       verbose = verbose
     )
   }
+  if (reduction == "lsiproject") {
+    if (!is.na(k.filter)) {
+      k.filter <- NA
+      message("Anchor filtration not supported with lsiproject, skipping filtration")
+    }
+    if (project.query) {
+      projected.lsi <- ProjectLSI(
+        reference = query[[reference.reduction]],
+        data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
+        verbose = verbose
+      )
+      orig.embeddings <- Embeddings(object = query[[reference.reduction]])
+      orig.loadings <- Loadings(object = query[[reference.reduction]])
+    } else {
+      projected.lsi <- ProjectLSI(
+        reduction = reference[[reference.reduction]],
+        data = GetAssayData(object = query, assay = query.assay, slot = "data"),
+        verbose = verbose
+      )
+      orig.embeddings <- Embeddings(object = reference[[reference.reduction]])
+      orig.loadings <- Loadings(object = reference[[reference.reduction]])
+    }
+    combined.lsi <- CreateDimReducObject(
+      embeddings = as.matrix(x = rbind(orig.embeddings, projected.lsi)),
+      key = "ProjectLSI_",
+      assay = reference.assay
+    )
+    combined.ob <- merge(
+      x = DietSeurat(object = reference),
+      y = DietSeurat(object = query)
+    )
+    combined.ob[["lsiproject"]] <- combined.lsi
+    colnames(x = orig.loadings) <- paste0("ProjectLSI_", 1:ncol(x = orig.loadings))
+    Loadings(object = combined.ob[["lsiproject"]]) <- orig.loadings
+  }
   if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
@@ -3788,6 +3823,59 @@ ProjectCellEmbeddings <- function(
   return(proj.pca)
 }
 
+# Project new data onto SVD
+# 
+# @param reduction A \code{DimReduc} object containing the SVD dimension
+# reduction
+# @param data A data matrix to project onto the SVD. Must contain the same
+# features used to construct the original SVD.
+# @param standardize Scale and center the projected cell embeddings using the mean and standard
+# deviation from the original SVD embeddings (left singular vectors).
+# @param use.original.stats When standardizing the vectors, use the mean and standard deviation
+# of the original vectors from the SVD, rather than the mean and standard deviation of the
+# projected vectors.
+# @param weight.by.sigma Weight components by the size of the singular values. Note that standardizing
+# the vectors will remove the effect of weighting by the singular values.
+# @param dims A vector containing the dimensions to use in the projection. If NULL (default),
+# project to all dimensions in the input SVD.
+# @param verbose Display messages
+#
+# @return Returns a matrix
+#' @importFrom Matrix crossprod
+# @export
+ProjectLSI <- function(
+  reduction,
+  data,
+  standardize = TRUE,
+  use.original.stats = FALSE,
+  weight.by.sigma = FALSE,
+  dims = NULL,
+  verbose = TRUE
+) {
+  vt <- Loadings(object = reduction)
+  dims <- dims %||% seq_len(length.out = ncol(x = vt))
+  vt <- vt[, dims]
+  data <- data[rownames(x = vt), ]
+  if (verbose) {
+    message("Projecting new data onto SVD")
+  }
+  projected.u <- crossprod(x = vt, y = data)
+  if (weight.by.sigma) {
+    projected.u <- t(crossprod(x = projected.u, y = diag(components$sigma)))
+  }
+  if (standardize) {
+    if (use.original.stats) {
+      components <- slot(object = object, name = 'misc')
+      projected.u <- (projected.u - components$mean) / components$sd
+    } else {
+      embed.mean <- apply(X = projected.u, MARGIN = 1, FUN = mean)
+      embed.sd <- apply(X = projected.u, MARGIN = 1, FUN = sd)
+      projected.u <- (projected.u - embed.mean) / embed.sd
+    }
+  }
+  return(as.matrix(x = t(x = projected.u)))
+}
+
 # Calculate position along a defined reference range for a given vector of
 # numerics. Will range from 0 to 1.
 #
@@ -4166,8 +4254,8 @@ ValidateParams_FindTransferAnchors <- function(
     stop("We currently only support transfer between a single query and reference",
          call. = FALSE)
   }
-  if (!reduction %in% c("pcaproject", "cca")) {
-    stop("Please select either pcaproject or cca for the reduction parameter.",
+  if (!reduction %in% c("pcaproject", "cca", "lsiproject")) {
+    stop("Please select either pcaproject, cca, or lsiproject for the reduction parameter.",
          call. = FALSE)
   }
   if (reduction == "cca" && !is.null(x = reference.reduction)) {
@@ -4293,6 +4381,9 @@ ValidateParams_FindTransferAnchors <- function(
       }
     }
   } else {
+    if (reduction == "lsiproject") {
+      stop("Must supply a reference reduction if reduction='lsiproject'")
+    }
     mdim <- max(dims)
     if (npcs < mdim) {
       warning("npcs is smaller than the largest value requested by the dims ",
