@@ -72,6 +72,7 @@ NULL
 #' \itemize{
 #'   \item{cca: Canonical correlation analysis}
 #'   \item{rpca: Reciprocal PCA}
+#'   \item{rlsi: Reciprocal LSI}
 #' }
 #' @param l2.norm Perform L2 normalization on the CCA cell embeddings after
 #' dimensional reduction
@@ -136,7 +137,7 @@ FindIntegrationAnchors <- function(
   scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
   sct.clip.range = NULL,
-  reduction = c("cca", "rpca"),
+  reduction = c("cca", "rpca", "rlsi"),
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
@@ -152,6 +153,11 @@ FindIntegrationAnchors <- function(
   reduction <- match.arg(arg = reduction)
   if (reduction == "rpca") {
     reduction <- "pca"
+  }
+  if (reduction == "rlsi") {
+    reduction <- "lsi"
+    scale <- FALSE
+    k.filter <- NA
   }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
@@ -239,10 +245,10 @@ FindIntegrationAnchors <- function(
     )
   }
   nn.reduction <- reduction
-  # if using pca, only need to compute the internal neighborhood structure once
+  # if using pca or lsi, only need to compute the internal neighborhood structure once
   # for each dataset
   internal.neighbors <- list()
-  if (nn.reduction == "pca") {
+  if (nn.reduction %in% c("pca", "lsi")) {
     k.filter <- NA
     if (verbose) {
       message("Computing within dataset neighborhoods")
@@ -343,59 +349,46 @@ FindIntegrationAnchors <- function(
           object.pair
         },
         'pca' = {
-          common.features <- intersect(
-            x = rownames(x = Loadings(object = object.1[["pca"]])),
-            y = rownames(x = Loadings(object = object.2[["pca"]]))
-          )
-          common.features <- intersect(
-            x = common.features,
-            y = anchor.features
-          )
-          object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
-          projected.embeddings.1<- t(x = GetAssayData(object = object.1, slot = "scale.data")[common.features, ]) %*%
-            Loadings(object = object.2[["pca"]])[common.features, ]
-          object.pair[['projectedpca.1']] <- CreateDimReducObject(
-            embeddings = rbind(projected.embeddings.1, Embeddings(object = object.2[["pca"]])),
-            assay = DefaultAssay(object = object.1),
-            key = "projectedpca1_"
-          )
-          projected.embeddings.2 <- t(x = GetAssayData(object = object.2, slot = "scale.data")[common.features, ]) %*%
-            Loadings(object = object.1[["pca"]])[common.features, ]
-          object.pair[['projectedpca.2']] <- CreateDimReducObject(
-            embeddings = rbind(projected.embeddings.2, Embeddings(object = object.1[["pca"]])),
-            assay = DefaultAssay(object = object.2),
-            key = "projectedpca2_"
-          )
-          object.pair[["pca"]] <- CreateDimReducObject(
-            embeddings = rbind(
-              Embeddings(object = object.1[["pca"]]),
-              Embeddings(object = object.2[["pca"]])),
-            assay = DefaultAssay(object = object.1),
-            key = "pca_"
+          object.pair <- ReciprocalProject(
+            object.1 = object.1,
+            object.2 = object.2,
+            reduction = 'pca',
+            projected.name = 'projectedpca',
+            features = anchor.features,
+            standardize = FALSE,
+            slot = 'scale.data',
+            l2.norm = l2.norm,
+            verbose = verbose
           )
           reduction <- "projectedpca.1"
           reduction.2 <- "projectedpca.2"
-          if (l2.norm){
-            slot(object = object.pair[["projectedpca.1"]], name = "cell.embeddings") <- Sweep(
-              x = Embeddings(object = object.pair[["projectedpca.1"]]),
-              MARGIN = 2,
-              STATS = apply(X = Embeddings(object = object.pair[["projectedpca.1"]]), MARGIN = 2, FUN = sd),
-              FUN = "/"
-            )
-            slot(object = object.pair[["projectedpca.2"]], name = "cell.embeddings") <- Sweep(
-              x = Embeddings(object = object.pair[["projectedpca.2"]]),
-              MARGIN = 2,
-              STATS = apply(X = Embeddings(object = object.pair[["projectedpca.2"]]), MARGIN = 2, FUN = sd),
-              FUN = "/"
-            )
-            object.pair <- L2Dim(object = object.pair, reduction = "projectedpca.1")
-            object.pair <- L2Dim(object = object.pair, reduction = "projectedpca.2")
+          if (l2.norm) {
             reduction <- paste0(reduction, ".l2")
             reduction.2 <- paste0(reduction.2, ".l2")
           }
           object.pair
         },
-        stop("Invalid reduction parameter. Please choose either cca or rpca")
+        'lsi' = {
+          object.pair <- ReciprocalProject(
+            object.1 = object.1,
+            object.2 = object.2,
+            reduction = 'lsi',
+            projected.name = 'projectedlsi',
+            features = anchor.features,
+            standardize = FALSE,
+            slot = 'data',
+            l2.norm = l2.norm,
+            verbose = verbose
+          )
+          reduction <- "projectedlsi.1"
+          reduction.2 <- "projectedlsi.2"
+          if (l2.norm) {
+            reduction <- paste0(reduction, ".l2")
+            reduction.2 <- paste0(reduction.2, ".l2")
+          }
+          object.pair
+        },
+        stop("Invalid reduction parameter. Please choose either cca, rpca, or rlsi")
       )
       internal.neighbors <- internal.neighbors[c(i, j)]
       anchors <- FindAnchors(
@@ -436,6 +429,107 @@ FindIntegrationAnchors <- function(
                     command = command
   )
   return(anchor.set)
+}
+
+# Merge dataset and perform reciprocal SVD projection, adding new dimreducs
+# for each projection and the merged original SVDs.
+# 
+# @param object.1 First Seurat object to merge
+# @param object.2 Second Seurat object to merge
+# @param reduction Name of DimReduc to use. Must be an SVD-based DimReduc (eg, PCA or LSI)
+# so that the loadings can be used to project new embeddings. Must be present
+# in both input objects, with a substantial overlap in the features use to construct
+# the SVDs.
+# @param projected.name Name to store projected SVDs under (eg, "projectedpca")
+# @param features Features to use. Will subset the SVD loadings to use these features
+# before performing projection. Typically uses the anchor.features for integration.
+# @param standardize Scale and center projected SVD embeddings for each component.
+# @param slot Name of slot to pull data from. Should be scale.data for PCA and data for LSI
+# @param verbose Display messages
+# @return Returns a merged Seurat object with two projected SVDs (object.1 -> object.2, object.2 -> object.1)
+# and a merged SVD (needed for within-dataset neighbors)
+ReciprocalProject <- function(
+  object.1,
+  object.2,
+  reduction,
+  projected.name,
+  features,
+  standardize,
+  slot,
+  l2.norm,
+  verbose = TRUE
+) {
+  common.features <- intersect(
+    x = rownames(x = Loadings(object = object.1[[reduction]])),
+    y = rownames(x = Loadings(object = object.2[[reduction]]))
+  )
+  common.features <- intersect(
+    x = common.features,
+    y = features
+  )
+  object.pair <- merge(x = object.1, y = object.2, merge.data = TRUE)
+  data.1 <- GetAssayData(
+    object = object.1,
+    slot = slot
+  )
+  data.2 <- GetAssayData(
+    object = object.2,
+    slot = slot
+  )
+  proj.1 <- ProjectSVD(
+    reduction = object.2[[reduction]],
+    data = data.1,
+    features = common.features,
+    standardize = standardize,
+    use.original.stats = FALSE,
+    weight.by.sigma = FALSE,
+    verbose = verbose
+  )
+  proj.2 <- ProjectSVD(
+    reduction = object.1[[reduction]],
+    data = data.2,
+    features = common.features,
+    standardize = standardize,
+    use.original.stats = FALSE,
+    weight.by.sigma = FALSE,
+    verbose = verbose
+  )
+  reduction.dr.name.1 <- paste0(projected.name, ".1")
+  reduction.dr.name.2 <- paste0(projected.name, ".2")
+  object.pair[[reduction.dr.name.1]] <- CreateDimReducObject(
+    embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]])),
+    assay = DefaultAssay(object = object.1),
+    key = paste0(projected.name, "1_")
+  )
+  object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
+    embeddings = rbind(proj.2, Embeddings(object = object.1[[reduction]])),
+    assay = DefaultAssay(object = object.2),
+    key = paste0(projected.name, "2_")
+  )
+  object.pair[[reduction]] <- CreateDimReducObject(
+    embeddings = rbind(
+      Embeddings(object = object.1[[reduction]]),
+      Embeddings(object = object.2[[reduction]])),
+    assay = DefaultAssay(object = object.1),
+    key = paste0(projected.name, "_")
+  )
+  if (l2.norm){
+    slot(object = object.pair[[reduction.dr.name.1]], name = "cell.embeddings") <- Sweep(
+      x = Embeddings(object = object.pair[[reduction.dr.name.1]]),
+      MARGIN = 2,
+      STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.1]]), MARGIN = 2, FUN = sd),
+      FUN = "/"
+    )
+    slot(object = object.pair[[reduction.dr.name.2]], name = "cell.embeddings") <- Sweep(
+      x = Embeddings(object = object.pair[[reduction.dr.name.2]]),
+      MARGIN = 2,
+      STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.2]]), MARGIN = 2, FUN = sd),
+      FUN = "/"
+    )
+    object.pair <- L2Dim(object = object.pair, reduction = reduction.dr.name.1)
+    object.pair <- L2Dim(object = object.pair, reduction = reduction.dr.name.2)
+  }
+  return(object.pair)
 }
 
 #' Find transfer anchors
@@ -768,17 +862,23 @@ FindTransferAnchors <- function(
       message("Anchor filtration not supported with lsiproject, skipping filtration")
     }
     if (project.query) {
-      projected.lsi <- ProjectLSI(
+      projected.lsi <- ProjectSVD(
         reference = query[[reference.reduction]],
         data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
+        standardize = TRUE,
+        use.original.stats = FALSE,
+        weight.by.sigma = FALSE,
         verbose = verbose
       )
       orig.embeddings <- Embeddings(object = query[[reference.reduction]])
       orig.loadings <- Loadings(object = query[[reference.reduction]])
     } else {
-      projected.lsi <- ProjectLSI(
+      projected.lsi <- ProjectSVD(
         reduction = reference[[reference.reduction]],
         data = GetAssayData(object = query, assay = query.assay, slot = "data"),
+        standardize = TRUE,
+        use.original.stats = FALSE,
+        weight.by.sigma = FALSE,
         verbose = verbose
       )
       orig.embeddings <- Embeddings(object = reference[[reference.reduction]])
@@ -3571,7 +3671,7 @@ PairwiseIntegrateReference <- function(
       if (length(x = object.list) == 2) {
         weight.reduction <- list(NULL, weight.reduction)
       } else if (inherits(x = weight.reduction, what = "character")) {
-        weight.reduction <- rep(x = weight.reduction, times = length(x = object.list))
+        weight.reduction <- as.list(x = rep(x = weight.reduction, times = length(x = object.list)))
       } else {
         stop("Invalid input for weight.reduction. Please specify either the names of the dimension",
              "reduction for each object in the list or provide DimReduc objects.")
@@ -3579,6 +3679,9 @@ PairwiseIntegrateReference <- function(
     }
     if (length(x = weight.reduction) != length(x = object.list)) {
       stop("Please specify a dimension reduction for each object, or one dimension reduction to be used for all objects")
+    }
+    if (inherits(x = weight.reduction, what = "character")) {
+      weight.reduction <- as.list(x = weight.reduction)
     }
     available.reductions <- lapply(X = object.list, FUN = FilterObjects, classes.keep = 'DimReduc')
     for (ii in 1:length(x = weight.reduction)) {
@@ -3829,11 +3932,13 @@ ProjectCellEmbeddings <- function(
 # reduction
 # @param data A data matrix to project onto the SVD. Must contain the same
 # features used to construct the original SVD.
+# @param features Features to use. If NULL, use all common features between
+# the dimreduc and the data matrix.
 # @param standardize Scale and center the projected cell embeddings using the mean and standard
 # deviation from the original SVD embeddings (left singular vectors).
 # @param use.original.stats When standardizing the vectors, use the mean and standard deviation
 # of the original vectors from the SVD, rather than the mean and standard deviation of the
-# projected vectors.
+# projected vectors. Assumes original irlba output is stored in the misc slot of the dimreduc.
 # @param weight.by.sigma Weight components by the size of the singular values. Note that standardizing
 # the vectors will remove the effect of weighting by the singular values.
 # @param dims A vector containing the dimensions to use in the projection. If NULL (default),
@@ -3843,10 +3948,11 @@ ProjectCellEmbeddings <- function(
 # @return Returns a matrix
 #' @importFrom Matrix crossprod
 # @export
-ProjectLSI <- function(
+ProjectSVD <- function(
   reduction,
   data,
-  standardize = TRUE,
+  features = NULL,
+  standardize = FALSE,
   use.original.stats = FALSE,
   weight.by.sigma = FALSE,
   dims = NULL,
@@ -3854,8 +3960,10 @@ ProjectLSI <- function(
 ) {
   vt <- Loadings(object = reduction)
   dims <- dims %||% seq_len(length.out = ncol(x = vt))
-  vt <- vt[, dims]
-  data <- data[rownames(x = vt), ]
+  features <- features %||% rownames(x = vt)
+  features <- intersect(x = features, y = rownames(x = data))
+  vt <- vt[features, dims]
+  data <- data[features, ]
   if (verbose) {
     message("Projecting new data onto SVD")
   }

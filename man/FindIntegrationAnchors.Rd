@@ -12,7 +12,7 @@ FindIntegrationAnchors(
   scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
   sct.clip.range = NULL,
-  reduction = c("cca", "rpca"),
+  reduction = c("cca", "rpca", "rlsi"),
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
@@ -63,6 +63,7 @@ be one of:
 \itemize{
   \item{cca: Canonical correlation analysis}
   \item{rpca: Reciprocal PCA}
+  \item{rlsi: Reciprocal LSI}
 }}
 
 \item{l2.norm}{Perform L2 normalization on the CCA cell embeddings after
