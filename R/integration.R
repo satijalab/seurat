@@ -4147,6 +4147,7 @@ RunIntegration <- function(
       } else {
         dr.weights <- query[[dr]]
       }
+      dims <- 1:ncol(x = dr.weights)
     }
     merged.obj <- FindWeights(
       object = merged.obj,
