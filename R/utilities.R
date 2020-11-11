@@ -1311,10 +1311,9 @@ LoadAnnoyIndex <- function(object, file){
 #'
 SaveAnnoyIndex <- function(
   object,
-  nn.index = NULL, 
   file
 ) {
-  index <- nn.index %||% Index(object = object)
+  index <- Index(object = object)
   if (is.null(x = index)) {
     stop("Index for provided Neighbor object is NULL")
   }
