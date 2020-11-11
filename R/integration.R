@@ -4838,6 +4838,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
       }
     }
     if (inherits(x = weight.reduction, what = "DimReduc")) {
+      weight.reduction <- RenameCells(object = weight.reduction, new.names = paste0(Cells(x = weight.reduction), "_query"))
       if (!isTRUE(all.equal(
         target = Cells(x = weight.reduction),
         current = Cells(x = query)
@@ -4845,6 +4846,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
         stop("Cell names in the provided weight.reduction  don't ",
              "match with the cell names in the query object.", call. = FALSE)
       }
+      ModifyParam(param = 'weight.reduction', value = weight.reduction)
     }
   }
 }
