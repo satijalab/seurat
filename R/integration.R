@@ -4819,14 +4819,20 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   ModifyParam(param = "dims.to.integrate", value = dims.to.integrate)
   if (isTRUE(x = reuse.weights.matrix)) {
     weights.matrix <- Tool(object = query, slot = "TransferData")$weights.matrix
-    if (nrow(x = weights.matrix) != nrow(x = slot(object = anchorset, name = "anchors"))) {
+    if (is.null(x = weights.matrix)) {
+      message("Requested to reuse weights matrix, but no weights found. Computing new weights.")
+      reuse.weights.matrix <- FALSE
+    } else if (nrow(x = weights.matrix) != nrow(x = slot(object = anchorset, name = "anchors"))) {
       stop("The number of anchors in the weights matrix stored in the query (",
            nrow(x = weights.matrix), ") doesn't match the number of anchors ",
            "in the anchorset (", nrow(x = slot(object = anchorset, name = "anchors")),
            ").", call. = FALSE)
+    } else {
+      ModifyParam(param = 'weights.matrix', value = weights.matrix)
     }
-    ModifyParam(param = 'weights.matrix', value = weights.matrix)
-  } else {
+  }
+  # check T/F again due to possible modification in above
+  if (isFALSE(x = reuse.weights.matrix)) {
     if (k.weight > ncol(x = query)) {
       stop("k.weight (", k.weight, ") is set larger than the number of cells in ",
            "the query object (", ncol(x = query), "). Please choose a smaller ",
