@@ -4831,11 +4831,30 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
            "the query object (", ncol(x = query), "). Please choose a smaller ",
            "k.weight.", call. = FALSE)
     }
+    if (inherits(x = weight.reduction, what = "list")) {
+      if (length(x = weight.reduction) > 2) {
+        stop("Supplied too many dimension reduction objects for weight.reduction. ",
+             "Should supply a single DimReduc object.")
+      }
+      if (length(x = weight.reduction) == 2) {
+        # take the second element as the dimreduc to use for query
+        weight.reduction <- weight.reduction[[2]]
+      }
+    }
     if (inherits(x = weight.reduction, what = "character")) {
+      if (length(x = weight.reduction) > 2) {
+        stop("Supplied too many dimension reduction names for weight.reduction. ",
+             "Should supply the name of a single DimReduc present in the query.")
+      }
+      if (length(x = weight.reduction) == 2) {
+        # take the second element as the dimreduc to use for query
+        weight.reduction <- weight.reduction[[2]]
+      }
       if (!weight.reduction %in% Reductions(object = query)) {
         stop("The weight.reduction ", weight.reduction, " is not present in the ",
              "query object.", call. = FALSE)
       }
+      ModifyParam(param = 'weight.reduction', value = list(NULL, query[[weight.reduction]]))
     }
     if (inherits(x = weight.reduction, what = "DimReduc")) {
       weight.reduction <- RenameCells(object = weight.reduction, new.names = paste0(Cells(x = weight.reduction), "_query"))
@@ -4846,7 +4865,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
         stop("Cell names in the provided weight.reduction  don't ",
              "match with the cell names in the query object.", call. = FALSE)
       }
-      ModifyParam(param = 'weight.reduction', value = weight.reduction)
+      ModifyParam(param = 'weight.reduction', value = list(NULL, weight.reduction))
     }
   }
 }
