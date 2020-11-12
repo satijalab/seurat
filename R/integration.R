@@ -375,7 +375,7 @@ FindIntegrationAnchors <- function(
             reduction = 'lsi',
             projected.name = 'projectedlsi',
             features = anchor.features,
-            standardize = FALSE,
+            standardize = TRUE,
             slot = 'data',
             l2.norm = l2.norm,
             verbose = verbose
@@ -3713,6 +3713,9 @@ PairwiseIntegrateReference <- function(
     y = object.list[reference.objects[2:length(x = reference.objects)]]
   )
   names(x = object.list) <- as.character(-(1:length(x = object.list)))
+  if (!is.null(x = weight.reduction)) {
+    names(x = weight.reduction) <- names(x = object.list)
+  }
   if (verbose & (length(x = reference.objects) != length(x = object.list))) {
     message("Building integrated reference")
   }
@@ -3723,6 +3726,12 @@ PairwiseIntegrateReference <- function(
     if (!(preserve.order) & (length2 > length1)) {
       merge.pair <- rev(x = merge.pair)
       sample.tree[ii, ] <- as.numeric(merge.pair)
+    }
+    if (!is.null(x = weight.reduction)) {
+      # extract the correct dimreduc objects, in the correct order
+      weight.pair <- weight.reduction[merge.pair]
+    } else {
+      weight.pair <- NULL
     }
     object.1 <- DietSeurat(
       object = object.list[[merge.pair[1]]],
@@ -3765,7 +3774,7 @@ PairwiseIntegrateReference <- function(
       features.to.integrate = features.to.integrate,
       features = features,
       dims = dims,
-      weight.reduction = weight.reduction,
+      weight.reduction = weight.pair,
       do.cpp = do.cpp,
       k.weight = k.weight,
       sd.weight = sd.weight,
@@ -4138,6 +4147,7 @@ RunIntegration <- function(
       )
       dims <- 1:ncol(x = dr.weights)
     } else {
+      # need to match order of objects
       dr <- weight.reduction[[2]]
       if (!all(cells2 %in% rownames(x = dr))) {
         stop("Query cells not present in supplied DimReduc object. Set weight.reduction to a DimReduc object containing the query cells.")
@@ -4709,7 +4719,7 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
   if (!is.null(x = weight.reduction)) {
     if (inherits(x = weight.reduction, what = "character")) {
       if (length(x = weight.reduction) == 1) {
-        weight.reduction <- rep(x = weight.reduction, times = nobs)
+        weight.reduction <- as.list(x = rep(x = weight.reduction, times = nobs))
       }
       ModifyParam(param = 'weight.reduction', value = weight.reduction)
       for (i in 1:nobs) {
