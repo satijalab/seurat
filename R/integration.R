@@ -1658,7 +1658,7 @@ MapQuery <- function(
     warning("The following arguments in integrateembeddings.args are not valid: ",
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
-  integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
+  integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
     query <- do.call(
@@ -3985,6 +3985,7 @@ ProjectSVD <- function(
       components <- slot(object = object, name = 'misc')
       projected.u <- (projected.u - components$mean) / components$sd
     } else {
+      # TODO use sparse matrix stats here
       embed.mean <- apply(X = projected.u, MARGIN = 1, FUN = mean)
       embed.sd <- apply(X = projected.u, MARGIN = 1, FUN = sd)
       projected.u <- (projected.u - embed.mean) / embed.sd
