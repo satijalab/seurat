@@ -2572,6 +2572,13 @@ TransferData <- function(
       combined.ob <- L2Dim(object = combined.ob, reduction = 'pca')
     }
   }
+  if (!inherits(x = weight.reduction, what = "DimReduc") && weight.reduction == "lsi") {
+    if (!("lsi" %in% Reductions(object = query))) {
+      stop("Requested lsi for weight.reduction, but lsi not stored in query object.")
+    } else {
+      weight.reduction <- query[["lsi"]]
+    }
+  }
   if (inherits(x = weight.reduction, what = "DimReduc")) {
     weight.reduction <- RenameCells(
       object = weight.reduction,
@@ -4636,16 +4643,16 @@ ValidateParams_TransferData <- function(
   }
   ModifyParam(param = "refdata", value = refdata)
   if (!inherits(x = weight.reduction, "DimReduc")) {
-    if (!weight.reduction %in% c("pcaproject", "pca", "cca")) {
-      stop("Please provide one of pcaproject, pca, cca, or a custom DimReduc to ",
+    if (!weight.reduction %in% c("pcaproject", "pca", "cca", "lsiproject", "lsi")) {
+      stop("Please provide one of pcaproject, pca, cca, lsiproject, lsi or a custom DimReduc to ",
            "the weight.reduction parameter.", call. = FALSE)
     }
-    if (weight.reduction %in% c("pcaproject", "cca") &&
+    if (weight.reduction %in% c("pcaproject", "cca", "lsiproject") &&
         !weight.reduction %in% Reductions(object = combined.ob)) {
       stop("Specified weight.reduction (", weight.reduction, ") is not present ",
            "in the provided anchorset.", call. = FALSE)
     }
-    if (weight.reduction == "pca" && is.null(x = query)) {
+    if (weight.reduction %in% c("pca", "lsi") && is.null(x = query)) {
       stop("To use an internal PCA on the query only for weight.reduction, ",
            "please provide the query object.", call. = FALSE)
     }
@@ -4665,7 +4672,11 @@ ValidateParams_TransferData <- function(
     }
   }
   if (!is.null(x = query)) {
-    if (!isTRUE(x = all.equal(gsub(pattern = "_query", replacement = "", x = query.cells), Cells(x = query)))) {
+    if (!isTRUE(x = all.equal(
+      target = gsub(pattern = "_query", replacement = "", x = query.cells),
+      current = Cells(x = query),
+      check.attributes = FALSE)
+      )) {
       stop("Query object provided contains a different set of cells from the ",
            "query used to construct the AnchorSet provided.", call. = FALSE)
     }
@@ -4793,7 +4804,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   query.cells <- slot(object = anchorset, name = "query.cells")
   query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  if (!isTRUE(x = all.equal(target = query.cells, current = Cells(x = query)))) {
+  if (!isTRUE(x = all.equal(target = query.cells, current = Cells(x = query), check.attributes = FALSE))) {
     stop("The set of cells used as a query in the AnchorSet does not match ",
          "the set of cells provided in the query object.")
   }
