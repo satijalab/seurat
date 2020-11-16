@@ -3989,7 +3989,7 @@ ProjectSVD <- function(
   }
   if (standardize) {
     if (use.original.stats) {
-      components <- slot(object = object, name = 'misc')
+      components <- slot(object = reduction, name = 'misc')
       projected.u <- (projected.u - components$mean) / components$sd
     } else {
       # TODO use sparse matrix stats here
