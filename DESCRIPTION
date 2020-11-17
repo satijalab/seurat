@@ -65,7 +65,7 @@ Imports:
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.5)
+    uwot (>= 0.1.9)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
