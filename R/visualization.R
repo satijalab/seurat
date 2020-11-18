@@ -1436,7 +1436,7 @@ FeaturePlot <- function(
         slot = slot)
       max.feature.value <- max(feature.data)
       min.feature.value <- min(feature.data)
-      plots <- plots & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value))
+      plots <- suppressMessages(plots & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value)))
     }
   }
   return(plots)
