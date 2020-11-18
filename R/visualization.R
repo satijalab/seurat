@@ -948,7 +948,7 @@ FeaturePlot <- function(
   max.cutoff = NA,
   reduction = NULL,
   split.by = NULL,
-  keep.scale = FALSE,
+  keep.scale = TRUE,
   shape.by = NULL,
   slot = 'data',
   blend = FALSE,
