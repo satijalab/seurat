@@ -1152,7 +1152,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
   genomes <- names(x = infile)
   output <- list()
-  if (!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+  if (hdf5r::existsGroup(infile, 'matrix')) {
     # cellranger version 3
     if (use.names) {
       feature_slot <- 'features/name'
