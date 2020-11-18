@@ -211,6 +211,8 @@ FindClusters.Seurat <- function(
   return(object)
 }
 
+#' @param query Matrix of data to query against object. If missing, defaults to
+#' object.
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix; note, for objects of class \code{dist}, this parameter will
 #' be set automatically
@@ -227,6 +229,8 @@ FindClusters.Seurat <- function(
 #' annoy
 #' @param annoy.metric Distance metric for annoy. Options include: euclidean,
 #' cosine, manhattan, and hamming
+#' @param n.trees More trees gives higher precision when using annoy approximate
+#' nearest neighbor search
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
@@ -234,6 +238,8 @@ FindClusters.Seurat <- function(
 #' @param l2.norm Take L2Norm of the data
 #' @param cache.index Include cached index in returned Neighbor object
 #' (only relevant if return.neighbor = TRUE)
+#' @param index Precomputed index. Useful if querying new data against existing
+#' index to avoid recomputing.
 #'
 #' @importFrom RANN nn2
 #' @importFrom methods as
@@ -244,18 +250,21 @@ FindClusters.Seurat <- function(
 #'
 FindNeighbors.default <- function(
   object,
+  query = NULL,
   distance.matrix = FALSE,
   k.param = 20,
   return.neighbor = FALSE,
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
+  index = NULL,
   ...
 ) {
   CheckDots(...)
@@ -279,7 +288,9 @@ FindNeighbors.default <- function(
   }
   if (l2.norm) {
     object <- L2Norm(mat = object)
+    query <- query %iff% L2Norm(mat = query)
   }
+  query <- query %||% object
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
     if (verbose) {
@@ -287,18 +298,21 @@ FindNeighbors.default <- function(
     }
     nn.ranked <- NNHelper(
       data = object,
+      query = query,
       k = k.param,
       method = nn.method,
+      n.trees = n.trees,
       searchtype = "standard",
       eps = nn.eps,
       metric = annoy.metric,
-      cache.index = cache.index
+      cache.index = cache.index,
+      index = index
     )
     if (return.neighbor) {
       if (compute.SNN) {
         warning("The SNN graph is not computed if return.neighbor is TRUE.", call. = FALSE)
       }
-      return(list(nn = nn.ranked))
+      return(nn.ranked)
     }
     nn.ranked <- Indices(object = nn.ranked)
   } else {
@@ -348,6 +362,7 @@ FindNeighbors.Assay <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -365,6 +380,7 @@ FindNeighbors.Assay <- function(
     compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
     nn.method = nn.method,
+    n.trees = n.trees,
     annoy.metric = annoy.metric,
     nn.eps = nn.eps,
     verbose = verbose,
@@ -388,6 +404,7 @@ FindNeighbors.dist <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -405,6 +422,7 @@ FindNeighbors.dist <- function(
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
     nn.method = nn.method,
+    n.trees = n.trees,
     annoy.metric = annoy.metric,
     verbose = verbose,
     force.recalc = force.recalc,
@@ -442,6 +460,7 @@ FindNeighbors.Seurat <- function(
   compute.SNN = !return.neighbor,
   prune.SNN = 1/15,
   nn.method = "annoy",
+  n.trees = 50,
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
@@ -466,6 +485,7 @@ FindNeighbors.Seurat <- function(
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.method = nn.method,
+      n.trees = n.trees,
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
@@ -485,6 +505,7 @@ FindNeighbors.Seurat <- function(
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.method = nn.method,
+      n.trees = n.trees,
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
@@ -494,6 +515,9 @@ FindNeighbors.Seurat <- function(
       cache.index = cache.index,
       ...
     )
+  }
+  if (length(x = neighbor.graphs) == 1) {
+    neighbor.graphs <- list(nn = neighbor.graphs)
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
   for (ii in 1:length(x = graph.name)) {
@@ -909,7 +933,6 @@ FindSubCluster <- function(
   sub.graph <- as.Graph(x = object[[graph.name]][sub.cell, sub.cell])
   sub.clusters <- FindClusters(
     object = sub.graph,
-    graph.name = graph.name,
     resolution = resolution,
     algorithm = algorithm
   )
@@ -1130,7 +1153,7 @@ MultiModalNN <- function(
   query.cell.num <- nrow(x = query.reduction_embedding[[1]])
   reduction.num <- length(x = query.reduction_embedding)
   if (verbose) {
-    message("Finding multi-modal neighbors")
+    message("Finding multimodal neighbors")
   }
   redunction_nn <- my.lapply(
     X = 1:reduction.num,
@@ -1162,9 +1185,6 @@ MultiModalNN <- function(
       )
     }
   )
-  if (verbose) {
-    message("Calculating distance of multi-modal neighbors")
-  }
   # calculate euclidean distance of all neighbors
   nn_dist <- my.lapply(
     X = 1:reduction.num,
@@ -1221,73 +1241,104 @@ MultiModalNN <- function(
     FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
   )
   select_dist <- sqrt(x = (1 - select_dist) / 2)
-  rownames(x = select_nn) <- rownames(x = select_dist) <- Cells(x = query)
-  joint.nn <- list(select_nn, select_dist)
-  names(x = joint.nn) <- c("nn.idx", "nn.dists")
-  return(joint.nn)
+  weighted.nn <- Neighbor(
+    nn.idx = select_nn,
+    nn.dist = select_dist,
+    alg.info = list(),
+    cell.names = Cells(x = query)
+  )
+  return(weighted.nn)
 }
 
 
-#' Construct multimodal neighbors, KNN and SNN Graph
+#' Construct weighted nearest neighbor graph
 #'
-#' This function will construct multimodal neighbors, Kth Nearest Neighbors
-#' (KNN) and Shared Nearest Neighbor (SNN) Graphs. According to the input
-#' \code{modality.weight}, it constructs a cell-specific weighted joint kernel.
-#' Then, for each cell, it will find \code{knn.range}s individual modal
-#' neighbors, and get the union of those neighbors. Next, it will find
-#' \code{k.nn} multimodal neighbors by the weighted joint kernel. Given the set
-#' of multimodal neighbors, we construct its KNN and SNN Graph.
-#'
+#' This function will construct a weighted nearest neighbor (WNN) graph. For
+#' each cell, we identify the nearest neighbors based on a weighted combination 
+#' of two modalities. Takes as input two dimensional reductions, one computed for each modality.
+#' Other parameters are listed for debugging, but can be left as default values.
+
 #' @param object A Seurat object
-#' @param modality.weight A \code{\link{ModalityWeights}} object generated by
-#' \code{\link{FindModalityWeights}}
-#' @param k.nn the number of multi-modal neighbors computed
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when computing
-#' the neighborhood overlap for the SNN construction
-#' @param knn.graph.name The name of multimodal knn graph
-#' @param snn.graph.name The name of multimodal snn graph
-#' @param joint.nn.name The name of multimodal neighbors
-#' @param modality.weight.name The variable name of first modality weights
-#' stored in the meta.data.
+#' @param reduction.list A list of two dimensional reductions, one for each of the modalities to be integrated
+#' @param dims.list A list containing the dimensions for each reduction to use
+#' @param k.nn the number of multimodal neighbors to compute. 20 by default
+#' @param l2.norm Perform L2 normalization on the cell embeddings after
+#' dimensional reduction. TRUE by default.
+#' @param sd.scale  The scaling factor for kernel width. 1 by default
+#' @param cross.contant.list Constant used to avoid divide-by-zero errors. 1e-4 by default
+#' @param smooth Smoothing modality score across each individual modality
+#' neighbors. FALSE by default
+#' @param prune.SNN Cutoff not to discard edge in SNN graph 
+#' @param knn.graph.name Multimodal knn graph name
+#' @param snn.graph.name Multimodal snn graph name
+#' @param weighted.nn.name Multimodal neighbor object name
 #' @param knn.range The number of approximate neighbors to compute
+#' @param modality.weight A \code{\link{ModalityWeights}} object generated by
+#' \code{FindModalityWeights}
 #' @param weighted.graph Add consider neighbor distance as the edges to
 #' construct KNN graph
+#' @param return.intermediate Store intermediate results in misc
+#' @param modality.weight.name Variable name to store modality weight in object meta data
 #' @param verbose Print progress bars and output
 #'
-#' @return return an object containing multimodal KNN, SNN and neighbors
+#' @return Seurat object containing a nearest-neighbor object, KNN graph, and SNN graph - each based on a weighted combination of modalities.
 #' @export
 
 FindMultiModalNeighbors  <- function(
   object,
-  modality.weight = NULL,
-  k.nn = NULL,
-  prune.SNN = 1/15,
-  knn.graph.name = "jknn",
-  snn.graph.name = "jsnn",
-  joint.nn.name = "joint.nn",
-  modality.weight.name = "first.modality.weight",
+  reduction.list,
+  dims.list,
+  k.nn = 20,
+  l2.norm = TRUE,
+  sd.scale = 1,
+  cross.contant.list = list(1e-4, 1e-4),
+  smooth = FALSE,
   knn.range = 200,
+  knn.graph.name = "wknn",
+  snn.graph.name = "wsnn",
+  weighted.nn.name = "weighted.nn",
+  modality.weight = NULL,
+  prune.SNN = 1/15,
   weighted.graph = FALSE,
+  return.intermediate = FALSE,
+  modality.weight.name = NULL,
   verbose = TRUE
 ) {
+  if (is.null(x = modality.weight)) {
+    if (verbose) {
+      message("Calculating cell-specific modality weights")
+    }
+    modality.weight <- FindModalityWeights(
+      object = object,
+      reduction.list = reduction.list,
+      dims.list = dims.list,
+      k.nn = k.nn,
+      sd.scale = sd.scale,
+      l2.norm = l2.norm,
+      cross.contant.list = cross.contant.list,
+      smooth = smooth,
+      verbose = verbose
+   )
+  }
+  modality.weight.name <- modality.weight.name %||% paste0(DefaultAssay(object = object[[reduction.list[[1]]]]), ".weight")
   k.nn <- k.nn %||% slot(object = modality.weight, name = "params")$k.nn
   first.assay <- slot(object = modality.weight, name = "modality.assay")[1]
-  joint.nn <- MultiModalNN(
+  weighted.nn <- MultiModalNN(
     object = object,
     k.nn = k.nn,
     modality.weight = modality.weight,
     knn.range = knn.range,
     verbose = verbose
   )
-  select_nn <- joint.nn$nn.idx
-  select_nn_dist <- joint.nn$nn.dists
+  select_nn <- Indices(object = weighted.nn)
+  select_nn_dist <- Distances(object = weighted.nn)
   # compute KNN graph
   if (weighted.graph) {
     if (verbose) {
-      message("Constructing joint weighted knn graph")
+      message("Constructing multimodal KNN graph")
     }
-    joint.nn$nn.dists <- t(x = apply(
-      X = joint.nn$nn.dists,
+    select_nn_dist <- t(x = apply(
+      X = select_nn_dist,
       MARGIN = 1,
       FUN = function(x) log2(k.nn) * x / sum(x))
     )
@@ -1297,11 +1348,12 @@ FindMultiModalNeighbors  <- function(
       x = 1
     )
     for (i in 1:ncol(x = object)) {
-      nn.matrix[i, select_nn[i, ]] <- joint.nn$nn.dists[i, ]
+      nn.matrix[i, select_nn[i, ]] <- select_nn_dist[i, ]
+    slot(object = weighted.nn, name = "nn.dist") <- select_nn_dist
     }
   } else {
     if (verbose) {
-      message("Constructing multi-modal KNN graph")
+      message("Constructing multimodal KNN graph")
     }
     j <- as.numeric(x = t(x = select_nn ))
     i <- ((1:length(x = j)) - 1) %/% k.nn + 1
@@ -1321,7 +1373,7 @@ FindMultiModalNeighbors  <- function(
 
   # compute SNN graph
   if (verbose) {
-    message("Constructing multi-modal SNN graph")
+    message("Constructing multimodal SNN graph")
   }
   snn.matrix <- ComputeSNN(nn_ranked = select_nn, prune = prune.SNN)
   rownames(x = snn.matrix) <- colnames(x = snn.matrix) <- Cells(x = object)
@@ -1330,54 +1382,42 @@ FindMultiModalNeighbors  <- function(
   object[[snn.graph.name]] <- snn.matrix
 
   # add neighbors and modality weights
-  object@neighbors[[joint.nn.name]] <- joint.nn
-  object[[modality.weight.name]] <- modality.weight@first.modality.weight
+  object[[weighted.nn.name]] <- weighted.nn
+  object[[modality.weight.name]] <- slot(object = modality.weight, name = "first.modality.weight")
 
   # add command log
    modality.weight.command <- slot(object = modality.weight, name = "command")
    slot(object = modality.weight.command, name = "assay.used") <- first.assay
-   object[[modality.weight.command@name]] <- modality.weight.command
+   modality.weight.command.name <- slot(object = modality.weight.command, name = "name")
+   object[[modality.weight.command.name]] <- modality.weight.command
    command <- LogSeuratCommand(object = object, return.command = TRUE)
-   command@params$modality.weight  <- NULL
+   slot(object = command, name = "params")$modality.weight <- NULL
    slot(object = command, name = "assay.used") <- first.assay
-   object[[command@name]] <- command
+   command.name <- slot(object = command, name = "name")
+   object[[command.name]] <- command
+
+   if (return.intermediate) {
+     Misc(object = object, slot = "modality.weight") <- modality.weight
+   }
    return (object)
 }
 
 
-#' Calculate modality weights
-#'
-#' This function calculates cell-specific modality weights which are used to
-#' construct the multimodal kernel to find multimodal neighbors. It finds
-#' neighbors from each modality and performs within- and cross- modality
-#' prediction to calculate modality weights.
-#'
-#' @param object A Seurat object
-#' @param reduction.list A list of name of dimension reduction
-#' @param dims.list A list of number of dimensions to use
-#' @param k.nn How many neighbors (k) to use
-#' @param snn.far.nn Use SNN to find farthest neighbors to calculate
-#' the kernel width
-#' @param s.nn How many neighbors (k) to use from the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when computing
-#'  the neighborhood overlap for the SNN construction.
-#' @param l2.norm Perform L2 normalization on the cell embeddings after
-#' dimensional reduction
-#' @param sd.scale  The scaling factor for kernel width, and the default is 1.
-#' @param query A Seurat object used as the query when query and reference
-#' objects are different. snn.far.nn does not support for query object.
-#' @param cross.contant.list the minimal cross-modality prediction similarity
-#' used in the modality score calculation.
-#' @param sigma.idx Use sigma.idx-th neighbor's distance as the kernel width.
-#' When snn.far.nn is TRUE, this parameter is not used
-#' @param smooth Smoothing modality score across each individual modality
-#' neighbors.
-#' @param verbose Display messages
+# Calculate modality weights
+#
+# This function calculates cell-specific modality weights which are used to
+# in WNN analysis. 
+#' @inheritParams FindMultiModalNeighbors
+# @param object A Seurat object
+# @param snn.far.nn Use SNN farthest neighbors to calculate the kernel width
+# @param s.nn How many SNN neighbors to use in kernel width
+# @param sigma.idx Neighbor index used to calculate kernel width if snn.far.nn = FALSE
+# @importFrom pbapply pblapply
+# @return Returns a \code{ModalityWeights} object that can be used as input to
+# \code{\link{FindMultiModalNeighbors}}
+#
 #' @importFrom pbapply pblapply
-#' @return Returns a \code{ModalityWeights} object that can be used as input to
-#' \code{\link{FindMultiModalNeighbors}}
-#' @export
-#'
+#
 FindModalityWeights  <- function(
   object,
   reduction.list,
@@ -1457,8 +1497,8 @@ FindModalityWeights  <- function(
     nn.list <- lapply(
       X = nn.list,
       FUN = function(nn){
-        slot(object = nn, name = "nn.idx") <- Indices(object = nn)[, 1:knn]
-        slot(object = nn, name = "nn.dists") <- Distances(object = nn)[, 1:knn]
+        slot(object = nn, name = "nn.idx") <- Indices(object = nn)[, 1:k.nn]
+        slot(object = nn, name = "nn.dists") <- Distances(object = nn)[, 1:k.nn]
         return(nn)
       }
     )
@@ -1512,7 +1552,7 @@ FindModalityWeights  <- function(
   # calculate kernel width
   if (snn.far.nn) {
     if (verbose) {
-      message("Constructing SNN graphs for each modality by ", s.nn, " nearest neighbors")
+      message("Calculating kernel bandwidths")
     }
     snn.graph.list <- lapply(
       X = sigma.nn.list,
@@ -1525,9 +1565,6 @@ FindModalityWeights  <- function(
         return (snn.matrix)
       }
     )
-    if (verbose) {
-      message("Finding ", k.nn, " distant neighbors from snn graph")
-    }
     farthest_nn_dist <- my.lapply(
       X = 1:length(x = snn.graph.list),
       FUN = function(s) {

@@ -12,7 +12,7 @@ using namespace Rcpp;
 // [[Rcpp::depends(RcppProgress)]]
 
 typedef Eigen::Triplet<double> T;
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune) {
   std::vector<T> tripletList;
   int k = nn_ranked.cols();
@@ -37,7 +37,7 @@ Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune) 
   return SNN;
 }
 
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool display_progress){
   if (display_progress == true) {
     Rcpp::Rcerr << "Writing SNN as edge file" << std::endl;
@@ -59,7 +59,7 @@ void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool displa
 }
 
 // Wrapper function so that we don't have to go back into R before writing to file
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked,
                                             double prune, bool display_progress,
                                             String filename) {

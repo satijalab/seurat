@@ -14,7 +14,7 @@ RunSPCA(object, ...)
   npcs = 50,
   reduction.key = "SPC_",
   graph = NULL,
-  verbose = TRUE,
+  verbose = FALSE,
   seed.use = 42,
   ...
 )
@@ -58,14 +58,14 @@ using the variable features for the Assay.}
 Returns Seurat object with the SPCA calculation stored in the reductions slot
 }
 \description{
-Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel. 
+Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
 SPCA is used to capture a linear transformation which maximizes its dependency to
 the given cell-cell kernel. We use SNN graph as the kernel to supervise the linear
 matrix factorization.
 }
 \references{
-Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ. 
-Supervised principal component analysis: Visualization, classification and 
-regression on subspaces and submanifolds. 
+Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ.
+Supervised principal component analysis: Visualization, classification and
+regression on subspaces and submanifolds.
 Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{https://www.sciencedirect.com/science/article/pii/S0031320310005819?casa_token=AZMFg5OtPnAAAAAA:_Udu7GJ7G2ed1-XSmr-3IGSISUwcHfMpNtCj-qacXH5SBC4nwzVid36GXI3r8XG8dK5WOQui};
 }

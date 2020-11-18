@@ -203,7 +203,7 @@ DimHeatmap <- function(
 #' @importFrom stats median
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
-#' ggplot_build aes_string
+#' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
 #'
@@ -563,7 +563,7 @@ VlnPlot <- function(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -744,7 +744,7 @@ ColorDimSplit <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom rlang !!
-#' @importFrom ggplot2 facet_wrap vars sym
+#' @importFrom ggplot2 facet_wrap vars sym labs
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
@@ -800,7 +800,8 @@ DimPlot <- function(
   object[['ident']] <- Idents(object = object)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
-  data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
+  data <- cbind(data, object[[group.by]][cells, , drop = FALSE])
+  group.by <- colnames(x = data)[3:ncol(x = data)]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
@@ -851,7 +852,11 @@ DimPlot <- function(
             }
           )
       }
-      return(plot)
+      plot <- if (is.null(x = orig.groups)) {
+        plot + labs(title = NULL)
+      } else {
+        plot + CenterTitle()
+      }
     }
   )
   if (!is.null(x = split.by)) {
@@ -1216,7 +1221,8 @@ FeaturePlot <- function(
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
         theme_cowplot() +
-        theme(plot.title = element_text(hjust = 0.5))
+        CenterTitle()
+        # theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
         plot <- LabelClusters(
@@ -1650,6 +1656,94 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   runGadget(app = ui, server = server)
 }
 
+#' Highlight Neighbors in DimPlot
+#'
+#' It will color the query cells and the neighbors of the query cells in the
+#' DimPlot
+#'
+#' @inheritParams DimPlot
+#' @param nn.idx the neighbor index of all cells
+#' @param query.cells cells used to find their neighbors
+#' @param show.all.cells Show all cells or only query and neighbor cells
+#'
+#' @inherit DimPlot return
+#'
+#' @export
+#'
+NNPlot <- function(
+  object,
+  reduction,
+  nn.idx,
+  query.cells,
+  dims = 1:2,
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  sizes.highlight = 2,
+  pt.size = 1,
+  cols.highlight = c("#377eb8", "#e41a1c"),
+  na.value =  "#bdbdbd",
+  order = c("self", "neighbors", "other"),
+  show.all.cells = TRUE,
+  ...
+) {
+  if (inherits(x = nn.idx, what = 'Neighbor')) {
+    rownames(x = slot(object = nn.idx, name = 'nn.idx')) <- Cells(x = nn.idx)
+    nn.idx <- Indices(object = nn.idx)
+  }
+  if (length(x = query.cells) > 1) {
+    neighbor.cells <- apply(
+      X = nn.idx[query.cells, -1],
+      MARGIN = 2,
+      FUN = function(x) {
+        return(Cells(x = object)[x])
+      }
+    )
+  } else {
+    neighbor.cells <- Cells(x = object)[nn.idx[query.cells , -1]]
+  }
+  neighbor.cells <- as.vector(x = neighbor.cells)
+  neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
+  object[["nn.col"]] <- "other"
+  object[["nn.col"]][neighbor.cells, ] <- "neighbors"
+  object[["nn.col"]][query.cells, ] <- "self"
+  object$nn.col <- factor(
+    x = object$nn.col,
+    levels = c("self", "neighbors", "other")
+  )
+  if (!show.all.cells) {
+    object <- subset(
+      x = object,
+      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
+    )
+    nn.cols  <- c(rev(x = cols.highlight))
+    nn.pt.size <- sizes.highlight
+  } else {
+    highlight.info <- SetHighlight(
+      cells.highlight = c(query.cells, neighbor.cells),
+      cells.all = Cells(x = object),
+      sizes.highlight = sizes.highlight,
+      pt.size = pt.size,
+      cols.highlight = "red"
+    )
+    nn.cols  <- c(na.value, rev(x = cols.highlight))
+    nn.pt.size <- highlight.info$size
+  }
+  NN.plot <- DimPlot(
+    object = object,
+    reduction = reduction,
+    dims = dims,
+    group.by = "nn.col",
+    cols = nn.cols,
+    label = label,
+    order =  order,
+    pt.size = nn.pt.size ,
+    label.size = label.size,
+    repel = repel
+  )
+  return(NN.plot)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Scatter plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1720,6 +1814,7 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param plot.cor Display correlation in plot title
 #'
 #' @return A ggplot object
 #'
@@ -1745,7 +1840,8 @@ FeatureScatter <- function(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  plot.cor = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
@@ -1780,7 +1876,8 @@ FeatureScatter <- function(
         pt.size = pt.size,
         smooth = smooth,
         legend.title = 'Identity',
-        span = span
+        span = span,
+        plot.cor = plot.cor
       )
     }
   )
@@ -2813,6 +2910,12 @@ SpatialPlot <- function(
     stop("Please specific either group.by or features, not both.")
   }
   images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) == 0) {
+    images <- Images(object = object)
+  }
+  if (length(x = images) < 1) {
+    stop("Could not find any spatial image information")
+  }
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
@@ -2891,12 +2994,6 @@ SpatialPlot <- function(
     )
     colnames(x = data) <- features
     rownames(x = data) <- Cells(x = object)
-  }
-  if (length(x = images) == 0) {
-    images <- Images(object = object)
-  }
-  if (length(x = images) < 1) {
-    stop("Could not find any spatial image information")
   }
   features <- colnames(x = data)
   colnames(x = data) <- features
@@ -4755,6 +4852,17 @@ SeuratTheme <- function() {
   return(DarkTheme() + NoLegend() + NoGrid() + SeuratAxes())
 }
 
+#' @importFrom ggplot2 theme element_text
+#'
+#' @rdname SeuratTheme
+#' @export
+#'
+#' @aliases CenterTitle
+#'
+CenterTitle <- function(...) {
+  return(theme(plot.title = element_text(hjust = 0.5), validate = TRUE, ...))
+}
+
 #' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_rect element_text element_line margin
@@ -5428,6 +5536,7 @@ ExIPlot <- function(
     )
   }
   data <- FetchData(object = object, vars = features, slot = slot)
+  pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
@@ -6610,7 +6719,7 @@ SetHighlight <- function(
   plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
   plot.order[is.na(x = plot.order)] <- 'Unselected'
   highlight[is.na(x = highlight)] <- 'Unselected'
-  highlight <- as.factor(x = highlight)
+  highlight <- factor(x = highlight, levels = plot.order)
   return(list(
     plot.order = plot.order,
     highlight = highlight,
@@ -6693,7 +6802,8 @@ SingleCorPlot <- function(
   rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
-  span = NULL
+  span = NULL,
+  plot.cor = TRUE
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -6716,7 +6826,12 @@ SingleCorPlot <- function(
     }
     stop(msg, call. = FALSE)
   }
-  plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  if (plot.cor == TRUE){
+    plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  }
+  else(
+    plot.cor <- ""
+  )
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = rows.highlight,
@@ -6838,8 +6953,8 @@ SingleCorPlot <- function(
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string labs geom_text guides
-#'  scale_color_brewer scale_color_manual element_rect guide_legend discrete_scale
+#' @importFrom ggplot2 ggplot aes_string labs guides scale_color_brewer
+#' scale_color_manual element_rect guide_legend discrete_scale
 #'
 SingleDimPlot <- function(
   data,
@@ -6943,7 +7058,8 @@ SingleDimPlot <- function(
       size = pt.size
     ) +
     guides(color = guide_legend(override.aes = list(size = 3))) +
-    labs(color = NULL)
+    labs(color = NULL, title = col.by) +
+    CenterTitle()
   if (label && !is.null(x = col.by)) {
     plot <- LabelClusters(
       plot = plot,
@@ -7062,11 +7178,12 @@ SingleExIPlot <- function(
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
-        jitter <- geom_jitter(height = 0, size = pt.size)
+        jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
       } else {
         jitter <- geom_jitter(
           position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-          size = pt.size
+          size = pt.size,
+          show.legend = FALSE
         )
       }
       log.scale <- scale_y_log10()
@@ -7083,7 +7200,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size)
+      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)
@@ -7423,86 +7540,4 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
   # Restore original names
   colnames(x = data) <- df.names
   return(data)
-}
-
-
-
-#' Highlight Neighbors in DimPlot
-#' 
-#' It will color the query cells and the neighbors of the query cells in the
-#' DimPlot
-#' 
-#' @inheritParams DimPlot
-#' @param nn.idx the neighbor index of all cells
-#' @param query.cells cells used to find their neighbors
-#' @param show.all.cells Show all cells or only query and neighbor cells
-#' 
-#' @export
-#' 
-NNPlot <- function(
-  object,
-  reduction, 
-  nn.idx, 
-  query.cells,
-  dims = 1:2, 
-  label = FALSE,
-  label.size = 4,
-  repel = FALSE,
-  sizes.highlight = 2,
-  pt.size = 1,
-  cols.highlight = c("#377eb8", "#e41a1c"),
-  na.value =  "#bdbdbd",
-  order = c("self", "neighbors", "other"), 
-  show.all.cells = TRUE, 
-  ...
-) {
-  if (is.list(nn.idx)){
-    nn.idx <- nn.idx$nn.idx
-  }
-  if (length(x = query.cells) > 1) {
-    neighbor.cells <- apply(
-      X = nn.idx[query.cells, -1], 
-      MARGIN = 2, 
-      FUN = function(x) Cells(x = object)[x]
-    )
-  } else {
-    neighbor.cells <- Cells(x = object)[nn.idx[query.cells , -1]]
-  }
-  neighbor.cells <- as.vector(x = neighbor.cells)
-  neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
-  object[["nn.col"]] <- "other"
-  object[["nn.col"]][neighbor.cells, ] <- "neighbors" 
-  object[["nn.col"]][query.cells, ] <- "self" 
-  object[["nn.col"]] <- factor(x = object[["nn.col"]], levels = c("self", "neighbors", "other"))
-  if (!show.all.cells) {
-    object <- subset(
-      x = object, 
-      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
-    )
-   nn.cols  <- c(rev(x = cols.highlight))
-   nn.pt.size <- sizes.highlight
-  } else {
-    highlight.info <- SetHighlight(
-      cells.highlight = c(query.cells, neighbor.cells),
-      cells.all = Cells(x = object),
-      sizes.highlight = sizes.highlight,
-      pt.size = pt.size, 
-      cols.highlight = "red"
-    )
-    nn.cols  <- c(na.value, rev(x = cols.highlight))
-    nn.pt.size <- highlight.info$size
-  }
-  NN.plot <- DimPlot(
-    object = object,
-    reduction = reduction, 
-    dims = dims, 
-    group.by = "nn.col", 
-    cols = nn.cols, 
-    label = label, 
-    order =  order, 
-    pt.size = nn.pt.size ,
-    label.size = label.size, 
-    repel = repel 
-  )
-  return(NN.plot)
 }
