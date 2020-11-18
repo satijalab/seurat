@@ -896,6 +896,7 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
+#' @param keep.scale logical, whether to keep the color scale constant across split plots (default = FALSE)
 #' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
@@ -947,6 +948,7 @@ FeaturePlot <- function(
   max.cutoff = NA,
   reduction = NULL,
   split.by = NULL,
+  keep.scale = FALSE,
   shape.by = NULL,
   slot = 'data',
   blend = FALSE,
@@ -1426,6 +1428,15 @@ FeaturePlot <- function(
     }
     if (!is.null(x = legend) && legend == 'none') {
       plots <- plots & NoLegend()
+    }
+    if (keep.scale && !is.null(x = split.by)) {
+      feature.data <- FetchData(
+        object = object,
+        vars = features,
+        slot = slot)
+      max.feature.value <- max(feature.data)
+      min.feature.value <- min(feature.data)
+      plots <- plots & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value))
     }
   }
   return(plots)
