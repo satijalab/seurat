@@ -896,7 +896,7 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
-#' @param keep.scale logical, whether to keep the color scale constant across split plots (default = FALSE)
+#' @param keep.scale logical, whether to keep the color scale constant across split plots (default = TRUE)
 #' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
