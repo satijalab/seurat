@@ -590,6 +590,8 @@ GetResidual <- function(
 #'
 #' @inheritParams Read10X
 #' @inheritParams CreateSeuratObject
+#' @param data.dir Directory containing the H5 file specified by \code{filename}
+#' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
@@ -622,6 +624,10 @@ Load10X_Spatial <- function(
   to.upper = FALSE,
   ...
 ) {
+  if (length(x = data.dir) > 1) {
+    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    data.dir <- data.dir[1]
+  }
   data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
     rownames(x = data) <- toupper(x = rownames(x = data))
