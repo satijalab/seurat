@@ -15,10 +15,8 @@ Load10X_Spatial(
 )
 }
 \arguments{
-\item{data.dir}{Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv
-files provided by 10X. A vector or named vector can be given in order to load
-several data directories. If a named vector is given, the cell barcode names
-will be prefixed with the name.}
+\item{data.dir}{Directory containing the H5 file specified by \code{filename}
+and the image data in a subdirectory called \code{spatial}}
 
 \item{filename}{Name of H5 file containing the feature barcode matrix}
 
