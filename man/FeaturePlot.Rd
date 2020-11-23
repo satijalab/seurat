@@ -30,7 +30,8 @@ FeaturePlot(
   by.col = TRUE,
   sort.cell = NULL,
   interactive = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  raster = FALSE
 )
 }
 \arguments{
@@ -100,6 +101,8 @@ deprecated. Please use \code{order} instead.}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
+\item{raster}{Convert points to raster format, default is FALSE}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

@@ -910,6 +910,7 @@ DimPlot <- function(
 #' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
+#' @param raster Convert points to raster format, default is FALSE
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -962,7 +963,8 @@ FeaturePlot <- function(
   by.col = TRUE,
   sort.cell = NULL,
   interactive = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  raster = FALSE
 ) {
   # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
@@ -1219,7 +1221,8 @@ FeaturePlot <- function(
         pt.size = pt.size,
         cols = cols.use,
         shape.by = shape.by,
-        label = FALSE
+        label = FALSE,
+        raster = raster
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
