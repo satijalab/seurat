@@ -7353,7 +7353,7 @@ SingleRasterMap <- function(
 # @param na.value Color for spots with NA values
 
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot aes_string coord_fixed xlim ylim
+#' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
 #' coord_cartesian labs theme_void theme scale_fill_brewer
 #'
 SingleSpatialPlot <- function(
