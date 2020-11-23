@@ -22,7 +22,22 @@ as.loom(x, ...)
 \arguments{
 \item{x}{An object to convert to class \code{loom}}
 
+\item{...}{Ignored for now}
+
 \item{assay}{Assay to store in loom file}
+
+\item{filename}{The name of the new loom file}
+
+\item{max.size}{Set maximum chunk size in terms of memory usage, unused if \code{chunk.dims} is set;
+may pass a character string (eg. \code{3gb}, \code{1200mb}) or exact value in bytes}
+
+\item{chunk.dims}{Matrix chunk dimensions; auto-determined by default}
+
+\item{chunk.size}{Maximum number of cells read/written to disk at once; auto-determined by default}
+
+\item{overwrite}{Overwrite an already existing loom file?}
+
+\item{verbose}{Display a progress bar}
 }
 \description{
 Convert objects to loom objects
