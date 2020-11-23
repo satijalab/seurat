@@ -21,7 +21,8 @@ DotPlot(
   scale = TRUE,
   scale.by = "radius",
   scale.min = NA,
-  scale.max = NA
+  scale.max = NA,
+  rasterize = FALSE
 )
 }
 \arguments{
@@ -67,6 +68,8 @@ based on given features, default is FALSE}
 \item{scale.min}{Set lower limit for scaling, use NA for default}
 
 \item{scale.max}{Set upper limit for scaling, use NA for default}
+
+\item{rasterize}{Convert points to raster format, default is FALSE}
 }
 \value{
 A ggplot object

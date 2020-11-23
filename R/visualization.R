@@ -739,6 +739,7 @@ ColorDimSplit <- function(
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
+#' @param rasterize Convert points to raster format, default is FALSE
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -783,7 +784,8 @@ DimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50',
   ncol = NULL,
-  combine = TRUE
+  combine = TRUE,
+  rasterize = FALSE
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -828,7 +830,8 @@ DimPlot <- function(
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
         sizes.highlight = sizes.highlight,
-        na.value = na.value
+        na.value = na.value,
+        rasterize = rasterize
       )
       if (label) {
         plot <- LabelClusters(
@@ -3253,15 +3256,17 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
+#' @param rasterize Convert points to raster format, default is FALSE
 #'
 #' @return A ggplot object
 #'
 #' @importFrom grDevices colorRampPalette
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point
+#' @importFrom ggplot2 ggplot aes_string geom_point scale_size scale_radius
 #' theme element_blank labs scale_color_identity scale_color_distiller
 #' scale_color_gradient guides guide_legend guide_colorbar
 #' facet_grid unit
+#' @importFrom scattermore geom_scattermore
 #' @importFrom stats dist hclust
 #' @importFrom RColorBrewer brewer.pal.info
 #'
@@ -3292,7 +3297,8 @@ DotPlot <- function(
   scale = TRUE,
   scale.by = 'radius',
   scale.min = NA,
-  scale.max = NA
+  scale.max = NA,
+  rasterize = FALSE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -3449,9 +3455,13 @@ DotPlot <- function(
       levels = unique(x = feature.groups)
     )
   }
-  plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
-    geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
-    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
+  plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id'))
+  if (rasterize){
+    plot <- plot + geom_scattermore(mapping = aes_string(pointsize = 'pct.exp', color = color.by))
+  }  else{
+    plot <- plot + geom_point(mapping = aes_string(size = 'pct.exp', color = color.by))
+  }
+    plot <- plot + scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
     guides(size = guide_legend(title = 'Percent Expressed')) +
     labs(
@@ -5593,7 +5603,7 @@ FeaturePalettes <- list(
   'Seurat' = c('lightgrey', 'blue')
 )
 
-# Get colour aesththics from a plot for a certain geom
+# Get colour aesthetics from a plot for a certain geom
 #
 # @param plot A ggplot2 object
 # @param geom Geom class to filter to
@@ -5608,7 +5618,12 @@ GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
       return(class(x = layer$geom)[1])
     }
   )
+  # handle case where rasterize is set to True
+  if (geom == "GeomPoint" && "GeomScattermore" %in% geoms){
+    geom <- "GeomScattermore"
+  }
   geoms <- which(x = geoms == geom)
+
   if (!length(x = geoms)) {
     stop("Cannot find a geom of class ", geom)
   }
@@ -5675,7 +5690,12 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
       return(class(x = layer$geom)[1])
     }
   )
+  # handle case where rasterize is set to True
+  if (geom == "GeomPoint" && "GeomScattermore" %in% geoms){
+    geom <- "GeomScattermore"
+  }
   geoms <- which(x = geoms == geom)
+
   if (length(x = geoms) == 0) {
     stop("Cannot find a geom of class ", geom)
   }
@@ -6692,14 +6712,16 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param smooth Make a smoothed scatter plot
 # @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
+# @param rasterize Convert points to raster format, default is FALSE
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
 # #' @importFrom MASS kde2d
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
+#' @importFrom ggplot2 ggplot aes_string geom_point labs scale_color_brewer
 #' scale_color_manual guides stat_density2d aes scale_fill_continuous
+#' @importFrom scattermore geom_scattermore
 #'
 SingleCorPlot <- function(
   data,
@@ -6710,7 +6732,8 @@ SingleCorPlot <- function(
   rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
-  span = NULL
+  span = NULL,
+  rasterize = FALSE
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -6793,13 +6816,27 @@ SingleCorPlot <- function(
       guides(fill = FALSE)
   }
   if (!is.null(x = col.by)) {
-    plot <- plot + geom_point(
-      mapping = aes_string(color = 'colors'),
-      position = 'jitter',
-      size = pt.size
-    )
+    if (rasterize){
+      plot <- plot + geom_scattermore(
+        mapping = aes_string(color = 'colors'),
+        position = 'jitter',
+        pointsize = pt.size
+      )
+    } else{
+      plot <- plot + geom_point(
+        mapping = aes_string(color = 'colors'),
+        position = 'jitter',
+        size = pt.size
+      )
+    }
+
   } else {
-    plot <- plot + geom_point(position = 'jitter', size = pt.size)
+    if (rasterize){
+      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size)
+    } else {
+      plot <- plot + geom_point(position = 'jitter', size = pt.size)
+    }
+
   }
   if (!is.null(x = cols)) {
     cols.scale <- if (length(x = cols) == 1 && cols %in% rownames(x = brewer.pal.info)) {
@@ -6852,10 +6889,11 @@ SingleCorPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
+# @param rasterize Convert points to raster format, default is FALSE
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string labs guides scale_color_brewer
+#' @importFrom ggplot2 ggplot aes_string geom_point labs guides scale_color_brewer
 #' scale_color_manual element_rect guide_legend discrete_scale
 #'
 SingleDimPlot <- function(
@@ -6873,7 +6911,8 @@ SingleDimPlot <- function(
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
-  na.value = 'grey50'
+  na.value = 'grey50',
+  rasterize = FALSE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data)
   if (length(x = dims) != 2) {
@@ -6948,8 +6987,21 @@ SingleDimPlot <- function(
     )
     alpha.by <- NULL
   }
-  plot <- ggplot(data = data) +
-    geom_point(
+
+  plot <- ggplot(data = data)
+  if (rasterize){
+    plot <- plot + geom_scattermore(
+      mapping = aes_string(
+        x = dims[1],
+        y = dims[2],
+        color = paste0("`", col.by, "`"),
+        shape = shape.by,
+        alpha = alpha.by
+      ),
+      pointsize = pt.size
+    )
+  } else {
+    plot <- plot + geom_point(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
@@ -6958,7 +7010,9 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       size = pt.size
-    ) +
+    )
+  }
+  plot <- plot +
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL, title = col.by) +
     CenterTitle()
@@ -7299,7 +7353,7 @@ SingleRasterMap <- function(
 # @param na.value Color for spots with NA values
 
 #' @importFrom tibble tibble
-#' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
+#' @importFrom ggplot2 ggplot aes_string coord_fixed xlim ylim
 #' coord_cartesian labs theme_void theme scale_fill_brewer
 #'
 SingleSpatialPlot <- function(
