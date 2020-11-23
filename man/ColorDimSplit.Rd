@@ -67,7 +67,7 @@ groups in cells.highlight}
     \item{\code{ncol}}{Number of columns for display when combining plots}
     \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
-    \item{\code{rasterize}}{Convert points to raster format, default is FALSE}
+    \item{\code{raster}}{Convert points to raster format, default is FALSE}
   }}
 }
 \value{

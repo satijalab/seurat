@@ -32,7 +32,7 @@ DimPlot(
   na.value = "grey50",
   ncol = NULL,
   combine = TRUE,
-  rasterize = FALSE
+  raster = FALSE
 )
 
 PCAPlot(object, ...)
@@ -106,7 +106,7 @@ groups in cells.highlight}
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
-\item{rasterize}{Convert points to raster format, default is FALSE}
+\item{raster}{Convert points to raster format, default is FALSE}
 
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }
