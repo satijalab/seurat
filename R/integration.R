@@ -1561,6 +1561,8 @@ MapQuery <- function(
       ), integrateembeddings.args
     )
   )
+  slot(object = query, name = "tools")$TransferData <- NULL
+
   if (!is.null(x = reduction.model)) {
     query <- do.call(
       what = ProjectUMAP,
@@ -1572,7 +1574,7 @@ MapQuery <- function(
         reduction.model = reduction.model
         ), projectumap.args
       )
-    )
+    ) 
   }
   return(query)
 }
