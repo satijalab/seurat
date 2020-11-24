@@ -137,7 +137,7 @@ object <- ScaleData(object = object, features = rownames(x = object), verbose = 
 
 test_that("split.by option works", {
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-               GetAssayData(object = g1, slot = "scale.data"))  
+               GetAssayData(object = g1, slot = "scale.data"))
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
                GetAssayData(object = g2, slot = "scale.data"))
 })
@@ -147,7 +147,7 @@ g2 <- ScaleData(object = g2, features = rownames(x = g2), vars.to.regress = "nCo
 object <- ScaleData(object = object, features = rownames(x = object), verbose = FALSE, split.by = "group", vars.to.regress = "nCount_RNA")
 test_that("split.by option works with regression", {
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g1)],
-               GetAssayData(object = g1, slot = "scale.data"))  
+               GetAssayData(object = g1, slot = "scale.data"))
   expect_equal(GetAssayData(object = object, slot = "scale.data")[, Cells(x = g2)],
                GetAssayData(object = g2, slot = "scale.data"))
 })
@@ -214,7 +214,7 @@ downsampled.umis <- SampleUMI(
 )
 downsampled.umis.p.cell <- SampleUMI(
   data = GetAssayData(object = object, slot = "counts"),
-  max.umi = seq(50, 840, 10),
+  max.umi = seq(50, 1640, 20),
   verbose = FALSE,
   upsample = TRUE
 )
@@ -292,11 +292,11 @@ object <- suppressWarnings(SCTransform(object = object, verbose = FALSE))
 
 test_that("SCTransform wrapper works as expected", {
   expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 13.33038640)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 11.40288448)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 55.29678, tolerance = 1e6)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 11.74404, tolerance = 1e6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 123)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 129)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 28)
   expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
   expect_equal(slot(object = object[["SCT"]], name = "feature.attributes")["1_MS4A1", "detection_rate"], 0.15)
@@ -309,12 +309,12 @@ test_that("SCTransform wrapper works as expected", {
 object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE))
 test_that("SCTransform ncells param works", {
   expect_true("SCT" %in% names(object))
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 11.834969847)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 9.411835306)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[5]), 0)
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "data"))[1]), 55.29678, tolerance = 1e6)
   expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "data"))[5]), 11.74404, tolerance = 1e6)
-  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 121)
-  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 25)
+  expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[1]), 119)
+  expect_equal(as.numeric(rowSums(GetAssayData(object = object[["SCT"]], slot = "counts"))[5]), 26)
   expect_equal(length(VariableFeatures(object[["SCT"]])), 220)
   expect_equal(slot(object = object[["SCT"]], name = "feature.attributes")["1_MS4A1", "detection_rate"], 0.15)
   expect_equal(slot(object = object[["SCT"]], name = "feature.attributes")["1_MS4A1", "gmean"], 0.2027364, tolerance = 1e6)

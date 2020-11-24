@@ -5,8 +5,16 @@
 \alias{CellPlot}
 \title{Cell-cell scatter plot}
 \usage{
-CellScatter(object, cell1, cell2, features = NULL, highlight = NULL,
-  cols = NULL, pt.size = 1, smooth = FALSE)
+CellScatter(
+  object,
+  cell1,
+  cell2,
+  features = NULL,
+  highlight = NULL,
+  cols = NULL,
+  pt.size = 1,
+  smooth = FALSE
+)
 }
 \arguments{
 \item{object}{Seurat object}

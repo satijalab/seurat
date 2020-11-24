@@ -29,14 +29,18 @@ pbmc_small[['group']] <- sample(
   size = ncol(x = pbmc_small),
   replace = TRUE
 )
-plots <- FeaturePlot(
+plot1 <- FeaturePlot(
   object = pbmc_small,
-  features = c('MS4A1', 'FCN1'),
-  split.by = 'group',
-  combine = FALSE
+  features = 'MS4A1',
+  split.by = 'group'
+)
+plot2 <- FeaturePlot(
+  object = pbmc_small,
+  features = 'FCN1',
+  split.by = 'group'
 )
 CombinePlots(
-  plots = plots,
+  plots = list(plot1, plot2),
   legend = 'none',
   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 )

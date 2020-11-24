@@ -4,8 +4,16 @@
 \alias{MixingMetric}
 \title{Calculates a mixing metric}
 \usage{
-MixingMetric(object, grouping.var, reduction = "pca", dims = 1:2,
-  k = 5, max.k = 300, eps = 0, verbose = TRUE)
+MixingMetric(
+  object,
+  grouping.var,
+  reduction = "pca",
+  dims = 1:2,
+  k = 5,
+  max.k = 300,
+  eps = 0,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -25,8 +33,7 @@ MixingMetric(object, grouping.var, reduction = "pca", dims = 1:2,
 \item{verbose}{Displays progress bar}
 }
 \value{
-Returns a vector of values representing the entropy metric from each
-bootstrapped iteration.
+Returns a vector of values of the mixing metric for each cell
 }
 \description{
 Here we compute a measure of how well mixed a composite dataset is. To

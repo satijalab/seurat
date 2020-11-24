@@ -15,8 +15,7 @@ VariableFeatures(object, ...) <- value
 
 \method{VariableFeatures}{Assay}(object, selection.method = NULL, ...)
 
-\method{VariableFeatures}{Seurat}(object, assay = NULL,
-  selection.method = NULL, ...)
+\method{VariableFeatures}{Seurat}(object, assay = NULL, selection.method = NULL, ...)
 
 \method{VariableFeatures}{Assay}(object, ...) <- value
 

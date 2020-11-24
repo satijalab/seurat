@@ -9,20 +9,51 @@
 \usage{
 RunPCA(object, ...)
 
-\method{RunPCA}{default}(object, assay = NULL, npcs = 50,
-  rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
-  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
-  seed.use = 42, approx = TRUE, ...)
+\method{RunPCA}{default}(
+  object,
+  assay = NULL,
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "PC_",
+  seed.use = 42,
+  approx = TRUE,
+  ...
+)
 
-\method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
-  npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
-  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
-  seed.use = 42, ...)
+\method{RunPCA}{Assay}(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+)
 
-\method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
-  npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
-  ndims.print = 1:5, nfeatures.print = 30, reduction.name = "pca",
-  reduction.key = "PC_", seed.use = 42, ...)
+\method{RunPCA}{Seurat}(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
@@ -54,7 +85,10 @@ NULL will not set a seed.}
 
 \item{approx}{Use truncated singular value decomposition to approximate PCA}
 
-\item{features}{Features to compute PCA on}
+\item{features}{Features to compute PCA on. If features=NULL, PCA will be run
+using the variable features for the Assay. Note that the features must be present
+in the scaled data. Any requested features that are not scaled or have 0 variance
+will be dropped, and the PCA will be run using the remaining features.}
 
 \item{reduction.name}{dimensional reduction name,  pca by default}
 }

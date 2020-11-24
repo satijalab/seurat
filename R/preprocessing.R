@@ -109,9 +109,9 @@ CalculateBarcodeInflections <- function(
     }
   )$x
   ## workaround for aggregate behavior noted above
-  if (class(x = whichmin_list) == 'list') { # uneven lengths
+  if (is.list(x = whichmin_list)) { # uneven lengths
     is_inflection <- unlist(x = whichmin_list)
-  } else if (class(x = whichmin_list) == 'matrix') { # even lengths
+  } else if (is.matrix(x = whichmin_list)) { # even lengths
     is_inflection <- as.vector(x = t(x = whichmin_list))
   }
   tmp <- cbind(barcode_dist_sub, is_inflection)
@@ -153,104 +153,6 @@ CalculateBarcodeInflections <- function(
   return(object)
 }
 
-#' Convert a peak matrix to a gene activity matrix
-#'
-#' This function will take in a peak matrix and an annotation file (gtf) and collapse the peak
-#' matrix to a gene activity matrix. It makes the simplifying assumption that all counts in the gene
-#' body plus X kb up and or downstream should be attributed to that gene.
-#'
-#' @param peak.matrix Matrix of peak counts
-#' @param annotation.file Path to GTF annotation file
-#' @param seq.levels Which seqlevels to keep (corresponds to chromosomes usually)
-#' @param include.body Include the gene body?
-#' @param upstream Number of bases upstream to consider
-#' @param downstream Number of bases downstream to consider
-#' @param verbose Print progress/messages
-#'
-#' @importFrom future nbrOfWorkers
-#' @export
-#'
-CreateGeneActivityMatrix <- function(
-  peak.matrix,
-  annotation.file,
-  seq.levels = c(1:22, "X", "Y"),
-  include.body = TRUE,
-  upstream = 2000,
-  downstream = 0,
-  verbose = TRUE
-) {
-  if (!PackageCheck('GenomicRanges', error = FALSE)) {
-    stop("Please install GenomicRanges from Bioconductor.")
-  }
-  if (!PackageCheck('rtracklayer', error = FALSE)) {
-    stop("Please install rtracklayer from Bioconductor.")
-  }
-  # convert peak matrix to GRanges object
-  peak.df <- rownames(x = peak.matrix)
-  peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
-  peak.df <- as.data.frame(x = peak.df)
-  colnames(x = peak.df) <- c("chromosome", 'start', 'end')
-  peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
-  
-  # if any peaks start at 0, change to 1
-  # otherwise GenomicRanges::distanceToNearest will not work 
-  BiocGenerics::start(peaks.gr[BiocGenerics::start(peaks.gr) == 0, ]) <- 1
-
-  # get annotation file, select genes
-  gtf <- rtracklayer::import(con = annotation.file)
-  gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-  
-  # change seqlevelsStyle if not the same
-  if (!any(GenomeInfoDb::seqlevelsStyle(x = gtf) == GenomeInfoDb::seqlevelsStyle(x = peaks.gr))) {
-    GenomeInfoDb::seqlevelsStyle(gtf) <- GenomeInfoDb::seqlevelsStyle(peaks.gr)
-  }
-  gtf.genes <- gtf[gtf$type == 'gene']
-
-  # Extend definition up/downstream
-  if (include.body) {
-    gtf.body_prom <- Extend(x = gtf.genes, upstream = upstream, downstream = downstream)
-  } else {
-    gtf.body_prom <- SummarizedExperiment::promoters(x = gtf.genes, upstream = upstream, downstream = downstream)
-  }
-  gene.distances <- GenomicRanges::distanceToNearest(x = peaks.gr, subject = gtf.body_prom)
-  keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
-  peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
-  gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
-  
-  # Some GTF rows will not have gene_name attribute
-  # Replace it by gene_id attribute
-  gene.ids$gene_name[is.na(gene.ids$gene_name)] <- gene.ids$gene_id[is.na(gene.ids$gene_name)]
-  
-  peak.ids$gene.name <- gene.ids$gene_name
-  peak.ids <- as.data.frame(x = peak.ids)
-  peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
-  annotations <- peak.ids[, c('peak', 'gene.name')]
-  colnames(x = annotations) <- c('feature', 'new_feature')
-
-  # collapse into expression matrix
-  peak.matrix <- as(object = peak.matrix, Class = 'matrix')
-  all.features <- unique(x = annotations$new_feature)
-
-  if (nbrOfWorkers() > 1) {
-    mysapply <- future_sapply
-  } else {
-    mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
-  }
-  newmat <- mysapply(X = 1:length(x = all.features), FUN = function(x){
-    features.use <- annotations[annotations$new_feature == all.features[[x]], ]$feature
-    submat <- peak.matrix[features.use, ]
-    if (length(x = features.use) > 1) {
-      return(Matrix::colSums(x = submat))
-    } else {
-      return(submat)
-    }
-  })
-  newmat <- t(x = newmat)
-  rownames(x = newmat) <- all.features
-  colnames(x = newmat) <- colnames(x = peak.matrix)
-  return(as(object = newmat, Class = 'dgCMatrix'))
-}
-
 #' Demultiplex samples based on data from cell 'hashing'
 #'
 #' Assign sample-of-origin for each cell, annotate doublets.
@@ -262,7 +164,7 @@ CreateGeneActivityMatrix <- function(
 #' @param kfunc Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
 #' @param nsamples Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"
 #' @param nstarts nstarts value for k-means clustering (for kfunc = "kmeans"). 100 by default
-#' @param seed Sets the random seed
+#' @param seed Sets the random seed. If NULL, seed is not set
 #' @param verbose Prints the output
 #'
 #' @return The Seurat object with the following demultiplexed information stored in the meta data:
@@ -300,7 +202,9 @@ HTODemux <- function(
   seed = 42,
   verbose = TRUE
 ) {
-  set.seed(seed = seed)
+  if (!is.null(x = seed)) {
+    set.seed(seed = seed)
+  }
   #initial clustering
   assay <- assay %||% DefaultAssay(object = object)
   data <- GetAssayData(object = object, assay = assay)
@@ -462,6 +366,17 @@ GetResidual <- function(
   if (!inherits(x = object[[assay]], what = "SCTAssay")) {
     stop(assay, " assay was not generated by SCTransform")
   }
+  model.name <- ifelse(
+    test = "vst.set" %in% names(x = Misc(object = object[[assay]])),
+    yes = "vst.set",
+    no = "vst.out"
+  )
+  if (length(x = Misc(object = object[[assay]])[[model.name]]) == 0) {
+    warning("SCT model not present in assay")
+    return(object)
+  }
+  umi.assay <- umi.assay %||% Misc(object = object[[assay]], slot = "umi.assay")
+  umi.assay <- umi.assay %||% "RNA" # for object created in 3.1.1 or earlier, default to RNA
   if (replace.value) {
     new_features <- features
   } else {
@@ -485,74 +400,201 @@ GetResidual <- function(
         clip.range = clip.range,
         verbose = verbose
       )
-  } else {
-    # Calculate Pearson Residual from integrated object SCT assay
-    vst.set <- Misc(object = object[[assay]], slot = 'vst.set')
-    scale.data <- GetAssayData(
-      object = object,
-      assay = assay,
-      slot = "scale.data"
-    )
-    vst_set_genes <-  sapply(1:length(vst.set), function(x) rownames(vst.set[[x]]$model_pars_fit))
-    vst_set_genes <- Reduce(intersect, vst_set_genes)
-    diff_features <- setdiff(
-      x = new_features,
-      y = vst_set_genes
-    )
-    if (length(x = diff_features) !=0) {
-      warning(
-        "The following ", length(x = diff_features),
-        " features do not exist in all SCT models: ",
-        paste(diff_features, collapse = " ")
-      )
-    }
-    new_features <- intersect(
-      x = new_features,
-      y = vst_set_genes
-    )
-    if (length(new_features) != 0){
-    object <- SetAssayData(
-      object = object,
-      assay = assay,
-      slot = "scale.data",
-      new.data = scale.data[!rownames(x = scale.data) %in% new_features, , drop = FALSE]
-    )
-    new.scale.data <- matrix(nrow = length(new_features), ncol = 0)
-    rownames(x = new.scale.data) <- new_features
-    for (v in 1:length(x = vst.set)) {
-      vst_out <- vst.set[[v]]
-      # confirm that cells from SCT model also exist in the integrated object
-      cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
-      vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
-      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
-      object.v <- subset(x = object, cells = cells.v)
-      object.v <- GetResidualVstOut(
-        object = object.v,
+    } else {
+      # Calculate Pearson Residual from integrated object SCT assay
+      vst.set <- Misc(object = object[[assay]], slot = 'vst.set')
+      scale.data <- GetAssayData(
+        object = object,
         assay = assay,
-        umi.assay = umi.assay,
-        new_features = new_features,
-        vst_out = vst_out,
-        clip.range = clip.range,
-        verbose = verbose
+        slot = "scale.data"
       )
-      new.scale.data <- cbind(
-        new.scale.data,
-        GetAssayData(object = object.v, assay = assay, slot ="scale.data" )[new_features, , drop = FALSE]
+      vst_set_genes <-  sapply(1:length(vst.set), function(x) rownames(vst.set[[x]]$model_pars_fit))
+      vst_set_genes <- Reduce(intersect, vst_set_genes)
+      diff_features <- setdiff(
+        x = new_features,
+        y = vst_set_genes
       )
+      if (length(x = diff_features) != 0) {
+        warning(
+          "The following ", length(x = diff_features),
+          " features do not exist in all SCT models: ",
+          paste(diff_features, collapse = " ")
+        )
+      }
+      new_features <- intersect(
+        x = new_features,
+        y = vst_set_genes
+      )
+      if (length(new_features) != 0) {
+        object <- SetAssayData(
+          object = object,
+          assay = assay,
+          slot = "scale.data",
+          new.data = scale.data[!rownames(x = scale.data) %in% new_features, , drop = FALSE]
+        )
+        new.scale.data <- matrix(nrow = length(new_features), ncol = 0)
+        rownames(x = new.scale.data) <- new_features
+        for (v in 1:length(x = vst.set)) {
+          vst_out <- vst.set[[v]]
+          # confirm that cells from SCT model also exist in the integrated object
+          cells.v <- intersect(x = rownames(x = vst_out$cell_attr), y = Cells(x = object))
+          # TODO check this
+          if (length(x = cells.v) != 0) {
+            vst_out$cell_attr <- vst_out$cell_attr[cells.v, ]
+            vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = cells.v)
+            object.v <- subset(x = object, cells = cells.v)
+            object.v <- GetResidualVstOut(
+              object = object.v,
+              assay = assay,
+              umi.assay = umi.assay[[v]],
+              new_features = new_features,
+              vst_out = vst_out,
+              clip.range = clip.range,
+              verbose = verbose
+            )
+            new.scale.data <- cbind(
+              new.scale.data,
+              GetAssayData(
+                object = object.v,
+                assay = assay,
+                slot = "scale.data")[new_features, , drop = FALSE]
+            )
+          }
+        }
+        object <- SetAssayData(
+          object = object,
+          assay = assay,
+          slot = "scale.data",
+          new.data = rbind(
+            GetAssayData(object = object, slot = 'scale.data', assay = assay),
+            new.scale.data
+          )
+        )
+      }
     }
-    object <- SetAssayData(
-      object = object,
-      assay = assay,
-      slot = "scale.data",
-      new.data = rbind(
-        GetAssayData(object = object, slot = 'scale.data', assay = assay),
-        new.scale.data
-      )
-    )
-    }
-  }
   }
   return(object)
+}
+
+#' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
+#'
+#' @inheritParams Read10X
+#' @inheritParams CreateSeuratObject
+#' @param filename Name of H5 file containing the feature barcode matrix
+#' @param slice Name for the stored image of the tissue slice
+#' @param filter.matrix Only keep spots that have been determined to be over
+#' tissue
+#' @param to.upper Converts all feature names to upper case. Can be useful when
+#' analyses require comparisons between human and mouse gene names for example.
+#' @param ... Arguments passed to \code{\link{Read10X_h5}}
+#'
+#' @return A \code{Seurat} object
+#'
+#' @importFrom png readPNG
+#' @importFrom grid rasterGrob
+#' @importFrom jsonlite fromJSON
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show filtered_feature_bc_matrix.h5
+#' Load10X_Spatial(data.dir = data_dir)
+#' }
+#'
+Load10X_Spatial <- function(
+  data.dir,
+  filename = 'filtered_feature_bc_matrix.h5',
+  assay = 'Spatial',
+  slice = 'slice1',
+  filter.matrix = TRUE,
+  to.upper = FALSE,
+  ...
+) {
+  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+  if (to.upper) {
+    rownames(x = data) <- toupper(x = rownames(x = data))
+  }
+  object <- CreateSeuratObject(counts = data, assay = assay)
+  image <- Read10X_Image(
+    image.dir = file.path(data.dir, 'spatial'),
+    filter.matrix = filter.matrix
+  )
+  image <- image[Cells(x = object)]
+  DefaultAssay(object = image) <- assay
+  object[[slice]] <- image
+  return(object)
+}
+
+#' Load STARmap data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene name, qhull, and centroid files.
+#' @param counts.file name of file containing the counts matrix (csv)
+#' @param gene.file name of file containing the gene names (csv)
+#' @param qhull.file name of file containing the hull coordinates (tsv)
+#' @param centroid.file name of file containing the centroid positions (tsv)
+#' @param assay Name of assay to associate spatial data to
+#' @param image Name of "image" object storing spatial coordinates
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom methods new
+#' @importFrom utils read.csv read.table
+#'
+#' @seealso \code{\link{STARmap}}
+#'
+#' @export
+#'
+LoadSTARmap <- function(
+  data.dir,
+  counts.file = "cell_barcode_count.csv",
+  gene.file = "genes.csv",
+  qhull.file = "qhulls.tsv",
+  centroid.file = "centroids.tsv",
+  assay = "Spatial",
+  image = "image"
+) {
+  if (!dir.exists(paths = data.dir)) {
+    stop("Cannot find directory ", data.dir, call. = FALSE)
+  }
+  counts <- read.csv(
+    file = file.path(data.dir, counts.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  gene.names <- read.csv(
+    file = file.path(data.dir, gene.file),
+    as.is = TRUE,
+    header = FALSE
+  )
+  qhulls <- read.table(
+    file = file.path(data.dir, qhull.file),
+    sep = '\t',
+    col.names = c('cell', 'y', 'x'),
+    as.is = TRUE
+  )
+  centroids <- read.table(
+    file = file.path(data.dir, centroid.file),
+    sep = '\t',
+    as.is = TRUE,
+    col.names = c('y', 'x')
+  )
+  colnames(x = counts) <- gene.names[, 1]
+  rownames(x = counts) <- paste0('starmap', seq(1:nrow(x = counts)))
+  counts <- as.matrix(x = counts)
+  rownames(x = centroids) <- rownames(x = counts)
+  qhulls$cell <- paste0('starmap', qhulls$cell)
+  centroids <- as.matrix(x = centroids)
+  starmap <- CreateSeuratObject(counts = t(x = counts), assay = assay)
+  starmap[[image]] <- new(
+    Class = 'STARmap',
+    assay = assay,
+    coordinates = as.data.frame(x = centroids),
+    qhulls = qhulls
+  )
+  return(starmap)
 }
 
 #' Normalize raw data
@@ -577,10 +619,10 @@ GetResidual <- function(
 #' mat_norm
 #'
 LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   # call Rcpp function to normalize
@@ -611,7 +653,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #'
 #' @export
 #'
-#' @references \url{https://www.biorxiv.org/content/early/2018/08/08/387241}
+#' @references \url{https://www.biorxiv.org/content/10.1101/387241v1}
 #'
 #' @examples
 #' \dontrun{
@@ -721,6 +763,14 @@ MULTIseqDemux <- function(
 #' }
 #'
 ReadAlevinCsv <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -768,6 +818,14 @@ ReadAlevinCsv <- function(base.path) {
 #' }
 #'
 ReadAlevin <- function(base.path) {
+  .Deprecated(
+    new = "SeuratWrappers::ReadAlevin",
+    msg = paste(
+      "Reading data from Alevin files is being moved to SeuratWrappers",
+      "Details can be found at https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (!dir.exists(base.path)) {
     stop("Directory provided does not exist")
   }
@@ -815,6 +873,7 @@ ReadAlevin <- function(base.path) {
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #' @param unique.features Make feature names unique (default TRUE)
+#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -840,7 +899,12 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
+Read10X <- function(
+  data.dir = NULL,
+  gene.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+) {
   full.data <- list()
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
@@ -861,17 +925,17 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       matrix.loc <- addgz(s = matrix.loc)
     }
     if (!file.exists(barcode.loc)) {
-      stop("Barcode file missing")
+      stop("Barcode file missing. Expecting ", basename(path = barcode.loc))
     }
     if (!pre_ver_3 && !file.exists(features.loc) ) {
-      stop("Gene name or features file missing")
+      stop("Gene name or features file missing. Expecting ", basename(path = features.loc))
     }
     if (!file.exists(matrix.loc)) {
-      stop("Expression matrix file missing")
+      stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
-    if (all(grepl(pattern = "\\-1$", x = cell.names))) {
+    if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
         FUN = ExtractField,
@@ -927,7 +991,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       data <- lapply(
         X = lvls,
         FUN = function(l) {
-          return(data[data_types == l, ])
+          return(data[data_types == l, , drop = FALSE])
         }
       )
       names(x = data) <- lvls
@@ -1038,6 +1102,83 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   }
 }
 
+#' Load a 10X Genomics Visium Image
+#'
+#' @param image.dir Path to directory with 10X Genomics visium image data;
+#' should include files \code{tissue_lowres_iamge.png},
+#' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
+#' @param filter.matrix Filter spot/feature matrix to only include spots that
+#' have been determined to be over tissue.
+#' @param ... Ignored for now
+#'
+#' @return A \code{\link{VisiumV1}} object
+#'
+#' @importFrom png readPNG
+#' @importFrom jsonlite fromJSON
+#'
+#' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
+#'
+#' @export
+#'
+Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
+  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
+  scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
+  tissue.positions <- read.csv(
+    file = file.path(image.dir, 'tissue_positions_list.csv'),
+    col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
+    header = FALSE,
+    as.is = TRUE,
+    row.names = 1
+  )
+  if (filter.matrix) {
+    tissue.positions <- tissue.positions[which(x = tissue.positions$tissue == 1), , drop = FALSE]
+  }
+  unnormalized.radius <- scale.factors$fiducial_diameter_fullres * scale.factors$tissue_lowres_scalef
+  spot.radius <-  unnormalized.radius / max(dim(x = image))
+  return(new(
+    Class = 'VisiumV1',
+    image = image,
+    scale.factors = scalefactors(
+      spot = scale.factors$tissue_hires_scalef,
+      fiducial = scale.factors$fiducial_diameter_fullres,
+      hires = scale.factors$tissue_hires_scalef,
+      scale.factors$tissue_lowres_scalef
+    ),
+    coordinates = tissue.positions,
+    spot.radius = spot.radius
+  ))
+}
+
+#' Load Slide-seq spatial data
+#'
+#' @param coord.file Path to csv file containing bead coordinate positions
+#' @param assay Name of assay to associate image to
+#'
+#' @return A \code{\link{SlideSeq}} object
+#'
+#' @importFrom utils read.csv
+#'
+#' @seealso \code{\link{SlideSeq}}
+#'
+#' @export
+#'
+ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
+  if (!file.exists(paths = coord.file)) {
+    stop("Cannot find coord file ", coord.file, call. = FALSE)
+  }
+  slide.seq <- new(
+    Class = 'SlideSeq',
+    assay = assay,
+    coordinates = read.csv(
+      file = coord.file,
+      header = TRUE,
+      as.is = TRUE,
+      row.names = 1
+    )
+  )
+  return(slide.seq)
+}
+
 #' Normalize raw data to fractions
 #'
 #' Normalize count data to relative counts per cell by dividing by the total
@@ -1061,10 +1202,10 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' mat_norm
 #'
 RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
@@ -1073,6 +1214,114 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
   norm.data <- data
   norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
   return(norm.data)
+}
+
+#' Run the mark variogram computation on a given position matrix and expression
+#' matrix.
+#'
+#' Wraps the functionality of markvario from the spatstat package.
+#'
+#' @param spatial.location A 2 column matrix giving the spatial locations of
+#' each of the data points also in data
+#' @param data Matrix containing the data used as "marks" (e.g. gene expression)
+#' @param ... Arguments passed to markvario
+#'
+#' @importFrom spatstat markvario ppp
+#'
+#' @export
+#'
+RunMarkVario <- function(
+  spatial.location,
+  data,
+  ...
+) {
+  pp <- ppp(
+    x = spatial.location[, 1],
+    y = spatial.location[, 2],
+    xrange = range(spatial.location[, 1]),
+    yrange = range(spatial.location[, 2])
+  )
+  if (nbrOfWorkers() > 1) {
+    chunks <- nbrOfWorkers()
+    features <- rownames(x = data)
+    features <- split(
+      x = features,
+      f = ceiling(x = seq_along(along.with = features) / (length(x = features) / chunks))
+    )
+    mv <- future_lapply(X = features, FUN = function(x) {
+      pp[["marks"]] <- as.data.frame(x = t(x = data[x, ]))
+      markvario(X = pp, normalise = TRUE, ...)
+    })
+    mv <- unlist(x = mv, recursive = FALSE)
+    names(x = mv) <- rownames(x = data)
+  } else {
+    pp[["marks"]] <- as.data.frame(x = t(x = data))
+    mv <- markvario(X = pp, normalise = TRUE, ...)
+  }
+  return(mv)
+}
+
+#' Compute Moran's I value.
+#'
+#' Wraps the functionality of the Moran.I function from the ape package.
+#' Weights are computed as 1/distance.
+#'
+#' @param data Expression matrix
+#' @param pos Position matrix
+#' @param verbose Display messages/progress
+#'
+#' @importFrom stats dist
+#'
+#' @export
+#'
+RunMoransI <- function(data, pos, verbose = TRUE) {
+  mysapply <- sapply
+  if (verbose) {
+    message("Computing Moran's I")
+    mysapply <- pbsapply
+  }
+  Rfast2.installed <- PackageCheck("Rfast2", error = FALSE)
+  if (Rfast2.installed) {
+    MyMoran <- Rfast2::moranI
+  } else if (!PackageCheck('ape', error = FALSE)) {
+    stop(
+      "'RunMoransI' requires either Rfast2 or ape to be installed",
+      call. = FALSE
+    )
+  } else {
+    MyMoran <- ape::Moran.I
+    if (getOption('Seurat.Rfast2.msg', TRUE)) {
+      message(
+        "For a more efficient implementation of the Morans I calculation,",
+        "\n(selection.method = 'moransi') please install the Rfast2 package",
+        "\n--------------------------------------------",
+        "\ninstall.packages('Rfast2')",
+        "\n--------------------------------------------",
+        "\nAfter installation of Rfast2, Seurat will automatically use the more ",
+        "\nefficient implementation (no further action necessary).",
+        "\nThis message will be shown once per session"
+      )
+      options(Seurat.Rfast2.msg = FALSE)
+    }
+  }
+  pos.dist <- dist(x = pos)
+  pos.dist.mat <- as.matrix(x = pos.dist)
+  # weights as 1/dist^2
+  weights <- 1/pos.dist.mat^2
+  diag(x = weights) <- 0
+  results <- mysapply(X = 1:nrow(x = data), FUN = function(x) {
+    tryCatch(
+      expr = MyMoran(data[x, ], weights),
+      error = function(x) c(1,1,1,1)
+    )
+  })
+  pcol <- ifelse(test = Rfast2.installed, yes = 2, no = 4)
+  results <- data.frame(
+    observed = unlist(x = results[1, ]),
+    p.value = unlist(x = results[pcol, ])
+  )
+  rownames(x = results) <- rownames(x = data)
+  return(results)
 }
 
 #' Sample UMI
@@ -1105,24 +1354,23 @@ SampleUMI <- function(
 ) {
   data <- as(object = data, Class = "dgCMatrix")
   if (length(x = max.umi) == 1) {
-    return(
-      RunUMISampling(
-        data = data,
-        sample_val = max.umi,
-        upsample = upsample,
-        display_progress = verbose
-      )
+    new_data <- RunUMISampling(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
     )
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
+  } else {
+    new_data <- RunUMISamplingPerCell(
+      data = data,
+      sample_val = max.umi,
+      upsample = upsample,
+      display_progress = verbose
+    )
   }
-  new_data = RunUMISamplingPerCell(
-    data = data,
-    sample_val = max.umi,
-    upsample = upsample,
-    display_progress = verbose
-  )
-  dimnames(new_data) <- dimnames(data)
+  dimnames(x = new_data) <- dimnames(x = data)
   return(new_data)
 }
 
@@ -1140,7 +1388,8 @@ SampleUMI <- function(
 #' @param assay Name of assay to pull the count data from; default is 'RNA'
 #' @param new.assay.name Name for the new assay containing the normalized data
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
-#' @param ncells Number of subsampling cells used to build NB regression; default is NULL
+#' @param ncells Number of subsampling cells used to build NB regression; default is 5000
+#' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
@@ -1170,6 +1419,7 @@ SampleUMI <- function(
 #' @importFrom stats setNames
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
+#' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 #' @export
 #'
 #' @examples
@@ -1180,7 +1430,8 @@ SCTransform <- function(
   assay = 'RNA',
   new.assay.name = 'SCT',
   do.correct.umi = TRUE,
-  ncells = NULL,
+  ncells = 5000,
+  residual.features = NULL,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
@@ -1218,13 +1469,13 @@ SCTransform <- function(
   if (any(!vars.to.regress %in% colnames(x = cell.attr))) {
     stop('problem with second non-regularized linear regression; not all variables found in seurat object meta data; check vars.to.regress parameter')
   }
-  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
+  if (any(c('cell_attr', 'verbosity', 'return_cell_attr', 'return_gene_attr', 'return_corrected_umi') %in% names(x = vst.args))) {
     warning(
       'the following arguments will be ignored because they are set within this function:',
       paste(
         c(
           'cell_attr',
-          'show_progress',
+          'verbosity',
           'return_cell_attr',
           'return_gene_attr',
           'return_corrected_umi'
@@ -1237,13 +1488,18 @@ SCTransform <- function(
   }
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
-  vst.args[['show_progress']] <- verbose
+  vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
-  vst.args[['n_cells']] <- ncells
+  vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+  if (!is.null(residual.features)) {
+    do.correct.umi <- FALSE
+    vst.args[['return_corrected_umi']] <- FALSE
+    vst.args[['residual_type']] <- 'none'
+  }
   if (conserve.memory) {
     return.only.var.genes <- TRUE
   }
@@ -1260,6 +1516,14 @@ SCTransform <- function(
     vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
   } else {
     vst.out <- do.call(what = 'vst', args = vst.args)
+    if (!is.null(residual.features)) {
+      residual.features <- intersect(rownames(x = vst.out$gene_attr), residual.features)
+      residual.feature.mat <- get_residuals(vst_out = vst.out,
+                                            umi = umi[residual.features, , drop = FALSE]
+      )
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr <- NULL
+    }
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
       nm = rownames(x = vst.out$gene_attr)
@@ -1273,6 +1537,9 @@ SCTransform <- function(
     top.features <- names(x = feature.variance)[1:min(variable.features.n, length(x = feature.variance))]
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
+  }
+  if(!is.null(residual.features)){
+    top.features <- rownames(x = vst.out$y)
   }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
@@ -1292,7 +1559,7 @@ SCTransform <- function(
       vst.out$umi_corrected <- correct_counts(
         x = vst.out,
         umi = umi,
-        show_progress = verbose
+        verbosity = as.numeric(x = verbose) * 2
       )
     }
   }
@@ -1347,13 +1614,14 @@ SCTransform <- function(
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
+  Misc(object = assay.out, slot = 'umi.assay') <- assay
   # also put gene attributes in meta.features
   assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
   assay.out[['sct.variable']] <- rownames(x = assay.out[[]]) %in% top.features
   assay.out <- as(object = assay.out, Class = "SCTAssay")
   assay.out <- SCTAssay(assay.out, assay.orig = assay)
   object[[new.assay.name]] <- assay.out
-  
+
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
   }
@@ -1370,8 +1638,6 @@ SCTransform <- function(
 #' [BarcodeInflectionsPlot()] to visualize and test inflection point calculations.
 #'
 #' @param object Seurat object
-#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
-#'   recalculate the inflection points, else will use those already in `object`
 #'
 #' @return Returns a subsetted Seurat object.
 #'
@@ -1417,10 +1683,10 @@ SubsetByBarcodeInflections <- function(object) {
 #' mat_norm <- TF.IDF(data = mat)
 #'
 TF.IDF <- function(data, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
@@ -1695,6 +1961,176 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @param object A Seurat object, assay, or expression matrix
+#' @param spatial.location Coordinates for each cell/spot/bead
+#' @param selection.method Method for selecting spatially variable features.
+#'  \itemize{
+#'   \item \code{markvariogram}: See \code{\link{RunMarkVario}} for details
+#'   \item \code{moransi}: See \code{\link{RunMoransI}} for details.
+#' }
+#'
+#' @param r.metric r value at which to report the "trans" value of the mark
+#' variogram
+#' @param x.cuts Number of divisions to make in the x direction, helps define
+#' the grid over which binning is performed
+#' @param y.cuts Number of divisions to make in the y direction, helps define
+#' the grid over which binning is performed
+#' @param verbose Print messages and progress
+#'
+#' @method FindSpatiallyVariableFeatures default
+#' @rdname FindSpatiallyVariableFeatures
+#' @export
+#'
+#'
+FindSpatiallyVariableFeatures.default <- function(
+  object,
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  verbose = TRUE,
+  ...
+) {
+  # error check dimensions
+  if (ncol(x = object) != nrow(x = spatial.location)) {
+    stop("Please provide the same number of observations as spatial locations.")
+  }
+  if (!is.null(x = x.cuts) & !is.null(x = y.cuts)) {
+    binned.data <- BinData(
+      data = object,
+      pos = spatial.location,
+      x.cuts = x.cuts,
+      y.cuts = y.cuts,
+      verbose = verbose
+    )
+    object <- binned.data$data
+    spatial.location <- binned.data$pos
+  }
+  svf.info <- switch(
+    EXPR = selection.method,
+    'markvariogram' = RunMarkVario(
+      spatial.location = spatial.location,
+      data = object
+    ),
+    'moransi' = RunMoransI(
+      data = object,
+      pos = spatial.location,
+      verbose = verbose
+    ),
+    stop("Invalid selection method. Please choose one of: markvariogram, moransi.")
+  )
+  return(svf.info)
+}
+
+#' @param slot Slot in the Assay to pull data from
+#' @param features If provided, only compute on given features. Otherwise,
+#' compute for all features.
+#' @param nfeatures Number of features to mark as the top spatially variable.
+#'
+#' @method FindSpatiallyVariableFeatures Assay
+#' @rdname FindSpatiallyVariableFeatures
+#' @export
+#'
+FindSpatiallyVariableFeatures.Assay <- function(
+  object,
+  slot = "scale.data",
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  features = NULL,
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = nfeatures,
+  verbose = TRUE,
+  ...
+) {
+  features <- features %||% rownames(x = object)
+  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
+    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
+    features <- features[! features %in% features.computed]
+  }
+  data <- GetAssayData(object = object, slot = slot)
+  data <- as.matrix(x = data[features, ])
+  data <- data[RowVar(x = data) > 0, ]
+  if (nrow(x = data) != 0) {
+    svf.info <- FindSpatiallyVariableFeatures(
+      object = data,
+      spatial.location = spatial.location,
+      selection.method = selection.method,
+      r.metric = r.metric,
+      x.cuts = x.cuts,
+      y.cuts = y.cuts,
+      verbose = verbose,
+      ...
+    )
+  } else {
+    svf.info <- c()
+  }
+  if (selection.method == "markvariogram") {
+    if ("markvariogram" %in% names(x = Misc(object = object))) {
+      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+    }
+    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
+    svf.info <- ComputeRMetric(mv = svf.info, r.metric)
+    svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
+  }
+  if (selection.method == "moransi") {
+    colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
+    svf.info <- svf.info[order(svf.info[, 2], -abs(svf.info[, 1])), , drop = FALSE]
+  }
+  var.name <- paste0(selection.method, ".spatially.variable")
+  var.name.rank <- paste0(var.name, ".rank")
+  svf.info[[var.name]] <- FALSE
+  svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
+  svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
+  object[[names(x = svf.info)]] <- svf.info
+  return(object)
+}
+
+#' @param assay Assay to pull the features (marks) from
+#' @param image Name of image to pull the coordinates from
+#'
+#' @method FindSpatiallyVariableFeatures Seurat
+#' @rdname FindSpatiallyVariableFeatures
+#' @export
+#'
+FindSpatiallyVariableFeatures.Seurat <- function(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  features = NULL,
+  image = NULL,
+  selection.method = c('markvariogram', 'moransi'),
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = 2000,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% rownames(x = object[[assay]])
+  image <- image %||% DefaultImage(object = object)
+  tc <- GetTissueCoordinates(object = object[[image]])
+  # check if markvariogram has been run on necessary features
+  # only run for new ones
+  object[[assay]] <- FindSpatiallyVariableFeatures(
+    object = object[[assay]],
+    slot = slot,
+    features = features,
+    spatial.location = tc,
+    selection.method = selection.method,
+    r.metric = r.metric,
+    x.cuts = x.cuts,
+    y.cuts = y.cuts,
+    nfeatures = nfeatures,
+    verbose = verbose,
+    ...
+  )
+  object <- LogSeuratCommand(object = object)
+}
+
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
@@ -1952,13 +2388,13 @@ RunALRA.default <- function(
   sigma.1.2 <- sigma.2 / sigma.1
   toadd <- -1 * mu.1 * sigma.2 / sigma.1 + mu.2
   A.norm.rank.k.temp <- A.norm.rank.k.cor[, toscale]
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = sigma.1.2[toscale],
     FUN = "*"
   )
-  A.norm.rank.k.temp <- sweep(
+  A.norm.rank.k.temp <- Sweep(
     x = A.norm.rank.k.temp,
     MARGIN = 2,
     STATS = toadd[toscale],
@@ -2111,7 +2547,7 @@ RunALRA.Seurat <- function(
 
 #' @importFrom future nbrOfWorkers
 #'
-#' @param features Vector of features names to scale/center. Default is all features
+#' @param features Vector of features names to scale/center. Default is variable features.
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
@@ -2125,10 +2561,10 @@ RunALRA.Seurat <- function(
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
+#' Setting this can help reduce the effects of features that are only expressed in
 #' a very small number of cells. If regressing out latent variables and using a
 #' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
+#' @param block.size Default size for number of features to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
@@ -2184,6 +2620,21 @@ ScaleData.default <- function(
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
+    notfound <- setdiff(x = vars.to.regress, y = colnames(x = latent.data))
+    if (length(x = notfound) == length(x = vars.to.regress)) {
+      stop(
+        "None of the requested variables to regress are present in the object.",
+        call. = FALSE
+      )
+    } else if (length(x = notfound) > 0) {
+      warning(
+        "Requested variables to regress not in object: ",
+        paste(notfound, collapse = ", "),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      vars.to.regress <- colnames(x = latent.data)
+    }
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
@@ -2283,13 +2734,15 @@ ScaleData.default <- function(
         row <- chunks[index, ]
         group <- row[[1]]
         block <- as.vector(x = blocks[, as.numeric(x = row[[2]])])
-        data.scale <- scale.function(
+        arg.list <- list(
           mat = object[features[block[1]:block[2]], split.cells[[group]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
+        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+        data.scale <- do.call(what = scale.function, args = arg.list)
         dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], split.cells[[group]]])
         suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
         CheckGC()
@@ -2331,13 +2784,15 @@ ScaleData.default <- function(
       for (i in 1:max.block) {
         my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
         my.inds <- my.inds[my.inds <= length(x = features)]
-        data.scale <- scale.function(
+        arg.list <- list(
           mat = object[features[my.inds], split.cells[[x]], drop = FALSE],
           scale = do.scale,
           center = do.center,
           scale_max = scale.max,
           display_progress = FALSE
         )
+        arg.list <- arg.list[intersect(x = names(x = arg.list), y = names(x = formals(fun = scale.function)))]
+        data.scale <- do.call(what = scale.function, args = arg.list)
         dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], split.cells[[x]]])
         scaled.data[features[my.inds], split.cells[[x]]] <- data.scale
         rm(data.scale)
@@ -2469,6 +2924,47 @@ ScaleData.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Bin spatial regions into grid and average expression values
+#
+# @param dat Expression data
+# @param pos Position information/coordinates for each sample
+# @param x.cuts Number of cuts to make in the x direction (defines grid along
+# with y.cuts)
+# @param y.cuts Number of cuts to make in the y direction
+#
+# @return returns a list with positions as centers of the bins and average
+# expression within the bins
+#
+#' @importFrom Matrix rowMeans
+#
+BinData <- function(data, pos, x.cuts = 10, y.cuts = x.cuts, verbose = TRUE) {
+  if (verbose) {
+    message("Binning spatial data")
+  }
+  pos$x.cuts <- cut(x = pos[, 1], breaks = x.cuts)
+  pos$y.cuts <- cut(x = pos[, 2], breaks = y.cuts)
+  pos$bin <- paste0(pos$x.cuts, "_", pos$y.cuts)
+  all.bins <- unique(x = pos$bin)
+  new.pos <- matrix(data = numeric(), nrow = length(x = all.bins), ncol = 2)
+  new.dat <- matrix(data = numeric(), nrow = nrow(x = data), ncol = length(x = all.bins))
+  for(i in 1:length(x = all.bins)) {
+    samples <- rownames(x = pos)[which(x = pos$bin == all.bins[i])]
+    dat <- data[, samples]
+    if (is.null(x = dim(x = dat))) {
+      new.dat[, i] <- dat
+    } else {
+      new.dat[, i] <- rowMeans(data[, samples])
+    }
+    new.pos[i, 1] <- mean(pos[samples, "x"])
+    new.pos[i, 2] <- mean(pos[samples, "y"])
+  }
+  rownames(x = new.dat) <- rownames(x = data)
+  colnames(x = new.dat) <- all.bins
+  rownames(x = new.pos) <- all.bins
+  colnames(x = new.pos) <- colnames(x = pos)[1:2]
+  return(list(data = new.dat, pos = new.pos))
+}
+
 # Sample classification from MULTI-seq
 #
 # Identify singlets, doublets and negative cells from multiplexing experiments.
@@ -2500,8 +2996,7 @@ ClassifyCells <- function(data, q) {
         message("No threshold found for ", colnames(x = data)[i], "...")
       }
     )
-    # if (class(x = model) == "character") {
-    if (is.character(x = model)) {
+    if (is.null(x = model)) {
       next
     }
     x <- seq.int(
@@ -2549,6 +3044,27 @@ ClassifyCells <- function(data, q) {
   return(calls)
 }
 
+# Computes the metric at a given r (radius) value and stores in meta.features
+#
+# @param mv Results of running markvario
+# @param r.metric r value at which to report the "trans" value of the mark
+# variogram
+#
+# @return Returns a data.frame with r.metric values
+#
+#
+ComputeRMetric <- function(mv, r.metric = 5) {
+  r.metric.results <- unlist(x = lapply(
+    X = mv,
+    FUN = function(x) {
+      x$trans[which.min(x = abs(x = x$r - r.metric))]
+    }
+  ))
+  r.metric.results <- as.data.frame(x = r.metric.results)
+  colnames(r.metric.results) <- paste0("r.metric.", r.metric)
+  return(r.metric.results)
+}
+
 # Normalize a given data matrix
 #
 # Normalize a given matrix with a custom function. Essentially just a wrapper
@@ -2567,10 +3083,10 @@ ClassifyCells <- function(data, q) {
 # @import Matrix
 #
 CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
+  if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
-  if (class(x = data) != "dgCMatrix") {
+  if (!inherits(x = data, what = 'dgCMatrix')) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
@@ -2706,7 +3222,7 @@ GetResidualVstOut <- function(
     umi = umi,
     residual_type = "pearson",
     res_clip_range = c(clip.min, clip.max),
-    show_progress = verbose
+    verbosity = as.numeric(x = verbose) * 2
   )
   new_residual <- as.matrix(x = new_residual)
   # centered data
@@ -2777,7 +3293,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
       data = regression.mat
     ),
     silent = TRUE)
-  if (class(fit)[1] == 'numeric') {
+  if (is.numeric(x = fit)) {
     message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
     resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
     mode <- 'scale'
@@ -2904,7 +3420,7 @@ RegressOutMatrix <- function(
     close(con = pb)
   }
   if (use.umi) {
-    data.resid <- log1p(x = sweep(
+    data.resid <- log1p(x = Sweep(
       x = data.resid,
       MARGIN = 1,
       STATS = apply(X = data.resid, MARGIN = 1, FUN = min),

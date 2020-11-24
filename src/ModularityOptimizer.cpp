@@ -244,7 +244,7 @@ std::vector<IVector> Network::getEdges() {
   std::vector<IVector> edge(2);
   edge[0].resize(nEdges);
   for(int i=0; i < nNodes; i++) {
-    std::fill(edge[0].begin() + firstNeighborIndex.at(i), edge[0].end() + firstNeighborIndex.at(i + 1), i);
+    std::fill(edge[0].begin() + firstNeighborIndex.at(i), edge[0].begin() + firstNeighborIndex.at(i + 1), i);
   }
   edge.at(1) = neighbor;
   return edge;
@@ -756,11 +756,10 @@ void VOSClusteringTechnique::removeSmallClusters(int minNNodesPerCluster) {
   clustering->mergeClusters(*vosClusteringTechnique.clustering);
 }
 
-std::shared_ptr<Network> ModularityOptimizer::matrixToNetwork(IVector& node1, IVector& node2, DVector& edgeWeight1, int modularityFunction) {
+std::shared_ptr<Network> ModularityOptimizer::matrixToNetwork(IVector& node1, IVector& node2, DVector& edgeWeight1, int modularityFunction, int nNodes) {
   
   int n1_max = *std::max_element(node1.cbegin(), node1.cend());
   int n2_max = *std::max_element(node2.cbegin(), node2.cend());
-  int nNodes = std::max(n1_max, n2_max) + 1;
   IVector nNeighbors(nNodes);
   for (size_t i = 0; i < node1.size(); i++)
     if (node1[i] < node2[i])
@@ -832,7 +831,10 @@ std::shared_ptr<Network> ModularityOptimizer::readInputFile(std::string fname, i
       edgeWeight1[j] = std::stod(splittedLine[2]);
     }
   }
-  return matrixToNetwork(node1, node2, edgeWeight1, modularityFunction);
+  int n1_max = *std::max_element(node1.cbegin(), node1.cend());
+  int n2_max = *std::max_element(node2.cbegin(), node2.cend());
+  int nNodes = std::max(n1_max, n2_max) + 1;
+  return matrixToNetwork(node1, node2, edgeWeight1, modularityFunction, nNodes);
 }
 
 std::vector<std::string> ModularityOptimizer::split(const std::string& s, char delimiter)

@@ -2,17 +2,24 @@
 % Please edit documentation in R/integration.R
 \name{PrepSCTIntegration}
 \alias{PrepSCTIntegration}
-\title{Prepare an object list that has been run through SCTransform for integration}
+\title{Prepare an object list normalized with sctransform for integration.}
 \usage{
-PrepSCTIntegration(object.list, assay = NULL, anchor.features = 2000,
-  sct.clip.range = NULL, verbose = TRUE)
+PrepSCTIntegration(
+  object.list,
+  assay = NULL,
+  anchor.features = 2000,
+  sct.clip.range = NULL,
+  verbose = TRUE
+)
 }
 \arguments{
-\item{object.list}{A list of objects to prep for integration}
+\item{object.list}{A list of \code{\link{Seurat}} objects to prepare for integration}
 
-\item{assay}{Name or vector of assay names (one for each object) that correspond
-to the assay that SCTransform has been run on. If NULL, the current default
-assay for each object is used.}
+\item{assay}{The name of the \code{\link{Assay}} to use for integration. This can be a
+single name if all the assays to be integrated have the same name, or a character vector
+containing the name of each \code{\link{Assay}} in each object to be integrated. The
+specified assays must have been normalized using \code{\link{SCTransform}}.
+If NULL (default), the current default assay for each object is used.}
 
 \item{anchor.features}{Can be either:
 \itemize{
@@ -28,9 +35,52 @@ the Pearson residual will be clipped to}
 \item{verbose}{Display output/messages}
 }
 \value{
-An object list with the \code{scale.data} slots set to the anchor
-features
+A list of \code{\link{Seurat}} objects with the appropriate \code{scale.data} slots
+containing only the required \code{anchor.features}.
 }
 \description{
-Prepare an object list that has been run through SCTransform for integration
+This function takes in a list of objects that have been normalized with the
+\code{\link{SCTransform}} method and performs the following steps:
+\itemize{
+  \item{If anchor.features is a numeric value, calls \code{\link{SelectIntegrationFeatures}}
+  to determine the features to use in the downstream integration procedure.}
+  \item{Ensures that the sctransform residuals for the features specified
+  to anchor.features are present in each object in the list. This is
+  necessary because the default behavior of \code{\link{SCTransform}} is to
+  only store the residuals for the features determined to be variable.
+  Residuals are recomputed for missing features using the stored model
+  parameters via the \code{\link{GetResidual}} function.}
+  \item{Subsets the \code{scale.data} slot to only contain the residuals for
+  anchor.features for efficiency in downstream processing. }
+}
+}
+\examples{
+\dontrun{
+# to install the SeuratData package see https://github.com/satijalab/seurat-data
+library(SeuratData)
+data("panc8")
+
+# panc8 is a merged Seurat object containing 8 separate pancreas datasets
+# split the object by dataset and take the first 2 to integrate
+pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+
+# perform SCTransform normalization
+pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
+
+# select integration features and prep step
+features <- SelectIntegrationFeatures(pancreas.list)
+pancreas.list <- PrepSCTIntegration(
+  pancreas.list,
+  anchor.features = features
+)
+
+# downstream integration steps
+anchors <- FindIntegrationAnchors(
+  pancreas.list,
+  normalization.method = "SCT",
+  anchor.features = features
+)
+pancreas.integrated <- IntegrateData(anchors)
+}
+
 }

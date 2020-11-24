@@ -4,20 +4,28 @@
 \alias{SelectIntegrationFeatures}
 \title{Select integration features}
 \usage{
-SelectIntegrationFeatures(object.list, nfeatures = 2000, assay = NULL,
-  verbose = TRUE, fvf.nfeatures = 2000, ...)
+SelectIntegrationFeatures(
+  object.list,
+  nfeatures = 2000,
+  assay = NULL,
+  verbose = TRUE,
+  fvf.nfeatures = 2000,
+  ...
+)
 }
 \arguments{
 \item{object.list}{List of seurat objects}
 
 \item{nfeatures}{Number of features to return}
 
-\item{assay}{Name of assay from which to pull the variable features.}
+\item{assay}{Name or vector of assay names (one for each object) from which
+to pull the variable features.}
 
 \item{verbose}{Print messages}
 
-\item{fvf.nfeatures}{nfeatures for FindVariableFeatures. Used if
-VariableFeatures have not been set for any object in object.list.}
+\item{fvf.nfeatures}{nfeatures for \code{\link{FindVariableFeatures}}. Used
+if \code{VariableFeatures} have not been set for any object in
+\code{object.list}.}
 
 \item{...}{Additional parameters to \code{\link{FindVariableFeatures}}}
 }
@@ -26,6 +34,30 @@ A vector of selected features
 }
 \description{
 Choose the features to use when integrating multiple datasets. This function
-ranks features by the number of datasets they appear in, breaking ties by the
-median rank across datasets. It returns the highest features by this ranking.
+ranks features by the number of datasets they are deemed variable in,
+breaking ties by the median variable feature rank across datasets. It returns
+the top scoring features by this ranking.
+}
+\details{
+If for any assay in the list, \code{\link{FindVariableFeatures}} hasn't been
+run, this method will try to run it using the \code{fvf.nfeatures} parameter
+and any additional ones specified through the \dots.
+}
+\examples{
+\dontrun{
+# to install the SeuratData package see https://github.com/satijalab/seurat-data
+library(SeuratData)
+data("panc8")
+
+# panc8 is a merged Seurat object containing 8 separate pancreas datasets
+# split the object by dataset and take the first 2
+pancreas.list <- SplitObject(panc8, split.by = "tech")[1:2]
+
+# perform SCTransform normalization
+pancreas.list <- lapply(X = pancreas.list, FUN = SCTransform)
+
+# select integration features
+features <- SelectIntegrationFeatures(pancreas.list)
+}
+
 }

@@ -4,8 +4,14 @@
 \alias{CellCycleScoring}
 \title{Score cell cycle phases}
 \usage{
-CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE,
-  ...)
+CellCycleScoring(
+  object,
+  s.features,
+  g2m.features,
+  ctrl = NULL,
+  set.ident = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -14,10 +20,15 @@ CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE,
 
 \item{g2m.features}{A vector of features associated with G2M phase}
 
-\item{set.ident}{If true, sets identity to phase assignments}
+\item{ctrl}{Number of control features selected from the same bin per
+analyzed feature supplied to \code{\link{AddModuleScore}}.
+Defaults to value equivalent to minimum number of features
+present in 's.features' and 'g2m.features'.}
 
-\item{...}{Arguments to be passed to \code{\link{AddModuleScore}}
+\item{set.ident}{If true, sets identity to phase assignments
 Stashes old identities in 'old.ident'}
+
+\item{...}{Arguments to be passed to \code{\link{AddModuleScore}}}
 }
 \value{
 A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase

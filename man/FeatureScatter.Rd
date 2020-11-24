@@ -5,9 +5,21 @@
 \alias{GenePlot}
 \title{Scatter plot of single cell data}
 \usage{
-FeatureScatter(object, feature1, feature2, cells = NULL,
-  group.by = NULL, cols = NULL, pt.size = 1, shape.by = NULL,
-  span = NULL, smooth = FALSE, slot = "data")
+FeatureScatter(
+  object,
+  feature1,
+  feature2,
+  cells = NULL,
+  group.by = NULL,
+  cols = NULL,
+  pt.size = 1,
+  shape.by = NULL,
+  span = NULL,
+  smooth = FALSE,
+  combine = TRUE,
+  slot = "data",
+  plot.cor = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -32,7 +44,11 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
 
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}}
+
 \item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
+
+\item{plot.cor}{Display correlation in plot title}
 }
 \value{
 A ggplot object

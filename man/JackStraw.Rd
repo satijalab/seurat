@@ -4,9 +4,16 @@
 \alias{JackStraw}
 \title{Determine statistical significance of PCA scores.}
 \usage{
-JackStraw(object, reduction = "pca", assay = NULL, dims = 20,
-  num.replicate = 100, prop.freq = 0.01, verbose = TRUE,
-  maxit = 1000)
+JackStraw(
+  object,
+  reduction = "pca",
+  assay = NULL,
+  dims = 20,
+  num.replicate = 100,
+  prop.freq = 0.01,
+  verbose = TRUE,
+  maxit = 1000
+)
 }
 \arguments{
 \item{object}{Seurat object}

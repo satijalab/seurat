@@ -4,13 +4,26 @@
 \alias{SCTransform}
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
-SCTransform(object, assay = "RNA", new.assay.name = "SCT",
-  do.correct.umi = TRUE, ncells = NULL, variable.features.n = 3000,
-  variable.features.rv.th = 1.3, vars.to.regress = NULL,
-  do.scale = FALSE, do.center = TRUE, clip.range = c(-sqrt(x = ncol(x
-  = object[[assay]])/30), sqrt(x = ncol(x = object[[assay]])/30)),
-  conserve.memory = FALSE, return.only.var.genes = TRUE,
-  seed.use = 1448145, verbose = TRUE, ...)
+SCTransform(
+  object,
+  assay = "RNA",
+  new.assay.name = "SCT",
+  do.correct.umi = TRUE,
+  ncells = 5000,
+  residual.features = NULL,
+  variable.features.n = 3000,
+  variable.features.rv.th = 1.3,
+  vars.to.regress = NULL,
+  do.scale = FALSE,
+  do.center = TRUE,
+  clip.range = c(-sqrt(x = ncol(x = object[[assay]])/30), sqrt(x = ncol(x =
+    object[[assay]])/30)),
+  conserve.memory = FALSE,
+  return.only.var.genes = TRUE,
+  seed.use = 1448145,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -21,7 +34,9 @@ SCTransform(object, assay = "RNA", new.assay.name = "SCT",
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
-\item{ncells}{Number of subsampling cells used to build NB regression; default is NULL}
+\item{ncells}{Number of subsampling cells used to build NB regression; default is 5000}
+
+\item{residual.features}{Genes to calculate residual features for; default is NULL (all genes)}
 
 \item{variable.features.n}{Use this many features as variable features after
 ranking by residual variance; default is 3000}
@@ -72,4 +87,7 @@ in misc slot of new assay.
 \examples{
 SCTransform(object = pbmc_small)
 
+}
+\seealso{
+\code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 }

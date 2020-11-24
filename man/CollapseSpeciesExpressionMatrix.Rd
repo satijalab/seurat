@@ -4,8 +4,12 @@
 \alias{CollapseSpeciesExpressionMatrix}
 \title{Slim down a multi-species expression matrix, when only one species is primarily of interenst.}
 \usage{
-CollapseSpeciesExpressionMatrix(object, prefix = "HUMAN_",
-  controls = "MOUSE_", ncontrols = 100)
+CollapseSpeciesExpressionMatrix(
+  object,
+  prefix = "HUMAN_",
+  controls = "MOUSE_",
+  ncontrols = 100
+)
 }
 \arguments{
 \item{object}{A UMI count matrix. Should contain rownames that start with

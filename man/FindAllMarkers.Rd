@@ -5,12 +5,30 @@
 \alias{FindAllMarkersNode}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, assay = NULL, features = NULL,
-  logfc.threshold = 0.25, test.use = "wilcox", slot = "data",
-  min.pct = 0.1, min.diff.pct = -Inf, node = NULL, verbose = TRUE,
-  only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1,
-  latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
-  pseudocount.use = 1, return.thresh = 0.01, ...)
+FindAllMarkers(
+  object,
+  assay = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  slot = "data",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  node = NULL,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
+  return.thresh = 0.01,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
@@ -96,6 +114,16 @@ of the two groups, currently only used for poisson and negative binomial tests}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
+
+\item{mean.fxn}{Function to use for fold change or average difference calculation.
+If NULL, the appropriate function will be chose according to the slot used}
+
+\item{fc.name}{Name of the fold change, average difference, or custom function column
+in the output data.frame. If NULL, the fold change column will be named
+according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
+slot "avg_diff".}
+
+\item{base}{The base with respect to which logarithms are computed.}
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 

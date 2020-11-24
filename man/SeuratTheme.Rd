@@ -2,6 +2,7 @@
 % Please edit documentation in R/visualization.R
 \name{SeuratTheme}
 \alias{SeuratTheme}
+\alias{CenterTitle}
 \alias{DarkTheme}
 \alias{FontSize}
 \alias{NoAxes}
@@ -17,10 +18,18 @@
 \usage{
 SeuratTheme()
 
+CenterTitle(...)
+
 DarkTheme(...)
 
-FontSize(x.text = NULL, y.text = NULL, x.title = NULL,
-  y.title = NULL, main = NULL, ...)
+FontSize(
+  x.text = NULL,
+  y.text = NULL,
+  x.title = NULL,
+  y.title = NULL,
+  main = NULL,
+  ...
+)
 
 NoAxes(..., keep.text = FALSE, keep.ticks = FALSE)
 

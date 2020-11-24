@@ -8,14 +8,34 @@
 \usage{
 RunALRA(object, ...)
 
-\method{RunALRA}{default}(object, k = NULL, q = 10,
-  quantile.prob = 0.001, use.mkl = FALSE, mkl.seed = -1, ...)
+\method{RunALRA}{default}(
+  object,
+  k = NULL,
+  q = 10,
+  quantile.prob = 0.001,
+  use.mkl = FALSE,
+  mkl.seed = -1,
+  ...
+)
 
-\method{RunALRA}{Seurat}(object, k = NULL, q = 10,
-  quantile.prob = 0.001, use.mkl = FALSE, mkl.seed = -1,
-  assay = NULL, slot = "data", setDefaultAssay = TRUE,
-  genes.use = NULL, K = NULL, thresh = 6, noise.start = NULL,
-  q.k = 2, k.only = FALSE, ...)
+\method{RunALRA}{Seurat}(
+  object,
+  k = NULL,
+  q = 10,
+  quantile.prob = 0.001,
+  use.mkl = FALSE,
+  mkl.seed = -1,
+  assay = NULL,
+  slot = "data",
+  setDefaultAssay = TRUE,
+  genes.use = NULL,
+  K = NULL,
+  thresh = 6,
+  noise.start = NULL,
+  q.k = 2,
+  k.only = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

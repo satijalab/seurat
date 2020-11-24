@@ -5,8 +5,15 @@
 \alias{Labeler}
 \title{Add text labels to a ggplot2 plot}
 \usage{
-LabelPoints(plot, points, labels = NULL, repel = FALSE, xnudge = 0.3,
-  ynudge = 0.05, ...)
+LabelPoints(
+  plot,
+  points,
+  labels = NULL,
+  repel = FALSE,
+  xnudge = 0.3,
+  ynudge = 0.05,
+  ...
+)
 }
 \arguments{
 \item{plot}{A ggplot2 plot with a GeomPoint layer}

@@ -4,10 +4,15 @@
 \alias{HTOHeatmap}
 \title{Hashtag oligo heatmap}
 \usage{
-HTOHeatmap(object, assay = "HTO", classification = paste0(assay,
-  "_classification"), global.classification = paste0(assay,
-  "_classification.global"), ncells = 5000, singlet.names = NULL,
-  raster = TRUE)
+HTOHeatmap(
+  object,
+  assay = "HTO",
+  classification = paste0(assay, "_classification"),
+  global.classification = paste0(assay, "_classification.global"),
+  ncells = 5000,
+  singlet.names = NULL,
+  raster = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().}

@@ -4,8 +4,14 @@
 \alias{CollapseEmbeddingOutliers}
 \title{Move outliers towards center on dimension reduction plot}
 \usage{
-CollapseEmbeddingOutliers(object, reduction = "umap", dims = 1:2,
-  group.by = "ident", outlier.sd = 2, reduction.key = "UMAP_")
+CollapseEmbeddingOutliers(
+  object,
+  reduction = "umap",
+  dims = 1:2,
+  group.by = "ident",
+  outlier.sd = 2,
+  reduction.key = "UMAP_"
+)
 }
 \arguments{
 \item{object}{Seurat object}

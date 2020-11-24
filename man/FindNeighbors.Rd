@@ -6,34 +6,95 @@
 \alias{FindNeighbors.Assay}
 \alias{FindNeighbors.dist}
 \alias{FindNeighbors.Seurat}
-\title{SNN Graph Construction}
+\title{(Shared) Nearest-neighbor graph construction}
 \usage{
 FindNeighbors(object, ...)
 
-\method{FindNeighbors}{default}(object, distance.matrix = FALSE,
-  k.param = 20, compute.SNN = TRUE, prune.SNN = 1/15,
-  nn.method = "rann", annoy.metric = "euclidean", nn.eps = 0,
-  verbose = TRUE, force.recalc = FALSE, ...)
+\method{FindNeighbors}{default}(
+  object,
+  query = NULL,
+  distance.matrix = FALSE,
+  k.param = 20,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
+  prune.SNN = 1/15,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "euclidean",
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE,
+  l2.norm = FALSE,
+  cache.index = FALSE,
+  index = NULL,
+  ...
+)
 
-\method{FindNeighbors}{Assay}(object, features = NULL, k.param = 20,
-  compute.SNN = TRUE, prune.SNN = 1/15, nn.method = "rann",
-  annoy.metric = "euclidean", nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE, ...)
+\method{FindNeighbors}{Assay}(
+  object,
+  features = NULL,
+  k.param = 20,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
+  prune.SNN = 1/15,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "euclidean",
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE,
+  l2.norm = FALSE,
+  cache.index = FALSE,
+  ...
+)
 
-\method{FindNeighbors}{dist}(object, k.param = 20, compute.SNN = TRUE,
-  prune.SNN = 1/15, nn.method = "rann", annoy.metric = "euclidean",
-  nn.eps = 0, verbose = TRUE, force.recalc = FALSE, ...)
+\method{FindNeighbors}{dist}(
+  object,
+  k.param = 20,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
+  prune.SNN = 1/15,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "euclidean",
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE,
+  l2.norm = FALSE,
+  cache.index = FALSE,
+  ...
+)
 
-\method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
-  assay = NULL, features = NULL, k.param = 20, compute.SNN = TRUE,
-  prune.SNN = 1/15, nn.method = "rann", annoy.metric = "euclidean",
-  nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL, ...)
+\method{FindNeighbors}{Seurat}(
+  object,
+  reduction = "pca",
+  dims = 1:10,
+  assay = NULL,
+  features = NULL,
+  k.param = 20,
+  return.neighbor = FALSE,
+  compute.SNN = !return.neighbor,
+  prune.SNN = 1/15,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "euclidean",
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE,
+  do.plot = FALSE,
+  graph.name = NULL,
+  l2.norm = FALSE,
+  cache.index = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
+
+\item{query}{Matrix of data to query against object. If missing, defaults to
+object.}
 
 \item{distance.matrix}{Boolean value of whether the provided matrix is a
 distance matrix; note, for objects of class \code{dist}, this parameter will
@@ -41,16 +102,22 @@ be set automatically}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
+\item{return.neighbor}{Return result as \code{\link{Neighbor}} object. Not
+used with distance matrix input.}
+
 \item{compute.SNN}{also compute the shared nearest neighbor graph}
 
 \item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when
 computing the neighborhood overlap for the SNN construction. Any edges with
 values less than or equal to this will be set to 0 and removed from the SNN
-graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+graph. Essentially sets the stringency of pruning (0 --- no pruning, 1 ---
 prune everything).}
 
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
+
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
 \item{annoy.metric}{Distance metric for annoy. Options include: euclidean,
 cosine, manhattan, and hamming}
@@ -60,29 +127,45 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{verbose}{Whether or not to print output to the console}
 
-\item{force.recalc}{Force recalculation of SNN.}
+\item{force.recalc}{Force recalculation of (S)NN.}
 
-\item{features}{Features to use as input for building the SNN}
+\item{l2.norm}{Take L2Norm of the data}
 
-\item{reduction}{Reduction to use as input for building the SNN}
+\item{cache.index}{Include cached index in returned Neighbor object
+(only relevant if return.neighbor = TRUE)}
+
+\item{index}{Precomputed index. Useful if querying new data against existing
+index to avoid recomputing.}
+
+\item{features}{Features to use as input for building the (S)NN; used only when
+\code{dims} is \code{NULL}}
+
+\item{reduction}{Reduction to use as input for building the (S)NN}
 
 \item{dims}{Dimensions of reduction to use as input}
 
-\item{assay}{Assay to use in construction of SNN}
+\item{assay}{Assay to use in construction of (S)NN; used only when \code{dims}
+is \code{NULL}}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
-\item{graph.name}{Optional naming parameter for stored SNN graph. Default is
-assay.name_snn.}
+\item{graph.name}{Optional naming parameter for stored (S)NN graph
+(or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.}
 }
 \value{
-Returns the object with object@snn filled
+This function can either return a \code{\link{Neighbor}} object
+with the KNN information or a list of \code{\link{Graph}} objects with
+the KNN and SNN depending on the settings of \code{return.neighbor} and
+\code{compute.SNN}. When running on a \code{\link{Seurat}} object, this
+returns the \code{\link{Seurat}} object with the Graphs or Neighbor objects
+stored in their respective slots. Names of the Graph or Neighbor object can
+be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
 }
 \description{
-Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-first determine the k-nearest neighbors of each cell. We use this knn graph
-to construct the SNN graph by calculating the neighborhood overlap
-(Jaccard index) between every cell and its k.param nearest neighbors.
+Computes the \code{k.param} nearest neighbors for a given dataset. Can also
+optionally (via \code{compute.SNN}), construct a shared nearest neighbor
+graph by calculating the neighborhood overlap (Jaccard index) between every
+cell and its \code{k.param} nearest neighbors.
 }
 \examples{
 pbmc_small

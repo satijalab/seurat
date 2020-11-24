@@ -5,14 +5,24 @@
 \alias{GeneSymbolThesarus}
 \title{Get updated synonyms for gene symbols}
 \source{
-\url{https://www.genenames.org/} \url{http://rest.genenames.org/}
+\url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 }
 \usage{
-GeneSymbolThesarus(symbols, timeout = 10, several.ok = FALSE,
-  verbose = TRUE, ...)
+GeneSymbolThesarus(
+  symbols,
+  timeout = 10,
+  several.ok = FALSE,
+  verbose = TRUE,
+  ...
+)
 
-UpdateSymbolList(symbols, timeout = 10, several.ok = FALSE,
-  verbose = TRUE, ...)
+UpdateSymbolList(
+  symbols,
+  timeout = 10,
+  several.ok = FALSE,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{symbols}{A vector of gene symbols}

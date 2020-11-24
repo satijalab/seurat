@@ -4,8 +4,14 @@
 \alias{ColorDimSplit}
 \title{Color dimensional reduction plot by tree split}
 \usage{
-ColorDimSplit(object, node, left.color = "red", right.color = "blue",
-  other.color = "grey50", ...)
+ColorDimSplit(
+  object,
+  node,
+  left.color = "red",
+  right.color = "blue",
+  other.color = "grey50",
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,41 +24,50 @@ ColorDimSplit(object, node, left.color = "red", right.color = "blue",
 
 \item{other.color}{Color for all other cells}
 
-\item{...}{Arguments passed on to \code{DimPlot}
-\describe{
-  \item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
-  \item{cells}{Vector of cells to plot (default is all cells)}
-  \item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
+\item{...}{
+  Arguments passed on to \code{\link[=DimPlot]{DimPlot}}
+  \describe{
+    \item{\code{dims}}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
+    \item{\code{cells}}{Vector of cells to plot (default is all cells)}
+    \item{\code{cols}}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors}
-  \item{pt.size}{Adjust point size for plotting}
-  \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
-  \item{group.by}{Name of one or more metadata columns to group (color) cells by
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
+See \code{\link{DiscretePalette}} for details.}
+    \item{\code{pt.size}}{Adjust point size for plotting}
+    \item{\code{reduction}}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
+    \item{\code{group.by}}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
-  \item{split.by}{Name of a metadata column to split plot by;
+    \item{\code{split.by}}{Name of a metadata column to split plot by;
 see \code{\link{FetchData}} for more details}
-  \item{shape.by}{If NULL, all points are circles (default). You can specify any
+    \item{\code{shape.by}}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells}
-  \item{order}{Specify the order of plotting for the idents. This can be
+    \item{\code{order}}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
-  \item{label}{Whether to label the clusters}
-  \item{label.size}{Sets size of labels}
-  \item{repel}{Repel labels}
-  \item{cells.highlight}{A list of character or numeric vectors of cells to
+    \item{\code{shuffle}}{Whether to randomly shuffle the order of points. This can be
+useful for crowded plots if points of interest are being buried. (default is FALSE)}
+    \item{\code{seed}}{Sets the seed if randomly shuffling the order of points.}
+    \item{\code{label}}{Whether to label the clusters}
+    \item{\code{label.size}}{Sets size of labels}
+    \item{\code{label.color}}{Sets the color of the label text}
+    \item{\code{label.box}}{Whether to put a box around the label text (geom_text vs
+geom_label)}
+    \item{\code{repel}}{Repel labels}
+    \item{\code{cells.highlight}}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply
 pass a vector instead of a list. If set, colors selected cells to the color(s)
 in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
 will also resize to the size(s) passed to \code{sizes.highlight}}
-  \item{cols.highlight}{A vector of colors to highlight the cells as; will
+    \item{\code{cols.highlight}}{A vector of colors to highlight the cells as; will
 repeat to the length groups in cells.highlight}
-  \item{sizes.highlight}{Size of highlighted cells; will repeat to the length
+    \item{\code{sizes.highlight}}{Size of highlighted cells; will repeat to the length
 groups in cells.highlight}
-  \item{na.value}{Color value for NA points when using custom scale}
-  \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-  \item{ncol}{Number of columns for display when combining plots}
-}}
+    \item{\code{na.value}}{Color value for NA points when using custom scale}
+    \item{\code{ncol}}{Number of columns for display when combining plots}
+    \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
+  }}
 }
 \value{
 Returns a DimPlot
@@ -67,4 +82,7 @@ pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 PlotClusterTree(pbmc_small)
 ColorDimSplit(pbmc_small, node = 5)
 
+}
+\seealso{
+\code{\link{DimPlot}}
 }

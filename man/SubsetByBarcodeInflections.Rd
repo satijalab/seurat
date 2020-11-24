@@ -8,9 +8,6 @@ SubsetByBarcodeInflections(object)
 }
 \arguments{
 \item{object}{Seurat object}
-
-\item{...}{arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
-recalculate the inflection points, else will use those already in `object`}
 }
 \value{
 Returns a subsetted Seurat object.

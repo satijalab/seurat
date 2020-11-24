@@ -10,8 +10,7 @@ SetAssayData(object, ...)
 
 \method{SetAssayData}{Assay}(object, slot, new.data, ...)
 
-\method{SetAssayData}{Seurat}(object, slot = "data", new.data,
-  assay = NULL, ...)
+\method{SetAssayData}{Seurat}(object, slot = "data", new.data, assay = NULL, ...)
 }
 \arguments{
 \item{object}{An object}

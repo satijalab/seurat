@@ -4,10 +4,28 @@
 \alias{VlnPlot}
 \title{Single cell violin plot}
 \usage{
-VlnPlot(object, features, cols = NULL, pt.size = 1, idents = NULL,
-  sort = FALSE, assay = NULL, group.by = NULL, split.by = NULL,
-  adjust = 1, y.max = NULL, same.y.lims = FALSE, log = FALSE,
-  ncol = NULL, combine = TRUE, slot = "data", ...)
+VlnPlot(
+  object,
+  features,
+  cols = NULL,
+  pt.size = NULL,
+  idents = NULL,
+  sort = FALSE,
+  assay = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  adjust = 1,
+  y.max = NULL,
+  same.y.lims = FALSE,
+  log = FALSE,
+  ncol = NULL,
+  slot = "data",
+  split.plot = FALSE,
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = "feature",
+  flip = FALSE
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,8 +46,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
-\item{split.by}{A variable to split the violin plots by,
-see \code{\link{FetchData}} for more details}
+\item{split.by}{A variable to split the violin plots by,}
 
 \item{adjust}{Adjust parameter for geom_violin}
 
@@ -41,14 +58,23 @@ see \code{\link{FetchData}} for more details}
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
 \item{slot}{Use non-normalized counts data for plotting}
 
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
+\item{split.plot}{plot each group of the split violin plots by multiple or
+single violin shapes.}
+
+\item{stack}{Horizontally stack plots for each feature}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot}
+
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
+
+\item{flip}{flip plot orientation (identities on x-axis)}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Draws a violin plot of single cell data (gene expression, metrics, PC

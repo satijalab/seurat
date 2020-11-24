@@ -10,22 +10,51 @@
 \usage{
 RunTSNE(object, ...)
 
-\method{RunTSNE}{matrix}(object, assay = NULL, seed.use = 1,
-  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  reduction.key = "tSNE_", ...)
+\method{RunTSNE}{matrix}(
+  object,
+  assay = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+)
 
-\method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5,
-  seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  reduction.key = "tSNE_", ...)
+\method{RunTSNE}{DimReduc}(
+  object,
+  cells = NULL,
+  dims = 1:5,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+)
 
-\method{RunTSNE}{dist}(object, assay = NULL, seed.use = 1,
-  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  reduction.key = "tSNE_", ...)
+\method{RunTSNE}{dist}(
+  object,
+  assay = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+)
 
-\method{RunTSNE}{Seurat}(object, reduction = "pca", cells = NULL,
-  dims = 1:5, features = NULL, seed.use = 1, tsne.method = "Rtsne",
-  add.iter = 0, dim.embed = 2, distance.matrix = NULL,
-  reduction.name = "tsne", reduction.key = "tSNE_", ...)
+\method{RunTSNE}{Seurat}(
+  object,
+  reduction = "pca",
+  cells = NULL,
+  dims = 1:5,
+  features = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -34,7 +63,7 @@ RunTSNE(object, ...)
 
 \item{assay}{Name of assay that that t-SNE is being run on}
 
-\item{seed.use}{Random seed for the t-SNE}
+\item{seed.use}{Random seed for the t-SNE. If NULL, does not set the seed}
 
 \item{tsne.method}{Select the method to use to compute the tSNE. Available
 methods are:
@@ -43,10 +72,6 @@ methods are:
 \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
 Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
 }}
-
-\item{add.iter}{If an existing tSNE has already been computed, uses the
-current tSNE to seed the algorithm and then adds additional iterations on top
-of this}
 
 \item{dim.embed}{The dimensional space of the resulting tSNE embedding
 (default is 2). For example, set to 3 for a 3d tSNE}

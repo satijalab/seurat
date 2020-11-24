@@ -8,8 +8,7 @@
 \usage{
 \method{[}{Seurat}(x, i, j, ...)
 
-\method{subset}{Seurat}(x, subset, cells = NULL, features = NULL,
-  idents = NULL, ...)
+\method{subset}{Seurat}(x, subset, cells = NULL, features = NULL, idents = NULL, ...)
 }
 \arguments{
 \item{x}{Seurat object to be subsetted}

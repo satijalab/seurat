@@ -4,43 +4,62 @@
 \alias{AddModuleScore}
 \title{Calculate module scores for feature expression programs in single cells}
 \usage{
-AddModuleScore(object, features, pool = NULL, nbin = 24, ctrl = 100,
-  k = FALSE, assay = NULL, name = "Cluster", seed = 1,
-  search = FALSE, ...)
+AddModuleScore(
+  object,
+  features,
+  pool = NULL,
+  nbin = 24,
+  ctrl = 100,
+  k = FALSE,
+  assay = NULL,
+  name = "Cluster",
+  seed = 1,
+  search = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{features}{Feature expression programs in list}
+\item{features}{A list of vectors of features for expression programs; each
+entry should be a vector of feature names}
 
-\item{pool}{List of features to check expression levels agains, defaults to \code{rownames(x = object)}}
+\item{pool}{List of features to check expression levels against, defaults to
+\code{rownames(x = object)}}
 
-\item{nbin}{Number of bins of aggregate expression levels for all analyzed features}
+\item{nbin}{Number of bins of aggregate expression levels for all
+analyzed features}
 
-\item{ctrl}{Number of control features selected from the same bin per analyzed feature}
+\item{ctrl}{Number of control features selected from the same bin per
+analyzed feature}
 
 \item{k}{Use feature clusters returned from DoKMeans}
 
 \item{assay}{Name of assay to use}
 
-\item{name}{Name for the expression programs}
+\item{name}{Name for the expression programs; will append a number to the
+end for each entry in \code{features} (eg. if \code{features} has three
+programs, the results will be stored as \code{name1}, \code{name2},
+\code{name3}, respectively)}
 
-\item{seed}{Set a random seed}
+\item{seed}{Set a random seed. If NULL, seed is not set.}
 
 \item{search}{Search for symbol synonyms for features in \code{features} that
-don't match features in \code{object}? Searches the HGNC's gene names database;
-see \code{\link{UpdateSymbolList}} for more details}
+don't match features in \code{object}? Searches the HGNC's gene names
+database; see \code{\link{UpdateSymbolList}} for more details}
 
 \item{...}{Extra parameters passed to \code{\link{UpdateSymbolList}}}
 }
 \value{
-Returns a Seurat object with module scores added to object meta data
+Returns a Seurat object with module scores added to object meta data;
+each module is stored as \code{name#} for each module program present in
+\code{features}
 }
 \description{
-Calculate the average expression levels of each program (cluster) on single cell level,
-subtracted by the aggregated expression of control feature sets.
-All analyzed features are binned based on averaged expression, and the control features are
-randomly selected from each bin.
+Calculate the average expression levels of each program (cluster) on single
+cell level, subtracted by the aggregated expression of control feature sets.
+All analyzed features are binned based on averaged expression, and the
+control features are randomly selected from each bin.
 }
 \examples{
 \dontrun{

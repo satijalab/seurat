@@ -4,8 +4,16 @@
 \alias{DietSeurat}
 \title{Slim down a Seurat object}
 \usage{
-DietSeurat(object, counts = TRUE, data = TRUE, scale.data = FALSE,
-  features = NULL, assays = NULL, dimreducs = NULL, graphs = NULL)
+DietSeurat(
+  object,
+  counts = TRUE,
+  data = TRUE,
+  scale.data = FALSE,
+  features = NULL,
+  assays = NULL,
+  dimreducs = NULL,
+  graphs = NULL
+)
 }
 \arguments{
 \item{object}{Seurat object}

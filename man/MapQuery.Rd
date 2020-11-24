@@ -2,60 +2,69 @@
 % Please edit documentation in R/integration.R
 \name{MapQuery}
 \alias{MapQuery}
-\title{Map queries to reference}
+\title{Map query cells to a reference}
 \usage{
-MapQuery(anchorset, reference, new.assay.name = "integrated",
-  normalization.method = c("LogNormalize", "SCT"), features = NULL,
-  features.to.integrate = NULL, dims = 1:30, k.weight = 100,
-  weight.reduction = NULL, sd.weight = 1, sample.tree = NULL,
-  preserve.order = FALSE, do.cpp = TRUE, eps = 0, verbose = TRUE)
+MapQuery(
+  anchorset,
+  query,
+  reference,
+  refdata = NULL,
+  new.reduction.name = paste0("ref.", reference.reduction),
+  reference.reduction,
+  reduction.model = NULL,
+  transferdata.args = list(),
+  integrateembeddings.args = list(),
+  projectumap.args = list(),
+  verbose = TRUE
+)
 }
 \arguments{
-\item{anchorset}{Anchorset found by FindIntegrationAnchors}
+\item{anchorset}{An AnchorSet object}
 
-\item{reference}{Pre-integrated reference dataset to map query datasets to}
+\item{query}{Query object used in anchorset construction}
 
-\item{new.assay.name}{Name for the new assay containing the integrated data}
+\item{reference}{Reference object used in anchorset construction}
 
-\item{normalization.method}{Name of normalization method used: LogNormalize
-or SCT}
-
-\item{features}{Vector of features to use when computing the PCA to determine the weights. Only set
-if you want a different set from those used in the anchor finding process}
-
-\item{features.to.integrate}{Vector of features to integrate. By default, will use the features
-used in anchor finding.}
-
-\item{dims}{Number of PCs to use in the weighting procedure}
-
-\item{k.weight}{Number of neighbors to consider when weighting}
-
-\item{weight.reduction}{Dimension reduction to use when calculating anchor weights.
-This can be either:
+\item{refdata}{Data to transfer. This can be specified in one of two ways:
 \itemize{
-   \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
-   \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
-   \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
-}
-Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
-first merge between reference and query, as the merged object will subsequently contain more cells than was in
-query, and weights will need to be calculated for all cells in the object.}
+  \item{The reference data itself as either a vector where the names
+  correspond to the reference cells, or a matrix, where the column names
+  correspond to the reference cells.}
+  \item{The name of the metadata field or assay from the reference object
+  provided. This requires the reference parameter to be specified. If pulling
+  assay data in this manner, it will pull the data from the data slot. To
+  transfer data from other slots, please pull the data explicitly with
+  \code{\link{GetAssayData}} and provide that matrix here.}
+}}
 
-\item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}
+\item{new.reduction.name}{Name for new integrated dimensional reduction.}
 
-\item{sample.tree}{Specify the order of integration. If NULL, will compute automatically.}
+\item{reference.reduction}{Name of reduction to use from the reference for
+neighbor finding}
 
-\item{preserve.order}{Do not reorder objects based on size for each pairwise integration.}
+\item{reduction.model}{\code{DimReduc} object that contains the umap model}
 
-\item{do.cpp}{Run cpp code where applicable}
+\item{transferdata.args}{A named list of additional arguments to
+\code{\link{TransferData}}}
 
-\item{eps}{Error bound on the neighbor finding algorithm (from \code{\link{RANN}})}
+\item{integrateembeddings.args}{A named list of additional arguments to
+\code{\link{IntegrateEmbeddings}}}
+
+\item{projectumap.args}{A named list of additional arguments to
+\code{\link{ProjectUMAP}}}
 
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns an integrated matrix
+Returns a modified query Seurat object containing new Assays
+corresponding to the features transferred and/or their corresponding prediction
+scores from TransferData. An integrated reduction from IntegrateEmbeddings.
+And an projected umap reduction of the query cells projected into the
+reference umap.
 }
 \description{
-Map query objects onto assembled reference dataset
+This is a convenience wrapper function around the following three functions
+that are often run together when mapping query data to a reference:
+\code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}},
+\code{\link{ProjectUMAP}}.
 }

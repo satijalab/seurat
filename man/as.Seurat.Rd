@@ -9,16 +9,27 @@
 \usage{
 as.Seurat(x, ...)
 
-\method{as.Seurat}{CellDataSet}(x, slot = "counts", assay = "RNA",
-  verbose = TRUE, ...)
+\method{as.Seurat}{CellDataSet}(x, slot = "counts", assay = "RNA", verbose = TRUE, ...)
 
-\method{as.Seurat}{loom}(x, cells = "CellID", features = "Gene",
-  normalized = NULL, scaled = NULL, assay = NULL, verbose = TRUE,
-  ...)
+\method{as.Seurat}{loom}(
+  x,
+  cells = "CellID",
+  features = "Gene",
+  normalized = NULL,
+  scaled = NULL,
+  assay = NULL,
+  verbose = TRUE,
+  ...
+)
 
-\method{as.Seurat}{SingleCellExperiment}(x, counts = "counts",
-  data = "logcounts", assay = "RNA",
-  project = "SingleCellExperiment", ...)
+\method{as.Seurat}{SingleCellExperiment}(
+  x,
+  counts = "counts",
+  data = "logcounts",
+  assay = "RNA",
+  project = "SingleCellExperiment",
+  ...
+)
 }
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}

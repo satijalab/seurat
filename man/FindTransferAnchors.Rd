@@ -4,66 +4,183 @@
 \alias{FindTransferAnchors}
 \title{Find transfer anchors}
 \usage{
-FindTransferAnchors(reference, query,
-  normalization.method = c("LogNormalize", "SCT"),
-  reference.assay = NULL, query.assay = NULL,
-  reduction = "pcaproject", project.query = FALSE, features = NULL,
-  npcs = 30, l2.norm = TRUE, dims = 1:30, k.anchor = 5,
-  k.filter = 200, k.score = 30, max.features = 200,
-  nn.method = "rann", eps = 0, approx.pca = TRUE, verbose = TRUE)
+FindTransferAnchors(
+  reference,
+  query,
+  normalization.method = "LogNormalize",
+  reference.assay = NULL,
+  reference.neighbors = NULL,
+  query.assay = NULL,
+  reduction = "pcaproject",
+  reference.reduction = NULL,
+  project.query = FALSE,
+  features = NULL,
+  npcs = 30,
+  l2.norm = TRUE,
+  dims = 1:30,
+  k.anchor = 5,
+  k.filter = 200,
+  k.score = 30,
+  max.features = 200,
+  nn.method = "annoy",
+  n.trees = 50,
+  eps = 0,
+  approx.pca = TRUE,
+  mapping.score.k = NULL,
+  verbose = TRUE
+)
 }
 \arguments{
-\item{reference}{Seurat object to use as the reference}
+\item{reference}{\code{\link{Seurat}} object to use as the reference}
 
-\item{query}{Seurat object to use as the query}
+\item{query}{\code{\link{Seurat}} object to use as the query}
 
-\item{normalization.method}{Name of normalization method used: LogNormalize or SCT}
+\item{normalization.method}{Name of normalization method used: LogNormalize
+or SCT.}
 
-\item{reference.assay}{Assay to use from reference}
+\item{reference.assay}{Name of the Assay to use from reference}
 
-\item{query.assay}{Assay to use from query}
+\item{reference.neighbors}{Name of the Neighbor to use from the reference.
+Optionally enables reuse of precomputed neighbors.}
 
-\item{reduction}{Dimensional reduction to perform when finding anchors. Options are:
+\item{query.assay}{Name of the Assay to use from query}
+
+\item{reduction}{Dimensional reduction to perform when finding anchors.
+Options are:
 \itemize{
-   \item{pcaproject: Project the PCA from the reference onto the query. We recommend using PCA
-   when reference and query datasets are from scRNA-seq}
+   \item{pcaproject: Project the PCA from the reference onto the query. We
+   recommend using PCA when reference and query datasets are from scRNA-seq}
    \item{cca: Run a CCA on the reference and query }
 }}
 
-\item{project.query}{Project the PCA from the query dataset onto the reference. Use only in rare
-cases where the query dataset has a much larger cell number, but the reference dataset has a
-unique assay for transfer.}
+\item{reference.reduction}{Name of dimensional reduction to use from the
+reference if running the pcaproject workflow. Optionally enables reuse of
+precomputed reference dimensional reduction.}
 
-\item{features}{Features to use for dimensional reduction}
+\item{project.query}{Project the PCA from the query dataset onto the
+reference. Use only in rare cases where the query dataset has a much larger
+cell number, but the reference dataset has a unique assay for transfer. In
+this case, the default features will be set to the variable features of the
+query object that are alos present in the reference.}
 
-\item{npcs}{Number of PCs to compute on reference. If null, then use an existing PCA structure in
-the reference object}
+\item{features}{Features to use for dimensional reduction. If not specified,
+set as variable features of the reference object which are also present in
+the query.}
 
-\item{l2.norm}{Perform L2 normalization on the cell embeddings after dimensional reduction}
+\item{npcs}{Number of PCs to compute on reference if reference.reduction is
+not provided.}
 
-\item{dims}{Which dimensions to use from the reduction to specify the neighbor search space}
+\item{l2.norm}{Perform L2 normalization on the cell embeddings after
+dimensional reduction}
 
-\item{k.anchor}{How many neighbors (k) to use when picking anchors}
+\item{dims}{Which dimensions to use from the reduction to specify the
+neighbor search space}
 
-\item{k.filter}{How many neighbors (k) to use when filtering anchors}
+\item{k.anchor}{How many neighbors (k) to use when finding anchors}
+
+\item{k.filter}{How many neighbors (k) to use when filtering anchors. Set to
+NA to turn off filtering.}
 
 \item{k.score}{How many neighbors (k) to use when scoring anchors}
 
-\item{max.features}{The maximum number of features to use when specifying the neighborhood search
-space in the anchor filtering}
+\item{max.features}{The maximum number of features to use when specifying the
+neighborhood search space in the anchor filtering}
 
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
 
-\item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
 
-\item{approx.pca}{Use truncated singular value decomposition to approximate PCA}
+\item{eps}{Error bound on the neighbor finding algorithm (from
+\code{\link{RANN}})}
+
+\item{approx.pca}{Use truncated singular value decomposition to approximate
+PCA}
+
+\item{mapping.score.k}{Compute and store nearest k query neighbors in the
+AnchorSet object that is returned. You can optionally set this if you plan
+on computing the mapping score and want to enable reuse of some downstream
+neighbor calculations to make the mapping score function more efficient.}
 
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns an AnchorSet object
+Returns an \code{AnchorSet} object that can be used as input to
+\code{\link{TransferData}}
 }
 \description{
-Finds the transfer anchors
+Find a set of anchors between a reference and query object. These
+anchors can later be used to transfer data from the reference to
+query object using the \code{\link{TransferData}} object.
+}
+\details{
+The main steps of this procedure are outlined below. For a more detailed
+description of the methodology, please see Stuart, Butler, et al Cell 2019.
+\url{https://doi.org/10.1016/j.cell.2019.05.031};
+\url{https://doi.org/10.1101/460147}
+
+\itemize{
+
+  \item{Perform dimensional reduction. Exactly what is done here depends on
+  the values set for the \code{reduction} and \code{project.query}
+  parameters. If \code{reduction = "pcaproject"}, a PCA is performed on
+  either the reference (if \code{project.query = FALSE}) or the query (if
+  \code{project.query = TRUE}), using the \code{features} specified. The data
+  from the other dataset is then projected onto this learned PCA structure.
+  If \code{reduction = "cca"}, then CCA is performed on the reference and
+  query for this dimensional reduction step. If \code{l2.norm} is set to
+  \code{TRUE}, perform L2 normalization of the embedding vectors.}
+  \item{Identify anchors between the reference and query - pairs of cells
+  from each dataset that are contained within each other's neighborhoods
+  (also known as mutual nearest neighbors).}
+  \item{Filter low confidence anchors to ensure anchors in the low dimension
+  space are in broad agreement with the high dimensional measurements. This
+  is done by looking at the neighbors of each query cell in the reference
+  dataset using \code{max.features} to define this space. If the reference
+  cell isn't found within the first \code{k.filter} neighbors, remove the
+  anchor.}
+  \item{Assign each remaining anchor a score. For each anchor cell, determine
+  the nearest \code{k.score} anchors within its own dataset and within its
+  pair's dataset. Based on these neighborhoods, construct an overall neighbor
+  graph and then compute the shared neighbor overlap between anchor and query
+  cells (analogous to an SNN graph). We use the 0.01 and 0.90 quantiles on
+  these scores to dampen outlier effects and rescale to range between 0-1.}
+}
+}
+\examples{
+\dontrun{
+# to install the SeuratData package see https://github.com/satijalab/seurat-data
+library(SeuratData)
+data("pbmc3k")
+
+# for demonstration, split the object into reference and query
+pbmc.reference <- pbmc3k[, 1:1350]
+pbmc.query <- pbmc3k[, 1351:2700]
+
+# perform standard preprocessing on each object
+pbmc.reference <- NormalizeData(pbmc.reference)
+pbmc.reference <- FindVariableFeatures(pbmc.reference)
+pbmc.reference <- ScaleData(pbmc.reference)
+
+pbmc.query <- NormalizeData(pbmc.query)
+pbmc.query <- FindVariableFeatures(pbmc.query)
+pbmc.query <- ScaleData(pbmc.query)
+
+# find anchors
+anchors <- FindTransferAnchors(reference = pbmc.reference, query = pbmc.query)
+
+# transfer labels
+predictions <- TransferData(
+  anchorset = anchors,
+  refdata = pbmc.reference$seurat_annotations
+)
+pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
+}
+
+}
+\references{
+Stuart T, Butler A, et al. Comprehensive Integration of
+Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
+j.cell.2019.05.031};
 }

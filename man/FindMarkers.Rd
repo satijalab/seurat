@@ -4,27 +4,108 @@
 \alias{FindMarkers}
 \alias{FindMarkersNode}
 \alias{FindMarkers.default}
+\alias{FindMarkers.Assay}
+\alias{FindMarkers.DimReduc}
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
 \usage{
 FindMarkers(object, ...)
 
-\method{FindMarkers}{default}(object, slot = "data",
-  counts = numeric(), cells.1 = NULL, cells.2 = NULL,
-  features = NULL, reduction = NULL, logfc.threshold = 0.25,
-  test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
-  verbose = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  random.seed = 1, latent.vars = NULL, min.cells.feature = 3,
-  min.cells.group = 3, pseudocount.use = 1, ...)
+\method{FindMarkers}{default}(
+  object,
+  slot = "data",
+  counts = numeric(),
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  fc.results = NULL,
+  ...
+)
 
-\method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
-  group.by = NULL, subset.ident = NULL, assay = NULL,
-  slot = "data", reduction = NULL, features = NULL,
-  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
-  min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
-  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
-  min.cells.feature = 3, min.cells.group = 3, pseudocount.use = 1,
-  ...)
+\method{FindMarkers}{Assay}(
+  object,
+  slot = "data",
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
+  ...
+)
+
+\method{FindMarkers}{DimReduc}(
+  object,
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = rowMeans,
+  ...
+)
+
+\method{FindMarkers}{Seurat}(
+  object,
+  ident.1 = NULL,
+  ident.2 = NULL,
+  group.by = NULL,
+  subset.ident = NULL,
+  assay = NULL,
+  slot = "data",
+  reduction = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}
@@ -43,8 +124,6 @@ expressing}
 \item{cells.2}{Vector of cell names belonging to group 2}
 
 \item{features}{Genes to test. Default is to use all genes}
-
-\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -118,6 +197,18 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
+\item{fc.results}{data.frame from FoldChange}
+
+\item{mean.fxn}{Function to use for fold change or average difference calculation.
+If NULL, the appropriate function will be chose according to the slot used}
+
+\item{fc.name}{Name of the fold change, average difference, or custom function column
+in the output data.frame. If NULL, the fold change column will be named
+according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
+slot "avg_diff".}
+
+\item{base}{The base with respect to which logarithms are computed.}
+
 \item{ident.1}{Identity class to define markers for; pass an object of class
 \code{phylo} or 'clustertree' to find markers for a node in a cluster tree;
 passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
@@ -131,6 +222,8 @@ use all other cells for comparison; if an object of class \code{phylo} or
 \item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
 
 \item{assay}{Assay to use in differential expression testing}
+
+\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 }
 \value{
 data.frame with a ranked list of putative markers as rows, and associated
@@ -186,4 +279,7 @@ https://github.com/RGLab/MAST/
 Love MI, Huber W and Anders S (2014). "Moderated estimation of
 fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+}
+\seealso{
+\code{FoldChange}
 }

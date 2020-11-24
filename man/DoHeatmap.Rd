@@ -4,12 +4,27 @@
 \alias{DoHeatmap}
 \title{Feature expression heatmap}
 \usage{
-DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
-  group.bar = TRUE, group.colors = NULL, disp.min = -2.5,
-  disp.max = NULL, slot = "scale.data", assay = NULL, label = TRUE,
-  size = 5.5, hjust = 0, angle = 45, raster = TRUE,
-  draw.lines = TRUE, lines.width = NULL, group.bar.height = 0.02,
-  combine = TRUE)
+DoHeatmap(
+  object,
+  features = NULL,
+  cells = NULL,
+  group.by = "ident",
+  group.bar = TRUE,
+  group.colors = NULL,
+  disp.min = -2.5,
+  disp.max = NULL,
+  slot = "scale.data",
+  assay = NULL,
+  label = TRUE,
+  size = 5.5,
+  hjust = 0,
+  angle = 45,
+  raster = TRUE,
+  draw.lines = TRUE,
+  lines.width = NULL,
+  group.bar.height = 0.02,
+  combine = TRUE
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -52,11 +67,12 @@ Corresponds to the number of "cells" between each group.}
 
 \item{group.bar.height}{Scale the height of the color bar}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
-when plotting multiple dimensions}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Draws a heatmap of single cell feature expression.

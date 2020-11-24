@@ -4,9 +4,18 @@
 \alias{AverageExpression}
 \title{Averaged feature expression by identity class}
 \usage{
-AverageExpression(object, assays = NULL, features = NULL,
-  return.seurat = FALSE, add.ident = NULL, slot = "data",
-  use.scale = FALSE, use.counts = FALSE, verbose = TRUE, ...)
+AverageExpression(
+  object,
+  assays = NULL,
+  features = NULL,
+  return.seurat = FALSE,
+  add.ident = NULL,
+  slot = "data",
+  use.scale = FALSE,
+  use.counts = FALSE,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}

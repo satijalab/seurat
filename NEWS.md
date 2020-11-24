@@ -1,7 +1,129 @@
 # News
 All notable changes to Seurat will be documented in this file.
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+### Added
+- Titles added to `DimPlot` when specifying `group.by` parameter
+
+### Changes
+- `Same` deprecated in favor of `base::identity`
+- Fix in `DietSeurat` to work with specialized `Assay` objects
+- Fix p-value return when using the `ape` implementation of Moran's I
+- Fix bug in FindMarkers when using MAST with a latent variable
+- Updates to `Key<-.DimReduc` that allow handling of empty reduction column names
+- Allow setting `ctrl` in `CellCycleScoring`
+- Modify subset.Seurat to allow specialized Assay subsetting methods
+- Fix image selection in interactive spatial plots
+- Update Rcpp functions with `export(rng=FALSE)` to avoid potential future warnings
+- Fix RenameCells bug for integrated SCT assays
+- Fix highlight order with proper factor levels when using `SetHighlight` in plots
+
+## [3.2.2] - 2020-09-25
+### Changes
+- Set the seed in `WhichCells` regardless of whether or not `idents` is passed
+- Retain Graph and Neighbor objects when subsetting only on features
+- Fix data.frame input to `CreateAssayObject()` when data.frame has no rownames.
+- Default annoy search to sequential if not using multicore future plans.
+- Require sctransform >= 0.3.0
+
+## [3.2.1] - 2020-09-04
+### Added
+- Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
+- Enable named color vectors in `DoHeatmap()`
+- Add `label.color` and `label.box` parameters to `DimPlot`
+- Added `shuffle` and `seed` parameters to `DimPlot()` to help with overplotting
+- Added new stacked violin plot functionality
+
+### Changes
+- Allow setting `slot` parameter in `RunUMAP`
+- Added support for FIt-SNE v1.2+
+- Fix for `Spatial*Plot` when running with interactive=TRUE
+- Set max for number of items returned by `Top` and remove duplicate items when balanced=TRUE
+- Fix logging bug when functions were run via `do.call()`
+- Fix handling of weight.by.var parameter when approx=FALSE in `RunPCA()`
+- Fix issue where feature names with dashes crashed `CellSelector`
+- Fix issue where errors in subsetting were being swallowed
+- Fix issue where labeling uncropped spatial plots was broken
+
+### Deprecated
+- `CreateActivityMatrix` deprecated in favor of `Signac::GeneActivity`
+- `ReadAlevin` and `ReadAlevinCsv` deprecated in favor of `SeuratWrappers::ReadAlevin`
+- `ExportToCellbrowser` and `StopCellbrowser` deprecated in favor of `SeuratWrappers::ExportToCellbrowser` and `SeuratWrappers::StopCellbrowser`
+- `ReadH5AD` and `WriteH5AD` deprecated in favor of h5Seurat/H5AD functionality found in SeuratDisk
+- `as.loom` and `as.Seurat.loom` deprecated in favor of functionality found in SeuratDisk
+
+## [3.2.0] - 2020-07-15
+### Added
+- Added ability to create a Seurat object from an existing Assay object, or any
+object inheriting from the Assay class
+- Added ability to cluster idents and group features in `DotPlot`
+- Added ability to use RColorBrewer plaettes for split `DotPlots`
+- Added visualization and analysis functionality for spatially resolved datasets (Visium, Slide-seq).
+
+### Changes
+- Removed `add.iter` parameter from `RunTSNE` function
+- Fixed integer overflow error in the WilcoxDETest function
+- Minor visual fixes in `DoHeatmap` group bar + labels
+- Efficiency improvements in anchor scoring (`ScoreAnchors`)
+- Fix bug in `FindClusters()` when the last node has no edges
+- Default to weighted = TRUE when constructing igraph objects in `RunLeiden`. Remove corresponding weights parameter from `FindClusters()`.
+- Fix handling of keys in `FeatureScatter()`
+- Change `CellSelector` to use Shiny gadgets instead of SDMTools
+- Mark `PointLocator` as defunct
+- Remove `SDMTools`
+- Fixed data slot return in `AverageExpression` when subsetting features and returning a Seurat object
+
+## [3.1.5] - 2020-04-14
+### Added
+- New `scale` parameter in `DotPlot`
+- New `keep.sparse parameter in `CreateGeneActivityMatrix` for a more memory efficient option
+- Added ability to store model learned by UMAP and project new data
+- New `strip.suffix` option in `Read10X`. **This changes the default behavior of `Read10X`**.
+  A trailing `-1` present in all cell names will not be removed by default.
+- Added `group.by` parameter to `FeatureScatter`
+
+### Changes
+- Replace wilcox.test with limma implementation for a faster FindMarkers default method
+- Better point separation for `VlnPlot`s when using the `split.by` option
+- Efficiency improvements for anchor pairing
+- Deprecate redundant `sort.cell` parameter in `FeaturePlot`
+- Fixes to ensure correct class of Matrix passed to c++ functions
+- Fixes for underscores in ident labels for `DotPlot`
+- Ensure preservation of matrix dimnames in `SampleUMI`
+- Fix non-standard evaluation problems in `subset` and `WhichCells`
+- Default split violin option is now a multi group option
+- Preserve alpha in `FeaturePlot` when using `blend`
+- Update `assay.used` slot for `DimReduc`s when Assay is renamed
+
+## [3.1.4] - 2020-02-20
+### Changes
+- Fixes to `DoHeatmap` to remain compatible with ggplot2 v3.3
+- Adoption of `patchwork` framework to replace `CombinePlots`
+
+## [3.1.3] - 2020-02-07
+### Added
+- New system agnostic `Which` function to address problems with FItSNE on Windows
+
+### Changes
+- Export `CellsByIdentities` and `RowMergeSparseMatrices` functions
+- nCount and nFeature metadata variables retained after subset and updated properly with `UpdateSeuratObject`
+- Fix uwot support for running directly on feature matrices
+- Fixes for keys with underscores
+- Fix issue with leiden option for `FindClusters`
+- Fix for data transfer when using sctransform
+- SDMTools moved to Suggests as package is orphaned
+
+## [3.1.2] - 2019-12-11
+### Added
+- New silent slot updater
+- New random seed options to `RunCCA`, `RunTSNE`, `WhichCells`, `HTODemux`, `AddModuleScore`, `VlnPlot`, and `RidgePlot`
+- Enhancements for dealing with `Assay`-derived objects
+
+### Changed
+- Only run `CalcN` (generates nFeatures and nCounts) when `counts` changes
+- Fix issue regarding colons in feature names
+- Change object class testing to use `inherits` or `is.*` for R 4.0 compatability
 
 ## [3.1.1] - 2019-09-20
 ### Added
@@ -39,7 +161,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Updates `ReadH5AD` to distinguish FVF methods
 - Fixes to UpdateSeuratObject for v2 objects
 - Sink all output from stdout to stderr
-- Fix to scale.data cell ordering after subsetting 
+- Fix to scale.data cell ordering after subsetting
 - Enable `Assay` specification in `BuildClusterTree`
 - Fix `FeaturePlot` when using both `blend` and `split.by`
 - Fix to `WhichCells` when passing `cells` and `invert`
@@ -110,7 +232,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 - DiffusionMap dependency replaced with destiny to avoid archival
-- Java dependency removed and functionality rewritten in Rcpp 
+- Java dependency removed and functionality rewritten in Rcpp
 - Speed and efficiency improvements for Rcpp code
 - More robust duplicate handling in CellCycleScoring
 

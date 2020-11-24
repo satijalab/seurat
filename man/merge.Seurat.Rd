@@ -9,14 +9,17 @@
 \alias{AddSamples}
 \title{Merge Seurat Objects}
 \usage{
-\method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
-  merge.data = TRUE, ...)
+\method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL, merge.data = TRUE, ...)
 
-\method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
-  merge.data = TRUE, ...)
-
-\method{merge}{Seurat}(x = NULL, y = NULL, add.cell.ids = NULL,
-  merge.data = TRUE, project = "SeuratProject", ...)
+\method{merge}{Seurat}(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = TRUE,
+  merge.dr = NULL,
+  project = "SeuratProject",
+  ...
+)
 }
 \arguments{
 \item{x}{Object}
@@ -32,7 +35,11 @@ approach was applied to all objects.}
 
 \item{...}{Arguments passed to other methods}
 
-\item{project}{Sets the project name for the Seurat object.}
+\item{merge.dr}{Merge specified DimReducs that are present in all objects.
+Will only merge the embeddings slots for the first N dimensions that are
+shared across all objects.}
+
+\item{project}{\link{Project} name for the \code{Seurat} object}
 }
 \value{
 Merged object
@@ -45,10 +52,15 @@ When merging Seurat objects, the merge procedure will merge the Assay level
 counts and potentially the data slots (depending on the merge.data parameter).
 It will also merge the cell-level meta data that was stored with each object
 and preserve the cell identities that were active in the objects pre-merge.
-The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
-that were present in the original objects. If add.cell.ids isn't specified
-and any cell names are duplicated, cell names will be appended with _X, where
-X is the numeric index of the object in c(x, y).
+The merge will optionally merge reductions depending on the values passed to
+\code{merge.dr} if they have the same name across objects. Here the
+embeddings slots will be merged and if there are differing numbers of
+dimensions across objects, only the first N shared dimensions will be merged.
+The feature loadings slots will be filled by the values present in the first
+object.The merge will not preserve graphs, logged commands, or feature-level
+metadata that were present in the original objects. If add.cell.ids isn't
+specified and any cell names are duplicated, cell names will be appended
+with _X, where X is the numeric index of the object in c(x, y).
 }
 \examples{
 # merge two objects

@@ -8,12 +8,31 @@
 \alias{UMAPPlot}
 \title{Dimensional reduction plot}
 \usage{
-DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = NULL, reduction = NULL, group.by = NULL,
-  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
-  label.size = 4, repel = FALSE, cells.highlight = NULL,
-  cols.highlight = "#DE2D26", sizes.highlight = 1,
-  na.value = "grey50", combine = TRUE, ncol = NULL, ...)
+DimPlot(
+  object,
+  dims = c(1, 2),
+  cells = NULL,
+  cols = NULL,
+  pt.size = NULL,
+  reduction = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  shape.by = NULL,
+  order = NULL,
+  shuffle = FALSE,
+  seed = 1,
+  label = FALSE,
+  label.size = 4,
+  label.color = "black",
+  label.box = FALSE,
+  repel = FALSE,
+  cells.highlight = NULL,
+  cols.highlight = "#DE2D26",
+  sizes.highlight = 1,
+  na.value = "grey50",
+  ncol = NULL,
+  combine = TRUE
+)
 
 PCAPlot(object, ...)
 
@@ -30,7 +49,8 @@ UMAPPlot(object, ...)
 
 \item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-By default, ggplot2 assigns colors}
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
+See \code{\link{DiscretePalette}} for details.}
 
 \item{pt.size}{Adjust point size for plotting}
 
@@ -50,9 +70,19 @@ different colors and different shapes on cells}
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
 
+\item{shuffle}{Whether to randomly shuffle the order of points. This can be
+useful for crowded plots if points of interest are being buried. (default is FALSE)}
+
+\item{seed}{Sets the seed if randomly shuffling the order of points.}
+
 \item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
+
+\item{label.color}{Sets the color of the label text}
+
+\item{label.box}{Whether to put a box around the label text (geom_text vs
+geom_label)}
 
 \item{repel}{Repel labels}
 
@@ -70,14 +100,16 @@ groups in cells.highlight}
 
 \item{na.value}{Color value for NA points when using custom scale}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
 \item{ncol}{Number of columns for display when combining plots}
 
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
+\item{...}{Extra parameters passed to \code{DimPlot}}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -95,5 +127,5 @@ DimPlot(object = pbmc_small, split.by = 'ident')
 }
 \seealso{
 \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-\code{\link{CellSelector}} \code{link{FetchData}}
+\code{\link{CellSelector}} \code{\link{FetchData}}
 }

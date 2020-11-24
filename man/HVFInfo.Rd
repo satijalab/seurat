@@ -10,8 +10,7 @@ HVFInfo(object, ...)
 
 \method{HVFInfo}{Assay}(object, selection.method, status = FALSE, ...)
 
-\method{HVFInfo}{Seurat}(object, selection.method = NULL, assay = NULL,
-  status = FALSE, ...)
+\method{HVFInfo}{Seurat}(object, selection.method = NULL, assay = NULL, status = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}

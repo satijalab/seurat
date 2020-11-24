@@ -8,14 +8,30 @@
 \usage{
 OldWhichCells(object, ...)
 
-\method{OldWhichCells}{Assay}(object, cells, subset.name = NULL,
-  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  ...)
+\method{OldWhichCells}{Assay}(
+  object,
+  cells,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ...
+)
 
-\method{OldWhichCells}{Seurat}(object, cells = NULL,
-  subset.name = NULL, low.threshold = -Inf, high.threshold = Inf,
-  accept.value = NULL, ident.keep = NULL, ident.remove = NULL,
-  max.cells.per.ident = Inf, random.seed = 1, assay = NULL, ...)
+\method{OldWhichCells}{Seurat}(
+  object,
+  cells = NULL,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ident.keep = NULL,
+  ident.remove = NULL,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  assay = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

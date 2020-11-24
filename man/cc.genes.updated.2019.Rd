@@ -4,13 +4,15 @@
 \name{cc.genes.updated.2019}
 \alias{cc.genes.updated.2019}
 \title{Cell cycle genes: 2019 update}
-\format{A list of two vectors
+\format{
+A list of two vectors
 \describe{
   \item{s.genes}{Genes associated with S-phase}
   \item{g2m.genes}{Genes associated with G2M-phase}
-}}
+}
+}
 \source{
-\url{http://science.sciencemag.org/content/352/6282/189}
+\url{https://science.sciencemag.org/content/352/6282/189}
 }
 \usage{
 cc.genes.updated.2019

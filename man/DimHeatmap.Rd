@@ -5,10 +5,23 @@
 \alias{PCHeatmap}
 \title{Dimensional reduction heatmap}
 \usage{
-DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
-  reduction = "pca", disp.min = -2.5, disp.max = NULL,
-  balanced = TRUE, projected = FALSE, ncol = NULL, combine = TRUE,
-  fast = TRUE, raster = TRUE, slot = "scale.data", assays = NULL)
+DimHeatmap(
+  object,
+  dims = 1,
+  nfeatures = 30,
+  cells = NULL,
+  reduction = "pca",
+  disp.min = -2.5,
+  disp.max = NULL,
+  balanced = TRUE,
+  projected = FALSE,
+  ncol = NULL,
+  fast = TRUE,
+  raster = TRUE,
+  slot = "scale.data",
+  assays = NULL,
+  combine = TRUE
+)
 
 PCHeatmap(object, ...)
 }
@@ -34,9 +47,6 @@ if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{ncol}{Number of columns to plot}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
-when plotting multiple dimensions}
-
 \item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable}
 
 \item{raster}{If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
@@ -47,10 +57,15 @@ if you are encountering that issue (note that plots may take longer to produce/r
 
 \item{assays}{A vector of assays to pull data from}
 
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
 \item{...}{Extra parameters passed to \code{DimHeatmap}}
 }
 \value{
-No return value by default. If using fast = FALSE, will return a ggplot object.
+No return value by default. If using fast = FALSE, will return a
+\code{\link[patchwork]{patchwork}ed} ggplot object if combine = TRUE, otherwise
+returns a list of ggplot objects
 }
 \description{
 Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their

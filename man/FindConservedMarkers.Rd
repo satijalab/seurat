@@ -4,9 +4,17 @@
 \alias{FindConservedMarkers}
 \title{Finds markers that are conserved between the groups}
 \usage{
-FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay = "RNA", slot = "data", meta.method = minimump,
-  verbose = TRUE, ...)
+FindConservedMarkers(
+  object,
+  ident.1,
+  ident.2 = NULL,
+  grouping.var,
+  assay = "RNA",
+  slot = "data",
+  meta.method = metap::minimump,
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object}

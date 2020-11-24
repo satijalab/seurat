@@ -4,8 +4,7 @@
 \alias{JackStrawPlot}
 \title{JackStraw Plot}
 \usage{
-JackStrawPlot(object, dims = 1:5, reduction = "pca", xmax = 0.1,
-  ymax = 0.3)
+JackStrawPlot(object, dims = 1:5, reduction = "pca", xmax = 0.1, ymax = 0.3)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -9,20 +9,52 @@
 \usage{
 RunICA(object, ...)
 
-\method{RunICA}{default}(object, assay = NULL, nics = 50,
-  rev.ica = FALSE, ica.function = "icafast", verbose = TRUE,
-  ndims.print = 1:5, nfeatures.print = 30, reduction.name = "ica",
-  reduction.key = "ica_", seed.use = 42, ...)
+\method{RunICA}{default}(
+  object,
+  assay = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+)
 
-\method{RunICA}{Assay}(object, assay = NULL, features = NULL,
-  nics = 50, rev.ica = FALSE, ica.function = "icafast",
-  verbose = TRUE, ndims.print = 1:5, nfeatures.print = 30,
-  reduction.name = "ica", reduction.key = "ica_", seed.use = 42, ...)
+\method{RunICA}{Assay}(
+  object,
+  assay = NULL,
+  features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+)
 
-\method{RunICA}{Seurat}(object, assay = NULL, features = NULL,
-  nics = 50, rev.ica = FALSE, ica.function = "icafast",
-  verbose = TRUE, ndims.print = 1:5, nfeatures.print = 30,
-  reduction.name = "ica", reduction.key = "IC_", seed.use = 42, ...)
+\method{RunICA}{Seurat}(
+  object,
+  assay = NULL,
+  features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "IC_",
+  seed.use = 42,
+  ...
+)
 }
 \arguments{
 \item{object}{Seurat object}

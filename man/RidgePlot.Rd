@@ -4,9 +4,23 @@
 \alias{RidgePlot}
 \title{Single cell ridge plot}
 \usage{
-RidgePlot(object, features, cols = NULL, idents = NULL, sort = FALSE,
-  assay = NULL, group.by = NULL, y.max = NULL, same.y.lims = FALSE,
-  log = FALSE, ncol = NULL, combine = TRUE, slot = "data", ...)
+RidgePlot(
+  object,
+  features,
+  cols = NULL,
+  idents = NULL,
+  sort = FALSE,
+  assay = NULL,
+  group.by = NULL,
+  y.max = NULL,
+  same.y.lims = FALSE,
+  log = FALSE,
+  ncol = NULL,
+  slot = "data",
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = "feature"
+)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,14 +47,18 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
 \item{slot}{Use non-normalized counts data for plotting}
 
-\item{...}{Extra parameters passed on to \code{\link{CombinePlots}}}
+\item{stack}{Horizontally stack plots for each feature}
+
+\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+ggplot object. If \code{FALSE}, return a list of ggplot}
+
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 }
 \value{
-A ggplot object
+A \code{\link[patchwork]{patchwork}ed} ggplot object if
+\code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{
 Draws a ridge plot of single cell data (gene expression, metrics, PC

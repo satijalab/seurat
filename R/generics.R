@@ -71,6 +71,18 @@ as.loom <- function(x, ...) {
   UseMethod(generic = 'as.loom', object = x)
 }
 
+#' Convert objects to Neighbor ojbects
+#'
+#' @param x An object to convert to \code{Neighbor}
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname as.Neighbor
+#' @export as.Neighbor
+#'
+as.Neighbor <- function(x, ...) {
+  UseMethod(generic = 'as.Neighbor', object = x)
+}
+
 #' Convert objects to Seurat objects
 #'
 #' @param x An object to convert to class \code{Seurat}
@@ -115,6 +127,9 @@ as.sparse <- function(x, ...) {
 #'
 #' @return A vector of cell names
 #'
+#' @note The default method simply calls \code{\link[base]{colnames}} on \code{x};
+#' other methods are provided for objects where colnames aren't necessarily cell names
+#'
 #' @rdname Cells
 #' @export Cells
 #'
@@ -141,6 +156,60 @@ Command <- function(object, ...) {
   UseMethod(generic = 'Command', object = object)
 }
 
+#' Create a \code{Seurat} object
+#'
+#' Create a \code{Seurat} object from raw data
+#'
+#' @param counts Either a \code{\link[base]{matrix}}-like object with
+#' unnormalized data with cells as columns and features as rows or an
+#' \code{\link{Assay}}-derived object
+#' @param project \link{Project} name for the \code{Seurat} object
+#' @param assay Name of the initial assay
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's name. E.g. If your cells are named as
+#' BARCODE_CLUSTER_CELLTYPE in the input matrix, set \code{names.field} to 3 to
+#' set the initial identities to CELLTYPE.
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name. E.g. If your cells are named as
+#' BARCODE-CLUSTER-CELLTYPE, set this to \dQuote{-} to separate the cell name
+#' into its component parts for picking the relevant field.
+#' @param meta.data Additional cell-level metadata to add to the Seurat object.
+#' Should be a \code{\link[base]{data.frame}} where the rows are cell names and
+#' the columns are additional metadata fields.
+#' @param ... Arguments passed to other methods
+#'
+#' @note In previous versions (<3.0), this function also accepted a parameter to
+#' set the expression threshold for a \sQuote{detected} feature (gene). This
+#' functionality has been removed to simplify the initialization
+#' process/assumptions. If you would still like to impose this threshold for
+#' your particular dataset, simply filter the input expression matrix before
+#' calling this function.
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @rdname CreateSeuratObject
+#' @export
+#'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(counts = pbmc_raw)
+#' pbmc_small
+#'
+CreateSeuratObject <- function(
+  counts,
+  project = 'CreateSeuratObject',
+  assay = 'RNA',
+  names.field = 1,
+  names.delim = '_',
+  meta.data = NULL,
+  ...
+) {
+  UseMethod(generic = 'CreateSeuratObject', object = counts)
+}
+
 #' Get and set the default assay
 #'
 #' @param object An object
@@ -165,6 +234,18 @@ DefaultAssay <- function(object, ...) {
 #'
 "DefaultAssay<-" <- function(object, ..., value) {
   UseMethod(generic = 'DefaultAssay<-', object = object)
+}
+
+#' Get the Neighbor nearest neighbors distance matrix
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname Distances
+#' @export Distances
+#'
+Distances <- function(object, ...) {
+  UseMethod(generic = 'Distances', object = object)
 }
 
 #' Get cell embeddings
@@ -266,22 +347,29 @@ FindClusters <- function(object, ...) {
 #' @export FindMarkers
 #'
 #' @aliases FindMarkersNode
+#' @seealso \code{FoldChange}
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
 }
 
-#' SNN Graph Construction
+#' (Shared) Nearest-neighbor graph construction
 #'
-#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-#' first determine the k-nearest neighbors of each cell. We use this knn graph
-#' to construct the SNN graph by calculating the neighborhood overlap
-#' (Jaccard index) between every cell and its k.param nearest neighbors.
+#' Computes the \code{k.param} nearest neighbors for a given dataset. Can also
+#' optionally (via \code{compute.SNN}), construct a shared nearest neighbor
+#' graph by calculating the neighborhood overlap (Jaccard index) between every
+#' cell and its \code{k.param} nearest neighbors.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return Returns the object with object@@snn filled
+#' @return This function can either return a \code{\link{Neighbor}} object
+#' with the KNN information or a list of \code{\link{Graph}} objects with
+#' the KNN and SNN depending on the settings of \code{return.neighbor} and
+#' \code{compute.SNN}. When running on a \code{\link{Seurat}} object, this
+#' returns the \code{\link{Seurat}} object with the Graphs or Neighbor objects
+#' stored in their respective slots. Names of the Graph or Neighbor object can
+#' be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
 #'
 #' @examples
 #' pbmc_small
@@ -325,6 +413,43 @@ FindVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
+#' Find spatially variable features
+#'
+#' Identify features whose variability in expression can be explained to some
+#' degree by spatial location.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname FindSpatiallyVariableFeatures
+#' @export FindSpatiallyVariableFeatures
+#'
+FindSpatiallyVariableFeatures <- function(object, ...) {
+  UseMethod(generic = 'FindSpatiallyVariableFeatures', object = object)
+}
+
+#' Fold Change
+#'
+#' Calculate log fold change and percentage of cells expressing each feature
+#' for different identity classes.
+#'
+#' If the slot is \code{scale.data} or a reduction is specified, average difference
+#' is returned instead of log fold change and the column is named "avg_diff".
+#' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
+#'
+#' @examples
+#' FoldChange(pbmc_small, ident.1 = 1)
+#'
+#' @param object A Seurat object
+#' @param ... Arguments passed to other methods
+#' @rdname FoldChange
+#' @export FoldChange
+#' @return Returns a data.frame
+#' @seealso \code{FindMarkers}
+FoldChange <- function(object, ...) {
+  UseMethod(generic = 'FoldChange', object = object)
+}
+
 #' Get an Assay object from a given Seurat object.
 #'
 #' @param object An object
@@ -354,6 +479,45 @@ GetAssay <- function(object, ...) {
 #'
 GetAssayData <- function(object, ...) {
   UseMethod(generic = 'GetAssayData', object = object)
+}
+
+#' Get image data
+#'
+#' @param object An object
+#' @param mode How to return the image; should accept one of 'grob', 'raster',
+#' 'plotly', or 'raw'
+#' @param ... Arguments passed to other methods
+#'
+#' @return Image data, varying depending on the value of \code{mode}:
+#' \describe{
+#'  \item{'grob'}{An object representing image data inheriting from \code{grob} objects (eg. \code{rastergrob})}
+#'  \item{'raster'}{An object of class \code{raster}}
+#'  \item{'plotly'}{A list with image data suitable for Plotly rendering, see \code{\link[plotly]{layout}} for more details}
+#'  \item{'raw'}{The raw image data as stored in the object}
+#' }
+#'
+#' @seealso \code{\link[plotly]{layout}}
+#'
+#' @rdname GetImage
+#' @export GetImage
+#'
+GetImage <- function(object, mode = c('grob', 'raster', 'plotly', 'raw'), ...) {
+  mode <- match.arg(arg = mode)
+  UseMethod(generic = 'GetImage', object = object)
+}
+
+#' Get tissue coordinates
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return A data.frame with tissue coordinates
+#'
+#' @rdname GetTissueCoordinates
+#' @export GetTissueCoordinates
+#'
+GetTissueCoordinates <- function(object, ...) {
+  UseMethod(generic = 'GetTissueCoordinates', object = object)
 }
 
 #' Get highly variable feature information
@@ -413,6 +577,91 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
+#' Get Neighbor algorithm index
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods;
+#'
+#' @return Returns the value in the alg.idx slot of the Neighbor object
+#'
+#' @rdname Index
+#' @export Index
+#'
+Index <- function(object, ...) {
+  UseMethod(generic = "Index", object = object)
+}
+
+#' @inheritParams Index
+#' @param value The index to store
+#'
+#' @return \code{Idents<-}: A Neighbor bject with the index stored
+#'
+#' @rdname Index
+#' @export Index<-
+#'
+"Index<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Index<-', object = object)
+}
+
+#' Get Neighbor nearest neighbor index matrices
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods;
+#'
+#' @return A matrix with the nearest neighbor indices
+#'
+#' @rdname Indices
+#' @export Indices
+#'
+Indices <- function(object, ...) {
+  UseMethod(generic = "Indices", object = object)
+}
+
+#' Integrate low dimensional embeddings
+#'
+#' Perform dataset integration using a pre-computed Anchorset of specified low
+#' dimensional representations.
+#'
+#' The main steps of this procedure are identical to \code{\link{IntegrateData}}
+#' with one key distinction. When computing the weights matrix, the distance
+#' calculations are performed in the full space of integrated embeddings when
+#' integrating more than two datasets, as opposed to a reduced PCA space which
+#' is the default behavior in \code{\link{IntegrateData}}.
+#'
+#' @param anchorset An AnchorSet object
+#' @param new.reduction.name Name for new integrated dimensional reduction.
+#' @param reductions Name of reductions to be integrated. For a
+#' TransferAnchorSet, this should be the name of a reduction present in the
+#' anchorset object (for example, "pcaproject"). For an IntegrationAnchorSet,
+#' this should be a \code{\link{DimReduc}} object containing all cells present
+#' in the anchorset object.
+#' @param dims.to.integrate Number of dimensions to return integrated values for
+#' @param weight.reduction Dimension reduction to use when calculating anchor
+#' weights. This can be one of:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in
+#'    all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to
+#'    use for each object to be integrated}
+#'    \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+#'    use for each object in the integration}
+#'    \item{NULL, in which case the full corrected space is used for computing
+#'    anchor weights.}
+#' }
+#' @param ... Reserved for internal use
+#'
+#' @return When called on a TransferAnchorSet (from FindTransferAnchors), this
+#' will return the query object with the integrated embeddings stored in a new
+#' reduction. When called on an IntegrationAnchorSet (from IntegrateData), this
+#' will return a merged object with the integrated reduction stored.
+#'
+#' @rdname IntegrateEmbeddings
+#' @export IntegrateEmbeddings
+#'
+IntegrateEmbeddings <- function(anchorset, ...) {
+  UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
+}
+
 #' Is an object global/persistent?
 #'
 #' Typically, when removing \code{Assay} objects from an \code{Seurat} object,
@@ -421,7 +670,6 @@ Idents <- function(object, ... ) {
 #' the associated object will remain even if its original assay was deleted
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods
 #'
 #' @return \code{TRUE} if the object is global/persistent otherwise \code{FALSE}
 #'
@@ -431,7 +679,7 @@ Idents <- function(object, ... ) {
 #' @examples
 #' IsGlobal(pbmc_small[['pca']])
 #'
-IsGlobal <- function(object, ...) {
+IsGlobal <- function(object) {
   UseMethod(generic = 'IsGlobal', object = object)
 }
 
@@ -449,7 +697,7 @@ JS <- function(object, ...) {
 
 #' Set JackStraw information
 #'
-#' @inherit JS
+#' @inheritParams JS
 #' @param value JackStraw information
 #'
 #' @rdname JS
@@ -505,6 +753,28 @@ Loadings <- function(object, ...) {
 #'
 "Loadings<-" <- function(object, ..., value) {
   UseMethod(generic = 'Loadings<-', object = object)
+}
+
+#' Metric for evaluating mapping success
+#'
+#' This metric was designed to help identify query cells that aren't well
+#' represented in the reference dataset. The intuition for the score is that we
+#' are going to project the query cells into a reference-defined space and then
+#' project them back onto the query. By comparing the neighborhoods before and
+#' after projection, we identify cells who's local neighborhoods are the most
+#' affected by this transformation. This could be because there is a population
+#' of query cells that aren't present in the reference or the state of the cells
+#' in the query is significantly different from the equivalent cell type in the
+#' reference.
+#'
+#' @param anchors Set of anchors
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname MappingScore
+#' @export MappingScore
+#'
+MappingScore <- function(anchors, ...) {
+  UseMethod(generic = "MappingScore", object = anchors)
 }
 
 #' Access miscellaneous data
@@ -596,6 +866,39 @@ Project <- function(object, ...) {
 #'
 "Project<-" <- function(object, ..., value) {
   UseMethod(generic = 'Project<-', object = object)
+}
+
+#' Project query into UMAP coordinates of a reference
+#'
+#' This function will take a query dataset and project it into the coordinates
+#' of a provided reference UMAP. This is essentially a wrapper around two steps:
+#' \itemize{
+#'   \item{FindNeighbors - Find the nearest reference cell neighbors and their
+#'   distances for each query cell.}
+#'   \item{RunUMAP - Perform umap projection by providing the neighbor set
+#'   calculated above and the umap model previously computed in the reference.}
+#' }
+#'
+#' @param query Query dataset
+#'
+#' @rdname ProjectUMAP
+#' @export ProjectUMAP
+#'
+ProjectUMAP <- function(query, ...) {
+  UseMethod(generic = "ProjectUMAP", object = query)
+}
+
+#' Get the spot radius from an image
+#'
+#' @param object An image object
+#'
+#' @return The radius size
+#'
+#' @rdname Radius
+#' @export Radius
+#'
+Radius <- function(object) {
+  UseMethod(generic = 'Radius', object = object)
 }
 
 #' Read from and write to h5ad files
@@ -764,9 +1067,6 @@ RunALRA <- function(object, ...) {
 #'
 #' @return Returns a combined Seurat object with the CCA results stored.
 #'
-#' @rdname RunCCA
-#' @export RunCCA
-#'
 #' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples
@@ -802,32 +1102,19 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
-#' Run Latent Semantic Indexing on binary count matrix
+#' Run Linear Discriminant Analysis
 #'
-#' For details about stored LSI calculation parameters, see
-#' \code{PrintLSIParams}.
 #'
-#' @note RunLSI is being moved to Signac. Equivalent functionality can be
-#' achieved via the Signac::RunTFIDF and Signac::RunSVD functions;
-#' for more information on Signac, please see
-#' \url{https://github.com/timoast/Signac}
-#'
-#' @param object Seurat object
+#' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @rdname RunLSI
-#' @export RunLSI
+#' @rdname RunLDA
+#' @export RunLDA
 #'
-RunLSI <- function(object, ...) {
-  .Deprecated(
-    new = 'Signac::RunTFIDF',
-    msg = paste(
-      "RunLSI is being moved to Signac. Equivalent functionality can be",
-      "achieved via the Signac::RunTFIDF and Signac::RunSVD functions; for",
-      "more information on Signac, please see https://github.com/timoast/Signac"
-    )
-  )
-  UseMethod(generic = "RunLSI", object = object)
+#' @aliases RunLDA
+#'
+RunLDA <- function(object, ...) {
+  UseMethod(generic = 'RunLDA', object = object)
 }
 
 #' Run Principal Component Analysis
@@ -847,6 +1134,30 @@ RunLSI <- function(object, ...) {
 #'
 RunPCA <- function(object, ...) {
   UseMethod(generic = 'RunPCA', object = object)
+}
+
+#' Run Supervised Principal Component Analysis
+#'
+#' Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
+#' SPCA is used to capture a linear transformation which maximizes its dependency to
+#' the given cell-cell kernel. We use SNN graph as the kernel to supervise the linear
+#' matrix factorization.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods and IRLBA
+#'
+#' @return Returns Seurat object with the SPCA calculation stored in the reductions slot
+#' @references Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ.
+#' Supervised principal component analysis: Visualization, classification and
+#' regression on subspaces and submanifolds.
+#' Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{https://www.sciencedirect.com/science/article/pii/S0031320310005819?casa_token=AZMFg5OtPnAAAAAA:_Udu7GJ7G2ed1-XSmr-3IGSISUwcHfMpNtCj-qacXH5SBC4nwzVid36GXI3r8XG8dK5WOQui};
+#' @export
+#'
+#' @rdname RunSPCA
+#' @export RunSPCA
+#'
+RunSPCA <- function(object, ...) {
+  UseMethod(generic = 'RunSPCA', object = object)
 }
 
 #' Run t-distributed Stochastic Neighbor Embedding
@@ -904,7 +1215,7 @@ RunUMAP <- function(object, ...) {
 #' Scale and center the data.
 #'
 #' Scales and centers features in the dataset. If variables are provided in vars.to.regress,
-#' they are individually regressed against each feautre, and the resulting residuals are
+#' they are individually regressed against each feature, and the resulting residuals are
 #' then scaled and centered.
 #'
 #' ScaleData now incorporates the functionality of the function formerly known
@@ -912,9 +1223,9 @@ RunUMAP <- function(object, ...) {
 #' and then scaled the residuals). To make use of the regression functionality,
 #' simply pass the variables you want to remove to the vars.to.regress parameter.
 #'
-#' Setting center to TRUE will center the expression for each feautre by subtracting
-#' the average expression for that feautre. Setting scale to TRUE will scale the
-#' expression level for each feautre by dividing the centered feautre expression
+#' Setting center to TRUE will center the expression for each feature by subtracting
+#' the average expression for that feature. Setting scale to TRUE will scale the
+#' expression level for each feature by dividing the centered feature expression
 #' levels by their standard deviations if center is TRUE and by their root mean
 #' square otherwise.
 #'
@@ -926,6 +1237,20 @@ RunUMAP <- function(object, ...) {
 #'
 ScaleData <- function(object, ...) {
   UseMethod(generic = 'ScaleData', object = object)
+}
+
+#' Get image scale factors
+#'
+#' @param object An object to get scale factors from
+#' @param ... Arguments passed to other methods
+#'
+#' @return An object of class \code{scalefactors}
+#'
+#' @rdname ScaleFactors
+#' @export ScaleFactors
+#'
+ScaleFactors <- function(object, ...) {
+  UseMethod(generic = 'ScaleFactors', object = object)
 }
 
 #' Compute Jackstraw scores significance.
@@ -1002,6 +1327,15 @@ SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
+#' Get spatially variable feature information
+#'
+#' @rdname SpatiallyVariableFeatures
+#' @export SpatiallyVariableFeatures
+#'
+SpatiallyVariableFeatures <- function(object, ...){
+  UseMethod(generic = 'SpatiallyVariableFeatures', object = object)
+}
+
 #' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents
@@ -1052,6 +1386,17 @@ SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
 }
 
+#' Get spatially variable feature information
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname SVFInfo
+#' @export SVFInfo
+#'
+SVFInfo <- function(object, ...) {
+  UseMethod(generic = 'SVFInfo', object = object)
+}
 #' Get and set additional tool data
 #'
 #' Use \code{Tool} to get tool data. If no additional arguments are provided,
