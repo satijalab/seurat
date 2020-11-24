@@ -33,10 +33,6 @@ SCTResults(object, ...) <- value
 \item{key}{Key value}
 
 \item{assay}{Assay in the Seurat object to pull from}
-
-\item{slot}{Which slot to pull the SCT results from}
-
-\item{key}{Key value}
 }
 \description{
 Get SCT results from an Assay

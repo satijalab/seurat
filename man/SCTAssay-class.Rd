@@ -15,14 +15,11 @@
 
 \method{levels}{SCTAssay}(x) <- value
 
-\method{max}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"),
-  drop = TRUE)
+\method{max}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"), drop = TRUE)
 
-\method{min}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"),
-  drop = TRUE)
+\method{min}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"), drop = TRUE)
 
-\method{range}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"),
-  drop = TRUE)
+\method{range}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"), drop = TRUE)
 }
 \arguments{
 \item{x}{An \code{SCTAssay} object}
@@ -32,7 +29,7 @@
 \item{...}{For \code{range}, \code{min}, and \code{max}, an \code{SCTAssay}
 object. For all others, arguments passed to other methods or ignored}
 
-\item{na.rm}{logical, indicating if \code{\link{NA}}'s should be
+\item{na.rm}{logical, indicating if \code{\link[base]{NA}}'s should be
     omitted.}
 
 \item{slot}{Which clips to fetch, choose from "sct" (Seurat \code{\link{SCTransform}}- set clips)
