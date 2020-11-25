@@ -11,8 +11,6 @@ AverageExpression(
   return.seurat = FALSE,
   group.by = "ident",
   slot = "data",
-  use.scale = FALSE,
-  use.counts = FALSE,
   verbose = TRUE,
   ...
 )
@@ -29,10 +27,6 @@ AverageExpression(
 \item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
 
 \item{slot}{Slot to use; will be overriden by \code{use.scale} and \code{use.counts}}
-
-\item{use.scale}{Use scaled values for feature expression}
-
-\item{use.counts}{Use count values for feature expression}
 
 \item{verbose}{Print messages and show progress bar}
 

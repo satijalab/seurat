@@ -237,8 +237,6 @@ AddModuleScore <- function(
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
 #' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
 #' @param slot Slot to use; will be overriden by \code{use.scale} and \code{use.counts}
-#' @param use.scale Use scaled values for feature expression
-#' @param use.counts Use count values for feature expression
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
@@ -259,23 +257,10 @@ AverageExpression <- function(
   return.seurat = FALSE,
   group.by = 'ident',
   slot = 'data',
-  use.scale = FALSE,
-  use.counts = FALSE,
   verbose = TRUE,
   ...
 ) {
   CheckDots(..., fxns = 'CreateSeuratObject')
-  if (use.scale) {
-    .Deprecated(msg = "'use.scale' is a deprecated argument, please use the 'slot' argument instead")
-    slot <- 'scale.data'
-  }
-  if (use.counts) {
-    .Deprecated(msg = "'use.counts' is a deprecated argument, please use the 'slot' argument instead")
-    if (use.scale) {
-      warning("Both 'use.scale' and 'use.counts' were set; using counts", call. = FALSE, immediate. = TRUE)
-    }
-    slot <- 'counts'
-  }
   features <- features %||% rownames(x = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
