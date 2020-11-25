@@ -898,8 +898,8 @@ DimPlot <- function(
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
 #' @param keep.scale How to plot color scale across 'split.by' plots. Options are:
 #' \itemize{
-#'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conidtions provided to 'split.by'.}
-#'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest expression.}
+#'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
+#'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
 #'   \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
 #' }
 #' @param slot Which slot to pull expression data from?
