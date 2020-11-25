@@ -991,7 +991,7 @@ FeaturePlot <- function(
   }
   # Check keep.scale param for valid entries
   if (!(is.null(x = keep.scale)) && !(keep.scale %in% c("feature", "all"))) {
-    stop("`keep.scale` must be either `feature`, `all`, or NULL")
+    stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
   }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
