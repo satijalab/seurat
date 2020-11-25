@@ -1313,9 +1313,9 @@ FeaturePlot <- function(
           object = object,
           vars = feature,
           slot = slot)
-        max.exp.value <- max(feature.data)
-        min.exp.value <- min(feature.data)
-        plot <- suppressMessages(plot & scale_color_gradientn(colors = cols, limits = c(min.exp.value, max.exp.value)))
+        max.feature.value <- max(feature.data)
+        min.feature.value <- min(feature.data)
+        plot <- suppressMessages(plot & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value)))
       }
       # Add coord_fixed
       if (coord.fixed) {
@@ -1452,9 +1452,9 @@ FeaturePlot <- function(
         object = object,
         vars = features,
         slot = slot)
-      max.exp.value <- max(feature.data)
-      min.exp.value <- min(feature.data)
-      plots <- suppressMessages(plots & scale_color_gradientn(colors = cols, limits = c(min.exp.value, max.exp.value)))
+      max.feature.value <- max(feature.data)
+      min.feature.value <- min(feature.data)
+      plots <- suppressMessages(plots & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value)))
     }
   }
   return(plots)
