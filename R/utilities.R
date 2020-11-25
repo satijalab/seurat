@@ -236,7 +236,10 @@ AddModuleScore <- function(
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
 #' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param slot Slot to use; will be overriden by \code{use.scale} and \code{use.counts}
+#' @param add.ident (Deprecated) Place an additional label on each cell prior to averaging 
+#' (very useful if you want to observe cluster averages, separated by replicate, for example)
+#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
@@ -256,11 +259,16 @@ AverageExpression <- function(
   features = NULL,
   return.seurat = FALSE,
   group.by = 'ident',
+  add.ident = NULL,
   slot = 'data',
   verbose = TRUE,
   ...
 ) {
   CheckDots(..., fxns = 'CreateSeuratObject')
+  if (!is.null(x = add.ident)) {
+    .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
+    group.by <- c('ident', add.ident)
+  }
   features <- features %||% rownames(x = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
@@ -271,6 +279,11 @@ AverageExpression <- function(
     } else {
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
     }
+  }
+  if (length(x = slot) == 1) {
+    slot <- rep_len(x = slot, length.out = length(x = assays))
+  } else if (length(x = slot) != length(x = assays)) {
+    stop("Number of slots provided does not match number of assays")
   }
   data <- FetchData(object = object, vars = rev(x = group.by))
   for (i in 1:ncol(x = data)) {
@@ -289,6 +302,7 @@ AverageExpression <- function(
   ))
   colsums <- colSums(x = category.matrix)
   category.matrix <- category.matrix[, colsums > 0]
+  colsums <- colsums[colsums > 0]
   category.matrix <- Sweep(
     x = category.matrix,
     MARGIN = 2,
@@ -305,17 +319,17 @@ AverageExpression <- function(
     data.use <- GetAssayData(
       object = object,
       assay = assays[i],
-      slot = slot
+      slot = slot[i]
     )
     features.assay <- intersect(x = features, y = rownames(x = data.use))
     if (length(x = features.assay) > 0) {
       data.use <- data.use[features.assay, ]
     }
-    if (slot == 'data') {
+    if (slot[i] == 'data') {
       data.use <- expm1(x = data.use)
-    }
-    if (any(data.use == Inf)) {
-      warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
+      if (any(data.use == Inf)) {
+        warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
+      }
     }
     data.return[[i]] <- as.matrix(x = (data.use %*% as.sparse(x = category.matrix)))
     names(x = data.return)[i] <- assays[[i]]
