@@ -10,6 +10,7 @@ AverageExpression(
   features = NULL,
   return.seurat = FALSE,
   group.by = "ident",
+  add.ident = NULL,
   slot = "data",
   verbose = TRUE,
   ...
@@ -26,7 +27,11 @@ AverageExpression(
 
 \item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
 
-\item{slot}{Slot to use; will be overriden by \code{use.scale} and \code{use.counts}}
+\item{add.ident}{(Deprecated) Place an additional label on each cell prior to averaging 
+(very useful if you want to observe cluster averages, separated by replicate, for example)}
+
+\item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
+the order of 'assays' (if specified) or object's assays}
 
 \item{verbose}{Print messages and show progress bar}
 
