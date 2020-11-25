@@ -896,7 +896,12 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
-#' @param keep.scale logical, whether to keep the color scale constant across split plots (default = TRUE)
+#' @param keep.scale How to plot color scale across 'split.by' plots. Options are:
+#' \itemize{
+#'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conidtions provided to 'split.by'.}
+#'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest expression.}
+#'   \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
+#' }
 #' @param slot Which slot to pull expression data from?
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
@@ -948,7 +953,7 @@ FeaturePlot <- function(
   max.cutoff = NA,
   reduction = NULL,
   split.by = NULL,
-  keep.scale = TRUE,
+  keep.scale = "feature",
   shape.by = NULL,
   slot = 'data',
   blend = FALSE,
@@ -983,6 +988,10 @@ FeaturePlot <- function(
       reduction = reduction,
       slot = slot
     ))
+  }
+  # Check keep.scale param for valid entries
+  if (!(is.null(x = keep.scale)) && !(keep.scale %in% c("feature", "all"))) {
+    stop("`keep.scale` must be either `feature`, `all`, or NULL")
   }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
@@ -1299,6 +1308,15 @@ FeaturePlot <- function(
           )
         }
       }
+      if (!(is.null(keep.scale)) && keep.scale == "feature" && !is.null(x = split.by)) {
+        feature.data <- FetchData(
+          object = object,
+          vars = feature,
+          slot = slot)
+        max.exp.value <- max(feature.data)
+        min.exp.value <- min(feature.data)
+        plot <- suppressMessages(plot & scale_color_gradientn(colors = cols, limits = c(min.exp.value, max.exp.value)))
+      }
       # Add coord_fixed
       if (coord.fixed) {
         plot <- plot + coord_fixed()
@@ -1429,14 +1447,14 @@ FeaturePlot <- function(
     if (!is.null(x = legend) && legend == 'none') {
       plots <- plots & NoLegend()
     }
-    if (keep.scale && !is.null(x = split.by)) {
+    if (!(is.null(keep.scale)) && keep.scale == "all" && !is.null(x = split.by)) {
       feature.data <- FetchData(
         object = object,
         vars = features,
         slot = slot)
-      max.feature.value <- max(feature.data)
-      min.feature.value <- min(feature.data)
-      plots <- suppressMessages(plots & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value)))
+      max.exp.value <- max(feature.data)
+      min.exp.value <- min(feature.data)
+      plots <- suppressMessages(plots & scale_color_gradientn(colors = cols, limits = c(min.exp.value, max.exp.value)))
     }
   }
   return(plots)
