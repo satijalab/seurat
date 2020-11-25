@@ -266,13 +266,13 @@ AverageExpression <- function(
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
-    if (length(assays) == 0) {
+    if (length(x = assays) == 0) {
       stop("None of the requested assays are present in the object")
     } else {
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
     }
   }
-  data <- FetchData(object = object, vars = rev(group.by))
+  data <- FetchData(object = object, vars = rev(x = group.by))
   for (i in 1:ncol(x = data)) {
     data[, i] <- as.factor(x = data[, i])
   }
@@ -281,19 +281,21 @@ AverageExpression <- function(
       '~0+',
       paste0(
         "data[,",
-        1:length(group.by),
+        1:length(x = group.by),
         "]",
-        collapse = ":")
-    )))
-  colsums <- colSums(category.matrix)
+        collapse = ":"
+      )
+    )
+  ))
+  colsums <- colSums(x = category.matrix)
   category.matrix <- category.matrix[, colsums > 0]
   category.matrix <- Sweep(
     x = category.matrix,
     MARGIN = 2,
     STATS = colsums,
     FUN = "/")
-  colnames(category.matrix) <- sapply(
-    X = colnames(category.matrix),
+  colnames(x = category.matrix) <- sapply(
+    X = colnames(x = category.matrix),
     FUN = function(name) {
       name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
       return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
