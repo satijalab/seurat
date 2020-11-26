@@ -68,7 +68,7 @@ groups in cells.highlight}
     \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
     \item{\code{raster}}{Convert points to raster format, default is NA which automatically
-rasterizes if plotting more than 50k cells}
+rasterizes if plotting more than 50k points}
   }}
 }
 \value{

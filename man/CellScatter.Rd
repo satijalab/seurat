@@ -13,7 +13,8 @@ CellScatter(
   highlight = NULL,
   cols = NULL,
   pt.size = 1,
-  smooth = FALSE
+  smooth = FALSE,
+  raster = NA
 )
 }
 \arguments{
@@ -32,6 +33,9 @@ CellScatter(
 \item{pt.size}{Size of the points on the plot}
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
+
+\item{raster}{Convert points to raster format, default is NA which automatically
+rasterizes if plotting more than 50k points}
 }
 \value{
 A ggplot object

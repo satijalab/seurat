@@ -740,7 +740,7 @@ ColorDimSplit <- function(
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is NA which automatically
-#' rasterizes if plotting more than 50k cells
+#' rasterizes if plotting more than 50k points
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -793,7 +793,7 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
-  # set raster to TRUE if more than 50k cells
+  # set raster to TRUE if more than 50k points
   raster <- ifelse(test = is.na(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
 
   if (isTRUE(x = shuffle)) {
@@ -915,7 +915,7 @@ DimPlot <- function(
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is NA which automatically
-#' rasterizes if plotting more than 50k cells
+#' rasterizes if plotting more than 50k points
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -1061,7 +1061,7 @@ FeaturePlot <- function(
   # Name the reductions
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  # set raster to TRUE if more than 50k cells
+  # set raster to TRUE if more than 50k points
   raster <- ifelse(test = is.na(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
   # Get plotting data
   data <- FetchData(
@@ -1683,6 +1683,8 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
 #' @param highlight Features to highlight
+#' @param raster Convert points to raster format, default is NA which automatically
+#' rasterizes if plotting more than 50k points
 #' @return A ggplot object
 #'
 #' @export
@@ -1700,7 +1702,8 @@ CellScatter <- function(
   highlight = NULL,
   cols = NULL,
   pt.size = 1,
-  smooth = FALSE
+  smooth = FALSE,
+  raster = NA
 ) {
   features <- features %||% rownames(x = object)
   data <- FetchData(
@@ -1714,7 +1717,8 @@ CellScatter <- function(
     cols = cols,
     pt.size = pt.size,
     rows.highlight = highlight,
-    smooth = smooth
+    smooth = smooth,
+    raster = raster
   )
   return(plot)
 }
@@ -6715,7 +6719,9 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param smooth Make a smoothed scatter plot
 # @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
-# @param raster Convert points to raster format, default is FALSE
+# @param raster Convert points to raster format, default is NA which automatically
+# rasterizes if plotting more than 50k points
+#
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
@@ -6736,7 +6742,7 @@ SingleCorPlot <- function(
   legend.title = NULL,
   na.value = 'grey50',
   span = NULL,
-  raster = NA
+  raster = FALSE
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -6760,6 +6766,7 @@ SingleCorPlot <- function(
     stop(msg, call. = FALSE)
   }
   plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = rows.highlight,
@@ -6781,6 +6788,7 @@ SingleCorPlot <- function(
   if (!is.null(x = col.by)) {
     data$colors <- col.by
   }
+  raster <- ifelse(test = is.na(x = raster) && dim(data)[1]>50000, yes=TRUE, no=FALSE)
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
