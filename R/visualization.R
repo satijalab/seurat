@@ -739,7 +739,8 @@ ColorDimSplit <- function(
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#' @param raster Convert points to raster format, default is FALSE
+#' @param raster Convert points to raster format, default is NA which automatically
+#' rasterizes if plotting more than 50k cells
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -785,13 +786,17 @@ DimPlot <- function(
   na.value = 'grey50',
   ncol = NULL,
   combine = TRUE,
-  raster = FALSE
+  raster = NA
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
+  # set raster to TRUE if more than 50k cells
+  if (is.na(x = raster) && length(x = cells)>50000){
+    raster <- TRUE
+  }
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
     cells <- sample(x = cells)
@@ -910,7 +915,8 @@ DimPlot <- function(
 #' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#' @param raster Convert points to raster format, default is FALSE
+#' @param raster Convert points to raster format, default is NA which automatically
+#' rasterizes if plotting more than 50k cells
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -964,7 +970,7 @@ FeaturePlot <- function(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = FALSE
+  raster = NA
 ) {
   # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
@@ -1056,6 +1062,10 @@ FeaturePlot <- function(
   # Name the reductions
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
+  # set raster to TRUE if more than 50k cells
+  if (is.na(x = raster) && length(x = cells)>50000){
+    raster <- TRUE
+  }
   # Get plotting data
   data <- FetchData(
     object = object,
@@ -3259,7 +3269,6 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
-#' @param raster Convert points to raster format, default is FALSE
 #'
 #' @return A ggplot object
 #'
@@ -3300,8 +3309,7 @@ DotPlot <- function(
   scale = TRUE,
   scale.by = 'radius',
   scale.min = NA,
-  scale.max = NA,
-  raster = FALSE
+  scale.max = NA
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -3331,6 +3339,7 @@ DotPlot <- function(
     names(x = feature.groups) <- features
   }
   cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
+
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -3458,13 +3467,9 @@ DotPlot <- function(
       levels = unique(x = feature.groups)
     )
   }
-  plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id'))
-  if (raster) {
-    plot <- plot + geom_scattermore(mapping = aes_string(pointsize = 'pct.exp', color = color.by))
-  }  else {
-    plot <- plot + geom_point(mapping = aes_string(size = 'pct.exp', color = color.by))
-  }
-  plot <- plot + scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
+  plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
+    geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
+    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
     guides(size = guide_legend(title = 'Percent Expressed')) +
     labs(
