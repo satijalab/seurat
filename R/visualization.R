@@ -794,9 +794,8 @@ DimPlot <- function(
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
   # set raster to TRUE if more than 50k cells
-  if (is.na(x = raster) && length(x = cells)>50000){
-    raster <- TRUE
-  }
+  raster <- ifelse(test = is.na(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
+
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
     cells <- sample(x = cells)
@@ -1063,9 +1062,7 @@ FeaturePlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
   # set raster to TRUE if more than 50k cells
-  if (is.na(x = raster) && length(x = cells)>50000){
-    raster <- TRUE
-  }
+  raster <- ifelse(test = is.na(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
   # Get plotting data
   data <- FetchData(
     object = object,
@@ -6739,7 +6736,7 @@ SingleCorPlot <- function(
   legend.title = NULL,
   na.value = 'grey50',
   span = NULL,
-  raster = FALSE
+  raster = NA
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
