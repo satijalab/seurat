@@ -5051,16 +5051,16 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
   if (IsSCT(assay = object)) {
     if (is.null(x = Misc(object = object, slot = 'vst.set'))) {
-      suppressWarnings(Misc(object = object, slot = "vst.out")$cells_step1 <- new.names)
-      suppressWarnings(rownames(x = Misc(object = object, slot = "vst.out")$cell_attr) <- new.names)
+      x <- Misc(object = object, slot = "vst.out")
+      suppressWarnings(Misc(object = object, slot = "vst.out")$cells_step1 <- new.names[which(x = x$cells_step1 %in% Cells(x = object))])
+      suppressWarnings(rownames(x = Misc(object = object, slot = "vst.out")$cell_attr) <- new.names[which(x = rownames(x$cell_attr) %in% Cells(x = object))])
     } else{
       suppressWarnings(
         Misc(object, slot = "vst.set") <- lapply(
           X = Misc(object = object, slot = "vst.set"),
           FUN = function(x) {
-            new.names.vst <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
-            x$cells_step1 <- new.names.vst
-            rownames(x = x$cell_attr) <- new.names.vst
+            x$cells_step1 <- new.names[which(x = x$cells_step1 %in% Cells(x = object))]
+            rownames(x = x$cell_attr) <- new.names[which(x = rownames(x$cell_attr) %in% Cells(x = object))]
             return(x)
           }
         )

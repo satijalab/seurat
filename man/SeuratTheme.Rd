@@ -2,6 +2,7 @@
 % Please edit documentation in R/visualization.R
 \name{SeuratTheme}
 \alias{SeuratTheme}
+\alias{CenterTitle}
 \alias{DarkTheme}
 \alias{FontSize}
 \alias{NoAxes}
@@ -16,6 +17,8 @@
 \title{Seurat Themes}
 \usage{
 SeuratTheme()
+
+CenterTitle(...)
 
 DarkTheme(...)
 
