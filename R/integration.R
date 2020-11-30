@@ -433,7 +433,7 @@ FindIntegrationAnchors <- function(
 
 # Merge dataset and perform reciprocal SVD projection, adding new dimreducs
 # for each projection and the merged original SVDs.
-# 
+#
 # @param object.1 First Seurat object to merge
 # @param object.2 Second Seurat object to merge
 # @param reduction Name of DimReduc to use. Must be an SVD-based DimReduc (eg, PCA or LSI)
@@ -582,6 +582,11 @@ ReciprocalProject <- function(
 #' \itemize{
 #'    \item{pcaproject: Project the PCA from the reference onto the query. We
 #'    recommend using PCA when reference and query datasets are from scRNA-seq}
+#'    \item{lsiproject: Project the LSI from the reference onto the query. We
+#'    recommend using LSI when reference and query datasets are from scATAC-seq.
+#'    This requires that LSI has been computed for the reference dataset, and the
+#'    same features (eg, peaks or genome bins) are present in both the reference
+#'    and query}
 #'    \item{cca: Run a CCA on the reference and query }
 #' }
 #' @param reference.reduction Name of dimensional reduction to use from the
@@ -3943,7 +3948,7 @@ ProjectCellEmbeddings <- function(
 }
 
 # Project new data onto SVD
-# 
+#
 # @param reduction A \code{DimReduc} object containing the SVD dimension
 # reduction
 # @param data A data matrix to project onto the SVD. Must contain the same

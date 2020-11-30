@@ -50,6 +50,11 @@ Options are:
 \itemize{
    \item{pcaproject: Project the PCA from the reference onto the query. We
    recommend using PCA when reference and query datasets are from scRNA-seq}
+   \item{lsiproject: Project the LSI from the reference onto the query. We
+   recommend using LSI when reference and query datasets are from scATAC-seq.
+   This requires that LSI has been computed for the reference dataset, and the
+   same features (eg, peaks or genome bins) are present in both the reference
+   and query}
    \item{cca: Run a CCA on the reference and query }
 }}
 
