@@ -228,15 +228,16 @@ AddModuleScore <- function(
 #'
 #' Returns expression for an 'average' single cell in each identity class
 #'
-#' Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
-#' Averaging is done in non-log space.
+#' If slot is set to 'data', feature values are exponentiated prior to averaging;
+#' If \code{return.seurat = TRUE}, averaged values are placed in the 'counts' slot of the
+#' returned object, whereas the log of averaged values are placed in the 'data' slot.
 #'
 #' @param object Seurat object
 #' @param assays Which assays to use. Default is all assays
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
 #' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param add.ident (Deprecated) Place an additional label on each cell prior to averaging 
+#' @param add.ident (Deprecated) Place an additional label on each cell prior to averaging
 #' (very useful if you want to observe cluster averages, separated by replicate, for example)
 #' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
 #' the order of 'assays' (if specified) or object's assays
