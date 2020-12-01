@@ -31,7 +31,7 @@ FeaturePlot(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = NA
+  raster = NULL
 )
 }
 \arguments{
@@ -102,7 +102,7 @@ deprecated. Please use \code{order} instead.}
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
-\item{raster}{Convert points to raster format, default is NA which automatically
+\item{raster}{Convert points to raster format, default is NULL which automatically
 rasterizes if plotting more than 50k points}
 }
 \value{

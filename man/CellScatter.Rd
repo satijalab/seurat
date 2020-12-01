@@ -14,7 +14,7 @@ CellScatter(
   cols = NULL,
   pt.size = 1,
   smooth = FALSE,
-  raster = NA
+  raster = NULL
 )
 }
 \arguments{
@@ -34,7 +34,7 @@ CellScatter(
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
 
-\item{raster}{Convert points to raster format, default is NA which automatically
+\item{raster}{Convert points to raster format, default is NULL which automatically
 rasterizes if plotting more than 50k points}
 }
 \value{

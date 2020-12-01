@@ -739,7 +739,7 @@ ColorDimSplit <- function(
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#' @param raster Convert points to raster format, default is NA which automatically
+#' @param raster Convert points to raster format, default is NULL which automatically
 #' rasterizes if plotting more than 50k points
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -786,7 +786,7 @@ DimPlot <- function(
   na.value = 'grey50',
   ncol = NULL,
   combine = TRUE,
-  raster = NA
+  raster = NULL
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -794,7 +794,7 @@ DimPlot <- function(
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
   # set raster to TRUE if more than 50k points
-  raster <- ifelse(test = is.na(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
+  raster <- ifelse(test = is.null(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
 
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
@@ -914,7 +914,7 @@ DimPlot <- function(
 #' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#' @param raster Convert points to raster format, default is NA which automatically
+#' @param raster Convert points to raster format, default is NULL which automatically
 #' rasterizes if plotting more than 50k points
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -969,7 +969,7 @@ FeaturePlot <- function(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = NA
+  raster = NULL
 ) {
   # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
@@ -1062,7 +1062,7 @@ FeaturePlot <- function(
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
   # set raster to TRUE if more than 50k points
-  raster <- ifelse(test = is.na(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
+  raster <- ifelse(test = is.null(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
   # Get plotting data
   data <- FetchData(
     object = object,
@@ -1683,7 +1683,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
 #' @param highlight Features to highlight
-#' @param raster Convert points to raster format, default is NA which automatically
+#' @param raster Convert points to raster format, default is NULL which automatically
 #' rasterizes if plotting more than 50k points
 #' @return A ggplot object
 #'
@@ -1703,7 +1703,7 @@ CellScatter <- function(
   cols = NULL,
   pt.size = 1,
   smooth = FALSE,
-  raster = NA
+  raster = NULL
 ) {
   features <- features %||% rownames(x = object)
   data <- FetchData(
@@ -6719,7 +6719,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param smooth Make a smoothed scatter plot
 # @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
-# @param raster Convert points to raster format, default is NA which automatically
+# @param raster Convert points to raster format, default is NULL which automatically
 # rasterizes if plotting more than 50k points
 #
 # @param ... Extra parameters to MASS::kde2d
@@ -6788,7 +6788,7 @@ SingleCorPlot <- function(
   if (!is.null(x = col.by)) {
     data$colors <- col.by
   }
-  raster <- ifelse(test = is.na(x = raster) && dim(data)[1]>50000, yes=TRUE, no=FALSE)
+  raster <- ifelse(test = is.null(x = raster) && dim(data)[1]>50000, yes=TRUE, no=FALSE)
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
