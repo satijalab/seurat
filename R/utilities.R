@@ -1775,13 +1775,14 @@ CheckGC <- function() {
 }
 
 # Create an empty dummy assay to replace existing assay
-#
+#' @importFrom Matrix sparseMatrix
 CreateDummyAssay <- function(assay) {
-  cm <- as.sparse(x = matrix(
-    data = 0,
-    nrow = nrow(x = assay),
-    ncol = ncol(x = assay)
-  ))
+  cm <- sparseMatrix(
+    i = {},
+    j = {},
+    dims = c(nrow(x = assay), ncol(x = assay))
+  )
+  cm <- as(object = cm, Class = "dgCMatrix")
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   return(CreateAssayObject(
