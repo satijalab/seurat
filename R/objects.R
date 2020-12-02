@@ -258,15 +258,51 @@ IntegrationData <- setClass(
   )
 )
 
+
+
+#' The SCTModel Class
+#'
+#'
+#' @slot feature.attributes A data.frame with the following columns:
+#' @slot cell.attributes A data.frame with the following columns:
+#' @slot clips ...
+#' @slot umi.assay ...
+#' @slot groups ...
+#' @slot model ...
+#' @slot arguments ...
+#'
+#' @seealso \code{\link{Assay}}
+#'
+#' @name SCTAssay-class
+#' @rdname SCTAssay-class
+#'
+#' @examples
+#' \dontrun{
+#' # SCTAssay objects are generated from SCTransform
+#' pbmc_small <- SCTransform(pbmc_small)
+#' }
+#'
+SCTModel <- setClass(
+  Class = 'SCTModel',
+  slots = c(
+    feature.attributes = 'data.frame',
+    cell.attributes = 'data.frame',
+    clips = 'list',
+    umi.assay = 'character', 
+    groups = 'factor',
+    model = 'character',
+    arguments = "list"
+  )
+)
+
+
+
 #' The SCTAssay Class
 #'
 #' The SCTAssay object contains all the information found in an \code{\link{Assay}}
 #' object, with extra information from the results of \code{\link{SCTransform}}
 #'
-#' @slot feature.attributes A data.frame with the following columns:
-#' @slot cell.attributes A data.frame with the following columns:
-#' @slot fitted.parameters A matrix with the following columns:
-#' @slot clips ...
+#' @slot sct.model A data.frame with the following columns:
 #' @slot groups ...
 #'
 #' @seealso \code{\link{Assay}}
@@ -284,14 +320,16 @@ SCTAssay <- setClass(
   Class = 'SCTAssay',
   contains = 'Assay',
   slots = c(
-    feature.attributes = 'data.frame',
-    cell.attributes = 'data.frame',
-    fitted.parameters = 'matrix',
-    groups = 'factor',
-    model = 'character',
-    clips = 'list'
+    sct.model = 'list'
   )
 )
+
+
+
+
+
+
+
 
 #' @note \code{scalefactors} objects can be created with \code{scalefactors()}
 #'
@@ -8131,27 +8169,29 @@ setAs(
       list('Class' = 'SCTAssay'),
       object.list
     )
-    if (IsSCT(assay = from)) {
+    #if (IsSCT(assay = from)) {
       vst.slots <- c('vst.set', 'vst.out')
       vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
       vst.res <- Misc(object = from, slot = vst.use)
+      umi.assay <- Misc(object = from, slot = "umi.assay")
       if (vst.use == 'vst.out') {
         vst.res <- list(vst.res)
+        umi.assay <- list(umi.assay)
       }
       vst.res <- lapply(
         X = 1:length(x = vst.res),
         FUN = function(i) {
+          vst.res[[i]]$umi.assay <- umi.assay[[i]]
           return(PrepVSTResults(vst.res = vst.res[[i]], group = i, cell.names = colnames(x = from)))
         }
       )
-      if (length(x = vst.res) == 1) {
-        vst.res <- vst.res[[1]]
-      } else {
+      if (length(x = vst.res) > 1) {
         vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
       }
-      object.list <- c(object.list, vst.res)
       object.list$misc[[vst.use]] <- NULL
-    }
+      object.list$sct.model <- vst.res
+    #}
+     
     return(do.call(what = 'new', args = object.list))
   }
 )
@@ -8620,6 +8660,18 @@ setMethod(
   }
 )
 
+
+setMethod(
+  f = 'show',
+  signature = 'SCTModel',
+  definition = function(object) {
+    cat(
+      "A SCTModel class.")
+  }
+)
+
+
+
 setMethod(
   f = 'show',
   signature = 'Assay',
@@ -9015,13 +9067,20 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
     'umi_per_gene',
     'log_umi_per_gene'
   )
+  cell.cols <- intersect(x = cell.cols, y = colnames(x = cell.attrs))
   cell.attrs <- cell.attrs[cell.names, cell.cols, drop = FALSE]
   colnames(x = cell.attrs) <- gsub(
     pattern = 'gene',
     replacement = 'feature',
     x = colnames(x = cell.attrs)
   )
-  # rownames(x = cell.attrs) <- paste0(group.key, rownames(x = cell.attrs))
+  if (!is.null(x = vst.res$cells_step1)) {
+    cell.attrs[, "cells_step1"] <- FALSE
+    cells_step1 <- intersect(x = vst.res$cells_step1,
+                             y = rownames(x = cell.attrs))
+    cell.attrs[cells_step1, "cells_step1"] <- TRUE
+  }
+  
   # Prepare grouping information
   groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
   names(x = groups) <- gsub(
@@ -9029,6 +9088,7 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
     replacement = '',
     x = rownames(x = cell.attrs)
   )
+
   groups <- factor(x = groups)
   # Prepare feature attribute information
   feature.attrs <- vst.res$gene_attr
@@ -9039,28 +9099,30 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
     'residual_mean',
     'residual_variance'
   )
+  feature.cols <- intersect(x = feature.cols, y = colnames(x = feature.attrs))
   feature.attrs <- feature.attrs[, feature.cols, drop = FALSE]
-  rownames(x = feature.attrs) <- paste0(group.key, rownames(x = feature.attrs))
-  # Prepare model information
-  model.params <- vst.res$model_pars_fit
-  rownames(x = model.params) <- paste0(group.key, rownames(x = model.params))
+  feature.attrs <- cbind(feature.attrs, vst.res$model_pars_fit)
+  
+  if (!is.null(x = vst.res$genes_log_gmean_step1)) {
+    feature.attrs[,"genes_log_gmean_step1"] <- FALSE
+    genes_step1 <- names(vst.res$genes_log_gmean_step1)
+    feature.attrs[genes_step1,"genes_log_gmean_step1"] <- TRUE
+  }
+
   # Prepare clipping information
   clips <- list(
     'vst' = vst.res$arguments$res_clip_range,
     'sct' = vst.res$arguments$sct.clip.range
   )
-  clips <- list(clips)
-  names(x = clips) <- group
-  # Prepare the results
-  vst.res <- list(
-    'cell.attributes' = cell.attrs,
-    'feature.attributes' = feature.attrs,
-    'fitted.parameters' = model.params,
-    'groups' = groups,
-    'model' = vst.res$model_str,
-    'clips' = clips
-  )
-  return(structure(.Data = vst.res, class = 'vstresults'))
+  vst.res.SCTModel  <- SCTModel(feature.attributes = feature.attrs, 
+                                cell.attributes = cell.attrs,
+                                clips = clips, 
+                                umi.assay = vst.res$umi.assay %||% "RNA",
+                                groups = groups,
+                                model =  vst.res$model_str, 
+                                arguments =  vst.res$arguments)
+  
+  return(vst.res.SCTModel)
 }
 
 # Return a null image

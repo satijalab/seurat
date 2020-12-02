@@ -1613,15 +1613,15 @@ SCTransform <- function(
   vst.out$y <- NULL
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
+ 
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   Misc(object = assay.out, slot = 'umi.assay') <- assay
-  # also put gene attributes in meta.features
-  assay.out[[paste0('sct.', names(x = vst.out$gene_attr))]] <- vst.out$gene_attr
-  assay.out[['sct.variable']] <- rownames(x = assay.out[[]]) %in% top.features
+  
   assay.out <- as(object = assay.out, Class = "SCTAssay")
+  
   assay.out <- SCTAssay(assay.out, assay.orig = assay)
   object[[new.assay.name]] <- assay.out
-
+  
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
   }
