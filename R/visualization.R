@@ -5107,10 +5107,11 @@ WhiteBackground <- function(...) {
 # AutoPointSize(data = df)
 #
 AutoPointSize <- function(data, raster = NULL) {
-  if (!is.null(raster)){
-    return (1)
-  }
-  return(min(1583 / nrow(x = data), 1))
+  return(ifelse(
+    test = is.null(x = raster),
+    yes = min(1583 / nrow(x = data), 1),
+    no = 1
+  ))
 }
 
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
