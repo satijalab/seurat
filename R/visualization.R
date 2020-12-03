@@ -5098,6 +5098,7 @@ WhiteBackground <- function(...) {
 # It happens to look good
 #
 # @param data A data frame being passed to ggplot2
+# @param raster If TRUE, point size is set to 1
 #
 # @return The "optimal" point size for visualizing these data
 #
@@ -5105,7 +5106,10 @@ WhiteBackground <- function(...) {
 # df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
 # AutoPointSize(data = df)
 #
-AutoPointSize <- function(data) {
+AutoPointSize <- function(data, raster = NULL) {
+  if (!is.null(raster)){
+    return (1)
+  }
   return(min(1583 / nrow(x = data), 1))
 }
 
@@ -6736,7 +6740,7 @@ SingleCorPlot <- function(
   span = NULL,
   raster = FALSE
 ) {
-  pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
+  pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   raster <- raster %||% (nrow(x = data) > 50000)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
@@ -6917,7 +6921,7 @@ SingleDimPlot <- function(
   na.value = 'grey50',
   raster = FALSE
 ) {
-  pt.size <- pt.size %||% AutoPointSize(data = data)
+  pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   raster <- raster %||% (nrow(x = data) > 50000)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
