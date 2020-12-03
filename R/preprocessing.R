@@ -375,7 +375,7 @@ GetResidual <- function(
   umi.assay <- umi.assay %||% unlist(SCTResults(object = object[[assay]], slot ="umi.assay"))[1]  %||% "RNA"
   features <- intersect(x = features, y = rownames(object[[assay]]@counts))
   if(length(features) == 0) {
-    stop("input features don't exist in the ", assay)
+    warning("input features don't exist in the ", assay)
   }
   if (replace.value) {
     new_features <- features

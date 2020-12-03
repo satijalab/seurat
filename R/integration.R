@@ -334,6 +334,7 @@ FindIntegrationAnchors <- function(
             rescale = FALSE,
             verbose = verbose
           )
+         
           if (l2.norm){
             object.pair <- L2Dim(object = object.pair, reduction = reduction)
             reduction <- paste0(reduction, ".l2")
@@ -423,6 +424,7 @@ FindIntegrationAnchors <- function(
       return(anchors)
     }
   )
+  
   all.anchors <- do.call(what = 'rbind', args = all.anchors)
   all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
   all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
@@ -2072,17 +2074,7 @@ PrepSCTIntegration <- function(
     )
   }
   # TODO check this
-  object.list <- lapply(
-    X = 1:length(x = object.list),
-    FUN = function(i) {
-      vst_out <- Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out")
-      vst_out$cell_attr <- vst_out$cell_attr[Cells(x = object.list[[i]]), ]
-      vst_out$cells_step1 <- intersect(x = vst_out$cells_step1, y = Cells(x = object.list[[i]]))
-      suppressWarnings(expr = Misc(object = object.list[[i]][[assay[i]]], slot = "vst.out") <- vst_out)
-      return(object.list[[i]])
-    }
-  )
-
+  
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -2090,6 +2082,7 @@ PrepSCTIntegration <- function(
       verbose = verbose
     )
   }
+  
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {

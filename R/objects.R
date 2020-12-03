@@ -7258,7 +7258,6 @@ merge.SCTAssay <- function(
   )
   z <- c(x, y)
   combined.assay <-  as(combined.assay, Class = "SCTAssay")
-  
   all.scaled.features <- names(x = which(x = table(x = as.vector(x = sapply(
     X = z,
     FUN = function(ob) rownames(x = GetAssayData(object = ob, slot = "scale.data"))
