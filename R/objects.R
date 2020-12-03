@@ -3366,6 +3366,18 @@ Cells.VisiumV1 <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
+
+#' @rdname Cells
+#' @method Cells SCTModel
+#' @export
+#'
+Cells.SCTModel <- function(x) {
+  return( rownames(x@cell.attributes))
+}
+
+
+
+
 #' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay Assay
@@ -7293,7 +7305,6 @@ merge.SCTAssay <- function(
     combined.assay, 
     SCTModel.list = SCTModel.combined
   )
- 
   return(combined.assay)
 }
 
@@ -7481,8 +7492,6 @@ merge.Seurat <- function(
         merge.data = merge.data
       )
     }
-
-
     merged.assay <- subset(
       x = merged.assay,
       features = rownames(x = merged.assay)[rownames(x = merged.assay) != fake.feature]
@@ -7944,12 +7953,12 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
     ...
   )
   SCTResults(object = x, 
-             slot = "cell.attributes"
-             )  <- lapply( X = SCTResults(object = x, 
-                                          slot = "cell.attributes"),
-                           FUN =  function(attr) attr[Cells(x), ] )
-  
-  
+             slot = "cell.attributes")  <- lapply( X = SCTResults(object = x,  slot = "cell.attributes"),
+                           FUN =  function(attr){
+                             attr.cell <- intersect(rownames(attr), Cells(x))
+                             attr.cell <- attr[attr.cell, ]
+                             return(attr.cell)
+                           } )
  return(x)
 }
 
