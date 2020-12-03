@@ -34,8 +34,8 @@ CellScatter(
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
 
-\item{raster}{Convert points to raster format, default is NULL which automatically
-rasterizes if plotting more than 50k points}
+\item{raster}{Convert points to raster format, default is \code{NULL} which
+automatically rasterizes if plotting more than 50,000 cells}
 }
 \value{
 A ggplot object

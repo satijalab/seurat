@@ -657,7 +657,7 @@ ColorDimSplit <- function(
   CheckDots(..., fxns = 'DimPlot')
   tree <- Tool(object = object, slot = "BuildClusterTree")
   split <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
-  all.children <- sort(x = tree$edge[, 2][! tree$edge[, 2] %in% tree$edge[, 1]])
+  all.children <- sort(x = tree$edge[, 2][!tree$edge[, 2] %in% tree$edge[, 1]])
   left.group <- DFT(tree = tree, node = split[1], only.children = TRUE)
   right.group <- DFT(tree = tree, node = split[2], only.children = TRUE)
   if (any(is.na(x = left.group))) {
@@ -739,8 +739,8 @@ ColorDimSplit <- function(
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#' @param raster Convert points to raster format, default is NULL which automatically
-#' rasterizes if plotting more than 50k points
+#' @param raster Convert points to raster format, default is \code{NULL} which
+#' automatically rasterizes if plotting more than 50,000 cells
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -793,9 +793,6 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
-  # set raster to TRUE if more than 50k points
-  raster <- ifelse(test = is.null(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
-
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
     cells <- sample(x = cells)
@@ -914,8 +911,6 @@ DimPlot <- function(
 #' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#' @param raster Convert points to raster format, default is NULL which automatically
-#' rasterizes if plotting more than 50k points
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -1061,8 +1056,6 @@ FeaturePlot <- function(
   # Name the reductions
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  # set raster to TRUE if more than 50k points
-  raster <- ifelse(test = is.null(x = raster) && length(x = cells)>50000, yes=TRUE, no=FALSE)
   # Get plotting data
   data <- FetchData(
     object = object,
@@ -1679,12 +1672,11 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
 #' correlation between the two cells is displayed above the plot.
 #'
 #' @inheritParams FeatureScatter
+#' @inheritParams DimPlot
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
 #' @param highlight Features to highlight
-#' @param raster Convert points to raster format, default is NULL which automatically
-#' rasterizes if plotting more than 50k points
 #' @return A ggplot object
 #'
 #' @export
@@ -6745,6 +6737,7 @@ SingleCorPlot <- function(
   raster = FALSE
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
+  raster <- raster %||% (nrow(x = data) > 50000)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6788,7 +6781,6 @@ SingleCorPlot <- function(
   if (!is.null(x = col.by)) {
     data$colors <- col.by
   }
-  raster <- ifelse(test = is.null(x = raster) && dim(data)[1]>50000, yes=TRUE, no=FALSE)
   plot <- ggplot(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
@@ -6898,7 +6890,9 @@ SingleCorPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
-# @param raster Convert points to raster format, default is FALSE
+# @param raster Convert points to raster format, default is FALSE; if \code{NULL},
+# will automatically use raster if the number of points plotted is greater than
+# 50,000
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
@@ -6924,6 +6918,7 @@ SingleDimPlot <- function(
   raster = FALSE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data)
+  raster <- raster %||% (nrow(x = data) > 50000)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -6998,8 +6993,8 @@ SingleDimPlot <- function(
   }
 
   plot <- ggplot(data = data)
-  if (raster) {
-    plot <- plot + geom_scattermore(
+  plot <- if (isTRUE(x = raster)) {
+    plot + geom_scattermore(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
@@ -7010,7 +7005,7 @@ SingleDimPlot <- function(
       pointsize = pt.size
     )
   } else {
-    plot <- plot + geom_point(
+    plot + geom_point(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
