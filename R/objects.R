@@ -5120,8 +5120,12 @@ ReorderIdent.Seurat <- function(
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
   if (IsSCT(assay = object)) {
-    assay <- as(object = assay, Class = "SCTAssay")
-    return(RenameCells(object = assay))
+    SCTModel.list <- slot(object = object, name = "SCTModel.list")
+    object <- as(object = object, Class = "Assay")
+    object <- RenameCells(object = object, new.names = new.names)
+    object <- as(object = object, Class = "SCTAssay")
+    object <- SCTAssay( object, SCTModel.list = SCTModel.list)
+    return(object)
   }
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
@@ -5160,9 +5164,14 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
 #'
 RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
+  name.df <- data.frame(row.names = Cells(object), new.names = new.names)
   object <- RenameCells.Assay(object = object, new.names = new.names, ...)
   cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
-  rownames(x = cell.attributes) <- new.names
+  cell.attributes <- lapply(X = cell.attributes,
+                            FUN = function(x) { 
+                              rownames(x) <- name.df[ rownames(x) , "new.names"]
+                              return(x)
+                              })
   SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
   return(object)
 }
@@ -5414,7 +5423,6 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
       call. = FALSE
     )
   }
-
   SCTModel.list <- slot(object, "SCTModel.list")
   SCTModel.list <- lapply(X = 1:length(SCTModel.list), 
                           FUN = function(x){
@@ -5422,6 +5430,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
     return(SCTModel.list[[x]])
   } 
   )
+  
   names(SCTModel.list) <- names(slot(object, "SCTModel.list"))
   slot(object, "SCTModel.list") <- SCTModel.list
   return(object)
@@ -7075,7 +7084,7 @@ length.DimReduc <- function(x) {
 #' }
 #'
 levels.SCTAssay <- function(x) {
-  return(levels(x = slot(object = x, name = 'groups')))
+  return(  names(x@SCTModel.list) )
 }
 
 #' @rdname Idents
@@ -7102,33 +7111,18 @@ levels.Seurat <- function(x) {
 #' @method levels<- SCTAssay
 #'
 "levels<-.SCTAssay" <- function(x, value) {
+  value <- sapply( value, function(v){
+    if (suppressWarnings(!is.na(as.numeric( v ))) ){
+    warning("SCTModel groups cannot be number, group is added in front of ", v)
+    v <- paste0("group",v)
+  }
+  return (v)
+})
+
   # Get current levels
   xlevels <- levels(x = x)
-  # Create a levels map
-  value <- rep_len(x = as.character(x = value), length.out = length(x = xlevels))
-  names(x = value) <- xlevels
-  # Map the existing levels to the new ones
-  groups <- as.character(x = slot(object = x, name = 'groups'))
-  groups <- value[groups]
-  names(x = groups) <- names(x = slot(object = x, name = 'groups'))
-  slot(object = x, name = 'groups') <- factor(x = groups)
-  # Change levels for the feature.attributes and fitted.parameters data.frames
-  for (i in c('feature.attributes', 'fitted.parameters')) {
-    df <- slot(object = x, name = i)
-    keyed.features <- rownames(x = df)
-    for (l in xlevels) {
-      lkey <- paste0('^', suppressWarnings(expr = UpdateKey(key = l)))
-      lfeatures <- which(x = grepl(pattern = lkey, x = keyed.features))
-      keyed.features[lfeatures] <- gsub(
-        pattern = lkey,
-        replacement = suppressWarnings(expr = UpdateKey(key = value[l])),
-        x = keyed.features[lfeatures]
-      )
-    }
-    names(x@clips) <- levels(x)
-    rownames(x = df) <- keyed.features
-    slot(object = x, name = i) <- df
-  }
+  SCTResults(object = x, slot = "groups") <- as.list(factor(value))
+  names(x@SCTModel.list) <- value
   return(x)
 }
 
@@ -7188,8 +7182,8 @@ merge.Assay <- function(
   assays <- c(x, y)
   # merge SCT assay misc vst info and scale.data
   if (all(IsSCT(assay = assays))) {
-    assays <- lapply(X = assays, FUN = as, Class = "SCTAssay")
-    return(merge(x = assays[1], y = assays[2:length(x = assays)]))
+    assays <- lapply(X = assays, FUN = as, Class = "Assay")
+    return(merge(x = assays[[1]], y = assays[2:length(x = assays)]))
   }
   if (!is.null(x = add.cell.ids)) {
     for (i in 1:length(assays)) {
@@ -7252,6 +7246,7 @@ merge.SCTAssay <- function(
   )
   z <- c(x, y)
   combined.assay <-  as(combined.assay, Class = "SCTAssay")
+  
   all.scaled.features <- names(x = which(x = table(x = as.vector(x = sapply(
     X = z,
     FUN = function(ob) rownames(x = GetAssayData(object = ob, slot = "scale.data"))
@@ -7265,7 +7260,7 @@ merge.SCTAssay <- function(
     slot = "scale.data",
     new.data = scale.data
   )
-  all.levels <- unlist(x = lapply(X = c(x, y), FUN = levels))
+  all.levels <- unlist(x = lapply(X = z, FUN = levels))
   while (anyDuplicated(x = all.levels)) {
     levels.duplicate <- which(x = duplicated(x = all.levels))
     all.levels <- sapply(X = 1:length(x = all.levels), FUN = function(l) {
@@ -7284,53 +7279,21 @@ merge.SCTAssay <- function(
       }
     })
   }
+
   z <- lapply(X = 1:length(x = z), FUN = function(i) {
     levels(x = z[[i]]) <- all.levels[i]
     return(z[[i]])
   })
 
+  SCTModel.combined <- sapply(z, function(obj.i) {
+    return(obj.i@SCTModel.list)
+  })
+ 
   combined.assay <- SCTAssay(
-    combined.assay,
-    feature.attributes = Reduce(
-      f = rbind,
-      x = lapply(X = z, FUN = SCTResults, slot = "feature.attributes")
-    )
+    combined.assay, 
+    SCTModel.list = SCTModel.combined
   )
-  combined.assay <- SCTAssay(
-    combined.assay,
-    cell.attributes = Reduce(
-      f = rbind,
-      x = lapply(X = z, FUN = SCTResults, slot = "cell.attributes")
-    )
-  )
-  # SCTResults will delete the levels key
-  combined.assay <- SCTAssay(
-    combined.assay,
-    fitted.parameters = Reduce(
-      f = rbind,
-      x = lapply(X = z, FUN = function(x) slot(object = x, name = "fitted.parameters"))
-    )
-  )
-  combined.assay <- SCTAssay(
-    combined.assay,
-    groups = unlist(x = lapply(X = z, FUN = SCTResults, slot = "groups"))
-  )
-  models <- unlist(x = lapply(X = z, FUN = slot, name = "model"))
-  names(x = models) <- all.levels
-  combined.assay <- SCTAssay(
-    combined.assay,
-    model = models
-  )
-  assay.orig <- unlist(x = lapply(X = z, FUN = slot, name ="assay.orig"))
-  names(x = assay.orig) <- all.levels
-  combined.assay <- SCTAssay(
-    combined.assay,
-    assay.orig = assay.orig
-  )
-  combined.assay <- SCTAssay(
-    combined.assay,
-    clips = sapply(X = z, FUN = slot, name = "clips")
-  )
+ 
   return(combined.assay)
 }
 
@@ -9083,15 +9046,8 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
                              y = rownames(x = cell.attrs))
     cell.attrs[cells_step1, "cells_step1"] <- TRUE
   }
-  
   # Prepare grouping information
-  groups <- rep_len(x = group, length.out = nrow(x = cell.attrs))
-  names(x = groups) <- gsub(
-    pattern = paste0('^', group.key),
-    replacement = '',
-    x = rownames(x = cell.attrs)
-  )
-
+  groups <- group
   groups <- factor(x = groups)
   # Prepare feature attribute information
   feature.attrs <- vst.res$gene_attr
