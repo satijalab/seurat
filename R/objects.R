@@ -302,7 +302,7 @@ SCTModel <- setClass(
 #' The SCTAssay object contains all the information found in an \code{\link{Assay}}
 #' object, with extra information from the results of \code{\link{SCTransform}}
 #'
-#' @slot sct.model A data.frame with the following columns:
+#' @slot SCTModel.list A data.frame with the following columns:
 #' @slot groups ...
 #'
 #' @seealso \code{\link{Assay}}
@@ -320,15 +320,9 @@ SCTAssay <- setClass(
   Class = 'SCTAssay',
   contains = 'Assay',
   slots = c(
-    sct.model = 'list'
+    SCTModel.list = 'list'
   )
 )
-
-
-
-
-
-
 
 
 #' @note \code{scalefactors} objects can be created with \code{scalefactors()}
@@ -5394,7 +5388,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
   if (!inherits(x = object, what = "SCTAssay")) {
     stop("Provided assay is not an SCTAssay")
   }
-  slots.use <- c('feature.attributes', 'cell.attributes', 'groups', 'fitted.parameters', 'model')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'groups',  'model', 'arguments')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -5402,15 +5396,9 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
       call. = FALSE
     )
   }
-  if (slot %in% c("fitted.parameters")) {
-    to.return <- slot(object = object, name = slot)
-    rownames(x = to.return) <- sapply(X = rownames(x = to.return), FUN = function(x){
-      x <- unlist(x = strsplit(x = x, split = "_"))
-      x <- paste0(x[2:length(x = x)], collapse = "_")
-    })
-    return(to.return)
-  }
-  return(slot(object = object, name = slot))
+  SCTModel.list <- object@SCTModel.list
+  results.list <- lapply( X = SCTModel.list , FUN = function(x) slot(object = x, name = slot))
+  return(results.list)
 }
 
 #' @rdname SCTResults
@@ -5418,7 +5406,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
 #' @method SCTResults<- SCTAssay
 #'
 "SCTResults<-.SCTAssay" <- function(object, slot, ..., value) {
-  slots.use <- c('feature.attributes', 'cell.attributes', 'groups', 'fitted.parameters', 'model')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'groups',  'model', 'arguments')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -5426,7 +5414,16 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
       call. = FALSE
     )
   }
-  slot(object = object, name = slot) <- value
+
+  SCTModel.list <- slot(object, "SCTModel.list")
+  SCTModel.list <- lapply(X = 1:length(SCTModel.list), 
+                          FUN = function(x){
+    slot(SCTModel.list[[x]], name = slot ) <- value[[x]]
+    return(SCTModel.list[[x]])
+  } 
+  )
+  names(SCTModel.list) <- names(slot(object, "SCTModel.list"))
+  slot(object, "SCTModel.list") <- SCTModel.list
   return(object)
 }
 
@@ -7983,9 +7980,14 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
     features = features,
     ...
   )
-  SCTResults(object = x, slot = "cell.attributes") <-
-    SCTResults(object = x, slot = "cell.attributes")[Cells(x = x), ]
-  return(x)
+  SCTResults(object = x, 
+             slot = "cell.attributes"
+             )  <- lapply( X = SCTResults(object = x, 
+                                          slot = "cell.attributes"),
+                           FUN =  function(attr) attr[Cells(x), ] )
+  
+  
+ return(x)
 }
 
 #' Subset a Seurat object
@@ -8169,7 +8171,7 @@ setAs(
       list('Class' = 'SCTAssay'),
       object.list
     )
-    #if (IsSCT(assay = from)) {
+    if (IsSCT(assay = from)) {
       vst.slots <- c('vst.set', 'vst.out')
       vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
       vst.res <- Misc(object = from, slot = vst.use)
@@ -8182,15 +8184,16 @@ setAs(
         X = 1:length(x = vst.res),
         FUN = function(i) {
           vst.res[[i]]$umi.assay <- umi.assay[[i]]
-          return(PrepVSTResults(vst.res = vst.res[[i]], group = i, cell.names = colnames(x = from)))
+          return(PrepVSTResults(vst.res = vst.res[[i]], group = paste0("group",i), cell.names = colnames(x = from)))
         }
       )
       if (length(x = vst.res) > 1) {
         vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
       }
       object.list$misc[[vst.use]] <- NULL
-      object.list$sct.model <- vst.res
-    #}
+      names(vst.res) <- sapply(vst.res, function(x) levels(x@groups))
+      object.list$SCTModel.list <- vst.res
+    }
      
     return(do.call(what = 'new', args = object.list))
   }

@@ -1868,11 +1868,11 @@ is.null.externalptr <- function(pointer) {
 IsSCT <- function(assay) {
   if (is.list(x = assay)) {
     sct.check <- lapply(X = assay, FUN = function(x) {
-      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')))
+      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')) |  class( x = x) == "SCTAssay" )
     })
     return(unlist(x = sct.check))
   }
-  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')))
+  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set'))  |  class(x = assay) == "SCTAssay")
 }
 
 # Check the length of components of a list
