@@ -5454,7 +5454,7 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
 #' @export
 #' @method SCTResults Seurat
 #'
-SCTResults.Seurat <- function(object, assay = "SCT", slot, ...) {
+SCTResults.Seurat <- function(object, slot, assay = "SCT", ...) {
   CheckDots(...)
   return(
     SCTResults(object = object[[assay]], slot = slot)
@@ -7292,14 +7292,17 @@ merge.SCTAssay <- function(
     })
   }
 
-  z <- lapply(X = 1:length(x = z), FUN = function(i) {
-    levels(x = z[[i]]) <- all.levels[i]
-    return(z[[i]])
-  })
+  SCTModel.combined <- unlist(x = lapply(X = z, 
+                                         FUN = function(assay){ 
+    return(assay@SCTModel.list)
+    })
+    )
 
-  SCTModel.combined <- sapply(z, function(obj.i) {
-    return(obj.i@SCTModel.list)
+  SCTModel.combined <- lapply(X = 1:length(x = SCTModel.combined), FUN = function(i) {
+    levels(x = SCTModel.combined[[i]]) <- all.levels[i]
+    return(SCTModel.combined[[i]])
   })
+  names(SCTModel.combined) <- all.levels
  
   combined.assay <- SCTAssay(
     combined.assay, 
@@ -7956,9 +7959,16 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
              slot = "cell.attributes")  <- lapply( X = SCTResults(object = x,  slot = "cell.attributes"),
                            FUN =  function(attr){
                              attr.cell <- intersect(rownames(attr), Cells(x))
-                             attr.cell <- attr[attr.cell, ]
+                             attr.cell <- attr[attr.cell, ,drop = F]
                              return(attr.cell)
-                           } )
+                           })
+  # remove SCTModel with no cells
+  for (name in names(x@SCTModel.list)){
+    if( length(Cells(x@SCTModel.list[[name]])) == 0){
+      x@SCTModel.list[[name]] <- NULL
+    }
+  }
+
  return(x)
 }
 

@@ -411,18 +411,17 @@ GetResidual <- function(
                                         verbose = verbose
                                       )
                                     })
-      
-      new.scale.data.list <- lapply(new.scale.data.list,FUN = function(x){
+        new.scale.data.list <- lapply(new.scale.data.list,FUN = function(x){
         diff.feature <- setdiff( new_features, rownames(x))
         if(length(diff.feature) > 0){
           zero.m <- matrix(data = 0, nrow = length(diff.feature), ncol = ncol(x))
           rownames(zero.m) <- diff.feature
           colnames(zero.m) <- colnames(x)
-          x <- rbind(x , zero.m )[new_features,]
+          x <- rbind(x , zero.m)[new_features, , drop = F]
         }
         return(x)
       })
-      new.scale.data <- Reduce(cbind, new.scale.data.list)[, Cells(object)]
+      new.scale.data <- Reduce(cbind, new.scale.data.list)[, Cells(object), drop = F]
     }
     object <- SetAssayData(
       object = object,
@@ -3146,9 +3145,14 @@ GetResidualSCTModel <- function(
   new_features,
   verbose
 ) {
+  
+  if (length(Cells.SCTModel(SCTModel)) == 0) {
+    new_residual <- matrix(nrow = length(new_features), ncol = 0 )
+    rownames(new_residual) <- new_features
+    return(new_residual)
+  }
   umi.assay <- SCTModel@umi.assay
   clip.range <- SCTModel@clips$sct
-  
   model.features <- rownames(SCTModel@feature.attributes)
   diff_features <- setdiff( x = new_features, y = model.features)
   intersect_feature <- intersect( x = new_features, y = model.features)
@@ -3157,7 +3161,8 @@ GetResidualSCTModel <- function(
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[new_features, Cells.SCTModel(SCTModel) , drop = FALSE]
   } else {
     warning(
-      "The following ", length(x = diff_features),
+      "In SCTModel group ", levels(SCTModel), 
+      ", the following ", length(x = diff_features),
       " features do not exist in the counts slot: ",
       paste(diff_features, collapse = " ")
     )
