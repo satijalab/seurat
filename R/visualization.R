@@ -5108,9 +5108,9 @@ WhiteBackground <- function(...) {
 #
 AutoPointSize <- function(data, raster = NULL) {
   return(ifelse(
-    test = is.null(x = raster),
-    yes = min(1583 / nrow(x = data), 1),
-    no = 1
+    test = isTRUE(x = raster),
+    yes = 1,
+    no = min(1583 / nrow(x = data), 1)
   ))
 }
 
