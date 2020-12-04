@@ -9074,11 +9074,12 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
   )
   feature.cols <- intersect(x = feature.cols, y = colnames(x = feature.attrs))
   feature.attrs <- feature.attrs[, feature.cols, drop = FALSE]
-  feature.attrs <- cbind(feature.attrs, vst.res$model_pars_fit)
-  
+  feature.attrs <- cbind(feature.attrs, vst.res$model_pars_fit[rownames(feature.attrs), , drop = FALSE])
+
   if (!is.null(x = vst.res$genes_log_gmean_step1)) {
     feature.attrs[,"genes_log_gmean_step1"] <- FALSE
-    genes_step1 <- names(vst.res$genes_log_gmean_step1)
+    genes_step1 <- intersect(x = names(vst.res$genes_log_gmean_step1), 
+                             y = rownames(feature.attrs))
     feature.attrs[genes_step1,"genes_log_gmean_step1"] <- TRUE
   }
 

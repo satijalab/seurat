@@ -1482,9 +1482,11 @@ SCTransform <- function(
       residual.features <- intersect(rownames(x = vst.out$gene_attr), residual.features)
       residual.feature.mat <- get_residuals(vst_out = vst.out,
                                             umi = umi[residual.features, , drop = FALSE]
-      )
+                                            )
       vst.out$y <- residual.feature.mat
-      vst.out$gene_attr <- NULL
+      vst.out$gene_attr <- vst.out$gene_attr[residual.features , , drop =FALSE]
+      vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
+      vst.out$gene_attr$residual_variance = RowVar(x = residual.feature.mat)
     }
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
@@ -1578,9 +1580,7 @@ SCTransform <- function(
  
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   Misc(object = assay.out, slot = 'umi.assay') <- assay
-  
   assay.out <- as(object = assay.out, Class = "SCTAssay")
-  
   assay.out <- SCTAssay(assay.out, assay.orig = assay)
   object[[new.assay.name]] <- assay.out
   
