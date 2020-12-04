@@ -6716,8 +6716,9 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param smooth Make a smoothed scatter plot
 # @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
-# @param raster Convert points to raster format, default is NULL which automatically
-# rasterizes if plotting more than 50k points
+# @param raster Convert points to raster format, default is \code{NULL}
+# which will automatically use raster if the number of points plotted is greater than
+# 50,000
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6739,7 +6740,7 @@ SingleCorPlot <- function(
   legend.title = NULL,
   na.value = 'grey50',
   span = NULL,
-  raster = FALSE
+  raster = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   raster <- raster %||% (nrow(x = data) > 50000)
@@ -6895,8 +6896,8 @@ SingleCorPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
-# @param raster Convert points to raster format, default is FALSE; if \code{NULL},
-# will automatically use raster if the number of points plotted is greater than
+# @param raster Convert points to raster format, default is \code{NULL}
+# which will automatically use raster if the number of points plotted is greater than
 # 50,000
 #
 #' @importFrom cowplot theme_cowplot
@@ -6920,7 +6921,7 @@ SingleDimPlot <- function(
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
   na.value = 'grey50',
-  raster = FALSE
+  raster = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   raster <- raster %||% (nrow(x = data) > 50000)
