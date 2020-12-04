@@ -896,7 +896,7 @@ DimPlot <- function(
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
 #'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
-#' @param keep.scale How to plot color scale across 'split.by' plots. Options are:
+#' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
 #'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
 #'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
@@ -1308,7 +1308,7 @@ FeaturePlot <- function(
           )
         }
       }
-      if (!(is.null(keep.scale)) && keep.scale == "feature" && !is.null(x = split.by)) {
+      if (!(is.null(keep.scale)) && keep.scale == "feature") {
         feature.data <- FetchData(
           object = object,
           vars = feature,
@@ -1447,7 +1447,7 @@ FeaturePlot <- function(
     if (!is.null(x = legend) && legend == 'none') {
       plots <- plots & NoLegend()
     }
-    if (!(is.null(keep.scale)) && keep.scale == "all" && !is.null(x = split.by)) {
+    if (!(is.null(keep.scale)) && keep.scale == "all") {
       feature.data <- FetchData(
         object = object,
         vars = features,
