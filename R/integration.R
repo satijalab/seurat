@@ -1054,9 +1054,9 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
-      object.list[[i]][[assay]] <- CreateAssayObject(
-        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
-      )
+      ## CreateAssay not work here
+      object.list[[i]][[assay]]@data <- GetAssayData(object = object.list[[i]], 
+                                                     assay = assay, slot = "scale.data")
     }
     slot(object = anchorset, name = "object.list") <- object.list
   }

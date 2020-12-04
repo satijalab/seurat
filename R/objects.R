@@ -7227,11 +7227,8 @@ merge.Assay <- function(
     if (!all.equal(target = colnames(x = combined.assay), current = colnames(x = merged.data))) {
       merged.data <- merged.data[, colnames(x = combined.assay)]
     }
-    combined.assay <- SetAssayData(
-      object = combined.assay,
-      slot = "data",
-      new.data = merged.data
-    )
+    ### when merge.data is from scale.data SetAssayData not work
+    combined.assay@data <- merged.data
   }
   return(combined.assay)
 }
@@ -7480,13 +7477,12 @@ merge.Seurat <- function(
       }
     }
 
-    if(inherits(x = assays.merge[[1]], what = "SCTAssay") ){
+    if (inherits(x = assays.merge[[1]], what = "SCTAssay")) {
       merged.assay <- merge.SCTAssay(
         x = assays.merge[[1]],
         y = assays.merge[2:length(x = assays.merge)],
         merge.data = merge.data
       )
-
     } else{
       merged.assay <- merge.Assay(
         x = assays.merge[[1]],
