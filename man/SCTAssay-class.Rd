@@ -3,13 +3,14 @@
 \docType{class}
 \name{SCTAssay-class}
 \alias{SCTAssay-class}
+\alias{SCTModel}
 \alias{SCTAssay}
 \alias{levels.SCTAssay}
 \alias{levels<-.SCTAssay}
 \alias{max.SCTAssay}
 \alias{min.SCTAssay}
 \alias{range.SCTAssay}
-\title{The SCTAssay Class}
+\title{The SCTModel Class}
 \usage{
 \method{levels}{SCTAssay}(x)
 
@@ -67,9 +68,17 @@ object, with extra information from the results of \code{\link{SCTransform}}
 
 \item{\code{cell.attributes}}{A data.frame with the following columns:}
 
-\item{\code{fitted.parameters}}{A matrix with the following columns:}
-
 \item{\code{clips}}{...}
+
+\item{\code{umi.assay}}{...}
+
+\item{\code{groups}}{...}
+
+\item{\code{model}}{...}
+
+\item{\code{arguments}}{...}
+
+\item{\code{SCTModel.list}}{A data.frame with the following columns:}
 
 \item{\code{groups}}{...}
 }}
@@ -107,6 +116,11 @@ pbmc_small <- SCTransform(pbmc_small)
 }
 
 \dontrun{
+# SCTAssay objects are generated from SCTransform
+pbmc_small <- SCTransform(pbmc_small)
+}
+
+\dontrun{
 # Query and change SCT groupings
 levels(pbmc_small[['SCT']])
 levels(pbmc_small[['SCT']]) <- '3'
@@ -126,5 +140,7 @@ max(pbmc_small[['SCT']])
 
 }
 \seealso{
+\code{\link{Assay}}
+
 \code{\link{Assay}}
 }

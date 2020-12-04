@@ -19,7 +19,7 @@ SCTResults(object, ...) <- value
 
 \method{SCTResults}{SCTAssay}(object, slot, ...) <- value
 
-\method{SCTResults}{Seurat}(object, assay = "SCT", slot, ...)
+\method{SCTResults}{Seurat}(object, slot, assay = "SCT", ...)
 }
 \arguments{
 \item{object}{An object}
