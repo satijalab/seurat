@@ -42,6 +42,14 @@ seurat_default_options <- list(
   Seurat.warn.vlnplot.split = TRUE
 )
 
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage(paste(
+    "\nSeurat v4 will be going to CRAN imminently;\n",
+    "for more details, please visit",
+    "https://satijalab.org/seurat/v4_changes\n"
+  ))
+}
+
 .onLoad <- function(libname, pkgname) {
   op <- options()
   toset <- !(names(x = seurat_default_options) %in% names(x = op))
