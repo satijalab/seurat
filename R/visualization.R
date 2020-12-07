@@ -657,7 +657,7 @@ ColorDimSplit <- function(
   CheckDots(..., fxns = 'DimPlot')
   tree <- Tool(object = object, slot = "BuildClusterTree")
   split <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
-  all.children <- sort(x = tree$edge[, 2][! tree$edge[, 2] %in% tree$edge[, 1]])
+  all.children <- sort(x = tree$edge[, 2][!tree$edge[, 2] %in% tree$edge[, 1]])
   left.group <- DFT(tree = tree, node = split[1], only.children = TRUE)
   right.group <- DFT(tree = tree, node = split[2], only.children = TRUE)
   if (any(is.na(x = left.group))) {
@@ -739,6 +739,8 @@ ColorDimSplit <- function(
 #' @param ncol Number of columns for display when combining plots
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
+#' @param raster Convert points to raster format, default is \code{NULL} which
+#' automatically rasterizes if plotting more than 50,000 cells
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -783,7 +785,8 @@ DimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50',
   ncol = NULL,
-  combine = TRUE
+  combine = TRUE,
+  raster = NULL
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -828,7 +831,8 @@ DimPlot <- function(
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
         sizes.highlight = sizes.highlight,
-        na.value = na.value
+        na.value = na.value,
+        raster = raster
       )
       if (label) {
         plot <- LabelClusters(
@@ -966,7 +970,8 @@ FeaturePlot <- function(
   by.col = TRUE,
   sort.cell = NULL,
   interactive = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  raster = NULL
 ) {
   # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
@@ -1227,7 +1232,8 @@ FeaturePlot <- function(
         pt.size = pt.size,
         cols = cols.use,
         shape.by = shape.by,
-        label = FALSE
+        label = FALSE,
+        raster = raster
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
@@ -1695,6 +1701,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
 #' correlation between the two cells is displayed above the plot.
 #'
 #' @inheritParams FeatureScatter
+#' @inheritParams DimPlot
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
@@ -1716,7 +1723,8 @@ CellScatter <- function(
   highlight = NULL,
   cols = NULL,
   pt.size = 1,
-  smooth = FALSE
+  smooth = FALSE,
+  raster = NULL
 ) {
   features <- features %||% rownames(x = object)
   data <- FetchData(
@@ -1730,7 +1738,8 @@ CellScatter <- function(
     cols = cols,
     pt.size = pt.size,
     rows.highlight = highlight,
-    smooth = smooth
+    smooth = smooth,
+    raster = raster
   )
   return(plot)
 }
@@ -3287,10 +3296,11 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' @importFrom grDevices colorRampPalette
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point
+#' @importFrom ggplot2 ggplot aes_string geom_point scale_size scale_radius
 #' theme element_blank labs scale_color_identity scale_color_distiller
 #' scale_color_gradient guides guide_legend guide_colorbar
 #' facet_grid unit
+#' @importFrom scattermore geom_scattermore
 #' @importFrom stats dist hclust
 #' @importFrom RColorBrewer brewer.pal.info
 #'
@@ -3351,6 +3361,7 @@ DotPlot <- function(
     names(x = feature.groups) <- features
   }
   cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
+
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -5116,6 +5127,7 @@ WhiteBackground <- function(...) {
 # It happens to look good
 #
 # @param data A data frame being passed to ggplot2
+# @param raster If TRUE, point size is set to 1
 #
 # @return The "optimal" point size for visualizing these data
 #
@@ -5123,8 +5135,12 @@ WhiteBackground <- function(...) {
 # df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
 # AutoPointSize(data = df)
 #
-AutoPointSize <- function(data) {
-  return(min(1583 / nrow(x = data), 1))
+AutoPointSize <- function(data, raster = NULL) {
+  return(ifelse(
+    test = isTRUE(x = raster),
+    yes = 1,
+    no = min(1583 / nrow(x = data), 1)
+  ))
 }
 
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
@@ -5622,7 +5638,7 @@ FeaturePalettes <- list(
   'Seurat' = c('lightgrey', 'blue')
 )
 
-# Get colour aesththics from a plot for a certain geom
+# Get colour aesthetics from a plot for a certain geom
 #
 # @param plot A ggplot2 object
 # @param geom Geom class to filter to
@@ -5637,6 +5653,10 @@ GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
       return(class(x = layer$geom)[1])
     }
   )
+  # handle case where raster is set to True
+  if (geom == "GeomPoint" && "GeomScattermore" %in% geoms) {
+    geom <- "GeomScattermore"
+  }
   geoms <- which(x = geoms == geom)
   if (!length(x = geoms)) {
     stop("Cannot find a geom of class ", geom)
@@ -5704,6 +5724,10 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
       return(class(x = layer$geom)[1])
     }
   )
+  # handle case where raster is set to True
+  if (geom == "GeomPoint" && "GeomScattermore" %in% geoms){
+    geom <- "GeomScattermore"
+  }
   geoms <- which(x = geoms == geom)
   if (length(x = geoms) == 0) {
     stop("Cannot find a geom of class ", geom)
@@ -6721,14 +6745,19 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param smooth Make a smoothed scatter plot
 # @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
+# @param raster Convert points to raster format, default is \code{NULL}
+# which will automatically use raster if the number of points plotted is greater than
+# 50,000
+#
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
 # #' @importFrom MASS kde2d
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
+#' @importFrom ggplot2 ggplot aes_string geom_point labs scale_color_brewer
 #' scale_color_manual guides stat_density2d aes scale_fill_continuous
+#' @importFrom scattermore geom_scattermore
 #'
 SingleCorPlot <- function(
   data,
@@ -6739,9 +6768,11 @@ SingleCorPlot <- function(
   rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
-  span = NULL
+  span = NULL,
+  raster = NULL
 ) {
-  pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
+  pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
+  raster <- raster %||% (nrow(x = data) > 50000)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6763,6 +6794,7 @@ SingleCorPlot <- function(
     stop(msg, call. = FALSE)
   }
   plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = rows.highlight,
@@ -6822,13 +6854,25 @@ SingleCorPlot <- function(
       guides(fill = FALSE)
   }
   if (!is.null(x = col.by)) {
-    plot <- plot + geom_point(
-      mapping = aes_string(color = 'colors'),
-      position = 'jitter',
-      size = pt.size
-    )
+    if (raster) {
+      plot <- plot + geom_scattermore(
+        mapping = aes_string(color = 'colors'),
+        position = 'jitter',
+        pointsize = pt.size
+      )
+    } else {
+      plot <- plot + geom_point(
+        mapping = aes_string(color = 'colors'),
+        position = 'jitter',
+        size = pt.size
+      )
+    }
   } else {
-    plot <- plot + geom_point(position = 'jitter', size = pt.size)
+    if (raster) {
+      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size)
+    } else {
+      plot <- plot + geom_point(position = 'jitter', size = pt.size)
+    }
   }
   if (!is.null(x = cols)) {
     cols.scale <- if (length(x = cols) == 1 && cols %in% rownames(x = brewer.pal.info)) {
@@ -6881,10 +6925,13 @@ SingleCorPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
+# @param raster Convert points to raster format, default is \code{NULL}
+# which will automatically use raster if the number of points plotted is greater than
+# 50,000
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string labs guides scale_color_brewer
+#' @importFrom ggplot2 ggplot aes_string geom_point labs guides scale_color_brewer
 #' scale_color_manual element_rect guide_legend discrete_scale
 #'
 SingleDimPlot <- function(
@@ -6902,9 +6949,11 @@ SingleDimPlot <- function(
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
-  na.value = 'grey50'
+  na.value = 'grey50',
+  raster = NULL
 ) {
-  pt.size <- pt.size %||% AutoPointSize(data = data)
+  pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
+  raster <- raster %||% (nrow(x = data) > 50000)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -6977,8 +7026,21 @@ SingleDimPlot <- function(
     )
     alpha.by <- NULL
   }
-  plot <- ggplot(data = data) +
-    geom_point(
+
+  plot <- ggplot(data = data)
+  plot <- if (isTRUE(x = raster)) {
+    plot + geom_scattermore(
+      mapping = aes_string(
+        x = dims[1],
+        y = dims[2],
+        color = paste0("`", col.by, "`"),
+        shape = shape.by,
+        alpha = alpha.by
+      ),
+      pointsize = pt.size
+    )
+  } else {
+    plot + geom_point(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
@@ -6987,7 +7049,9 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       size = pt.size
-    ) +
+    )
+  }
+  plot <- plot +
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL, title = col.by) +
     CenterTitle()
