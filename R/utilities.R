@@ -228,9 +228,18 @@ AddModuleScore <- function(
 #'
 #' Returns expression for an 'average' single cell in each identity class
 #'
-#' If slot is set to 'data', feature values are exponentiated prior to averaging;
-#' If \code{return.seurat = TRUE}, averaged values are placed in the 'counts' slot of the
-#' returned object, whereas the log of averaged values are placed in the 'data' slot.
+#' If slot is set to 'data', this function assumes that the data has been log
+#' normalized and therefore feature values are exponentiated prior to averaging
+#' so that averaging is done in non-log space. Otherwise, if slot is set to
+#' either 'counts' or 'scale.data', no exponentiation is performed prior to
+#' averaging.
+#' If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
+#' are placed in the 'counts' slot of the returned object and the log of averaged values
+#' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
+#' before returning the object.
+#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot in the
+#' returned object is left empty, 'data' is filled with 0s, and 'scale.data' is set to
+#' the averaged values.
 #'
 #' @param object Seurat object
 #' @param assays Which assays to use. Default is all assays
@@ -308,7 +317,7 @@ AverageExpression <- function(
     x = category.matrix,
     MARGIN = 2,
     STATS = colsums,
-    FUN = "/")
+    FUN = "/") 44
   colnames(x = category.matrix) <- sapply(
     X = colnames(x = category.matrix),
     FUN = function(name) {
@@ -336,32 +345,73 @@ AverageExpression <- function(
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
-    toRet <- CreateSeuratObject(
-      counts = data.return[[1]],
-      project = "Average",
-      assay = names(x = data.return)[1],
-      ...
-    )
-    toRet <- SetAssayData(
-      object = toRet,
-      assay = names(x = data.return)[1],
-      slot = "data",
-      new.data = log1p(x = as.matrix(x = data.return[[1]]))
-    )
+    if (slot[1] == 'scale.data') {
+      toRet <- CreateSeuratObject(
+        counts = NULL,
+        project = "Average",
+        assay = names(x = data.return)[1],
+        ...
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "data",
+        new.data = 0
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "scale.data",
+        new.data = data.return[[1]]
+      )
+    } else {
+      toRet <- CreateSeuratObject(
+        counts = data.return[[1]],
+        project = "Average",
+        assay = names(x = data.return)[1],
+        ...
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "data",
+        new.data = log1p(x = as.matrix(x = data.return[[1]]))
+      )
+    }
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
-        toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
-        toRet <- SetAssayData(
-          object = toRet,
-          assay = names(x = data.return)[i],
-          slot = "data",
-          new.data = log1p(x = as.matrix(x = data.return[[i]]))
-        )
+        if (slot[i] == 'scale.data') {
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = NULL)
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "data",
+            new.data = 0
+          )
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "scale.data",
+            new.data = as.matrix(x = data.return[[i]])
+          )
+        } else {
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "data",
+            new.data = log1p(x = as.matrix(x = data.return[[i]]))
+          )
+        }
+
       }
     }
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
       DefaultAssay(object = toRet) <- DefaultAssay(object = object)
+      if (slot[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
+        toRet <- ScaleData(object = toRet, verbose = verbose)
+      }
     }
     if ('ident' %in% group.by) {
       first.cells <- c()
@@ -370,8 +420,6 @@ AverageExpression <- function(
       }
       Idents(object = toRet) <- Idents(object = object)[first.cells]
     }
-    # finish setting up object if it is to be returned
-    toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
   } else {
     return(data.return)
