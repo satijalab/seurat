@@ -7476,19 +7476,28 @@ merge.Seurat <- function(
         }
       }
     }
-
-    if (inherits(x = assays.merge[[1]], what = "SCTAssay")) {
+    
+    SCT.assay.idx <- which(sapply(assays.merge, function(assay.i) inherits(x = assay.i, what = "SCTAssay") ) == TRUE)
+    if (length(SCT.assay.idx) == length( assays.merge ) ) {
       merged.assay <- merge.SCTAssay(
         x = assays.merge[[1]],
         y = assays.merge[2:length(x = assays.merge)],
         merge.data = merge.data
       )
-    } else{
+    } else {
       merged.assay <- merge.Assay(
         x = assays.merge[[1]],
         y = assays.merge[2:length(x = assays.merge)],
         merge.data = merge.data
       )
+      if (length(SCT.assay.idx) > 0 ){
+       not.sct.idx <-  setdiff(1:length( assays.merge ), SCT.assay.idx)
+        warning("Object", not.sct.idx, "'s ", 
+                assay, 
+                " assay is not a SCTAssay. ",
+                assay, 
+                " assays are merged as default assay")
+      }
     }
     merged.assay <- subset(
       x = merged.assay,
@@ -8157,13 +8166,15 @@ setAs(
         vst.res <- list(vst.res)
         umi.assay <- list(umi.assay)
       }
-      vst.res <- lapply(
-        X = 1:length(x = vst.res),
-        FUN = function(i) {
-          vst.res[[i]]$umi.assay <- umi.assay[[i]]
-          return(PrepVSTResults(vst.res = vst.res[[i]], group = paste0("group",i), cell.names = colnames(x = from)))
-        }
-      )
+      if ( length(vst.res) > 0) {
+        vst.res <- lapply(
+          X = 1:length(x = vst.res),
+          FUN = function(i) {
+            vst.res[[i]]$umi.assay <- umi.assay[[i]]
+            return(PrepVSTResults(vst.res = vst.res[[i]], group = paste0("group",i), cell.names = colnames(x = from)))
+          }
+        )
+      }
       if (length(x = vst.res) > 1) {
         vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
       }
@@ -8171,7 +8182,6 @@ setAs(
       names(vst.res) <- sapply(vst.res, function(x) levels(x@groups))
       object.list$SCTModel.list <- vst.res
     }
-     
     return(do.call(what = 'new', args = object.list))
   }
 )
