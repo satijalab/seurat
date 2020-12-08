@@ -203,7 +203,7 @@ DimHeatmap <- function(
 #' @importFrom stats median
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
-#' ggplot_build aes_string
+#' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
 #'
@@ -258,7 +258,6 @@ DoHeatmap <- function(
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
     object = object,
     slot = slot)[features, cells, drop = FALSE])))
-
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -312,7 +311,11 @@ DoHeatmap <- function(
     if (group.bar) {
       # TODO: Change group.bar to annotation.bar
       default.colors <- c(hue_pal()(length(x = levels(x = group.use))))
-      cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      if (!is.null(x = names(x = group.colors))) {
+        cols <- unname(obj = group.colors[levels(x = group.use)])
+      } else {
+        cols <- group.colors[1:length(x = levels(x = group.use))] %||% default.colors
+      }
       if (any(is.na(x = cols))) {
         cols[is.na(x = cols)] <- default.colors[is.na(x = cols)]
         cols <- Col2Hex(cols)
@@ -482,8 +485,10 @@ HTOHeatmap <- function(
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param slot Use non-normalized counts data for plotting
+#' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-#' ggplot object. If \code{FALSE}, return a list of ggplot objects
+#' ggplot object. If \code{FALSE}, return a list of ggplot
+#' @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -506,7 +511,9 @@ RidgePlot <- function(
   log = FALSE,
   ncol = NULL,
   slot = 'data',
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = 'feature'
 ) {
   return(ExIPlot(
     object = object,
@@ -522,7 +529,9 @@ RidgePlot <- function(
     group.by = group.by,
     log = log,
     slot = slot,
-    combine = combine
+    stack = stack,
+    combine = combine,
+    fill.by = fill.by
   ))
 }
 
@@ -537,6 +546,7 @@ RidgePlot <- function(
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
+#' @param flip flip plot orientation (identities on x-axis)
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -553,7 +563,7 @@ VlnPlot <- function(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -566,7 +576,10 @@ VlnPlot <- function(
   ncol = NULL,
   slot = 'data',
   split.plot = FALSE,
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = 'feature',
+  flip = FALSE
 ) {
   if (
     !is.null(x = split.by) &
@@ -598,7 +611,10 @@ VlnPlot <- function(
     split.by = split.by,
     log = log,
     slot = slot,
-    combine = combine
+    stack = stack,
+    combine = combine,
+    fill.by = fill.by,
+    flip = flip
   ))
 }
 
@@ -701,8 +717,14 @@ ColorDimSplit <- function(
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param label.color Sets the color of the label text
+#' @param label.box Whether to put a box around the label text (geom_text vs
+#' geom_label)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -722,7 +744,7 @@ ColorDimSplit <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom rlang !!
-#' @importFrom ggplot2 facet_wrap vars sym
+#' @importFrom ggplot2 facet_wrap vars sym labs
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
@@ -749,8 +771,12 @@ DimPlot <- function(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
+  label.color = 'black',
+  label.box = FALSE,
   repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
@@ -764,13 +790,18 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
   object[['ident']] <- Idents(object = object)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
-  data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
+  data <- cbind(data, object[[group.by]][cells, , drop = FALSE])
+  group.by <- colnames(x = data)[3:ncol(x = data)]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
@@ -805,7 +836,9 @@ DimPlot <- function(
           id = x,
           repel = repel,
           size = label.size,
-          split.by = split.by
+          split.by = split.by,
+          box = label.box,
+          color = label.color
         )
       }
       if (!is.null(x = split.by)) {
@@ -819,7 +852,11 @@ DimPlot <- function(
             }
           )
       }
-      return(plot)
+      plot <- if (is.null(x = orig.groups)) {
+        plot + labs(title = NULL)
+      } else {
+        plot + CenterTitle()
+      }
     }
   )
   if (!is.null(x = split.by)) {
@@ -867,6 +904,7 @@ DimPlot <- function(
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows; ignored if \code{blend = TRUE}
 #' @param sort.cell Redundant with \code{order}. This argument is being
 #' deprecated. Please use \code{order} instead.
+#' @param interactive Launch an interactive \code{\link[Seurat:IFeaturePlot]{FeaturePlot}}
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
@@ -920,6 +958,7 @@ FeaturePlot <- function(
   coord.fixed = FALSE,
   by.col = TRUE,
   sort.cell = NULL,
+  interactive = FALSE,
   combine = TRUE
 ) {
   # TODO: deprecate fully on 3.2.0
@@ -933,6 +972,15 @@ FeaturePlot <- function(
     if (isTRUE(x = sort.cell)) {
       order <- sort.cell
     }
+  }
+  if (interactive) {
+    return(IFeaturePlot(
+      object = object,
+      feature = features[1],
+      dims = dims,
+      reduction = reduction,
+      slot = slot
+    ))
   }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
@@ -1173,7 +1221,8 @@ FeaturePlot <- function(
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
         theme_cowplot() +
-        theme(plot.title = element_text(hjust = 0.5))
+        CenterTitle()
+        # theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
         plot <- LabelClusters(
@@ -1237,7 +1286,7 @@ FeaturePlot <- function(
             if (unique.feature.exp == 0) {
               cols.grad <- cols[1]
             } else{
-            cols.grad <- cols
+              cols.grad <- cols
             }
           }
           plot <- suppressMessages(
@@ -1382,6 +1431,319 @@ FeaturePlot <- function(
   return(plots)
 }
 
+#' Visualize features in dimensional reduction space interactively
+#'
+#' @inheritParams FeaturePlot
+#' @param feature Feature to plot
+#'
+#' @return Returns the final plot as a ggplot object
+#'
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 theme element_text guides scale_color_gradientn
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow sidebarPanel selectInput plotOutput reactiveValues
+#' observeEvent stopApp observe updateSelectInput renderPlot runGadget
+#'
+#' @export
+#'
+IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
+  # Set initial data values
+  feature.label <- 'Feature to visualize'
+  assay.keys <- Key(object = object)[Assays(object = object)]
+  keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+  assay <- if (any(keyed)) {
+    names(x = which(x = keyed))[1]
+  } else {
+    DefaultAssay(object = object)
+  }
+  features <- sort(x = rownames(x = GetAssayData(
+    object = object,
+    slot = slot,
+    assay = assay
+  )))
+  assays.use <- vapply(
+    X = Assays(object = object),
+    FUN = function(x) {
+      return(!IsMatrixEmpty(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = x
+      )))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  assays.use <- sort(x = Assays(object = object)[assays.use])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims.reduc <- gsub(
+    pattern = Key(object = object[[reduction]]),
+    replacement = '',
+    x = colnames(x = object[[reduction]])
+  )
+  # Set up the gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        sidebarPanel(
+          selectInput(
+            inputId = 'assay',
+            label = 'Assay',
+            choices = assays.use,
+            selected = assay,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'feature',
+            label = feature.label,
+            choices = features,
+            selected = feature,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'reduction',
+            label = 'Dimensional reduction',
+            choices = Reductions(object = object),
+            selected = reduction,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'xdim',
+            label = 'X dimension',
+            choices = dims.reduc,
+            selected = as.character(x = dims[1]),
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'ydim',
+            label = 'Y dimension',
+            choices = dims.reduc,
+            selected = as.character(x = dims[2]),
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'palette',
+            label = 'Color scheme',
+            choices = names(x = FeaturePalettes),
+            selected = 'Seurat',
+            selectize = FALSE,
+            width = '100%'
+          ),
+          width = '100%'
+        ),
+        plotOutput(outputId = 'plot', height = '100%'),
+        flex = c(1, 4)
+      )
+    )
+  )
+  # Prepare plotting data
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  plot.data <- FetchData(object = object, vars = c(dims, feature), slot = slot)
+  # Shiny server
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(
+      data = plot.data,
+      dims = paste0(Key(object = object[[reduction]]), dims),
+      feature = feature,
+      palette = 'Seurat'
+    )
+    # Observe events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observe(x = {
+      assay <- input$assay
+      feature.use <- input$feature
+      features.assay <- sort(x = rownames(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = assay
+      )))
+      feature.use <- ifelse(
+        test = feature.use %in% features.assay,
+        yes = feature.use,
+        no = features.assay[1]
+      )
+      reduc <- input$reduction
+      dims.reduc <- gsub(
+        pattern = Key(object = object[[reduc]]),
+        replacement = '',
+        x = colnames(x = object[[reduc]])
+      )
+      dims <- c(input$xdim, input$ydim)
+      for (i in seq_along(along.with = dims)) {
+        if (!dims[i] %in% dims.reduc) {
+          dims[i] <- dims.reduc[i]
+        }
+      }
+      updateSelectInput(
+        session = session,
+        inputId = 'xdim',
+        label = 'X dimension',
+        choices = dims.reduc,
+        selected = as.character(x = dims[1])
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'ydim',
+        label = 'Y dimension',
+        choices = dims.reduc,
+        selected = as.character(x = dims[2])
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = feature.label,
+        choices = features.assay,
+        selected = feature.use
+      )
+    })
+    observe(x = {
+      feature.use <- input$feature
+      feature.keyed <- paste0(Key(object = object[[input$assay]]), feature.use)
+      reduc <- input$reduction
+      dims <- c(input$xdim, input$ydim)
+      dims <- paste0(Key(object = object[[reduc]]), dims)
+      plot.data <- tryCatch(
+        expr = FetchData(
+          object = object,
+          vars = c(dims, feature.keyed),
+          slot = slot
+        ),
+        warning = function(...) {
+          return(plot.env$data)
+        },
+        error = function(...) {
+          return(plot.env$data)
+        }
+      )
+      dims <- colnames(x = plot.data)[1:2]
+      colnames(x = plot.data) <- c(dims, feature.use)
+      plot.env$data <- plot.data
+      plot.env$feature <- feature.use
+      plot.env$dims <- dims
+    })
+    observe(x = {
+      plot.env$palette <- input$palette
+    })
+    # Create the plot
+    output$plot <- renderPlot(expr = {
+      plot.env$plot <- SingleDimPlot(
+        data = plot.env$data,
+        dims = plot.env$dims,
+        col.by = plot.env$feature,
+        label = FALSE
+      ) +
+        theme_cowplot() +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        guides(color = NULL) +
+        scale_color_gradientn(
+          colors = FeaturePalettes[[plot.env$palette]],
+          guide = 'colorbar'
+        )
+      plot.env$plot
+    })
+  }
+  runGadget(app = ui, server = server)
+}
+
+#' Highlight Neighbors in DimPlot
+#'
+#' It will color the query cells and the neighbors of the query cells in the
+#' DimPlot
+#'
+#' @inheritParams DimPlot
+#' @param nn.idx the neighbor index of all cells
+#' @param query.cells cells used to find their neighbors
+#' @param show.all.cells Show all cells or only query and neighbor cells
+#'
+#' @inherit DimPlot return
+#'
+#' @export
+#'
+NNPlot <- function(
+  object,
+  reduction,
+  nn.idx,
+  query.cells,
+  dims = 1:2,
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  sizes.highlight = 2,
+  pt.size = 1,
+  cols.highlight = c("#377eb8", "#e41a1c"),
+  na.value =  "#bdbdbd",
+  order = c("self", "neighbors", "other"),
+  show.all.cells = TRUE,
+  ...
+) {
+  if (inherits(x = nn.idx, what = 'Neighbor')) {
+    rownames(x = slot(object = nn.idx, name = 'nn.idx')) <- Cells(x = nn.idx)
+    nn.idx <- Indices(object = nn.idx)
+  }
+  if (length(x = query.cells) > 1) {
+    neighbor.cells <- apply(
+      X = nn.idx[query.cells, -1],
+      MARGIN = 2,
+      FUN = function(x) {
+        return(Cells(x = object)[x])
+      }
+    )
+  } else {
+    neighbor.cells <- Cells(x = object)[nn.idx[query.cells , -1]]
+  }
+  neighbor.cells <- as.vector(x = neighbor.cells)
+  neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
+  object[["nn.col"]] <- "other"
+  object[["nn.col"]][neighbor.cells, ] <- "neighbors"
+  object[["nn.col"]][query.cells, ] <- "self"
+  object$nn.col <- factor(
+    x = object$nn.col,
+    levels = c("self", "neighbors", "other")
+  )
+  if (!show.all.cells) {
+    object <- subset(
+      x = object,
+      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
+    )
+    nn.cols  <- c(rev(x = cols.highlight))
+    nn.pt.size <- sizes.highlight
+  } else {
+    highlight.info <- SetHighlight(
+      cells.highlight = c(query.cells, neighbor.cells),
+      cells.all = Cells(x = object),
+      sizes.highlight = sizes.highlight,
+      pt.size = pt.size,
+      cols.highlight = "red"
+    )
+    nn.cols  <- c(na.value, rev(x = cols.highlight))
+    nn.pt.size <- highlight.info$size
+  }
+  NN.plot <- DimPlot(
+    object = object,
+    reduction = reduction,
+    dims = dims,
+    group.by = "nn.col",
+    cols = nn.cols,
+    label = label,
+    order =  order,
+    pt.size = nn.pt.size ,
+    label.size = label.size,
+    repel = repel
+  )
+  return(NN.plot)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Scatter plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1452,6 +1814,7 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param plot.cor Display correlation in plot title
 #'
 #' @return A ggplot object
 #'
@@ -1477,7 +1840,8 @@ FeatureScatter <- function(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  plot.cor = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
@@ -1488,13 +1852,15 @@ FeatureScatter <- function(
     cells = cells,
     slot = slot
   )
-  if (isFALSE(x = feature1 %in% colnames(x = data))) {
+  if (!grepl(pattern = feature1, x = colnames(x = data)[1])) {
     stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
   }
-  if (isFALSE(x = feature2 %in% colnames(x = data))) {
+  if (!grepl(pattern = feature2, x = colnames(x = data)[2])) {
     stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
   }
   data <- as.data.frame(x = data)
+  feature1 <-  colnames(x = data)[1]
+  feature2 <-  colnames(x = data)[2]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
@@ -1510,7 +1876,8 @@ FeatureScatter <- function(
         pt.size = pt.size,
         smooth = smooth,
         legend.title = 'Identity',
-        span = span
+        span = span,
+        plot.cor = plot.cor
       )
     }
   )
@@ -1559,7 +1926,7 @@ VariableFeaturePlot <- function(
     assay = assay,
     selection.method = selection.method,
     status = TRUE
-    )
+  )
   var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
   hvf.info <- hvf.info[, c(1, 3)]
   axis.labels <- switch(
@@ -1745,6 +2112,1054 @@ PolyFeaturePlot <- function(
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Spatial Plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Visualize spatial and clustering (dimensional reduction) data in a linked,
+#' interactive framework
+#'
+#' @inheritParams DimPlot
+#' @inheritParams FeaturePlot
+#' @inheritParams SpatialPlot
+#' @param feature Feature to visualize
+#' @param image Name of the image to use in the plot
+#'
+#' @return Returns final plots. If \code{combine}, plots are stiched together
+#' using \code{\link{CombinePlots}}; otherwise, returns a list of ggplot objects
+#'
+#' @rdname LinkedPlots
+#' @name LinkedPlots
+#'
+#' @importFrom scales hue_pal
+#' @importFrom patchwork wrap_plots
+#' @importFrom ggplot2 scale_alpha_ordinal guides
+#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow plotOutput brushOpts clickOpts hoverOpts
+#' verbatimTextOutput reactiveValues observeEvent stopApp nearPoints
+#' brushedPoints renderPlot renderPrint runGadget
+#'
+#' @aliases LinkedPlot LinkedDimPlot
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' LinkedDimPlot(seurat.object)
+#' LinkedFeaturePlot(seurat.object, feature = 'Hpca')
+#' }
+#'
+LinkedDimPlot <- function(
+  object,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  group.by = NULL,
+  alpha = c(0.1, 1),
+  combine = TRUE
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = 'LinkedDimPlot',
+      left = miniTitleBarButton(inputId = 'reset', label = 'Reset')
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'spatialplot',
+          height = '100%',
+          # brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = clickOpts(id = 'spclick', clip = TRUE),
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+        ),
+        plotOutput(
+          outputId = 'dimplot',
+          height = '100%',
+          brush = brushOpts(id = 'brush', delay = 10, clip = TRUE, resetOnNew = FALSE),
+          click = clickOpts(id = 'dimclick', clip = TRUE),
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims <- dims[1:2]
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  plot.data <- cbind(coords, group.data, embeddings)
+  plot.data$selected_ <- FALSE
+  Idents(object = object) <- group.by
+  # Setup the server
+  server <- function(input, output, session) {
+    click <- reactiveValues(pt = NULL, invert = FALSE)
+    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        plots <- list(plot.env$spatialplot, plot.env$dimplot)
+        if (combine) {
+          plots <- wrap_plots(plots, ncol = 2)
+        }
+        stopApp(returnValue = plots)
+      }
+    )
+    observeEvent(
+      eventExpr = input$reset,
+      handlerExpr = {
+        click$pt <- NULL
+        click$invert <- FALSE
+        session$resetBrush(brushId = 'brush')
+      }
+    )
+    observeEvent(eventExpr = input$brush, handlerExpr = click$pt <- NULL)
+    observeEvent(
+      eventExpr = input$spclick,
+      handlerExpr = {
+        click$pt <- input$spclick
+        click$invert <- TRUE
+      }
+    )
+    observeEvent(
+      eventExpr = input$dimclick,
+      handlerExpr = {
+        click$pt <- input$dimclick
+        click$invert <- FALSE
+      }
+    )
+    observeEvent(
+      eventExpr = c(input$brush, input$spclick, input$dimclick),
+      handlerExpr = {
+        plot.env$data <- if (is.null(x = input$brush)) {
+          clicked <- nearPoints(
+            df = plot.data,
+            coordinfo = if (click$invert) {
+              InvertCoordinate(x = click$pt)
+            } else {
+              click$pt
+            },
+            threshold = 10,
+            maxpoints = 1
+          )
+          if (nrow(x = clicked) == 1) {
+            cell.clicked <- rownames(x = clicked)
+            group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
+            idx.group <- which(x = plot.data[[group.by]] == group.clicked)
+            plot.data[idx.group, 'selected_'] <- TRUE
+            plot.data
+          } else {
+            plot.data
+          }
+        } else if (input$brush$outputId == 'dimplot') {
+          brushedPoints(df = plot.data, brush = input$brush, allRows = TRUE)
+        } else if (input$brush$outputId == 'spatialplot') {
+          brushedPoints(df = plot.data, brush = InvertCoordinate(x = input$brush), allRows = TRUE)
+        }
+        plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
+          'selected_'
+        } else {
+          NULL
+        }
+      }
+    )
+    # Set plots
+    output$spatialplot <- renderPlot(
+      expr = {
+        plot.env$spatialplot <- SingleSpatialPlot(
+          data = plot.env$data,
+          image = object[[image]],
+          col.by = group.by,
+          pt.size.factor = 1.6,
+          crop = TRUE,
+          alpha.by = plot.env$alpha.by
+        ) + scale_alpha_ordinal(range = alpha) + NoLegend()
+        plot.env$spatialplot
+      }
+    )
+    output$dimplot <- renderPlot(
+      expr = {
+        plot.env$dimplot <- SingleDimPlot(
+          data = plot.env$data,
+          dims = dims,
+          col.by = group.by,
+          alpha.by = plot.env$alpha.by
+        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
+        plot.env$dimplot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = if (is.null(x = input[['sphover']])) {
+            input$dimhover
+          } else {
+            InvertCoordinate(x = input$sphover)
+          },
+          threshold = 10,
+          maxpoints = 1
+        ))
+        # if (length(x = cell.hover) == 1) {
+        #   palette <- hue_pal()(n = length(x = levels(x = object)))
+        #   group <- plot.data[cell.hover, group.by, drop = TRUE]
+        #   background <- palette[which(x = levels(x = object) == group)]
+        #   text <- unname(obj = BGTextColor(background = background))
+        #   style <- paste0(
+        #     paste(
+        #       paste('background-color:', background),
+        #       paste('color:', text),
+        #       sep = '; '
+        #     ),
+        #     ';'
+        #   )
+        #   info <- paste(cell.hover, paste('Group:', group), sep = '<br />')
+        # } else {
+        #   style <- 'background-color: white; color: black'
+        #   info <- NULL
+        # }
+        # HTML(text = paste0("<div style='", style, "'>", info, "</div>"))
+        # p(HTML(info), style = style)
+        # paste0('<div style="', style, '">', info, '</div>')
+        # TODO: Get newlines, extra information, and background color working
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  # Run the thang
+  runGadget(app = ui, server = server)
+}
+
+#' @rdname LinkedPlots
+#'
+#' @aliases LinkedFeaturePlot
+#'
+#' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
+#' scale_color_gradientn guide_colorbar
+#'
+#' @export
+#'
+LinkedFeaturePlot <- function(
+  object,
+  feature,
+  dims = 1:2,
+  reduction = NULL,
+  image = NULL,
+  slot = 'data',
+  alpha = c(0.1, 1),
+  combine = TRUE
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = 'LinkedFeaturePlot',
+      left = NULL
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'spatialplot',
+          height = '100%',
+          hover = hoverOpts(id = 'sphover', delay = 10, nullOutside = TRUE)
+        ),
+        plotOutput(
+          outputId = 'dimplot',
+          height = '100%',
+          hover = hoverOpts(id = 'dimhover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Prepare plotting data
+  cols <- SpatialColors(n = 100)
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  reduction <- reduction %||% DefaultDimReduc(object = object)
+  dims <- dims[1:2]
+  dims <- paste0(Key(object = object[[reduction]]), dims)
+  group.data <- FetchData(
+    object = object,
+    vars = feature,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  embeddings <- Embeddings(object = object[[reduction]])[cells.use, dims]
+  plot.data <- cbind(coords, group.data, embeddings)
+  # Setup the server
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues()
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        plots <- list(plot.env$spatialplot, plot.env$dimplot)
+        if (combine) {
+          plots <- wrap_plots(plots, ncol = 2)
+        }
+        stopApp(returnValue = plots)
+      }
+    )
+    # Set plots
+    output$spatialplot <- renderPlot(
+      expr = {
+        plot.env$spatialplot <- SingleSpatialPlot(
+          data = plot.data,
+          image = object[[image]],
+          col.by = feature,
+          pt.size.factor = 1.6,
+          crop = TRUE,
+          alpha.by = feature
+        ) +
+          scale_fill_gradientn(name = feature, colours = cols) +
+          theme(legend.position = 'top') +
+          scale_alpha(range = alpha) +
+          guides(alpha = FALSE)
+        plot.env$spatialplot
+      }
+    )
+    output$dimplot <- renderPlot(
+      expr = {
+        plot.env$dimplot <- SingleDimPlot(
+          data = plot.data,
+          dims = dims,
+          col.by = feature
+        ) +
+          scale_color_gradientn(name = feature, colours = cols, guide = 'colorbar') +
+          guides(color = guide_colorbar())
+        plot.env$dimplot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = if (is.null(x = input[['sphover']])) {
+            input$dimhover
+          } else {
+            InvertCoordinate(x = input$sphover)
+          },
+          threshold = 10,
+          maxpoints = 1
+        ))
+        # TODO: Get newlines, extra information, and background color working
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Expression:', plot.data[cell.hover, feature, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  runGadget(app = ui, server = server)
+}
+
+#' Visualize clusters spatially and interactively
+#'
+#' @inheritParams DimPlot
+#' @inheritParams SpatialPlot
+#' @inheritParams LinkedPlots
+#'
+#' @return Returns final plot as a ggplot object
+#'
+#' @importFrom ggplot2 scale_alpha_ordinal
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow plotOutput verbatimTextOutput reactiveValues
+#' observeEvent stopApp nearPoints renderPlot runGadget
+#'
+#' @export
+#'
+ISpatialDimPlot <- function(
+  object,
+  image = NULL,
+  group.by = NULL,
+  alpha = c(0.3, 1)
+) {
+  # Setup gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = 'plot',
+          height = '100%',
+          click = clickOpts(id = 'click', clip = TRUE),
+          hover = hoverOpts(id = 'hover', delay = 10, nullOutside = TRUE)
+        ),
+        height = '97%'
+      ),
+      verbatimTextOutput(outputId = 'info')
+    )
+  )
+  # Get plotting data
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells.use
+  )
+  coords <- GetTissueCoordinates(object = object[[image]])
+  plot.data <- cbind(coords, group.data)
+  plot.data$selected_ <- FALSE
+  Idents(object = object) <- group.by
+  # Set up the server
+  server <- function(input, output, session) {
+    click <- reactiveValues(pt = NULL)
+    plot.env <- reactiveValues(data = plot.data, alpha.by = NULL)
+    # Handle events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observeEvent(
+      eventExpr = input$click,
+      handlerExpr = {
+        clicked <- nearPoints(
+          df = plot.data,
+          coordinfo = InvertCoordinate(x = input$click),
+          threshold = 10,
+          maxpoints = 1
+        )
+        plot.env$data <- if (nrow(x = clicked) == 1) {
+          cell.clicked <- rownames(x = clicked)
+          cell.clicked <- rownames(x = clicked)
+          group.clicked <- plot.data[cell.clicked, group.by, drop = TRUE]
+          idx.group <- which(x = plot.data[[group.by]] == group.clicked)
+          plot.data[idx.group, 'selected_'] <- TRUE
+          plot.data
+        } else {
+          plot.data
+        }
+        plot.env$alpha.by <- if (any(plot.env$data$selected_)) {
+          'selected_'
+        } else {
+          NULL
+        }
+      }
+    )
+    # Set plot
+    output$plot <- renderPlot(
+      expr = {
+        plot.env$plot <- SingleSpatialPlot(
+          data = plot.env$data,
+          image = object[[image]],
+          col.by = group.by,
+          crop = TRUE,
+          alpha.by = plot.env$alpha.by,
+          pt.size.factor = 1.6
+        ) + scale_alpha_ordinal(range = alpha) + NoLegend()
+        plot.env$plot
+      }
+    )
+    # Add hover text
+    output$info <- renderPrint(
+      expr = {
+        cell.hover <- rownames(x = nearPoints(
+          df = plot.data,
+          coordinfo = InvertCoordinate(x = input$hover),
+          threshold = 10,
+          maxpoints = 1
+        ))
+        if (length(x = cell.hover) == 1) {
+          paste(cell.hover, paste('Group:', plot.data[cell.hover, group.by, drop = TRUE]), collapse = '<br />')
+        } else {
+          NULL
+        }
+      }
+    )
+  }
+  runGadget(app = ui, server = server)
+}
+
+#' Visualize features spatially and interactively
+#'
+#' @inheritParams FeaturePlot
+#' @inheritParams SpatialPlot
+#' @inheritParams LinkedPlots
+#'
+#' @return Returns final plot as a ggplot object
+#'
+#' @importFrom ggplot2 scale_fill_gradientn theme scale_alpha guides
+#' @importFrom miniUI miniPage miniButtonBlock miniTitleBarButton miniContentPanel
+#' @importFrom shiny fillRow sidebarPanel sliderInput selectInput reactiveValues
+#' observeEvent stopApp observe updateSelectInput plotOutput renderPlot runGadget
+#'
+#' @export
+#'
+ISpatialFeaturePlot <- function(
+  object,
+  feature,
+  image = NULL,
+  slot = 'data',
+  alpha = c(0.1, 1)
+) {
+  # Set inital data values
+  assay.keys <- Key(object = object)[Assays(object = object)]
+  keyed <- sapply(X = assay.keys, FUN = grepl, x = feature)
+  assay <- if (any(keyed)) {
+    names(x = which(x = keyed))[1]
+  } else {
+    DefaultAssay(object = object)
+  }
+  features <- sort(x = rownames(x = GetAssayData(
+    object = object,
+    slot = slot,
+    assay = assay
+  )))
+  feature.label <- 'Feature to visualize'
+  assays.use <- vapply(
+    X = Assays(object = object),
+    FUN = function(x) {
+      return(!IsMatrixEmpty(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = x
+      )))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  assays.use <- sort(x = Assays(object = object)[assays.use])
+  # Setup gadget UI
+  ui <- miniPage(
+    miniButtonBlock(miniTitleBarButton(
+      inputId = 'done',
+      label = 'Done',
+      primary = TRUE
+    )),
+    miniContentPanel(
+      fillRow(
+        sidebarPanel(
+          sliderInput(
+            inputId = 'alpha',
+            label = 'Alpha intensity',
+            min = 0,
+            max = max(alpha),
+            value = min(alpha),
+            step = 0.01,
+            width = '100%'
+          ),
+          sliderInput(
+            inputId = 'pt.size',
+            label = 'Point size',
+            min = 0,
+            max = 5,
+            value = 1.6,
+            step = 0.1,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'assay',
+            label = 'Assay',
+            choices = assays.use,
+            selected = assay,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'feature',
+            label = feature.label,
+            choices = features,
+            selected = feature,
+            selectize = FALSE,
+            width = '100%'
+          ),
+          selectInput(
+            inputId = 'palette',
+            label = 'Color scheme',
+            choices = names(x = FeaturePalettes),
+            selected = 'Spatial',
+            selectize = FALSE,
+            width = '100%'
+          ),
+          width = '100%'
+        ),
+        plotOutput(outputId = 'plot', height = '100%'),
+        flex = c(1, 4)
+      )
+    )
+  )
+  # Prepare plotting data
+  image <- image %||% DefaultImage(object = object)
+  cells.use <- Cells(x = object[[image]])
+  coords <- GetTissueCoordinates(object = object[[image]])
+  feature.data <- FetchData(
+    object = object,
+    vars = feature,
+    cells = cells.use,
+    slot = slot
+  )
+  plot.data <- cbind(coords, feature.data)
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(
+      data = plot.data,
+      feature = feature,
+      palette = 'Spatial'
+    )
+    # Observe events
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = stopApp(returnValue = plot.env$plot)
+    )
+    observe(x = {
+      assay <- input$assay
+      feature.use <- input$feature
+      features.assay <- sort(x = rownames(x = GetAssayData(
+        object = object,
+        slot = slot,
+        assay = assay
+      )))
+      feature.use <- ifelse(
+        test = feature.use %in% features.assay,
+        yes = feature.use,
+        no = features.assay[1]
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'assay',
+        label = 'Assay',
+        choices = assays.use,
+        selected = assay
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = feature.label,
+        choices = features.assay,
+        selected = feature.use
+      )
+    })
+    observe(x = {
+      feature.use <- input$feature
+      try(
+        expr = {
+          feature.data <- FetchData(
+            object = object,
+            vars = paste0(Key(object = object[[input$assay]]), feature.use),
+            cells = cells.use,
+            slot = slot
+          )
+          colnames(x = feature.data) <- feature.use
+          plot.env$data <- cbind(coords, feature.data)
+          plot.env$feature <- feature.use
+        },
+        silent = TRUE
+      )
+    })
+    observe(x = {
+      plot.env$palette <- input$palette
+    })
+    # Create plot
+    output$plot <- renderPlot(expr = {
+      plot.env$plot <- SingleSpatialPlot(
+        data = plot.env$data,
+        image = object[[image]],
+        col.by = plot.env$feature,
+        pt.size.factor = input$pt.size,
+        crop = TRUE,
+        alpha.by = plot.env$feature
+      ) +
+        # scale_fill_gradientn(name = plot.env$feature, colours = cols) +
+        scale_fill_gradientn(name = plot.env$feature, colours = FeaturePalettes[[plot.env$palette]]) +
+        theme(legend.position = 'top') +
+        scale_alpha(range = c(input$alpha, 1)) +
+        guides(alpha = FALSE)
+      plot.env$plot
+    })
+  }
+  runGadget(app = ui, server = server)
+}
+
+#' Visualize spatial clustering and expression data.
+#'
+#' SpatialPlot plots a feature or discrete grouping (e.g. cluster assignments) as
+#' spots over the image that was collected. We also provide SpatialFeaturePlot
+#' and SpatialDimPlot as wrapper functions around SpatialPlot for a consistent
+#' naming framework.
+#'
+#' @inheritParams HoverLocator
+#' @param object A Seurat object
+#' @param group.by Name of meta.data column to group the data by
+#' @param features Name of the feature to visualize. Provide either group.by OR
+#' features, not both.
+#' @param images Name of the images to use in the plot(s)
+#' @param cols Vector of colors, each color corresponds to an identity class.
+#' This may also be a single character or numeric value corresponding to a
+#' palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}. By
+#' default, ggplot2 assigns colors
+#' @param image.alpha Adjust the opacity of the background images. Set to 0 to
+#' remove.
+#' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
+#' entire background image.
+#' @param slot If plotting a feature, which data slot to pull from (counts,
+#' data, or scale.data)
+#' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff
+#' values for each feature, may specify quantile in the form of 'q##' where '##'
+#' is the quantile (eg, 'q1', 'q10')
+#' @param cells.highlight A list of character or numeric vectors of cells to
+#' highlight. If only one group of cells desired, can simply pass a vector
+#' instead of a list. If set, colors selected cells to the color(s) in
+#' cols.highlight
+#' @param cols.highlight A vector of colors to highlight the cells as; ordered
+#' the same as the groups in cells.highlight; last color corresponds to
+#' unselected cells.
+#' @param facet.highlight When highlighting certain groups of cells, split each
+#' group into its own plot
+#' @param label Whether to label the clusters
+#' @param label.size Sets the size of the labels
+#' @param label.color Sets the color of the label text
+#' @param label.box Whether to put a box around the label text (geom_text vs
+#' geom_label)
+#' @param repel Repels the labels to prevent overlap
+#' @param ncol Number of columns if plotting multiple plots
+#' @param combine Combine plots into a single gg object; note that if TRUE;
+#' themeing will not work when plotting multiple features/groupings
+#' @param pt.size.factor Scale the size of the spots.
+#' @param alpha Controls opacity of spots. Provide as a vector specifying the
+#' min and max
+#' @param stroke Control the width of the border around the spots
+#' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
+#' session, see \code{\link{ISpatialDimPlot}} or
+#' \code{\link{ISpatialFeaturePlot}} for more details
+#' @param do.identify,do.hover DEPRECATED in favor of \code{interactive}
+#' @param identify.ident DEPRECATED
+#'
+#' @return If \code{do.identify}, either a vector of cells selected or the object
+#' with selected cells set to the value of \code{identify.ident} (if set). Else,
+#' if \code{do.hover}, a plotly object with interactive graphics. Else, a ggplot
+#' object
+#'
+#' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text scale_alpha
+#' @importFrom patchwork wrap_plots
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # For functionality analagous to FeaturePlot
+#' SpatialPlot(seurat.object, features = "MS4A1")
+#' SpatialFeaturePlot(seurat.object, features = "MS4A1")
+#'
+#' # For functionality analagous to DimPlot
+#' SpatialPlot(seurat.object, group.by = "clusters")
+#' SpatialDimPlot(seurat.object, group.by = "clusters")
+#' }
+#'
+SpatialPlot <- function(
+  object,
+  group.by = NULL,
+  features = NULL,
+  images = NULL,
+  cols = NULL,
+  image.alpha = 1,
+  crop = TRUE,
+  slot = 'data',
+  min.cutoff = NA,
+  max.cutoff = NA,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
+  facet.highlight = FALSE,
+  label = FALSE,
+  label.size = 5,
+  label.color = 'white',
+  label.box = TRUE,
+  repel = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  pt.size.factor = 1.6,
+  alpha = c(1, 1),
+  stroke = 0.25,
+  interactive = FALSE,
+  do.identify = FALSE,
+  identify.ident = NULL,
+  do.hover = FALSE,
+  information = NULL
+) {
+  if (isTRUE(x = do.hover) || isTRUE(x = do.identify)) {
+    warning(
+      "'do.hover' and 'do.identify' are deprecated as we are removing plotly-based interactive graphics, use 'interactive' instead for Shiny-based interactivity",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    interactive <- TRUE
+  }
+  if (!is.null(x = group.by) & !is.null(x = features)) {
+    stop("Please specific either group.by or features, not both.")
+  }
+  images <- images %||% Images(object = object, assay = DefaultAssay(object = object))
+  if (length(x = images) == 0) {
+    images <- Images(object = object)
+  }
+  if (length(x = images) < 1) {
+    stop("Could not find any spatial image information")
+  }
+  if (is.null(x = features)) {
+    if (interactive) {
+      return(ISpatialDimPlot(
+        object = object,
+        image = images[1],
+        group.by = group.by,
+        alpha = alpha
+      ))
+    }
+    group.by <- group.by %||% 'ident'
+    object[['ident']] <- Idents(object = object)
+    data <- object[[group.by]]
+    for (group in group.by) {
+      if (!is.factor(x = data[, group])) {
+        data[, group] <- factor(x = data[, group])
+      }
+    }
+  } else {
+    if (interactive) {
+      return(ISpatialFeaturePlot(
+        object = object,
+        feature = features[1],
+        image = images[1],
+        slot = slot,
+        alpha = alpha
+      ))
+    }
+    data <- FetchData(
+      object = object,
+      vars = features,
+      slot = slot
+    )
+    features <- colnames(x = data)
+    # Determine cutoffs
+    min.cutoff <- mapply(
+      FUN = function(cutoff, feature) {
+        return(ifelse(
+          test = is.na(x = cutoff),
+          yes = min(data[, feature]),
+          no = cutoff
+        ))
+      },
+      cutoff = min.cutoff,
+      feature = features
+    )
+    max.cutoff <- mapply(
+      FUN = function(cutoff, feature) {
+        return(ifelse(
+          test = is.na(x = cutoff),
+          yes = max(data[, feature]),
+          no = cutoff
+        ))
+      },
+      cutoff = max.cutoff,
+      feature = features
+    )
+    check.lengths <- unique(x = vapply(
+      X = list(features, min.cutoff, max.cutoff),
+      FUN = length,
+      FUN.VALUE = numeric(length = 1)
+    ))
+    if (length(x = check.lengths) != 1) {
+      stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+    }
+    # Apply cutoffs
+    data <- sapply(
+      X = 1:ncol(x = data),
+      FUN = function(index) {
+        data.feature <- as.vector(x = data[, index])
+        min.use <- SetQuantile(cutoff = min.cutoff[index], data.feature)
+        max.use <- SetQuantile(cutoff = max.cutoff[index], data.feature)
+        data.feature[data.feature < min.use] <- min.use
+        data.feature[data.feature > max.use] <- max.use
+        return(data.feature)
+      }
+    )
+    colnames(x = data) <- features
+    rownames(x = data) <- Cells(x = object)
+  }
+  features <- colnames(x = data)
+  colnames(x = data) <- features
+  rownames(x = data) <- colnames(x = object)
+  facet.highlight <- facet.highlight && (!is.null(x = cells.highlight) && is.list(x = cells.highlight))
+  if (do.hover) {
+    if (length(x = images) > 1) {
+      images <- images[1]
+      warning(
+        "'do.hover' requires only one image, using image ",
+        images,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (length(x = features) > 1) {
+      features <- features[1]
+      type <- ifelse(test = is.null(x = group.by), yes = 'feature', no = 'grouping')
+      warning(
+        "'do.hover' requires only one ",
+        type,
+        ", using ",
+        features,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (facet.highlight) {
+      warning(
+        "'do.hover' requires no faceting highlighted cells",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      facet.highlight <- FALSE
+    }
+  }
+  if (facet.highlight) {
+    if (length(x = images) > 1) {
+      images <- images[1]
+      warning(
+        "Faceting the highlight only works with a single image, using image ",
+        images,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    ncols <- length(x = cells.highlight)
+  } else {
+    ncols <- length(x = images)
+  }
+  plots <- vector(
+    mode = "list",
+    length = length(x = features) * ncols
+  )
+  for (i in 1:ncols) {
+    plot.idx <- i
+    image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
+    image.use <- object[[images[[image.idx]]]]
+    coordinates <- GetTissueCoordinates(object = image.use)
+    highlight.use <- if (facet.highlight) {
+      cells.highlight[i]
+    } else {
+      cells.highlight
+    }
+    for (j in 1:length(x = features)) {
+      cols.unset <- is.factor(x = data[, features[j]]) && is.null(x = cols)
+      if (cols.unset) {
+        cols <- hue_pal()(n = length(x = levels(x = data[, features[j]])))
+        names(x = cols) <- levels(x = data[, features[j]])
+      }
+      plot <- SingleSpatialPlot(
+        data = cbind(
+          coordinates,
+          data[rownames(x = coordinates), features[j], drop = FALSE]
+        ),
+        image = image.use,
+        image.alpha = image.alpha,
+        col.by = features[j],
+        cols = cols,
+        alpha.by = if (is.null(x = group.by)) {
+          features[j]
+        } else {
+          NULL
+        },
+        geom = if (inherits(x = image.use, what = "STARmap")) {
+          'poly'
+        } else {
+          'spatial'
+        },
+        cells.highlight = highlight.use,
+        cols.highlight = cols.highlight,
+        pt.size.factor = pt.size.factor,
+        stroke = stroke,
+        crop = crop
+      )
+      if (is.null(x = group.by)) {
+        plot <- plot +
+          scale_fill_gradientn(
+            name = features[j],
+            colours = SpatialColors(n = 100)
+          ) +
+          theme(legend.position = 'top') +
+          scale_alpha(range = alpha) +
+          guides(alpha = FALSE)
+      } else if (label) {
+        plot <- LabelClusters(
+          plot = plot,
+          id = ifelse(
+            test = is.null(x = cells.highlight),
+            yes = features[j],
+            no = 'highlight'
+          ),
+          geom = if (inherits(x = image.use, what = "STARmap")) {
+            'GeomPolygon'
+          } else {
+            'GeomSpatial'
+          },
+          repel = repel,
+          size = label.size,
+          color = label.color,
+          box = label.box,
+          position = "nearest"
+        )
+      }
+      if (j == 1 && length(x = images) > 1 && !facet.highlight) {
+        plot <- plot +
+          ggtitle(label = images[[image.idx]]) +
+          theme(plot.title = element_text(hjust = 0.5))
+      }
+      if (facet.highlight) {
+        plot <- plot +
+          ggtitle(label = names(x = cells.highlight)[i]) +
+          theme(plot.title = element_text(hjust = 0.5)) +
+          NoLegend()
+      }
+      plots[[plot.idx]] <- plot
+      plot.idx <- plot.idx + ncols
+      if (cols.unset) {
+        cols <- NULL
+      }
+    }
+  }
+  # if (do.identify) {
+  #   return(CellSelector(
+  #     plot = plot,
+  #     object = identify.ident %iff% object,
+  #     ident = identify.ident
+  #   ))
+  # } else if (do.hover) {
+  #   return(HoverLocator(
+  #     plot = plots[[1]],
+  #     information = information %||% data[, features, drop = FALSE],
+  #     axes = FALSE,
+  #     # cols = c('size' = 'point.size.factor', 'colour' = 'fill'),
+  #     images = GetImage(object = object, mode = 'plotly', image = images)
+  #   ))
+  # }
+  if (length(x = images) > 1 && combine) {
+    plots <- wrap_plots(plots = plots, ncol = length(x = images))
+  } else if (length(x = images == 1) && combine) {
+    plots <- wrap_plots(plots = plots, ncol = ncol)
+  }
+  return(plots)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Other plotting functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1904,11 +3319,14 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' @param object Seurat object
 #' @param assay Name of assay to use, defaults to the active assay
-#' @param features Input vector of features
-#' @param cols Colors to plot, can pass a single character giving the name of
-#' a palette from \code{RColorBrewer::brewer.pal.info}
-#' @param col.min Minimum scaled average expression threshold (everything smaller
-#'  will be set to this)
+#' @param features Input vector of features, or named list of feature vectors
+#' if feature-grouped panels are desired (replicates the functionality of the
+#' old SplitDotPlotGG)
+#' @param cols Colors to plot: the name of a palette from
+#' \code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient,
+#' or 3+ colors defining multiple gradients (if split.by is set)
+#' @param col.min Minimum scaled average expression threshold (everything
+#' smaller will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger
 #' will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot
@@ -1917,8 +3335,11 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
-#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
+#' @param split.by Factor to split the groups by (replicates the functionality
+#' of the old SplitDotPlotGG);
 #' see \code{\link{FetchData}} for more details
+#' @param cluster.idents Whether to order identities by hierarchical clusters
+#' based on given features, default is FALSE
 #' @param scale Determine whether the data is scaled, TRUE for default
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
@@ -1928,8 +3349,13 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 #' @importFrom grDevices colorRampPalette
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank labs
-#' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
+#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point
+#' theme element_blank labs scale_color_identity scale_color_distiller
+#' scale_color_gradient guides guide_legend guide_colorbar
+#' facet_grid unit
+#' @importFrom stats dist hclust
+#' @importFrom RColorBrewer brewer.pal.info
+#'
 #' @export
 #'
 #' @aliases SplitDotPlotGG
@@ -1953,6 +3379,7 @@ DotPlot <- function(
   idents = NULL,
   group.by = NULL,
   split.by = NULL,
+  cluster.idents = FALSE,
   scale = TRUE,
   scale.by = 'radius',
   scale.min = NA,
@@ -1960,13 +3387,32 @@ DotPlot <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
+  split.colors <- !is.null(x = split.by) && !any(cols %in% rownames(x = brewer.pal.info))
   scale.func <- switch(
     EXPR = scale.by,
     'size' = scale_size,
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  cells <- unlist(CellsByIdentities(object = object, idents = idents))
+  feature.groups <- NULL
+  if (is.list(features) | any(!is.na(names(features)))) {
+    feature.groups <- unlist(x = sapply(
+      X = 1:length(features),
+      FUN = function(x) {
+        return(rep(x = names(x = features)[x], each = length(features[[x]])))
+      }
+    ))
+    if (any(is.na(x = feature.groups))) {
+      warning(
+        "Some feature groups are unnamed.",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    features <- unlist(x = features)
+    names(x = feature.groups) <- features
+  }
+  cells <- unlist(x = CellsByIdentities(object = object, idents = idents))
   data.features <- FetchData(object = object, vars = features, cells = cells)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)[cells, drop = TRUE]
@@ -1980,11 +3426,13 @@ DotPlot <- function(
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
     splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
-    if (length(x = unique(x = splits)) > length(x = cols)) {
-      stop("Not enough colors for the number of groups")
+    if (split.colors) {
+      if (length(x = unique(x = splits)) > length(x = cols)) {
+        stop("Not enough colors for the number of groups")
+      }
+      cols <- cols[1:length(x = unique(x = splits))]
+      names(x = cols) <- unique(x = splits)
     }
-    cols <- cols[1:length(x = unique(x = splits))]
-    names(x = cols) <- unique(x = splits)
     data.features$id <- paste(data.features$id, splits, sep = '_')
     unique.splits <- unique(x = splits)
     id.levels <- paste0(rep(x = id.levels, each = length(x = unique.splits)), "_", rep(x = unique(x = splits), times = length(x = id.levels)))
@@ -2005,6 +3453,14 @@ DotPlot <- function(
     }
   )
   names(x = data.plot) <- unique(x = data.features$id)
+  if (cluster.idents) {
+    mat <- do.call(
+      what = rbind,
+      args = lapply(X = data.plot, FUN = unlist)
+    )
+    mat <- scale(x = mat)
+    id.levels <- id.levels[hclust(d = dist(x = mat))$order]
+  }
   data.plot <- lapply(
     X = names(x = data.plot),
     FUN = function(x) {
@@ -2018,38 +3474,39 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
- if (length(x = levels(x = data.plot$id)) == 1) {
-   scale <- FALSE
-   warning("Only one identity present, the expression values will be not scaled.")
- }
-    avg.exp.scaled <- sapply(
-      X = unique(x = data.plot$features.plot),
-      FUN = function(x) {
-        data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
-        if (scale) {
-          data.use <- scale(x = data.use)
-          data.use <- MinMax(data = data.use, min = col.min, max = col.max)
-        } else {
-          data.use <- log(x = data.use)
-        }
-        return(data.use)
-      }
+  if (length(x = levels(x = data.plot$id)) == 1) {
+    scale <- FALSE
+    warning(
+      "Only one identity present, the expression values will be not scaled",
+      call. = FALSE,
+      immediate. = TRUE
     )
-
-
-
+  }
+  avg.exp.scaled <- sapply(
+    X = unique(x = data.plot$features.plot),
+    FUN = function(x) {
+      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
+      if (scale) {
+        data.use <- scale(x = data.use)
+        data.use <- MinMax(data = data.use, min = col.min, max = col.max)
+      } else {
+        data.use <- log(x = data.use)
+      }
+      return(data.use)
+    }
+  )
   avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
   }
   data.plot$avg.exp.scaled <- avg.exp.scaled
   data.plot$features.plot <- factor(
     x = data.plot$features.plot,
-    levels = rev(x = features)
+    levels = features
   )
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
-  if (!is.null(x = split.by)) {
+  if (split.colors) {
     splits.use <- vapply(
       X = as.character(x = data.plot$id),
       FUN = gsub,
@@ -2070,12 +3527,18 @@ DotPlot <- function(
       value = avg.exp.scaled
     )
   }
-  color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
+  color.by <- ifelse(test = split.colors, yes = 'colors', no = 'avg.exp.scaled')
   if (!is.na(x = scale.min)) {
     data.plot[data.plot$pct.exp < scale.min, 'pct.exp'] <- scale.min
   }
   if (!is.na(x = scale.max)) {
     data.plot[data.plot$pct.exp > scale.max, 'pct.exp'] <- scale.max
+  }
+  if (!is.null(x = feature.groups)) {
+    data.plot$feature.groups <- factor(
+      x = feature.groups[data.plot$features.plot],
+      levels = unique(x = feature.groups)
+    )
   }
   plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
     geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
@@ -2087,14 +3550,25 @@ DotPlot <- function(
       y = ifelse(test = is.null(x = split.by), yes = 'Identity', no = 'Split Identity')
     ) +
     theme_cowplot()
-  if (!is.null(x = split.by)) {
+  if (!is.null(x = feature.groups)) {
+    plot <- plot + facet_grid(
+      facets = ~feature.groups,
+      scales = "free_x",
+      space = "free_x",
+      switch = "y"
+    ) + theme(
+      panel.spacing = unit(x = 1, units = "lines"),
+      strip.background = element_blank()
+    )
+  }
+  if (split.colors) {
     plot <- plot + scale_color_identity()
   } else if (length(x = cols) == 1) {
     plot <- plot + scale_color_distiller(palette = cols)
   } else {
     plot <- plot + scale_color_gradient(low = cols[1], high = cols[2])
   }
-  if (is.null(x = split.by)) {
+  if (!split.colors) {
     plot <- plot + guides(color = guide_colorbar(title = 'Average Expression'))
   }
   return(plot)
@@ -2141,6 +3615,55 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
       y = stdev
     ) +
     theme_cowplot()
+  return(plot)
+}
+
+#' Boxplot of correlation of a variable (e.g. number of UMIs) with expression
+#' data
+#'
+#' @param object Seurat object
+#' @param assay Assay where the feature grouping info and correlations are
+#' stored
+#' @param feature.group Name of the column in meta.features where the feature
+#' grouping info is stored
+#' @param cor Name of the column in meta.features where correlation info is
+#' stored
+#'
+#' @return Returns a ggplot boxplot of correlations split by group
+#'
+#' @importFrom ggplot2 geom_boxplot scale_fill_manual geom_hline
+#' @importFrom cowplot theme_cowplot
+#' @importFrom scales brewer_pal
+#' @importFrom stats complete.cases
+#'
+#' @export
+#'
+GroupCorrelationPlot <- function(
+  object,
+  assay = NULL,
+  feature.group = "feature.grp",
+  cor = "nCount_RNA_cor"
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  data <- object[[assay]][[c(feature.group, cor)]]
+  data <- data[complete.cases(data), ]
+  colnames(x = data) <- c('grp', 'cor')
+  plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +
+    geom_boxplot() +
+    theme_cowplot() +
+    scale_fill_manual(values = rev(x = brewer_pal(palette = 'YlOrRd')(n = 7))) +
+    ylab(paste(
+      "Correlation with",
+      gsub(x = cor, pattern = "_cor", replacement = "")
+    )) +
+    geom_hline(yintercept = 0) +
+    NoLegend() +
+    theme(
+      axis.line.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_blank()
+    )
   return(plot)
 }
 
@@ -2226,12 +3749,10 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
-#' @param \dots Additional arguments to ape::plot.phylo
+#' @param \dots Additional arguments to
+#' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
-#'
-#' @importFrom ape plot.phylo
-#' @importFrom ape nodelabels
 #'
 #' @export
 #'
@@ -2240,12 +3761,15 @@ JackStrawPlot <- function(
 #' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
+  if (!PackageCheck('ape', error = FALSE)) {
+    stop(cluster.ape, call. = FALSE)
+  }
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  plot.phylo(x = data.tree, direction = "downwards", ...)
-  nodelabels()
+  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::nodelabels()
 }
 
 #' Visualize Dimensional Reduction genes
@@ -2287,15 +3811,17 @@ VizDimLoadings <- function(
   ncol = NULL,
   combine = TRUE
 ) {
-  ncol <- ncol %||% 2
-  if (length(x = dims) == 1) {
-    ncol <- 1
-  }
-  if (length(x = dims) > 6) {
-    ncol <- 3
-  }
-  if (length(x = dims) > 9) {
-    ncol <- 4
+  if (is.null(x = ncol)) {
+    ncol <- 2
+    if (length(x = dims) == 1) {
+      ncol <- 1
+    }
+    if (length(x = dims) > 6) {
+      ncol <- 3
+    }
+    if (length(x = dims) > 9) {
+      ncol <- 4
+    }
   }
   loadings <- Loadings(object = object[[reduction]], projected = projected)
   features <- lapply(
@@ -2398,6 +3924,50 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
   return(blank)
 }
 
+#' Determine text color based on background color
+#'
+#' @param background A vector of background colors; supports R color names and
+#' hexadecimal codes
+#' @param threshold Intensity threshold for light/dark cutoff; intensities
+#' greater than \code{theshold} yield \code{dark}, others yield \code{light}
+#' @param w3c Use \href{http://www.w3.org/TR/WCAG20/}{W3C} formula for calculating
+#' background text color; ignores \code{threshold}
+#' @param dark Color for dark text
+#' @param light Color for light text
+#'
+#' @return A named vector of either \code{dark} or \code{light}, depending on
+#' \code{background}; names of vector are \code{background}
+#'
+#' @export
+#'
+#' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
+#'
+#' @examples
+#' BGTextColor(background = c('black', 'white', '#E76BF3'))
+#'
+BGTextColor <- function(
+  background,
+  threshold = 186,
+  w3c = FALSE,
+  dark = 'black',
+  light = 'white'
+) {
+  if (w3c) {
+    luminance <- Luminance(color = background)
+    threshold <- 179
+    return(ifelse(
+      test = luminance > sqrt(x = 1.05 * 0.05) - 0.05,
+      yes = dark,
+      no = light
+    ))
+  }
+  return(ifelse(
+    test = Intensity(color = background) > threshold,
+    yes = dark,
+    no = light
+  ))
+}
+
 #' @inheritParams CustomPalette
 #'
 #' @export
@@ -2428,26 +3998,28 @@ BlueAndRed <- function(k = 50) {
   return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
 }
 
-#' Cell selector
+#' Cell Selector
 #'
 #' Select points on a scatterplot and get information about them
 #'
 #' @param plot A ggplot2 plot
-#' @param object An optional Seurat object; if passes, will return an object with
-#' the identities of selected cells set to \code{ident}
+#' @param object An optional Seurat object; if passes, will return an object
+#' with the identities of selected cells set to \code{ident}
 #' @param ident An optional new identity class to assign the selected cells
-#' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
-#' recoloring based on selected cells, or using a smooth scatterplot, respectively
+#' @param ... Ignored
 #'
-#' @return If \code{object} is \code{NULL}, the names of the points selected; otherwise,
-#' a Seurat object with the selected cells identity classes set to \code{ident}
+#' @return If \code{object} is \code{NULL}, the names of the points selected;
+#' otherwise, a Seurat object with the selected cells identity classes set to
+#' \code{ident}
 #'
-#' @importFrom ggplot2 ggplot_build
+#' @importFrom miniUI miniPage gadgetTitleBar miniTitleBarButton
+#' miniContentPanel
+#' @importFrom shiny fillRow plotOutput brushOpts reactiveValues observeEvent
+#' stopApp brushedPoints renderPlot runGadget
+#'
 #' @export
 #'
-# @aliases FeatureLocator
-#' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
-#' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+#' @seealso \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
@@ -2460,17 +4032,105 @@ BlueAndRed <- function(k = 50) {
 #' }
 #'
 CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
-  located <- PointLocator(plot = plot, ...)
-  data <- ggplot_build(plot = plot)$plot$data
-  selected <- rownames(x = data[as.numeric(x = rownames(x = located)), ])
-  if (inherits(x = object, what = 'Seurat')) {
-    if (!all(selected %in% Cells(x = object))) {
-      stop("Cannot find selected cells in the Seurat object, please be sure you pass the same object used to generate the plot", call. = FALSE)
+  # Set up the gadget UI
+  ui <- miniPage(
+    gadgetTitleBar(
+      title = "Cell Selector",
+      left = miniTitleBarButton(inputId = "reset", label = "Reset")
+    ),
+    miniContentPanel(
+      fillRow(
+        plotOutput(
+          outputId = "plot",
+          height = '100%',
+          brush = brushOpts(
+            id = 'brush',
+            delay = 100,
+            delayType = 'debounce',
+            clip = TRUE,
+            resetOnNew = FALSE
+          )
+        )
+      ),
+    )
+  )
+  # Get some plot information
+  if (inherits(x = plot, what = 'patchwork')) {
+    if (length(x = plot$patches$plots)) {
+      warning(
+        "Multiple plots passed, using last plot",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
-    Idents(object = object, cells = selected) <- ident
-    return(object)
+    class(x = plot) <- grep(
+      pattern = 'patchwork',
+      x = class(x = plot),
+      value = TRUE,
+      invert = TRUE
+    )
   }
-  return(selected)
+  xy.aes <- GetXYAesthetics(plot = plot)
+  dark.theme <- !is.null(x = plot$theme$plot.background$fill) &&
+    plot$theme$plot.background$fill == 'black'
+  plot.data <- GGpointToBase(plot = plot, do.plot = FALSE)
+  plot.data$selected_ <- FALSE
+  rownames(x = plot.data) <- rownames(x = plot$data)
+  colnames(x = plot.data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = plot.data)
+  )
+  # Server function
+  server <- function(input, output, session) {
+    plot.env <- reactiveValues(data = plot.data)
+    # Event handlers
+    observeEvent(
+      eventExpr = input$done,
+      handlerExpr = {
+        PlotBuild(data = plot.env$data, dark.theme = dark.theme)
+        selected <- rownames(x = plot.data)[plot.env$data$selected_]
+        if (inherits(x = object, what = 'Seurat')) {
+          if (!all(selected %in% Cells(x = object))) {
+            stop("Cannot find the selected cells in the Seurat object, please be sure you pass the same object used to generate the plot")
+          }
+          Idents(object = object, cells = selected) <- ident
+          selected <- object
+        }
+        stopApp(returnValue = selected)
+      }
+    )
+    observeEvent(
+      eventExpr = input$reset,
+      handlerExpr = {
+        plot.env$data <- plot.data
+        session$resetBrush(brushId = 'brush')
+      }
+    )
+    observeEvent(
+      eventExpr = input$brush,
+      handlerExpr = {
+        plot.env$data <- brushedPoints(
+          df = plot.data,
+          brush = input$brush,
+          xvar = xy.aes$x,
+          yvar = xy.aes$y,
+          allRows = TRUE
+        )
+        plot.env$data$color <- ifelse(
+          test = plot.env$data$selected_,
+          yes = '#DE2D26',
+          no = '#C3C3C3'
+        )
+      }
+    )
+    # Render the plot
+    output$plot <- renderPlot(expr = PlotBuild(
+      data = plot.env$data,
+      dark.theme = dark.theme
+    ))
+  }
+  return(runGadget(app = ui, server = server))
 }
 
 #' Move outliers towards center on dimension reduction plot
@@ -2767,10 +4427,11 @@ FeatureLocator <- function(plot, ...) {
 #' @param plot A ggplot2 plot
 #' @param information An optional dataframe or matrix of extra information to be displayed on hover
 #' @param dark.theme Plot using a dark theme?
-#' @param ... Extra parameters to be passed to \code{plotly::layout}
+#' @param axes Display or hide x- and y-axes
+#' @param ... Extra parameters to be passed to \code{\link[plotly]{layout}}
 #'
 #' @importFrom ggplot2 ggplot_build
-#' @importFrom plotly plot_ly layout
+#' @importFrom plotly plot_ly layout add_annotations
 #' @export
 #'
 #' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
@@ -2785,53 +4446,37 @@ FeatureLocator <- function(plot, ...) {
 HoverLocator <- function(
   plot,
   information = NULL,
+  axes = TRUE,
   dark.theme = FALSE,
   ...
 ) {
-  #   Use GGpointToBase because we already have ggplot objects
-  #   with colors (which are annoying in plotly)
-  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+  # Use GGpointToBase because we already have ggplot objects
+  # with colors (which are annoying in plotly)
+  plot.build <- suppressWarnings(expr = GGpointToPlotlyBuild(
+    plot = plot,
+    information = information,
+    ...
+  ))
   data <- ggplot_build(plot = plot)$plot$data
-  rownames(x = plot.build) <- rownames(x = data)
-  #   Reset the names to 'x' and 'y'
-  names(x = plot.build) <- c(
-    'x',
-    'y',
-    names(x = plot.build)[3:length(x = plot.build)]
-  )
-  #   Add the names we're looking for (eg. cell name, gene name)
-  if (is.null(x = information)) {
-    plot.build$feature <- rownames(x = data)
+  # Set up axis labels here
+  # Also, a bunch of stuff to get axis lines done properly
+  if (axes) {
+    xaxis <- list(
+      title = names(x = data)[1],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
+    yaxis <- list(
+      title = names(x = data)[2],
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showline = TRUE
+    )
   } else {
-    info <- apply(
-      X = information,
-      MARGIN = 1,
-      FUN = function(x, names) {
-        return(paste0(names, ': ', x, collapse = '<br>'))
-      },
-      names = colnames(x = information)
-    )
-    data.info <- data.frame(
-      feature = paste(rownames(x = information), info, sep = '<br>'),
-      row.names = rownames(x = information)
-    )
-    plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    xaxis <- yaxis <- list(visible = FALSE)
   }
-  #   Set up axis labels here
-  #   Also, a bunch of stuff to get axis lines done properly
-  xaxis <- list(
-    title = names(x = data)[1],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  yaxis <- list(
-    title = names(x = data)[2],
-    showgrid = FALSE,
-    zeroline = FALSE,
-    showline = TRUE
-  )
-  #   Check for dark theme
+  # Check for dark theme
   if (dark.theme) {
     title <- list(color = 'white')
     xaxis <- c(xaxis, color = 'white')
@@ -2841,11 +4486,11 @@ HoverLocator <- function(
     title = list(color = 'black')
     plotbg = 'white'
   }
-  #   The `~' means pull from the data passed (this is why we reset the names)
-  #   Use I() to get plotly to accept the colors from the data as is
-  #   Set hoverinfo to 'text' to override the default hover information
-  #   rather than append to it
-  p <- plotly::layout(
+  # The `~' means pull from the data passed (this is why we reset the names)
+  # Use I() to get plotly to accept the colors from the data as is
+  # Set hoverinfo to 'text' to override the default hover information
+  # rather than append to it
+  p <- layout(
     p = plot_ly(
       data = plot.build,
       x = ~x,
@@ -2864,13 +4509,15 @@ HoverLocator <- function(
     plot_bgcolor = plotbg,
     ...
   )
-  # add labels
+  # Add labels
   label.layer <- which(x = sapply(
     X = plot$layers,
-    FUN = function(x) class(x$geom)[1] == "GeomText")
-  )
+    FUN = function(x) {
+      return(inherits(x = x$geom, what = c('GeomText', 'GeomTextRepel')))
+    }
+  ))
   if (length(x = label.layer) == 1) {
-    p <- plotly::add_annotations(
+    p <- add_annotations(
       p = p,
       x = plot$layers[[label.layer]]$data[, 1],
       y = plot$layers[[label.layer]]$data[, 2],
@@ -2885,6 +4532,37 @@ HoverLocator <- function(
   return(p)
 }
 
+#' Get the intensity and/or luminance of a color
+#'
+#' @param color A vector of colors
+#'
+#' @return A vector of intensities/luminances for each color
+#'
+#' @name contrast-theory
+#' @rdname contrast-theory
+#'
+#' @importFrom grDevices col2rgb
+#'
+#' @export
+#'
+#' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
+#'
+#' @examples
+#' Intensity(color = c('black', 'white', '#E76BF3'))
+#'
+Intensity <- function(color) {
+  intensities <- apply(
+    X = col2rgb(col = color),
+    MARGIN = 2,
+    FUN = function(col) {
+      col <- rbind(as.vector(x = col), c(0.299, 0.587, 0.114))
+      return(sum(apply(X = col, MARGIN = 2, FUN = prod)))
+    }
+  )
+  names(x = intensities) <- color
+  return(intensities)
+}
+
 #' Label clusters on a ggplot2-based scatter plot
 #'
 #' @param plot A ggplot2-based scatter plot
@@ -2894,13 +4572,21 @@ HoverLocator <- function(
 #' @param split.by Split labels by some grouping label, useful when using
 #' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
+#' @param geom Name of geom to get X/Y aesthetic names for
+#' @param box Use geom_label/geom_label_repel (includes a box around the text
+#' labels)
+#' @param position How to place the label if repel = FALSE. If "median", place
+#' the label at the median position. If "nearest" place the label at the
+#' position of the nearest data point to the median.
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
 #' @importFrom stats median
-#' @importFrom ggrepel geom_text_repel
-#' @importFrom ggplot2 aes_string geom_text
+#' @importFrom ggrepel geom_text_repel geom_label_repel
+#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom RANN nn2
+#'
 #' @export
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
@@ -2916,9 +4602,12 @@ LabelClusters <- function(
   labels = NULL,
   split.by = NULL,
   repel = TRUE,
+  box = FALSE,
+  geom = 'GeomPoint',
+  position = "median",
   ...
 ) {
-  xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
+  xynames <- unlist(x = GetXYAesthetics(plot = plot, geom = geom), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
@@ -2932,6 +4621,15 @@ LabelClusters <- function(
   if (any(!groups %in% possible.clusters)) {
     stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
   }
+  pb <- ggplot_build(plot = plot)
+  if (geom == 'GeomSpatial') {
+    data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
+    if (!pb$plot$plot_env$crop) {
+      y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
+      data[, xynames["y"]] <- data[, xynames["y"]] + sum(y.transform)
+    }
+  }
+  data <- cbind(data, color = pb$data[[1]][[1]])
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
@@ -2963,10 +4661,20 @@ LabelClusters <- function(
         )))
       }
       data.medians[, id] <- group
+      data.medians$color <- data.use$color[1]
       return(data.medians)
     }
   )
+  if (position == "nearest") {
+    labels.loc <- lapply(X = labels.loc, FUN = function(x) {
+      group.data <- data[as.character(x = data[, id]) == as.character(x[3]), ]
+      nearest.point <- nn2(data = group.data[, 1:2], query = as.matrix(x = x[c(1,2)]), k = 1)$nn.idx
+      x[1:2] <- group.data[nearest.point, 1:2]
+      return(x)
+    })
+  }
   labels.loc <- do.call(what = 'rbind', args = labels.loc)
+  labels.loc[, id] <- factor(x = labels.loc[, id], levels = levels(data[, id]))
   labels <- labels %||% groups
   if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
     stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
@@ -2975,12 +4683,23 @@ LabelClusters <- function(
   for (group in groups) {
     labels.loc[labels.loc[, id] == group, id] <- labels[group]
   }
-  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
-  plot <- plot + geom.use(
-    data = labels.loc,
-    mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
-    ...
-  )
+  if (box) {
+    geom.use <- ifelse(test = repel, yes = geom_label_repel, no = geom_label)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id, fill = id),
+      show.legend = FALSE,
+      ...
+    ) + scale_fill_manual(values = labels.loc$color[order(labels.loc[, id])])
+  } else {
+    geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+    plot <- plot + geom.use(
+      data = labels.loc,
+      mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
+      show.legend = FALSE,
+      ...
+    )
+  }
   return(plot)
 }
 
@@ -3049,6 +4768,40 @@ LabelPoints <- function(
   return(plot)
 }
 
+#' @name contrast-theory
+#' @rdname contrast-theory
+#'
+#' @importFrom grDevices col2rgb
+#'
+#' @export
+#'
+#' @examples
+#' Luminance(color = c('black', 'white', '#E76BF3'))
+#'
+Luminance <- function(color) {
+  luminance <- apply(
+    X = col2rgb(col = color),
+    MARGIN = 2,
+    function(col) {
+      col <- as.vector(x = col) / 255
+      col <- sapply(
+        X = col,
+        FUN = function(x) {
+          return(ifelse(
+            test = x <= 0.03928,
+            yes = x / 12.92,
+            no = ((x + 0.055) / 1.055) ^ 2.4
+          ))
+        }
+      )
+      col <- rbind(col, c(0.2126, 0.7152, 0.0722))
+      return(sum(apply(X = col, MARGIN = 2, FUN = prod)))
+    }
+  )
+  names(x = luminance) <- color
+  return(luminance)
+}
+
 #' @inheritParams CustomPalette
 #'
 #' @export
@@ -3097,6 +4850,17 @@ PurpleAndYellow <- function(k = 50) {
 #'
 SeuratTheme <- function() {
   return(DarkTheme() + NoLegend() + NoGrid() + SeuratAxes())
+}
+
+#' @importFrom ggplot2 theme element_text
+#'
+#' @rdname SeuratTheme
+#' @export
+#'
+#' @aliases CenterTitle
+#'
+CenterTitle <- function(...) {
+  return(theme(plot.title = element_text(hjust = 0.5), validate = TRUE, ...))
 }
 
 #' @inheritParams SeuratTheme
@@ -3422,7 +5186,7 @@ WhiteBackground <- function(...) {
 # AutoPointSize(data = df)
 #
 AutoPointSize <- function(data) {
-     return(min(1583 / nrow(x = data), 1))
+  return(min(1583 / nrow(x = data), 1))
 }
 
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
@@ -3649,6 +5413,7 @@ Col2Hex <- function(...) {
 # @return The default DimReduc, if possible
 #
 DefaultDimReduc <- function(object, assay = NULL) {
+  object <- UpdateSlots(object = object)
   assay <- assay %||% DefaultAssay(object = object)
   drs.use <- c('umap', 'tsne', 'pca')
   dim.reducs <- FilterObjects(object = object, classes.keep = 'DimReduc')
@@ -3700,7 +5465,8 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # anything that can be retreived by FetchData)
 # @param idents Which classes to include in the plot (default is all)
 # @param ncol Number of columns if multiple plots are displayed
-# @param sort Sort identity classes (on the x-axis) by the average expression of the attribute being potted
+# @param sort Sort identity classes (on the x-axis) by the average expression of the attribute being potted,
+# or, if stack is True, sort both identity classes and features by hierarchical clustering
 # @param y.max Maximum y axis value
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param adjust Adjust parameter for geom_violin
@@ -3710,8 +5476,11 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
 # @param slot Use non-normalized counts data for plotting
+# @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident'
+# @param flip flip plot orientation (identities on x-axis)
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 # \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -3737,16 +5506,37 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   slot = 'data',
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = NULL,
+  flip = FALSE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
-  ncol <- ncol %||% ifelse(
-    test = length(x = features) > 9,
-    yes = 4,
-    no = min(length(x = features), 3)
-  )
+  if (isTRUE(x = stack)) {
+    if (!is.null(x = ncol)) {
+      warning(
+        "'ncol' is ignored with 'stack' is TRUE",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (!is.null(x = y.max)) {
+      warning(
+        "'y.max' is ignored when 'stack' is TRUE",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  } else {
+    ncol <- ncol %||% ifelse(
+      test = length(x = features) > 9,
+      yes = 4,
+      no = min(length(x = features), 3)
+    )
+  }
   data <- FetchData(object = object, vars = features, slot = slot)
+  pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
@@ -3782,7 +5572,7 @@ ExIPlot <- function(
       cols <- Interleave(cols, InvertHex(hexadecimal = cols))
     }
     cols <- rep_len(x = cols, length.out = length(x = levels(x = split)))
-    names(x = cols) <- sort(x = levels(x = split))
+    names(x = cols) <- levels(x = split)
     if ((length(x = cols) > 2) & (type == "splitViolin")) {
       warning("Split violin is only supported for <3 groups, using multi-violin.")
       type <- "violin"
@@ -3790,6 +5580,22 @@ ExIPlot <- function(
   }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
+  }
+  if (isTRUE(x = stack)) {
+    return(MultiExIPlot(
+      type = type,
+      data = data,
+      idents = idents,
+      split = split,
+      sort = sort,
+      same.y.lims = same.y.lims,
+      adjust = adjust,
+      cols = cols,
+      pt.size = pt.size,
+      log = log,
+      fill.by = fill.by,
+      flip = flip
+    ))
   }
   plots <- lapply(
     X = features,
@@ -3810,8 +5616,16 @@ ExIPlot <- function(
   )
   label.fxn <- switch(
     EXPR = type,
-    'violin' = ylab,
-    "splitViolin" = ylab,
+    'violin' = if (stack) {
+      xlab
+    } else {
+      ylab
+    },
+    "splitViolin" = if (stack) {
+      xlab
+    } else {
+      ylab
+    },
     'ridge' = xlab,
     stop("Unknown ExIPlot type ", type, call. = FALSE)
   )
@@ -3858,42 +5672,84 @@ FacetTheme <- function(...) {
   ))
 }
 
-# Convert a ggplot2 scatterplot to base R graphics
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom grDevices colorRampPalette
+#'
+#'
+SpatialColors <- colorRampPalette(colors = rev(x = brewer.pal(n = 11, name = "Spectral")))
+
+# Feature plot palettes
 #
-# @param plot A ggplot2 scatterplot
-# @param do.plot Create the plot with base R graphics
-# @param ... Extra parameters passed to PlotBuild
+FeaturePalettes <- list(
+  'Spatial' = SpatialColors(n = 100),
+  'Seurat' = c('lightgrey', 'blue')
+)
+
+# Get colour aesththics from a plot for a certain geom
 #
-# @return A dataframe with the data that created the ggplot2 scatterplot
+# @param plot A ggplot2 object
+# @param geom Geom class to filter to
+# @param plot.first Use plot-wide colour aesthetics before geom-specific aesthetics
 #
-#' @importFrom ggplot2 ggplot_build
+# @return A named list with values 'colour' for the colour aesthetic
 #
-GGpointToBase <- function(plot, do.plot = TRUE, ...) {
-  plot.build <- ggplot_build(plot = plot)
-  cols <- c('x', 'y', 'colour', 'shape', 'size')
-  build.use <- which(x = vapply(
-    X = plot.build$data,
-    FUN = function(dat) {
-      return(all(cols %in% colnames(x = dat)))
-    },
-    FUN.VALUE = logical(length = 1L)
-  ))
-  if (length(x = build.use) == 0) {
-    stop("GGpointToBase only works on geom_point ggplot objects")
-  }
-  build.data <- plot.build$data[[min(build.use)]]
-  plot.data <- build.data[, cols]
-  names(x = plot.data) <- c(
-    plot.build$plot$labels$x,
-    plot.build$plot$labels$y,
-    'color',
-    'pch',
-    'cex'
+GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(x = layer$geom)[1])
+    }
   )
-  if (do.plot) {
-    PlotBuild(data = plot.data, ...)
+  geoms <- which(x = geoms == geom)
+  if (!length(x = geoms)) {
+    stop("Cannot find a geom of class ", geom)
   }
-  return(plot.data)
+  geoms <- min(geoms)
+  if (plot.first) {
+    colour <- as.character(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)[2]
+  } else {
+    colour <- as.character(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)[2]
+  }
+  return(list(colour = colour))
+}
+
+# Splits features into groups based on log expression levels
+#
+# @param object Seurat object
+# @param assay Assay for expression data
+# @param min.cells Only compute for features in at least this many cells
+# @param ngroups Number of groups to split into
+#
+# @return A Seurat object with the feature group stored as a factor in
+# metafeatures
+#
+#' @importFrom Matrix rowMeans rowSums
+#
+GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
+  cm <- GetAssayData(object = object[[assay]], slot = "counts")
+  # subset to keep only genes detected in at least min.cells cells
+  cm <- cm[rowSums(cm > 0) >= min.cells, ]
+  # use the geometric mean of the features to group them
+  # (using the arithmetic mean would usually not change things much)
+  # could use sctransform:::row_gmean here but not exported
+  feature.gmean <- exp(x = rowMeans(log1p(x = cm))) - 1
+  feature.grp.breaks <- seq(
+    from = min(log10(x = feature.gmean)) - 10*.Machine$double.eps,
+    to = max(log10(x = feature.gmean)),
+    length.out = ngroups + 1
+  )
+  feature.grp <- cut(
+    x = log10(x = feature.gmean),
+    breaks = feature.grp.breaks,
+    ordered_result = TRUE
+  )
+  feature.grp <- factor(
+    x = feature.grp,
+    levels = rev(x = levels(x = feature.grp)),
+    ordered = TRUE
+  )
+  names(x = feature.grp) <- names(x = feature.gmean)
+  return(feature.grp)
 }
 
 # Get X and Y aesthetics from a plot for a certain geom
@@ -3924,6 +5780,169 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
     y <- as.character(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)[2]
   }
   return(list('x' = x, 'y' = y))
+}
+
+# For plotting the tissue image
+#' @importFrom ggplot2 ggproto Geom aes ggproto_parent alpha draw_key_point
+#' @importFrom grid unit gpar editGrob pointsGrob viewport gTree addGrob grobName
+#'
+GeomSpatial <- ggproto(
+  "GeomSpatial",
+  Geom,
+  required_aes = c("x", "y"),
+  extra_params = c("na.rm", "image", "image.alpha", "crop"),
+  default_aes = aes(
+    shape = 21,
+    colour = "black",
+    point.size.factor = 1.0,
+    fill = NA,
+    alpha = NA,
+    stroke = 0.25
+  ),
+  setup_data = function(self, data, params) {
+    data <- ggproto_parent(Geom, self)$setup_data(data, params)
+    # We need to flip the image as the Y coordinates are reversed
+    data$y = max(data$y) - data$y + min(data$y)
+    data
+  },
+  draw_key = draw_key_point,
+  draw_panel = function(data, panel_scales, coord, image, image.alpha, crop) {
+    # This should be in native units, where
+    # Locations and sizes are relative to the x- and yscales for the current viewport.
+    if (!crop) {
+      y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
+      data$y <- data$y + sum(y.transform)
+      panel_scales$x$continuous_range <- c(0, nrow(x = image))
+      panel_scales$y$continuous_range <- c(0, ncol(x = image))
+      panel_scales$y.range <- c(0, nrow(x = image))
+      panel_scales$x.range <- c(0, ncol(x = image))
+    }
+    z <- coord$transform(
+      data.frame(x = c(0, ncol(x = image)), y = c(0, nrow(x = image))),
+      panel_scales
+    )
+    # Flip Y axis for image
+    z$y <- -rev(z$y) + 1
+    wdth <- z$x[2] - z$x[1]
+    hgth <- z$y[2] - z$y[1]
+    vp <- viewport(
+      x = unit(x = z$x[1], units = "npc"),
+      y = unit(x = z$y[1], units = "npc"),
+      width = unit(x = wdth, units = "npc"),
+      height = unit(x = hgth, units = "npc"),
+      just = c("left", "bottom")
+    )
+    img.grob <- GetImage(object = image)
+
+    img <- editGrob(grob = img.grob, vp = vp)
+    # spot.size <- slot(object = image, name = "spot.radius")
+    spot.size <- Radius(object = image)
+    coords <- coord$transform(data, panel_scales)
+    pts <- pointsGrob(
+      x = coords$x,
+      y = coords$y,
+      pch = data$shape,
+      size = unit(spot.size, "npc") * data$point.size.factor,
+      gp = gpar(
+        col = alpha(colour = coords$colour, alpha = coords$alpha),
+        fill = alpha(colour = coords$fill, alpha = coords$alpha),
+        lwd = coords$stroke)
+    )
+    vp <- viewport()
+    gt <- gTree(vp = vp)
+    if (image.alpha > 0) {
+      if (image.alpha != 1) {
+        img$raster = as.raster(
+          x = matrix(
+            data = alpha(colour = img$raster, alpha = image.alpha),
+            nrow = nrow(x = img$raster),
+            ncol = ncol(x = img$raster),
+            byrow = TRUE)
+        )
+      }
+      gt <- addGrob(gTree = gt, child = img)
+    }
+    gt <- addGrob(gTree = gt, child = pts)
+    # Replacement for ggname
+    gt$name <- grobName(grob = gt, prefix = 'geom_spatial')
+    return(gt)
+    # ggplot2:::ggname("geom_spatial", gt)
+  }
+)
+
+# influenced by: https://stackoverflow.com/questions/49475201/adding-tables-to-ggplot2-with-facet-wrap-in-r
+# https://ggplot2.tidyverse.org/articles/extending-ggplot2.html
+#' @importFrom ggplot2 layer
+#'
+#'
+geom_spatial <-  function(
+  mapping = NULL,
+  data = NULL,
+  image = image,
+  image.alpha = image.alpha,
+  crop = crop,
+  stat = "identity",
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE,
+  ...
+) {
+  layer(
+    geom = GeomSpatial,
+    mapping = mapping,
+    data = data,
+    stat = stat,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, image = image, image.alpha = image.alpha, crop = crop, ...)
+  )
+}
+
+#' @importFrom grid viewport editGrob grobName
+#' @importFrom ggplot2 ggproto Geom ggproto_parent
+#
+GeomSpatialInteractive <- ggproto(
+  "GeomSpatialInteractive",
+  Geom,
+  setup_data = function(self, data, params) {
+    data <- ggproto_parent(parent = Geom, self = self)$setup_data(data, params)
+    data
+  },
+  draw_group = function(data, panel_scales, coord) {
+    vp <- viewport(x = data$x, y = data$y)
+    g <- editGrob(grob = data$grob[[1]], vp = vp)
+    # Replacement for ggname
+    g$name <- grobName(grob = g, prefix = 'geom_spatial_interactive')
+    return(g)
+    # return(ggname(prefix = "geom_spatial", grob = g))
+  },
+  required_aes = c("grob","x","y")
+)
+
+#' @importFrom ggplot2 layer
+#
+geom_spatial_interactive <-  function(
+  mapping = NULL,
+  data = NULL,
+  stat = "identity",
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = FALSE,
+  ...
+) {
+  layer(
+    geom = GeomSpatialInteractive,
+    mapping = mapping,
+    data = data,
+    stat = stat,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
 }
 
 # A split violin plot geom
@@ -4025,6 +6044,176 @@ geom_split_violin <- function(
   ))
 }
 
+# Convert a ggplot2 scatterplot to base R graphics
+#
+# @param plot A ggplot2 scatterplot
+# @param do.plot Create the plot with base R graphics
+# @param cols A named vector of column names to pull. Vector names must be 'x',
+# 'y', 'colour', 'shape', and/or 'size'; vector values must be the names of
+# columns in plot data that correspond to these values. May pass only values that
+# differ from the default (eg. \code{cols = c('size' = 'point.size.factor')})
+# @param ... Extra parameters passed to PlotBuild
+#
+# @return A dataframe with the data that created the ggplot2 scatterplot
+#
+#' @importFrom ggplot2 ggplot_build
+#
+GGpointToBase <- function(
+  plot,
+  do.plot = TRUE,
+  cols = c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  ),
+  ...
+) {
+  plot.build <- ggplot_build(plot = plot)
+  default.cols <- c(
+    'x' = 'x',
+    'y' = 'y',
+    'colour' = 'colour',
+    'shape' = 'shape',
+    'size' = 'size'
+  )
+  cols <- cols %||% default.cols
+  if (is.null(x = names(x = cols))) {
+    if (length(x = cols) > length(x = default.cols)) {
+      warning(
+        "Too many columns provided, selecting only first ",
+        length(x = default.cols),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      cols <- cols[1:length(x = default.cols)]
+    }
+    names(x = cols) <- names(x = default.cols)[1:length(x = cols)]
+  }
+  cols <- c(
+    cols[intersect(x = names(x = default.cols), y = names(x = cols))],
+    default.cols[setdiff(x = names(x = default.cols), y = names(x = cols))]
+  )
+  cols <- cols[names(x = default.cols)]
+  build.use <- which(x = vapply(
+    X = plot.build$data,
+    FUN = function(dat) {
+      return(all(cols %in% colnames(x = dat)))
+    },
+    FUN.VALUE = logical(length = 1L)
+  ))
+  if (length(x = build.use) == 0) {
+    stop("GGpointToBase only works on geom_point ggplot objects")
+  }
+  build.data <- plot.build$data[[min(build.use)]]
+  plot.data <- build.data[, cols]
+  names(x = plot.data) <- c(
+    plot.build$plot$labels$x,
+    plot.build$plot$labels$y,
+    'color',
+    'pch',
+    'cex'
+  )
+  if (do.plot) {
+    PlotBuild(data = plot.data, ...)
+  }
+  return(plot.data)
+}
+
+# Convert a ggplot2 scatterplot to plotly graphics
+#
+# @inheritParams GGpointToBase
+# @param information Extra information for hovering
+# @param ... Ignored
+#
+# @return A dataframe with the data that greated the ggplot2 scatterplot
+#' @importFrom ggplot2 ggplot_build
+#
+GGpointToPlotlyBuild <- function(
+  plot,
+  information = NULL,
+  cols = eval(expr = formals(fun = GGpointToBase)$cols),
+  ...
+) {
+  CheckDots(...)
+  plot.build <- GGpointToBase(plot = plot, do.plot = FALSE, cols = cols)
+  data <- ggplot_build(plot = plot)$plot$data
+  rownames(x = plot.build) <- rownames(data)
+  # Reset the names to 'x' and 'y'
+  names(x = plot.build) <- c(
+    'x',
+    'y',
+    names(x = plot.build)[3:length(x = plot.build)]
+  )
+  # Add the hover information we're looking for
+  if (is.null(x = information)) {
+    plot.build$feature <- rownames(x = data)
+  } else {
+    info <- apply(
+      X = information,
+      MARGIN = 1,
+      FUN = function(x, names) {
+        return(paste0(names, ': ', x, collapse = '<br>'))
+      },
+      names = colnames(x = information)
+    )
+    data.info <- data.frame(
+      feature = paste(rownames(x = information), info, sep = '<br>'),
+      row.names = rownames(x = information)
+    )
+    plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    rownames(x = plot.build) <- plot.build$Row.names
+    plot.build <- plot.build[, which(x = colnames(x = plot.build) != 'Row.names'), drop = FALSE]
+  }
+  return(plot.build)
+}
+
+#' @importFrom stats quantile
+#'
+InvertCoordinate <- function(x, MARGIN = 2) {
+  if (!is.null(x = x)) {
+    switch(
+      EXPR = MARGIN,
+      '1' = {
+        rmin <- 'left'
+        rmax <- 'right'
+        cmin <- 'xmin'
+        cmax <- 'xmax'
+      },
+      '2' = {
+        rmin <- 'bottom'
+        rmax <- 'top'
+        cmin <- 'ymin'
+        cmax <- 'ymax'
+      },
+      stop("'MARGIN' must be either 1 or 2", call. = FALSE)
+    )
+    # Fix the range so that rmin becomes rmax and vice versa
+    # Needed for both points and brushes
+    range <- x$range
+    x$range[[rmin]] <- range[[rmax]]
+    x$range[[rmax]] <- range[[rmin]]
+    # Fix the cmin and cmax values, if provided
+    # These are used for brush boundaries
+    coords <- c(x[[cmin]], x[[cmax]])
+    if (all(!is.null(x = coords))) {
+      names(x = coords) <- c(cmin, cmax)
+      x[[cmin]] <- quantile(
+        x = x$range[[rmin]]:x$range[[rmax]],
+        probs = 1 - (coords[cmax] / x$range[[rmax]]),
+        names = FALSE
+      )
+      x[[cmax]] <- quantile(
+        x = x$range[[rmin]]:x$range[[rmax]],
+        probs = 1 - (coords[cmin] / x$range[[rmax]]),
+        names = FALSE
+      )
+    }
+  }
+  return(x)
+}
+
 # Invert a Hexadecimal color
 #
 # @param hexadecimal A character vector of hexadecimal colors
@@ -4092,6 +6281,230 @@ MakeLabels <- function(data) {
   labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
   labels[, colnames(x = data)[3]] <- groups
   return(labels)
+}
+
+
+# Plot expression of multiple features by identity on a plot
+#
+# @param data Data to plot
+# @param idents Idents to use
+# @param type Make either a 'ridge' or 'violin' plot
+# @param sort Sort identity classes and features based on hierarchical clustering
+# @param same.y.lims Indicates whether to use the same ylim for each feature
+# @param adjust Adjust parameter for geom_violin
+# @param cols Colors to use for plotting
+# @param log plot Y axis on log scale
+# @param fill.by Color violins/ridges based on either 'feature' or 'ident'
+# @param seed.use Random seed to use. If NULL, don't set a seed
+# @param flip flip plot orientation (identities on x-axis)
+#
+# @return A ggplot-based Expression-by-Identity plot
+#
+#' @importFrom cowplot theme_cowplot
+#' @importFrom utils globalVariables
+#' @importFrom stats rnorm dist hclust
+#' @importFrom ggridges geom_density_ridges theme_ridges
+#' @importFrom ggplot2 ggplot aes_string facet_grid theme labs geom_rect
+#' geom_violin geom_jitter ylim position_jitterdodge scale_fill_manual
+#' scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous
+#' scale_y_continuous waiver
+#'
+MultiExIPlot <- function(
+  data,
+  idents,
+  split = NULL,
+  type = 'violin',
+  sort = FALSE,
+  same.y.lims = same.y.lims,
+  adjust = 1,
+  pt.size = 0,
+  cols = NULL,
+  seed.use = 42,
+  log = FALSE,
+  fill.by = NULL,
+  flip = NULL
+) {
+  if (!(fill.by %in% c("feature", "ident"))) {
+    stop("`fill.by` must be either `feature` or `ident`")
+  }
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  if (!is.data.frame(x = data) || ncol(x = data) < 2) {
+    stop("MultiExIPlot requires a data frame with >1 column")
+  }
+  data <- Melt(x = data)
+  data <- data.frame(
+    feature = data$cols,
+    expression = data$vals,
+    ident = rep_len(x = idents, length.out = nrow(x = data))
+  )
+  if ((is.character(x = sort) && nchar(x = sort) > 0) || sort) {
+    data$feature <- as.vector(x = data$feature)
+    data$ident <- as.vector(x = data$ident)
+    # build matrix of average expression (#-features by #-idents), lexical ordering
+    avgs.matrix <- sapply(
+      X = split(x = data, f = data$ident),
+      FUN = function(df) {
+        return(tapply(
+          X = df$expression,
+          INDEX = df$feature,
+          FUN = mean
+        ))
+      }
+    )
+    idents.order <- hclust(d = dist(x = t(x = L2Norm(mat = avgs.matrix, MARGIN = 2))))$order
+    avgs.matrix <- avgs.matrix[,idents.order]
+    avgs.matrix <- L2Norm(mat = avgs.matrix, MARGIN = 1)
+    # order feature clusters by position of their "rank-1 idents"
+    position <- apply(X = avgs.matrix, MARGIN = 1, FUN = which.max)
+    mat <- hclust(d = dist(x = avgs.matrix))$merge
+    orderings <- list()
+    for (i in 1:nrow(mat)) {
+      x <- if (mat[i,1] < 0) -mat[i,1] else orderings[[mat[i,1]]]
+      y <- if (mat[i,2] < 0) -mat[i,2] else orderings[[mat[i,2]]]
+      x.pos <- min(x = position[x])
+      y.pos <- min(x = position[y])
+      orderings[[i]] <- if (x.pos < y.pos) {
+        c(x, y)
+      } else {
+        c(y, x)
+      }
+    }
+    features.order <- orderings[[length(x = orderings)]]
+    data$feature <- factor(
+      x = data$feature,
+      levels = unique(x = sort(x = data$feature))[features.order]
+    )
+    data$ident <- factor(
+      x = data$ident,
+      levels = unique(x = sort(x = data$ident))[rev(x = idents.order)]
+    )
+  } else {
+    data$feature <- factor(x = data$feature, levels = unique(x = data$feature))
+  }
+  if (log) {
+    noise <- rnorm(n = nrow(x = data)) / 200
+    data$expression <- data$expression + 1
+  } else {
+    noise <- rnorm(n = nrow(x = data)) / 100000
+  }
+  for (f in unique(x = data$feature)) {
+    if (all(data$expression[(data$feature == f)] == data$expression[(data$feature == f)][1])) {
+      warning(
+        "All cells have the same value of ",
+        f,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    } else {
+      data$expression[(data$feature == f)] <- data$expression[(data$feature == f)] + noise[(data$feature == f)]
+    }
+  }
+  if (type == 'violin' && !is.null(x = split)) {
+    data$split <- rep_len(x = split, length.out = nrow(data))
+    vln.geom <- geom_violin
+    fill.by <- 'split'
+  } else if (type == 'splitViolin' && !is.null(x = split)) {
+    data$split <- rep_len(x = split, length.out = nrow(data))
+    vln.geom <- geom_split_violin
+    fill.by <- 'split'
+    type <- 'violin'
+  } else {
+    vln.geom <- geom_violin
+  }
+  switch(
+    EXPR = type,
+    'violin' = {
+      geom <- list(vln.geom(scale = 'width', adjust = adjust, trim = TRUE))
+    },
+    'ridge' = {
+      geom <- list(
+        geom_density_ridges(scale = 4),
+        theme_ridges(),
+        scale_y_discrete(expand = c(0.01, 0))
+      )
+    },
+    stop("Unknown plot type: ", type)
+  )
+  if (flip) {
+    x <- 'ident'
+    x.label <- 'Identity'
+    y <- 'expression'
+    y.label <- 'Expression Level'
+  } else {
+    y <- 'ident'
+    y.label <- 'Identity'
+    x <- 'expression'
+    x.label <- 'Expression Level'
+  }
+  plot <- ggplot(
+    data = data,
+    mapping = aes_string(x = x, y = y, fill = fill.by)[c(2, 3, 1)]
+  ) +
+    labs(x = x.label, y = y.label, fill = NULL) +
+    theme_cowplot()
+  plot <- do.call(what = '+', args = list(plot, geom))
+  if (flip) {
+    plot <- plot +
+      scale_y_continuous(
+        expand = c(0, 0),
+        labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
+      facet_grid(feature ~ ., scales = (if (same.y.lims) 'fixed' else 'free')) +
+      FacetTheme(
+        panel.spacing = unit(0, 'lines'),
+        panel.background = element_rect(fill = NA, color = "black"),
+        axis.text.y = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text.y.right = element_text(angle = 0))
+  } else {
+    plot <- plot +
+      scale_x_continuous(
+        expand = c(0, 0),
+        labels = function(x) c(rep(x = '', times = length(x)-2), x[length(x) - 1], '')) +
+      facet_grid(. ~ feature, scales = (if (same.y.lims) 'fixed' else 'free')) +
+      FacetTheme(
+        panel.spacing = unit(0, 'lines'),
+        panel.background = element_rect(fill = NA, color = "black"),
+        axis.text.x = element_text(size = 7),
+        strip.text.x = element_text(angle = -90))
+  }
+  if (log) {
+    plot <- plot + scale_x_log10()
+  }
+  if (!is.null(x = cols)) {
+    if (!is.null(x = split)) {
+      idents <- unique(x = as.vector(x = data$ident))
+      splits <- unique(x = as.vector(x = data$split))
+      labels <- if (length(x = splits) == 2) {
+        splits
+      } else {
+        unlist(x = lapply(
+          X = idents,
+          FUN = function(pattern, x) {
+            x.mod <- gsub(
+              pattern = paste0(pattern, '.'),
+              replacement = paste0(pattern, ': '),
+              x = x,
+              fixed = TRUE
+            )
+            x.keep <- grep(pattern = ': ', x = x.mod, fixed = TRUE)
+            x.return <- x.mod[x.keep]
+            names(x = x.return) <- x[x.keep]
+            return(x.return)
+          },
+          x = unique(x = as.vector(x = data$split))
+        ))
+      }
+      if (is.null(x = names(x = labels))) {
+        names(x = labels) <- labels
+      }
+    } else {
+      labels <- levels(x = droplevels(data$ident))
+    }
+    plot <- plot + scale_fill_manual(values = cols, labels = labels)
+  }
+  return(plot)
 }
 
 # Create a scatterplot with data from a ggplot2 scatterplot
@@ -4165,30 +6578,31 @@ PlotBuild <- function(data, dark.theme = FALSE, smooth = FALSE, ...) {
 # @importFrom SDMTools pnt.in.poly
 #
 PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
-  #   Convert the ggplot object to a data.frame
-  PackageCheck('SDMTools')
-  plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
-  npoints <- nrow(x = plot.data)
-  cat("Click around the cluster of points you wish to select\n")
-  cat("ie. select the vertecies of a shape around the cluster you\n")
-  cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
-  polygon <- locator(n = npoints, type = 'l')
-  polygon <- data.frame(polygon)
-  #   pnt.in.poly returns a data.frame of points
-  points.all <- SDMTools::pnt.in.poly(
-    pnts = plot.data[, c(1, 2)],
-    poly.pnts = polygon
-  )
-  #   Find the located points
-  points.located <- points.all[which(x = points.all$pip == 1), ]
-  #   If we're recoloring, do the recolor
-  if (recolor) {
-    no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
-    points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
-    plot.data$color <- points.all$color
-    PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
-  }
-  return(points.located[, c(1, 2)])
+  .Defunct(new = "CellSelector")
+  # #   Convert the ggplot object to a data.frame
+  # PackageCheck('SDMTools')
+  # plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
+  # npoints <- nrow(x = plot.data)
+  # cat("Click around the cluster of points you wish to select\n")
+  # cat("ie. select the vertecies of a shape around the cluster you\n")
+  # cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
+  # polygon <- locator(n = npoints, type = 'l')
+  # polygon <- data.frame(polygon)
+  # #   pnt.in.poly returns a data.frame of points
+  # points.all <- SDMTools::pnt.in.poly(
+  #   pnts = plot.data[, c(1, 2)],
+  #   poly.pnts = polygon
+  # )
+  # #   Find the located points
+  # points.located <- points.all[which(x = points.all$pip == 1), ]
+  # #   If we're recoloring, do the recolor
+  # if (recolor) {
+  #   no <- ifelse(test = dark.theme, yes = 'white', no = '#C3C3C3')
+  #   points.all$color <- ifelse(test = points.all$pip == 1, yes = '#DE2D26', no = no)
+  #   plot.data$color <- points.all$color
+  #   PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
+  # }
+  # return(points.located[, c(1, 2)])
 }
 
 # Create quantile segments for quantiles on violin plots in ggplot2
@@ -4305,7 +6719,7 @@ SetHighlight <- function(
   plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
   plot.order[is.na(x = plot.order)] <- 'Unselected'
   highlight[is.na(x = highlight)] <- 'Unselected'
-  highlight <- as.factor(x = highlight)
+  highlight <- factor(x = highlight, levels = plot.order)
   return(list(
     plot.order = plot.order,
     highlight = highlight,
@@ -4343,6 +6757,23 @@ SetQuantile <- function(cutoff, data) {
   return(as.numeric(x = cutoff))
 }
 
+#' @importFrom shiny brushedPoints
+#
+ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0L)) {#}, selected = NULL) {
+  selected <- NULL
+  if (!is.null(x = brush)) {
+    if (brush$outputId %in% outputs) {
+      selected <- rownames(x = brushedPoints(df = plot.data, brush = brush))
+    } else if (brush$outputId %in% inverts) {
+      selected <- rownames(x = brushedPoints(
+        df = plot.data,
+        brush = InvertCoordinate(x = brush)
+      ))
+    }
+  }
+  return(selected)
+}
+
 globalVariables(names = '..density..', package = 'Seurat')
 # A single correlation plot
 #
@@ -4371,7 +6802,8 @@ SingleCorPlot <- function(
   rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
-  span = NULL
+  span = NULL,
+  plot.cor = TRUE
 ) {
   pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
@@ -4394,7 +6826,12 @@ SingleCorPlot <- function(
     }
     stop(msg, call. = FALSE)
   }
-  plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  if (plot.cor == TRUE){
+    plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  }
+  else(
+    plot.cor <- ""
+  )
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = rows.highlight,
@@ -4437,11 +6874,11 @@ SingleCorPlot <- function(
     # )
     plot <- plot + stat_density2d(
       mapping = aes(fill = ..density.. ^ 0.25),
-        geom = 'tile',
-        contour = FALSE,
-        n = 200,
-        h = Bandwidth(data = data[, names.plot])
-      ) +
+      geom = 'tile',
+      contour = FALSE,
+      n = 200,
+      h = Bandwidth(data = data[, names.plot])
+    ) +
       # geom_tile(
       #   mapping = aes_string(
       #     x = 'x',
@@ -4496,6 +6933,7 @@ SingleCorPlot <- function(
 # @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
 # (that can be pulled with FetchData) allowing for both different colors and different shapes on
 # cells.
+# @param alpha.by Mapping variable for the point alpha value
 # @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
 # points of interest are being buried. Provide either a full list of valid idents or a subset to be
 # plotted last (on top).
@@ -4515,8 +6953,8 @@ SingleCorPlot <- function(
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 ggplot aes_string labs geom_text guides
-#'  scale_color_brewer scale_color_manual element_rect guide_legend discrete_scale
+#' @importFrom ggplot2 ggplot aes_string labs guides scale_color_brewer
+#' scale_color_manual element_rect guide_legend discrete_scale
 #'
 SingleDimPlot <- function(
   data,
@@ -4525,6 +6963,7 @@ SingleDimPlot <- function(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha.by = NULL,
   order = NULL,
   label = FALSE,
   repel = FALSE,
@@ -4597,18 +7036,30 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
+  if (!is.null(x = alpha.by) && !alpha.by %in% colnames(x = data)) {
+    warning(
+      "Cannot find alpha variable ",
+      alpha.by,
+      " in data, setting to NULL",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    alpha.by <- NULL
+  }
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
         color = paste0("`", col.by, "`"),
-        shape = shape.by
+        shape = shape.by,
+        alpha = alpha.by
       ),
       size = pt.size
     ) +
     guides(color = guide_legend(override.aes = list(size = 3))) +
-    labs(color = NULL)
+    labs(color = NULL, title = col.by) +
+    CenterTitle()
   if (label && !is.null(x = col.by)) {
     plot <- LabelClusters(
       plot = plot,
@@ -4727,11 +7178,12 @@ SingleExIPlot <- function(
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
-        jitter <- geom_jitter(height = 0, size = pt.size)
+        jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
       } else {
         jitter <- geom_jitter(
           position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-          size = pt.size
+          size = pt.size,
+          show.legend = FALSE
         )
       }
       log.scale <- scale_y_log10()
@@ -4748,7 +7200,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size)
+      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)
@@ -4917,4 +7369,175 @@ SingleRasterMap <- function(
       guides(color = guide_legend(override.aes = list(alpha = 1)))
   }
   return(plot)
+}
+
+# Base plotting function for all Spatial plots
+#
+# @param data Data.frame with info to be plotted
+# @param image SpatialImage object to be plotted
+# @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
+# or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+# By default, ggplot2 assigns colors
+# @param image.alpha Adjust the opacity of the background images. Set to 0 to
+# remove.
+# @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
+# entire background image.
+# @param pt.size.factor Sets the size of the points relative to spot.radius
+# @param stroke Control the width of the border around the spots
+# @param col.by Mapping variable for the point color
+# @param alpha.by Mapping variable for the point alpha value
+# @param cells.highlight A list of character or numeric vectors of cells to
+# highlight. If only one group of cells desired, can simply pass a vector
+# instead of a list. If set, colors selected cells to the color(s) in
+# cols.highlight
+# @param cols.highlight A vector of colors to highlight the cells as; ordered
+# the same as the groups in cells.highlight; last color corresponds to
+# unselected cells.
+# @param geom Switch between normal spatial geom and geom to enable hover
+# functionality
+# @param na.value Color for spots with NA values
+
+#' @importFrom tibble tibble
+#' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
+#' coord_cartesian labs theme_void theme scale_fill_brewer
+#'
+SingleSpatialPlot <- function(
+  data,
+  image,
+  cols = NULL,
+  image.alpha = 1,
+  crop = TRUE,
+  pt.size.factor = NULL,
+  stroke = 0.25,
+  col.by = NULL,
+  alpha.by = NULL,
+  cells.highlight = NULL,
+  cols.highlight = c('#DE2D26', 'grey50'),
+  geom = c('spatial', 'interactive', 'poly'),
+  na.value = 'grey50'
+) {
+  geom <- match.arg(arg = geom)
+  if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
+    warning("Cannot find '", col.by, "' in data, not coloring", call. = FALSE, immediate. = TRUE)
+    col.by <- NULL
+  }
+  col.by <- col.by %iff% paste0("`", col.by, "`")
+  alpha.by <- alpha.by %iff% paste0("`", alpha.by, "`")
+  if (!is.null(x = cells.highlight)) {
+    highlight.info <- SetHighlight(
+      cells.highlight = cells.highlight,
+      cells.all = rownames(x = data),
+      sizes.highlight = pt.size.factor,
+      cols.highlight = cols.highlight[1],
+      col.base = cols.highlight[2]
+    )
+    order <- highlight.info$plot.order
+    data$highlight <- highlight.info$highlight
+    col.by <- 'highlight'
+    levels(x = data$ident) <- c(order, setdiff(x = levels(x = data$ident), y = order))
+    data <- data[order(data$ident), ]
+  }
+  plot <- ggplot(data = data, aes_string(
+    x = colnames(x = data)[2],
+    y = colnames(x = data)[1],
+    fill = col.by,
+    alpha = alpha.by
+  ))
+  plot <- switch(
+    EXPR = geom,
+    'spatial' = {
+      plot + geom_spatial(
+        point.size.factor = pt.size.factor,
+        data = data,
+        image = image,
+        image.alpha = image.alpha,
+        crop = crop,
+        stroke = stroke
+      ) + coord_fixed()
+    },
+    'interactive' = {
+      plot + geom_spatial_interactive(
+        data = tibble(grob = list(GetImage(object = image, mode = 'grob'))),
+        mapping = aes_string(grob = 'grob'),
+        x = 0.5,
+        y = 0.5
+      ) +
+        geom_point(mapping = aes_string(color = col.by)) +
+        xlim(0, ncol(x = image)) +
+        ylim(nrow(x = image), 0) +
+        coord_cartesian(expand = FALSE)
+    },
+    'poly' = {
+      data$cell <- rownames(x = data)
+      data[, c('x', 'y')] <- NULL
+      data <- merge(
+        x = data,
+        y = GetTissueCoordinates(object = image, qhulls = TRUE),
+        by = "cell"
+      )
+      plot + geom_polygon(
+        data = data,
+        mapping = aes_string(fill = col.by, group = 'cell')
+      ) + coord_fixed() + theme_cowplot()
+
+    },
+    stop("Unknown geom, choose from 'spatial' or 'interactive'", call. = FALSE)
+  )
+  if (!is.null(x = cells.highlight)) {
+    plot <- plot + scale_fill_manual(values = cols.highlight)
+  }
+  if (!is.null(x = cols) && is.null(x = cells.highlight)) {
+    if (length(x = cols) == 1 && (is.numeric(x = cols) || cols %in% rownames(x = brewer.pal.info))) {
+      scale <- scale_fill_brewer(palette = cols, na.value = na.value)
+    } else if (length(x = cols) == 1 && (cols %in% c('alphabet', 'alphabet2', 'glasbey', 'polychrome', 'stepped'))) {
+      colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
+      scale <- scale_fill_manual(values = colors, na.value = na.value)
+    } else {
+      scale <- scale_fill_manual(values = cols, na.value = na.value)
+    }
+    plot <- plot + scale
+  }
+  plot <- plot + theme_void()
+  return(plot)
+}
+
+# Reimplementation of ggplot2 coord$transform
+#
+# @param data A data frame with x-coordinates in the first column and y-coordinates
+# in the second
+# @param xlim,ylim X- and Y-limits for the transformation, must be two-length
+# numeric vectors
+#
+# @return \code{data} with transformed coordinates
+#
+#' @importFrom ggplot2 transform_position
+#' @importFrom scales rescale squish_infinite
+#
+Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
+  # Quick input argument checking
+  if (!all(sapply(X = list(xlim, ylim), FUN = length) == 2)) {
+    stop("'xlim' and 'ylim' must be two-length numeric vectors", call. = FALSE)
+  }
+  # Save original names
+  df.names <- colnames(x = data)
+  colnames(x = data)[1:2] <- c('x', 'y')
+  # Rescale the X and Y values
+  data <- transform_position(
+    df = data,
+    trans_x = function(df) {
+      return(rescale(x = df, from = xlim))
+    },
+    trans_y = function(df) {
+      return(rescale(x = df, from = ylim))
+    }
+  )
+  # Something that ggplot2 does
+  data <- transform_position(
+    df = data,
+    trans_x = squish_infinite,
+    trans_y = squish_infinite
+  )
+  # Restore original names
+  colnames(x = data) <- df.names
+  return(data)
 }

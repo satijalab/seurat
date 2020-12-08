@@ -8,26 +8,35 @@ NULL
 
 #' Calculate module scores for feature expression programs in single cells
 #'
-#' Calculate the average expression levels of each program (cluster) on single cell level,
-#' subtracted by the aggregated expression of control feature sets.
-#' All analyzed features are binned based on averaged expression, and the control features are
-#' randomly selected from each bin.
+#' Calculate the average expression levels of each program (cluster) on single
+#' cell level, subtracted by the aggregated expression of control feature sets.
+#' All analyzed features are binned based on averaged expression, and the
+#' control features are randomly selected from each bin.
 #'
 #' @param object Seurat object
-#' @param features Feature expression programs in list
-#' @param pool List of features to check expression levels agains, defaults to \code{rownames(x = object)}
-#' @param nbin Number of bins of aggregate expression levels for all analyzed features
-#' @param ctrl Number of control features selected from the same bin per analyzed feature
+#' @param features A list of vectors of features for expression programs; each
+#' entry should be a vector of feature names
+#' @param pool List of features to check expression levels against, defaults to
+#' \code{rownames(x = object)}
+#' @param nbin Number of bins of aggregate expression levels for all
+#' analyzed features
+#' @param ctrl Number of control features selected from the same bin per
+#' analyzed feature
 #' @param k Use feature clusters returned from DoKMeans
 #' @param assay Name of assay to use
-#' @param name Name for the expression programs
+#' @param name Name for the expression programs; will append a number to the
+#' end for each entry in \code{features} (eg. if \code{features} has three
+#' programs, the results will be stored as \code{name1}, \code{name2},
+#' \code{name3}, respectively)
 #' @param seed Set a random seed. If NULL, seed is not set.
 #' @param search Search for symbol synonyms for features in \code{features} that
-#' don't match features in \code{object}? Searches the HGNC's gene names database;
-#' see \code{\link{UpdateSymbolList}} for more details
+#' don't match features in \code{object}? Searches the HGNC's gene names
+#' database; see \code{\link{UpdateSymbolList}} for more details
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
-#' @return Returns a Seurat object with module scores added to object meta data
+#' @return Returns a Seurat object with module scores added to object meta data;
+#' each module is stored as \code{name#} for each module program present in
+#' \code{features}
 #'
 #' @importFrom ggplot2 cut_number
 #' @importFrom Matrix rowMeans colMeans
@@ -340,10 +349,22 @@ AverageExpression <- function(
       assay = names(x = data.return)[1],
       ...
     )
+    toRet <- SetAssayData(
+      object = toRet,
+      assay = names(x = data.return)[1],
+      slot = "data",
+      new.data = log1p(x = as.matrix(x = data.return[[1]]))
+    )
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+        toRet <- SetAssayData(
+          object = toRet,
+          assay = names(x = data.return)[i],
+          slot = "data",
+          new.data = log1p(x = as.matrix(x = data.return[[i]]))
+        )
       }
     }
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
@@ -356,7 +377,6 @@ AverageExpression <- function(
       ordered = TRUE
     )
     # finish setting up object if it is to be returned
-    toRet <- NormalizeData(object = toRet, verbose = verbose)
     toRet <- ScaleData(object = toRet, verbose = verbose)
     return(toRet)
   } else {
@@ -398,9 +418,13 @@ CaseMatch <- function(search, match) {
 #' @param object A Seurat object
 #' @param s.features A vector of features associated with S phase
 #' @param g2m.features A vector of features associated with G2M phase
+#' @param ctrl Number of control features selected from the same bin per
+#' analyzed feature supplied to \code{\link{AddModuleScore}}.
+#' Defaults to value equivalent to minimum number of features
+#' present in 's.features' and 'g2m.features'.
 #' @param set.ident If true, sets identity to phase assignments
-#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #' Stashes old identities in 'old.ident'
+#' @param ... Arguments to be passed to \code{\link{AddModuleScore}}
 #'
 #' @return A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
 #'
@@ -425,16 +449,20 @@ CellCycleScoring <- function(
   object,
   s.features,
   g2m.features,
+  ctrl = NULL,
   set.ident = FALSE,
   ...
 ) {
   name <- 'Cell.Cycle'
   features <- list('S.Score' = s.features, 'G2M.Score' = g2m.features)
+  if (is.null(x = ctrl)) {
+    ctrl <- min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
+  }
   object.cc <- AddModuleScore(
     object = object,
     features = features,
     name = name,
-    ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1))),
+    ctrl = ctrl,
     ...
   )
   cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
@@ -517,6 +545,29 @@ CollapseSpeciesExpressionMatrix <- function(
     x = rownames(x = object)
   )
   return(object)
+}
+
+# Create an Annoy index
+#
+# @note Function exists because it's not exported from \pkg{uwot}
+#
+# @param name Distance metric name
+# @param ndim Number of dimensions
+#
+# @return An nn index object
+#
+#' @importFrom methods new
+#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
+#
+CreateAnn <- function(name, ndim) {
+  return(switch(
+    EXPR = name,
+    cosine = new(Class = AnnoyAngular, ndim),
+    manhattan = new(Class = AnnoyManhattan, ndim),
+    euclidean = new(Class = AnnoyEuclidean, ndim),
+    hamming = new(Class = AnnoyHamming, ndim),
+    stop("BUG: unknown Annoy metric '", name, "'")
+  ))
 }
 
 #' Run a custom distance function on an input data matrix
@@ -632,6 +683,14 @@ ExportToCellbrowser <- function(
   skip.reductions = FALSE,
   ...
 ) {
+  .Deprecated(
+    new = "SeuratWrappers::ExportToCellbrowser",
+    msg = paste(
+      "Cell browser functionality is moving to SeuratWrappers",
+      "For more details, please see https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   vars <- c(...)
   if (is.null(x = vars)) {
     vars <- c("nCount_RNA", "nFeature_RNA")
@@ -851,6 +910,52 @@ ExpVar <- function(x) {
   return(log1p(x = var(x = expm1(x = x))))
 }
 
+#' Scale and/or center matrix rowwise
+#'
+#' Performs row scaling and/or centering. Equivalent to using t(scale(t(mat)))
+#' in R except in the case of NA values.
+#'
+#' @param mat A matrix
+#' @param center a logical value indicating whether to center the rows
+#' @param scale a logical value indicating whether to scale the rows
+#' @param scale_max clip all values greater than scale_max to scale_max. Don't
+#' clip if Inf.
+#' @return Returns the center/scaled matrix
+#'
+#' @importFrom matrixStats rowMeans2 rowSds rowSums2
+#'
+#' @export
+#'
+FastRowScale <- function(
+  mat,
+  center = TRUE,
+  scale = TRUE,
+  scale_max = 10
+) {
+  # inspired by https://www.r-bloggers.com/a-faster-scale-function/
+  if (center) {
+    rm <- rowMeans2(x = mat, na.rm = TRUE)
+  }
+  if (scale) {
+    if (center) {
+      rsd <- rowSds(mat, center = rm)
+    } else {
+      rsd <- sqrt(x = rowSums2(x = mat^2)/(ncol(x = mat) - 1))
+    }
+  }
+  if (center) {
+    mat <- mat - rm
+  }
+  if (scale) {
+    mat <- mat / rsd
+  }
+  if (scale_max != Inf) {
+    mat[mat > scale_max] <- scale_max
+  }
+  return(mat)
+}
+
+
 #' Get updated synonyms for gene symbols
 #'
 #' Find current gene symbols based on old or alias symbols using the gene
@@ -873,7 +978,7 @@ ExpVar <- function(x) {
 #' where each entry is the current symbol found for each symbol provided and the
 #' names are the provided symbols. Otherwise, a named vector with the same information.
 #'
-#' @source \url{https://www.genenames.org/} \url{http://rest.genenames.org/}
+#' @source \url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom httr GET accept_json timeout status_code content
@@ -971,6 +1076,69 @@ GeneSymbolThesarus <- function(
     synonyms <- unlist(x = synonyms)
   }
   return(synonyms)
+}
+
+#' Compute the correlation of features broken down by groups with another
+#' covariate
+#'
+#' @param object Seurat object
+#' @param assay Assay to pull the data from
+#' @param slot Slot in the assay to pull feature expression data from (counts,
+#' data, or scale.data)
+#' @param var Variable with which to correlate the features
+#' @param group.assay Compute the gene groups based off the data in this assay.
+#' @param min.cells Only compute for genes in at least this many cells
+#' @param ngroups Number of groups to split into
+#' @param do.plot Display the group correlation boxplot (via
+#' \code{GroupCorrelationPlot})
+#'
+#' @return A Seurat object with the correlation stored in metafeatures
+#'
+#' @export
+#'
+GroupCorrelation <- function(
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  var = NULL,
+  group.assay = NULL,
+  min.cells = 5,
+  ngroups = 6,
+  do.plot = TRUE
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  group.assay <- group.assay %||% assay
+  var <- var %||% paste0("nCount_", group.assay)
+  gene.grp <- GetFeatureGroups(
+    object = object,
+    assay = group.assay,
+    min.cells = min.cells,
+    ngroups = ngroups
+  )
+  data <- as.matrix(x = GetAssayData(object = object[[assay]], slot = slot))
+  data <- data[rowMeans(x = data) != 0, ]
+  grp.cors <- apply(
+    X = data,
+    MARGIN = 1,
+    FUN = function(x) {
+      cor(x = x, y = object[[var]])
+    }
+  )
+  grp.cors <- grp.cors[names(x = gene.grp)]
+  grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
+  grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
+  colnames(x = grp.cors) <- c("cor", "feature_grp")
+  object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
+  object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
+  if (do.plot) {
+    print(GroupCorrelationPlot(
+      object = object,
+      assay = assay,
+      feature.group = "feature.grp",
+      cor = paste0(var, "_cor")
+    ))
+  }
+  return(object)
 }
 
 #' Calculate the variance to mean ratio of logged values
@@ -1114,6 +1282,44 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
+#' Load the Annoy index file
+#'
+#' @param object Neighbor object
+#' @param file Path to file with annoy index
+#'
+#' @return Returns the Neighbor object with the index stored
+#' @export
+#'
+LoadAnnoyIndex <- function(object, file){
+  metric <- slot(object = object, name = "alg.info")$metric
+  ndim <- slot(object = object, name = "alg.info")$ndim
+  if (is.null(x = metric)) {
+    stop("Provided Neighbor object wasn't generated with annoy")
+  }
+  annoy.idx <- CreateAnn(name = metric, ndim = ndim)
+  annoy.idx$load(path.expand(path = file))
+  Index(object = object) <- annoy.idx
+  return(object)
+}
+
+#' Save the Annoy index
+#'
+#' @param object A Neighbor object with the annoy index stored
+#' @param file Path to file to write index to
+#'
+#' @export
+#'
+SaveAnnoyIndex <- function(
+  object,
+  file
+) {
+  index <- Index(object = object)
+  if (is.null(x = index)) {
+    stop("Index for provided Neighbor object is NULL")
+  }
+  index$save(path.expand(path = file))
+}
+
 #' Regroup idents based on meta.data info
 #'
 #' For cells in each ident, set a new identity based on the most common value
@@ -1143,6 +1349,8 @@ RegroupIdents <- function(object, metadata) {
   return(object)
 }
 
+
+
 #' Merge two matrices by rowname
 #'
 #' This function is for use on sparse matrices and
@@ -1153,7 +1361,7 @@ RegroupIdents <- function(object, metadata) {
 #' with zeros in the matrix not containing the row.
 #'
 #' @param mat1 First matrix
-#' @param mat2 Second matrix
+#' @param mat2 Second matrix or list of matrices
 #'
 #' @return A merged matrix
 #'
@@ -1163,34 +1371,37 @@ RegroupIdents <- function(object, metadata) {
 #
 #' @export
 #'
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if (inherits(x = mat1, what = "data.frame")) {
-    mat1 <- as.matrix(x = mat1)
+RowMergeSparseMatrices <- function(mat1, mat2) {
+  all.mat <- c(list(mat1), mat2)
+  all.rownames <- list()
+  all.colnames <- list()
+  use.cbind <- TRUE
+  for(i in 1:length(x = all.mat)) {
+    if (inherits(x = all.mat[[i]], what = "data.frame")) {
+      all.mat[[i]] <- as.matrix(x = all.mat[[i]])
+    }
+    all.rownames[[i]] <- rownames(x = all.mat[[i]])
+    all.colnames[[i]] <- colnames(x = all.mat[[i]])
+    # use cbind if all matrices have the same rownames
+    if (i > 1) {
+      if (!isTRUE(x = all.equal(target = all.rownames[[i]], current = all.rownames[[i - 1]]))) {
+        use.cbind <- FALSE
+      }
+    }
   }
-  if (inherits(x = mat2, what = "data.frame")) {
-    mat2 <- as.matrix(x = mat2)
-  }
-  mat1.names <- rownames(x = mat1)
-  mat2.names <- rownames(x = mat2)
-  if (length(x = mat1.names) == length(x = mat2.names) && all(mat1.names == mat2.names)) {
-    new.mat <- cbind(mat1, mat2)
+  if (isTRUE(x = use.cbind)) {
+    new.mat <- do.call(what = cbind, args = all.mat)
   } else {
-    mat1 <- as(object = mat1, Class = "RsparseMatrix")
-    mat2 <- as(object = mat2, Class = "RsparseMatrix")
-    all.names <- union(x = mat1.names, y = mat2.names)
-    new.mat <- RowMergeMatrices(
-      mat1 = mat1,
-      mat2 = mat2,
-      mat1_rownames = mat1.names,
-      mat2_rownames = mat2.names,
+    all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
+    all.names <- unique(x = do.call(what = c, args = all.rownames))
+    new.mat <- RowMergeMatricesList(
+      mat_list = all.mat,
+      mat_rownames = all.rownames,
       all_rownames = all.names
     )
     rownames(x = new.mat) <- make.unique(names = all.names)
   }
-  colnames(x = new.mat) <- make.unique(names = c(
-    colnames(x = mat1),
-    colnames(x = mat2)
-  ))
+  colnames(x = new.mat) <- make.unique(names = c(do.call(what = c, all.colnames)))
   return(new.mat)
 }
 
@@ -1207,6 +1418,14 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 #' }
 #'
 StopCellbrowser <- function() {
+  .Deprecated(
+    new = "SeuratWrappers::StopCellbrowser",
+    msg = paste(
+      "Cell browser functionality is moving to SeuratWrappers",
+      "For more details, please see https://github.com/satijalab/seurat-wrappers",
+      sep = '\n'
+    )
+  )
   if (py_module_available(module = "cellbrowser")) {
     cb <- import(module = "cellbrowser")
     cb$cellbrowser$stop()
@@ -1555,6 +1774,21 @@ CheckGC <- function() {
   }
 }
 
+# Create an empty dummy assay to replace existing assay
+#
+CreateDummyAssay <- function(assay) {
+  cm <- as.sparse(x = matrix(
+    data = 0,
+    nrow = nrow(x = assay),
+    ncol = ncol(x = assay)
+  ))
+  rownames(x = cm) <- rownames(x = assay)
+  colnames(x = cm) <- colnames(x = assay)
+  return(CreateAssayObject(
+    counts = cm
+  ))
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -1615,6 +1849,14 @@ IsMatrixEmpty <- function(x) {
   matrix.dims <- dim(x = x)
   matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
   return(all(matrix.dims == 0) || matrix.na)
+}
+
+# Check if externalptr is null
+# From https://stackoverflow.com/questions/26666614/how-do-i-check-if-an-externalptr-is-null-from-within-r
+#
+is.null.externalptr <- function(pointer) {
+  stopifnot(is(pointer, "externalptr"))
+  .Call("isnull", pointer)
 }
 
 # Check whether an assay has been processed by sctransform
@@ -1716,6 +1958,17 @@ MaxN <- function(x, N = 2){
   sort(x, partial = len - N + 1)[len - N + 1]
 }
 
+# Given a range from cut, compute the mean
+#
+# @x range from cut as a string (e.g. (10, 20] )
+# @return returns a numeric with the mean of the range
+#
+MeanRange <- function(x) {
+  left <- gsub(pattern = "\\]", replacement = "", x = sub(pattern = "\\([[:digit:]\\.e+]*,", x = x, replacement = ""))
+  right <- gsub(pattern = "\\(", replacement = "", x = sub(pattern = ",[[:digit:]\\.e+]*]", x = x, replacement = ""))
+  return(mean(c(as.numeric(x = left), as.numeric(x = right))))
+}
+
 # Melt a data frame
 #
 # @param x A data frame
@@ -1731,6 +1984,22 @@ Melt <- function(x) {
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
     vals = unlist(x = x, use.names = FALSE)
   ))
+}
+
+# Modify parameters in calling environment
+#
+# Used exclusively for helper parameter validation functions
+#
+# @param param name of parameter to change
+# @param value new value for parameter
+#
+ModifyParam <- function(param, value) {
+  # modify in original function environment
+  env1 <- sys.frame(which = length(x = sys.frames()) - 2)
+  env1[[param]] <- value
+  # also modify in validation function environment
+  env2 <- sys.frame(which = length(x = sys.frames()) - 1)
+  env2[[param]] <- value
 }
 
 # Give hints for old paramters and their newer counterparts
@@ -1867,6 +2136,24 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
+# Remove the last field from a string
+#
+# Parses a string (usually a cell name) and removes the last field based on a delimter
+#
+# @param string String to parse
+# @param delim Delimiter to use, set to underscore by default.
+#
+# @return A new string sans the last field
+#
+RemoveLastField <- function(string, delim = "_") {
+  ss <- strsplit(x = string, split = delim)[[1]]
+  if (length(x = ss) == 1) {
+    return(string)
+  } else {
+    return(paste(ss[1:(length(x = ss)-1)], collapse = delim))
+  }
+}
+
 # Return what was passed
 #
 # @param x anything
@@ -1874,6 +2161,7 @@ RandomName <- function(length = 5L, ...) {
 # @return Returns x
 #
 Same <- function(x) {
+  .Deprecated(new = 'base::identity', package = NULL)
   return(x)
 }
 

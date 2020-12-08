@@ -12,7 +12,7 @@ A list of two vectors
 }
 }
 \source{
-\url{http://science.sciencemag.org/content/352/6282/189}
+\url{https://science.sciencemag.org/content/352/6282/189}
 }
 \usage{
 cc.genes

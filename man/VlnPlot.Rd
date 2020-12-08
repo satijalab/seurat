@@ -8,7 +8,7 @@ VlnPlot(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -21,7 +21,10 @@ VlnPlot(
   ncol = NULL,
   slot = "data",
   split.plot = FALSE,
-  combine = TRUE
+  stack = FALSE,
+  combine = TRUE,
+  fill.by = "feature",
+  flip = FALSE
 )
 }
 \arguments{
@@ -60,8 +63,14 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 \item{split.plot}{plot each group of the split violin plots by multiple or
 single violin shapes.}
 
+\item{stack}{Horizontally stack plots for each feature}
+
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-ggplot object. If \code{FALSE}, return a list of ggplot objects}
+ggplot object. If \code{FALSE}, return a list of ggplot}
+
+\item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
+
+\item{flip}{flip plot orientation (identities on x-axis)}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

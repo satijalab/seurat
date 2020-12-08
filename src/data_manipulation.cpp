@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
+#include <Rinternals.h>
 
 using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]
@@ -69,7 +70,7 @@ Eigen::SparseMatrix<double> RunUMISamplingPerCell(Eigen::SparseMatrix<double> da
 
 
 typedef Eigen::Triplet<double> T;
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::RowMajor> mat1, Eigen::SparseMatrix<double, Eigen::RowMajor> mat2, std::vector< std::string > mat1_rownames,
                                              std::vector< std::string > mat2_rownames, std::vector< std::string > all_rownames){
 
@@ -96,12 +97,12 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
     std::string key = all_rownames[i];
     if (mat1_map.count(key)){
       for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it1(mat1, mat1_map[key]); it1; ++it1){
-        tripletList.push_back(T(i, it1.col(), it1.value()));
+        tripletList.emplace_back(i, it1.col(), it1.value());
       }
     }
     if (mat2_map.count(key)){
       for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it2(mat2, mat2_map[key]); it2; ++it2){
-        tripletList.push_back(T(i, num_col1 + it2.col(), it2.value()));
+        tripletList.emplace_back(i, num_col1 + it2.col(), it2.value());
       }
     }
   }
@@ -110,7 +111,58 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   return combined_mat;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
+Eigen::SparseMatrix<double> RowMergeMatricesList(
+   List mat_list,
+   List mat_rownames,
+   std::vector< std::string > all_rownames
+) {
+  // Convert Rcpp lists to c++ vectors
+  std::vector<Eigen::SparseMatrix<double, Eigen::RowMajor>> mat_vec;
+  mat_vec.reserve(mat_list.size());
+  std::vector<std::vector<std::string>> rownames_vec;
+  rownames_vec.reserve(mat_rownames.size());
+  std::vector<std::unordered_map<std::string, int>> map_vec;
+  map_vec.reserve(mat_list.size());
+  int num_cols = 0;
+  int num_nZero = 0;
+  // offsets keep track of which column to add in to
+  std::vector<int> offsets;
+  for (unsigned int i = 0; i < mat_list.size(); i++) {
+    mat_vec.emplace_back(Rcpp::as<Eigen::SparseMatrix<double, Eigen::RowMajor>>(mat_list.at(i)));
+    rownames_vec.push_back(mat_rownames[i]);
+    // Set up hash maps for rowname based lookup
+    std::unordered_map<std::string, int> mat_map;
+    for (unsigned int j = 0; j < rownames_vec[i].size(); j++) {
+      mat_map[rownames_vec[i][j]] = j;
+    }
+    map_vec.emplace_back(mat_map);
+    offsets.push_back(num_cols);
+    num_cols += mat_vec[i].cols();
+    num_nZero += mat_vec[i].nonZeros();
+  }
+  // set up tripletList for new matrix creation
+  std::vector<T> tripletList;
+  int num_rows = all_rownames.size();
+  tripletList.reserve(num_nZero);
+  // loop over all rows and add nonzero entries to tripletList
+  for(int i = 0; i < num_rows; i++) {
+    std::string key = all_rownames[i];
+    for(int j = 0; j < mat_vec.size(); j++) {
+      if (map_vec[j].count(key)) {
+        for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it1(mat_vec[j], map_vec[j][key]); it1; ++it1){
+          tripletList.emplace_back(i, it1.col() + offsets[j], it1.value());
+        }
+      }
+    }
+  }
+  Eigen::SparseMatrix<double> combined_mat(num_rows, num_cols);
+  combined_mat.setFromTriplets(tripletList.begin(), tripletList.end());
+  return combined_mat;
+}
+
+
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress = true){
   Progress p(data.outerSize(), display_progress);
   Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.rows());
@@ -123,44 +175,10 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   return data;
 }
 
-/* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R.
-   Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
-
-// [[Rcpp::export]]
-Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true,
-                             double scale_max = 10, bool display_progress = true){
-  Progress p(mat.rows(), display_progress);
-  Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
-  for(int i=0; i < mat.rows(); ++i){
-    p.increment();
-    Eigen::ArrayXd r = mat.row(i).array();
-    double rowMean = r.mean();
-    double rowSdev = 1;
-    if(scale == true){
-      if(center == true){
-        rowSdev = sqrt((r - rowMean).square().sum() / (mat.cols() - 1));
-      }
-      else{
-        rowSdev = sqrt(r.square().sum() / (mat.cols() - 1));
-      }
-    }
-    if(center == false){
-      rowMean = 0;
-    }
-    scaled_mat.row(i) = (r - rowMean) / rowSdev;
-    for(int s=0; s<scaled_mat.row(i).size(); ++s){
-      if(scaled_mat(i, s) > scale_max){
-        scaled_mat(i, s) = scale_max;
-      }
-    }
-  }
-  return scaled_mat;
-}
-
 /* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R.
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress = true){
   Progress p(mat.cols(), display_progress);
   NumericMatrix std_mat(mat.rows(), mat.cols());
@@ -177,7 +195,7 @@ NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress
   return std_mat;
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale = true, bool center = true,
                                    double scale_max = 10, bool display_progress = true){
   mat = mat.transpose();
@@ -227,7 +245,7 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale =
   return scaled_mat.transpose();
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::MatrixXd FastSparseRowScaleWithKnownStats(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sigma, bool scale = true, bool center = true,
                                    double scale_max = 10, bool display_progress = true){
     mat = mat.transpose();
@@ -256,7 +274,7 @@ Eigen::MatrixXd FastSparseRowScaleWithKnownStats(Eigen::SparseMatrix<double> mat
 
 /* Note: May not handle NA/NaNs in the same way the R implementation does, */
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center = true){
   if (center) {
     mat = mat.rowwise() - mat.colwise().mean();
@@ -265,7 +283,7 @@ Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center = true){
   return(cov);
 }
 
-// [[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center = true){
   if(center){
     mat1 = mat1.rowwise() - mat1.colwise().mean();
@@ -276,7 +294,7 @@ Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool cen
 }
 
 /* Note: Faster than the R implementation but is not in-place */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
   Eigen::MatrixXd mat3(mat1.rows() + mat2.rows(), mat1.cols());
   mat3 << mat1, mat2;
@@ -284,7 +302,7 @@ Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
 }
 
 /* Calculates the row means of the logged values in non-log space */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progress){
   int ncols = mat.cols();
   Eigen::VectorXd rowmeans(mat.rows());
@@ -307,7 +325,7 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
 
 
 /* use this if you know the row means */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
                             NumericVector mu,
                             bool display_progress){
@@ -334,7 +352,7 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
 /* standardize matrix rows using given mean and standard deviation,
    clip values larger than vmax to vmax,
    then return variance for each row */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
                               NumericVector mu,
                               NumericVector sd,
@@ -364,7 +382,7 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
 
 /* Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
 log-space) */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progress){
   int ncols = mat.cols();
   Eigen::VectorXd rowdisp(mat.rows());
@@ -394,7 +412,7 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
 }
 
 /* Calculates the variance of rows of a matrix */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
   NumericVector out(x.rows());
   for(int i=0; i < x.rows(); ++i){
@@ -406,7 +424,7 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
 }
 
 /* Calculate the variance in non-logspace (return answer in non-logspace) */
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){
   int ncols = mat.cols();
   Eigen::VectorXd rowdisp(mat.rows());
@@ -435,7 +453,7 @@ Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progr
 }
 
 //cols_idx should be 0-indexed
-//[[Rcpp::export]]
+// [[Rcpp::export(rng = false)]]
 Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, NumericVector col_idx, Eigen::SparseMatrix<double> replacement){
   int rep_idx = 0;
   for(auto const &ci : col_idx){
@@ -445,4 +463,53 @@ Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, Numeri
   return(mat);
 }
 
+template <typename S>
+std::vector<size_t> sort_indexes(const std::vector<S> &v) {
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::stable_sort(idx.begin(), idx.end(),
+                   [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+  return idx;
+}
+
+// [[Rcpp::export(rng = false)]]
+List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat) {
+  mat = mat.transpose();
+  //determine the number of neighbors
+  int n = 0;
+  for(Eigen::SparseMatrix<double>::InnerIterator it(mat, 0); it; ++it) {
+    n += 1;
+  }
+  Eigen::MatrixXd nn_idx(mat.rows(), n);
+  Eigen::MatrixXd nn_dist(mat.rows(), n);
+
+  for (int k=0; k<mat.outerSize(); ++k){
+    int n_k = 0;
+    std::vector<double> row_idx;
+    std::vector<double> row_dist;
+    row_idx.reserve(n);
+    row_dist.reserve(n);
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+      if (n_k > (n-1)) {
+        Rcpp::stop("Not all cells have an equal number of neighbors.");
+      }
+      row_idx.push_back(it.row() + 1);
+      row_dist.push_back(it.value());
+      n_k += 1;
+    }
+    if (n_k != n) {
+      Rcpp::Rcout << n << ":::" << n_k << std::endl;
+      Rcpp::stop("Not all cells have an equal number of neighbors.");
+    }
+    //order the idx based on dist
+    std::vector<size_t> idx_order = sort_indexes(row_dist);
+    for(int i = 0; i < n; ++i) {
+      nn_idx(k, i) = row_idx[idx_order[i]];
+      nn_dist(k, i) = row_dist[idx_order[i]];
+    }
+  }
+  List neighbors = List::create(nn_idx, nn_dist);
+  return(neighbors);
+}
 

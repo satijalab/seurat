@@ -4,6 +4,7 @@
 \alias{RunUMAP}
 \alias{RunUMAP.default}
 \alias{RunUMAP.Graph}
+\alias{RunUMAP.Neighbor}
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
@@ -11,8 +12,10 @@ RunUMAP(object, ...)
 
 \method{RunUMAP}{default}(
   object,
-  reduction.model = NULL,
+  reduction.key = "UMAP_",
   assay = NULL,
+  reduction.model = NULL,
+  return.model = FALSE,
   umap.method = "uwot",
   n.neighbors = 30L,
   n.components = 2L,
@@ -31,7 +34,6 @@ RunUMAP(object, ...)
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
-  reduction.key = "UMAP_",
   verbose = TRUE,
   ...
 )
@@ -58,15 +60,20 @@ RunUMAP(object, ...)
   ...
 )
 
+\method{RunUMAP}{Neighbor}(object, reduction.model, ...)
+
 \method{RunUMAP}{Seurat}(
   object,
-  reduction.model = NULL,
   dims = NULL,
   reduction = "pca",
   features = NULL,
   graph = NULL,
-  assay = "RNA",
+  assay = DefaultAssay(object = object),
+  nn.name = NULL,
+  slot = "data",
   umap.method = "uwot",
+  reduction.model = NULL,
+  return.model = FALSE,
   n.neighbors = 30L,
   n.components = 2L,
   metric = "cosine",
@@ -95,10 +102,15 @@ RunUMAP(object, ...)
 
 \item{...}{Arguments passed to other methods and UMAP}
 
-\item{reduction.model}{\code{DimReduc} object that contains the umap model}
+\item{reduction.key}{dimensional reduction key, specifies the string before
+the number for the dimension names. UMAP by default}
 
 \item{assay}{Assay to pull data for when using \code{features}, or assay used to construct Graph
 if running UMAP on a Graph}
+
+\item{reduction.model}{\code{DimReduc} object that contains the umap model}
+
+\item{return.model}{whether UMAP will return the uwot model}
 
 \item{umap.method}{UMAP implementation to run. Can be
 \describe{
@@ -171,9 +183,6 @@ approximate nearest neighbor search. This can be faster, but is mostly on useful
 use an angular style distance such as cosine, correlation etc. In the case of those metrics
 angular forests will be chosen automatically.}
 
-\item{reduction.key}{dimensional reduction key, specifies the string before
-the number for the dimension names. UMAP by default}
-
 \item{verbose}{Controls verbosity}
 
 \item{dims}{Which dimensions to use as input features, used only if
@@ -187,6 +196,10 @@ set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL 
 on features}
 
 \item{graph}{Name of graph on which to run UMAP}
+
+\item{nn.name}{Name of knn output on which to run UMAP}
+
+\item{slot}{The slot used to pull data for when using \code{features}. data slot is by default.}
 
 \item{reduction.name}{Name to store dimensional reduction under in the Seurat object}
 }

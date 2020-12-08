@@ -19,8 +19,12 @@ DimPlot(
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
+  shuffle = FALSE,
+  seed = 1,
   label = FALSE,
   label.size = 4,
+  label.color = "black",
+  label.box = FALSE,
   repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = "#DE2D26",
@@ -66,9 +70,19 @@ different colors and different shapes on cells}
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
 
+\item{shuffle}{Whether to randomly shuffle the order of points. This can be
+useful for crowded plots if points of interest are being buried. (default is FALSE)}
+
+\item{seed}{Sets the seed if randomly shuffling the order of points.}
+
 \item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
+
+\item{label.color}{Sets the color of the label text}
+
+\item{label.box}{Whether to put a box around the label text (geom_text vs
+geom_label)}
 
 \item{repel}{Repel labels}
 
