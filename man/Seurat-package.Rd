@@ -32,6 +32,8 @@ Seurat uses the following [options()] to configure behaviour:
   Moran's I function available via the Rfast2 package}}
   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
   default behavior of split/multi violin plots}
+  \item{\code{Seurat.quietstart}}{Show package startup messages in
+  interactive sessions}
 }
 }
 
