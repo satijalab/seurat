@@ -33,6 +33,23 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   UseMethod(generic = 'AddMetaData', object = object)
 }
 
+
+#' Add info to anchor matrix
+#'
+#' @param anchors An \code{\link{AnchorSet}} object
+#' @param vars Variables to pull for each object via FetchData
+#' @param slot Slot to pull feature data for
+#' @param ... Arguments passed to other methods
+#
+#' @return Returns the anchor dataframe with additional columns for annotation
+#' metadata
+#'
+#' @export
+#'
+AnnotateAnchors <- function(anchors, vars, slot, ...) {
+  UseMethod(generic = 'AnnotateAnchors', object = anchors)
+}
+
 #' Convert objects to CellDataSet objects
 #'
 #' @param x An object to convert to class \code{CellDataSet}
