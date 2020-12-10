@@ -1390,7 +1390,7 @@ SampleUMI <- function(
 #' @param assay Name of assay to pull the count data from; default is 'RNA'
 #' @param new.assay.name Name for the new assay containing the normalized data
 #' @param reference.SCT.model If not NULL, compute residuals for the object
-#' using the provided SCT model.
+#' using the provided SCT model; supports only log_umi as the latent variable
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param ncells Number of subsampling cells used to build NB regression; default is 5000
 #' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
@@ -1463,6 +1463,19 @@ SCTransform <- function(
       stop('batch_var not found in seurat object meta data')
     }
   }
+  # parameter checking when reference.SCT.model is set
+  if (!is.null(x = reference.SCT.model) ) {
+    if (!is.list(reference.SCT.model) | !('model_str' %in% names(reference.SCT.model))) {
+      stop("reference.SCT.model must be `vst.out` from the misc slot of your reference SCT assay")
+    }
+    if ('latent_var' %in% names(x = vst.args)) {
+      stop('custom latent variables are not supported when reference.SCT.model is given')
+    }
+    if (reference.SCT.model$model_str != 'y ~ log_umi') {
+      stop('reference.SCT.model must be derived using default SCT regression formula, `y ~ log_umi`')
+    }
+
+  }
   # check for latent_var in meta data
   if ('latent_var' %in% names(x = vst.args)) {
     known.attr <- c('umi', 'gene', 'log_umi', 'log_gene', 'umi_per_gene', 'log_umi_per_gene')
@@ -1505,12 +1518,12 @@ SCTransform <- function(
     if (verbose) {
       message("residual.features not specified. Using the intersection of all ",
               "features in provided model and features present in the object")
-      residual.features <- intersect(
-        x = rownames(x = Misc(indrop[["SCT"]])[["vst.out"]]$gene_attr),
-        y = rownames(x = object[[assay]])
-      )
-      set.var.features <- TRUE
     }
+    residual.features <- intersect(
+      x = rownames(x = reference.SCT.model$gene_attr),
+      y = rownames(x = object[[assay]])
+    )
+    set.var.features <- TRUE
   }
   if (!is.null(x = residual.features)) {
     do.correct.umi <- FALSE
@@ -1537,23 +1550,20 @@ SCTransform <- function(
     }
     if (!is.null(x = residual.features)) {
       if (!is.null(x = reference.SCT.model)) {
-        ref.gene_attr <- reference.SCT.model$gene_attr
-        clip.range <- reference.SCT.model$arguments$sct.clip.range
-        ref.model <- reference.SCT.model
-        residual.features <- intersect(x = residual.features, y = rownames(x = ref.gene_attr))
-        residual.features <- intersect(x = residual.features, y = rownames(x = umi))
-        # add reference sct model to query
-        vst.out <- ref.model
-        vst.out$model_pars_fit<- ref.model$model_pars_fit[residual.features, ]
-        vst.out$cells_step1 <- colnames(x = umi)
+        vst.out <- reference.SCT.model
+        ref.gene_attr <- vst.out$gene_attr
+        clip.range <- vst.out$arguments$sct.clip.range
+        vst.out$model_pars_fit <-
+          vst.out$model_pars_fit[residual.features, ]
+        vst.out$cells_step1 <-colnames(x = umi)
+
         umi.field <- paste0("nCount_", assay)
-        if (umi.field %in% colnames(x = object[[]])) {
-          vst.out$cell_attr <- object[[umi.field]]
-        } else {
-          vst.out$cell_attr <- data.frame(umi = CalcN(object = object[[assay]])$nCount)
-        }
-        vst.out$cell_attr$log_umi <- log(x = vst.out$cell_attr[, 1], base = 10)
-        colnames(x = vst.out$cell_attr) <- c("umi", "log_umi")
+        vst.out$cell_attr <-
+          if (umi.field %in% colnames(x = object[[]])) {
+            data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
+          } else {
+            data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
+          }
       } else {
         residual.features <- intersect(x = rownames(x = vst.out$gene_attr), y = residual.features)
       }
