@@ -1534,27 +1534,27 @@ SCTransform <- function(
   } else {
     if (is.null(x = reference.SCT.model)) {
       vst.out <- do.call(what = 'vst', args = vst.args)
-    } else {
-      if (!is.null(x = residual.features)) {
-        if (!is.null(x = reference.SCT.model)) {
-          ref.gene_attr <- reference.SCT.model$gene_attr
-          clip.range <- reference.SCT.model$arguments$sct.clip.range
-          ref.model <- reference.SCT.model
-          residual.features <- intersect(x = residual.features, y = rownames(x = ref.gene_attr))
-          residual.features <- intersect(x = residual.features, y = rownames(x = umi))
-          # add reference sct model to query
-          vst.out <- ref.model
-          vst.out$model_pars_fit<- ref.model$model_pars_fit[residual.features, ]
-          vst.out$cells_step1 <- colnames(x = umi)
-          umi.field <- paste0("nCount_", assay)
-          if (umi.field %in% colnames(x = object[[]])) {
-            vst.out$cell_attr <- object[[umi.field]]
-          } else {
-            vst.out$cell_attr <- data.frame(umi = CalcN(object = object[[assay]])$nCount)
-          }
-          vst.out$cell_attr$log_umi <- log(x = vst.out$cell_attr[, 1], base = 10)
-          colnames(x = vst.out$cell_attr) <- c("umi", "log_umi")
+    }
+    if (!is.null(x = residual.features)) {
+      if (!is.null(x = reference.SCT.model)) {
+        ref.gene_attr <- reference.SCT.model$gene_attr
+        clip.range <- reference.SCT.model$arguments$sct.clip.range
+        ref.model <- reference.SCT.model
+        residual.features <- intersect(x = residual.features, y = rownames(x = ref.gene_attr))
+        residual.features <- intersect(x = residual.features, y = rownames(x = umi))
+        # add reference sct model to query
+        vst.out <- ref.model
+        vst.out$model_pars_fit<- ref.model$model_pars_fit[residual.features, ]
+        vst.out$cells_step1 <- colnames(x = umi)
+        umi.field <- paste0("nCount_", assay)
+        if (umi.field %in% colnames(x = object[[]])) {
+          vst.out$cell_attr <- object[[umi.field]]
+        } else {
+          vst.out$cell_attr <- data.frame(umi = CalcN(object = object[[assay]])$nCount)
         }
+        vst.out$cell_attr$log_umi <- log(x = vst.out$cell_attr[, 1], base = 10)
+        colnames(x = vst.out$cell_attr) <- c("umi", "log_umi")
+      } else {
         residual.features <- intersect(x = rownames(x = vst.out$gene_attr), y = residual.features)
       }
       residual.feature.mat <- get_residuals(
