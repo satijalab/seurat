@@ -8,6 +8,7 @@ SCTransform(
   object,
   assay = "RNA",
   new.assay.name = "SCT",
+  reference.SCT.model = NULL,
   do.correct.umi = TRUE,
   ncells = 5000,
   residual.features = NULL,
@@ -31,6 +32,9 @@ SCTransform(
 \item{assay}{Name of assay to pull the count data from; default is 'RNA'}
 
 \item{new.assay.name}{Name for the new assay containing the normalized data}
+
+\item{reference.SCT.model}{If not NULL, compute residuals for the object
+using the provided SCT model.}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
