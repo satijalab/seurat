@@ -3,6 +3,9 @@ All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+### Added
+- Titles added to `DimPlot` when specifying `group.by` parameter
+
 ### Changes
 - `Same` deprecated in favor of `base::identity`
 - Fix in `DietSeurat` to work with specialized `Assay` objects
@@ -13,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Modify subset.Seurat to allow specialized Assay subsetting methods
 - Fix image selection in interactive spatial plots
 - Update Rcpp functions with `export(rng=FALSE)` to avoid potential future warnings
+- Fix RenameCells bug for integrated SCT assays
+- Fix highlight order with proper factor levels when using `SetHighlight` in plots
 
 ## [3.2.2] - 2020-09-25
 ### Changes

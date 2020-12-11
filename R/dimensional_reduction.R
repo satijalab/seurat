@@ -1362,6 +1362,7 @@ RunUMAP.default <- function(
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   if (return.model) {
+    umap.output$nn_index <- NULL
     umap.model <- umap.output
     umap.output <- umap.output$embedding
   }
