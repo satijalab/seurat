@@ -48,7 +48,7 @@ seurat_default_options <- list(
 .onAttach <- function(libname, pkgname) {
   if (interactive() && !isTRUE(x = getOption(x = "Seurat.quietstart", default = FALSE))) {
     packageStartupMessage(paste(
-      "\nSeurat v4 will be going to CRAN imminently;\n",
+      "\nSeurat v4 will be going to CRAN in the near future;\n",
       "for more details, please visit",
       "https://satijalab.org/seurat/v4_changes\n"
     ))
