@@ -1526,6 +1526,7 @@ SCTransform <- function(
     set.var.features <- TRUE
   }
   if (!is.null(x = residual.features)) {
+    residual.features <- intersect(x = residual.features, y = rownames(x = umi))
     do.correct.umi <- FALSE
     vst.args[['return_corrected_umi']] <- FALSE
     vst.args[['residual_type']] <- 'none'
@@ -1555,22 +1556,24 @@ SCTransform <- function(
         clip.range <- vst.out$arguments$sct.clip.range
         vst.out$model_pars_fit <-
           vst.out$model_pars_fit[residual.features, ]
-        vst.out$cells_step1 <-colnames(x = umi)
+        vst.out$cells_step1 <- colnames(x = umi)
 
         umi.field <- paste0("nCount_", assay)
-        vst.out$cell_attr <-
+        vst.out$cell_attr <- 
           if (umi.field %in% colnames(x = object[[]])) {
-            data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
-          } else {
-            data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
-          }
+          data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
+        } else {
+          data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
+        }
+          
       } else {
-        residual.features <- intersect(x = rownames(x = vst.out$gene_attr), y = residual.features)
+        residual.features <- intersect(x = residual.features, y =  rownames(x = vst.out$gene_attr))
       }
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
         umi = umi[residual.features, , drop = FALSE]
       )
+      
       vst.out$y <- residual.feature.mat
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
