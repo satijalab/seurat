@@ -1586,7 +1586,6 @@ SCTransform <- function(
         ref.residual.mean <- ref.gene_attr[residual.features, "residual_mean"]
         vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - ref.residual.mean)
         do.center <- FALSE
-        umi <- umi[residual.features, ]
       }
     }
     feature.variance <- setNames(
