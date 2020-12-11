@@ -2,7 +2,7 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [3.2.3] - 2020-12-11
 ### Added
 - Titles added to `DimPlot` when specifying `group.by` parameter
 - `keep.scale` parameter added to `FeaturePlot` to control scaling across multiple features and/or splits.
