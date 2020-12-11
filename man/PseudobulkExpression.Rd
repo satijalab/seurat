@@ -2,7 +2,7 @@
 % Please edit documentation in R/utilities.R
 \name{PseudobulkExpression}
 \alias{PseudobulkExpression}
-\title{Pseudobulked feature expression by identity class}
+\title{Pseudobulk feature expression by identity class}
 \usage{
 PseudobulkExpression(
   object,

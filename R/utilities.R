@@ -1228,7 +1228,7 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
-#' Pseudobulked feature expression by identity class
+#' Pseudobulk feature expression by identity class
 #'
 #' Returns a representative expression value for each identity class
 #'
@@ -1248,8 +1248,8 @@ PercentageFeatureSet <- function(
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #'
-#' @importFrom Matrix rowMeans
-#' @importFrom stats sparse.model.matrix as.formula
+#' @importFrom Matrix rowMeans sparse.model.matrix
+#' @importFrom stats as.formula
 #' @export
 #'
 #' @examples
