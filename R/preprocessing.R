@@ -1519,8 +1519,11 @@ SCTransform <- function(
       message("residual.features not specified. Using the intersection of all ",
               "features in provided model and features present in the object")
     }
+    variable.features.ref <-
+      rownames(reference.SCT.model$model_pars_fit)[
+        order(reference.SCT.model$gene_attr$residual_variance, decreasing = T)[1:variable.features.n]]
     residual.features <- intersect(
-      x = rownames(x = reference.SCT.model$gene_attr),
+      x = variable.features.ref,
       y = rownames(x = object[[assay]])
     )
     set.var.features <- TRUE
@@ -1559,13 +1562,13 @@ SCTransform <- function(
         vst.out$cells_step1 <- colnames(x = umi)
 
         umi.field <- paste0("nCount_", assay)
-        vst.out$cell_attr <- 
+        vst.out$cell_attr <-
           if (umi.field %in% colnames(x = object[[]])) {
           data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
         } else {
           data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
         }
-          
+
       } else {
         residual.features <- intersect(x = residual.features, y =  rownames(x = vst.out$gene_attr))
       }
@@ -1573,7 +1576,7 @@ SCTransform <- function(
         vst_out = vst.out,
         umi = umi[residual.features, , drop = FALSE]
       )
-      
+
       vst.out$y <- residual.feature.mat
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
