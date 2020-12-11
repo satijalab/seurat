@@ -1554,6 +1554,44 @@ as.data.frame.Matrix <- function(
   }
 }
 
+# check for infinite, logical, non-integer, NA, NaN in a matrix
+CheckMatrix <- function(
+  object,
+  check.infinite = TRUE,
+  check.logical = TRUE,
+  check.integer = TRUE,
+  check.na = TRUE,
+  check.nan = TRUE
+) {
+  if (inherits(x = object, what = "Matrix")) {
+    if (check.infinite) {
+      if (any(is.infinite(x = slot(object = object, name = "x")))) {
+        warning("Input matrix contains infinite values")
+      }
+    }
+    if (check.logical) {
+      if (any(is.logical(x = slot(object = object, name = "x")))) {
+        warning("Input matrix contains logical values")
+      }
+    }
+    if (check.integer) {
+      if (!all(round(x = slot(object = object, name = "x")) == slot(object = object, name = "x"))) {
+        warning("Input matrix contains non-integer values")
+      }
+    }
+    if (check.na) {
+      if (any(is.na(x = slot(object = object, name = "x")))) {
+        warning("Input matrix contains NA values")
+      }
+    }
+    if (check.nan) {
+      if (any(is.nan(x = slot(object = object, name = "x")))) {
+        warning("Input matrix contains NaN values")
+      }
+    }
+  }
+}
+
 # Generate chunk points
 #
 # @param dsize How big is the data being chunked

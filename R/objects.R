@@ -712,6 +712,7 @@ CreateAssayObject <- function(
     if (!inherits(x = counts, what = 'dgCMatrix')) {
       counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
     }
+    CheckMatrix(object = counts)
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       warning(
@@ -783,6 +784,7 @@ CreateAssayObject <- function(
         immediate. = TRUE
       )
     }
+    CheckMatrix(object = data, check.integer = FALSE)
     counts <- new(Class = 'matrix')
   }
   # Ensure row- and column-names are vectors, not arrays
