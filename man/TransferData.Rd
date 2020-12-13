@@ -49,7 +49,8 @@ dimensional reduction}
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}
 
-\item{do.cpp}{Run cpp code where applicable}
+\item{do.cpp}{Run cpp code where applicable. This argument is being
+deprecated and will be set to TRUE by default.}
 
 \item{verbose}{Print progress bars and output}
 
