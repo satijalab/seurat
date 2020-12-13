@@ -1314,7 +1314,7 @@ FeaturePlot <- function(
           )
         }
       }
-      if (!(is.null(keep.scale)) && keep.scale == "feature") {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !blend) {
         feature.data <- FetchData(
           object = object,
           vars = feature,
@@ -1453,7 +1453,7 @@ FeaturePlot <- function(
     if (!is.null(x = legend) && legend == 'none') {
       plots <- plots & NoLegend()
     }
-    if (!(is.null(keep.scale)) && keep.scale == "all") {
+    if (!(is.null(x = keep.scale)) && keep.scale == "all" && !blend) {
       feature.data <- FetchData(
         object = object,
         vars = features,
