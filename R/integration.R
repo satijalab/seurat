@@ -862,7 +862,8 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' automatically.
 #' @param preserve.order Do not reorder objects based on size for each pairwise
 #' integration.
-#' @param do.cpp Run cpp code where applicable
+#' @param do.cpp Run cpp code where applicable. This argument is being
+#' deprecated and will be set to TRUE by default.
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
 #' @param verbose Print progress bars and output
@@ -921,6 +922,14 @@ IntegrateData <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   normalization.method <- match.arg(arg = normalization.method)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -1584,7 +1593,8 @@ SelectIntegrationFeatures <- function(
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
-#' @param do.cpp Run cpp code where applicable
+#' @param do.cpp Run cpp code where applicable. This argument is being
+#' deprecated and will be set to TRUE by default.
 #' @param verbose Print progress bars and output
 #' @param slot Slot to store the imputed data. Must be either "data" (default)
 #' or "counts"
@@ -1641,6 +1651,14 @@ TransferData <- function(
   slot = "data",
   prediction.assay = FALSE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
@@ -2477,7 +2495,8 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param sample.tree Specify the order of integration. If NULL, will compute automatically.
 # @param preserve.order Do not reorder objects based on size for each pairwise integration.
-# @param do.cpp Run cpp code where applicable
+# @param do.cpp Run cpp code where applicable. This argument is being
+# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
 #
@@ -2500,6 +2519,14 @@ MapQuery <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   normalization.method <- match.arg(arg = normalization.method)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -2619,7 +2646,8 @@ NNtoMatrix <- function(idx, distance, k) {
 # automatically.
 # @param preserve.order Do not reorder objects based on size for each pairwise
 # integration.
-# @param do.cpp Run cpp code where applicable
+# @param do.cpp Run cpp code where applicable. This argument is being
+# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from
 # \code{\link{RANN}})
 # @param verbose Print progress bars and output
@@ -2642,6 +2670,14 @@ PairwiseIntegrateReference <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   object.list <- slot(object = anchorset, name = "object.list")
   reference.objects <- slot(object = anchorset, name = "reference.objects")
   features <- features %||% slot(object = anchorset, name = "anchor.features")
@@ -2955,7 +2991,8 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param sample.tree Specify the order of integration. If NULL, will compute automatically.
-# @param do.cpp Run cpp code where applicable
+# @param do.cpp Run cpp code where applicable. This argument is being
+# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
 #
@@ -2976,6 +3013,14 @@ RunIntegration <- function(
   eps,
   verbose
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   cells1 <- colnames(x = reference)
   cells2 <- colnames(x = query)
   merged.obj <- merge(x = reference, y = query, merge.data = TRUE)

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix RenameCells bug for integrated SCT assays
 - Fix highlight order with proper factor levels when using `SetHighlight` in plots
 - Small change in CellRanger version detection logic of h5 file to improve robustness to outside tools.
+- `do.cpp` deprecated and will default to true
 
 ## [3.2.2] - 2020-09-25
 ### Changes
