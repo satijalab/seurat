@@ -1390,7 +1390,11 @@ SampleUMI <- function(
 #' @param assay Name of assay to pull the count data from; default is 'RNA'
 #' @param new.assay.name Name for the new assay containing the normalized data
 #' @param reference.SCT.model If not NULL, compute residuals for the object
-#' using the provided SCT model; supports only log_umi as the latent variable
+#' using the provided SCT model; supports only log_umi as the latent variable.
+#' If residual.features are not specified, compute for the top variable.features.n
+#' specified in the model which are also present in the object. If
+#' residual.features are specified, the variable features of the resulting SCT
+#' assay are set to the top variable.features.n in the model.
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param ncells Number of subsampling cells used to build NB regression; default is 5000
 #' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
@@ -1513,20 +1517,17 @@ SCTransform <- function(
   vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
-  set.var.features <- FALSE
+  variable.features.ref <- rownames(x = reference.SCT.model$model_pars_fit)[
+      order(reference.SCT.model$gene_attr$residual_variance, decreasing = TRUE)[1:variable.features.n]]
   if (is.null(x = residual.features) & !is.null(x = reference.SCT.model)) {
     if (verbose) {
       message("residual.features not specified. Computing residuals for the top ",
               variable.features.n, " variable features in the provided model.")
     }
-    variable.features.ref <-
-      rownames(reference.SCT.model$model_pars_fit)[
-        order(reference.SCT.model$gene_attr$residual_variance, decreasing = T)[1:variable.features.n]]
     residual.features <- intersect(
       x = variable.features.ref,
       y = rownames(x = object[[assay]])
     )
-    set.var.features <- TRUE
   }
   if (!is.null(x = residual.features)) {
     residual.features <- intersect(x = residual.features, y = rownames(x = umi))
@@ -1602,13 +1603,16 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  if (!is.null(x = residual.features) & !set.var.features) {
-    top.features <- rownames(x = vst.out$y)
+  if (!is.null(x = residual.features)) {
+    top.features <- intersect(
+      x = variable.features.ref,
+      y = rownames(x = object[[assay]])
+    )
   }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
-  if (conserve.memory & is.null(reference.SCT.model)) {
+  if (conserve.memory & is.null(x = reference.SCT.model)) {
     # actually get the residuals this time
     if (verbose) {
       message("Return only variable features for scale.data slot of the output assay")
@@ -1645,7 +1649,7 @@ SCTransform <- function(
     slot = 'data',
     new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
   )
-  if (return.only.var.genes & !conserve.memory) {
+  if (return.only.var.genes & !conserve.memory & is.null(x = residual.features)) {
     scale.data <- vst.out$y[top.features, ]
   } else {
     scale.data <- vst.out$y

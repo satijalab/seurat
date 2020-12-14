@@ -34,7 +34,11 @@ SCTransform(
 \item{new.assay.name}{Name for the new assay containing the normalized data}
 
 \item{reference.SCT.model}{If not NULL, compute residuals for the object
-using the provided SCT model.}
+using the provided SCT model; supports only log_umi as the latent variable.
+If residual.features are not specified, compute for the top variable.features.n
+specified in the model which are also present in the object. If
+residual.features are specified, the variable features of the resulting SCT
+assay are set to the top variable.features.n in the model.}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
