@@ -1516,8 +1516,8 @@ SCTransform <- function(
   set.var.features <- FALSE
   if (is.null(x = residual.features) & !is.null(x = reference.SCT.model)) {
     if (verbose) {
-      message("residual.features not specified. Using the intersection of all ",
-              "features in provided model and features present in the object")
+      message("residual.features not specified. Computing residuals for the top ",
+              variable.features.n, " variable features in the provided model.")
     }
     variable.features.ref <-
       rownames(reference.SCT.model$model_pars_fit)[
