@@ -39,6 +39,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' @param anchors An \code{\link{AnchorSet}} object
 #' @param vars Variables to pull for each object via FetchData
 #' @param slot Slot to pull feature data for
+#' @param assay Specify the Assay per object if annotating with expression data
 #' @param ... Arguments passed to other methods
 #
 #' @return Returns the anchor dataframe with additional columns for annotation

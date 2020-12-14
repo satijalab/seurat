@@ -2614,6 +2614,7 @@ AnnotateAnchors.default <- function(
   vars = NULL,
   slot = NULL,
   object.list,
+  assay = NULL,
   ...
 ) {
   # reorder columns
@@ -2633,16 +2634,25 @@ AnnotateAnchors.default <- function(
   }
   anchors$cell2 <- cell2.names
   slot <- slot %||% "data"
+  assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
+  if (length(x = assay) == 1) {
+    assay <- rep(x = assay, times = length(x = object.list))
+  }
+  if (length(x = assay) != length(x = object.list)) {
+    stop("Number of assays provided should either be one or the length of object.list")
+  }
+  for (ob in 1:length(x = object.list)) {
+    DefaultAssay(object = object.list[[ob]]) <- assay[ob]
+  }
   if (length(x = slot) == 1) {
     slot <- rep(x = slot, times = length(x = vars))
   }
   if (length(x = vars) > 0) {
     for(v in 1:length(x = vars)) {
       var <- vars[v]
-      slot <- slot[v]
       var.list <- lapply(X = object.list, FUN = function(x) {
         tryCatch(
-          expr = FetchData(object = x, vars = var, slot = slot),
+          expr = FetchData(object = x, vars = var, slot = slot[v]),
           error = function(e) {
             return(FALSE)
           }
@@ -2695,21 +2705,25 @@ AnnotateAnchors.IntegrationAnchorSet <- function(
   anchors,
   vars = NULL,
   slot = NULL,
+  object.list = NULL,
+  assay = NULL,
   ...
 ) {
   anchor.df <- slot(object = anchors, name = 'anchors')
-  object.list <- slot(object = anchors, name = 'object.list')
+  object.list <- object.list %||% slot(object = anchors, name = 'object.list')
   anchor.df <- as.data.frame(x = anchor.df)
   anchor.df <- AnnotateAnchors(
     anchors = anchor.df,
     vars = vars,
     slot = slot,
-    object.list = object.list
+    object.list = object.list,
+    assay = assay
   )
   return(anchor.df)
 }
 
-
+#' @param reference Reference object used in \code{\link{FindTransferAnchors}}
+#' @param query Query object used in \code{\link{FindTransferAnchors}}
 #' @rdname AnnotateAnchors
 #' @export
 #' @method AnnotateAnchors TransferAnchorSet
@@ -2718,23 +2732,31 @@ AnnotateAnchors.TransferAnchorSet <- function(
   anchors,
   vars = NULL,
   slot = NULL,
+  reference = NULL,
+  query = NULL,
+  assay = NULL,
   ...
 ) {
   anchor.df <- slot(object = anchors, name = 'anchors')
-  object.list <- slot(object = anchors, name = 'object.list')[[1]]
-  reference.cells <- slot(object = anchors, name = "reference.cells")
-  ref <- subset(x = object.list, cells = reference.cells, recompute = FALSE)
-  ref <- RenameCells(
-    object = ref,
-    new.names = gsub(pattern = "_reference$", replacement = "", x = reference.cells)
-  )
-  query.cells <- slot(object = anchors, name = "query.cells")
-  query <- subset(x = object.list, cells = query.cells, recompute = FALSE)
-  query <- RenameCells(
-    object = query,
-    new.names = gsub(pattern = "_query$", replacement = "", x = query.cells)
-  )
-  object.list <- list(reference = ref, query = query)
+  if (class(x = reference) != class(x = query)) {
+    stop("If setting reference/query, please set both parameters.")
+  }
+  if (is.null(x = reference)) {
+    object.list <- slot(object = anchors, name = 'object.list')[[1]]
+    reference.cells <- slot(object = anchors, name = "reference.cells")
+    reference <- subset(x = object.list, cells = reference.cells, recompute = FALSE)
+    reference <- RenameCells(
+      object = reference,
+      new.names = gsub(pattern = "_reference$", replacement = "", x = reference.cells)
+    )
+    query.cells <- slot(object = anchors, name = "query.cells")
+    query <- subset(x = object.list, cells = query.cells, recompute = FALSE)
+    query <- RenameCells(
+      object = query,
+      new.names = gsub(pattern = "_query$", replacement = "", x = query.cells)
+    )
+  }
+  object.list <- list(reference = reference, query = query)
   anchor.df <- as.data.frame(x = anchor.df)
   anchor.df$dataset1 <- "reference"
   anchor.df$dataset2 <- "query"
@@ -2742,7 +2764,8 @@ AnnotateAnchors.TransferAnchorSet <- function(
     anchors = anchor.df,
     vars = vars,
     slot = slot,
-    object.list = object.list
+    object.list = object.list,
+    assay = assay
   )
   return(anchor.df)
 }

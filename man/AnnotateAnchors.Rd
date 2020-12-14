@@ -9,11 +9,33 @@
 \usage{
 AnnotateAnchors(anchors, vars, slot, ...)
 
-\method{AnnotateAnchors}{default}(anchors, vars = NULL, slot = NULL, object.list, ...)
+\method{AnnotateAnchors}{default}(
+  anchors,
+  vars = NULL,
+  slot = NULL,
+  object.list,
+  assay = NULL,
+  ...
+)
 
-\method{AnnotateAnchors}{IntegrationAnchorSet}(anchors, vars = NULL, slot = NULL, ...)
+\method{AnnotateAnchors}{IntegrationAnchorSet}(
+  anchors,
+  vars = NULL,
+  slot = NULL,
+  object.list = NULL,
+  assay = NULL,
+  ...
+)
 
-\method{AnnotateAnchors}{TransferAnchorSet}(anchors, vars = NULL, slot = NULL, ...)
+\method{AnnotateAnchors}{TransferAnchorSet}(
+  anchors,
+  vars = NULL,
+  slot = NULL,
+  reference = NULL,
+  query = NULL,
+  assay = NULL,
+  ...
+)
 }
 \arguments{
 \item{anchors}{An \code{\link{AnchorSet}} object}
@@ -25,6 +47,12 @@ AnnotateAnchors(anchors, vars, slot, ...)
 \item{...}{Arguments passed to other methods}
 
 \item{object.list}{List of Seurat objects}
+
+\item{assay}{Specify the Assay per object if annotating with expression data}
+
+\item{reference}{Reference object used in \code{\link{FindTransferAnchors}}}
+
+\item{query}{Query object used in \code{\link{FindTransferAnchors}}}
 }
 \value{
 Returns the anchor dataframe with additional columns for annotation
