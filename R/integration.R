@@ -2620,20 +2620,18 @@ AnnotateAnchors.default <- function(
   anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
   colnames(x = anchors)[5] <- "anchor.score"
   cell.names <- lapply(X = object.list, FUN = Cells)
-  anchors$cell1 <- sapply(
-    X = seq_len(length.out = nrow(x = anchors)),
-    FUN = function(x) {
-      dataset <- anchors[x, 'dataset1']
-      cell.names[[dataset]][anchors[x, "cell1"]]
-    }
-  )
-  anchors$cell2 <- sapply(
-    X = seq_len(length.out = nrow(x = anchors)),
-    FUN = function(x) {
-      dataset <- anchors[x, 'dataset2']
-      cell.names[[dataset]][anchors[x, "cell2"]]
-    }
-  )
+  cell1.names <- character(length = nrow(x = anchors))
+  for (dataset in unique(x = anchors$dataset1)) {
+    dataset.cells <- which(x = anchors$dataset1 == dataset)
+    cell1.names[dataset.cells] <- cell.names[[dataset]][anchors[dataset.cells, "cell1"]]
+  }
+  anchors$cell1 <- cell1.names
+  cell2.names <- character(length(x = nrow(x = anchors)))
+  for (dataset in unique(x = anchors$dataset2)) {
+    dataset.cells <- which(x = anchors$dataset2 == dataset)
+    cell2.names[dataset.cells] <- cell.names[[dataset]][anchors[dataset.cells, "cell2"]]
+  }
+  anchors$cell2 <- cell2.names
   slot <- slot %||% "data"
   if (length(x = slot) == 1) {
     slot <- rep(x = slot, times = length(x = vars))
@@ -2672,17 +2670,14 @@ AnnotateAnchors.default <- function(
       }
       for(i in c(1, 2)) {
         cell <- paste0("cell", i)
-        anchors[, paste0(cell, ".", var)] <- apply(X = anchors, MARGIN = 1, function(x){
-          var.df <- var.list[[x[[paste0("dataset", i)]]]]
-          if (!inherits(x = var.df, what = "data.frame")) {
-            NA
-          } else {
-            if (is.factor(x = var.df[x[cell], ])) {
-              as.character(x = var.df[x[cell], ])
-            } else {
-              var.df[x[cell], ]
-            }}
-        })
+        if (is.factor(x = anchors[, cell])) {
+          anchors[, cell] <- as.character(x = anchors[, cell])
+        }
+        for (j in unique(x = anchors[, paste0("dataset", i)])) {
+          var.df <- var.list[[j]]
+          dataset.cells <- which(x = anchors[, paste0("dataset", i)] == j)
+          anchors[dataset.cells, paste0(cell, ".", var)] <- var.df[anchors[, cell][dataset.cells], ]
+        }
       }
       # column specifying whether the annotation matches across pair of datasets
       anchors[, paste0(var, ".match")] <- anchors[, paste0("cell1.", var)] ==
