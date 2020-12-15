@@ -1608,7 +1608,7 @@ SCTransform <- function(
   if (!is.null(x = residual.features)) {
     top.features <- intersect(
       x = variable.features.ref,
-      y = rownames(x = object[[assay]])
+      y = rownames(x = GetAssayData(object = object[[new.assay.name]], slot = "scale.data"))
     )
   }
   if (verbose) {
