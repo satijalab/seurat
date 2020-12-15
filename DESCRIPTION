@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 3.2.2
-Date: 2020-09-25
+Version: 3.2.3
+Date: 2020-12-14
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031> for more details.
 Authors@R: c(
@@ -58,14 +58,15 @@ Imports:
     rsvd,
     Rtsne,
     scales,
-    sctransform (>= 0.3.0),
+    scattermore (>= 0.7),
+    sctransform (>= 0.3.1),
     shiny,
     spatstat,
     stats,
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.5)
+    uwot (>= 0.1.9)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true

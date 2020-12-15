@@ -2,6 +2,26 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.2.3] - 2020-12-14
+### Added
+- Titles added to `DimPlot` when specifying `group.by` parameter
+- `keep.scale` parameter added to `FeaturePlot` to control scaling across multiple features and/or splits.
+
+### Changes
+- `Same` deprecated in favor of `base::identity`
+- Fix in `DietSeurat` to work with specialized `Assay` objects
+- Fix p-value return when using the `ape` implementation of Moran's I
+- Fix bug in FindMarkers when using MAST with a latent variable
+- Updates to `Key<-.DimReduc` that allow handling of empty reduction column names
+- Allow setting `ctrl` in `CellCycleScoring`
+- Modify subset.Seurat to allow specialized Assay subsetting methods
+- Fix image selection in interactive spatial plots
+- Update Rcpp functions with `export(rng=FALSE)` to avoid potential future warnings
+- Fix RenameCells bug for integrated SCT assays
+- Fix highlight order with proper factor levels when using `SetHighlight` in plots
+- Small change in CellRanger version detection logic of h5 file to improve robustness to outside tools.
+- `do.cpp` deprecated and will default to true
+
 ## [3.2.2] - 2020-09-25
 ### Changes
 - Set the seed in `WhichCells` regardless of whether or not `idents` is passed
