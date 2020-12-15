@@ -54,9 +54,8 @@ If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
 are placed in the 'counts' slot of the returned object and the log of averaged values
 are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
 before returning the object.
-If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot in the
-returned object is left empty, 'data' is filled with 0s, and 'scale.data' is set to
-the averaged values.
+If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' and 'data' slots
+are filled with NA, and 'scale.data' is set to the aggregated values.
 }
 \examples{
 head(AverageExpression(object = pbmc_small))
