@@ -1517,17 +1517,19 @@ SCTransform <- function(
   vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
-  variable.features.ref <- rownames(x = reference.SCT.model$model_pars_fit)[
+  if (!is.null(x = reference.SCT.model)) {
+    variable.features.ref <- rownames(x = reference.SCT.model$model_pars_fit)[
       order(reference.SCT.model$gene_attr$residual_variance, decreasing = TRUE)[1:variable.features.n]]
-  if (is.null(x = residual.features) & !is.null(x = reference.SCT.model)) {
-    if (verbose) {
-      message("residual.features not specified. Computing residuals for the top ",
-              variable.features.n, " variable features in the provided model.")
+    if (is.null(x = residual.features)) {
+      if (verbose) {
+        message("residual.features not specified. Computing residuals for the top ",
+                variable.features.n, " variable features in the provided model.")
+      }
+      residual.features <- intersect(
+        x = variable.features.ref,
+        y = rownames(x = object[[assay]])
+      )
     }
-    residual.features <- intersect(
-      x = variable.features.ref,
-      y = rownames(x = object[[assay]])
-    )
   }
   if (!is.null(x = residual.features)) {
     residual.features <- intersect(x = residual.features, y = rownames(x = umi))
