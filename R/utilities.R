@@ -237,9 +237,8 @@ AddModuleScore <- function(
 #' are placed in the 'counts' slot of the returned object and the log of aggregated values
 #' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
-#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot in the
-#' returned object is left empty, 'data' is filled with 0s, and 'scale.data' is set to
-#' the aggregated values.
+#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' and 'data' slots
+#' are filled with NA, and 'scale.data' is set to the aggregated values.
 #'
 #' @inheritParams PseudobulkExpression
 #'
@@ -290,9 +289,8 @@ AggregateExpression <- function(
 #' are placed in the 'counts' slot of the returned object and the log of averaged values
 #' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
-#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot in the
-#' returned object is left empty, 'data' is filled with 0s, and 'scale.data' is set to
-#' the averaged values.
+#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' and 'data' slots
+#' are filled with NA, and 'scale.data' is set to the aggregated values.
 #'
 #' @inheritParams PseudobulkExpression
 #'
@@ -1344,8 +1342,10 @@ PseudobulkExpression <- function(
   }
   if (return.seurat) {
     if (slot[1] == 'scale.data') {
+      na.matrix <- data.return[[1]]
+      na.matrix[1:length(x = na.matrix)] <- NA
       toRet <- CreateSeuratObject(
-        counts = NULL,
+        counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
         ...
@@ -1354,7 +1354,7 @@ PseudobulkExpression <- function(
         object = toRet,
         assay = names(x = data.return)[1],
         slot = "data",
-        new.data = 0
+        new.data = na.matrix
       )
       toRet <- SetAssayData(
         object = toRet,
