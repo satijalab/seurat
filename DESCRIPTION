@@ -52,21 +52,21 @@ Imports:
     RANN,
     RColorBrewer,
     Rcpp,
-    RcppAnnoy,
+    RcppAnnoy (>= 0.0.18),
     reticulate,
     rlang,
     ROCR,
     rsvd,
     Rtsne,
     scales,
-    sctransform (>= 0.3.1),
+    sctransform (>= 0.3.2),
     shiny,
     spatstat,
     stats,
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.5)
+    uwot (>= 0.1.9)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
