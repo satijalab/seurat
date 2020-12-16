@@ -1391,13 +1391,13 @@ PseudobulkExpression <- function(
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
           toRet <- SetAssayData(
             object = toRet,
-            assay = names(x = data.return)[1],
+            assay = names(x = data.return)[i],
             slot = "counts",
             new.data = matrix()
           )
           toRet <- SetAssayData(
             object = toRet,
-            assay = names(x = data.return)[1],
+            assay = names(x = data.return)[i],
             slot = "data",
             new.data = na.matrix
           )
