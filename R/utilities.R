@@ -238,7 +238,7 @@ AddModuleScore <- function(
 #' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
 #' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' and 'data' slots
-#' are filled with NA, and 'scale.data' is set to the aggregated values.
+#' are filled with 0s, and 'scale.data' is set to the aggregated values.
 #'
 #' @inheritParams PseudobulkExpression
 #'
@@ -290,7 +290,7 @@ AggregateExpression <- function(
 #' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
 #' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' and 'data' slots
-#' are filled with NA, and 'scale.data' is set to the aggregated values.
+#' are filled with 0s, and 'scale.data' is set to the aggregated values.
 #'
 #' @inheritParams PseudobulkExpression
 #'
@@ -1342,10 +1342,10 @@ PseudobulkExpression <- function(
   }
   if (return.seurat) {
     if (slot[1] == 'scale.data') {
-      na.matrix <- data.return[[1]]
-      na.matrix[1:length(x = na.matrix)] <- NA
+      zero.matrix <- data.return[[1]]
+      zero.matrix[1:length(x = zero.matrix)] <- 0
       toRet <- CreateSeuratObject(
-        counts = na.matrix,
+        counts = zero.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
         ...
@@ -1354,7 +1354,7 @@ PseudobulkExpression <- function(
         object = toRet,
         assay = names(x = data.return)[1],
         slot = "data",
-        new.data = na.matrix
+        new.data = zero.matrix
       )
       toRet <- SetAssayData(
         object = toRet,
@@ -1380,14 +1380,14 @@ PseudobulkExpression <- function(
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         if (slot[i] == 'scale.data') {
-          na.matrix <- data.return[[1]]
-          na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          zero.matrix <- data.return[[1]]
+          zero.matrix[1:length(x = zero.matrix)] <- 0
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = zero.matrix)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
             slot = "data",
-            new.data = na.matrix
+            new.data = zero.matrix
           )
           toRet <- SetAssayData(
             object = toRet,
