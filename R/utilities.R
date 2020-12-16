@@ -287,7 +287,7 @@ AggregateExpression <- function(
 #' averaging
 #' If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
 #' are placed in the 'counts' slot of the returned object and the log of averaged values
-#' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
+#' are placed in the 'data' slot. \code{\link{ScaleData}} is then run on the default assay
 #' before returning the object.
 #' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
 #' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
@@ -1327,9 +1327,26 @@ PseudobulkExpression <- function(
       assay = assays[i],
       slot = slot[i]
     )
+    if (IsMatrixEmpty(x = data.use)) {
+      warning(
+        "The ", slot[i], " slot for the ", assays[i],
+        " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
+      next
+    }
+    bad.features <- setdiff(x = features, y = rownames(x = data.use))
+    if (length(x = bad.features) > 0) {
+      warning(
+        "The following ", length(x = bad.features),
+        " features were not found in the ", assays[i], " assay: ",
+        paste(bad.features, sep = ","), call. = FALSE, immediate. = TRUE)
+    }
     features.assay <- intersect(x = features, y = rownames(x = data.use))
     if (length(x = features.assay) > 0) {
       data.use <- data.use[features.assay, ]
+    } else {
+      warning("None of the features specified were found in the ", assays[i],
+              " assay.", call. = FALSE, immediate. = TRUE)
+      next
     }
     if (slot[i] == 'data') {
       data.use <- expm1(x = data.use)
