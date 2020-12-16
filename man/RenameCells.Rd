@@ -4,8 +4,8 @@
 \alias{RenameCells}
 \alias{RenameCells.Assay}
 \alias{RenameCells.DimReduc}
-\alias{RenameCells.SCTAssay}
 \alias{RenameCells.Neighbor}
+\alias{RenameCells.SCTAssay}
 \alias{RenameCells.Seurat}
 \alias{RenameCells.VisiumV1}
 \title{Rename cells}
@@ -16,9 +16,9 @@ RenameCells(object, ...)
 
 \method{RenameCells}{DimReduc}(object, new.names = NULL, ...)
 
-\method{RenameCells}{SCTAssay}(object, new.names = NULL, ...)
-
 \method{RenameCells}{Neighbor}(object, old.names = NULL, new.names = NULL, ...)
+
+\method{RenameCells}{SCTAssay}(object, new.names = NULL, ...)
 
 \method{RenameCells}{Seurat}(
   object,

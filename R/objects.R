@@ -288,7 +288,7 @@ SCTModel <- setClass(
     feature.attributes = 'data.frame',
     cell.attributes = 'data.frame',
     clips = 'list',
-    umi.assay = 'character', 
+    umi.assay = 'character',
     groups = 'factor',
     model = 'character',
     arguments = "list"
@@ -3328,6 +3328,14 @@ Cells.Neighbor <- function(x) {
 }
 
 #' @rdname Cells
+#' @method Cells SCTModel
+#' @export
+#'
+Cells.SCTModel <- function(x) {
+  return(rownames(x = slot(object = x, name = "cell.attributes")))
+}
+
+#' @rdname Cells
 #' @method Cells SlideSeq
 #' @export
 #'
@@ -3365,18 +3373,6 @@ Cells.STARmap <- function(x) {
 Cells.VisiumV1 <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
-
-
-#' @rdname Cells
-#' @method Cells SCTModel
-#' @export
-#'
-Cells.SCTModel <- function(x) {
-  return( rownames(x@cell.attributes))
-}
-
-
-
 
 #' @rdname DefaultAssay
 #' @export
@@ -5131,14 +5127,6 @@ ReorderIdent.Seurat <- function(
 #'
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   CheckDots(...)
-  if (IsSCT(assay = object)) {
-    SCTModel.list <- slot(object = object, name = "SCTModel.list")
-    object <- as(object = object, Class = "Assay")
-    object <- RenameCells(object = object, new.names = new.names)
-    object <- as(object = object, Class = "SCTAssay")
-    object <- SCTAssay( object, SCTModel.list = SCTModel.list)
-    return(object)
-  }
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) <= 1) {
@@ -5170,24 +5158,6 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
-#' @rdname RenameCells
-#' @export
-#' @method RenameCells SCTAssay
-#'
-RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
-  CheckDots(...)
-  name.df <- data.frame(row.names = Cells(object), new.names = new.names)
-  object <- RenameCells.Assay(object = object, new.names = new.names, ...)
-  cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
-  cell.attributes <- lapply(X = cell.attributes,
-                            FUN = function(x) { 
-                              rownames(x) <- name.df[ rownames(x) , "new.names"]
-                              return(x)
-                              })
-  SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
-  return(object)
-}
-
 #' @param old.names vector of old cell names
 #' @rdname RenameCells
 #' @export
@@ -5198,6 +5168,26 @@ RenameCells.Neighbor <- function(object, old.names = NULL, new.names = NULL, ...
   neighbor.names <- Cells(x = object)
   names(x = new.names) <- old.names
   slot(object = object, name = "cell.names") <- unname(obj = new.names[neighbor.names])
+  return(object)
+}
+
+#' @rdname RenameCells
+#' @export
+#' @method RenameCells SCTAssay
+#'
+RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
+  CheckDots(...)
+  old.names <- Cells(x = object)
+  names(x = new.names) <- old.names
+  cell.attributes <- lapply(
+    X = SCTResults(object = object, slot = "cell.attributes"),
+    FUN = function(x) {
+      rownames(x = x) <- unname(obj = new.names[old.names])
+      return(x)
+    }
+  )
+  SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
+  object <- NextMethod()
   return(object)
 }
 
@@ -5385,23 +5375,6 @@ RenameIdents.Seurat <- function(object, ...) {
 #'
 #' @rdname SCTResults
 #' @export
-#' @method SCTResults Assay
-#'
-SCTResults.Assay <- function(object, slot, key = "1", ...) {
-  CheckDots(...)
-  if (IsSCT(assay = object)) {
-    object <- as(object = object, class = "SCTAssay")
-  } else {
-    stop("Assay provided is not an SCTAssay.")
-  }
-  return(SCTResults(object = object))
-}
-
-#' @param slot Which slot to pull the SCT results from
-#' @param key Key value
-#'
-#' @rdname SCTResults
-#' @export
 #' @method SCTResults SCTAssay
 #'
 SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
@@ -5436,13 +5409,13 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
     )
   }
   SCTModel.list <- slot(object, "SCTModel.list")
-  SCTModel.list <- lapply(X = 1:length(SCTModel.list), 
+  SCTModel.list <- lapply(X = 1:length(SCTModel.list),
                           FUN = function(x){
     slot(SCTModel.list[[x]], name = slot ) <- value[[x]]
     return(SCTModel.list[[x]])
-  } 
+  }
   )
-  
+
   names(SCTModel.list) <- names(slot(object, "SCTModel.list"))
   slot(object, "SCTModel.list") <- SCTModel.list
   return(object)
@@ -5454,13 +5427,10 @@ SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
 #' @export
 #' @method SCTResults Seurat
 #'
-SCTResults.Seurat <- function(object, slot, assay = "SCT", ...) {
+SCTResults.Seurat <- function(object, assay = "SCT", slot, ...) {
   CheckDots(...)
-  return(
-    SCTResults(object = object[[assay]], slot = slot)
-  )
+  return(SCTResults(object = object[[assay]], slot = slot))
 }
-
 
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
@@ -7096,20 +7066,7 @@ length.DimReduc <- function(x) {
 #' }
 #'
 levels.SCTAssay <- function(x) {
-  return(  names(x@SCTModel.list) )
-}
-
-#' @rdname Idents
-#' @export
-#' @method levels Seurat
-#'
-#' @examples
-#' # Get the levels of identity classes of a Seurat object
-#' levels(x = pbmc_small)
-#'
-levels.Seurat <- function(x) {
-  x <- UpdateSlots(object = x)
-  return(levels(x = Idents(object = x)))
+  return(names(x = slot(object = x, name = "SCTModel.list")))
 }
 
 #' @rdname SCTAssay-class
@@ -7123,19 +7080,31 @@ levels.Seurat <- function(x) {
 #' @method levels<- SCTAssay
 #'
 "levels<-.SCTAssay" <- function(x, value) {
-  value <- sapply( value, function(v){
-    if (suppressWarnings(!is.na(as.numeric( v ))) ){
-    warning("SCTModel groups cannot be number, group is added in front of ", v)
-    v <- paste0("group",v)
-  }
-  return (v)
-})
-
+  value <- sapply(X = value, FUN = function(v) {
+    if (suppressWarnings(expr = !is.na(x = as.numeric(x = v)))) {
+      warning("SCTModel groups cannot be number, group is added in front of ", v)
+      v <- paste0("group", v)
+    }
+    return (v)
+  })
   # Get current levels
   xlevels <- levels(x = x)
-  SCTResults(object = x, slot = "groups") <- as.list(factor(value))
+  SCTResults(object = x, slot = "groups") <- as.list(x = factor(x = value))
   names(x@SCTModel.list) <- value
   return(x)
+}
+
+#' @rdname Idents
+#' @export
+#' @method levels Seurat
+#'
+#' @examples
+#' # Get the levels of identity classes of a Seurat object
+#' levels(x = pbmc_small)
+#'
+levels.Seurat <- function(x) {
+  x <- UpdateSlots(object = x)
+  return(levels(x = Idents(object = x)))
 }
 
 #' @rdname Idents
@@ -7288,8 +7257,8 @@ merge.SCTAssay <- function(
     })
   }
 
-  SCTModel.combined <- unlist(x = lapply(X = z, 
-                                         FUN = function(assay){ 
+  SCTModel.combined <- unlist(x = lapply(X = z,
+                                         FUN = function(assay){
     return(assay@SCTModel.list)
     })
     )
@@ -7299,9 +7268,9 @@ merge.SCTAssay <- function(
     return(SCTModel.combined[[i]])
   })
   names(SCTModel.combined) <- all.levels
- 
+
   combined.assay <- SCTAssay(
-    combined.assay, 
+    combined.assay,
     SCTModel.list = SCTModel.combined
   )
   return(combined.assay)
@@ -7476,7 +7445,7 @@ merge.Seurat <- function(
         }
       }
     }
-    
+
     SCT.assay.idx <- which(sapply(assays.merge, function(assay.i) inherits(x = assay.i, what = "SCTAssay") ) == TRUE)
     if (length(SCT.assay.idx) == length( assays.merge ) ) {
       merged.assay <- merge.SCTAssay(
@@ -7492,10 +7461,10 @@ merge.Seurat <- function(
       )
       if (length(SCT.assay.idx) > 0 ){
        not.sct.idx <-  setdiff(1:length( assays.merge ), SCT.assay.idx)
-        warning("Object", not.sct.idx, "'s ", 
-                assay, 
+        warning("Object", not.sct.idx, "'s ",
+                assay,
                 " assay is not a SCTAssay. ",
-                assay, 
+                assay,
                 " assays are merged as default assay")
       }
     }
@@ -7959,7 +7928,7 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
     features = features,
     ...
   )
-  SCTResults(object = x, 
+  SCTResults(object = x,
              slot = "cell.attributes")  <- lapply( X = SCTResults(object = x,  slot = "cell.attributes"),
                            FUN =  function(attr){
                              attr.cell <- intersect(rownames(attr), Cells(x))
@@ -9088,7 +9057,7 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
 
   if (!is.null(x = vst.res$genes_log_gmean_step1)) {
     feature.attrs[,"genes_log_gmean_step1"] <- FALSE
-    genes_step1 <- intersect(x = names(vst.res$genes_log_gmean_step1), 
+    genes_step1 <- intersect(x = names(vst.res$genes_log_gmean_step1),
                              y = rownames(feature.attrs))
     feature.attrs[genes_step1,"genes_log_gmean_step1"] <- TRUE
   }
@@ -9098,14 +9067,14 @@ PrepVSTResults <- function(vst.res, group = RandomName(), cell.names) {
     'vst' = vst.res$arguments$res_clip_range,
     'sct' = vst.res$arguments$sct.clip.range
   )
-  vst.res.SCTModel  <- SCTModel(feature.attributes = feature.attrs, 
+  vst.res.SCTModel  <- SCTModel(feature.attributes = feature.attrs,
                                 cell.attributes = cell.attrs,
-                                clips = clips, 
+                                clips = clips,
                                 umi.assay = vst.res$umi.assay %||% "RNA",
                                 groups = groups,
-                                model =  vst.res$model_str, 
+                                model =  vst.res$model_str,
                                 arguments =  vst.res$arguments)
-  
+
   return(vst.res.SCTModel)
 }
 

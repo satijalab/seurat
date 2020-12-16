@@ -3,7 +3,6 @@
 \name{SCTResults}
 \alias{SCTResults}
 \alias{SCTResults<-}
-\alias{SCTResults.Assay}
 \alias{SCTResults.SCTAssay}
 \alias{SCTResults<-.SCTAssay}
 \alias{SCTResults.Seurat}
@@ -13,13 +12,11 @@ SCTResults(object, ...)
 
 SCTResults(object, ...) <- value
 
-\method{SCTResults}{Assay}(object, slot, key = "1", ...)
-
 \method{SCTResults}{SCTAssay}(object, slot, key = "1", ...)
 
 \method{SCTResults}{SCTAssay}(object, slot, ...) <- value
 
-\method{SCTResults}{Seurat}(object, slot, assay = "SCT", ...)
+\method{SCTResults}{Seurat}(object, assay = "SCT", slot, ...)
 }
 \arguments{
 \item{object}{An object}
