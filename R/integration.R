@@ -334,7 +334,7 @@ FindIntegrationAnchors <- function(
             rescale = FALSE,
             verbose = verbose
           )
-         
+
           if (l2.norm){
             object.pair <- L2Dim(object = object.pair, reduction = reduction)
             reduction <- paste0(reduction, ".l2")
@@ -424,7 +424,7 @@ FindIntegrationAnchors <- function(
       return(anchors)
     }
   )
-  
+
   all.anchors <- do.call(what = 'rbind', args = all.anchors)
   all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
   all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
@@ -1054,9 +1054,14 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
-      ## CreateAssay not work here
-      object.list[[i]][[assay]]@data <- GetAssayData(object = object.list[[i]], 
-                                                     assay = assay, slot = "scale.data")
+      object.list[[i]][[assay]] <- SetAssayData(
+        object = object.list[[i]][[assay]],
+        slot = "data",
+        new.data = GetAssayData(
+          object = object.list[[i]][[assay]],
+          slot = "scale.data"
+        )
+      )
     }
     slot(object = anchorset, name = "object.list") <- object.list
   }
@@ -2074,7 +2079,7 @@ PrepSCTIntegration <- function(
     )
   }
   # TODO check this
-  
+
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -2082,7 +2087,7 @@ PrepSCTIntegration <- function(
       verbose = verbose
     )
   }
-  
+
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {

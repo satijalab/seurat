@@ -5,10 +5,10 @@
 \alias{Cells.default}
 \alias{Cells.DimReduc}
 \alias{Cells.Neighbor}
+\alias{Cells.SCTModel}
 \alias{Cells.SlideSeq}
 \alias{Cells.STARmap}
 \alias{Cells.VisiumV1}
-\alias{Cells.SCTModel}
 \title{Get cells present in an object}
 \usage{
 Cells(x)
@@ -19,13 +19,13 @@ Cells(x)
 
 \method{Cells}{Neighbor}(x)
 
+\method{Cells}{SCTModel}(x)
+
 \method{Cells}{SlideSeq}(x)
 
 \method{Cells}{STARmap}(x)
 
 \method{Cells}{VisiumV1}(x)
-
-\method{Cells}{SCTModel}(x)
 }
 \arguments{
 \item{x}{An object}
