@@ -1386,7 +1386,7 @@ PseudobulkExpression <- function(
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         if (slot[i] == 'scale.data') {
-          na.matrix <- data.return[[1]]
+          na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
           toRet <- SetAssayData(
