@@ -42,6 +42,19 @@ seurat_default_options <- list(
   Seurat.warn.vlnplot.split = TRUE
 )
 
+AttachDeps <- function(deps) {
+  for (d in deps) {
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
+  }
+}
+
+.onAttach <- function(libname, pkgname) {
+  AttachDeps(deps = 'SeuratObject')
+}
+
 .onLoad <- function(libname, pkgname) {
   op <- options()
   toset <- !(names(x = seurat_default_options) %in% names(x = op))

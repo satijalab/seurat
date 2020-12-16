@@ -24,9 +24,6 @@ VariableFeaturePlot(
 
 \item{log}{Plot the x-axis in log scale}
 
-\item{selection.method}{Which method to pull; choose one from \code{c('sctransform', 'sct')}
-or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}}
-
 \item{assay}{Assay to pull variable features from}
 }
 \value{

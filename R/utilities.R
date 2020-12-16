@@ -3,6 +3,15 @@
 NULL
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Reexports
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @rdname reexports
+#' @export
+#'
+SeuratObject::CheckDuplicateCellNames
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1349,8 +1358,6 @@ RegroupIdents <- function(object, metadata) {
   return(object)
 }
 
-
-
 #' Merge two matrices by rowname
 #'
 #' This function is for use on sparse matrices and
@@ -1734,36 +1741,6 @@ CheckDots <- function(..., fxns = NULL) {
       }
     }
   }
-}
-
-# Check a list of objects for duplicate cell names
-#
-# @param object.list List of Seurat objects
-# @param verbose Print message about renaming
-# @param stop Error out if any duplicate names exist
-#
-# @return Returns list of objects with duplicate cells renamed to be unique
-#
-CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
-  cell.names <- unlist(x = lapply(X = object.list, FUN = colnames))
-  if (any(duplicated(x = cell.names))) {
-    if (stop) {
-      stop("Duplicate cell names present across objects provided.")
-    }
-    if (verbose) {
-      warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
-    }
-    object.list <- lapply(
-      X = 1:length(x = object.list),
-      FUN = function(x) {
-        return(RenameCells(
-          object = object.list[[x]],
-          new.names = paste0(Cells(x = object.list[[x]]), "_", x)
-        ))
-      }
-    )
-  }
-  return(object.list)
 }
 
 # Call gc() to perform garbage collection
