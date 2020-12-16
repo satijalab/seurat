@@ -240,8 +240,17 @@ AddModuleScore <- function(
 #' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
 #' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 #'
-#' @inheritParams PseudobulkExpression
-#'
+#' @param object Seurat object
+#' @param assays Which assays to use. Default is all assays
+#' @param features Features to analyze. Default is all features in the assay
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
+#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
+#' @param verbose Print messages and show progress bar
+#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}#'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @export
@@ -292,7 +301,17 @@ AggregateExpression <- function(
 #' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
 #' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 #'
-#' @inheritParams PseudobulkExpression
+#' @param object Seurat object
+#' @param assays Which assays to use. Default is all assays
+#' @param features Features to analyze. Default is all features in the assay
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
+#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
+#' @param verbose Print messages and show progress bar
+#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
@@ -1226,33 +1245,33 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
-#' Pseudobulk feature expression by identity class
-#'
-#' Returns a representative expression value for each identity class
-#'
-#' @param object Seurat object
-#' @param pb.method Whether to 'average' (default) or 'aggregate' expression levels
-#' @param assays Which assays to use. Default is all assays
-#' @param features Features to analyze. Default is all features in the assay
-#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
-#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
-#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
-#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
-#' the order of 'assays' (if specified) or object's assays
-#' @param verbose Print messages and show progress bar
-#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
-#'
-#' @return Returns a matrix with genes as rows, identity classes as columns.
-#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
-#'
+# Pseudobulk feature expression by identity class
+#
+# Returns a representative expression value for each identity class
+#
+# @param object Seurat object
+# @param pb.method Whether to 'average' (default) or 'aggregate' expression levels
+# @param assays Which assays to use. Default is all assays
+# @param features Features to analyze. Default is all features in the assay
+# @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+# @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+# @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
+# (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+# @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+# the order of 'assays' (if specified) or object's assays
+# @param verbose Print messages and show progress bar
+# @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
+#
+# @return Returns a matrix with genes as rows, identity classes as columns.
+# If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#
 #' @importFrom Matrix rowMeans sparse.model.matrix
 #' @importFrom stats as.formula
-#' @export
-#'
-#' @examples
-#' head(PseudobulkExpression(object = pbmc_small))
-#'
+# @export
+#
+# @examples
+# head(PseudobulkExpression(object = pbmc_small))
+#
 PseudobulkExpression <- function(
   object,
   pb.method = 'average',

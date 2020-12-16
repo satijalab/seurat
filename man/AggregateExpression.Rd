@@ -35,7 +35,7 @@ the order of 'assays' (if specified) or object's assays}
 
 \item{verbose}{Print messages and show progress bar}
 
-\item{...}{Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}}
+\item{...}{Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}#'}
 }
 \value{
 Returns a matrix with genes as rows, identity classes as columns.
