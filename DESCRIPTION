@@ -60,6 +60,7 @@ Imports:
     Rtsne,
     scales,
     sctransform (>= 0.3.1),
+    SeuratObject,
     shiny,
     spatstat,
     stats,
