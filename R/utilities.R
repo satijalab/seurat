@@ -1312,33 +1312,57 @@ PseudobulkExpression <- function(
   for (i in 1:ncol(x = data)) {
     data[, i] <- as.factor(x = data[, i])
   }
-  category.matrix <- sparse.model.matrix(object = as.formula(
-    object = paste0(
-      '~0+',
-      paste0(
-        "data[,",
-        1:length(x = group.by),
-        "]",
-        collapse = ":"
-      )
-    )
-  ))
-  colsums <- colSums(x = category.matrix)
-  category.matrix <- category.matrix[, colsums > 0]
-  colsums <- colsums[colsums > 0]
-  if (pb.method == 'average') {
-    category.matrix <- Sweep(
-      x = category.matrix,
-      MARGIN = 2,
-      STATS = colsums,
-      FUN = "/")
+  num.levels <- sapply(
+    X = 1:ncol(x = data),
+    FUN = function(i) {
+      length(x = levels(x = data[, i]))
+    }
+  )
+  if (any(num.levels == 1)) {
+    message(paste0("The following grouping variables have 1 value and will be ignored: ",
+                   paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
+    group.by <- group.by[which(num.levels > 1)]
+    data <- data[, which(num.levels > 1), drop = F]
   }
-  colnames(x = category.matrix) <- sapply(
-    X = colnames(x = category.matrix),
-    FUN = function(name) {
-      name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
-      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
-    })
+  if (ncol(x = data) == 0) {
+    message("All grouping variables have 1 value only. Computing average across all cells.")
+    category.matrix <- matrix(
+      data = 1,
+      nrow = ncol(x = object),
+      dimnames = list(Cells(x = object), 'all')
+    )
+    if (pb.method == 'average') {
+      category.matrix <- category.matrix / sum(category.matrix)
+    }
+  } else {
+    category.matrix <- sparse.model.matrix(object = as.formula(
+      object = paste0(
+        '~0+',
+        paste0(
+          "data[,",
+          1:length(x = group.by),
+          "]",
+          collapse = ":"
+        )
+      )
+    ))
+    colsums <- colSums(x = category.matrix)
+    category.matrix <- category.matrix[, colsums > 0]
+    colsums <- colsums[colsums > 0]
+    if (pb.method == 'average') {
+      category.matrix <- Sweep(
+        x = category.matrix,
+        MARGIN = 2,
+        STATS = colsums,
+        FUN = "/")
+    }
+    colnames(x = category.matrix) <- sapply(
+      X = colnames(x = category.matrix),
+      FUN = function(name) {
+        name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+        return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+      })
+  }
   data.return <- list()
   for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
@@ -2245,8 +2269,8 @@ PackageCheck <- function(..., error = TRUE) {
   if (error && any(!package.installed)) {
     stop(
       "Cannot find the following packages: ",
-       paste(pkgs[!package.installed], collapse = ', '),
-       ". Please install"
+      paste(pkgs[!package.installed], collapse = ', '),
+      ". Please install"
     )
   }
   invisible(x = package.installed)
