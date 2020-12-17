@@ -1309,6 +1309,11 @@ PseudobulkExpression <- function(
     stop("Number of slots provided does not match number of assays")
   }
   data <- FetchData(object = object, vars = rev(x = group.by))
+  data <- data[rowSums(x = is.na(x = data)) == 0, ]
+  if (nrow(x = data) < ncol(x = object)) {
+    message("Removing cells with NA for 1 or more grouping variables")
+    object <- subset(x = object, cells = rownames(x = data))
+  }
   for (i in 1:ncol(x = data)) {
     data[, i] <- as.factor(x = data[, i])
   }
@@ -1321,7 +1326,7 @@ PseudobulkExpression <- function(
   if (any(num.levels == 1)) {
     message(paste0("The following grouping variables have 1 value and will be ignored: ",
                    paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
-    group.by <- group.by[which(num.levels > 1)]
+    group.by <- colnames(x = data)[which(num.levels > 1)]
     data <- data[, which(num.levels > 1), drop = F]
   }
   if (ncol(x = data) == 0) {
