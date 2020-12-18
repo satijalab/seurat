@@ -175,7 +175,8 @@ Command <- function(object, ...) {
 #' into its component parts for picking the relevant field.
 #' @param meta.data Additional cell-level metadata to add to the Seurat object.
 #' Should be a \code{\link[base]{data.frame}} where the rows are cell names and
-#' the columns are additional metadata fields.
+#' the columns are additional metadata fields. Row names of the metadata need to
+#' match the column names of the counts matrix.
 #' @param ... Arguments passed to other methods
 #'
 #' @note In previous versions (<3.0), this function also accepted a parameter to
