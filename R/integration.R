@@ -1149,15 +1149,18 @@ IntegrateData <- function(
       slot = "anchors",
       new.data = anchors
     )
-    unintegrated <- SetIntegrationData(
-      object = unintegrated,
-      integration.name = "Integration",
-      slot = "sample.tree",
-      new.data = GetIntegrationData(
+    if (!is.null(x = Tool(object = reference.integrated, slot = "Integration"))) {
+      sample.tree <- GetIntegrationData(
         object = reference.integrated,
         integration.name = "Integration",
         slot = "sample.tree"
       )
+    }
+    unintegrated <- SetIntegrationData(
+      object = unintegrated,
+      integration.name = "Integration",
+      slot = "sample.tree",
+      new.data = sample.tree
     )
     DefaultAssay(object = unintegrated) <- new.assay.name
     VariableFeatures(object = unintegrated) <- features
@@ -1574,7 +1577,7 @@ MapQuery <- function(
         reduction.model = reduction.model
         ), projectumap.args
       )
-    ) 
+    )
   }
   return(query)
 }
