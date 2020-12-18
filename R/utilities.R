@@ -1330,7 +1330,7 @@ PseudobulkExpression <- function(
     data <- data[, which(num.levels > 1), drop = F]
   }
   if (ncol(x = data) == 0) {
-    message("All grouping variables have 1 value only. Computing average across all cells.")
+    message("All grouping variables have 1 value only. Computing across all cells.")
     category.matrix <- matrix(
       data = 1,
       nrow = ncol(x = object),
