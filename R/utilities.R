@@ -1309,7 +1309,7 @@ PseudobulkExpression <- function(
     stop("Number of slots provided does not match number of assays")
   }
   data <- FetchData(object = object, vars = rev(x = group.by))
-  data <- data[rowSums(x = is.na(x = data)) == 0, ]
+  data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
   if (nrow(x = data) < ncol(x = object)) {
     message("Removing cells with NA for 1 or more grouping variables")
     object <- subset(x = object, cells = rownames(x = data))
