@@ -153,123 +153,6 @@ CalculateBarcodeInflections <- function(
   return(object)
 }
 
-#' Convert a peak matrix to a gene activity matrix
-#'
-#' This function will take in a peak matrix and an annotation file (gtf) and collapse the peak
-#' matrix to a gene activity matrix. It makes the simplifying assumption that all counts in the gene
-#' body plus X kb up and or downstream should be attributed to that gene.
-#'
-#' @param peak.matrix Matrix of peak counts
-#' @param annotation.file Path to GTF annotation file
-#' @param seq.levels Which seqlevels to keep (corresponds to chromosomes usually)
-#' @param include.body Include the gene body?
-#' @param upstream Number of bases upstream to consider
-#' @param downstream Number of bases downstream to consider
-#' @param keep.sparse Leave the matrix as a sparse matrix. Setting this option to
-#' TRUE will take much longer but will use less memory. This can be useful if
-#' you have a very large matrix that cannot fit into memory when converted to
-#' a dense form.
-#' @param verbose Print progress/messages
-#'
-#' @importFrom future nbrOfWorkers
-#' @export
-#'
-CreateGeneActivityMatrix <- function(
-  peak.matrix,
-  annotation.file,
-  seq.levels = c(1:22, "X", "Y"),
-  include.body = TRUE,
-  upstream = 2000,
-  downstream = 0,
-  keep.sparse = FALSE,
-  verbose = TRUE
-) {
-  .Deprecated(
-    new = 'Signac::GeneActivity',
-    msg = paste(
-      "CreateGeneActivityMatrix functionality is being moved to Signac.",
-      "Equivalent functionality can be",
-      "achieved via the Signac::GeneActivity function; for",
-      "more information on Signac, please see https://github.com/timoast/Signac"
-    )
-  )
-  if (!PackageCheck('GenomicRanges', error = FALSE)) {
-    stop("Please install GenomicRanges from Bioconductor.")
-  }
-  if (!PackageCheck('rtracklayer', error = FALSE)) {
-    stop("Please install rtracklayer from Bioconductor.")
-  }
-  # convert peak matrix to GRanges object
-  peak.df <- rownames(x = peak.matrix)
-  peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
-  peak.df <- as.data.frame(x = peak.df)
-  colnames(x = peak.df) <- c("chromosome", 'start', 'end')
-  peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
-
-  # if any peaks start at 0, change to 1
-  # otherwise GenomicRanges::distanceToNearest will not work
-  BiocGenerics::start(peaks.gr[BiocGenerics::start(peaks.gr) == 0, ]) <- 1
-
-  # get annotation file, select genes
-  gtf <- rtracklayer::import(con = annotation.file)
-  gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-
-  # change seqlevelsStyle if not the same
-  if (!any(GenomeInfoDb::seqlevelsStyle(x = gtf) == GenomeInfoDb::seqlevelsStyle(x = peaks.gr))) {
-    GenomeInfoDb::seqlevelsStyle(gtf) <- GenomeInfoDb::seqlevelsStyle(peaks.gr)
-  }
-  gtf.genes <- gtf[gtf$type == 'gene']
-
-  # Extend definition up/downstream
-  if (include.body) {
-    gtf.body_prom <- Extend(x = gtf.genes, upstream = upstream, downstream = downstream)
-  } else {
-    gtf.body_prom <- SummarizedExperiment::promoters(x = gtf.genes, upstream = upstream, downstream = downstream)
-  }
-  gene.distances <- GenomicRanges::distanceToNearest(x = peaks.gr, subject = gtf.body_prom)
-  keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
-  peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
-  gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
-
-  # Some GTF rows will not have gene_name attribute
-  # Replace it by gene_id attribute
-  gene.ids$gene_name[is.na(gene.ids$gene_name)] <- gene.ids$gene_id[is.na(gene.ids$gene_name)]
-
-  peak.ids$gene.name <- gene.ids$gene_name
-  peak.ids <- as.data.frame(x = peak.ids)
-  peak.ids$peak <- rownames(peak.matrix)[S4Vectors::queryHits(x = keep.overlaps)]
-  annotations <- peak.ids[, c('peak', 'gene.name')]
-  colnames(x = annotations) <- c('feature', 'new_feature')
-
-  # collapse into expression matrix
-  if (!keep.sparse) {
-    peak.matrix <- as(object = peak.matrix, Class = 'matrix')
-  }
-  all.features <- unique(x = annotations$new_feature)
-
-  if (nbrOfWorkers() > 1) {
-    mysapply <- future_sapply
-  } else {
-    mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
-  }
-  newmat.list <- mysapply(X = 1:length(x = all.features), FUN = function(x){
-    features.use <- annotations[annotations$new_feature == all.features[[x]], ]$feature
-    submat <- peak.matrix[features.use, ]
-    if (length(x = features.use) > 1) {
-      submat <- Matrix::colSums(submat)
-    }
-    if (keep.sparse) {
-      return(as(object = as.matrix(x = submat), Class = 'dgCMatrix'))
-    } else {
-      return(as.matrix(x = submat))
-    }
-  }, simplify = FALSE)
-  newmat = do.call(what = cbind, args = newmat.list)
-  newmat <- t(x = newmat)
-  rownames(x = newmat) <- all.features
-  return(as(object = newmat, Class = 'dgCMatrix'))
-}
-
 #' Demultiplex samples based on data from cell 'hashing'
 #'
 #' Assign sample-of-origin for each cell, annotate doublets.
@@ -479,6 +362,15 @@ GetResidual <- function(
 ) {
   if (!IsSCT(assay = object[[assay]])) {
     stop(assay, " assay was not generated by SCTransform")
+  }
+  model.name <- ifelse(
+    test = "vst.set" %in% names(x = Misc(object = object[[assay]])),
+    yes = "vst.set",
+    no = "vst.out"
+  )
+  if (length(x = Misc(object = object[[assay]])[[model.name]]) == 0) {
+    warning("SCT model not present in assay")
+    return(object)
   }
   umi.assay <- umi.assay %||% Misc(object = object[[assay]], slot = "umi.assay")
   umi.assay <- umi.assay %||% "RNA" # for object created in 3.1.1 or earlier, default to RNA
@@ -1503,8 +1395,15 @@ SampleUMI <- function(
 #' @param object A seurat object
 #' @param assay Name of assay to pull the count data from; default is 'RNA'
 #' @param new.assay.name Name for the new assay containing the normalized data
+#' @param reference.SCT.model If not NULL, compute residuals for the object
+#' using the provided SCT model; supports only log_umi as the latent variable.
+#' If residual.features are not specified, compute for the top variable.features.n
+#' specified in the model which are also present in the object. If
+#' residual.features are specified, the variable features of the resulting SCT
+#' assay are set to the top variable.features.n in the model.
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
-#' @param ncells Number of subsampling cells used to build NB regression; default is NULL
+#' @param ncells Number of subsampling cells used to build NB regression; default is 5000
+#' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
@@ -1544,8 +1443,10 @@ SCTransform <- function(
   object,
   assay = 'RNA',
   new.assay.name = 'SCT',
+  reference.SCT.model = NULL,
   do.correct.umi = TRUE,
-  ncells = NULL,
+  ncells = 5000,
+  residual.features = NULL,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   vars.to.regress = NULL,
@@ -1571,6 +1472,19 @@ SCTransform <- function(
     if (!(vst.args[['batch_var']] %in% colnames(x = cell.attr))) {
       stop('batch_var not found in seurat object meta data')
     }
+  }
+  # parameter checking when reference.SCT.model is set
+  if (!is.null(x = reference.SCT.model) ) {
+    if (!is.list(reference.SCT.model) | !('model_str' %in% names(reference.SCT.model))) {
+      stop("reference.SCT.model must be `vst.out` from the misc slot of your reference SCT assay")
+    }
+    if ('latent_var' %in% names(x = vst.args)) {
+      stop('custom latent variables are not supported when reference.SCT.model is given')
+    }
+    if (reference.SCT.model$model_str != 'y ~ log_umi') {
+      stop('reference.SCT.model must be derived using default SCT regression formula, `y ~ log_umi`')
+    }
+
   }
   # check for latent_var in meta data
   if ('latent_var' %in% names(x = vst.args)) {
@@ -1606,13 +1520,33 @@ SCTransform <- function(
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_gene_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
-  vst.args[['n_cells']] <- ncells
+  vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
+  if (!is.null(x = reference.SCT.model)) {
+    variable.features.ref <- rownames(x = reference.SCT.model$model_pars_fit)[
+      order(reference.SCT.model$gene_attr$residual_variance, decreasing = TRUE)[1:variable.features.n]]
+    if (is.null(x = residual.features)) {
+      if (verbose) {
+        message("residual.features not specified. Computing residuals for the top ",
+                variable.features.n, " variable features in the provided model.")
+      }
+      residual.features <- intersect(
+        x = variable.features.ref,
+        y = rownames(x = object[[assay]])
+      )
+    }
+  }
+  if (!is.null(x = residual.features)) {
+    residual.features <- intersect(x = residual.features, y = rownames(x = umi))
+    do.correct.umi <- FALSE
+    vst.args[['return_corrected_umi']] <- FALSE
+    vst.args[['residual_type']] <- 'none'
+  }
   if (conserve.memory) {
     return.only.var.genes <- TRUE
   }
-  if (conserve.memory) {
+  if (conserve.memory & is.null(x = reference.SCT.model)) {
     vst.args[['residual_type']] <- 'none'
     vst.out <- do.call(what = 'vst', args = vst.args)
     feature.variance <- get_residual_var(
@@ -1624,7 +1558,45 @@ SCTransform <- function(
     vst.out$gene_attr$residual_variance <- NA_real_
     vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
   } else {
-    vst.out <- do.call(what = 'vst', args = vst.args)
+    if (is.null(x = reference.SCT.model)) {
+      vst.out <- do.call(what = 'vst', args = vst.args)
+    }
+    if (!is.null(x = residual.features)) {
+      if (!is.null(x = reference.SCT.model)) {
+        vst.out <- reference.SCT.model
+        ref.gene_attr <- vst.out$gene_attr
+        clip.range <- vst.out$arguments$sct.clip.range
+        vst.out$model_pars_fit <-
+          vst.out$model_pars_fit[residual.features, ]
+        vst.out$cells_step1 <- colnames(x = umi)
+
+        umi.field <- paste0("nCount_", assay)
+        vst.out$cell_attr <-
+          if (umi.field %in% colnames(x = object[[]])) {
+          data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
+        } else {
+          data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
+        }
+
+      } else {
+        residual.features <- intersect(x = residual.features, y =  rownames(x = vst.out$gene_attr))
+      }
+      residual.feature.mat <- get_residuals(
+        vst_out = vst.out,
+        umi = umi[residual.features, , drop = FALSE]
+      )
+
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
+      vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
+      vst.out$gene_attr$residual_variance = RowVar(x = residual.feature.mat)
+      if (!is.null(x = reference.SCT.model)) {
+        # center residuals by reference residual mean
+        ref.residual.mean <- ref.gene_attr[residual.features, "residual_mean"]
+        vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - ref.residual.mean)
+        do.center <- FALSE
+      }
+    }
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
       nm = rownames(x = vst.out$gene_attr)
@@ -1639,10 +1611,16 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
+  if (!is.null(x = residual.features) &  !is.null(x = reference.SCT.model)) {
+    top.features <- intersect(
+      x = variable.features.ref,
+      y = rownames(x = GetAssayData(object = object[[new.assay.name]], slot = "scale.data"))
+    )
+  }
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
-  if (conserve.memory) {
+  if (conserve.memory & is.null(x = reference.SCT.model)) {
     # actually get the residuals this time
     if (verbose) {
       message("Return only variable features for scale.data slot of the output assay")
@@ -1679,7 +1657,7 @@ SCTransform <- function(
     slot = 'data',
     new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
   )
-  if (return.only.var.genes & !conserve.memory) {
+  if (return.only.var.genes & !conserve.memory & is.null(x = residual.features)) {
     scale.data <- vst.out$y[top.features, ]
   } else {
     scale.data <- vst.out$y

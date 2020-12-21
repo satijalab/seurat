@@ -3,7 +3,7 @@
 [![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat)
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat)
 
-# Seurat v3.2.3
+# Seurat v4.0 Beta
 
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
@@ -47,7 +47,7 @@ July 20, 2018
 
 * Version 2.4
 * Changes:
-  * Java dependency removed and functionality rewritten in Rcpp 
+  * Java dependency removed and functionality rewritten in Rcpp
 
 March 22, 2018
 
