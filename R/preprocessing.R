@@ -1605,7 +1605,7 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  if (!is.null(x = residual.features)) {
+  if (!is.null(x = residual.features) &  !is.null(x = reference.SCT.model)) {
     top.features <- intersect(
       x = variable.features.ref,
       y = rownames(x = GetAssayData(object = object[[new.assay.name]], slot = "scale.data"))
