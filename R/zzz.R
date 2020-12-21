@@ -25,8 +25,6 @@
 #'   Moran's I function available via the Rfast2 package}}
 #'   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
 #'   default behavior of split/multi violin plots}
-#'   \item{\code{Seurat.quietstart}}{Show package startup messages in
-#'   interactive sessions}
 #' }
 #'
 #' @docType package
@@ -41,19 +39,8 @@ seurat_default_options <- list(
   Seurat.checkdots = "warn",
   Seurat.limma.wilcox.msg = TRUE,
   Seurat.Rfast2.msg = TRUE,
-  Seurat.warn.vlnplot.split = TRUE,
-  Seurat.quietstart = FALSE
+  Seurat.warn.vlnplot.split = TRUE
 )
-
-.onAttach <- function(libname, pkgname) {
-  if (interactive() && !isTRUE(x = getOption(x = "Seurat.quietstart", default = FALSE))) {
-    packageStartupMessage(paste(
-      "\nSeurat v4 will be going to CRAN in the near future;\n",
-      "for more details, please visit",
-      "https://satijalab.org/seurat/v4_changes\n"
-    ))
-  }
-}
 
 .onLoad <- function(libname, pkgname) {
   op <- options()
