@@ -2331,8 +2331,6 @@ SelectIntegrationFeatures <- function(
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
-#' @param do.cpp Run cpp code where applicable. This argument is being
-#' deprecated and will be set to TRUE by default.
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
 #' @param verbose Print progress bars and output
@@ -2406,14 +2404,6 @@ TransferData <- function(
   prediction.assay = FALSE,
   store.weights = TRUE
 ) {
-  # TODO: deprecate fully in 4.0
-  if (!isTRUE(x = do.cpp)) {
-    warning(
-      "The do.cpp parameter is being deprecated. It will default to TRUE.",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")

@@ -64,8 +64,6 @@ dimensional reduction}
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}
 
-\item{do.cpp}{Run cpp code where applicable. This argument is being
-deprecated and will be set to TRUE by default.}
 \item{n.trees}{More trees gives higher precision when using annoy approximate
 nearest neighbor search}
 
