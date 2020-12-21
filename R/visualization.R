@@ -5685,38 +5685,6 @@ FeaturePalettes <- list(
   'Seurat' = c('lightgrey', 'blue')
 )
 
-# Get colour aesththics from a plot for a certain geom
-#
-# @param plot A ggplot2 object
-# @param geom Geom class to filter to
-# @param plot.first Use plot-wide colour aesthetics before geom-specific aesthetics
-#
-# @return A named list with values 'colour' for the colour aesthetic
-#
-#' @importFrom rlang as_label
-#
-GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
-  geoms <- sapply(
-    X = plot$layers,
-    FUN = function(layer) {
-      return(class(x = layer$geom)[1])
-    }
-  )
-  geoms <- which(x = geoms == geom)
-  if (!length(x = geoms)) {
-    stop("Cannot find a geom of class ", geom)
-  }
-  geoms <- min(geoms)
-  colour <- if (plot.first) {
-    # colour <- as.character(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)[2]
-    as_label(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)
-  } else {
-    # colour <- as.character(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)[2]
-    as_label(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)
-  }
-  return(list(colour = colour))
-}
-
 # Splits features into groups based on log expression levels
 #
 # @param object Seurat object
