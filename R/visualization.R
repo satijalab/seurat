@@ -6853,7 +6853,7 @@ SingleCorPlot <- function(
   legend.title = NULL,
   na.value = 'grey50',
   span = NULL,
-  raster = NULL
+  raster = NULL,
   plot.cor = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
