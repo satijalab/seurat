@@ -7511,50 +7511,6 @@ merge.Seurat <- function(
   return(merged.object)
 }
 
-#' @export
-#' @method merge vstresults
-#'
-#' @keywords internal
-#'
-merge.vstresults <- function(x, y, ...) {
-  if (inherits(x = y, what = 'vstresults')) {
-    y <- list(y)
-  } else if (!all(sapply(X = y, FUN = inherits, what = 'vstresults'))) {
-    stop(
-      "'y' must either be a 'vstresults' or a list of 'vstresults' objects",
-      call. = FALSE
-    )
-  }
-  objects <- c(list(x), y)
-  merged <- vector(mode = 'list', length = length(x = x))
-  names(x = merged) <- names(x = x)
-  merged$cell.attributes <- do.call(
-    what = 'rbind',
-    args = lapply(X = objects, FUN = '[[', 'cell.attributes')
-  )
-  merged$feature.attributes <- do.call(
-    what = 'rbind',
-    args = lapply(X = objects, FUN = '[[', 'feature.attributes')
-  )
-  merged$fitted.parameters <- do.call(
-    what = 'rbind',
-    args = lapply(X = objects, FUN = '[[', 'fitted.parameters')
-  )
-  merged$clips <- sapply(X = objects, FUN = '[[', 'clips')
-  merged$groups <- as.character(x = unlist(x = lapply(
-    X = objects,
-    FUN = '[[',
-    'groups'
-  )))
-  names(x = merged$groups) <- names(x = unlist(x = lapply(
-    X = objects,
-    FUN = '[[',
-    'groups'
-  )))
-  merged$groups <- factor(x = merged$groups)
-  return(structure(.Data = merged, class = 'vstresults'))
-}
-
 
 #' @export
 #' @method names DimReduc
