@@ -261,13 +261,16 @@ IntegrationData <- setClass(
 
 
 #' The SCTModel Class
-#'
+#' The SCTModel object is a model and parameters storage from SCTransform. 
+#' It can be used to calculate Pearson residuals for new genes.
 #'
 #' @slot feature.attributes A data.frame with feature attributes in SCTransform
 #' @slot cell.attributes A data.frame with cell attributes in SCTransform
-#' @slot clips A list of clip range in vst and SCTransform
-#' @slot umi.assay the assay containing UMI counts
-#' @slot groups A level for the SCT Model
+#' @slot clips A list of two numeric of length two specifying the min and max values the Pearson residual
+#' will be clipped to. One for vst and one for SCTransform
+#' @slot umi.assay Name of the assay of the seurat object containing UMI matrix and 
+#' the default is RNA
+#' @slot groups The level for the SCT Model
 #' @slot model A formula used in SCTransform
 #' @slot arguments other information used in SCTransform
 #'
