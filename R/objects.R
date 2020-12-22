@@ -5370,13 +5370,12 @@ RenameIdents.Seurat <- function(object, ...) {
 }
 
 #' @param slot Which slot to pull the SCT results from
-#' @param key Key value
 #'
 #' @rdname SCTResults
 #' @export
 #' @method SCTResults SCTAssay
 #'
-SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
+SCTResults.SCTAssay <- function(object, slot, ...) {
   CheckDots(...)
   slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'groups',  'model', 'arguments')
   if (!slot %in% slots.use) {
@@ -7057,7 +7056,7 @@ levels.SCTAssay <- function(x) {
   })
   # Get current levels
   xlevels <- levels(x = x)
-  SCTResults(object = x, slot = "groups") <- as.list(x = factor(x = value))
+ SCTResults(object = x, slot = "groups") <- as.list(x = factor(x = value))
   names(x@SCTModel.list) <- value
   return(x)
 }
