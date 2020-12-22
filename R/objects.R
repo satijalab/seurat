@@ -311,10 +311,9 @@ SCTModel <- setClass(
 #' @rdname SCTAssay-class
 #'
 #' @examples
-#' \dontrun{
 #' # SCTAssay objects are generated from SCTransform
 #' pbmc_small <- SCTransform(pbmc_small)
-#' }
+#' pbmc_small[["SCT"]]
 #'
 SCTAssay <- setClass(
   Class = 'SCTAssay',
