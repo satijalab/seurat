@@ -5685,34 +5685,6 @@ FeaturePalettes <- list(
   'Seurat' = c('lightgrey', 'blue')
 )
 
-# Get colour aesththics from a plot for a certain geom
-#
-# @param plot A ggplot2 object
-# @param geom Geom class to filter to
-# @param plot.first Use plot-wide colour aesthetics before geom-specific aesthetics
-#
-# @return A named list with values 'colour' for the colour aesthetic
-#
-GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
-  geoms <- sapply(
-    X = plot$layers,
-    FUN = function(layer) {
-      return(class(x = layer$geom)[1])
-    }
-  )
-  geoms <- which(x = geoms == geom)
-  if (!length(x = geoms)) {
-    stop("Cannot find a geom of class ", geom)
-  }
-  geoms <- min(geoms)
-  if (plot.first) {
-    colour <- as.character(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)[2]
-  } else {
-    colour <- as.character(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)[2]
-  }
-  return(list(colour = colour))
-}
-
 # Splits features into groups based on log expression levels
 #
 # @param object Seurat object
@@ -5760,6 +5732,8 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
 #
 # @return A named list with values 'x' for the name of the x aesthetic and 'y' for the y aesthetic
 #
+#' @importFrom rlang as_label
+#
 GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   geoms <- sapply(
     X = plot$layers,
@@ -5773,11 +5747,13 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   }
   geoms <- min(geoms)
   if (plot.first) {
-    x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
-    y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+    # x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
+    x <- as_label(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)
+    # y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+    y <- as_label(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)
   } else {
-    x <- as.character(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)[2]
-    y <- as.character(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)[2]
+    x <- as_label(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)
+    y <- as_label(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)
   }
   return(list('x' = x, 'y' = y))
 }
