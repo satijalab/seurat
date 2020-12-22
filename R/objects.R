@@ -5378,9 +5378,6 @@ RenameIdents.Seurat <- function(object, ...) {
 #'
 SCTResults.SCTAssay <- function(object, slot, key = "1", ...) {
   CheckDots(...)
-  if (!inherits(x = object, what = "SCTAssay")) {
-    stop("Provided assay is not an SCTAssay")
-  }
   slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'groups',  'model', 'arguments')
   if (!slot %in% slots.use) {
     stop(
