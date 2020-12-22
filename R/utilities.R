@@ -1292,7 +1292,6 @@ PseudobulkExpression <- function(
   if (!(pb.method %in% c('average', 'aggregate'))) {
     stop("'pb.method' must be either 'average' or 'aggregate'")
   }
-  features <- features %||% rownames(x = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
@@ -1375,20 +1374,24 @@ PseudobulkExpression <- function(
       assay = assays[i],
       slot = slot[i]
     )
+    features.to.avg <- features %||% rownames(x = data.use)
+    if (inherits(x = features, what = "list")) {
+      features.to.avg <- features[i]
+    }
     if (IsMatrixEmpty(x = data.use)) {
       warning(
         "The ", slot[i], " slot for the ", assays[i],
         " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
       next
     }
-    bad.features <- setdiff(x = features, y = rownames(x = data.use))
+    bad.features <- setdiff(x = features.to.avg, y = rownames(x = data.use))
     if (length(x = bad.features) > 0) {
       warning(
         "The following ", length(x = bad.features),
         " features were not found in the ", assays[i], " assay: ",
-        paste(bad.features, sep = ","), call. = FALSE, immediate. = TRUE)
+        paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
     }
-    features.assay <- intersect(x = features, y = rownames(x = data.use))
+    features.assay <- intersect(x = features.to.avg, y = rownames(x = data.use))
     if (length(x = features.assay) > 0) {
       data.use <- data.use[features.assay, ]
     } else {
