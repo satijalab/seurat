@@ -12,7 +12,7 @@ SCTResults(object, ...)
 
 SCTResults(object, ...) <- value
 
-\method{SCTResults}{SCTAssay}(object, slot, key = "1", ...)
+\method{SCTResults}{SCTAssay}(object, slot, ...)
 
 \method{SCTResults}{SCTAssay}(object, slot, ...) <- value
 
@@ -26,8 +26,6 @@ SCTResults(object, ...) <- value
 \item{value}{new data to set}
 
 \item{slot}{Which slot to pull the SCT results from}
-
-\item{key}{Key value}
 
 \item{assay}{Assay in the Seurat object to pull from}
 }

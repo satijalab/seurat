@@ -30,23 +30,21 @@ object, with extra information from the results of \code{\link{SCTransform}}
 \section{Slots}{
 
 \describe{
-\item{\code{feature.attributes}}{A data.frame with the following columns:}
+\item{\code{feature.attributes}}{A data.frame with feature attributes in SCTransform}
 
-\item{\code{cell.attributes}}{A data.frame with the following columns:}
+\item{\code{cell.attributes}}{A data.frame with cell attributes in SCTransform}
 
-\item{\code{clips}}{...}
+\item{\code{clips}}{A list of clip range in vst and SCTransform}
 
-\item{\code{umi.assay}}{...}
+\item{\code{umi.assay}}{the assay containing UMI counts}
 
-\item{\code{groups}}{...}
+\item{\code{groups}}{A level for the SCT Model}
 
-\item{\code{model}}{...}
+\item{\code{model}}{A formula used in SCTransform}
 
-\item{\code{arguments}}{...}
+\item{\code{arguments}}{other information used in SCTransform}
 
-\item{\code{SCTModel.list}}{A data.frame with the following columns:}
-
-\item{\code{groups}}{...}
+\item{\code{SCTModel.list}}{A list containing SCT models}
 }}
 
 \section{Get and set SCT groupings}{

@@ -263,13 +263,13 @@ IntegrationData <- setClass(
 #' The SCTModel Class
 #'
 #'
-#' @slot feature.attributes A data.frame with the following columns:
-#' @slot cell.attributes A data.frame with the following columns:
-#' @slot clips ...
-#' @slot umi.assay ...
-#' @slot groups ...
-#' @slot model ...
-#' @slot arguments ...
+#' @slot feature.attributes A data.frame with feature attributes in SCTransform
+#' @slot cell.attributes A data.frame with cell attributes in SCTransform
+#' @slot clips A list of clip range in vst and SCTransform
+#' @slot umi.assay the assay containing UMI counts
+#' @slot groups A level for the SCT Model
+#' @slot model A formula used in SCTransform
+#' @slot arguments other information used in SCTransform
 #'
 #' @seealso \code{\link{Assay}}
 #'
@@ -302,8 +302,7 @@ SCTModel <- setClass(
 #' The SCTAssay object contains all the information found in an \code{\link{Assay}}
 #' object, with extra information from the results of \code{\link{SCTransform}}
 #'
-#' @slot SCTModel.list A data.frame with the following columns:
-#' @slot groups ...
+#' @slot SCTModel.list A list containing SCT models
 #'
 #' @seealso \code{\link{Assay}}
 #'
