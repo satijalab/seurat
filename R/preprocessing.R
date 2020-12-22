@@ -1803,7 +1803,8 @@ FindVariableFeatures.default <- function(
 #' @export
 #' @method FindVariableFeatures Assay
 #'
-FindVariableFeatures.Assay <- function(
+FindVariableFeatures.Assay <- 
+  function(
   object,
   selection.method = "vst",
   loess.span = 0.3,
@@ -1879,6 +1880,29 @@ FindVariableFeatures.Assay <- function(
 }
 
 #' @inheritParams FindVariableFeatures.Assay
+#'
+#' @rdname FindVariableFeatures
+#' @export
+#' @method FindVariableFeatures SCTAssay
+#'
+
+FindVariableFeatures.SCTAssay <- function( object,  
+                                           nfeatures = 2000, 
+                                           ...){
+  feature.attr <- SCTResults(object = object, slot = "feature.attributes")
+  if (length(feature.attr) > 1) {
+    stop("SCT assay has multiple SCT models")
+  } else {
+    feature.attr <- feature.attr[[1]]
+  }
+  top.features <-  rownames(feature.attr )[order(feature.attr$residual_variance,
+                                                 decreasing = TRUE)[1:nfeatures]]
+  VariableFeatures(object = object) <- top.features
+  return(object)
+}
+
+
+#' @inheritParams FindVariableFeatures.Assay
 #' @param assay Assay to use
 #'
 #' @rdname FindVariableFeatures
@@ -1919,6 +1943,12 @@ FindVariableFeatures.Seurat <- function(
     ...
   )
   object[[assay]] <- assay.data
+  if (inherits(x = object[[assay]], what = "SCTAssay")) {
+    object <- GetResidual(object = object,
+                          assay = assay,
+                          features = VariableFeatures(object = assay.data),
+                          verbose = FALSE)
+  }
   object <- LogSeuratCommand(object = object)
   return(object)
 }

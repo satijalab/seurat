@@ -7,55 +7,21 @@
 \alias{SCTAssay}
 \alias{levels.SCTAssay}
 \alias{levels<-.SCTAssay}
-\alias{max.SCTAssay}
-\alias{min.SCTAssay}
-\alias{range.SCTAssay}
 \title{The SCTModel Class}
 \usage{
 \method{levels}{SCTAssay}(x)
 
 \method{levels}{SCTAssay}(x) <- value
-
-\method{max}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"), drop = TRUE)
-
-\method{min}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"), drop = TRUE)
-
-\method{range}{SCTAssay}(..., na.rm = FALSE, slot = c("sct", "vst"), drop = TRUE)
 }
 \arguments{
 \item{x}{An \code{SCTAssay} object}
 
 \item{value}{New levels, must be in the same order as the levels present}
-
-\item{...}{For \code{range}, \code{min}, and \code{max}, an \code{SCTAssay}
-object. For all others, arguments passed to other methods or ignored}
-
-\item{na.rm}{logical, indicating if \code{\link[base]{NA}}'s should be
-    omitted.}
-
-\item{slot}{Which clips to fetch, choose from "sct" (Seurat \code{\link{SCTransform}}- set clips)
-or "vst" (\code{\link[sctransform]{vst}}) set clips}
-
-\item{drop}{If only one SCTransform group, return a vector instead of a list}
 }
 \value{
 \code{levels}: SCT grouping levels
 
 \code{levels<-}: \code{x} with updated SCT groupings
-
-\code{max}: The maximum clip values. If multiple SCTransform groups
-present (eg. merged \code{SCTAssay} objects), returns as a named list with
-the maximums present for each list; otherwise, returns a vector similar to
-\code{\link[base]{max}}
-
-\code{min}: The minimum clip values. If multiple SCTransform groups
-present (eg. merged \code{SCTAssay} objects), returns as a named list with
-the minimums present for each list; otherwise, returns a vector similar to
-\code{\link[base]{min}}
-
-\code{range}: The clip values. If multiple SCTransform groups present
-(eg. merged \code{SCTAssay} objects), returns as a named list with the ranges
-present for each list; otherwise, returns a vector similar to \code{\link[base]{range}}
 }
 \description{
 The SCTAssay object contains all the information found in an \code{\link{Assay}}
@@ -94,13 +60,6 @@ present, useful when merging \code{SCTAssay} objects. Note: unlike normal
 of groups, not reordering.
 }
 
-\section{Get SCT clip values}{
-
-\code{range}, \code{min}, and \code{max} get the SCT clip values for this
-\code{SCTAssay} object. \code{range} provides both the minimum and maximum,
-\code{min} provides just the minimum, and \code{max} provides just the maximum
-}
-
 \section{Creating an \code{SCTAssay} from an \code{Assay}}{
 
 Conversion from an \code{Assay} object to an \code{SCTAssay} object by
@@ -115,27 +74,15 @@ the conversion will automagically fill the new slots with the data
 pbmc_small <- SCTransform(pbmc_small)
 }
 
-\dontrun{
 # SCTAssay objects are generated from SCTransform
 pbmc_small <- SCTransform(pbmc_small)
-}
+pbmc_small[["SCT"]]
 
 \dontrun{
 # Query and change SCT groupings
 levels(pbmc_small[['SCT']])
 levels(pbmc_small[['SCT']]) <- '3'
 levels(pbmc_small[['SCT']])
-}
-
-\dontrun{
-# Query clip values
-range(pbmc_small[['SCT']])
-range(pbmc_small[['SCT']], slot = 'vst') # Get sctransform::vst determined clips
-range(pbmc_small[['SCT']], drop = FALSE) # Prevent simplification to a vector
-
-# Query minimum and maximum clip values
-min(pbmc_small[['SCT']])
-max(pbmc_small[['SCT']])
 }
 
 }
