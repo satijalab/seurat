@@ -7591,12 +7591,6 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
   }
 }
 
-#' @export
-#' @method split SCTAssay
-#'
-split.SCTAssay <- function(x, f, drop = FALSE) {
-  .NotYetImplemented()
-}
 
 #' @importFrom stats na.omit
 #'
