@@ -6813,13 +6813,6 @@ WriteH5AD.Seurat <- function(
   return(data.return)
 }
 
-#' @export
-#' @method as.character SCTAssay
-#'
-as.character.SCTAssay <- function(x, ...) {
-  .NotYetImplemented()
-  return(invisible(x = NULL))
-}
 
 #' Coerce a SeuratCommand to a list
 #'
@@ -6869,19 +6862,6 @@ as.logical.JackStrawData <- function(x, ...) {
   return(!(all(dim(x = empP) == 0) || all(is.na(x = empP))))
 }
 
-# #' @export
-# #' @method attr SCTAssay
-# #'
-# attr.SCTAssay <- function(x, which, exact = FALSE) {
-#   .NotYetImplemented()
-# }
-#
-# #' @export
-# #' @method attr<- SCTAssay
-# #'
-# `attr<-.SCTAssay` <- function(x, which, value) {
-#   .NotYetImplemented()
-# }
 
 #' @export
 #' @method dim Assay
@@ -7018,14 +6998,6 @@ droplevels.Seurat <- function(x, ...) {
   return(x)
 }
 
-#' @importFrom stats formula as.formula
-#'
-#' @export
-#' @method formula SCTAssay
-#'
-formula.SCTAssay <- function(x, ...) {
-  return(as.formula(object = as.character(x = x)))
-}
 
 #' @export
 #' @method length DimReduc
