@@ -8612,35 +8612,6 @@ setMethod(
   }
 )
 
-setValidity(
-  Class = 'SCTAssay',
-  method = function(object) {
-    # TODO: Remove this when validity is done
-    tryCatch(
-      expr = .NotYetImplemented(),
-      error = function(e) {
-        warning(e$message, call. = FALSE, immediate. = TRUE)
-      }
-    )
-    return(TRUE)
-    # Check the validity of an SCTAssay object
-    errors <- vector(mode = 'character', length = 0L)
-    # Check cell attributes
-    cell.attrs <- slot(object = object, name = 'cell.attributes')
-    if (nrow(x = cell.attrs) != ncol(x = object)) {
-      errors <- c(errors, 'The number of cells ...')
-    }
-    if (!all(rownames(x = cell.attrs) == colnames(x = object))) {
-      errors <- c(errors, '')
-    }
-    # Check ...
-    # Check ...
-    if (length(x = errors)) {
-      return(errors)
-    }
-    return(TRUE)
-  }
-)
 
 setMethod(
   f = 'show',
