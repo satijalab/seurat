@@ -1560,8 +1560,7 @@ CheckMatrix <- function(
   check.infinite = TRUE,
   check.logical = TRUE,
   check.integer = TRUE,
-  check.na = TRUE,
-  check.nan = TRUE
+  check.na = TRUE
 ) {
   if (inherits(x = object, what = "Matrix")) {
     if (check.infinite) {
@@ -1580,13 +1579,8 @@ CheckMatrix <- function(
       }
     }
     if (check.na) {
-      if (any(is.na(x = slot(object = object, name = "x")))) {
-        warning("Input matrix contains NA values")
-      }
-    }
-    if (check.nan) {
-      if (any(is.nan(x = slot(object = object, name = "x")))) {
-        warning("Input matrix contains NaN values")
+      if (anyNA(x = slot(object = object, name = "x"))) {
+        warning("Input matrix contains NA or NaN values")
       }
     }
   }
