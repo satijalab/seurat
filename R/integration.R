@@ -1544,6 +1544,7 @@ MapQuery <- function(
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
+  slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
     query <- do.call(
@@ -2603,10 +2604,7 @@ TransferData <- function(
     return(transfer.results)
   } else {
     if (store.weights) {
-      slot(object = query, name = "tools") <- c(
-        slot(object = query, name = "tools"),
-        list(TransferData = list(weights.matrix = weights))
-      )
+      slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
     }
     return(query)
   }
