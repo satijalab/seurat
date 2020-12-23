@@ -961,7 +961,8 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' automatically.
 #' @param preserve.order Do not reorder objects based on size for each pairwise
 #' integration.
-#' @param do.cpp Run cpp code where applicable
+#' @param do.cpp Run cpp code where applicable. This argument is being
+#' deprecated and will be set to TRUE by default.
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
 #' @param verbose Print progress bars and output
@@ -1020,6 +1021,14 @@ IntegrateData <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   normalization.method <- match.arg(arg = normalization.method)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -3357,7 +3366,8 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param preserve.order Do not reorder objects based on size for each pairwise integration.
-# @param do.cpp Run cpp code where applicable
+# @param do.cpp Run cpp code where applicable. This argument is being
+# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
 #
@@ -3381,6 +3391,14 @@ MapQueryData <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   normalization.method <- match.arg(arg = normalization.method)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -3502,7 +3520,8 @@ NNtoMatrix <- function(idx, distance, k) {
 # automatically.
 # @param preserve.order Do not reorder objects based on size for each pairwise
 # integration.
-# @param do.cpp Run cpp code where applicable
+# @param do.cpp Run cpp code where applicable. This argument is being
+# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from
 # \code{\link{RANN}})
 # @param verbose Print progress bars and output
@@ -3525,6 +3544,14 @@ PairwiseIntegrateReference <- function(
   eps = 0,
   verbose = TRUE
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   object.list <- slot(object = anchorset, name = "object.list")
   reference.objects <- slot(object = anchorset, name = "reference.objects")
   features <- features %||% slot(object = anchorset, name = "anchor.features")
@@ -3840,6 +3867,9 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 # first merge between reference and query, as the merged object will subsequently contain more cells than was in
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
+# @param sample.tree Specify the order of integration. If NULL, will compute automatically.
+# @param do.cpp Run cpp code where applicable. This argument is being
+# deprecated and will be set to TRUE by default.
 # @param do.cpp Run cpp code where applicable
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
@@ -3863,6 +3893,14 @@ RunIntegration <- function(
   eps,
   verbose
 ) {
+  # TODO: deprecate fully in 4.0
+  if (!isTRUE(x = do.cpp)) {
+    warning(
+      "The do.cpp parameter is being deprecated. It will default to TRUE.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
   cells1 <- colnames(x = reference)
   cells2 <- colnames(x = query)
   if (nrow(x = filtered.anchors) < k.weight) {

@@ -117,3 +117,25 @@ test_that("AverageExpression with return.seurat", {
   expect_equal(GetAssayData(avg.scale[["RNA"]], slot = "counts"), matrix())
 })
 
+test.dat <- GetAssayData(object = object, slot = "data")
+rownames(x = test.dat) <- paste0("test-", rownames(x = test.dat))
+object[["TEST"]] <- CreateAssayObject(data = test.dat)
+
+test_that("AverageExpression with multiple assays", {
+  avg.test <- AverageExpression(object = object, assays = "TEST")
+  expect_equal(names(x = avg.test), "TEST")
+  expect_equal(length(x = avg.test), 1)
+  expect_equivalent(
+    avg.test[[1]]['test-KHDRBS1', 1:3],
+    c(a = 7.278237e-01, b = 1.658166e+14, c = 1.431902e-01),
+    tolerance = 1e-6
+  )
+  expect_equivalent(
+    avg.test[[1]]['test-DNAJB1', 1:3] ,
+    c(a = 1.374079e+00, b = 5.100840e-01, c = 5.011655e-01),
+    tolerance = 1e-6
+  )
+  avg.all <- AverageExpression(object = object)
+  expect_equal(names(x = avg.all), c("RNA", "TEST"))
+  expect_equal(length(x = avg.all), 2)
+})

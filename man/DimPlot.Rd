@@ -31,7 +31,8 @@ DimPlot(
   sizes.highlight = 1,
   na.value = "grey50",
   ncol = NULL,
-  combine = TRUE
+  combine = TRUE,
+  raster = NULL
 )
 
 PCAPlot(object, ...)
@@ -104,6 +105,9 @@ groups in cells.highlight}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
+\item{raster}{Convert points to raster format, default is \code{NULL} which
+automatically rasterizes if plotting more than 50,000 cells}
 
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }

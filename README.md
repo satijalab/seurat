@@ -47,7 +47,7 @@ July 20, 2018
 
 * Version 2.4
 * Changes:
-  * Java dependency removed and functionality rewritten in Rcpp 
+  * Java dependency removed and functionality rewritten in Rcpp
 
 March 22, 2018
 
