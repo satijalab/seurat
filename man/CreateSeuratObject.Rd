@@ -59,7 +59,8 @@ into its component parts for picking the relevant field.}
 
 \item{meta.data}{Additional cell-level metadata to add to the Seurat object.
 Should be a \code{\link[base]{data.frame}} where the rows are cell names and
-the columns are additional metadata fields.}
+the columns are additional metadata fields. Row names in the metadata need to
+match the column names of the counts matrix.}
 
 \item{...}{Arguments passed to other methods}
 
