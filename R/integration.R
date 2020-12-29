@@ -93,8 +93,7 @@ NULL
 #' \code{\link{IntegrateData}}.
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
-#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
-#' j.cell.2019.05.031}
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
