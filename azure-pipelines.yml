@@ -36,5 +36,5 @@ jobs:
           TargetFolder: '$(Build.ArtifactStagingDirectory)/docs'
       - task: PublishBuildArtifacts@1
         inputs:
-          pathtoPublish: '$(Build.ArtifactStagingDirectory)/docs'
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/docs/docs/'
           artifactName: docs

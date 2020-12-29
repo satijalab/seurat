@@ -7,12 +7,20 @@ template:
 navbar:
   title: "Seurat"
   left:
+    - text: "Install"
+      href: articles/install.html
     - text: "Get started"
       href: articles/pbmc3k_tutorial.html
     - text: "Vignettes"
       menu:
         - text: "PBMC 3K guided tutorial"
           href: articles/pbmc3k_tutorial.html
+    - text: Extensions
+      href: articles/extensions.html
+    - text: FAQ
+      href: articles/faq.html
+    - text: "News"
+      href: news/index.html 
     - text: "Reference"
       href: reference/index.html
   right:

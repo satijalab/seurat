@@ -1,0 +1,65 @@
+---
+title: "Frequently Asked Questions"
+output: html_document
+---
+
+In our most recent release, we've added new methods, and significantly restructured and improved our codebase. We outline the most significant changes below, particularly for users who have extensive experience with Seurat or want to learn more about the details of the Seurat object.
+
+For new users, especially those getting started with analyzing scRNA-seq data, we suggest working through our [guided tutorial](pbmc3k_tutorial.html) of a 2,700 PBMC scRNA-seq dataset from 10X genomics.
+
+### 1. What new methods are included in Seurat v3.0?
+
+* **Integrated analysis of scRNA-seq datasets**
+    * Seurat v3 implements new methods to identify 'anchors' across single-cell datasets ([Stuart\*, Butler\* et al., bioRxiv, 2018](https://www.biorxiv.org/content/10.1101/460147v1)). The procedure significantly extends our previous 'alignment' methods in Seurat v2 ([Butler et al, Nature Biotechnology, 2018](https://www.nature.com/articles/nbt.4096)). To guide users, we include the following vignettes, with additional tutorials forthcoming:
+        * [Aligning single cell datasets across environmental conditions to learn cell-type specific responses](immune_alignment.html)
+        * [Creating a harmonized 'atlas' of cell types by integrating different scRNA-seq technologies](integration.html)
+        * [Classifying cells in a query dataset based on a reference 'atlas'](integration.html)
+
+* **New methods for the normalization and scaling of single-cell data**
+    * Seurat v3 includes a workflow that implements 'regularized negative binomial regression' for the normalization and variance stabilization of single-cell data, as described in our sctransform preprint ([Hafemeister and Satija, bioRxiv 2019](https://www.biorxiv.org/content/10.1101/576827v1)). The method has a few attractive properties when compared to log-normalization:
+        * We learn a statistical model of technical noise directly from the data, and remove this without dampening biological heterogeneity
+        * We do not assume a constant size or global 'scaling factor' for single cells
+        * We do not apply heuristic steps, such as log-transformation, pseudocount addition, or z-scoring
+    * We include a [vignette](sctransform_vignette.html) demonstrating the application of sctransform in a Seurat workflow 
+
+* **Improved multimodal support**
+    * We have structured the Seurat object to efficiently store multiple types of data in single cells, and to ensure that users can easily switch between, and explore multiple assays. We aim to facilitate users who are working with multi-modal datasets, (for example, CITE-Seq, Cell Hashing), or who store multiple representations of the same dataset (i.e. batch-corrected or imputed data). We include a [multi-modal vignette](multimodal_vignette.html), alongside a [developer guide](https://github.com/satijalab/seurat/wiki) that provides a technical discussion of the Seurat object structure.
+
+### 2. I'm used to Seurat v2! 
+
+We believe that Seurat v3 offers substantial improvements in both functionality and user-experience, and are committed to making this transition as smooth as possible. We have been particularly careful to ensure that users who have started projects in Seurat v2 can complete existing work prior to upgrading:
+
+* Users on all platforms can easily re-install Seurat v2, with detailed instructions [here](install.html) 
+* All website vignettes have been updated to v3, but v2 versions remain as well (look for the red button on the bottom-right of the screen).
+* Seurat v3 includes an 'UpdateSeuratObject' function, so old objects can be analyzed with the updated version.
+* We include a [command 'cheat sheet'](essential_commands.html), a brief introduction to new commands, data accessors, visualization, and multiple assays in Seurat v3.0
+* The [command 'cheat sheet'](essential_commands.html) also contains a translation guide between Seurat v2 and v3
+
+### 3. What manuscripts should I cite if I use Seurat?
+
+If you use Seurat in your research, please consider citing:
+
+* [Stuart\*, Butler\* et al., bioRxiv, 2018](https://www.biorxiv.org/content/10.1101/460147v1)
+* [Butler et al, Nature Biotechnology, 2018](https://www.nature.com/articles/nbt.4096)
+
+In addition, if you use the sctransform workflow, please consider citing:
+ * [Hafemeister and Satija, bioRxiv 2019](https://www.biorxiv.org/content/10.1101/576827v1)
+
+### 4. I've run an integration analysis and/or sctransform and now want to perform a differential expression analysis. Which Assay should I use?
+
+We recommend running your differential expression tests on the "unintegrated" data. By default this is stored in the "RNA" Assay. There are several reasons for this. 
+
+1. The integration procedure inherently introduces dependencies between data points. This violates the assumptions of the statistical tests used for differential expression.
+
+2. DE and integration are not currently supported with sctransform but will be soon.
+
+### 5. How can I find out about more about additional features?
+
+* **Tutorials**
+	* We provide several [tutorials and command lists](vignette_overview.html) to help you get started analyzing your scRNA-seq data with Seurat.  
+* **Vignettes**
+	* We include a set of [frequently requested vignettes](vignette_overview.html) that address common questions and feature requests addressed to us by e-mail at [seuratpackage@gmail.com](mailto:seuratpackage@gmail.com).
+	* If you have a feature you would like to see a vignette for or would like to contribute one, please don't hesitate to get in touch.
+* **Code Documentation**
+	* All of our provided functions have accompanying documentation that you can view through R's help feature
+	* For example, to view more information about our clustering procedure, type ?FindClusters in the R console.
