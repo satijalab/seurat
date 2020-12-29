@@ -17,9 +17,12 @@ jobs:
         
         steps:
             - uses: actions/checkout@v2
+            - name: Remove vignettes dir
+              run: rm -rf 'vignettes/'
+              shell: bash
 
             - name: Check
-              run: rcmdcheck::rcmdcheck(args = c('--no-manual', '--no-build-vignettes'), error_on = "warning", check_dir = "check")
+              run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning", check_dir = "check")
               shell: Rscript {0}
 
             - name: Upload check results
