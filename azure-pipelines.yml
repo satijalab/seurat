@@ -20,6 +20,7 @@ jobs:
     steps:
       - script: |
             Rscript --default-packages=stats,graphics,grDevices,utils,datasets,base,methods -e "install.packages('.', type = 'source', repos = NULL, dependencies = FALSE, lib = Sys.getenv('R_LIBS_USER'))"
+            mv /data/* data/
             mkdir output
             mkdir output/images
             mkdir output/timings

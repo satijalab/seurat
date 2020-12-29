@@ -19,7 +19,7 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Check
-              run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "warning", check_dir = "check")
+              run: rcmdcheck::rcmdcheck(args = "--no-manual, --no-build-vignettes", error_on = "warning", check_dir = "check")
               shell: Rscript {0}
 
             - name: Upload check results
