@@ -34,6 +34,7 @@ NULL
 #' @param verbose Print output
 #'
 #' @rdname FindClusters
+#' @concept clustering
 #' @export
 #'
 FindClusters.default <- function(
@@ -144,6 +145,7 @@ FindClusters.default <- function(
 #' @param graph.name Name of graph to use for the clustering algorithm
 #'
 #' @rdname FindClusters
+#' @concept clustering
 #' @export
 #' @method FindClusters Seurat
 #'
@@ -245,6 +247,7 @@ FindClusters.Seurat <- function(
 #' @importFrom methods as
 #'
 #' @rdname FindNeighbors
+#' @concept clustering
 #' @export
 #' @method FindNeighbors default
 #'
@@ -351,6 +354,7 @@ FindNeighbors.default <- function(
 }
 
 #' @rdname FindNeighbors
+#' @concept clustering
 #' @export
 #' @method FindNeighbors Assay
 #'
@@ -394,6 +398,7 @@ FindNeighbors.Assay <- function(
 }
 
 #' @rdname FindNeighbors
+#' @concept clustering
 #' @export
 #' @method FindNeighbors dist
 #'
@@ -446,6 +451,7 @@ FindNeighbors.dist <- function(
 #' @importFrom igraph graph.adjacency plot.igraph E
 #'
 #' @rdname FindNeighbors
+#' @concept clustering
 #' @export
 #' @method FindNeighbors Seurat
 #'
@@ -919,6 +925,7 @@ RunModularityClustering <- function(
 #' @param subcluster.name the name of sub cluster added in the meta.data
 #'
 #' @return return a object with sub cluster labels in the sub-cluster.name variable
+#' @concept clustering
 #' @export
 #'
 FindSubCluster <- function(
@@ -965,7 +972,9 @@ FindSubCluster <- function(
 #'
 #' @return return an assay containing predicted expression value in the data
 #' slot
+#' @concept clustering
 #' @export
+#'
 #'
 PredictAssay <- function(
   object,
@@ -1254,7 +1263,7 @@ MultiModalNN <- function(
 #' Construct weighted nearest neighbor graph
 #'
 #' This function will construct a weighted nearest neighbor (WNN) graph. For
-#' each cell, we identify the nearest neighbors based on a weighted combination 
+#' each cell, we identify the nearest neighbors based on a weighted combination
 #' of two modalities. Takes as input two dimensional reductions, one computed for each modality.
 #' Other parameters are listed for debugging, but can be left as default values.
 
@@ -1268,7 +1277,7 @@ MultiModalNN <- function(
 #' @param cross.contant.list Constant used to avoid divide-by-zero errors. 1e-4 by default
 #' @param smooth Smoothing modality score across each individual modality
 #' neighbors. FALSE by default
-#' @param prune.SNN Cutoff not to discard edge in SNN graph 
+#' @param prune.SNN Cutoff not to discard edge in SNN graph
 #' @param knn.graph.name Multimodal knn graph name
 #' @param snn.graph.name Multimodal snn graph name
 #' @param weighted.nn.name Multimodal neighbor object name
@@ -1282,6 +1291,7 @@ MultiModalNN <- function(
 #' @param verbose Print progress bars and output
 #'
 #' @return Seurat object containing a nearest-neighbor object, KNN graph, and SNN graph - each based on a weighted combination of modalities.
+#' @concept clustering
 #' @export
 
 FindMultiModalNeighbors  <- function(
@@ -1406,7 +1416,7 @@ FindMultiModalNeighbors  <- function(
 # Calculate modality weights
 #
 # This function calculates cell-specific modality weights which are used to
-# in WNN analysis. 
+# in WNN analysis.
 #' @inheritParams FindMultiModalNeighbors
 # @param object A Seurat object
 # @param snn.far.nn Use SNN farthest neighbors to calculate the kernel width

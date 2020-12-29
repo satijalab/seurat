@@ -30,3 +30,4 @@ Stdev(object = pbmc_small[["pca"]])
 Stdev(object = pbmc_small, reduction = "pca")
 
 }
+\concept{objects}

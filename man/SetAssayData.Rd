@@ -46,3 +46,4 @@ new.seurat.object <- SetAssayData(
 )
 
 }
+\concept{objects}

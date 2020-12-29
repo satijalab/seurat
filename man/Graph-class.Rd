@@ -17,3 +17,4 @@ The Graph class inherits from dgCMatrix. We do this to enable future expandabili
 \seealso{
 \code{\link[Matrix]{dgCMatrix-class}}
 }
+\concept{objects}

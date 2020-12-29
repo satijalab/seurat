@@ -36,3 +36,4 @@ GetAssayData(object = pbmc_small[["RNA"]], slot = "data")[1:5,1:5]
 GetAssayData(object = pbmc_small, assay = "RNA", slot = "data")[1:5,1:5]
 
 }
+\concept{objects}

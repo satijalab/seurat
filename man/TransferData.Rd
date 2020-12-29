@@ -170,3 +170,4 @@ pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 Stuart T, Butler A, et al. Comprehensive Integration of
 Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
 }
+\concept{integration}

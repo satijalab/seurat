@@ -133,3 +133,5 @@ DimPlot(object = pbmc_small, split.by = 'ident')
 \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
 \code{\link{CellSelector}} \code{\link{FetchData}}
 }
+\concept{convenience}
+\concept{visualization}

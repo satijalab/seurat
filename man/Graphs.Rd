@@ -19,3 +19,4 @@ in this Seurat object. Otherwise, the \code{Graph} object requested
 Lists the names of \code{\link{Graph}} objects present in
 a Seurat object. If slot is provided, pulls specified Graph object.
 }
+\concept{objects}

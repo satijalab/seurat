@@ -77,3 +77,4 @@ pmbc_small <- NormalizeData(object = pbmc_small)
 }
 
 }
+\concept{preprocessing}

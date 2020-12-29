@@ -40,6 +40,7 @@ NULL
 #' @importFrom stats ave aggregate
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
@@ -183,6 +184,7 @@ CalculateBarcodeInflections <- function(
 #' @importFrom stats pnbinom kmeans
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @seealso \code{\link{HTOHeatmap}}
 #'
@@ -344,6 +346,7 @@ HTODemux <- function(
 #' @importFrom sctransform get_residuals
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
@@ -499,6 +502,7 @@ GetResidual <- function(
 #' @importFrom jsonlite fromJSON
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' \dontrun{
@@ -554,6 +558,7 @@ Load10X_Spatial <- function(
 #' @seealso \code{\link{STARmap}}
 #'
 #' @export
+#' @concept preprocessing
 #'
 LoadSTARmap <- function(
   data.dir,
@@ -619,6 +624,7 @@ LoadSTARmap <- function(
 #' @importFrom methods as
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
@@ -660,6 +666,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' @import Matrix
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @references \url{https://www.biorxiv.org/content/10.1101/387241v1}
 #'
@@ -759,6 +766,7 @@ MULTIseqDemux <- function(
 #'
 #' @importFrom utils read.csv read.delim
 #' @export
+#' @concept preprocessing
 #'
 #' @author Avi Srivastava
 #'
@@ -814,6 +822,7 @@ ReadAlevinCsv <- function(base.path) {
 #' @return Returns a matrix with rows and columns labeled
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @author Avi Srivastava
 #'
@@ -890,6 +899,7 @@ ReadAlevin <- function(base.path) {
 #' @importFrom Matrix readMM
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' \dontrun{
@@ -1039,6 +1049,7 @@ Read10X <- function(
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
+#' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
@@ -1127,6 +1138,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
 #'
 #' @export
+#' @concept preprocessing
 #'
 Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
@@ -1169,6 +1181,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
 #' @seealso \code{\link{SlideSeq}}
 #'
 #' @export
+#' @concept preprocessing
 #'
 ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
   if (!file.exists(paths = coord.file)) {
@@ -1202,6 +1215,7 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @importFrom methods as
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
@@ -1237,6 +1251,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
 #' @importFrom spatstat markvario ppp
 #'
 #' @export
+#' @concept preprocessing
 #'
 RunMarkVario <- function(
   spatial.location,
@@ -1281,6 +1296,7 @@ RunMarkVario <- function(
 #' @importFrom stats dist
 #'
 #' @export
+#' @concept preprocessing
 #'
 RunMoransI <- function(data, pos, verbose = TRUE) {
   mysapply <- sapply
@@ -1348,6 +1364,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' @return Matrix with downsampled data
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
@@ -1435,6 +1452,7 @@ SampleUMI <- function(
 #'
 #' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' SCTransform(object = pbmc_small)
@@ -1715,6 +1733,7 @@ SCTransform <- function(
 #' @return Returns a subsetted Seurat object.
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
@@ -1750,6 +1769,7 @@ SubsetByBarcodeInflections <- function(object) {
 #' @importFrom Matrix colSums rowSums
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
@@ -1815,6 +1835,7 @@ TF.IDF <- function(data, verbose = TRUE) {
 #' @param verbose show progress bar for calculations
 #'
 #' @rdname FindVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 FindVariableFeatures.default <- function(
@@ -1911,6 +1932,7 @@ FindVariableFeatures.default <- function(
 #' feature dispersions
 #'
 #' @rdname FindVariableFeatures
+#' @concept preprocessing
 #' @export
 #' @method FindVariableFeatures Assay
 #'
@@ -1993,6 +2015,7 @@ FindVariableFeatures.Assay <- function(
 #' @param assay Assay to use
 #'
 #' @rdname FindVariableFeatures
+#' @concept preprocessing
 #' @export
 #' @method FindVariableFeatures Seurat
 #'
@@ -2052,6 +2075,7 @@ FindVariableFeatures.Seurat <- function(
 #'
 #' @method FindSpatiallyVariableFeatures default
 #' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 #'
@@ -2103,6 +2127,7 @@ FindSpatiallyVariableFeatures.default <- function(
 #'
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
@@ -2166,6 +2191,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
 #'
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 FindSpatiallyVariableFeatures.Seurat <- function(
@@ -2224,6 +2250,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 #' @param verbose display progress bar for normalization procedure
 #'
 #' @rdname NormalizeData
+#' @concept preprocessing
 #' @export
 #'
 NormalizeData.default <- function(
@@ -2329,6 +2356,7 @@ NormalizeData.default <- function(
 }
 
 #' @rdname NormalizeData
+#' @concept preprocessing
 #' @export
 #' @method NormalizeData Assay
 #'
@@ -2358,6 +2386,7 @@ NormalizeData.Assay <- function(
 #' @param assay Name of assay to use
 #'
 #' @rdname NormalizeData
+#' @concept preprocessing
 #' @export
 #' @method NormalizeData Seurat
 #'
@@ -2406,6 +2435,7 @@ NormalizeData.Seurat <- function(
 #' \code{\link{set.seed}()} function as usual.
 #'
 #' @rdname RunALRA
+#' @concept preprocessing
 #' @export
 #'
 RunALRA.default <- function(
@@ -2513,6 +2543,7 @@ RunALRA.default <- function(
 #' @importFrom stats sd setNames quantile
 #'
 #' @rdname RunALRA
+#' @concept preprocessing
 #' @export
 #' @method RunALRA Seurat
 #'
@@ -2647,6 +2678,7 @@ RunALRA.Seurat <- function(
 #' @importFrom future.apply future_lapply
 #'
 #' @rdname ScaleData
+#' @concept preprocessing
 #' @export
 #'
 ScaleData.default <- function(
@@ -2886,6 +2918,7 @@ ScaleData.default <- function(
 }
 
 #' @rdname ScaleData
+#' @concept preprocessing
 #' @export
 #' @method ScaleData Assay
 #'
@@ -2943,6 +2976,7 @@ ScaleData.Assay <- function(
 #' @param assay Name of Assay to scale
 #'
 #' @rdname ScaleData
+#' @concept preprocessing
 #' @export
 #' @method ScaleData Seurat
 #'

@@ -20,3 +20,4 @@ A matrix with the nearest neighbor indices
 \description{
 Get Neighbor nearest neighbor index matrices
 }
+\concept{objects}

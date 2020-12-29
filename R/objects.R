@@ -37,6 +37,7 @@ setClassUnion(name = 'OptionalCharacter', members = c('NULL', 'character'))
 #'
 #' @name AnchorSet-class
 #' @rdname AnchorSet-class
+#' @concept objects
 #' @exportClass AnchorSet
 #'
 AnchorSet <- setClass(
@@ -62,6 +63,7 @@ AnchorSet <- setClass(
 #'
 #' @name TransferAnchorSet-class
 #' @rdname TransferAnchorSet-class
+#' @concept objects
 #' @exportClass TransferAnchorSet
 #'
 TransferAnchorSet <- setClass(
@@ -76,6 +78,7 @@ TransferAnchorSet <- setClass(
 #'
 #' @name IntegrationAnchorSet-class
 #' @rdname IntegrationAnchorSet-class
+#' @concept objects
 #' @exportClass IntegrationAnchorSet
 #'
 IntegrationAnchorSet <- setClass(
@@ -99,6 +102,7 @@ IntegrationAnchorSet <- setClass(
 #'
 #' @name ModalityWeights-class
 #' @rdname ModalityWeights-class
+#' @concept objects
 #' @exportClass ModalityWeights
 #'
 ModalityWeights <- setClass(
@@ -131,6 +135,7 @@ ModalityWeights <- setClass(
 #'
 #' @name Assay-class
 #' @rdname Assay-class
+#' @concept objects
 #' @exportClass Assay
 #'
 Assay <- setClass(
@@ -158,6 +163,7 @@ Assay <- setClass(
 #'
 #' @name JackStrawData-class
 #' @rdname JackStrawData-class
+#' @concept objects
 #' @exportClass JackStrawData
 #'
 JackStrawData <- setClass(
@@ -191,6 +197,7 @@ JackStrawData <- setClass(
 #'
 #' @name DimReduc-class
 #' @rdname DimReduc-class
+#' @concept objects
 #' @exportClass DimReduc
 #'
 DimReduc <- setClass(
@@ -216,6 +223,7 @@ DimReduc <- setClass(
 #'
 #' @name Graph-class
 #' @rdname Graph-class
+#' @concept objects
 #' @exportClass Graph
 #'
 #' @seealso \code{\link[Matrix]{dgCMatrix-class}}
@@ -243,6 +251,7 @@ Graph <- setClass(
 #'
 #' @name IntegrationData-class
 #' @rdname IntegrationData-class
+#' @concept objects
 #' @exportClass IntegrationData
 #'
 IntegrationData <- setClass(
@@ -266,6 +275,7 @@ IntegrationData <- setClass(
 #' @param lowres Low resolution scale factor
 #'
 #' @rdname ScaleFactors
+#' @concept objects
 #' @export
 #'
 scalefactors <- function(spot, fiducial, hires, lowres) {
@@ -298,6 +308,7 @@ setOldClass(Classes = c('scalefactors'))
 #'
 #' @name Neighbor-class
 #' @rdname Neighbor-class
+#' @concept objects
 #' @exportClass Neighbor
 #'
 Neighbor <- setClass(
@@ -323,6 +334,7 @@ Neighbor <- setClass(
 #'
 #' @name SeuratCommand-class
 #' @rdname SeuratCommand-class
+#' @concept objects
 #' @exportClass SeuratCommand
 #'
 SeuratCommand <- setClass(
@@ -363,6 +375,7 @@ SeuratCommand <- setClass(
 #'
 #' @name Seurat-class
 #' @rdname Seurat-class
+#' @concept objects
 #' @exportClass Seurat
 #'
 Seurat <- setClass(
@@ -418,6 +431,7 @@ Seurat <- setClass(
 #'
 #' @name seurat-class
 #' @rdname oldseurat-class
+#' @concept objects
 #' @aliases seurat-class
 #'
 seurat <- setClass(
@@ -490,6 +504,7 @@ seurat <- setClass(
 #'
 #' @name SpatialImage-class
 #' @rdname SpatialImage-class
+#' @concept objects
 #' @exportClass SpatialImage
 #'
 SpatialImage <- setClass(
@@ -519,7 +534,6 @@ SlideSeq <- setClass(
 
 #' The STARmap class
 #'
-#' The STARmap class represents spatial information from the STARmap platform
 #'
 #' @inheritSection SpatialImage Slots
 #' @slot ...
@@ -547,6 +561,7 @@ STARmap <- setClass(
 #'
 #' @name VisiumV1-class
 #' @rdname VisiumV1-class
+#' @concept objects
 #' @exportClass VisiumV1
 #'
 VisiumV1 <- setClass(
@@ -578,6 +593,7 @@ setClass(Class = 'SliceImage', contains = 'VisiumV1')
 #' in this Seurat object. Otherwise, the \code{Assay} object specified
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' Assays(object = pbmc_small)
@@ -610,6 +626,7 @@ Assays <- function(object, slot = NULL) {
 #' of cells beloning to that class
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' CellsByIdentities(object = pbmc_small)
@@ -647,6 +664,7 @@ CellsByIdentities <- function(object, idents = NULL, cells = NULL) {
 #' named by image name.
 #'
 #' @return A vector of cell names
+#' @concept objects
 #'
 #' @examples
 #' \dontrun{
@@ -689,6 +707,7 @@ CellsByImage <- function(object, images = NULL, unlist = FALSE) {
 #' @importFrom Matrix colSums rowSums
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' pbmc_raw <- read.table(
@@ -864,6 +883,7 @@ CreateAssayObject <- function(
 #' @aliases SetDimReduction
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
@@ -975,6 +995,7 @@ CreateDimReducObject <- function(
 #' @inheritParams CreateAssayObject
 #'
 #' @rdname CreateSeuratObject
+#' @concept objects
 #' @method CreateSeuratObject default
 #' @export
 #'
@@ -1020,6 +1041,7 @@ CreateSeuratObject.default <- function(
 }
 
 #' @rdname CreateSeuratObject
+#' @concept objects
 #' @method CreateSeuratObject Assay
 #' @export
 #'
@@ -1110,6 +1132,7 @@ CreateSeuratObject.Assay <- function(
 #' all Graphs)
 #'
 #' @export
+#' @concept objects
 #'
 DietSeurat <- function(
   object,
@@ -1183,6 +1206,7 @@ DietSeurat <- function(
 #' @return A data frame with cells as rows and cellular data as columns
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' pc1 <- FetchData(object = pbmc_small, vars = 'PC_1')
@@ -1409,6 +1433,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
 #' @return Returns a Seurat object with only the subset of cells that pass the
 #' circular filter
 #'
+#' @concept objects
 #' @examples
 #' \dontrun{
 #' # This example uses the ssHippo dataset which you can download
@@ -1473,6 +1498,7 @@ FilterSlideSeq <- function(
 #' @return Returns data from the requested slot within the integrated object
 #'
 #' @export
+#' @concept objects
 #'
 GetIntegrationData <- function(object, integration.name, slot) {
   tools <- slot(object = object, name = 'tools')
@@ -1495,6 +1521,7 @@ GetIntegrationData <- function(object, integration.name, slot) {
 #' in this Seurat object. Otherwise, the \code{Graph} object requested
 #'
 #' @export
+#' @concept objects
 #'
 Graphs <- function(object, slot = NULL) {
   graphs <- FilterObjects(object = object, classes.keep = "Graph")
@@ -1524,6 +1551,7 @@ Graphs <- function(object, slot = NULL) {
 #' @return A list of image names
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' \dontrun{
@@ -1557,6 +1585,7 @@ Images <- function(object, assay = NULL) {
 #' returns the Seurat object with command stored
 #'
 #' @export
+#' @concept objects
 #'
 #' @seealso \code{\link{Command}}
 #'
@@ -1640,6 +1669,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
 #' in this Seurat object. Otherwise, the \code{Neighbor} object requested
 #'
 #' @export
+#' @concept objects
 #'
 Neighbors <- function(object, slot = NULL) {
   neighbors <- FilterObjects(object = object, classes.keep = "Neighbor")
@@ -1670,6 +1700,7 @@ Neighbors <- function(object, slot = NULL) {
 #' in this Seurat object. Otherwise, the \code{DimReduc} object requested
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' Reductions(object = pbmc_small)
@@ -1699,6 +1730,7 @@ Reductions <- function(object, slot = NULL) {
 #' @return \code{object} with assays renamed
 #'
 #' @export
+#' @concept objects
 #' @examples
 #' RenameAssays(object = pbmc_small, RNA = 'rna')
 #'
@@ -1774,6 +1806,7 @@ RenameAssays <- function(object, ...) {
 #' @return Returns a \code{\link{Seurat}} object
 #'
 #' @export
+#' @concept objects
 #'
 SetIntegrationData <- function(object, integration.name, slot, new.data) {
   tools <- slot(object = object, name = 'tools')
@@ -1806,6 +1839,7 @@ SetIntegrationData <- function(object, integration.name, slot, new.data) {
 #' from the original object.
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' # Assign the test object a three level attribute
@@ -1849,6 +1883,7 @@ SplitObject <- function(object, split.by = "ident") {
 #' @return Returns a vector of features
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' pbmc_small
@@ -1885,6 +1920,7 @@ TopFeatures <- function(
 #' @return Returns a vector of cells
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' pbmc_small
@@ -1912,6 +1948,7 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #' @return Returns a vector of cell names
 #'
 #' @export
+#' @concept objects
 #'
 TopNeighbors <- function(object, cell, n = 5) {
   indices <- Indices(object = object)[cell, 1:n]
@@ -1931,6 +1968,7 @@ TopNeighbors <- function(object, cell, n = 5) {
 #' @importFrom utils packageVersion
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' \dontrun{
@@ -2123,6 +2161,7 @@ UpdateSeuratObject <- function(object) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @rdname AddMetaData
+#' @concept objects
 #' @export
 #' @method AddMetaData Assay
 #'
@@ -2131,6 +2170,7 @@ AddMetaData.Assay <- function(object, metadata, col.name = NULL) {
 }
 
 #' @rdname AddMetaData
+#' @concept objects
 #' @export
 #' @method AddMetaData Seurat
 #'
@@ -2142,6 +2182,7 @@ AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
 #' @param reduction Name of DimReduc to set to main reducedDim in cds
 #'
 #' @rdname as.CellDataSet
+#' @concept objects
 #' @export
 #' @method as.CellDataSet Seurat
 #'
@@ -2216,6 +2257,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
 }
 
 #' @rdname as.Graph
+#' @concept objects
 #' @export
 #' @method as.Graph Matrix
 #'
@@ -2239,6 +2281,7 @@ as.Graph.Matrix <- function(x, ...) {
 }
 
 #' @rdname as.Graph
+#' @concept objects
 #' @export
 #' @method as.Graph matrix
 #'
@@ -2257,6 +2300,7 @@ as.Graph.matrix <- function(x, ...) {
 #' @param weighted If TRUE, fill entries in Graph matrix with value from the
 #' nn.dist slot of the Neighbor object
 #' @rdname as.Graph
+#' @concept objects
 #' @export
 #' @method as.Graph Neighbor
 #'
@@ -2303,6 +2347,7 @@ as.Graph.Neighbor <- function(x, weighted = TRUE, ...) {
 #' @param assay Assay to store in loom file
 #'
 #' @rdname as.loom
+#' @concept objects
 #' @export
 #' @method as.loom Seurat
 #'
@@ -2458,6 +2503,7 @@ as.loom.Seurat <- function(
 }
 
 #' @rdname as.Neighbor
+#' @concept objects
 #' @export
 #' @method as.Neighbor Graph
 #'
@@ -2478,6 +2524,7 @@ as.Neighbor.Graph <- function(
 #' @importFrom utils packageVersion
 #'
 #' @rdname as.Seurat
+#' @concept objects
 #' @export
 #' @method as.Seurat CellDataSet
 #'
@@ -2657,6 +2704,7 @@ as.Seurat.CellDataSet <- function(
 #' @importFrom Matrix sparseMatrix
 #'
 #' @rdname as.Seurat
+#' @concept objects
 #' @export
 #' @method as.Seurat loom
 #'
@@ -3023,6 +3071,7 @@ as.Seurat.loom <- function(
 #' @param project Project name for new Seurat object
 #'
 #' @rdname as.Seurat
+#' @concept objects
 #' @export
 #' @method as.Seurat SingleCellExperiment
 #'
@@ -3120,6 +3169,7 @@ as.Seurat.SingleCellExperiment <- function(
 #' @param assay Assay to convert
 #'
 #' @rdname as.SingleCellExperiment
+#' @concept objects
 #' @export
 #' @method as.SingleCellExperiment Seurat
 #'
@@ -3149,6 +3199,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
 #' @importClassesFrom Matrix dgCMatrix
 #'
 #' @rdname as.sparse
+#' @concept objects
 #' @export
 #' @method as.sparse data.frame
 #'
@@ -3161,6 +3212,7 @@ as.sparse.data.frame <- function(x, ...) {
 #' @importFrom Matrix sparseMatrix
 #'
 #' @rdname as.sparse
+#' @concept objects
 #' @export
 #' @method as.sparse H5Group
 #'
@@ -3190,6 +3242,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @importClassesFrom Matrix dgCMatrix
 #'
 #' @rdname as.sparse
+#' @concept objects
 #' @export
 #' @method as.sparse Matrix
 #'
@@ -3199,6 +3252,7 @@ as.sparse.Matrix <- function(x, ...) {
 }
 
 #' @rdname as.sparse
+#' @concept objects
 #' @export
 #' @method as.sparse matrix
 #'
@@ -3207,6 +3261,7 @@ as.sparse.matrix <- function(x, ...) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @export
 #'
 Cells.default <- function(x) {
@@ -3214,6 +3269,7 @@ Cells.default <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @export
 #' @method Cells DimReduc
 #'
@@ -3225,6 +3281,7 @@ Cells.DimReduc <- function(x) {
 #' @param value Name of the parameter to pull the value for
 #'
 #' @rdname Command
+#' @concept objects
 #' @export
 #' @method Command Seurat
 #'
@@ -3250,6 +3307,7 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells Neighbor
 #' @export
 #'
@@ -3258,6 +3316,7 @@ Cells.Neighbor <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells SlideSeq
 #' @export
 #'
@@ -3269,6 +3328,7 @@ Cells.SlideSeq <- function(x) {
 #'
 #' @rdname SpatialImage-class
 #' @name SpatialImage-class
+#' @concept objects
 #'
 #' @method Cells SpatialImage
 #' @export
@@ -3281,6 +3341,7 @@ Cells.SpatialImage <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells STARmap
 #' @export
 #'
@@ -3289,6 +3350,7 @@ Cells.STARmap <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells VisiumV1
 #' @export
 #'
@@ -3297,6 +3359,7 @@ Cells.VisiumV1 <- function(x) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @export
 #' @method DefaultAssay Assay
 #'
@@ -3306,6 +3369,7 @@ DefaultAssay.Assay <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @export
 #' @method DefaultAssay DimReduc
 #'
@@ -3315,6 +3379,7 @@ DefaultAssay.DimReduc <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @export
 #' @method DefaultAssay Graph
 #'
@@ -3324,6 +3389,7 @@ DefaultAssay.Graph <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @export
 #' @method DefaultAssay Seurat
 #'
@@ -3338,6 +3404,7 @@ DefaultAssay.Seurat <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @export
 #' @method DefaultAssay SeuratCommand
 #'
@@ -3347,6 +3414,7 @@ DefaultAssay.SeuratCommand <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @method DefaultAssay SpatialImage
 #' @export
 #'
@@ -3356,6 +3424,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 }
 
 #' @export
+#' @concept objects
 #' @method DefaultAssay<- Assay
 #'
 "DefaultAssay<-.Assay" <- function(object, ..., value) {
@@ -3367,6 +3436,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 }
 
 #' @export
+#' @concept objects
 #' @method DefaultAssay<- DimReduc
 #'
 "DefaultAssay<-.DimReduc" <- function(object, ..., value) {
@@ -3376,6 +3446,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 }
 
 #' @export
+#' @concept objects
 #' @method DefaultAssay<- Graph
 #'
 "DefaultAssay<-.Graph" <- function(object, ..., value) {
@@ -3385,6 +3456,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @export
 #' @method DefaultAssay<- Seurat
 #'
@@ -3408,6 +3480,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname DefaultAssay
+#' @concept objects
 #' @method DefaultAssay<- SpatialImage
 #' @export
 #'
@@ -3418,6 +3491,7 @@ DefaultAssay.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname Distances
+#' @concept objects
 #' @export
 #' @method Distances Neighbor
 #'
@@ -3429,6 +3503,7 @@ Distances.Neighbor <- function(object, ...) {
 }
 
 #' @rdname Embeddings
+#' @concept objects
 #' @export
 #' @method Embeddings DimReduc
 #'
@@ -3444,6 +3519,7 @@ Embeddings.DimReduc <- function(object, ...) {
 #' @param reduction Name of reduction to pull cell embeddings for
 #'
 #' @rdname Embeddings
+#' @concept objects
 #' @export
 #' @method Embeddings Seurat
 #'
@@ -3459,6 +3535,7 @@ Embeddings.Seurat <- function(object, reduction = 'pca', ...) {
 #' @param assay Assay to get
 #'
 #' @rdname GetAssay
+#' @concept objects
 #' @export
 #' @method GetAssay Seurat
 #'
@@ -3482,6 +3559,7 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
 #' @param slot Specific information to pull (i.e. counts, data, scale.data, ...)
 #'
 #' @rdname GetAssayData
+#' @concept objects
 #' @export
 #' @method GetAssayData Assay
 #'
@@ -3497,6 +3575,7 @@ GetAssayData.Assay <- function(object, slot = 'data', ...) {
 #' @param assay Name of assay to pull data from
 #'
 #' @rdname GetAssayData
+#' @concept objects
 #' @export
 #' @method GetAssayData Seurat
 #'
@@ -3518,6 +3597,7 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' \code{NULL}, will attempt to select an image automatically
 #'
 #' @rdname GetImage
+#' @concept objects
 #' @method GetImage Seurat
 #' @export
 #'
@@ -3536,6 +3616,7 @@ GetImage.Seurat <- function(
 }
 
 #' @method GetImage SlideSeq
+#' @concept objects
 #' @export
 #'
 GetImage.SlideSeq <- function(
@@ -3553,6 +3634,7 @@ GetImage.SlideSeq <- function(
 #' @name SpatialImage-class
 #'
 #' @method GetImage SpatialImage
+#' @concept objects
 #' @export
 #'
 GetImage.SpatialImage <- function(
@@ -3568,6 +3650,7 @@ GetImage.SpatialImage <- function(
 }
 
 #' @method GetImage STARmap
+#' @concept objects
 #' @export
 #'
 GetImage.STARmap <- function(
@@ -3584,6 +3667,7 @@ GetImage.STARmap <- function(
 #' @importFrom grid rasterGrob unit
 #'
 #' @rdname GetImage
+#' @concept objects
 #' @method GetImage VisiumV1
 #' @export
 #'
@@ -3625,6 +3709,7 @@ GetImage.VisiumV1 <- function(
 #'
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates Seurat
+#' @concept objects
 #' @export
 #'
 GetTissueCoordinates.Seurat <- function(object, image = NULL, ...) {
@@ -3636,6 +3721,7 @@ GetTissueCoordinates.Seurat <- function(object, image = NULL, ...) {
 }
 
 #' @method GetTissueCoordinates SlideSeq
+#' @concept objects
 #' @export
 #'
 GetTissueCoordinates.SlideSeq <- function(object, ...) {
@@ -3651,6 +3737,7 @@ GetTissueCoordinates.SlideSeq <- function(object, ...) {
 #'
 #' @rdname SpatialImage-class
 #' @name SpatialImage-class
+#' @concept objects
 #'
 #' @method GetTissueCoordinates SpatialImage
 #' @export
@@ -3664,6 +3751,7 @@ GetTissueCoordinates.SpatialImage <- function(object, ...) {
 
 #' @param qhulls return qhulls instead of centroids
 #' @method GetTissueCoordinates STARmap
+#' @concept objects
 #' @export
 #'
 GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
@@ -3679,6 +3767,7 @@ GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
 #'
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates VisiumV1
+#' @concept objects
 #' @export
 #'
 GetTissueCoordinates.VisiumV1 <- function(
@@ -3705,6 +3794,7 @@ GetTissueCoordinates.VisiumV1 <- function(
 #'
 #' @rdname HVFInfo
 #' @export
+#' @concept objects
 #' @method HVFInfo Assay
 #'
 #' @examples
@@ -3754,6 +3844,7 @@ HVFInfo.Assay <- function(object, selection.method, status = FALSE, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Seurat
+#' @concept objects
 #'
 #' @examples
 #' # Get the HVF info from a specific Assay in a Seurat object
@@ -3812,6 +3903,7 @@ HVFInfo.Seurat <- function(
 }
 
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method Idents Seurat
 #'
@@ -3825,6 +3917,7 @@ Idents.Seurat <- function(object, ...) {
 #' @param drop Drop unused levels
 #'
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method Idents<- Seurat
 #'
@@ -3875,6 +3968,7 @@ Idents.Seurat <- function(object, ...) {
 }
 
 #' @rdname Index
+#' @concept objects
 #' @export
 #' @method Index Neighbor
 Index.Neighbor <- function(object, ...) {
@@ -3890,6 +3984,7 @@ Index.Neighbor <- function(object, ...) {
 }
 
 #' @rdname Index
+#' @concept objects
 #' @export
 #' @method Index<- Neighbor
 "Index<-.Neighbor" <- function(object, ..., value) {
@@ -3899,6 +3994,7 @@ Index.Neighbor <- function(object, ...) {
 }
 
 #' @rdname Indices
+#' @concept objects
 #' @export
 #' @method Indices Neighbor
 Indices.Neighbor <- function(object, ...) {
@@ -3909,6 +4005,7 @@ Indices.Neighbor <- function(object, ...) {
 }
 
 #' @rdname IsGlobal
+#' @concept objects
 #' @export
 #' @method IsGlobal default
 #'
@@ -3917,6 +4014,7 @@ IsGlobal.default <- function(object) {
 }
 
 #' @rdname IsGlobal
+#' @concept objects
 #' @export
 #' @method IsGlobal DimReduc
 #'
@@ -3926,6 +4024,7 @@ IsGlobal.DimReduc <- function(object) {
 }
 
 #' @rdname IsGlobal
+#' @concept objects
 #' @method IsGlobal SpatialImage
 #' @export
 #'
@@ -3937,6 +4036,7 @@ IsGlobal.SpatialImage <- function(object) {
 #' Can shorten to 'empirical', 'fake', 'full', or 'overall'
 #'
 #' @rdname JS
+#' @concept objects
 #' @export
 #' @method JS DimReduc
 #'
@@ -3950,6 +4050,7 @@ JS.DimReduc <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname JS
+#' @concept objects
 #' @export
 #' @method JS JackStrawData
 #'
@@ -3967,6 +4068,7 @@ JS.JackStrawData <- function(object, slot, ...) {
 }
 
 #' @rdname JS
+#' @concept objects
 #' @export
 #' @method JS<- DimReduc
 #'
@@ -3983,6 +4085,7 @@ JS.JackStrawData <- function(object, slot, ...) {
 }
 
 #' @rdname JS
+#' @concept objects
 #' @export
 #' @method JS<- JackStrawData
 #'
@@ -4001,6 +4104,7 @@ JS.JackStrawData <- function(object, slot, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @export
 #' @method Key Assay
 #'
@@ -4014,6 +4118,7 @@ Key.Assay <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @export
 #' @method Key DimReduc
 #'
@@ -4027,6 +4132,7 @@ Key.DimReduc <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @export
 #' @method Key Seurat
 #'
@@ -4050,6 +4156,7 @@ Key.Seurat <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @method Key SpatialImage
 #' @export
 #'
@@ -4060,6 +4167,7 @@ Key.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @export
 #' @method Key<- Assay
 #'
@@ -4075,6 +4183,7 @@ Key.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @export
 #' @method Key<- DimReduc
 #'
@@ -4114,6 +4223,7 @@ Key.SpatialImage <- function(object, ...) {
 }
 
 #' @rdname Key
+#' @concept objects
 #' @method Key<- SpatialImage
 #' @export
 #'
@@ -4128,6 +4238,7 @@ Key.SpatialImage <- function(object, ...) {
 #' @param projected Pull the projected feature loadings?
 #'
 #' @rdname Loadings
+#' @concept objects
 #' @export
 #' @method Loadings DimReduc
 #'
@@ -4149,6 +4260,7 @@ Loadings.DimReduc <- function(object, projected = FALSE, ...) {
 #' @param reduction Name of reduction to pull feature loadings for
 #'
 #' @rdname Loadings
+#' @concept objects
 #' @export
 #' @method Loadings Seurat
 #'
@@ -4162,6 +4274,7 @@ Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
 }
 
 #' @rdname Loadings
+#' @concept objects
 #' @export
 #' @method Loadings<- DimReduc
 #'
@@ -4188,6 +4301,7 @@ Loadings.Seurat <- function(object, reduction = 'pca', projected = FALSE, ...) {
 #' @param slot Name of specific bit of meta data to pull
 #'
 #' @rdname Misc
+#' @concept objects
 #' @export
 #' @method Misc Assay
 #'
@@ -4200,6 +4314,7 @@ Misc.Assay <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname Misc
+#' @concept objects
 #' @export
 #' @method Misc DimReduc
 #'
@@ -4212,6 +4327,7 @@ Misc.DimReduc <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname Misc
+#' @concept objects
 #' @export
 #' @method Misc Seurat
 #'
@@ -4229,6 +4345,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname Misc
+#' @concept objects
 #' @export
 #' @method Misc<- Assay
 #'
@@ -4246,6 +4363,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname Misc
+#' @concept objects
 #' @export
 #' @method Misc<- DimReduc
 #'
@@ -4263,6 +4381,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname Misc
+#' @concept objects
 #' @export
 #' @method Misc<- Seurat
 #'
@@ -4293,6 +4412,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @param accept.value Returns all cells with the subset name equal to this value
 #'
 #' @rdname OldWhichCells
+#' @concept objects
 #' @export
 #' @method OldWhichCells Assay
 #'
@@ -4348,6 +4468,7 @@ OldWhichCells.Assay <- function(
 #' @seealso \code{\link{FetchData}}
 #'
 #' @rdname OldWhichCells
+#' @concept objects
 #' @export
 #' @method OldWhichCells Seurat
 #'
@@ -4470,6 +4591,7 @@ OldWhichCells.Seurat <- function(
 }
 
 #' @rdname Project
+#' @concept objects
 #' @export
 #' @method Project Seurat
 #'
@@ -4480,6 +4602,7 @@ Project.Seurat <- function(object, ...) {
 }
 
 #' @rdname Project
+#' @concept objects
 #' @export
 #' @method Project<- Seurat
 #'
@@ -4491,6 +4614,7 @@ Project.Seurat <- function(object, ...) {
 }
 
 #' @rdname Radius
+#' @concept objects
 #' @method Radius SlideSeq
 #' @export
 #'
@@ -4502,6 +4626,7 @@ Radius.SlideSeq <- function(object) {
 #' @name SpatialImage-class
 #'
 #' @method Radius SpatialImage
+#' @concept objects
 #' @export
 #'
 Radius.SpatialImage <- function(object) {
@@ -4509,6 +4634,7 @@ Radius.SpatialImage <- function(object) {
 }
 
 #' @rdname Radius
+#' @concept objects
 #' @method Radius STARmap
 #' @export
 #'
@@ -4517,6 +4643,7 @@ Radius.STARmap <- function(object) {
 }
 
 #' @rdname Radius
+#' @concept objects
 #' @method Radius VisiumV1
 #' @export
 #'
@@ -4531,6 +4658,7 @@ Radius.VisiumV1 <- function(object) {
 #' @param verbose Show progress updates
 #'
 #' @rdname h5ad
+#' @concept objects
 #' @export
 #' @method ReadH5AD character
 #'
@@ -4565,6 +4693,7 @@ ReadH5AD.character <- function(
 #' @importFrom utils packageVersion
 #'
 #' @rdname h5ad
+#' @concept objects
 #' @export
 #' @method ReadH5AD H5File
 #'
@@ -4986,6 +5115,7 @@ ReadH5AD.H5File <- function(
 #' starting from 1 (default is FALSE)
 #'
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method ReorderIdent Seurat
 #'
@@ -5035,6 +5165,7 @@ ReorderIdent.Seurat <- function(
 #' @param new.names vector of new cell names
 #'
 #' @rdname RenameCells
+#' @concept objects
 #' @export
 #' @method RenameCells Assay
 #'
@@ -5079,6 +5210,7 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
 
 #' @rdname RenameCells
 #' @export
+#' @concept objects
 #' @method RenameCells DimReduc
 #'
 #' @examples
@@ -5100,6 +5232,7 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
 
 #' @param old.names vector of old cell names
 #' @rdname RenameCells
+#' @concept objects
 #' @export
 #' @method RenameCells Neighbor
 #'
@@ -5121,6 +5254,7 @@ RenameCells.Neighbor <- function(object, old.names = NULL, new.names = NULL, ...
 #' \code{new.names} is set these will be used to replace existing names.
 #'
 #' @rdname RenameCells
+#' @concept objects
 #' @export
 #' @method RenameCells Seurat
 #'
@@ -5222,6 +5356,7 @@ RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
 #' @name SpatialImage-class
 #'
 #' @method RenameCells SpatialImage
+#' @concept objects
 #' @export
 #'
 RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
@@ -5232,6 +5367,7 @@ RenameCells.SpatialImage <- function(object, new.names = NULL, ...) {
 }
 
 #' @method RenameCells STARmap
+#' @concept objects
 #' @export
 #'
 RenameCells.STARmap <- function(object, new.names = NULL, ...) {
@@ -5244,6 +5380,7 @@ RenameCells.STARmap <- function(object, new.names = NULL, ...) {
 }
 
 #' @rdname RenameCells
+#' @concept objects
 #' @method RenameCells VisiumV1
 #' @export
 #'
@@ -5261,6 +5398,7 @@ RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
 }
 
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method RenameIdents Seurat
 #'
@@ -5292,6 +5430,7 @@ RenameIdents.Seurat <- function(object, ...) {
 }
 
 #' @rdname ScaleFactors
+#' @concept objects
 #' @method ScaleFactors VisiumV1
 #' @export
 #'
@@ -5306,6 +5445,7 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #' @importFrom stats na.omit
 #'
 #' @rdname SetAssayData
+#' @concept objects
 #' @export
 #' @method SetAssayData Assay
 #'
@@ -5407,6 +5547,7 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
 #' @param assay Name of assay whose data should be set
 #'
 #' @rdname SetAssayData
+#' @concept objects
 #' @export
 #' @method SetAssayData Seurat
 #'
@@ -5438,6 +5579,7 @@ SetAssayData.Seurat <- function(
 #' @inheritParams Idents
 #'
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method SetIdent Seurat
 #'
@@ -5462,6 +5604,7 @@ SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
 #' @param decreasing Return features in decreasing order (most spatially
 #' variable first).
 #' @rdname SpatiallyVariableFeatures
+#' @concept objects
 #' @export
 #' @method SpatiallyVariableFeatures Assay
 #'
@@ -5484,6 +5627,7 @@ SpatiallyVariableFeatures.Assay <- function(
 #' @param assay Name of assay to pull spatially variable features for
 #'
 #' @rdname SpatiallyVariableFeatures
+#' @concept objects
 #' @export
 #' @method SpatiallyVariableFeatures Seurat
 #'
@@ -5503,6 +5647,7 @@ SpatiallyVariableFeatures.Seurat <- function(
 #' @param save.name Store current identity information under this name
 #'
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method StashIdent Seurat
 #'
@@ -5523,6 +5668,7 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
 }
 
 #' @rdname Stdev
+#' @concept objects
 #' @export
 #' @method Stdev DimReduc
 #'
@@ -5538,6 +5684,7 @@ Stdev.DimReduc <- function(object, ...) {
 #' @param reduction Name of reduction to use
 #'
 #' @rdname Stdev
+#' @concept objects
 #' @export
 #' @method Stdev Seurat
 #'
@@ -5561,6 +5708,7 @@ Stdev.Seurat <- function(object, reduction = 'pca', ...) {
 #' @param accept.value Returns cells with the subset name equal to this value
 #'
 #' @rdname SubsetData
+#' @concept objects
 #' @export
 #' @method SubsetData Assay
 #'
@@ -5604,6 +5752,7 @@ SubsetData.Assay <- function(
 #' @param random.seed Random seed for downsampling
 #'
 #' @rdname SubsetData
+#' @concept objects
 #' @export
 #' @method SubsetData Seurat
 #'
@@ -5710,6 +5859,7 @@ SubsetData.Seurat <- function(
 #' @param status Add variable status to the resulting data.frame
 #'
 #' @rdname SVFInfo
+#' @concept objects
 #' @export
 #' @method SVFInfo Assay
 #'
@@ -5750,6 +5900,7 @@ SVFInfo.Assay <- function(
 #' @importFrom tools file_path_sans_ext
 #'
 #' @rdname SVFInfo
+#' @concept objects
 #' @export
 #' @method SVFInfo Seurat
 #'
@@ -5772,6 +5923,7 @@ SVFInfo.Seurat <- function(
 #' @param slot Name of tool to pull
 #'
 #' @rdname Tool
+#' @concept objects
 #' @export
 #' @method Tool Seurat
 #'
@@ -5788,6 +5940,7 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname Tool
+#' @concept objects
 #' @export
 #' @method Tool<- Seurat
 #'
@@ -5828,6 +5981,7 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @rdname VariableFeatures
+#' @concept objects
 #' @export
 #' @method VariableFeatures Assay
 #'
@@ -5843,6 +5997,7 @@ VariableFeatures.Assay <- function(object, selection.method = NULL, ...) {
 #' @param assay Name of assay to pull variable features for
 #'
 #' @rdname VariableFeatures
+#' @concept objects
 #' @export
 #' @method VariableFeatures Seurat
 #'
@@ -5854,6 +6009,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 }
 
 #' @rdname VariableFeatures
+#' @concept objects
 #' @export
 #' @method VariableFeatures<- Assay
 #'
@@ -5891,6 +6047,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @inheritParams VariableFeatures.Seurat
 #'
 #' @rdname VariableFeatures
+#' @concept objects
 #' @export
 #' @method VariableFeatures<- Seurat
 #'
@@ -5913,6 +6070,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, selection.method = NUL
 #' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
+#' @concept objects
 #' @export
 #' @method WhichCells Assay
 #'
@@ -5977,6 +6135,7 @@ WhichCells.Assay <- function(
 #' @importFrom rlang is_quosure enquo eval_tidy
 #'
 #' @rdname WhichCells
+#' @concept objects
 #' @export
 #' @method WhichCells Seurat
 #'
@@ -6097,6 +6256,7 @@ WhichCells.Seurat <- function(
 #' @importFrom reticulate py_module_available import tuple np_array dict
 #'
 #' @rdname h5ad
+#' @concept objects
 #' @export
 #' @method WriteH5AD Seurat
 #'
@@ -6423,6 +6583,7 @@ WriteH5AD.Seurat <- function(
 
 #' @importFrom utils .DollarNames
 #' @export
+#' @concept objects
 #' @method .DollarNames JackStrawData
 #'
 ".DollarNames.JackStrawData" <- function(x, pattern = '') {
@@ -6433,6 +6594,7 @@ WriteH5AD.Seurat <- function(
 
 #' @importFrom utils .DollarNames
 #' @export
+#' @concept objects
 #' @method .DollarNames Seurat
 #'
 ".DollarNames.Seurat" <- function(x, pattern = '') {
@@ -6443,6 +6605,7 @@ WriteH5AD.Seurat <- function(
 
 #' @importFrom utils .DollarNames
 #' @export
+#' @concept objects
 #' @method .DollarNames SeuratCommand
 #'
 ".DollarNames.SeuratCommand" <- function(x, pattern = '') {
@@ -6450,18 +6613,21 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @export
+#' @concept objects
 #'
 "$.JackStrawData" <- function(x, i, ...) {
   return(slot(object = x, name = i))
 }
 
 #' @export
+#' @concept objects
 #'
 "$.Seurat" <- function(x, i, ...) {
   return(x[[i, drop = TRUE]])
 }
 
 #' @export
+#' @concept objects
 #'
 "$.SeuratCommand" <- function(x, i, ...) {
   params <- slot(object = x, name = "params")
@@ -6469,6 +6635,7 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @export
+#' @concept objects
 #'
 "$<-.Seurat" <- function(x, i, ..., value) {
   x[[i]] <- value
@@ -6476,6 +6643,7 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @export
+#' @concept objects
 #' @method [ Assay
 #'
 "[.Assay" <- function(x, i, j, ...) {
@@ -6489,6 +6657,7 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @export
+#' @concept objects
 #' @method [ DimReduc
 #'
 "[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
@@ -6515,6 +6684,7 @@ WriteH5AD.Seurat <- function(
 #' @inheritParams subset.Seurat
 #'
 #' @rdname subset.Seurat
+#' @concept objects
 #' @export
 #' @method [ Seurat
 #'
@@ -6554,6 +6724,7 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @export
+#' @concept objects
 #' @method [ SeuratCommand
 #'
 "[.SeuratCommand" <- function(x, i, ...) {
@@ -6565,6 +6736,7 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @method [ SlideSeq
+#' @concept objects
 #' @export
 #'
 "[.SlideSeq" <- function(x, i, ...) {
@@ -6577,6 +6749,7 @@ WriteH5AD.Seurat <- function(
 #' @name SpatialImage-class
 #'
 #' @method [ SpatialImage
+#' @concept objects
 #' @export
 #'
 "[.SpatialImage" <- function(x, i, ...) {
@@ -6587,6 +6760,7 @@ WriteH5AD.Seurat <- function(
 }
 
 #' @method [ VisiumV1
+#' @concept objects
 #' @export
 #'
 "[.VisiumV1" <- function(x, i, ...) {
@@ -6595,6 +6769,7 @@ WriteH5AD.Seurat <- function(
 
 #' @export
 #' @method [[ Assay
+#' @concept objects
 #'
 "[[.Assay" <- function(x, i, ..., drop = FALSE) {
   if (missing(x = i)) {
@@ -6610,6 +6785,7 @@ WriteH5AD.Seurat <- function(
 
 #' @export
 #' @method [[ DimReduc
+#' @concept objects
 #'
 "[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
   if (missing(x = i)) {
@@ -6634,6 +6810,7 @@ WriteH5AD.Seurat <- function(
 
 #' @export
 #' @method [[ Seurat
+#' @concept objects
 #'
 "[[.Seurat" <- function(x, i, ..., drop = FALSE) {
   x <- UpdateSlots(object = x)
@@ -6684,6 +6861,7 @@ WriteH5AD.Seurat <- function(
 #' @return A list with the parameters and, if \code{complete = TRUE}, the call string, name, and timestamp
 #'
 #' @export
+#' @concept objects
 #' @method as.list SeuratCommand
 #'
 as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
@@ -6716,6 +6894,7 @@ as.list.SeuratCommand <- function(x, complete = FALSE, ...) {
 }
 
 #' @export
+#' @concept objects
 #' @method as.logical JackStrawData
 #'
 as.logical.JackStrawData <- function(x, ...) {
@@ -6725,6 +6904,7 @@ as.logical.JackStrawData <- function(x, ...) {
 }
 
 #' @export
+#' @concept objects
 #' @method dim Assay
 #'
 dim.Assay <- function(x) {
@@ -6732,6 +6912,7 @@ dim.Assay <- function(x) {
 }
 
 #' @export
+#' @concept objects
 #' @method dim DimReduc
 #'
 dim.DimReduc <- function(x) {
@@ -6739,6 +6920,7 @@ dim.DimReduc <- function(x) {
 }
 
 #' @export
+#' @concept objects
 #' @method dim Neighbor
 #'
 dim.Neighbor <- function(x) {
@@ -6746,6 +6928,7 @@ dim.Neighbor <- function(x) {
 }
 
 #' @export
+#' @concept objects
 #' @method dim Seurat
 #'
 dim.Seurat <- function(x) {
@@ -6754,6 +6937,7 @@ dim.Seurat <- function(x) {
 }
 
 #' @method dim SlideSeq
+#' @concept objects
 #' @export
 #'
 dim.SlideSeq <- function(x) {
@@ -6765,6 +6949,7 @@ dim.SlideSeq <- function(x) {
 #' @name SpatialImage-class
 #'
 #' @method dim SpatialImage
+#' @concept objects
 #' @export
 #'
 dim.SpatialImage <- function(x) {
@@ -6775,6 +6960,7 @@ dim.SpatialImage <- function(x) {
 }
 
 #' @method dim STARmap
+#' @concept objects
 #' @export
 #'
 dim.STARmap <- function(x) {
@@ -6786,6 +6972,7 @@ dim.STARmap <- function(x) {
 }
 
 #' @method dim VisiumV1
+#' @concept objects
 #' @export
 #'
 dim.VisiumV1 <- function(x) {
@@ -6794,6 +6981,7 @@ dim.VisiumV1 <- function(x) {
 
 #' @export
 #' @method dimnames Assay
+#' @concept objects
 #'
 dimnames.Assay <- function(x) {
   return(dimnames(x = GetAssayData(object = x)))
@@ -6801,6 +6989,7 @@ dimnames.Assay <- function(x) {
 
 #' @export
 #' @method dimnames DimReduc
+#' @concept objects
 #'
 dimnames.DimReduc <- function(x) {
   return(dimnames(x = Embeddings(object = x)))
@@ -6808,6 +6997,7 @@ dimnames.DimReduc <- function(x) {
 
 #' @export
 #' @method dimnames Seurat
+#' @concept objects
 #'
 dimnames.Seurat <- function(x) {
   x <- UpdateSlots(object = x)
@@ -6816,6 +7006,7 @@ dimnames.Seurat <- function(x) {
 
 #' @export
 #' @method dimnames<- Assay
+#' @concept objects
 #'
 "dimnames<-.Assay" <- function(x, value) {
   if (!is.list(x = value) || length(x = value) != 2L) {
@@ -6852,6 +7043,7 @@ dimnames.Seurat <- function(x) {
 
 #' @export
 #' @method droplevels Seurat
+#' @concept objects
 #'
 droplevels.Seurat <- function(x, ...) {
   x <- UpdateSlots(object = x)
@@ -6861,12 +7053,14 @@ droplevels.Seurat <- function(x, ...) {
 
 #' @export
 #' @method length DimReduc
+#' @concept objects
 #'
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
 
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method levels Seurat
 #'
@@ -6880,6 +7074,7 @@ levels.Seurat <- function(x) {
 }
 
 #' @rdname Idents
+#' @concept objects
 #' @export
 #' @method levels<- Seurat
 #'
@@ -6901,6 +7096,7 @@ levels.Seurat <- function(x) {
 }
 
 #' @rdname merge.Seurat
+#' @concept objects
 #' @export
 #' @method merge Assay
 #'
@@ -6985,6 +7181,7 @@ merge.Assay <- function(
 }
 
 #' @rdname merge.DimReduc
+#' @concept objects
 #' @export
 #' @method merge DimReduc
 #'
@@ -7060,6 +7257,7 @@ merge.DimReduc <- function(
 #' @return Merged object
 #'
 #' @rdname merge.Seurat
+#' @concept objects
 #' @aliases merge MergeSeurat AddSamples
 #'
 #' @export
@@ -7251,6 +7449,7 @@ merge.Seurat <- function(
 }
 
 #' @export
+#' @concept objects
 #' @method names DimReduc
 #'
 names.DimReduc <- function(x) {
@@ -7258,6 +7457,7 @@ names.DimReduc <- function(x) {
 }
 
 #' @export
+#' @concept objects
 #' @method names Seurat
 #'
 names.Seurat <- function(x) {
@@ -7283,6 +7483,7 @@ names.Seurat <- function(x) {
 #' @seealso \code{\link[base]{cat}}
 #'
 #' @export
+#' @concept objects
 #' @method print DimReduc
 #'
 print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...) {
@@ -7332,6 +7533,7 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
 #' @importFrom stats na.omit
 #'
 #' @export
+#' @concept objects
 #' @method subset Assay
 #'
 subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
@@ -7409,6 +7611,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
 }
 
 #' @export
+#' @concept objects
 #' @method subset DimReduc
 #'
 subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
@@ -7483,6 +7686,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #' @importFrom rlang enquo
 #'
 #' @rdname subset.Seurat
+#' @concept objects
 #' @aliases subset
 #' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
 #'
@@ -7573,6 +7777,7 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
 }
 
 #' @method subset SlideSeq
+#' @concept objects
 #' @export
 #'
 subset.SlideSeq <- function(x, cells, ...) {
@@ -7581,6 +7786,7 @@ subset.SlideSeq <- function(x, cells, ...) {
 }
 
 #' @method subset STARmap
+#' @concept objects
 #' @export
 #'
 subset.STARmap <- function(x, cells, ...) {
@@ -7595,6 +7801,7 @@ subset.STARmap <- function(x, cells, ...) {
 #' @name SpatialImage-class
 #'
 #' @method subset SpatialImage
+#' @concept objects
 #' @export
 #'
 subset.SpatialImage <- function(x, cells, ...) {
@@ -7602,6 +7809,7 @@ subset.SpatialImage <- function(x, cells, ...) {
 }
 
 #' @method subset VisiumV1
+#' @concept objects
 #' @export
 #'
 subset.VisiumV1 <- function(x, cells, ...) {
@@ -7617,6 +7825,7 @@ subset.VisiumV1 <- function(x, cells, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @rdname AddMetaData
+#' @concept objects
 #'
 setMethod(
   f = '[[<-',
@@ -7665,6 +7874,7 @@ setMethod(
 )
 
 #' @rdname AddMetaData
+#' @concept objects
 #'
 setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   f = '[[<-',

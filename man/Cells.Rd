@@ -41,3 +41,4 @@ other methods are provided for objects where colnames aren't necessarily cell na
 Cells(x = pbmc_small)
 
 }
+\concept{objects}

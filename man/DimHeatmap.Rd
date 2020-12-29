@@ -78,3 +78,5 @@ DimHeatmap(object = pbmc_small)
 \seealso{
 \code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 }
+\concept{convenience}
+\concept{visualization}

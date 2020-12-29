@@ -93,3 +93,4 @@ will be written; active identity classes will be stored in \code{adata.obs} as
 \seealso{
 \code{\link{as.loom}}
 }
+\concept{objects}

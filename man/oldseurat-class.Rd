@@ -60,3 +60,4 @@ and the original identity class (orig.ident); more information is added using \c
 \item{\code{version}}{Version of package used in object creation}
 }}
 
+\concept{objects}

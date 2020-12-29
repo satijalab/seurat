@@ -3,7 +3,7 @@ title: "Installation Instructions for Seurat"
 output: html_document
 ---
 
-To install Seurat, [R](https://www.r-project.org/) version 3.4 or greater is required. We also recommend installing [R Studio](https://www.rstudio.com/).
+To install Seurat, [R](https://www.r-project.org/) version 3.6 or greater is required. We also recommend installing [R Studio](https://www.rstudio.com/).
 
 # Install from CRAN 
  
@@ -23,7 +23,7 @@ Do you want to attempt to install these from sources?
 y/n:
 ```
 
-The CRAN release of Seurat is currently version 3.1.5. If you have installed version 3.1.5 and want to switch back to the last version 2, please see the "Previous Versions" section below 
+The CRAN release of Seurat is currently version 3.2.3. If you have installed version 3.2.3 and want to switch back to the last version 2, please see the "Previous Versions" section below 
 
 # Install previous versions of Seurat
 

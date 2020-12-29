@@ -54,3 +54,5 @@ as.sparse(x, ...)
 \description{
 Convert between data frames and sparse matrices
 }
+\concept{objects}
+\concept{utilities}

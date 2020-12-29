@@ -26,3 +26,4 @@ Jackstraw
 ElbowPlot(object = pbmc_small)
 
 }
+\concept{visualization}

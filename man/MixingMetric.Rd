@@ -43,3 +43,4 @@ integration) the k nearest neighbor and what rank that neighbor was in the
 overall neighborhood. We then take the median across all groups as the mixing
 metric per cell.
 }
+\concept{integration}

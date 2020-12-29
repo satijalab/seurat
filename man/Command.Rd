@@ -24,3 +24,4 @@ Either a SeuratCommand object or the requested paramter value
 \description{
 Pull information on previously run commands in the Seurat object.
 }
+\concept{objects}

@@ -60,3 +60,4 @@ pbmc_small <- BuildClusterTree(object = pbmc_small)
 Tool(object = pbmc_small, slot = 'BuildClusterTree')
 
 }
+\concept{tree}

@@ -62,3 +62,4 @@ correlation between the two features is displayed above the plot.
 FeatureScatter(object = pbmc_small, feature1 = 'CD9', feature2 = 'CD3E')
 
 }
+\concept{visualization}

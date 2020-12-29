@@ -42,3 +42,4 @@ the column sum for all features times 100.
 pbmc_small[["percent.mt"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
 
 }
+\concept{utilities}

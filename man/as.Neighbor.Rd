@@ -17,3 +17,4 @@ as.Neighbor(x, ...)
 \description{
 Convert objects to Neighbor ojbects
 }
+\concept{objects}

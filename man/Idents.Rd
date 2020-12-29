@@ -137,3 +137,4 @@ levels(x = pbmc_small) <- c('C', 'A', 'B')
 levels(x = pbmc_small)
 
 }
+\concept{objects}

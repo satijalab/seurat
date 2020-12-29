@@ -30,3 +30,4 @@ An object with project information added
 \description{
 Get and set project information
 }
+\concept{objects}

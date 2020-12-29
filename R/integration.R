@@ -100,6 +100,7 @@ NULL
 #' @importFrom future nbrOfWorkers
 #'
 #' @export
+#' @concept integration
 #'
 #' @examples
 #' \dontrun{
@@ -535,6 +536,7 @@ FindIntegrationAnchors <- function(
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031};
 #'
 #' @export
+#' @concept integration
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
@@ -869,6 +871,7 @@ FindTransferAnchors <- function(
 #'   query$predicted.id <- GetTransferPredictions(query)
 #' }
 #' @export
+#' @concept integration
 #'
 GetTransferPredictions <- function(object, assay = "predictions", slot = "data", score.filter = 0.75) {
   dat <- GetAssayData(object[[assay]], slot = slot)
@@ -976,6 +979,7 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
 #'
 #' @export
+#' @concept integration
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
@@ -1179,6 +1183,7 @@ IntegrateData <- function(
 #' @inheritParams IntegrateData
 #'
 #' @rdname IntegrateEmbeddings
+#' @concept integration
 #' @export
 #' @method IntegrateEmbeddings IntegrationAnchorSet
 #'
@@ -1308,6 +1313,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
 #' parameter in TransferData to reuse a precomputed weights matrix.
 #'
 #' @rdname IntegrateEmbeddings
+#' @concept integration
 #' @export
 #' @method IntegrateEmbeddings TransferAnchorSet
 #'
@@ -1421,6 +1427,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @export
+#' @concept integration
 #'
 LocalStruct <- function(
   object,
@@ -1515,6 +1522,7 @@ LocalStruct <- function(
 #' reference umap.
 #'
 #' @export
+#' @concept integration
 #'
 MapQuery <- function(
   anchorset,
@@ -1617,6 +1625,7 @@ MapQuery <- function(
 #' @return Returns a vector of cell scores
 #'
 #' @rdname MappingScore
+#' @concept integration
 #' @export
 #'
 MappingScore.default <- function(
@@ -1819,6 +1828,7 @@ MappingScore.default <- function(
 
 #' @rdname MappingScore
 #' @export
+#' @concept integration
 #' @method MappingScore AnchorSet
 #'
 MappingScore.AnchorSet <- function(
@@ -1914,6 +1924,7 @@ MappingScore.AnchorSet <- function(
 #' @importFrom future.apply future_sapply
 #' @importFrom future nbrOfWorkers
 #' @export
+#' @concept integration
 #'
 MixingMetric <- function(
   object,
@@ -1998,6 +2009,7 @@ MixingMetric <- function(
 #' @importFrom future.apply future_lapply
 #'
 #' @export
+#' @concept integration
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
@@ -2166,6 +2178,7 @@ PrepSCTIntegration <- function(
 #' @return A vector of selected features
 #'
 #' @export
+#' @concept integration
 #'
 #' @examples
 #' \dontrun{
@@ -2357,6 +2370,7 @@ SelectIntegrationFeatures <- function(
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
 #'
 #' @export
+#' @concept integration
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data

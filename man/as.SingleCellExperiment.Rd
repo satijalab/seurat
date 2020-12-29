@@ -19,3 +19,4 @@ as.SingleCellExperiment(x, ...)
 \description{
 Convert objects to SingleCellExperiment objects
 }
+\concept{objects}

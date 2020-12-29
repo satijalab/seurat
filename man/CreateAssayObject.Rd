@@ -35,3 +35,4 @@ pbmc_rna <- CreateAssayObject(counts = pbmc_raw)
 pbmc_rna
 
 }
+\concept{objects}

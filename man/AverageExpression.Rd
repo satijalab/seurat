@@ -61,3 +61,4 @@ the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated val
 head(AverageExpression(object = pbmc_small))
 
 }
+\concept{utilities}

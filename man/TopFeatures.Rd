@@ -39,3 +39,4 @@ TopFeatures(object = pbmc_small[["pca"]], dim = 1)
 TopFeatures(object = pbmc_small[["pca"]], dim = 1,  projected = TRUE)
 
 }
+\concept{objects}

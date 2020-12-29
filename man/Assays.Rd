@@ -23,3 +23,4 @@ a Seurat object. If slot is provided, pulls specified Assay object.
 Assays(object = pbmc_small)
 
 }
+\concept{objects}

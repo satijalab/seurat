@@ -31,6 +31,7 @@ NULL
 #'
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 #'
@@ -206,6 +207,7 @@ DimHeatmap <- function(
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' DoHeatmap(object = pbmc_small)
@@ -415,6 +417,7 @@ DoHeatmap <- function(
 #'
 #' @importFrom ggplot2 guides
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{HTODemux}}
 #'
@@ -494,6 +497,7 @@ HTOHeatmap <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' RidgePlot(object = pbmc_small, features = 'PC_1')
@@ -552,6 +556,7 @@ RidgePlot <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{FetchData}}
 #'
@@ -637,6 +642,7 @@ VlnPlot <- function(
 #' @return Returns a DimPlot
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{DimPlot}}
 #'
@@ -750,6 +756,7 @@ ColorDimSplit <- function(
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
+#' @concept visualization
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{CellSelector}, respectively.
@@ -930,6 +937,7 @@ DimPlot <- function(
 #' scale_color_manual coord_fixed ggtitle
 #'
 #' @export
+#' @concept visualization
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{CellSelector}, respectively.
@@ -1472,6 +1480,7 @@ FeaturePlot <- function(
 #' observeEvent stopApp observe updateSelectInput renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
   # Set initial data values
@@ -1696,6 +1705,7 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
 #' @inherit DimPlot return
 #'
 #' @export
+#' @concept visualization
 #'
 NNPlot <- function(
   object,
@@ -1789,6 +1799,7 @@ NNPlot <- function(
 #' @return A ggplot object
 #'
 #' @export
+#' @concept visualization
 #'
 #' @aliases CellPlot
 #'
@@ -1852,6 +1863,7 @@ CellScatter <- function(
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
+#' @concept visualization
 #'
 #' @aliases GenePlot
 #'
@@ -1932,6 +1944,7 @@ FeatureScatter <- function(
 #'
 #' @importFrom ggplot2 labs scale_color_manual scale_x_log10
 #' @export
+#' @concept visualization
 #'
 #' @aliases VariableGenePlot MeanVarPlot
 #'
@@ -2005,6 +2018,7 @@ VariableFeaturePlot <- function(
 #' @return Returns a ggplot object
 #'
 #' @export
+#' @concept visualization
 #'
 PolyDimPlot <- function(
   object,
@@ -2049,6 +2063,7 @@ PolyDimPlot <- function(
 #' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
 #'
 #' @export
+#' @concept visualization
 #'
 PolyFeaturePlot <- function(
   object,
@@ -2171,6 +2186,7 @@ PolyFeaturePlot <- function(
 #' @aliases LinkedPlot LinkedDimPlot
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
@@ -2384,6 +2400,7 @@ LinkedDimPlot <- function(
 #' scale_color_gradientn guide_colorbar
 #'
 #' @export
+#' @concept visualization
 #'
 LinkedFeaturePlot <- function(
   object,
@@ -2516,6 +2533,7 @@ LinkedFeaturePlot <- function(
 #' observeEvent stopApp nearPoints renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 ISpatialDimPlot <- function(
   object,
@@ -2640,6 +2658,7 @@ ISpatialDimPlot <- function(
 #' observeEvent stopApp observe updateSelectInput plotOutput renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 ISpatialFeaturePlot <- function(
   object,
@@ -2886,6 +2905,7 @@ ISpatialFeaturePlot <- function(
 #' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text scale_alpha
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
@@ -3220,6 +3240,7 @@ SpatialPlot <- function(
 #' geom_vline scale_x_continuous labs
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
   .Deprecated(
@@ -3284,6 +3305,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #' @importFrom ggplot2 ggplot geom_line geom_vline aes_string
 #'
 #' @export
+#' @concept visualization
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
@@ -3388,6 +3410,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @importFrom RColorBrewer brewer.pal.info
 #'
 #' @export
+#' @concept visualization
 #'
 #' @aliases SplitDotPlotGG
 #' @seealso \code{RColorBrewer::brewer.pal.info}
@@ -3622,6 +3645,7 @@ DotPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string geom_point labs element_line
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' ElbowPlot(object = pbmc_small)
@@ -3669,6 +3693,7 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
 #' @importFrom stats complete.cases
 #'
 #' @export
+#' @concept visualization
 #'
 GroupCorrelationPlot <- function(
   object,
@@ -3729,6 +3754,7 @@ GroupCorrelationPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' JackStrawPlot(object = pbmc_small)
@@ -3787,6 +3813,7 @@ JackStrawPlot <- function(
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
@@ -3828,6 +3855,7 @@ PlotClusterTree <- function(object, ...) {
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string geom_point labs
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' VizDimLoadings(object = pbmc_small)
@@ -3913,6 +3941,7 @@ VizDimLoadings <- function(
 #' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
@@ -3971,6 +4000,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
 #' \code{background}; names of vector are \code{background}
 #'
 #' @export
+#' @concept visualization
 #'
 #' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
 #'
@@ -4003,6 +4033,7 @@ BGTextColor <- function(
 #' @inheritParams CustomPalette
 #'
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @aliases BlackAndWhite
@@ -4018,6 +4049,7 @@ BlackAndWhite <- function(mid = NULL, k = 50) {
 #' @inheritParams CustomPalette
 #'
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @aliases BlueAndRed
@@ -4050,6 +4082,7 @@ BlueAndRed <- function(k = 50) {
 #' stopApp brushedPoints renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
@@ -4177,6 +4210,7 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
 #' @return Returns a DimReduc object with the modified embeddings
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
@@ -4244,6 +4278,7 @@ CollapseEmbeddingOutliers <- function(
 #'
 #' @importFrom cowplot plot_grid get_legend
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' pbmc_small[['group']] <- sample(
@@ -4324,6 +4359,7 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
 #'
 #' @importFrom grDevices col2rgb rgb
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @examples
@@ -4385,6 +4421,7 @@ CustomPalette <- function(
 #' Credit: Kevin Wright
 #'
 #' @export
+#' @concept visualization
 #'
 DiscretePalette <- function(n, palette = NULL) {
   palettes <- list(
@@ -4443,6 +4480,7 @@ DiscretePalette <- function(n, palette = NULL) {
 
 #' @rdname CellSelector
 #' @export
+#' @concept visualization
 #'
 FeatureLocator <- function(plot, ...) {
   .Defunct(
@@ -4465,6 +4503,7 @@ FeatureLocator <- function(plot, ...) {
 #' @importFrom ggplot2 ggplot_build
 #' @importFrom plotly plot_ly layout add_annotations
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
 #' \code{\link{DimPlot}} \code{\link{FeaturePlot}}
@@ -4576,6 +4615,7 @@ HoverLocator <- function(
 #' @importFrom grDevices col2rgb
 #'
 #' @export
+#' @concept visualization
 #'
 #' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
 #'
@@ -4620,6 +4660,7 @@ Intensity <- function(color) {
 #' @importFrom RANN nn2
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 #'
@@ -4752,6 +4793,7 @@ LabelClusters <- function(
 #' @importFrom ggrepel geom_text_repel
 #' @importFrom ggplot2 geom_text aes_string
 #' @export
+#' @concept visualization
 #'
 #' @aliases Labeler
 #' @seealso \code{\link[ggplot2]{geom_text}}
@@ -4806,6 +4848,7 @@ LabelPoints <- function(
 #' @importFrom grDevices col2rgb
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' Luminance(color = c('black', 'white', '#E76BF3'))
@@ -4837,6 +4880,7 @@ Luminance <- function(color) {
 #' @inheritParams CustomPalette
 #'
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @aliases PurpleAndYellow
@@ -4875,6 +4919,7 @@ PurpleAndYellow <- function(k = 50) {
 #' @return A ggplot2 theme object
 #'
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @seealso \code{\link[ggplot2]{theme}}
@@ -4888,6 +4933,7 @@ SeuratTheme <- function() {
 #'
 #' @rdname SeuratTheme
 #' @export
+#' @concept visualization
 #'
 #' @aliases CenterTitle
 #'
@@ -4899,6 +4945,7 @@ CenterTitle <- function(...) {
 #'
 #' @importFrom ggplot2 theme element_rect element_text element_line margin
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases DarkTheme
@@ -4963,6 +5010,7 @@ DarkTheme <- function(...) {
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases FontSize
@@ -4995,6 +5043,7 @@ FontSize <- function(
 #'
 #' @importFrom ggplot2 theme element_blank
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases NoAxes
@@ -5041,6 +5090,7 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
 #'
 #' @importFrom ggplot2 theme
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases NoLegend
@@ -5067,6 +5117,7 @@ NoLegend <- function(...) {
 #'
 #' @importFrom ggplot2 theme element_blank
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases NoGrid
@@ -5094,6 +5145,7 @@ NoGrid <- function(...) {
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases SeuratAxes
@@ -5113,6 +5165,7 @@ SeuratAxes <- function(...) {
 #' @inheritParams SeuratTheme
 #'
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases SpatialTheme
@@ -5126,6 +5179,7 @@ SpatialTheme <- function(...) {
 #'
 #' @importFrom ggplot2 theme
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases RestoreLegend
@@ -5145,6 +5199,7 @@ RestoreLegend <- function(..., position = 'right') {
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases RotatedAxis
@@ -5164,6 +5219,7 @@ RotatedAxis <- function(...) {
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases BoldTitle
@@ -5183,6 +5239,7 @@ BoldTitle <- function(...) {
 #'
 #' @importFrom ggplot2 theme element_rect
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases WhiteBackground

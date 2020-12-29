@@ -23,3 +23,4 @@ updated_seurat_object = UpdateSeuratObject(object = old_seurat_object)
 }
 
 }
+\concept{objects}

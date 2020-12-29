@@ -93,3 +93,4 @@ head(x = pbmc_small[])
 \references{
 Tirosh et al, Science (2016)
 }
+\concept{utilities}

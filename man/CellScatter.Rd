@@ -48,3 +48,4 @@ correlation between the two cells is displayed above the plot.
 CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 
 }
+\concept{visualization}

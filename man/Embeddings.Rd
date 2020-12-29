@@ -30,3 +30,4 @@ Embeddings(object = pbmc_small[["pca"]])[1:5, 1:5]
 Embeddings(object = pbmc_small, reduction = "pca")[1:5, 1:5]
 
 }
+\concept{objects}

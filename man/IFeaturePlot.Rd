@@ -23,3 +23,4 @@ Returns the final plot as a ggplot object
 \description{
 Visualize features in dimensional reduction space interactively
 }
+\concept{visualization}

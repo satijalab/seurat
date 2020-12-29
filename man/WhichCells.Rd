@@ -63,3 +63,4 @@ WhichCells(object = pbmc_small, idents = c(1, 2), invert = TRUE)
 \seealso{
 \code{\link{FetchData}}
 }
+\concept{objects}

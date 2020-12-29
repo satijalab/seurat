@@ -22,3 +22,4 @@ the Seurat object
 \seealso{
 \code{\link{Command}}
 }
+\concept{objects}

@@ -27,3 +27,4 @@ Prints a set of features that most strongly define a set of components
 \seealso{
 \code{\link[base]{cat}}
 }
+\concept{objects}

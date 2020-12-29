@@ -25,3 +25,4 @@ Get cell names grouped by identity class
 CellsByIdentities(object = pbmc_small)
 
 }
+\concept{objects}

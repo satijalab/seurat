@@ -88,3 +88,4 @@ VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 \seealso{
 \code{\link{FetchData}}
 }
+\concept{visualization}

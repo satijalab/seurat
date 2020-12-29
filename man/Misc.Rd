@@ -54,3 +54,4 @@ Misc(object = pbmc_small, slot = "example")
 Misc(object = pbmc_small, slot = "example") <- "testing_misc"
 
 }
+\concept{objects}

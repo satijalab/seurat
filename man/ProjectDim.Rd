@@ -49,3 +49,4 @@ pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
 DimHeatmap(object = pbmc_small, reduction = "pca", dims = 1, balanced = TRUE)
 
 }
+\concept{dimensional_reduction}

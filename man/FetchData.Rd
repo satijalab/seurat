@@ -28,3 +28,4 @@ head(x = pc1)
 head(x = FetchData(object = pbmc_small, vars = c('groups', 'ident')))
 
 }
+\concept{objects}

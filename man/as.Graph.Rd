@@ -40,3 +40,4 @@ colnames(x = mat) <- paste0("cell_", 1:4)
 g <- as.Graph(x = mat)
 
 }
+\concept{objects}

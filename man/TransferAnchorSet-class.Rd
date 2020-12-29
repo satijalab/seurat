@@ -9,3 +9,4 @@
 Inherits from the Anchorset class. Implemented mainly for method dispatch
 purposes.  See \code{\link{AnchorSet}} for slot details.
 }
+\concept{objects}

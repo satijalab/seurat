@@ -115,3 +115,4 @@ FoldChange(pbmc_small, ident.1 = 1)
 \seealso{
 \code{FindMarkers}
 }
+\concept{differential_expression}

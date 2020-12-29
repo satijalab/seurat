@@ -102,3 +102,4 @@ calculations are performed in the full space of integrated embeddings when
 integrating more than two datasets, as opposed to a reduced PCA space which
 is the default behavior in \code{\link{IntegrateData}}.
 }
+\concept{integration}

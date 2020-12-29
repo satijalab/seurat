@@ -31,3 +31,4 @@ the associated object will remain even if its original assay was deleted
 IsGlobal(pbmc_small[['pca']])
 
 }
+\concept{objects}

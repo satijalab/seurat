@@ -68,3 +68,4 @@ scores, etc.)
 RidgePlot(object = pbmc_small, features = 'PC_1')
 
 }
+\concept{visualization}

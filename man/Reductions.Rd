@@ -23,3 +23,4 @@ a Seurat object. If slot is provided, pulls specified DimReduc object.
 Reductions(object = pbmc_small)
 
 }
+\concept{objects}

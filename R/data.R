@@ -7,6 +7,7 @@
 #'   \item{s.genes}{Genes associated with S-phase}
 #'   \item{g2m.genes}{Genes associated with G2M-phase}
 #' }
+#' @concept data
 #' @source \url{https://science.sciencemag.org/content/352/6282/189}
 #'
 "cc.genes"
@@ -39,6 +40,7 @@
 #'   \item{s.genes}{Genes associated with S-phase}
 #'   \item{g2m.genes}{Genes associated with G2M-phase}
 #' }
+#' @concept data
 #' @source \url{https://science.sciencemag.org/content/352/6282/189}
 #'
 #' @seealso \code{\link{cc.genes}}
@@ -74,6 +76,7 @@
 #'   \item{version}{Seurat version used to create the object}
 #'   \item{commands}{Command history}
 #' }
+#' @concept data
 #' @source \url{https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k}
 #'
 "pbmc_small"

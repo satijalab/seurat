@@ -74,3 +74,4 @@ lfile <- as.loom(x = pbmc_small)
 \seealso{
 \code{\link[loomR]{create}}
 }
+\concept{objects}

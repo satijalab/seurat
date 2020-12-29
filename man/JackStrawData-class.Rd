@@ -20,3 +20,4 @@ The JackStrawData is used to store the results of a JackStraw computation.
 \item{\code{overall.p.values}}{Overall p-values from ScoreJackStraw}
 }}
 
+\concept{objects}

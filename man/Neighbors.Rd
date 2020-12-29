@@ -19,3 +19,4 @@ in this Seurat object. Otherwise, the \code{Neighbor} object requested
 Lists the names of \code{\link{Neighbor}} objects present in
 a Seurat object. If slot is provided, pulls specified Neighbors object.
 }
+\concept{objects}

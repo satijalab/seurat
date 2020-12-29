@@ -44,3 +44,4 @@ variable first).}
 \description{
 Get spatially variable feature information
 }
+\concept{objects}

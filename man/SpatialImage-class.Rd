@@ -92,3 +92,4 @@ These methods are used throughout Seurat, so defining them and setting the prope
 defaults will allow subclasses of \code{SpatialImage} to work seamlessly
 }
 
+\concept{objects}

@@ -49,3 +49,4 @@ Visualize top genes associated with reduction components
 VizDimLoadings(object = pbmc_small)
 
 }
+\concept{visualization}

@@ -49,3 +49,4 @@ sample.tool.output <- matrix(data = rnorm(n = 16), nrow = 4)
 Tool(object = pbmc_small) <- sample.tool.output
 }
 }
+\concept{objects}

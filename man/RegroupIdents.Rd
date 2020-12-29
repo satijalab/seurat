@@ -22,3 +22,4 @@ of a specified metadata column.
 pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
 
 }
+\concept{utilities}

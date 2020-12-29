@@ -58,3 +58,4 @@ CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 \author{
 Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 }
+\concept{preprocessing}

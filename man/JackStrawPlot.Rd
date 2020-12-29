@@ -43,3 +43,4 @@ JackStrawPlot(object = pbmc_small)
 \author{
 Omri Wurtzel
 }
+\concept{visualization}

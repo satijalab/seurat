@@ -42,3 +42,4 @@ VariableFeaturePlot(object = pbmc_small)
 \seealso{
 \code{\link{FindVariableFeatures}}
 }
+\concept{visualization}

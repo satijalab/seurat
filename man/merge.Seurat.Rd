@@ -68,3 +68,4 @@ merge(x = pbmc_small, y = pbmc_small)
 merge(x = pbmc_small, y = c(pbmc_small, pbmc_small))
 
 }
+\concept{objects}

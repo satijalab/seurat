@@ -22,3 +22,4 @@ The SeuratCommand is used for logging commands that are run on a SeuratObject. I
 \item{\code{params}}{List of parameters used in the command call}
 }}
 
+\concept{objects}

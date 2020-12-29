@@ -6,7 +6,7 @@
 \alias{STARmap}
 \title{The STARmap class}
 \description{
-The STARmap class represents spatial information from the STARmap platform
+The STARmap class
 }
 \section{Slots}{
 

@@ -112,3 +112,4 @@ p + NoGrid()
 \seealso{
 \code{\link[ggplot2]{theme}}
 }
+\concept{visualization}

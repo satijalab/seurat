@@ -75,3 +75,4 @@ pbmc_small <- RenameCells(object = pbmc_small, add.cell.id = "A")
 head(x = colnames(x = pbmc_small))
 
 }
+\concept{objects}

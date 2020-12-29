@@ -18,3 +18,4 @@ each of the data points also in data}
 \description{
 Wraps the functionality of markvario from the spatstat package.
 }
+\concept{preprocessing}

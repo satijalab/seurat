@@ -30,7 +30,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-### Setup the Seurat Object
+# Setup the Seurat Object
 
 For this tutorial, we will be analyzing the a dataset of Peripheral Blood Mononuclear Cells (PBMC) freely available from 10X Genomics. There are 2,700 single cells that were sequenced on the Illumina NextSeq 500. The raw data can be found [here](https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz).
 
@@ -69,11 +69,11 @@ dense.size / sparse.size
 </details>
 \  
 
-### Standard pre-processing workflow
+# Standard pre-processing workflow
 
 The steps below encompass the standard pre-processing workflow for scRNA-seq data in Seurat. These represent the selection and filtration of cells based on QC metrics, data normalization and scaling, and the detection of highly variable features.
 
-#### QC and selecting cells for further analysis
+## QC and selecting cells for further analysis
 
 Seurat allows you to easily explore QC metrics and filter cells based on any user-defined criteria. A few QC metrics [commonly used](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4758103/) by the community include
 
@@ -124,7 +124,7 @@ pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent
 
 ***
 
-### Normalizing the data
+# Normalizing the data
 
 After removing unwanted cells from the dataset, the next step is to normalize the data. By default, we employ a global-scaling normalization method "LogNormalize" that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and log-transforms the result. Normalized values are stored in `pbmc[["RNA"]]@data`.
 
@@ -137,7 +137,7 @@ For clarity, in this previous line of code (and in future commands), we provide 
 pbmc <- NormalizeData(pbmc)
 ```
 
-### Identification of highly variable features (feature selection)
+# Identification of highly variable features (feature selection)
 
 We next calculate a subset of features that exhibit high cell-to-cell variation in the dataset (i.e, they are highly expressed in some cells, and lowly expressed in others). We and [others](https://www.nature.com/articles/nmeth.2645) have found that focusing on these genes in downstream analysis helps to highlight biological signal in single-cell datasets.
 
@@ -157,7 +157,7 @@ plot1 + plot2
 
 ***
 
-### Scaling the data
+# Scaling the data
 
 Next, we apply a linear transformation ('scaling') that is a standard pre-processing step prior to dimensional reduction techniques like PCA. The `ScaleData` function:
 
@@ -193,7 +193,7 @@ However, particularly for advanced users who would like to use this functionalit
 
 ***
 
-### Perform linear dimensional reduction
+# Perform linear dimensional reduction
 
 Next we perform PCA on the scaled data. By default, only the previously determined variable features are used as input, but can be defined using `features` argument if you wish to choose a different subset.
 
@@ -220,7 +220,7 @@ DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
 DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
 ```
 
-### Determine the 'dimensionality' of the dataset
+# Determine the 'dimensionality' of the dataset
 
 To overcome the extensive technical noise in any single feature for scRNA-seq data, Seurat clusters cells based on their PCA scores, with each PC essentially representing a 'metafeature' that combines information across a correlated feature set. The top principal components therefore represent a robust compression of the dataset. However, how many components should we choose to include? 10? 20? 100?
 
@@ -254,7 +254,7 @@ We chose 10 here, but encourage users to consider the following:
 
 ***
 
-### Cluster the cells
+# Cluster the cells
 
 Seurat v3 applies a graph-based clustering approach, building upon initial strategies in ([Macosko *et al*](http://www.cell.com/abstract/S0092-8674(15)00549-8)). Importantly, the *distance metric* which drives the clustering analysis (based on previously identified PCs) remains the same. However, our approach to partitioning the cellular distance matrix into clusters has dramatically improved. Our approach was heavily inspired by recent manuscripts which applied graph-based clustering approaches to scRNA-seq data [[SNN-Cliq, Xu and Su, Bioinformatics, 2015]](http://bioinformatics.oxfordjournals.org/content/early/2015/02/10/bioinformatics.btv088.abstract) and CyTOF data [[PhenoGraph, Levine *et al*., Cell, 2015]](http://www.ncbi.nlm.nih.gov/pubmed/26095251). Briefly, these methods embed cells in a graph structure - for example a K-nearest neighbor (KNN) graph, with edges drawn between cells with similar feature expression patterns, and then attempt to partition this graph into highly interconnected 'quasi-cliques' or 'communities'. 
 
@@ -273,7 +273,7 @@ head(Idents(pbmc), 5)
 
 ***
 
-### Run non-linear dimensional reduction (UMAP/tSNE)
+# Run non-linear dimensional reduction (UMAP/tSNE)
 
 Seurat offers several non-linear dimensional reduction techniques, such as tSNE and UMAP, to visualize and explore these datasets. The goal of these algorithms is to learn the underlying manifold of the data in order to place similar cells together in low-dimensional space. Cells within the graph-based clusters determined above should co-localize on these dimension reduction plots. As input to the UMAP and tSNE, we suggest using the same PCs as input to the clustering analysis.
 
@@ -295,7 +295,7 @@ saveRDS(pbmc, file = "../output/pbmc_tutorial.rds")
 
 ***
 
-### Finding differentially expressed features (cluster biomarkers)
+# Finding differentially expressed features (cluster biomarkers)
 
 Seurat can help you find markers that define clusters via differential expression. By default, it identifies positive and negative markers of a single cluster (specified in `ident.1`), compared to all other cells.  `FindAllMarkers` automates this process for all clusters, but you can also test groups of clusters vs. each other, or against all cells.
 
@@ -336,7 +336,7 @@ DoHeatmap(pbmc, features = top10$gene) + NoLegend()
 ```
 
 ***
-### Assigning cell type identity to clusters
+# Assigning cell type identity to clusters
 
 Fortunately in the case of this dataset, we can use canonical markers to easily match the unbiased clustering to known cell types:
 

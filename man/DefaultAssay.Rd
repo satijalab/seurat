@@ -61,3 +61,4 @@ DefaultAssay(object = pbmc_small) <- "RNA2"
 DefaultAssay(object = pbmc_small)
 
 }
+\concept{objects}

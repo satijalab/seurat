@@ -24,3 +24,4 @@ mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
 mat_norm <- TF.IDF(data = mat)
 
 }
+\concept{preprocessing}

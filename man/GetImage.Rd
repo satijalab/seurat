@@ -43,3 +43,4 @@ Get image data
 \seealso{
 \code{\link[plotly]{layout}}
 }
+\concept{objects}

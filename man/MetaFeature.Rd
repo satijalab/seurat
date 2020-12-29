@@ -42,3 +42,4 @@ pbmc_small <- MetaFeature(
 head(pbmc_small[[]])
 
 }
+\concept{utilities}

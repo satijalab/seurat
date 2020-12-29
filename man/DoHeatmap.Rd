@@ -81,3 +81,4 @@ Draws a heatmap of single cell feature expression.
 DoHeatmap(object = pbmc_small)
 
 }
+\concept{visualization}

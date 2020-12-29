@@ -43,3 +43,4 @@ DimPlot(pbmc_small, reduction = "umap_new")
 }
 
 }
+\concept{visualization}

@@ -33,4 +33,5 @@ pbmc_small
 \description{
 A subsetted version of 10X Genomics' 3k PBMC dataset
 }
+\concept{data}
 \keyword{datasets}

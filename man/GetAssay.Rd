@@ -26,3 +26,4 @@ Get an Assay object from a given Seurat object.
 GetAssay(object = pbmc_small, assay = "RNA")
 
 }
+\concept{objects}

@@ -25,3 +25,4 @@ Shared matrix rows (with the same row name) will be merged,
 and unshared rows (with different names) will be filled
 with zeros in the matrix not containing the row.
 }
+\concept{utilities}

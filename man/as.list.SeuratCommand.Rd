@@ -19,3 +19,4 @@ A list with the parameters and, if \code{complete = TRUE}, the call string, name
 \description{
 Coerce a SeuratCommand to a list
 }
+\concept{objects}

@@ -78,3 +78,4 @@ OldWhichCells(object = pbmc_small, ident.keep = 2)
 \seealso{
 \code{\link{FetchData}}
 }
+\concept{objects}

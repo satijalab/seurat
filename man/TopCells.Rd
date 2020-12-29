@@ -30,3 +30,4 @@ head(TopCells(object = pbmc_small[["pca"]]))
 TopCells(object = pbmc_small[["pca"]], dim = 2, ncells = 5)
 
 }
+\concept{objects}

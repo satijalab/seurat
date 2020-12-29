@@ -71,7 +71,8 @@ Seurat object containing a nearest-neighbor object, KNN graph, and SNN graph - e
 }
 \description{
 This function will construct a weighted nearest neighbor (WNN) graph. For
-each cell, we identify the nearest neighbors based on a weighted combination 
+each cell, we identify the nearest neighbors based on a weighted combination
 of two modalities. Takes as input two dimensional reductions, one computed for each modality.
 Other parameters are listed for debugging, but can be left as default values.
 }
+\concept{clustering}

@@ -19,3 +19,4 @@ Returns a vector of cell names
 \description{
 Return a vector of cell names of the nearest n cells.
 }
+\concept{objects}

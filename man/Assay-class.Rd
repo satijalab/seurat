@@ -32,3 +32,4 @@ assay provenence}
 \item{\code{misc}}{Utility slot for storing additional data associated with the assay}
 }}
 
+\concept{objects}

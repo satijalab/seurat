@@ -38,3 +38,4 @@ HVFInfo(object = pbmc_small[["RNA"]], selection.method = 'vst')[1:5, ]
 HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
 
 }
+\concept{objects}

@@ -37,3 +37,4 @@ SVFInfo(object, ...)
 \description{
 Get spatially variable feature information
 }
+\concept{objects}

@@ -53,3 +53,4 @@ head(x = pbmc_small@meta.data)
 \seealso{
 \code{AddModuleScore}
 }
+\concept{utilities}

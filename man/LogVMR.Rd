@@ -22,3 +22,4 @@ log-space)
 LogVMR(x = c(1, 2, 3))
 
 }
+\concept{utilities}

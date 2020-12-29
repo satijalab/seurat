@@ -21,3 +21,4 @@ Returns a \code{\link{Seurat}} object
 \description{
 Set integation data
 }
+\concept{objects}

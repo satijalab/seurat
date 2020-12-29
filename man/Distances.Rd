@@ -17,3 +17,4 @@ Distances(object, ...)
 \description{
 Get the Neighbor nearest neighbors distance matrix
 }
+\concept{objects}

@@ -61,3 +61,4 @@ Key(object = pbmc_small[["pca"]]) <- "newkey2_"
 Key(object = pbmc_small[["pca"]])
 
 }
+\concept{objects}

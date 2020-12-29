@@ -53,3 +53,4 @@ pca.dr <- CreateDimReducObject(
 )
 
 }
+\concept{objects}

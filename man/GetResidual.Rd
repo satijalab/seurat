@@ -46,3 +46,4 @@ pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
 \seealso{
 \code{\link[sctransform]{get_residuals}}
 }
+\concept{preprocessing}

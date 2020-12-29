@@ -72,3 +72,4 @@ ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
 \author{
 Maximilian Haeussler, Nikolay Markov
 }
+\concept{utilities}
