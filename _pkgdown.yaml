@@ -1,0 +1,77 @@
+destination: docs
+
+template:
+  params:
+      bootswatch: flatly
+
+navbar:
+  title: "Seurat"
+  left:
+    - text: "Get started"
+      href: articles/pbmc3k_tutorial.html
+    - text: "Vignettes"
+      menu:
+        - text: "PBMC 3K guided tutorial"
+          href: articles/pbmc3k_tutorial.html
+    - text: "Reference"
+      href: reference/index.html
+  right:
+    - icon: fa-github
+      href: https://github.com/satijalab/seurat
+
+reference:
+- title: "Object interaction"
+  desc: "Functions for interacting with a Seurat object"
+- contents: 
+  - has_concept("objects")
+
+- title: "Preprocessing"
+  desc: "Functions for preprocessing single-cell data"
+- contents:
+  - has_concept("preprocessing")
+
+- title: "Differential expression"
+  desc: "Functions for testing differential gene (feature) expression"
+- contents:
+  - has_concept("differential_expression")
+
+- title: "Dimensional Reduction"
+  desc: "Functions to reduce the dimensionality of datasets"
+- contents:
+  - has_concept("dimensional_reduction")
+
+- title: "Clustering"
+  desc: "Functions to cluster single-cell data"
+- contents:
+  - has_concept("clustering")
+
+- title: "Integration"
+  desc: >
+    Functions related to the Seurat v3 integration and label transfer algorithms
+- contents:
+  - has_concept("integration")
+
+- title: "Visualization"
+  desc: "Functions for plotting data and adjusting"
+- contents:
+  - has_concept("visualization")
+ 
+- title: "Tree-related functions"
+  desc: "Function related to tree-based analysis of identity classes"
+- contents:
+  - has_concept("tree")
+
+- title: "Utility functions"
+  desc: "Useful functions to help with a variety of tasks"
+- contents:
+  - has_concept("utilities")
+  
+- title: "Data"
+  desc: "Descriptions of data included with Seurat"
+- contents:
+  - has_concept("data")
+
+- title: "Convenience functions"
+  desc: "Functions included for user convenience and to keep maintain backwards compatability"
+- contents:
+  - has_concept("convenience")
