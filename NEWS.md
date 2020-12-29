@@ -1,4 +1,4 @@
-# [3.2.3] - 2020-12-14
+# Seurat 3.2.3 (2020-12-14)
 ## Added
 - Titles added to `DimPlot` when specifying `group.by` parameter
 - `keep.scale` parameter added to `FeaturePlot` to control scaling across multiple features and/or splits.
@@ -18,7 +18,7 @@
 - Small change in CellRanger version detection logic of h5 file to improve robustness to outside tools.
 - `do.cpp` deprecated and will default to true
 
-# [3.2.2] - 2020-09-25
+# Seurat 3.2.2 (2020-09-25)
 ## Changes
 - Set the seed in `WhichCells` regardless of whether or not `idents` is passed
 - Retain Graph and Neighbor objects when subsetting only on features
@@ -26,7 +26,7 @@
 - Default annoy search to sequential if not using multicore future plans.
 - Require sctransform >= 0.3.0
 
-# [3.2.1] - 2020-09-04
+# Seurat 3.2.1 (2020-09-04)
 ## Added
 - Added support for nearest neighbor input and `return.model` parameter in `RunUMAP()`
 - Enable named color vectors in `DoHeatmap()`
@@ -52,7 +52,7 @@
 - `ReadH5AD` and `WriteH5AD` deprecated in favor of h5Seurat/H5AD functionality found in SeuratDisk
 - `as.loom` and `as.Seurat.loom` deprecated in favor of functionality found in SeuratDisk
 
-# [3.2.0] - 2020-07-15
+# Seurat 3.2.0 (2020-07-15)
 ## Added
 - Added ability to create a Seurat object from an existing Assay object, or any
 object inheriting from the Assay class
@@ -73,7 +73,7 @@ object inheriting from the Assay class
 - Remove `SDMTools`
 - Fixed data slot return in `AverageExpression` when subsetting features and returning a Seurat object
 
-# [3.1.5] - 2020-04-14
+# Seurat 3.1.5 (2020-04-14)
 ## Added
 - New `scale` parameter in `DotPlot`
 - New `keep.sparse parameter in `CreateGeneActivityMatrix` for a more memory efficient option
@@ -95,12 +95,12 @@ object inheriting from the Assay class
 - Preserve alpha in `FeaturePlot` when using `blend`
 - Update `assay.used` slot for `DimReduc`s when Assay is renamed
 
-# [3.1.4] - 2020-02-20
+# Seurat 3.1.4 (2020-02-20)
 ## Changes
 - Fixes to `DoHeatmap` to remain compatible with ggplot2 v3.3
 - Adoption of `patchwork` framework to replace `CombinePlots`
 
-# [3.1.3] - 2020-02-07
+# Seurat 3.1.3 (2020-02-07)
 ## Added
 - New system agnostic `Which` function to address problems with FItSNE on Windows
 
@@ -113,7 +113,7 @@ object inheriting from the Assay class
 - Fix for data transfer when using sctransform
 - SDMTools moved to Suggests as package is orphaned
 
-# [3.1.2] - 2019-12-11
+# Seurat 3.1.2 (2019-12-11)
 ## Added
 - New silent slot updater
 - New random seed options to `RunCCA`, `RunTSNE`, `WhichCells`, `HTODemux`, `AddModuleScore`, `VlnPlot`, and `RidgePlot`
@@ -124,7 +124,7 @@ object inheriting from the Assay class
 - Fix issue regarding colons in feature names
 - Change object class testing to use `inherits` or `is.*` for R 4.0 compatability
 
-# [3.1.1] - 2019-09-20
+# Seurat 3.1.1 (2019-09-20)
 ## Added
 - New `RegroupIdents` function to reassign idents based on metadata column majority
 - `UpdateSymbolList` function to pull new gene names from HGNC
@@ -140,7 +140,7 @@ object inheriting from the Assay class
 - Fix for convenience plots error hanging
 - Ensure Seurat objects aren't stored in the command logs
 
-# [3.1.0] - 2019-08-20
+# Seurat 3.1.0 (2019-08-20)
 ## Added
 - New `PrepSCTIntegration` function to facilitate integration after `SCTransform`
 - Reference-based integration with the `reference` parameter in `FindIntegrationAnchors`
@@ -169,7 +169,7 @@ object inheriting from the Assay class
 - Deprecation of `RunLSI` and `RunALRA`
 - Fix legend bug when sorting in `ExIPlot`
 
-# [3.0.2] - 2019-06-07
+# Seurat 3.0.2 (2019-06-07)
 ## Added
 - Flag to skip singleton grouping in `FindClusters`
 - New custom colors for blended `FeaturePlot`s
@@ -189,7 +189,7 @@ object inheriting from the Assay class
 - Add ability to use counts/scaled data in `BuildClusterTree`
 - Minor fix to split `ScaleData`
 
-# [3.0.1] - 2019-05-16
+# Seurat 3.0.1 (2019-05-16)
 ## Added
 - Add global option (Seurat.memsafe) to skip gc() calls
 - Restore draw.lines to DoHeatmap, maintain size of color bar with different number of features (#1429)
@@ -207,7 +207,7 @@ object inheriting from the Assay class
 - Export LogSeuratCommand function
 - Fix for FindConservedMarkers when one ident is missing from a group (#1517)
 
-# [3.0.0] - 2019-04-16
+# Seurat 3.0.0 (2019-04-16)
 ## Added
 - New method for identifying anchors across single-cell datasets
 - Parallelization support via future
@@ -225,7 +225,7 @@ object inheriting from the Assay class
 - Changes to the Seurat object class to facilitate multimodal data
 - New BlendPlot implementation
 
-# [2.3.4] - 2018-07-13
+# Seurat 2.3.4 (2018-07-13)
 ## Added
 - GetIdent function added to pull identity info
 
@@ -235,7 +235,7 @@ object inheriting from the Assay class
 - Speed and efficiency improvements for Rcpp code
 - More robust duplicate handling in CellCycleScoring
 
-# [2.3.3] - 2018-07-02
+# Seurat 2.3.3 (2018-07-02)
 ## Added
 - New HTOHeatmap function
 - Support for custom PNG arguments for vector-friendly plotting
@@ -246,14 +246,14 @@ object inheriting from the Assay class
 - Removed unused compiler flags
 - Moved several lightly-used packages from 'imports' to 'suggests'
 
-# [2.3.2] - 2018-06-11
+# Seurat 2.3.2 (2018-06-11)
 ## Added
 - RenameCells added for easy renaming of all cells
 - Read10X_h5 added to read in 10X formatted h5 files
 - SetAssayData ensures cell order is the same between assay objects and the Seurat object
 - Compatability updates for ggplot2 v2.3.0
 
-# [2.3.1] - 2018-05-03
+# Seurat 2.3.1 (2018-05-03)
 ## Added
 - Support for [UMAP](https://github.com/lmcinnes/umap) dimensional reduction technique
 - New conversion functions for SingleCellExperiment and anndata
@@ -265,7 +265,7 @@ object inheriting from the Assay class
 - Various visualization fixes and improvements
 - Default value for latent.vars in FindMarkers/FindAllMarkers changed to NULL.
 
-# [2.3.0] - 2018-03-22
+# Seurat 2.3.0 (2018-03-22)
 ## Added
 - Support for HTO demultiplexing
 - Utility functions: TransferIdent, CombineIdent, SplitObject, vector.friendly
@@ -277,12 +277,12 @@ object inheriting from the Assay class
 - MetaDE replaced with metap for combining p-values (MetaDE was removed from CRAN)
 - NMF heatmaps replaced (NMF to be archived by CRAN)
 
-# [2.2.1] - 2018-02-14
+# Seurat 2.2.1 (2018-02-14)
 ## Changed
  - MetaDE replaced with metap for combining p-values (MetaDE was removed from CRAN)
  - NMF heatmaps replaced (NMF to be archived by CRAN)
 
-# [2.2.0] - 2018-01-10
+# Seurat 2.2.0 (2018-01-10)
 ## Added
  - Multiple alignment functionality with RunMultiCCA and AlignSubspace extended to multiple datasets
  - CalcAlignmentScore added to evaluate alignment quality
@@ -296,7 +296,7 @@ object inheriting from the Assay class
  - FindClusters is now more robust in making temp files
  - MetaDE support for combining p-values in DE testing
 
-# [2.1.0] - 2017-10-12
+# Seurat 2.1.0 (2017-10-12)
 ## Added
 - Support for using MAST and DESeq2 packages for differential expression testing in FindMarkers
 - Support for multi-modal single-cell data via @assay slot
@@ -304,7 +304,7 @@ object inheriting from the Assay class
 ## Changed
 - Default DE test changed to Wilcoxon rank sum test
 
-# [2.0.1] - 2017-08-18
+# Seurat 2.0.1 (2017-08-18)
 ## Added
  - Now available on CRAN
  - Updated documentation complete with examples
@@ -312,7 +312,7 @@ object inheriting from the Assay class
  - C++ implementation for parts of FindVariableGenes
  - Minor bug fixes
 
-# [2.0.0] - 2017-07-26
+# Seurat 2.0.0 (2017-07-26)
 ## Added
 - New method for aligning scRNA-seq datasets
 - Significant code restructuring
