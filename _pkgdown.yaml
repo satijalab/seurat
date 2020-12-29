@@ -59,6 +59,12 @@ reference:
 - contents:
   - has_concept("integration")
 
+- title: "Mixscape"
+  desc: >
+      Functions related to the mixscape algorithm
+- contents:
+    - has_concept("mixscape")
+
 - title: "Visualization"
   desc: "Functions for plotting data and adjusting"
 - contents:
