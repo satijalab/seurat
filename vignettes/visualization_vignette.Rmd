@@ -101,7 +101,7 @@ FeaturePlot(pbmc3k.final, features = c('MS4A1', 'CD79A'), split.by = 'groups')
 
 # Updated and expanded visualization functions
 
-In addition to changes to `FeaturePlot`, several other plotting functions have been updated and expanded with new features and taking over the role of now-deprecated functions
+In addition to changes to `FeaturePlot()`, several other plotting functions have been updated and expanded with new features and taking over the role of now-deprecated functions
 
 ```{r new_functions}
 # Violin plots can also be split on some variable. Simply add the splitting variable to object metadata and pass it to the split.by argument
@@ -149,7 +149,7 @@ ggsave(filename = "../output/images/visualization_vignette.png", height = 7, wid
 
 # Interactive plotting features
 
-Seurat utilizes R's plotly graphing library to create interactive plots. This interactive plotting feature works with any ggplot2-based scatter plots (requires a `geom_point` layer). To use, simply make a ggplot2-based scatter plot (such as `DimPlot` or `FeaturePlot`) and pass the resulting plot to `HoverLocator`
+Seurat utilizes R's plotly graphing library to create interactive plots. This interactive plotting feature works with any ggplot2-based scatter plots (requires a `geom_point` layer). To use, simply make a ggplot2-based scatter plot (such as `DimPlot()` or `FeaturePlot()`) and pass the resulting plot to `HoverLocator()`
 
 ```{r hover}
 # Include additional data to display alongside cell names by passing in a data frame of information
@@ -158,7 +158,7 @@ plot <- FeaturePlot(pbmc3k.final, features = 'MS4A1')
 HoverLocator(plot = plot, information = FetchData(pbmc3k.final, vars = c('ident', 'PC_1', 'nFeature_RNA')))
 ```
 
-Another interactive feature provided by Seurat is being able to manually select cells for further investigation. We have found this particularly useful for small clusters that do not always separate using unbiased clustering, but which look tantalizingly distinct. You can now select these cells by creating a ggplot2-based scatter plot (such as with `DimPlot` or `FeaturePlot`, and passing the returned plot to `CellSelector`. `CellSelector` will return a vector with the names of the points selected, so that you can then set them to a new identity class and perform differential expression.
+Another interactive feature provided by Seurat is being able to manually select cells for further investigation. We have found this particularly useful for small clusters that do not always separate using unbiased clustering, but which look tantalizingly distinct. You can now select these cells by creating a ggplot2-based scatter plot (such as with `DimPlot()` or `FeaturePlot()`, and passing the returned plot to `CellSelector()`. `CellSelector()` will return a vector with the names of the points selected, so that you can then set them to a new identity class and perform differential expression.
 
 For example, lets pretend that DCs had merged with monocytes in the clustering, but we wanted to see what was unique about them based on their position in the tSNE plot.
 
@@ -189,7 +189,7 @@ head(newcells.markers)
 <details>
   <summary>Using `CellSelector` to Automatically Assign Cell Identities</summary>
 
-  In addition to returning a vector of cell names, `CellSelector` can also take the selected cells and assign a new identity to them, returning a Seurat object with the identity classes already set. This is done by passing the Seurat object used to make the plot into `CellSelector`, as well as an identity class. As an example, we're going to select the same set of cells as before, and set their identity class to "selected"
+  In addition to returning a vector of cell names, `CellSelector()` can also take the selected cells and assign a new identity to them, returning a Seurat object with the identity classes already set. This is done by passing the Seurat object used to make the plot into `CellSelector()`, as well as an identity class. As an example, we're going to select the same set of cells as before, and set their identity class to "selected"
 
 ```{r ident2, eval=FALSE}
 pbmc3k.final <- CellSelector(plot = plot, object = pbmc3k.final, ident = 'selected')
@@ -219,7 +219,7 @@ LabelClusters(plot = plot, id = 'ident')
 LabelPoints(plot = plot, points = TopCells(object = pbmc3k.final[['pca']]), repel = TRUE)
 ```
 
-Plotting multiple plots was previously achieved with the `CombinePlot` function. We are deprecating this functionality in favor of the [patchwork](https://patchwork.data-imaginist.com/) system. Below is a brief demonstration but please see the patchwork package website [here](https://patchwork.data-imaginist.com/) for more details and examples. 
+Plotting multiple plots was previously achieved with the `CombinePlot()` function. We are deprecating this functionality in favor of the [patchwork](https://patchwork.data-imaginist.com/) system. Below is a brief demonstration but please see the patchwork package website [here](https://patchwork.data-imaginist.com/) for more details and examples. 
 
 ```{r combining_plots, fig.height = 5}
 plot1 <- DimPlot(pbmc3k.final)

@@ -42,7 +42,7 @@ The following tutorial is designed to give you an overview of the kinds of compa
 
 # Setup the Seurat objects
 
-For convienence, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
+For convenience, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
 
 ```{r, include = FALSE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
@@ -71,7 +71,7 @@ ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
 
 # Perform integration
 
-We then identify anchors using the `FindIntegrationAnchors` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData`.
+We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
 
 ```{r find.anchors}
 immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:20)
@@ -111,7 +111,7 @@ DimPlot(immune.combined, reduction = "umap", split.by = "stim")
 
 # Identify conserved cell type markers
 
-To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculated the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
+To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculated the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
 
 ```{r conserved.markers, warning=FALSE}
 DefaultAssay(immune.combined) <- "RNA"
@@ -129,7 +129,7 @@ immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 N
 DimPlot(immune.combined, label = TRUE)
 ```
 
-The `DotPlot` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
+The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
 
 ```{r splitdotplot, fig.height = 10}
 Idents(immune.combined) <- factor(
@@ -169,7 +169,7 @@ plot_grid(p1, p2)
 
 As you can see, many of the same genes are upregulated in both of these cell types and likely represent a conserved interferon response pathway. 
 
-Because we are confident in having identified common cell types across condition, we can ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
+Because we are confident in having identified common cell types across condition, we can ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers()` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
 
 ```{r de.genes}
 immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$stim, sep = "_")
@@ -179,7 +179,7 @@ b.interferon.response <- FindMarkers(immune.combined, ident.1 = "B_STIM", ident.
 head(b.interferon.response, n = 15)
 ```
 
-Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot` or `VlnPlot` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
+Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot()` or `VlnPlot()` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
 
 ```{r feature.heatmaps, fig.height = 14}
 FeaturePlot(immune.combined, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3, cols = c("grey", "red"))

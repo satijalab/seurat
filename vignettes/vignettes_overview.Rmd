@@ -1,0 +1,165 @@
+---
+title: "Vignettes Overview"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+---
+
+# Guided Analyses
+
+For new users of Seurat, we suggest starting with a guided walkthrough of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics (download raw data, R markdown file, and final Seurat object). This tutorial implements the major components of the Seurat clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
+
+Recently, we have developed new computational methods for integrated analysis of single-cell datasets generated across different conditions, technologies, or species. As an example, we provide a guided walkthrough for integrating and comparing PBMC datasets generated under different stimulation conditions. We also provide a workflow tailored to the analysis of large datasets (250,000 cells from a recently published study of the Microwell-seq Mouse Cell Atlas), as well as an example analysis of multimodal single-cell data. 
+
+```{r fxns, include = FALSE}
+library('htmlTable')
+make_list <- function(items) {
+  paste0("<ul>", sprintf('<li>%s</li>', items), '</ul>', collapse = '')
+}
+make_href <- function(url, text){
+  paste0("<div style='text-align:center; font-size:large; font-weight:bold'><a href=", url ,">", text, "</a></div>")
+}
+make_href2 <- function(url, text){
+  paste0("<a href=", url ,">", text, "</a>")
+}
+process_entry <- function(dat) {
+  items <- trimws(x = unlist(strsplit(x = dat$items, split = "\\*")[[1]])[-1])
+  items <- make_list(items = items)
+  if (grepl(pattern = "https://satijalab.org/img/vignette_images", x = dat$image)) {
+    img <- paste0('![](', dat$image, '){width=3000px}')
+  } else {
+    img <- paste0('![](', '../output/images/', dat$image, '){width=3000px}')
+  }
+  if (grepl(pattern = "https://satijalab.org/", x = dat$name)) {
+    link <- dat$name
+  } else {
+    link <- paste0(dat$name, ".html")
+  }
+  go.button <- paste0('<a class="btn btn-primary" href="', link, '" role="button" style="width:100%">GO</a>')
+  data.frame(
+    title = make_href(url = link, text = dat$title),
+    img = img,
+    desc = paste0(dat$summary, "\n", items),
+    btn = go.button
+  )
+}
+process_wrapper_entry <- function(dat) {
+  data.frame(
+    Package = dat$title,
+    Vignette = make_href2(url = dat$link, text = dat$title),
+    Reference = make_href2(url = dat$reference, text = dat$citation),
+    Source = make_href2(url = dat$source, text = dat$source)
+  )
+}
+```
+
+```{r yaml, include = FALSE}
+library(yaml)
+vdat <- read_yaml(file = "vignettes.yaml")
+```
+
+```{=html}
+<style>
+.two-column-htmltable {
+  width: 66.666%;
+}
+.one-column-htmltable {
+  width: 33.333%;
+}
+
+</style>
+```
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+cat <- 1
+vignettes <- vdat[[cat]]$vignettes
+dat <- data.frame(title = character(), img = character(), desc = character())
+for (v in 1:length(x = vignettes)) {
+  dat <- rbind(dat, process_entry(vignettes[[v]]))
+  if(nrow(x = dat) == 3 | v == length(x = vignettes)){
+    colnames(dat) <- NULL
+    dat <- t(dat)
+    if (ncol(x = dat) == 2) {
+      print(htmlTable(
+        dat, 
+        align = '|l|l|', 
+        css.cell = "padding-left: .75em; width: 50%", 
+        css.class = "two-column-htmltable"
+      ))
+    } else if (ncol(x = dat) == 1){
+      print(htmlTable(
+        dat, 
+        align = '|l|', 
+        css.cell = "padding-left: .75em; width: 100%", 
+        css.class = "one-column-htmltable"
+      ))
+    } else {
+      print(htmlTable(
+        dat, 
+        align = '|l|l|l|', 
+        css.cell = "padding-left: .75em; width: 30%"
+      ))
+    }
+    dat <- data.frame(title = character(), img = character(), desc = character())
+  }
+}
+```
+
+# Frequently Requested Vignettes
+
+Here we provide a series of short vignettes to demonstrate a number of features that are commonly used in Seurat. We've focused the vignettes around questions that we frequently receive from users by e-mail. Click on a vignette to get started
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+cat <- 2
+vignettes <- vdat[[cat]]$vignettes
+dat <- data.frame(title = character(), img = character(), desc = character())
+for (v in 1:length(x = vignettes)) {
+  dat <- rbind(dat, process_entry(vignettes[[v]]))
+  if(nrow(x = dat) == 3 | v == length(x = vignettes)){
+    colnames(dat) <- NULL
+    dat <- t(dat)
+    if (ncol(x = dat) == 2) {
+      print(htmlTable(
+        dat, 
+        align = '|l|l|', 
+        css.cell = "padding-left: .75em; width: 50%", 
+        css.class = "two-column-htmltable"
+      ))
+    } else if (ncol(x = dat) == 1){
+      print(htmlTable(
+        dat, 
+        align = '|l|', 
+        css.cell = "padding-left: .75em; width: 100%", 
+        css.class = "one-column-htmltable"
+      ))
+    } else {
+      print(htmlTable(
+        dat, 
+        align = '|l|l|l|', 
+        css.cell = "padding-left: .75em; width: 30%"
+      ))
+    }
+    dat <- data.frame(title = character(), img = character(), desc = character())
+  }
+}
+```
+
+# SeuratWrappers
+
+In order to facilitate the use of community tools with Seurat, we provide the Seurat Wrappers package, which contains code to run other analysis tools on Seurat objects. For the initial release, we provide wrappers for a few packages in the table below but would encourage other package developers interested in interfacing with Seurat to check out our contributor guide [here](https://github.com/satijalab/seurat.wrappers/wiki/Submission-Process).
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+library(knitr)
+library(kableExtra)
+cat <- 3
+vignettes <- vdat[[cat]]$vignettes
+dat <- data.frame(Package = character(),  Vignette = character(), Reference = character(), Source = character())
+for (v in 1:length(x = vignettes)) {
+  dat <- rbind(dat, process_wrapper_entry(vignettes[[v]]))
+}
+dat %>%
+  kable(format = "html", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```

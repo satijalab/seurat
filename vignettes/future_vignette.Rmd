@@ -47,14 +47,14 @@ plan()
 
 The following functions have been written to take advantage of the future framework and will be parallelized if the current `plan` is set appropriately. Importantly, the way you call the function shouldn't change. 
 
-* `NormalizeData`
-* `ScaleData`
-* `JackStraw`
-* `FindMarkers`
-* `FindIntegrationAnchors`
-* `FindClusters` - if clustering over multiple resolutions
+* `NormalizeData()`
+* `ScaleData()`
+* `JackStraw()`
+* `FindMarkers()`
+* `FindIntegrationAnchors()`
+* `FindClusters()` - if clustering over multiple resolutions
 
-For example, to run the parallel version of `FindMarkers`, you simply need to set the plan and call the function as usual.
+For example, to run the parallel version of `FindMarkers()`, you simply need to set the plan and call the function as usual.
 
 ```{r demo}
 library(Seurat)
@@ -113,7 +113,8 @@ ggplot(timing.comparisons, aes(fxn, time)) + geom_bar(aes(fill = strategy), stat
 2. **What should I do if I keep seeing the following error?**
 ```
 Error in getGlobalsAndPackages(expr, envir = envir, globals = TRUE) : 
-  The total size of the X globals that need to be exported for the future expression ('FUN()') is X GiB. This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize'). The X largest globals are ... 
+  The total size of the X globals that need to be exported for the future expression ('FUN()') is X GiB. 
+  This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize'). The X largest globals are ... 
 ```
 For certain functions, each worker needs access to certain global variables. If these are larger than the default limit, you will see this error. To get around this, you can set `options(future.globals.maxSize = X)`, where X is the maximum allowed size in bytes. So to set it to 1GB, you would run `options(future.globals.maxSize = 1000 * 1024^2)`. Note that this will increase your RAM usage so set this number mindfully. 
 

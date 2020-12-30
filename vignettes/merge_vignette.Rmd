@@ -48,7 +48,7 @@ pbmc8k
 
 # Merging Two `Seurat` Objects
 
-`merge` merges the raw count matrices of two `Seurat` objects and creates a new `Seurat` object with the resulting combined raw count matrix. To easily tell which original object any particular cell came from, you can set the `add.cell.ids` parameter with an `c(x, y)` vector, which will prepend the given identifier to the beginning of each cell name. The original project ID will remain stored in object meta data under `orig.ident`
+`merge()` merges the raw count matrices of two `Seurat` objects and creates a new `Seurat` object with the resulting combined raw count matrix. To easily tell which original object any particular cell came from, you can set the `add.cell.ids` parameter with an `c(x, y)` vector, which will prepend the given identifier to the beginning of each cell name. The original project ID will remain stored in object meta data under `orig.ident`
 
 ```{r merge.objects}
 pbmc.combined <- merge(pbmc4k, y = pbmc8k, add.cell.ids = c('4K', '8K'), project = 'PBMC12K')
@@ -80,7 +80,7 @@ table(pbmc.big$orig.ident)
 
 # Merge Based on Normalized Data
 
-By default, `merge` will combine the `Seurat` objects based on the raw count matrices, erasing any previously normalized and scaled data matrices. If you want to merge the normalized data matrices as well as the raw count matrices, simply pass `merge.data = TRUE`. This should be done if the same normalization approach was applied to all objects.
+By default, `merge()` will combine the `Seurat` objects based on the raw count matrices, erasing any previously normalized and scaled data matrices. If you want to merge the normalized data matrices as well as the raw count matrices, simply pass `merge.data = TRUE`. This should be done if the same normalization approach was applied to all objects.
 
 ```{r normalize}
 pbmc4k <- NormalizeData(pbmc4k)

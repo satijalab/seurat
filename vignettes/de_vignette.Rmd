@@ -41,7 +41,7 @@ pbmc <- readRDS(file = "../data/pbmc3k_final.rds")
 
 # Perform default differential expression tests
 
-The bulk of Seurat's differential expression features can be accessed through the `FindMarkers` function.  As a default, Seurat performs differential expression based on the non-parameteric Wilcoxon rank sum test. This replaces the previous default test ('bimod'). To test for differential expression between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
+The bulk of Seurat's differential expression features can be accessed through the `FindMarkers()` function.  As a default, Seurat performs differential expression based on the non-parametric Wilcoxon rank sum test. This replaces the previous default test ('bimod'). To test for differential expression between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
 
 ```{r basic_de}
 # list options for groups to perform differential expression on
@@ -58,9 +58,9 @@ The results data frame has the following columns :
  * avg_logFC : log fold-chage of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
  * pct.1 : The percentage of cells where the feature is detected in the first group
  * pct.2 : The percentage of cells where the feature is detected in the second group
- * p_val_adj : Adjusted p-value, based on bonferroni correction using all features in the dataset.
+ * p_val_adj : Adjusted p-value, based on Bonferroni correction using all features in the dataset.
 
-If the `ident.2` parameter is omitted or set to NULL, `FindMarkers` will test for differentially expressed features between the group specified by `ident.1` and all other cells.
+If the `ident.2` parameter is omitted or set to NULL, `FindMarkers()` will test for differentially expressed features between the group specified by `ident.1` and all other cells.
 
 ```{r basic_de_2}
 # Find differentially expressed features between CD14+ Monocytes and all other cells, only search for positive markers
@@ -103,7 +103,7 @@ The following differential expression tests are currently supported:
  * "MAST" :  GLM-framework that treates cellular detection rate as a covariate [(Finak et al, Genome Biology, 2015)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4676162/) ([Installation instructions](https://github.com/RGLab/MAST))
  * "DESeq2" :  DE based on a model using the negative binomial distribution [(Love et al, Genome Biology, 2014)](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/DESeq2.html))
  
-For MAST and DESeq2 please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, use the `test.use` parameter can be used to specify which DE test to use. 
+For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, use the `test.use` parameter can be used to specify which DE test to use. 
  
 ```{r include = FALSE}
 # necessary to get MAST to work properly

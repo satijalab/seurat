@@ -13,10 +13,13 @@ navbar:
       href: articles/pbmc3k_tutorial.html
     - text: "Vignettes"
       menu:
+        - text: "Vignettes Overview"
+          href: articles/vignettes_overview.html
+        - text: -------
         - text: "PBMC 3K guided tutorial"
           href: articles/pbmc3k_tutorial.html
-        - text: "PBMC scATAC-seq vignette"
-          href: articles/atacseq_integration_vignette.html
+        #- text: "PBMC scATAC-seq vignette"
+        #  href: articles/atacseq_integration_vignette.html
         - text: "Cell-cycle scoring and regression"
           href: articles/cell_cycle_vignette.html
         - text: "Interoperability between single-cell object formats"
@@ -42,7 +45,7 @@ navbar:
         - text: "Merging Seurat objects"
           href: articles/merge_vignette.html
         - text: "Mixscape Vignette"
-          href: articles/mixscape.html
+          href: articles/mixscape_vignette.html
         - text: "Using Seurat with multi-modal data"
           href: articles/multimodal_vignette.html
         - text: "Mapping to multimodal reference datasets"
@@ -58,17 +61,20 @@ navbar:
     - text: FAQ
       href: articles/faq.html
     - text: "News"
-      href: news/index.html 
+      href: news/index.html
     - text: "Reference"
       href: reference/index.html
   right:
+    - icon: fa-home
+      href: https://satijalab.org
     - icon: fa-github
       href: https://github.com/satijalab/seurat
+
 
 reference:
 - title: "Object interaction"
   desc: "Functions for interacting with a Seurat object"
-- contents: 
+- contents:
   - has_concept("objects")
 
 - title: "Preprocessing"
@@ -107,7 +113,7 @@ reference:
   desc: "Functions for plotting data and adjusting"
 - contents:
   - has_concept("visualization")
- 
+
 - title: "Tree-related functions"
   desc: "Function related to tree-based analysis of identity classes"
 - contents:
@@ -117,7 +123,7 @@ reference:
   desc: "Useful functions to help with a variety of tasks"
 - contents:
   - has_concept("utilities")
-  
+
 - title: "Data"
   desc: "Descriptions of data included with Seurat"
 - contents:

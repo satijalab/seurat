@@ -62,7 +62,7 @@ We perform standard log-normalization.
 mca <- NormalizeData(mca, normalization.method = "LogNormalize", scale.factor = 10000)
 ```
 
-`FindVariableGenes` calculates the variance and mean for each gene in the dataset in the dataset (storing this in `object[[assay]]@meta.features`). We have observed that for large-cell datasets with unique molecular identifiers, selecting highly variable genes (HVG) simply based on variance mean ratio (VMR) is an efficient and robust strategy. Here, we select the top 1,000 HVG for downstream analysis.
+`FindVariableFeatures()` calculates the variance and mean for each gene in the dataset in the dataset (storing this in `object[[assay]]@meta.features`). We have observed that for large-cell datasets with unique molecular identifiers, selecting highly variable genes (HVG) simply based on variance mean ratio (VMR) is an efficient and robust strategy. Here, we select the top 1,000 HVG for downstream analysis.
 
 ```{r var.genes}
 mca <- FindVariableFeatures(mca)
@@ -88,7 +88,7 @@ mca <- RunPCA(mca, npcs = 100, ndims.print = 1:5, nfeatures.print = 5)
 
 <div class="panel panel-success">
   <div class="panel-heading">Suggestions for large datasets </div>
-  <div class="panel-body"> <ul><li> To select downstream PCs for analysis, `JackStraw` now also features mutli-core parallelization. However, for data sets of this size, the saturation of explained variance, along with the visualization of PC 'metagenes', are likely to be more effective. We select 75 PCs here for downstream analysis.</ul></div>
+  <div class="panel-body"> <ul><li> To select downstream PCs for analysis, `JackStraw()` now also features mutli-core parallelization. However, for data sets of this size, the saturation of explained variance, along with the visualization of PC 'metagenes', are likely to be more effective. We select 75 PCs here for downstream analysis.</ul></div>
 </div>
 
 ```{r pca.viz1}
@@ -120,7 +120,7 @@ We use the same principal components that were input for clustering, for two-dim
 
 <div class="panel panel-success">
   <div class="panel-heading">Suggestions for large datasets </div>
-  <div class="panel-body"> <ul><li>We now support the use of a modified Fast Fourier Transform-accelerated Interpolation-based t-SNE (FIt-SNE, Kluger Lab, preprint [here](https://arxiv.org/abs/1712.09005)). You need to first compile and install the [software](https://github.com/KlugerLab/FIt-SNE). <li>Increasing `max_iter` can sometimes provide better cluster resolution. <li> We also now support the use of UMAP for dimensional reduction (preprint [here](https://arxiv.org/abs/1802.03426)). To run you need to install the `umap-learn` python [package](https://github.com/lmcinnes/umap). <li> Adjusting `min_dist` and/or `n_neighbors` may help with larger datasets <li>For visualization, the `AugmentPlot` function  will convert only the single cells in the t-SNE plot into a PNG file, while the remainder of the image (axes, labels, etc.) remain as vector graphics. We’ve found that this can be very useful when importing into Adobe Illustrator.</ul></div>
+  <div class="panel-body"> <ul><li>We now support the use of a modified Fast Fourier Transform-accelerated Interpolation-based t-SNE (FIt-SNE, Kluger Lab, preprint [here](https://arxiv.org/abs/1712.09005)). You need to first compile and install the [software](https://github.com/KlugerLab/FIt-SNE). <li>Increasing `max_iter` can sometimes provide better cluster resolution. <li> We also now support the use of UMAP for dimensional reduction (preprint [here](https://arxiv.org/abs/1802.03426)). To run you need to install the `umap-learn` python [package](https://github.com/lmcinnes/umap). <li> Adjusting `min_dist` and/or `n_neighbors` may help with larger datasets <li>For visualization, the `AugmentPlot()` function  will convert only the single cells in the t-SNE plot into a PNG file, while the remainder of the image (axes, labels, etc.) remain as vector graphics. We’ve found that this can be very useful when importing into Adobe Illustrator.</ul></div>
 </div>
 
 

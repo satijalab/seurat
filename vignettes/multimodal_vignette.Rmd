@@ -130,7 +130,7 @@ DimPlot(cbmc, label = TRUE) + NoLegend()
 
 # Add the protein expression levels to the Seurat object
 
-Seurat v3.0 allows you to store information from multiple assays in the same object, as long as the data is multimodal (collected on the same set of cells). You can use the `SetAssayData` and `GetAssayData` accessor functions to add and fetch data from additional assays.
+Seurat v3.0 allows you to store information from multiple assays in the same object, as long as the data is multimodal (collected on the same set of cells). You can use the `SetAssayData()` and `GetAssayData()` accessor functions to add and fetch data from additional assays.
 
 ```{r setup.cite}
 # We will define an ADT assay, and store raw counts for it
@@ -148,7 +148,7 @@ cbmc <- ScaleData(cbmc, assay = 'ADT')
 
 # Visualize protein levels on RNA clusters
 
-You can use the names of any ADT markers, (i.e. "adt_CD4"), in FetchData, FeaturePlot, RidgePlot, FeatureScatter, DoHeatmap, or any other [visualization features](http://satijalab.org/seurat/visualization_vignette.html)
+You can use the names of any ADT markers, (i.e. "adt_CD4"), in `FetchData()`, `FeaturePlot()`, `RidgePlot()`, `FeatureScatter()`, `DoHeatmap()`, or any other [visualization features](http://satijalab.org/seurat/visualization_vignette.html)
 
 ```{r viz.cite, fig.height=8, fig.width=12}
 # in this plot, protein (ADT) levels are on top, and RNA levels are on the bottom

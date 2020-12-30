@@ -51,7 +51,7 @@ pbmc <- CreateSeuratObject(counts = pbmc_data)
 
 Apply sctransform normalization
 
- * Note that this single command replaces `NormalizeData`, `ScaleData`, and `FindVariableFeatures`.
+ * Note that this single command replaces `NormalizeData()`, `ScaleData()`, and `FindVariableFeatures()`.
  * Transformed data will be available in the SCT assay, which is set as the default after running sctransform
  * During normalization, we can also remove confounding sources of variation, for example, mitochondrial mapping percentage
 
@@ -100,7 +100,7 @@ As described in our [preprint](https://www.biorxiv.org/content/biorxiv/early/201
 
 The results of sctransfrom are stored in the "SCT" assay. You can learn more about multi-assay data and commands in Seurat in our [vignette](http://satijalab01.nygenome.org/seurat/v3.0/multimodal_vignette.html), [command cheat sheet](http://satijalab01.nygenome.org/seurat/essential_commands.html#multi-assay-features), or [developer guide](https://github.com/satijalab/seurat/wiki/Assay).
 
-* `pbmc[["SCT"]]@scale.data` contains the residuals (normalized values), and is used directly as input to PCA. Please note that this matrix is non-sparse, and can therefore take up a lot of memory if stored for all genes. To save memory, we store these values only for variable genes, by setting the return.only.var.genes = TRUE by default in the `SCTransform` function call.
+* `pbmc[["SCT"]]@scale.data` contains the residuals (normalized values), and is used directly as input to PCA. Please note that this matrix is non-sparse, and can therefore take up a lot of memory if stored for all genes. To save memory, we store these values only for variable genes, by setting the return.only.var.genes = TRUE by default in the `SCTransform()` function call.
 * To assist with visualization and interpretation. we also convert Pearson residuals back to ‘corrected’ UMI counts. You can interpret these as the UMI counts we would expect to observe if all cells were sequenced to the same depth. If you want to see exactly how we do this, please look at the correct function [here](https://github.com/ChristophH/sctransform/blob/master/R/denoise.R).
 * The 'corrected' UMI counts are stored in `pbmc[["SCT"]]@counts`. We store log-normalized versions of these corrected counts in `pbmc[["SCT"]]@data`, which are very helpful for visualization.
 * You can use the corrected log-normalized counts for differential expression and integration. However, in principle, it would be most optimal to perform these calculations directly on the residuals (stored in the `scale.data` slot) themselves. This is not currently supported in Seurat v3, but will be soon.

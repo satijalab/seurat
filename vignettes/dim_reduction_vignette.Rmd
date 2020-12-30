@@ -31,7 +31,7 @@ knitr::opts_chunk$set(
 
 # Load in the data
 
-This vignette demonstrates how to store and interact with dimensional reduction information (such as the output from `RunPCA`) in Seurat v3.0. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can download the pre-computed object [here](https://www.dropbox.com/s/kwd3kcxkmpzqg6w/pbmc3k_final.rds?dl=1).
+This vignette demonstrates how to store and interact with dimensional reduction information (such as the output from `RunPCA()`) in Seurat v3.0. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can download the pre-computed object [here](https://www.dropbox.com/s/kwd3kcxkmpzqg6w/pbmc3k_final.rds?dl=1).
 
 ```{r load_data}
 library(Seurat)
@@ -40,17 +40,17 @@ pbmc <- readRDS(file = "../data/pbmc3k_final.rds")
 
 # Explore the new dimensional reduction structure
 
-In Seurat v3.0, storing and interacting with dimensional reduction information has been generalized and formalized into the `DimReduc` object. Each dimensional reduction procedure is stored as a `DimReduc` object in the `object@reductions` slot as an element of a named list. Accessing these reductions can be done with the `[[` operator, calling the name of the reduction desired. For example, after running a principle component analysis with `RunPCA`, `object[['pca']]` will contain the results of the PCA. By adding new elements to the list, users can add additional, and custom, dimensional reductions. Each stored dimensional reduction contains the following slots:
+In Seurat v3.0, storing and interacting with dimensional reduction information has been generalized and formalized into the `DimReduc` object. Each dimensional reduction procedure is stored as a `DimReduc` object in the `object@reductions` slot as an element of a named list. Accessing these reductions can be done with the `[[` operator, calling the name of the reduction desired. For example, after running a principle component analysis with `RunPCA()`, `object[['pca']]` will contain the results of the PCA. By adding new elements to the list, users can add additional, and custom, dimensional reductions. Each stored dimensional reduction contains the following slots:
 
 1. **cell.embeddings**: stores the coordinates for each cell in low-dimensional space.
 2. **feature.loadings**: stores the weight for each feature along each dimension of the embedding
-3. **feature.loadings.projected**: Seurat typically calculate the dimensional reduction on a subset of genes (for example, high-variance genes), and then project that structure onto the entire dataset (all genes). The results of that projection (calculated with `ProjectDim`) are stored in this slot. Note that the cell loadings will remain unchanged after projection but there are now feature loadings for all feature
+3. **feature.loadings.projected**: Seurat typically calculate the dimensional reduction on a subset of genes (for example, high-variance genes), and then project that structure onto the entire dataset (all genes). The results of that projection (calculated with `ProjectDim()`) are stored in this slot. Note that the cell loadings will remain unchanged after projection but there are now feature loadings for all feature
 4. **stdev**: The standard deviations of each dimension. Most often used with PCA (storing the square roots of the eigenvalues of the covariance matrix) and can be useful when looking at the drop off in the amount of variance that is explained by each successive dimension.
 5. **key**: Sets the column names for the cell.embeddings and feature.loadings matrices. For example, for PCA, the column names are PC1, PC2, etc., so the key is "PC".
 6. **jackstraw**: Stores the results of the jackstraw procedure run using this dimensional reduction technique. Currently supported only for PCA.
 7. **misc**: Bonus slot to store any other information you might want
 
-To access these slots, we provide the `Embeddings`,`Loadings`, and `Stdev` functions
+To access these slots, we provide the `Embeddings()`,`Loadings()`, and `Stdev()` functions
 
 ```{r explore}
 pbmc[['pca']]
@@ -59,7 +59,7 @@ head(Loadings(pbmc, reduction = "pca")[, 1:5])
 head(Stdev(pbmc, reduction = "pca"))
 ```
 
-Seurat provides `RunPCA` (pca), <!--`RunICA` (ica),--> and `RunTSNE` (tsne), and <!--`RunDiffusionMap` (dmap),--> representing dimensional reduction techniques commonly applied to scRNA-seq data. When using these functions, all slots are filled automatically.
+Seurat provides `RunPCA()` (pca), <!--`RunICA` (ica),--> and `RunTSNE()` (tsne), and <!--`RunDiffusionMap` (dmap),--> representing dimensional reduction techniques commonly applied to scRNA-seq data. When using these functions, all slots are filled automatically.
 
 We also allow users to add the results of a custom dimensional reduction technique (for example, multi-dimensional scaling (MDS), or [zero-inflated factor analysis](https://github.com/epierson9/ZIFA)), that is computed separately. All you need is a matrix with each cell's coordinates in low-dimensional space, as shown below.
 

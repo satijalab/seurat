@@ -1,0 +1,226 @@
+- category: Guided Analyses
+  vignettes:
+    - title: Guided tutorial --- 2,700 PBMCs
+      name: pbmc3k_tutorial
+      summary: |
+        A basic overview of Seurat that includes an introduction to:
+      items: |
+        * QC and pre-processing
+        * Dimension reduction
+        * Clustering
+        * Differential expression
+
+      image: pbmc3k_umap.png
+
+    - title: Multiple Dataset Integration and Label Transfer
+      name: integration
+      summary: |
+        Learn about the new anchoring framework in Seurat v3:
+      items: |
+        * Integrate multiple scRNA-seq datasets across technologies
+        * Transfer labels across datasets
+      image: https://satijalab.org/img/vignette_images/anchorsb_2018.png
+
+    - title: Weighted Nearest Neighbor Analysis
+      name: weighted_nearest_neighbor_analysis
+      summary: |
+        Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4
+      items: |
+        * Jointly analyze CITE-seq (RNA + protein) or 10x multiome (RNA + ATAC) data
+        * Perform multimodal clustering
+        * Construct joint visualizations
+      image: weighted_nearest_neighbor_analysis.png
+
+    - title: Multimodal Reference Mapping
+      name: reference_mapping
+      summary: |
+        Analyze query data in the context of multimodal reference atlases.
+      items: |
+        * Annotate based on reference-defined cell states
+        * Project query data onto an existing UMAP
+        * Impute surface protein measurements
+      image: reference_mapping.png
+
+    - title: Analysis of spatial datasets
+      name: https://satijalab.org/seurat/spatial_vignette.html
+      summary: |
+        Analysis of spatially-resolved transcriptomic data.
+      items: |
+        * Preprocessing and normalization
+        * Interactive visualization
+        * Integration with scRNA-seq data
+      image: https://satijalab.org/img/vignette_images/spatial_vignette_ttr.png
+
+    - title: Mouse Cell Atlas, 250K cells
+      name: mca
+      summary: |
+        An example of working with large datasets in Seurat:
+      items: |
+        * Cluster and visualize ~250K cells
+        * Suggestions for speed and memory efficiency
+      image: mca_tsne.png
+
+    - title: Multimodal analysis
+      name: multimodal_vignette
+      summary: |
+        Explore and analyze multi-modal data in Seurat:
+      items: |
+        * Analyze CITE-seq data (RNA + protein)
+        * Compare expression and clustering across multiple assays
+
+      image: citeseq_plot.png
+
+    - title: Stimulated vs Control PBMCs
+      name: immune_alignment
+      summary: |
+        An introduction to comparative analyses:
+      items: |
+        * Integrate across conditions
+        * Identify common cell types and markers
+        * Identify cell-type specific responses
+      image: pbmc_alignment.png
+
+    - title: SCTransform
+      name: sctransform_vignette
+      summary: |
+        Use the sctransform wrapper in Seurat
+      items: |
+        * New method to remove technical variation while retaining biological heterogeneity
+      image: https://satijalab.org/img/vignette_images/sctransform.png
+
+    # - title: scATAC-seq + scRNA-seq integration
+    #   name: atacseq_integration_vignette
+    #   summary: |
+    #     Integrate scRNA-seq data with scATAC-seq data
+    #   items: |
+    #     * Classify scATAC-seq cells based on scRNA-seq clusters
+    #     * Coembed scATAC-seq and scRNA-seq data
+    #   image: atacseq_integration_umap-1.png
+
+    - title: Mixscape
+      name: mixscape_vignette
+      summary: |
+        Explore new methods to analyze pooled single-celled perturbation screens
+      items: |
+        * Control for confounding sources of variation
+        * Classify and remove non-perturbed cells
+        * Identify and visualize perturbation-specific effects
+      image: mixscape_vignette.png
+
+- category: Frequently requested vignettes
+  vignettes:
+    - title: Cell Cycle Regression
+      name: cell_cycle_vignette
+      summary: |
+        Mitigate the effects of cell cycle heterogeneity
+      items: |
+        * Compute cell cycle phase scores based on marker genes
+        * Regress out scores
+      image: cell_cycle_vignette.png
+
+    - title: Differential Expression Testing
+      name: de_vignette
+      summary: |
+        Perform differential expression (DE) testing in Seurat
+      items: |
+        * Explore DE framework and results
+        * Speed up DE testing for large datasets
+      image: https://satijalab.org/img/vignette_images/de_vignette.png
+
+    - title: Demultiplex Cell Hashing data
+      name: hashing_vignette
+      summary: |
+        Learn how to work with data produced with Cell Hashing:
+      items: |
+        * Demultiplex cells to sample of origin
+        * Identify cross sample doublets
+      image: https://satijalab.org/img/vignette_images/hashing_vignette.png
+
+    - title: Visualization
+      name: visualization_vignette
+      summary: |
+        Explore your data with many built in visualization options:
+      items: |
+        * Visualize cluster markers
+        * Interact with plots and apply themes
+      image: visualization_vignette.png
+
+    - title: Parallelization
+      name: future_vignette
+      summary: |
+        Speed up compute-intensive functions with parallelization:
+      items: |
+        * Learn about the future framework
+        * List of parallelized Seurat functions
+      image: https://satijalab.org/img/vignette_images/future_rocket.png
+
+    - title: Interoperability with Other Analysis Tools
+      name: conversion_vignette
+      summary: |
+        Convert data between formats for different analysis tools:
+      items: |
+        * Converters for SingleCellExperiment, anndata, and loom
+      image: https://satijalab.org/img/vignette_images/conversion_vignette.png
+
+- category: Seurat Wrappers
+  hash: seurat-wrappers
+  description: |
+    In order to facilitate the use of community tools with Seurat, we provide the Seurat Wrappers package, which contains code to run other analysis tools on Seurat objects. For the initial release, we provide wrappers for a few packages in the table below but would encourage other package developers interested in interfacing with Seurat to check out our contributor guide [here](https://github.com/satijalab/seurat.wrappers/wiki/Submission-Process). <br><br>
+  vignettes:
+    - name: Conos
+      title: Integration of datasets using Conos
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/conos.html
+      reference: https://doi.org/10.1038/s41592-019-0466-z
+      citation: Barkas et al, Nature Methods 2019
+      source: https://github.com/hms-dbmi/conos
+
+    - name: LIGER
+      title: Integrating Seurat objects using LIGER
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/liger.html
+      reference: https://doi.org/10.1016/j.cell.2019.05.006
+      citation: Welch et al, Cell 2019
+      source: https://github.com/MacoskoLab/liger
+
+    - name: fastMNN
+      title: Running fastMNN on Seurat Objects
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/fast_mnn.html
+      reference: https://doi.org/10.1038/nbt.4091
+      citation: Haghverdi et al, Nature Biotechnology 2018
+      source: https://bioconductor.org/packages/release/bioc/html/scran.html
+
+    - name: Harmony
+      title: Integration of datasets using Harmony
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/harmony.html
+      reference: 10.1101/461954v2
+      citation: Korsunsky et al, bioRxiv 2018
+      source: https://github.com/immunogenomics/harmony
+
+    - name: ALRA
+      title: Zero-preserving imputation with ALRA
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/alra.html
+      reference: https://doi.org/10.1101/397588
+      citation: Linderman et al, bioRxiv 2018
+      source: https://github.com/KlugerLab/ALRA
+
+    - name: Velocity
+      title: Estimating RNA Velocity using Seurat
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/velocity.html
+      reference: 10.1038/s41586-018-0414-6
+      citation: La Manno et al, Nature 2018
+      source: https://velocyto.org
+
+    - name: schex
+      title: Using schex with Seurat
+      link: https://htmlpreview.github.io/?https://github.com/satijalab/seurat.wrappers/blob/master/docs/schex.html
+      reference: https://doi.org/0.1242/dev.173807
+      citation: Freytag, R package 2019
+      source: https://github.com/SaskiaFreytag/schex
+
+- category: Old Seurat Versions
+  hash: old-seurat-versions
+  description: |
+    Tutorials for Seurat version 3.0 can be found [here](https://satijalab.org/seurat/v3.0). <br>
+    Tutorials for Seurat version 2.4 can be found [here](https://satijalab.org/seurat/v2.4). <br>
+    Tutorials for Seurat versions 1.3-1.4 can be found [here](https://satijalab.org/seurat/get_started_v1_4.html). <br>
+    Tutorials for Seurat version <= 1.2 can be found [here](https://satijalab.org/seurat/get_started_v1_2.html).<br>
+    All current and previous versions of Seurat can be found on [github](https://github.com/satijalab/seurat).

@@ -81,7 +81,7 @@ library(SeuratData)
 InstallData('pbmc3k')
 ```
 
-The reference was normalized using `SCTransform`, so we use the same approach to normalize the query here.
+The reference was normalized using `SCTransform()`, so we use the same approach to normalize the query here.
 
 ```{r 3k.preprocess, results="hide"}
 pbmc3k <- SCTransform(pbmc3k, verbose = FALSE)
@@ -119,7 +119,7 @@ pbmc3k <- MapQuery(
 <details>
   <summary>**What is `MapQuery` doing?**</summary>
 
-  `MapQuery` is a wrapper around three functions: `TransferData`, `IntegrateEmbeddings`, and `ProjectUMAP`. `TransferData` is used to transfer cell type labels and impute the ADT values. `IntegrateEmbeddings` and `ProjectUMAP` are used to project the query data onto the UMAP structure of the reference. The equivalent code for doing this with the intermediate functions is below:
+  `MapQuery()` is a wrapper around three functions: `TransferData()`, `IntegrateEmbeddings()`, and `ProjectUMAP()`. `TransferData()` is used to transfer cell type labels and impute the ADT values. `IntegrateEmbeddings()` and `ProjectUMAP()` are used to project the query data onto the UMAP structure of the reference. The equivalent code for doing this with the intermediate functions is below:
 
 
 ```{r, eval=FALSE}

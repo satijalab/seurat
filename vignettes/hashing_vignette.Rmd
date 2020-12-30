@@ -35,7 +35,7 @@ Developed in collaboration with the Technology Innovation Group at NYGC, Cell Ha
 This vignette will give a brief demonstration on how to work with data produced with Cell Hashing in Seurat. Applied to two datasets, we can successfully demultiplex cells to their the original sample-of-origin, and identify cross-sample doublets.
 
 <div class="panel panel-primary">
-  <div class="panel-heading">The demultiplexing function HTODemux() implements the following procedure: </div/
+  <div class="panel-heading">The demultiplexing function `HTODemux()` implements the following procedure: </div/
   <div class="panel-body"> <ul>
   <li> We perform a k-medoid clustering on the normalized HTO values, which initially separates cells into K(# of samples)+1 clusters. </li>
   <li> We calculate a 'negative' distribution for HTO. For each HTO, we use the cluster with the lowest average value as the negative group. </li>
@@ -115,7 +115,7 @@ pbmc.hashtag <- NormalizeData(pbmc.hashtag, assay = 'HTO', normalization.method 
 
 ## Demultiplex cells based on HTO enrichment
 
-Here we use the Seurat function HTODemux() to assign single cells back to their sample origins.
+Here we use the Seurat function `HTODemux()` to assign single cells back to their sample origins.
 
 ```{r hashtag_demux}
 # If you have a very large dataset we suggest using k_function = "clara". This is a k-medoid clustering function for large applications
@@ -126,7 +126,7 @@ pbmc.hashtag <- HTODemux(pbmc.hashtag, assay = "HTO", positive.quantile = 0.99)
 
 ## Visualize demultiplexing results
 
-Output from running HTODemux() is saved in the object metadata. We can visualize how many cells are classified as singlets, doublets and negative/ambiguous cells.
+Output from running `HTODemux()` is saved in the object metadata. We can visualize how many cells are classified as singlets, doublets and negative/ambiguous cells.
 
 ```{r demux_summary}
 # Global classification results
