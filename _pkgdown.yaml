@@ -15,6 +15,44 @@ navbar:
       menu:
         - text: "PBMC 3K guided tutorial"
           href: articles/pbmc3k_tutorial.html
+        - text: "PBMC scATAC-seq vignette"
+          href: articles/atacseq_integration_vignette.html
+        - text: "Cell-cycle scoring and regression"
+          href: articles/cell_cycle_vignette.html
+        - text: "Interoperability between single-cell object formats"
+          href: articles/conversion_vignette.html
+        - text: "Differential expression testing"
+          href: articles/de_vignette.html
+        - text: "Dimensional reduction vignette"
+          href: articles/dim_reduction_vignette.html
+        - text: "Seurat essential commands list"
+          href: articles/essential_commands.html
+        - text: "Parallelization in Seurat with future"
+          href: articles/future_vignette.html
+        - text: "Demultiplexing with hashtag oligos (HTOs)"
+          href: articles/hashing_vignette.html
+        - text: "Integrating stimulated and control PBMCs"
+          href: articles/immune_alignment.html
+        - text: "Integration and label transfer"
+          href: articles/integration.html
+        - text: "Seurat interaction tips"
+          href: articles/interaction_vignette.html
+        - text: "Guided clustering of the microwell-seq mouse cell atlas"
+          href: articles/mca.html
+        - text: "Merging Seurat objects"
+          href: articles/merge_vignette.html
+        - text: "Mixscape Vignette"
+          href: articles/mixscape.html
+        - text: "Using Seurat with multi-modal data"
+          href: articles/multimodal_vignette.html
+        - text: "Mapping to multimodal reference datasets"
+          href: articles/reference_mapping.html
+        - text: "Using sctransform in Seurat"
+          href: articles/sctransform_vignette.html
+        - text: "Data visualization vignette"
+          href: articles/visualization_vignette.html
+        - text: "Weighted Nearest Neighbor Analysis"
+          href: articles/weighted_nearest_neighbor_analysis.html
     - text: Extensions
       href: articles/extensions.html
     - text: FAQ

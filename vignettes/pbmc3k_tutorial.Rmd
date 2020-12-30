@@ -372,6 +372,10 @@ ggsave(filename = "../output/images/pbmc3k_umap.png", height = 7, width = 12, pl
 saveRDS(pbmc, file = "../output/pbmc3k_final.rds")
 ```
 
+```{r save2, include = FALSE}
+saveRDS(pbmc, file = "../data/pbmc3k_final.rds")
+```
+
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/pbmc3k_tutorial_times.csv")
 ```

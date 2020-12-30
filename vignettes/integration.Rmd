@@ -1,0 +1,494 @@
+---
+title: "Integration and Label Transfer"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 85),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
+
+# Intro: Seurat v3 Integration
+
+As described in [Stuart&#42;, Butler&#42;, et al. Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8), Seurat v3 introduces new methods for the integration of multiple single-cell datasets. These methods aim to identify shared cell states that are present across different datasets, even if they were collected from different individuals, experimental conditions, technologies, or even species.
+
+Our method aims to first identify 'anchors' between pairs of datasets. These represent pairwise correspondences between individual cells (one in each dataset), that we hypothesize originate from the same biological state. These 'anchors' are then used to harmonize the datasets, or transfer information from one dataset to another. Below, we demonstrate multiple applications of integrative analysis, and also introduce new functionality beyond what was described in the 2019 manuscript. To help guide users, we briefly introduce these vignettes below:
+
+**Standard Workflow**
+
+* Describes the standard Seurat v3 integration workflow, and applies it to integrate multiple datasets collected of human pancreatic islets (across different technologies). We also demonstrate how Seurat v3 can be used as a classifier, transferring cluster labels onto a newly collected dataset.
+* We recommend this vignette for new users
+
+**SCTransform**
+
+* Describes a modification of the v3 integration workflow, in order to apply to datasets that have been normalized with our new normalization method, SCTransform. We apply this to the same pancreatic islet datasets as described previously, and also integrate human PBMC datasets from [eight different technologies](https://www.biorxiv.org/content/10.1101/632216v1), produced as a systematic technology benchmark by the Human Cell Atlas.
+* We recommend this vignette for advanced users who are familiar with our SCTransform normalization method. You can read more about SCTransform in our recent [preprint](https://www.biorxiv.org/content/10.1101/576827v2), and see how to apply it to a single dataset in a separate [vignette](https://satijalab.org/seurat/sctransform_vignette.html)
+
+**Reference-based**
+
+* Describes a modification of the v3 integration workflow, where a subset of the datasets (or a single dataset) are listed as a 'reference'. This approach can result in dramatic speed improvements, particularly when there are a large number of datasets to integrate. We apply this to the eight PBMC datasets described above, and observe identical results, despite a substantial reduction in processing time.
+* We recommend this vignette for users who are integrating many datasets, and are looking for speed improvements.
+
+**Reciprocal PCA**
+
+* Describes a modification of the v3 integration workflow, where reciprocal PCA is used in place of canonical correlation analysis for the dimension reduction used in anchor finding. This approach can improve speed and efficiency when working with large datasets. 
+* We recommend this vignette for users looking for speed/memory improvements when working with a large number of datasets or cells, for example experimental designs with many experimental conditions, replicates, or patients. However, this workflow may struggle to align highly divergent samples  (e.g. cross species, or cross-modality, integration). For a 'turbo' mode, consider combining with "reference-based" integration as demonstrated here.
+
+# Standard Workflow
+
+In this example workflow, we demonstrate two new methods we recently introduced in our paper, [Comprehensive Integration of Single Cell Data](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8): 
+ 
+ * Assembly of multiple distinct scRNA-seq datasets into an integrated reference
+ * Transfer of cell type labels from a reference dataset onto a new query dataset
+
+For the purposes of this example, we've chosen human pancreatic islet cell datasets produced across four technologies, CelSeq (GSE81076) CelSeq2  (GSE85241), Fluidigm C1 (GSE86469), and SMART-Seq2 (E-MTAB-5061). For convenience, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
+
+The code for the new methodology is implemented in Seurat v3. You can download and install from CRAN with `install.packages`. 
+
+```{r eval=FALSE}
+install.packages("Seurat")
+```
+
+In addition to new methods, Seurat v3 includes a number of improvements aiming to improve the Seurat object and user interaction. To help users familiarize themselves with these changes, we put together a [command cheat sheet](https://satijalab.org/seurat/essential_commands.html) for common tasks.
+
+## Dataset preprocessing 
+
+Load in the dataset. The metadata contains the technology (`tech` column) and cell type annotations (`celltype` column) for each cell in the four datasets.
+
+```{r libraries}
+library(Seurat)
+library(SeuratData)
+```
+
+```{r install.data, eval=FALSE}
+InstallData('panc8')
+```
+
+To construct a reference, we will identify 'anchors' between the individual datasets. First, we split the combined object into a list, with each dataset as an element.
+
+```{r preprocessing1}
+data('panc8')
+pancreas.list <- SplitObject(panc8, split.by = "tech")
+pancreas.list <- pancreas.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+```
+
+Prior to finding anchors, we perform standard preprocessing (log-normalization), and identify variable features individually for each. Note that Seurat v3 implements an improved method for variable feature selection based on a variance stabilizing transformation (`"vst"`)
+
+```{r preprocessing3}
+for (i in 1:length(pancreas.list)) {
+  pancreas.list[[i]] <- NormalizeData(pancreas.list[[i]], verbose = FALSE)
+  pancreas.list[[i]] <- FindVariableFeatures(pancreas.list[[i]], selection.method = "vst", nfeatures = 2000, verbose = FALSE)
+}
+```
+
+## Integration of 3 pancreatic islet cell datasets 
+
+Next, we identify anchors using the `FindIntegrationAnchors` function, which takes a list of Seurat objects as input. Here, we integrate three of the objects into a reference (we will use the fourth later in this vignette)
+
+* We use all default parameters here for identifying anchors, including the 'dimensionality' of the dataset (30; feel free to try varying this parameter over a broad range, for example between 10 and 50).  
+
+```{r integration.anchors, warning = FALSE, message = FALSE}
+reference.list <- pancreas.list[c("celseq", "celseq2", "smartseq2")]
+pancreas.anchors <- FindIntegrationAnchors(object.list = reference.list, dims = 1:30)
+```
+
+We then pass these anchors to the `IntegrateData` function, which returns a Seurat object. 
+
+* The returned object will contain a new `Assay`, which holds an integrated (or 'batch-corrected') expression matrix for all cells, enabling them to be jointly analyzed.
+
+```{r data.integration, warning = FALSE, message = FALSE}
+pancreas.integrated <- IntegrateData(anchorset = pancreas.anchors, dims = 1:30)
+```
+
+After running `IntegrateData`, the `Seurat` object will contain a new `Assay` with the integrated expression matrix. Note that the original (uncorrected values) are still stored in the object in the "RNA" assay, so you can switch back and forth.
+
+We can then use this new integrated matrix for downstream analysis and visualization. Here we scale the integrated data, run PCA, and visualize the results with UMAP. The integrated datasets cluster by cell type, instead of by technology.
+
+```{r analysis, message = FALSE}
+library(ggplot2)
+library(cowplot)
+library(patchwork)
+#switch to integrated assay. The variable features of this assay are automatically set during IntegrateData
+DefaultAssay(pancreas.integrated) <- 'integrated'
+
+# Run the standard workflow for visualization and clustering
+pancreas.integrated <- ScaleData(pancreas.integrated, verbose = FALSE)
+pancreas.integrated <- RunPCA(pancreas.integrated, npcs = 30, verbose = FALSE)
+pancreas.integrated <- RunUMAP(pancreas.integrated, reduction = "pca", dims = 1:30)
+p1 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "tech") 
+p2 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend()
+p1 + p2
+```
+
+```{r save.img, include = FALSE}
+plot <- DimPlot(pancreas.integrated, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
+  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
+  guides(colour = guide_legend(override.aes = list(size = 10)))
+ggsave(filename = "../output/images/pancreas_integrated_umap.png", height = 7, width = 12, plot = plot)
+```
+
+## Cell type classification using an integrated reference
+
+Seurat v3 also supports the projection of reference data (or meta data) onto a query object. While many of the methods are conserved (both procedures begin by identifying anchors), there are two important distinctions between data transfer and integration:
+
+1. In data transfer, Seurat does not correct or modify the query expression data.
+2. In data transfer, Seurat has an option (set by default) to project the PCA structure of a reference onto the query, instead of learning a joint structure with CCA. We generally suggest using this option when projecting data between scRNA-seq datasets.
+
+After finding anchors, we use the `TransferData` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
+
+```{r label.transfer, warning = FALSE, message = FALSE}
+pancreas.query <- pancreas.list[["fluidigmc1"]]
+pancreas.anchors <- FindTransferAnchors(reference = pancreas.integrated, query = pancreas.query, dims = 1:30)
+predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.integrated$celltype, dims = 1:30)
+pancreas.query <- AddMetaData(pancreas.query, metadata = predictions)
+```
+
+Because we have the original label annotations from our full integrated analysis, we can evaluate how well our predicted cell type annotations match the full reference. In this example, we find that there is a high agreement in cell type classification, with over 97% of cells being labeled correctly.
+
+```{r analysis2}
+pancreas.query$prediction.match <- pancreas.query$predicted.id == pancreas.query$celltype
+table(pancreas.query$prediction.match)
+```
+
+To verify this further, we can examine some canonical cell type markers for specific pancreatic islet cell populations. Note that even though some of these cell types are only represented by one or two cells (e.g. epsilon cells), we are still able to classify them correctly. 
+
+```{r vlnplots, fig.height=8}
+table(pancreas.query$predicted.id)
+VlnPlot(pancreas.query, c("REG1A", "PPY", "SST", "GHRL", "VWF", "SOX10"), group.by = "predicted.id") 
+```
+
+## Unimodal UMAP Projection
+
+In Seurat v4, we also enable projection of a query onto the reference UMAP structure. This can be achieved by computing the reference UMAP model and then calling  `MapQuery` instead of `TransferData`. 
+
+```{r label.transfer.v4, warning = FALSE, message = FALSE}
+pancreas.integrated <- RunUMAP(pancreas.integrated, dims = 1:30, reduction = "pca", return.model = TRUE)
+pancreas.query <- MapQuery(
+  anchorset = pancreas.anchors, 
+  reference = pancreas.integrated,
+  query = pancreas.query,
+  refdata = list(celltype = 'celltype'),
+  reference.reduction = 'pca',
+  reduction.model = 'umap'
+)
+```
+
+<details>
+  <summary>**What is `MapQuery` doing?**</summary>
+
+`MapQuery` is a wrapper around three functions: `TransferData`, `IntegrateEmbeddings`, and `ProjectUMAP`. `TransferData` is used to transfer cell type labels and impute the ADT values; `IntegrateEmbeddings` is used to integrate reference with query by correcting the query's projected low-dimensional embeddings; and finally `ProjectUMAP` is used to project the query data onto the UMAP structure of the reference. The equivalent code for doing this with the intermediate functions is below:
+
+```{r, eval=FALSE}
+pancreas.query <- TransferData(
+  anchorset = pancreas.anchors, 
+  reference = pancreas.integrated,
+  query = pancreas.query,
+  refdata = list(celltype = "celltype")
+)
+pancreas.query <- IntegrateEmbeddings(
+  anchorset = pancreas.anchors,
+  reference = pancreas.integrated,
+  query = pancreas.query, 
+  new.reduction.name = "ref.pca"
+)
+pancreas.query <- ProjectUMAP(
+  query = pancreas.query, 
+  query.reduction = "ref.pca", 
+  reference = pancreas.integrated, 
+  reference.reduction = "pca", 
+  reduction.model = "umap"
+)
+```
+</details>
+
+We can now visualize the query cells alongside our reference.
+
+```{r panc.refdimplots, fig.width=10}
+p1 = DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype", label = TRUE, label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Reference annotations")
+p2 = DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE, label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Query transferred labels")
+p1 + p2
+```
+
+# SCTransform
+
+On the previous tab, we demonstrate how to integrate datasets after each has been pre-processed using standard log-normalization. Here, we modify the workflow to take advantage of our improved pre-processing and normalization workflow: SCTransform. You can read more about SCTransform in our recent [preprint](https://www.biorxiv.org/content/10.1101/576827v2), and see how to apply it to a single dataset in a separate [vignette](https://satijalab.org/seurat/v3.0/sctransform_vignette.html). We suggest exploring these resources before proceeding.
+
+Conceptually, this workflow is very similar to what we have previously introduced, where we 'correct' (or harmonize) log-normalized expression values across datasets. Here, instead, we will harmonize the Pearson residuals that are output from SCTransform. As demonstrated below, the workflow consists of the following steps:
+
+* Create a list of Seurat objects to integrate
+* Perform SCTransform normalization separately for each dataset 
+* Run the PrepSCTIntegration function on the object list
+* Integrate datasets, and proceed with joint analysis
+
+First, setup the Seurat object list, and run SCTransform on each object separately:
+
+```{r setup3}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+options(future.globals.maxSize = 4000 * 1024^2)
+data('panc8')
+pancreas.list <- SplitObject(panc8, split.by = "tech")
+pancreas.list <- pancreas.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+for (i in 1:length(pancreas.list)) {
+  pancreas.list[[i]] <- SCTransform(pancreas.list[[i]], verbose = FALSE)
+}
+```
+
+Next, select features for downstream integration, and run `PrepSCTIntegration`, which ensures that all necessary Pearson residuals have been calculated.
+```{r features2}
+pancreas.features <- SelectIntegrationFeatures(
+  object.list = pancreas.list,
+  nfeatures = 3000
+)
+pancreas.list <- PrepSCTIntegration(object.list = pancreas.list, anchor.features = pancreas.features, verbose = FALSE)
+```
+
+Next, identify anchors and integrate the datasets. Commands are identical to the standard workflow, but make sure to set `normalization.method = 'SCT'`:
+```{r integrate}
+pancreas.anchors <- FindIntegrationAnchors(object.list = pancreas.list, normalization.method = 'SCT', anchor.features = pancreas.features, verbose = FALSE)
+pancreas.integrated <- IntegrateData(anchorset = pancreas.anchors, normalization.method = 'SCT', verbose = FALSE)
+```
+
+Now proceed with downstream analysis (i.e. visualization, clustering) on the integrated dataset. Commands are identical to the standard workflow, but do *not* run the `ScaleData` function after integration. You can see that after integration, cells group by their biological cell type (which has been pre-annotated), instead of by their underlying technology.
+
+```{r downstream2, fig.height = 9, fig.width = 16}
+pancreas.integrated <- RunPCA(pancreas.integrated, verbose = FALSE)
+pancreas.integrated <- RunUMAP(pancreas.integrated, dims = 1:30)
+plots <- DimPlot(pancreas.integrated, group.by = c("tech", "celltype"))
+plots & theme(legend.position = "top") & guides(color = guide_legend(nrow = 3, 
+    byrow = TRUE, override.aes = list(size = 3)))
+```
+
+To further demonstrate this workflow, we next apply it to a series of  human PBMC datasets from [eight different technologies](https://www.biorxiv.org/content/10.1101/632216v1), produced as a systematic technology benchmark by the Human Cell Atlas. Data was downloaded from [the Broad Single Cell Portal](https://portals.broadinstitute.org/single_cell). For convenience, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
+
+```{r install.pbmcsca, eval=FALSE}
+InstallData('pbmcsca')
+```
+
+```{r pbmc_no_ref2, results='hide'}
+data('pbmcsca')
+pbmc.list <- SplitObject(pbmcsca, split.by = 'Method')
+for (i in names(pbmc.list)) {
+  pbmc.list[[i]] <- SCTransform(pbmc.list[[i]], verbose = FALSE)
+}
+pbmc.features <- SelectIntegrationFeatures(object.list = pbmc.list, nfeatures = 3000)
+pbmc.list <- PrepSCTIntegration(object.list = pbmc.list, anchor.features = pbmc.features)
+pbmc.anchors <- FindIntegrationAnchors(object.list = pbmc.list, normalization.method = 'SCT', anchor.features = pbmc.features)
+pbmc.integrated <- IntegrateData(anchorset = pbmc.anchors, normalization.method = 'SCT')
+
+pbmc.integrated <- RunPCA(object = pbmc.integrated, verbose = FALSE)
+pbmc.integrated <- RunUMAP(object = pbmc.integrated, dims = 1:30)
+```
+
+```{r pbmc_ref2_vis, fig.height = 9, fig.width = 16}
+plots <- DimPlot(pbmc.integrated, group.by = c("Method", "CellType"))
+plots & theme(legend.position = "top") & guides(color = guide_legend(nrow = 4, 
+    byrow = TRUE, override.aes = list(size = 2.5)))
+```
+
+Note that again, cells are grouped together by shared biological subtype, instead of by technology. In this case, the authors labeled "CellType" in each dataset independently, and you can see that this is consistent with our integrated analysis:
+
+```{r plot2a, fig.width = 12, fig.height = 12}
+DimPlot(pbmc.integrated, group.by = 'CellType', split.by = 'Method', ncol = 3)
+```
+
+However, our integrated analysis reveals finer subdivisions amongst these broad cell types, since the combined dataset has substantially greater statistical power. We don't do a full clustering here on the integrated dataset, but note that we can observe subpopulations of CD4+ (Memory/Naive), CD8 (multiple cytotoxic populations), and B cells (multiple developmental stages). Below, we visualize the expression of the original measurements on our integrated visualization (note that you can add `split.by = 'Method` to make these plots for each technology independently)"
+
+```{r plot2b, fig.height = 11, fig.width = 11}
+DefaultAssay(pbmc.integrated) <- "RNA"
+# Normalize RNA data for visualization purposes
+pbmc.integrated <- NormalizeData(pbmc.integrated, verbose = FALSE)
+FeaturePlot(pbmc.integrated, c('CCR7',"S100A4","GZMB","GZMK","GZMH","TCL1A"))
+```
+
+# Reference-based
+
+Here, we present an additional modification to the Seurat integration workflow, which we refer to as 'Reference-based' integration. In the previous workflows, we identify anchors between all pairs of datasets. While this gives datasets equal weight in downstream integration, it can also become computationally intensive. For example, when integrating 10 different datasets, we perform 45 different pairwise comparisons.
+
+As an alternative, we introduce here the possibility of specifying one or more of the datasets as the 'reference' for integrated analysis, with the remainder designated as 'query' datasets. In this workflow, we do not identify anchors between pairs of query datasets, reducing the number of comparisons. For example, when integrating 10 datasets with one specified as a reference, we perform only 9 comparisons. Reference-based integration can be applied to either log-normalized or SCTransform-normalized datasets.
+
+In practice, we often observe very similar results between the approaches, but with substantially reduced computational time. We demonstrate this using the same PBMC analysis as in the previous tab with highly concordant outputs. We therefore recommend this workflow for users who are integrating a large number of datasets, and desire increased computational efficiency.
+
+This approach does require users to pre-select datasets to serve as a reference. In this example, we use the 10X v3 dataset, as the dataset contains both high cell number and high sensitivity. Users can apply similar criteria when selecting a reference. Furthermore, you can change this setting in the workflow below (for example, try selecting the 10X v2, or Drop-seq datasets as a reference), with only very minor differences in the final result.
+
+The workflow is demonstrated below. Commands are identical to the previous tab, except that we specify a `reference` argument in the `FindIntegrationAnchors` function. Data was originally downloaded from [the Broad Single Cell Portal](https://portals.broadinstitute.org/single_cell) but for convienence, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
+
+```{r libs3}
+library(Seurat)
+library(SeuratData)
+library(ggplot2)
+library(patchwork)
+```
+
+```{r install.pbmcsca2, eval=FALSE}
+InstallData('pbmcsca')
+```
+
+```{r packages3}
+data('pbmcsca')
+pbmc.list <- SplitObject(pbmcsca, split.by = 'Method')
+for (i in names(pbmc.list)) {
+  pbmc.list[[i]] <- SCTransform(pbmc.list[[i]], verbose = FALSE)
+}
+pbmc.features <- SelectIntegrationFeatures(object.list = pbmc.list, nfeatures = 3000)
+pbmc.list <- PrepSCTIntegration(object.list = pbmc.list, anchor.features = pbmc.features)
+
+# This command returns dataset 5. 
+# We can also specify multiple refs. (i.e. c(5,6))
+reference_dataset <- which(names(pbmc.list) == "10x Chromium (v3)")
+
+pbmc.anchors <- FindIntegrationAnchors(object.list = pbmc.list, normalization.method = 'SCT', anchor.features = pbmc.features,reference = reference_dataset)
+pbmc.integrated <- IntegrateData(anchorset = pbmc.anchors, normalization.method = 'SCT')
+
+pbmc.integrated <- RunPCA(object = pbmc.integrated, verbose = FALSE)
+pbmc.integrated <- RunUMAP(object = pbmc.integrated, dims = 1:30)
+```
+
+```{r viz3, fig.height = 9, fig.width = 16}
+plots <- DimPlot(pbmc.integrated, group.by = c("Method", "CellType"))
+plots & theme(legend.position = "top") & guides(color = guide_legend(nrow = 4, 
+    byrow = TRUE, override.aes = list(size = 2.5)))
+```
+
+```{r plot3b, fig.height = 11, fig.width = 11}
+DefaultAssay(pbmc.integrated) <- "RNA"
+# Normalize RNA data for visualization purposes
+pbmc.integrated <- NormalizeData(pbmc.integrated, verbose = FALSE)
+FeaturePlot(pbmc.integrated, c('CCR7',"S100A4","GZMB","GZMK","GZMH","TCL1A"))
+```
+
+# Reciprocal PCA
+
+For very large datasets, Canonical Correlation Analysis can sometimes become a prohibitively computationally expensive step. In this workflow, we introduce an alternate form of dimension reduction, reciprocal PCA, to identify an effective space in which to find anchors. When determining anchors between any two datasets using reciprocal PCA, we project each dataset into the other's PCA space and constrain the anchors by the same mutual neighborhood requirement. All downstream integration steps remain the same and we are able to 'correct' (or harmonize) the datasets. 
+
+As demonstrated below, the workflow consists of the following steps:
+
+* Create a list of Seurat objects to integrate
+* Perform normalization, feature selection, and scaling separately for each dataset
+* Run PCA on each object in the list
+* Integrate datasets, and proceed with joint analysis
+
+In general, we observe strikingly similar results between the two workflows, but with substantial reduction in compute time and memory when using reciprocal PCA. However, if the datasets are highly divergent (for example, cross-modality mapping or cross-species mapping), where only a small subset of features can be used to facilitate integration, and you may observe superior results using CCA.
+
+For large studies with many datasets, we recommend also combining reciprocal PCA with reference-based integration, or SCTransform normalization (see details on previous tab).
+
+For these examples, we will be using the "Immune Cell Atlas" data from the Human Cell Atlas which can be found [here](https://preview.data.humancellatlas.org/). First, we will integrate a randomly downsampled version of this dataset and then the full dataset. The randomly downsampled version contains 40K cells (5K from each donor) and is available through our new [SeuratData package](https://github.com/satijalab/seurat-data). 
+
+```{r libs}
+library(Seurat)
+library(SeuratData)
+```
+
+```{r, eval = FALSE}
+# Get data from seurat-data
+InstallData(pkgs = "bm40k.SeuratData")
+```
+
+After acquiring the data, we first perform standard normalization and variable feature selection. 
+```{r setup2}
+library(ggplot2)
+# load in the data
+data(hcabm40k)
+bm40k.list <- SplitObject(hcabm40k, split.by = "orig.ident")
+bm40k.list <- lapply(X = bm40k.list, FUN = function(x) {
+  x <- NormalizeData(x, verbose = FALSE)
+  x <- FindVariableFeatures(x, verbose = FALSE)
+})
+```
+
+Next, select features for downstream integration, and run PCA on each object in the list, which is required for running the reciprocal PCA workflow. 
+
+```{r features3}
+features <- SelectIntegrationFeatures(object.list = bm40k.list)
+bm40k.list <- lapply(X = bm40k.list, FUN = function(x) {
+  x <- ScaleData(x, features = features, verbose = FALSE)
+  x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+Since this dataset contains both men and women, we will chose one male and one female (BM1 and BM2) to use in the reference-based workflow. We determined donor sex by examining the expression of the XIST gene. Next, identify anchors and integrate the datasets. Commands are identical to the standard workflow, but make sure to set `reduction = 'rpca'`:
+
+```{r integrate.bm}
+anchors <- FindIntegrationAnchors(object.list = bm40k.list, reference = c(1, 2), reduction = "rpca", dims = 1:30, nn.method = "rann")
+bm40k.integrated <- IntegrateData(anchorset = anchors, dims = 1:30)
+```
+
+Now proceed with downstream analysis (i.e. visualization, clustering) on the integrated dataset. Commands are identical to the standard workflow.
+
+```{r downstream3, fig.height = 9, fig.width = 16}
+bm40k.integrated <- ScaleData(bm40k.integrated, verbose = FALSE)
+bm40k.integrated <- RunPCA(bm40k.integrated, verbose = FALSE)
+bm40k.integrated <- RunUMAP(bm40k.integrated, dims = 1:30)
+```
+
+```{r viz.rpca1, fig.height = 9, fig.width = 16}
+DimPlot(bm40k.integrated, group.by = "orig.ident")
+```
+
+To further demonstrate this workflow, we next apply it to the full dataset. While we do not provide this through SeuratData, you can find the counts matrix on the [HCA Data Portal site](https://preview.data.humancellatlas.org/). The commands below are identical to the 40k integration except we've increased the dimensionality to 50 to reflect the increased cell number and diversity.
+
+```{r hca.full.1}
+bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
+bm280k <- CreateSeuratObject(counts = bm280k.data, min.cells = 100, min.features = 500)
+bm280k.list <- SplitObject(bm280k, split.by = "orig.ident")
+bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
+  x <- NormalizeData(x, verbose = FALSE)
+  x <- FindVariableFeatures(x, verbose = FALSE)
+})
+```
+
+```{r hca.full.2}
+features <- SelectIntegrationFeatures(object.list = bm280k.list)
+bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
+  x <- ScaleData(x, features = features, verbose = FALSE)
+  x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+```{r integration.hca.full}
+anchors <- FindIntegrationAnchors(object.list = bm280k.list, reference = c(1, 2), reduction = "rpca", dims = 1:50)
+bm280k.integrated <- IntegrateData(anchorset = anchors, dims = 1:50)
+```
+
+```{r downstream.hca.full}
+bm280k.integrated <- ScaleData(bm280k.integrated, verbose = FALSE)
+bm280k.integrated <- RunPCA(bm280k.integrated, verbose = FALSE)
+bm280k.integrated <- RunUMAP(bm280k.integrated, dims = 1:50)
+```
+
+```{r viz.hca.full, fig.height = 9, fig.width = 16}
+DimPlot(bm280k.integrated, group.by = "orig.ident")
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_times.csv")
+```
