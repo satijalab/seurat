@@ -151,12 +151,12 @@ library(cowplot)
 theme_set(theme_cowplot())
 t.cells <- subset(immune.combined, idents = "CD4 Naive T")
 Idents(t.cells) <- "stim"
-avg.t.cells <- log1p(AverageExpression(t.cells, verbose = FALSE)$RNA)
+avg.t.cells <- as.data.frame(log1p(AverageExpression(t.cells, verbose = FALSE)$RNA))
 avg.t.cells$gene <- rownames(avg.t.cells)
 
 cd14.mono <- subset(immune.combined, idents = "CD14 Mono")
 Idents(cd14.mono) <- "stim"
-avg.cd14.mono <- log1p(AverageExpression(cd14.mono, verbose = FALSE)$RNA)
+avg.cd14.mono <- as.data.frame(log1p(AverageExpression(cd14.mono, verbose = FALSE)$RNA))
 avg.cd14.mono$gene <- rownames(avg.cd14.mono)
 
 genes.to.label = c("ISG15", "LY6E", "IFI6", "ISG20", "MX1", "IFIT2", "IFIT1", "CXCL10", "CCL8")
