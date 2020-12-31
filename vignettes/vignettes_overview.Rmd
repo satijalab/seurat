@@ -29,6 +29,8 @@ process_entry <- function(dat) {
   items <- make_list(items = items)
   if (grepl(pattern = "https://satijalab.org/img/vignette_images", x = dat$image)) {
     img <- paste0('![](', dat$image, '){width=3000px}')
+  } else if (grepl(pattern = "assets/", x= dat$image)) {
+    img <- paste0('![](', dat$image, '){width=3000px}') 
   } else {
     img <- paste0('![](', '../output/images/', dat$image, '){width=3000px}')
   }

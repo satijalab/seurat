@@ -30,4 +30,3 @@ Returns the value in the alg.idx slot of the Neighbor object
 \description{
 Get Neighbor algorithm index
 }
-\concept{objects}

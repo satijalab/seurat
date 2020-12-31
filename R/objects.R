@@ -3968,7 +3968,6 @@ Idents.Seurat <- function(object, ...) {
 }
 
 #' @rdname Index
-#' @concept objects
 #' @export
 #' @method Index Neighbor
 Index.Neighbor <- function(object, ...) {
@@ -3984,7 +3983,6 @@ Index.Neighbor <- function(object, ...) {
 }
 
 #' @rdname Index
-#' @concept objects
 #' @export
 #' @method Index<- Neighbor
 "Index<-.Neighbor" <- function(object, ..., value) {

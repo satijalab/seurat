@@ -19,7 +19,7 @@
       items: |
         * Integrate multiple scRNA-seq datasets across technologies
         * Transfer labels across datasets
-      image: https://satijalab.org/img/vignette_images/anchorsb_2018.png
+      image: assets/anchorsb_2018.png
 
     - title: Weighted Nearest Neighbor Analysis
       name: weighted_nearest_neighbor_analysis
@@ -42,14 +42,14 @@
       image: reference_mapping.png
 
     - title: Analysis of spatial datasets
-      name: https://satijalab.org/seurat/spatial_vignette.html
+      name: spatial_vignette
       summary: |
         Analysis of spatially-resolved transcriptomic data.
       items: |
         * Preprocessing and normalization
         * Interactive visualization
         * Integration with scRNA-seq data
-      image: https://satijalab.org/img/vignette_images/spatial_vignette_ttr.png
+      image: spatial_vignette_ttr.png
 
     - title: Mouse Cell Atlas, 250K cells
       name: mca
@@ -86,7 +86,7 @@
         Use the sctransform wrapper in Seurat
       items: |
         * New method to remove technical variation while retaining biological heterogeneity
-      image: https://satijalab.org/img/vignette_images/sctransform.png
+      image: assets/sctransform.png
 
     # - title: scATAC-seq + scRNA-seq integration
     #   name: atacseq_integration_vignette
@@ -125,7 +125,7 @@
       items: |
         * Explore DE framework and results
         * Speed up DE testing for large datasets
-      image: https://satijalab.org/img/vignette_images/de_vignette.png
+      image: assets/de_vignette.png
 
     - title: Demultiplex Cell Hashing data
       name: hashing_vignette
@@ -134,7 +134,7 @@
       items: |
         * Demultiplex cells to sample of origin
         * Identify cross sample doublets
-      image: https://satijalab.org/img/vignette_images/hashing_vignette.png
+      image: assets/hashing_vignette.png
 
     - title: Visualization
       name: visualization_vignette
@@ -152,7 +152,7 @@
       items: |
         * Learn about the future framework
         * List of parallelized Seurat functions
-      image: https://satijalab.org/img/vignette_images/future_rocket.png
+      image: assets/future_rocket.png
 
     - title: Interoperability with Other Analysis Tools
       name: conversion_vignette
@@ -160,7 +160,7 @@
         Convert data between formats for different analysis tools:
       items: |
         * Converters for SingleCellExperiment, anndata, and loom
-      image: https://satijalab.org/img/vignette_images/conversion_vignette.png
+      image: assets/conversion_vignette.png
 
 - category: Seurat Wrappers
   hash: seurat-wrappers
