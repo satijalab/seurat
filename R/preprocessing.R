@@ -880,6 +880,7 @@ ReadAlevin <- function(base.path) {
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
+#' @param cell.column Specify which column of barcodes.tsv to use for cell names; default is 1
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -910,6 +911,7 @@ ReadAlevin <- function(base.path) {
 Read10X <- function(
   data.dir = NULL,
   gene.column = 2,
+  cell.column = 1,
   unique.features = TRUE,
   strip.suffix = FALSE
 ) {
@@ -942,7 +944,12 @@ Read10X <- function(
       stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
-    cell.names <- readLines(barcode.loc)
+    cell.barcodes <- read.table(barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+    if (ncol(cell.barcodes) > 1){
+      cell.names <- cell.barcodes[,cell.column]
+    } else {
+      cell.names <- readLines(barcode.loc)
+    }
     if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
