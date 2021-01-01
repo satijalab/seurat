@@ -64,9 +64,11 @@ navbar:
       href: news/index.html
     - text: "Reference"
       href: reference/index.html
+    - text: "Archive"
+      href: articles/archive.html
   right:
     - icon: fa-home
-      href: https://satijalab.org
+      href: ../
     - icon: fa-github
       href: https://github.com/satijalab/seurat
 
