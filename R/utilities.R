@@ -1416,6 +1416,7 @@ PseudobulkExpression <- function(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1441,6 +1442,7 @@ PseudobulkExpression <- function(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
