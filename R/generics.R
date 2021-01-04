@@ -207,7 +207,6 @@ CreateSeuratObject <- function(
   names.field = 1,
   names.delim = '_',
   meta.data = NULL,
-  check.matrix = TRUE,
   ...
 ) {
   UseMethod(generic = 'CreateSeuratObject', object = counts)

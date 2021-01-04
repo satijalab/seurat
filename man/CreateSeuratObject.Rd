@@ -13,7 +13,6 @@ CreateSeuratObject(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
-  check.matrix = TRUE,
   ...
 )
 
@@ -64,8 +63,6 @@ Should be a \code{\link[base]{data.frame}} where the rows are cell names and
 the columns are additional metadata fields. Row names in the metadata need to
 match the column names of the counts matrix.}
 
-\item{check.matrix}{Check counts matrix for NA, NaN, Inf, and non-integer values}
-
 \item{...}{Arguments passed to other methods}
 
 \item{min.cells}{Include features detected in at least this many cells. Will
@@ -74,6 +71,8 @@ new object with a lower cutoff.}
 
 \item{min.features}{Include cells where at least this many features are
 detected.}
+
+\item{check.matrix}{Check counts matrix for NA, NaN, Inf, and non-integer values}
 }
 \value{
 A \code{\link{Seurat}} object
