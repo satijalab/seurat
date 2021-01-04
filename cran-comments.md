@@ -1,4 +1,4 @@
-# Seurat v3.2.2
+# Seurat v3.2.3
 
 ## Test environments
 * local Ubuntu 16.04.6 install, R 3.6.1
@@ -37,6 +37,8 @@ There were 3 NOTEs:
 
 ## Downstream dependencies
 
-There are three pacakges that imports Seurat: scMappR, Signac, and SoupX; this update does not impact their functionality
+There is one package that depends on Seurat: tidyseurat; this update does not impact its functionality
+
+There are three packages that imports Seurat: scMappR, Signac, and SoupX; this update does not impact their functionality
 
 There are eight packages that suggest Seurat: BisqueRNA, clustree, DIscBIO, nanny, Rmagic, scSorter, singleCellHaystack, treefit; this update does not impact their functionality.

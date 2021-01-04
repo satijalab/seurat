@@ -18,6 +18,7 @@ FeaturePlot(
   max.cutoff = NA,
   reduction = NULL,
   split.by = NULL,
+  keep.scale = "feature",
   shape.by = NULL,
   slot = "data",
   blend = FALSE,
@@ -30,7 +31,8 @@ FeaturePlot(
   by.col = TRUE,
   sort.cell = NULL,
   interactive = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  raster = NULL
 )
 }
 \arguments{
@@ -71,6 +73,13 @@ may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 
 \item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
 to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
+\item{keep.scale}{How to handle the color scale across multiple plots. Options are:
+\itemize{
+  \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
+  \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
+  \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
+}}
+
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells}
@@ -100,6 +109,9 @@ deprecated. Please use \code{order} instead.}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
+\item{raster}{Convert points to raster format, default is \code{NULL} which
+automatically rasterizes if plotting more than 50,000 cells}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if
