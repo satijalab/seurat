@@ -13,6 +13,7 @@ CreateSeuratObject(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
+  check.matrix = TRUE,
   ...
 )
 
@@ -25,6 +26,7 @@ CreateSeuratObject(
   meta.data = NULL,
   min.cells = 0,
   min.features = 0,
+  check.matrix = TRUE,
   ...
 )
 
@@ -61,6 +63,8 @@ into its component parts for picking the relevant field.}
 Should be a \code{\link[base]{data.frame}} where the rows are cell names and
 the columns are additional metadata fields. Row names in the metadata need to
 match the column names of the counts matrix.}
+
+\item{check.matrix}{Check counts matrix for NA, NaN, Inf, and non-integer values}
 
 \item{...}{Arguments passed to other methods}
 
