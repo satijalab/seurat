@@ -11,7 +11,14 @@
 \usage{
 \method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL, merge.data = TRUE, ...)
 
-\method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL, merge.data = TRUE, ...)
+\method{merge}{SCTAssay}(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = TRUE,
+  na.rm = TRUE,
+  ...
+)
 
 \method{merge}{Seurat}(
   x = NULL,

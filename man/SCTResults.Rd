@@ -3,6 +3,8 @@
 \name{SCTResults}
 \alias{SCTResults}
 \alias{SCTResults<-}
+\alias{SCTResults.SCTModel}
+\alias{SCTResults<-.SCTModel}
 \alias{SCTResults.SCTAssay}
 \alias{SCTResults<-.SCTAssay}
 \alias{SCTResults.Seurat}
@@ -12,11 +14,15 @@ SCTResults(object, ...)
 
 SCTResults(object, ...) <- value
 
-\method{SCTResults}{SCTAssay}(object, slot, ...)
+\method{SCTResults}{SCTModel}(object, slot, ...)
 
-\method{SCTResults}{SCTAssay}(object, slot, ...) <- value
+\method{SCTResults}{SCTModel}(object, slot, ...) <- value
 
-\method{SCTResults}{Seurat}(object, assay = "SCT", slot, ...)
+\method{SCTResults}{SCTAssay}(object, slot, group = NULL, ...)
+
+\method{SCTResults}{SCTAssay}(object, slot, group = NULL, ...) <- value
+
+\method{SCTResults}{Seurat}(object, assay = "SCT", slot, group = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -27,8 +33,18 @@ SCTResults(object, ...) <- value
 
 \item{slot}{Which slot to pull the SCT results from}
 
+\item{group}{Name of SCModel to pull result from. Available names can be
+retrieved with /code{levels}.}
+
 \item{assay}{Assay in the Seurat object to pull from}
 }
+\value{
+Returns the value present in the requested slot for the requested
+group. If group is not specified, returns a list of slot results for each
+group unless there is only one group present (in which case it just returns
+the slot directly).
+}
 \description{
-Get SCT results from an Assay
+Pull the \code{\link{SCTResult}} information from an \code{\link{SCTAssay}}
+object.
 }

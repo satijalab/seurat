@@ -7,7 +7,9 @@
 \alias{SCTAssay}
 \alias{levels.SCTAssay}
 \alias{levels<-.SCTAssay}
-\title{The SCTModel Class}
+\title{The SCTModel Class
+The SCTModel object is a model and parameters storage from SCTransform.
+It can be used to calculate Pearson residuals for new genes.}
 \usage{
 \method{levels}{SCTAssay}(x)
 
@@ -34,11 +36,13 @@ object, with extra information from the results of \code{\link{SCTransform}}
 
 \item{\code{cell.attributes}}{A data.frame with cell attributes in SCTransform}
 
-\item{\code{clips}}{A list of clip range in vst and SCTransform}
+\item{\code{clips}}{A list of two numeric of length two specifying the min and max values the Pearson residual
+will be clipped to. One for vst and one for SCTransform}
 
-\item{\code{umi.assay}}{the assay containing UMI counts}
+\item{\code{umi.assay}}{Name of the assay of the seurat object containing UMI matrix and
+the default is RNA}
 
-\item{\code{groups}}{A level for the SCT Model}
+\item{\code{groups}}{The level for the SCT Model}
 
 \item{\code{model}}{A formula used in SCTransform}
 

@@ -633,8 +633,10 @@ FindTransferAnchors <- function(
           y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
         )
       )
-      reference[[reference.assay]] <- CreateAssayObject(
-        data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
+      reference[[reference.assay]] <- as(
+        object = CreateAssayObject(
+          data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
+        Class = "SCTAssay"
       )
       reference <- SetAssayData(
         object = reference,
@@ -643,8 +645,10 @@ FindTransferAnchors <- function(
         new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
       )
     }
-    query[[query.assay]] <- CreateAssayObject(
-      data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
+    query[[query.assay]] <- as(
+      object = CreateAssayObject(
+        data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
+      Class = "SCTAssay"
     )
     query <- SetAssayData(
       object = query,

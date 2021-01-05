@@ -1278,13 +1278,16 @@ ScoreJackStraw <- function(object, ...) {
 }
 
 #' Get SCT results from an Assay
-#' 
+#'
+#' Pull the \code{\link{SCTResult}} information from an \code{\link{SCTAssay}}
+#' object.
+#'
 #' @param object An object
 #' @param ... Arguments passed to other methods (not used)
-#' 
+#'
 #' @rdname SCTResults
 #' @export SCTResults
-#' 
+#'
 SCTResults <- function(object, ...) {
   UseMethod(generic = 'SCTResults', object = object)
 }
