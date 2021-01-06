@@ -5192,6 +5192,7 @@ RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
     }
     SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
   }
+  new.names <- unname(obj = new.names)
   object <- NextMethod()
   return(object)
 }
@@ -7204,6 +7205,9 @@ merge.Assay <- function(
   return(combined.assay)
 }
 
+#' @param na.rm If na.rm = TRUE, this will only preserve residuals that are
+#' present in all SCTAssays being merged. Otherwise, missing residuals will be
+#' populated with NAs.
 #' @rdname merge.Seurat
 #' @export
 #' @method merge SCTAssay
@@ -7754,12 +7758,6 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
     attr <- attr[intersect(x = rownames(x = attr), y = Cells(x = x)), , drop = FALSE]
     SCTResults(object = x, slot = "cell.attributes", group = m) <- attr
   }
-  # remove SCTModel with no cells
-  # for (name in names(x@SCTModel.list)){
-  #   if( length(Cells(x@SCTModel.list[[name]])) == 0){
-  #     x@SCTModel.list[[name]] <- NULL
-  #   }
-  # }
   return(x)
 }
 

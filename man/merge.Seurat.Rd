@@ -44,6 +44,10 @@ approach was applied to all objects.}
 
 \item{...}{Arguments passed to other methods}
 
+\item{na.rm}{If na.rm = TRUE, this will only preserve residuals that are
+present in all SCTAssays being merged. Otherwise, missing residuals will be
+populated with NAs.}
+
 \item{merge.dr}{Merge specified DimReducs that are present in all objects.
 Will only merge the embeddings slots for the first N dimensions that are
 shared across all objects.}

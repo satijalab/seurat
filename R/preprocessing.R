@@ -376,6 +376,7 @@ GetResidual <- function(
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
     return(object)
   }
+  features.orig <- features
   if (na.rm) {
     # only compute residuals when feature model info is present in all
     features <- names(x = which(x = table(unlist(x = lapply(
@@ -402,16 +403,21 @@ GetResidual <- function(
       )
     }
   )
+  existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
+  existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), ]
   new.residuals <- Reduce(cbind, new.residuals)[, Cells(x = object), drop = F]
+  new.scale <- rbind(existing.data, new.residuals)
   object <- SetAssayData(
     object = object,
     assay = assay,
     slot = "scale.data",
-    new.data = rbind(
-      GetAssayData(object = object, slot = 'scale.data', assay = assay),
-      new.residuals
-    )
+    new.data = new.scale
   )
+  if (any(!features.orig %in% rownames(x = new.scale))) {
+    bad.features <- features.orig[which(!features.orig %in% rownames(x = new.scale))]
+    warning("Residuals not computed for the following requested features: ",
+            paste(bad.features, collapse = ", "), call. = FALSE)
+  }
   return(object)
 }
 

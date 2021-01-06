@@ -45,6 +45,6 @@ group unless there is only one group present (in which case it just returns
 the slot directly).
 }
 \description{
-Pull the \code{\link{SCTResult}} information from an \code{\link{SCTAssay}}
+Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
 object.
 }

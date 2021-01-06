@@ -1279,7 +1279,7 @@ ScoreJackStraw <- function(object, ...) {
 
 #' Get SCT results from an Assay
 #'
-#' Pull the \code{\link{SCTResult}} information from an \code{\link{SCTAssay}}
+#' Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
 #' object.
 #'
 #' @param object An object
