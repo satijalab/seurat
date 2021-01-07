@@ -1458,7 +1458,7 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1478,7 +1478,7 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -2043,7 +2043,8 @@ CreateDummyAssay <- function(assay) {
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   return(CreateAssayObject(
-    counts = cm
+    counts = cm,
+    check.matrix = FALSE
   ))
 }
 

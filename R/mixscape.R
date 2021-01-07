@@ -108,7 +108,8 @@ CalcPerturbSig <- function(
     expr = CreateAssayObject(
       data =  all_diff[, colnames(x = object)],
       min.cells = -Inf,
-      min.features = -Inf
+      min.features = -Inf,
+      check.matrix = FALSE
     ))
   object[[new.assay.name]] <- prtb.assay
   object <- LogSeuratCommand(object = object)
@@ -1160,7 +1161,8 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
       all_diff
     ),
     min.cells = 0,
-    min.features = 0
+    min.features = 0,
+    check.matrix = FALSE
   )
   new.assay <- SetAssayData(
     object = new.assay,

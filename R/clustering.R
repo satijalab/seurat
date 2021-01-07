@@ -1019,7 +1019,7 @@ PredictAssay <- function(
   )
   colnames(x = predicted) <- Cells(x = object)
   if (return.assay) {
-    predicted.assay <- CreateAssayObject(data = predicted)
+    predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
     return (predicted.assay)
   } else {
     return (predicted)
@@ -1254,7 +1254,7 @@ MultiModalNN <- function(
 #' Construct weighted nearest neighbor graph
 #'
 #' This function will construct a weighted nearest neighbor (WNN) graph. For
-#' each cell, we identify the nearest neighbors based on a weighted combination 
+#' each cell, we identify the nearest neighbors based on a weighted combination
 #' of two modalities. Takes as input two dimensional reductions, one computed for each modality.
 #' Other parameters are listed for debugging, but can be left as default values.
 
@@ -1268,7 +1268,7 @@ MultiModalNN <- function(
 #' @param cross.contant.list Constant used to avoid divide-by-zero errors. 1e-4 by default
 #' @param smooth Smoothing modality score across each individual modality
 #' neighbors. FALSE by default
-#' @param prune.SNN Cutoff not to discard edge in SNN graph 
+#' @param prune.SNN Cutoff not to discard edge in SNN graph
 #' @param knn.graph.name Multimodal knn graph name
 #' @param snn.graph.name Multimodal snn graph name
 #' @param weighted.nn.name Multimodal neighbor object name
@@ -1406,7 +1406,7 @@ FindMultiModalNeighbors  <- function(
 # Calculate modality weights
 #
 # This function calculates cell-specific modality weights which are used to
-# in WNN analysis. 
+# in WNN analysis.
 #' @inheritParams FindMultiModalNeighbors
 # @param object A Seurat object
 # @param snn.far.nn Use SNN farthest neighbors to calculate the kernel width
