@@ -1255,7 +1255,6 @@ IntegrateData <- function(
       k.weight = k.weight,
       weight.reduction = weight.reduction,
       sd.weight = sd.weight,
-      sample.tree = sample.tree,
       preserve.order = preserve.order,
       do.cpp = do.cpp,
       eps = eps,
@@ -1289,6 +1288,19 @@ IntegrateData <- function(
       integration.name = "Integration",
       slot = "anchors",
       new.data = anchors
+    )
+    if (!is.null(x = Tool(object = reference.integrated, slot = "Integration"))) {
+      sample.tree <- GetIntegrationData(
+        object = reference.integrated,
+        integration.name = "Integration",
+        slot = "sample.tree"
+      )
+    }
+    unintegrated <- SetIntegrationData(
+      object = unintegrated,
+      integration.name = "Integration",
+      slot = "sample.tree",
+      new.data = sample.tree
     )
     DefaultAssay(object = unintegrated) <- new.assay.name
     VariableFeatures(object = unintegrated) <- features
@@ -1405,7 +1417,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     k.weight = k.weight,
     weight.reduction = weight.reduction,
     sd.weight = sd.weight,
-    sample.tree = sample.tree,
     preserve.order = preserve.order,
     do.cpp = TRUE,
     verbose = verbose
@@ -1693,6 +1704,8 @@ MapQuery <- function(
       ), integrateembeddings.args
     )
   )
+  slot(object = query, name = "tools")$TransferData <- NULL
+
   if (!is.null(x = reduction.model)) {
     query <- do.call(
       what = ProjectUMAP,
@@ -3492,7 +3505,6 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # first merge between reference and query, as the merged object will subsequently contain more cells than was in
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
-# @param sample.tree Specify the order of integration. If NULL, will compute automatically.
 # @param preserve.order Do not reorder objects based on size for each pairwise integration.
 # @param do.cpp Run cpp code where applicable
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
@@ -3513,7 +3525,6 @@ MapQueryData <- function(
   weights.matrix = NULL,
   no.offset = FALSE,
   sd.weight = 1,
-  sample.tree = NULL,
   preserve.order = FALSE,
   do.cpp = TRUE,
   eps = 0,
@@ -4049,7 +4060,6 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 # first merge between reference and query, as the merged object will subsequently contain more cells than was in
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
-# @param sample.tree Specify the order of integration. If NULL, will compute automatically.
 # @param do.cpp Run cpp code where applicable
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
