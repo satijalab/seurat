@@ -1532,7 +1532,7 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
-  reference.reduction <- reference.reduction %||% anchorset@command$reference.reduction
+  reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
   new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
