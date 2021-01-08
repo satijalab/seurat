@@ -4502,8 +4502,7 @@ ValidateParams_TransferData <- function(
     }
   } else {
     if (is.null(x = dims)) {
-      ModifyParam(param = "dims",
-                  value = 1:length(x = slot(object = anchorset, name = "command")$dims))
+      ModifyParam(param = "dims", value = 1:length(x = slot(object = anchorset, name = "command")$dims))
     }
   }
 
