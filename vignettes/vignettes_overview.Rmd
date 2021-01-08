@@ -7,12 +7,6 @@ output:
   pdf_document: default
 ---
 
-# Guided Analyses
-
-For new users of Seurat, we suggest starting with a guided walkthrough of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics (download [raw data](https://s3-us-west-2.amazonaws.com/10x.files/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz), [R markdown file](https://www.dropbox.com/s/38h5zccv0b7l9pr/pbmc3k_tutorial.Rmd?dl=1), and final [Seurat object](https://www.dropbox.com/s/63gnlw45jf7cje8/pbmc3k_final.rds?dl=0)). This tutorial implements the major components of the Seurat clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
-
-Recently, we have developed [new computational methods](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) for integrated analysis of single-cell datasets generated across different conditions, technologies, or species. As an example, we provide a guided walkthrough for integrating and comparing PBMC datasets generated under different stimulation conditions. We also provide a workflow tailored to the analysis of large datasets (250,000 cells from a recently published study of the [Microwell-seq Mouse Cell Atlas](http://www.cell.com/cell/abstract/S0092-8674(18)30116-8)), as well as an example analysis of multimodal single-cell data. 
-
 ```{r fxns, include = FALSE}
 library('htmlTable')
 make_list <- function(items) {
@@ -25,8 +19,6 @@ make_href2 <- function(url, text){
   paste0("<a href=", url ,">", text, "</a>")
 }
 process_entry <- function(dat) {
-  items <- trimws(x = unlist(strsplit(x = dat$items, split = "\\*")[[1]])[-1])
-  items <- make_list(items = items)
   if (grepl(pattern = "https://satijalab.org/img/vignette_images", x = dat$image)) {
     img <- paste0('![](', dat$image, '){width=3000px}')
   } else if (grepl(pattern = "assets/", x= dat$image)) {
@@ -43,7 +35,7 @@ process_entry <- function(dat) {
   data.frame(
     title = make_href(url = link, text = dat$title),
     img = img,
-    desc = paste0(dat$summary, "\n", items),
+    desc = dat$summary,
     btn = go.button
   )
 }
@@ -54,6 +46,39 @@ process_wrapper_entry <- function(dat) {
     Reference = make_href2(url = dat$reference, text = dat$citation),
     Source = make_href2(url = dat$source, text = dat$source)
   )
+}
+make_vignette_card_section <- function(vdat, cat) {
+  vignettes <- vdat[[cat]]$vignettes
+  dat <- data.frame(title = character(), img = character(), desc = character())
+  for (v in 1:length(x = vignettes)) {
+    dat <- rbind(dat, process_entry(vignettes[[v]]))
+    if(nrow(x = dat) == 3 | v == length(x = vignettes)){
+      colnames(dat) <- NULL
+      dat <- t(dat)
+      if (ncol(x = dat) == 2) {
+        print(htmlTable(
+          dat, 
+          align = '|l|l|', 
+          css.cell = "padding-left: .75em; width: 50%", 
+          css.class = "two-column-htmltable"
+        ))
+      } else if (ncol(x = dat) == 1){
+        print(htmlTable(
+          dat, 
+          align = '|l|', 
+          css.cell = "padding-left: .75em; width: 100%", 
+          css.class = "one-column-htmltable"
+        ))
+      } else {
+        print(htmlTable(
+          dat, 
+          align = '|l|l|l|', 
+          css.cell = "padding-left: .75em; width: 30%"
+        ))
+      }
+      dat <- data.frame(title = character(), img = character(), desc = character())
+    }
+  }
 }
 ```
 
@@ -74,78 +99,44 @@ vdat <- read_yaml(file = "vignettes.yaml")
 </style>
 ```
 
+# Introductory Vignettes
+
+For new users of Seurat, we suggest starting with a guided walkthrough of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics. This tutorial implements the major components of a standard unsupervised clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
+
+If you are looking to analyze multi-modal data, we provide an analysis example to familiarize users with the Seurat infrastructure necessary for working with multiple modalities. This example features CITE-seq (RNA + protein) data but the general principles are extendable to arbitrary modalities. Similarly, for spatially-resolved data we work through a few examples of common analysis tasks such as interactive visualization and identifying spatially variable patterns of gene expression. Finally, Seurat offers an extensive suite functionality for visually exploring your single-cell data. Check out some of the possibilities in the vignette below.
+
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-cat <- 1
-vignettes <- vdat[[cat]]$vignettes
-dat <- data.frame(title = character(), img = character(), desc = character())
-for (v in 1:length(x = vignettes)) {
-  dat <- rbind(dat, process_entry(vignettes[[v]]))
-  if(nrow(x = dat) == 3 | v == length(x = vignettes)){
-    colnames(dat) <- NULL
-    dat <- t(dat)
-    if (ncol(x = dat) == 2) {
-      print(htmlTable(
-        dat, 
-        align = '|l|l|', 
-        css.cell = "padding-left: .75em; width: 50%", 
-        css.class = "two-column-htmltable"
-      ))
-    } else if (ncol(x = dat) == 1){
-      print(htmlTable(
-        dat, 
-        align = '|l|', 
-        css.cell = "padding-left: .75em; width: 100%", 
-        css.class = "one-column-htmltable"
-      ))
-    } else {
-      print(htmlTable(
-        dat, 
-        align = '|l|l|l|', 
-        css.cell = "padding-left: .75em; width: 30%"
-      ))
-    }
-    dat <- data.frame(title = character(), img = character(), desc = character())
-  }
-}
+make_vignette_card_section(vdat = vdat, cat = 1)
 ```
 
-# Frequently Requested Vignettes
+# Data Integration
 
-Here we provide a series of short vignettes to demonstrate a number of features that are commonly used in Seurat. We've focused the vignettes around questions that we frequently receive from users by e-mail. Click on a vignette to get started
+Recently, we have developed [computational methods](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) for integrated analysis of single-cell datasets generated across different conditions, technologies, or species. As an example, we provide a guided walkthrough for integrating and comparing PBMC datasets generated under different stimulation conditions. 
+
+MORE TEXT HERE ONCE VIGNETTES ARE UPDATED
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
-cat <- 2
-vignettes <- vdat[[cat]]$vignettes
-dat <- data.frame(title = character(), img = character(), desc = character())
-for (v in 1:length(x = vignettes)) {
-  dat <- rbind(dat, process_entry(vignettes[[v]]))
-  if(nrow(x = dat) == 3 | v == length(x = vignettes)){
-    colnames(dat) <- NULL
-    dat <- t(dat)
-    if (ncol(x = dat) == 2) {
-      print(htmlTable(
-        dat, 
-        align = '|l|l|', 
-        css.cell = "padding-left: .75em; width: 50%", 
-        css.class = "two-column-htmltable"
-      ))
-    } else if (ncol(x = dat) == 1){
-      print(htmlTable(
-        dat, 
-        align = '|l|', 
-        css.cell = "padding-left: .75em; width: 100%", 
-        css.class = "one-column-htmltable"
-      ))
-    } else {
-      print(htmlTable(
-        dat, 
-        align = '|l|l|l|', 
-        css.cell = "padding-left: .75em; width: 30%"
-      ))
-    }
-    dat <- data.frame(title = character(), img = character(), desc = character())
-  }
-}
+make_vignette_card_section(vdat = vdat, cat = 2)
+```
+
+# New Statistical Approaches
+
+Seurat also offers novel statistical methods for analyzing single-cell data. These include: 
+
+* Weighted Nearest Neighbor Analysis (WNN) [[paper](https://satijalab.org/v4preprint)]
+* Mixscape [[paper](https://www.biorxiv.org/content/10.1101/2020.06.28.175596v1)]
+* SCTransform [[paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)]
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 3)
+```
+
+# Other 
+
+Here we provide a series of short vignettes to demonstrate a number of features that are commonly used in Seurat. We’ve focused the vignettes around questions that we frequently receive from users. Click on a vignette to get started.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 4)
 ```
 
 # SeuratWrappers
@@ -155,7 +146,7 @@ In order to facilitate the use of community tools with Seurat, we provide the Se
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 library(knitr)
 library(kableExtra)
-cat <- 3
+cat <- 5
 vignettes <- vdat[[cat]]$vignettes
 dat <- data.frame(Package = character(),  Vignette = character(), Reference = character(), Source = character())
 for (v in 1:length(x = vignettes)) {

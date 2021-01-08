@@ -28,9 +28,7 @@ knitr::opts_chunk$set(
 options(SeuratData.repo.use = 'satijalab04.nygenome.org')
 ```
 
-# THP-1 CRISPRko ECCITE-seq
-
-## Overview
+# Overview
 
 This tutorial demonstrates how to use mixscape for the analyses of single-cell pooled CRSIPR screens. We introduce new Seurat functions for: 
 
@@ -38,13 +36,13 @@ This tutorial demonstrates how to use mixscape for the analyses of single-cell p
 2. Identifying and removing cells that have 'escaped' CRISPR perturbation.
 3. Visualizing similarities/differences across different perturbations.
 
-## Installing mixscape branch
+# Installing mixscape branch
 
 ```{r install1, eval = FALSE}
 remotes::install_github("satijalab/seurat", ref = "release/4.0.0")
 ```
 
-## Loading required packages
+# Loading required packages
 
 ```{r pkgs1}
 # Load packages.
@@ -66,7 +64,7 @@ custom_theme <- theme(
   legend.text = element_text(size = 14))
 ```
 
-## Loading Seurat object containing ECCITE-seq dataset
+# Loading Seurat object containing ECCITE-seq dataset
 
 We use a 111 gRNA ECCITE-seq dataset generated from stimulated THP-1 cells that was recently published from our lab in bioRxiv [Papalexi et al. 2020](https://www.biorxiv.org/content/10.1101/2020.06.28.175596v1). This dataset can be  easily downloaded from the [SeuratData](https://github.com/satijalab/seurat-data) package. 
 
@@ -82,7 +80,7 @@ eccite <- NormalizeData(
   margin = 2)
 ```
 
-## RNA-based clustering is driven by confounding sources of variation
+# RNA-based clustering is driven by confounding sources of variation
 
 Here, we follow the standard Seurat workflow to cluster cells based on their gene expression profiles. We expected to obtain perturbation-specific clusters however we saw that clustering is primarily driven by cell cycle phase and replicate ID. We only observed one perturbation-specific cluster containing cells expression IFNgamma pathway gRNAs.
 
@@ -139,7 +137,7 @@ p3 <- DimPlot(
 ((p1 / p2 + plot_layout(guides = 'auto')) | p3 )
 ```
 
-## Calculating local perturbation signatures mitigates confounding effects
+# Calculating local perturbation signatures mitigates confounding effects
 
 To calculate local perturbation signatures we set the number of non-targeting NNs equal to k=20 and we recommend that the user picks a k from the following range: 20 < k < 30. Intuitively, the user does not want to set k to a very small or large number as this will most likely not remove the technical variation from the dataset. Using the PRTB signature to cluster cells removes all technical variation and reveals one additional perturbation-specific cluster.
 
@@ -216,7 +214,7 @@ q3 <- DimPlot(
 (q1 / q2 + plot_layout(guides = 'auto') | q3)
 ```
 
-## Mixscape identifies cells with no detectable perturbation
+# Mixscape identifies cells with no detectable perturbation
 
 Here, we are assuming each target gene class is a mixture of two Gaussian distributions one representing the knockout (KO) and the other the non-perturbed (NP) cells. We further assume that the distribution of the NP cells is identical to that of cells expressing non-targeting gRNAs (NT) and we try to estimate the distribution of KO cells using the function `normalmixEM()` from the mixtools package. Next, we calculate the posterior probability that a cell belongs to the KO distribution and classify cells with a probability higher than 0.5 as KOs. Applying this method we identify KOs in 11 target gene classes and detect variation in gRNA targeting efficiency within each class. 
 
@@ -266,7 +264,7 @@ p1 + theme(axis.text.x = element_text(size = 18, hjust = 1),
           legend.text = element_text(size = 12))
 ```
 
-## Inspecting mixscape results
+# Inspecting mixscape results
 
 To ensure mixscape is assigning the correct perturbation status to cells we can use the functions below to look at the perturbation score distributions and the posterior probabilities of cells within a target gene class (for example IFNGR2) and compare it to those of the NT cells. In addition, we can perform differential expression (DE) analyses and show that only IFNGR2 KO cells have reduced expression of the IFNG-pathway genes. Finally, as an independent check, we can look at the PD-L1 protein expression values in NP and KO cells for target genes known to be PD-L1 regulators.
 
@@ -315,7 +313,7 @@ p <- VlnPlot(object = eccite, features = "adt_PDL1", idents = c("NT","JAK2","STA
 ggsave(filename = "../output/images/mixscape_vignette.png", height = 7, width = 12, plot = p)
 ```
 
-## Visualizing perturbation responses with Linear Discriminant Analysis (LDA)
+# Visualizing perturbation responses with Linear Discriminant Analysis (LDA)
 
 We use LDA as a dimensionality reduction method to visualize perturbation-specific clusters. LDA is trying to maximize the separability of known labels (mixscape classes) using both gene expression and the labels as input.
 
@@ -367,196 +365,6 @@ p2 <- p+
   xlab("UMAP 1") +
   custom_theme
 p2
-```
-
-# K562 CRSIPRi Perturb-seq
-
-## Overview
-
-This tutorial demonstrates how to use mixscape for the analyses of single-cell pooled CRSIPR interference screens. 
-We use a 138 gRNA K562 CRISPRi Perturb-seq dataset that was recently published in Nature Biotechnology from [Jost et al. 2020](https://www.nature.com/articles/s41587-019-0387-5). The authors designed a CRISPRi screen to target 25 genes involved in essential cell biological processes with series of 5-6 gRNAs designed to have variable KD efficiency (CRISPRi titration).
-The pre-processed object we use for this vignette can be easily downloaded [here](https://github.com/satijalab/seurat-data).
-
-## Install and load all required packages
-
-```{r install2, eval = FALSE}
-remotes::install_github("satijalab/seurat", ref = "release/4.0.0")
-```
-
-```{r pkgs2}
-library(Seurat)
-library(ggplot2)
-library(enrichR)
-library(mixtools)
-library(MASS)
-library(uwot)
-library(reshape2)
-library(dplyr)
-library(scales)
-
-# Set up themes.
-tm <- theme(axis.text.x = element_text(size = 12, angle = 30, hjust = 1), 
-        axis.text.y = element_text(size = 14), 
-        axis.title = element_text(size = 16),
-        strip.text = element_text(size=14, face = "bold"),
-        plot.title = element_text(size=16, hjust = 0.5, face = "bold" ), 
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12)) + 
-  theme_classic()
-```
-
-## Load Seurat object containing CRISPRi dataset.
-
-The pre-processed object can be easily downloaded [here](https://www.dropbox.com/s/mqctd9qv45222ge/CRISPRi_titration_Jost.rds?dl=0).
-
-```{r crispri.data}
-# Load pre-processed object.
-crispri <- readRDS(file = "../data/CRISPRi_titration_Jost.rds")
-```
-
-## Mixscape identifies cells that have escaped CRISPRi perturbation.
-
-Here we use the fine.mode mixscape parameter to classify cells.  We believe fine.mode can be extremely helpful in cases where the perturbation does not result in strong shifts in gene expression, gRNA targeting efficiency is low and gRNAs targeting the same gene have variable effects on gene expression (i.e. CRISPRi titration experiment with intermediate phenotypes). 
-
-<details>
-<summary>**Click here to read how fine.mode mixscape works**</summary>
-When fine.mode is set to TRUE and the user provides a meta data column with all gRNA labels (fine.mode.labels  = "guide_ID"), mixscape runs differential expression for each gRNA within a target gene class separately. Then, mixscape uses all DE genes identified across all gRNAs in order to calculate perturbation scores, estimate the Gaussian distributions and classify cells as perturbed or non-perturbed. 
-
-</details>
-\  
-
-```{r crispri.perturbsig.mixscape, fig.height = 12, fig.width = 23, results="hide"}
-# Prepare RNA assay for dimensionality reduction: Normalize data, find variable features, scale data and run PCA.
-crispri  <- NormalizeData(object = crispri ) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
-
-# Calculate perturbation signature assay.
-crispri <- CalcPerturbSig(object = crispri, assay = "RNA", nt.cell.class = "neg", ndims = 40, gd.class = "gene", num.neighbors = 20)
-
-# Prepare perturbation signature assay for dimensionality reduction: Normalize data, set variable features and center data.
-DefaultAssay(object = crispri) <- 'PRTB'
-
-# Use variable features from RNA assay.
-VariableFeatures(object = crispri) <- VariableFeatures(object = crispri[["RNA"]])
-crispri <- ScaleData(crispri, do.scale = F, do.center = T)
-
-# Run mixscape.
-crispri <- RunMixscape(object = crispri, labels = "gene", nt.class.name = "neg", min.de.genes = 3, logfc.threshold = 0.2, fine.mode = T, fine.mode.labels = "NT", new.class.name = "mixscape_fine",prtb.type = "P")
-
-```
-
-## Mixscape accurately classifies perturbed and non-perturbed cells.
-
-We checked the transcript levels of each target gene for all gRNAs to ensure mixscape classifications are correct. Since CRISRPi acts by blocking the target gene transcription, we expected to see a reduction in gene expression only in the perturbed cells. Below we show the expression of RPL9, ATP5E, RPS14 and ALDOA genes and demonstrate that perturbed cells show a significant reduction in gene expression.
-
-```{r crispri.plots1, fig.height = 12, fig.width = 23, results="hide" }
-# Check target gene knockdown levels.
-Idents(crispri) <- "gene"
-genes <- c("RPL9","ATP5E", "RPS14", "ALDOA")
-plots <- list()
-
-for (g in genes){
-  p <- VlnPlot(crispri, features = g, assay = "RNA", sort = T, pt.size = 0.2, idents = c("neg",g), group.by = "NT",split.by = "mixscape_fine.global", cols = c("grey69", "grey39", "coral3"), )
-  plots[[g]] <- p
-}
-
-patchwork::wrap_plots(plots, ncol = 2)
-```
-
-Below, we summarize our mixscape classification results.
-
-```{r crispri.classifications, fig.height = 12, fig.width = 15, results="hide"}
-# Calculate percentage of perturbed and non-perturbed cells for all target gene classes.
-df <- reshape2::melt(prop.table(table(crispri$mixscape_fine.global, crispri$NT),2))
-
-#extracting gene and gRNA names.
-df$Var1 <- factor(df$Var1, levels = c("neg", "NP", "P"))
-df$gene <- sapply(as.character(df$Var2), function(x) strsplit(x, split = " ")[[1]][1])
-df$guide_ID <- sapply(as.character(df$Var2), function(x) strsplit(x, split = " ")[[1]][2])
-
-# Remove neg cells.
-df2 <- df[-c(which(df$Var2 == "neg"),which(is.na(df$value))),]
-
-p <- ggplot(df2, aes(x = guide_ID, y = value*100, fill= Var1)) +
-  geom_bar(stat= "identity") +
-  scale_fill_manual(values = c( "grey49", "grey79","coral1")) + 
-  ylab("% of cells") +
-  facet_wrap(vars(gene),ncol = 5, scales = "free") +
-  labs(fill = "mixscape class")
-
-p + tm
-```
-
-## Linear Discriminant Analysis (LDA) reveals perturbation-specific clusters.
-
-We run LDA to cluster all perturbed cells and find that perturbations with similar transcriptional shifts form subcluster complexes (i.e. HSPA9/EIF2S1).
-
-```{r crispri.lda, fig.height = 7, fig.width = 10, results="hide"}
-# Remove non-perturbed cells and run LDA to reduce the dimensionality of the data.
-Idents(crispri) <- "mixscape_fine.global"
-sub <- subset(crispri, idents = c("P", "neg"))
-
-# Run LDA.
-Idents(sub) <- 'gene'
-sub <- MixscapeLDA(object = sub, 
-                   assay = "RNA", 
-                   pc.assay = "PRTB", 
-                   labels = "gene", 
-                   nt.label = "neg",
-                   verbose = F)
-
-# Use LDA results to run UMAP and visualize cells on 2-D.
-sub <- RunUMAP(sub,dims = 1:25,
-               reduction = 'lda',
-               reduction.key = 'ldaumap',
-               reduction.name = 'ldaumap')
-
-# Set colors for each perturbation.
-col = setNames(object = hue_pal()(26),nm = levels(Idents(sub)))
-names(col) <- c(names(col)[1], "NT", names(col)[3:26])
-col[2] <- "grey39"
-
-p <- DimPlot(sub, reduction = "ldaumap", label = T, repel = T, label.size = 4, cols = col, group.by = "gene") +
-  ylab("UMAP 2") +
-  xlab("UMAP 1") 
-p
-```
-
-## Reproducing HSPA9 findings from the paper. 
-
-In previous plots we showed that HSPA9 perturbed cells have reduced HSPA9 transcript levels while non-perturbed cells resemble non-targeting cell controls (neg) and show high levels of HSPA9 gene expression. Here, we further show that perturbed cells have a transcriptomic signature consistent with previous literature findings.
-
-```{r crispri.paperfigs, fig.height = 15, fig.width = 20, results="hide"}
-# Plot HSPA9 DE gene expression heatmap ordering cells by their KO probability.
-Idents(crispri) <- "gene"
-sub2 <- subset(crispri, idents = c("neg","HSPA9"))
-hm1 <- MixscapeHeatmap(object = sub2, ident.1 = "neg", ident.2 = "HSPA9", max.genes = 20 , angle = 0, mixscape.class = "mixscape_fine", group.by = "mixscape_fine", max.cells.group = 50, prtb.type = "P")
-
-# Perform GO term analysis on HSPA9 DE gene lists.
-Idents(sub2) <- "mixscape_fine"
-de1 <- DEenrichRPlot(sub2, ident.1 = "HSPA9 P", ident.2 = "neg", assay = "RNA", max.genes = 300, enrich.database = "WikiPathways_2019_Human", num.pathway = 5)
-
-# Plot results.
-de1 / hm1
-```
-
-## BCR perturbed cells have a unique transcriptomic signature.
-
-Applying our method we are able to show that knockdown of BCR results in down-regulation of genes involved in mRNA processing and upregulation of genes involved in heme biosynthesis pathway. Moreover, consistent with observations from Jost et al. 2020, we see a significant reduction in the total number of transcripts in BCR perturbed cells.
-
-```{r crispri.bcr, fig.height = 25, fig.width = 20, results="hide"}
-# Plot BCR DE gene expression heatmap ordering cells by their mixscape perturbation probability.
-Idents(crispri) <- "gene"
-sub2 <- subset(crispri, idents = c("neg","BCR"))
-hm1 <- MixscapeHeatmap(object = sub2, ident.1 = "neg", ident.2 = "BCR", max.genes = 20 , angle = 0, mixscape.class = "mixscape_fine", group.by = "mixscape_fine", max.cells.group = 50, logfc.threshold = 0.2, prtb.type = "P")
-
-# Perform GO term analysis on BCR DE gene lists.
-Idents(sub2) <- "mixscape_fine"
-de1 <- DEenrichRPlot(sub2, ident.1 = "BCR P", ident.2 = "neg", assay = "RNA", max.genes = 300, enrich.database = "WikiPathways_2019_Human", num.pathway = 5, logfc.threshold = 0.2)
-
-# Check number of transcripts in BRC KO cells.
-vp1 <- VlnPlot(sub2, "nCount_RNA")+theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
-#Plot results.
-de1 / hm1 / vp1
 ```
 
 ```{r save.times, include = FALSE}

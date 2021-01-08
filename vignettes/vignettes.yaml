@@ -1,92 +1,36 @@
-- category: Guided Analyses
+- category: Introduction
   vignettes:
     - title: Guided tutorial --- 2,700 PBMCs
       name: pbmc3k_tutorial
       summary: |
-        A basic overview of Seurat that includes an introduction to:
-      items: |
-        * QC and pre-processing
-        * Dimension reduction
-        * Clustering
-        * Differential expression
-
+        A basic overview of Seurat that includes an introduction to common analytical workflows.
       image: pbmc3k_umap.png
-
-    - title: Multiple Dataset Integration and Label Transfer
-      name: integration
-      summary: |
-        Learn about the new anchoring framework in Seurat v3:
-      items: |
-        * Integrate multiple scRNA-seq datasets across technologies
-        * Transfer labels across datasets
-      image: assets/anchorsb_2018.png
-
-    - title: Weighted Nearest Neighbor Analysis
-      name: weighted_nearest_neighbor_analysis
-      summary: |
-        Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4
-      items: |
-        * Jointly analyze CITE-seq (RNA + protein) or 10x multiome (RNA + ATAC) data
-        * Perform multimodal clustering
-        * Construct joint visualizations
-      image: weighted_nearest_neighbor_analysis.png
-
-    - title: Multimodal Reference Mapping
-      name: reference_mapping
-      summary: |
-        Analyze query data in the context of multimodal reference atlases.
-      items: |
-        * Annotate based on reference-defined cell states
-        * Project query data onto an existing UMAP
-        * Impute surface protein measurements
-      image: reference_mapping.png
-
-    - title: Analysis of spatial datasets
-      name: spatial_vignette
-      summary: |
-        Analysis of spatially-resolved transcriptomic data.
-      items: |
-        * Preprocessing and normalization
-        * Interactive visualization
-        * Integration with scRNA-seq data
-      image: spatial_vignette_ttr.png
-
-    - title: Mouse Cell Atlas, 250K cells
-      name: mca
-      summary: |
-        An example of working with large datasets in Seurat:
-      items: |
-        * Cluster and visualize ~250K cells
-        * Suggestions for speed and memory efficiency
-      image: mca_tsne.png
 
     - title: Multimodal analysis
       name: multimodal_vignette
       summary: |
-        Explore and analyze multi-modal data in Seurat:
-      items: |
-        * Analyze CITE-seq data (RNA + protein)
-        * Compare expression and clustering across multiple assays
-
+        An introduction to working with multi-modal datasets in Seurat. 
       image: citeseq_plot.png
 
+    - title: Analysis of spatial datasets
+      name: spatial_vignette
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2. 
+      image: spatial_vignette_ttr.png
+
+    - title: Visualization
+      name: visualization_vignette
+      summary: |
+        An overview of the major visualization functionality within Seurat.
+      image: visualization_vignette.png
+
+- category: Data Integration
+  vignettes:
     - title: Stimulated vs Control PBMCs
       name: immune_alignment
       summary: |
-        An introduction to comparative analyses:
-      items: |
-        * Integrate across conditions
-        * Identify common cell types and markers
-        * Identify cell-type specific responses
+        An introduction to RNA-RNA integration in the context of a comparative analysis of stimulated immune cells.  
       image: pbmc_alignment.png
-
-    - title: SCTransform
-      name: sctransform_vignette
-      summary: |
-        Use the sctransform wrapper in Seurat
-      items: |
-        * New method to remove technical variation while retaining biological heterogeneity
-      image: assets/sctransform.png
 
     # - title: scATAC-seq + scRNA-seq integration
     #   name: atacseq_integration_vignette
@@ -97,70 +41,75 @@
     #     * Coembed scATAC-seq and scRNA-seq data
     #   image: atacseq_integration_umap-1.png
 
+    - title: Multiple Dataset Integration and Label Transfer
+      name: integration
+      summary: |
+        Learn about the new anchoring framework in Seurat v3.
+      image: assets/anchorsb_2018.png
+
+    - title: Multimodal Reference Mapping
+      name: reference_mapping
+      summary: |
+        Analyze query data in the context of multimodal reference atlases.
+      image: reference_mapping.png
+
+- category: New Statistical Approaches
+  vignettes:
+    - title: Weighted Nearest Neighbor Analysis
+      name: weighted_nearest_neighbor_analysis
+      summary: |
+        Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4
+      image: weighted_nearest_neighbor_analysis.png
+
     - title: Mixscape
       name: mixscape_vignette
       summary: |
-        Explore new methods to analyze pooled single-celled perturbation screens
-      items: |
-        * Control for confounding sources of variation
-        * Classify and remove non-perturbed cells
-        * Identify and visualize perturbation-specific effects
+        Explore new methods to analyze pooled single-celled perturbation screens.
       image: mixscape_vignette.png
+    
+    - title: SCTransform
+      name: sctransform_vignette
+      summary: |
+        Examples of how to use the SCTransform wrapper in Seurat.
+      image: assets/sctransform.png
 
-- category: Frequently requested vignettes
+- category: Other
   vignettes:
     - title: Cell Cycle Regression
       name: cell_cycle_vignette
       summary: |
-        Mitigate the effects of cell cycle heterogeneity
-      items: |
-        * Compute cell cycle phase scores based on marker genes
-        * Regress out scores
+        Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes
       image: cell_cycle_vignette.png
 
     - title: Differential Expression Testing
       name: de_vignette
       summary: |
-        Perform differential expression (DE) testing in Seurat
-      items: |
-        * Explore DE framework and results
-        * Speed up DE testing for large datasets
+        Perform differential expression (DE) testing in Seurat using a number of frameworks.
       image: assets/de_vignette.png
 
     - title: Demultiplex Cell Hashing data
       name: hashing_vignette
       summary: |
-        Learn how to work with data produced with Cell Hashing:
-      items: |
-        * Demultiplex cells to sample of origin
-        * Identify cross sample doublets
+        Learn how to work with data produced with Cell Hashing.
       image: assets/hashing_vignette.png
-
-    - title: Visualization
-      name: visualization_vignette
-      summary: |
-        Explore your data with many built in visualization options:
-      items: |
-        * Visualize cluster markers
-        * Interact with plots and apply themes
-      image: visualization_vignette.png
-
-    - title: Parallelization
-      name: future_vignette
-      summary: |
-        Speed up compute-intensive functions with parallelization:
-      items: |
-        * Learn about the future framework
-        * List of parallelized Seurat functions
-      image: assets/future_rocket.png
 
     - title: Interoperability with Other Analysis Tools
       name: conversion_vignette
       summary: |
-        Convert data between formats for different analysis tools:
-      items: |
-        * Converters for SingleCellExperiment, anndata, and loom
+        Convert data between formats for different analysis tools.
       image: assets/conversion_vignette.png
+    
+    - title: Parallelization
+      name: future_vignette
+      summary: |
+        Speed up compute-intensive functions with parallelization.
+      image: assets/future_rocket.png
+
+    - title: Mouse Cell Atlas, 250K cells
+      name: mca
+      summary: |
+        An example analysis with tips for working with large datasets in Seurat.
+      image: mca_tsne.png
 
 - category: Seurat Wrappers
   hash: seurat-wrappers
