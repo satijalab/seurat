@@ -734,7 +734,7 @@ FindTransferAnchors <- function(
       orig.loadings <- Loadings(object = reference[[reference.reduction]])
     }
     combined.pca <- CreateDimReducObject(
-      embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca))[, dims],
+      embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca)),
       key = "ProjectPC_",
       assay = reference.assay
     )
@@ -805,7 +805,7 @@ FindTransferAnchors <- function(
     cells2 = colnames(x = query),
     reduction = reduction,
     internal.neighbors = precomputed.neighbors,
-    dims = dims,
+    dims = 1:length(x = dims),
     k.anchor = k.anchor,
     k.filter = k.filter,
     k.score = k.score,
@@ -1524,14 +1524,16 @@ MapQuery <- function(
   query,
   reference,
   refdata = NULL,
-  new.reduction.name = paste0("ref.", reference.reduction),
-  reference.reduction,
+  new.reduction.name = NULL,
+  reference.reduction = NULL,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
   projectumap.args = list(),
   verbose = TRUE
 ) {
+  reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
+  new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
     warning("The following arguments in transferdata.args are not valid: ",
@@ -1577,12 +1579,16 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
 
   if (!is.null(x = reduction.model)) {
+    ref.dims <- slot(object = anchorset, name = "command")$dims
+    query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][["pcaproject"]])
     query <- do.call(
       what = ProjectUMAP,
       args = c(list(
         query = query,
         query.reduction = new.reduction.name,
+        query.dims = query.dims,
         reference = reference,
+        reference.dims = ref.dims,
         reference.reduction = reference.reduction,
         reduction.model = reduction.model
         ), projectumap.args
@@ -4496,9 +4502,10 @@ ValidateParams_TransferData <- function(
     }
   } else {
     if (is.null(x = dims)) {
-      ModifyParam(param = "dims", value = slot(object = anchorset, name = "command")$dims)
+      ModifyParam(param = "dims", value = 1:length(x = slot(object = anchorset, name = "command")$dims))
     }
   }
+
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(gsub(pattern = "_query", replacement = "", x = query.cells), Cells(x = query)))) {
       stop("Query object provided contains a different set of cells from the ",
@@ -4649,7 +4656,6 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
   ModifyParam(param = "query", value = query)
   ModifyParam(param = "reductions", value = c(reductions, reductions))
-
   min.ndim <- min(ncol(x = query[[reductions[2]]]), ncol(x = reference[[reductions[1]]]))
   if (is.null(x = dims.to.integrate)) {
     dims.to.integrate <- 1:min.ndim
