@@ -6765,6 +6765,16 @@ SingleCorPlot <- function(
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   raster <- raster %||% (nrow(x = data) > 50000)
+  if ((nrow(x = data) > 50000) && getOption('Seurat.warn.raster.cellscatter', TRUE)) {
+    warning(
+      "Number of points plotted is greater than 50,000, points in plot will be rasterized by default.",
+      "\nTo plot points individually set `raster = TRUE`",
+      "\nThis message will be shown once per session",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    options(Seurat.warn.raster.cellscatter = FALSE)
+  }
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6946,6 +6956,16 @@ SingleDimPlot <- function(
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   raster <- raster %||% (nrow(x = data) > 50000)
+  if ((nrow(x = data) > 50000) && getOption('Seurat.warn.raster.dimplot', TRUE)) {
+    warning(
+      "Number of points plotted is greater than 50,000, points in plot will be rasterized by default.",
+      "\nTo plot points individually set `raster = TRUE`",
+      "\nThis message will be shown once per session",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    options(Seurat.warn.raster.dimplot = FALSE)
+  }
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }

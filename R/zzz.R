@@ -25,6 +25,8 @@
 #'   Moran's I function available via the Rfast2 package}}
 #'   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
 #'   default behavior of split/multi violin plots}
+#'   \item{\code{Seurat.warn.raster.dimplot}}{Show warning about default behavior of \code{\link{DimPLot} when number of points is greater than 50,000}
+#'   \item{\code{Seurat.warn.raster.cellscatter}}{Show warning about default behavior of \code{\link{CellScatter} when number of points is greater than 50,000}
 #'   \item{\code{Seurat.quietstart}}{Show package startup messages in
 #'   interactive sessions}
 #' }
@@ -42,6 +44,8 @@ seurat_default_options <- list(
   Seurat.limma.wilcox.msg = TRUE,
   Seurat.Rfast2.msg = TRUE,
   Seurat.warn.vlnplot.split = TRUE,
+  Seurat.warn.raster.dimplot = TRUE,
+  Seurat.warn.raster.cellscatter = TRUE,
   Seurat.quietstart = FALSE
 )
 
