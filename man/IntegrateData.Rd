@@ -16,7 +16,6 @@ IntegrateData(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
-  do.cpp = TRUE,
   eps = 0,
   verbose = TRUE
 )
@@ -65,9 +64,6 @@ automatically.}
 
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
-
-\item{do.cpp}{Run cpp code where applicable. This argument is being
-deprecated and will be set to TRUE by default.}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}
