@@ -1579,22 +1579,16 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
 
   if (!is.null(x = reduction.model)) {
-    reference.embeddings <- Embeddings(
-      object =  slot(object = anchorset, name = "object.list")[[1]], 
-      reduction = "pcaproject"
-      )[slot(object = anchorset, name = "reference.cells") ,]
-    rownames(x = reference.embeddings) <-  gsub(
-      pattern = "_reference", 
-      replacement = "", 
-      x = rownames(x = reference.embeddings)
-      )
-  reference[[ reference.reduction ]]@cell.embeddings <- reference.embeddings[ Cells(x = reference),]
-  query <- do.call(
+    ref.dims <- slot(object = anchorset, name = "command")$dims
+    query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][["pcaproject"]])
+    query <- do.call(
       what = ProjectUMAP,
       args = c(list(
         query = query,
         query.reduction = new.reduction.name,
+        query.dims = query.dims,
         reference = reference,
+        reference.dims = ref.dims,
         reference.reduction = reference.reduction,
         reduction.model = reduction.model
         ), projectumap.args
