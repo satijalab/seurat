@@ -87,7 +87,7 @@ test_that("IntegrateData with three objects default work", {
   expect_equal(GetAssayData(int3[["integrated"]], slot = "counts"), new("dgCMatrix"))
   expect_equal(GetAssayData(int3[['integrated']], slot = "scale.data"), matrix())
   expect_equal(sum(GetAssayData(int3[["integrated"]])[1, ]), 372.829, tolerance = 1e-6)
-  expect_equal(sum(GetAssayData(int3[["integrated"]])[, 1]), 482.58250939, tolerance = 1e-6)
+  expect_equal(sum(GetAssayData(int3[["integrated"]])[, 1]), 482.5009, tolerance = 1e-6)
   expect_equal(Tool(object = int3, slot = "Integration")@sample.tree, matrix(c(-2, -3, 1, -1), nrow  = 2, byrow = TRUE))
 })
 
