@@ -5411,7 +5411,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 
 #' @param slot Which slot to pull the SCT results from
 #' @param model Name of SCModel to pull result from. Available names can be
-#' retrieved with /code{levels}.
+#' retrieved with \code{levels}.
 #'
 #' @return Returns the value present in the requested slot for the requested
 #' group. If group is not specified, returns a list of slot results for each
