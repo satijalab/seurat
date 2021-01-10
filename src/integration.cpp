@@ -46,7 +46,7 @@ Eigen::SparseMatrix<double> FindWeightsC(
     for(int i=0; i<indices.size() && k<indices.size(); ++i){ //index in neighbor list
       std::vector<int> mnn_idx = cell_map[indices[i]-1];
       for(int j=0; j<mnn_idx.size() && k<indices.size(); ++j){
-        double to_add = 1 - exp(-1 * dist[i] * anchor_score[mnn_idx[j]]/2 * pow(1/sd, 2));
+        double to_add = 1 - exp(-1 * dist[i] * anchor_score[mnn_idx[j]]/ pow(2/sd, 2));
         tripletList.push_back(T(mnn_idx[j], cell, to_add));
         k++;
       }
@@ -68,7 +68,7 @@ Eigen::SparseMatrix<double> FindWeightsC(
     Eigen::MatrixXd dist_weights = Eigen::MatrixXd::Constant(integration_matrix_rownames.size(), cells2.size(), min_dist);
     for(int i = 0; i < dist_weights.cols(); ++i){
       for(int j = 0; j < dist_weights.rows(); ++j){
-        dist_weights(j, i) = 1 - exp(-1 * dist_weights(j, i) * anchor_score[j]/2 * pow(1/sd, 2));
+        dist_weights(j, i) = 1 - exp(-1 * dist_weights(j, i) * anchor_score[j]/ pow(2/sd, 2) );
       }
     }
     for(auto const &weight : tripletList){
