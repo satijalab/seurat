@@ -18,11 +18,11 @@ SCTResults(object, ...) <- value
 
 \method{SCTResults}{SCTModel}(object, slot, ...) <- value
 
-\method{SCTResults}{SCTAssay}(object, slot, group = NULL, ...)
+\method{SCTResults}{SCTAssay}(object, slot, model = NULL, ...)
 
-\method{SCTResults}{SCTAssay}(object, slot, group = NULL, ...) <- value
+\method{SCTResults}{SCTAssay}(object, slot, model = NULL, ...) <- value
 
-\method{SCTResults}{Seurat}(object, assay = "SCT", slot, group = NULL, ...)
+\method{SCTResults}{Seurat}(object, assay = "SCT", slot, model = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -33,7 +33,7 @@ SCTResults(object, ...) <- value
 
 \item{slot}{Which slot to pull the SCT results from}
 
-\item{group}{Name of SCModel to pull result from. Available names can be
+\item{model}{Name of SCModel to pull result from. Available names can be
 retrieved with /code{levels}.}
 
 \item{assay}{Assay in the Seurat object to pull from}

@@ -382,7 +382,7 @@ GetResidual <- function(
     features <- names(x = which(x = table(unlist(x = lapply(
       X = sct.models,
       FUN = function(x) {
-        rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", group = x))
+        rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
       }
     ))) == length(x = sct.models)))
     if (length(x = features) == 0) {
@@ -1999,10 +1999,12 @@ FindVariableFeatures.Seurat <- function(
   )
   object[[assay]] <- assay.data
   if (inherits(x = object[[assay]], what = "SCTAssay")) {
-    object <- GetResidual(object = object,
-                          assay = assay,
-                          features = VariableFeatures(object = assay.data),
-                          verbose = FALSE)
+    object <- GetResidual(
+      object = object,
+      assay = assay,
+      features = VariableFeatures(object = assay.data),
+      verbose = FALSE
+    )
   }
   object <- LogSeuratCommand(object = object)
   return(object)
@@ -3232,14 +3234,9 @@ GetResidualSCTModel <- function(
   replace.value,
   verbose
 ) {
-  # if (length(x = Cells(x = SCTModel)) == 0) {
-  #   new_residual <- matrix(nrow = length(new_features), ncol = 0)
-  #   rownames(new_residual) <- new_features
-  #   return(new_residual)
-  # }
-  clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", group = SCTModel)$sct
-  model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", group = SCTModel))
-  umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", group = SCTModel)
+  clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
+  model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
+  umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
   existing_features <- names(x = which(x = ! apply(
     X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],

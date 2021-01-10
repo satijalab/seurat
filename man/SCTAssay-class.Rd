@@ -7,9 +7,7 @@
 \alias{SCTAssay}
 \alias{levels.SCTAssay}
 \alias{levels<-.SCTAssay}
-\title{The SCTModel Class
-The SCTModel object is a model and parameters storage from SCTransform.
-It can be used to calculate Pearson residuals for new genes.}
+\title{The SCTModel Class}
 \usage{
 \method{levels}{SCTAssay}(x)
 
@@ -21,11 +19,14 @@ It can be used to calculate Pearson residuals for new genes.}
 \item{value}{New levels, must be in the same order as the levels present}
 }
 \value{
-\code{levels}: SCT grouping levels
+\code{levels}: SCT model names
 
-\code{levels<-}: \code{x} with updated SCT groupings
+\code{levels<-}: \code{x} with updated SCT model names
 }
 \description{
+The SCTModel object is a model and parameters storage from SCTransform.
+It can be used to calculate Pearson residuals for new genes.
+
 The SCTAssay object contains all the information found in an \code{\link{Assay}}
 object, with extra information from the results of \code{\link{SCTransform}}
 }
@@ -36,13 +37,12 @@ object, with extra information from the results of \code{\link{SCTransform}}
 
 \item{\code{cell.attributes}}{A data.frame with cell attributes in SCTransform}
 
-\item{\code{clips}}{A list of two numeric of length two specifying the min and max values the Pearson residual
-will be clipped to. One for vst and one for SCTransform}
+\item{\code{clips}}{A list of two numeric of length two specifying the min and max
+values the Pearson residual will be clipped to. One for vst and one for
+SCTransform}
 
-\item{\code{umi.assay}}{Name of the assay of the seurat object containing UMI matrix and
-the default is RNA}
-
-\item{\code{groups}}{The level for the SCT Model}
+\item{\code{umi.assay}}{Name of the assay of the seurat object containing UMI matrix
+and the default is RNA}
 
 \item{\code{model}}{A formula used in SCTransform}
 
@@ -51,15 +51,15 @@ the default is RNA}
 \item{\code{SCTModel.list}}{A list containing SCT models}
 }}
 
-\section{Get and set SCT groupings}{
+\section{Get and set SCT model names}{
 
-SCT results are grouped by initial run of \code{\link{SCTransform}} in order
+SCT results are named by initial run of \code{\link{SCTransform}} in order
 to keep SCT parameters straight between runs. When working with merged
-\code{SCTAssay} objects, these groups are important. \code{levels} allows the
-querying of groups present. \code{levels<-} allows the changing of the groups
-present, useful when merging \code{SCTAssay} objects. Note: unlike normal
-\code{\link[base]{levels<-}}, \code{levels<-.SCTAssay} allows complete changing
-of groups, not reordering.
+\code{SCTAssay} objects, these model names are important. \code{levels}
+allows querying the models present. \code{levels<-} allows the changing of
+the names of the models present, useful when merging \code{SCTAssay} objects.
+Note: unlike normal \code{\link[base]{levels<-}}, \code{levels<-.SCTAssay}
+allows complete changing of model names, not reordering.
 }
 
 \section{Creating an \code{SCTAssay} from an \code{Assay}}{
@@ -81,7 +81,7 @@ pbmc_small <- SCTransform(pbmc_small)
 pbmc_small[["SCT"]]
 
 \dontrun{
-# Query and change SCT groupings
+# Query and change SCT model names
 levels(pbmc_small[['SCT']])
 levels(pbmc_small[['SCT']]) <- '3'
 levels(pbmc_small[['SCT']])

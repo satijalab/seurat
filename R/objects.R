@@ -259,16 +259,17 @@ IntegrationData <- setClass(
 )
 
 #' The SCTModel Class
+#'
 #' The SCTModel object is a model and parameters storage from SCTransform.
 #' It can be used to calculate Pearson residuals for new genes.
 #'
 #' @slot feature.attributes A data.frame with feature attributes in SCTransform
 #' @slot cell.attributes A data.frame with cell attributes in SCTransform
-#' @slot clips A list of two numeric of length two specifying the min and max values the Pearson residual
-#' will be clipped to. One for vst and one for SCTransform
-#' @slot umi.assay Name of the assay of the seurat object containing UMI matrix and
-#' the default is RNA
-#' @slot groups The level for the SCT Model
+#' @slot clips A list of two numeric of length two specifying the min and max
+#' values the Pearson residual will be clipped to. One for vst and one for
+#' SCTransform
+#' @slot umi.assay Name of the assay of the seurat object containing UMI matrix
+#' and the default is RNA
 #' @slot model A formula used in SCTransform
 #' @slot arguments other information used in SCTransform
 #'
@@ -294,8 +295,6 @@ SCTModel <- setClass(
     arguments = "list"
   )
 )
-
-
 
 #' The SCTAssay Class
 #'
@@ -5411,8 +5410,9 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 }
 
 #' @param slot Which slot to pull the SCT results from
-#' @param group Name of SCModel to pull result from. Available names can be
+#' @param model Name of SCModel to pull result from. Available names can be
 #' retrieved with /code{levels}.
+#'
 #' @return Returns the value present in the requested slot for the requested
 #' group. If group is not specified, returns a list of slot results for each
 #' group unless there is only one group present (in which case it just returns
@@ -5422,7 +5422,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 #' @export
 #' @method SCTResults SCTAssay
 #'
-SCTResults.SCTAssay <- function(object, slot, group = NULL, ...) {
+SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
   CheckDots(...)
   slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
   if (!slot %in% slots.use) {
@@ -5432,8 +5432,8 @@ SCTResults.SCTAssay <- function(object, slot, group = NULL, ...) {
       call. = FALSE
     )
   }
-  group <- group %||% levels(x = object)
-  model.list <- slot(object = object, name = "SCTModel.list")[group]
+  model <- model %||% levels(x = object)
+  model.list <- slot(object = object, name = "SCTModel.list")[model]
   results.list <- lapply(X = model.list, FUN = function(x) SCTResults(object = x, slot = slot))
   if (length(x = results.list) == 1) {
     results.list <- results.list[[1]]
@@ -5445,7 +5445,7 @@ SCTResults.SCTAssay <- function(object, slot, group = NULL, ...) {
 #' @export
 #' @method SCTResults<- SCTAssay
 #'
-"SCTResults<-.SCTAssay" <- function(object, slot, group = NULL, ..., value) {
+"SCTResults<-.SCTAssay" <- function(object, slot, model = NULL, ..., value) {
   slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
   if (!slot %in% slots.use) {
     stop(
@@ -5454,8 +5454,8 @@ SCTResults.SCTAssay <- function(object, slot, group = NULL, ...) {
       call. = FALSE
     )
   }
-  group <- group %||% levels(x = object)
-  model.list <- slot(object = object, name = "SCTModel.list")[group]
+  model <- model %||% levels(x = object)
+  model.list <- slot(object = object, name = "SCTModel.list")[model]
   if (!is.list(x = value) | is.data.frame(x = value)) {
     value <- list(value)
   }
@@ -5478,9 +5478,9 @@ SCTResults.SCTAssay <- function(object, slot, group = NULL, ...) {
 #' @export
 #' @method SCTResults Seurat
 #'
-SCTResults.Seurat <- function(object, assay = "SCT", slot, group = NULL, ...) {
+SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
   CheckDots(...)
-  return(SCTResults(object = object[[assay]], slot = slot, group = group, ...))
+  return(SCTResults(object = object[[assay]], slot = slot, model = model, ...))
 }
 
 #' @rdname ScaleFactors
@@ -7064,25 +7064,25 @@ length.DimReduc <- function(x) {
 #' @rdname SCTAssay-class
 #' @name SCTAssay-class
 #'
-#' @section Get and set SCT groupings:
-#' SCT results are grouped by initial run of \code{\link{SCTransform}} in order
+#' @section Get and set SCT model names:
+#' SCT results are named by initial run of \code{\link{SCTransform}} in order
 #' to keep SCT parameters straight between runs. When working with merged
-#' \code{SCTAssay} objects, these groups are important. \code{levels} allows the
-#' querying of groups present. \code{levels<-} allows the changing of the groups
-#' present, useful when merging \code{SCTAssay} objects. Note: unlike normal
-#' \code{\link[base]{levels<-}}, \code{levels<-.SCTAssay} allows complete changing
-#' of groups, not reordering.
+#' \code{SCTAssay} objects, these model names are important. \code{levels}
+#' allows querying the models present. \code{levels<-} allows the changing of
+#' the names of the models present, useful when merging \code{SCTAssay} objects.
+#' Note: unlike normal \code{\link[base]{levels<-}}, \code{levels<-.SCTAssay}
+#' allows complete changing of model names, not reordering.
 #'
 #' @param x An \code{SCTAssay} object
 #'
-#' @return \code{levels}: SCT grouping levels
+#' @return \code{levels}: SCT model names
 #'
 #' @export
 #' @method levels SCTAssay
 #'
 #' @examples
 #' \dontrun{
-#' # Query and change SCT groupings
+#' # Query and change SCT model names
 #' levels(pbmc_small[['SCT']])
 #' levels(pbmc_small[['SCT']]) <- '3'
 #' levels(pbmc_small[['SCT']])
@@ -7097,7 +7097,7 @@ levels.SCTAssay <- function(x) {
 #'
 #' @param value New levels, must be in the same order as the levels present
 #'
-#' @return \code{levels<-}: \code{x} with updated SCT groupings
+#' @return \code{levels<-}: \code{x} with updated SCT model names
 #'
 #' @export
 #' @method levels<- SCTAssay
@@ -7519,7 +7519,7 @@ merge.Seurat <- function(
   for (assay in Assays(object = merged.object)) {
     if (inherits(x = merged.object[[assay]], what = "SCTAssay")) {
       resid.to.compute <- rownames(x = GetAssayData(object = merged.object[[assay]], slot = "scale.data"))
-      if (length(slot(object = merged.object[[assay]], name = "SCTModel.list")) > 0){
+      if (length(x = slot(object = merged.object[[assay]], name = "SCTModel.list")) > 0){
         merged.object <- GetResidual(object = merged.object, features = resid.to.compute, assay = assay)
       }
     }
@@ -7754,9 +7754,9 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
   x <- NextMethod()
   models <- levels(x = x)
   for (m in models) {
-    attr <- SCTResults(object = x, slot = "cell.attributes", group = m)
+    attr <- SCTResults(object = x, slot = "cell.attributes", model = m)
     attr <- attr[intersect(x = rownames(x = attr), y = Cells(x = x)), , drop = FALSE]
-    SCTResults(object = x, slot = "cell.attributes", group = m) <- attr
+    SCTResults(object = x, slot = "cell.attributes", model = m) <- attr
   }
   return(x)
 }
@@ -8782,14 +8782,11 @@ FindObject <- function(object, name) {
 
 # Prepare VST results for use with SCTAssay objects
 #
-# @param vst.res ...
-# @param group Group identifier
+# @param vst.res Results from sctransform::vst
 # @param cell.names Vector of valid cell names still in object
 #
-# @return A list with the following values
-# \describe{
-#  \item{}{}
-# }
+# @return An SCTModel object.
+#
 #
 PrepVSTResults <- function(vst.res, cell.names) {
   # Prepare cell attribute information
