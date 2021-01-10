@@ -19,7 +19,6 @@ FindMultiModalNeighbors(
   weighted.nn.name = "weighted.nn",
   modality.weight = NULL,
   prune.SNN = 1/15,
-  weighted.graph = FALSE,
   return.intermediate = FALSE,
   modality.weight.name = NULL,
   verbose = TRUE
@@ -56,9 +55,6 @@ neighbors. FALSE by default}
 \code{FindModalityWeights}}
 
 \item{prune.SNN}{Cutoff not to discard edge in SNN graph}
-
-\item{weighted.graph}{Add consider neighbor distance as the edges to
-construct KNN graph}
 
 \item{return.intermediate}{Store intermediate results in misc}
 
