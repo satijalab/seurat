@@ -2059,7 +2059,6 @@ PrepSCTIntegration <- function(
         object.list[[i]][[assay[i]]] <- as(object = object.list[[i]][[assay[i]]], Class = "SCTAssay")
       }
       if (!sct.check) {
-        # TODO check this
         if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) &&
             Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
           sct.check <- TRUE
@@ -2083,7 +2082,6 @@ PrepSCTIntegration <- function(
       call. = FALSE
     )
   }
-  # TODO check this
 
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
