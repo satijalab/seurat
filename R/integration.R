@@ -2651,7 +2651,13 @@ AnnotateAnchors.default <- function(
         tryCatch(
           expr = FetchData(object = x, vars = var, slot = slot[v]),
           error = function(e) {
-            return(FALSE)
+            data.fetched <- as.data.frame(
+              x = rep(x = NA, times = ncol(x = x)),
+              row.names = Cells(x = x),
+              stringsAsFactors = FALSE
+            )
+            colnames(x = data.fetched) <- var
+            return(data.fetched)
           }
         )
       })
