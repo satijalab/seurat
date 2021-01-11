@@ -2940,7 +2940,7 @@ as.Seurat.SingleCellExperiment <- function(
   x,
   counts = 'counts',
   data = 'logcounts',
-  assay = 'RNA',
+  assay = NULL,
   project = 'SingleCellExperiment',
   ...
 ) {
@@ -2952,7 +2952,13 @@ as.Seurat.SingleCellExperiment <- function(
     )
   }
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
-  # Pull expression matrices
+
+  assayn <- assay %||% SingleCellExperiment::altExpNames(x)
+
+  for (assay in assayn) {
+  x<-SingleCellExperiment::swapAltExp(x,name = assay,saved = NULL)
+
+  # Pull matrices
   mats <- list(counts = counts, data = data)
   mats <- Filter(f = Negate(f = is.null), x = mats)
   if (length(x = mats) == 0) {
@@ -2992,27 +2998,46 @@ as.Seurat.SingleCellExperiment <- function(
   names(x = assays) <- assay
   Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
   # Create the Seurat object
-  object <- new(
+  if(!exists("object"))
+  {
+  object <- CreateSeuratObject(
+    counts=assays[[assay]],
     Class = 'Seurat',
-    assays = assays,
+    assays = assay,
     meta.data = meta.data,
     version = packageVersion(pkg = 'Seurat'),
     project.name = project
-  )
+  )} else {
+  object[[assay]]<-assays[[assay]]
+  }
   DefaultAssay(object = object) <- assay
   Idents(object = object) <- project
-  # Get DimReduc information
+  # Get DimReduc information, add underscores if needed and pull from different alt EXP
   if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
     for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
       embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
       if (is.null(x = rownames(x = embeddings))) {
         rownames(x = embeddings)  <- cell.names
       }
+
+      if(!grepl('_$',
+      gsub(pattern = "[[:digit:]]",
+        replacement = "_",
+        x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
+      ))){
       key <- gsub(
         pattern = "[[:digit:]]",
         replacement = "_",
         x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
       )
+      } else
+      {
+        key <- gsub(
+          pattern = "[[:digit:]]",
+          replacement = "",
+          x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
+        )
+     }
       if (length(x = key) == 0) {
         key <- paste0(dr, "_")
       }
@@ -3023,6 +3048,7 @@ as.Seurat.SingleCellExperiment <- function(
         assay = DefaultAssay(object = object)
       )
     }
+  }
   }
   return(object)
 }
@@ -3038,20 +3064,45 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
-  assay <- assay %||% DefaultAssay(object = x)
+  assay <- assay %||% Assays(x)
+
+  if (!all(assay %in% Assays(x))) {
+    stop("One of the assays you are trying to convert is not in the Seurat object")
+  }
+
+  experiments<-list()
+  for (assayn in assay){
   assays = list(
-    counts = GetAssayData(object = x, assay = assay, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assay, slot = "data")
-  )
-  assays <- assays[sapply(X = assays, FUN = nrow) != 0]
-  sce <- SingleCellExperiment::SingleCellExperiment(assays = assays)
+    counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
+    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"))
+    assays <- assays[sapply(X = assays, FUN = nrow) != 0]
+    sume <- SummarizedExperiment::SummarizedExperiment(assays = assays)
+
+    experiments[[assayn]]<-sume
+
+  }
+
+  #create one single cell experiment
+  sce <- as(experiments[[1]], "SingleCellExperiment")
+  sce <- SingleCellExperiment::SingleCellExperiment(sce,altExps =experiments)
+  orig.exp.name=names(experiments[1])
+  sce<-SingleCellExperiment::swapAltExp(sce, orig.exp.name, saved=NULL)
+
+
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
-  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assay]][[]])
+  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assay[1]]][[]])
+
   for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
+    assay.used<-x[[dr]]@assay.used
+    if(assay.used %in% SingleCellExperiment::altExpNames(sce)){
+    sce<-SingleCellExperiment::swapAltExp(sce, assay.used, saved=orig.exp.name)
     SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- Embeddings(object = x[[dr]])
+    sce<-SingleCellExperiment::swapAltExp(sce, orig.exp.name, saved=,assay.used)
+    }
   }
+  sce<-SingleCellExperiment::swapAltExp(sce, orig.exp.name, saved=NULL)
   return(sce)
 }
 
