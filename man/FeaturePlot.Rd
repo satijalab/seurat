@@ -82,7 +82,7 @@ to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
-different colors and different shapes on cells}
+different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
 
 \item{slot}{Which slot to pull expression data from?}
 

@@ -719,7 +719,7 @@ ColorDimSplit <- function(
 #' see \code{\link{FetchData}} for more details
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
-#' different colors and different shapes on cells
+#' different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
