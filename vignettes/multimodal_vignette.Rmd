@@ -7,6 +7,7 @@ output:
   pdf_document: default
 date: 'Compiled: `r Sys.Date()`'
 ---
+***
 
 ```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
@@ -26,15 +27,18 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  fig.width = 10
 )
 ```
 
 # Load in the data
 
-This vignette demonstrates new features that allow users to analyze and explore multimodal data with Seurat. While this represents an initial release, we are excited to release significant new functionality for multimodal datasets in the future.
+The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents a new and exciting frontier for single-cell genomics. For example the [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html), enables the simultaneous measurements of transcriptomes and cell-surface proteins from the same cell. Other exciting multimodal technologies, such as the [10x multiome kit](https://www.10xgenomics.com/products/single-cell-multiome-atac-plus-gene-expression) allow for the paired measurements of cellular transcriptome and chromatin accessibility (i.e scRNA-seq+scATAC-seq). Other modalities that can be measured alongside cellular transcriptomes include genetic perturbations, cellular methylomes, and hashtag oligos from [Cell Hashing])https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1. We have designed Seurat4 to enable for the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets.
 
-Here, we analyze a dataset of 8,617 cord blood mononuclear cells (CBMCs), produced with [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html), where we simultaneously measure the single cell transcriptomes alongside the expression of 11 surface proteins, whose levels are quantified with DNA-barcoded antibodies. First, we load in two count matrices : one for the RNA measurements, and one for the antibody-derived tags (ADT). You can download the ADT file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz) and the RNA file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz) 
+In this vignette, we present an introductory workflow for creating a multimodal Seurat object and to perform initial analysis. For example, we demonstrate how to cluster a CITE-seq dataset on the basis of the measured cellular transcriptomes, and subsequently discover cell surface proteins that are enriched in each cluster. We note that Seurat4 also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](insert link).
+
+Here, we analyze a dataset of 8,617 cord blood mononuclear cells (CBMCs), where transcriptomic measurements are paired with abundance estimates for 11 surface proteins, whose levels are quantified with DNA-barcoded antibodies. First, we load in two count matrices : one for the RNA measurements, and one for the antibody-derived tags (ADT). You can download the ADT file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz) and the RNA file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz) 
 
 ```{r load_packages}
 library(Seurat)
@@ -54,224 +58,127 @@ cbmc.rna <- CollapseSpeciesExpressionMatrix(cbmc.rna)
 # Load in the ADT UMI matrix
 cbmc.adt <- as.sparse(read.csv(file = '../data/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz', sep = ',', header = TRUE, row.names = 1))
 
-# When adding multimodal data to Seurat, it's okay to have duplicate feature names. Each set of modal data (eg. RNA, ADT, etc.) is stored in its own Assay object.
-# One of these Assay objects is called the "default assay", meaning it's used for all analyses and visualization.
-# To pull data from an assay that isn't the default, you can specify a key that's linked to an assay for feature pulling.
-# To see all keys for all objects, use the Key function.
-# Lastly, we observed poor enrichments for CCR5, CCR7, and CD10 - and therefore remove them from the matrix (optional)
-cbmc.adt <- cbmc.adt[setdiff(rownames(x = cbmc.adt), c('CCR5', 'CCR7', 'CD10')), ]
+# Note that since measurements were made in the same cells, the two matrices have identical column names
+all.equal(colnames(cbmc.rna),colnames(cbmc.adt))
 ```
 
-# Setup a Seurat object, and cluster cells based on RNA expression
+# Setup a Seurat object, add the RNA and protein data
+
+Now we create a Seurat object, and add the ADT data as a second assay
+
+```{r basic_de}
+# creates a Seurat object based on the scRNA-seq data
+cbmc <- CreateSeuratObject(counts = cbmc.rna)
+
+# We can see that by default, the cbmc object contains an assay storing RNA measurement
+Assays(cbmc)
+
+# create a new assay to store ADT information
+adt_assay <- CreateAssayObject(counts = cbmc.adt)
+
+# add this assay to the previously created Seurat object
+cbmc[["ADT"]] <- adt_assay
+
+# Validate that the object now contains multiple assays
+Assays(cbmc)
+
+# Extract a list of features measured in the ADT assay
+rownames(cbmc[["ADT"]])
+
+# Note that we can easily switch back and forth between the two assays to specify the default for visualization and analysis
+
+# List the current default assay
+DefaultAssay(cbmc)
+
+# Switch the default to ADT
+DefaultAssay(cbmc) <- 'ADT'
+DefaultAssay(cbmc)
+```
+
+# Cluster cells on the basis of their scRNA-seq profiles
 
 The steps below represent a quick clustering of the PBMCs based on the scRNA-seq data. For more detail on individual steps or more advanced options, see our PBMC clustering guided tutorial [here](http://satijalab.org/seurat/pbmc3k_tutorial.html) 
 
-```{r basic_de}
-cbmc <- CreateSeuratObject(counts = cbmc.rna)
+```{r cluster1}
+# Note that all operations below are performed on the RNA assay
+# Set and verify that the default assay is RNA
+DefaultAssay(cbmc) <- "RNA"
+DefaultAssay(cbmc)
 
-# standard log-normalization
+# perform visualization and clustering steps
 cbmc <- NormalizeData(cbmc)
-
-# choose ~1k variable features
 cbmc <- FindVariableFeatures(cbmc)
-
-# standard scaling (no regression)
 cbmc <- ScaleData(cbmc)
-
-# Run PCA, select 13 PCs for tSNE visualization and graph-based clustering
 cbmc <- RunPCA(cbmc, verbose = FALSE)
-ElbowPlot(cbmc, ndims = 50)
+cbmc <- FindNeighbors(cbmc, dims = 1:30)
+cbmc <- FindClusters(cbmc, resolution = 0.8, verbose = FALSE)
+cbmc <- RunUMAP(cbmc, dims = 1:30)
+DimPlot(cbmc, label = TRUE)
 ```
 
-```{r rna_cluster, results='hide'}
-cbmc <- FindNeighbors(cbmc, dims = 1:25)
-cbmc <- FindClusters(cbmc, resolution = 0.8)
-cbmc <- RunTSNE(cbmc, dims = 1:25, method = 'FIt-SNE')
+# Visualize multiple modalities side-by-side
 
-# Find the markers that define each cluster, and use these to annotate the clusters, we use max.cells.per.ident to speed up the process
-cbmc.rna.markers <- FindAllMarkers(
-  cbmc,
-  max.cells.per.ident = 100,
-  min.diff.pct = 0.3,
-  only.pos = TRUE
-)
+Now that we have obtained clusters from scRNA-seq profiles, we can visualize the expression of either protein or RNA molecules in our dataset. Importantly, Seurat provides a couple ways to switch between modalities, and specify which modality you are interested in analyzing or visualizing. This is particularly important as, in some cases, the same feature can be present in multiple modalities - for example this dataset contains independent measurements of the B-cell marker, and both protein and RNA levels.
+
+```{r vis}
+# Normalize ADT data, 
+DefaultAssay(cbmc) <- 'ADT'
+cbmc <- NormalizeData(cbmc, normalization.method = 'CLR', margin = 2)
+DefaultAssay(cbmc) <- 'RNA'
+
+# Note that the following command is an alternative but returns the same result
+cbmc <- NormalizeData(cbmc, normalization.method = 'CLR', margin = 2, assay = 'ADT')
+
+# Now, we will visualize CD14 levels for RNA and protein
+# By setting the default assay, we can visualize one or the other
+DefaultAssay(cbmc) <- 'ADT'
+p1 <- FeaturePlot(cbmc, "CD19",cols = c("lightgrey","darkgreen")) + ggtitle("CD19 protein")
+DefaultAssay(cbmc) <- 'RNA'
+p2 <- FeaturePlot(cbmc, "CD19") + ggtitle("CD19 RNA")
+
+# place plots side-by-side
+p1 | p2
+
+# Alternately, we can use specific assay keys to specify a specific modality
+# Identify the key for the RNA and protein assays
+Key(cbmc[["RNA"]])
+Key(cbmc[["ADT"]])
+
+# Now, we can include the key in the feature name, which overrides the default assay
+p1 <- FeaturePlot(cbmc, "adt_CD19",cols = c("lightgrey","darkgreen")) + ggtitle("CD19 protein")
+p2 <- FeaturePlot(cbmc, "rna_CD19") + ggtitle("CD19 RNA")
+p1 | p2
 ```
 
-```{r new_cluster_ids}
-# Note, for simplicity we are merging two CD14+ Monocyte clusters (that differ in expression of HLA-DR genes) and NK clusters (that differ in cell cycle stage)
-new.cluster.ids <- c(
-  'Memory CD4 T',
-  'CD14+ Mono',
-  'Naive CD4 T',
-  'NK',
-  'CD14+ Mono',
-  'Mouse',
-  'B',
-  'CD8 T',
-  'CD16+ Mono',
-  'T/Mono doublets',
-  'NK',
-  'CD34+',
-  'Multiplets',
-  'Eryth',
-  'Mouse',
-  'Mk',
-  'Mouse',
-  'DC',
-  'pDCs'
-)
-names(new.cluster.ids) <- levels(cbmc)
-cbmc <- RenameIdents(cbmc, new.cluster.ids)
+# Identify cell surface markers for scRNA-seq clusters
+
+We can leverage our paired CITE-seq measurements to help annotate clusters derived from scRNA-seq, and to identify both protein and RNA markers.
+
+```{r markers}
+# as we know that CD19 is a B cell marker, we can identify cluster 5 as expressing CD19 on the surface
+VlnPlot(cbmc, "adt_CD19")
+
+# we can also identify alternative protein and RNA markers for this cluster through differential expression
+adt_markers <- FindMarkers(cbmc,ident.1 = 5, assay = 'ADT')
+rna_markers <- FindMarkers(cbmc,ident.1 = 5, assay = 'RNA')
+
+head(adt_markers)
+head(rna_markers)
 ```
 
-```{r tsne_plot, fig.width=10, fig.height=8}
-DimPlot(cbmc, label = TRUE) + NoLegend()
-```
-
-# Add the protein expression levels to the Seurat object
-
-Seurat v3.0 allows you to store information from multiple assays in the same object, as long as the data is multimodal (collected on the same set of cells). You can use the `SetAssayData()` and `GetAssayData()` accessor functions to add and fetch data from additional assays.
-
-```{r setup.cite}
-# We will define an ADT assay, and store raw counts for it
-
-# If you are interested in how these data are internally stored, you can check out the Assay class, which is defined in objects.R;
-# note that all single-cell expression data, including RNA data, are still stored in Assay objects, and can also be accessed using GetAssayData
-cbmc[['ADT']] <- CreateAssayObject(counts = cbmc.adt)
-
-# Now we can repeat the preprocessing (normalization and scaling) steps that we typically run with RNA, but modifying the "assay" argument.
-# For CITE-seq data, we do not recommend typical LogNormalization. Instead, we use a centered log-ratio (CLR) normalization, computed independently for each feature.
-# This is a slightly improved procedure from the original publication, and we will release more advanced versions of CITE-seq normalizations soon.
-cbmc <- NormalizeData(cbmc, assay = 'ADT', normalization.method = 'CLR')
-cbmc <- ScaleData(cbmc, assay = 'ADT')
-```
-
-# Visualize protein levels on RNA clusters
-
-You can use the names of any ADT markers, (i.e. "adt_CD4"), in `FetchData()`, `FeaturePlot()`, `RidgePlot()`, `FeatureScatter()`, `DoHeatmap()`, or any other [visualization features](http://satijalab.org/seurat/visualization_vignette.html)
-
-```{r viz.cite, fig.height=8, fig.width=12}
-# in this plot, protein (ADT) levels are on top, and RNA levels are on the bottom
-FeaturePlot(
-  cbmc,
-  features = c(
-    'adt_CD3',
-    'adt_CD11c',
-    'adt_CD8',
-    'adt_CD16',
-    'CD3E',
-    'ITGAX',
-    'CD8A',
-    'FCGR3A'
-  ),
-  min.cutoff = 'q05',
-  max.cutoff = 'q95',
-  ncol = 4
-)
-RidgePlot(
-  cbmc,
-  features = c(
-    'adt_CD3',
-    'adt_CD11c',
-    'adt_CD8',
-    'adt_CD16'
-  ),
-  ncol = 2
-)
-```
+# Additional visualizations of multimodal data
 
 ```{r viz.cite.two, fig.height=4.5, fig.width=10}
 # Draw ADT scatter plots (like biaxial plots for FACS). Note that you can even 'gate' cells if desired by using HoverLocator and FeatureLocator
 FeatureScatter(cbmc, feature1 = 'adt_CD19', feature2 = 'adt_CD3')
 
 # view relationship between protein and RNA 
-FeatureScatter(cbmc, feature1 = 'adt_CD3', feature2 = 'CD3E')
+FeatureScatter(cbmc, feature1 = 'adt_CD3', feature2 = 'rna_CD3E')
 
-# Let's plot CD4 vs CD8 levels in T cells
-tcells <- subset(cbmc, idents = c('Naive CD4 T', 'Memory CD4 T', 'CD8 T'))
-FeatureScatter(tcells, feature1 = 'adt_CD4', feature2 = 'adt_CD8')
+FeatureScatter(cbmc, feature1 = 'adt_CD4', feature2 = 'adt_CD8')
 
 # # Let's look at the raw (non-normalized) ADT counts. You can see the values are quite high, particularly in comparison to RNA values. This is due to the significantly higher protein copy number in cells, which significantly reduces 'drop-out' in ADT data  
-FeatureScatter(tcells, feature1 = 'adt_CD4', feature2 = 'adt_CD8', slot = 'counts')
-```
-
-If you look a bit more closely, you'll see that our CD8 T cell cluster is enriched for CD8 T cells, but still contains many CD4+ CD8- T cells. This is because Naive CD4 and CD8 T cells are quite similar transcriptomically, and the RNA dropout levels for CD4 and CD8 are quite high. This demonstrates the challenge of defining subtle immune cell differences from scRNA-seq data alone.
-
-# Identify differentially expressed proteins between clusters
-
-```{r diff.exp, fig.width=12, fig.height=12}
-# Downsample the clusters to a maximum of 300 cells each (makes the heatmap easier to see for small clusters)
-cbmc.small <- subset(cbmc, downsample = 300)
-
-# Find protein markers for all clusters, and draw a heatmap
-adt.markers <- FindAllMarkers(cbmc.small, assay = 'ADT', only.pos = TRUE)
-DoHeatmap(cbmc.small, features = unique(adt.markers$gene), assay = 'ADT', angle = 90) + NoLegend()
-
-# You can see that our unknown cells co-express both myeloid and lymphoid markers (true at the RNA level as well). They are likely cell clumps (multiplets) that should be discarded. We'll remove the mouse cells now as well
-cbmc <- subset(cbmc, idents = c('Multiplets', 'Mouse'), invert = TRUE)
-```
-
-# Cluster directly on protein levels
-
-You can also run dimensional reduction and graph-based clustering directly on CITE-seq data
-
-```{r protein.cluster, fig.width=10, fig.height=6}
-# Because we're going to be working with the ADT data extensively, we're going to switch the default assay to the "ADT" assay.
-# This will cause all functions to use ADT data by default, rather than requiring us to specify it each time
-DefaultAssay(cbmc) <- 'ADT'
-cbmc <- RunPCA(cbmc, features = rownames(cbmc), reduction.name = 'pca_adt', reduction.key = 'pca_adt_', verbose = FALSE)
-DimPlot(cbmc, reduction = 'pca_adt')
-```
-
-```{r protein.cluster.two, results='hide'}
-# Before we recluster the data on ADT levels, we'll stash the RNA cluster IDs for later
-cbmc[["rnaClusterID"]] <- Idents(cbmc)
-
-# Now, we rerun tSNE using the PCA only on ADT (protein) levels. 
-cbmc <- RunTSNE(cbmc, dims = 1:10, reduction = "pca_adt", reduction.key = "adtTSNE_", reduction.name = "tsne_adt")
-cbmc <- FindNeighbors(cbmc, features = rownames(cbmc), dims = NULL)
-cbmc <- FindClusters(cbmc, resolution = 0.2, graph.name = "ADT_snn")
-
-# We can compare the RNA and protein clustering, and use this to annotate the protein clustering (we could also of course use FindMarkers)
-clustering.table <- table(Idents(cbmc), cbmc$rnaClusterID)
-clustering.table
-```
-
-```{r clustering.table, show="asis", echo=FALSE}
-knitr::kable(clustering.table)
-```
-
-```{r protein.cluster2, fig.width=10, fig.height=6}
-new.cluster.ids <- c("CD4 T", "CD14+ Mono", "NK", "B", "CD8 T", "NK", "CD34+", "T/Mono doublets", "CD16+ Mono", "pDCs", "B")
-names(new.cluster.ids) <- levels(cbmc)
-cbmc <- RenameIdents(cbmc, new.cluster.ids)
-
-tsne_rnaClusters <- DimPlot(cbmc, reduction = "tsne_adt", group.by = "rnaClusterID") + NoLegend()
-tsne_rnaClusters <- tsne_rnaClusters + ggtitle("Clustering based on scRNA-seq") + theme(plot.title = element_text(hjust = 0.5))
-tsne_rnaClusters <- LabelClusters(plot = tsne_rnaClusters, id = "rnaClusterID", size = 4)
-
-tsne_adtClusters <- DimPlot(cbmc, reduction = "tsne_adt", pt.size = 0.5) + NoLegend()
-tsne_adtClusters <- tsne_adtClusters + ggtitle("Clustering based on ADT signal") + theme(plot.title = element_text(hjust = 0.5))
-tsne_adtClusters <- LabelClusters(plot = tsne_adtClusters, id = "ident", size = 4)
-
-# Note: for this comparison, both the RNA and protein clustering are
-# visualized on a tSNE generated using the ADT distance matrix.
-wrap_plots(list(tsne_rnaClusters, tsne_adtClusters), ncol = 2)
-```
-
-The ADT-based clustering yields similar results, but with a few differences
-
-   * Clustering is improved for CD4/CD8 T cell populations, based on the robust ADT data for CD4, CD8, CD14, and CD45RA
-   * However, some clusters for which the ADT data does not contain good distinguishing protein markers (i.e. Mk/Ery/DC) lose separation
-   * You can verify this using FindMarkers at the RNA level, as well
-
-```{r protein.cluster.heatmap, fig.width=10, fig.height=6}
-tcells <- subset(cbmc, idents = c('CD4 T', 'CD8 T'))
-FeatureScatter(tcells, feature1 = 'CD4', feature2 = 'CD8')
-```
-
-```{r protein.cluster.heatmap.2, fig.width=10, fig.height=12}
-RidgePlot(cbmc, features = c("adt_CD11c","adt_CD8","adt_CD16", "adt_CD4", "adt_CD19","adt_CD14"), ncol = 2)
+FeatureScatter(cbmc, feature1 = 'adt_CD4', feature2 = 'adt_CD8', slot = 'counts')
 ```
 
 # Loading data from 10X multi-modal experiments
@@ -306,3 +213,14 @@ ggsave(filename = "../output/images/citeseq_plot.png", height = 7, width = 12, p
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/multimodal_vignette_times.csv")
 ```
+
+# Additional functionality for multimodal data in Seurat
+
+Seurat v4 also includes additional functionality for the analysis, visualization, and integration of multimodal datasets. For more information, please explore the resources below:
+
+* Defining cellular identity from multimodal data using WNN analysis in Seurat v4 [vignette link](weighted_nearest_neighbor_analysis.html)
+* Mapping scRNA-seq data onto CITE-seq references [vignette link](reference_mapping.html)
+* Introduction to the analysis of spatial transcriptomics analysis [vignette link](spatial_vignette.html)
+* Analysis of 10x multiome (paired scRNA-seq + ATAC) using WNN analysis [vignette link](weighted_nearest_neighbor_analysis.html)
+* Signac: Analysis, intepretation, and exploration of single-cell chromatin datasets [package link](https://satijalab.org/signac/)
+* Mixscape: an analytical toolkit for pooled single-cell genetic screens [vignette link](mixscape_vignette.html)

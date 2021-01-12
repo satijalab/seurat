@@ -9,27 +9,21 @@
     - title: Multimodal analysis
       name: multimodal_vignette
       summary: |
-        An introduction to working with multi-modal datasets in Seurat. 
+        An introduction to working with multi-modal datasets in Seurat.
       image: citeseq_plot.png
 
     - title: Analysis of spatial datasets
       name: spatial_vignette
       summary: |
-        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2. 
+        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
       image: spatial_vignette_ttr.png
-
-    - title: Visualization
-      name: visualization_vignette
-      summary: |
-        An overview of the major visualization functionality within Seurat.
-      image: visualization_vignette.png
 
 - category: Data Integration
   vignettes:
     - title: Stimulated vs Control PBMCs
       name: immune_alignment
       summary: |
-        An introduction to RNA-RNA integration in the context of a comparative analysis of stimulated immune cells.  
+        An introduction to RNA-RNA integration in the context of a comparative analysis of stimulated immune cells.
       image: pbmc_alignment.png
 
     # - title: scATAC-seq + scRNA-seq integration
@@ -66,7 +60,7 @@
       summary: |
         Explore new methods to analyze pooled single-celled perturbation screens.
       image: mixscape_vignette.png
-    
+
     - title: SCTransform
       name: sctransform_vignette
       summary: |
@@ -75,6 +69,12 @@
 
 - category: Other
   vignettes:
+    - title: Visualization
+      name: visualization_vignette
+      summary: |
+        An overview of the major visualization functionality within Seurat.
+      image: visualization_vignette.png
+
     - title: Cell Cycle Regression
       name: cell_cycle_vignette
       summary: |
@@ -98,18 +98,12 @@
       summary: |
         Convert data between formats for different analysis tools.
       image: assets/conversion_vignette.png
-    
+
     - title: Parallelization
       name: future_vignette
       summary: |
         Speed up compute-intensive functions with parallelization.
       image: assets/future_rocket.png
-
-    - title: Mouse Cell Atlas, 250K cells
-      name: mca
-      summary: |
-        An example analysis with tips for working with large datasets in Seurat.
-      image: mca_tsne.png
 
 - category: Seurat Wrappers
   hash: seurat-wrappers
