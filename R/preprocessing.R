@@ -1574,8 +1574,8 @@ SCTransform <- function(
         umi = umi[residual.features, , drop = FALSE], 
         verbosity = as.numeric(x = verbose)*2
       )
-      vst.out$y <- residual.feature.mat
-      vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - vst.out$gene_attr$residual_mean )
+      ref.residuals.mean <- vst.out$gene_attr[residual.features,"residual_mean"]
+      vst.out$y <- sweep( residual.feature.mat, 1, ref.residuals.mean, FUN="-")
       vst.out
     }, 
     'residual.features' = {
@@ -1618,7 +1618,6 @@ SCTransform <- function(
       }
       vst.out
     })
-
   # create output assay and put (corrected) umi counts in count slot
   if (do.correct.umi & residual.type == 'pearson') {
     if (verbose) {
@@ -1637,7 +1636,6 @@ SCTransform <- function(
     slot = 'data',
     new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
   )
-
   scale.data <- vst.out$y
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
