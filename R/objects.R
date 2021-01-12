@@ -7519,7 +7519,7 @@ merge.Seurat <- function(
   for (assay in Assays(object = merged.object)) {
     if (inherits(x = merged.object[[assay]], what = "SCTAssay")) {
       resid.to.compute <- rownames(x = GetAssayData(object = merged.object[[assay]], slot = "scale.data"))
-      if (length(x = slot(object = merged.object[[assay]], name = "SCTModel.list")) > 0){
+      if (length(x = slot(object = merged.object[[assay]], name = "SCTModel.list")) > 0 & !is.null(resid.to.compute)){
         merged.object <- GetResidual(object = merged.object, features = resid.to.compute, assay = assay)
       }
     }

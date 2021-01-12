@@ -389,6 +389,7 @@ GetResidual <- function(
       return(object)
     }
   }
+  features <- intersect(x = features.orig, y = features )
   new.residuals <- lapply(
     X = sct.models,
     FUN = function(x) {
@@ -1574,7 +1575,8 @@ SCTransform <- function(
         umi = umi[residual.features, , drop = FALSE], 
         verbosity = as.numeric(x = verbose)*2
       )
-      ref.residuals.mean <- vst.out$gene_attr[residual.features,"residual_mean"]
+      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
+      ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
       vst.out$y <- sweep(x = residual.feature.mat, 
                          MARGIN = 1,
                          STATS =  ref.residuals.mean, 
@@ -1667,6 +1669,7 @@ SCTransform <- function(
   vst.out$y <- NULL
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
+  vst.out$arguments$sct.method <- sct.method
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   assay.out <- as(object = assay.out, Class = "SCTAssay")
   assay.out <- SCTAssay(assay.out, assay.orig = assay)
@@ -3268,13 +3271,20 @@ GetResidualSCTModel <- function(
   model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
   umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
+  sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||%"default"
   existing_features <- names(x = which(x = ! apply(
     X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
     MARGIN = 1,
     FUN = anyNA)
   ))
-  if (! replace.value) {
+
+  if (replace.value) {
+    features_to_compute <- new_features
+  } else {
     features_to_compute <- setdiff(x = new_features, y = existing_features)
+  }
+  if (sct.method == "reference.model") {
+    features_to_compute <- character()
   }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
