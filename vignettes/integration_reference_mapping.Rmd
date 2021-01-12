@@ -9,7 +9,7 @@ date: 'Compiled: `r Sys.Date()`'
 ---
 ***
 
-### Dataset preprocessing 
+# Dataset preprocessing 
 
 Load in the dataset. The metadata contains the technology (`tech` column) and cell type annotations (`celltype` column) for each cell in the four datasets.
 
@@ -40,7 +40,7 @@ for (i in 1:length(pancreas.list)) {
 }
 ```
 
-### Integration of 3 pancreatic islet cell datasets 
+# Integration of 3 pancreatic islet cell datasets 
 
 Next, we identify anchors using the `FindIntegrationAnchors` function, which takes a list of Seurat objects as input. Here, we integrate three of the objects into a reference (we will use the fourth later in this vignette)
 
@@ -63,7 +63,7 @@ After running `IntegrateData`, the `Seurat` object will contain a new `Assay` wi
 
 We can then use this new integrated matrix for downstream analysis and visualization. Here we scale the integrated data, run PCA, and visualize the results with UMAP. The integrated datasets cluster by cell type, instead of by technology.
 
-```{r analysis, message = FALSE, warning=FALSE}
+```{r analysis, message = FALSE, warning=FALSE, fig.width=10}
 library(ggplot2)
 library(cowplot)
 library(patchwork)
@@ -92,7 +92,7 @@ plot <- DimPlot(pancreas.integrated, reduction = "umap", label = TRUE, label.siz
 ggsave(filename = "pancreas_integrated_umap.png", height = 7, width = 12, plot = plot)
 ```
 
-### Cell type classification using an integrated reference
+# Cell type classification using an integrated reference
 
 Seurat v3 also supports the projection of reference data (or meta data) onto a query object. While many of the methods are conserved (both procedures begin by identifying anchors), there are two important distinctions between data transfer and integration:
 

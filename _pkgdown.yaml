@@ -25,12 +25,14 @@ navbar:
           href: articles/spatial_vignette.html
         - text: -------
         - text: Data Integration
-        - text: "Integrating stimulated and control PBMCs"
+        - text: "Integrating scRNA-seq data"
           href: articles/immune_alignment.html
-        - text: "Integration and label transfer"
+        - text: "Reference Mapping"
           href: articles/integration.html
         - text: "Mapping to multimodal reference datasets"
-          href: articles/reference_mapping.html
+          href: articles/integration_reference_mapping.html
+        - text: "Integrating Large Datasets"
+          href: articles/integration_large_datasets.html
         #- text: "PBMC scATAC-seq vignette"
         #  href: articles/atacseq_integration_vignette.html
         - text: -------

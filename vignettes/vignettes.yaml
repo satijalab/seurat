@@ -20,10 +20,10 @@
 
 - category: Data Integration
   vignettes:
-    - title: Stimulated vs Control PBMCs
+    - title: Integrating scRNA-seq data
       name: immune_alignment
       summary: |
-        An introduction to RNA-RNA integration in the context of a comparative analysis of stimulated immune cells.
+        An introduction to RNA-RNA integration.
       image: pbmc_alignment.png
 
     # - title: scATAC-seq + scRNA-seq integration
@@ -35,11 +35,17 @@
     #     * Coembed scATAC-seq and scRNA-seq data
     #   image: atacseq_integration_umap-1.png
 
-    - title: Multiple Dataset Integration and Label Transfer
-      name: integration
+    - title: Reference Mapping
+      name: integration_reference_mapping
       summary: |
-        Learn about the new anchoring framework in Seurat v3.
+        Lorem Ipsum
       image: assets/anchorsb_2018.png
+
+    - title: Integrating Large Datasets
+      name: integration_large_datasets
+      summary: |
+        Lorem Ipsum
+      image: bm280k_integrated.png
 
     - title: Multimodal Reference Mapping
       name: reference_mapping

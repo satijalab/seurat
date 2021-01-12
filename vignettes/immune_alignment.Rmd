@@ -1,5 +1,5 @@
 ---
-title: 'Tutorial: Integrating stimulated vs. control PBMC datasets to learn cell-type specific responses'
+title: 'Integrating scRNA-seq data'
 output:
   html_document:
     theme: united
@@ -30,9 +30,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-This tutorial walks through an alignment of two groups of PBMCs from [Kang et al, 2017](https://www.nature.com/articles/nbt.4042). In this experiment, PBMCs were split into a stimulated and control group and the stimulated group was treated with interferon beta. The response to interferon caused cell type specific gene expression changes that makes a joint analysis of all the data difficult, with cells clustering both by stimulation condition and by cell type. Here, we demonstrate our integration strategy, as described in [Stuart and Butler et al, 2018](https://www.biorxiv.org/content/early/2018/11/02/460147), for performing integrated analyses to promote the identification of common cell types and enable comparative analyses. While this example demonstrates the integration of two datasets (conditions), these methods have been extended to multiple datasets. This [workflow](https://satijalab.org/seurat/pancreas_integration_label_transfer.html) provides an example of integrating four pancreatic islet datasets.
+# Standard CCA (`ifnb` dataset)
 
-# Integration goals
+Here, we walk through the alignment of two groups of PBMCs from [Kang et al, 2017](https://www.nature.com/articles/nbt.4042). In this experiment, PBMCs were split into a stimulated and control group and the stimulated group was treated with interferon beta. The response to interferon caused cell type specific gene expression changes that makes a joint analysis of all the data difficult, with cells clustering both by stimulation condition and by cell type. Here, we demonstrate our default CCA-based integration strategy, as described in [Stuart and Butler et al, 2018](https://www.biorxiv.org/content/early/2018/11/02/460147), for performing integrated analyses to promote the identification of common cell types and enable comparative analyses. While this example demonstrates the integration of two datasets (conditions), these methods have been extended to multiple datasets. This [workflow](https://satijalab.org/seurat/pancreas_integration_label_transfer.html) provides an example of integrating four pancreatic islet datasets.
+
+### Integration goals
 
 The following tutorial is designed to give you an overview of the kinds of comparative analyses on complex cell types that are possible using the Seurat integration procedure. Here, we address three main goals:
 
@@ -40,9 +42,9 @@ The following tutorial is designed to give you an overview of the kinds of compa
 * Obtain cell type markers that are conserved in both control and stimulated cells
 * Compare the datasets to find cell-type specific responses to stimulation
 
-# Setup the Seurat objects
+### Setup the Seurat objects
 
-For convenience, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
+For convienence, we distribute this dataset through our [SeuratData](https://github.com/satijalab/seurat-data) package.
 
 ```{r, include = FALSE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
@@ -69,9 +71,9 @@ ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
 })
 ```
 
-# Perform integration
+### Perform integration
 
-We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
+We then identify anchors using the `FindIntegrationAnchors` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData`.
 
 ```{r find.anchors}
 immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:20)
@@ -80,7 +82,7 @@ immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:20)
 immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:20)
 ```
 
-# Perform an integrated analysis
+### Perform an integrated analysis
 
 Now we can run a single integrated analysis on all cells!
 
@@ -99,7 +101,7 @@ immune.combined <- FindClusters(immune.combined, resolution = 0.5)
 ```{r viz, results='hide', message=FALSE}
 # Visualization
 p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "stim")
-p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)
+p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUEs)
 plot_grid(p1, p2)
 ```
 
@@ -109,9 +111,9 @@ To visualize the two conditions side-by-side, we can use the `split.by` argument
 DimPlot(immune.combined, reduction = "umap", split.by = "stim")
 ```
 
-# Identify conserved cell type markers
+### Identify conserved cell type markers
 
-To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculated the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
+To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can calculated the genes that are conserved markers irrespective of stimulation condition in cluster 6 (NK cells).  
 
 ```{r conserved.markers, warning=FALSE}
 DefaultAssay(immune.combined) <- "RNA"
@@ -125,11 +127,16 @@ We can explore these marker genes for each cluster and use them to annotate our 
 FeaturePlot(immune.combined, features = c("CD3D", "SELL", "CREM", "CD8A", "GNLY", "CD79A", "FCGR3A", "CCL2", "PPBP"), min.cutoff = "q9")
 
 immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 Naive T", "2" = "CD4 Memory T", "3" = "CD16 Mono", "4" = "B", "5" = "CD8 T", "6" = "NK" , "7" = "T activated", "8" = "DC", "9" = "B Activated", "10" = "Mk", "11" = "pDC", "12" = "Mono/Mk Doublets", "13" = "Eryth")
+ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
+  x[['seurat_annotations']] <- Idents(immune.combined)[Cells(x)]
+  Idents(x) <- 'seurat_annotations'
+  x
+})
 
 DimPlot(immune.combined, label = TRUE)
 ```
 
-The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
+The `DotPlot` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
 
 ```{r splitdotplot, fig.height = 10}
 Idents(immune.combined) <- factor(
@@ -141,7 +148,7 @@ DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
                       dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
 
-# Identify differential expressed genes across conditions
+### Identify differential expressed genes across conditions
 
 Now that we've aligned the stimulated and control cells, we can start to do comparative analyses and look at the differences induced by stimulation. One way to look broadly at these changes is to plot the average expression of both the stimulated and control cells and look for genes that are visual outliers on a scatter plot. Here, we take the average expression of both the stimulated and control naive T cells and CD14 monocyte populations and generate the scatter plots, highlighting genes that exhibit dramatic responses to interferon stimulation. 
 
@@ -169,7 +176,7 @@ plot_grid(p1, p2)
 
 As you can see, many of the same genes are upregulated in both of these cell types and likely represent a conserved interferon response pathway. 
 
-Because we are confident in having identified common cell types across condition, we can ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers()` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
+Because we are confident in having identified common cell types across condition, we can ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
 
 ```{r de.genes}
 immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$stim, sep = "_")
@@ -179,7 +186,7 @@ b.interferon.response <- FindMarkers(immune.combined, ident.1 = "B_STIM", ident.
 head(b.interferon.response, n = 15)
 ```
 
-Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot()` or `VlnPlot()` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
+Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot` or `VlnPlot` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
 
 ```{r feature.heatmaps, fig.height = 14}
 FeaturePlot(immune.combined, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3, cols = c("grey", "red"))
@@ -187,6 +194,10 @@ FeaturePlot(immune.combined, features = c("CD3D", "GNLY", "IFI6"), split.by = "s
 ```{r splitvln, fig.height = 12}
 plots <- VlnPlot(immune.combined, features = c("LYZ", "ISG15", "CXCL10"), split.by = "stim", group.by = "celltype", pt.size = 0, combine = FALSE)
 wrap_plots(plots = plots, ncol = 1)
+```
+
+```{r save, include = FALSE}
+saveRDS(immune.combined, file = "../output/immune.combined.rds")
 ```
 
 ```{r save.img, include = FALSE}
@@ -201,9 +212,325 @@ ggsave(filename = "../output/images/pbmc_alignment.png", height = 7, width = 12,
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/immune_alignment_times.csv")
 ```
 
-<details>
-  <summary>**Session Info**</summary>
-```{r}
-sessionInfo()
+# RPCA (`ifnb` dataset)
+
+As an alternative to standard CCA-based integration, we may use reciprocal PCA (RPCA). When determining anchors between any two datasets using RPCA, we project each dataset into the other's PCA space and constrain the anchors by the same mutual neighborhood requirement. Here, we demonstrate how to perform integration of the above `ifnb` data using RPCA. Commands for Seurat object setup (in order to generate `ifnb.list`) and downstream integration analysis are the same as above. 
+
+```{r rpca.init, results='hide', message=FALSE, fig.keep='none'}
+features <- SelectIntegrationFeatures(object.list = ifnb.list)
+ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
+    x <- ScaleData(x, features = features, verbose = FALSE)
+    x <- RunPCA(x, features = features, verbose = FALSE)
+})
 ```
-</details>
+
+```{r rpca.anchors}
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:50, reduction = 'rpca', nn.method = 'rann')
+immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:50)
+```
+
+```{r rpca.clustering, results='hide', message=FALSE}
+immune.combined <- ScaleData(immune.combined, verbose = FALSE)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+```
+
+```{r rpca.split.dim}
+p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "stim")
+p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
+plot_grid(p1, p2)
+```
+
+# Integration of `panc8` datasets
+
+Here we demonstrate integration of `panc8`, a collection of eight scRNA-seq pancreas datasets distributed via our [SeuratData](https://github.com/satijalab/seurat-data) package, using both RPCA- and CCA-based integration, with and without SCTransform normalization.
+
+`panc8` may be installed as follows:
+
+```{r panc8.data}
+library(Seurat)
+library(SeuratData)
+library(cowplot)
+library(patchwork)
+```
+
+```{r panc8.installdata, eval=FALSE}
+InstallData('panc8')
+```
+
+### CCA with log-normalization
+
+```{r panc8.cca.init, results='hide', message=FALSE, fig.keep='none'}
+data('panc8')
+panc8.list <- SplitObject(panc8, split.by = "tech")
+panc8.list <- panc8.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+
+panc8.list <- lapply(X = panc8.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+```
+
+```{r panc8.cca.anchors}
+panc.anchors <- FindIntegrationAnchors(object.list = panc8.list, dims = 1:20)
+panc.combined <- IntegrateData(anchorset = panc.anchors, dims = 1:20)
+```
+
+```{r panc8.cca.clustering, results='hide', message=FALSE}
+panc.combined <- ScaleData(panc.combined, verbose = FALSE)
+panc.combined <- RunPCA(panc.combined, npcs = 30, verbose = FALSE)
+panc.combined <- RunUMAP(panc.combined, reduction = "pca", dims = 1:20)
+```
+
+```{r panc8.cca.split.dims}
+p1 <- DimPlot(panc.combined, reduction = "umap", group.by = "tech")
+p2 <- DimPlot(panc.combined, reduction = "umap", group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend()
+plot_grid(p1, p2)
+```
+
+### RPCA with log-normalization
+
+```{r panc8.rpca.init, results='hide', message=FALSE, fig.keep='none'}
+data('panc8')
+panc8.list <- SplitObject(panc8, split.by = "tech")
+panc8.list <- panc8.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+
+panc8.list <- lapply(X = panc8.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+features <- SelectIntegrationFeatures(object.list = panc8.list)
+panc8.list <- lapply(X = panc8.list, FUN = function(x) {
+    x <- ScaleData(x, features = features, verbose = FALSE)
+    x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+```{r panc8.rpca.anchors}
+panc.anchors <- FindIntegrationAnchors(object.list = panc8.list, dims = 1:20, reduction = 'rpca')
+panc.combined <- IntegrateData(anchorset = panc.anchors, dims = 1:20)
+```
+
+```{r panc8.rpca.clustering, results='hide', message=FALSE}
+panc.combined <- ScaleData(panc.combined, verbose = FALSE)
+panc.combined <- RunPCA(panc.combined, npcs = 30, verbose = FALSE)
+panc.combined <- RunUMAP(panc.combined, reduction = "pca", dims = 1:20)
+```
+
+```{r panc8.rpca.split.dims}
+p1 <- DimPlot(panc.combined, reduction = "umap", group.by = "tech")
+p2 <- DimPlot(panc.combined, reduction = "umap", group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend()
+plot_grid(p1, p2)
+```
+
+### CCA with SCTransform
+
+```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
+data('panc8')
+panc8.list <- SplitObject(panc8, split.by = "tech")
+panc8.list <- panc8.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+
+panc8.list <- lapply(X = panc8.list, FUN = function(x) {
+  x <- SCTransform(x)
+})
+features <- SelectIntegrationFeatures(object.list = panc8.list)
+panc8.list <- PrepSCTIntegration(object.list = panc8.list, anchor.features = features)
+```
+
+```{r panc8.cca.sct.anchors}
+panc.anchors <- FindIntegrationAnchors(object.list = panc8.list, dims = 1:20, normalization.method = 'SCT', anchor.features = features)
+panc.combined <- IntegrateData(anchorset = panc.anchors, dims = 1:20, normalization.method = 'SCT')
+```
+
+```{r panc8.cca.sct.clustering, results='hide', message=FALSE}
+panc.combined <- RunPCA(panc.combined, npcs = 30, verbose = FALSE)
+panc.combined <- RunUMAP(panc.combined, reduction = "pca", dims = 1:20)
+```
+
+```{r panc8.cca.sct.split.dims}
+p1 <- DimPlot(panc.combined, reduction = "umap", group.by = "tech")
+p2 <- DimPlot(panc.combined, reduction = "umap", group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend()
+plot_grid(p1, p2)
+```
+
+### RPCA with SCTransform
+
+```{r panc8.rpca.sct.init, results='hide', message=FALSE, fig.keep='none'}
+data('panc8')
+panc8.list <- SplitObject(panc8, split.by = "tech")
+panc8.list <- panc8.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
+
+panc8.list <- lapply(X = panc8.list, FUN = function(x) {
+  x <- SCTransform(x)
+})
+features <- SelectIntegrationFeatures(object.list = panc8.list)
+panc8.list <- PrepSCTIntegration(object.list = panc8.list, anchor.features = features)
+panc8.list <- lapply(X = panc8.list, FUN = function(x) {
+    x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+```{r panc8.rpca.sct.anchors}
+panc.anchors <- FindIntegrationAnchors(object.list = panc8.list, dims = 1:20, normalization.method = 'SCT', anchor.features = features, reduction = 'rpca')
+panc.combined <- IntegrateData(anchorset = panc.anchors, dims = 1:20, normalization.method = 'SCT')
+```
+
+```{r panc8.rpca.sct.clustering, results='hide', message=FALSE}
+panc.combined <- RunPCA(panc.combined, npcs = 30, verbose = FALSE)
+panc.combined <- RunUMAP(panc.combined, reduction = "pca", dims = 1:20)
+```
+
+```{r panc8.rpca.sct.split.dims}
+p1 <- DimPlot(panc.combined, reduction = "umap", group.by = "tech")
+p2 <- DimPlot(panc.combined, reduction = "umap", group.by = "celltype", label = TRUE, repel = TRUE) + NoLegend()
+plot_grid(p1, p2)
+```
+
+
+# Integration of `pbmcsca` datasets
+
+Here we demonstrate integration of `pbmcsca` (the Broad Institute PBMC Systematic Comparative Analysis dataset) distributed via our [SeuratData](https://github.com/satijalab/seurat-data) package, using both RPCA- and CCA-based integration, with and without SCTransform normalization. We also present an additional modification to the Seurat integration workflow, which we refer to as ‘Reference-based’ integration. In this workflow, we do not identify anchors between pairs of query datasets, reducing the number of comparisons. For example, when integrating 10 datasets with one specified as a reference, we perform only 9 comparisons.
+
+`pbmcsca` may be installed as follows:
+
+```{r pbmcsca.data}
+library(Seurat)
+library(SeuratData)
+library(cowplot)
+library(patchwork)
+```
+
+```{r pbmcsca.installdata, eval=FALSE}
+InstallData('pbmcsca')
+```
+
+### CCA with log-normalization
+
+```{r pbmcsca.cca.init, results='hide', message=FALSE, fig.keep='none'}
+data('pbmcsca')
+pbmcsca.list <- SplitObject(pbmcsca, split.by = "Method")
+
+pbmcsca.list <- lapply(X = pbmcsca.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+```
+
+```{r pbmcsca.cca.anchors}
+reference_dataset <- which(names(pbmcsca.list) == "10x Chromium (v3)")
+pbmc.anchors <- FindIntegrationAnchors(object.list = pbmcsca.list, reference = reference_dataset)
+pbmc.combined <- IntegrateData(anchorset = pbmc.anchors)
+```
+
+```{r pbmcsca.cca.clustering, results='hide', message=FALSE}
+pbmc.combined <- ScaleData(pbmc.combined, verbose = FALSE)
+pbmc.combined <- RunPCA(pbmc.combined, verbose = FALSE)
+pbmc.combined <- RunUMAP(pbmc.combined, reduction = "pca", dims = 1:30)
+```
+
+```{r pbmcsca.cca.split.dims}
+p1 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "Method")
+p2 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "CellType", label = T) + NoLegend()
+plot_grid(p1, p2)
+```
+
+### RPCA with log-normalization
+
+```{r pbmcsca.rpca.init, results='hide', message=FALSE, fig.keep='none'}
+data('pbmcsca')
+pbmcsca.list <- SplitObject(pbmcsca, split.by = "Method")
+
+pbmcsca.list <- lapply(X = pbmcsca.list, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+features <- SelectIntegrationFeatures(object.list = pbmcsca.list)
+pbmcsca.list <- lapply(X = pbmcsca.list, FUN = function(x) {
+    x <- ScaleData(x, features = features, verbose = FALSE)
+    x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+```{r pbmcsca.rpca.anchors}
+reference_dataset <- which(names(pbmcsca.list) == "10x Chromium (v3)")
+pbmc.anchors <- FindIntegrationAnchors(object.list = pbmcsca.list, reduction = 'rpca', reference = reference_dataset)
+pbmc.combined <- IntegrateData(anchorset = pbmc.anchors)
+```
+
+```{r pbmcsca.rpca.clustering, results='hide', message=FALSE}
+pbmc.combined <- ScaleData(pbmc.combined, verbose = FALSE)
+pbmc.combined <- RunPCA(pbmc.combined, verbose = FALSE)
+pbmc.combined <- RunUMAP(pbmc.combined, reduction = "pca", dims = 1:30)
+```
+
+```{r pbmcsca.rpca.split.dims}
+p1 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "Method")
+p2 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "CellType", label = T) + NoLegend()
+plot_grid(p1, p2)
+```
+
+### CCA with SCTransform
+
+```{r pbmcsca.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
+data('pbmcsca')
+pbmcsca.list <- SplitObject(pbmcsca, split.by = "Method")
+
+pbmcsca.list <- lapply(X = pbmcsca.list, FUN = function(x) {
+  x <- SCTransform(x)
+})
+features <- SelectIntegrationFeatures(object.list = pbmcsca.list, nfeatures = 3000)
+pbmcsca.list <- PrepSCTIntegration(object.list = pbmcsca.list, anchor.features = features)
+```
+
+```{r pbmcsca.cca.sct.anchors}
+reference_dataset <- which(names(pbmcsca.list) == "10x Chromium (v3)")
+pbmc.anchors <- FindIntegrationAnchors(object.list = pbmcsca.list, normalization.method = 'SCT', anchor.features = features, reference = reference_dataset)
+pbmc.combined <- IntegrateData(anchorset = pbmc.anchors, normalization.method = 'SCT')
+```
+
+```{r pbmcsca.cca.sct.clustering, results='hide', message=FALSE}
+pbmc.combined <- RunPCA(pbmc.combined, verbose = FALSE)
+pbmc.combined <- RunUMAP(pbmc.combined, reduction = "pca", dims = 1:30)
+```
+
+```{r pbmcsca.cca.sct.split.dims}
+p1 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "Method")
+p2 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "CellType", label = T) + NoLegend()
+plot_grid(p1, p2)
+```
+
+### RPCA with SCTransform
+
+```{r pbmcsca.rpca.sct.init, results='hide', message=FALSE, fig.keep='none'}
+data('pbmcsca')
+pbmcsca.list <- SplitObject(pbmcsca, split.by = "Method")
+
+pbmcsca.list <- lapply(X = pbmcsca.list, FUN = function(x) {
+  x <- SCTransform(x)
+})
+features <- SelectIntegrationFeatures(object.list = pbmcsca.list, nfeatures = 3000)
+pbmcsca.list <- PrepSCTIntegration(object.list = pbmcsca.list, anchor.features = features)
+pbmcsca.list <- lapply(X = pbmcsca.list, FUN = function(x) {
+    x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+```{r pbmcsca.rpca.sct.anchors}
+reference_dataset <- which(names(pbmcsca.list) == "10x Chromium (v3)")
+pbmc.anchors <- FindIntegrationAnchors(object.list = pbmcsca.list, normalization.method = 'SCT', anchor.features = features, reduction = 'rpca', reference = reference_dataset)
+pbmc.combined <- IntegrateData(anchorset = pbmc.anchors, normalization.method = 'SCT')
+```
+
+```{r pbmcsca.rpca.sct.clustering, results='hide', message=FALSE}
+pbmc.combined <- RunPCA(pbmc.combined, verbose = FALSE)
+pbmc.combined <- RunUMAP(pbmc.combined, reduction = "pca", dims = 1:30)
+```
+
+```{r pbmcsca.rpca.sct.split.dims}
+p1 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "Method")
+p2 <- DimPlot(pbmc.combined, reduction = "umap", group.by = "CellType", label = T) + NoLegend()
+plot_grid(p1, p2)
+```
+
