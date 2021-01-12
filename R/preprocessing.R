@@ -3294,6 +3294,11 @@ GetResidualSCTModel <- function(
     }
     features_to_compute <- character()
   }
+  if (!umi.assay %in% Assays(object = object)) {
+    warnings("umi assay is not in the object")
+    umi.assay <- assay
+    features_to_compute <- character()
+  }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
   if (length(x = diff_features) == 0) {

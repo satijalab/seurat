@@ -334,7 +334,6 @@ FindIntegrationAnchors <- function(
             rescale = FALSE,
             verbose = verbose
           )
-
           if (l2.norm){
             object.pair <- L2Dim(object = object.pair, reduction = reduction)
             reduction <- paste0(reduction, ".l2")
@@ -399,6 +398,7 @@ FindIntegrationAnchors <- function(
         stop("Invalid reduction parameter. Please choose either cca or rpca")
       )
       internal.neighbors <- internal.neighbors[c(i, j)]
+
       anchors <- FindAnchors(
         object.pair = object.pair,
         assay = c("ToIntegrate", "ToIntegrate"),
