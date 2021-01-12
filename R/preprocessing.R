@@ -1472,12 +1472,12 @@ SCTransform <- function(
   vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
- 
-  if( !is.null( reference.SCT.model)){
+ # set sct normalization method
+  if (!is.null( reference.SCT.model)) {
     sct.method <- "reference.model"
-  } else if( !is.null(x = residual.features) ){
+  } else if (!is.null(x = residual.features)) {
     sct.method <- "residual.features"
-  } else if( conserve.memory) {
+  } else if (conserve.memory) {
     sct.method <- "conserve.memory"
   } else {
     sct.method <- "default"
@@ -1547,7 +1547,7 @@ SCTransform <- function(
     })
 
   feature.variance <- vst.out$gene_attr[,"residual_variance"]
-  names( feature.variance)<- rownames(x = vst.out$gene_attr)
+  names(feature.variance) <- rownames(x = vst.out$gene_attr)
   if (verbose) {
     message('Determine variable features')
   }
@@ -1575,7 +1575,10 @@ SCTransform <- function(
         verbosity = as.numeric(x = verbose)*2
       )
       ref.residuals.mean <- vst.out$gene_attr[residual.features,"residual_mean"]
-      vst.out$y <- sweep( residual.feature.mat, 1, ref.residuals.mean, FUN="-")
+      vst.out$y <- sweep(x = residual.feature.mat, 
+                         MARGIN = 1,
+                         STATS =  ref.residuals.mean, 
+                         FUN="-")
       vst.out
     }, 
     'residual.features' = {
