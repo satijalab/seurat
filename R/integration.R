@@ -1056,14 +1056,9 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
-      object.list[[i]][[assay]] <- SetAssayData(
-        object = object.list[[i]][[assay]],
-        slot = "data",
-        new.data = GetAssayData(
-          object = object.list[[i]][[assay]],
-          slot = "scale.data"
-        )
-      )
+      object.list[[i]][[assay]] <- as(object = CreateAssayObject(
+        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
+      ), Class = "SCTAssay")
     }
     slot(object = anchorset, name = "object.list") <- object.list
   }

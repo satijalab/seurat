@@ -911,6 +911,8 @@ CreateAssayObject <- function(
   return(assay)
 }
 
+
+
 #' Create a DimReduc object
 #'
 #' @param embeddings A matrix with the cell embeddings
