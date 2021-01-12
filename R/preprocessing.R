@@ -408,6 +408,9 @@ GetResidual <- function(
   existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), ]
   new.residuals <- Reduce(cbind, new.residuals)[, Cells(x = object), drop = F]
   new.scale <- rbind(existing.data, new.residuals)
+  if (na.rm) {
+    new.scale <- new.scale[complete.cases(new.scale), ]
+  }
   object <- SetAssayData(
     object = object,
     assay = assay,
@@ -3284,6 +3287,11 @@ GetResidualSCTModel <- function(
     features_to_compute <- setdiff(x = new_features, y = existing_features)
   }
   if (sct.method == "reference.model") {
+    if (verbose) {
+      message("sct.model ", 
+              SCTModel,
+              " is from reference, so no residuals will be recalculated" )
+    }
     features_to_compute <- character()
   }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
@@ -3309,6 +3317,9 @@ GetResidualSCTModel <- function(
   clip.min <- min(clip.range)
   if (nrow(x = umi) > 0) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
+    if (verbose) {
+      message("In sct.model ",SCTModel )
+    }
     new_residual <- get_residuals(
       vst_out = vst_out,
       umi = umi,
