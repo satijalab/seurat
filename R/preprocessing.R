@@ -1418,10 +1418,13 @@ SCTransform <- function(
   }
   # parameter checking when reference.SCT.model is set
   if (!is.null(x = reference.SCT.model) ) {
-    if(inherits(x = reference.SCT.model, what = "SCTModel")){
+    if (inherits(x = reference.SCT.model, what = "SCTModel")) {
       reference.SCT.model <- SCTModel_to_vst(SCTModel = reference.SCT.model)
     }
-    if (!is.list(reference.SCT.model) | !('model_str' %in% names(reference.SCT.model))) {
+    if (is.list(x = reference.SCT.model) & inherits(x = reference.SCT.model[[1]], what = "SCTModel")) {
+      stop("reference.SCT.model must be one SCTModel rather than a list of SCTModel")
+    }
+    if (!is.list(x = reference.SCT.model) | !('model_str' %in% names(x = reference.SCT.model))) {
       stop("reference.SCT.model must be `vst.out` from the misc slot of your reference SCT assay")
     }
     if ('latent_var' %in% names(x = vst.args)) {
@@ -1469,86 +1472,76 @@ SCTransform <- function(
   vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
-  if (!is.null(x = reference.SCT.model)) {
-    variable.features.ref <- rownames(x = reference.SCT.model$model_pars_fit)[
-      order(reference.SCT.model$gene_attr[,"residual_variance"], decreasing = TRUE)[1:variable.features.n]]
-    if (is.null(x = residual.features)) {
-      if (verbose) {
-        message("residual.features not specified. Computing residuals for the top ",
-                variable.features.n, " variable features in the provided model.")
-      }
-      residual.features <- intersect(
-        x = variable.features.ref,
-        y = rownames(x = umi)
-      )
-    }
-  }
-  if (!is.null(x = residual.features)) {
-    residual.features <- intersect(x = residual.features, y = rownames(x = umi))
-    do.correct.umi <- FALSE
-    vst.args[['return_corrected_umi']] <- FALSE
-    vst.args[['residual_type']] <- 'none'
-  }
-  if (conserve.memory) {
-    return.only.var.genes <- TRUE
-  }
-  if (conserve.memory & is.null(x = reference.SCT.model)) {
-    vst.args[['residual_type']] <- 'none'
-    vst.out <- do.call(what = 'vst', args = vst.args)
-    feature.variance <- get_residual_var(
-      vst_out = vst.out,
-      umi = umi,
-      residual_type = residual.type,
-      res_clip_range = res.clip.range
-    )
-    vst.out$gene_attr$residual_variance <- NA_real_
-    vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
+ 
+  if( !is.null( reference.SCT.model)){
+    sct.method <- "reference.model"
+  } else if( !is.null(x = residual.features) ){
+    sct.method <- "residual.features"
+  } else if( conserve.memory) {
+    sct.method <- "conserve.memory"
   } else {
+    sct.method <- "default"
+  }
 
-    if (is.null(x = reference.SCT.model)) {
-      vst.out <- do.call(what = 'vst', args = vst.args)
-    }
-    if (!is.null(x = residual.features)) {
-      if (!is.null(x = reference.SCT.model)) {
-        vst.out <- reference.SCT.model
-        ref.gene_attr <- vst.out$gene_attr
-        clip.range <- vst.out$arguments$sct.clip.range
-        vst.out$model_pars_fit <-
-          vst.out$model_pars_fit[residual.features, ]
-        vst.out$cells_step1 <- colnames(x = umi)
-
-        umi.field <- paste0("nCount_", assay)
-        vst.out$cell_attr <-
-          if (umi.field %in% colnames(x = object[[]])) {
+  # set vst model
+  vst.out <- switch(
+    EXPR = sct.method,
+    'reference.model' = {
+      if (verbose) {
+        message("reference SCTModel is used to calculate pearson residuals")
+      }
+      do.center <- FALSE
+      do.correct.umi <- FALSE
+      vst.out <- reference.SCT.model
+      clip.range <- vst.out$arguments$sct.clip.range
+      umi.field <- paste0("nCount_", assay)
+      vst.out$cell_attr <-
+        if (umi.field %in% colnames(x = object[[]])) {
           data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
         } else {
           data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
         }
-
-      } else {
-        residual.features <- intersect(x = residual.features, y =  rownames(x = vst.out$gene_attr))
+      vst.out
+    }, 
+    'residual.features' = {
+      if (verbose) {
+        message("Only pearson residuals of residual.features are calculated")
       }
-      residual.feature.mat <- get_residuals(
+      return.only.var.genes <- TRUE
+      do.correct.umi <- FALSE
+      vst.args[['return_corrected_umi']] <- FALSE
+      vst.args[['residual_type']] <- 'none'
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      vst.out$gene_attr$residual_variance <- NA_real_
+      vst.out
+    }, 
+    'conserve.memory' = {
+      if (verbose) {
+        message("Conserve.memory version is used")
+      }
+      return.only.var.genes <- TRUE
+      vst.args[['residual_type']] <- 'none'
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      feature.variance <- get_residual_var(
         vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE], 
-        verbosity = 0
+        umi = umi,
+        residual_type = residual.type,
+        res_clip_range = res.clip.range
       )
-      vst.out$y <- residual.feature.mat
-      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
-      vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
-      vst.out$gene_attr$residual_variance = RowVar(x = residual.feature.mat)
-      if (!is.null(x = reference.SCT.model)) {
-        # center residuals by reference residual mean
-        ref.residual.mean <- ref.gene_attr[residual.features, "residual_mean"]
-        vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - ref.residual.mean)
-        do.center <- FALSE
+      vst.out$gene_attr$residual_variance <- NA_real_
+      vst.out$gene_attr[names(x = feature.variance), 'residual_variance'] <- feature.variance
+      vst.out
+    },
+    'default' = {
+      if (verbose) {
+        message("SCTransform using default method")
       }
-    }
-    feature.variance <- setNames(
-      object = vst.out$gene_attr$residual_variance,
-      nm = rownames(x = vst.out$gene_attr)
-    )
-  }
+      vst.out <- do.call(what = 'vst', args = vst.args)
+      vst.out
+    })
+
+  feature.variance <- vst.out$gene_attr[,"residual_variance"]
+  names( feature.variance)<- rownames(x = vst.out$gene_attr)
   if (verbose) {
     message('Determine variable features')
   }
@@ -1558,34 +1551,68 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  if (!is.null(x = residual.features) &  !is.null(x = reference.SCT.model)) {
-    top.features <- intersect(
-      x = variable.features.ref,
-      y = rownames(x = residual.feature.mat)
-    )
-  }
-  if (verbose) {
-    message('Set ', length(x = top.features), ' variable features')
-  }
-  if (conserve.memory & is.null(x = reference.SCT.model)) {
-    # actually get the residuals this time
-    if (verbose) {
-      message("Return only variable features for scale.data slot of the output assay")
-    }
-    vst.out$y <- get_residuals(
-      vst_out = vst.out,
-      umi = umi[top.features, ],
-      residual_type = residual.type,
-      res_clip_range = res.clip.range
-    )
-    if (do.correct.umi & residual.type == 'pearson') {
-      vst.out$umi_corrected <- correct_counts(
-        x = vst.out,
-        umi = umi,
-        verbosity = as.numeric(x = verbose) * 2
+
+  # get residuals
+  vst.out <- switch(
+    EXPR = sct.method,
+    'reference.model' = {
+      if (is.null(x = residual.features)) {
+        residual.features <- top.features
+      }
+      residual.features <- intersect(
+        x =  residual.features,
+        y = rownames(x = umi)
       )
-    }
-  }
+      residual.feature.mat <- get_residuals(
+        vst_out = vst.out,
+        umi = umi[residual.features, , drop = FALSE], 
+        verbosity = as.numeric(x = verbose)*2
+      )
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
+      vst.out$model_pars_fit <- vst.out$model_pars_fit[residual.features,]
+      vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - vst.out$gene_attr$residual_mean )
+      vst.out
+    }, 
+    'residual.features' = {
+      residual.features <- intersect(x = residual.features, y =  rownames(x = vst.out$gene_attr))
+      residual.feature.mat <- get_residuals(
+        vst_out = vst.out,
+        umi = umi[residual.features, , drop = FALSE], 
+        verbosity = as.numeric(x = verbose)*2
+      )
+      vst.out$y <- residual.feature.mat
+      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
+      vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
+      vst.out$gene_attr$residual_variance = RowVar(x = residual.feature.mat)
+      vst.out
+    }, 
+    'conserve.memory' = {
+      vst.out$y <- get_residuals(
+        vst_out = vst.out,
+        umi = umi[top.features, ],
+        residual_type = residual.type,
+        res_clip_range = res.clip.range,
+        verbosity = as.numeric(x = verbose)*2
+      )
+      vst.out$gene_attr$residual_mean <- NA
+      vst.out$gene_attr[top.features, "residual_mean"] = rowMeans2(x =  vst.out$y)
+      if (do.correct.umi & residual.type == 'pearson') {
+        vst.out$umi_corrected <- correct_counts(
+          x = vst.out,
+          umi = umi,
+          verbosity = as.numeric(x = verbose) * 2
+        )
+      }
+      vst.out
+    },
+    'default' = {
+      if (return.only.var.genes) {
+        vst.out$y <- vst.out$y[top.features, ]
+      }
+      vst.out
+    })
+
   # create output assay and put (corrected) umi counts in count slot
   if (do.correct.umi & residual.type == 'pearson') {
     if (verbose) {
@@ -1597,18 +1624,15 @@ SCTransform <- function(
     assay.out <- CreateAssayObject(counts = umi)
   }
   # set the variable genes
-  VariableFeatures(object = assay.out) <- top.features
+  VariableFeatures(object = assay.out) <- residual.features %||% top.features
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
     object = assay.out,
     slot = 'data',
     new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
   )
-  if (return.only.var.genes & !conserve.memory & is.null(x = residual.features)) {
-    scale.data <- vst.out$y[top.features, ]
-  } else {
-    scale.data <- vst.out$y
-  }
+
+  scale.data <- vst.out$y
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]
@@ -1637,11 +1661,9 @@ SCTransform <- function(
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
-  Misc(object = assay.out, slot = 'umi.assay') <- assay
   assay.out <- as(object = assay.out, Class = "SCTAssay")
   assay.out <- SCTAssay(assay.out, assay.orig = assay)
   object[[new.assay.name]] <- assay.out
-
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
   }
