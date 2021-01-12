@@ -1501,6 +1501,12 @@ SCTransform <- function(
         } else {
           data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
         }
+      all.features  <- intersect(
+        x =  rownames(x = vst.out$gene_attr),
+        y = rownames(x = umi)
+      )
+      vst.out$gene_attr <- vst.out$gene_attr[all.features ,]
+      vst.out$model_pars_fit <- vst.out$model_pars_fit[all.features,]
       vst.out
     }, 
     'residual.features' = {
@@ -1569,22 +1575,22 @@ SCTransform <- function(
         verbosity = as.numeric(x = verbose)*2
       )
       vst.out$y <- residual.feature.mat
-      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
-      vst.out$model_pars_fit <- vst.out$model_pars_fit[residual.features,]
       vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - vst.out$gene_attr$residual_mean )
       vst.out
     }, 
     'residual.features' = {
-      residual.features <- intersect(x = residual.features, y =  rownames(x = vst.out$gene_attr))
+      residual.features <- intersect(x = residual.features,
+                                     y =  rownames(x = vst.out$gene_attr))
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
         umi = umi[residual.features, , drop = FALSE], 
         verbosity = as.numeric(x = verbose)*2
       )
       vst.out$y <- residual.feature.mat
-      vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
-      vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
-      vst.out$gene_attr$residual_variance = RowVar(x = residual.feature.mat)
+      vst.out$gene_attr$residual_mean <- NA_real_
+      vst.out$gene_attr$residual_variance <- NA_real_
+      vst.out$gene_attr[residual.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
+      vst.out$gene_attr[residual.features, "residual_variance"] <- RowVar(x = vst.out$y)
       vst.out
     }, 
     'conserve.memory' = {
@@ -1595,7 +1601,7 @@ SCTransform <- function(
         res_clip_range = res.clip.range,
         verbosity = as.numeric(x = verbose)*2
       )
-      vst.out$gene_attr$residual_mean <- NA
+      vst.out$gene_attr$residual_mean <- NA_real_
       vst.out$gene_attr[top.features, "residual_mean"] = rowMeans2(x =  vst.out$y)
       if (do.correct.umi & residual.type == 'pearson') {
         vst.out$umi_corrected <- correct_counts(
