@@ -93,3 +93,10 @@ GetAssayData(pbmc.normalized)[1:10, 1:15]
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/merge_vignette_times.csv")
 ```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

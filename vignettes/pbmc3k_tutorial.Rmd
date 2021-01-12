@@ -380,3 +380,9 @@ saveRDS(pbmc, file = "../data/pbmc3k_final.rds")
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/pbmc3k_tutorial_times.csv")
 ```
 
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

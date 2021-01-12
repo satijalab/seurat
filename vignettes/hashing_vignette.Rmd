@@ -277,3 +277,10 @@ DimPlot(hto12) + NoLegend()
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/hashing_vignette_times.csv")
 ```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

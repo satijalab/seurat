@@ -200,3 +200,10 @@ ggsave(filename = "../output/images/pbmc_alignment.png", height = 7, width = 12,
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/immune_alignment_times.csv")
 ```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

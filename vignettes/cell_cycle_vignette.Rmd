@@ -141,3 +141,9 @@ DimPlot(marrow)
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/cell_cycle_vignette_times.csv")
 ```
 
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

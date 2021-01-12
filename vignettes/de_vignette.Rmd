@@ -127,3 +127,11 @@ We thank the authors of the MAST and DESeq2 packages for their kind assistance a
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/de_vignette_times.csv")
 ```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+

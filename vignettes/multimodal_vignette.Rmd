@@ -224,3 +224,10 @@ Seurat v4 also includes additional functionality for the analysis, visualization
 * Analysis of 10x multiome (paired scRNA-seq + ATAC) using WNN analysis [vignette link](weighted_nearest_neighbor_analysis.html)
 * Signac: Analysis, intepretation, and exploration of single-cell chromatin datasets [package link](https://satijalab.org/signac/)
 * Mixscape: an analytical toolkit for pooled single-cell genetic screens [vignette link](mixscape_vignette.html)
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

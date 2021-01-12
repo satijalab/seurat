@@ -130,3 +130,9 @@ Many thanks to [Davis McCarthy](https://twitter.com/davisjmcc?ref_src=twsrc%5Ego
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/conversion_vignette_times.csv")
 ```
 
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

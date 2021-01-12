@@ -274,3 +274,10 @@ FeatureScatter(object = cbmc, feature1 = "rna_CD3E", feature2 = "adt_CD3")
 | `FilterCells(object = object, subset.names = "name", low.threshold = low, high.threshold = high)` | `subset(x = object, subset = name > low & name < high)` |
 | `SubsetData(object = object, subset.name = "name", low.threshold = low, high.threshold = high)` | `subset(x = object, subset = name > low & name < high)` |
 | `MergeSeurat(object1 = object1, object2 = object2)` | `merge(x = object1, y = object2)` |
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

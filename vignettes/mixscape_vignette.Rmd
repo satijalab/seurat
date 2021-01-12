@@ -371,3 +371,9 @@ p2
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/mixscape_vignette_times.csv")
 ```
 
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

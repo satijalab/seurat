@@ -133,3 +133,10 @@ DoHeatmap(cluster.averages, features = unlist(TopFeatures(pbmc[['pca']], balance
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/interaction_vignette_times.csv")
 ```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

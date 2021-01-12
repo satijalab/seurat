@@ -133,3 +133,9 @@ FeaturePlot(pbmc, features = c("CD3D", "ISG15", "TCL1A", "FCER2", "XCL1", "FCGR3
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/sctransform_vignette_times.csv")
 ```
 
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

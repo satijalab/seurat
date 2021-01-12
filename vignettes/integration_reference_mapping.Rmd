@@ -176,5 +176,9 @@ p2 = DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.cellt
 p1 + p2
 ```
 
-
-li    
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

@@ -330,3 +330,10 @@ pbmc.integrated <- NormalizeData(pbmc.integrated, verbose = FALSE)
 FeaturePlot(pbmc.integrated, c('CCR7',"S100A4","GZMB","GZMK","GZMH","TCL1A"))
 ```
 
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+
