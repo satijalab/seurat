@@ -1418,6 +1418,9 @@ SCTransform <- function(
   }
   # parameter checking when reference.SCT.model is set
   if (!is.null(x = reference.SCT.model) ) {
+    if(inherits(x = reference.SCT.model, what = "SCTModel")){
+      reference.SCT.model <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+    }
     if (!is.list(reference.SCT.model) | !('model_str' %in% names(reference.SCT.model))) {
       stop("reference.SCT.model must be `vst.out` from the misc slot of your reference SCT assay")
     }
@@ -1468,7 +1471,7 @@ SCTransform <- function(
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
   if (!is.null(x = reference.SCT.model)) {
     variable.features.ref <- rownames(x = reference.SCT.model$model_pars_fit)[
-      order(reference.SCT.model$gene_attr$residual_variance, decreasing = TRUE)[1:variable.features.n]]
+      order(reference.SCT.model$gene_attr[,"residual_variance"], decreasing = TRUE)[1:variable.features.n]]
     if (is.null(x = residual.features)) {
       if (verbose) {
         message("residual.features not specified. Computing residuals for the top ",
@@ -1476,7 +1479,7 @@ SCTransform <- function(
       }
       residual.features <- intersect(
         x = variable.features.ref,
-        y = rownames(x = object[[assay]])
+        y = rownames(x = umi)
       )
     }
   }
@@ -1527,9 +1530,9 @@ SCTransform <- function(
       }
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE]
+        umi = umi[residual.features, , drop = FALSE], 
+        verbosity = 0
       )
-
       vst.out$y <- residual.feature.mat
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       vst.out$gene_attr$residual_mean = rowMeans2(x = residual.feature.mat)
@@ -1540,7 +1543,6 @@ SCTransform <- function(
         vst.out$y <- apply(X = vst.out$y, MARGIN = 2, FUN = function(x) x - ref.residual.mean)
         do.center <- FALSE
       }
-
     }
     feature.variance <- setNames(
       object = vst.out$gene_attr$residual_variance,
@@ -1634,7 +1636,6 @@ SCTransform <- function(
   vst.out$y <- NULL
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
-
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   Misc(object = assay.out, slot = 'umi.assay') <- assay
   assay.out <- as(object = assay.out, Class = "SCTAssay")
@@ -3292,15 +3293,17 @@ GetResidualSCTModel <- function(
 
 # Convert SCTModel class to vst_out used in the sctransform
 # @param SCTModel
-# @param feature.params feature names used in the SCT model
 # @return Return a list containing sct model
 #
-SCTModel_to_vst <- function(SCTModel, feature.params = NULL) {
-  feature.params <- feature.params %||% c("theta", "(Intercept)",  "log_umi")
+SCTModel_to_vst <- function(SCTModel) {
+  feature.params <- c("theta", "(Intercept)",  "log_umi")
+  feature.attrs <- c("residual_mean", "residual_variance" )
   vst_out <- list()
   vst_out$model_str <- slot(object = SCTModel, name = "model")
   vst_out$model_pars_fit <- as.matrix(x = slot(object = SCTModel, name = "feature.attributes")[, feature.params])
+  vst_out$gene_attr <- slot(object = SCTModel, name = "feature.attributes")[, feature.attrs]
   vst_out$cell_attr <- slot(object = SCTModel, name = "cell.attributes")
+  vst_out$arguments <- slot(object = SCTModel, name = "arguments")
   return(vst_out)
 }
 
