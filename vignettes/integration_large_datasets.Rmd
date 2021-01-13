@@ -109,6 +109,10 @@ plot <- DimPlot(bm280k.integrated, group.by = "orig.ident") + xlab("UMAP 1") + y
 ggsave(filename = "../output/images/bm280k_integrated.png", height = 7, width = 12, plot = plot)
 ```
 
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_large_datasets.csv")
+```
+
 <details>
   <summary>**Session Info**</summary>
 ```{r}

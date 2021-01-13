@@ -26,14 +26,11 @@
         An introduction to RNA-RNA integration.
       image: pbmc_alignment.png
 
-    # - title: scATAC-seq + scRNA-seq integration
-    #   name: atacseq_integration_vignette
-    #   summary: |
-    #     Integrate scRNA-seq data with scATAC-seq data
-    #   items: |
-    #     * Classify scATAC-seq cells based on scRNA-seq clusters
-    #     * Coembed scATAC-seq and scRNA-seq data
-    #   image: atacseq_integration_umap-1.png
+    - title: Annotating scATAC-seq cells via multimodal label transfer
+      name: atacseq_integration_vignette
+      summary: |
+        Analyzing scRNA-seq data plus scATAC-seq data
+      image: atacseq_integration_vignette.png
 
     - title: Reference Mapping
       name: integration_reference_mapping

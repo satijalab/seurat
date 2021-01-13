@@ -8,6 +8,29 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 ***
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  warning = FALSE,
+  error = FALSE,
+  message = FALSE,
+  fig.width = 8,
+  time_it = TRUE
+)
+```
 
 # Dataset preprocessing 
 
@@ -174,6 +197,10 @@ p1 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype", la
 p2 <- DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE, 
              label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Query transferred labels")
 p1 + p2
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_reference_mapping.csv")
 ```
 
 <details>
