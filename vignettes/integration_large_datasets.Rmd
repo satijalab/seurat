@@ -97,10 +97,6 @@ bm280k.integrated <- RunUMAP(bm280k.integrated, dims = 1:50)
 DimPlot(bm280k.integrated, group.by = "orig.ident")
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_times.csv")
-```
-
 ```{r save.img, include=FALSE}
 library(ggplot2)
 plot <- DimPlot(bm280k.integrated, group.by = "orig.ident") + xlab("UMAP 1") + ylab("UMAP 2") + 
