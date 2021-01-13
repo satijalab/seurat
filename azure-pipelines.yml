@@ -19,6 +19,7 @@ jobs:
     container: satijalab/seurat-pkgdown:4.0.0-beta
     steps:
       - script: |
+            set -e
             Rscript --default-packages=stats,graphics,grDevices,utils,datasets,base,methods -e "install.packages('.', type = 'source', repos = NULL, dependencies = FALSE, lib = Sys.getenv('R_LIBS_USER'))"
             mv /data/* data/
             mkdir output

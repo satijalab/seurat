@@ -42,7 +42,7 @@ for (i in 1:length(pancreas.list)) {
 
 # Integration of 3 pancreatic islet cell datasets 
 
-Next, we identify anchors using the `FindIntegrationAnchors` function, which takes a list of Seurat objects as input. Here, we integrate three of the objects into a reference (we will use the fourth later in this vignette)
+Next, we identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input. Here, we integrate three of the objects into a reference (we will use the fourth later in this vignette)
 
 * We use all default parameters here for identifying anchors, including the 'dimensionality' of the dataset (30; feel free to try varying this parameter over a broad range, for example between 10 and 50).  
 
@@ -51,7 +51,7 @@ reference.list <- pancreas.list[c("celseq", "celseq2", "smartseq2")]
 pancreas.anchors <- FindIntegrationAnchors(object.list = reference.list, dims = 1:30)
 ```
 
-We then pass these anchors to the `IntegrateData` function, which returns a Seurat object. 
+We then pass these anchors to the `IntegrateData()` function, which returns a Seurat object. 
 
 * The returned object will contain a new `Assay`, which holds an integrated (or 'batch-corrected') expression matrix for all cells, enabling them to be jointly analyzed.
 
@@ -59,7 +59,7 @@ We then pass these anchors to the `IntegrateData` function, which returns a Seur
 pancreas.integrated <- IntegrateData(anchorset = pancreas.anchors, dims = 1:30)
 ```
 
-After running `IntegrateData`, the `Seurat` object will contain a new `Assay` with the integrated expression matrix. Note that the original (uncorrected values) are still stored in the object in the "RNA" assay, so you can switch back and forth.
+After running `IntegrateData()`, the `Seurat` object will contain a new `Assay` with the integrated expression matrix. Note that the original (uncorrected values) are still stored in the object in the "RNA" assay, so you can switch back and forth.
 
 We can then use this new integrated matrix for downstream analysis and visualization. Here we scale the integrated data, run PCA, and visualize the results with UMAP. The integrated datasets cluster by cell type, instead of by technology.
 
@@ -99,7 +99,7 @@ Seurat v3 also supports the projection of reference data (or meta data) onto a q
 1. In data transfer, Seurat does not correct or modify the query expression data.
 2. In data transfer, Seurat has an option (set by default) to project the PCA structure of a reference onto the query, instead of learning a joint structure with CCA. We generally suggest using this option when projecting data between scRNA-seq datasets.
 
-After finding anchors, we use the `TransferData` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
+After finding anchors, we use the `TransferData()` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData()` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
 
 ```{r label.transfer, warning = FALSE, message = FALSE}
 pancreas.query <- pancreas.list[["fluidigmc1"]]
@@ -122,9 +122,9 @@ table(pancreas.query$predicted.id)
 VlnPlot(pancreas.query, c("REG1A", "PPY", "SST", "GHRL", "VWF", "SOX10"), group.by = "predicted.id") 
 ```
 
-### Unimodal UMAP Projection
+# Unimodal UMAP Projection
 
-In Seurat v4, we also enable projection of a query onto the reference UMAP structure. This can be achieved by computing the reference UMAP model and then calling  `MapQuery` instead of `TransferData`. 
+In Seurat v4, we also enable projection of a query onto the reference UMAP structure. This can be achieved by computing the reference UMAP model and then calling  `MapQuery()` instead of `TransferData()`. 
 
 ```{r label.transfer.v4, warning = FALSE, message = FALSE}
 pancreas.integrated <- RunUMAP(pancreas.integrated, dims = 1:30, reduction = "pca", return.model = TRUE)
@@ -141,7 +141,7 @@ pancreas.query <- MapQuery(
 <details>
   <summary>**What is `MapQuery` doing?**</summary>
 
-`MapQuery` is a wrapper around three functions: `TransferData`, `IntegrateEmbeddings`, and `ProjectUMAP`. `TransferData` is used to transfer cell type labels and impute the ADT values; `IntegrateEmbeddings` is used to integrate reference with query by correcting the query's projected low-dimensional embeddings; and finally `ProjectUMAP` is used to project the query data onto the UMAP structure of the reference. The equivalent code for doing this with the intermediate functions is below:
+`MapQuery()` is a wrapper around three functions: `TransferData()`, `IntegrateEmbeddings()`, and `ProjectUMAP()`. `TransferData()` is used to transfer cell type labels and impute the ADT values; `IntegrateEmbeddings()` is used to integrate reference with query by correcting the query's projected low-dimensional embeddings; and finally `ProjectUMAP()` is used to project the query data onto the UMAP structure of the reference. The equivalent code for doing this with the intermediate functions is below:
 
 ```{r, eval=FALSE}
 pancreas.query <- TransferData(
@@ -169,9 +169,9 @@ pancreas.query <- ProjectUMAP(
 We can now visualize the query cells alongside our reference.
 
 ```{r panc.refdimplots, fig.width=10}
-p1 = DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype", label = TRUE,
+p1 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype", label = TRUE,
              label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Reference annotations")
-p2 = DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE, 
+p2 <- DimPlot(pancreas.query, reduction = "ref.umap", group.by = "predicted.celltype", label = TRUE, 
              label.size = 3 ,repel = TRUE) + NoLegend() + ggtitle("Query transferred labels")
 p1 + p2
 ```

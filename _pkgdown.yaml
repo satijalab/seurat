@@ -28,9 +28,9 @@ navbar:
         - text: "Integrating scRNA-seq data"
           href: articles/immune_alignment.html
         - text: "Reference Mapping"
-          href: articles/integration.html
-        - text: "Mapping to multimodal reference datasets"
           href: articles/integration_reference_mapping.html
+        - text: "Mapping to multimodal reference datasets"
+          href: articles/reference_mapping.html
         - text: "Integrating Large Datasets"
           href: articles/integration_large_datasets.html
         #- text: "PBMC scATAC-seq vignette"

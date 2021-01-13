@@ -38,13 +38,13 @@
     - title: Reference Mapping
       name: integration_reference_mapping
       summary: |
-        Lorem Ipsum
+        Learn about mapping to RNA references.
       image: assets/anchorsb_2018.png
 
     - title: Integrating Large Datasets
       name: integration_large_datasets
       summary: |
-        Lorem Ipsum
+        Example workflow for integrating large datasets
       image: bm280k_integrated.png
 
     - title: Multimodal Reference Mapping

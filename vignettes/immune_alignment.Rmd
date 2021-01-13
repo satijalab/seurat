@@ -101,7 +101,7 @@ immune.combined <- FindClusters(immune.combined, resolution = 0.5)
 ```{r viz, results='hide', message=FALSE}
 # Visualization
 p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "stim")
-p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUEs)
+p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
 plot_grid(p1, p2)
 ```
 
