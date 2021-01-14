@@ -3295,7 +3295,7 @@ GetResidualSCTModel <- function(
     features_to_compute <- character()
   }
   if (!umi.assay %in% Assays(object = object)) {
-    warnings("umi assay is not in the object")
+    warnings("The umi assay (", umi.assay, ") is not present in the object. Cannot compute additional residuals.")
     umi.assay <- assay
     features_to_compute <- character()
   }
