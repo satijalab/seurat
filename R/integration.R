@@ -504,11 +504,13 @@ ReciprocalProject <- function(
   reduction.dr.name.2 <- paste0(projected.name, ".2")
   object.pair[[reduction.dr.name.1]] <- CreateDimReducObject(
     embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]])),
+    loadings = Loadings(object = object.2[[reduction]]),
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "1_")
   )
   object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
     embeddings = rbind(proj.2, Embeddings(object = object.1[[reduction]])),
+    loadings = Loadings(object = object.1[[reduction]]),
     assay = DefaultAssay(object = object.2),
     key = paste0(projected.name, "2_")
   )
@@ -516,22 +518,11 @@ ReciprocalProject <- function(
     embeddings = rbind(
       Embeddings(object = object.1[[reduction]]),
       Embeddings(object = object.2[[reduction]])),
+    loadings = Loadings(object = object.1[[reduction]]),
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "_")
   )
   if (l2.norm){
-    slot(object = object.pair[[reduction.dr.name.1]], name = "cell.embeddings") <- Sweep(
-      x = Embeddings(object = object.pair[[reduction.dr.name.1]]),
-      MARGIN = 2,
-      STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.1]]), MARGIN = 2, FUN = sd),
-      FUN = "/"
-    )
-    slot(object = object.pair[[reduction.dr.name.2]], name = "cell.embeddings") <- Sweep(
-      x = Embeddings(object = object.pair[[reduction.dr.name.2]]),
-      MARGIN = 2,
-      STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.2]]), MARGIN = 2, FUN = sd),
-      FUN = "/"
-    )
     object.pair <- L2Dim(object = object.pair, reduction = reduction.dr.name.1)
     object.pair <- L2Dim(object = object.pair, reduction = reduction.dr.name.2)
   }
@@ -593,6 +584,8 @@ ReciprocalProject <- function(
 #'    This requires that LSI has been computed for the reference dataset, and the
 #'    same features (eg, peaks or genome bins) are present in both the reference
 #'    and query}
+#'    \item{rpca: Project the PCA from the reference onto the query, and the PCA
+#'    from the query onto the reference (reciprocal PCA projection).}
 #'    \item{cca: Run a CCA on the reference and query }
 #' }
 #' @param reference.reduction Name of dimensional reduction to use from the
@@ -723,6 +716,7 @@ FindTransferAnchors <- function(
     mapping.score.k = mapping.score.k
   )
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
+  reduction.2 <- character()
   feature.mean <- NULL
   if (normalization.method == "SCT") {
     # ensure all residuals required are computed
@@ -851,6 +845,57 @@ FindTransferAnchors <- function(
     colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
     Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
   }
+  # Use reciprocal PCA projection in anchor finding
+  if (reduction == "rpca") {
+    # Run PCA on reference and query
+    if (is.null(x = reference.reduction)) {
+      reference.reduction <- "pca"
+      if (verbose) {
+        message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
+      }
+      if (normalization.method == "LogNormalize") {
+        reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+      }
+      reference <- RunPCA(
+        object = reference,
+        npcs = npcs,
+        verbose = FALSE,
+        features = features,
+        approx = approx.pca
+      )
+    }
+    if (verbose) {
+      message("Performing PCA on the provided query using ", length(x = features), " features as input.")
+    }
+    if (normalization.method == "LogNormalize") {
+      query <- ScaleData(object = query, features = features, verbose = FALSE)
+    }
+    query <- RunPCA(
+      object = query,
+      npcs = npcs,
+      reduction.name = reference.reduction,
+      verbose = FALSE,
+      features = features,
+      approx = approx.pca
+    )
+    combined.ob <- ReciprocalProject(
+      object.1 = reference,
+      object.2 = query,
+      reduction = 'pca',
+      projected.name = reduction,
+      features = features,
+      do.scale = FALSE,
+      do.center = FALSE,
+      slot = 'scale.data',
+      l2.norm = l2.norm,
+      verbose = verbose
+    )
+    # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
+    # avoids later error as we now have two reductions (rpca.1 and rpca.2)
+    l2.norm <- FALSE
+    reduction <- "rpca.1"
+    reduction.2 <- "rpca.2"
+  }
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
     if (normalization.method == "LogNormalize") {
@@ -952,6 +997,7 @@ FindTransferAnchors <- function(
     cells1 = colnames(x = reference),
     cells2 = colnames(x = query),
     reduction = reduction,
+    reduction.2 = reduction.2,
     internal.neighbors = precomputed.neighbors,
     dims = dims,
     k.anchor = k.anchor,
@@ -4420,8 +4466,8 @@ ValidateParams_FindTransferAnchors <- function(
     stop("We currently only support transfer between a single query and reference",
          call. = FALSE)
   }
-  if (!reduction %in% c("pcaproject", "cca", "lsiproject")) {
-    stop("Please select either pcaproject, cca, or lsiproject for the reduction parameter.",
+  if (!reduction %in% c("pcaproject", "cca", "lsiproject", "rpca")) {
+    stop("Please select either pcaproject, rpca, cca, or lsiproject for the reduction parameter.",
          call. = FALSE)
   }
   if (reduction == "cca" && !is.null(x = reference.reduction)) {
