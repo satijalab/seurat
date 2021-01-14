@@ -1515,7 +1515,7 @@ SCTransform <- function(
     }, 
     'residual.features' = {
       if (verbose) {
-        message("Only pearson residuals of residual.features are calculated")
+        message("Computing residuals for the ", length(x = residual.features), " specified features")
       }
       return.only.var.genes <- TRUE
       do.correct.umi <- FALSE
