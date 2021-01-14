@@ -1492,7 +1492,7 @@ SCTransform <- function(
     EXPR = sct.method,
     'reference.model' = {
       if (verbose) {
-        message("reference SCTModel is used to calculate pearson residuals")
+        message("Using reference SCTModel to calculate pearson residuals")
       }
       do.center <- FALSE
       do.correct.umi <- FALSE
