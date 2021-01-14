@@ -55,6 +55,8 @@ Options are:
    This requires that LSI has been computed for the reference dataset, and the
    same features (eg, peaks or genome bins) are present in both the reference
    and query}
+   \item{rpca: Project the PCA from the reference onto the query, and the PCA
+   from the query onto the reference (reciprocal PCA projection).}
    \item{cca: Run a CCA on the reference and query }
 }}
 
