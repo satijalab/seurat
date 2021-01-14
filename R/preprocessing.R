@@ -376,19 +376,20 @@ GetResidual <- function(
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
     return(object)
   }
+  features.orig <- features
   if (na.rm) {
     # only compute residuals when feature model info is present in all
-    all.features <- names(x = which(x = table(unlist(x = lapply(
+    features <- names(x = which(x = table(unlist(x = lapply(
       X = sct.models,
       FUN = function(x) {
         rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
       }
     ))) == length(x = sct.models)))
-    if (length(x = all.features) == 0) {
+    if (length(x = features) == 0) {
       return(object)
     }
   }
-  features <- intersect(x = features, y = all.features )
+  features <- intersect(x = features.orig, y = features )
   new.residuals <- lapply(
     X = sct.models,
     FUN = function(x) {
@@ -404,10 +405,7 @@ GetResidual <- function(
     }
   )
   existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
-  if (na.rm) {
-    existing.data <- existing.data[intersect(x = rownames(x = existing.data), y = all.features), ]
-  }
-  existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), , drop = FALSE ]
+  existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), ]
   new.residuals <- Reduce(cbind, new.residuals)[, Cells(x = object), drop = F]
   new.scale <- rbind(existing.data, new.residuals)
   object <- SetAssayData(
@@ -416,8 +414,8 @@ GetResidual <- function(
     slot = "scale.data",
     new.data = new.scale
   )
-  if (any(!features %in% rownames(x = new.scale))) {
-    bad.features <- features[which(!features %in% rownames(x = new.scale))]
+  if (any(!features.orig %in% rownames(x = new.scale))) {
+    bad.features <- features.orig[which(!features.orig %in% rownames(x = new.scale))]
     warning("Residuals not computed for the following requested features: ",
             paste(bad.features, collapse = ", "), call. = FALSE)
   }
@@ -1508,7 +1506,7 @@ SCTransform <- function(
       vst.out$gene_attr <- vst.out$gene_attr[all.features ,]
       vst.out$model_pars_fit <- vst.out$model_pars_fit[all.features,]
       vst.out
-    }, 
+    },
     'residual.features' = {
       if (verbose) {
         message("Computing residuals for the ", length(x = residual.features), " specified features")
@@ -1520,7 +1518,7 @@ SCTransform <- function(
       vst.out <- do.call(what = 'vst', args = vst.args)
       vst.out$gene_attr$residual_variance <- NA_real_
       vst.out
-    }, 
+    },
     'conserve.memory' = {
       return.only.var.genes <- TRUE
       vst.args[['residual_type']] <- 'none'
@@ -1559,31 +1557,31 @@ SCTransform <- function(
       if (is.null(x = residual.features)) {
         residual.features <- top.features
       }
-      residual.features <- Reduce(f = intersect, 
-                                  x = list(residual.features, 
-                                           rownames(x = umi), 
-                                           rownames(x = vst.out$model_pars_fit) 
+      residual.features <- Reduce(f = intersect,
+                                  x = list(residual.features,
+                                           rownames(x = umi),
+                                           rownames(x = vst.out$model_pars_fit)
                                            )
                                   )
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE], 
+        umi = umi[residual.features, , drop = FALSE],
         verbosity = as.numeric(x = verbose)*2
       )
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
-      vst.out$y <- sweep(x = residual.feature.mat, 
+      vst.out$y <- sweep(x = residual.feature.mat,
                          MARGIN = 1,
-                         STATS =  ref.residuals.mean, 
+                         STATS =  ref.residuals.mean,
                          FUN="-")
       vst.out
-    }, 
+    },
     'residual.features' = {
       residual.features <- intersect(x = residual.features,
                                      y =  rownames(x = vst.out$gene_attr))
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
-        umi = umi[residual.features, , drop = FALSE], 
+        umi = umi[residual.features, , drop = FALSE],
         verbosity = as.numeric(x = verbose)*2
       )
       vst.out$y <- residual.feature.mat
@@ -1592,7 +1590,7 @@ SCTransform <- function(
       vst.out$gene_attr[residual.features, "residual_mean"] <- rowMeans2(x = vst.out$y)
       vst.out$gene_attr[residual.features, "residual_variance"] <- RowVar(x = vst.out$y)
       vst.out
-    }, 
+    },
     'conserve.memory' = {
       vst.out$y <- get_residuals(
         vst_out = vst.out,
@@ -3280,7 +3278,7 @@ GetResidualSCTModel <- function(
   }
   if (sct.method == "reference.model") {
     if (verbose) {
-      message("sct.model ", 
+      message("sct.model ",
               SCTModel,
               " is from reference, so no residuals will be recalculated" )
     }
