@@ -1428,9 +1428,6 @@ SCTransform <- function(
     if (is.list(x = reference.SCT.model) & inherits(x = reference.SCT.model[[1]], what = "SCTModel")) {
       stop("reference.SCT.model must be one SCTModel rather than a list of SCTModel")
     }
-    if (!is.list(x = reference.SCT.model) | !('model_str' %in% names(x = reference.SCT.model))) {
-      stop("reference.SCT.model must be `vst.out` from the misc slot of your reference SCT assay")
-    }
     if ('latent_var' %in% names(x = vst.args)) {
       stop('custom latent variables are not supported when reference.SCT.model is given')
     }
@@ -1526,9 +1523,6 @@ SCTransform <- function(
       vst.out
     }, 
     'conserve.memory' = {
-      if (verbose) {
-        message("Conserve.memory version is used")
-      }
       return.only.var.genes <- TRUE
       vst.args[['residual_type']] <- 'none'
       vst.out <- do.call(what = 'vst', args = vst.args)
@@ -1543,9 +1537,6 @@ SCTransform <- function(
       vst.out
     },
     'default' = {
-      if (verbose) {
-        message("SCTransform using default method")
-      }
       vst.out <- do.call(what = 'vst', args = vst.args)
       vst.out
     })
