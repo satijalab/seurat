@@ -355,7 +355,8 @@ FindIntegrationAnchors <- function(
             reduction = 'pca',
             projected.name = 'projectedpca',
             features = anchor.features,
-            standardize = FALSE,
+            do.scale = FALSE,
+            do.center = FALSE,
             slot = 'scale.data',
             l2.norm = l2.norm,
             verbose = verbose
@@ -375,7 +376,8 @@ FindIntegrationAnchors <- function(
             reduction = 'lsi',
             projected.name = 'projectedlsi',
             features = anchor.features,
-            standardize = TRUE,
+            do.center = TRUE,
+            do.scale = FALSE,
             slot = 'data',
             l2.norm = l2.norm,
             verbose = verbose
@@ -443,7 +445,8 @@ FindIntegrationAnchors <- function(
 # @param projected.name Name to store projected SVDs under (eg, "projectedpca")
 # @param features Features to use. Will subset the SVD loadings to use these features
 # before performing projection. Typically uses the anchor.features for integration.
-# @param standardize Scale and center projected SVD embeddings for each component.
+# @param do.center Center projected values (subtract mean)
+# @param do.scale Scale projected values (divide by SD)
 # @param slot Name of slot to pull data from. Should be scale.data for PCA and data for LSI
 # @param verbose Display messages
 # @return Returns a merged Seurat object with two projected SVDs (object.1 -> object.2, object.2 -> object.1)
@@ -454,7 +457,8 @@ ReciprocalProject <- function(
   reduction,
   projected.name,
   features,
-  standardize,
+  do.scale,
+  do.center,
   slot,
   l2.norm,
   verbose = TRUE
@@ -479,19 +483,21 @@ ReciprocalProject <- function(
   proj.1 <- ProjectSVD(
     reduction = object.2[[reduction]],
     data = data.1,
+    mode = reduction,
     features = common.features,
-    standardize = standardize,
+    do.scale = do.scale,
+    do.center = do.center,
     use.original.stats = FALSE,
-    weight.by.sigma = FALSE,
     verbose = verbose
   )
   proj.2 <- ProjectSVD(
     reduction = object.1[[reduction]],
     data = data.2,
+    mode = reduction,
     features = common.features,
-    standardize = standardize,
+    do.scale = do.scale,
+    do.center = do.center,
     use.original.stats = FALSE,
-    weight.by.sigma = FALSE,
     verbose = verbose
   )
   reduction.dr.name.1 <- paste0(projected.name, ".1")
@@ -870,9 +876,10 @@ FindTransferAnchors <- function(
       projected.lsi <- ProjectSVD(
         reference = query[[reference.reduction]],
         data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
-        standardize = TRUE,
+        mode = "lsi",
+        do.center = TRUE,
+        do.scale = FALSE,
         use.original.stats = FALSE,
-        weight.by.sigma = FALSE,
         verbose = verbose
       )
       orig.embeddings <- Embeddings(object = query[[reference.reduction]])
@@ -881,9 +888,10 @@ FindTransferAnchors <- function(
       projected.lsi <- ProjectSVD(
         reduction = reference[[reference.reduction]],
         data = GetAssayData(object = query, assay = query.assay, slot = "data"),
-        standardize = TRUE,
+        mode = "lsi",
+        do.center = TRUE,
+        do.scale = FALSE,
         use.original.stats = FALSE,
-        weight.by.sigma = FALSE,
         verbose = verbose
       )
       orig.embeddings <- Embeddings(object = reference[[reference.reduction]])
@@ -3958,21 +3966,27 @@ ProjectCellEmbeddings <- function(
   return(proj.pca)
 }
 
-# Project new data onto SVD
+# Project new data onto SVD (LSI or PCA)
+#
+# A = U∑V         SVD
+# U' = VA'/∑      LSI projection
+#
+# Note that because in LSI we don't multiply by ∑ to get the embeddings (it's just U),
+# we need to divide by ∑ in the projection to get the equivalent. Therefore need
+# the singular values, which (in Signac RunLSI) we store in the DimReduc misc slot.
 #
 # @param reduction A \code{DimReduc} object containing the SVD dimension
-# reduction
+# reduction. Assumes original irlba output is stored in the misc slot of the dimreduc.
 # @param data A data matrix to project onto the SVD. Must contain the same
 # features used to construct the original SVD.
+# @param mode "pca" or "lsi". Determines if we divide projected values by singular values.
 # @param features Features to use. If NULL, use all common features between
 # the dimreduc and the data matrix.
-# @param standardize Scale and center the projected cell embeddings using the mean and standard
-# deviation from the original SVD embeddings (left singular vectors).
+# @param do.center Center the projected cell embeddings (subtract mean across cells)
+# @param do.scale Scale the projected cell embeddings (divide by standard deviation across cells)
 # @param use.original.stats When standardizing the vectors, use the mean and standard deviation
 # of the original vectors from the SVD, rather than the mean and standard deviation of the
-# projected vectors. Assumes original irlba output is stored in the misc slot of the dimreduc.
-# @param weight.by.sigma Weight components by the size of the singular values. Note that standardizing
-# the vectors will remove the effect of weighting by the singular values.
+# projected vectors.
 # @param dims A vector containing the dimensions to use in the projection. If NULL (default),
 # project to all dimensions in the input SVD.
 # @param verbose Display messages
@@ -3983,10 +3997,11 @@ ProjectCellEmbeddings <- function(
 ProjectSVD <- function(
   reduction,
   data,
+  mode = "pca",
   features = NULL,
-  standardize = FALSE,
+  do.center = FALSE,
+  do.scale = FALSE,
   use.original.stats = FALSE,
-  weight.by.sigma = FALSE,
   dims = NULL,
   verbose = TRUE
 ) {
@@ -3999,22 +4014,31 @@ ProjectSVD <- function(
   if (verbose) {
     message("Projecting new data onto SVD")
   }
-  projected.u <- crossprod(x = vt, y = data)
-  if (weight.by.sigma) {
-    projected.u <- t(crossprod(x = projected.u, y = diag(components$sigma)))
+  projected.u <- as.matrix(x = crossprod(x = vt, y = data))
+  if (mode == "lsi") {
+    components <- slot(object = reduction, name = 'misc')
+    sigma <- components$d
+    projected.u <- projected.u / sigma[dims]
   }
-  if (standardize) {
+  if (do.center) {
     if (use.original.stats) {
       components <- slot(object = reduction, name = 'misc')
-      projected.u <- (projected.u - components$mean) / components$sd
+      projected.u <- projected.u - components$mean[dims]
     } else {
-      # TODO use sparse matrix stats here
       embed.mean <- apply(X = projected.u, MARGIN = 1, FUN = mean)
-      embed.sd <- apply(X = projected.u, MARGIN = 1, FUN = sd)
-      projected.u <- (projected.u - embed.mean) / embed.sd
+      projected.u <- projected.u - embed.mean
     }
   }
-  return(as.matrix(x = t(x = projected.u)))
+  if (do.scale) {
+    if (use.original.stats) {
+      components <- slot(object = reduction, name = 'misc')
+      projected.u <- projected.u / components$sd[dims]
+    } else {
+      embed.sd <- apply(X = projected.u, MARGIN = 1, FUN = sd)
+      projected.u <- projected.u / embed.sd
+    }
+  }
+  return(t(x = projected.u))
 }
 
 # Calculate position along a defined reference range for a given vector of
