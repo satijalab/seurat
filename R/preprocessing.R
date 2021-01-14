@@ -1560,10 +1560,12 @@ SCTransform <- function(
       if (is.null(x = residual.features)) {
         residual.features <- top.features
       }
-      residual.features <- intersect(
-        x =  residual.features,
-        y = rownames(x = umi)
-      )
+      residual.features <- Reduce(f = intersect, 
+                                  x = list(residual.features, 
+                                           rownames(x = umi), 
+                                           rownames(x = vst.out$model_pars_fit) 
+                                           )
+                                  )
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
         umi = umi[residual.features, , drop = FALSE], 
@@ -3314,7 +3316,7 @@ GetResidualSCTModel <- function(
   if (nrow(x = umi) > 0) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
     if (verbose) {
-      message("In sct.model ",SCTModel )
+      message("sct.model: ", SCTModel)
     }
     new_residual <- get_residuals(
       vst_out = vst_out,

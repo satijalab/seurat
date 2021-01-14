@@ -7957,7 +7957,7 @@ setAs(
             return(PrepVSTResults(vst.res = vst.res[[i]], cell.names = colnames(x = from)))
           }
         )
-        names(x = vst.res) <- paste0("group", 1:length(x = vst.res))
+        names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
       }
       if (length(x = vst.res) > 1) {
         vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
