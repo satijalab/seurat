@@ -376,20 +376,19 @@ GetResidual <- function(
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
     return(object)
   }
-  features.orig <- features
   if (na.rm) {
     # only compute residuals when feature model info is present in all
-    features <- names(x = which(x = table(unlist(x = lapply(
+    all.features <- names(x = which(x = table(unlist(x = lapply(
       X = sct.models,
       FUN = function(x) {
         rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
       }
     ))) == length(x = sct.models)))
-    if (length(x = features) == 0) {
+    if (length(x = all.features) == 0) {
       return(object)
     }
   }
-  features <- intersect(x = features.orig, y = features )
+  features <- intersect(x = features, y = all.features )
   new.residuals <- lapply(
     X = sct.models,
     FUN = function(x) {
@@ -405,20 +404,20 @@ GetResidual <- function(
     }
   )
   existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
-  existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), ]
+  if (na.rm) {
+    existing.data <- existing.data[intersect(x = rownames(x = existing.data), y = all.features), ]
+  }
+  existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), , drop = FALSE ]
   new.residuals <- Reduce(cbind, new.residuals)[, Cells(x = object), drop = F]
   new.scale <- rbind(existing.data, new.residuals)
-  if (na.rm) {
-    new.scale <- new.scale[complete.cases(new.scale), ]
-  }
   object <- SetAssayData(
     object = object,
     assay = assay,
     slot = "scale.data",
     new.data = new.scale
   )
-  if (any(!features.orig %in% rownames(x = new.scale))) {
-    bad.features <- features.orig[which(!features.orig %in% rownames(x = new.scale))]
+  if (any(!features %in% rownames(x = new.scale))) {
+    bad.features <- features[which(!features %in% rownames(x = new.scale))]
     warning("Residuals not computed for the following requested features: ",
             paste(bad.features, collapse = ", "), call. = FALSE)
   }
