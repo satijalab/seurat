@@ -7225,8 +7225,8 @@ merge.SCTAssay <- function(
   assays <- c(x, y)
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
-    warning("Merge an SCTAssay with another Assay type \n", 
-            "Convert SCTAssay to Assay", call. = FALSE)
+    warning("Attempting to merge an SCTAssay with another Assay type \n", 
+            "Converting all to standard Assay objects.", call. = FALSE)
     assays <- lapply(1:length(x = assays), FUN = function(x) {
       if (sct.check[x]) {
         assays[[x]] <- as(object = assays[[x]], Class = "Assay")
