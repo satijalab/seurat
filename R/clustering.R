@@ -247,7 +247,7 @@ PredictAssay <- function(
   )
   colnames(x = predicted) <- Cells(x = object)
   if (return.assay) {
-    predicted.assay <- CreateAssayObject(data = predicted)
+    predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
     return (predicted.assay)
   } else {
     return (predicted)

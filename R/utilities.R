@@ -1434,6 +1434,7 @@ PseudobulkExpression <- function(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1459,6 +1460,7 @@ PseudobulkExpression <- function(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1474,7 +1476,7 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1494,7 +1496,7 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1801,6 +1803,38 @@ as.data.frame.Matrix <- function(
   }
 }
 
+# check for infinite, logical, non-integer, NA, NaN in a matrix
+CheckMatrix <- function(
+  object,
+  check.infinite = TRUE,
+  check.logical = TRUE,
+  check.integer = TRUE,
+  check.na = TRUE
+) {
+  if (inherits(x = object, what = "Matrix")) {
+    if (check.infinite) {
+      if (any(is.infinite(x = slot(object = object, name = "x")))) {
+        warning("Input matrix contains infinite values")
+      }
+    }
+    if (check.logical) {
+      if (any(is.logical(x = slot(object = object, name = "x")))) {
+        warning("Input matrix contains logical values")
+      }
+    }
+    if (check.integer) {
+      if (!all(round(x = slot(object = object, name = "x")) == slot(object = object, name = "x"))) {
+        warning("Input matrix contains non-integer values")
+      }
+    }
+    if (check.na) {
+      if (anyNA(x = slot(object = object, name = "x"))) {
+        warning("Input matrix contains NA or NaN values")
+      }
+    }
+  }
+}
+
 # Generate chunk points
 #
 # @param dsize How big is the data being chunked
@@ -2032,7 +2066,8 @@ CreateDummyAssay <- function(assay) {
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   return(CreateAssayObject(
-    counts = cm
+    counts = cm,
+    check.matrix = FALSE
   ))
 }
 
