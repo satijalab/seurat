@@ -243,7 +243,7 @@ PredictAssay <- function(
   )
   colnames(x = predicted) <- Cells(x = object)
   if (return.assay) {
-    predicted.assay <- CreateAssayObject(data = predicted)
+    predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
     return (predicted.assay)
   } else {
     return (predicted)
@@ -822,7 +822,7 @@ AnnoyNN <- function(data,
                     search.k = -1,
                     include.distance = TRUE,
                     index = NULL
-                    ) {
+) {
   idx <- index %||% AnnoyBuildIndex(
     data = data,
     metric = metric,
@@ -1610,7 +1610,7 @@ RunLeiden <- function(
     EXPR = method,
     "matrix" = {
       input <- as(object = object, Class = "matrix")
-      },
+    },
     "igraph" = {
       input <- if (inherits(x = object, what = 'list')) {
         graph_from_adj_list(adjlist = object)
@@ -1618,13 +1618,13 @@ RunLeiden <- function(
         if (inherits(x = object, what = 'Graph')) {
           object <- as(object = object, Class = "dgCMatrix")
         }
-          graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
+        graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
       } else if (inherits(x = object, what = 'igraph')) {
         object
       } else {
         stop(
           "Method for Leiden not found for class", class(x = object),
-           call. = FALSE
+          call. = FALSE
         )
       }
     },
