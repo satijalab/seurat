@@ -4,7 +4,13 @@
 \alias{CreateAssayObject}
 \title{Create an Assay object}
 \usage{
-CreateAssayObject(counts, data, min.cells = 0, min.features = 0)
+CreateAssayObject(
+  counts,
+  data,
+  min.cells = 0,
+  min.features = 0,
+  check.matrix = TRUE
+)
 }
 \arguments{
 \item{counts}{Unnormalized data such as raw counts or TPMs}
@@ -17,6 +23,8 @@ new object with a lower cutoff.}
 
 \item{min.features}{Include cells where at least this many features are
 detected.}
+
+\item{check.matrix}{Check counts matrix for NA, NaN, Inf, and non-integer values}
 }
 \description{
 Create an Assay object from a feature (e.g. gene) expression matrix. The

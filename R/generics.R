@@ -33,6 +33,24 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   UseMethod(generic = 'AddMetaData', object = object)
 }
 
+
+#' Add info to anchor matrix
+#'
+#' @param anchors An \code{\link{AnchorSet}} object
+#' @param vars Variables to pull for each object via FetchData
+#' @param slot Slot to pull feature data for
+#' @param assay Specify the Assay per object if annotating with expression data
+#' @param ... Arguments passed to other methods
+#
+#' @return Returns the anchor dataframe with additional columns for annotation
+#' metadata
+#'
+#' @export
+#'
+AnnotateAnchors <- function(anchors, vars, slot, ...) {
+  UseMethod(generic = 'AnnotateAnchors', object = anchors)
+}
+
 #' Convert objects to CellDataSet objects
 #'
 #' @param x An object to convert to class \code{CellDataSet}
@@ -177,6 +195,7 @@ Command <- function(object, ...) {
 #' Should be a \code{\link[base]{data.frame}} where the rows are cell names and
 #' the columns are additional metadata fields. Row names in the metadata need to
 #' match the column names of the counts matrix.
+#' @param check.matrix Check counts matrix for NA, NaN, Inf, and non-integer values
 #' @param ... Arguments passed to other methods
 #'
 #' @note In previous versions (<3.0), this function also accepted a parameter to
