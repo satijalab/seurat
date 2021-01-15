@@ -944,11 +944,11 @@ Read10X <- function(
       stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
-    cell.barcodes <- read.table(barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
-    if (ncol(cell.barcodes) > 1){
-      cell.names <- cell.barcodes[,cell.column]
+    cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+    if (ncol(x = cell.barcodes) > 1) {
+      cell.names <- cell.barcodes[, cell.column]
     } else {
-      cell.names <- readLines(barcode.loc)
+      cell.names <- readLines(con = barcode.loc)
     }
     if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
