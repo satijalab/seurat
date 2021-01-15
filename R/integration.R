@@ -736,7 +736,7 @@ FindTransferAnchors <- function(
       orig.loadings <- Loadings(object = reference[[reference.reduction]])
     }
     combined.pca <- CreateDimReducObject(
-      embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca))[, dims],
+      embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca)),
       key = "ProjectPC_",
       assay = reference.assay
     )
@@ -807,7 +807,7 @@ FindTransferAnchors <- function(
     cells2 = colnames(x = query),
     reduction = reduction,
     internal.neighbors = precomputed.neighbors,
-    dims = dims,
+    dims = 1:length(x = dims),
     k.anchor = k.anchor,
     k.filter = k.filter,
     k.score = k.score,
@@ -963,8 +963,6 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' automatically.
 #' @param preserve.order Do not reorder objects based on size for each pairwise
 #' integration.
-#' @param do.cpp Run cpp code where applicable. This argument is being
-#' deprecated and will be set to TRUE by default.
 #' @param eps Error bound on the neighbor finding algorithm (from
 #' \code{\link{RANN}})
 #' @param verbose Print progress bars and output
@@ -1019,18 +1017,9 @@ IntegrateData <- function(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
-  do.cpp = TRUE,
   eps = 0,
   verbose = TRUE
 ) {
-  # TODO: deprecate fully in 4.0
-  if (!isTRUE(x = do.cpp)) {
-    warning(
-      "The do.cpp parameter is being deprecated. It will default to TRUE.",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
   normalization.method <- match.arg(arg = normalization.method)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -1083,7 +1072,6 @@ IntegrateData <- function(
     sd.weight = sd.weight,
     sample.tree = sample.tree,
     preserve.order = preserve.order,
-    do.cpp = do.cpp,
     eps = eps,
     verbose = verbose
   )
@@ -1129,7 +1117,6 @@ IntegrateData <- function(
       weight.reduction = weight.reduction,
       sd.weight = sd.weight,
       preserve.order = preserve.order,
-      do.cpp = do.cpp,
       eps = eps,
       verbose = verbose
     )
@@ -1254,7 +1241,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     sd.weight = sd.weight,
     sample.tree = sample.tree,
     preserve.order = preserve.order,
-    do.cpp = TRUE,
     verbose = verbose
   )
   if (length(x = reference.datasets) == length(x = object.list)) {
@@ -1294,7 +1280,6 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     weight.reduction = weight.reduction,
     sd.weight = sd.weight,
     preserve.order = preserve.order,
-    do.cpp = TRUE,
     verbose = verbose
   )
   unintegrated[[new.reduction.name]] <- CreateDimReducObject(
@@ -1391,7 +1376,6 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     no.offset = TRUE,
     sd.weight = sd.weight,
     preserve.order = preserve.order,
-    do.cpp = TRUE,
     verbose = verbose
   )
   integrated.embeddings <- as.matrix(x = integrated.embeddings)
@@ -1532,14 +1516,16 @@ MapQuery <- function(
   query,
   reference,
   refdata = NULL,
-  new.reduction.name = paste0("ref.", reference.reduction),
-  reference.reduction,
+  new.reduction.name = NULL,
+  reference.reduction = NULL,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
   projectumap.args = list(),
   verbose = TRUE
 ) {
+  reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
+  new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
     warning("The following arguments in transferdata.args are not valid: ",
@@ -1585,12 +1571,16 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
 
   if (!is.null(x = reduction.model)) {
+    ref.dims <- slot(object = anchorset, name = "command")$dims
+    query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][["pcaproject"]])
     query <- do.call(
       what = ProjectUMAP,
       args = c(list(
         query = query,
         query.reduction = new.reduction.name,
+        query.dims = query.dims,
         reference = reference,
+        reference.dims = ref.dims,
         reference.reduction = reference.reduction,
         reduction.model = reduction.model
         ), projectumap.args
@@ -1699,7 +1689,6 @@ MappingScore.default <- function(
       eps = 0,
       nn.method = nn.method,
       n.trees = n.trees,
-      cpp = TRUE,
       verbose = verbose
     )
     weights.matrix <- GetIntegrationData(
@@ -1740,7 +1729,6 @@ MappingScore.default <- function(
     nn.method = nn.method,
     n.trees = n.trees,
     reverse = TRUE,
-    cpp = TRUE,
     verbose = verbose
   )
   weights.matrix <- GetIntegrationData(
@@ -2511,7 +2499,6 @@ TransferData <- function(
     sd.weight = sd.weight,
     eps = eps,
     n.trees = n.trees,
-    cpp = TRUE,
     verbose = verbose
   )
   weights <- GetIntegrationData(
@@ -3201,8 +3188,7 @@ FindWeights <- function(
   n.trees = 50,
   eps = 0,
   reverse = FALSE,
-  verbose = TRUE,
-  cpp = FALSE
+  verbose = TRUE
 ) {
   if (verbose) {
     message("Finding integration vector weights")
@@ -3272,48 +3258,19 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = "integration.matrix"
   )
-  if (cpp) {
-    weights <- FindWeightsC(
-      cells2 = 0:(length(x = nn.cells2) - 1),
-      distances = as.matrix(x = distances),
-      anchor_cells2 = anchors.cells2,
-      integration_matrix_rownames = rownames(x = integration.matrix),
-      cell_index = cell.index,
-      anchor_score = anchors[, "score"],
-      min_dist = 0,
-      sd = sd.weight,
-      display_progress = verbose
-    )
-  } else {
-    if (verbose) {
-      pb <- txtProgressBar(min = 1, max = length(x = nn.cells2), initial = 1, style = 3, file = stderr())
-    }
-    dist.weights <- matrix(
-      data = 0,
-      nrow = nrow(x = integration.matrix),
-      ncol = length(x = nn.cells2)
-    )
-    for (cell in 1:length(x = nn.cells2)) {
-      wt <- distances[cell, ]
-      cellnames <- anchors.cells2[cell.index[cell, ]]
-      names(x = wt) <- cellnames
-      k.used <- 0 #number of anchors used so far; a cell in the neighbor list may contribute to multiple anchors
-      for (i in cellnames){
-        anchor.index <- which(rownames(integration.matrix) == i)
-        for (j in anchor.index) {
-          dist.weights[j, cell] <- wt[[i]]
-          k.used <- k.used + 1
-          if (k.used == k) break
-        }
-        if (k.used == k) break
-      }
-      if (verbose) setTxtProgressBar(pb, cell)
-    }
-    if (verbose) message("")
-    dist.anchor.weight <- dist.weights * anchors[, "score"]
-    weights <- 1 - exp(-1 * dist.anchor.weight / (2 * (1 / sd.weight)) ^ 2)
-    weights <- Sweep(x = weights, MARGIN = 2, STATS = Matrix::colSums(weights), FUN = "/")
-  }
+
+  weights <- FindWeightsC(
+    cells2 = 0:(length(x = nn.cells2) - 1),
+    distances = as.matrix(x = distances),
+    anchor_cells2 = anchors.cells2,
+    integration_matrix_rownames = rownames(x = integration.matrix),
+    cell_index = cell.index,
+    anchor_score = anchors[, "score"],
+    min_dist = 0,
+    sd = sd.weight,
+    display_progress = verbose
+  )
+
   object <- SetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -3374,8 +3331,6 @@ GetCellOffsets <- function(anchors, dataset, cell, cellnames.list, cellnames) {
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param preserve.order Do not reorder objects based on size for each pairwise integration.
-# @param do.cpp Run cpp code where applicable. This argument is being
-# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
 #
@@ -3395,18 +3350,9 @@ MapQueryData <- function(
   no.offset = FALSE,
   sd.weight = 1,
   preserve.order = FALSE,
-  do.cpp = TRUE,
   eps = 0,
   verbose = TRUE
 ) {
-  # TODO: deprecate fully in 4.0
-  if (!isTRUE(x = do.cpp)) {
-    warning(
-      "The do.cpp parameter is being deprecated. It will default to TRUE.",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
   normalization.method <- match.arg(arg = normalization.method)
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
@@ -3447,7 +3393,6 @@ MapQueryData <- function(
         no.offset = no.offset,
         features = features,
         dims = dims,
-        do.cpp = do.cpp,
         k.weight = k.weight,
         sd.weight = sd.weight,
         eps = eps,
@@ -3528,8 +3473,6 @@ NNtoMatrix <- function(idx, distance, k) {
 # automatically.
 # @param preserve.order Do not reorder objects based on size for each pairwise
 # integration.
-# @param do.cpp Run cpp code where applicable. This argument is being
-# deprecated and will be set to TRUE by default.
 # @param eps Error bound on the neighbor finding algorithm (from
 # \code{\link{RANN}})
 # @param verbose Print progress bars and output
@@ -3548,18 +3491,9 @@ PairwiseIntegrateReference <- function(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
-  do.cpp = TRUE,
   eps = 0,
   verbose = TRUE
 ) {
-  # TODO: deprecate fully in 4.0
-  if (!isTRUE(x = do.cpp)) {
-    warning(
-      "The do.cpp parameter is being deprecated. It will default to TRUE.",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
   object.list <- slot(object = anchorset, name = "object.list")
   reference.objects <- slot(object = anchorset, name = "reference.objects")
   features <- features %||% slot(object = anchorset, name = "anchor.features")
@@ -3673,7 +3607,6 @@ PairwiseIntegrateReference <- function(
       features = features,
       dims = dims,
       weight.reduction = weight.reduction,
-      do.cpp = do.cpp,
       k.weight = k.weight,
       sd.weight = sd.weight,
       eps = eps,
@@ -3877,9 +3810,6 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 # query, and weights will need to be calculated for all cells in the object.
 # @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 # @param sample.tree Specify the order of integration. If NULL, will compute automatically.
-# @param do.cpp Run cpp code where applicable. This argument is being
-# deprecated and will be set to TRUE by default.
-# @param do.cpp Run cpp code where applicable
 # @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 # @param verbose Print progress bars and output
 #
@@ -3896,20 +3826,11 @@ RunIntegration <- function(
   no.offset = FALSE,
   features,
   dims,
-  do.cpp,
   k.weight,
   sd.weight,
   eps,
   verbose
 ) {
-  # TODO: deprecate fully in 4.0
-  if (!isTRUE(x = do.cpp)) {
-    warning(
-      "The do.cpp parameter is being deprecated. It will default to TRUE.",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
   cells1 <- colnames(x = reference)
   cells2 <- colnames(x = query)
   if (nrow(x = filtered.anchors) < k.weight) {
@@ -4011,7 +3932,6 @@ RunIntegration <- function(
       object = merged.obj,
       integration.name = integration.name,
       reduction = dr.weights,
-      cpp = do.cpp,
       dims = dims,
       k = k.weight,
       sd.weight = sd.weight,
@@ -4031,7 +3951,6 @@ RunIntegration <- function(
     new.assay.name = new.assay.name,
     features.to.integrate = features.to.integrate,
     integration.name = integration.name,
-    do.cpp = do.cpp,
     verbose = verbose
   )
   integrated.matrix <- GetAssayData(
@@ -4047,8 +3966,7 @@ ScoreAnchors <- function(
   assay = NULL,
   integration.name = 'integrated',
   verbose = TRUE,
-  k.score = 30,
-  do.cpp = TRUE
+  k.score = 30
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   anchor.df <- as.data.frame(x = GetIntegrationData(object = object, integration.name = integration.name, slot = 'anchors'))
@@ -4127,7 +4045,6 @@ TransformDataMatrix <- function(
   integration.name = 'integrated',
   features.to.integrate = NULL,
   reduction = "cca",
-  do.cpp = TRUE,
   verbose = TRUE
 ) {
   if(verbose) {
@@ -4158,15 +4075,11 @@ TransformDataMatrix <- function(
     assay = assay,
     slot = "data")[features.to.integrate, nn.cells2]
   )
-  if (do.cpp) {
-    integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
-                                 weights = as(weights, "dgCMatrix"),
-                                 expression_cells2 = as(data.use2, "dgCMatrix"))
-    dimnames(integrated) <- dimnames(data.use2)
-  } else {
-    bv <-  t(weights) %*% integration.matrix
-    integrated <- data.use2 - bv
-  }
+
+  integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
+                               weights = as(weights, "dgCMatrix"),
+                               expression_cells2 = as(data.use2, "dgCMatrix"))
+  dimnames(integrated) <- dimnames(data.use2)
 
   new.expression <- t(rbind(data.use1, integrated))
   new.expression <- new.expression[, colnames(object)]
@@ -4505,9 +4418,10 @@ ValidateParams_TransferData <- function(
     }
   } else {
     if (is.null(x = dims)) {
-      ModifyParam(param = "dims", value = slot(object = anchorset, name = "command")$dims)
+      ModifyParam(param = "dims", value = 1:length(x = slot(object = anchorset, name = "command")$dims))
     }
   }
+
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(gsub(pattern = "_query", replacement = "", x = query.cells), Cells(x = query)))) {
       stop("Query object provided contains a different set of cells from the ",
@@ -4658,7 +4572,6 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   query[[reductions]] <- CreateDimReducObject(embeddings = query.embeddings, assay = DefaultAssay(object = query))
   ModifyParam(param = "query", value = query)
   ModifyParam(param = "reductions", value = c(reductions, reductions))
-
   min.ndim <- min(ncol(x = query[[reductions[2]]]), ncol(x = reference[[reductions[1]]]))
   if (is.null(x = dims.to.integrate)) {
     dims.to.integrate <- 1:min.ndim
