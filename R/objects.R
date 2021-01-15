@@ -684,6 +684,7 @@ CellsByImage <- function(object, images = NULL, unlist = FALSE) {
 #' new object with a lower cutoff.
 #' @param min.features Include cells where at least this many features are
 #' detected.
+#' @param check.matrix Check counts matrix for NA, NaN, Inf, and non-integer values
 #'
 #' @importFrom methods as
 #' @importFrom Matrix colSums rowSums
@@ -702,7 +703,8 @@ CreateAssayObject <- function(
   counts,
   data,
   min.cells = 0,
-  min.features = 0
+  min.features = 0,
+  check.matrix = TRUE
 ) {
   if (missing(x = counts) && missing(x = data)) {
     stop("Must provide either 'counts' or 'data'")
@@ -712,7 +714,9 @@ CreateAssayObject <- function(
     if (!inherits(x = counts, what = 'dgCMatrix')) {
       counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
     }
-    CheckMatrix(object = counts)
+    if (check.matrix) {
+      CheckMatrix(object = counts)
+    }
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       warning(
@@ -989,6 +993,7 @@ CreateSeuratObject.default <- function(
   meta.data = NULL,
   min.cells = 0,
   min.features = 0,
+  check.matrix = TRUE,
   ...
 ) {
   if (!is.null(x = meta.data)) {
@@ -999,7 +1004,8 @@ CreateSeuratObject.default <- function(
   assay.data <- CreateAssayObject(
     counts = counts,
     min.cells = min.cells,
-    min.features = min.features
+    min.features = min.features,
+    check.matrix = check.matrix
   )
   if (!is.null(x = meta.data)) {
     common.cells <- intersect(

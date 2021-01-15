@@ -11,13 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `MapQuery()` as a wrapper around `IntegrateData()`, `IntegrateEmbeddings()`, and `ProjectUMAP()`
 - Add `MappingScore` to compute a per-cell mapping score used in Azimuth
 - Add `AggregateExpression()` for summation based pseudobulk calculations
-- Add mixscape functionality via `CalcPerturbSig()`, `PrepLDA()`, `RunLDA()`, `DEEnrichRPlot()`, `MixscapeHeatmap()`, `MixscapeLDA()`, `PlotPerturbScore()`, `RunMixscape()`
+- Add mixscape functionality via `CalcPerturbSig()`, `PrepLDA()`, `RunLDA()`, `DEenrichRPlot()`, `MixscapeHeatmap()`, `MixscapeLDA()`, `PlotPerturbScore()`, `RunMixscape()`
 - Add `FindSubCluster()` to further cluster existing clusters
 - Add supervised PCA functionality via `RunSPCA()`
 - Add functionality to enable weighted nearest neighbor analyses via `FindMultiModalNeighbors()`
 - Add neighbor visualization plot via `NNPlot()`. 
 - Add `PredictAssay()` to impute expression or embeddings from nearest neighbors
 - Add `Graphs()` function to access the names of the stored Graph objects or pull a specific one
+- Add checks for NA, NaN, logical, non-integer, and infinite values during CreateAssayObject and NormalizeData.default
 
 ### Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"

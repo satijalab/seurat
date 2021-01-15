@@ -177,6 +177,7 @@ Command <- function(object, ...) {
 #' Should be a \code{\link[base]{data.frame}} where the rows are cell names and
 #' the columns are additional metadata fields. Row names in the metadata need to
 #' match the column names of the counts matrix.
+#' @param check.matrix Check counts matrix for NA, NaN, Inf, and non-integer values
 #' @param ... Arguments passed to other methods
 #'
 #' @note In previous versions (<3.0), this function also accepted a parameter to

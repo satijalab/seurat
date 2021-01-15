@@ -731,7 +731,8 @@ FindTransferAnchors <- function(
         )
       )
       reference[[reference.assay]] <- CreateAssayObject(
-        data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
+        data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ],
+        check.matrix = FALSE
       )
       reference <- SetAssayData(
         object = reference,
@@ -741,7 +742,8 @@ FindTransferAnchors <- function(
       )
     }
     query[[query.assay]] <- CreateAssayObject(
-      data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
+      data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ],
+      check.matrix = FALSE
     )
     query <- SetAssayData(
       object = query,
@@ -1245,7 +1247,8 @@ IntegrateData <- function(
         )
       }
       object.list[[i]][[assay]] <- CreateAssayObject(
-        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
+        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data"),
+        check.matrix = FALSE
       )
     }
     slot(object = anchorset, name = "object.list") <- object.list
@@ -1289,7 +1292,8 @@ IntegrateData <- function(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
         slot = 'data'
-      )
+      ),
+      check.matrix = FALSE
     )
     DefaultAssay(object = reference.integrated) <- active.assay
     reference.integrated[[new.assay.name]] <- NULL
@@ -1313,7 +1317,8 @@ IntegrateData <- function(
 
     # Construct final assay object
     integrated.assay <- CreateAssayObject(
-      data = integrated.data
+      data = integrated.data,
+      check.matrix = FALSE
     )
     if (normalization.method == "SCT") {
       integrated.assay <- SetAssayData(
@@ -1410,7 +1415,8 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
       expr = CreateAssayObject(
-        data = embeddings)
+        data = embeddings,
+        check.matrix = FALSE)
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
@@ -1448,7 +1454,8 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data'
+      slot = 'data',
+      check.matrix = FALSE
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1535,7 +1542,8 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
       expr = CreateAssayObject(
-        data = embeddings)
+        data = embeddings,
+        check.matrix = FALSE)
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
@@ -2739,7 +2747,7 @@ TransferData <- function(
         stringsAsFactors = FALSE
       )
       if (prediction.assay || !is.null(x = query)) {
-        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
+        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE)
         Key(object = predictions) <- paste0("predictionscore", rd.name, "_")
       }
       if (is.null(x = query)) {
@@ -2763,9 +2771,9 @@ TransferData <- function(
         new.data <- as(object = new.data, Class = "dgCMatrix")
       }
       if (slot == "counts") {
-        new.assay <- CreateAssayObject(counts = new.data)
+        new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
       } else if (slot == "data") {
-        new.assay <- CreateAssayObject(data = new.data)
+        new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
       }
       Key(object = new.assay) <- paste0(rd.name, "_")
       if (is.null(x = query)) {
@@ -3694,7 +3702,8 @@ PairwiseIntegrateReference <- function(
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ]
+      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+      check.matrix = FALSE
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
@@ -3817,7 +3826,7 @@ PairwiseIntegrateReference <- function(
       verbose = verbose
     )
     integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
-    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
+    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL

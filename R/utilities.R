@@ -1416,6 +1416,7 @@ PseudobulkExpression <- function(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1441,6 +1442,7 @@ PseudobulkExpression <- function(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1456,7 +1458,7 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1476,7 +1478,7 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1784,8 +1786,7 @@ CheckMatrix <- function(
   check.infinite = TRUE,
   check.logical = TRUE,
   check.integer = TRUE,
-  check.na = TRUE,
-  check.nan = TRUE
+  check.na = TRUE
 ) {
   if (inherits(x = object, what = "Matrix")) {
     if (check.infinite) {
@@ -1804,13 +1805,8 @@ CheckMatrix <- function(
       }
     }
     if (check.na) {
-      if (any(is.na(x = slot(object = object, name = "x")))) {
-        warning("Input matrix contains NA values")
-      }
-    }
-    if (check.nan) {
-      if (any(is.nan(x = slot(object = object, name = "x")))) {
-        warning("Input matrix contains NaN values")
+      if (anyNA(x = slot(object = object, name = "x"))) {
+        warning("Input matrix contains NA or NaN values")
       }
     }
   }
@@ -2048,7 +2044,8 @@ CreateDummyAssay <- function(assay) {
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   return(CreateAssayObject(
-    counts = cm
+    counts = cm,
+    check.matrix = FALSE
   ))
 }
 
