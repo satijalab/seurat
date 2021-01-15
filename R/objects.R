@@ -911,6 +911,8 @@ CreateAssayObject <- function(
   return(assay)
 }
 
+
+
 #' Create a DimReduc object
 #'
 #' @param embeddings A matrix with the cell embeddings
@@ -7223,8 +7225,22 @@ merge.SCTAssay <- function(
   assays <- c(x, y)
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
-    warning("Cannot merge an SCTAssay with another Assay type", call. = FALSE)
-    return(NULL)
+    warning("Attempting to merge an SCTAssay with another Assay type \n", 
+            "Converting all to standard Assay objects.", call. = FALSE)
+    assays <- lapply(1:length(x = assays), FUN = function(x) {
+      if (sct.check[x]) {
+        assays[[x]] <- as(object = assays[[x]], Class = "Assay")
+      }
+      return(assays[[x]])
+    }
+    )
+    combined.assay <- merge(
+        x = assays[[1]], 
+        y = assays[2:length(x = assays)], 
+        add.cell.ids = add.cell.ids, 
+        merge.data = merge.data
+)
+    return(combined.assay)
   }
   combined.assay <- NextMethod()
   all.levels <- unlist(x = lapply(X = assays, FUN = levels))
@@ -7519,8 +7535,13 @@ merge.Seurat <- function(
   for (assay in Assays(object = merged.object)) {
     if (inherits(x = merged.object[[assay]], what = "SCTAssay")) {
       resid.to.compute <- rownames(x = GetAssayData(object = merged.object[[assay]], slot = "scale.data"))
-      if (length(x = slot(object = merged.object[[assay]], name = "SCTModel.list")) > 0){
-        merged.object <- GetResidual(object = merged.object, features = resid.to.compute, assay = assay)
+      if (length(x = slot(object = merged.object[[assay]], name = "SCTModel.list")) > 0 &
+          !is.null(x = resid.to.compute)) {
+        suppressWarnings(merged.object <- GetResidual(
+          object = merged.object,
+          features = resid.to.compute,
+          assay = assay
+          ))
       }
     }
   }
@@ -7950,7 +7971,7 @@ setAs(
             return(PrepVSTResults(vst.res = vst.res[[i]], cell.names = colnames(x = from)))
           }
         )
-        names(x = vst.res) <- paste0("group", 1:length(x = vst.res))
+        names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
       }
       if (length(x = vst.res) > 1) {
         vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])

@@ -334,7 +334,6 @@ FindIntegrationAnchors <- function(
             rescale = FALSE,
             verbose = verbose
           )
-
           if (l2.norm){
             object.pair <- L2Dim(object = object.pair, reduction = reduction)
             reduction <- paste0(reduction, ".l2")
@@ -399,6 +398,7 @@ FindIntegrationAnchors <- function(
         stop("Invalid reduction parameter. Please choose either cca or rpca")
       )
       internal.neighbors <- internal.neighbors[c(i, j)]
+
       anchors <- FindAnchors(
         object.pair = object.pair,
         assay = c("ToIntegrate", "ToIntegrate"),
@@ -745,8 +745,8 @@ FindTransferAnchors <- function(
       assay = reference.assay
     )
     combined.ob <- merge(
-      x = DietSeurat(object = reference),
-      y = DietSeurat(object = query)
+      x = DietSeurat(object = reference, counts = FALSE),
+      y = DietSeurat(object = query, counts = FALSE),
     )
     combined.ob[["pcaproject"]] <- combined.pca
     colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
@@ -1056,14 +1056,9 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
-      object.list[[i]][[assay]] <- SetAssayData(
-        object = object.list[[i]][[assay]],
-        slot = "data",
-        new.data = GetAssayData(
-          object = object.list[[i]][[assay]],
-          slot = "scale.data"
-        )
-      )
+      object.list[[i]][[assay]] <- as(object = CreateAssayObject(
+        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
+      ), Class = "SCTAssay")
     }
     slot(object = anchorset, name = "object.list") <- object.list
   }
