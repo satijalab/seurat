@@ -65,3 +65,20 @@ install.packages('remotes')
 remotes::install_github(repo = 'satijalab/seurat', ref = 'develop')
 library(Seurat)
 ```
+
+# Docker
+
+We provide docker images for Seurat via [dockerhub](https://hub.docker.com/r/satijalab/seurat).
+
+To pull the latest image from the command line:
+
+```sh
+docker pull satijalab/seurat:latest
+```
+
+To use as a base image in a new Dockerfile:
+
+```sh
+FROM satijalab/seurat:latest
+```
+
