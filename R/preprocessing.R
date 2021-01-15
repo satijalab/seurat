@@ -1347,12 +1347,13 @@ SampleUMI <- function(
 #' assay are set to the top variable.features.n in the model.
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param ncells Number of subsampling cells used to build NB regression; default is 5000
-#' @param residual.features Genes to calculate residual features for; default is NULL (all genes)
+#' @param residual.features Genes for which to calculate residual features; default is NULL (all genes).
+#' If specified, will be set to VariableFeatures of the returned object.
 #' @param variable.features.n Use this many features as variable features after
-#' ranking by residual variance; default is 3000
+#' ranking by residual variance; default is 3000. Only applied if residual.features is not set.
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features,
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
-#' is set to NULL; default is 1.3
+#' is set to NULL; default is 1.3. Only applied if residual.features is not set.
 #' @param vars.to.regress Variables to regress out in a second non-regularized linear
 #' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
