@@ -389,7 +389,10 @@ GetResidual <- function(
       return(object)
     }
   }
-  features <- intersect(x = features.orig, y = features )
+  features <- intersect(x = features.orig, y = features)
+  if (length(x = sct.models) > 1 & verbose) {
+    message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
+  }
   new.residuals <- lapply(
     X = sct.models,
     FUN = function(x) {
@@ -1540,7 +1543,7 @@ SCTransform <- function(
     })
 
   feature.variance <- vst.out$gene_attr[,"residual_variance"]
-  names(feature.variance) <- rownames(x = vst.out$gene_attr)
+  names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
   if (verbose) {
     message('Determine variable features')
   }
@@ -1558,12 +1561,10 @@ SCTransform <- function(
       if (is.null(x = residual.features)) {
         residual.features <- top.features
       }
-      residual.features <- Reduce(f = intersect,
-                                  x = list(residual.features,
-                                           rownames(x = umi),
-                                           rownames(x = vst.out$model_pars_fit)
-                                           )
-                                  )
+      residual.features <- Reduce(
+        f = intersect,
+        x = list(residual.features, rownames(x = umi), rownames(x = vst.out$model_pars_fit))
+      )
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
         umi = umi[residual.features, , drop = FALSE],
@@ -1571,15 +1572,19 @@ SCTransform <- function(
       )
       vst.out$gene_attr <- vst.out$gene_attr[residual.features ,]
       ref.residuals.mean <- vst.out$gene_attr[,"residual_mean"]
-      vst.out$y <- sweep(x = residual.feature.mat,
-                         MARGIN = 1,
-                         STATS =  ref.residuals.mean,
-                         FUN="-")
+      vst.out$y <- sweep(
+        x = residual.feature.mat,
+        MARGIN = 1,
+        STATS = ref.residuals.mean,
+        FUN = "-"
+      )
       vst.out
     },
     'residual.features' = {
-      residual.features <- intersect(x = residual.features,
-                                     y =  rownames(x = vst.out$gene_attr))
+      residual.features <- intersect(
+        x = residual.features,
+        y = rownames(x = vst.out$gene_attr)
+      )
       residual.feature.mat <- get_residuals(
         vst_out = vst.out,
         umi = umi[residual.features, , drop = FALSE],
@@ -3265,7 +3270,7 @@ GetResidualSCTModel <- function(
   model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
   umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
-  sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||%"default"
+  sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
   existing_features <- names(x = which(x = ! apply(
     X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
     MARGIN = 1,
@@ -3279,14 +3284,13 @@ GetResidualSCTModel <- function(
   }
   if (sct.method == "reference.model") {
     if (verbose) {
-      message("sct.model ",
-              SCTModel,
-              " is from reference, so no residuals will be recalculated" )
+      message("sct.model ", SCTModel, " is from reference, so no residuals will be recalculated")
     }
     features_to_compute <- character()
   }
   if (!umi.assay %in% Assays(object = object)) {
-    warnings("The umi assay (", umi.assay, ") is not present in the object. Cannot compute additional residuals.")
+    warnings("The umi assay (", umi.assay, ") is not present in the object.",
+             "Cannot compute additional residuals.")
     umi.assay <- assay
     features_to_compute <- character()
   }
