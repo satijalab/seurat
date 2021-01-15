@@ -7234,10 +7234,12 @@ merge.SCTAssay <- function(
       return(assays[[x]])
     }
     )
-    combined.assay <- merge.Assay(x = assays[[1]], 
-                                  y = assays[2:length(x = assays)], 
-                                  add.cell.ids = add.cell.ids, 
-                                  merge.data = merge.data)
+    combined.assay <- merge(
+        x = assays[[1]], 
+        y = assays[2:length(x = assays)], 
+        add.cell.ids = add.cell.ids, 
+        merge.data = merge.data
+)
     return(combined.assay)
   }
   combined.assay <- NextMethod()
