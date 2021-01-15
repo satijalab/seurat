@@ -7963,7 +7963,17 @@ setAs(
         vst.res <- list(vst.res)
         umi.assay <- list(umi.assay)
       }
-      if ( length(vst.res) > 0) {
+      if (length(vst.res) == 0) {
+        features <- rownames(x = GetAssayData(object = from, slot = "scale.data"))
+        feature.attr <- data.frame(row.names = features)
+        cell.attr <- data.frame(row.names = colnames(x = from))
+        vst.res <- list(model1 = 
+                          SCTModel(
+          feature.attributes = feature.attr, 
+          cell.attributes = cell.attr
+          )
+          )
+      } else if (length(vst.res) > 0) {
         vst.res <- lapply(
           X = 1:length(x = vst.res),
           FUN = function(i) {
