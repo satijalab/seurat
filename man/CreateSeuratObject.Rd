@@ -25,6 +25,7 @@ CreateSeuratObject(
   meta.data = NULL,
   min.cells = 0,
   min.features = 0,
+  check.matrix = TRUE,
   ...
 )
 
@@ -70,6 +71,8 @@ new object with a lower cutoff.}
 
 \item{min.features}{Include cells where at least this many features are
 detected.}
+
+\item{check.matrix}{Check counts matrix for NA, NaN, Inf, and non-integer values}
 }
 \value{
 A \code{\link{Seurat}} object

@@ -2,6 +2,41 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [4.0.0-beta]
+### Added
+- Expose `FoldChange()` component in `FindMarkers()`. 
+- Add the `merge.DimReduc` method
+- Add `IntegrateEmbeddings()` to correct embeddings of `DimReduc`s
+- Add `ProjectUMAP()` to project query cells into a reference UMAP space
+- Add `MapQuery()` as a wrapper around `IntegrateData()`, `IntegrateEmbeddings()`, and `ProjectUMAP()`
+- Add `MappingScore` to compute a per-cell mapping score used in Azimuth
+- Add `AggregateExpression()` for summation based pseudobulk calculations
+- Add mixscape functionality via `CalcPerturbSig()`, `PrepLDA()`, `RunLDA()`, `DEenrichRPlot()`, `MixscapeHeatmap()`, `MixscapeLDA()`, `PlotPerturbScore()`, `RunMixscape()`
+- Add `FindSubCluster()` to further cluster existing clusters
+- Add supervised PCA functionality via `RunSPCA()`
+- Add functionality to enable weighted nearest neighbor analyses via `FindMultiModalNeighbors()`
+- Add neighbor visualization plot via `NNPlot()`. 
+- Add `PredictAssay()` to impute expression or embeddings from nearest neighbors
+- Add `Graphs()` function to access the names of the stored Graph objects or pull a specific one
+- Add checks for NA, NaN, logical, non-integer, and infinite values during CreateAssayObject and NormalizeData.default
+
+### Changes
+- Default neighbor finding algorithm changed from "rann" to "annoy"
+- Default `ncells` parameter in `SCTransform()` changed to 5000
+- Default fold change in `FindMarkers()` changed from ln to log2
+- Implementation improvements to `AverageExpression()`
+- `AnchorSet` class re-implemented as a virtual class from which `IntegrationAnchorSet` and `TransferAnchorSet` now inherit. 
+- Point size in `VlnPlot()` now set automatically if not specified
+- Return the sample.tree properly when integrating with a single reference dataset
+- Replace `as.character.quosure` usage with `as_label` due to deprecation
+- Minor changes to the exact calculation of the anchor weight matrix
+
+### Removed
+- `CreateGeneActivityMatrix` replaced by `Signac::GeneActivity()`
+- `RunLSI` replaced by by `Signac::RunTFIDF()` and `Signac::RunSVD()`
+- `ReadAlevin` and `ReadAlevinCsv` moved to SeuratWrappers
+- `ExportToCellbrowser` and `StopCellbrowser` moved to SeuratWrappers
+
 ## [3.2.3] - 2020-12-14
 ### Added
 - Titles added to `DimPlot` when specifying `group.by` parameter
