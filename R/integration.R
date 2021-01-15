@@ -921,7 +921,7 @@ FindTransferAnchors <- function(
     }
     if (project.query) {
       projected.lsi <- ProjectSVD(
-        reference = query[[reference.reduction]],
+        reduction = query[[reference.reduction]],
         data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
         mode = "lsi",
         do.center = TRUE,
