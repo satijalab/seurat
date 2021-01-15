@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `Graphs()` function to access the names of the stored Graph objects or pull a specific one
 - Add checks for NA, NaN, logical, non-integer, and infinite values during CreateAssayObject and NormalizeData.default
 - Add `AnnotateAnchors()` to aid in AnchorSet interpretation as well as `subset.AnchorSet()`
+- Add flexibility of choice for cell column in `Read10X()`
 
 ### Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"
