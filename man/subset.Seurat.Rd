@@ -8,7 +8,15 @@
 \usage{
 \method{[}{Seurat}(x, i, j, ...)
 
-\method{subset}{Seurat}(x, subset, cells = NULL, features = NULL, idents = NULL, ...)
+\method{subset}{Seurat}(
+  x,
+  subset,
+  cells = NULL,
+  features = NULL,
+  idents = NULL,
+  recompute = TRUE,
+  ...
+)
 }
 \arguments{
 \item{x}{Seurat object to be subsetted}
@@ -23,6 +31,8 @@ such as \code{slot}, \code{invert}, or \code{downsample}}
 \item{subset}{Logical expression indicating features/variables to keep}
 
 \item{idents}{A vector of identity classes to keep}
+
+\item{recompute}{Recompute nCount and nFeature after subsetting}
 }
 \value{
 A subsetted Seurat object
