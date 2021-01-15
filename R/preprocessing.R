@@ -482,6 +482,8 @@ GetResidual <- function(
 #'
 #' @inheritParams Read10X
 #' @inheritParams CreateSeuratObject
+#' @param data.dir Directory containing the H5 file specified by \code{filename}
+#' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
@@ -514,6 +516,10 @@ Load10X_Spatial <- function(
   to.upper = FALSE,
   ...
 ) {
+  if (length(x = data.dir) > 1) {
+    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    data.dir <- data.dir[1]
+  }
   data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
     rownames(x = data) <- toupper(x = rownames(x = data))
@@ -1044,7 +1050,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
   genomes <- names(x = infile)
   output <- list()
-  if (!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+  if (hdf5r::existsGroup(infile, 'matrix')) {
     # cellranger version 3
     if (use.names) {
       feature_slot <- 'features/name'
@@ -1605,10 +1611,10 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  if (!is.null(x = residual.features)) {
+  if (!is.null(x = residual.features) &  !is.null(x = reference.SCT.model)) {
     top.features <- intersect(
       x = variable.features.ref,
-      y = rownames(x = object[[assay]])
+      y = rownames(x = residual.feature.mat)
     )
   }
   if (verbose) {
