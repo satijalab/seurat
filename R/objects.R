@@ -7225,8 +7225,20 @@ merge.SCTAssay <- function(
   assays <- c(x, y)
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
-    warning("Cannot merge an SCTAssay with another Assay type", call. = FALSE)
-    return(NULL)
+    warning("Merge an SCTAssay with another Assay type \n", 
+            "Convert SCTAssay to Assay", call. = FALSE)
+    assays <- lapply(1:length(x = assays), FUN = function(x) {
+      if (sct.check[x]) {
+        assays[[x]] <- as(object = assays[[x]], Class = "Assay")
+      }
+      return(assays[[x]])
+    }
+    )
+    combined.assay <- merge.Assay(x = assays[[1]], 
+                                  y = assays[2:length(x = assays)], 
+                                  add.cell.ids = add.cell.ids, 
+                                  merge.data = merge.data)
+    return(combined.assay)
   }
   combined.assay <- NextMethod()
   all.levels <- unlist(x = lapply(X = assays, FUN = levels))
