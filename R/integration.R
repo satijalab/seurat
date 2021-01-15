@@ -2043,6 +2043,7 @@ PrepSCTIntegration <- function(
     X = 1:length(x = object.list),
     FUN = function(i) {
       DefaultAssay(object = object.list[[i]]) <- assay[i]
+      object.list[[i]][[assay[i]]] <- as(object = object.list[[i]][[assay[i]]], Class = "SCTAssay")
       return(object.list[[i]])
     }
   )
@@ -2050,9 +2051,6 @@ PrepSCTIntegration <- function(
     X = 1:length(x = object.list),
     FUN = function(i) {
       sct.check <- IsSCT(assay = object.list[[i]][[assay[i]]])
-      if (sct.check) {
-        object.list[[i]][[assay[i]]] <- as(object = object.list[[i]][[assay[i]]], Class = "SCTAssay")
-      }
       if (!sct.check) {
         if ("FindIntegrationAnchors" %in% Command(object = object.list[[i]]) &&
             Command(object = object.list[[i]], command = "FindIntegrationAnchors", value = "normalization.method") == "SCT") {
@@ -2077,7 +2075,6 @@ PrepSCTIntegration <- function(
       call. = FALSE
     )
   }
-
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -2085,7 +2082,6 @@ PrepSCTIntegration <- function(
       verbose = verbose
     )
   }
-
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
@@ -2093,7 +2089,7 @@ PrepSCTIntegration <- function(
         object = object.list[[i]],
         assay = assay[i],
         features = anchor.features,
-        replace.value = TRUE,
+        replace.value = ifelse(is.null(x = sct.clip.range), FALSE , TRUE),
         clip.range = sct.clip.range,
         verbose = FALSE
       )
