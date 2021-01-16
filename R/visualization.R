@@ -740,7 +740,7 @@ ColorDimSplit <- function(
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
-#' automatically rasterizes if plotting more than 50,000 cells
+#' automatically rasterizes if plotting more than 100,000 cells
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -1239,7 +1239,7 @@ FeaturePlot <- function(
         scale_y_continuous(limits = ylims) +
         theme_cowplot() +
         CenterTitle()
-        # theme(plot.title = element_text(hjust = 0.5))
+      # theme(plot.title = element_text(hjust = 0.5))
       # Add labels
       if (label) {
         plot <- LabelClusters(
@@ -1756,6 +1756,9 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param raster Convert points to raster format, default is \code{NULL}
+#' which will automatically use raster if the number of points plotted is greater than
+#' 100,000
 #'
 #' @return A ggplot object
 #'
@@ -1781,7 +1784,8 @@ FeatureScatter <- function(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  raster = NULL
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
@@ -1816,7 +1820,8 @@ FeatureScatter <- function(
         pt.size = pt.size,
         smooth = smooth,
         legend.title = 'Identity',
-        span = span
+        span = span,
+        raster = raster
       )
     }
   )
@@ -1836,6 +1841,9 @@ FeatureScatter <- function(
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
+#' @param raster Convert points to raster format, default is \code{NULL}
+#' which will automatically use raster if the number of points plotted is greater than
+#' 100,000
 #'
 #' @return A ggplot object
 #'
@@ -1855,7 +1863,8 @@ VariableFeaturePlot <- function(
   pt.size = 1,
   log = NULL,
   selection.method = NULL,
-  assay = NULL
+  assay = NULL,
+  raster = NULL
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
@@ -1884,7 +1893,8 @@ VariableFeaturePlot <- function(
   plot <- SingleCorPlot(
     data = hvf.info,
     col.by = var.status,
-    pt.size = pt.size
+    pt.size = pt.size,
+    raster = raster
   )
   plot <- plot +
     labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
@@ -6739,7 +6749,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param legend.title Optional legend title
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
-# 50,000
+# 100,000
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6764,17 +6774,11 @@ SingleCorPlot <- function(
   raster = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  raster <- raster %||% (nrow(x = data) > 50000)
-  if ((nrow(x = data) > 50000) && getOption('Seurat.warn.raster.cellscatter', TRUE)) {
-    warning(
-      "Number of points plotted is greater than 50,000, points in plot will be rasterized by default.",
-      "\nTo plot points individually set `raster = TRUE`",
-      "\nThis message will be shown once per session",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-    options(Seurat.warn.raster.cellscatter = FALSE)
+  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    message("Rasterizing points since number of points exceeds 100,000.",
+            "\nTo disable this behavior set `raster=TRUE`")
   }
+  raster <- raster %||% (nrow(x = data) > 1e5)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6929,7 +6933,7 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
-# 50,000
+# 100,000
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
@@ -6955,17 +6959,12 @@ SingleDimPlot <- function(
   raster = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  raster <- raster %||% (nrow(x = data) > 50000)
-  if ((nrow(x = data) > 50000) && getOption('Seurat.warn.raster.dimplot', TRUE)) {
-    warning(
-      "Number of points plotted is greater than 50,000, points in plot will be rasterized by default.",
-      "\nTo plot points individually set `raster = TRUE`",
-      "\nThis message will be shown once per session",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-    options(Seurat.warn.raster.dimplot = FALSE)
+  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    message("Rasterizing points since number of points exceeds 100,000.",
+            "\nTo disable this behavior set `raster=TRUE`")
   }
+  raster <- raster %||% (nrow(x = data) > 1e5)
+
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
