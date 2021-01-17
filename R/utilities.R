@@ -2099,6 +2099,25 @@ IsSCT <- function(assay) {
   return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')) | inherits(x = assay, what = "SCTAssay"))
 }
 
+# Check whether a vst.out is from sctransform
+#
+# @param vst.out a sct model from sctransform
+#
+# @return Boolean
+#
+IsVSTout <- function(vst.out) {
+  vst.element <- c("model_str", "model_pars_fit", "cell_attr" )
+   vst.check <- setdiff(x = vst.element, y = names(x = vst.out))
+   if (length(x = setdiff(x = vst.element, y = names(x = vst.out))) == 0) {
+     vst.check <- TRUE
+   } else {
+     vst.check <- FALSE
+   }
+  return(vst.check)
+}
+
+
+
 # Check the length of components of a list
 #
 # @param values A list whose components should be checked
