@@ -1080,17 +1080,14 @@ IntegrateData <- function(
   )
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
-      reference.integrated <- SetAssayData(
-        object = reference.integrated,
-        assay = new.assay.name,
-        slot = "scale.data",
-        new.data = ScaleData(
+      suppressWarnings(reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
+        data = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "data"), 
+        scale.data = ScaleData(
           object = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "scale.data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE
-        )
-      )
+        )))
       reference.integrated[[assay]] <- unintegrated[[assay]]
     }
     return(reference.integrated)
@@ -1128,20 +1125,15 @@ IntegrateData <- function(
       data = integrated.data
     )
     if (normalization.method == "SCT") {
-      integrated.assay <- SetAssayData(
-        object = integrated.assay,
-        slot = "scale.data",
-        new.data =  ScaleData(
+      suppressWarnings(
+      integrated.assay <- CreateSCTAssayObject(
+        data =  GetAssayData(object = integrated.assay, slot = "data"), 
+        scale.data = ScaleData(
           object = GetAssayData(object = integrated.assay, slot = "data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE
-        )
-      )
-      integrated.assay <- SetAssayData(
-        object = integrated.assay,
-        slot = "data",
-        new.data = GetAssayData(object = integrated.assay, slot = "scale.data")
+        ))
       )
     }
     unintegrated[[new.assay.name]] <- integrated.assay

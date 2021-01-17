@@ -7652,7 +7652,8 @@ merge.Seurat <- function(
         suppressWarnings(merged.object <- GetResidual(
           object = merged.object,
           features = resid.to.compute,
-          assay = assay
+          assay = assay, 
+          verbose = FALSE
           ))
       }
     }
@@ -8066,7 +8067,7 @@ setAs(
       list('Class' = 'SCTAssay'),
       object.list
     )
-    #if (IsSCT(assay = from)) {
+    if (IsSCT(assay = from)) {
       vst.slots <- c('vst.set', 'vst.out')
       vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
       vst.res <- Misc(object = from, slot = vst.use)
@@ -8100,7 +8101,7 @@ setAs(
       }
       object.list$misc[[vst.use]] <- NULL
       object.list$SCTModel.list <- vst.res
-    #}
+    }
     return(do.call(what = 'new', args = object.list))
   }
 )
