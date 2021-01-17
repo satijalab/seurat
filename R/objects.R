@@ -7954,7 +7954,7 @@ setAs(
       list('Class' = 'SCTAssay'),
       object.list
     )
-    if (IsSCT(assay = from)) {
+    #if (IsSCT(assay = from)) {
       vst.slots <- c('vst.set', 'vst.out')
       vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
       vst.res <- Misc(object = from, slot = vst.use)
@@ -7964,7 +7964,7 @@ setAs(
         umi.assay <- list(umi.assay)
       }
       if (length(vst.res) == 0) {
-        features <- rownames(x = GetAssayData(object = from, slot = "scale.data"))
+        features <- rownames(x = GetAssayData(object = from, slot = "data"))
         feature.attr <- data.frame(row.names = features)
         cell.attr <- data.frame(row.names = colnames(x = from))
         vst.res <- list(model1 = 
@@ -7988,7 +7988,7 @@ setAs(
       }
       object.list$misc[[vst.use]] <- NULL
       object.list$SCTModel.list <- vst.res
-    }
+    #}
     return(do.call(what = 'new', args = object.list))
   }
 )
