@@ -748,6 +748,7 @@ CellsByImage <- function(object, images = NULL, unlist = FALSE) {
 #' new object with a lower cutoff.
 #' @param min.features Include cells where at least this many features are
 #' detected.
+#' @param check.matrix Check counts matrix for NA, NaN, Inf, and non-integer values
 #'
 #' @importFrom methods as
 #' @importFrom Matrix colSums rowSums
@@ -766,7 +767,8 @@ CreateAssayObject <- function(
   counts,
   data,
   min.cells = 0,
-  min.features = 0
+  min.features = 0,
+  check.matrix = TRUE
 ) {
   if (missing(x = counts) && missing(x = data)) {
     stop("Must provide either 'counts' or 'data'")
@@ -775,6 +777,9 @@ CreateAssayObject <- function(
   } else if (!missing(x = counts)) {
     if (!inherits(x = counts, what = 'dgCMatrix')) {
       counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    }
+    if (check.matrix) {
+      CheckMatrix(object = counts)
     }
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
@@ -847,6 +852,7 @@ CreateAssayObject <- function(
         immediate. = TRUE
       )
     }
+    CheckMatrix(object = data, check.integer = FALSE)
     counts <- new(Class = 'matrix')
   }
   # Ensure row- and column-names are vectors, not arrays
@@ -915,12 +921,12 @@ CreateAssayObject <- function(
 #' Create a SCT Assay object
 #'
 #' Create a SCT object from a feature (e.g. gene) expression matrix and a list of SCTModels.
-#' The expected format of the input matrix is features x cells. 
+#' The expected format of the input matrix is features x cells.
 #'
 #' Non-unique cell or feature names are not allowed. Please make unique before
 #' calling this function.
 #' @param scale.data a residual matrix
-#' @param SCTModel.list
+#' @param SCTModel.list list of SCTModels
 #' @param umi.assay The UMI assay name. Default is RNA
 #' @inheritParams CreateAssayObject
 #'
@@ -933,23 +939,23 @@ CreateAssayObject <- function(
 CreateSCTAssayObject <- function(
   counts,
   data,
-  scale.data, 
+  scale.data,
   umi.assay = "RNA",
   min.cells = 0,
-  min.features = 0, 
+  min.features = 0,
   SCTModel.list = NULL
 ) {
     assay <- CreateAssayObject(counts = counts,
                                data = data,
-                               min.cells = min.cells, 
+                               min.cells = min.cells,
                                min.features = min.features
     )
-    assay <- SetAssayData(object = assay, 
-                          slot = "scale.data", 
+    assay <- SetAssayData(object = assay,
+                          slot = "scale.data",
                           new.data = scale.data
                           )
     slot(object = assay, name = "assay.orig") <- umi.assay
- 
+
     #checking SCTModel.list format
     if (is.null(x = SCTModel.list)) {
       SCTModel.type <- "none"
@@ -970,19 +976,19 @@ CreateSCTAssayObject <- function(
         }
       }
     }
-   model.list <- switch(EXPR = SCTModel.type, 
+   model.list <- switch(EXPR = SCTModel.type,
                         "none" = {
                           features <- rownames(x = GetAssayData(object = assay, slot = "data"))
                           feature.attr <- data.frame(row.names = features)
                           cell.attr <- data.frame(row.names = Cells(x = assay))
-                          new.model <- list(model1 = 
+                          new.model <- list(model1 =
                                             SCTModel(
-                                              feature.attributes = feature.attr, 
+                                              feature.attributes = feature.attr,
                                               cell.attributes = cell.attr
                                             )
                           )
                           new.model
-                        }, 
+                        },
                         "SCTModel.list" = {
                           SCTModel.list <- lapply(SCTModel.list, function(model) {
                             select.cell <- intersect(Cells(x = model), Cells(x = assay))
@@ -995,14 +1001,14 @@ CreateSCTAssayObject <- function(
                           }
                           )
                           SCTModel.list
-                        }, 
+                        },
                         "vst.out" = {
                           SCTModel.list$umi.assay <- umi.assay
-                          SCTModel.list <- PrepVSTResults(SCTModel.list, 
+                          SCTModel.list <- PrepVSTResults(SCTModel.list,
                                                           cell.names = Cells(x = assay)
                                                           )
                           list(model1 = SCTModel.list)
-                        }, 
+                        },
                         "vst.set" = {
                           new.model <- lapply(
                             X = SCTModel.list,
@@ -1165,6 +1171,7 @@ CreateSeuratObject.default <- function(
   meta.data = NULL,
   min.cells = 0,
   min.features = 0,
+  check.matrix = TRUE,
   ...
 ) {
   if (!is.null(x = meta.data)) {
@@ -1175,7 +1182,8 @@ CreateSeuratObject.default <- function(
   assay.data <- CreateAssayObject(
     counts = counts,
     min.cells = min.cells,
-    min.features = min.features
+    min.features = min.features,
+    check.matrix = check.matrix
   )
   if (!is.null(x = meta.data)) {
     common.cells <- intersect(
@@ -7337,7 +7345,7 @@ merge.SCTAssay <- function(
   assays <- c(x, y)
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
-    warning("Attempting to merge an SCTAssay with another Assay type \n", 
+    warning("Attempting to merge an SCTAssay with another Assay type \n",
             "Converting all to standard Assay objects.", call. = FALSE)
     assays <- lapply(1:length(x = assays), FUN = function(x) {
       if (sct.check[x]) {
@@ -7347,9 +7355,9 @@ merge.SCTAssay <- function(
     }
     )
     combined.assay <- merge(
-        x = assays[[1]], 
-        y = assays[2:length(x = assays)], 
-        add.cell.ids = add.cell.ids, 
+        x = assays[[1]],
+        y = assays[2:length(x = assays)],
+        add.cell.ids = add.cell.ids,
         merge.data = merge.data
 )
     return(combined.assay)
@@ -7652,7 +7660,7 @@ merge.Seurat <- function(
         suppressWarnings(merged.object <- GetResidual(
           object = merged.object,
           features = resid.to.compute,
-          assay = assay, 
+          assay = assay,
           verbose = FALSE
           ))
       }
@@ -7741,6 +7749,123 @@ print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...
   }
 }
 
+#' @param score.threshold Only anchor pairs with scores greater than this value
+#' are retained.
+#' @param disallowed.dataset.pairs Remove any anchors formed between the
+#' provided pairs. E.g. \code{list(c(1, 5), c(1, 2))} filters out any anchors between
+#' datasets 1 and 5 and datasets 1 and 2.
+#' @param dataset.matrix Provide a binary matrix specifying whether a dataset
+#' pair is allowable (1) or not (0). Should be a dataset x dataset matrix.
+#' @param group.by Grouping variable to determine allowable ident pairs
+#' @param disallowed.ident.pairs Remove any anchors formed between provided
+#' ident pairs. E.g. \code{list(c("CD4", "CD8"), c("B-cell", "T-cell"))}
+#' @param ident.matrix Provide a binary matrix specifying whether an ident pair
+#' is allowable (1) or not (0). Should be an ident x ident symmetric matrix
+#'
+#' @return Returns an \code{\link{AnchorSet}} object with specified anchors
+#' filtered out
+#'
+#' @export
+#' @method subset AnchorSet
+#'
+subset.AnchorSet <- function(
+  x,
+  score.threshold = NULL,
+  disallowed.dataset.pairs = NULL,
+  dataset.matrix = NULL,
+  group.by = NULL,
+  disallowed.ident.pairs = NULL,
+  ident.matrix = NULL,
+  ...
+) {
+  if (!is.null(x = disallowed.dataset.pairs) && !is.null(x = dataset.matrix)) {
+    stop("Please use either disallowed.dataset.pairs OR dataset.matrix, not both.")
+  }
+  # Filter based on scores
+  if (!is.null(x = score.threshold)) {
+    if (score.threshold > 1 | score.threshold < 0) {
+      stop(
+        "Anchors are scored on a scale between 0 and 1. Please provide a value",
+        " in that range to score.threshold."
+      )
+    }
+    anchors <- slot(object = x, name = "anchors")
+    anchors <- anchors[anchors[, 'score'] > score.threshold, , drop = FALSE]
+    slot(object = x, name = "anchors") <- anchors
+  }
+  object.names <- names(x = slot(object = x, name = "object.list"))
+  num.obs <- length(x = object.names)
+  # Filter based on dataset pairings
+  if (!is.null(x = disallowed.dataset.pairs)) {
+    dataset.matrix <- matrix(data = 1, nrow = num.obs, ncol = num.obs)
+    for(i in 1:length(x = disallowed.dataset.pairs)) {
+      pair <- disallowed.dataset.pairs[[i]]
+      if (length(x = pair) != 2) {
+        stop("Please ensure all list items in disallowed.dataset.pairs are of length 2.")
+      }
+      if (any(pair %in% object.names)) {
+        pair[which(pair %in% object.names)] <- sapply(
+          X = pair[which(pair %in% object.names)],
+          FUN = function(x) {
+            which(object.names == x)
+          })
+      }
+      pair <- as.numeric(x = pair)
+      dataset.matrix[pair[1], pair[2]] <- 0
+    }
+  }
+  if (!is.null(x = dataset.matrix)) {
+    if (any(dim(x = dataset.matrix) != c(num.obs, num.obs))){
+      stop("Please provide a dataset.matrix that is ", num.obs, " x ", num.obs, ".")
+    }
+    anchors <- slot(object = x, name = "anchors")
+    pairs <- which(dataset.matrix == 0, arr.ind = TRUE)
+    for (i in 1:nrow(x = pairs)) {
+      anchors <- anchors[-which(x = anchors$dataset1 == pairs[i, 1] & anchors$dataset2 == pairs[i, 2]), ]
+      anchors <- anchors[-which(x = anchors$dataset1 == pairs[i, 2] & anchors$dataset2 == pairs[i, 1]), ]
+    }
+    slot(object = x, name = "anchors") <- anchors
+  }
+  # Filter based on ident pairings
+  if (!is.null(x = group.by)) {
+    anchors <- AnnotateAnchors(object = x, vars = group.by)
+    if (!is.null(x = disallowed.ident.pairs) && !is.null(x = ident.matrix)) {
+      stop("Please use either disallowed.ident.pairs OR ident.matrix, not both.")
+    }
+    unique.ids <- unique(x = c(anchors[, paste0("cell1.", group.by)], anchors[, paste0("cell2.", group.by)]))
+    unique.ids <- unique.ids[!is.na(x = unique.ids)]
+    num.ids <- length(x = unique.ids)
+    if (!is.null(x = disallowed.ident.pairs)) {
+      ident.matrix <- matrix(data = 1, nrow = num.ids, ncol = num.ids)
+      rownames(x = ident.matrix) <- unique.ids
+      colnames(x = ident.matrix) <- unique.ids
+      for(i in 1:length(x = disallowed.ident.pairs)) {
+        pair <- disallowed.ident.pairs[[i]]
+        if (length(x = pair) != 2) {
+          stop("Please ensure all list items in disallowed.dataset.pairs are of length 2.")
+        }
+        ident.matrix[pair[1], pair[2]] <- 0
+      }
+    }
+    if (!is.null(x = ident.matrix)) {
+      if (any(dim(x = ident.matrix) != c(num.ids, num.ids))){
+        stop("Please provide a dataset.matrix that is ", num.ids, " x ", num.ids, ".")
+      }
+      to.remove <- c()
+      pairs <- which(ident.matrix == 0, arr.ind = TRUE)
+      for (i in 1:nrow(x = pairs)) {
+        id1 <- rownames(x = ident.matrix)[pairs[i, 1]]
+        id2 <- colnames(x = ident.matrix)[pairs[i, 2]]
+        to.remove <- c(to.remove, which(x = anchors[, paste0("cell1.", group.by)] == id1 & anchors[, paste0("cell2.", group.by)] == id2))
+        to.remove <- c(to.remove, which(x = anchors[, paste0("cell1.", group.by)] == id2 & anchors[, paste0("cell2.", group.by)] == id1))
+      }
+      anchors <- slot(object = x, name = "anchors")
+      anchors <- anchors[-to.remove, ]
+      slot(object = x, name = "anchors") <- anchors
+    }
+  }
+  return(x)
+}
 
 #' @importFrom stats na.omit
 #'
@@ -7902,6 +8027,7 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
 #' @param i,features A vector of features to keep
 #' @param j,cells A vector of cells to keep
 #' @param idents A vector of identity classes to keep
+#' @param recompute Recompute nCount and nFeature after subsetting
 #' @param ... Extra parameters passed to \code{\link{WhichCells}},
 #' such as \code{slot}, \code{invert}, or \code{downsample}
 #'
@@ -7923,7 +8049,7 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
 #' subset(x = pbmc_small, subset = MS4A1 > 3, slot = 'counts')
 #' subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
-subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
+subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, recompute = TRUE, ...) {
   x <- UpdateSlots(object = x)
   if (!missing(x = subset)) {
     subset <- enquo(arg = subset)
@@ -7984,11 +8110,13 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   # Remove metadata for cells not present
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
   # Recalculate nCount and nFeature
-  for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
-    n.calc <- CalcN(object = x[[assay]])
-    if (!is.null(x = n.calc)) {
-      names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
-      x[[names(x = n.calc)]] <- n.calc
+  if (recompute) {
+    for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
+      n.calc <- CalcN(object = x[[assay]])
+      if (!is.null(x = n.calc)) {
+        names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+        x[[names(x = n.calc)]] <- n.calc
+      }
     }
   }
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
@@ -8080,9 +8208,9 @@ setAs(
         features <- rownames(x = GetAssayData(object = from, slot = "data"))
         feature.attr <- data.frame(row.names = features)
         cell.attr <- data.frame(row.names = colnames(x = from))
-        vst.res <- list(model1 = 
+        vst.res <- list(model1 =
                           SCTModel(
-          feature.attributes = feature.attr, 
+          feature.attributes = feature.attr,
           cell.attributes = cell.attr
           )
           )
@@ -8617,9 +8745,9 @@ setMethod(
   f = 'show',
   signature = 'SCTAssay',
   definition = function(object) {
-    cat('SCTAssay data with', nrow(x = object), 'features for', ncol(x = object), 
+    cat('SCTAssay data with', nrow(x = object), 'features for', ncol(x = object),
         'cells, and', length(x = levels(x = object)) , 'SCTModel(s) \n')
-    
+
     if (length(x = VariableFeatures(object = object)) > 0) {
       top.ten <- head(x = VariableFeatures(object = object), n = 10L)
       top <- 'Top'
