@@ -5296,6 +5296,7 @@ RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
       cell.attributes <- lapply(
         X = cell.attributes,
         FUN = function(x) {
+          old.names <- rownames(x = x)
           rownames(x = x) <- unname(obj = new.names[old.names])
           return(x)
         }
@@ -8447,7 +8448,8 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       # Ensure we're not duplicating object names
-      if (!is.null(x = FindObject(object = x, name = i)) && !inherits(x = value, what = c(class(x = x[[i]]), 'NULL'))) {
+      if (!is.null(x = FindObject(object = x, name = i)) && !inherits(x = value, what = c(class(x = x[[i]]), 'NULL')) &&
+            !inherits(x = x[[i]], what = class(x = value))) {
         stop(
           "This object already contains ",
           i,
