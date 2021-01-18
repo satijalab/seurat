@@ -1128,6 +1128,10 @@ IntegrateData <- function(
       )
       reference.integrated[[assay]] <- unintegrated[[assay]]
     }
+    DefaultAssay(object = reference.integrated) <- new.assay.name
+    VariableFeatures(object = reference.integrated) <- features
+    reference.integrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+    reference.integrated <- suppressWarnings(LogSeuratCommand(object = reference.integrated))
     return(reference.integrated)
   } else {
     active.assay <- DefaultAssay(object = ref[[1]])
