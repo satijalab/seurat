@@ -1126,6 +1126,7 @@ IntegrateData <- function(
         SCTModel.list = reference.model,
         check.matrix = FALSE
       )
+      levels(x =  reference.integrated[[new.assay.name]]) <- "refmodel"
       reference.integrated[[assay]] <- unintegrated[[assay]]
     }
     DefaultAssay(object = reference.integrated) <- new.assay.name
