@@ -2084,7 +2084,7 @@ PrepSCTIntegration <- function(
         object = object.list[[i]],
         assay = assay[i],
         features = anchor.features,
-        replace.value = ifelse(is.null(x = sct.clip.range), FALSE , TRUE),
+        replace.value = ifelse(test = is.null(x = sct.clip.range), yes = FALSE, no = TRUE),
         clip.range = sct.clip.range,
         verbose = FALSE
       )

@@ -945,91 +945,88 @@ CreateSCTAssayObject <- function(
   min.features = 0,
   SCTModel.list = NULL
 ) {
-    assay <- CreateAssayObject(counts = counts,
-                               data = data,
-                               min.cells = min.cells,
-                               min.features = min.features
-    )
-    assay <- SetAssayData(object = assay,
-                          slot = "scale.data",
-                          new.data = scale.data
-                          )
-    slot(object = assay, name = "assay.orig") <- umi.assay
+  assay <- CreateAssayObject(
+    counts = counts,
+    data = data,
+    min.cells = min.cells,
+    min.features = min.features
+  )
+  assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+  slot(object = assay, name = "assay.orig") <- umi.assay
 
-    #checking SCTModel.list format
-    if (is.null(x = SCTModel.list)) {
-      SCTModel.type <- "none"
-      warning("An empty SCTModel will be generated due to no SCTModel input")
-    } else {
-      if (inherits(x = SCTModel.list, what = "SCTModel")) {
-          SCTModel.list <-  list(model1 = SCTModel.list)
-           SCTModel.type <- "SCTModel.list"
-      } else if (inherits(x = SCTModel.list, what = "list")) {
-        if (inherits(x = SCTModel.list[[1]], what = "SCTModel")){
-          SCTModel.type <-  "SCTModel.list"
-        } else if (IsVSTout(vst.out = SCTModel.list)){
-          SCTModel.type <- "vst.out"
-        } else if (IsVSTout(SCTModel.list[[1]])) {
-          SCTModel.type <- "vst.set"
-        } else {
-          stop("SCTModel input is not a correct format")
-        }
+  #checking SCTModel.list format
+  if (is.null(x = SCTModel.list)) {
+    SCTModel.type <- "none"
+    warning("An empty SCTModel will be generated due to no SCTModel input")
+  } else {
+    if (inherits(x = SCTModel.list, what = "SCTModel")) {
+      SCTModel.list <- list(model1 = SCTModel.list)
+      SCTModel.type <- "SCTModel.list"
+    } else if (inherits(x = SCTModel.list, what = "list")) {
+      if (inherits(x = SCTModel.list[[1]], what = "SCTModel")){
+        SCTModel.type <-  "SCTModel.list"
+      } else if (IsVSTout(vst.out = SCTModel.list)){
+        SCTModel.type <- "vst.out"
+      } else if (IsVSTout(SCTModel.list[[1]])) {
+        SCTModel.type <- "vst.set"
+      } else {
+        stop("SCTModel input is not a correct format")
       }
     }
-   model.list <- switch(EXPR = SCTModel.type,
-                        "none" = {
-                          features <- rownames(x = GetAssayData(object = assay, slot = "data"))
-                          feature.attr <- data.frame(row.names = features)
-                          cell.attr <- data.frame(row.names = Cells(x = assay))
-                          new.model <- list(model1 =
-                                            SCTModel(
-                                              feature.attributes = feature.attr,
-                                              cell.attributes = cell.attr
-                                            )
-                          )
-                          new.model
-                        },
-                        "SCTModel.list" = {
-                          SCTModel.list <- lapply(SCTModel.list, function(model) {
-                            select.cell <- intersect(Cells(x = model), Cells(x = assay))
-                            if (length(select.cell) == 0) {
-                              stop("Cells in SCTModel.list don't match Cells in assay")
-                            } else {
-                              model@cell.attributes <- model@cell.attributes[select.cell, , drop = FALSE]
-                            }
-                            return(model)
-                          }
-                          )
-                          SCTModel.list
-                        },
-                        "vst.out" = {
-                          SCTModel.list$umi.assay <- umi.assay
-                          SCTModel.list <- PrepVSTResults(SCTModel.list,
-                                                          cell.names = Cells(x = assay)
-                                                          )
-                          list(model1 = SCTModel.list)
-                        },
-                        "vst.set" = {
-                          new.model <- lapply(
-                            X = SCTModel.list,
-                            FUN = function(vst.res) {
-                              vst.res$umi.assay <- umi.assay
-                              return(PrepVSTResults(vst.res = vst.res, cell.names = colnames(x = assay)))
-                            }
-                          )
-                          names(x = new.model) <- paste0("model", 1:length(x = new.model))
-                          new.model
-                        }
-                        )
-   assay <- new(
+  }
+  model.list <- switch(
+    EXPR = SCTModel.type,
+    "none" = {
+      features <- rownames(x = GetAssayData(object = assay, slot = "data"))
+      feature.attr <- data.frame(row.names = features)
+      cell.attr <- data.frame(row.names = Cells(x = assay))
+      new.model <- list(
+        model1 = SCTModel(
+          feature.attributes = feature.attr,
+          cell.attributes = cell.attr
+        )
+      )
+      new.model
+    },
+    "SCTModel.list" = {
+      SCTModel.list <- lapply(X = SCTModel.list, FUN = function(model) {
+        select.cell <- intersect(x = Cells(x = model), Cells(x = assay))
+        if (length(x = select.cell) == 0) {
+          stop("Cells in SCTModel.list don't match Cells in assay")
+        } else {
+          model@cell.attributes <- model@cell.attributes[select.cell, , drop = FALSE]
+        }
+        return(model)
+      })
+      SCTModel.list
+    },
+    "vst.out" = {
+      SCTModel.list$umi.assay <- umi.assay
+      SCTModel.list <- PrepVSTResults(
+        vst.res = SCTModel.list,
+        cell.names = Cells(x = assay)
+      )
+      list(model1 = SCTModel.list)
+    },
+    "vst.set" = {
+      new.model <- lapply(
+        X = SCTModel.list,
+        FUN = function(vst.res) {
+          vst.res$umi.assay <- umi.assay
+          return(PrepVSTResults(vst.res = vst.res, cell.names = colnames(x = assay)))
+        }
+      )
+      names(x = new.model) <- paste0("model", 1:length(x = new.model))
+      new.model
+    }
+  )
+  assay <- new(
     Class = "SCTAssay",
     assay,
     SCTModel.list = model.list
   )
   return(assay)
 }
-
-
 
 #' Create a DimReduc object
 #'
@@ -8204,17 +8201,17 @@ setAs(
         vst.res <- list(vst.res)
         umi.assay <- list(umi.assay)
       }
-      if (length(vst.res) == 0) {
+      if (length(x = vst.res) == 0) {
         features <- rownames(x = GetAssayData(object = from, slot = "data"))
         feature.attr <- data.frame(row.names = features)
         cell.attr <- data.frame(row.names = colnames(x = from))
-        vst.res <- list(model1 =
-                          SCTModel(
-          feature.attributes = feature.attr,
-          cell.attributes = cell.attr
+        vst.res <- list(
+          model1 = SCTModel(
+            feature.attributes = feature.attr,
+            cell.attributes = cell.attr
           )
-          )
-      } else if (length(vst.res) > 0) {
+        )
+      } else if (length(x = vst.res) > 0) {
         vst.res <- lapply(
           X = 1:length(x = vst.res),
           FUN = function(i) {
