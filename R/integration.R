@@ -1030,10 +1030,10 @@ IntegrateData <- function(
   anchors <- slot(object = anchorset, name = 'anchors')
   ref <- object.list[reference.datasets]
   features <- features %||% slot(object = anchorset, name = "anchor.features")
-  unintegrated <- merge(
+  unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
-  )
+  ))
   if (!is.null(x = features.to.integrate)) {
     features.to.integrate <- intersect(
       x = features.to.integrate,
@@ -3683,10 +3683,10 @@ PairwiseIntegrateReference <- function(
   for (ii in 1:length(x = object.list)) {
     cellnames.list[[ii]] <- colnames(x = object.list[[ii]])
   }
-  unintegrated <- merge(
+  unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[reference.objects[[1]]]],
     y = object.list[reference.objects[2:length(x = reference.objects)]]
-  )
+  ))
   names(x = object.list) <- as.character(-(1:length(x = object.list)))
   if (verbose & (length(x = reference.objects) != length(x = object.list))) {
     message("Building integrated reference")

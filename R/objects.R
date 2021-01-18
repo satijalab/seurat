@@ -7348,14 +7348,13 @@ merge.SCTAssay <- function(
         assays[[x]] <- as(object = assays[[x]], Class = "Assay")
       }
       return(assays[[x]])
-    }
-    )
+    })
     combined.assay <- merge(
         x = assays[[1]],
         y = assays[2:length(x = assays)],
         add.cell.ids = add.cell.ids,
         merge.data = merge.data
-)
+    )
     return(combined.assay)
   }
   combined.assay <- NextMethod()
@@ -7379,24 +7378,32 @@ merge.SCTAssay <- function(
     })
   }
   scale.data <- lapply(X = assays, FUN = function(x) {
-    GetAssayData(object = x, slot = "scale.data")
+    dat <- GetAssayData(object = x, slot = "scale.data")
+    if (ncol(x = dat) == 0) {
+      dat <- matrix(ncol = ncol(x = x))
+    }
+    return(dat)
   })
   all.features <- lapply(X = scale.data, FUN = rownames)
   if (na.rm) {
     # merge intersection of possible residuals
     scaled.features <- names(x = which(x = table(x = unlist(x = all.features)) == length(x = assays)))
-    scale.data <- lapply(X = scale.data, FUN = function(x) x[scaled.features, ])
+    if (length(x = scaled.features) == 0) {
+      scale.data <- list(new(Class = "matrix"))
+    } else {
+      scale.data <- lapply(X = scale.data, FUN = function(x) x[scaled.features, ])
+    }
   } else {
     scaled.features <- unique(x = unlist(x = all.features))
-    scale.data <- lapply(X = scale.data, FUN = function(x) {
-      na.features <- setdiff(x = scaled.features, y = rownames(x = x))
+    scale.data <- lapply(X = 1:length(x = scale.data), FUN = function(x) {
+      na.features <- setdiff(x = scaled.features, y = rownames(x = scale.data[[x]]))
       na.mat <- matrix(
         data = NA,
         nrow = length(x = na.features),
-        ncol = ncol(x = x),
-        dimnames = list(na.features, colnames(x = x))
+        ncol = ncol(x = assays[[x]]),
+        dimnames = list(na.features, colnames(x = assays[[x]]))
       )
-      return(rbind(x, na.mat)[scaled.features, ])
+      return(rbind(scale.data[[x]], na.mat)[scaled.features, ])
     })
   }
   scale.data <- do.call(what = cbind, args = scale.data)
