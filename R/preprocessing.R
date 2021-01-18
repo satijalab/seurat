@@ -358,13 +358,14 @@ HTODemux <- function(
 GetResidual <- function(
   object,
   features,
-  assay = "SCT",
+  assay = NULL,
   umi.assay = NULL,
   clip.range = NULL,
   replace.value = FALSE,
   na.rm = TRUE,
   verbose = TRUE
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
   if (IsSCT(assay = object[[assay]])) {
     object[[assay]] <- as(object[[assay]], 'SCTAssay')
   }
@@ -3298,7 +3299,6 @@ GetResidualSCTModel <- function(
     MARGIN = 1,
     FUN = anyNA)
   ))
-
   if (replace.value) {
     features_to_compute <- new_features
   } else {
@@ -3329,7 +3329,7 @@ GetResidualSCTModel <- function(
       return(matrix(
         data = NA,
         nrow = length(x = features_to_compute),
-        ncol = length(x = Cells(x = SCTModel)),
+        ncol = length(x = model.cells),
         dimnames = list(features_to_compute, model.cells)
       ))
     }
