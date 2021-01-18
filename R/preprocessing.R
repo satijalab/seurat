@@ -377,6 +377,16 @@ GetResidual <- function(
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
     return(object)
   }
+  possible.features <- unique(x = unlist(x = lapply(X = sct.models, FUN = function(x) {
+    rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
+  }
+  )))
+  bad.features <- setdiff(x = features, y = possible.features)
+  if (length(x = bad.features) > 0) {
+    warning("The following requested features are not present in any models: ",
+            paste(bad.features, collapse = ", "), call. = FALSE)
+    features <- intersect(x = features, y = possible.features)
+  }
   features.orig <- features
   if (na.rm) {
     # only compute residuals when feature model info is present in all
@@ -420,11 +430,11 @@ GetResidual <- function(
   if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
     new.residuals <- new.residuals[[1]]
   } else {
-    new.residuals <- Reduce(cbind, new.residuals) 
+    new.residuals <- Reduce(cbind, new.residuals)
   }
   new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
   if (na.rm) {
-    new.scale <- new.scale[ complete.cases(new.scale), ]
+    new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
   object <- SetAssayData(
     object = object,

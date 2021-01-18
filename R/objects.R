@@ -7493,6 +7493,7 @@ merge.DimReduc <- function(
 #'
 #' @rdname merge.Seurat
 #' @aliases merge MergeSeurat AddSamples
+#' @importFrom matrixStats rowAnyNAs
 #'
 #' @export
 #' @method merge Seurat
@@ -7660,9 +7661,9 @@ merge.Seurat <- function(
           verbose = FALSE
           ))
       } else if (!is.null(x = resid.to.compute)) {
-        # SCTAssays no sct models
-        # only use features existed in all objects
-        features.complete <- complete.cases( 
+        # when SCTAssays don't contain SCTModels
+        # only use features present in all objects
+        features.complete <- ! rowAnyNAs(x =
           GetAssayData(
             object = merged.object[[assay]],
             slot = "scale.data")
@@ -7670,9 +7671,9 @@ merge.Seurat <- function(
         merged.object <- SetAssayData(
           object = merged.object,
           assay = assay,
-          slot = "scale.data", 
+          slot = "scale.data",
           new.data = GetAssayData(object = merged.object[[assay]],
-                                  slot = "scale.data")[features.complete,]
+                                  slot = "scale.data")[features.complete, ]
         )
       }
     }
