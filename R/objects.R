@@ -5294,6 +5294,7 @@ RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
   cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
   if (length(x = cell.attributes) > 0) {
     if (is.data.frame(x = cell.attributes)) {
+      old.names <- rownames(x = cell.attributes)
       rownames(x = cell.attributes) <- unname(obj = new.names[old.names])
     } else {
       cell.attributes <- lapply(
@@ -7658,6 +7659,21 @@ merge.Seurat <- function(
           assay = assay,
           verbose = FALSE
           ))
+      } else if (!is.null(x = resid.to.compute)) {
+        # SCTAssays no sct models
+        # only use features existed in all objects
+        features.complete <- complete.cases( 
+          GetAssayData(
+            object = merged.object[[assay]],
+            slot = "scale.data")
+        )
+        merged.object <- SetAssayData(
+          object = merged.object,
+          assay = assay,
+          slot = "scale.data", 
+          new.data = GetAssayData(object = merged.object[[assay]],
+                                  slot = "scale.data")[features.complete,]
+        )
       }
     }
   }
