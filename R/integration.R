@@ -1047,6 +1047,7 @@ IntegrateData <- function(
     )
   }
   if (normalization.method == "SCT") {
+    model.list <- list()
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       if (length(x = setdiff(x = features.to.integrate, y = features)) != 0) {
@@ -1056,10 +1057,16 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
-      object.list[[i]][[assay]] <- as(object = CreateAssayObject(
-        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
-      ), Class = "SCTAssay")
+      model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
+      object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
+        data = GetAssayData(
+          object = object.list[[i]],
+          assay = assay,
+          slot = "scale.data")
+        )
+      )
     }
+    model.list <- unlist(x = model.list)
     slot(object = anchorset, name = "object.list") <- object.list
   }
   # perform pairwise integration of reference objects
@@ -1078,17 +1085,47 @@ IntegrateData <- function(
     eps = eps,
     verbose = verbose
   )
+
+  # set SCT model
+  if (normalization.method == "SCT") {
+    if (is.null(x = Tool(object = reference.integrated, slot = "Integration"))) {
+      reference.sample <- slot(object = anchorset, name = "reference.objects")
+    } else {
+      reference.sample <- SampleIntegrationOrder(
+        tree = slot(
+          object = reference.integrated,
+          name = "tools"
+        )$Integration@sample.tree
+      )[1]
+    }
+    reference.cells <- Cells(x = object.list[[reference.sample]])
+    reference.model <- NULL
+    if (length(x = model.list) > 0) {
+      reference.model <- sapply(X = model.list, FUN = function(model) {
+        reference.check <- FALSE
+        model.cells <- Cells(x = model)
+        if (length(x = model.cells) > 0 &
+            length(x = setdiff(x = model.cells, y = reference.cells)) == 0) {
+          reference.check <- TRUE
+        }
+        return(reference.check)
+        }
+      )
+      reference.model <- model.list[[which(reference.model)]]
+    }
+  }
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
-      suppressWarnings(reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
+      reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
         data = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "data"),
         scale.data = ScaleData(
           object = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "scale.data"),
           do.scale = FALSE,
           do.center = TRUE,
           verbose = FALSE),
+        SCTModel.list = reference.model,
         check.matrix = FALSE
-      ))
+      )
       reference.integrated[[assay]] <- unintegrated[[assay]]
     }
     return(reference.integrated)
@@ -1126,17 +1163,17 @@ IntegrateData <- function(
       data = integrated.data
     )
     if (normalization.method == "SCT") {
-      suppressWarnings(
-        integrated.assay <- CreateSCTAssayObject(
-          data =  GetAssayData(object = integrated.assay, slot = "data"),
-          scale.data = ScaleData(
-            object = GetAssayData(object = integrated.assay, slot = "data"),
-            do.scale = FALSE,
-            do.center = TRUE,
-            verbose = FALSE),
-          check.matrix = FALSE
-        )
+      integrated.assay <- CreateSCTAssayObject(
+        data =  integrated.data,
+        scale.data = ScaleData(
+          object = integrated.data,
+          do.scale = FALSE,
+          do.center = TRUE,
+          verbose = FALSE),
+        SCTModel.list = reference.model,
+        check.matrix = FALSE
       )
+      levels(x = integrated.assay) <- "refmodel"
     }
     unintegrated[[new.assay.name]] <- integrated.assay
     unintegrated <- SetIntegrationData(
@@ -1161,7 +1198,7 @@ IntegrateData <- function(
     DefaultAssay(object = unintegrated) <- new.assay.name
     VariableFeatures(object = unintegrated) <- features
     unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
-    unintegrated <- LogSeuratCommand(object = unintegrated)
+    unintegrated <- suppressWarnings(LogSeuratCommand(object = unintegrated))
     return(unintegrated)
   }
 }
@@ -4051,6 +4088,31 @@ RunIntegration <- function(
     slot = 'data'
   )
   return(integrated.matrix[, cells2])
+}
+
+# order samples based on sample tree
+# the first sample is reference sample
+SampleIntegrationOrder <- function(tree) {
+  order <- tree[nrow(x = tree), ]
+  while (sum(order > 0) != 0) {
+    replace.idx <- which(x = order > 0)[1]
+    replace <- tree[order[replace.idx], ]
+    if (replace.idx == 1) {
+      left <- vector()
+      right <- order[(replace.idx + 1):length(x = order)]
+      replace <- tree[order[replace.idx], ]
+      order <- c(left, replace, right)
+    } else if (replace.idx == length(x = order)) {
+      left <- order[1:(replace.idx - 1)]
+      right <- vector()
+    } else {
+      left <- order[1:(replace.idx - 1)]
+      right <- order[(replace.idx + 1):length(x = order)]
+    }
+    order <- c(left, replace, right)
+  }
+  order <- order * (-1)
+  return(order)
 }
 
 ScoreAnchors <- function(

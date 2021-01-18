@@ -939,7 +939,7 @@ CreateAssayObject <- function(
 CreateSCTAssayObject <- function(
   counts,
   data,
-  scale.data,
+  scale.data = NULL,
   umi.assay = "RNA",
   min.cells = 0,
   min.features = 0,
@@ -953,7 +953,10 @@ CreateSCTAssayObject <- function(
     min.features = min.features,
     check.matrix = check.matrix
   )
-  assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+  if (!is.null(scale.data)) {
+    assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+  }
+
   slot(object = assay, name = "assay.orig") <- umi.assay
 
   #checking SCTModel.list format
