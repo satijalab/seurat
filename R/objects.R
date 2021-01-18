@@ -7293,7 +7293,8 @@ merge.Assay <- function(
   combined.assay <- CreateAssayObject(
     counts = merged.counts,
     min.cells = -1,
-    min.features = -1
+    min.features = -1,
+    check.matrix = FALSE
   )
   if (length(x = unique(x = keys)) == 1) {
     Key(object = combined.assay) <- keys[1]

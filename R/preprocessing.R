@@ -408,9 +408,20 @@ GetResidual <- function(
     }
   )
   existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
-  existing.data <- existing.data[setdiff(x = rownames(x = existing.data), y = features), ]
-  new.residuals <- Reduce(cbind, new.residuals)[, Cells(x = object), drop = F]
-  new.scale <- rbind(existing.data, new.residuals)
+  all.features <- union(x = features, y = rownames(x = existing.data))
+  new.scale <- matrix(
+    data = NA,
+    nrow = length(x = all.features),
+    ncol = ncol(x = object),
+    dimnames = list(all.features, Cells(x = object))
+  )
+  new.scale[rownames(x = existing.data), colnames(x = existing.data)] <- existing.data
+  if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
+    new.residuals <- new.residuals[[1]]
+  } else {
+    new.residuals <- Reduce(cbind, new.residuals)[, Cells(x = object), drop = F]
+  }
+  new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
   object <- SetAssayData(
     object = object,
     assay = assay,
