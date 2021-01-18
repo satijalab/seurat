@@ -943,13 +943,15 @@ CreateSCTAssayObject <- function(
   umi.assay = "RNA",
   min.cells = 0,
   min.features = 0,
-  SCTModel.list = NULL
+  SCTModel.list = NULL,
+  check.matrix = TRUE
 ) {
   assay <- CreateAssayObject(
     counts = counts,
     data = data,
     min.cells = min.cells,
-    min.features = min.features
+    min.features = min.features,
+    check.matrix = check.matrix
   )
   assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
   slot(object = assay, name = "assay.orig") <- umi.assay
@@ -977,16 +979,7 @@ CreateSCTAssayObject <- function(
   model.list <- switch(
     EXPR = SCTModel.type,
     "none" = {
-      features <- rownames(x = GetAssayData(object = assay, slot = "data"))
-      feature.attr <- data.frame(row.names = features)
-      cell.attr <- data.frame(row.names = Cells(x = assay))
-      new.model <- list(
-        model1 = SCTModel(
-          feature.attributes = feature.attr,
-          cell.attributes = cell.attr
-        )
-      )
-      new.model
+      list()
     },
     "SCTModel.list" = {
       SCTModel.list <- lapply(X = SCTModel.list, FUN = function(model) {
@@ -8202,15 +8195,7 @@ setAs(
         umi.assay <- list(umi.assay)
       }
       if (length(x = vst.res) == 0) {
-        features <- rownames(x = GetAssayData(object = from, slot = "data"))
-        feature.attr <- data.frame(row.names = features)
-        cell.attr <- data.frame(row.names = colnames(x = from))
-        vst.res <- list(
-          model1 = SCTModel(
-            feature.attributes = feature.attr,
-            cell.attributes = cell.attr
-          )
-        )
+        vst.res <- list()
       } else if (length(x = vst.res) > 0) {
         vst.res <- lapply(
           X = 1:length(x = vst.res),

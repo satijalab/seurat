@@ -1086,8 +1086,9 @@ IntegrateData <- function(
           object = GetAssayData(object = reference.integrated, assay = new.assay.name, slot = "scale.data"),
           do.scale = FALSE,
           do.center = TRUE,
-          verbose = FALSE
-        )))
+          verbose = FALSE),
+        check.matrix = FALSE
+      ))
       reference.integrated[[assay]] <- unintegrated[[assay]]
     }
     return(reference.integrated)
@@ -1132,8 +1133,9 @@ IntegrateData <- function(
             object = GetAssayData(object = integrated.assay, slot = "data"),
             do.scale = FALSE,
             do.center = TRUE,
-            verbose = FALSE
-          ))
+            verbose = FALSE),
+          check.matrix = FALSE
+        )
       )
     }
     unintegrated[[new.assay.name]] <- integrated.assay

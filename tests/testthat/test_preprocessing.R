@@ -288,6 +288,7 @@ test_that("CustomNormalize works as expected", {
 
 # Tests for SCTransform
 # ------------------------------------------------------------------------------
+context("SCTransform")
 object <- suppressWarnings(SCTransform(object = object, verbose = FALSE))
 
 test_that("SCTransform wrapper works as expected", {
