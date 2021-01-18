@@ -7,7 +7,7 @@
 CreateSCTAssayObject(
   counts,
   data,
-  scale.data,
+  scale.data = NULL,
   umi.assay = "RNA",
   min.cells = 0,
   min.features = 0,

@@ -7,7 +7,7 @@
 GetResidual(
   object,
   features,
-  assay = "SCT",
+  assay = NULL,
   umi.assay = NULL,
   clip.range = NULL,
   replace.value = FALSE,
