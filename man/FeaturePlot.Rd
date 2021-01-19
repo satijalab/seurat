@@ -126,6 +126,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \code{HoverLocator} and \code{CellSelector}, respectively.
 }
 \examples{
+data("pbmc_small")
 FeaturePlot(object = pbmc_small, features = 'PC_1')
 
 }

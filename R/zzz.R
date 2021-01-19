@@ -1,9 +1,3 @@
-#' Seurat package
-#'
-#' Tools for single-cell genomics
-#'
-#' Tools for single-cell genomics
-#'
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
@@ -31,7 +25,7 @@
 #' @rdname Seurat-package
 #' @name Seurat-package
 #'
-NULL
+"_PACKAGE"
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
@@ -41,6 +35,19 @@ seurat_default_options <- list(
   Seurat.Rfast2.msg = TRUE,
   Seurat.warn.vlnplot.split = TRUE
 )
+
+AttachDeps <- function(deps) {
+  for (d in deps) {
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
+  }
+}
+
+.onAttach <- function(libname, pkgname) {
+  AttachDeps(deps = 'SeuratObject')
+}
 
 .onLoad <- function(libname, pkgname) {
   op <- options()

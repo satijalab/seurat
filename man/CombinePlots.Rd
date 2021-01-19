@@ -24,6 +24,7 @@ A combined plot
 Combine ggplot2-based plots into a single plot
 }
 \examples{
+data("pbmc_small")
 pbmc_small[['group']] <- sample(
   x = c('g1', 'g2'),
   size = ncol(x = pbmc_small),

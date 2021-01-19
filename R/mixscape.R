@@ -105,12 +105,19 @@ CalcPerturbSig <- function(
   slot(object = object, name = "tools")[[paste("CalcPerturbSig", assay, reduction, sep = ".")]] <- all_neighbors
   all_diff <- do.call(what = cbind, args = all_diff)
   prtb.assay <- suppressWarnings(
+    # TODO: restore once check.matrix is in SeuratObject
+    # expr = CreateAssayObject(
+    #   data =  all_diff[, colnames(x = object)],
+    #   min.cells = -Inf,
+    #   min.features = -Inf,
+    #   check.matrix = FALSE
+    # )
     expr = CreateAssayObject(
       data =  all_diff[, colnames(x = object)],
       min.cells = -Inf,
-      min.features = -Inf,
-      check.matrix = FALSE
-    ))
+      min.features = -Inf
+    )
+  )
   object[[new.assay.name]] <- prtb.assay
   object <- LogSeuratCommand(object = object)
   return(object)
@@ -1155,14 +1162,23 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   }
   all_diff <- do.call(what = cbind, args = all_diff)
   all_diff <- all_diff[, colnames(x = object[[assay]]), drop = FALSE]
+  # TODO: restore once check.matrix is in SeuratObject
+  # new.assay <- CreateAssayObject(
+  #   data = rbind(
+  #     GetAssayData(object = object[[assay]], slot = "data"),
+  #     all_diff
+  #   ),
+  #   min.cells = 0,
+  #   min.features = 0,
+  #   check.matrix = FALSE
+  # )
   new.assay <- CreateAssayObject(
     data = rbind(
       GetAssayData(object = object[[assay]], slot = "data"),
       all_diff
     ),
     min.cells = 0,
-    min.features = 0,
-    check.matrix = FALSE
+    min.features = 0
   )
   new.assay <- SetAssayData(
     object = new.assay,

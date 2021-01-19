@@ -631,9 +631,13 @@ FindTransferAnchors <- function(
           y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
         )
       )
+      # TODO: restore once check.matrix is in SeuratObject
+      # reference[[reference.assay]] <- CreateAssayObject(
+      #   data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ],
+      #   check.matrix = FALSE
+      # )
       reference[[reference.assay]] <- CreateAssayObject(
-        data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ],
-        check.matrix = FALSE
+        data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]
       )
       reference <- SetAssayData(
         object = reference,
@@ -642,9 +646,13 @@ FindTransferAnchors <- function(
         new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
       )
     }
+    # TODO: restore once check.matrix is in SeuratObject
+    # query[[query.assay]] <- CreateAssayObject(
+    #   data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ],
+    #   check.matrix = FALSE
+    # )
     query[[query.assay]] <- CreateAssayObject(
-      data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ],
-      check.matrix = FALSE
+      data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]
     )
     query <- SetAssayData(
       object = query,
@@ -1052,9 +1060,13 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
+      # TODO: restore once check.matrix is in SeuratObject
+      # object.list[[i]][[assay]] <- CreateAssayObject(
+      #   data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data"),
+      #   check.matrix = FALSE
+      # )
       object.list[[i]][[assay]] <- CreateAssayObject(
-        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data"),
-        check.matrix = FALSE
+        data = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
       )
     }
     slot(object = anchorset, name = "object.list") <- object.list
@@ -1094,12 +1106,19 @@ IntegrateData <- function(
   } else {
     active.assay <- DefaultAssay(object = ref[[1]])
     reference.integrated[[active.assay]] <- NULL
+    # TODO: restore once check.matrix is in SeuratObject
+    # reference.integrated[[active.assay]] <- CreateAssayObject(
+    #   data = GetAssayData(
+    #     object = reference.integrated[[new.assay.name]],
+    #     slot = 'data'
+    #   ),
+    #   check.matrix = FALSE
+    # )
     reference.integrated[[active.assay]] <- CreateAssayObject(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
         slot = 'data'
-      ),
-      check.matrix = FALSE
+      )
     )
     DefaultAssay(object = reference.integrated) <- active.assay
     reference.integrated[[new.assay.name]] <- NULL
@@ -1122,9 +1141,13 @@ IntegrateData <- function(
     )
 
     # Construct final assay object
+    # TODO: restore once check.matrix is in SeuratObject
+    # integrated.assay <- CreateAssayObject(
+    #   data = integrated.data,
+    #   check.matrix = FALSE
+    # )
     integrated.assay <- CreateAssayObject(
-      data = integrated.data,
-      check.matrix = FALSE
+      data = integrated.data
     )
     if (normalization.method == "SCT") {
       integrated.assay <- SetAssayData(
@@ -1220,9 +1243,14 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
+      # TODO: restore once check.matrix is in SeuratObject
+      # expr = CreateAssayObject(
+      #   data = embeddings,
+      #   check.matrix = FALSE
+      # )
       expr = CreateAssayObject(
-        data = embeddings,
-        check.matrix = FALSE)
+        data = embeddings
+      )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
@@ -1257,11 +1285,18 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   }
   active.assay <- DefaultAssay(object = object.list[reference.datasets][[1]])
   reference.integrated[[active.assay]] <- NULL
+  # TODO: restore once check.matrix is in SeuratObject
+  # reference.integrated[[active.assay]] <- CreateAssayObject(
+  #   data = GetAssayData(
+  #     object = reference.integrated[[new.reduction.name.safe]],
+  #     slot = 'data',
+  #     check.matrix = FALSE
+  #   )
+  # )
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data',
-      check.matrix = FALSE
+      slot = 'data'
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1347,9 +1382,14 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     )[ , dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
+      # TODO restore once check.matrix is in SeuratObject
+      # expr = CreateAssayObject(
+      #   data = embeddings,
+      #   check.matrix = FALSE
+      # )
       expr = CreateAssayObject(
-        data = embeddings,
-        check.matrix = FALSE)
+        data = embeddings
+      )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
     DefaultAssay(object = object.list[[i]]) <- "drtointegrate"
@@ -1617,6 +1657,8 @@ MapQuery <- function(
 #'
 #' @return Returns a vector of cell scores
 #'
+#' @importClassesFrom SeuratObject Neighbor
+#'
 #' @rdname MappingScore
 #' @export
 #'
@@ -1781,7 +1823,8 @@ MappingScore.default <- function(
         query = query.cells.back.corrected,
         k = max(ksmooth, ksnn)
       )
-      corrected.neighbors <- Neighbor(
+      corrected.neighbors <- new(
+        Class = 'Neighbor',
         nn.idx = corrected.neighbors$nn.idx,
         nn.dist = corrected.neighbors$nn.dists
       )
@@ -2546,7 +2589,9 @@ TransferData <- function(
         stringsAsFactors = FALSE
       )
       if (prediction.assay || !is.null(x = query)) {
-        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE)
+        # TODO: restore once check.matrix is in SeuratObject
+        # predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE)
+        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
         Key(object = predictions) <- paste0("predictionscore", rd.name, "_")
       }
       if (is.null(x = query)) {
@@ -2570,9 +2615,13 @@ TransferData <- function(
         new.data <- as(object = new.data, Class = "dgCMatrix")
       }
       if (slot == "counts") {
-        new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
+        # TODO: restore once check.matrix is in SeuratObject
+        # new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
+        new.assay <- CreateAssayObject(counts = new.data)
       } else if (slot == "data") {
-        new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
+        # TODO: restore once check.matrix is in SeuratObject
+        # new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
+        new.assay <- CreateAssayObject(data = new.data)
       }
       Key(object = new.assay) <- paste0(rd.name, "_")
       if (is.null(x = query)) {
@@ -3620,9 +3669,13 @@ PairwiseIntegrateReference <- function(
   features.to.integrate <- features.to.integrate %||% features
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
+    # TODO: restore once check.matrix is in SeuratObject
+    # ref.obj[[new.assay.name]] <- CreateAssayObject(
+    #   data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+    #   check.matrix = FALSE
+    # )
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
-      check.matrix = FALSE
+      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ]
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
@@ -3733,7 +3786,9 @@ PairwiseIntegrateReference <- function(
       verbose = verbose
     )
     integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
-    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
+    # TODO: restore once check.matrix is in SeuratObject
+    # merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
+    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL

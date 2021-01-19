@@ -19,7 +19,7 @@ BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.6.0),
-    methods,
+    methods
 Imports:
     cluster,
     cowplot,
@@ -60,6 +60,7 @@ Imports:
     scales,
     scattermore (>= 0.7),
     sctransform (>= 0.3.2),
+    SeuratObject,
     shiny,
     spatstat,
     stats,
@@ -72,6 +73,7 @@ License: GPL-3 | file LICENSE
 LazyData: true
 Collate:
     'RcppExports.R'
+    'reexports.R'
     'generics.R'
     'clustering.R'
     'visualization.R'

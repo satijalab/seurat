@@ -125,6 +125,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \code{HoverLocator} and \code{CellSelector}, respectively.
 }
 \examples{
+data("pbmc_small")
 DimPlot(object = pbmc_small)
 DimPlot(object = pbmc_small, split.by = 'ident')
 
