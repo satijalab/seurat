@@ -1,5 +1,5 @@
 ---
-title: 'Integrating scRNA-seq data'
+title: 'Introduction to scRNA-seq integration'
 output:
   html_document:
     theme: united

@@ -20,35 +20,35 @@
 
 - category: Data Integration
   vignettes:
-    - title: Integrating scRNA-seq data
-      name: immune_alignment
+    - title: Introduction to scRNA-seq integration
+      name: integration_introduction
       summary: |
         An introduction to RNA-RNA integration.
       image: pbmc_alignment.png
 
-    - title: Annotating scATAC-seq cells via multimodal label transfer
-      name: atacseq_integration_vignette
-      summary: |
-        Analyzing scRNA-seq data plus scATAC-seq data
-      image: atacseq_integration_vignette.png
-
-    - title: Reference Mapping
-      name: integration_reference_mapping
+    - title: Mapping and annotating query datasets
+      name: integration_mapping
       summary: |
         Learn about mapping to RNA references.
       image: assets/anchorsb_2018.png
 
-    - title: Integrating Large Datasets
+    - title: Tips for integrating large datasets
       name: integration_large_datasets
       summary: |
         Example workflow for integrating large datasets
       image: bm280k_integrated.png
 
+    - title: Integrating scRNA-seq and scATAC-seq data
+      name: atacseq_integration_vignette
+      summary: |
+        Analyzing scRNA-seq data plus scATAC-seq data
+      image: atacseq_integration_vignette.png
+
     - title: Multimodal Reference Mapping
-      name: reference_mapping
+      name: multimodal_reference_mapping
       summary: |
         Analyze query data in the context of multimodal reference atlases.
-      image: reference_mapping.png
+      image: multimodal_reference_mapping.png
 
 - category: New Statistical Approaches
   vignettes:

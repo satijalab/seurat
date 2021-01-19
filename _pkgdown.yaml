@@ -22,16 +22,16 @@ navbar:
           href: articles/spatial_vignette.html
         - text: -------
         - text: Data Integration
-        - text: "Integrating scRNA-seq data"
-          href: articles/immune_alignment.html
-        - text: "Reference Mapping"
-          href: articles/integration_reference_mapping.html
-        - text: "Mapping to multimodal reference datasets"
-          href: articles/reference_mapping.html
-        - text: "Integrating Large Datasets"
+        - text: "Introduction to scRNA-seq integration""
+          href: articles/integration_introduction.html
+        - text: "Mapping and annotating query datasets"
+          href: articles/integration_mapping.html
+        - text: "Tips for integrating large datasets"
           href: articles/integration_large_datasets.html
-        - text: "Annotating scATAC-seq cells via multimodal label transfer"
+        - text: "Integrating scRNA-seq and scATAC-seq data"
           href: articles/atacseq_integration_vignette.html
+        - text: "Multimodal reference mapping"
+          href: articles/multimodal_reference_mapping.html
         - text: -------
         - text: New Statistical Methods
         - text: "Weighted Nearest Neighbor Analysis"

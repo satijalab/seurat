@@ -20,6 +20,7 @@ jobs:
     steps:
       - script: |
             set -e
+            echo "R_LIBS =" "$(Rscript -e "cat(Sys.getenv('R_LIBS_USER')[3])")" > .Renviron
             Rscript --default-packages=stats,graphics,grDevices,utils,datasets,base,methods -e "install.packages('.', type = 'source', repos = NULL, dependencies = FALSE, lib = Sys.getenv('R_LIBS_USER'))"
             mv /data/* data/
             mkdir output

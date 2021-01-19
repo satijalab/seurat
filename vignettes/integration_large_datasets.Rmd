@@ -1,5 +1,5 @@
 ---
-title: "Large Dataset Integration"
+title: "Tips for integrating large datasets"
 output:
   html_document:
     theme: united

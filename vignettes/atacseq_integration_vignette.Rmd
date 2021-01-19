@@ -1,5 +1,5 @@
 ---
-title: "Annotating scATAC-seq cells via multimodal label transfer"
+title: "Integrating scRNA-seq and scATAC-seq data"
 output:
   html_document:
     theme: united

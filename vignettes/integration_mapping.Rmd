@@ -1,5 +1,5 @@
 ---
-title: "Integration and Label Transfer"
+title: "Mapping and annotating query datasets"
 output:
   html_document:
     theme: united
