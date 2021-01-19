@@ -3407,6 +3407,24 @@ merge.SCTAssay <- function(
   ...
 ) {
   assays <- c(x, y)
+  parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
+  if (length(x = parent.call) > 0) {
+    # Try and fill in missing residuals if called in the context of merge.Seurat
+    all.features <- unique(x = unlist(x = lapply(X = assays, FUN = function(assay) {
+      if (inherits(x = x, what = "SCTAssay")) {
+        return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
+      }
+    })))
+    assays <- lapply(X = 1:length(x = assays), FUN = function(assay) {
+      if (inherits(x = assays[[assay]], what = "SCTAssay")) {
+        parent.environ <- sys.frame(which = parent.call[1])
+        seurat.object <- parent.environ$objects[[assay]]
+        seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+        return(seurat.object[[parent.environ$assay]])
+      }
+      return(assays[[assay]])
+    })
+  }
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
     warning("Attempting to merge an SCTAssay with another Assay type \n",

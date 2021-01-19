@@ -3331,10 +3331,9 @@ GetResidualSCTModel <- function(
     features_to_compute <- character()
   }
   if (!umi.assay %in% Assays(object = object)) {
-    warnings("The umi assay (", umi.assay, ") is not present in the object.",
-             "Cannot compute additional residuals.")
-    umi.assay <- assay
-    features_to_compute <- character()
+    warning("The umi assay (", umi.assay, ") is not present in the object. ",
+             "Cannot compute additional residuals.", call. = FALSE, immediate. = TRUE)
+    return(NULL)
   }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
@@ -3342,7 +3341,7 @@ GetResidualSCTModel <- function(
     umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts" )[features_to_compute, model.cells, drop = FALSE]
   } else {
     warning(
-      "In the SCTModel group ", SCTModel, ", the following ", length(x = diff_features),
+      "In the SCTModel ", SCTModel, ", the following ", length(x = diff_features),
       " features do not exist in the counts slot: ", paste(diff_features, collapse = ", ")
     )
     if (length(x = intersect_features) == 0) {
