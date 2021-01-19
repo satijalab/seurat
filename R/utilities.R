@@ -3,15 +3,6 @@
 NULL
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Reexports
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::CheckDuplicateCellNames
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -56,6 +47,7 @@ SeuratObject::CheckDuplicateCellNames
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' cd_features <- list(c(
 #'   'CD79B',
 #'   'CD79A',
@@ -265,6 +257,7 @@ AddModuleScore <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' head(AggregateExpression(object = pbmc_small))
 #'
 AggregateExpression <- function(
@@ -327,6 +320,7 @@ AggregateExpression <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' head(AverageExpression(object = pbmc_small))
 #'
 AverageExpression <- function(
@@ -366,6 +360,7 @@ AverageExpression <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
 #' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small))
 #'
@@ -406,6 +401,7 @@ CaseMatch <- function(search, match) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' # pbmc_small doesn't have any cell-cycle genes
 #' # To run CellCycleScoring, please use a dataset with cell-cycle genes
 #' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
@@ -557,6 +553,7 @@ CreateAnn <- function(name, ndim) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
 #'
@@ -638,6 +635,7 @@ ExpMean <- function(x, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
 #' }
 #'
@@ -1157,6 +1155,7 @@ LogVMR <- function(x, ...) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- MetaFeature(
 #'   object = pbmc_small,
 #'   features = c("LTB", "EAF2"),
@@ -1228,6 +1227,7 @@ MinMax <- function(data, min, max) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Calculate the proportion of transcripts mapping to mitochondrial genes
 #' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 #' # system of interest
@@ -1279,6 +1279,7 @@ PercentageFeatureSet <- function(
 # @export
 #
 # @examples
+# data("pbmc_small")
 # head(PseudobulkExpression(object = pbmc_small))
 #
 PseudobulkExpression <- function(
@@ -1565,6 +1566,7 @@ SaveAnnoyIndex <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
 #'
 RegroupIdents <- function(object, metadata) {
@@ -1974,6 +1976,41 @@ CheckGC <- function() {
     gc(verbose = FALSE)
   }
 }
+
+# Check a list of objects for duplicate cell names
+#
+# @param object.list List of Seurat objects
+# @param verbose Print message about renaming
+# @param stop Error out if any duplicate names exist
+#
+# @return Returns list of objects with duplicate cells renamed to be unique
+#
+# @keywords internal
+#
+# @noRd
+#
+CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
+  cell.names <- unlist(x = lapply(X = object.list, FUN = colnames))
+  if (any(duplicated(x = cell.names))) {
+    if (stop) {
+      stop("Duplicate cell names present across objects provided.")
+    }
+    if (verbose) {
+      warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
+    }
+    object.list <- lapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) {
+        return(RenameCells(
+          object = object.list[[x]],
+          new.names = paste0(Cells(x = object.list[[x]]), "_", x)
+        ))
+      }
+    )
+  }
+  return(object.list)
+}
+
 
 # Create an empty dummy assay to replace existing assay
 #

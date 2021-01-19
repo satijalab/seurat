@@ -71,6 +71,7 @@ identity class, high/low values for particular PCs, ect..
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 OldWhichCells(object = pbmc_small, ident.keep = 2)
 }
 

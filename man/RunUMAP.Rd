@@ -216,6 +216,7 @@ discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc_small
 # Run UMAP map on first 5 PCs
 pbmc_small <- RunUMAP(object = pbmc_small, dims = 1:5)

@@ -51,6 +51,7 @@ Finds markers that are conserved between the groups
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc_small
 # Create a simulated grouping variable
 pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)

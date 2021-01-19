@@ -95,7 +95,7 @@ test_that("AverageExpression with return.seurat", {
   expect_s4_class(object = avg.data, "Seurat")
   avg.data.mat <- AverageExpression(object, slot = 'data')$RNA
   expect_equal(as.matrix(GetAssayData(avg.data[["RNA"]], slot = "counts")), avg.data.mat)
-  expect_equal(as.matrix(GetAssayData(avg.data[["RNA"]], slot = "data")), log1p(x = avg.data.mat))
+  expect_equal(unname(as.matrix(GetAssayData(avg.data[["RNA"]], slot = "data"))), unname(log1p(x = avg.data.mat)))
   avg.scale <- GetAssayData(avg.data[["RNA"]], slot = "scale.data")
   expect_equal(
     avg.scale['MS4A1', ],
@@ -112,7 +112,7 @@ test_that("AverageExpression with return.seurat", {
   avg.scale <- AverageExpression(object, slot = "scale.data", return.seurat = TRUE, verbose = FALSE)
   expect_s4_class(object = avg.scale, "Seurat")
   avg.scale.mat <- AverageExpression(object, slot = 'scale.data')$RNA
-  expect_equal(as.matrix(GetAssayData(avg.scale[["RNA"]], slot = "scale.data")), avg.scale.mat)
+  expect_equal(unname(as.matrix(GetAssayData(avg.scale[["RNA"]], slot = "scale.data"))), unname(avg.scale.mat))
   expect_true(all(is.na(GetAssayData(avg.scale[["RNA"]], slot = "data"))))
   expect_equal(GetAssayData(avg.scale[["RNA"]], slot = "counts"), matrix())
 })

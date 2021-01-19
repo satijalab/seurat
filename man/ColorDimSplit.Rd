@@ -77,6 +77,7 @@ Returns a DimPlot colored based on whether the cells fall in clusters
 to the left or to the right of a node split in the cluster tree.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 PlotClusterTree(pbmc_small)

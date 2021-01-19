@@ -45,6 +45,7 @@ NULL
 #' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 #'
 CalculateBarcodeInflections <- function(
@@ -348,6 +349,7 @@ HTODemux <- function(
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
 #'
@@ -481,7 +483,7 @@ GetResidual <- function(
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
-#' @inheritParams CreateSeuratObject
+#' @inheritParams SeuratObject::CreateSeuratObject
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
@@ -1344,6 +1346,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
 #' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
@@ -1431,6 +1434,7 @@ SampleUMI <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' SCTransform(object = pbmc_small)
 #'
 SCTransform <- function(
@@ -1714,6 +1718,7 @@ SCTransform <- function(
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- CalculateBarcodeInflections(
 #'   object = pbmc_small,
 #'   group.column = 'groups',
@@ -1983,7 +1988,6 @@ FindVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @inheritParams FindVariableFeatures.Assay
 #' @param assay Assay to use
 #'
 #' @rdname FindVariableFeatures
@@ -2357,6 +2361,7 @@ NormalizeData.Assay <- function(
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small
 #' pmbc_small <- NormalizeData(object = pbmc_small)
 #' }

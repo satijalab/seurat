@@ -23,6 +23,7 @@ that contains cells from many patients, and subdividing it into
 patient-specific objects.
 }
 \examples{
+data("pbmc_small")
 # Assign the test object a three level attribute
 groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
 names(groups) <- colnames(pbmc_small)

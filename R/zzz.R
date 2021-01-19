@@ -1,9 +1,3 @@
-#' Seurat package
-#'
-#' Tools for single-cell genomics
-#'
-#' Tools for single-cell genomics
-#'
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
@@ -31,7 +25,7 @@
 #' @rdname Seurat-package
 #' @name Seurat-package
 #'
-NULL
+"_PACKAGE"
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,

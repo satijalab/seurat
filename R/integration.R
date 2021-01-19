@@ -1609,6 +1609,8 @@ MapQuery <- function(
 #'
 #' @return Returns a vector of cell scores
 #'
+#' @importClassesFrom SeuratObject Neighbor
+#'
 #' @rdname MappingScore
 #' @export
 #'
@@ -1775,7 +1777,8 @@ MappingScore.default <- function(
         query = query.cells.back.corrected,
         k = max(ksmooth, ksnn)
       )
-      corrected.neighbors <- Neighbor(
+      corrected.neighbors <- new(
+        Class = 'Neighbor',
         nn.idx = corrected.neighbors$nn.idx,
         nn.dist = corrected.neighbors$nn.dists
       )

@@ -168,6 +168,7 @@ graph by calculating the neighborhood overlap (Jaccard index) between every
 cell and its \code{k.param} nearest neighbors.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 # Compute an SNN on the gene expression level
 pbmc_small <- FindNeighbors(pbmc_small, features = VariableFeatures(object = pbmc_small))

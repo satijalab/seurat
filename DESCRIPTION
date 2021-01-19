@@ -17,8 +17,7 @@ Authors@R: c(
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://mojaveazure.github.io/loomR
-Remotes: jlmelville/uwot,
-    mojaveazure/seurat-object
+Remotes: jlmelville/uwot
 Depends:
     R (>= 3.6.0),
     methods
@@ -74,6 +73,7 @@ License: GPL-3 | file LICENSE
 LazyData: true
 Collate:
     'RcppExports.R'
+    'reexports.R'
     'generics.R'
     'clustering.R'
     'visualization.R'

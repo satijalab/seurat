@@ -1,3 +1,4 @@
+#' @include reexports.R
 #' @include generics.R
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
@@ -7,78 +8,6 @@
 #' @useDynLib Seurat
 #'
 NULL
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Reexports
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' @importClassesFrom SeuratObject AnyMatrix
-#' Assay
-#' DimReduc
-#' Graph
-#' JackStrawData
-#' Neighbor
-#' OptionalCharacter
-#' OptionalList
-#' Seurat
-#' SeuratCommand
-#' SpatialImage
-#'
-#' @exportClass Assay
-#' @exportClass DimReduc
-#' @exportClass Graph
-#' @exportClass JackStrawData
-#' @exportClass Neighbor
-#' @exportClass Seurat
-#' @exportClass SeuratCommand
-#' @exportClass SpatialImage
-#'
-NULL
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Assays
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::CellsByIdentities
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::CreateDimReducObject
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::FetchData
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Images
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::LogSeuratCommand
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Neighbors
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Reductions
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::UpdateSeuratObject
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Class definitions
@@ -239,7 +168,7 @@ setOldClass(Classes = c('scalefactors'))
 #'
 #' The SlideSeq class represents spatial information from the Slide-seq platform
 #'
-#' @inheritSection SpatialImage Slots
+#' @inheritSection SeuratObject::SpatialImage Slots
 #' @slot coordinates ...
 #' @slot ...
 #'
@@ -255,7 +184,7 @@ SlideSeq <- setClass(
 #'
 #' The STARmap class represents spatial information from the STARmap platform
 #'
-#' @inheritSection SpatialImage Slots
+#' @inheritSection SeuratObject::SpatialImage Slots
 #' @slot ...
 #'
 STARmap <- setClass(
@@ -475,7 +404,7 @@ FilterSlideSeq <- function(
     as.numeric(dist(rbind(x[c(1, 2)], center)))
   })
   cells.to.remove <- names(x = which(x = (dists > radius)))
-  if (do.plot){
+  if (do.plot) {
     Idents(object) <- "keep"
     object <- SetIdent(object = object, cells = cells.to.remove, value = "remove")
     print(SpatialDimPlot(object = object))
@@ -546,6 +475,7 @@ SetIntegrationData <- function(object, integration.name, slot, new.data) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Assign the test object a three level attribute
 #' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
 #' names(groups) <- colnames(pbmc_small)
@@ -589,6 +519,7 @@ SplitObject <- function(object, split.by = "ident") {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' TopFeatures(object = pbmc_small[["pca"]], dim = 1)
 #' # After projection:
@@ -625,6 +556,7 @@ TopFeatures <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' head(TopCells(object = pbmc_small[["pca"]]))
 #' # Can specify which dimension and how many cells to return
@@ -769,6 +701,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' lfile <- as.loom(x = pbmc_small)
 #' }
 #'
@@ -918,13 +851,22 @@ as.loom.Seurat <- function(
   return(lfile)
 }
 
+#' Coerce to a \code{Seurat} Object
+#'
+#' Convert objects to \code{Seurat} objects
+#'
+#' @inheritParams SeuratObject::as.Seurat
 #' @param slot Slot to store expression data as
+#'
+#' @return A \code{Seurat} object generated from \code{x}
 #'
 #' @importFrom utils packageVersion
 #'
 #' @rdname as.Seurat
 #' @export
 #' @method as.Seurat CellDataSet
+#'
+#' @seealso \code{\link[SeuratObject:as.Seurat]{SeuratObject::as.Seurat}}
 #'
 as.Seurat.CellDataSet <- function(
   x,
@@ -1107,6 +1049,7 @@ as.Seurat.CellDataSet <- function(
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' lfile <- as.loom(x = pbmc_small)
 #' pbmc <- as.Seurat(x = lfile)
 #' }
@@ -1590,12 +1533,19 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   return(sce)
 }
 
+#' Cast to Sparse
+#'
+#' @inheritParams SeuratObject::as.sparse
+#'
 #' @importFrom methods is
 #' @importFrom Matrix sparseMatrix
 #'
 #' @rdname as.sparse
 #' @export
 #' @method as.sparse H5Group
+#'
+#'
+#' @seealso \code{\link[SeuratObject:as.sparse]{SeuratObject::as.sparse}}
 #'
 as.sparse.H5Group <- function(x, ...) {
   CheckDots(...)
@@ -1619,9 +1569,15 @@ as.sparse.H5Group <- function(x, ...) {
   ))
 }
 
+#' Get Cell Names
+#'
+#' @inheritParams SeuratObject::Cells
+#'
 #' @rdname Cells
 #' @method Cells SlideSeq
 #' @export
+#'
+#' @seealso \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 #'
 Cells.SlideSeq <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x)))
@@ -1650,6 +1606,7 @@ Cells.VisiumV1 <- function(x) {
 #' @method GetAssay Seurat
 #'
 #' @examples
+#' data("pbmc_small")
 #' GetAssay(object = pbmc_small, assay = "RNA")
 #'
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
@@ -1666,8 +1623,15 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
+#' Get Image Data
+#'
+#' @inheritParams SeuratObject::GetImage
+#'
+#' @rdname GetImage
 #' @method GetImage SlideSeq
 #' @export
+#'
+#' @seealso \code{\link[SeuratObject:GetImage]{SeuratObject::GetImage}}
 #'
 GetImage.SlideSeq <- function(
   object,
@@ -1678,6 +1642,7 @@ GetImage.SlideSeq <- function(
   return(NullImage(mode = mode))
 }
 
+#' @rdname GetImage
 #' @method GetImage STARmap
 #' @export
 #'
@@ -1731,8 +1696,15 @@ GetImage.VisiumV1 <- function(
   return(image)
 }
 
+#' Get Tissue Coordinates
+#'
+#' @inheritParams SeuratObject::GetTissueCoordinates
+#'
+#' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates SlideSeq
 #' @export
+#'
+#' @seealso \code{\link[SeuratObject:GetTissueCoordinates]{SeuratObject::GetTissueCoordinates}}
 #'
 GetTissueCoordinates.SlideSeq <- function(object, ...) {
   coords <- slot(object = object, name = 'coordinates')
@@ -1744,6 +1716,8 @@ GetTissueCoordinates.SlideSeq <- function(object, ...) {
 }
 
 #' @param qhulls return qhulls instead of centroids
+#'
+#' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates STARmap
 #' @export
 #'
@@ -1965,9 +1939,15 @@ OldWhichCells.Seurat <- function(
   return(cells)
 }
 
+#' Get Spot Radius
+#'
+#' @inheritParams SeuratObject::Radius
+#'
 #' @rdname Radius
 #' @method Radius SlideSeq
 #' @export
+#'
+#' @seealso \code{\link[SeuratObject:Radius]{SeuratObject::Radius}}
 #'
 Radius.SlideSeq <- function(object) {
   return(0.005)
@@ -2444,13 +2424,21 @@ ReadH5AD.H5File <- function(
   return(object)
 }
 
+#' Rename Cells in an Object
+#'
+#' @inheritParams SeuratObject::RenameCells
+#'
+#' @rdname RenameCells
 #' @method RenameCells SlideSeq
 #' @export
+#'
+#' @seealso \code{\link[SeuratObject:RenameCells]{SeuratObject::RenameCells}}
 #'
 RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
   return(RenameCells.VisiumV1(object = object, new.names = new.names))
 }
 
+#' @rdname RenameCells
 #' @method RenameCells STARmap
 #' @export
 #'
@@ -3179,6 +3167,8 @@ DefaultImage <- function(object) {
 # @param classes.keep A vector of names of classes to get
 #
 # @return A vector with the names of objects within the Seurat object that are of class \code{classes.keep}
+#
+#' @importFrom stats na.omit
 #
 FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
   object <- UpdateSlots(object = object)

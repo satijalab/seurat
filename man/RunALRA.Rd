@@ -92,6 +92,7 @@ RunALRA and associated functions are being moved to SeuratWrappers;
 for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 # Example 1: Simple usage, with automatic choice of k.
 pbmc_small_alra <- RunALRA(object = pbmc_small)

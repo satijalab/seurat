@@ -1,241 +1,6 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Reexports
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' @import SeuratObject
-#' @export
+#' @include reexports.R
 #'
-SeuratObject::AddMetaData
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::as.Graph
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::as.Neighbor
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::as.Seurat
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::as.sparse
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Cells
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Command
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::CreateSeuratObject
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::DefaultAssay
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`DefaultAssay<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Distances
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Embeddings
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::GetAssayData
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::GetImage
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::GetTissueCoordinates
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::HVFInfo
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Idents
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Idents<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Index
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Index<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Indices
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::IsGlobal
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::JS
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`JS<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Key
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Key<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Loadings
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Loadings<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Misc
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Misc<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Project
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Project<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Radius
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::RenameCells
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::RenameIdents
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::ReorderIdent
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::SetAssayData
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::SetIdent
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::SpatiallyVariableFeatures
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::StashIdent
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Stdev
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::SVFInfo
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::Tool
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`Tool<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::VariableFeatures
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::`VariableFeatures<-`
-
-#' @rdname reexports
-#' @export
-#'
-SeuratObject::WhichCells
+NULL
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Generics
@@ -347,6 +112,7 @@ FindClusters <- function(object, ...) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Find markers for cluster 2
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 #' head(x = markers)
@@ -391,6 +157,7 @@ FindMarkers <- function(object, ...) {
 #' be found with \code{\link{Graphs}} or \code{\link{Neighbors}}.
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' # Compute an SNN on the gene expression level
 #' pbmc_small <- FindNeighbors(pbmc_small, features = VariableFeatures(object = pbmc_small))
@@ -457,6 +224,7 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 #'
 #' @examples
+#' data("pbmc_small")
 #' FoldChange(pbmc_small, ident.1 = 1)
 #'
 #' @param object A Seurat object
@@ -581,6 +349,7 @@ NormalizeData <- function(object, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' OldWhichCells(object = pbmc_small, ident.keep = 2)
 #' }
 #'
@@ -682,6 +451,7 @@ ReadH5AD <- function(file, ...) {
 #' @seealso \code{\link{ALRAChooseKPlot}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' # Example 1: Simple usage, with automatic choice of k.
 #' pbmc_small_alra <- RunALRA(object = pbmc_small)
@@ -721,6 +491,7 @@ RunALRA <- function(object, ...) {
 #' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
 #' pbmc1 <- subset(pbmc_small, cells = colnames(pbmc_small)[1:40])
@@ -849,6 +620,7 @@ RunTSNE <- function(object, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small
 #' # Run UMAP map on first 5 PCs
 #' pbmc_small <- RunUMAP(object = pbmc_small, dims = 1:5)
@@ -943,6 +715,7 @@ ScoreJackStraw <- function(object, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 #' pbmc1
 #' }
