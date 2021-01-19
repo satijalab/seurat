@@ -111,7 +111,7 @@ deprecated. Please use \code{order} instead.}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{raster}{Convert points to raster format, default is \code{NULL} which
-automatically rasterizes if plotting more than 50,000 cells}
+automatically rasterizes if plotting more than 100,000 cells}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

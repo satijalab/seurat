@@ -18,7 +18,8 @@ FeatureScatter(
   smooth = FALSE,
   combine = TRUE,
   slot = "data",
-  plot.cor = TRUE
+  plot.cor = TRUE,
+  raster = NULL
 )
 }
 \arguments{
@@ -49,6 +50,10 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
 
 \item{plot.cor}{Display correlation in plot title}
+
+\item{raster}{Convert points to raster format, default is \code{NULL}
+which will automatically use raster if the number of points plotted is greater than
+100,000}
 }
 \value{
 A ggplot object

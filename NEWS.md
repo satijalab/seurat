@@ -17,6 +17,7 @@
 - Add checks for NA, NaN, logical, non-integer, and infinite values during CreateAssayObject and NormalizeData.default
 - Add `AnnotateAnchors()` to aid in AnchorSet interpretation as well as `subset.AnchorSet()`
 - Add flexibility of choice for cell column in `Read10X()`
+- Add rasterization option to `FeatureScatter()` and `VariableFeaturePlot()`
 
 ## Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"
@@ -28,6 +29,7 @@
 - Return the sample.tree properly when integrating with a single reference dataset
 - Replace `as.character.quosure` usage with `as_label` due to deprecation
 - Minor changes to the exact calculation of the anchor weight matrix
+- Default rasterization limit in `DimPlot()` and `FeaturePlot()` changed from 50,000 to 100,000
 
 ## Removed
 - `CreateGeneActivityMatrix` replaced by `Signac::GeneActivity()`
