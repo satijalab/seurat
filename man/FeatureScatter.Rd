@@ -64,6 +64,7 @@ set of single cells. Cells are colored by their identity class. Pearson
 correlation between the two features is displayed above the plot.
 }
 \examples{
+data("pbmc_small")
 FeatureScatter(object = pbmc_small, feature1 = 'CD9', feature2 = 'CD3E')
 
 }

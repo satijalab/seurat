@@ -14,3 +14,15 @@ The STARmap class
 \item{\code{...}}{}
 }}
 
+\section{Slots}{
+
+
+\describe{
+\item{\code{assay}}{Name of assay to associate image data with; will give this image
+priority for visualization when the assay is set as the active/default assay
+in a \code{Seurat} object}
+
+\item{\code{key}}{Key for the image}
+}
+}
+

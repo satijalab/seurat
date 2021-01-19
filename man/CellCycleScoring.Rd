@@ -38,6 +38,7 @@ Score cell cycle phases
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 # pbmc_small doesn't have any cell-cycle genes
 # To run CellCycleScoring, please use a dataset with cell-cycle genes
 # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html

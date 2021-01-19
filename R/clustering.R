@@ -247,7 +247,9 @@ PredictAssay <- function(
   )
   colnames(x = predicted) <- Cells(x = object)
   if (return.assay) {
-    predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
+    # TODO: restore once check.matrix is implemented in SeuratObject
+    # predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
+    predicted.assay <- CreateAssayObject(data = predicted)
     return (predicted.assay)
   } else {
     return (predicted)
@@ -1321,6 +1323,9 @@ GroupSingletons <- function(ids, SNN, group.singletons = TRUE, verbose = TRUE) {
 # @importFrom pbapply pblapply
 # @return return a list containing nn index and nn multimodal distance
 #
+#' @importFrom methods new
+#' @importClassesFrom SeuratObject Neighbor
+#
 MultiModalNN <- function(
   object,
   query = NULL,
@@ -1480,7 +1485,8 @@ MultiModalNN <- function(
     FUN = function(x) nn_weighted_dist[[x]][select_order[[x]]][1:k.nn])
   )
   select_dist <- sqrt(x = (1 - select_dist) / 2)
-  weighted.nn <- Neighbor(
+  weighted.nn <- new(
+    Class = 'Neighbor',
     nn.idx = select_nn,
     nn.dist = select_dist,
     alg.info = list(),
@@ -1534,6 +1540,9 @@ NNdist <- function(
 # @param cache.index Store algorithm index with results for reuse
 # @param ... additional parameters to specific neighbor finding method
 #
+#' @importFrom methods new
+#' @importClassesFrom SeuratObject Neighbor
+#
 NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
   args <- as.list(x = sys.frame(which = sys.nframe()))
   args <- c(args, list(...))
@@ -1551,7 +1560,8 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )
   )
-  n.ob <- Neighbor(
+  n.ob <- new(
+    Class = 'Neighbor',
     nn.idx = results$nn.idx,
     nn.dist = results$nn.dists,
     alg.info = results$alg.info %||% list(),

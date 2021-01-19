@@ -109,6 +109,7 @@ is returned instead of log fold change and the column is named "avg_diff".
 Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 }
 \examples{
+data("pbmc_small")
 FoldChange(pbmc_small, ident.1 = 1)
 
 }

@@ -16,9 +16,9 @@ related information needed for performing downstream analyses - namely data inte
 \item{\code{first.modality.weight}}{A vector of value representing for the modality weights of
 the first modality}
 
-\item{\code{modality.assay}}{Names of assays for the list of dimentional reductions}
+\item{\code{modality.assay}}{Names of assays for the list of dimensional reductions}
 
-\item{\code{params}}{A list of paramters used in the FindModalityWeights}
+\item{\code{params}}{A list of parameters used in the FindModalityWeights}
 
 \item{\code{score.matrix}}{a score matrix representing cross and within-modality prediction
 score, and kernel value}

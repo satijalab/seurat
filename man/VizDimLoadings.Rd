@@ -46,6 +46,7 @@ A \code{\link[patchwork]{patchwork}ed} ggplot object if
 Visualize top genes associated with reduction components
 }
 \examples{
+data("pbmc_small")
 VizDimLoadings(object = pbmc_small)
 
 }

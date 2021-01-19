@@ -23,6 +23,7 @@ This elbow often corresponds well with the significant dims and is much faster t
 Jackstraw
 }
 \examples{
+data("pbmc_small")
 ElbowPlot(object = pbmc_small)
 
 }

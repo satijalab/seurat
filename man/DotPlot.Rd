@@ -78,6 +78,7 @@ cells within a class, while the color encodes the AverageExpression level
 across all cells within a class (blue is high).
 }
 \examples{
+data("pbmc_small")
 cd_genes <- c("CD247", "CD3E", "CD9")
 DotPlot(object = pbmc_small, features = cd_genes)
 pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)

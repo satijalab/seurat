@@ -74,6 +74,7 @@ parameter (for example, a gene), to subset on.
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 pbmc1
 }

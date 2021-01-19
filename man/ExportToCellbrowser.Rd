@@ -65,6 +65,7 @@ Export Seurat object for UCSC cell browser
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
 }
 

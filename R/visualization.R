@@ -36,6 +36,7 @@ NULL
 #' @seealso \code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' DimHeatmap(object = pbmc_small)
 #'
 DimHeatmap <- function(
@@ -210,6 +211,7 @@ DimHeatmap <- function(
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' DoHeatmap(object = pbmc_small)
 #'
 DoHeatmap <- function(
@@ -500,6 +502,7 @@ HTOHeatmap <- function(
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' RidgePlot(object = pbmc_small, features = 'PC_1')
 #'
 RidgePlot <- function(
@@ -561,6 +564,7 @@ RidgePlot <- function(
 #' @seealso \code{\link{FetchData}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' VlnPlot(object = pbmc_small, features = 'PC_1')
 #' VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 #'
@@ -647,6 +651,7 @@ VlnPlot <- function(
 #' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 #' PlotClusterTree(pbmc_small)
@@ -766,6 +771,7 @@ ColorDimSplit <- function(
 #' \code{\link{CellSelector}} \code{\link{FetchData}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' DimPlot(object = pbmc_small)
 #' DimPlot(object = pbmc_small, split.by = 'ident')
 #'
@@ -947,6 +953,7 @@ DimPlot <- function(
 #' \code{\link{CellSelector}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' FeaturePlot(object = pbmc_small, features = 'PC_1')
 #'
 FeaturePlot <- function(
@@ -1804,6 +1811,7 @@ NNPlot <- function(
 #' @aliases CellPlot
 #'
 #' @examples
+#' data("pbmc_small")
 #' CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 #'
 CellScatter <- function(
@@ -1871,6 +1879,7 @@ CellScatter <- function(
 #' @aliases GenePlot
 #'
 #' @examples
+#' data("pbmc_small")
 #' FeatureScatter(object = pbmc_small, feature1 = 'CD9', feature2 = 'CD3E')
 #'
 FeatureScatter <- function(
@@ -1940,7 +1949,7 @@ FeatureScatter <- function(
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
-#' @inheritParams HVFInfo
+#' @inheritParams SeuratObject::HVFInfo
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
@@ -1959,6 +1968,7 @@ FeatureScatter <- function(
 #' @seealso \code{\link{FindVariableFeatures}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' VariableFeaturePlot(object = pbmc_small)
 #'
 VariableFeaturePlot <- function(
@@ -3321,6 +3331,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 #' BarcodeInflectionsPlot(pbmc_small)
 #'
@@ -3426,6 +3437,7 @@ BarcodeInflectionsPlot <- function(object) {
 #' @seealso \code{RColorBrewer::brewer.pal.info}
 #'
 #' @examples
+#' data("pbmc_small")
 #' cd_genes <- c("CD247", "CD3E", "CD9")
 #' DotPlot(object = pbmc_small, features = cd_genes)
 #' pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
@@ -3658,6 +3670,7 @@ DotPlot <- function(
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' ElbowPlot(object = pbmc_small)
 #'
 ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
@@ -3767,6 +3780,7 @@ GroupCorrelationPlot <- function(
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' JackStrawPlot(object = pbmc_small)
 #'
 JackStrawPlot <- function(
@@ -3826,6 +3840,7 @@ JackStrawPlot <- function(
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
 #' PlotClusterTree(object = pbmc_small)
 #'
@@ -3868,6 +3883,7 @@ PlotClusterTree <- function(object, ...) {
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' VizDimLoadings(object = pbmc_small)
 #'
 VizDimLoadings <- function(
@@ -3955,6 +3971,7 @@ VizDimLoadings <- function(
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' AugmentPlot(plot = plot)
 #' }
@@ -4040,8 +4057,6 @@ BGTextColor <- function(
   ))
 }
 
-#' @inheritParams CustomPalette
-#'
 #' @export
 #' @concept visualization
 #'
@@ -4056,8 +4071,6 @@ BlackAndWhite <- function(mid = NULL, k = 50) {
   return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
 }
 
-#' @inheritParams CustomPalette
-#'
 #' @export
 #' @concept visualization
 #'
@@ -4098,6 +4111,7 @@ BlueAndRed <- function(k = 50) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' # Follow instructions in the terminal to select points
 #' cells.located <- CellSelector(plot = plot)
@@ -4224,6 +4238,7 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
 #' pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
 #' DimPlot(pbmc_small, reduction = "umap")
@@ -4291,6 +4306,7 @@ CollapseEmbeddingOutliers <- function(
 #' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small[['group']] <- sample(
 #'   x = c('g1', 'g2'),
 #'   size = ncol(x = pbmc_small),
@@ -4520,6 +4536,7 @@ FeatureLocator <- function(plot, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
 #' }
@@ -4664,7 +4681,7 @@ Intensity <- function(color) {
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
-#' @importFrom stats median
+#' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
 #' @importFrom ggplot2 aes_string geom_text geom_label
 #' @importFrom RANN nn2
@@ -4675,6 +4692,7 @@ Intensity <- function(color) {
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
@@ -4809,6 +4827,7 @@ LabelClusters <- function(
 #' @seealso \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' ff <- TopFeatures(object = pbmc_small[['pca']])
 #' cc <- TopCells(object = pbmc_small[['pca']])
 #' plot <- FeatureScatter(object = pbmc_small, feature1 = ff[1], feature2 = ff[2])
@@ -4887,8 +4906,6 @@ Luminance <- function(color) {
   return(luminance)
 }
 
-#' @inheritParams CustomPalette
-#'
 #' @export
 #' @concept visualization
 #'
@@ -4951,8 +4968,6 @@ CenterTitle <- function(...) {
   return(theme(plot.title = element_text(hjust = 0.5), validate = TRUE, ...))
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_rect element_text element_line margin
 #' @export
 #' @concept visualization
@@ -5013,7 +5028,6 @@ DarkTheme <- function(...) {
   return(dark.theme)
 }
 
-#' @inheritParams SeuratTheme
 #' @param x.text,y.text X and Y axis text sizes
 #' @param x.title,y.title X and Y axis title sizes
 #' @param main Plot title size
@@ -5047,7 +5061,6 @@ FontSize <- function(
   )
 }
 
-#' @inheritParams SeuratTheme
 #' @param keep.text Keep axis text
 #' @param keep.ticks Keep axis ticks
 #'
@@ -5096,8 +5109,6 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
   return(no.axes.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme
 #' @export
 #' @concept visualization
@@ -5123,8 +5134,6 @@ NoLegend <- function(...) {
   return(no.legend.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_blank
 #' @export
 #' @concept visualization
@@ -5151,8 +5160,6 @@ NoGrid <- function(...) {
   return(no.grid.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_text
 #' @export
 #' @concept visualization
@@ -5172,8 +5179,6 @@ SeuratAxes <- function(...) {
   return(axes.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @export
 #' @concept visualization
 #'
@@ -5184,7 +5189,6 @@ SpatialTheme <- function(...) {
   return(DarkTheme() + NoAxes() + NoGrid() + NoLegend(...))
 }
 
-#' @inheritParams SeuratTheme
 #' @param position A position to restore the legend to
 #'
 #' @importFrom ggplot2 theme
@@ -5205,8 +5209,6 @@ RestoreLegend <- function(..., position = 'right') {
   return(restored.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_text
 #' @export
 #' @concept visualization
@@ -5225,8 +5227,6 @@ RotatedAxis <- function(...) {
   return(rotated.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_text
 #' @export
 #' @concept visualization
@@ -5245,8 +5245,6 @@ BoldTitle <- function(...) {
   return(bold.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_rect
 #' @export
 #' @concept visualization
@@ -6350,7 +6348,7 @@ InvertHex <- function(hexadecimal) {
 #
 # @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
 #
-#' @importFrom stats median
+#' @importFrom stats median na.omit
 #
 MakeLabels <- function(data) {
   groups <- as.character(x = na.omit(object = unique(x = data[, 3])))
@@ -6366,7 +6364,6 @@ MakeLabels <- function(data) {
   labels[, colnames(x = data)[3]] <- groups
   return(labels)
 }
-
 
 # Plot expression of multiple features by identity on a plot
 #

@@ -19,6 +19,7 @@ For cells in each ident, set a new identity based on the most common value
 of a specified metadata column.
 }
 \examples{
+data("pbmc_small")
 pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
 
 }

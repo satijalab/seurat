@@ -55,6 +55,7 @@ or PC scores are averaged across all cells in an identity class before the
 tree is constructed.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 pbmc_small <- BuildClusterTree(object = pbmc_small)
 Tool(object = pbmc_small, slot = 'BuildClusterTree')

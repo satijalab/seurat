@@ -34,6 +34,7 @@ Calculates relative contribution of each feature to each cell
 for given set of features.
 }
 \examples{
+data("pbmc_small")
 pbmc_small <- MetaFeature(
   object = pbmc_small,
   features = c("LTB", "EAF2"),

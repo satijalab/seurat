@@ -46,6 +46,7 @@ Creates a plot of scatter plot of features across two single cells. Pearson
 correlation between the two cells is displayed above the plot.
 }
 \examples{
+data("pbmc_small")
 CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 
 }

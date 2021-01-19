@@ -58,6 +58,7 @@ If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is le
 the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 }
 \examples{
+data("pbmc_small")
 head(AggregateExpression(object = pbmc_small))
 
 }

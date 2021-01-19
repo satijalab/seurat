@@ -2,7 +2,7 @@
 % Please edit documentation in R/objects.R
 \name{GetIntegrationData}
 \alias{GetIntegrationData}
-\title{Get integation data}
+\title{Get integration data}
 \usage{
 GetIntegrationData(object, integration.name, slot)
 }
@@ -17,6 +17,6 @@ GetIntegrationData(object, integration.name, slot)
 Returns data from the requested slot within the integrated object
 }
 \description{
-Get integation data
+Get integration data
 }
 \concept{objects}

@@ -23,6 +23,7 @@ Downsample each cell to a specified number of UMIs. Includes
 an option to upsample cells below specified UMI as well.
 }
 \examples{
+data("pbmc_small")
 counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
 downsampled = SampleUMI(data = counts)
 head(x = downsampled)

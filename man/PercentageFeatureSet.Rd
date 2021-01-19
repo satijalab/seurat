@@ -36,6 +36,7 @@ column sum of the matrix present in the counts slot for features belonging to th
 the column sum for all features times 100.
 }
 \examples{
+data("pbmc_small")
 # Calculate the proportion of transcripts mapping to mitochondrial genes
 # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 # system of interest

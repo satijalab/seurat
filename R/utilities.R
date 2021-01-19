@@ -48,6 +48,7 @@ NULL
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' cd_features <- list(c(
 #'   'CD79B',
 #'   'CD79A',
@@ -258,6 +259,7 @@ AddModuleScore <- function(
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' head(AggregateExpression(object = pbmc_small))
 #'
 AggregateExpression <- function(
@@ -321,6 +323,7 @@ AggregateExpression <- function(
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' head(AverageExpression(object = pbmc_small))
 #'
 AverageExpression <- function(
@@ -361,6 +364,7 @@ AverageExpression <- function(
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
 #' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small))
 #'
@@ -402,6 +406,7 @@ CaseMatch <- function(search, match) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' # pbmc_small doesn't have any cell-cycle genes
 #' # To run CellCycleScoring, please use a dataset with cell-cycle genes
 #' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
@@ -555,6 +560,7 @@ CreateAnn <- function(name, ndim) {
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
 #'
@@ -638,6 +644,7 @@ ExpMean <- function(x, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
 #' }
 #'
@@ -1164,6 +1171,7 @@ LogVMR <- function(x, ...) {
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- MetaFeature(
 #'   object = pbmc_small,
 #'   features = c("LTB", "EAF2"),
@@ -1237,6 +1245,7 @@ MinMax <- function(data, min, max) {
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Calculate the proportion of transcripts mapping to mitochondrial genes
 #' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 #' # system of interest
@@ -1288,6 +1297,7 @@ PercentageFeatureSet <- function(
 # @export
 #
 # @examples
+# data("pbmc_small")
 # head(PseudobulkExpression(object = pbmc_small))
 #
 PseudobulkExpression <- function(
@@ -1430,11 +1440,18 @@ PseudobulkExpression <- function(
     if (slot[1] == 'scale.data') {
       na.matrix <- data.return[[1]]
       na.matrix[1:length(x = na.matrix)] <- NA
+      # TODO: restore once check.matrix is in SeuratObject
+      # toRet <- CreateSeuratObject(
+      #   counts = na.matrix,
+      #   project = if (pb.method == "average") "Average" else "Aggregate",
+      #   assay = names(x = data.return)[1],
+      #   check.matrix = FALSE,
+      #   ...
+      # )
       toRet <- CreateSeuratObject(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
-        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1456,11 +1473,18 @@ PseudobulkExpression <- function(
         new.data = data.return[[1]]
       )
     } else {
+      # TODO: restore once check.matrix is in SeuratObject
+      # toRet <- CreateSeuratObject(
+      #   counts = data.return[[1]],
+      #   project = if (pb.method == "average") "Average" else "Aggregate",
+      #   assay = names(x = data.return)[1],
+      #   check.matrix = FALSE,
+      #   ...
+      # )
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
-        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1476,7 +1500,9 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
+          # TODO: restore once check.matrix is in SeuratObject
+          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1496,7 +1522,9 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          # TODO: restore once check.matrix is in SeuratObject
+          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1579,6 +1607,7 @@ SaveAnnoyIndex <- function(
 #' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
 #'
 RegroupIdents <- function(object, metadata) {
@@ -2017,6 +2046,14 @@ CheckDots <- function(..., fxns = NULL) {
   }
 }
 
+# Call gc() to perform garbage collection
+#
+CheckGC <- function() {
+  if (getOption(x = "Seurat.memsafe")) {
+    gc(verbose = FALSE)
+  }
+}
+
 # Check a list of objects for duplicate cell names
 #
 # @param object.list List of Seurat objects
@@ -2024,6 +2061,10 @@ CheckDots <- function(..., fxns = NULL) {
 # @param stop Error out if any duplicate names exist
 #
 # @return Returns list of objects with duplicate cells renamed to be unique
+#
+# @keywords internal
+#
+# @noRd
 #
 CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   cell.names <- unlist(x = lapply(X = object.list, FUN = colnames))
@@ -2047,13 +2088,6 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   return(object.list)
 }
 
-# Call gc() to perform garbage collection
-#
-CheckGC <- function() {
-  if (getOption(x = "Seurat.memsafe")) {
-    gc(verbose = FALSE)
-  }
-}
 
 # Create an empty dummy assay to replace existing assay
 #
@@ -2065,9 +2099,13 @@ CreateDummyAssay <- function(assay) {
   ))
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
+  # TODO: restore once check.matrix is in SeuratObject
+  # return(CreateAssayObject(
+  #   counts = cm,
+  #   check.matrix = FALSE
+  # ))
   return(CreateAssayObject(
-    counts = cm,
-    check.matrix = FALSE
+    counts = cm
   ))
 }
 

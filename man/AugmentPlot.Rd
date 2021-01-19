@@ -24,6 +24,7 @@ during augmentation.
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 plot <- DimPlot(object = pbmc_small)
 AugmentPlot(plot = plot)
 }

@@ -247,6 +247,7 @@ should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
 \examples{
+data("pbmc_small")
 # Find markers for cluster 2
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 head(x = markers)

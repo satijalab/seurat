@@ -49,6 +49,7 @@ See [BarcodeInflectionsPlot()] to visualize the calculated inflection points and
 [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
 }
 \examples{
+data("pbmc_small")
 CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 
 }
