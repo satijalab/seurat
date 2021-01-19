@@ -16,6 +16,8 @@
 )
 }
 \arguments{
+\item{x}{object to be subsetted.}
+
 \item{score.threshold}{Only anchor pairs with scores greater than this value
 are retained.}
 
@@ -33,6 +35,8 @@ ident pairs. E.g. \code{list(c("CD4", "CD8"), c("B-cell", "T-cell"))}}
 
 \item{ident.matrix}{Provide a binary matrix specifying whether an ident pair
 is allowable (1) or not (0). Should be an ident x ident symmetric matrix}
+
+\item{...}{further arguments to be passed to or from other methods.}
 }
 \value{
 Returns an \code{\link{AnchorSet}} object with specified anchors

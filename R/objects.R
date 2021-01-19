@@ -3010,6 +3010,7 @@ dim.VisiumV1 <- function(x) {
 
 #' Subset an AnchorSet object
 #'
+#' @inheritParams base::subset
 #' @param score.threshold Only anchor pairs with scores greater than this value
 #' are retained.
 #' @param disallowed.dataset.pairs Remove any anchors formed between the
