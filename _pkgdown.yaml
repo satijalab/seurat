@@ -22,7 +22,7 @@ navbar:
           href: articles/spatial_vignette.html
         - text: -------
         - text: Data Integration
-        - text: "Introduction to scRNA-seq integration""
+        - text: "Introduction to scRNA-seq integration"
           href: articles/integration_introduction.html
         - text: "Mapping and annotating query datasets"
           href: articles/integration_mapping.html
