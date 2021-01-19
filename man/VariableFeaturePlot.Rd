@@ -12,7 +12,8 @@ VariableFeaturePlot(
   pt.size = 1,
   log = NULL,
   selection.method = NULL,
-  assay = NULL
+  assay = NULL,
+  raster = NULL
 )
 }
 \arguments{
@@ -40,6 +41,10 @@ For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
 }}
 
 \item{assay}{Assay to pull variable features from}
+
+\item{raster}{Convert points to raster format, default is \code{NULL}
+which will automatically use raster if the number of points plotted is greater than
+100,000}
 }
 \value{
 A ggplot object

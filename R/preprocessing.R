@@ -484,6 +484,8 @@ GetResidual <- function(
 #'
 #' @inheritParams Read10X
 #' @inheritParams SeuratObject::CreateSeuratObject
+#' @param data.dir Directory containing the H5 file specified by \code{filename}
+#' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
@@ -516,6 +518,10 @@ Load10X_Spatial <- function(
   to.upper = FALSE,
   ...
 ) {
+  if (length(x = data.dir) > 1) {
+    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    data.dir <- data.dir[1]
+  }
   data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
     rownames(x = data) <- toupper(x = rownames(x = data))
@@ -876,6 +882,7 @@ ReadAlevin <- function(base.path) {
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
+#' @param cell.column Specify which column of barcodes.tsv to use for cell names; default is 1
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -906,6 +913,7 @@ ReadAlevin <- function(base.path) {
 Read10X <- function(
   data.dir = NULL,
   gene.column = 2,
+  cell.column = 1,
   unique.features = TRUE,
   strip.suffix = FALSE
 ) {
@@ -938,7 +946,12 @@ Read10X <- function(
       stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
-    cell.names <- readLines(barcode.loc)
+    cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+    if (ncol(x = cell.barcodes) > 1) {
+      cell.names <- cell.barcodes[, cell.column]
+    } else {
+      cell.names <- readLines(con = barcode.loc)
+    }
     if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
@@ -1046,7 +1059,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
   genomes <- names(x = infile)
   output <- list()
-  if (!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+  if (hdf5r::existsGroup(infile, 'matrix')) {
     # cellranger version 3
     if (use.names) {
       feature_slot <- 'features/name'
@@ -1642,10 +1655,10 @@ SCTransform <- function(
     if (verbose) {
       message('Place corrected count matrix in counts slot')
     }
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
     vst.out$umi_corrected <- NULL
   } else {
-    assay.out <- CreateAssayObject(counts = umi)
+    assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
   }
   # set the variable genes
   VariableFeatures(object = assay.out) <- top.features
@@ -2237,6 +2250,7 @@ NormalizeData.default <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
+  CheckMatrix(object = object)
   normalized.data <- if (nbrOfWorkers() > 1) {
     norm.function <- switch(
       EXPR = normalization.method,
@@ -2608,7 +2622,7 @@ RunALRA.Seurat <- function(
   data.alra <- Matrix(data = t(x = output.alra), sparse = TRUE)
   rownames(x = data.alra) <- genes.use
   colnames(x = data.alra) <- colnames(x = object)
-  assay.alra <- CreateAssayObject(data = data.alra)
+  assay.alra <- CreateAssayObject(data = data.alra, check.matrix = FALSE)
   object[["alra"]] <- assay.alra
   if (setDefaultAssay) {
     message("Setting default assay as alra")

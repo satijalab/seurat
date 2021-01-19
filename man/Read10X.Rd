@@ -7,6 +7,7 @@
 Read10X(
   data.dir = NULL,
   gene.column = 2,
+  cell.column = 1,
   unique.features = TRUE,
   strip.suffix = FALSE
 )
@@ -18,6 +19,8 @@ several data directories. If a named vector is given, the cell barcode names
 will be prefixed with the name.}
 
 \item{gene.column}{Specify which column of genes.tsv or features.tsv to use for gene names; default is 2}
+
+\item{cell.column}{Specify which column of barcodes.tsv to use for cell names; default is 1}
 
 \item{unique.features}{Make feature names unique (default TRUE)}
 
