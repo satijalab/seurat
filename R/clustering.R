@@ -244,7 +244,9 @@ PredictAssay <- function(
   )
   colnames(x = predicted) <- Cells(x = object)
   if (return.assay) {
-    predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
+    # TODO: restore once check.matrix is implemented in SeuratObject
+    # predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
+    predicted.assay <- CreateAssayObject(data = predicted)
     return (predicted.assay)
   } else {
     return (predicted)

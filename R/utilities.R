@@ -1422,11 +1422,18 @@ PseudobulkExpression <- function(
     if (slot[1] == 'scale.data') {
       na.matrix <- data.return[[1]]
       na.matrix[1:length(x = na.matrix)] <- NA
+      # TODO: restore once check.matrix is in SeuratObject
+      # toRet <- CreateSeuratObject(
+      #   counts = na.matrix,
+      #   project = if (pb.method == "average") "Average" else "Aggregate",
+      #   assay = names(x = data.return)[1],
+      #   check.matrix = FALSE,
+      #   ...
+      # )
       toRet <- CreateSeuratObject(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
-        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1448,11 +1455,18 @@ PseudobulkExpression <- function(
         new.data = data.return[[1]]
       )
     } else {
+      # TODO: restore once check.matrix is in SeuratObject
+      # toRet <- CreateSeuratObject(
+      #   counts = data.return[[1]],
+      #   project = if (pb.method == "average") "Average" else "Aggregate",
+      #   assay = names(x = data.return)[1],
+      #   check.matrix = FALSE,
+      #   ...
+      # )
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
-        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1468,7 +1482,9 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
+          # TODO: restore once check.matrix is in SeuratObject
+          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1488,7 +1504,9 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          # TODO: restore once check.matrix is in SeuratObject
+          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -2056,9 +2074,13 @@ CreateDummyAssay <- function(assay) {
   ))
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
+  # TODO: restore once check.matrix is in SeuratObject
+  # return(CreateAssayObject(
+  #   counts = cm,
+  #   check.matrix = FALSE
+  # ))
   return(CreateAssayObject(
-    counts = cm,
-    check.matrix = FALSE
+    counts = cm
   ))
 }
 

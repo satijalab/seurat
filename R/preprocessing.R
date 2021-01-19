@@ -1655,10 +1655,14 @@ SCTransform <- function(
     if (verbose) {
       message('Place corrected count matrix in counts slot')
     }
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
+    # TODO: restore once check.matrix is in SeuratObject
+    # assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected,)
     vst.out$umi_corrected <- NULL
   } else {
-    assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
+    # TODO: restore once check.matrix is in SeuratObject
+    # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
+    assay.out <- CreateAssayObject(counts = umi)
   }
   # set the variable genes
   VariableFeatures(object = assay.out) <- top.features
@@ -2622,7 +2626,9 @@ RunALRA.Seurat <- function(
   data.alra <- Matrix(data = t(x = output.alra), sparse = TRUE)
   rownames(x = data.alra) <- genes.use
   colnames(x = data.alra) <- colnames(x = object)
-  assay.alra <- CreateAssayObject(data = data.alra, check.matrix = FALSE)
+  # TODO: restore once check.matrix is in SeuratObject
+  # assay.alra <- CreateAssayObject(data = data.alra, check.matrix = FALSE)
+  assay.alra <- CreateAssayObject(data = data.alra)
   object[["alra"]] <- assay.alra
   if (setDefaultAssay) {
     message("Setting default assay as alra")
