@@ -286,7 +286,12 @@ test_that("FindTransferAnchors with default SCT works", {
 
 test_that("Mixing SCT and non-SCT assays fails", {
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "SCT", query.assay = "RNA", k.filter = 50))
-  expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "SCT", query.assay = "RNA", k.filter = 50, normalization.method = "SCT"))
+  ref.0 <- ref
+  ref.2 <- ref
+  ref.0[["SCT"]]@SCTModel.list <- list()
+  ref.2[["SCT"]]@SCTModel.list$model2 <-  ref.2[["SCT"]]@SCTModel.list$model1
+  expect_error(FindTransferAnchors(reference = ref.0, query = query, reference.assay = "SCT", query.assay = "RNA", k.filter = 50, normalization.method = "SCT"))
+  expect_error(FindTransferAnchors(reference = ref.2, query = query, reference.assay = "SCT", query.assay = "RNA", k.filter = 50, normalization.method = "SCT"))
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "RNA", query.assay = "SCT", k.filter = 50))
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.assay = "RNA", query.assay = "SCT", k.filter = 50, normalization.method = "SCT"))
 })
