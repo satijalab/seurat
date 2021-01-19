@@ -34,6 +34,7 @@ Move outliers towards center on dimension reduction plot
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
 pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
 DimPlot(pbmc_small, reduction = "umap")

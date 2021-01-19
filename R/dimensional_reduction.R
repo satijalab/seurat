@@ -40,6 +40,7 @@ NULL
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 #' head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 #' }
@@ -211,6 +212,7 @@ L2CCA <- function(object, ...){
 #' @seealso \code{\link{ProjectDim}} \code{\link{JackStraw}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' PCASigGenes(pbmc_small, pcs.use = 1:2)
 #'
 PCASigGenes <- function(
@@ -266,6 +268,7 @@ PCASigGenes <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
 #' # Vizualize top projected genes in heatmap
@@ -2265,7 +2268,7 @@ RunSPCA.Assay <- function(
 }
 
 #' @param reduction.name dimensional reduction name, spca by default
-#' @rdname RunsPCA
+#' @rdname RunSPCA
 #' @export
 #' @method RunSPCA Seurat
 #'

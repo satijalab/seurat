@@ -76,6 +76,7 @@ For details about stored CCA calculation parameters, see
 \code{PrintCCAParams}.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
 pbmc1 <- subset(pbmc_small, cells = colnames(pbmc_small)[1:40])

@@ -4,6 +4,8 @@
 # ------------------------------------------------------------------------------
 context("Metadata")
 
+data("pbmc_small")
+
 pbmc_small <- suppressWarnings(suppressMessages(UpdateSeuratObject(pbmc_small)))
 cluster_letters <- LETTERS[Idents(object = pbmc_small)]
 names(cluster_letters) <- colnames(x = pbmc_small)
@@ -64,7 +66,7 @@ test_that("CreateAssayObject works as expected", {
   expect_equal(dim(rna.assay[[]]), c(230, 0))
   expect_equal(rownames(x = rna.assay[[]]), rownames(x = rna.assay))
   expect_equal(VariableFeatures(object = rna.assay), vector())
-  expect_equal(rna.assay@misc, NULL)
+  expect_equal(rna.assay@misc, list())
   expect_equal(GetAssayData(object = rna.assay2, slot = "counts"), new(Class = "matrix"))
 })
 

@@ -94,6 +94,7 @@ scale.data being pearson residuals; sctransform::vst intermediate results are sa
 in misc slot of new assay.
 }
 \examples{
+data("pbmc_small")
 SCTransform(object = pbmc_small)
 
 }

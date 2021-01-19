@@ -72,6 +72,7 @@ Normalize the count data present in a given assay.
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc_small
 pmbc_small <- NormalizeData(object = pbmc_small)
 }

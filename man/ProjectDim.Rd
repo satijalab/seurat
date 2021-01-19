@@ -43,6 +43,7 @@ the cell loadings will remain unchanged, but now there are gene loadings for
 all genes.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
 # Vizualize top projected genes in heatmap

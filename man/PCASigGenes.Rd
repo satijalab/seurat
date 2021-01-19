@@ -33,6 +33,7 @@ Returns a set of genes, based on the JackStraw analysis, that have
 statistically significant associations with a set of PCs.
 }
 \examples{
+data("pbmc_small")
 PCASigGenes(pbmc_small, pcs.use = 1:2)
 
 }

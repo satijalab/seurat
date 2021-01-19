@@ -33,6 +33,7 @@ Returns a vector of features
 Return a list of features with the strongest contribution to a set of components
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 TopFeatures(object = pbmc_small[["pca"]], dim = 1)
 # After projection:

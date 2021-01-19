@@ -11,8 +11,7 @@ CreateSCTAssayObject(
   umi.assay = "RNA",
   min.cells = 0,
   min.features = 0,
-  SCTModel.list = NULL,
-  check.matrix = TRUE
+  SCTModel.list = NULL
 )
 }
 \arguments{
@@ -32,8 +31,6 @@ new object with a lower cutoff.}
 detected.}
 
 \item{SCTModel.list}{list of SCTModels}
-
-\item{check.matrix}{Check counts matrix for NA, NaN, Inf, and non-integer values}
 }
 \description{
 Create a SCT object from a feature (e.g. gene) expression matrix and a list of SCTModels.

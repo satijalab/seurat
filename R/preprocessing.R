@@ -45,6 +45,7 @@ NULL
 #' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 #'
 CalculateBarcodeInflections <- function(
@@ -346,12 +347,14 @@ HTODemux <- function(
 #' features in its scale.data
 #'
 #' @importFrom sctransform get_residuals
+#' @importFrom matrixStats rowAnyNAs
 #'
 #' @export
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
 #'
@@ -453,7 +456,7 @@ GetResidual <- function(
 #' Load a 10x Genomics Visium Spatial Experiment into a \code{Seurat} object
 #'
 #' @inheritParams Read10X
-#' @inheritParams CreateSeuratObject
+#' @inheritParams SeuratObject::CreateSeuratObject
 #' @param data.dir Directory containing the H5 file specified by \code{filename}
 #' and the image data in a subdirectory called \code{spatial}
 #' @param filename Name of H5 file containing the feature barcode matrix
@@ -1329,6 +1332,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
 #' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
@@ -1417,6 +1421,7 @@ SampleUMI <- function(
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' SCTransform(object = pbmc_small)
 #'
 SCTransform <- function(
@@ -1659,10 +1664,14 @@ SCTransform <- function(
     if (verbose) {
       message('Place corrected count matrix in counts slot')
     }
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
+    # TODO: restore once check.matrix is in SeuratObject
+    # assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected,)
     vst.out$umi_corrected <- NULL
   } else {
-    assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
+    # TODO: restore once check.matrix is in SeuratObject
+    # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
+    assay.out <- CreateAssayObject(counts = umi)
   }
   # set the variable genes
   VariableFeatures(object = assay.out) <- residual.features %||% top.features
@@ -1730,6 +1739,7 @@ SCTransform <- function(
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- CalculateBarcodeInflections(
 #'   object = pbmc_small,
 #'   group.column = 'groups',
@@ -1999,8 +2009,6 @@ FindVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @inheritParams FindVariableFeatures.Assay
-#'
 #' @rdname FindVariableFeatures
 #' @export
 #' @method FindVariableFeatures SCTAssay
@@ -2021,7 +2029,6 @@ FindVariableFeatures.SCTAssay <- function(
   return(object)
 }
 
-#' @inheritParams FindVariableFeatures.Assay
 #' @param assay Assay to use
 #'
 #' @rdname FindVariableFeatures
@@ -2404,6 +2411,7 @@ NormalizeData.Assay <- function(
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small
 #' pmbc_small <- NormalizeData(object = pbmc_small)
 #' }
@@ -2650,7 +2658,9 @@ RunALRA.Seurat <- function(
   data.alra <- Matrix(data = t(x = output.alra), sparse = TRUE)
   rownames(x = data.alra) <- genes.use
   colnames(x = data.alra) <- colnames(x = object)
-  assay.alra <- CreateAssayObject(data = data.alra, check.matrix = FALSE)
+  # TODO: restore once check.matrix is in SeuratObject
+  # assay.alra <- CreateAssayObject(data = data.alra, check.matrix = FALSE)
+  assay.alra <- CreateAssayObject(data = data.alra)
   object[["alra"]] <- assay.alra
   if (setDefaultAssay) {
     message("Setting default assay as alra")
