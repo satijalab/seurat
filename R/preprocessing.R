@@ -3314,11 +3314,16 @@ GetResidualSCTModel <- function(
   umi.assay <- SCTResults(object = object[[assay]], slot = "umi.assay", model = SCTModel)
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
   sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
+  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
   existing_features <- names(x = which(x = ! apply(
     X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
     MARGIN = 1,
     FUN = anyNA)
   ))
+ } else {
+   existing_features <- character()
+ }
   if (replace.value) {
     features_to_compute <- new_features
   } else {
