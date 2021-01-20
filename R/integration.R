@@ -617,7 +617,7 @@ FindTransferAnchors <- function(
     n.trees = n.trees,
     eps = eps,
     approx.pca = approx.pca,
-    mapping.score.k = mapping.score.k, 
+    mapping.score.k = mapping.score.k,
     verbose = verbose
   )
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
@@ -4323,7 +4323,7 @@ ValidateParams_FindTransferAnchors <- function(
   n.trees,
   eps,
   approx.pca,
-  mapping.score.k, 
+  mapping.score.k,
   verbose
 ) {
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
@@ -4387,8 +4387,8 @@ ValidateParams_FindTransferAnchors <- function(
   if (!IsSCT(assay = query[[query.assay]]) && normalization.method == "SCT") {
     if (!inherits(x = reference[[reference.assay]], what = "SCTAssay")) {
       reference[[reference.assay]] <- as(object = reference[[reference.assay]], Class = "SCTAssay")
-    } 
-    reference.model.num <- length(x = reference[[reference.assay]]@SCTModel.list) 
+    }
+    reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
       stop("Given query.assay (", query.assay, ") has not been processed with ",
            "SCTransform and Reference SCTAssay has ", reference.model.num ,
@@ -4399,16 +4399,18 @@ ValidateParams_FindTransferAnchors <- function(
            "SCTransform. Please either run SCTransform or set normalization.method = 'LogNormalize'.",
            call. = FALSE)
     } else if (reference.model.num == 1) {
-      new.sct.assay <- rev(make.unique(c(Assays(query), "SCT")))[1]
+      new.sct.assay <- rev(x = make.unique(names = c(Assays(object = query), "SCT")))[1]
       if (verbose) {
         message("Query object is normalized by reference SCT model")
       }
-      query <- SCTransform(object = query,
-                          reference.SCT.model = reference[[reference.assay]]@SCTModel.list[[1]], 
-                          residual.features = features, 
-                          assay = query.assay, 
-                          new.assay.name = new.sct.assay,
-                          verbose = FALSE)
+      query <- SCTransform(
+        object = query,
+        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
+        residual.features = features,
+        assay = query.assay,
+        new.assay.name = new.sct.assay,
+        verbose = FALSE
+      )
       ModifyParam(param = "query.assay", value = new.sct.assay)
       ModifyParam(param = "query", value = query)
       ModifyParam(param = "reference", value = reference)
