@@ -3662,6 +3662,24 @@ subset.VisiumV1 <- function(x, cells, ...) {
   return(x)
 }
 
+
+
+# Update SCT assay  in the Seurat object to new SCTAssay class
+#
+#' @param object A Seurat object
+#' @export
+#' @return object with its updated SCTAssay
+UpdateSCTAssay <- function(object) {
+  assays <- Assays(object = object)
+  for (assay in assays) {
+    if (IsSCT(assay = object[[assay]])){
+      object[[assay]] <- as(object =  object[[assay]], Class = "SCTAssay")
+    }
+  }
+return(object)
+}
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
