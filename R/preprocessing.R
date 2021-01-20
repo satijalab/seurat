@@ -429,7 +429,9 @@ GetResidual <- function(
     ncol = ncol(x = object),
     dimnames = list(all.features, Cells(x = object))
   )
-  new.scale[1:nrow(x = existing.data), ] <- existing.data
+  if (nrow(x = existing.data) > 0){
+    new.scale[1:nrow(x = existing.data), ] <- existing.data
+  }
   if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
     new.residuals <- new.residuals[[1]]
   } else {
