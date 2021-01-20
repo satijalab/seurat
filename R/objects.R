@@ -3966,6 +3966,7 @@ FindObject <- function(object, name) {
 PrepVSTResults <- function(vst.res, cell.names) {
   # Prepare cell attribute information
   cell.attrs <- vst.res$cell_attr
+  cell.names <- intersect(x = cell.names, y = rownames(x = cell.attrs))
   cell.cols <- c(
     'umi',
     'gene',
