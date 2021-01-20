@@ -2815,6 +2815,178 @@ TransferData <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param object.list List of Seurat objects
+#' @rdname AnnotateAnchors
+#' @export
+#' @method AnnotateAnchors default
+#'
+AnnotateAnchors.default <- function(
+  anchors,
+  vars = NULL,
+  slot = NULL,
+  object.list,
+  assay = NULL,
+  ...
+) {
+  # reorder columns
+  anchors <- anchors[, c("cell1", "dataset1", "cell2", "dataset2", "score")]
+  colnames(x = anchors)[5] <- "anchor.score"
+  cell.names <- lapply(X = object.list, FUN = Cells)
+  cell1.names <- character(length = nrow(x = anchors))
+  for (dataset in unique(x = anchors$dataset1)) {
+    dataset.cells <- which(x = anchors$dataset1 == dataset)
+    cell1.names[dataset.cells] <- cell.names[[dataset]][anchors[dataset.cells, "cell1"]]
+  }
+  anchors$cell1 <- cell1.names
+  cell2.names <- character(length(x = nrow(x = anchors)))
+  for (dataset in unique(x = anchors$dataset2)) {
+    dataset.cells <- which(x = anchors$dataset2 == dataset)
+    cell2.names[dataset.cells] <- cell.names[[dataset]][anchors[dataset.cells, "cell2"]]
+  }
+  anchors$cell2 <- cell2.names
+  slot <- slot %||% "data"
+  assay <- assay %||% sapply(X = object.list, FUN = DefaultAssay)
+  if (length(x = assay) == 1) {
+    assay <- rep(x = assay, times = length(x = object.list))
+  }
+  if (length(x = assay) != length(x = object.list)) {
+    stop("Number of assays provided should either be one or the length of object.list")
+  }
+  for (ob in 1:length(x = object.list)) {
+    DefaultAssay(object = object.list[[ob]]) <- assay[ob]
+  }
+  if (length(x = slot) == 1) {
+    slot <- rep(x = slot, times = length(x = vars))
+  }
+  if (length(x = vars) > 0) {
+    for(v in 1:length(x = vars)) {
+      var <- vars[v]
+      var.list <- lapply(X = object.list, FUN = function(x) {
+        tryCatch(
+          expr = FetchData(object = x, vars = var, slot = slot[v]),
+          error = function(e) {
+            data.fetched <- as.data.frame(
+              x = rep(x = NA, times = ncol(x = x)),
+              row.names = Cells(x = x),
+              stringsAsFactors = FALSE
+            )
+            colnames(x = data.fetched) <- var
+            return(data.fetched)
+          }
+        )
+      })
+      if (all(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
+        warning(
+          var, " not found in all objects",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        next
+      }
+      if (any(unlist(x = lapply(X = var.list, FUN = isFALSE)))) {
+        warning(
+          var, " not in all objects. Filling missing objects with NA",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+      }
+      if (is.null(x = names(x = object.list))) {
+        names(x = var.list) <- 1:length(x = object.list)
+      } else {
+        names(x = var.list) <- names(x = object.list)
+      }
+      for(i in c(1, 2)) {
+        cell <- paste0("cell", i)
+        if (is.factor(x = anchors[, cell])) {
+          anchors[, cell] <- as.character(x = anchors[, cell])
+        }
+        for (j in unique(x = anchors[, paste0("dataset", i)])) {
+          var.df <- var.list[[j]]
+          dataset.cells <- which(x = anchors[, paste0("dataset", i)] == j)
+          anchors[dataset.cells, paste0(cell, ".", var)] <- var.df[anchors[, cell][dataset.cells], ]
+        }
+      }
+      # column specifying whether the annotation matches across pair of datasets
+      anchors[, paste0(var, ".match")] <- anchors[, paste0("cell1.", var)] ==
+        anchors[, paste0("cell2.", var)]
+    }
+  }
+  return(anchors)
+}
+
+#' @rdname AnnotateAnchors
+#' @export
+#' @method AnnotateAnchors IntegrationAnchorSet
+#'
+AnnotateAnchors.IntegrationAnchorSet <- function(
+  anchors,
+  vars = NULL,
+  slot = NULL,
+  object.list = NULL,
+  assay = NULL,
+  ...
+) {
+  anchor.df <- slot(object = anchors, name = 'anchors')
+  object.list <- object.list %||% slot(object = anchors, name = 'object.list')
+  anchor.df <- as.data.frame(x = anchor.df)
+  anchor.df <- AnnotateAnchors(
+    anchors = anchor.df,
+    vars = vars,
+    slot = slot,
+    object.list = object.list,
+    assay = assay
+  )
+  return(anchor.df)
+}
+
+#' @param reference Reference object used in \code{\link{FindTransferAnchors}}
+#' @param query Query object used in \code{\link{FindTransferAnchors}}
+#' @rdname AnnotateAnchors
+#' @export
+#' @method AnnotateAnchors TransferAnchorSet
+#'
+AnnotateAnchors.TransferAnchorSet <- function(
+  anchors,
+  vars = NULL,
+  slot = NULL,
+  reference = NULL,
+  query = NULL,
+  assay = NULL,
+  ...
+) {
+  anchor.df <- slot(object = anchors, name = 'anchors')
+  if (class(x = reference) != class(x = query)) {
+    stop("If setting reference/query, please set both parameters.")
+  }
+  if (is.null(x = reference)) {
+    object.list <- slot(object = anchors, name = 'object.list')[[1]]
+    reference.cells <- slot(object = anchors, name = "reference.cells")
+    reference <- subset(x = object.list, cells = reference.cells, recompute = FALSE)
+    reference <- RenameCells(
+      object = reference,
+      new.names = gsub(pattern = "_reference$", replacement = "", x = reference.cells)
+    )
+    query.cells <- slot(object = anchors, name = "query.cells")
+    query <- subset(x = object.list, cells = query.cells, recompute = FALSE)
+    query <- RenameCells(
+      object = query,
+      new.names = gsub(pattern = "_query$", replacement = "", x = query.cells)
+    )
+  }
+  object.list <- list(reference = reference, query = query)
+  anchor.df <- as.data.frame(x = anchor.df)
+  anchor.df$dataset1 <- "reference"
+  anchor.df$dataset2 <- "query"
+  anchor.df <- AnnotateAnchors(
+    anchors = anchor.df,
+    vars = vars,
+    slot = slot,
+    object.list = object.list,
+    assay = assay
+  )
+  return(anchor.df)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2868,58 +3040,6 @@ AdjustSampleTree <- function(x, reference.objects) {
     }
   }
   return(x)
-}
-
-# Add info to anchor matrix
-#
-# @param object Seurat object
-# @param toolname Name in tool slot to pull from
-# @param annotation Name in metadata to annotate anchors with
-# @param object.list List of objects using in FindIntegrationAnchors call
-#
-# @return Returns the anchor dataframe with additional columns for annotation
-# metadata
-
-AnnotateAnchors <- function(
-  object,
-  toolname = "integrated",
-  annotation = NULL,
-  object.list = NULL
-) {
-  anchors <- GetIntegrationData(
-    object = object,
-    integration.name = toolname,
-    slot = 'anchors'
-  )
-  for(i in annotation) {
-    if (! i %in% colnames(x = object[[]])) {
-      warning(i, " not in object metadata")
-      next
-    }
-    if(!is.null(x = object.list)) {
-      anchors[, paste0("cell1.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
-        as.character(object.list[[as.numeric(x[["dataset1"]])]][[]][as.numeric(x[["cell1"]]), i])
-      })
-      anchors[, paste0("cell2.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
-        as.character(object.list[[as.numeric(x[["dataset2"]])]][[]][as.numeric(x[["cell2"]]), i])
-      })
-    } else {
-      cells1 <- GetIntegrationData(
-        object = object,
-        integration.name = toolname,
-        slot = 'neighbors'
-      )$cells1
-      cells2 <- GetIntegrationData(
-        object = object,
-        integration.name = toolname,
-        slot = 'neighbors'
-      )$cells2
-      anchors[, paste0("cell1.", i)] <- object[[i]][cells1[anchors$cell1], , drop = TRUE]
-      anchors[, paste0("cell2.", i)] <- object[[i]][cells2[anchors$cell2], , drop = TRUE]
-      anchors[, paste0(i, ".match")] <- anchors[, paste0("cell1.", i)] == anchors[, paste0("cell2.", i)]
-    }
-  }
-  return(anchors)
 }
 
 # Build tree of datasets based on cell similarity
