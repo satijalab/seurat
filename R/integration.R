@@ -599,6 +599,7 @@ ReciprocalProject <- function(
 #' @param features Features to use for dimensional reduction. If not specified,
 #' set as variable features of the reference object which are also present in
 #' the query.
+#' @param scale Scale query data.
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT.
 #' @param npcs Number of PCs to compute on reference if reference.reduction is
@@ -676,6 +677,7 @@ FindTransferAnchors <- function(
   reference.reduction = NULL,
   project.query = FALSE,
   features = NULL,
+  scale = TRUE,
   npcs = 30,
   l2.norm = TRUE,
   dims = 1:30,
@@ -702,6 +704,7 @@ FindTransferAnchors <- function(
     reference.reduction = reference.reduction,
     project.query = project.query,
     features = features,
+    scale = scale,
     npcs = npcs,
     l2.norm = l2.norm,
     dims = dims,
@@ -786,7 +789,7 @@ FindTransferAnchors <- function(
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
         }
         if (normalization.method == "LogNormalize") {
-          query <- ScaleData(object = query, features = features, verbose = FALSE)
+          query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
         }
         query <- RunPCA(
           object = query,
@@ -801,6 +804,7 @@ FindTransferAnchors <- function(
         reference = query,
         reduction = reference.reduction,
         query = reference,
+        scale = scale,
         dims = dims,
         verbose = verbose
       )
@@ -813,7 +817,7 @@ FindTransferAnchors <- function(
           message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
         }
         if (normalization.method == "LogNormalize") {
-          reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+          reference <- ScaleData(object = reference, features = features, do.scale = scale, verbose = FALSE)
         }
         reference <- RunPCA(
           object = reference,
@@ -827,6 +831,7 @@ FindTransferAnchors <- function(
         reference = reference,
         reduction = reference.reduction,
         query = query,
+        scale = scale,
         dims = dims,
         feature.mean = feature.mean,
         verbose = verbose
@@ -856,7 +861,7 @@ FindTransferAnchors <- function(
         message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
       }
       if (normalization.method == "LogNormalize") {
-        reference <- ScaleData(object = reference, features = features, verbose = FALSE)
+        reference <- ScaleData(object = reference, features = features, do.scale = scale, verbose = FALSE)
       }
       reference <- RunPCA(
         object = reference,
@@ -870,7 +875,7 @@ FindTransferAnchors <- function(
       message("Performing PCA on the provided query using ", length(x = features), " features as input.")
     }
     if (normalization.method == "LogNormalize") {
-      query <- ScaleData(object = query, features = features, verbose = FALSE)
+      query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
     }
     query <- RunPCA(
       object = query,
@@ -886,7 +891,7 @@ FindTransferAnchors <- function(
       reduction = 'pca',
       projected.name = reduction,
       features = features,
-      do.scale = FALSE,
+      do.scale = scale,
       do.center = FALSE,
       slot = 'scale.data',
       l2.norm = l2.norm,
@@ -901,8 +906,8 @@ FindTransferAnchors <- function(
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
     if (normalization.method == "LogNormalize") {
-      reference <- ScaleData(object = reference, features = features, verbose = FALSE)
-      query <- ScaleData(object = query, features = features, verbose = FALSE)
+      reference <- ScaleData(object = reference, features = features, do.scale = scale, verbose = FALSE)
+      query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
     }
     combined.ob <- RunCCA(
       object1 = reference,
@@ -4399,6 +4404,7 @@ ValidateParams_FindTransferAnchors <- function(
   reference.reduction,
   project.query,
   features,
+  scale,
   npcs,
   l2.norm,
   dims,
@@ -4420,6 +4426,9 @@ ValidateParams_FindTransferAnchors <- function(
   ModifyParam(param = "reference", value = reference)
   DefaultAssay(object = query) <- query.assay
   ModifyParam(param = "query", value = query)
+  if (!is.logical(x = scale)) {
+    stop("Scale should be TRUE or FALSE")
+  }
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference",
          call. = FALSE)

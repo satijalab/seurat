@@ -15,6 +15,7 @@ FindTransferAnchors(
   reference.reduction = NULL,
   project.query = FALSE,
   features = NULL,
+  scale = TRUE,
   npcs = 30,
   l2.norm = TRUE,
   dims = 1:30,
@@ -73,6 +74,8 @@ query object that are alos present in the reference.}
 \item{features}{Features to use for dimensional reduction. If not specified,
 set as variable features of the reference object which are also present in
 the query.}
+
+\item{scale}{Scale query data.}
 
 \item{npcs}{Number of PCs to compute on reference if reference.reduction is
 not provided.}
