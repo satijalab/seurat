@@ -39,12 +39,13 @@ cluster.ape <- paste(
 #' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'
 #' @importFrom pbapply pblapply
-#' @importFrom stats dist hclust
+#' @importFrom stats dist hclust na.omit
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @export
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
 #' Tool(object = pbmc_small, slot = 'BuildClusterTree')
@@ -312,6 +313,7 @@ GetRightDescendants <- function(tree, node) {
 #
 #
 # @examples
+# data("pbmc_small")
 # PlotClusterTree(object = pbmc_small)
 # pbmc_small <- MergeNode(object = pbmc_small, node.use = 7, rebuild.tree = TRUE)
 # PlotClusterTree(object = pbmc_small)

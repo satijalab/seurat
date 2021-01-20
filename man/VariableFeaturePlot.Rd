@@ -12,7 +12,8 @@ VariableFeaturePlot(
   pt.size = 1,
   log = NULL,
   selection.method = NULL,
-  assay = NULL
+  assay = NULL,
+  raster = NULL
 )
 }
 \arguments{
@@ -24,10 +25,26 @@ VariableFeaturePlot(
 
 \item{log}{Plot the x-axis in log scale}
 
-\item{selection.method}{Which method to pull; choose one from \code{c('sctransform', 'sct')}
-or \code{c('mean.var.plot', 'dispersion', 'mvp', 'disp')}}
+\item{selection.method}{Which method to pull. For \code{HVFInfo} and
+\code{VariableFeatures}, choose one from one of the
+following:
+\itemize{
+ \item \dQuote{vst}
+ \item \dQuote{sctransform} or \dQuote{sct}
+ \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
+  \dQuote{disp}
+}
+For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
+\itemize{
+ \item \dQuote{markvariogram}
+ \item \dQuote{moransi}
+}}
 
 \item{assay}{Assay to pull variable features from}
+
+\item{raster}{Convert points to raster format, default is \code{NULL}
+which will automatically use raster if the number of points plotted is greater than
+100,000}
 }
 \value{
 A ggplot object
@@ -36,6 +53,7 @@ A ggplot object
 View variable features
 }
 \examples{
+data("pbmc_small")
 VariableFeaturePlot(object = pbmc_small)
 
 }

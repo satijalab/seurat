@@ -67,6 +67,7 @@ will not be filled, since those depend on scaled data. The following is a list o
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 lfile <- as.loom(x = pbmc_small)
 }
 

@@ -68,7 +68,7 @@ groups in cells.highlight}
     \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
     \item{\code{raster}}{Convert points to raster format, default is \code{NULL} which
-automatically rasterizes if plotting more than 50,000 cells}
+automatically rasterizes if plotting more than 100,000 cells}
   }}
 }
 \value{
@@ -79,6 +79,7 @@ Returns a DimPlot colored based on whether the cells fall in clusters
 to the left or to the right of a node split in the cluster tree.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 PlotClusterTree(pbmc_small)
