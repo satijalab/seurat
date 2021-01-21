@@ -21,7 +21,6 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
                                              std::vector< std::string > mat1_rownames,
                                              std::vector< std::string > mat2_rownames,
                                              std::vector< std::string > all_rownames);
-Eigen::SparseMatrix<double> RowMergeMatricesList(List mat_list, List mat_rownames, std::vector< std::string > all_rownames);
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor,
                                     bool display_progress );
 NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
