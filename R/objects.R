@@ -3664,21 +3664,22 @@ subset.VisiumV1 <- function(x, cells, ...) {
 
 
 
-# Update SCT assay  in the Seurat object to new SCTAssay class
+#' Update pre-V4 Assays generated with SCTransform in the Seurat to the new
+#' SCTAssay class
 #
 #' @param object A Seurat object
 #' @export
-#' @return object with its updated SCTAssay
+#' @return A Seurat object with updated SCTAssays
+#'
 UpdateSCTAssay <- function(object) {
   assays <- Assays(object = object)
   for (assay in assays) {
-    if (IsSCT(assay = object[[assay]])){
+    if (IsSCT(assay = object[[assay]]) && !inherits(x = object[[assay]], what = "SCTAssay")) {
       object[[assay]] <- as(object =  object[[assay]], Class = "SCTAssay")
     }
   }
-return(object)
+  return(object)
 }
-
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
