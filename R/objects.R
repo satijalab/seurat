@@ -3407,6 +3407,26 @@ merge.SCTAssay <- function(
   ...
 ) {
   assays <- c(x, y)
+  parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
+  if (length(x = parent.call) > 0) {
+    # Try and fill in missing residuals if called in the context of merge.Seurat
+    all.features <- unique(x = unlist(x = lapply(X = assays, FUN = function(assay) {
+      if (inherits(x = x, what = "SCTAssay")) {
+        return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
+      }
+    })))
+    if (!is.null(all.features)) {
+      assays <- lapply(X = 1:length(x = assays), FUN = function(assay) {
+        if (inherits(x = assays[[assay]], what = "SCTAssay")) {
+          parent.environ <- sys.frame(which = parent.call[1])
+          seurat.object <- parent.environ$objects[[assay]]
+          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+          return(seurat.object[[parent.environ$assay]])
+        }
+        return(assays[[assay]])
+      })
+    }
+  }
   sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
   if (any(!sct.check)) {
     warning("Attempting to merge an SCTAssay with another Assay type \n",
@@ -3640,6 +3660,25 @@ subset.VisiumV1 <- function(x, cells, ...) {
   coordinates <- coordinates[cells, ]
   slot(object = x, name = 'coordinates') <- coordinates
   return(x)
+}
+
+
+
+#' Update pre-V4 Assays generated with SCTransform in the Seurat to the new
+#' SCTAssay class
+#
+#' @param object A Seurat object
+#' @export
+#' @return A Seurat object with updated SCTAssays
+#'
+UpdateSCTAssay <- function(object) {
+  assays <- Assays(object = object)
+  for (assay in assays) {
+    if (IsSCT(assay = object[[assay]]) && !inherits(x = object[[assay]], what = "SCTAssay")) {
+      object[[assay]] <- as(object =  object[[assay]], Class = "SCTAssay")
+    }
+  }
+  return(object)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3946,6 +3985,7 @@ FindObject <- function(object, name) {
 PrepVSTResults <- function(vst.res, cell.names) {
   # Prepare cell attribute information
   cell.attrs <- vst.res$cell_attr
+  cell.names <- intersect(x = cell.names, y = rownames(x = cell.attrs))
   cell.cols <- c(
     'umi',
     'gene',
