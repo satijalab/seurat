@@ -88,11 +88,10 @@ IntegrationAnchorSet <- setClass(
 #' related information needed for performing downstream analyses - namely data integration
 #' (\code{FindModalityWeights}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
 #'
-#' @slot first.modality.weight A vector of value representing for the modality weights of
-#' the first modality
+#' @slot modality.weight.list A list of modality weights value from all modalities  
 #' @slot modality.assay Names of assays for the list of dimensional reductions
 #' @slot params A list of parameters used in the FindModalityWeights
-#' @slot score.matrix a score matrix representing cross and within-modality prediction
+#' @slot score.matrix a list of score matrices representing cross and within-modality prediction
 #' score, and kernel value
 #' @slot command Store log of parameters that were used
 #'
@@ -103,10 +102,10 @@ IntegrationAnchorSet <- setClass(
 ModalityWeights <- setClass(
   Class = "ModalityWeights",
   slots = list(
-    first.modality.weight = "vector",
+    modality.weight.list = "list",
     modality.assay = "vector",
     params = "list",
-    score.matrix = "data.frame",
+    score.matrix = "list",
     command = "ANY"
   )
 )
