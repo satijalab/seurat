@@ -13,14 +13,13 @@ related information needed for performing downstream analyses - namely data inte
 \section{Slots}{
 
 \describe{
-\item{\code{first.modality.weight}}{A vector of value representing for the modality weights of
-the first modality}
+\item{\code{modality.weight.list}}{A list of modality weights value from all modalities}
 
 \item{\code{modality.assay}}{Names of assays for the list of dimensional reductions}
 
 \item{\code{params}}{A list of parameters used in the FindModalityWeights}
 
-\item{\code{score.matrix}}{a score matrix representing cross and within-modality prediction
+\item{\code{score.matrix}}{a list of score matrices representing cross and within-modality prediction
 score, and kernel value}
 
 \item{\code{command}}{Store log of parameters that were used}
