@@ -505,6 +505,8 @@ FindIntegrationAnchors <- function(
 #' the query.
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT.
+#' @param recompute.residuals If using SCT as a normalization method, compute
+#' query Pearson residuals using the reference SCT model parameters.
 #' @param npcs Number of PCs to compute on reference if reference.reduction is
 #' not provided.
 #' @param l2.norm Perform L2 normalization on the cell embeddings after
@@ -573,6 +575,7 @@ FindTransferAnchors <- function(
   reference,
   query,
   normalization.method = "LogNormalize",
+  recompute.residuals = TRUE,
   reference.assay = NULL,
   reference.neighbors = NULL,
   query.assay = NULL,
@@ -599,6 +602,7 @@ FindTransferAnchors <- function(
     reference = reference,
     query = query,
     normalization.method = normalization.method,
+    recompute.residuals = recompute.residuals,
     reference.assay = reference.assay,
     reference.neighbors = reference.neighbors,
     query.assay = query.assay,
@@ -4305,6 +4309,7 @@ ValidateParams_FindTransferAnchors <- function(
   reference,
   query,
   normalization.method,
+  recompute.residuals,
   reference.assay,
   reference.neighbors,
   query.assay,
@@ -4384,37 +4389,57 @@ ValidateParams_FindTransferAnchors <- function(
     stop("An SCT assay (", query.assay, ") was provided for query.assay but ",
          "normalization.method was set as LogNormalize", call. = FALSE)
   }
-  if (!IsSCT(assay = query[[query.assay]]) && normalization.method == "SCT") {
-    if (!inherits(x = reference[[reference.assay]], what = "SCTAssay")) {
-      reference[[reference.assay]] <- as(object = reference[[reference.assay]], Class = "SCTAssay")
-    }
+  if (IsSCT(assay = query[[query.assay]]) && !inherits(x = query[[query.assay]], what = "SCTAssay")) {
+    query[[query.assay]] <- as(object = query[[query.assay]], Class = "SCTAssay")
+    ModifyParam(param = "query", value = query)
+  }
+  if (IsSCT(assay = reference[[reference.assay]]) && !inherits(x = reference[[reference.assay]], what = "SCTAssay")) {
+    reference[[reference.assay]] <- as(object = reference[[reference.assay]], Class = "SCTAssay")
+    ModifyParam(param = "reference", value = reference)
+  }
+  if (normalization.method != "SCT") {
+    recompute.residuals <- FALSE
+    ModifyParam(param = "recompute.residuals", value = recompute.residuals)
+  }
+  if (recompute.residuals) {
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
-      stop("Given query.assay (", query.assay, ") has not been processed with ",
-           "SCTransform and Reference SCTAssay has ", reference.model.num ,
-           " reference sct models",
-           call. = FALSE)
+      stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
+           " reference sct models. Please provide a reference assay with a ",
+           " single reference sct model.", call. = FALSE)
     } else if (reference.model.num == 0) {
-      stop("Given query.assay (", query.assay, ") has not been processed with ",
-           "SCTransform. Please either run SCTransform or set normalization.method = 'LogNormalize'.",
-           call. = FALSE)
+      stop("Given reference assay (", reference.assay,
+           ") doesn't contain a reference SCT model. ", call. = FALSE)
     } else if (reference.model.num == 1) {
-      new.sct.assay <- rev(x = make.unique(names = c(Assays(object = query), "SCT")))[1]
+      new.sct.assay <- rev(x = make.unique(names = c(Assays(object = query), "SCT"), sep = ""))[1]
       if (verbose) {
-        message("Query object is normalized by reference SCT model")
+        message("Normalizing query using reference SCT model")
       }
-      query <- SCTransform(
-        object = query,
-        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
-        residual.features = features,
-        assay = query.assay,
-        new.assay.name = new.sct.assay,
-        verbose = FALSE
-      )
-      ModifyParam(param = "query.assay", value = new.sct.assay)
-      ModifyParam(param = "query", value = query)
-      ModifyParam(param = "reference", value = reference)
     }
+    query.umi.assay <- query.assay
+    if (IsSCT(assay = query[[query.assay]])) {
+      query.sct.models <- slot(object = query[[query.assay]], name = "SCTModel.list")
+      query.umi.assay <- unique(x = unname(obj = unlist(x = lapply(X = query.sct.models, FUN = slot, name = "umi.assay"))))
+      if (length(x = query.umi.assay) > 1) {
+        stop("Query assay provided is an SCTAssay with multiple different original umi assays", call = FALSE)
+      }
+      if (!query.umi.assay %in% Assays(object = query)) {
+        stop("Query assay provided is an SCTAssay based on an orignal UMI assay",
+             " that is no longer present in the query Seurat object. Unable to",
+             " recompute residuals based on the reference SCT model.", call. = FALSE)
+      }
+    }
+    query <- SCTransform(
+      object = query,
+      reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
+      residual.features = features,
+      assay = query.umi.assay,
+      new.assay.name = new.sct.assay,
+      verbose = FALSE
+    )
+    ModifyParam(param = "query.assay", value = new.sct.assay)
+    ModifyParam(param = "query", value = query)
+    ModifyParam(param = "reference", value = reference)
   }
   if (IsSCT(assay = reference[[reference.assay]]) && normalization.method == "LogNormalize") {
     stop("An SCT assay (", reference.assay, ") was provided for reference.assay but ",
