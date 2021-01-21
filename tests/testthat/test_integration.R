@@ -275,8 +275,8 @@ test_that("FindTransferAnchors with default SCT works", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(298, 3))
-  expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.5796111403), tolerance = 1e-7)
+  expect_equal(dim(anchor.mat), c(256, 3))
+  expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.688195991), tolerance = 1e-7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
   expect_equal(length(anchors@anchor.features), 220)
@@ -305,19 +305,19 @@ test_that("FindTransferAnchors with default SCT works", {
   expect_equal(DefaultAssay(co), "SCT")
   expect_equal(GetAssayData(co[["SCT"]])[1, 1], 0)
   expect_equal(dim(co[['cca']]), c(160, 30))
-  expect_equal(Embeddings(co[['cca']])[1, 1], 0.04788034845, tolerance = 1e-7)
-  expect_equal(Loadings(co[['cca']], projected = T)[1, 1], 12.07402279, tolerance = 1e-7)
+  expect_equal(Embeddings(co[['cca']])[1, 1], 0.0459135444, tolerance = 1e-7)
+  expect_equal(Loadings(co[['cca']], projected = T)[1, 1], 8.51477973, tolerance = 1e-7)
   expect_equal(dim(co[['cca.l2']]), c(160, 30))
-  expect_equal(Embeddings(co[['cca.l2']])[1, 1], 0.07253378133, tolerance = 1e-7)
-  expect_equal(Loadings(co[['cca.l2']], projected = T)[1, 1], 12.07402279, tolerance = 1e-7)
+  expect_equal(Embeddings(co[['cca.l2']])[1, 1], 0.0625989664, tolerance = 1e-7)
+  expect_equal(Loadings(co[['cca.l2']], projected = T)[1, 1], 8.51477973, tolerance = 1e-7)
   ref.cells <- paste0(Cells(ref), "_reference")
   query.cells <- paste0(Cells(query), "_query")
   expect_equal(anchors@reference.cells, ref.cells)
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(323, 3))
-  expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.9158957107), tolerance = 1e-7)
+  expect_equal(dim(anchor.mat), c(313, 3))
+  expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.616858238), tolerance = 1e-7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
   expect_equal(length(anchors@anchor.features), 220)
@@ -327,7 +327,7 @@ test_that("FindTransferAnchors with default SCT works", {
 
 test_that("FindTransferAnchors with SCT and project.query work", {
   skip_on_cran()
-  anchors <- FindTransferAnchors(reference = ref, query = query, normalization.method = "SCT", project.query = TRUE, k.filter = 50)
+  anchors <- FindTransferAnchors(reference = ref, query = query, normalization.method = "SCT", project.query = TRUE, k.filter = 50, recompute.residuals = FALSE)
   co <- anchors@object.list[[1]]
   expect_equal(dim(co), c(220, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
@@ -355,7 +355,7 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(anchors@neighbors, list())
 })
 
-test_that("FindTransferAnchors with SCT and project.query work", {
+test_that("FindTransferAnchors with SCT and l2.norm FALSE work", {
   skip_on_cran()
   anchors <- FindTransferAnchors(reference = ref, query = query, normalization.method = "SCT", l2.norm = FALSE, k.filter = 50)
   co <- anchors@object.list[[1]]
@@ -373,11 +373,12 @@ test_that("FindTransferAnchors with SCT and project.query work", {
   expect_equal(anchors@query.cells, query.cells)
   expect_equal(anchors@reference.objects, logical())
   anchor.mat <- anchors@anchors
-  expect_equal(dim(anchor.mat), c(280, 3))
-  expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.8461538462), tolerance = 1e-7)
+  expect_equal(dim(anchor.mat), c(249, 3))
+  expect_equal(as.vector(anchor.mat[1, ]), c(1, 1, 0.760589319), tolerance = 1e-7)
   expect_equal(max(anchor.mat[, 2]), 80)
   expect_null(anchors@offsets)
   expect_equal(length(anchors@anchor.features), 220)
   expect_equal(anchors@anchor.features[1], "NKG7")
   expect_equal(anchors@neighbors, list())
 })
+

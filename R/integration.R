@@ -4411,7 +4411,7 @@ ValidateParams_FindTransferAnchors <- function(
       stop("Given reference assay (", reference.assay,
            ") doesn't contain a reference SCT model. ", call. = FALSE)
     } else if (reference.model.num == 1) {
-      new.sct.assay <- rev(x = make.unique(names = c(Assays(object = query), "SCT"), sep = ""))[1]
+      new.sct.assay <- reference.assay
       if (verbose) {
         message("Normalizing query using reference SCT model")
       }
