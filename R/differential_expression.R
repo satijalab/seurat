@@ -30,6 +30,7 @@ globalVariables(
 #' @aliases FindAllMarkersNode
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Find markers for all clusters
 #' all.markers <- FindAllMarkers(object = pbmc_small)
 #' head(x = all.markers)
@@ -222,6 +223,7 @@ FindAllMarkers <- function(
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small
 #' # Create a simulated grouping variable
 #' pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
@@ -1154,6 +1156,7 @@ DEmethods_counts <- function() {
 #
 # @examples
 # \dontrun{
+#   data("pbmc_small")
 #   pbmc_small
 #   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
 #               cells.2 = WhichCells(object = pbmc_small, idents = 2))
@@ -1238,6 +1241,7 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 #
 # @export
 # @examples
+# data("pbmc_small")
 # pbmc_small
 # DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
 #             cells.2 = WhichCells(object = pbmc_small, idents = 2))
@@ -1284,6 +1288,7 @@ DiffExpTest <- function(
 # @export
 #
 # @examples
+# data("pbmc_small")
 # pbmc_small
 # DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
 #             cells.2 = WhichCells(object = pbmc_small, idents = 2))
@@ -1335,6 +1340,7 @@ DiffTTest <- function(
 # @export
 #
 # @examples
+# data("pbmc_small")
 # pbmc_small
 # # Note, not recommended for particularly small datasets - expect warnings
 # NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
@@ -1563,6 +1569,7 @@ LRDETest <- function(
 # @export
 #
 # @examples
+# data("pbmc_small")
 # pbmc_small
 # MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
 #             cells.2 = WhichCells(object = pbmc_small, idents = 2))
@@ -1614,6 +1621,7 @@ MarkerTest <- function(
 #
 # @examples
 # \dontrun{
+#   data("pbmc_small")
 #   pbmc_small
 #   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
 #               cells.2 = WhichCells(object = pbmc_small, idents = 2))
@@ -1943,6 +1951,7 @@ ValidateCellGroups <- function(
 # @export
 #
 # @examples
+# data("pbmc_small")
 # pbmc_small
 # WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
 #             cells.2 = WhichCells(object = pbmc_small, idents = 2))

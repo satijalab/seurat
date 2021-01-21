@@ -34,6 +34,7 @@ of genes with a p-value below a particular threshold (score.thresh), compared wi
 proportion of genes expected under a uniform distribution of p-values.
 }
 \examples{
+data("pbmc_small")
 JackStrawPlot(object = pbmc_small)
 
 }

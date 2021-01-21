@@ -137,6 +137,7 @@ statistics (p-values, ROC score, etc.)
 Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 }
 \examples{
+data("pbmc_small")
 # Find markers for all clusters
 all.markers <- FindAllMarkers(object = pbmc_small)
 head(x = all.markers)

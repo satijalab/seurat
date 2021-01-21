@@ -2,13 +2,11 @@
 % Please edit documentation in R/zzz.R
 \docType{package}
 \name{Seurat-package}
+\alias{Seurat}
 \alias{Seurat-package}
-\title{Seurat package}
+\title{Seurat: Tools for Single Cell Genomics}
 \description{
-Tools for single-cell genomics
-}
-\details{
-Tools for single-cell genomics
+A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 }
 \section{Package options}{
 
@@ -35,3 +33,32 @@ Seurat uses the following [options()] to configure behaviour:
 }
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://satijalab.org/seurat}
+  \item \url{https://github.com/satijalab/seurat}
+  \item Report bugs at \url{https://github.com/satijalab/seurat/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Paul Hoffman \email{nygcSatijalab@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID})
+
+Authors:
+\itemize{
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+  \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID})
+  \item Tim Stuart \email{tstuart@nygenome.org} (\href{https://orcid.org/0000-0002-3044-0897}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Jeff Farrell \email{jfarrell@g.harvard.edu} [contributor]
+  \item Shiwei Zheng \email{szheng@nygenome.org} (\href{https://orcid.org/0000-0001-6682-6743}{ORCID}) [contributor]
+  \item Christoph Hafemeister \email{chafemeister@nygenome.org} (\href{https://orcid.org/0000-0001-6365-8254}{ORCID}) [contributor]
+  \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
+  \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID}) [contributor]
+}
+
+}

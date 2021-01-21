@@ -9,10 +9,9 @@ AverageExpression(
   assays = NULL,
   features = NULL,
   return.seurat = FALSE,
+  group.by = "ident",
   add.ident = NULL,
   slot = "data",
-  use.scale = FALSE,
-  use.counts = FALSE,
   verbose = TRUE,
   ...
 )
@@ -26,13 +25,13 @@ AverageExpression(
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is FALSE}
 
-\item{add.ident}{Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)}
+\item{group.by}{Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default}
 
-\item{slot}{Slot to use; will be overriden by \code{use.scale} and \code{use.counts}}
+\item{add.ident}{(Deprecated) Place an additional label on each cell prior to pseudobulking
+(very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)}
 
-\item{use.scale}{Use scaled values for feature expression}
-
-\item{use.counts}{Use count values for feature expression}
+\item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
+the order of 'assays' (if specified) or object's assays}
 
 \item{verbose}{Print messages and show progress bar}
 
@@ -43,13 +42,23 @@ Returns a matrix with genes as rows, identity classes as columns.
 If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 }
 \description{
-Returns expression for an 'average' single cell in each identity class
+Returns averaged expression values for each identity class
 }
 \details{
-Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
-Averaging is done in non-log space.
+If slot is set to 'data', this function assumes that the data has been log
+normalized and therefore feature values are exponentiated prior to averaging
+so that averaging is done in non-log space. Otherwise, if slot is set to
+either 'counts' or 'scale.data', no exponentiation is performed prior to
+averaging
+If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
+are placed in the 'counts' slot of the returned object and the log of averaged values
+are placed in the 'data' slot. \code{\link{ScaleData}} is then run on the default assay
+before returning the object.
+If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
+the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 }
 \examples{
+data("pbmc_small")
 head(AverageExpression(object = pbmc_small))
 
 }
