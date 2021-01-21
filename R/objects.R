@@ -3671,7 +3671,7 @@ subset.VisiumV1 <- function(x, cells, ...) {
 #' @export
 #' @return A Seurat object with updated SCTAssays
 #'
-UpdateSCTAssay <- function(object) {
+UpdateSCTAssays <- function(object) {
   assays <- Assays(object = object)
   for (assay in assays) {
     if (IsSCT(assay = object[[assay]]) && !inherits(x = object[[assay]], what = "SCTAssay")) {
