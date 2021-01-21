@@ -3,7 +3,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature slotNames is .hasSlot
+#' slot<- setMethod new signature slotNames is setAs setValidity .hasSlot
 #' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
@@ -146,6 +146,70 @@ IntegrationData <- setClass(
   )
 )
 
+#' The SCTModel Class
+#'
+#' The SCTModel object is a model and parameters storage from SCTransform.
+#' It can be used to calculate Pearson residuals for new genes.
+#'
+#' @slot feature.attributes A data.frame with feature attributes in SCTransform
+#' @slot cell.attributes A data.frame with cell attributes in SCTransform
+#' @slot clips A list of two numeric of length two specifying the min and max
+#' values the Pearson residual will be clipped to. One for vst and one for
+#' SCTransform
+#' @slot umi.assay Name of the assay of the seurat object containing UMI matrix
+#' and the default is RNA
+#' @slot model A formula used in SCTransform
+#' @slot arguments other information used in SCTransform
+#'
+#' @seealso \code{\link{Assay}}
+#'
+#' @name SCTAssay-class
+#' @rdname SCTAssay-class
+#'
+#' @examples
+#' \dontrun{
+#' # SCTAssay objects are generated from SCTransform
+#' pbmc_small <- SCTransform(pbmc_small)
+#' }
+#'
+SCTModel <- setClass(
+  Class = 'SCTModel',
+  slots = c(
+    feature.attributes = 'data.frame',
+    cell.attributes = 'data.frame',
+    clips = 'list',
+    umi.assay = 'character',
+    model = 'character',
+    arguments = "list"
+  )
+)
+
+#' The SCTAssay Class
+#'
+#' The SCTAssay object contains all the information found in an \code{\link{Assay}}
+#' object, with extra information from the results of \code{\link{SCTransform}}
+#'
+#' @slot SCTModel.list A list containing SCT models
+#'
+#' @seealso \code{\link{Assay}}
+#'
+#' @name SCTAssay-class
+#' @rdname SCTAssay-class
+#'
+#' @examples
+#' # SCTAssay objects are generated from SCTransform
+#' pbmc_small <- SCTransform(pbmc_small)
+#' pbmc_small[["SCT"]]
+#'
+SCTAssay <- setClass(
+  Class = 'SCTAssay',
+  contains = 'Assay',
+  slots = c(
+    SCTModel.list = 'list'
+  )
+)
+
+
 #' @note \code{scalefactors} objects can be created with \code{scalefactors()}
 #'
 #' @param spot Spot full resolution scale factor
@@ -264,6 +328,110 @@ CellsByImage <- function(object, images = NULL, unlist = FALSE) {
     cells <- unname(obj = unlist(x = cells))
   }
   return(cells)
+}
+
+#' Create a SCT Assay object
+#'
+#' Create a SCT object from a feature (e.g. gene) expression matrix and a list of SCTModels.
+#' The expected format of the input matrix is features x cells.
+#'
+#' Non-unique cell or feature names are not allowed. Please make unique before
+#' calling this function.
+#' @param scale.data a residual matrix
+#' @param SCTModel.list list of SCTModels
+#' @param umi.assay The UMI assay name. Default is RNA
+#' @inheritParams SeuratObject::CreateAssayObject
+#'
+#' @importFrom methods as
+#' @importFrom Matrix colSums rowSums
+#'
+#' @export
+#'
+#'
+CreateSCTAssayObject <- function(
+  counts,
+  data,
+  scale.data = NULL,
+  umi.assay = "RNA",
+  min.cells = 0,
+  min.features = 0,
+  SCTModel.list = NULL
+) {
+  assay <- CreateAssayObject(
+    counts = counts,
+    data = data,
+    min.cells = min.cells,
+    min.features = min.features
+  )
+  if (!is.null(scale.data)) {
+    assay <- SetAssayData(object = assay, slot = "scale.data", new.data = scale.data)
+  }
+
+  slot(object = assay, name = "assay.orig") <- umi.assay
+
+  #checking SCTModel.list format
+  if (is.null(x = SCTModel.list)) {
+    SCTModel.type <- "none"
+    warning("An empty SCTModel will be generated due to no SCTModel input")
+  } else {
+    if (inherits(x = SCTModel.list, what = "SCTModel")) {
+      SCTModel.list <- list(model1 = SCTModel.list)
+      SCTModel.type <- "SCTModel.list"
+    } else if (inherits(x = SCTModel.list, what = "list")) {
+      if (inherits(x = SCTModel.list[[1]], what = "SCTModel")){
+        SCTModel.type <-  "SCTModel.list"
+      } else if (IsVSTout(vst.out = SCTModel.list)){
+        SCTModel.type <- "vst.out"
+      } else if (IsVSTout(SCTModel.list[[1]])) {
+        SCTModel.type <- "vst.set"
+      } else {
+        stop("SCTModel input is not a correct format")
+      }
+    }
+  }
+  model.list <- switch(
+    EXPR = SCTModel.type,
+    "none" = {
+      list()
+    },
+    "SCTModel.list" = {
+      SCTModel.list <- lapply(X = SCTModel.list, FUN = function(model) {
+        select.cell <- intersect(x = Cells(x = model), Cells(x = assay))
+        if (length(x = select.cell) == 0) {
+          stop("Cells in SCTModel.list don't match Cells in assay")
+        } else {
+          model@cell.attributes <- model@cell.attributes[select.cell, , drop = FALSE]
+        }
+        return(model)
+      })
+      SCTModel.list
+    },
+    "vst.out" = {
+      SCTModel.list$umi.assay <- umi.assay
+      SCTModel.list <- PrepVSTResults(
+        vst.res = SCTModel.list,
+        cell.names = Cells(x = assay)
+      )
+      list(model1 = SCTModel.list)
+    },
+    "vst.set" = {
+      new.model <- lapply(
+        X = SCTModel.list,
+        FUN = function(vst.res) {
+          vst.res$umi.assay <- umi.assay
+          return(PrepVSTResults(vst.res = vst.res, cell.names = colnames(x = assay)))
+        }
+      )
+      names(x = new.model) <- paste0("model", 1:length(x = new.model))
+      new.model
+    }
+  )
+  assay <- new(
+    Class = "SCTAssay",
+    assay,
+    SCTModel.list = model.list
+  )
+  return(assay)
 }
 
 #' Slim down a Seurat object
@@ -1589,11 +1757,19 @@ as.sparse.H5Group <- function(x, ...) {
   ))
 }
 
-
 #' Get Cell Names
 #'
 #' @inheritParams SeuratObject::Cells
 #'
+#' @rdname Cells
+#' @concept objects
+#' @method Cells SCTModel
+#' @export
+#'
+Cells.SCTModel <- function(x) {
+  return(rownames(x = slot(object = x, name = "cell.attributes")))
+}
+
 #' @rdname Cells
 #' @concept objects
 #' @method Cells SlideSeq
@@ -2463,6 +2639,36 @@ ReadH5AD.H5File <- function(
   return(object)
 }
 
+#' @rdname RenameCells
+#' @export
+#' @method RenameCells SCTAssay
+#'
+RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
+  CheckDots(...)
+  old.names <- Cells(x = object)
+  names(x = new.names) <- old.names
+  cell.attributes <- SCTResults(object = object, slot = "cell.attributes")
+  if (length(x = cell.attributes) > 0) {
+    if (is.data.frame(x = cell.attributes)) {
+      old.names <- rownames(x = cell.attributes)
+      rownames(x = cell.attributes) <- unname(obj = new.names[old.names])
+    } else {
+      cell.attributes <- lapply(
+        X = cell.attributes,
+        FUN = function(x) {
+          old.names <- rownames(x = x)
+          rownames(x = x) <- unname(obj = new.names[old.names])
+          return(x)
+        }
+      )
+    }
+    SCTResults(object = object, slot = "cell.attributes") <- cell.attributes
+  }
+  new.names <- unname(obj = new.names)
+  object <- NextMethod()
+  return(object)
+}
+
 #' Rename Cells in an Object
 #'
 #' @inheritParams SeuratObject::RenameCells
@@ -2505,6 +2711,122 @@ RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
   rownames(x = coordinates) <- new.names[rownames(x = coordinates)]
   slot(object = object, name = 'coordinates') <- coordinates
   return(object)
+}
+
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults SCTModel
+#'
+SCTResults.SCTModel <- function(object, slot, ...) {
+  CheckDots(...)
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
+  if (!slot %in% slots.use) {
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
+  }
+  return(slot(object = object, name = slot))
+}
+
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults<- SCTModel
+#'
+"SCTResults<-.SCTModel" <- function(object, slot, ..., value) {
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
+  if (!slot %in% slots.use) {
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
+  }
+  slot(object = object, name = slot) <- value
+  return(object)
+}
+
+#' @param slot Which slot to pull the SCT results from
+#' @param model Name of SCModel to pull result from. Available names can be
+#' retrieved with \code{levels}.
+#'
+#' @return Returns the value present in the requested slot for the requested
+#' group. If group is not specified, returns a list of slot results for each
+#' group unless there is only one group present (in which case it just returns
+#' the slot directly).
+#'
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults SCTAssay
+#'
+SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
+  CheckDots(...)
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
+  if (!slot %in% slots.use) {
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
+  }
+  model <- model %||% levels(x = object)
+  model.list <- slot(object = object, name = "SCTModel.list")[model]
+  results.list <- lapply(X = model.list, FUN = function(x) SCTResults(object = x, slot = slot))
+  if (length(x = results.list) == 1) {
+    results.list <- results.list[[1]]
+  }
+  return(results.list)
+}
+
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults<- SCTAssay
+#'
+"SCTResults<-.SCTAssay" <- function(object, slot, model = NULL, ..., value) {
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
+  if (!slot %in% slots.use) {
+    stop(
+      "'slot' must be one of ",
+      paste(slots.use, collapse = ', '),
+      call. = FALSE
+    )
+  }
+  model <- model %||% levels(x = object)
+  model.list <- slot(object = object, name = "SCTModel.list")[model]
+  if (!is.list(x = value) | is.data.frame(x = value)) {
+    value <- list(value)
+  }
+  model.names <- names(x = model.list)
+  model.list <- lapply(
+    X = 1:length(x = model.list),
+    FUN = function(x) {
+      SCTResults(object = model.list[[x]], slot = slot) <- value[[x]]
+      return(model.list[[x]])
+    }
+  )
+  names(x = model.list) <- model.names
+  slot(object = object, name = "SCTModel.list")[model.names] <- model.list
+  return(object)
+}
+
+#' @param assay Assay in the Seurat object to pull from
+#'
+#' @rdname SCTResults
+#' @export
+#' @method SCTResults Seurat
+#'
+SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
+  CheckDots(...)
+  return(SCTResults(object = object[[assay]], slot = slot, model = model, ...))
+}
+
+#' @rdname ScaleFactors
+#' @method ScaleFactors VisiumV1
+#' @export
+#'
+ScaleFactors.VisiumV1 <- function(object, ...) {
+  return(slot(object = object, name = 'scale.factors'))
 }
 
 #' @rdname ScaleFactors
@@ -3054,6 +3376,187 @@ dim.VisiumV1 <- function(x) {
   return(dim(x = GetImage(object = x)$raster))
 }
 
+
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @section Get and set SCT model names:
+#' SCT results are named by initial run of \code{\link{SCTransform}} in order
+#' to keep SCT parameters straight between runs. When working with merged
+#' \code{SCTAssay} objects, these model names are important. \code{levels}
+#' allows querying the models present. \code{levels<-} allows the changing of
+#' the names of the models present, useful when merging \code{SCTAssay} objects.
+#' Note: unlike normal \code{\link[base]{levels<-}}, \code{levels<-.SCTAssay}
+#' allows complete changing of model names, not reordering.
+#'
+#' @param x An \code{SCTAssay} object
+#'
+#' @return \code{levels}: SCT model names
+#'
+#' @export
+#' @method levels SCTAssay
+#'
+#' @examples
+#' \dontrun{
+#' # Query and change SCT model names
+#' levels(pbmc_small[['SCT']])
+#' levels(pbmc_small[['SCT']]) <- '3'
+#' levels(pbmc_small[['SCT']])
+#' }
+#'
+levels.SCTAssay <- function(x) {
+  return(names(x = slot(object = x, name = "SCTModel.list")))
+}
+
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @param value New levels, must be in the same order as the levels present
+#'
+#' @return \code{levels<-}: \code{x} with updated SCT model names
+#'
+#' @export
+#' @method levels<- SCTAssay
+#'
+"levels<-.SCTAssay" <- function(x, value) {
+  value <- sapply(X = value, FUN = function(v) {
+    if (suppressWarnings(expr = !is.na(x = as.numeric(x = v)))) {
+      warning("SCTModel groups cannot be number, group is added in front of ", v)
+      v <- paste0("group", v)
+    }
+    return (v)
+  })
+  # Get current levels
+  levels <- levels(x = x)
+  if (length(x = value) != length(x = levels)) {
+    stop("Must provide a vector of length ", length(x = levels), " as new levels.", call. = FALSE)
+  }
+  names(x = slot(object = x, name = "SCTModel.list")) <- value
+  return(x)
+}
+
+#' Merge SCTAssay objects
+#'
+#' @inheritParams SeuratObject::merge
+#' @param na.rm If na.rm = TRUE, this will only preserve residuals that are
+#' present in all SCTAssays being merged. Otherwise, missing residuals will be
+#' populated with NAs.
+#' @export
+#' @method merge SCTAssay
+#'
+merge.SCTAssay <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = TRUE,
+  na.rm = TRUE,
+  ...
+) {
+  assays <- c(x, y)
+  parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
+  if (length(x = parent.call) > 0) {
+    # Try and fill in missing residuals if called in the context of merge.Seurat
+    all.features <- unique(x = unlist(x = lapply(X = assays, FUN = function(assay) {
+      if (inherits(x = x, what = "SCTAssay")) {
+        return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
+      }
+    })))
+    if (!is.null(all.features)) {
+      assays <- lapply(X = 1:length(x = assays), FUN = function(assay) {
+        if (inherits(x = assays[[assay]], what = "SCTAssay")) {
+          parent.environ <- sys.frame(which = parent.call[1])
+          seurat.object <- parent.environ$objects[[assay]]
+          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+          return(seurat.object[[parent.environ$assay]])
+        }
+        return(assays[[assay]])
+      })
+    }
+  }
+  sct.check <- sapply(X = assays, FUN = function(x) inherits(x = x, what = "SCTAssay"))
+  if (any(!sct.check)) {
+    warning("Attempting to merge an SCTAssay with another Assay type \n",
+            "Converting all to standard Assay objects.", call. = FALSE)
+    assays <- lapply(1:length(x = assays), FUN = function(x) {
+      if (sct.check[x]) {
+        assays[[x]] <- as(object = assays[[x]], Class = "Assay")
+      }
+      return(assays[[x]])
+    })
+    combined.assay <- merge(
+        x = assays[[1]],
+        y = assays[2:length(x = assays)],
+        add.cell.ids = add.cell.ids,
+        merge.data = merge.data
+    )
+    return(combined.assay)
+  }
+  combined.assay <- NextMethod()
+  all.levels <- unlist(x = lapply(X = assays, FUN = levels))
+  while (anyDuplicated(x = all.levels)) {
+    levels.duplicate <- which(x = duplicated(x = all.levels))
+    all.levels <- sapply(X = 1:length(x = all.levels), FUN = function(l) {
+      if (l %in% levels.duplicate) {
+        return(tryCatch(
+          expr = as.numeric(x = all.levels[l]) + 1,
+          warning = function(...) {
+            make.unique(names = all.levels)[l]
+          },
+          error = function(...){
+            make.unique(names = all.levels)[l]
+          }
+        ))
+      } else {
+        return(all.levels[l])
+      }
+    })
+  }
+  scale.data <- lapply(X = assays, FUN = function(x) {
+    dat <- GetAssayData(object = x, slot = "scale.data")
+    if (ncol(x = dat) == 0) {
+      dat <- matrix(ncol = ncol(x = x))
+    }
+    return(dat)
+  })
+  all.features <- lapply(X = scale.data, FUN = rownames)
+  if (na.rm) {
+    # merge intersection of possible residuals
+    scaled.features <- names(x = which(x = table(x = unlist(x = all.features)) == length(x = assays)))
+    if (length(x = scaled.features) == 0) {
+      scale.data <- list(new(Class = "matrix"))
+    } else {
+      scale.data <- lapply(X = scale.data, FUN = function(x) x[scaled.features, ])
+    }
+  } else {
+    scaled.features <- unique(x = unlist(x = all.features))
+    scale.data <- lapply(X = 1:length(x = scale.data), FUN = function(x) {
+      na.features <- setdiff(x = scaled.features, y = rownames(x = scale.data[[x]]))
+      na.mat <- matrix(
+        data = NA,
+        nrow = length(x = na.features),
+        ncol = ncol(x = assays[[x]]),
+        dimnames = list(na.features, colnames(x = assays[[x]]))
+      )
+      return(rbind(scale.data[[x]], na.mat)[scaled.features, ])
+    })
+  }
+  scale.data <- do.call(what = cbind, args = scale.data)
+  combined.assay <- SetAssayData(object = combined.assay, slot = "scale.data", new.data = scale.data)
+  model.list <- unlist(x = lapply(
+    X = assays,
+    FUN = slot,
+    name = "SCTModel.list"
+  ))
+  names(x = model.list) <- all.levels
+  model.list <- model.list %||% list()
+  combined.assay <- new(
+    Class = "SCTAssay",
+    combined.assay,
+    SCTModel.list = model.list
+  )
+  return(combined.assay)
+}
+
 #' Subset an AnchorSet object
 #'
 #' @inheritParams base::subset
@@ -3208,9 +3711,83 @@ subset.VisiumV1 <- function(x, cells, ...) {
   return(x)
 }
 
+
+
+#' Update pre-V4 Assays generated with SCTransform in the Seurat to the new
+#' SCTAssay class
+#
+#' @param object A Seurat object
+#' @export
+#' @return A Seurat object with updated SCTAssays
+#'
+UpdateSCTAssays <- function(object) {
+  assays <- Assays(object = object)
+  for (assay in assays) {
+    if (IsSCT(assay = object[[assay]]) && !inherits(x = object[[assay]], what = "SCTAssay")) {
+      object[[assay]] <- as(object =  object[[assay]], Class = "SCTAssay")
+    }
+  }
+  return(object)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @rdname SCTAssay-class
+#' @name SCTAssay-class
+#'
+#' @section Creating an \code{SCTAssay} from an \code{Assay}:
+#' Conversion from an \code{Assay} object to an \code{SCTAssay} object by
+#' is done by adding the additional slots to the object. If \code{from} has
+#' results generated by \code{\link{SCTransform}} from Seurat v3.0.0 to v3.1.1,
+#' the conversion will automagically fill the new slots with the data
+#'
+setAs(
+  from = 'Assay',
+  to = 'SCTAssay',
+  def = function(from) {
+    object.list <- sapply(
+      X = slotNames(x = from),
+      FUN = slot,
+      object = from,
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    object.list <- c(
+      list('Class' = 'SCTAssay'),
+      object.list
+    )
+    if (IsSCT(assay = from)) {
+      vst.slots <- c('vst.set', 'vst.out')
+      vst.use <- vst.slots[vst.slots %in% names(x = Misc(object = from))][1]
+      vst.res <- Misc(object = from, slot = vst.use)
+      umi.assay <- Misc(object = from, slot = "umi.assay")
+      if (vst.use == 'vst.out') {
+        vst.res <- list(vst.res)
+        umi.assay <- list(umi.assay)
+      }
+      if (length(x = vst.res) == 0) {
+        vst.res <- list()
+      } else if (length(x = vst.res) > 0) {
+        vst.res <- lapply(
+          X = 1:length(x = vst.res),
+          FUN = function(i) {
+            vst.res[[i]]$umi.assay <- umi.assay[[i]]
+            return(PrepVSTResults(vst.res = vst.res[[i]], cell.names = colnames(x = from)))
+          }
+        )
+        names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
+      }
+      if (length(x = vst.res) > 1) {
+        vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
+      }
+      object.list$misc[[vst.use]] <- NULL
+      object.list$SCTModel.list <- vst.res
+    }
+    return(do.call(what = 'new', args = object.list))
+  }
+)
 
 setMethod(
   f = 'show',
@@ -3240,6 +3817,50 @@ setMethod(
       'A ModalityWeights object containing modality weights between',
       paste(slot(object = object, name = "modality.assay"), collapse = " and "),
       "assays \n", "This can be used as input to FindMultiModelNeighbors.")
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'SCTModel',
+  definition = function(object) {
+    cat(
+      "An sctransform model.\n",
+      " Model formula: ", slot(object = object, name = "model"),
+      "\n  Parameters stored for", nrow(x = SCTResults(object = object, slot = "feature.attributes")), "features,",
+      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells")
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'SCTAssay',
+  definition = function(object) {
+    cat('SCTAssay data with', nrow(x = object), 'features for', ncol(x = object),
+        'cells, and', length(x = levels(x = object)) , 'SCTModel(s) \n')
+
+    if (length(x = VariableFeatures(object = object)) > 0) {
+      top.ten <- head(x = VariableFeatures(object = object), n = 10L)
+      top <- 'Top'
+      variable <- 'variable'
+    } else {
+      top.ten <- head(x = rownames(x = object), n = 10L)
+      top <- 'First'
+      variable <- ''
+    }
+    features <- paste0(
+      variable,
+      ' feature',
+      if (length(x = top.ten) != 1) {'s'}, ":\n"
+    )
+    features <- gsub(pattern = '^\\s+', replacement = '', x = features)
+    cat(
+      top,
+      length(x = top.ten),
+      features,
+      paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n'),
+      '\n'
+    )
   }
 )
 
@@ -3400,6 +4021,76 @@ FindObject <- function(object, name) {
     }
   }
   return(NULL)
+}
+
+# Prepare VST results for use with SCTAssay objects
+#
+# @param vst.res Results from sctransform::vst
+# @param cell.names Vector of valid cell names still in object
+#
+# @return An SCTModel object.
+#
+#
+PrepVSTResults <- function(vst.res, cell.names) {
+  # Prepare cell attribute information
+  cell.attrs <- vst.res$cell_attr
+  cell.names <- intersect(x = cell.names, y = rownames(x = cell.attrs))
+  cell.cols <- c(
+    'umi',
+    'gene',
+    'log_umi',
+    'log_gene',
+    'umi_per_gene',
+    'log_umi_per_gene'
+  )
+  cell.cols <- intersect(x = cell.cols, y = colnames(x = cell.attrs))
+  cell.attrs <- cell.attrs[cell.names, cell.cols, drop = FALSE]
+  colnames(x = cell.attrs) <- gsub(
+    pattern = 'gene',
+    replacement = 'feature',
+    x = colnames(x = cell.attrs)
+  )
+  if (!is.null(x = vst.res$cells_step1)) {
+    cell.attrs[, "cells_step1"] <- FALSE
+    cells_step1 <- intersect(x = vst.res$cells_step1,
+                             y = rownames(x = cell.attrs))
+    cell.attrs[cells_step1, "cells_step1"] <- TRUE
+  }
+  # Prepare feature attribute information
+  feature.attrs <- vst.res$gene_attr
+  feature.cols <- c(
+    'detection_rate',
+    'gmean',
+    'variance',
+    'residual_mean',
+    'residual_variance'
+  )
+  feature.cols <- intersect(x = feature.cols, y = colnames(x = feature.attrs))
+  feature.attrs <- feature.attrs[, feature.cols, drop = FALSE]
+  feature.attrs <- cbind(feature.attrs, vst.res$model_pars_fit[rownames(feature.attrs), , drop = FALSE])
+
+  if (!is.null(x = vst.res$genes_log_gmean_step1)) {
+    feature.attrs[,"genes_log_gmean_step1"] <- FALSE
+    genes_step1 <- intersect(
+      x = names(vst.res$genes_log_gmean_step1),
+      y = rownames(feature.attrs)
+    )
+    feature.attrs[genes_step1,"genes_log_gmean_step1"] <- TRUE
+  }
+  # Prepare clipping information
+  clips <- list(
+    'vst' = vst.res$arguments$res_clip_range,
+    'sct' = vst.res$arguments$sct.clip.range
+  )
+  vst.res.SCTModel  <- SCTModel(
+    feature.attributes = feature.attrs,
+    cell.attributes = cell.attrs,
+    clips = clips,
+    umi.assay = vst.res$umi.assay %||% "RNA",
+    model =  vst.res$model_str,
+    arguments =  vst.res$arguments
+  )
+  return(vst.res.SCTModel)
 }
 
 # Return a null image

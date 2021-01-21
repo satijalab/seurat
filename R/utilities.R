@@ -1625,61 +1625,6 @@ RegroupIdents <- function(object, metadata) {
   return(object)
 }
 
-#' Merge two matrices by rowname
-#'
-#' This function is for use on sparse matrices and
-#' should not be run on a Seurat object.
-#'
-#' Shared matrix rows (with the same row name) will be merged,
-#' and unshared rows (with different names) will be filled
-#' with zeros in the matrix not containing the row.
-#'
-#' @param mat1 First matrix
-#' @param mat2 Second matrix or list of matrices
-#'
-#' @return A merged matrix
-#'
-#' @return Returns a sparse matrix
-#'
-#' @importFrom methods as
-#
-#' @export
-#' @concept utilities
-#'
-RowMergeSparseMatrices <- function(mat1, mat2) {
-  all.mat <- c(list(mat1), mat2)
-  all.rownames <- list()
-  all.colnames <- list()
-  use.cbind <- TRUE
-  for(i in 1:length(x = all.mat)) {
-    if (inherits(x = all.mat[[i]], what = "data.frame")) {
-      all.mat[[i]] <- as.matrix(x = all.mat[[i]])
-    }
-    all.rownames[[i]] <- rownames(x = all.mat[[i]])
-    all.colnames[[i]] <- colnames(x = all.mat[[i]])
-    # use cbind if all matrices have the same rownames
-    if (i > 1) {
-      if (!isTRUE(x = all.equal(target = all.rownames[[i]], current = all.rownames[[i - 1]]))) {
-        use.cbind <- FALSE
-      }
-    }
-  }
-  if (isTRUE(x = use.cbind)) {
-    new.mat <- do.call(what = cbind, args = all.mat)
-  } else {
-    all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
-    all.names <- unique(x = do.call(what = c, args = all.rownames))
-    new.mat <- RowMergeMatricesList(
-      mat_list = all.mat,
-      mat_rownames = all.rownames,
-      all_rownames = all.names
-    )
-    rownames(x = new.mat) <- make.unique(names = all.names)
-  }
-  colnames(x = new.mat) <- make.unique(names = c(do.call(what = c, all.colnames)))
-  return(new.mat)
-}
-
 #' Stop Cellbrowser web server
 #'
 #' @importFrom reticulate py_module_available
@@ -2188,12 +2133,31 @@ is.null.externalptr <- function(pointer) {
 IsSCT <- function(assay) {
   if (is.list(x = assay)) {
     sct.check <- lapply(X = assay, FUN = function(x) {
-      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')))
+      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')) | inherits(x = x, what = "SCTAssay"))
     })
     return(unlist(x = sct.check))
   }
-  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')))
+  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')) | inherits(x = assay, what = "SCTAssay"))
 }
+
+# Check whether a vst.out is from sctransform
+#
+# @param vst.out a sct model from sctransform
+#
+# @return Boolean
+#
+IsVSTout <- function(vst.out) {
+  vst.element <- c("model_str", "model_pars_fit", "cell_attr" )
+   vst.check <- setdiff(x = vst.element, y = names(x = vst.out))
+   if (length(x = setdiff(x = vst.element, y = names(x = vst.out))) == 0) {
+     vst.check <- TRUE
+   } else {
+     vst.check <- FALSE
+   }
+  return(vst.check)
+}
+
+
 
 # Check the length of components of a list
 #

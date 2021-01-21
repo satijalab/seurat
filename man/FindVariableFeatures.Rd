@@ -5,6 +5,7 @@
 \alias{FindVariableGenes}
 \alias{FindVariableFeatures.default}
 \alias{FindVariableFeatures.Assay}
+\alias{FindVariableFeatures.SCTAssay}
 \alias{FindVariableFeatures.Seurat}
 \title{Find variable features}
 \usage{
@@ -38,6 +39,8 @@ FindVariableFeatures(object, ...)
   verbose = TRUE,
   ...
 )
+
+\method{FindVariableFeatures}{SCTAssay}(object, nfeatures = 2000, ...)
 
 \method{FindVariableFeatures}{Seurat}(
   object,

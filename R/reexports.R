@@ -415,6 +415,12 @@ SeuratObject::RenameIdents
 #'
 SeuratObject::ReorderIdent
 
+#' @importFrom SeuratObject RowMergeSparseMatrices
+#' @rdname reexports
+#' @export
+#'
+SeuratObject::RowMergeSparseMatrices
+
 #' @importFrom SeuratObject SetAssayData
 #' @rdname reexports
 #' @export

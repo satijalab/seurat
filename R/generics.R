@@ -717,6 +717,33 @@ ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
+#' Get SCT results from an Assay
+#'
+#' Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
+#' object.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods (not used)
+#'
+#' @rdname SCTResults
+#' @export SCTResults
+#'
+SCTResults <- function(object, ...) {
+  UseMethod(generic = 'SCTResults', object = object)
+}
+
+
+#' @param value new data to set
+#'
+#' @rdname SCTResults
+#' @export SCTResults<-
+#'
+"SCTResults<-" <- function(object, ..., value) {
+  UseMethod(generic = 'SCTResults<-', object = object)
+}
+
+
+
 #' Return a subset of the Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
