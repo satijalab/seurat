@@ -1635,43 +1635,6 @@ SubsetByBarcodeInflections <- function(object) {
   return(object[, cbi.data$cells_pass])
 }
 
-#' Term frequency-inverse document frequency
-#'
-#' Normalize binary data per cell using the term frequency-inverse document frequency
-#' normalization method (TF-IDF).
-#' This is suitable for the normalization of binary ATAC peak datasets.
-#'
-#' @param data Matrix with the raw count data
-#' @param verbose Print progress
-#'
-#' @return Returns a matrix with the normalized data
-#'
-#' @importFrom Matrix colSums rowSums
-#'
-#' @export
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
-#' mat_norm <- TF.IDF(data = mat)
-#'
-TF.IDF <- function(data, verbose = TRUE) {
-  if (is.data.frame(x = data)) {
-    data <- as.matrix(x = data)
-  }
-  if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
-  }
-  if (verbose) {
-    message("Performing TF-IDF normalization")
-  }
-  npeaks <- colSums(x = data)
-  tf <- t(x = t(x = data) / npeaks)
-  idf <- ncol(x = data) / rowSums(x = data)
-  norm.data <- Diagonal(n = length(x = idf), x = idf) %*% tf
-  norm.data[which(x = is.na(x = norm.data))] <- 0
-  return(norm.data)
-}
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
