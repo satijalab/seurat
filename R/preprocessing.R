@@ -2315,7 +2315,6 @@ NormalizeData.default <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  CheckMatrix(object = object)
   normalized.data <- if (nbrOfWorkers() > 1) {
     norm.function <- switch(
       EXPR = normalization.method,
