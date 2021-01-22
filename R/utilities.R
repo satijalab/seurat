@@ -1826,7 +1826,14 @@ IsVSTout <- function(vst.out) {
   return(vst.check)
 }
 
-
+# Calculate euclidean distance the x and y, 
+# and subtract the nearest neighbors of x distance to keep local connectivity
+# It is used in FindModalityWeights to calculate the with and cross modality distance
+impute_dist <- function(x, y, nearest.dist) {
+  dist <- sqrt(x = rowSums(x = (x - y)**2)) - nearest.dist
+  dist <- ReLu(x = dist)
+  return(dist)
+}
 
 # Check the length of components of a list
 #
@@ -2087,6 +2094,14 @@ PercentAbove <- function(x, threshold) {
 RandomName <- function(length = 5L, ...) {
   CheckDots(..., fxns = 'sample')
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
+}
+
+
+# Rectified linear units function. Calculate positive part of its argument
+# The input can be a vector and a matrix
+ReLu <- function(x) {
+  x[x < 0] <- 0
+  return(x)
 }
 
 # Remove the last field from a string
