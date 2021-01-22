@@ -27,7 +27,8 @@ FindMultiModalNeighbors(
 \arguments{
 \item{object}{A Seurat object}
 
-\item{reduction.list}{A list of two dimensional reductions, one for each of the modalities to be integrated}
+\item{reduction.list}{A list of two dimensional reductions, one for each of
+the modalities to be integrated}
 
 \item{dims.list}{A list containing the dimensions for each reduction to use}
 
@@ -42,7 +43,8 @@ dimensional reduction. TRUE by default.}
 
 \item{weighted.nn.name}{Multimodal neighbor object name}
 
-\item{modality.weight.name}{Variable name to store modality weight in object meta data}
+\item{modality.weight.name}{Variable name to store modality weight in object
+meta data}
 
 \item{knn.range}{The number of approximate neighbors to compute}
 
@@ -50,7 +52,8 @@ dimensional reduction. TRUE by default.}
 
 \item{sd.scale}{The scaling factor for kernel width. 1 by default}
 
-\item{cross.contant.list}{Constant used to avoid divide-by-zero errors. 1e-4 by default}
+\item{cross.contant.list}{Constant used to avoid divide-by-zero errors. 1e-4
+by default}
 
 \item{smooth}{Smoothing modality score across each individual modality
 neighbors. FALSE by default}

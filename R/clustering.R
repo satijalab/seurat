@@ -12,9 +12,10 @@ NULL
 #' of two modalities. Takes as input two dimensional reductions, one computed
 #' for each modality.Other parameters are listed for debugging, but can be left
 #' as default values.
-#' 
+#'
 #' @param object A Seurat object
-#' @param reduction.list A list of two dimensional reductions, one for each of the modalities to be integrated
+#' @param reduction.list A list of two dimensional reductions, one for each of
+#' the modalities to be integrated
 #' @param dims.list A list containing the dimensions for each reduction to use
 #' @param k.nn the number of multimodal neighbors to compute. 20 by default
 #' @param l2.norm Perform L2 normalization on the cell embeddings after
@@ -22,11 +23,13 @@ NULL
 #' @param knn.graph.name Multimodal knn graph name
 #' @param snn.graph.name Multimodal snn graph name
 #' @param weighted.nn.name Multimodal neighbor object name
-#' @param modality.weight.name Variable name to store modality weight in object meta data
+#' @param modality.weight.name Variable name to store modality weight in object
+#' meta data
 #' @param knn.range The number of approximate neighbors to compute
-#' @param prune.SNN Cutoff not to discard edge in SNN graph 
+#' @param prune.SNN Cutoff not to discard edge in SNN graph
 #' @param sd.scale  The scaling factor for kernel width. 1 by default
-#' @param cross.contant.list Constant used to avoid divide-by-zero errors. 1e-4 by default
+#' @param cross.contant.list Constant used to avoid divide-by-zero errors. 1e-4
+#' by default
 #' @param smooth Smoothing modality score across each individual modality
 #' neighbors. FALSE by default
 #' @param return.intermediate Store intermediate results in misc
@@ -57,7 +60,7 @@ FindMultiModalNeighbors  <- function(
   modality.weight = NULL,
   verbose = TRUE
 ) {
-  cross.contant.list <- cross.contant.list %||% 
+  cross.contant.list <- cross.contant.list %||%
     as.list(x = rep(x = 1e-4, times = length(x = reduction.list)))
   if (is.null(x = modality.weight)) {
     if (verbose) {
@@ -76,13 +79,14 @@ FindMultiModalNeighbors  <- function(
     )
   }
   modality.weight.name <- modality.weight.name %||% paste0(modality.weight@modality.assay, ".weight")
+  modality.assay <- slot(object = modality.weight, name = "modality.assay")
   if (length(modality.weight.name) != length(reduction.list)) {
-    warning("The number of provided modality.weight.name is not equal to the number of modalities. ", 
-            paste(paste0(modality.weight@modality.assay, ".weight"), collapse = " "), 
+    warning("The number of provided modality.weight.name is not equal to the number of modalities. ",
+            paste(paste0(modality.assay, ".weight"), collapse = " "),
             " are used to store the modality weights" )
-    modality.weight.name <- paste0(modality.weight@modality.assay, ".weight")
+    modality.weight.name <- paste0(modality.assay, ".weight")
   }
-  first.assay <- slot(object = modality.weight, name = "modality.assay")[1]
+  first.assay <- modality.assay[1]
   weighted.nn <- MultiModalNN(
     object = object,
     k.nn = k.nn,
@@ -125,9 +129,9 @@ FindMultiModalNeighbors  <- function(
   object[[weighted.nn.name]] <- weighted.nn
   for (m in 1:length(x = modality.weight.name)) {
     object[[modality.weight.name[[m]]]] <- slot(
-      object = modality.weight, 
+      object = modality.weight,
       name = "modality.weight.list"
-      )[[m]]
+    )[[m]]
   }
   # add command log
   modality.weight.command <- slot(object = modality.weight, name = "command")
@@ -1018,7 +1022,7 @@ FindModalityWeights  <- function(
     yes = pblapply,
     no = lapply
   )
-  cross.contant.list <- cross.contant.list %||% 
+  cross.contant.list <- cross.contant.list %||%
     as.list(x = rep(x = 1e-4, times = length(x = reduction.list)))
   reduction.set <- unlist(x = reduction.list)
   names(x = reduction.list) <- names(x = dims.list) <-
@@ -1112,17 +1116,19 @@ FindModalityWeights  <- function(
         verbose = FALSE,
         return.assay = FALSE
       )
-    } 
+    }
     )
     names(x = cross_impute[[r]]) <- cross.modality
   }
-  
+
   within_impute_dist <- lapply(
     X = reduction.list,
     FUN = function(r) {
-      r_dist <- impute_dist(x = query.embeddings.list.norm[[r]],
-                            y = t(x = within_impute[[r]]),
-                            nearest.dist = nearest_dist[[r]])
+      r_dist <- impute_dist(
+        x = query.embeddings.list.norm[[r]],
+        y = t(x = within_impute[[r]]),
+        nearest.dist = nearest_dist[[r]]
+      )
       return(r_dist)
     }
   )
@@ -1130,9 +1136,11 @@ FindModalityWeights  <- function(
     X = reduction.list,
     FUN = function(r) {
       r_dist <- sapply(setdiff(x = reduction.set, y = r), FUN = function(r2) {
-        r2_dist <- impute_dist(x = query.embeddings.list.norm[[r]],
-                                y = t(x = cross_impute[[r]][[r2]]),
-                                nearest.dist = nearest_dist[[r]])
+        r2_dist <- impute_dist(
+          x = query.embeddings.list.norm[[r]],
+          y = t(x = cross_impute[[r]][[r2]]),
+          nearest.dist = nearest_dist[[r]]
+        )
         return( r2_dist)
       })
       return(r_dist)
@@ -1211,12 +1219,14 @@ FindModalityWeights  <- function(
   modality_score <-  lapply(
     X = reduction.list,
     FUN = function(r) {
-      score.r <- sapply(X = setdiff(x = reduction.set, y = r),
-                        FUN = function(r2) { 
-                          score <- within_impute_kernel[[r]] / (cross_impute_kernel[[r]][, r2] + cross.contant.list[[r]])
-                          score <- MinMax(data = score, min = 0, max = 200)
-                          return(score)
-                        })
+      score.r <- sapply(
+        X = setdiff(x = reduction.set, y = r),
+        FUN = function(r2) {
+          score <- within_impute_kernel[[r]] / (cross_impute_kernel[[r]][, r2] + cross.contant.list[[r]])
+          score <- MinMax(data = score, min = 0, max = 200)
+          return(score)
+        }
+      )
       return(score.r)
     }
   )
@@ -1233,11 +1243,12 @@ FindModalityWeights  <- function(
     )
   }
   all_modality_score <- rowSums(x = exp(x = Reduce(f = cbind, x = modality_score)))
-  modality.weight <- lapply(X = modality_score,
-                            FUN = function(score_m) {
-                              rowSums(x = exp(x = score_m))/all_modality_score
-                            }
-                            )
+  modality.weight <- lapply(
+    X = modality_score,
+    FUN = function(score_m) {
+      rowSums(x = exp(x = score_m))/all_modality_score
+    }
+  )
   score.mat <- list(
     within_impute_dist = within_impute_dist,
     cross_impute_dist = cross_impute_dist,
@@ -1245,7 +1256,7 @@ FindModalityWeights  <- function(
     cross_impute_kernel = cross_impute_kernel,
     modality_score = modality_score
   )
-  
+
   # unlist the input parameters
   command <- LogSeuratCommand(object = object, return.command = TRUE)
   command@params <- lapply(X = command@params, FUN = function(l) unlist(x = l))
@@ -1345,7 +1356,7 @@ MultiModalNN <- function(
   object,
   query = NULL,
   modality.weight = NULL,
-  modality.weight.list = NULL, 
+  modality.weight.list = NULL,
   k.nn = NULL,
   reduction.list = NULL,
   dims.list = NULL,
@@ -1372,7 +1383,7 @@ MultiModalNN <- function(
     slot(object = modality.weight, name = "params")$sigma.list
   l2.norm = l2.norm %||%
     slot(object = modality.weight, name = "params")$l2.norm
-  modality.weight.value  <- modality.weight.list %||% 
+  modality.weight.value  <- modality.weight.list %||%
     slot(object = modality.weight, name = "modality.weight.list")
   names(x = modality.weight.value) <- unlist(x = reduction.list)
   if (inherits(x = object, what = "Seurat")) {
