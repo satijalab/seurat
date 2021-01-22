@@ -3631,6 +3631,20 @@ subset.AnchorSet <- function(
   return(x)
 }
 
+#' @export
+#' @method subset SCTAssay
+#'
+subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
+  x <- NextMethod()
+  models <- levels(x = x)
+  for (m in models) {
+    attr <- SCTResults(object = x, slot = "cell.attributes", model = m)
+    attr <- attr[intersect(x = rownames(x = attr), y = Cells(x = x)), , drop = FALSE]
+    SCTResults(object = x, slot = "cell.attributes", model = m) <- attr
+  }
+  return(x)
+}
+
 #' @method subset SlideSeq
 #' @export
 #'
