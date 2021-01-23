@@ -36,20 +36,6 @@ as.CellDataSet <- function(x, ...) {
   UseMethod(generic = 'as.CellDataSet', object = x)
 }
 
-#' Convert objects to loom objects
-#'
-#' @param x An object to convert to class \code{loom}
-#' @inheritParams loomR::create
-#'
-#' @seealso \code{\link[loomR]{create}}
-#'
-#' @rdname as.loom
-#' @export as.loom
-#'
-as.loom <- function(x, ...) {
-  UseMethod(generic = 'as.loom', object = x)
-}
-
 #' Convert objects to SingleCellExperiment objects
 #'
 #' @param x An object to convert to class \code{SingleCellExperiment}
@@ -352,29 +338,6 @@ NormalizeData <- function(object, ...) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
-#' Identify cells matching certain criteria
-#'
-#' Returns a list of cells that match a particular set of criteria such as
-#' identity class, high/low values for particular PCs, ect..
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods and \code{FetchData}
-#'
-#' @return A vector of cell names
-#'
-#' @rdname OldWhichCells
-#' @export OldWhichCells
-#'
-#' @examples
-#' \dontrun{
-#' data("pbmc_small")
-#' OldWhichCells(object = pbmc_small, ident.keep = 2)
-#' }
-#'
-OldWhichCells <- function(object, ...) {
-  UseMethod(generic = 'OldWhichCells', object = object)
-}
-
 #' Project query into UMAP coordinates of a reference
 #'
 #' This function will take a query dataset and project it into the coordinates
@@ -393,106 +356,6 @@ OldWhichCells <- function(object, ...) {
 #'
 ProjectUMAP <- function(query, ...) {
   UseMethod(generic = "ProjectUMAP", object = query)
-}
-
-#' Read from and write to h5ad files
-#'
-#' Utilize the Anndata h5ad file format for storing and sharing single-cell expression
-#' data. Provided are tools for writing objects to h5ad files, as well as reading
-#' h5ad files into a Seurat object
-#'
-#' @details
-#' \code{ReadH5AD} and \code{WriteH5AD} will try to automatically fill slots based
-#' on data type and presence. For example, objects will be filled with scaled and
-#' normalized data if \code{adata.X} is a dense matrix and \code{raw} is present
-#' (when reading), or if the \code{scale.data} slot is filled (when writing). The
-#' following is a list of how objects will be filled
-#' \describe{
-#'   \item{\code{adata.X} is dense and \code{adata.raw} is filled; \code{ScaleData} is filled}{Objects will be filled with scaled and normalized data}
-#'   \item{
-#'     \code{adata.X} is sparse and \code{adata.raw} is filled; \code{NormalizeData} has been run, \code{ScaleData} has not been run
-#'   }{
-#'     Objects will be filled with normalized and raw data
-#'   }
-#'   \item{\code{adata.X} is sparse and \code{adata.raw} is not filled; \code{NormalizeData} has not been run}{Objects will be filled with raw data only}
-#' }
-#' In addition, dimensional reduction information and nearest-neighbor graphs will
-#' be searched for and added if and only if scaled data is being added.
-#'
-#' When reading: project name is \code{basename(file)}; identity classes will be
-#' set as the project name; all cell-level metadata from \code{adata.obs} will be
-#' taken; feature level metadata from \code{data.var} and \code{adata.raw.var}
-#' (if present) will be merged and stored in assay \code{meta.features}; highly
-#' variable features will be set if \code{highly_variable} is present in feature-level
-#' metadata; dimensional reduction objects will be given the assay name provided
-#' to the function call; graphs will be named \code{assay_method} if method is
-#' present, otherwise \code{assay_adata}
-#'
-#' When writing: only one assay will be written; all dimensional reductions and
-#' graphs associated with that assay will be stored, no other reductions or graphs
-#' will be written; active identity classes will be stored in \code{adata.obs} as
-#' \code{active_ident}
-#'
-#' @param file Name of h5ad file, or an H5File object for reading in
-#'
-#' @return \code{ReadH5AD}: A Seurat object with data from the h5ad file
-#'
-#' @aliases ReadH5AD
-#'
-#' @rdname h5ad
-#' @export ReadH5AD
-#'
-ReadH5AD <- function(file, ...) {
-  UseMethod(generic = 'ReadH5AD', object = file)
-}
-
-#' Run Adaptively-thresholded Low Rank Approximation (ALRA)
-#'
-#' Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
-#' Computes the k-rank approximation to A_norm and adjusts it according to the
-#' error distribution learned from the negative values. Described in
-#' Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
-#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
-#'
-#' @note RunALRA and associated functions are being moved to SeuratWrappers;
-#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @rdname RunALRA
-#' @export RunALRA
-#'
-#' @author Jun Zhao, George Linderman
-#' @references Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
-#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
-#' @seealso \code{\link{ALRAChooseKPlot}}
-#'
-#' @examples
-#' data("pbmc_small")
-#' pbmc_small
-#' # Example 1: Simple usage, with automatic choice of k.
-#' pbmc_small_alra <- RunALRA(object = pbmc_small)
-#' \dontrun{
-#' # Example 2: Visualize choice of k, then run ALRA
-#' # First, choose K
-#' pbmc_small_alra <- RunALRA(pbmc_small, k.only=TRUE)
-#' # Plot the spectrum, spacings, and p-values which are used to choose k
-#' ggouts <- ALRAChooseKPlot(pbmc_small_alra)
-#' do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
-#' # Run ALRA with the chosen k
-#' pbmc_small_alra <- RunALRA(pbmc_small_alra)
-#' }
-#'
-RunALRA <- function(object, ...) {
-  .Deprecated(
-    new = 'SeruatWrappers::RunALRA',
-    msg = paste(
-      'RunALRA and associated functions are being moved to SeuratWrappers;',
-      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
-    )
-  )
-  UseMethod(generic = 'RunALRA', object = object)
 }
 
 #' Perform Canonical Correlation Analysis
@@ -740,42 +603,4 @@ SCTResults <- function(object, ...) {
 #'
 "SCTResults<-" <- function(object, ..., value) {
   UseMethod(generic = 'SCTResults<-', object = object)
-}
-
-
-
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @rdname SubsetData
-#' @export SubsetData
-#'
-#' @examples
-#' \dontrun{
-#' data("pbmc_small")
-#' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
-#' pbmc1
-#' }
-#'
-SubsetData <- function(object, ...) {
-  UseMethod(generic = 'SubsetData', object = object)
-}
-
-#' @param object An object
-#' @param ... arguments passed to other methods
-#'
-#' @return \code{WriteH5AD}: None, writes to disk
-#'
-#' @rdname h5ad
-#'
-WriteH5AD <- function(object, ...) {
-  UseMethod(generic = 'WriteH5AD', object = object)
 }
