@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 3.9.9.9032
-Date: 2020-01-19
+Version: 3.9.9.9036
+Date: 2020-01-22
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -16,7 +16,6 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.6.0),
     methods
@@ -55,7 +54,6 @@ Imports:
     reticulate,
     rlang,
     ROCR,
-    rsvd,
     Rtsne,
     scales,
     scattermore (>= 0.7),
@@ -91,8 +89,8 @@ Collate:
 RoxygenNote: 7.1.1
 Encoding: UTF-8
 Suggests:
-    loomR,
     ape,
+    rsvd,
     testthat,
     hdf5r,
     S4Vectors,
