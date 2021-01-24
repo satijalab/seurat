@@ -4408,8 +4408,17 @@ ValidateParams_FindTransferAnchors <- function(
            " reference sct models. Please provide a reference assay with a ",
            " single reference sct model.", call. = FALSE)
     } else if (reference.model.num == 0) {
+      if (IsSCT(query[[query.assay]])) {
+        stop("Given reference assay (", reference.assay,
+             ") doesn't contain a reference SCT model.\n", 
+             "Query assay is a SCTAssay. ", 
+             "You can set recompute.residuals to FALSE ",
+             "to use Query residuals to continue the analysis",
+             call. = FALSE)
+      }
       stop("Given reference assay (", reference.assay,
-           ") doesn't contain a reference SCT model. ", call. = FALSE)
+           ") doesn't contain a reference SCT model. ", 
+           call. = FALSE)
     } else if (reference.model.num == 1) {
       new.sct.assay <- reference.assay
       if (verbose) {
@@ -4426,7 +4435,9 @@ ValidateParams_FindTransferAnchors <- function(
       if (!query.umi.assay %in% Assays(object = query)) {
         stop("Query assay provided is an SCTAssay based on an orignal UMI assay",
              " that is no longer present in the query Seurat object. Unable to",
-             " recompute residuals based on the reference SCT model.", call. = FALSE)
+             " recompute residuals based on the reference SCT model.\n", 
+             "If you want to use Query SCTAssay residuals to continue the analysis, ",
+             "you can set recompute.residuals to FALSE", call. = FALSE)
       }
     }
     query <- SCTransform(
@@ -4471,7 +4482,7 @@ ValidateParams_FindTransferAnchors <- function(
     if (length(x = features.new) != length(x = features)) {
       warning(length(x = features) - length(x = features.new), " features of ",
               "the features specified were not present in both the reference ",
-              "query assays. Continuing with remaining ", length(x = features.new),
+              "query assays. \nContinuing with remaining ", length(x = features.new),
               " features.", immediate. = TRUE, call. = FALSE)
       features <- features.new
     }
