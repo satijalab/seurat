@@ -8,6 +8,7 @@ FindTransferAnchors(
   reference,
   query,
   normalization.method = "LogNormalize",
+  recompute.residuals = TRUE,
   reference.assay = NULL,
   reference.neighbors = NULL,
   query.assay = NULL,
@@ -37,6 +38,9 @@ FindTransferAnchors(
 
 \item{normalization.method}{Name of normalization method used: LogNormalize
 or SCT.}
+
+\item{recompute.residuals}{If using SCT as a normalization method, compute
+query Pearson residuals using the reference SCT model parameters.}
 
 \item{reference.assay}{Name of the Assay to use from reference}
 

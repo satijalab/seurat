@@ -31,6 +31,7 @@
 - Minor changes to the exact calculation of the anchor weight matrix
 - Default rasterization limit in `DimPlot()` and `FeaturePlot()` changed from 50,000 to 100,000
 - `SCTransform()` now returns a formalized `Assay` subclass `SCTAssay()`
+- When using `normalization.method='SCT'` in `FindTransferAnchors()`, normalize query using reference SCT model when possible.
 
 ## Removed
 - `CreateGeneActivityMatrix` replaced by `Signac::GeneActivity()`
