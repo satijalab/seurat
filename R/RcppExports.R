@@ -17,10 +17,6 @@ RowMergeMatrices <- function(mat1, mat2, mat1_rownames, mat2_rownames, all_rowna
     .Call('_Seurat_RowMergeMatrices', PACKAGE = 'Seurat', mat1, mat2, mat1_rownames, mat2_rownames, all_rownames)
 }
 
-RowMergeMatricesList <- function(mat_list, mat_rownames, all_rownames) {
-    .Call('_Seurat_RowMergeMatricesList', PACKAGE = 'Seurat', mat_list, mat_rownames, all_rownames)
-}
-
 LogNorm <- function(data, scale_factor, display_progress = TRUE) {
     .Call('_Seurat_LogNorm', PACKAGE = 'Seurat', data, scale_factor, display_progress)
 }
