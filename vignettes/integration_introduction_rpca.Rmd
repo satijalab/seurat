@@ -76,12 +76,12 @@ ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
 We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
 
 ```{r find.anchors}
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:20, anchor.features = features,reduction = 'rpca')
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features,reduction = 'rpca')
 ```
 ```{r integrate.data}
 
 # this command creates an 'integrated' data assay
-immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:20)
+immune.combined <- IntegrateData(anchorset = immune.anchors)
 ```
 
 ## Perform an integrated analysis
@@ -97,8 +97,8 @@ DefaultAssay(immune.combined) <- "integrated"
 # Run the standard workflow for visualization and clustering
 immune.combined <- ScaleData(immune.combined, verbose = FALSE)
 immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
 immune.combined <- FindClusters(immune.combined, resolution = 0.5)
 ```
 
@@ -114,8 +114,8 @@ p1 + p2
 The results show that rpca-based integration is more conservative, and in this case, do not perfectly align a subset of cells (which are naive and memory T cells) across experiments. You can increase the strength of alignment by increasing the `k.anchor` parameter, which is set to 5 by default. Increasing this parameter to 20 will assist in aligning these populations.
 
 ```{r split.dim}
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:30, anchor.features = features,reduction = 'rpca', k.anchor = 20)
-immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:30)
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features,reduction = 'rpca', k.anchor = 20)
+immune.combined <- IntegrateData(anchorset = immune.anchors)
 
 immune.combined <- ScaleData(immune.combined, verbose = FALSE)
 immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
@@ -135,14 +135,14 @@ Now that the datasets have been integrated, you can follow the previous steps in
 
 ## Performing integration on datasets normalized with SCTransform
 
-As an additional example, we repeat the analyses performed above, but normalize the datasets using [SCTransform](sctransform_vignette.html). 
+As an additional example, we repeat the analyses performed above, but normalize the datasets using [SCTransform](sctransform_vignette.html). We may choose to set the `method` parameter to `glmGamPoi` (install [here](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)) in order to enable faster estimation of regression parameters in `SCTransform`.  
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
 LoadData('ifnb')
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
 
 ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
-  x <- SCTransform(x)
+  x <- SCTransform(x, method = 'glmGamPoi')
 })
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)
 ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features)
