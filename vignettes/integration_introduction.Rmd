@@ -86,12 +86,12 @@ features <- SelectIntegrationFeatures(object.list = ifnb.list)
 We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
 
 ```{r find.anchors}
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, dims = 1:20, anchor.features = features)
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features)
 ```
 ```{r integrate.data}
 
 # this command creates an 'integrated' data assay
-immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:20)
+immune.combined <- IntegrateData(anchorset = immune.anchors)
 ```
 
 ## Perform an integrated analysis
@@ -107,8 +107,8 @@ DefaultAssay(immune.combined) <- "integrated"
 # Run the standard workflow for visualization and clustering
 immune.combined <- ScaleData(immune.combined, verbose = FALSE)
 immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
 immune.combined <- FindClusters(immune.combined, resolution = 0.5)
 ```
 
