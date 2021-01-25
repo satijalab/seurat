@@ -15,6 +15,7 @@ Authors@R: c(
   person(given = "Jaison", family = "Jain", email = "jjain@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-9478-5018")),
   person(given = "Efthymia", family = "Papalexi", email = "epapalexi@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5898-694X")),
   person(given = "Patrick", family = "Roelli", email = "proelli@nygenome.org", role = "ctb"),
+  person(given = "Karthik", family = "Shekhar", email = "kshekhar@berkeley.edu", role = "ctb"),
   person(given = "Avi", family = "Srivastava", email = "asrivastava@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-9798-2079")),
   person(given = "Tim", family = "Stuart", email = "tstuart@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-3044-0897")),
   person(given = "Kristof", family = "Torkenczy", email = "", role = "ctb", comment = c(ORCID = "0000-0002-4869-7957")),
