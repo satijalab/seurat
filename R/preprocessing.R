@@ -1592,6 +1592,7 @@ SCTransform <- function(
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   assay.out <- as(object = assay.out, Class = "SCTAssay")
   assay.out <- SCTAssay(assay.out, assay.orig = assay)
+  slot(object = slot(object = assay.out, name = "SCTModel.list")[[1]], name = "umi.assay") <- assay
   object[[new.assay.name]] <- assay.out
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
