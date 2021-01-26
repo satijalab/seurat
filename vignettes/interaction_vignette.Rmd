@@ -41,7 +41,7 @@ This vignette demonstrates some useful features for interacting with the Seurat 
 library(Seurat)
 library(SeuratData)
 InstallData("pbmc3k")
-pbmc <- LoadData(ds = pbmc3k.final)
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
 
 # pretend that cells were originally assigned to one of two replicates (we assign randomly here)
 # if your cells do belong to multiple replicates, and you want to add this info to the Seurat object

@@ -72,7 +72,7 @@ To merge more than two `Seurat` objects, simply pass a vector of multiple `Seura
 ```{r merge_three}
 library(SeuratData)
 InstallData("pbmc3k")
-pbmc3k <- LoadData(ds = "pbmc3k.final")
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
 pbmc3k
 
 pbmc.big <- merge(pbmc3k, y = c(pbmc4k, pbmc8k), add.cell.ids = c('3K', '4K', '8K'), project = 'PBMC15K')
