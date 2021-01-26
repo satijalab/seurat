@@ -144,7 +144,7 @@ library(ggplot2)
 plot <- baseplot + DarkTheme() + 
     theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
     guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "../output/images/visualization_vignette.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/visualization_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 # Interactive plotting features

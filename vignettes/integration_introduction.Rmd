@@ -158,7 +158,7 @@ DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'), do
 library(ggplot2)
 plot <- DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
                       dot.scale = 6, split.by = "stim") + RotatedAxis() 
-ggsave(filename = "../output/images/pbmc_alignment.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/pbmc_alignment.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 ### Identify differential expressed genes across conditions

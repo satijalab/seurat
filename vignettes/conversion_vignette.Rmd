@@ -99,6 +99,7 @@ Seurat can also read in `loom` files connected via [loomR](https://github.com/mo
 l6.immune <- Connect(filename = '../data/l6_r1_immune_cells.loom', mode = 'r')
 l6.immune
 l6.seurat <- as.Seurat(l6.immune)
+Idents(l6.seurat) <- "ClusterName"
 VlnPlot(l6.seurat, features = c('Sparc', 'Ftl1', 'Junb', 'Ccl4'), ncol = 2)
 # Always remember to close loom files when done
 l6.immune$close_all()

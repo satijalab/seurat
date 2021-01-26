@@ -112,7 +112,7 @@ saveRDS(pancreas.integrated, file = "pancreas_integrated.rds")
 plot <- DimPlot(pancreas.integrated, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
   guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "pancreas_integrated_umap.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "pancreas_integrated_umap.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 # Cell type classification using an integrated reference

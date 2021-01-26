@@ -169,7 +169,7 @@ FeaturePlot(pbmc3k, features = c("pDC", "CD16 Mono", "Treg"),  reduction = "ref.
 library(ggplot2)
 plot <- FeaturePlot(pbmc3k, features = "CD16 Mono",  reduction = "ref.umap", cols = c("lightgrey", "darkred"))  + ggtitle("CD16 Mono") + theme(plot.title = element_text(hjust = 0.5, size = 30)) + labs(color = "Prediction Score") +  xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18), legend.title = element_text(size = 25)) 
-ggsave(filename = "../output/images/multimodal_reference_mapping.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/multimodal_reference_mapping.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 We can verify our predictions by exploring the expression of canonical marker genes. For example, CLEC4C and LIRA4 have been [reported](https://pubmed.ncbi.nlm.nih.gov/30395816/) as markers of pDC identity, consistent with our predictions. Similarly, if we perform differential expression to identify markers of Tregs, we identify a set of [canonical markers](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4761514/) including RTKN2, CTLA4, FOXP3, and IL2RA.

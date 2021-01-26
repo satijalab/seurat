@@ -99,7 +99,7 @@ FeatureScatter(pbmc, feature1 = "MDS_1", feature2 = "PC_1")
 ```{r save.img, include=FALSE}
 library(ggplot2)
 plot <- DimPlot(pbmc, reduction = "mds", pt.size = 0.5)
-ggsave(filename = "../output/images/pbmc_mds.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/pbmc_mds.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 ```{r save.times, include = FALSE}

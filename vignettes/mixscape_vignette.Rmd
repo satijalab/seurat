@@ -310,7 +310,7 @@ VlnPlot(
 
 ```{r save.img, include=FALSE}
 p <- VlnPlot(object = eccite, features = "adt_PDL1", idents = c("NT","JAK2","STAT1","IFNGR1","IFNGR2", "IRF1"), group.by = "gene", pt.size = 0.2, sort = T, split.by = "mixscape_class.global", cols = c("coral3","grey79","grey39")) +ggtitle("PD-L1 protein") +theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
-ggsave(filename = "../output/images/mixscape_vignette.png", height = 7, width = 12, plot = p)
+ggsave(filename = "../output/images/mixscape_vignette.jpg", height = 7, width = 12, plot = p, quality = 50)
 ```
 
 # Visualizing perturbation responses with Linear Discriminant Analysis (LDA)

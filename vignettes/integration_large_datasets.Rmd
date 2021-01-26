@@ -102,7 +102,7 @@ library(ggplot2)
 plot <- DimPlot(bm280k.integrated, group.by = "orig.ident") + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
   guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "../output/images/bm280k_integrated.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/bm280k_integrated.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 ```{r save.times, include = FALSE}

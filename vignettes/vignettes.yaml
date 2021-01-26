@@ -4,19 +4,19 @@
       name: pbmc3k_tutorial
       summary: |
         A basic overview of Seurat that includes an introduction to common analytical workflows.
-      image: pbmc3k_umap.png
+      image: pbmc3k_umap.jpg
 
     - title: Multimodal analysis
       name: multimodal_vignette
       summary: |
         An introduction to working with multi-modal datasets in Seurat.
-      image: citeseq_plot.png
+      image: citeseq_plot.jpg
 
     - title: Analysis of spatial datasets
       name: spatial_vignette
       summary: |
         Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
-      image: spatial_vignette_ttr.png
+      image: spatial_vignette_ttr.jpg
 
 - category: Data Integration
   vignettes:
@@ -36,13 +36,13 @@
       name: integration_rpca
       summary: |
         Example workflow for integrating dataset with RPCA.
-      image: rpca_integration.png
+      image: rpca_integration.jpg
 
     - title: Tips for integrating large datasets
       name: integration_large_datasets
       summary: |
         Example workflow for integrating large datasets
-      image: bm280k_integrated.png
+      image: bm280k_integrated.jpg
 
     - title: Integrating scRNA-seq and scATAC-seq data
       name: atacseq_integration_vignette
@@ -54,7 +54,7 @@
       name: multimodal_reference_mapping
       summary: |
         Analyze query data in the context of multimodal reference atlases.
-      image: multimodal_reference_mapping.png
+      image: multimodal_reference_mapping.jpg
 
 - category: New Statistical Approaches
   vignettes:
@@ -62,13 +62,13 @@
       name: weighted_nearest_neighbor_analysis
       summary: |
         Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4
-      image: weighted_nearest_neighbor_analysis.png
+      image: weighted_nearest_neighbor_analysis.jpg
 
     - title: Mixscape
       name: mixscape_vignette
       summary: |
         Explore new methods to analyze pooled single-celled perturbation screens.
-      image: mixscape_vignette.png
+      image: mixscape_vignette.jpg
 
     - title: SCTransform
       name: sctransform_vignette
@@ -82,13 +82,13 @@
       name: visualization_vignette
       summary: |
         An overview of the major visualization functionality within Seurat.
-      image: visualization_vignette.png
+      image: visualization_vignette.jpg
 
     - title: Cell Cycle Regression
       name: cell_cycle_vignette
       summary: |
         Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes
-      image: cell_cycle_vignette.png
+      image: cell_cycle_vignette.jpg
 
     - title: Differential Expression Testing
       name: de_vignette

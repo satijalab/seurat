@@ -86,7 +86,7 @@ library(ggplot2)
 plot <- DimPlot(marrow) + 
     theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
     guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "../output/images/cell_cycle_vignette.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/cell_cycle_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 We score single cells based on the scoring strategy described in [Tirosh *et al*. 2016](http://science.sciencemag.org/content/352/6282/189). See `?AddModuleScore()` in Seurat for more information, this function can be used to calculate supervised module scores for any gene list.

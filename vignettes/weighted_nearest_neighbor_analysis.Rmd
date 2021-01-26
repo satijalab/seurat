@@ -138,9 +138,8 @@ library(ggplot2)
 plot <-  VlnPlot(bm, features = "RNA.weight", group.by = 'celltype.l2', sort = TRUE, pt.size = 0.1) +
   NoLegend() + xlab("") + ggtitle("RNA Modality Weights") + theme(plot.title = element_text(hjust = 0.5, size = 30), axis.text = element_text(size = 20))
  
-ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
-
 
 # PBMC - RNA & ATAC
 

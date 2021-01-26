@@ -144,7 +144,7 @@ SpatialFeaturePlot(brain, features = c("Hpca", "Ttr"))
 library(ggplot2)
 plot <- SpatialFeaturePlot(brain, features = c("Ttr")) + 
   theme(legend.text = element_text(size = 0), legend.title = element_text(size = 20), legend.key.size = unit(1, "cm")) 
-ggsave(filename = "../output/images/spatial_vignette_ttr.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/spatial_vignette_ttr.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 The default parameters in Seurat emphasize the visualization of molecular data. However, you can also adjust the size of the spots (and their transparency) to improve the visualization of the histology image, by changing the following parameters:
