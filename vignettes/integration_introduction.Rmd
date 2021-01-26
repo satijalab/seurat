@@ -145,6 +145,10 @@ DimPlot(immune.combined, label = TRUE)
 
 The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
 
+```{r debug.save}
+saveRDS(immune.combined, file = "../output/immune.combined.rds")
+```
+
 ```{r splitdotplot, fig.height = 10}
 Idents(immune.combined) <- factor(
   Idents(immune.combined),
