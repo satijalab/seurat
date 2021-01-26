@@ -139,7 +139,7 @@ We can explore these marker genes for each cluster and use them to annotate our 
 
 ```{r annotate, results = 'hide', message=FALSE, fig.height = 8}
 FeaturePlot(immune.combined, features = c("CD3D", "SELL", "CREM", "CD8A", "GNLY", "CD79A", "FCGR3A", "CCL2", "PPBP"), min.cutoff = "q9")
-immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 Naive T", "2" = "CD4 Memory T", "3" = "CD16 Mono", "4" = "B", "5" = "CD8 T", "6" = "NK" , "7" = "T activated", "8" = "DC", "9" = "B Activated", "10" = "Mk", "11" = "pDC", "12" = "Eryth", "13" = "Mono/Mk Doublets")
+immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 Naive T", "2" = "CD4 Memory T", "3" = "CD16 Mono", "4" = "B", "5" = "CD8 T", "6" = "NK" , "7" = "T activated", "8" = "DC", "9" = "B Activated", "10" = "Mk", "11" = "pDC", "12" = "Eryth", "13" = "Mono/Mk Doublets", "14" = "HSPC")
 ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
   x[['seurat_annotations']] <- Idents(immune.combined)[Cells(x)]
   Idents(x) <- 'seurat_annotations'
@@ -148,14 +148,14 @@ ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
 DimPlot(immune.combined, label = TRUE)
 ```
 
-The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
+The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 14 clusters.
 
 ```{r splitdotplot, fig.height = 10}
 Idents(immune.combined) <- factor(
   Idents(immune.combined),
-  levels = c("Mono/Mk Doublets", "pDC", "Eryth","Mk", "DC", "CD14 Mono", "CD16 Mono", "B Activated", "B", "CD8 T", "NK", "T activated", "CD4 Naive T", "CD4 Memory T"))
+  levels = c("HSPC", "Mono/Mk Doublets", "pDC", "Eryth","Mk", "DC", "CD14 Mono", "CD16 Mono", "B Activated", "B", "CD8 T", "NK", "T activated", "CD4 Naive T", "CD4 Memory T"))
 markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7","CCL5","CD8A","MS4A1","CD79A","MIR155HG","NME1","FCGR3A","VMO1",
-                     "CCL2","S100A9","HLA-DQA1","GPR183","PPBP","GNG11","HBA2","HBB","TSPAN13","IL3RA","IGJ")
+                     "CCL2","S100A9","HLA-DQA1","GPR183","PPBP","GNG11","HBA2","HBB","TSPAN13","IL3RA","IGJ","PRSS57")
 DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
                       dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
