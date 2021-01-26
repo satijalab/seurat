@@ -30,6 +30,10 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
 In this vignette, we will combine two 10X PBMC datasets: one containing 4K cells and one containing 8K cells. The datasets can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets).
 
 To start, we read in the data and create two `Seurat` objects.

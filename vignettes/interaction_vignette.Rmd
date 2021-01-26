@@ -29,6 +29,10 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
 # Load in the data
 
 This vignette demonstrates some useful features for interacting with the Seurat object. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can load the data from our [SeuratData](https://github.com/satijalab/seurat-data) package. To simulate the scenario where we have two replicates, we will randomly assign half the cells in each cluster to be from "rep1" and other half from "rep2".
