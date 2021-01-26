@@ -133,6 +133,7 @@ p1 + p2
 ```
 
 ```{r save.img, include = FALSE}
+library(ggplot2)
 plot <- DimPlot(immune.combined, group.by = "stim") +
   xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
