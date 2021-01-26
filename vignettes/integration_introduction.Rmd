@@ -219,10 +219,6 @@ wrap_plots(plots = plots, ncol = 1)
 saveRDS(immune.combined, file = "../output/immune.combined.rds")
 ```
 
-```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/immune_alignment_times.csv")
-```
-
 # Performing integration on datasets normalized with SCTransform
 
 In [Hafemeister and Satija, 2019](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), we introduced an improved method for the normalization of scRNA-seq, based on regularized negative binomial regression. The method is named 'sctransform', and avoids some of the pitfalls of standard normalization workflows, including the addition of a pseudocount, and log-transformation. You can read more about sctransform in the [manuscript](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) or our [SCTransform vignette](sctransform_vignette.html).
