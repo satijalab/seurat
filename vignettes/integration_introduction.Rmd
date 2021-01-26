@@ -149,7 +149,7 @@ The `DotPlot()` function with the `split.by` parameter can be useful for viewing
 #Idents(immune.combined) <- factor(
 #  Idents(immune.combined),
 #  levels = c("Mono/Mk Doublets", "pDC", "Eryth","Mk", "DC", "CD14 Mono", "CD16 Mono", "B Activated", "B", "CD8 T", "NK", "T activated", "CD4 Naive T", "CD4 Memory T"))
-#markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7","CCL5","CD8A","MS4A1","CD79A","MIR155HG","NME1","FCGR3A","VMO1","CCL2","S100A9","HLA-DQA1","GPR183","PPBP","GNG11","HBA2","HBB","TSPAN13","IL3RA","IGJ")
+markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7","CCL5","CD8A","MS4A1","CD79A","MIR155HG","NME1","FCGR3A","VMO1","CCL2","S100A9","HLA-DQA1","GPR183","PPBP","GNG11","HBA2","HBB","TSPAN13","IL3RA","IGJ")
 #DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'), dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
 
