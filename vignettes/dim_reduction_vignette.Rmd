@@ -31,11 +31,12 @@ knitr::opts_chunk$set(
 
 # Load in the data
 
-This vignette demonstrates how to store and interact with dimensional reduction information (such as the output from `RunPCA()`) in Seurat v3.0. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can download the pre-computed object [here](https://www.dropbox.com/s/kwd3kcxkmpzqg6w/pbmc3k_final.rds?dl=1).
+This vignette demonstrates how to store and interact with dimensional reduction information (such as the output from `RunPCA()`) in Seurat. For demonstration purposes, we will be using the 2,700 PBMC object that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package.
 
 ```{r load_data}
 library(Seurat)
-pbmc <- readRDS(file = "../data/pbmc3k_final.rds")
+library(SeuratData)
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
 ```
 
 # Explore the new dimensional reduction structure

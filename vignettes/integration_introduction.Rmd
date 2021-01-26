@@ -34,7 +34,7 @@ knitr::opts_chunk$set(
 
 The joint analysis of two or more single-cell datasets poses unique challenges. In particular, identifying cell populations that are present across multiple datasets can be problematic under standard workflows. Seurat v4 includes a set of methods to match (or ‘align’) shared cell populations across datasets. These methods first identify cross-dataset pairs of cells that are in a matched biological state (‘anchors’), can be used both to correct for technical differences between datasets (i.e. batch effect correction), and to perform comparative scRNA-seq analysis of across experimental conditions.
  
-Below, we  demonstrate methods for  scRNA-seq integration as described in  [Stuart*, Butler* et al, 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) to perform a comparative analysis of human immune cells (PBMC) in either a [resting or interferon-stimulated state]((https://www.nature.com/articles/nbt.4042). 
+Below, we  demonstrate methods for  scRNA-seq integration as described in  [Stuart\*, Butler\* et al, 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) to perform a comparative analysis of human immune cells (PBMC) in either a [resting or interferon-stimulated state](https://www.nature.com/articles/nbt.4042). 
 
 ## Integration goals
 

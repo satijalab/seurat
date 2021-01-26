@@ -31,7 +31,7 @@ knitr::opts_chunk$set(
 ```
 This vignette shows how to use the sctransform wrapper in Seurat.
 
-Install sctransform and Seurat v3.
+Install sctransform and Seurat.
 ```{r eval=FALSE}
 install.packages("Seurat")
 ```

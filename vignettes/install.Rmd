@@ -23,13 +23,19 @@ Do you want to attempt to install these from sources?
 y/n:
 ```
 
-The CRAN release of Seurat is currently version 3.2.3. If you have installed version 3.2.3 and want to switch back to the last version 2, please see the "Previous Versions" section below 
-
 # Install previous versions of Seurat
+
+## Install any version 3 release
+
+Any of the Seurat version 3 releases can be installed with the following command:
+
+```{r eval = FALSE}
+remotes::install_version("Seurat", version = "3.X.X")
+```
 
 ## Install the last version 2 release (2.3.4) 
 
-To facilitate easy reinstallation of the last version 2 release, we are hosting the binaries on our website. These can be installed with the following command: 
+To facilitate easy re-installation of the last version 2 release, we are hosting the binaries on our website. These can be installed with the following command: 
 
 ```{r eval = FALSE}
 source("https://z.umn.edu/archived-seurat")

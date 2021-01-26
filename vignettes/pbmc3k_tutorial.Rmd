@@ -187,7 +187,7 @@ In `Seurat v2` we also use the `ScaleData()` function to remove unwanted sources
 ```{r regressvarmt, fig.height=7, fig.width=11, results='hide',eval = FALSE}
 pbmc <- ScaleData(pbmc, vars.to.regress = 'percent.mt')
 ```
-However, particularly for advanced users who would like to use this functionality, we strongly recommend the use of our new normalization workflow, `SCTransform()`. The method is described in our recent [preprint](https://www.biorxiv.org/content/10.1101/576827v2), with a separate vignette using Seurat v3 [here](https://satijalab.org/seurat/v3.0/sctransform_vignette.html). As with `ScaleData()`, the function `SCTransform()` also includes a `vars.to.regress` parameter.
+However, particularly for advanced users who would like to use this functionality, we strongly recommend the use of our new normalization workflow, `SCTransform()`. The method is described in our [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), with a separate vignette using Seurat v3 [here](sctransform_vignette.html). As with `ScaleData()`, the function `SCTransform()` also includes a `vars.to.regress` parameter.
 </details>
 \ 
 
@@ -313,7 +313,7 @@ pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.thre
 pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_log2FC)
 ```
 
-Seurat has several tests for differential expression which can be set with the test.use parameter (see our [DE vignette](https://satijalab.org/seurat/v3.0/de_vignette.html) for details). For example, the ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect).
+Seurat has several tests for differential expression which can be set with the test.use parameter (see our [DE vignette](de_vignette.html) for details). For example, the ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect).
 
 ```{r markersroc, fig.height=8, fig.width=15}
 cluster1.markers <- FindMarkers(pbmc, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
@@ -321,7 +321,7 @@ cluster1.markers <- FindMarkers(pbmc, ident.1 = 0, logfc.threshold = 0.25, test.
 
 We include several tools for visualizing marker expression. `VlnPlot()` (shows expression probability distributions across clusters), and `FeaturePlot()` (visualizes feature expression on a tSNE or PCA plot) are our most commonly used visualizations. We also suggest exploring `RidgePlot()`, `CellScatter()`, and `DotPlot()` as additional methods to view your dataset.
 
-```{r markerplots, fig.height=8, fig.width=15}
+```{r markerplots, fig.height=10, fig.width=15}
 VlnPlot(pbmc, features = c("MS4A1", "CD79A"))
 # you can plot raw counts as well
 VlnPlot(pbmc, features = c("NKG7", "PF4"), slot = 'counts', log = TRUE)

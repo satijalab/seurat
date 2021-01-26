@@ -1,5 +1,5 @@
 ---
-title: "Seurat v3.0 Command List"
+title: "Seurat Command List"
 output:
   html_document:
     theme: united
@@ -59,7 +59,7 @@ DimPlot(object = pbmc, reduction = 'tsne')
 
 # `Seurat` Object Interaction
 
-With Seurat v3.0, we’ve made improvements to the Seurat object, and added new methods for user interaction. We also introduce simple functions for common tasks, like subsetting and merging, that mirror standard R functions.
+Since Seurat v3.0, we’ve made improvements to the Seurat object, and added new methods for user interaction. We also introduce simple functions for common tasks, like subsetting and merging, that mirror standard R functions.
 
 <!--With Seurat v3.0, the `Seurat` object has changed considerably. Interacting with the object has also changed, with new accessor and setter functions taking over the role of manually adding data by chaining `@` and `$` symbols. In addition, many former Seurat-specific functions have been deprecated in favor of using standard R generics, yielding a more native R experience when using Seurat.-->
 
@@ -154,7 +154,7 @@ Loadings(object = pbmc, reduction = 'pca', projected = TRUE)
 FetchData(object = pbmc, vars = c('PC_1', 'percent.mito', 'MS4A1'))
 ```
 
-# Visualization in Seurat v3.0
+# Visualization in Seurat
 
 Seurat has a vast, ggplot2-based plotting library. All plotting functions will return a ggplot2 plot by default, allowing easy customization with ggplot2.
 
@@ -222,7 +222,7 @@ LabelPoints(plot = plot, points = TopCells(object = pbmc[["pca"]]), repel = TRUE
 
 # Multi-Assay Features
 
-With Seurat v3.0, you can easily switch between different assays at the single cell level (such as ADT counts from CITE-seq, or integrated/batch-corrected data). Most functions now take an assay parameter, but you can set a Default Assay to aviod repetitive statements.
+With Seurat, you can easily switch between different assays at the single cell level (such as ADT counts from CITE-seq, or integrated/batch-corrected data). Most functions now take an assay parameter, but you can set a Default Assay to avoid repetitive statements.
 
 ```{r multi-assay}
 cbmc <- CreateSeuratObject(counts = cbmc.rna)

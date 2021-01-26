@@ -53,7 +53,7 @@ pancreas.list <- SplitObject(panc8, split.by = "tech")
 pancreas.list <- pancreas.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
 ```
 
-Prior to finding anchors, we perform standard preprocessing (log-normalization), and identify variable features individually for each. Note that Seurat v3 implements an improved method for variable feature selection based on a variance stabilizing transformation (`"vst"`)
+Prior to finding anchors, we perform standard preprocessing (log-normalization), and identify variable features individually for each. Note that Seurat implements an improved method for variable feature selection based on a variance stabilizing transformation (`"vst"`)
 
 ```{r preprocessing3}
 for (i in 1:length(pancreas.list)) {
@@ -117,7 +117,7 @@ ggsave(filename = "pancreas_integrated_umap.png", height = 7, width = 12, plot =
 
 # Cell type classification using an integrated reference
 
-Seurat v3 also supports the projection of reference data (or meta data) onto a query object. While many of the methods are conserved (both procedures begin by identifying anchors), there are two important distinctions between data transfer and integration:
+Seurat also supports the projection of reference data (or meta data) onto a query object. While many of the methods are conserved (both procedures begin by identifying anchors), there are two important distinctions between data transfer and integration:
 
 1. In data transfer, Seurat does not correct or modify the query expression data.
 2. In data transfer, Seurat has an option (set by default) to project the PCA structure of a reference onto the query, instead of learning a joint structure with CCA. We generally suggest using this option when projecting data between scRNA-seq datasets.
@@ -131,7 +131,7 @@ predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.int
 pancreas.query <- AddMetaData(pancreas.query, metadata = predictions)
 ```
 
-Because we have the original label annotations from our full integrated analysis, we can evaluate how well our predicted cell type annotations match the full reference. In this example, we find that there is a high agreement in cell type classification, with over 97% of cells being labeled correctly.
+Because we have the original label annotations from our full integrated analysis, we can evaluate how well our predicted cell type annotations match the full reference. In this example, we find that there is a high agreement in cell type classification, with over 96% of cells being labeled correctly.
 
 ```{r analysis2}
 pancreas.query$prediction.match <- pancreas.query$predicted.id == pancreas.query$celltype

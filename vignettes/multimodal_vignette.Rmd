@@ -34,9 +34,9 @@ knitr::opts_chunk$set(
 
 # Load in the data
 
-The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents a new and exciting frontier for single-cell genomics. For example the [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html), enables the simultaneous measurements of transcriptomes and cell-surface proteins from the same cell. Other exciting multimodal technologies, such as the [10x multiome kit](https://www.10xgenomics.com/products/single-cell-multiome-atac-plus-gene-expression) allow for the paired measurements of cellular transcriptome and chromatin accessibility (i.e scRNA-seq+scATAC-seq). Other modalities that can be measured alongside cellular transcriptomes include genetic perturbations, cellular methylomes, and hashtag oligos from [Cell Hashing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1). We have designed Seurat4 to enable for the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets.
+The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents a new and exciting frontier for single-cell genomics. For example, [CITE-seq](http://www.nature.com/nmeth/journal/v14/n9/full/nmeth.4380.html) enables the simultaneous measurements of transcriptomes and cell-surface proteins from the same cell. Other exciting multimodal technologies, such as the [10x multiome kit](https://www.10xgenomics.com/products/single-cell-multiome-atac-plus-gene-expression) allow for the paired measurements of cellular transcriptome and chromatin accessibility (i.e scRNA-seq+scATAC-seq). Other modalities that can be measured alongside cellular transcriptomes include genetic perturbations, cellular methylomes, and hashtag oligos from [Cell Hashing](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1). We have designed Seurat4 to enable for the seamless storage, analysis, and exploration of diverse multimodal single-cell datasets.
 
-In this vignette, we present an introductory workflow for creating a multimodal Seurat object and to perform initial analysis. For example, we demonstrate how to cluster a CITE-seq dataset on the basis of the measured cellular transcriptomes, and subsequently discover cell surface proteins that are enriched in each cluster. We note that Seurat4 also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](weighted_nearest_neighbor_analysis.html).
+In this vignette, we present an introductory workflow for creating a multimodal Seurat object and performing an initial analysis. For example, we demonstrate how to cluster a CITE-seq dataset on the basis of the measured cellular transcriptomes, and subsequently discover cell surface proteins that are enriched in each cluster. We note that Seurat4 also enables more advanced techniques for the analysis of multimodal data, in particular the application of our [Weighted Nearest Neighbors (WNN) approach](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1) that enables simultaneous clustering of cells based on a weighted combination of both modalities, and you can explore this functionality [here](weighted_nearest_neighbor_analysis.html).
 
 Here, we analyze a dataset of 8,617 cord blood mononuclear cells (CBMCs), where transcriptomic measurements are paired with abundance estimates for 11 surface proteins, whose levels are quantified with DNA-barcoded antibodies. First, we load in two count matrices : one for the RNA measurements, and one for the antibody-derived tags (ADT). You can download the ADT file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz) and the RNA file [here](ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE100nnn/GSE100866/suppl/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz) 
 
@@ -118,7 +118,7 @@ DimPlot(cbmc, label = TRUE)
 
 # Visualize multiple modalities side-by-side
 
-Now that we have obtained clusters from scRNA-seq profiles, we can visualize the expression of either protein or RNA molecules in our dataset. Importantly, Seurat provides a couple ways to switch between modalities, and specify which modality you are interested in analyzing or visualizing. This is particularly important as, in some cases, the same feature can be present in multiple modalities - for example this dataset contains independent measurements of the B-cell marker, and both protein and RNA levels.
+Now that we have obtained clusters from scRNA-seq profiles, we can visualize the expression of either protein or RNA molecules in our dataset. Importantly, Seurat provides a couple ways to switch between modalities, and specify which modality you are interested in analyzing or visualizing. This is particularly important as, in some cases, the same feature can be present in multiple modalities - for example this dataset contains independent measurements of the B cell marker CD19 (both protein and RNA levels).
 
 ```{r vis}
 # Normalize ADT data, 
@@ -219,11 +219,11 @@ write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/multimodal_
 Seurat v4 also includes additional functionality for the analysis, visualization, and integration of multimodal datasets. For more information, please explore the resources below:
 
 * Defining cellular identity from multimodal data using WNN analysis in Seurat v4 [vignette link](weighted_nearest_neighbor_analysis.html)
-* Mapping scRNA-seq data onto CITE-seq references [vignette link](reference_mapping.html)
-* Introduction to the analysis of spatial transcriptomics analysis [vignette link](spatial_vignette.html)
-* Analysis of 10x multiome (paired scRNA-seq + ATAC) using WNN analysis [vignette link](weighted_nearest_neighbor_analysis.html)
-* Signac: Analysis, intepretation, and exploration of single-cell chromatin datasets [package link](https://satijalab.org/signac/)
-* Mixscape: an analytical toolkit for pooled single-cell genetic screens [vignette link](mixscape_vignette.html)
+* Mapping scRNA-seq data onto CITE-seq references [[vignette](reference_mapping.html)]
+* Introduction to the analysis of spatial transcriptomics analysis [[vignette](spatial_vignette.html)]
+* Analysis of 10x multiome (paired scRNA-seq + ATAC) using WNN analysis [[vignette](weighted_nearest_neighbor_analysis.html)]
+* Signac: Analysis, interpretation, and exploration of single-cell chromatin datasets [[package](https://satijalab.org/signac/)]
+* Mixscape: an analytical toolkit for pooled single-cell genetic screens [[vignette](mixscape_vignette.html)]
 
 <details>
   <summary>**Session Info**</summary>

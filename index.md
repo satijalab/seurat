@@ -14,7 +14,7 @@ We are excited to release Seurat v4.0! This update brings the following new feat
 
 * **Rapid mapping of query datasets to references.** We introduce Azimuth, a workflow to leverage high-quality reference datasets to rapidly map new scRNA-seq datasets (queries). For example, you can map any scRNA-seq dataset of human PBMC onto our reference, automating the process of visualization, clustering annotation, and differential expression. Azimuth can be run within Seurat, or using a standalone web application that requires no installation or programming experience.
 
-    - Vignette: [Mapping scRNA-seq queries onto reference datasets](articles/reference_mapping.html)
+    - Vignette: [Mapping scRNA-seq queries onto reference datasets](articles/multimodal_reference_mapping.html)
     - Web app: [Automated mapping, visualization, and annotation of scRNA-seq datasets from human PBMC]("../azimuth/")
 
 Additional speed and usability updates: We have made minor changes in v4, primarily to improve the performance of Seurat v4 on large datasets. These changes substantially improve the speed and memory requirements, but do not adversely impact downstream results. We provide a detailed description of key changes [here](articles/v4_changes.html). Users who wish to fully reproduce existing results can continue to do so by continuing to install Seurat v3.  
@@ -27,9 +27,12 @@ Seurat is an R package designed for QC, analysis, and exploration of single-cell
 
 If you use Seurat in your research, please considering citing:
 
-* [Stuart\*, Butler\*, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)
-* [Hao\*, Hao\*, et al., bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1)
+* [Hao\*, Hao\*, et al., bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1) [Seurat V4]
+* [Stuart\*, Butler\*, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) [Seurat V3]
+* [Butler\* et al., Nat Biotechnol 2018](https://doi.org/10.1038/nbt.4096) [Seurat V2]
+* [Satija\*, Farrel\*, et al., Nat Biotechnol 2015](https://doi.org/10.1038/nbt.3192) [Seurat V1]
+
 
 All methods emphasize clear, attractive, and interpretable visualizations, and were designed to be [easily used](articles/vignettes_overview.html) by both dry-lab and wet-lab researchers.
 
-Seurat is developed and maintained by the Satija lab, in particular by [Andrew Butler](mailto:abutler@nygenome.org), [Paul Hoffman](mailto:phoffman@nygenome.org), [Tim Stuart](mailto:tstuart@nygenome.org), [Christoph Hafemeister](mailto:chafemeister@nygenome.org), and [Shiwei Zheng](mailto:szheng@nygenome.org), and is released under the GNU Public License (GPL 3.0). We are also grateful for significant ideas and code from [Jeff Farrell](mailto:jfarrell@g.harvard.edu), [Karthik Shekhar](mailto:karthik@broadinstitute.org), and other generous contributors.
+Seurat is developed and maintained by the [Satija lab](authors.html) and is released under the GNU Public License (GPL 3.0).

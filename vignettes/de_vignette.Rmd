@@ -30,13 +30,18 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
 # Load in the data
 
-This vignette highlights some example workflows for performing differential expression in Seurat. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can download the pre-computed object [here](https://www.dropbox.com/s/63gnlw45jf7cje8/pbmc3k_final.rds?dl=1).
+This vignette highlights some example workflows for performing differential expression in Seurat. For demonstration purposes, we will be using the 2,700 PBMC object that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package).
 
 ```{r load_data}
 library(Seurat)
-pbmc <- readRDS(file = "../data/pbmc3k_final.rds")
+library(SeuratData)
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
 ```
 
 # Perform default differential expression tests
@@ -55,7 +60,7 @@ head(monocyte.de.markers)
 The results data frame has the following columns : 
 
  * p_val : p_val (unadjusted)
- * avg_logFC : log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
+ * avg_log2FC : log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
  * pct.1 : The percentage of cells where the feature is detected in the first group
  * pct.2 : The percentage of cells where the feature is detected in the second group
  * p_val_adj : Adjusted p-value, based on Bonferroni correction using all features in the dataset.

@@ -39,11 +39,10 @@ In this vignette, we demonstrate how to use a previously established reference t
 * Project each query cell onto a previously computed UMAP visualization
 * Impute the predicted levels of surface proteins that were measured in the CITE-seq reference
 
-To run this vignette please install Seurat v4, available as a beta release on our github page. Additionally, you will need to install the latest version of the `uwot` package and the `SeuratDisk` package.
+To run this vignette please install Seurat v4, available on CRAN. Additionally, you will need to install the `SeuratDisk` package.
 
 ```{r install, eval = FALSE}
-remotes::install_github("satijalab/seurat", ref = "release/4.0.0")
-remotes::install_github("jlmelville/uwot")
+install.packages("Seurat")
 remotes::install_github("mojaveazure/seurat-disk")
 ```
 
@@ -211,7 +210,7 @@ pbmc3k$id <- 'query'
 refquery <- merge(reference, pbmc3k)
 refquery[["spca"]] <- merge(reference[["spca"]], pbmc3k[["ref.spca"]])
 refquery <- RunUMAP(refquery, reduction = 'spca', dims = 1:50)
-DimPlot(refquery, group.by = 'id')
+DimPlot(refquery, group.by = 'id', shuffle = TRUE)
 ```
 
 # BMNC

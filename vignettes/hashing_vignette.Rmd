@@ -211,7 +211,7 @@ DimPlot(pbmc.singlet, group.by = "HTO_classification")
   <li> Each cell line was further split into three samples (12 samples in total). </li>
   <li> Each sample was labeled with a hashing antibody mixture (CD29 and CD45), pooled, and run on a single lane of 10X. </li>
   <li> Based on this design, we should be able to detect doublets both across and within cell types</li>
-  <li> You can download the count matrices for RNA and HTO [here](https://www.dropbox.com/sh/c5gcjm35nglmvcv/AABGz9VO6gX9bVr5R2qahTZha?dl=0), and we are currently uploading data to GEO</li>
+  <li> You can download the count matrices for RNA and HTO [here](https://www.dropbox.com/sh/c5gcjm35nglmvcv/AABGz9VO6gX9bVr5R2qahTZha?dl=0), and are available on GEO [here](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE108313)</li>
   </ul></div>
 </div>
 
