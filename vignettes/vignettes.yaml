@@ -32,6 +32,12 @@
         Learn about mapping to RNA references.
       image: assets/anchorsb_2018.png
 
+    - title: Fast integration using reciprocal PCA (RPCA)
+      name: integration_rpca
+      summary: |
+        Example workflow for integrating dataset with RPCA.
+      image: rpca_integration.png
+
     - title: Tips for integrating large datasets
       name: integration_large_datasets
       summary: |

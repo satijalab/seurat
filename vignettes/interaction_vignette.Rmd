@@ -31,11 +31,13 @@ knitr::opts_chunk$set(
 
 # Load in the data
 
-This vignette demonstrates some useful features for interacting with the Seurat object. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can download the pre-computed object [here](https://www.dropbox.com/s/63gnlw45jf7cje8/pbmc3k_final.rds?dl=1). To simulate the scenario where we have two replicates, we will randomly assign half the cells in each cluster to be from "rep1" and other half from "rep2".
+This vignette demonstrates some useful features for interacting with the Seurat object. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can load the data from our [SeuratData](https://github.com/satijalab/seurat-data) package. To simulate the scenario where we have two replicates, we will randomly assign half the cells in each cluster to be from "rep1" and other half from "rep2".
 
 ```{r load_data}
 library(Seurat)
-pbmc <- readRDS(file = "../data/pbmc3k_final.rds")
+library(SeuratData)
+InstallData("pbmc3k")
+pbmc <- LoadData(ds = pbmc3k.final)
 
 # pretend that cells were originally assigned to one of two replicates (we assign randomly here)
 # if your cells do belong to multiple replicates, and you want to add this info to the Seurat object

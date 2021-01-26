@@ -77,9 +77,9 @@ DimPlot(pbmc, label = TRUE) + NoLegend()
 <details>
   <summary>**Why can we choose more PCs when using sctransform?**</summary>
   
-In the [standard Seurat workflow](https://satijalab.org/seurat/pbmc3k_tutorial.html) we focus on 10 PCs for this dataset, though we highlight that the results are similar with higher settings for this parameter. Interestingly, we've found that when using sctransform, we often benefit by pushing this parameter even higher. We believe this is because the sctransform workflow performs more effective normalization, strongly removing technical effects from the data. 
+In the [standard Seurat workflow](pbmc3k_tutorial.html) we focus on 10 PCs for this dataset, though we highlight that the results are similar with higher settings for this parameter. Interestingly, we've found that when using sctransform, we often benefit by pushing this parameter even higher. We believe this is because the sctransform workflow performs more effective normalization, strongly removing technical effects from the data. 
 
-Even after standard log-normalization, variation in sequencing depth is still a confounding factor (see [Figure 1](https://www.biorxiv.org/content/biorxiv/early/2019/03/18/576827.full.pdf)), and this effect can subtly influence higher PCs. In sctransform, this effect is substantially mitigated (see [Figure 3](https://www.biorxiv.org/content/biorxiv/early/2019/03/18/576827.full.pdf)). This means that higher PCs are more likely to represent subtle, but biologically relevant, sources of heterogeneity -- so including them may improve downstream analysis.
+Even after standard log-normalization, variation in sequencing depth is still a confounding factor (see [Figure 1](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)), and this effect can subtly influence higher PCs. In sctransform, this effect is substantially mitigated (see [Figure 3](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)). This means that higher PCs are more likely to represent subtle, but biologically relevant, sources of heterogeneity -- so including them may improve downstream analysis.
 
 In addition, sctransform returns 3,000 variable features by default, instead of 2,000. The rationale is similar, the additional variable features are less likely to be driven by technical differences across cells, and instead may represent more subtle biological fluctuations. In general, we find that results produced with sctransform are less dependent on these parameters (indeed, we achieve nearly identical results when using all genes in the transcriptome, though this does reduce computational efficiency). This can help users generate more robust results, and in addition, enables the application of standard analysis pipelines with identical parameter settings that can quickly be applied to new datasets:
 
@@ -96,9 +96,9 @@ pbmc <- CreateSeuratObject(pbmc_data) %>% PercentageFeatureSet(pattern = "^MT-",
 <details>
   <summary>**Where are normalized values stored for sctransform?**</summary>
 
-As described in our [preprint](https://www.biorxiv.org/content/biorxiv/early/2019/03/18/576827.full.pdf), sctransform calculates a model of technical noise in scRNA-seq data using 'regularized negative binomial regression'. The residuals for this model are normalized values, and can be positive or negative. Positive residuals for a given gene in a given cell indicate that we observed more UMIs than expected given the gene’s average expression in the population and cellular sequencing depth, while negative residuals indicate the converse. 
+As described in our [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), sctransform calculates a model of technical noise in scRNA-seq data using 'regularized negative binomial regression'. The residuals for this model are normalized values, and can be positive or negative. Positive residuals for a given gene in a given cell indicate that we observed more UMIs than expected given the gene’s average expression in the population and cellular sequencing depth, while negative residuals indicate the converse. 
 
-The results of sctransfrom are stored in the "SCT" assay. You can learn more about multi-assay data and commands in Seurat in our [vignette](http://satijalab01.nygenome.org/seurat/v3.0/multimodal_vignette.html), [command cheat sheet](http://satijalab01.nygenome.org/seurat/essential_commands.html#multi-assay-features), or [developer guide](https://github.com/satijalab/seurat/wiki/Assay).
+The results of sctransfrom are stored in the "SCT" assay. You can learn more about multi-assay data and commands in Seurat in our [vignette](multimodal_vignette.html), [command cheat sheet](essential_commands.html#multi-assay-features), or [developer guide](https://github.com/satijalab/seurat/wiki/Assay).
 
 * `pbmc[["SCT"]]@scale.data` contains the residuals (normalized values), and is used directly as input to PCA. Please note that this matrix is non-sparse, and can therefore take up a lot of memory if stored for all genes. To save memory, we store these values only for variable genes, by setting the return.only.var.genes = TRUE by default in the `SCTransform()` function call.
 * To assist with visualization and interpretation. we also convert Pearson residuals back to ‘corrected’ UMI counts. You can interpret these as the UMI counts we would expect to observe if all cells were sequenced to the same depth. If you want to see exactly how we do this, please look at the correct function [here](https://github.com/ChristophH/sctransform/blob/master/R/denoise.R).
@@ -110,7 +110,7 @@ The results of sctransfrom are stored in the "SCT" assay. You can learn more abo
 \
 
 
-Users can individually annotate clusters based on canonical markers. However, the sctransform normalization reveals sharper biological distinctions compared to the [standard Seurat workflow](https://satijalab.org/seurat/pbmc3k_tutorial.html), in a few ways:
+Users can individually annotate clusters based on canonical markers. However, the sctransform normalization reveals sharper biological distinctions compared to the [standard Seurat workflow](pbmc3k_tutorial.html), in a few ways:
 
  * Clear separation of at least 3 CD8 T cell populations (naive, memory, effector), based on CD8A, GZMK, CCL5, GZMK expression
  * Clear separation of three CD4 T cell populations (naive, memory, IFN-activated) based on S100A4, CCR7, IL32, and ISG15 

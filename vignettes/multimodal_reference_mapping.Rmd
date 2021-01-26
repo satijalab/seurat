@@ -29,9 +29,9 @@ knitr::opts_chunk$set(
 
 # Intro: Seurat v4 Reference Mapping
 
-This vignette introduces the process of mapping query datasets to annotated references in Seurat. In this example, we map one of the first scRNA-seq datasets released by 10X Genomics of 2,700 PBMC to our [recently described CITE-seq reference of 162,000 PBMC measured with 228 antibodies](http://www.satijalab.org/v4preprint). We chose this example to demonstrate how supervised analysis guided by a reference dataset can help to enumerate cell states that would be challenging to find with [unsupervised analysis](https://satijalab.org/seurat/pbmc3k_tutorial.html). In a second example, we demonstrate how to serially map Human Cell Atlas datasets of human BMNC profiled from different individuals onto a consistent reference.
+This vignette introduces the process of mapping query datasets to annotated references in Seurat. In this example, we map one of the first scRNA-seq datasets released by 10X Genomics of 2,700 PBMC to our [recently described CITE-seq reference of 162,000 PBMC measured with 228 antibodies](http://www.satijalab.org/v4preprint). We chose this example to demonstrate how supervised analysis guided by a reference dataset can help to enumerate cell states that would be challenging to find with [unsupervised analysis](pbmc3k_tutorial.html). In a second example, we demonstrate how to serially map Human Cell Atlas datasets of human BMNC profiled from different individuals onto a consistent reference.
 
-We have [previously demonstrated](https://satijalab.org/seurat/integration.html) how to use reference-mapping approach to annotate cell labels in a query dataset . In Seurat v4, we have substantially improved the speed and memory requirements for integrative tasks including reference mapping, and also include new functionality to project query cells onto a previously computed UMAP visualization.
+We have [previously demonstrated](integration_mapping.html) how to use reference-mapping approach to annotate cell labels in a query dataset . In Seurat v4, we have substantially improved the speed and memory requirements for integrative tasks including reference mapping, and also include new functionality to project query cells onto a previously computed UMAP visualization.
 
 In this vignette, we demonstrate how to use a previously established reference to interpret an scRNA-seq query:
 
@@ -158,7 +158,7 @@ p2 = DimPlot(pbmc3k, reduction = "ref.umap", group.by = "predicted.celltype.l2",
 p1 + p2
 ```
 
-The reference-mapped dataset helps us identify cell types that were previously blended in an [unsupervised analysis of the query dataset](https://satijalab.org/seurat/v3.0/pbmc3k_tutorial.html). Just a few examples include plasmacytoid dendritic cells (pDC), hematopoietic stem and progenitor cells (HSPC), regulatory T cells (Treg), CD8 Naive T cells, cells, CD56+ NK cells, memory, and naive B cells, and plasmablasts.
+The reference-mapped dataset helps us identify cell types that were previously blended in an [unsupervised analysis of the query dataset](pbmc3k_tutorial.html). Just a few examples include plasmacytoid dendritic cells (pDC), hematopoietic stem and progenitor cells (HSPC), regulatory T cells (Treg), CD8 Naive T cells, cells, CD56+ NK cells, memory, and naive B cells, and plasmablasts.
 
 Each prediction is assigned a score between 0 and 1.
 
@@ -218,7 +218,7 @@ DimPlot(refquery, group.by = 'id')
 
 ## A Multimodal BMNC Reference Dataset
 
-As a second example, we map a dataset of human bone marrow mononuclear (BMNC) cells from eight individual donors, produced by the Human Cell Atlas. As a reference, we use the CITE-seq reference of human BMNC that we analyzed using [weighted-nearest neighbor analysis (WNN)](http://satijalab.nygenome.org/seurat/v4.0/weighted_nearest_neighbor_analysis.html). 
+As a second example, we map a dataset of human bone marrow mononuclear (BMNC) cells from eight individual donors, produced by the Human Cell Atlas. As a reference, we use the CITE-seq reference of human BMNC that we analyzed using [weighted-nearest neighbor analysis (WNN)](weighted_nearest_neighbor_analysis.html). 
 
 This vignette exhibits the same reference-mapping functionality as the PBMC example on the previous tab. In addition, we also demonstrate:
 
@@ -237,7 +237,7 @@ InstallData('hcabm40k')
 hcabm40k <- LoadData(ds = "hcabm40k")
 ```
 
-The reference dataset contains a [WNN graph](http://satijalab.nygenome.org/seurat/v4.0/weighted_nearest_neighbor_analysis.html), reflecting a weighted combination of the RNA and protein data in this CITE-seq experiment. 
+The reference dataset contains a [WNN graph](weighted_nearest_neighbor_analysis.html), reflecting a weighted combination of the RNA and protein data in this CITE-seq experiment. 
 
 We can compute a UMAP visualization based on this graph. We set `return.model = TRUE`, which will enable us to project query datasets onto this visualization.
 
@@ -249,7 +249,7 @@ DimPlot(bm, group.by = "celltype.l2", reduction = "wnn.umap")
 
 ## Computing an sPCA transformation
 
-As described in our [manuscript](www.satijalab.org/v4preprint), we first compute a 'supervised' PCA. This identifies the  transformation of the transcriprome data that best encapsulates the structure of the WNN graph. This allows a weighted combination of the protein and RNA measurements to 'supervise' the PCA, and highlight the most relevant sources of variation. After computing this transformation, we can project it onto a query dataset. We can also compute and project a PCA projection, but recommend the use of sPCA when working with multimodal references that have been constructed with WNN analysis.
+As described in our [manuscript](www.satijalab.org/v4preprint), we first compute a 'supervised' PCA. This identifies the  transformation of the transcriptome data that best encapsulates the structure of the WNN graph. This allows a weighted combination of the protein and RNA measurements to 'supervise' the PCA, and highlight the most relevant sources of variation. After computing this transformation, we can project it onto a query dataset. We can also compute and project a PCA projection, but recommend the use of sPCA when working with multimodal references that have been constructed with WNN analysis.
 
 The sPCA calculation is performed once, and then can be rapidly projected onto each query dataset.
 

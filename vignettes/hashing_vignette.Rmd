@@ -104,7 +104,7 @@ pbmc.hashtag <- ScaleData(pbmc.hashtag, features = VariableFeatures(pbmc.hashtag
 
 ## Adding HTO data as an independent assay
 
-You can read more about working with multi-modal data [here](https://satijalab.org/seurat/multimodal_vignette.html)
+You can read more about working with multi-modal data [here](multimodal_vignette.html)
 
 ```{r hto_assay}
 # Add HTO data as a new assay independent from RNA

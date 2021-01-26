@@ -1,5 +1,5 @@
 ---
-title: 'Introduction to scRNA-seq integration'
+title: 'Fast integration using reciprocal PCA (RPCA)'
 output:
   html_document:
     theme: united
@@ -30,9 +30,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Fast integration using reciprocal PCA (RPCA)
-
-In this vignette, we present a slightly modified workflow for the integration of scRNA-seq datasets. Instead of utilizing canonical correlation analysis (‘CCA’) to identify anchors, we instead utilize reciprocal PCA (‘RPCA’). When determining anchors between any two datasets using RPCA, we project each dataset into the other's PCA space and constrain the anchors by the same mutual neighborhood requirement. The commands for both workflows are largely identical, but the two methods may be applied in different context.
+In this vignette, we present a slightly modified workflow for the integration of scRNA-seq datasets. Instead of utilizing canonical correlation analysis (‘CCA’) to identify anchors, we instead utilize reciprocal PCA (‘RPCA’). When determining anchors between any two datasets using RPCA, we project each dataset into the others PCA space and constrain the anchors by the same mutual neighborhood requirement. The commands for both workflows are largely identical, but the two methods may be applied in different context.
 
 By identifying shared sources of variation between datasets, CCA is well-suited for identifying anchors when cell types are conserved, but there are very substantial differences in gene expression across experiments. CCA-based integration therefore enables integrative analysis when experimental conditions or disease states introduce very strong expression shifts, or when integrating datasets across modalities and species. However, CCA-based integration may also lead to overcorrection, especially when a large proportion of cells are non-overlapping across datasets.
 
@@ -71,25 +69,24 @@ ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
 })
 ```
 
-## Perform integration
+# Perform integration
 
 We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
 
 ```{r find.anchors}
 immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features,reduction = 'rpca')
 ```
-```{r integrate.data}
 
+```{r integrate.data}
 # this command creates an 'integrated' data assay
 immune.combined <- IntegrateData(anchorset = immune.anchors)
 ```
 
-## Perform an integrated analysis
+# Perform an integrated analysis
 
 Now we can run a single integrated analysis on all cells!
 
 ```{r clustering, results='hide', message=FALSE}
-
 # specify that we will perform downstream analysis on the corrected data
 # note that the original unmodified data still resides in the 'RNA' assay
 DefaultAssay(immune.combined) <- "integrated"
@@ -122,8 +119,8 @@ immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
 immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
 immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
 immune.combined <- FindClusters(immune.combined, resolution = 0.5)
-
 ```
+
 ```{r viz, results='hide', message=FALSE}
 # Visualization
 p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "stim")
@@ -131,25 +128,27 @@ p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
 p1 + p2
 ```
 
+```{r save.img, include = FALSE}
+plot <- DimPlot(immune.combined, group.by = "stim") +
+  xlab("UMAP 1") + ylab("UMAP 2") + 
+  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
+  guides(colour = guide_legend(override.aes = list(size = 10)))
+ggsave(filename = "../output/images/rpca_integration.png", height = 7, width = 12, plot = plot)
+```
+
 Now that the datasets have been integrated, you can follow the previous steps in the [introduction to scRNA-seq integration vignette](integration_introduction.html) to identify cell types and cell type-specific responses.
 
-## Performing integration on datasets normalized with SCTransform
+# Performing integration on datasets normalized with SCTransform
 
-As an additional example, we repeat the analyses performed above, but normalize the datasets using [SCTransform](sctransform_vignette.html). We may choose to set the `method` parameter to `glmGamPoi` (install [here](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)) in order to enable faster estimation of regression parameters in `SCTransform`.  
+As an additional example, we repeat the analyses performed above, but normalize the datasets using [SCTransform](sctransform_vignette.html). We may choose to set the `method` parameter to `glmGamPoi` (install [here](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)) in order to enable faster estimation of regression parameters in `SCTransform()`.  
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
 LoadData('ifnb')
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
-
-ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
-  x <- SCTransform(x, method = 'glmGamPoi')
-})
+ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform, method = "glmGamPoi")
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)
 ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features)
-
-ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
-  x <- RunPCA(x)
-})
+ifnb.list <- lapply(X = ifnb.list, FUN = RunPCA)
 ```
 
 ```{r ifnb.cca.sct.anchors}
@@ -168,3 +167,15 @@ p1 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = "stim")
 p2 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = 'seurat_annotations',label = TRUE, repel = TRUE)
 p1 + p2
 ```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_rpca.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+

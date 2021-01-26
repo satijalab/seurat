@@ -55,7 +55,7 @@ head(monocyte.de.markers)
 The results data frame has the following columns : 
 
  * p_val : p_val (unadjusted)
- * avg_logFC : log fold-chage of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
+ * avg_logFC : log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
  * pct.1 : The percentage of cells where the feature is detected in the first group
  * pct.2 : The percentage of cells where the feature is detected in the second group
  * p_val_adj : Adjusted p-value, based on Bonferroni correction using all features in the dataset.

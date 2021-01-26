@@ -124,7 +124,7 @@ DoHeatmap(pbmc3k.final, features = VariableFeatures(pbmc3k.final)[1:100], cells 
 
 # Applying themes to plots
 
-With Seurat v3.0, all plotting functions return ggplot2-based plots by default, allowing one to easily capture and manipulate plots just like any other ggplot2-based plot.
+With Seurat, all plotting functions return ggplot2-based plots by default, allowing one to easily capture and manipulate plots just like any other ggplot2-based plot.
 
 ```{r themeing, fig.height=6}
 baseplot <- DimPlot(pbmc3k.final, reduction = 'umap')

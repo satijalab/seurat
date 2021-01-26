@@ -37,10 +37,10 @@ This vignette introduces the weighted nearest neighbor (WNN) workflow for the an
 
 We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies. The object contains two assays, RNA and antibody-derived tags (ADT).  
 
-To run this vignette please install Seurat v4, available as a beta release on our [github page](https://github.com/satijalab/seurat/).
+To run this vignette please install Seurat v4, available on [CRAN](https://cran.r-project.org/web/packages/Seurat/index.html).
 
 ```{r install, eval = FALSE}
-remotes::install_github("satijalab/seurat", ref = "release/4.0.0")
+install.packages("Seurat")
 ```
 
 ```{r, include = FALSE, cache=FALSE}
@@ -160,7 +160,7 @@ You can download the dataset from the 10x Genomics website [here](https://suppor
 
 Finally, in order to run the vignette, make sure the following packages are installed:
 
-* [Seurat v4](https://github.com/satijalab/seurat/).
+* [Seurat v4](install.html).
 * [Signac](https://satijalab.org/signac/) for the analysis of single-cell chromatin datasets
 * [EnsDb.Hsapiens.v86](https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Hsapiens.v86.html) for a set of annotations for hg38
 * [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html) to help manipulate data tables
@@ -250,7 +250,7 @@ pbmc <- RunUMAP(pbmc, nn.name = "weighted.nn", reduction.name = "wnn.umap", redu
 pbmc <- FindClusters(pbmc, graph.name = "wsnn", algorithm = 3, verbose = FALSE)
 ```
 
-We annotate the clusters below. Note that you could also annotate the dataset using our supervised mapping pipelines, using either our [vignette](https://satijalab.org/seurat/v4.0/reference_mapping.html), or [automated web tool, Azimuth](www.satijalab.org/azimuth).
+We annotate the clusters below. Note that you could also annotate the dataset using our supervised mapping pipelines, using either our [vignette](multimodal_reference_mapping.html), or [automated web tool, Azimuth](www.satijalab.org/azimuth).
 
 ```{r Annotate, results = 'hide'}
 # perform sub-clustering on cluster 6 to find additional structure

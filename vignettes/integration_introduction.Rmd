@@ -88,8 +88,8 @@ We then identify anchors using the `FindIntegrationAnchors()` function, which ta
 ```{r find.anchors}
 immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features)
 ```
-```{r integrate.data}
 
+```{r integrate.data}
 # this command creates an 'integrated' data assay
 immune.combined <- IntegrateData(anchorset = immune.anchors)
 ```
@@ -99,7 +99,6 @@ immune.combined <- IntegrateData(anchorset = immune.anchors)
 Now we can run a single integrated analysis on all cells!
 
 ```{r clustering, results='hide', message=FALSE}
-
 # specify that we will perform downstream analysis on the corrected data
 # note that the original unmodified data still resides in the 'RNA' assay
 DefaultAssay(immune.combined) <- "integrated"
@@ -140,14 +139,12 @@ We can explore these marker genes for each cluster and use them to annotate our 
 
 ```{r annotate, results = 'hide', message=FALSE, fig.height = 8}
 FeaturePlot(immune.combined, features = c("CD3D", "SELL", "CREM", "CD8A", "GNLY", "CD79A", "FCGR3A", "CCL2", "PPBP"), min.cutoff = "q9")
-
-immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 Naive T", "2" = "CD4 Memory T", "3" = "CD16 Mono", "4" = "B", "5" = "CD8 T", "6" = "NK" , "7" = "T activated", "8" = "DC", "9" = "B Activated", "10" = "Mk", "11" = "pDC", "12" = "Mono/Mk Doublets", "13" = "Eryth")
+immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 Naive T", "2" = "CD4 Memory T", "3" = "CD16 Mono", "4" = "B", "5" = "CD8 T", "6" = "NK" , "7" = "T activated", "8" = "DC", "9" = "B Activated", "10" = "Mk", "11" = "pDC", "12" = "Eryth", "13" = "Mono/Mk Doublets")
 ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
   x[['seurat_annotations']] <- Idents(immune.combined)[Cells(x)]
   Idents(x) <- 'seurat_annotations'
   x
 })
-
 DimPlot(immune.combined, label = TRUE)
 ```
 
@@ -161,6 +158,12 @@ markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7
                      "CCL2","S100A9","HLA-DQA1","GPR183","PPBP","GNG11","HBA2","HBB","TSPAN13","IL3RA","IGJ")
 DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
                       dot.scale = 8, split.by = "stim") + RotatedAxis()
+```
+
+```{r save.img, include = FALSE}
+plot <- DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
+                      dot.scale = 6, split.by = "stim") + RotatedAxis() 
+ggsave(filename = "../output/images/pbmc_alignment.png", height = 7, width = 12, plot = plot)
 ```
 
 ### Identify differential expressed genes across conditions
@@ -201,11 +204,12 @@ b.interferon.response <- FindMarkers(immune.combined, ident.1 = "B_STIM", ident.
 head(b.interferon.response, n = 15)
 ```
 
-Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot` or `VlnPlot` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
+Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot()` or `VlnPlot()` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
 
 ```{r feature.heatmaps, fig.height = 14}
 FeaturePlot(immune.combined, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3, cols = c("grey", "red"))
 ```
+
 ```{r splitvln, fig.height = 12}
 plots <- VlnPlot(immune.combined, features = c("LYZ", "ISG15", "CXCL10"), split.by = "stim", group.by = "celltype", pt.size = 0, combine = FALSE)
 wrap_plots(plots = plots, ncol = 1)
@@ -213,14 +217,6 @@ wrap_plots(plots = plots, ncol = 1)
 
 ```{r save, include = FALSE}
 saveRDS(immune.combined, file = "../output/immune.combined.rds")
-```
-
-```{r save.img, include = FALSE}
-plot <- DimPlot(immune.combined, group.by = "stim") +
-  xlab("UMAP 1") + ylab("UMAP 2") + 
-  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
-  guides(colour = guide_legend(override.aes = list(size = 10)))
-ggsave(filename = "../output/images/pbmc_alignment.png", height = 7, width = 12, plot = plot)
 ```
 
 ```{r save.times, include = FALSE}
@@ -233,20 +229,17 @@ In [Hafemeister and Satija, 2019](https://genomebiology.biomedcentral.com/articl
 
 Below, we demonstrate how to modify the Seurat integration workflow for datasets that have been normalized with the sctransform workflow. The commands are largely similar, with a few key differences:
 
-* Normalize datasets individually by `SCTransform`, instead of `NormalizeData` prior to integration
+* Normalize datasets individually by `SCTransform()`, instead of `NormalizeData()` prior to integration
 * As discussed further in our [SCTransform vignette](sctransform_vignette.html), we typically use 3,000 or more features for  analysis downstream of sctransform.
-* Run the `PrepSCTIntegration` function prior to identifying anchors
-* When running `FindIntegrationAnchors`, and `IntegrateData`, set the `normalization.method` parameter to the value `SCT`.
-* When running sctransform-based workflows, including integration, do not run the `ScaleData` function 
+* Run the `PrepSCTIntegration()` function prior to identifying anchors
+* When running `FindIntegrationAnchors()`, and `IntegrateData()`, set the `normalization.method` parameter to the value `SCT`.
+* When running sctransform-based workflows, including integration, do not run the `ScaleData()` function 
 
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
 LoadData('ifnb')
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
-
-ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
-  x <- SCTransform(x)
-})
+ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform) 
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)
 ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features)
 ```
@@ -268,3 +261,14 @@ p1 + p2
 ```
 
 Now that the datasets have been integrated, you can follow the previous steps in this vignette identify cell types and cell type-specific responses.
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_introduction.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

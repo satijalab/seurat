@@ -108,7 +108,7 @@ ggplot(timing.comparisons, aes(fxn, time)) + geom_bar(aes(fill = strategy), stat
 # Frequently asked questions
 
 1. **Where did my progress bar go?**
-<br>Unfortantely, the when running these functions in any of the parallel plan modes you will lose the progress bar. This is due to some technical limitations in the `future` framework and R generally. If you want to monitor function progress, you'll need to forgo parallelization and use `plan("sequential")`.
+<br>Unfortunately, the when running these functions in any of the parallel plan modes you will lose the progress bar. This is due to some technical limitations in the `future` framework and R generally. If you want to monitor function progress, you'll need to forgo parallelization and use `plan("sequential")`.
 
 2. **What should I do if I keep seeing the following error?**
 ```

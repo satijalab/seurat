@@ -63,10 +63,12 @@ table(pbmc.combined$orig.ident)
 
 # Merging More Than Two `Seurat` Objects
 
-To merge more than two `Seurat` objects, simply pass a vector of multiple `Seurat` objects to the `y` parameter for `merge`; we'll demonstrate this using the 4K and 8K PBMC datasets as well as our previously computed Seurat object from the 2,700 PBMC tutorial (download [here](https://www.dropbox.com/s/63gnlw45jf7cje8/pbmc3k_final.rds?dl=1)).
+To merge more than two `Seurat` objects, simply pass a vector of multiple `Seurat` objects to the `y` parameter for `merge`; we'll demonstrate this using the 4K and 8K PBMC datasets as well as our previously computed Seurat object from the 2,700 PBMC tutorial (loaded via the [SeuratData](https://github.com/satijalab/seurat-data) package).
 
 ```{r merge_three}
-pbmc3k <- readRDS(file = '../data/pbmc3k_final.rds')
+library(SeuratData)
+InstallData("pbmc3k")
+pbmc3k <- LoadData(ds = "pbmc3k.final")
 pbmc3k
 
 pbmc.big <- merge(pbmc3k, y = c(pbmc4k, pbmc8k), add.cell.ids = c('3K', '4K', '8K'), project = 'PBMC15K')
