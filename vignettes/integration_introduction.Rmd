@@ -86,12 +86,12 @@ features <- SelectIntegrationFeatures(object.list = ifnb.list)
 We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
 
 ```{r find.anchors}
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features)
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features, dims = 1:20)
 ```
 
 ```{r integrate.data}
 # this command creates an 'integrated' data assay
-immune.combined <- IntegrateData(anchorset = immune.anchors)
+immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:20)
 ```
 
 ## Perform an integrated analysis
@@ -106,8 +106,8 @@ DefaultAssay(immune.combined) <- "integrated"
 # Run the standard workflow for visualization and clustering
 immune.combined <- ScaleData(immune.combined, verbose = FALSE)
 immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:20)
 immune.combined <- FindClusters(immune.combined, resolution = 0.5)
 ```
 
@@ -145,9 +145,6 @@ DimPlot(immune.combined, label = TRUE)
 
 The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 13 clusters.
 
-```{r debug.save}
-saveRDS(immune.combined, file = "../output/immune.combined.rds")
-```
 
 ```{r splitdotplot, fig.height = 10}
 Idents(immune.combined) <- factor(
