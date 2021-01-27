@@ -12,3 +12,4 @@ CODE_OF_CONDUCT.md
 ^docs$
 ^pkgdown$
 ^index\.md$
+^vignettes$

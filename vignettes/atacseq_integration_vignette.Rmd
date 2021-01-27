@@ -28,154 +28,78 @@ knitr::opts_chunk$set(
   warning = FALSE,
   time_it = TRUE
 )
+options(SeuratData.repo.use = 'satijalab04.nygenome.org')
 ```
 
-**Update February 2020: we now have developed a separate package, [Signac](https://satijalab.org/signac/), for the analysis and integration of scATAC-seq data.
-See the Signac website for up-to-date [vignettes](https://satijalab.org/signac/articles/pbmc_vignette.html) and documentation for analyzing scATAC-seq data.**
+Single-cell transcriptomics has transformed our ability to characterize cell states, but deep biological understanding requires more than a taxonomic listing of clusters. As new methods arise to measure distinct cellular modalities, a key analytical challenge is to integrate these datasets to better understand cellular identity and function. For example, users may perform scRNA-seq and scATAC-seq experiments on the same biological system and to consistently annotate both datasets with the same set of cell type labels. This analysis is particularly challenging as scATAC-seq datasets are difficult to annotate, due to both the sparsity of genomic data collected at single-cell resolution, and the lack of interpretable gene markers in scRNA-seq data.
 
-In this vignette, we demonstrate our new label transfer method in the context of scATAC-seq to
-classify cells measured with scATAC-seq based on cell type annotations from scRNA-seq.
+In [Stuart*, Butler* et al, 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8), we introduce methods to integrate scRNA-seq and scATAC-seq datasets collected from the same biological system, and demonstrate these methods in this vignette. In particular, we demonstrate the following analyses:
+* How to use an annotated scRNA-seq dataset to label cells from an scATAC-seq experiment
+* How to co-visualize (co-embed) cells from scRNA-seq and scATAC-seq
+* How to project scATAC-seq cells onto a UMAP derived from an scRNA-seq experiment
 
-Overall our integration procedure consists of the following steps:
+This vignette makes extensive use of the [Signac package](https://satijalab.org/signac/), recently developed for the analysis of chromatin datasets collected at single-cell resolution, including scATAC-seq. Please see the Signac website for additional  [vignettes](https://satijalab.org/signac/articles/pbmc_vignette.html) and documentation for analyzing scATAC-seq data. 
 
-1. Estimate gene activity levels from DNA accessibility data
-2. Learn the internal structure of the DNA accessibility data on its own (accomplished using LSI)
-3. Identify 'anchors' between the DNA accessibility and gene expression datasets
-4. Transfer cell type labels between datasets
+We demonstrate these methods using a publicly available ~12,000 human PBMC 'multiome' dataset from 10x Genomics. In this dataset, scRNA-seq and scATAC-seq profiles were simultaneously collected in the same cells. For the purposes of this vignette, we treat the datasets as originating from two different experiments and integrate them together. Since they were originally measured in the same cells, this provides a ground truth that we can use to assess the accuracy of integration. We emphasize that our use of the multiome dataset here is for demonstration and evaluation purposes, and that users should apply these methods to scRNA-seq and scATAC-seq datasets that are collected separately. We provide a separate [weighted nearest neighbors vignette (WNN)](weighted_nearest_neighbor_analysis.html) that describes analysis strategies for multi-omic single-cell data.
 
-For this example we'll be working with the 10x Genomics Multiome PBMC dataset that contains ~10k cells. This dataset measured DNA accessibility and gene expression in the same cell, and so enables an evaluation of the accuracy of multimodal label transfer methods. For the purposes of this vignette, we'll treat the two assays (ATAC and RNA) as though they were measured separately as scRNA-seq and scATAC-seq experiments.
+# Load in data and process each modality individually
 
-You can download the required data here:
+The PBMC multiome dataset is available from [10x genomics](https://support.10xgenomics.com/single-cell-multiome-atac-gex/datasets/1.0.0/pbmc_granulocyte_sorted_10k). To facilitate easy loading and exploration, it is also available as part of our SeuratData package. We load the RNA and ATAC data in separately, and pretend that these profiles were measured in separate experiments. We annotated these cells in our [WNN](weighted_nearest_neighbor_analysis.html) vignette, and the annotations are also included in SeuratData.
 
-* [Count matrix](https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5)
-* [ATAC fragment file](https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz)
-* [ATAC fragment file index](https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz.tbi)
-* [Metadata](https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_per_barcode_metrics.csv)
-
-The required files can be downloaded by running the following code in a shell:
-
-```{sh, eval=FALSE}
-wget https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5
-wget https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz
-wget https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz.tbi
-wget https://cf.10xgenomics.com/samples/cell-arc/1.0.0/pbmc_granulocyte_sorted_10k/pbmc_granulocyte_sorted_10k_per_barcode_metrics.csv
+```{r installdata}
+library(SeuratData)
+# install the dataset and load requirements
+InstallData('pbmcMultiome')
 ```
 
-# Object setup
-
-First, we'll set up a `Seurat` object for the RNA and ATAC assays separately, for the purpose of demonstrating multimodal integration. If you have your own multiomic dataset, we recommend that you create a single Seurat object with multiple assays (see the [WNN vignette](weighted_nearest_neighbor_analysis.html) or [Signac website](https://satijalab.org/signac/) for more information).
-
-```{r init, message=FALSE, warning=FALSE}
+```{r loadpkgs}
 library(Seurat)
 library(Signac)
 library(EnsDb.Hsapiens.v86)
 library(ggplot2)
-library(patchwork)
-
-# load the RNA and ATAC data
-counts <- Read10X_h5("../data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
-fragpath <- "../data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
-
-# get gene annotations for hg38
-annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
-seqlevelsStyle(annotation) <- "UCSC"
-genome(annotation) <- "hg38"
-
-# create a Seurat object containing the RNA adata
-pbmc.rna <- CreateSeuratObject(
-  counts = counts$`Gene Expression`,
-  assay = "RNA"
-)
-
-# create a Seurat object containing the ATAC data
-atac.assay <- CreateChromatinAssay(
-  counts = counts$Peaks,
-  sep = c(":", "-"),
-  fragments = fragpath,
-  annotation = annotation
-)
-
-pbmc.atac <- CreateSeuratObject(
-  counts = atac.assay,
-  assay = "ATAC"
-)
-
-# filter out low-quality cells
-pbmc.atac <- subset(pbmc.atac, subset = nCount_ATAC > 1000 & nCount_ATAC < 100000)
-pbmc.rna <- subset(pbmc.rna, subset = nCount_RNA > 1000 & nCount_RNA < 25000)
 ```
 
-## Gene expression data processing
+```{r load_data}
+# load both modalities
+pbmc.rna <- LoadData("pbmcMultiome", "pbmc.rna")
+pbmc.atac <- LoadData("pbmcMultiome", "pbmc.atac")
 
-Next we can process the RNA data by log-normalizing the counts, and reduce the dimensionality
-using PCA. We will also load a set of cell type annotations we pre-computed for this dataset using
-the RNA assay, by mapping the cells to our [Azimuth PBMC reference](https://satijalab.org/azimuth/). These cell annotations
-can be downloaded [here](https://www.dropbox.com/s/pjnft56ql0glyt6/10x_multiome_pbmc_10k_sorted_azimuth_map.tsv).
+# repeat QC steps performed in the WNN vignette
+pbmc.rna <- subset(pbmc.rna, seurat_annotations != 'filtered')
+pbmc.atac <- subset(pbmc.atac, seurat_annotations != 'filtered')
 
-```{r preprocessing, message=FALSE, warning=FALSE, results='hide'}
-# add pre-computed cell type labels
-celltypes <- read.table("../data/10x_multiome_pbmc_10k_sorted_azimuth_map.tsv", sep = "\t", row.names = 1, header = TRUE)
-pbmc.rna <- AddMetaData(pbmc.rna, metadata = celltypes)
-pbmc.rna$celltype <- pbmc.rna$predicted.id
-Idents(pbmc.rna) <- "celltype"
-
-# normalize RNA data and reduce dimensionality
+# Perform standard analysis of each modality independently
+# RNA analysis
 pbmc.rna <- NormalizeData(pbmc.rna)
 pbmc.rna <- FindVariableFeatures(pbmc.rna)
 pbmc.rna <- ScaleData(pbmc.rna)
 pbmc.rna <- RunPCA(pbmc.rna)
 pbmc.rna <- RunUMAP(pbmc.rna, dims = 1:30)
-```
 
-<details>
-  <summary>**Processing cell type labels**</summary>
+# ATAC analysis
+# add gene annotation information
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+seqlevelsStyle(annotations) <- 'UCSC'
+genome(annotations) <- "hg38"
+Annotation(pbmc.atac) <- annotations
 
-Since this dataset was generated from cell nuclei, we know that there should be no
-erythrocytes present (as these cells are not nucleated). Here we reassign the small
-number of cells that have been incorrectly classified as erythrocytes to their most
-common neighboring cell type label. We similarly reassign any other spurious cell type
-classifications with <10 total cells, as it is difficult to tell whether these classifications
-are correct with so few cells.
-
-```{r reassign}
-# for spurious cell annotations, assign to most abundant classification in cells cluster
-ct.remove <- names(which(table(pbmc.rna$predicted.id) < 10))
-
-# reassign erythrocytes since we know these are nuclei
-ct.remove <- c(ct.remove, "Eryth")
-
-cell.reassign <- WhichCells(pbmc.rna, expression = predicted.id %in% ct.remove)
-pbmc.rna <- FindNeighbors(pbmc.rna, reduction = "pca", dims = 1:30, k.param = 50)
-nn.graph <- pbmc.rna[['RNA_nn']]
-for (i in cell.reassign) {
-  # most frequent predicted.id of neighboring cells
-  nn.cells <- names(which(nn.graph[i, ] > 0))
-  nn.cells <- setdiff(nn.cells, cell.reassign)
-  celltype.reassign <- names(sort(table(pbmc.rna$predicted.id[nn.cells]), decreasing = TRUE))[[1]]
-  pbmc.rna$celltype[i] <- celltype.reassign
-}
-Idents(pbmc.rna) <- "celltype"
-```
-
-</details>
-
-## ATAC data processing
-
-We can process the DNA accessibility data using methods in the Signac package. Here we simply run
-LSI dimensionality reduction, but see the [Signac website](https://satijalab.org/signac) for
-more detailed information about the analyses possible with this type of data.
-
-```{r atac.processing, message=FALSE, warning=FALSE, results='hide'}
-pbmc.atac <- FindTopFeatures(pbmc.atac, min.cutoff = 10)
+# We exclude the first dimension as this is typically correlated with sequencing depth
 pbmc.atac <- RunTFIDF(pbmc.atac)
+pbmc.atac <- FindTopFeatures(pbmc.atac, min.cutoff = 'q0')
 pbmc.atac <- RunSVD(pbmc.atac)
-pbmc.atac <- RunUMAP(pbmc.atac, reduction = "lsi", dims = 2:30)
-```
-We will also generate a rough estimate of the transcriptional activity of each gene by quantifying ATAC-seq
-counts in the 2 kb-upstream region and gene body, using the `GeneActivity()` function in the 
-Signac package. For speed, we'll only quantify the variable genes defined by the RNA data here.
+pbmc.atac <- RunUMAP(pbmc.atac, reduction = 'lsi', dims = 2:30, reduction.name = "umap.atac", reduction.key = "atacUMAP_")
 
-```{r gene.activity, message=FALSE, warning=FALSE}
+# plot the results from both modalities, using previously determined annotations
+p1 <- DimPlot(pbmc.rna, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("RNA")
+p2 <- DimPlot(pbmc.atac, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("ATAC")
+p1 + p2
+```
+
+# Identifying anchors between scRNA-seq and scATAC-seq datasets
+
+In order to identify 'anchors' between scRNA-seq and scATAC-seq experiments, we first generate a rough estimate of the transcriptional activity of each gene by quantifying ATAC-seq counts in the 2 kb-upstream region and gene body, using the `GeneActivity()` function in the Signac package. The ensuing gene activity scores from the scATAC-seq data are then used as input for canonical correlation analysis, along with the gene expression quantifications from scRNA-seq. We perform this quantification for all genes identified as being highly variable from the scRNA-seq dataset.
+
+```{r gene.activity}
 # quantify gene activity
 gene.activities <- GeneActivity(pbmc.atac, features = VariableFeatures(pbmc.rna))
 
@@ -188,104 +112,94 @@ pbmc.atac <- NormalizeData(pbmc.atac)
 pbmc.atac <- ScaleData(pbmc.atac, features = rownames(pbmc.atac))
 ```
 
-We can visualize the cells from each modality in two-dimensional UMAP space:
-
-```{r vis1}
-p1 <- DimPlot(pbmc.atac) + NoLegend() + ggtitle("ATAC assay")
-p2 <- DimPlot(pbmc.rna, label=TRUE, repel=TRUE) + NoLegend() + ggtitle("RNA assay")
-p1 | p2
-```
-
-## Label transfer
-
-Now, we can identify anchors between the DNA accessibility dataset and the gene expression
-dataset and use these anchors to transfer the celltype labels we learned from the RNA data
-to the ATAC data.
-
 ```{r label.xfer}
+# Identify anchors 
 transfer.anchors <- FindTransferAnchors(
   reference = pbmc.rna,
   query = pbmc.atac,
   features = VariableFeatures(object = pbmc.rna),
   reference.assay = 'RNA',
   query.assay = 'ACTIVITY',
-  reduction = 'cca',
-  dims = 2:30
+  reduction = 'cca'
 )
 ```
 
-To transfer the cell type labels, we provide a vector of previously annotated cell type labels for the RNA to the `refdata` parameter. The output will contain a matrix with predictions and confidence scores for each ATAC-seq cell.
+# Annotate scATAC-seq cells via label transfer
+
+After identifying anchors, we can transfer annotations from the scRNA-seq dataset onto the scATAC-seq cells. The annotations are stored in the `seurat_annotations` field, and are provided as input to the `refdata` parameter. The output will contain a matrix with predictions and confidence scores for each ATAC-seq cell.
 
 ```{r transfer.data}
 celltype.predictions <- TransferData(
   anchorset = transfer.anchors,
-  refdata = pbmc.rna$celltype,
+  refdata = pbmc.rna$seurat_annotations,
   weight.reduction = pbmc.atac[['lsi']],
-  dims = 2:20
+  dims = 2:30
 )
+
 pbmc.atac <- AddMetaData(pbmc.atac, metadata = celltype.predictions)
 ```
 
 <details>
   <summary>**Why do you choose different (non-default) values for reduction and weight.reduction?**</summary>
   
-  In `FindTransferAnchors()`, we typically project the PCA structure from the reference onto the query when transferring between scRNA-seq datasets. However, when transferring across modalities we find that CCA better captures the shared feature correlation structure and therefore set `reduction = 'cca'` here. Additionally, by default in `TransferData()` we use the same projected PCA structure to compute the weights of the local neighborhood of anchors that influence each cell's prediction. In the case of scRNA-seq to scATAC-seq transfer, we use the low dimensional space learned by computing an LSI on the ATAC-seq data to compute these weights as this better captures the internal structure of the ATAC-seq data.
+In `FindTransferAnchors()`, we typically project the PCA structure from the reference onto the query when transferring between scRNA-seq datasets. However, when transferring across modalities we find that CCA better captures the shared feature correlation structure and therefore set `reduction = 'cca'` here. Additionally, by default in `TransferData()` we use the same projected PCA structure to compute the weights of the local neighborhood of anchors that influence each cell's prediction. In the case of scRNA-seq to scATAC-seq transfer, we use the low dimensional space learned by computing an LSI on the ATAC-seq data to compute these weights as this better captures the internal structure of the ATAC-seq data.
   
 </details>
 \  
 
-We can then examine the distribution of prediction scores and optionally filter out those cells with low scores. Here, we find that over 90% of the cells receive a score of 0.5 or greater.
+After performing transfer, the ATAC-seq cells have predicted annotations (transferred from the scRNA-seq dataset) stored in the `predicted.id` field. Since these cells were measured with the multiome kit, we also have a ground-truth annotation that can be used for evaluation. You can see that the predicted and actual annotations are extremely similar. 
 
-```{r filter.scores}
-hist(pbmc.atac$prediction.score.max)
-abline(v = 0.5, col = "red")
-table(pbmc.atac$prediction.score.max > 0.5)
+
+```{r viz.label.accuracy}
+pbmc.atac$annotation_correct <- pbmc.atac$predicted.id == pbmc.atac$seurat_annotations
+p1 <- DimPlot(pbmc.atac, group.by = 'predicted.id', label = TRUE) + NoLegend() + ggtitle("Predicted annotation")
+p2 <- DimPlot(pbmc.atac, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("Ground-truth annotation")
+p1 | p2
 ```
 
-We can then view the predicted cell types on a UMAP representation of the scATAC-seq data and find that the transferred labels are highly consistent with the UMAP structure. 
+In this example, the annotation for an scATAC-seq profile is correctly predicted via scRNA-seq integration ~90% of the time. In addition, the `prediction.score.max` field quantifies the uncertainty associated with our predicted annotations. We can see that cells that are correctly annotated are typically associated with high prediction scores (>90%), while cells that are incorrectly annotated are associated with sharply lower prediction scores (<50%). Incorrect assignments also tend to reflect closely related cell types (i.e. Intermediate vs. Naive B cells).
 
-```{r atac.viz}
-pbmc.atac$celltype <- factor(pbmc.atac$predicted.id, levels = levels(pbmc.rna)) # to make the colors match
-p1 <- DimPlot(pbmc.atac, group.by = "celltype", label = TRUE, repel = F) + ggtitle("ATAC assay") + NoLegend() + scale_colour_hue(drop = FALSE)
-p2 <- DimPlot(pbmc.rna, label = TRUE, repel = TRUE) + ggtitle("RNA assay") + NoLegend()
-p1 + p2
+```{r score.viz, fig.show="hold", out.width="50%", fig.height = 8}
+heatmap(table(pbmc.atac$predicted.id, pbmc.atac$seurat_annotations), trace = NULL)
+
+data <- FetchData(pbmc.atac, vars = c("prediction.score.max", "annotation_correct")) 
+ggplot(data, aes(prediction.score.max, fill = annotation_correct, colour = annotation_correct)) + geom_density(alpha = 0.5) + cowplot::theme_cowplot()
 ```
 
 ```{r save.img, include = FALSE}
 plot <- (p1 + p2) &
   xlab("UMAP 1") & ylab("UMAP 2") & 
   theme(axis.title = element_text(size = 18))
-ggsave(filename = "../output/images/atacseq_integration_vignette.png", height = 7, width = 12, plot = plot)
+ggsave(filename = "../output/images/atacseq_integration_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
-Since these two measurements (ATAC and RNA) were actually derived from the same cell in this case, 
-we can also compute the accuracy of the label transfer by counting how many cells received the 
-same predicted label that they were originally assigned using the RNA assay.
+# Co-embedding scRNA-seq and scATAC-seq datasets
 
-```{r accuracy}
-common.cells <- intersect(colnames(pbmc.rna), colnames(pbmc.atac))
-md <- pbmc.rna[[]]
-md <- md[common.cells, ] # remove cells that were filtered out in QC step
-md$predicted_atac <- pbmc.atac$predicted.id[rownames(md)]
-sum(md$celltype == md$predicted_atac) / nrow(md) * 100
+In addition to transferring labels across modalities, it is also possible to visualize scRNA-seq and scATAC-seq cells on the same plot. We emphasize that this step is primarily for visualization, and is an optional step. Typically, when we perform integrative analysis between scRNA-seq and scATAC-seq datasets, we focus primarily on label transfer as described above. We demonstrate our workflows for co-embedding below, and again highlight that this is for demonstration purposes, especially as in this particular case both the scRNA-seq profiles and scATAC-seq profiles were actually measured in the same cells.
+
+In order to perform co-embedding, we first 'impute' RNA expression into the scATAC-seq cells based on the previously computed anchors, and then merge the datasets.
+
+```{r coembed}
+# note that we restrict the imputation to variable genes from scRNA-seq, but could impute the
+# full transcriptome if we wanted to
+genes.use <- VariableFeatures(pbmc.rna)
+refdata <- GetAssayData(pbmc.rna, assay = "RNA", slot = "data")[genes.use, ]
+
+# refdata (input) contains a scRNA-seq expression matrix for the scRNA-seq cells.  imputation
+# (output) will contain an imputed scRNA-seq matrix for each of the ATAC cells
+imputation <- TransferData(anchorset = transfer.anchors, refdata = refdata, weight.reduction = pbmc.atac[["lsi"]], dims = 2:30)
+pbmc.atac[["RNA"]] <- imputation
+
+coembed <- merge(x = pbmc.rna, y = pbmc.atac)
+
+# Finally, we run PCA and UMAP on this combined object, to visualize the co-embedding of both
+# datasets
+coembed <- ScaleData(coembed, features = genes.use, do.scale = FALSE)
+coembed <- RunPCA(coembed, features = genes.use, verbose = FALSE)
+coembed <- RunUMAP(coembed, dims = 1:30)
+
+DimPlot(coembed, group.by = c("orig.ident","seurat_annotations"))
 ```
-Overall ~84% of the cells get the same label via label transfer that they were assigned using the actual RNA data. For those cells that got a different label, we can further check which cell type
-label was predicted:
-
-```{r vis2}
-predictions <- table(md$celltype, md$predicted_atac)
-predictions <- predictions / rowSums(predictions) # normalize for number of cells in each cell type
-predictions <- as.data.frame(predictions)
-
-ggplot(predictions, aes(Var1, Var2, fill=Freq)) +
-  geom_tile() +
-  scale_fill_viridis_c(name = "Fraction of cells") +
-  xlab("Cell type annotation (RNA)") +
-  ylab("Predicted cell type label (ATAC)") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-```
-
-Here we see that for cases where the incorrect label was predicted, most predictions were for a highly similar cell type (for example, between NK, NK CD56-bright, and NK Proliferating), where the differences in transcriptional state and DNA accessibility between these cell types are more subtle, representing a more difficult prediction task.
 
 ```{r save.times, include = FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/atacseq_integration_vignette.csv")

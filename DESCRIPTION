@@ -25,7 +25,7 @@ Authors@R: c(
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Depends:
-    R (>= 3.6.0),
+    R (>= 4.0.0),
     methods
 Imports:
     cluster,

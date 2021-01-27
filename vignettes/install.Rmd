@@ -3,7 +3,7 @@ title: "Installation Instructions for Seurat"
 output: html_document
 ---
 
-To install Seurat, [R](https://www.r-project.org/) version 3.6 or greater is required. We also recommend installing [R Studio](https://www.rstudio.com/).
+To install Seurat, [R](https://www.r-project.org/) version 4.0 or greater is required. We also recommend installing [R Studio](https://www.rstudio.com/).
 
 # Install from CRAN 
  
