@@ -99,3 +99,4 @@ Returns Seurat object with the PCA calculation stored in the reductions slot
 Run a PCA dimensionality reduction. For details about stored PCA calculation
 parameters, see \code{PrintPCAParams}.
 }
+\concept{dimensional_reduction}

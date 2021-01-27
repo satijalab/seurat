@@ -31,10 +31,12 @@ NULL
 #'
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' DimHeatmap(object = pbmc_small)
 #'
 DimHeatmap <- function(
@@ -206,8 +208,10 @@ DimHeatmap <- function(
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' DoHeatmap(object = pbmc_small)
 #'
 DoHeatmap <- function(
@@ -415,6 +419,7 @@ DoHeatmap <- function(
 #'
 #' @importFrom ggplot2 guides
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{HTODemux}}
 #'
@@ -494,8 +499,10 @@ HTOHeatmap <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' RidgePlot(object = pbmc_small, features = 'PC_1')
 #'
 RidgePlot <- function(
@@ -552,10 +559,12 @@ RidgePlot <- function(
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{FetchData}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' VlnPlot(object = pbmc_small, features = 'PC_1')
 #' VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 #'
@@ -563,7 +572,7 @@ VlnPlot <- function(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -637,10 +646,12 @@ VlnPlot <- function(
 #' @return Returns a DimPlot
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 #' PlotClusterTree(pbmc_small)
@@ -713,7 +724,7 @@ ColorDimSplit <- function(
 #' see \code{\link{FetchData}} for more details
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
-#' different colors and different shapes on cells
+#' different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top)
@@ -740,7 +751,7 @@ ColorDimSplit <- function(
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
-#' automatically rasterizes if plotting more than 50,000 cells
+#' automatically rasterizes if plotting more than 100,000 cells
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -750,6 +761,7 @@ ColorDimSplit <- function(
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
+#' @concept visualization
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{CellSelector}, respectively.
@@ -759,6 +771,7 @@ ColorDimSplit <- function(
 #' \code{\link{CellSelector}} \code{\link{FetchData}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' DimPlot(object = pbmc_small)
 #' DimPlot(object = pbmc_small, split.by = 'ident')
 #'
@@ -930,6 +943,7 @@ DimPlot <- function(
 #' scale_color_manual coord_fixed ggtitle
 #'
 #' @export
+#' @concept visualization
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{CellSelector}, respectively.
@@ -939,6 +953,7 @@ DimPlot <- function(
 #' \code{\link{CellSelector}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' FeaturePlot(object = pbmc_small, features = 'PC_1')
 #'
 FeaturePlot <- function(
@@ -1472,6 +1487,7 @@ FeaturePlot <- function(
 #' observeEvent stopApp observe updateSelectInput renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot = 'data') {
   # Set initial data values
@@ -1683,6 +1699,95 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
   runGadget(app = ui, server = server)
 }
 
+#' Highlight Neighbors in DimPlot
+#'
+#' It will color the query cells and the neighbors of the query cells in the
+#' DimPlot
+#'
+#' @inheritParams DimPlot
+#' @param nn.idx the neighbor index of all cells
+#' @param query.cells cells used to find their neighbors
+#' @param show.all.cells Show all cells or only query and neighbor cells
+#'
+#' @inherit DimPlot return
+#'
+#' @export
+#' @concept visualization
+#'
+NNPlot <- function(
+  object,
+  reduction,
+  nn.idx,
+  query.cells,
+  dims = 1:2,
+  label = FALSE,
+  label.size = 4,
+  repel = FALSE,
+  sizes.highlight = 2,
+  pt.size = 1,
+  cols.highlight = c("#377eb8", "#e41a1c"),
+  na.value =  "#bdbdbd",
+  order = c("self", "neighbors", "other"),
+  show.all.cells = TRUE,
+  ...
+) {
+  if (inherits(x = nn.idx, what = 'Neighbor')) {
+    rownames(x = slot(object = nn.idx, name = 'nn.idx')) <- Cells(x = nn.idx)
+    nn.idx <- Indices(object = nn.idx)
+  }
+  if (length(x = query.cells) > 1) {
+    neighbor.cells <- apply(
+      X = nn.idx[query.cells, -1],
+      MARGIN = 2,
+      FUN = function(x) {
+        return(Cells(x = object)[x])
+      }
+    )
+  } else {
+    neighbor.cells <- Cells(x = object)[nn.idx[query.cells , -1]]
+  }
+  neighbor.cells <- as.vector(x = neighbor.cells)
+  neighbor.cells <- neighbor.cells[!is.na(x = neighbor.cells)]
+  object[["nn.col"]] <- "other"
+  object[["nn.col"]][neighbor.cells, ] <- "neighbors"
+  object[["nn.col"]][query.cells, ] <- "self"
+  object$nn.col <- factor(
+    x = object$nn.col,
+    levels = c("self", "neighbors", "other")
+  )
+  if (!show.all.cells) {
+    object <- subset(
+      x = object,
+      cells = Cells(x = object)[which(x = object[["nn.col"]] != "other")]
+    )
+    nn.cols  <- c(rev(x = cols.highlight))
+    nn.pt.size <- sizes.highlight
+  } else {
+    highlight.info <- SetHighlight(
+      cells.highlight = c(query.cells, neighbor.cells),
+      cells.all = Cells(x = object),
+      sizes.highlight = sizes.highlight,
+      pt.size = pt.size,
+      cols.highlight = "red"
+    )
+    nn.cols  <- c(na.value, rev(x = cols.highlight))
+    nn.pt.size <- highlight.info$size
+  }
+  NN.plot <- DimPlot(
+    object = object,
+    reduction = reduction,
+    dims = dims,
+    group.by = "nn.col",
+    cols = nn.cols,
+    label = label,
+    order =  order,
+    pt.size = nn.pt.size ,
+    label.size = label.size,
+    repel = repel
+  )
+  return(NN.plot)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Scatter plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1701,10 +1806,12 @@ IFeaturePlot <- function(object, feature, dims = c(1, 2), reduction = NULL, slot
 #' @return A ggplot object
 #'
 #' @export
+#' @concept visualization
 #'
 #' @aliases CellPlot
 #'
 #' @examples
+#' data("pbmc_small")
 #' CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 #'
 CellScatter <- function(
@@ -1756,6 +1863,10 @@ CellScatter <- function(
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param plot.cor Display correlation in plot title
+#' @param raster Convert points to raster format, default is \code{NULL}
+#' which will automatically use raster if the number of points plotted is greater than
+#' 100,000
 #'
 #' @return A ggplot object
 #'
@@ -1763,10 +1874,12 @@ CellScatter <- function(
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
+#' @concept visualization
 #'
 #' @aliases GenePlot
 #'
 #' @examples
+#' data("pbmc_small")
 #' FeatureScatter(object = pbmc_small, feature1 = 'CD9', feature2 = 'CD3E')
 #'
 FeatureScatter <- function(
@@ -1781,7 +1894,9 @@ FeatureScatter <- function(
   span = NULL,
   smooth = FALSE,
   combine = TRUE,
-  slot = 'data'
+  slot = 'data',
+  plot.cor = TRUE,
+  raster = NULL
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
@@ -1816,7 +1931,9 @@ FeatureScatter <- function(
         pt.size = pt.size,
         smooth = smooth,
         legend.title = 'Identity',
-        span = span
+        span = span,
+        plot.cor = plot.cor,
+        raster = raster
       )
     }
   )
@@ -1832,21 +1949,26 @@ FeatureScatter <- function(
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
-#' @inheritParams HVFInfo
+#' @inheritParams SeuratObject::HVFInfo
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
+#' @param raster Convert points to raster format, default is \code{NULL}
+#' which will automatically use raster if the number of points plotted is greater than
+#' 100,000
 #'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 labs scale_color_manual scale_x_log10
 #' @export
+#' @concept visualization
 #'
 #' @aliases VariableGenePlot MeanVarPlot
 #'
 #' @seealso \code{\link{FindVariableFeatures}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' VariableFeaturePlot(object = pbmc_small)
 #'
 VariableFeaturePlot <- function(
@@ -1855,7 +1977,8 @@ VariableFeaturePlot <- function(
   pt.size = 1,
   log = NULL,
   selection.method = NULL,
-  assay = NULL
+  assay = NULL,
+  raster = NULL
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
@@ -1884,7 +2007,8 @@ VariableFeaturePlot <- function(
   plot <- SingleCorPlot(
     data = hvf.info,
     col.by = var.status,
-    pt.size = pt.size
+    pt.size = pt.size,
+    raster = raster
   )
   plot <- plot +
     labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
@@ -1914,6 +2038,7 @@ VariableFeaturePlot <- function(
 #' @return Returns a ggplot object
 #'
 #' @export
+#' @concept visualization
 #'
 PolyDimPlot <- function(
   object,
@@ -1958,6 +2083,7 @@ PolyDimPlot <- function(
 #' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
 #'
 #' @export
+#' @concept visualization
 #'
 PolyFeaturePlot <- function(
   object,
@@ -2080,6 +2206,7 @@ PolyFeaturePlot <- function(
 #' @aliases LinkedPlot LinkedDimPlot
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
@@ -2293,6 +2420,7 @@ LinkedDimPlot <- function(
 #' scale_color_gradientn guide_colorbar
 #'
 #' @export
+#' @concept visualization
 #'
 LinkedFeaturePlot <- function(
   object,
@@ -2425,6 +2553,7 @@ LinkedFeaturePlot <- function(
 #' observeEvent stopApp nearPoints renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 ISpatialDimPlot <- function(
   object,
@@ -2549,6 +2678,7 @@ ISpatialDimPlot <- function(
 #' observeEvent stopApp observe updateSelectInput plotOutput renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 ISpatialFeaturePlot <- function(
   object,
@@ -2795,6 +2925,7 @@ ISpatialFeaturePlot <- function(
 #' @importFrom ggplot2 scale_fill_gradientn ggtitle theme element_text scale_alpha
 #' @importFrom patchwork wrap_plots
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
@@ -3102,79 +3233,6 @@ SpatialPlot <- function(
 # Other plotting functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' ALRA Approximate Rank Selection Plot
-#'
-#' Plots the results of the approximate rank selection process for ALRA.
-#'
-#' @note ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;
-#' for more information on SeuratWrappers, please see \url{https://github.com/satijalab/seurat-wrappers}
-#'
-#' @param object Seurat object
-#' @param start Index to start plotting singular value spacings from.
-#' The transition from "signal" to "noise" in the is hard to see because the
-#' first singular value spacings are so large. Nicer visualizations result from
-#' skipping the first few. If set to 0 (default) starts from k/2.
-#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
-#' ggplot object. If \code{FALSE}, return a list of ggplot objects
-#'
-#' @return A list of 3 \code{\link[patchwork]{patchwork}ed} ggplot objects
-#' splotting the singular values, the spacings of the singular values, and the
-#' p-values of the singular values.
-#'
-#' @author Jun Zhao, George Linderman
-#' @seealso \code{\link{RunALRA}}
-#'
-#' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string geom_point geom_line
-#' geom_vline scale_x_continuous labs
-#' @importFrom patchwork wrap_plots
-#' @export
-#'
-ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
-  .Deprecated(
-    new = 'SeruatWrappers::ALRAChooseKPlot',
-    msg = paste(
-      'ALRAChooseKPlot and associated functions are being moved to SeuratWrappers;',
-      'for more information on SeuratWrappers, please see https://github.com/satijalab/seurat-wrappers'
-    )
-  )
-  alra.data <- Tool(object = object, slot = 'RunALRA')
-  if (is.null(x = alra.data)) {
-    stop('RunALRA should be run prior to using this function.')
-  }
-  d <- alra.data[["d"]]
-  diffs <- alra.data[["diffs"]]
-  k <- alra.data[["k"]]
-  if (start == 0) {
-    start <- floor(x = k / 2)
-  }
-  if (start > k) {
-    stop("Plots should include k (i.e. starting.from should be less than k)")
-  }
-  breaks <- seq(from = 10, to = length(x = d), by = 10)
-  ggdata <- data.frame(x = 1:length(x = d), y = d)
-  gg1 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
-    geom_point(size = 1) +
-    geom_line(size = 0.5) +
-    geom_vline(xintercept = k) +
-    theme_cowplot() +
-    scale_x_continuous(breaks = breaks) +
-    labs(x = NULL, y = 's_i', title = 'Singular values')
-  ggdata <- data.frame(x = 1:(length(x = d) - 1), y = diffs)[-(1:(start - 1)), ]
-  gg2 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
-    geom_point(size = 1) +
-    geom_line(size = 0.5) +
-    geom_vline(xintercept = k + 1) +
-    theme_cowplot() +
-    scale_x_continuous(breaks = breaks) +
-    labs(x = NULL, y = 's_{i} - s_{i-1}', title = 'Singular value spacings')
-  plots <- list(spectrum = gg1, spacings = gg2)
-  if (combine) {
-    plots <- wrap_plots(plots)
-  }
-  return(plots)
-}
-
 #' Plot the Barcode Distribution and Calculated Inflection Points
 #'
 #' This function plots the calculated inflection points derived from the barcode-rank
@@ -3193,11 +3251,13 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #' @importFrom ggplot2 ggplot geom_line geom_vline aes_string
 #'
 #' @export
+#' @concept visualization
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 #' BarcodeInflectionsPlot(pbmc_small)
 #'
@@ -3297,11 +3357,13 @@ BarcodeInflectionsPlot <- function(object) {
 #' @importFrom RColorBrewer brewer.pal.info
 #'
 #' @export
+#' @concept visualization
 #'
 #' @aliases SplitDotPlotGG
 #' @seealso \code{RColorBrewer::brewer.pal.info}
 #'
 #' @examples
+#' data("pbmc_small")
 #' cd_genes <- c("CD247", "CD3E", "CD9")
 #' DotPlot(object = pbmc_small, features = cd_genes)
 #' pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
@@ -3531,8 +3593,10 @@ DotPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string geom_point labs element_line
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' ElbowPlot(object = pbmc_small)
 #'
 ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
@@ -3578,6 +3642,7 @@ ElbowPlot <- function(object, ndims = 20, reduction = 'pca') {
 #' @importFrom stats complete.cases
 #'
 #' @export
+#' @concept visualization
 #'
 GroupCorrelationPlot <- function(
   object,
@@ -3638,8 +3703,10 @@ GroupCorrelationPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' JackStrawPlot(object = pbmc_small)
 #'
 JackStrawPlot <- function(
@@ -3696,8 +3763,10 @@ JackStrawPlot <- function(
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
 #' PlotClusterTree(object = pbmc_small)
 #'
@@ -3737,8 +3806,10 @@ PlotClusterTree <- function(object, ...) {
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string geom_point labs
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' VizDimLoadings(object = pbmc_small)
 #'
 VizDimLoadings <- function(
@@ -3822,9 +3893,11 @@ VizDimLoadings <- function(
 #' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster ggtitle
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' AugmentPlot(plot = plot)
 #' }
@@ -3880,6 +3953,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
 #' \code{background}; names of vector are \code{background}
 #'
 #' @export
+#' @concept visualization
 #'
 #' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
 #'
@@ -3909,9 +3983,8 @@ BGTextColor <- function(
   ))
 }
 
-#' @inheritParams CustomPalette
-#'
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @aliases BlackAndWhite
@@ -3924,9 +3997,8 @@ BlackAndWhite <- function(mid = NULL, k = 50) {
   return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
 }
 
-#' @inheritParams CustomPalette
-#'
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @aliases BlueAndRed
@@ -3959,11 +4031,13 @@ BlueAndRed <- function(k = 50) {
 #' stopApp brushedPoints renderPlot runGadget
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' # Follow instructions in the terminal to select points
 #' cells.located <- CellSelector(plot = plot)
@@ -4086,9 +4160,11 @@ CellSelector <- function(plot, object = NULL, ident = 'SelectedCells', ...) {
 #' @return Returns a DimReduc object with the modified embeddings
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small <- FindClusters(pbmc_small, resolution = 1.1)
 #' pbmc_small <- RunUMAP(pbmc_small, dims = 1:5)
 #' DimPlot(pbmc_small, reduction = "umap")
@@ -4153,8 +4229,10 @@ CollapseEmbeddingOutliers <- function(
 #'
 #' @importFrom cowplot plot_grid get_legend
 #' @export
+#' @concept visualization
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small[['group']] <- sample(
 #'   x = c('g1', 'g2'),
 #'   size = ncol(x = pbmc_small),
@@ -4233,6 +4311,7 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
 #'
 #' @importFrom grDevices col2rgb rgb
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @examples
@@ -4294,6 +4373,7 @@ CustomPalette <- function(
 #' Credit: Kevin Wright
 #'
 #' @export
+#' @concept visualization
 #'
 DiscretePalette <- function(n, palette = NULL) {
   palettes <- list(
@@ -4352,6 +4432,7 @@ DiscretePalette <- function(n, palette = NULL) {
 
 #' @rdname CellSelector
 #' @export
+#' @concept visualization
 #'
 FeatureLocator <- function(plot, ...) {
   .Defunct(
@@ -4374,12 +4455,14 @@ FeatureLocator <- function(plot, ...) {
 #' @importFrom ggplot2 ggplot_build
 #' @importFrom plotly plot_ly layout add_annotations
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
 #' \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
 #' }
@@ -4485,6 +4568,7 @@ HoverLocator <- function(
 #' @importFrom grDevices col2rgb
 #'
 #' @export
+#' @concept visualization
 #'
 #' @source \url{https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color}
 #'
@@ -4523,16 +4607,18 @@ Intensity <- function(color) {
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
-#' @importFrom stats median
+#' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
 #' @importFrom ggplot2 aes_string geom_text geom_label
 #' @importFrom RANN nn2
 #'
 #' @export
+#' @concept visualization
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
@@ -4661,11 +4747,13 @@ LabelClusters <- function(
 #' @importFrom ggrepel geom_text_repel
 #' @importFrom ggplot2 geom_text aes_string
 #' @export
+#' @concept visualization
 #'
 #' @aliases Labeler
 #' @seealso \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' ff <- TopFeatures(object = pbmc_small[['pca']])
 #' cc <- TopCells(object = pbmc_small[['pca']])
 #' plot <- FeatureScatter(object = pbmc_small, feature1 = ff[1], feature2 = ff[2])
@@ -4715,6 +4803,7 @@ LabelPoints <- function(
 #' @importFrom grDevices col2rgb
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' Luminance(color = c('black', 'white', '#E76BF3'))
@@ -4743,9 +4832,8 @@ Luminance <- function(color) {
   return(luminance)
 }
 
-#' @inheritParams CustomPalette
-#'
 #' @export
+#' @concept visualization
 #'
 #' @rdname CustomPalette
 #' @aliases PurpleAndYellow
@@ -4784,6 +4872,7 @@ PurpleAndYellow <- function(k = 50) {
 #' @return A ggplot2 theme object
 #'
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @seealso \code{\link[ggplot2]{theme}}
@@ -4797,6 +4886,7 @@ SeuratTheme <- function() {
 #'
 #' @rdname SeuratTheme
 #' @export
+#' @concept visualization
 #'
 #' @aliases CenterTitle
 #'
@@ -4804,10 +4894,9 @@ CenterTitle <- function(...) {
   return(theme(plot.title = element_text(hjust = 0.5), validate = TRUE, ...))
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_rect element_text element_line margin
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases DarkTheme
@@ -4865,13 +4954,13 @@ DarkTheme <- function(...) {
   return(dark.theme)
 }
 
-#' @inheritParams SeuratTheme
 #' @param x.text,y.text X and Y axis text sizes
 #' @param x.title,y.title X and Y axis title sizes
 #' @param main Plot title size
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases FontSize
@@ -4898,12 +4987,12 @@ FontSize <- function(
   )
 }
 
-#' @inheritParams SeuratTheme
 #' @param keep.text Keep axis text
 #' @param keep.ticks Keep axis ticks
 #'
 #' @importFrom ggplot2 theme element_blank
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases NoAxes
@@ -4946,10 +5035,9 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
   return(no.axes.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases NoLegend
@@ -4972,10 +5060,9 @@ NoLegend <- function(...) {
   return(no.legend.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_blank
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases NoGrid
@@ -4999,10 +5086,9 @@ NoGrid <- function(...) {
   return(no.grid.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases SeuratAxes
@@ -5019,9 +5105,8 @@ SeuratAxes <- function(...) {
   return(axes.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases SpatialTheme
@@ -5030,11 +5115,11 @@ SpatialTheme <- function(...) {
   return(DarkTheme() + NoAxes() + NoGrid() + NoLegend(...))
 }
 
-#' @inheritParams SeuratTheme
 #' @param position A position to restore the legend to
 #'
 #' @importFrom ggplot2 theme
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases RestoreLegend
@@ -5050,10 +5135,9 @@ RestoreLegend <- function(..., position = 'right') {
   return(restored.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases RotatedAxis
@@ -5069,10 +5153,9 @@ RotatedAxis <- function(...) {
   return(rotated.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_text
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases BoldTitle
@@ -5088,10 +5171,9 @@ BoldTitle <- function(...) {
   return(bold.theme)
 }
 
-#' @inheritParams SeuratTheme
-#'
 #' @importFrom ggplot2 theme element_rect
 #' @export
+#' @concept visualization
 #'
 #' @rdname SeuratTheme
 #' @aliases WhiteBackground
@@ -5482,6 +5564,7 @@ ExIPlot <- function(
     )
   }
   data <- FetchData(object = object, vars = features, slot = slot)
+  pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
@@ -5630,38 +5713,6 @@ FeaturePalettes <- list(
   'Seurat' = c('lightgrey', 'blue')
 )
 
-# Get colour aesthetics from a plot for a certain geom
-#
-# @param plot A ggplot2 object
-# @param geom Geom class to filter to
-# @param plot.first Use plot-wide colour aesthetics before geom-specific aesthetics
-#
-# @return A named list with values 'colour' for the colour aesthetic
-#
-GetColourAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
-  geoms <- sapply(
-    X = plot$layers,
-    FUN = function(layer) {
-      return(class(x = layer$geom)[1])
-    }
-  )
-  # handle case where raster is set to True
-  if (geom == "GeomPoint" && "GeomScattermore" %in% geoms) {
-    geom <- "GeomScattermore"
-  }
-  geoms <- which(x = geoms == geom)
-  if (!length(x = geoms)) {
-    stop("Cannot find a geom of class ", geom)
-  }
-  geoms <- min(geoms)
-  if (plot.first) {
-    colour <- as.character(x = plot$mapping$colour %||% plot$layers[[geoms]]$mapping$colour)[2]
-  } else {
-    colour <- as.character(x = plot$layers[[geoms]]$mapping$colour %||% plot$mapping$colour)[2]
-  }
-  return(list(colour = colour))
-}
-
 # Splits features into groups based on log expression levels
 #
 # @param object Seurat object
@@ -5709,6 +5760,8 @@ GetFeatureGroups <- function(object, assay, min.cells = 5, ngroups = 6) {
 #
 # @return A named list with values 'x' for the name of the x aesthetic and 'y' for the y aesthetic
 #
+#' @importFrom rlang as_label
+#
 GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   geoms <- sapply(
     X = plot$layers,
@@ -5726,11 +5779,13 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   }
   geoms <- min(geoms)
   if (plot.first) {
-    x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
-    y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+    # x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
+    x <- as_label(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)
+    # y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+    y <- as_label(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)
   } else {
-    x <- as.character(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)[2]
-    y <- as.character(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)[2]
+    x <- as_label(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)
+    y <- as_label(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)
   }
   return(list('x' = x, 'y' = y))
 }
@@ -6219,7 +6274,7 @@ InvertHex <- function(hexadecimal) {
 #
 # @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
 #
-#' @importFrom stats median
+#' @importFrom stats median na.omit
 #
 MakeLabels <- function(data) {
   groups <- as.character(x = na.omit(object = unique(x = data[, 3])))
@@ -6235,7 +6290,6 @@ MakeLabels <- function(data) {
   labels[, colnames(x = data)[3]] <- groups
   return(labels)
 }
-
 
 # Plot expression of multiple features by identity on a plot
 #
@@ -6739,7 +6793,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param legend.title Optional legend title
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
-# 50,000
+# 100,000
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6761,10 +6815,15 @@ SingleCorPlot <- function(
   legend.title = NULL,
   na.value = 'grey50',
   span = NULL,
-  raster = NULL
+  raster = NULL,
+  plot.cor = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  raster <- raster %||% (nrow(x = data) > 50000)
+  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    message("Rasterizing points since number of points exceeds 100,000.",
+            "\nTo disable this behavior set `raster=FALSE`")
+  }
+  raster <- raster %||% (nrow(x = data) > 1e5)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6785,8 +6844,12 @@ SingleCorPlot <- function(
     }
     stop(msg, call. = FALSE)
   }
-  plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
-
+  plot.cor <- if (isTRUE(x = plot.cor)) {
+    round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  }
+  else(
+    ""
+  )
   if (!is.null(x = rows.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = rows.highlight,
@@ -6919,7 +6982,7 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
-# 50,000
+# 100,000
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
@@ -6945,7 +7008,11 @@ SingleDimPlot <- function(
   raster = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
-  raster <- raster %||% (nrow(x = data) > 50000)
+  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    message("Rasterizing points since number of points exceeds 100,000.",
+            "\nTo disable this behavior set `raster=FALSE`")
+  }
+  raster <- raster %||% (nrow(x = data) > 1e5)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -7165,11 +7232,12 @@ SingleExIPlot <- function(
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
-        jitter <- geom_jitter(height = 0, size = pt.size)
+        jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
       } else {
         jitter <- geom_jitter(
           position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-          size = pt.size
+          size = pt.size,
+          show.legend = FALSE
         )
       }
       log.scale <- scale_y_log10()
@@ -7186,7 +7254,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size)
+      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)

@@ -88,3 +88,4 @@ compute for all features.}
 Identify features whose variability in expression can be explained to some
 degree by spatial location.
 }
+\concept{preprocessing}

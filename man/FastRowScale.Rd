@@ -23,3 +23,4 @@ Returns the center/scaled matrix
 Performs row scaling and/or centering. Equivalent to using t(scale(t(mat)))
 in R except in the case of NA values.
 }
+\concept{utilities}

@@ -42,3 +42,4 @@ A Seurat object with the correlation stored in metafeatures
 Compute the correlation of features broken down by groups with another
 covariate
 }
+\concept{utilities}

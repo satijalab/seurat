@@ -8,7 +8,7 @@ VlnPlot(
   object,
   features,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -81,6 +81,7 @@ Draws a violin plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
 \examples{
+data("pbmc_small")
 VlnPlot(object = pbmc_small, features = 'PC_1')
 VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 
@@ -88,3 +89,4 @@ VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 \seealso{
 \code{\link{FetchData}}
 }
+\concept{visualization}

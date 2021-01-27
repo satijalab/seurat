@@ -1,9 +1,3 @@
-#' Seurat package
-#'
-#' Tools for single-cell genomics
-#'
-#' Tools for single-cell genomics
-#'
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
@@ -25,15 +19,13 @@
 #'   Moran's I function available via the Rfast2 package}}
 #'   \item{\code{Seurat.warn.vlnplot.split}}{Show message about changes to
 #'   default behavior of split/multi violin plots}
-#'   \item{\code{Seurat.quietstart}}{Show package startup messages in
-#'   interactive sessions}
 #' }
 #'
 #' @docType package
 #' @rdname Seurat-package
 #' @name Seurat-package
 #'
-NULL
+"_PACKAGE"
 
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
@@ -41,18 +33,20 @@ seurat_default_options <- list(
   Seurat.checkdots = "warn",
   Seurat.limma.wilcox.msg = TRUE,
   Seurat.Rfast2.msg = TRUE,
-  Seurat.warn.vlnplot.split = TRUE,
-  Seurat.quietstart = FALSE
+  Seurat.warn.vlnplot.split = TRUE
 )
 
-.onAttach <- function(libname, pkgname) {
-  if (interactive() && !isTRUE(x = getOption(x = "Seurat.quietstart", default = FALSE))) {
-    packageStartupMessage(paste(
-      "\nSeurat v4 will be going to CRAN in the near future;\n",
-      "for more details, please visit",
-      "https://satijalab.org/seurat/v4_changes\n"
-    ))
+AttachDeps <- function(deps) {
+  for (d in deps) {
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
   }
+}
+
+.onAttach <- function(libname, pkgname) {
+  AttachDeps(deps = 'SeuratObject')
 }
 
 .onLoad <- function(libname, pkgname) {

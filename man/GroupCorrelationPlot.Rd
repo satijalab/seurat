@@ -31,3 +31,4 @@ Returns a ggplot boxplot of correlations split by group
 Boxplot of correlation of a variable (e.g. number of UMIs) with expression
 data
 }
+\concept{visualization}

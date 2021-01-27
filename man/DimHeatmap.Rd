@@ -72,9 +72,12 @@ Draws a heatmap focusing on a principal component. Both cells and genes are sort
 principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
 }
 \examples{
+data("pbmc_small")
 DimHeatmap(object = pbmc_small)
 
 }
 \seealso{
 \code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 }
+\concept{convenience}
+\concept{visualization}

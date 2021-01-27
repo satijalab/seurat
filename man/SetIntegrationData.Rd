@@ -2,7 +2,7 @@
 % Please edit documentation in R/objects.R
 \name{SetIntegrationData}
 \alias{SetIntegrationData}
-\title{Set integation data}
+\title{Set integration data}
 \usage{
 SetIntegrationData(object, integration.name, slot, new.data)
 }
@@ -19,5 +19,6 @@ SetIntegrationData(object, integration.name, slot, new.data)
 Returns a \code{\link{Seurat}} object
 }
 \description{
-Set integation data
+Set integration data
 }
+\concept{objects}

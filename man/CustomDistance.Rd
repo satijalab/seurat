@@ -20,6 +20,7 @@ A distance matrix
 Run a custom distance function on an input data matrix
 }
 \examples{
+data("pbmc_small")
 # Define custom distance matrix
 manhattan.distance <- function(x, y) return(sum(abs(x-y)))
 
@@ -30,3 +31,4 @@ cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 \author{
 Jean Fan
 }
+\concept{utilities}

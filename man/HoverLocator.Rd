@@ -22,6 +22,7 @@ Get quick information from a scatterplot by hovering over points
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 plot <- DimPlot(object = pbmc_small)
 HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
 }
@@ -31,3 +32,4 @@ HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'p
 \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
 \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }
+\concept{visualization}

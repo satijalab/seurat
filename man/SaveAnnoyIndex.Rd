@@ -14,3 +14,4 @@ SaveAnnoyIndex(object, file)
 \description{
 Save the Annoy index
 }
+\concept{utilities}

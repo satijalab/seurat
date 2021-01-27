@@ -23,3 +23,4 @@ platform
 \item{\code{spot.radius}}{Single numeric value giving the radius of the spots}
 }}
 
+\concept{objects}

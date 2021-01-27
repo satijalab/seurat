@@ -44,3 +44,4 @@ df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size
 plot(df, col = PurpleAndYellow())
 
 }
+\concept{visualization}

@@ -25,3 +25,4 @@ mat
 MinMax(data = mat, min = 4, max = 5)
 
 }
+\concept{utilities}

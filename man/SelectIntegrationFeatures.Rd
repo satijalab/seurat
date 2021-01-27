@@ -61,3 +61,4 @@ features <- SelectIntegrationFeatures(pancreas.list)
 }
 
 }
+\concept{integration}

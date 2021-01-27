@@ -93,3 +93,4 @@ Run fastica algorithm from the ica package for ICA dimensionality reduction.
 For details about stored ICA calculation parameters, see
 \code{PrintICAParams}.
 }
+\concept{dimensional_reduction}

@@ -48,6 +48,7 @@ is a p-value for each gene's association with each principal component.
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 }
@@ -56,3 +57,4 @@ head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 \references{
 Inspired by Chung et al, Bioinformatics (2014)
 }
+\concept{dimensional_reduction}
