@@ -102,8 +102,7 @@ These  anchors can later be used to integrate the objects using the
 \details{
 The main steps of this procedure are outlined below. For a more detailed
 description of the methodology, please see Stuart, Butler, et al Cell 2019:
-\url{https://doi.org/10.1016/j.cell.2019.05.031};
-\url{https://doi.org/10.1101/460147}
+\doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 
 First, determine anchor.features if not explicitly specified using
 \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations
