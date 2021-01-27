@@ -27,7 +27,7 @@ jobs:
             mkdir output/images
             mkdir output/timings
             Rscript -e "pkgdown::init_site()"
-            Rscript -e "pkgdown::build_article('atacseq_integration_vignette')"
+            Rscript -e "pkgdown::build_article('merge_vignette')"
             #ls vignettes | grep -v 'pbmc3k_tutorial.Rmd' | grep -v 'assets' | grep -v 'vignettes.yaml' | cut -f 1 -d '.' | parallel -j4 "Rscript -e 'pkgdown::build_article(\"{}\")'"
             #Rscript -e "pkgdown::build_site(lazy = TRUE)"
             #cp vignettes/assets/* docs/articles/assets/
@@ -48,5 +48,5 @@ jobs:
           artifactName: docs
       - task: PublishBuildArtifacts@1
         inputs:
-          pathtoPublish: '$(Build.ArtifactStagingDirectory)/output/timings/'
+          pathtoPublish: '$(Build.ArtifactStagingDirectory)/timings/output/timings/'
           artifactName: timings
