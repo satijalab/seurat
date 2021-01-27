@@ -84,3 +84,4 @@ pancreas.integrated <- IntegrateData(anchors)
 }
 
 }
+\concept{integration}

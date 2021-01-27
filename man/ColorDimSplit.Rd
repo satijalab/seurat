@@ -89,3 +89,4 @@ ColorDimSplit(pbmc_small, node = 5)
 \seealso{
 \code{\link{DimPlot}}
 }
+\concept{visualization}

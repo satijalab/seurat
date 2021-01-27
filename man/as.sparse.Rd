@@ -43,3 +43,5 @@ Cast to Sparse
 \seealso{
 \code{\link[SeuratObject:as.sparse]{SeuratObject::as.sparse}}
 }
+\concept{objects}
+\concept{utilities}

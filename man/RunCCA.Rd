@@ -91,3 +91,4 @@ print(x = pbmc_cca[["cca"]])
 \seealso{
 \code{\link{merge.Seurat}}
 }
+\concept{dimensional_reduction}

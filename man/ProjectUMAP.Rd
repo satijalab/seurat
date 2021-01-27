@@ -118,3 +118,4 @@ of a provided reference UMAP. This is essentially a wrapper around two steps:
   calculated above and the umap model previously computed in the reference.}
 }
 }
+\concept{dimensional_reduction}

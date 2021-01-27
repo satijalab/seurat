@@ -19,3 +19,4 @@ Returns data from the requested slot within the integrated object
 \description{
 Get integration data
 }
+\concept{objects}

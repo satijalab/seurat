@@ -99,3 +99,4 @@ barplots with the top enriched/depleted GO terms from EnrichR.
 \description{
 DE and EnrichR pathway visualization barplot
 }
+\concept{mixscape}

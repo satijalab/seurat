@@ -44,6 +44,7 @@ NULL
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
@@ -255,6 +256,7 @@ AddModuleScore <- function(
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -318,6 +320,7 @@ AggregateExpression <- function(
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -358,6 +361,7 @@ AverageExpression <- function(
 #' @return Values from search present in match with the case of match
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -398,6 +402,7 @@ CaseMatch <- function(search, match) {
 #' @seealso \code{AddModuleScore}
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
@@ -486,6 +491,7 @@ CellCycleScoring <- function(
 #' @importFrom Matrix rowSums
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
@@ -551,6 +557,7 @@ CreateAnn <- function(name, ndim) {
 #' @importFrom stats as.dist
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -583,6 +590,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #' @return Returns the mean in log-space
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' ExpMean(x = c(1, 2, 3))
@@ -606,6 +614,7 @@ ExpMean <- function(x, ...) {
 #' @importFrom stats sd
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' ExpSD(x = c(1, 2, 3))
@@ -626,6 +635,7 @@ ExpSD <- function(x) {
 #' @importFrom stats var
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' ExpVar(x = c(1, 2, 3))
@@ -649,6 +659,7 @@ ExpVar <- function(x) {
 #' @importFrom matrixStats rowMeans2 rowSds rowSums2
 #'
 #' @export
+#' @concept utilities
 #'
 FastRowScale <- function(
   mat,
@@ -711,6 +722,7 @@ FastRowScale <- function(
 #' @name UpdateSymbolList
 #'
 #' @export
+#' @concept utilities
 #'
 #' @seealso \code{\link[httr]{GET}}
 #'
@@ -819,6 +831,7 @@ GeneSymbolThesarus <- function(
 #' @return A Seurat object with the correlation stored in metafeatures
 #'
 #' @export
+#' @concept utilities
 #'
 GroupCorrelation <- function(
   object,
@@ -878,6 +891,7 @@ GroupCorrelation <- function(
 #' @importFrom stats var
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' LogVMR(x = c(1, 2, 3))
@@ -907,6 +921,7 @@ LogVMR <- function(x, ...) {
 #' @importFrom Matrix rowSums colMeans
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -947,6 +962,7 @@ MetaFeature <- function(
 #' @param max all values above this max value will be replaced with max
 #' @return Returns matrix after performing these floor and ceil operations
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
@@ -979,6 +995,7 @@ MinMax <- function(data, min, max) {
 #' Seurat object with the proportion of the feature set stored in metadata.
 #' @importFrom Matrix colSums
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -1297,6 +1314,7 @@ PseudobulkExpression <- function(
 #'
 #' @return Returns the Neighbor object with the index stored
 #' @export
+#' @concept utilities
 #'
 LoadAnnoyIndex <- function(object, file){
   metric <- slot(object = object, name = "alg.info")$metric
@@ -1316,6 +1334,7 @@ LoadAnnoyIndex <- function(object, file){
 #' @param file Path to file to write index to
 #'
 #' @export
+#' @concept utilities
 #'
 SaveAnnoyIndex <- function(
   object,
@@ -1338,6 +1357,7 @@ SaveAnnoyIndex <- function(
 #' @return A Seurat object with the active idents regrouped
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' data("pbmc_small")
@@ -1364,6 +1384,7 @@ RegroupIdents <- function(object, metadata) {
 #' HGNC's gene names database
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
@@ -1419,6 +1440,7 @@ UpdateSymbolList <- function(
 #' @importFrom Matrix as.matrix
 #'
 #' @rdname as.sparse
+#' @concept utilities
 #' @export
 #' @method as.data.frame Matrix
 #'
@@ -1826,7 +1848,7 @@ IsVSTout <- function(vst.out) {
   return(vst.check)
 }
 
-# Calculate euclidean distance the x and y, 
+# Calculate euclidean distance the x and y,
 # and subtract the nearest neighbors of x distance to keep local connectivity
 # It is used in FindModalityWeights to calculate the with and cross modality distance
 impute_dist <- function(x, y, nearest.dist) {

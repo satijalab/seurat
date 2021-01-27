@@ -87,3 +87,4 @@ meta data and tools slots:
 Function to identify perturbed and non-perturbed gRNA expressing cells that
 accounts for multiple treatments/conditions/chemical perturbations.
 }
+\concept{mixscape}

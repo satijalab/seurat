@@ -40,3 +40,4 @@ PCASigGenes(pbmc_small, pcs.use = 1:2)
 \seealso{
 \code{\link{ProjectDim}} \code{\link{JackStraw}}
 }
+\concept{dimensional_reduction}

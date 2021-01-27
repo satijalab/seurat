@@ -100,3 +100,4 @@ running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 or running based on a set of genes. For details about stored TSNE calculation
 parameters, see \code{PrintTSNEParams}.
 }
+\concept{dimensional_reduction}

@@ -22,3 +22,4 @@ Returns a \code{\link{Seurat}} object
 \description{
 Perform l2 normalization on given dimensional reduction
 }
+\concept{dimensional_reduction}

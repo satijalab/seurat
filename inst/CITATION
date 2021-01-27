@@ -31,7 +31,7 @@ citEntry(entry = "article",
   year = "2020",
   doi = "10.1101/2020.10.12.335331",
   url = "https://doi.org/10.1101/2020.10.12.335331",
-  textVersion = "Hao and Hao et al. Integrated analysis of multimodal single-cell data. bioRxiv (2020)."
+  textVersion = "Hao and Hao et al. Integrated analysis of multimodal single-cell data. bioRxiv (2020) [Seurat V4]"
 )
 
 citEntry(entry = "article",
@@ -52,5 +52,37 @@ citEntry(entry = "article",
   pages = "1888-1902",
   doi = "10.1016/j.cell.2019.05.031",
   url = "https://doi.org/10.1016/j.cell.2019.05.031",
-  textVersion = "Stuart and Butler et al. Comprehensive Integration of Single-Cell Data. Cell (2019)."
+  textVersion = "Stuart and Butler et al. Comprehensive Integration of Single-Cell Data. Cell (2019) [Seurat V3]"
+)
+
+citEntry(entry = "article",
+  author = personList(as.person("Andrew Butler"),
+                      as.person("Paul Hoffman"),
+                      as.person("Peter Smibert"),
+                      as.person("Efthymia Papalexi"),
+                      as.person("Rahul Satija")),
+  title = "Integrating single-cell transcriptomic data across different conditions, technologies, and species",
+  journal = "Nature Biotechnology",
+  year = "2018",
+  volume = "36",
+  pages = "411-420",
+  doi = "10.1038/nbt.4096",
+  url = "https://doi.org/10.1038/nbt.4096",
+  textVersion = "Butler et al. Integrating single-cell transcriptomic data across different conditions, technologies, and species. Nat Biotechnol (2018) [Seurat V2]"
+)
+
+citEntry(entry = "article",
+  author = personList(as.person("Rahul Satija"),
+                      as.person("Jeffrey A Farrell"),
+                      as.person("David Gennert"),
+                      as.person("Alexander F Schier"),
+                      as.person("Aviv Regev")),
+  title = "Spatial reconstruction of single-cell gene expression data",
+  journal = "Nature Biotechnology",
+  year = "2015",
+  volume = "33",
+  pages = "495-502",
+  doi = "10.1038/nbt.3192",
+  url = "https://doi.org/10.1038/nbt.3192",
+  textVersion = "Satija and Farrell et al. Spatial reconstruction of single-cell gene expression data. Nat Biotechnol (2015) [Seurat V1]"
 )

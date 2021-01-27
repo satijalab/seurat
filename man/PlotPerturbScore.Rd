@@ -34,3 +34,4 @@ A ggplot object.
 Density plots to visualize perturbation scores calculated from RunMixscape
 function.
 }
+\concept{mixscape}

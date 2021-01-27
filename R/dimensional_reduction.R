@@ -35,6 +35,7 @@ NULL
 #' @importFrom future nbrOfWorkers
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
+#' @concept dimensional_reduction
 #'
 #' @export
 #'
@@ -152,6 +153,7 @@ JackStraw <- function(
 #' @param new.key name of key for new dimensional reduction
 #'
 #' @return Returns a \code{\link{Seurat}} object
+#' @concept dimensional_reduction
 #'
 #' @export
 #'
@@ -184,6 +186,7 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL) {
 #'
 #' @param object Seurat object
 #' @param \dots Additional parameters to L2Dim.
+#' @concept dimensional_reduction
 #'
 #' @export
 #'
@@ -208,6 +211,7 @@ L2CCA <- function(object, ...){
 #' at least one of the given PCs.
 #'
 #' @export
+#' @concept dimensional_reduction
 #'
 #' @seealso \code{\link{ProjectDim}} \code{\link{JackStraw}}
 #'
@@ -266,6 +270,7 @@ PCASigGenes <- function(
 #' @return Returns Seurat object with the projected values
 #'
 #' @export
+#' @concept dimensional_reduction
 #'
 #' @examples
 #' data("pbmc_small")
@@ -322,6 +327,7 @@ ProjectDim <- function(
 #' @inheritParams RunUMAP
 #'
 #' @rdname ProjectUMAP
+#' @concept dimensional_reduction
 #' @export
 #'
 ProjectUMAP.default <- function(
@@ -374,6 +380,7 @@ ProjectUMAP.default <- function(
 }
 
 #' @rdname ProjectUMAP
+#' @concept dimensional_reduction
 #' @export
 #' @method ProjectUMAP DimReduc
 #'
@@ -421,6 +428,7 @@ ProjectUMAP.DimReduc <- function(
 #' @param reduction.name Name of projected UMAP to store in the query
 #' @param reduction.key Value for the projected UMAP key
 #' @rdname ProjectUMAP
+#' @concept dimensional_reduction
 #' @export
 #' @method ProjectUMAP Seurat
 #'
@@ -491,6 +499,7 @@ ProjectUMAP.Seurat <- function(
 #' @importFrom irlba irlba
 #'
 #' @rdname RunCCA
+#' @concept dimensional_reduction
 #' @export
 #'
 RunCCA.default <- function(
@@ -543,6 +552,7 @@ RunCCA.default <- function(
 #' set to TRUE)
 #'
 #' @rdname RunCCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunCCA Seurat
 #'
@@ -673,6 +683,7 @@ RunCCA.Seurat <- function(
 #' @importFrom ica icafast icaimax icajade
 #'
 #' @rdname RunICA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunICA default
 #'
@@ -721,6 +732,7 @@ RunICA.default <- function(
 #' @param features Features to compute ICA on
 #'
 #' @rdname RunICA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunICA Assay
 #'
@@ -764,6 +776,7 @@ RunICA.Assay <- function(
 #' @param reduction.name dimensional reduction name
 #'
 #' @rdname RunICA
+#' @concept dimensional_reduction
 #' @method RunICA Seurat
 #' @export
 #'
@@ -824,6 +837,7 @@ RunICA.Seurat <- function(
 #' @importFrom utils capture.output
 #'
 #' @rdname RunPCA
+#' @concept dimensional_reduction
 #' @export
 #'
 RunPCA.default <- function(
@@ -908,6 +922,7 @@ RunPCA.default <- function(
 #' will be dropped, and the PCA will be run using the remaining features.
 #'
 #' @rdname RunPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunPCA Assay
 #'
@@ -950,6 +965,7 @@ RunPCA.Assay <- function(
 #' @param reduction.name dimensional reduction name,  pca by default
 #'
 #' @rdname RunPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunPCA Seurat
 #'
@@ -1006,6 +1022,7 @@ RunPCA.Seurat <- function(
 #' @importFrom Rtsne Rtsne
 #'
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE matrix
 #'
@@ -1047,6 +1064,7 @@ RunTSNE.matrix <- function(
 #' @param dims Which dimensions to use as input features
 #'
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE DimReduc
 #'
@@ -1070,6 +1088,7 @@ RunTSNE.DimReduc <- function(
 }
 
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE dist
 #'
@@ -1099,6 +1118,7 @@ RunTSNE.dist <- function(
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
 #'
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE Seurat
 #'
@@ -1162,6 +1182,7 @@ RunTSNE.Seurat <- function(
 #' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @method RunUMAP default
 #' @export
 #'
@@ -1387,6 +1408,7 @@ RunUMAP.default <- function(
 #' @importFrom reticulate py_module_available import
 #'
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @method RunUMAP Graph
 #' @export
 #'
@@ -1473,6 +1495,7 @@ RunUMAP.Graph <- function(
 }
 
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @method RunUMAP Neighbor
 #' @export
 #'
@@ -1564,6 +1587,7 @@ RunUMAP.Neighbor <- function(
 #' @param verbose Controls verbosity
 #'
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @export
 #' @method RunUMAP Seurat
 #'
@@ -1674,6 +1698,7 @@ RunUMAP.Seurat <- function(
 #' @importFrom stats prop.test
 #'
 #' @rdname ScoreJackStraw
+#' @concept dimensional_reduction
 #' @export
 #' @method ScoreJackStraw JackStrawData
 #'
@@ -1713,6 +1738,7 @@ ScoreJackStraw.JackStrawData <- function(
 }
 
 #' @rdname ScoreJackStraw
+#' @concept dimensional_reduction
 #' @export
 #' @method ScoreJackStraw DimReduc
 #'
@@ -1733,6 +1759,7 @@ ScoreJackStraw.DimReduc <- function(object, dims = 1:5, score.thresh = 1e-5, ...
 #' @seealso \code{\link{JackStrawPlot}}
 #'
 #' @rdname ScoreJackStraw
+#' @concept dimensional_reduction
 #' @export
 #' @method ScoreJackStraw Seurat
 #'

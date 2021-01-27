@@ -111,3 +111,4 @@ A ggplot object.
 Draws a heatmap of single cell feature expression with cells ordered by their
 mixscape ko probabilities.
 }
+\concept{mixscape}

@@ -34,6 +34,7 @@ NULL
 #'
 #' @importFrom RANN nn2
 #' @export
+#' @concept mixscape
 #'
 CalcPerturbSig <- function(
   object,
@@ -146,6 +147,7 @@ CalcPerturbSig <- function(
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
+#' @concept mixscape
 
 DEenrichRPlot <- function(
   object,
@@ -322,6 +324,7 @@ DEenrichRPlot <- function(
 #' @return Returns a Seurat object with LDA added in the reduction slot.
 #'
 #' @export
+#' @concept mixscape
 #'
 MixscapeLDA <- function(
   object,
@@ -373,6 +376,7 @@ MixscapeLDA <- function(
 #' @return Returns a list of the first 10 PCs from each projection.
 #'
 #' @export
+#' @concept mixscape
 #'
 PrepLDA <- function(
   object,
@@ -459,6 +463,7 @@ PrepLDA <- function(
 #' @importFrom stats predict
 #'
 #' @rdname RunLDA
+#' @concept mixscape
 #' @export
 #' @method RunLDA default
 #'
@@ -521,6 +526,7 @@ RunLDA.default <- function(
 #' @param reduction.key Reduction key name.
 #'
 #' @rdname RunLDA
+#' @concept mixscape
 #' @export
 #' @method RunLDA Assay
 #'
@@ -568,6 +574,7 @@ RunLDA.Assay <- function(
 #' @param nfeatures.print Number of features to print for each LDA component.
 #'
 #' @rdname RunLDA
+#' @concept mixscape
 #' @export
 #' @method RunLDA Seurat
 #'
@@ -668,6 +675,7 @@ RunLDA.Seurat <- function(
 #' }
 #'
 #' @export
+#' @concept mixscape
 #'
 RunMixscape <- function(
   object,
@@ -874,6 +882,7 @@ RunMixscape <- function(
 #' @importFrom scales hue_pal
 #' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
 #' @export
+#' @concept mixscape
 #'
 MixscapeHeatmap <- function(
   object,
@@ -986,6 +995,7 @@ MixscapeHeatmap <- function(
 #' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
 #' geom_density theme_classic
 #' @export
+#' @concept mixscape
 #'
 PlotPerturbScore <- function(
   object,

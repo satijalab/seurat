@@ -36,6 +36,7 @@ setOldClass(Classes = 'package_version')
 #'
 #' @name AnchorSet-class
 #' @rdname AnchorSet-class
+#' @concept objects
 #' @exportClass AnchorSet
 #'
 AnchorSet <- setClass(
@@ -61,6 +62,7 @@ AnchorSet <- setClass(
 #'
 #' @name TransferAnchorSet-class
 #' @rdname TransferAnchorSet-class
+#' @concept objects
 #' @exportClass TransferAnchorSet
 #'
 TransferAnchorSet <- setClass(
@@ -75,6 +77,7 @@ TransferAnchorSet <- setClass(
 #'
 #' @name IntegrationAnchorSet-class
 #' @rdname IntegrationAnchorSet-class
+#' @concept objects
 #' @exportClass IntegrationAnchorSet
 #'
 IntegrationAnchorSet <- setClass(
@@ -88,7 +91,7 @@ IntegrationAnchorSet <- setClass(
 #' related information needed for performing downstream analyses - namely data integration
 #' (\code{FindModalityWeights}) and data transfer (\code{\link{FindMultiModalNeighbors}}).
 #'
-#' @slot modality.weight.list A list of modality weights value from all modalities  
+#' @slot modality.weight.list A list of modality weights value from all modalities
 #' @slot modality.assay Names of assays for the list of dimensional reductions
 #' @slot params A list of parameters used in the FindModalityWeights
 #' @slot score.matrix a list of score matrices representing cross and within-modality prediction
@@ -97,6 +100,7 @@ IntegrationAnchorSet <- setClass(
 #'
 #' @name ModalityWeights-class
 #' @rdname ModalityWeights-class
+#' @concept objects
 #' @exportClass ModalityWeights
 #'
 ModalityWeights <- setClass(
@@ -125,6 +129,7 @@ ModalityWeights <- setClass(
 #'
 #' @name IntegrationData-class
 #' @rdname IntegrationData-class
+#' @concept objects
 #' @exportClass IntegrationData
 #'
 IntegrationData <- setClass(
@@ -212,6 +217,7 @@ SCTAssay <- setClass(
 #' @param lowres Low resolution scale factor
 #'
 #' @rdname ScaleFactors
+#' @concept objects
 #' @export
 #'
 scalefactors <- function(spot, fiducial, hires, lowres) {
@@ -245,7 +251,6 @@ SlideSeq <- setClass(
 
 #' The STARmap class
 #'
-#' The STARmap class represents spatial information from the STARmap platform
 #'
 #' @inheritSection SeuratObject::SpatialImage Slots
 #' @slot ...
@@ -273,6 +278,7 @@ STARmap <- setClass(
 #'
 #' @name VisiumV1-class
 #' @rdname VisiumV1-class
+#' @concept objects
 #' @exportClass VisiumV1
 #'
 VisiumV1 <- setClass(
@@ -300,6 +306,7 @@ setClass(Class = 'SliceImage', contains = 'VisiumV1')
 #' named by image name.
 #'
 #' @return A vector of cell names
+#' @concept objects
 #'
 #' @examples
 #' \dontrun{
@@ -443,6 +450,7 @@ CreateSCTAssayObject <- function(
 #' all Graphs)
 #'
 #' @export
+#' @concept objects
 #'
 DietSeurat <- function(
   object,
@@ -524,6 +532,7 @@ DietSeurat <- function(
 #' @return Returns a Seurat object with only the subset of cells that pass the
 #' circular filter
 #'
+#' @concept objects
 #' @examples
 #' \dontrun{
 #' # This example uses the ssHippo dataset which you can download
@@ -588,6 +597,7 @@ FilterSlideSeq <- function(
 #' @return Returns data from the requested slot within the integrated object
 #'
 #' @export
+#' @concept objects
 #'
 GetIntegrationData <- function(object, integration.name, slot) {
   tools <- slot(object = object, name = 'tools')
@@ -598,7 +608,7 @@ GetIntegrationData <- function(object, integration.name, slot) {
   return(slot(object = int.data, name = slot))
 }
 
-#' Set integation data
+#' Set integration data
 #'
 #' @param object Seurat object
 #' @param integration.name Name of integration object
@@ -608,6 +618,7 @@ GetIntegrationData <- function(object, integration.name, slot) {
 #' @return Returns a \code{\link{Seurat}} object
 #'
 #' @export
+#' @concept objects
 #'
 SetIntegrationData <- function(object, integration.name, slot, new.data) {
   tools <- slot(object = object, name = 'tools')
@@ -640,6 +651,7 @@ SetIntegrationData <- function(object, integration.name, slot, new.data) {
 #' from the original object.
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' data("pbmc_small")
@@ -684,6 +696,7 @@ SplitObject <- function(object, split.by = "ident") {
 #' @return Returns a vector of features
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' data("pbmc_small")
@@ -721,6 +734,7 @@ TopFeatures <- function(
 #' @return Returns a vector of cells
 #'
 #' @export
+#' @concept objects
 #'
 #' @examples
 #' data("pbmc_small")
@@ -749,6 +763,7 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
 #' @return Returns a vector of cell names
 #'
 #' @export
+#' @concept objects
 #'
 TopNeighbors <- function(object, cell, n = 5) {
   indices <- Indices(object = object)[cell, 1:n]
@@ -763,6 +778,7 @@ TopNeighbors <- function(object, cell, n = 5) {
 #' @param reduction Name of DimReduc to set to main reducedDim in cds
 #'
 #' @rdname as.CellDataSet
+#' @concept objects
 #' @export
 #' @method as.CellDataSet Seurat
 #'
@@ -847,6 +863,7 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, reduction = NULL, ...) {
 #' @importFrom utils packageVersion
 #'
 #' @rdname as.Seurat
+#' @concept objects
 #' @export
 #' @method as.Seurat CellDataSet
 #'
@@ -996,6 +1013,7 @@ as.Seurat.CellDataSet <- function(
 #' @param project Project name for new Seurat object
 #'
 #' @rdname as.Seurat
+#' @concept objects
 #' @export
 #' @method as.Seurat SingleCellExperiment
 #'
@@ -1093,6 +1111,7 @@ as.Seurat.SingleCellExperiment <- function(
 #' @param assay Assay to convert
 #'
 #' @rdname as.SingleCellExperiment
+#' @concept objects
 #' @export
 #' @method as.SingleCellExperiment Seurat
 #'
@@ -1126,6 +1145,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
 #' @importFrom Matrix sparseMatrix
 #'
 #' @rdname as.sparse
+#' @concept objects
 #' @export
 #' @method as.sparse H5Group
 #'
@@ -1159,6 +1179,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @inheritParams SeuratObject::Cells
 #'
 #' @rdname Cells
+#' @concept objects
 #' @method Cells SCTModel
 #' @export
 #'
@@ -1167,6 +1188,7 @@ Cells.SCTModel <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells SlideSeq
 #' @export
 #'
@@ -1177,6 +1199,7 @@ Cells.SlideSeq <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells STARmap
 #' @export
 #'
@@ -1185,6 +1208,7 @@ Cells.STARmap <- function(x) {
 }
 
 #' @rdname Cells
+#' @concept objects
 #' @method Cells VisiumV1
 #' @export
 #'
@@ -1192,9 +1216,11 @@ Cells.VisiumV1 <- function(x) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
+
 #' @param assay Assay to get
 #'
 #' @rdname GetAssay
+#' @concept objects
 #' @export
 #' @method GetAssay Seurat
 #'
@@ -1216,12 +1242,14 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
+
 #' Get Image Data
 #'
 #' @inheritParams SeuratObject::GetImage
 #'
 #' @rdname GetImage
 #' @method GetImage SlideSeq
+#' @concept objects
 #' @export
 #'
 #' @seealso \code{\link[SeuratObject:GetImage]{SeuratObject::GetImage}}
@@ -1237,6 +1265,7 @@ GetImage.SlideSeq <- function(
 
 #' @rdname GetImage
 #' @method GetImage STARmap
+#' @concept objects
 #' @export
 #'
 GetImage.STARmap <- function(
@@ -1253,6 +1282,7 @@ GetImage.STARmap <- function(
 #' @importFrom grid rasterGrob unit
 #'
 #' @rdname GetImage
+#' @concept objects
 #' @method GetImage VisiumV1
 #' @export
 #'
@@ -1295,6 +1325,7 @@ GetImage.VisiumV1 <- function(
 #'
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates SlideSeq
+#' @concept objects
 #' @export
 #'
 #' @seealso \code{\link[SeuratObject:GetTissueCoordinates]{SeuratObject::GetTissueCoordinates}}
@@ -1312,6 +1343,7 @@ GetTissueCoordinates.SlideSeq <- function(object, ...) {
 #'
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates STARmap
+#' @concept objects
 #' @export
 #'
 GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
@@ -1327,6 +1359,7 @@ GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
 #'
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates VisiumV1
+#' @concept objects
 #' @export
 #'
 GetTissueCoordinates.VisiumV1 <- function(
@@ -1352,6 +1385,7 @@ GetTissueCoordinates.VisiumV1 <- function(
 #' @inheritParams SeuratObject::Radius
 #'
 #' @rdname Radius
+#' @concept objects
 #' @method Radius SlideSeq
 #' @export
 #'
@@ -1362,6 +1396,7 @@ Radius.SlideSeq <- function(object) {
 }
 
 #' @rdname Radius
+#' @concept objects
 #' @method Radius STARmap
 #' @export
 #'
@@ -1370,6 +1405,7 @@ Radius.STARmap <- function(object) {
 }
 
 #' @rdname Radius
+#' @concept objects
 #' @method Radius VisiumV1
 #' @export
 #'
@@ -1580,6 +1616,7 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @method [ SlideSeq
+#' @concept objects
 #' @export
 #'
 "[.SlideSeq" <- function(x, i, ...) {
@@ -1594,6 +1631,7 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 }
 
 #' @method dim SlideSeq
+#' @concept objects
 #' @export
 #'
 dim.SlideSeq <- function(x) {
@@ -1602,6 +1640,7 @@ dim.SlideSeq <- function(x) {
 }
 
 #' @method dim STARmap
+#' @concept objects
 #' @export
 #'
 dim.STARmap <- function(x) {
@@ -1613,6 +1652,7 @@ dim.STARmap <- function(x) {
 }
 
 #' @method dim VisiumV1
+#' @concept objects
 #' @export
 #'
 dim.VisiumV1 <- function(x) {
@@ -1936,6 +1976,7 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
 }
 
 #' @method subset SlideSeq
+#' @concept objects
 #' @export
 #'
 subset.SlideSeq <- function(x, cells, ...) {
@@ -1944,6 +1985,7 @@ subset.SlideSeq <- function(x, cells, ...) {
 }
 
 #' @method subset STARmap
+#' @concept objects
 #' @export
 #'
 subset.STARmap <- function(x, cells, ...) {
@@ -1955,6 +1997,7 @@ subset.STARmap <- function(x, cells, ...) {
 }
 
 #' @method subset VisiumV1
+#' @concept objects
 #' @export
 #'
 subset.VisiumV1 <- function(x, cells, ...) {

@@ -57,3 +57,4 @@ head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 \references{
 Inspired by Chung et al, Bioinformatics (2014)
 }
+\concept{dimensional_reduction}

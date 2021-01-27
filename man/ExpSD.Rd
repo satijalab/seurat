@@ -19,3 +19,4 @@ Calculate SD of logged values in non-log space (return answer in log-space)
 ExpSD(x = c(1, 2, 3))
 
 }
+\concept{utilities}

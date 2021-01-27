@@ -33,3 +33,4 @@ BarcodeInflectionsPlot(pbmc_small)
 \author{
 Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 }
+\concept{visualization}

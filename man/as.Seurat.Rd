@@ -44,3 +44,4 @@ Convert objects to \code{Seurat} objects
 \seealso{
 \code{\link[SeuratObject:as.Seurat]{SeuratObject::as.Seurat}}
 }
+\concept{objects}

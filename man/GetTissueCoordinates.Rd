@@ -35,3 +35,4 @@ Get Tissue Coordinates
 \seealso{
 \code{\link[SeuratObject:GetTissueCoordinates]{SeuratObject::GetTissueCoordinates}}
 }
+\concept{objects}

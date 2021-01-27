@@ -76,3 +76,4 @@ of two modalities. Takes as input two dimensional reductions, one computed
 for each modality.Other parameters are listed for debugging, but can be left
 as default values.
 }
+\concept{clustering}

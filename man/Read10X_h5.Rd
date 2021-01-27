@@ -21,3 +21,4 @@ genomes are present, returns a list of sparse matrices (one per genome).
 Read count matrix from 10X CellRanger hdf5 file.
 This can be used to read both scATAC-seq and scRNA-seq matrices.
 }
+\concept{preprocessing}

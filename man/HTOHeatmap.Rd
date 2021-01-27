@@ -47,3 +47,4 @@ HTOHeatmap(object)
 \seealso{
 \code{\link{HTODemux}}
 }
+\concept{visualization}

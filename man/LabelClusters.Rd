@@ -57,3 +57,4 @@ LabelClusters(plot = plot, id = 'ident')
 \seealso{
 \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 }
+\concept{visualization}

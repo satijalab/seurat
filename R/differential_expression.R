@@ -28,6 +28,7 @@ globalVariables(
 #' @export
 #'
 #' @aliases FindAllMarkersNode
+#' @concept differential_expression
 #'
 #' @examples
 #' data("pbmc_small")
@@ -220,6 +221,7 @@ FindAllMarkers <- function(
 #' and combined p-values are not returned.
 #'
 #' @export
+#' @concept differential_expression
 #'
 #' @examples
 #' \dontrun{
@@ -464,6 +466,7 @@ FindConservedMarkers <- function(
 #' @importFrom stats p.adjust
 #'
 #' @rdname FindMarkers
+#' @concept differential_expression
 #' @export
 #' @method FindMarkers default
 #'
@@ -580,6 +583,7 @@ FindMarkers.default <- function(
 }
 
 #' @rdname FindMarkers
+#' @concept differential_expression
 #' @export
 #' @method FindMarkers Assay
 #'
@@ -654,6 +658,7 @@ FindMarkers.Assay <- function(
 
 #' @importFrom Matrix rowMeans
 #' @rdname FindMarkers
+#' @concept differential_expression
 #' @export
 #' @method FindMarkers DimReduc
 #'
@@ -764,6 +769,7 @@ FindMarkers.DimReduc <- function(
 #' @param base The base with respect to which logarithms are computed.
 #'
 #' @rdname FindMarkers
+#' @concept differential_expression
 #' @export
 #' @method FindMarkers Seurat
 #'
@@ -857,6 +863,7 @@ FindMarkers.Seurat <- function(
 #' If NULL, use all features
 #' @importFrom Matrix rowSums
 #' @rdname FoldChange
+#' @concept differential_expression
 #' @export
 #' @method FoldChange default
 FoldChange.default <- function(
@@ -893,6 +900,7 @@ FoldChange.default <- function(
 
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
+#' @concept differential_expression
 #' @export
 #' @method FoldChange Assay
 FoldChange.Assay <- function(
@@ -941,6 +949,7 @@ FoldChange.Assay <- function(
 
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
+#' @concept differential_expression
 #' @export
 #' @method FoldChange DimReduc
 FoldChange.DimReduc <- function(
@@ -988,6 +997,7 @@ FoldChange.DimReduc <- function(
 #' in the output data.frame
 #'
 #' @rdname FoldChange
+#' @concept differential_expression
 #' @export
 #' @method FoldChange Seurat
 FoldChange.Seurat <- function(

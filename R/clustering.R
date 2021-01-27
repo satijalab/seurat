@@ -39,6 +39,7 @@ NULL
 #'
 #' @return Seurat object containing a nearest-neighbor object, KNN graph, and
 #' SNN graph - each based on a weighted combination of modalities.
+#' @concept clustering
 #' @export
 #'
 FindMultiModalNeighbors  <- function(
@@ -157,6 +158,7 @@ FindMultiModalNeighbors  <- function(
 #' @param subcluster.name the name of sub cluster added in the meta.data
 #'
 #' @return return a object with sub cluster labels in the sub-cluster.name variable
+#' @concept clustering
 #' @export
 #'
 FindSubCluster <- function(
@@ -202,6 +204,7 @@ FindSubCluster <- function(
 #'
 #' @return return an assay containing predicted expression value in the data
 #' slot
+#' @concept integration
 #' @export
 #'
 PredictAssay <- function(
@@ -293,6 +296,7 @@ PredictAssay <- function(
 #' @param verbose Print output
 #'
 #' @rdname FindClusters
+#' @concept clustering
 #' @export
 #'
 FindClusters.default <- function(
@@ -404,6 +408,7 @@ FindClusters.default <- function(
 #'
 #' @rdname FindClusters
 #' @export
+#' @concept clustering
 #' @method FindClusters Seurat
 #'
 FindClusters.Seurat <- function(
@@ -505,6 +510,7 @@ FindClusters.Seurat <- function(
 #'
 #' @rdname FindNeighbors
 #' @export
+#' @concept clustering
 #' @method FindNeighbors default
 #'
 FindNeighbors.default <- function(
@@ -611,6 +617,7 @@ FindNeighbors.default <- function(
 
 #' @rdname FindNeighbors
 #' @export
+#' @concept clustering
 #' @method FindNeighbors Assay
 #'
 FindNeighbors.Assay <- function(
@@ -654,6 +661,7 @@ FindNeighbors.Assay <- function(
 
 #' @rdname FindNeighbors
 #' @export
+#' @concept clustering
 #' @method FindNeighbors dist
 #'
 FindNeighbors.dist <- function(
@@ -706,6 +714,7 @@ FindNeighbors.dist <- function(
 #'
 #' @rdname FindNeighbors
 #' @export
+#' @concept clustering
 #' @method FindNeighbors Seurat
 #'
 FindNeighbors.Seurat <- function(

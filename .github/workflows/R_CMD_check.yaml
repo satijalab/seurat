@@ -17,6 +17,9 @@ jobs:
         
         steps:
             - uses: actions/checkout@v2
+            - name: Remove vignettes dir
+              run: rm -rf 'vignettes/'
+              shell: bash
 
             - name: Check
               run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check")

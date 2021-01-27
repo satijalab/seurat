@@ -69,3 +69,4 @@ UpdateSymbolList(symbols = cc.genes$s.genes)
 \seealso{
 \code{\link[httr]{GET}}
 }
+\concept{utilities}

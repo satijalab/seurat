@@ -77,3 +77,4 @@ Run Linear Discriminant Analysis
 
 Function to perform Linear Discriminant Analysis.
 }
+\concept{mixscape}

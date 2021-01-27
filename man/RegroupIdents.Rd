@@ -23,3 +23,4 @@ data("pbmc_small")
 pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
 
 }
+\concept{utilities}

@@ -14,3 +14,4 @@ L2CCA(object, ...)
 \description{
 Perform l2 normalization on CCs
 }
+\concept{dimensional_reduction}

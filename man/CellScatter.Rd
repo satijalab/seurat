@@ -50,3 +50,4 @@ data("pbmc_small")
 CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 
 }
+\concept{visualization}

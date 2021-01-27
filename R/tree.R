@@ -43,6 +43,7 @@ cluster.ape <- paste(
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @export
+#' @concept tree
 #'
 #' @examples
 #' data("pbmc_small")

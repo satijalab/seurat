@@ -43,3 +43,4 @@ data("pbmc_small")
 pbmc_small[["percent.mt"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
 
 }
+\concept{utilities}
