@@ -24,7 +24,7 @@
       name: integration_introduction
       summary: |
         An introduction to RNA-RNA integration.
-      image: pbmc_alignment.png
+      image: pbmc_alignment.jpg
 
     - title: Mapping and annotating query datasets
       name: integration_mapping
@@ -48,7 +48,7 @@
       name: atacseq_integration_vignette
       summary: |
         Analyzing scRNA-seq data plus scATAC-seq data
-      image: atacseq_integration_vignette.png
+      image: atacseq_integration_vignette.jpg
 
     - title: Multimodal Reference Mapping
       name: multimodal_reference_mapping
