@@ -91,7 +91,11 @@ pbmc.atac <- FindTopFeatures(pbmc.atac, min.cutoff = 'q0')
 pbmc.atac <- RunSVD(pbmc.atac)
 pbmc.atac <- RunUMAP(pbmc.atac, reduction = 'lsi', dims = 2:30, reduction.name = "umap.atac", reduction.key = "atacUMAP_")
 
-# plot the results from both modalities, using previously determined annotations
+```
+
+Now we plot the results from both modalities. Cells have been previously annotated based on transcriptomic state. We will predict annotations for the scATAC-seq cells.
+
+```{r viz1}
 p1 <- DimPlot(pbmc.rna, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("RNA")
 p2 <- DimPlot(pbmc.atac, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("ATAC")
 p1 + p2
@@ -173,8 +177,10 @@ p1 <- ggplot(predictions, aes(Var1, Var2, fill = Freq)) +
   theme_cowplot() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
 
+correct <- length(which(pbmc.atac$seurat_annotations == pbmc.atac$predicted.id))
+incorrect <- length(which(pbmc.atac$seurat_annotations != pbmc.atac$predicted.id))
 data <- FetchData(pbmc.atac, vars = c("prediction.score.max", "annotation_correct")) 
-p2 <- ggplot(data, aes(prediction.score.max, fill = annotation_correct, colour = annotation_correct)) + geom_density(alpha = 0.5) + theme_cowplot()
+p2 <- ggplot(data, aes(prediction.score.max, fill = annotation_correct, colour = annotation_correct)) + geom_density(alpha = 0.5) + theme_cowplot() + scale_fill_discrete(name = "Annotation Correct", labels = c(paste0("FALSE (n = ", incorrect, ")"), paste0("TRUE (n = ", correct, ")"))) + scale_color_discrete(name = "Annotation Correct", labels = c(paste0("FALSE (n = ", incorrect, ")"), paste0("TRUE (n = ", correct, ")"))) + xlab("Prediction Score")
 p1 + p2
 ```
 
