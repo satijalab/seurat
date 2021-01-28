@@ -101,6 +101,13 @@ p2 <- DimPlot(pbmc.atac, group.by = 'seurat_annotations', label = TRUE) + NoLege
 p1 + p2
 ```
 
+```{r save.img, include = FALSE}
+plot <- (p1 + p2) &
+  xlab("UMAP 1") & ylab("UMAP 2") & 
+  theme(axis.title = element_text(size = 18))
+ggsave(filename = "../output/images/atacseq_integration_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
 # Identifying anchors between scRNA-seq and scATAC-seq datasets
 
 In order to identify 'anchors' between scRNA-seq and scATAC-seq experiments, we first generate a rough estimate of the transcriptional activity of each gene by quantifying ATAC-seq counts in the 2 kb-upstream region and gene body, using the `GeneActivity()` function in the Signac package. The ensuing gene activity scores from the scATAC-seq data are then used as input for canonical correlation analysis, along with the gene expression quantifications from scRNA-seq. We perform this quantification for all genes identified as being highly variable from the scRNA-seq dataset.
@@ -165,7 +172,7 @@ p1 | p2
 
 In this example, the annotation for an scATAC-seq profile is correctly predicted via scRNA-seq integration ~90% of the time. In addition, the `prediction.score.max` field quantifies the uncertainty associated with our predicted annotations. We can see that cells that are correctly annotated are typically associated with high prediction scores (>90%), while cells that are incorrectly annotated are associated with sharply lower prediction scores (<50%). Incorrect assignments also tend to reflect closely related cell types (i.e. Intermediate vs. Naive B cells).
 
-```{r score.viz, fig.height = 8}
+```{r score.viz, fig.height = 5}
 predictions <- table(pbmc.atac$seurat_annotations, pbmc.atac$predicted.id)
 predictions <- predictions / rowSums(predictions) # normalize for number of cells in each cell type
 predictions <- as.data.frame(predictions)
@@ -182,13 +189,6 @@ incorrect <- length(which(pbmc.atac$seurat_annotations != pbmc.atac$predicted.id
 data <- FetchData(pbmc.atac, vars = c("prediction.score.max", "annotation_correct")) 
 p2 <- ggplot(data, aes(prediction.score.max, fill = annotation_correct, colour = annotation_correct)) + geom_density(alpha = 0.5) + theme_cowplot() + scale_fill_discrete(name = "Annotation Correct", labels = c(paste0("FALSE (n = ", incorrect, ")"), paste0("TRUE (n = ", correct, ")"))) + scale_color_discrete(name = "Annotation Correct", labels = c(paste0("FALSE (n = ", incorrect, ")"), paste0("TRUE (n = ", correct, ")"))) + xlab("Prediction Score")
 p1 + p2
-```
-
-```{r save.img, include = FALSE}
-plot <- (p1 + p2) &
-  xlab("UMAP 1") & ylab("UMAP 2") & 
-  theme(axis.title = element_text(size = 18))
-ggsave(filename = "../output/images/atacseq_integration_vignette.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 # Co-embedding scRNA-seq and scATAC-seq datasets
