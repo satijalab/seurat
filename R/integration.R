@@ -14,8 +14,7 @@ NULL
 #'
 #' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019:
-#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
-#' \url{https://doi.org/10.1101/460147}
+#' \doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 #'
 #' First, determine anchor.features if not explicitly specified using
 #' \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations
@@ -93,7 +92,7 @@ NULL
 #' \code{\link{IntegrateData}}.
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
-#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 #'
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
@@ -448,8 +447,7 @@ FindIntegrationAnchors <- function(
 #'
 #' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
-#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
-#' \url{https://doi.org/10.1101/460147}
+#' \doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 #'
 #' \itemize{
 #'
@@ -537,7 +535,7 @@ FindIntegrationAnchors <- function(
 #' \code{\link{TransferData}}
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
-#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031};
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031};
 #'
 #' @export
 #' @concept integration
@@ -907,8 +905,7 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #'
 #' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
-#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
-#' \url{https://doi.org/10.1101/460147}
+#' \doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 #'
 #' For pairwise integration:
 #'
@@ -985,7 +982,7 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' as centered, corrected Pearson residuals.
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
-#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 #'
 #' @export
 #' @concept integration
@@ -2319,8 +2316,7 @@ SelectIntegrationFeatures <- function(
 #'
 #' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Stuart, Butler, et al Cell 2019.
-#' \url{https://doi.org/10.1016/j.cell.2019.05.031};
-#' \url{https://doi.org/10.1101/460147}
+#' \doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 #'
 #' For both transferring discrete labels and also feature imputation, we first
 #' compute the weights matrix.
@@ -2413,7 +2409,7 @@ SelectIntegrationFeatures <- function(
 #'
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
-#' Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/j.cell.2019.05.031}
+#' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 #'
 #' @export
 #' @concept integration
@@ -4420,14 +4416,14 @@ ValidateParams_FindTransferAnchors <- function(
     } else if (reference.model.num == 0) {
       if (IsSCT(query[[query.assay]])) {
         stop("Given reference assay (", reference.assay,
-             ") doesn't contain a reference SCT model.\n", 
-             "Query assay is a SCTAssay. ", 
+             ") doesn't contain a reference SCT model.\n",
+             "Query assay is a SCTAssay. ",
              "You can set recompute.residuals to FALSE ",
              "to use Query residuals to continue the analysis",
              call. = FALSE)
       }
       stop("Given reference assay (", reference.assay,
-           ") doesn't contain a reference SCT model. ", 
+           ") doesn't contain a reference SCT model. ",
            call. = FALSE)
     } else if (reference.model.num == 1) {
       new.sct.assay <- reference.assay
@@ -4445,7 +4441,7 @@ ValidateParams_FindTransferAnchors <- function(
       if (!query.umi.assay %in% Assays(object = query)) {
         stop("Query assay provided is an SCTAssay based on an orignal UMI assay",
              " that is no longer present in the query Seurat object. Unable to",
-             " recompute residuals based on the reference SCT model.\n", 
+             " recompute residuals based on the reference SCT model.\n",
              "If you want to use Query SCTAssay residuals to continue the analysis, ",
              "you can set recompute.residuals to FALSE", call. = FALSE)
       }

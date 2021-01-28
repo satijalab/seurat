@@ -43,7 +43,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+\strong{Maintainer}: Paul Hoffman \email{nygcSatijalab@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID})
 
 Other contributors:
 \itemize{
@@ -53,10 +53,10 @@ Other contributors:
   \item Jeff Farrell \email{jfarrell@g.harvard.edu} [contributor]
   \item Christoph Hafemeister \email{chafemeister@nygenome.org} (\href{https://orcid.org/0000-0001-6365-8254}{ORCID}) [contributor]
   \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID}) [contributor]
-  \item Paul Hoffman \email{nygcSatijalab@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID}) [contributor]
   \item Jaison Jain \email{jjain@nygenome.org} (\href{https://orcid.org/0000-0002-9478-5018}{ORCID}) [contributor]
   \item Efthymia Papalexi \email{epapalexi@nygenome.org} (\href{https://orcid.org/0000-0001-5898-694X}{ORCID}) [contributor]
   \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID}) [contributor]
   \item Karthik Shekhar \email{kshekhar@berkeley.edu} [contributor]
   \item Avi Srivastava \email{asrivastava@nygenome.org} (\href{https://orcid.org/0000-0001-9798-2079}{ORCID}) [contributor]
   \item Tim Stuart \email{tstuart@nygenome.org} (\href{https://orcid.org/0000-0002-3044-0897}{ORCID}) [contributor]
