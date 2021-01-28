@@ -65,7 +65,7 @@ navbar:
     - text: Extensions
       href: articles/extensions.html
     - text: FAQ
-      href: articles/faq.html
+      href: "https://github.com/satijalab/seurat/discussions"
     - text: "News"
       href: news/index.html
     - text: "Reference"
