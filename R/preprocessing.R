@@ -1884,6 +1884,7 @@ FindVariableFeatures.SCTAssay <- function(
     stop("SCT assay is comprised of multiple SCT models. To change the variable features, please set manually with VariableFeatures<-", call. = FALSE)
   }
   feature.attr <- SCTResults(object = object, slot = "feature.attributes")
+  nfeatures <- min(nfeatures, nrow(x = feature.attr))
   top.features <- rownames(x = feature.attr)[order(feature.attr$residual_variance, decreasing = TRUE)[1:nfeatures]]
   VariableFeatures(object = object) <- top.features
   return(object)
