@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Getting Started with Seurat"
 output:
   html_document:
     theme: united
@@ -99,11 +99,13 @@ vdat <- read_yaml(file = "vignettes.yaml")
 </style>
 ```
 
+We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat. You can also check out our [Reference page](../reference/index.html) which contains a full list of functions available to users.
+
 # Introductory Vignettes
 
 For new users of Seurat, we suggest starting with a guided walk through of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics. This tutorial implements the major components of a standard unsupervised clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
 
-If you are looking to analyze multimodal data, we provide an analysis example to familiarize users with the Seurat infrastructure necessary for working with multiple modalities. This example features CITE-seq (RNA + protein) data but the general principles are extendable to arbitrary modalities. Similarly, for spatially-resolved data we work through a few examples of common analysis tasks such as interactive visualization and identifying spatially variable patterns of gene expression. Check out some of the possibilities in the vignettes below.
+We provide additional introductory vignettes for users who are interested in analyzing multimodal single-cell datasets (e.g. from CITE-seq, or the 10x mulitome kit), or spatial datasets (e.g. from 10x visium or SLIDE-seq).
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 1)
@@ -111,18 +113,19 @@ make_vignette_card_section(vdat = vdat, cat = 1)
 
 # Data Integration
 
-A core component of Seurat includes [computational methods](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) for integrated analysis of single-cell datasets generated across different conditions, technologies, or species. As an example, we provide a guided walk through for integrating and comparing PBMC datasets generated under different stimulation conditions that should help familiarize new users with the general RNA-RNA integration workflow. For those looking for solutions to speed up these analysis or work with large datasets, we recommend exploring the integration with RPCA [vignette](integration_rpca.html) and the tips for integrating large datasets [vignette](integration_large_datasets.html). 
-
-Seurat also provides related methods for mapping new query data to existing references. These can be useful for users looking to quickly analyze their data in the context of larger pre-established references without needing to integrate or 'correct' their underlying expression data. An an introduction to this workflow, we provide a example of generating and then mapping to an RNA reference in this [vignette](integration_mapping.html). Additionally, we provide [methods](https://satijalab.org/v4preprint) for utilizing multimodal references to improve cell type annotation and impute unmeasured query modalities. 
-
+Recently, we have developed [computational methods](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) for integrated analysis of single-cell datasets generated across different conditions, technologies, or species. As an example, we provide a guided walk through for integrating and comparing PBMC datasets generated under different stimulation conditions. We provide additional vignettes demonstrating how to leverage an annotated scRNA-seq reference to map and label cells from a query, and to efficiently integrate large datasets.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 2)
 ```
 
-# New Statistical Approaches
+# Additional New Methods
 
-Seurat also offers novel statistical methods for analyzing single-cell data. These include [Weighted Nearest Neighbor Analysis (WNN)](https://satijalab.org/v4preprint), an approach for jointly analyzing multimodal single-cell data by learning a per-cell weighting of each data type. For improving the signal-to-noise ratio in single-cell perturbation screens, we provide [mixscape](https://www.biorxiv.org/content/10.1101/2020.06.28.175596v1), a method to help remove confounding sources of variation in these kinds of experiments. Finally, for an improved modeling approach to normalization and variance stabilization, we provide an interface to [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1).
+Seurat also offers additional novel statistical methods for analyzing single-cell data. These include:
+
+* Weighted-nearest neighbor (WNN) analysis: to define cell state based on multiple modalities [[paper](https://satijalab.org/v4preprint)]
+* Mixscape: to analyze data from pooled single-cell CRISPR screens [[paper](https://www.biorxiv.org/content/10.1101/2020.06.28.175596v1)]
+* SCTransform: Improved normalization for single-cell RNA-seq data [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)]
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 3)

@@ -10,7 +10,7 @@ navbar:
     - text: "Install"
       href: articles/install.html
     - text: "Get started"
-      href: articles/vignettes_overview.html
+      href: articles/get_started.html
     - text: "Vignettes"
       menu:
         - text: Introductory Vignettes
