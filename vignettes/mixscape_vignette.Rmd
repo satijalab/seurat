@@ -36,12 +36,6 @@ This tutorial demonstrates how to use mixscape for the analyses of single-cell p
 2. Identifying and removing cells that have 'escaped' CRISPR perturbation.
 3. Visualizing similarities/differences across different perturbations.
 
-# Installing mixscape branch
-
-```{r install1, eval = FALSE}
-remotes::install_github("satijalab/seurat", ref = "release/4.0.0")
-```
-
 # Loading required packages
 
 ```{r pkgs1}
@@ -139,7 +133,7 @@ p3 <- DimPlot(
 
 # Calculating local perturbation signatures mitigates confounding effects
 
-To calculate local perturbation signatures we set the number of non-targeting NNs equal to k=20 and we recommend that the user picks a k from the following range: 20 < k < 30. Intuitively, the user does not want to set k to a very small or large number as this will most likely not remove the technical variation from the dataset. Using the PRTB signature to cluster cells removes all technical variation and reveals one additional perturbation-specific cluster.
+To calculate local perturbation signatures we set the number of non-targeting Nearest Neighbors (NNs) equal to k=20 and we recommend that the user picks a k from the following range: 20 < k < 30. Intuitively, the user does not want to set k to a very small or large number as this will most likely not remove the technical variation from the dataset. Using the PRTB signature to cluster cells removes all technical variation and reveals one additional perturbation-specific cluster.
 
 ```{r eccite.cps, fig.height = 10, fig.width = 15}
 # Calculate perturbation signature (PRTB).
@@ -220,7 +214,6 @@ Here, we are assuming each target gene class is a mixture of two Gaussian distri
 
 ```{r eccite.mixscape, fig.height = 20, fig.width = 20, results="hide"}
 # Run mixscape.
-Idents(eccite) <- "NT"
 eccite <- RunMixscape(
   object = eccite, 
   assay = "PRTB", 
@@ -277,7 +270,7 @@ PlotPerturbScore(object = eccite,
 
 # Inspect the posterior probability values in NP and KO cells.
 VlnPlot(eccite, "mixscape_class_p_ko", idents = c("NT", "IFNGR2 KO", "IFNGR2 NP")) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) + 
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5),axis.text = element_text(size = 16) ,plot.title = element_text(size = 20)) + 
   NoLegend() +
   ggtitle("mixscape posterior probabilities")
 
@@ -292,7 +285,7 @@ MixscapeHeatmap(object = eccite,
                 max.genes = 20, angle = 0, 
                 group.by = "mixscape_class", 
                 max.cells.group = 300, 
-                size=3.5) + NoLegend()
+                size=6.5) + NoLegend() +theme(axis.text.y = element_text(size = 16))
 
 # Show that only IFNG pathway KO cells have a reduction in PD-L1 protein expression.
 VlnPlot(
@@ -305,7 +298,7 @@ VlnPlot(
   split.by = "mixscape_class.global", 
   cols = c("coral3","grey79","grey39")) +
   ggtitle("PD-L1 protein") +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5), plot.title = element_text(size = 20), axis.text = element_text(size = 16))
 ```
 
 ```{r save.img, include=FALSE}
