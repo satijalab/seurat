@@ -153,7 +153,7 @@ ifnb.list <- SplitObject(ifnb, split.by = "stim")
 ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform, method = "glmGamPoi")
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)
 ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features)
-ifnb.list <- lapply(X = ifnb.list, FUN = RunPCA)
+ifnb.list <- lapply(X = ifnb.list, FUN = RunPCA, features = anchor.features)
 ```
 
 ```{r ifnb.cca.sct.anchors}
