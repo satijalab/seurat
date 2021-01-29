@@ -26,6 +26,8 @@ navbar:
           href: articles/integration_introduction.html
         - text: "Mapping and annotating query datasets"
           href: articles/integration_mapping.html
+        - text: "Fast integration using reciprocal PCA (RPCA)"
+          href: articles/integration_rpca.html
         - text: "Tips for integrating large datasets"
           href: articles/integration_large_datasets.html
         - text: "Integrating scRNA-seq and scATAC-seq data"
