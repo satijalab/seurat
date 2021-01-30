@@ -90,14 +90,13 @@ pbmc.atac <- RunTFIDF(pbmc.atac)
 pbmc.atac <- FindTopFeatures(pbmc.atac, min.cutoff = 'q0')
 pbmc.atac <- RunSVD(pbmc.atac)
 pbmc.atac <- RunUMAP(pbmc.atac, reduction = 'lsi', dims = 2:30, reduction.name = "umap.atac", reduction.key = "atacUMAP_")
-
 ```
 
 Now we plot the results from both modalities. Cells have been previously annotated based on transcriptomic state. We will predict annotations for the scATAC-seq cells.
 
 ```{r viz1}
 p1 <- DimPlot(pbmc.rna, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("RNA")
-p2 <- DimPlot(pbmc.atac, group.by = 'seurat_annotations', label = TRUE) + NoLegend() + ggtitle("ATAC")
+p2 <- DimPlot(pbmc.atac, group.by = 'orig.ident', label = FALSE) + NoLegend() + ggtitle("ATAC")
 p1 + p2
 ```
 
