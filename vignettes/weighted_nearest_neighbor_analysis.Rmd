@@ -26,16 +26,19 @@ knitr::opts_chunk$set(
   time_it = TRUE
 )
 ```
+The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
 
-# BMNC - RNA & ADT
-
-This vignette introduces the weighted nearest neighbor (WNN) workflow for the analysis of multimodal single-cell datasets. The workflow consists of three steps
+This vignette introduces the WNN workflow for the analysis of multimodal single-cell datasets. The workflow consists of three steps
 
 * Independent preprocessing and dimensional reduction of each modality individually 
 * Learning cell-specific modality 'weights', and constructing a WNN graph that integrates the modalities 
 * Downstream analysis (i.e. visualization, clustering, etc.) of the WNN graph
 
-We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies. The object contains two assays, RNA and antibody-derived tags (ADT).  
+We demonstrate the use of WNN analysis to two single cell multimodal technologies: CITE-seq and 10x multiome.
+
+
+# WNN analysis of CITE-seq, RNA + ADT
+We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
 
 To run this vignette please install Seurat v4, available on [CRAN](https://cran.r-project.org/web/packages/Seurat/index.html).
 
@@ -141,7 +144,7 @@ plot <-  VlnPlot(bm, features = "RNA.weight", group.by = 'celltype.l2', sort = T
 ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
-# PBMC - RNA & ATAC
+# WNN analysis of 10x Multiome, RNA + ATAC
 
 Here, we demonstrate the use of WNN analysis to a second multimodal technology, the 10x multiome RNA+ATAC kit. We use a dataset that is publicly available on the 10x website, where paired transcriptomes and ATAC-seq profiles are measured in 10,412 PBMCs.
 
