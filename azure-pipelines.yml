@@ -16,7 +16,7 @@ jobs:
     pool: Default
     variables:
       R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
-    container: satijalab/seurat-pkgdown:4.0.0-beta
+    container: satijalab/seurat-pkgdown:4.0.0
     steps:
       - script: |
             set -e
