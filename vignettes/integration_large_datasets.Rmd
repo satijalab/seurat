@@ -35,7 +35,7 @@ knitr::opts_chunk$set(
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
-For very large datasets, the standard integration workflow can sometimes be prohibitively computationally expensive. In this workflow, we explore two main alternatives that can improve efficiency and runtimes:
+For very large datasets, the standard integration workflow can sometimes be prohibitively computationally expensive. In this workflow, we employ two options that can improve efficiency and runtimes:
 
 1. Reciprocal PCA (RPCA)
 2. Reference-based integration
