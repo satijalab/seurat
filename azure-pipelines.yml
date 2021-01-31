@@ -16,7 +16,7 @@ jobs:
     pool: Default
     variables:
       R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
-    container: satijalab/seurat-pkgdown:4.0.0
+    container: satijalab/seurat-pkgdown:develop
     steps:
       - script: |
             set -e
@@ -50,3 +50,7 @@ jobs:
         inputs:
           pathtoPublish: '$(Build.ArtifactStagingDirectory)/timings/output/timings/'
           artifactName: timings
+      - script: |
+          netlify deploy --prod --dir '$(Build.ArtifactStagingDirectory)/docs/docs/' --site '$(site_id)' --auth '$(auth_token)'
+        displayName: 'Netlify Preview Deploy'
+
