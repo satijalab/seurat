@@ -86,8 +86,6 @@ immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.feature
 immune.combined <- IntegrateData(anchorset = immune.anchors)
 ```
 
-# Perform an integrated analysis
-
 Now we can run a single integrated analysis on all cells!
 
 ```{r clustering, results='hide', message=FALSE}
