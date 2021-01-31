@@ -34,7 +34,7 @@ This vignette introduces the WNN workflow for the analysis of multimodal single-
 * Learning cell-specific modality 'weights', and constructing a WNN graph that integrates the modalities 
 * Downstream analysis (i.e. visualization, clustering, etc.) of the WNN graph
 
-We demonstrate the use of WNN analysis to two single cell multimodal technologies: CITE-seq and 10x multiome.
+We demonstrate the use of WNN analysis to two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
 
 
 # WNN analysis of CITE-seq, RNA + ADT
