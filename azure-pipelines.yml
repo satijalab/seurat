@@ -16,7 +16,7 @@ jobs:
     pool: Default
     variables:
       R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
-    container: satijalab/seurat-pkgdown:4.0.0-beta
+    container: satijalab/seurat-pkgdown:develop
     steps:
       - script: |
             set -e
@@ -28,7 +28,7 @@ jobs:
             mkdir output/timings
             Rscript -e "pkgdown::init_site()"
             Rscript -e "pkgdown::build_article('pbmc3k_tutorial')"
-            ls vignettes | grep -v 'pbmc3k_tutorial.Rmd' | grep -v 'assets' | grep -v 'vignettes.yaml' | cut -f 1 -d '.' | parallel -j4 "Rscript -e 'pkgdown::build_article(\"{}\")'"
+            ls vignettes/*.Rmd | xargs -n1 basename | grep -v 'pbmc3k_tutorial.Rmd' | cut -f 1 -d '.' | parallel -j4 "Rscript -e 'pkgdown::build_article(\"{}\")'"
             Rscript -e "pkgdown::build_site(lazy = TRUE)"
             cp vignettes/assets/* docs/articles/assets/
         displayName: 'Build pkgdown site'
@@ -50,3 +50,7 @@ jobs:
         inputs:
           pathtoPublish: '$(Build.ArtifactStagingDirectory)/timings/output/timings/'
           artifactName: timings
+      - script: |
+          netlify deploy --prod --dir '$(Build.ArtifactStagingDirectory)/docs/docs/' --site '$(site_id)' --auth '$(auth_token)'
+        displayName: 'Netlify Preview Deploy'
+

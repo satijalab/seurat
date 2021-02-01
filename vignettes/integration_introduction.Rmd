@@ -38,7 +38,7 @@ Below, we  demonstrate methods for  scRNA-seq integration as described in  [Stua
 
 ## Integration goals
 
-The following tutorial is designed to give you an overview of the kinds of comparative analyses on complex cell types that are possible using the Seurat integration procedure. Here, we address three main goals:
+The following tutorial is designed to give you an overview of the kinds of comparative analyses on complex cell types that are possible using the Seurat integration procedure. Here, we address a few key goals:
 
 * Create an 'integrated' data assay for downstream analysis
 * Identify cell types that are present in both datasets
