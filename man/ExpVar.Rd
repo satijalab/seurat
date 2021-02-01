@@ -20,3 +20,4 @@ log-space)
 ExpVar(x = c(1, 2, 3))
 
 }
+\concept{utilities}

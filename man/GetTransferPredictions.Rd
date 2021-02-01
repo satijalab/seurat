@@ -36,3 +36,4 @@ prediction. This is useful if you've set \code{prediction.assay = TRUE} in
   query$predicted.id <- GetTransferPredictions(query)
 }
 }
+\concept{integration}

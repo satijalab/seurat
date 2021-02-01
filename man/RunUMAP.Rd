@@ -4,6 +4,7 @@
 \alias{RunUMAP}
 \alias{RunUMAP.default}
 \alias{RunUMAP.Graph}
+\alias{RunUMAP.Neighbor}
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
@@ -58,6 +59,8 @@ RunUMAP(object, ...)
   reduction.key = "UMAP_",
   ...
 )
+
+\method{RunUMAP}{Neighbor}(object, reduction.model, ...)
 
 \method{RunUMAP}{Seurat}(
   object,
@@ -213,6 +216,7 @@ discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 pbmc_small
 # Run UMAP map on first 5 PCs
 pbmc_small <- RunUMAP(object = pbmc_small, dims = 1:5)
@@ -225,3 +229,4 @@ DimPlot(object = pbmc_small, reduction = 'umap')
 McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and
 Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 }
+\concept{dimensional_reduction}

@@ -44,9 +44,11 @@ NULL
 #' @references Tirosh et al, Science (2016)
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' cd_features <- list(c(
 #'   'CD79B',
 #'   'CD79A',
@@ -224,31 +226,104 @@ AddModuleScore <- function(
   return(object)
 }
 
-#' Averaged feature expression by identity class
+#' Aggregated feature expression by identity class
 #'
-#' Returns expression for an 'average' single cell in each identity class
+#' Returns aggregated (summed) expression values for each identity class
 #'
-#' Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
-#' Averaging is done in non-log space.
+#' If slot is set to 'data', this function assumes that the data has been log
+#' normalized and therefore feature values are exponentiated prior to aggregating
+#' so that sum is done in non-log space. Otherwise, if slot is set to
+#' either 'counts' or 'scale.data', no exponentiation is performed prior to
+#' aggregating
+#' If \code{return.seurat = TRUE} and slot is not 'scale.data', aggregated values
+#' are placed in the 'counts' slot of the returned object and the log of aggregated values
+#' are placed in the 'data' slot. For the \code{\link{ScaleData}} is then run on the default assay
+#' before returning the object.
+#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
+#' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
 #'
 #' @param object Seurat object
 #' @param assays Which assays to use. Default is all assays
 #' @param features Features to analyze. Default is all features in the assay
 #' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
-#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)
-#' @param slot Slot to use; will be overriden by \code{use.scale} and \code{use.counts}
-#' @param use.scale Use scaled values for feature expression
-#' @param use.counts Use count values for feature expression
+#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
+#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
+#' @param verbose Print messages and show progress bar
+#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}#'
+#' @return Returns a matrix with genes as rows, identity classes as columns.
+#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#' @export
+#' @concept utilities
+#'
+#' @examples
+#' data("pbmc_small")
+#' head(AggregateExpression(object = pbmc_small))
+#'
+AggregateExpression <- function(
+  object,
+  assays = NULL,
+  features = NULL,
+  return.seurat = FALSE,
+  group.by = 'ident',
+  add.ident = NULL,
+  slot = 'data',
+  verbose = TRUE,
+  ...
+) {
+  return(
+    PseudobulkExpression(
+      object = object,
+      pb.method = 'aggregate',
+      assays = assays,
+      features = features,
+      return.seurat = return.seurat,
+      group.by = group.by,
+      add.ident = add.ident,
+      slot = slot,
+      verbose = verbose,
+      ...
+    )
+  )
+}
+
+#' Averaged feature expression by identity class
+#'
+#' Returns averaged expression values for each identity class
+#'
+#' If slot is set to 'data', this function assumes that the data has been log
+#' normalized and therefore feature values are exponentiated prior to averaging
+#' so that averaging is done in non-log space. Otherwise, if slot is set to
+#' either 'counts' or 'scale.data', no exponentiation is performed prior to
+#' averaging
+#' If \code{return.seurat = TRUE} and slot is not 'scale.data', averaged values
+#' are placed in the 'counts' slot of the returned object and the log of averaged values
+#' are placed in the 'data' slot. \code{\link{ScaleData}} is then run on the default assay
+#' before returning the object.
+#' If \code{return.seurat = TRUE} and slot is 'scale.data', the 'counts' slot is left empty,
+#' the 'data' slot is filled with NA, and 'scale.data' is set to the aggregated values.
+#'
+#' @param object Seurat object
+#' @param assays Which assays to use. Default is all assays
+#' @param features Features to analyze. Default is all features in the assay
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+#' @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+#' @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
+#' (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+#' @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+#' the order of 'assays' (if specified) or object's assays
 #' @param verbose Print messages and show progress bar
 #' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
 #'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
-#'
-#' @importFrom Matrix rowMeans
 #' @export
+#' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' head(AverageExpression(object = pbmc_small))
 #'
 AverageExpression <- function(
@@ -256,132 +331,26 @@ AverageExpression <- function(
   assays = NULL,
   features = NULL,
   return.seurat = FALSE,
+  group.by = 'ident',
   add.ident = NULL,
   slot = 'data',
-  use.scale = FALSE,
-  use.counts = FALSE,
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., fxns = 'CreateSeuratObject')
-  if (use.scale) {
-    .Deprecated(msg = "'use.scale' is a deprecated argument, please use the 'slot' argument instead")
-    slot <- 'scale.data'
-  }
-  if (use.counts) {
-    .Deprecated(msg = "'use.counts' is a deprecated argument, please use the 'slot' argument instead")
-    if (use.scale) {
-      warning("Both 'use.scale' and 'use.counts' were set; using counts", call. = FALSE, immediate. = TRUE)
-    }
-    slot <- 'counts'
-  }
-  fxn.average <- switch(
-    EXPR = slot,
-    'data' = function(x) {
-      rowMeans(x = expm1(x = x))
-    },
-    rowMeans
-  )
-  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
-  assays <- assays %||% object.assays
-  ident.orig <- Idents(object = object)
-  orig.levels <- levels(x = Idents(object = object))
-  ident.new <- c()
-  if (!all(assays %in% object.assays)) {
-    assays <- assays[assays %in% object.assays]
-    if (length(assays) == 0) {
-      stop("None of the requested assays are present in the object")
-    } else {
-      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
-    }
-  }
-  if (!is.null(x = add.ident)) {
-    new.data <- FetchData(object = object, vars = add.ident)
-    new.ident <- paste(
-      Idents(object)[rownames(x = new.data)],
-      new.data[, 1],
-      sep = '_'
-    )
-    Idents(object, cells = rownames(new.data)) <- new.ident
-  }
-  data.return <- list()
-  for (i in 1:length(x = assays)) {
-    data.use <- GetAssayData(
+  return(
+    PseudobulkExpression(
       object = object,
-      assay = assays[i],
-      slot = slot
-    )
-    features.assay <- features
-    if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
-      features.assay <- rownames(x = data.use)
-    }
-    data.all <- list(data.frame(row.names = features.assay))
-    for (j in levels(x = Idents(object))) {
-      temp.cells <- WhichCells(object = object, idents = j)
-      features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
-      if (length(x = temp.cells) == 1) {
-        data.temp <- (data.use[features.assay, temp.cells])
-        # transform data if needed (alternative: apply fxn.average to single value above)
-        # if (!(use.scale | use.counts)) { # equivalent: slot.use == "data"
-        if (slot == 'data') {
-          data.temp <- expm1(x = data.temp)
-        }
-      }
-      if (length(x = temp.cells) > 1 ) {
-        data.temp <- fxn.average(data.use[features.assay, temp.cells, drop = FALSE])
-      }
-      data.all[[j]] <- data.temp
-      if (verbose) {
-        message(paste("Finished averaging", assays[i], "for cluster", j))
-      }
-      if (i == 1) {
-        ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
-      }
-    }
-    names(x = ident.new) <- levels(x = Idents(object))
-    data.return[[i]] <- do.call(cbind, data.all)
-    names(x = data.return)[i] <- assays[[i]]
-  }
-  if (return.seurat) {
-    toRet <- CreateSeuratObject(
-      counts = data.return[[1]],
-      project = "Average",
-      assay = names(x = data.return)[1],
+      pb.method = 'average',
+      assays = assays,
+      features = features,
+      return.seurat = return.seurat,
+      group.by = group.by,
+      add.ident = add.ident,
+      slot = slot,
+      verbose = verbose,
       ...
     )
-    toRet <- SetAssayData(
-      object = toRet,
-      assay = names(x = data.return)[1],
-      slot = "data",
-      new.data = log1p(x = as.matrix(x = data.return[[1]]))
-    )
-    #for multimodal data
-    if (length(x = data.return) > 1) {
-      for (i in 2:length(x = data.return)) {
-        toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
-        toRet <- SetAssayData(
-          object = toRet,
-          assay = names(x = data.return)[i],
-          slot = "data",
-          new.data = log1p(x = as.matrix(x = data.return[[i]]))
-        )
-      }
-    }
-    if (DefaultAssay(object = object) %in% names(x = data.return)) {
-      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
-    }
-    Idents(toRet, cells = colnames(x = toRet)) <- ident.new[colnames(x = toRet)]
-    Idents(object = toRet) <- factor(
-      x = Idents(object = toRet),
-      levels = as.character(x = orig.levels),
-      ordered = TRUE
-    )
-    # finish setting up object if it is to be returned
-    toRet <- ScaleData(object = toRet, verbose = verbose)
-    return(toRet)
-  } else {
-    return(data.return)
-  }
+  )
 }
 
 #' Match the case of character vectors
@@ -392,8 +361,10 @@ AverageExpression <- function(
 #' @return Values from search present in match with the case of match
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
 #' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small))
 #'
@@ -431,9 +402,11 @@ CaseMatch <- function(search, match) {
 #' @seealso \code{AddModuleScore}
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' # pbmc_small doesn't have any cell-cycle genes
 #' # To run CellCycleScoring, please use a dataset with cell-cycle genes
 #' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
@@ -518,6 +491,7 @@ CellCycleScoring <- function(
 #' @importFrom Matrix rowSums
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
@@ -583,8 +557,10 @@ CreateAnn <- function(name, ndim) {
 #' @importFrom stats as.dist
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
 #'
@@ -614,6 +590,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #' @return Returns the mean in log-space
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' ExpMean(x = c(1, 2, 3))
@@ -623,251 +600,6 @@ ExpMean <- function(x, ...) {
     return(apply(X = x, FUN = function(i) {log(x = mean(x = exp(x = i) - 1) + 1)}, MARGIN = 1))
   } else {
     return(log(x = mean(x = exp(x = x) - 1) + 1))
-  }
-}
-
-#' Export Seurat object for UCSC cell browser
-#'
-#' @param object Seurat object
-#' @param dir path to directory where to save exported files. These are:
-#' exprMatrix.tsv, tsne.coords.tsv, meta.tsv, markers.tsv and a default cellbrowser.conf
-#' @param dataset.name name of the dataset. Defaults to Seurat project name
-#' @param reductions vector of reduction names to export
-#' @param markers.file path to file with marker genes
-#' @param cluster.field name of the metadata field containing cell cluster
-#' @param cb.dir path to directory where to create UCSC cellbrowser static
-#' website content root, e.g. an index.html, .json files, etc. These files
-#' can be copied to any webserver. If this is specified, the cellbrowser
-#' package has to be accessible from R via reticulate.
-#' @param port on which port to run UCSC cellbrowser webserver after export
-#' @param skip.expr.matrix whether to skip exporting expression matrix
-#' @param skip.metadata whether to skip exporting metadata
-#' @param skip.reductions whether to skip exporting reductions
-#' @param ... specifies the metadata fields to export. To supply field with
-#' human readable name, pass name as \code{field="name"} parameter.
-#'
-#' @return This function exports Seurat object as a set of tsv files
-#' to \code{dir} directory, copying the \code{markers.file} if it is
-#' passed. It also creates the default \code{cellbrowser.conf} in the
-#' directory. This directory could be read by \code{cbBuild} to
-#' create a static website viewer for the dataset. If \code{cb.dir}
-#' parameter is passed, the function runs \code{cbBuild} (if it is
-#' installed) to create this static website in \code{cb.dir} directory.
-#' If \code{port} parameter is passed, it also runs the webserver for
-#' that directory and opens a browser.
-#'
-#' @author Maximilian Haeussler, Nikolay Markov
-#'
-#' @importFrom utils browseURL
-#' @importFrom reticulate py_module_available import
-#' @importFrom tools file_ext
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
-#' }
-#'
-ExportToCellbrowser <- function(
-  object,
-  dir,
-  dataset.name = Project(object = object),
-  reductions = "tsne",
-  markers.file = NULL,
-  cluster.field = "Cluster",
-  cb.dir = NULL,
-  port = NULL,
-  skip.expr.matrix = FALSE,
-  skip.metadata = FALSE,
-  skip.reductions = FALSE,
-  ...
-) {
-  .Deprecated(
-    new = "SeuratWrappers::ExportToCellbrowser",
-    msg = paste(
-      "Cell browser functionality is moving to SeuratWrappers",
-      "For more details, please see https://github.com/satijalab/seurat-wrappers",
-      sep = '\n'
-    )
-  )
-  vars <- c(...)
-  if (is.null(x = vars)) {
-    vars <- c("nCount_RNA", "nFeature_RNA")
-    if (length(x = levels(x = Idents(object = object))) > 1) {
-      vars <- c(vars, cluster.field)
-      names(x = vars) <- c("", "", "ident")
-    }
-  }
-  names(x = vars) <- names(x = vars) %||% vars
-  names(x = vars) <- sapply(
-    X = 1:length(x = vars),
-    FUN = function(i) {
-      return(ifelse(
-        test = nchar(x = names(x = vars)[i]) > 0,
-        yes = names(x = vars[i]),
-        no = vars[i]
-      ))
-    }
-  )
-  if (!is.null(x = port) && is.null(x = cb.dir)) {
-    stop("cb.dir parameter is needed when port is set")
-  }
-  if (!dir.exists(paths = dir)) {
-    dir.create(path = dir)
-  }
-  if (!dir.exists(paths = dir)) {
-    stop("Output directory ", dir, " cannot be created or is a file")
-  }
-  if (dataset.name == "SeuratProject") {
-    warning("Using default project name means that you may overwrite project with the same name in the cellbrowser html output folder")
-  }
-  order <- colnames(x = object)
-  enum.fields <- c()
-  # Export expression matrix:
-  if (!skip.expr.matrix) {
-    # Relatively memory inefficient - maybe better to convert to sparse-row and write in a loop, row-by-row?
-    df <- as.data.frame(x = as.matrix(x = GetAssayData(object = object)))
-    df <- data.frame(gene = rownames(x = object), df, check.names = FALSE)
-    gzPath <- file.path(dir, "exprMatrix.tsv.gz")
-    z <- gzfile(gzPath, "w")
-    message("Writing expression matrix to ", gzPath)
-    write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
-    close(con = z)
-  }
-  # Export cell embeddings
-  embeddings.conf <- c()
-  for (reduction in reductions) {
-    if (!skip.reductions) {
-      df <- Embeddings(object = object, reduction = reduction)
-      if (ncol(x = df) > 2) {
-        warning(
-          'Embedding ',
-          reduction,
-          ' has more than 2 coordinates, taking only the first 2'
-        )
-        df <- df[, 1:2]
-      }
-      colnames(x = df) <- c("x", "y")
-      df <- data.frame(cellId = rownames(x = df), df)
-      fname <- file.path(dir, paste0(reduction, '.coords.tsv'))
-      message("Writing embeddings to ", fname)
-      write.table(
-        x = df[order, ],
-        sep = "\t",
-        file = fname,
-        quote = FALSE,
-        row.names = FALSE
-      )
-    }
-    conf <- sprintf(
-      '{"file": "%s.coords.tsv", "shortLabel": "Seurat %1$s"}',
-      reduction
-    )
-    embeddings.conf <- c(embeddings.conf, conf)
-  }
-  # Export metadata
-  df <- data.frame(row.names = rownames(x = object[[]]))
-  df <- FetchData(object = object, vars = names(x = vars))
-  colnames(x = df) <- vars
-  enum.fields <- Filter(
-    f = function(name) {!is.numeric(x = df[[name]])},
-    x = vars
-  )
-  if (!skip.metadata) {
-    fname <- file.path(dir, "meta.tsv")
-    message("Writing meta data to ", fname)
-    df <- data.frame(Cell = rownames(x = df), df, check.names = FALSE)
-    write.table(
-      x = df[order, ],
-      sep = "\t",
-      file = fname,
-      quote = FALSE,
-      row.names = FALSE
-    )
-  }
-  # Export markers
-  markers.string <- ''
-  if (!is.null(x = markers.file)) {
-    ext <- file_ext(x = markers.file)
-    fname <- paste0("markers.", ext)
-    file.copy(from = markers.file, to = file.path(dir, fname))
-    markers.string <- sprintf(
-      'markers = [{"file": "%s", "shortLabel": "Seurat Cluster Markers"}]',
-      fname
-    )
-  }
-  config <- c(
-    'name="%s"',
-    'shortLabel="%1$s"',
-    'exprMatrix="exprMatrix.tsv.gz"',
-    '#tags = ["10x", "smartseq2"]',
-    'meta="meta.tsv"',
-    '# possible values: "gencode-human", "gencode-mouse", "symbol" or "auto"',
-    'geneIdType="auto"',
-    'clusterField="%s"',
-    'labelField="%2$s"',
-    'enumFields=%s',
-    '%s',
-    'coords=%s'
-  )
-  config <- paste(config, collapse = '\n')
-  enum.string <- paste0(
-    "[",
-    paste(paste0('"', enum.fields, '"'), collapse = ", "),
-    "]"
-  )
-  coords.string <- paste0(
-    "[",
-    paste(embeddings.conf, collapse = ",\n"),
-    "]"
-  )
-  config <- sprintf(
-    config,
-    dataset.name,
-    cluster.field,
-    enum.string,
-    markers.string,
-    coords.string
-  )
-  fname <- file.path(dir, "cellbrowser.conf")
-  if (file.exists(fname)) {
-    message(
-      "`cellbrowser.conf` already exists in target directory, refusing to ",
-      "overwrite it"
-    )
-  } else {
-    cat(config, file = fname)
-  }
-  message("Prepared cellbrowser directory ", dir)
-  if (!is.null(x = cb.dir)) {
-    if (!py_module_available(module = "cellbrowser")) {
-      stop(
-        "The Python package `cellbrowser` is required to prepare and run ",
-        "Cellbrowser. Please install it ",
-        "on the Unix command line with `sudo pip install cellbrowser` (if root) ",
-        "or `pip install cellbrowser --user` (as a non-root user). ",
-        "To adapt the Python that is used, you can either set the env. variable RETICULATE_PYTHON ",
-        "or do `require(reticulate) and use one of these functions: use_python(), use_virtualenv(), use_condaenv(). ",
-        "See https://rstudio.github.io/reticulate/articles/versions.html; ",
-        "at the moment, R's reticulate is using this Python: ",
-        import(module = 'sys')$executable,
-        ". "
-      )
-    }
-    if (!is.null(x = port)) {
-      port <- as.integer(x = port)
-    }
-    message("Converting cellbrowser directory to html/json files")
-    cb <- import(module = "cellbrowser")
-    cb$cellbrowser$build(dir, cb.dir)
-    if (!is.null(port)) {
-      message("Starting http server")
-      cb$cellbrowser$stop()
-      cb$cellbrowser$serve(cb.dir, port)
-      Sys.sleep(time = 0.4)
-      browseURL(url = paste0("http://localhost:", port))
-    }
   }
 }
 
@@ -882,6 +614,7 @@ ExportToCellbrowser <- function(
 #' @importFrom stats sd
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' ExpSD(x = c(1, 2, 3))
@@ -902,6 +635,7 @@ ExpSD <- function(x) {
 #' @importFrom stats var
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' ExpVar(x = c(1, 2, 3))
@@ -925,6 +659,7 @@ ExpVar <- function(x) {
 #' @importFrom matrixStats rowMeans2 rowSds rowSums2
 #'
 #' @export
+#' @concept utilities
 #'
 FastRowScale <- function(
   mat,
@@ -987,6 +722,7 @@ FastRowScale <- function(
 #' @name UpdateSymbolList
 #'
 #' @export
+#' @concept utilities
 #'
 #' @seealso \code{\link[httr]{GET}}
 #'
@@ -1095,6 +831,7 @@ GeneSymbolThesarus <- function(
 #' @return A Seurat object with the correlation stored in metafeatures
 #'
 #' @export
+#' @concept utilities
 #'
 GroupCorrelation <- function(
   object,
@@ -1154,6 +891,7 @@ GroupCorrelation <- function(
 #' @importFrom stats var
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' LogVMR(x = c(1, 2, 3))
@@ -1183,8 +921,10 @@ LogVMR <- function(x, ...) {
 #' @importFrom Matrix rowSums colMeans
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- MetaFeature(
 #'   object = pbmc_small,
 #'   features = c("LTB", "EAF2"),
@@ -1222,6 +962,7 @@ MetaFeature <- function(
 #' @param max all values above this max value will be replaced with max
 #' @return Returns matrix after performing these floor and ceil operations
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
@@ -1254,8 +995,10 @@ MinMax <- function(data, min, max) {
 #' Seurat object with the proportion of the feature set stored in metadata.
 #' @importFrom Matrix colSums
 #' @export
+#' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' # Calculate the proportion of transcripts mapping to mitochondrial genes
 #' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 #' # system of interest
@@ -1282,6 +1025,288 @@ PercentageFeatureSet <- function(
   return(percent.featureset)
 }
 
+# Pseudobulk feature expression by identity class
+#
+# Returns a representative expression value for each identity class
+#
+# @param object Seurat object
+# @param pb.method Whether to 'average' (default) or 'aggregate' expression levels
+# @param assays Which assays to use. Default is all assays
+# @param features Features to analyze. Default is all features in the assay
+# @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
+# @param group.by Categories for grouping (e.g, ident, replicate, celltype); 'ident' by default
+# @param add.ident (Deprecated) Place an additional label on each cell prior to pseudobulking
+# (very useful if you want to observe cluster pseudobulk values, separated by replicate, for example)
+# @param slot Slot(s) to use; if multiple slots are given, assumed to follow
+# the order of 'assays' (if specified) or object's assays
+# @param verbose Print messages and show progress bar
+# @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
+#
+# @return Returns a matrix with genes as rows, identity classes as columns.
+# If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#
+#' @importFrom Matrix rowMeans sparse.model.matrix
+#' @importFrom stats as.formula
+# @export
+#
+# @examples
+# data("pbmc_small")
+# head(PseudobulkExpression(object = pbmc_small))
+#
+PseudobulkExpression <- function(
+  object,
+  pb.method = 'average',
+  assays = NULL,
+  features = NULL,
+  return.seurat = FALSE,
+  group.by = 'ident',
+  add.ident = NULL,
+  slot = 'data',
+  verbose = TRUE,
+  ...
+) {
+  CheckDots(..., fxns = 'CreateSeuratObject')
+  if (!is.null(x = add.ident)) {
+    .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
+    group.by <- c('ident', add.ident)
+  }
+  if (!(pb.method %in% c('average', 'aggregate'))) {
+    stop("'pb.method' must be either 'average' or 'aggregate'")
+  }
+  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  assays <- assays %||% object.assays
+  if (!all(assays %in% object.assays)) {
+    assays <- assays[assays %in% object.assays]
+    if (length(x = assays) == 0) {
+      stop("None of the requested assays are present in the object")
+    } else {
+      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
+    }
+  }
+  if (length(x = slot) == 1) {
+    slot <- rep_len(x = slot, length.out = length(x = assays))
+  } else if (length(x = slot) != length(x = assays)) {
+    stop("Number of slots provided does not match number of assays")
+  }
+  data <- FetchData(object = object, vars = rev(x = group.by))
+  data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
+  if (nrow(x = data) < ncol(x = object)) {
+    message("Removing cells with NA for 1 or more grouping variables")
+    object <- subset(x = object, cells = rownames(x = data))
+  }
+  for (i in 1:ncol(x = data)) {
+    data[, i] <- as.factor(x = data[, i])
+  }
+  num.levels <- sapply(
+    X = 1:ncol(x = data),
+    FUN = function(i) {
+      length(x = levels(x = data[, i]))
+    }
+  )
+  if (any(num.levels == 1)) {
+    message(paste0("The following grouping variables have 1 value and will be ignored: ",
+                   paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
+    group.by <- colnames(x = data)[which(num.levels > 1)]
+    data <- data[, which(num.levels > 1), drop = F]
+  }
+  if (ncol(x = data) == 0) {
+    message("All grouping variables have 1 value only. Computing across all cells.")
+    category.matrix <- matrix(
+      data = 1,
+      nrow = ncol(x = object),
+      dimnames = list(Cells(x = object), 'all')
+    )
+    if (pb.method == 'average') {
+      category.matrix <- category.matrix / sum(category.matrix)
+    }
+  } else {
+    category.matrix <- sparse.model.matrix(object = as.formula(
+      object = paste0(
+        '~0+',
+        paste0(
+          "data[,",
+          1:length(x = group.by),
+          "]",
+          collapse = ":"
+        )
+      )
+    ))
+    colsums <- colSums(x = category.matrix)
+    category.matrix <- category.matrix[, colsums > 0]
+    colsums <- colsums[colsums > 0]
+    if (pb.method == 'average') {
+      category.matrix <- Sweep(
+        x = category.matrix,
+        MARGIN = 2,
+        STATS = colsums,
+        FUN = "/")
+    }
+    colnames(x = category.matrix) <- sapply(
+      X = colnames(x = category.matrix),
+      FUN = function(name) {
+        name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+        return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+      })
+  }
+  data.return <- list()
+  for (i in 1:length(x = assays)) {
+    data.use <- GetAssayData(
+      object = object,
+      assay = assays[i],
+      slot = slot[i]
+    )
+    features.to.avg <- features %||% rownames(x = data.use)
+    if (inherits(x = features, what = "list")) {
+      features.to.avg <- features[i]
+    }
+    if (IsMatrixEmpty(x = data.use)) {
+      warning(
+        "The ", slot[i], " slot for the ", assays[i],
+        " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
+      next
+    }
+    bad.features <- setdiff(x = features.to.avg, y = rownames(x = data.use))
+    if (length(x = bad.features) > 0) {
+      warning(
+        "The following ", length(x = bad.features),
+        " features were not found in the ", assays[i], " assay: ",
+        paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
+    }
+    features.assay <- intersect(x = features.to.avg, y = rownames(x = data.use))
+    if (length(x = features.assay) > 0) {
+      data.use <- data.use[features.assay, ]
+    } else {
+      warning("None of the features specified were found in the ", assays[i],
+              " assay.", call. = FALSE, immediate. = TRUE)
+      next
+    }
+    if (slot[i] == 'data') {
+      data.use <- expm1(x = data.use)
+      if (any(data.use == Inf)) {
+        warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
+      }
+    }
+    data.return[[i]] <- as.matrix(x = (data.use %*% category.matrix))
+    names(x = data.return)[i] <- assays[[i]]
+  }
+  if (return.seurat) {
+    if (slot[1] == 'scale.data') {
+      na.matrix <- data.return[[1]]
+      na.matrix[1:length(x = na.matrix)] <- NA
+      # TODO: restore once check.matrix is in SeuratObject
+      # toRet <- CreateSeuratObject(
+      #   counts = na.matrix,
+      #   project = if (pb.method == "average") "Average" else "Aggregate",
+      #   assay = names(x = data.return)[1],
+      #   check.matrix = FALSE,
+      #   ...
+      # )
+      toRet <- CreateSeuratObject(
+        counts = na.matrix,
+        project = if (pb.method == "average") "Average" else "Aggregate",
+        assay = names(x = data.return)[1],
+        ...
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "counts",
+        new.data = matrix()
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "data",
+        new.data = na.matrix
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "scale.data",
+        new.data = data.return[[1]]
+      )
+    } else {
+      # TODO: restore once check.matrix is in SeuratObject
+      # toRet <- CreateSeuratObject(
+      #   counts = data.return[[1]],
+      #   project = if (pb.method == "average") "Average" else "Aggregate",
+      #   assay = names(x = data.return)[1],
+      #   check.matrix = FALSE,
+      #   ...
+      # )
+      toRet <- CreateSeuratObject(
+        counts = data.return[[1]],
+        project = if (pb.method == "average") "Average" else "Aggregate",
+        assay = names(x = data.return)[1],
+        ...
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "data",
+        new.data = log1p(x = as.matrix(x = data.return[[1]]))
+      )
+    }
+    #for multimodal data
+    if (length(x = data.return) > 1) {
+      for (i in 2:length(x = data.return)) {
+        if (slot[i] == 'scale.data') {
+          na.matrix <- data.return[[i]]
+          na.matrix[1:length(x = na.matrix)] <- NA
+          # TODO: restore once check.matrix is in SeuratObject
+          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "counts",
+            new.data = matrix()
+          )
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "data",
+            new.data = na.matrix
+          )
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "scale.data",
+            new.data = as.matrix(x = data.return[[i]])
+          )
+        } else {
+          # TODO: restore once check.matrix is in SeuratObject
+          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "data",
+            new.data = log1p(x = as.matrix(x = data.return[[i]]))
+          )
+        }
+
+      }
+    }
+    if (DefaultAssay(object = object) %in% names(x = data.return)) {
+      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
+      if (slot[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
+        toRet <- ScaleData(object = toRet, verbose = verbose)
+      }
+    }
+    if ('ident' %in% group.by) {
+      first.cells <- c()
+      for (i in 1:ncol(x = category.matrix)) {
+        first.cells <- c(first.cells, Position(x = category.matrix[,i], f = function(x) {x > 0}))
+      }
+      Idents(object = toRet) <- Idents(object = object)[first.cells]
+    }
+    return(toRet)
+  } else {
+    return(data.return)
+  }
+}
+
 #' Load the Annoy index file
 #'
 #' @param object Neighbor object
@@ -1289,6 +1314,7 @@ PercentageFeatureSet <- function(
 #'
 #' @return Returns the Neighbor object with the index stored
 #' @export
+#' @concept utilities
 #'
 LoadAnnoyIndex <- function(object, file){
   metric <- slot(object = object, name = "alg.info")$metric
@@ -1308,6 +1334,7 @@ LoadAnnoyIndex <- function(object, file){
 #' @param file Path to file to write index to
 #'
 #' @export
+#' @concept utilities
 #'
 SaveAnnoyIndex <- function(
   object,
@@ -1330,8 +1357,10 @@ SaveAnnoyIndex <- function(
 #' @return A Seurat object with the active idents regrouped
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small <- RegroupIdents(pbmc_small, metadata = "groups")
 #'
 RegroupIdents <- function(object, metadata) {
@@ -1349,95 +1378,13 @@ RegroupIdents <- function(object, metadata) {
   return(object)
 }
 
-#' Merge two matrices by rowname
-#'
-#' This function is for use on sparse matrices and
-#' should not be run on a Seurat object.
-#'
-#' Shared matrix rows (with the same row name) will be merged,
-#' and unshared rows (with different names) will be filled
-#' with zeros in the matrix not containing the row.
-#'
-#' @param mat1 First matrix
-#' @param mat2 Second matrix or list of matrices
-#'
-#' @return A merged matrix
-#'
-#' @return Returns a sparse matrix
-#'
-#' @importFrom methods as
-#
-#' @export
-#'
-RowMergeSparseMatrices <- function(mat1, mat2) {
-  all.mat <- c(list(mat1), mat2)
-  all.rownames <- list()
-  all.colnames <- list()
-  use.cbind <- TRUE
-  for(i in 1:length(x = all.mat)) {
-    if (inherits(x = all.mat[[i]], what = "data.frame")) {
-      all.mat[[i]] <- as.matrix(x = all.mat[[i]])
-    }
-    all.rownames[[i]] <- rownames(x = all.mat[[i]])
-    all.colnames[[i]] <- colnames(x = all.mat[[i]])
-    # use cbind if all matrices have the same rownames
-    if (i > 1) {
-      if (!isTRUE(x = all.equal(target = all.rownames[[i]], current = all.rownames[[i - 1]]))) {
-        use.cbind <- FALSE
-      }
-    }
-  }
-  if (isTRUE(x = use.cbind)) {
-    new.mat <- do.call(what = cbind, args = all.mat)
-  } else {
-    all.mat <- lapply(X = all.mat, FUN = as, Class = "RsparseMatrix")
-    all.names <- unique(x = do.call(what = c, args = all.rownames))
-    new.mat <- RowMergeMatricesList(
-      mat_list = all.mat,
-      mat_rownames = all.rownames,
-      all_rownames = all.names
-    )
-    rownames(x = new.mat) <- make.unique(names = all.names)
-  }
-  colnames(x = new.mat) <- make.unique(names = c(do.call(what = c, all.colnames)))
-  return(new.mat)
-}
-
-#' Stop Cellbrowser web server
-#'
-#' @importFrom reticulate py_module_available
-#' @importFrom reticulate import
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' StopCellbrowser()
-#' }
-#'
-StopCellbrowser <- function() {
-  .Deprecated(
-    new = "SeuratWrappers::StopCellbrowser",
-    msg = paste(
-      "Cell browser functionality is moving to SeuratWrappers",
-      "For more details, please see https://github.com/satijalab/seurat-wrappers",
-      sep = '\n'
-    )
-  )
-  if (py_module_available(module = "cellbrowser")) {
-    cb <- import(module = "cellbrowser")
-    cb$cellbrowser$stop()
-  } else {
-    stop("The `cellbrowser` package is not available in the Python used by R's reticulate")
-  }
-}
-
 #' @rdname UpdateSymbolList
 #'
 #' @return For \code{UpdateSymbolList}, \code{symbols} with updated symbols from
 #' HGNC's gene names database
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' \dontrun{
@@ -1493,6 +1440,7 @@ UpdateSymbolList <- function(
 #' @importFrom Matrix as.matrix
 #'
 #' @rdname as.sparse
+#' @concept utilities
 #' @export
 #' @method as.data.frame Matrix
 #'
@@ -1734,6 +1682,14 @@ CheckDots <- function(..., fxns = NULL) {
   }
 }
 
+# Call gc() to perform garbage collection
+#
+CheckGC <- function() {
+  if (getOption(x = "Seurat.memsafe")) {
+    gc(verbose = FALSE)
+  }
+}
+
 # Check a list of objects for duplicate cell names
 #
 # @param object.list List of Seurat objects
@@ -1741,6 +1697,10 @@ CheckDots <- function(..., fxns = NULL) {
 # @param stop Error out if any duplicate names exist
 #
 # @return Returns list of objects with duplicate cells renamed to be unique
+#
+# @keywords internal
+#
+# @noRd
 #
 CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   cell.names <- unlist(x = lapply(X = object.list, FUN = colnames))
@@ -1764,12 +1724,25 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   return(object.list)
 }
 
-# Call gc() to perform garbage collection
+
+# Create an empty dummy assay to replace existing assay
 #
-CheckGC <- function() {
-  if (getOption(x = "Seurat.memsafe")) {
-    gc(verbose = FALSE)
-  }
+CreateDummyAssay <- function(assay) {
+  cm <- as.sparse(x = matrix(
+    data = 0,
+    nrow = nrow(x = assay),
+    ncol = ncol(x = assay)
+  ))
+  rownames(x = cm) <- rownames(x = assay)
+  colnames(x = cm) <- colnames(x = assay)
+  # TODO: restore once check.matrix is in SeuratObject
+  # return(CreateAssayObject(
+  #   counts = cm,
+  #   check.matrix = FALSE
+  # ))
+  return(CreateAssayObject(
+    counts = cm
+  ))
 }
 
 # Extract delimiter information from a string.
@@ -1851,11 +1824,37 @@ is.null.externalptr <- function(pointer) {
 IsSCT <- function(assay) {
   if (is.list(x = assay)) {
     sct.check <- lapply(X = assay, FUN = function(x) {
-      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')))
+      return(!is.null(x = Misc(object = x, slot = 'vst.out')) | !is.null(x = Misc(object = x, slot = 'vst.set')) | inherits(x = x, what = "SCTAssay"))
     })
     return(unlist(x = sct.check))
   }
-  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')))
+  return(!is.null(x = Misc(object = assay, slot = 'vst.out')) | !is.null(x = Misc(object = assay, slot = 'vst.set')) | inherits(x = assay, what = "SCTAssay"))
+}
+
+# Check whether a vst.out is from sctransform
+#
+# @param vst.out a sct model from sctransform
+#
+# @return Boolean
+#
+IsVSTout <- function(vst.out) {
+  vst.element <- c("model_str", "model_pars_fit", "cell_attr" )
+   vst.check <- setdiff(x = vst.element, y = names(x = vst.out))
+   if (length(x = setdiff(x = vst.element, y = names(x = vst.out))) == 0) {
+     vst.check <- TRUE
+   } else {
+     vst.check <- FALSE
+   }
+  return(vst.check)
+}
+
+# Calculate euclidean distance the x and y,
+# and subtract the nearest neighbors of x distance to keep local connectivity
+# It is used in FindModalityWeights to calculate the with and cross modality distance
+impute_dist <- function(x, y, nearest.dist) {
+  dist <- sqrt(x = rowSums(x = (x - y)**2)) - nearest.dist
+  dist <- ReLu(x = dist)
+  return(dist)
 }
 
 # Check the length of components of a list
@@ -1969,6 +1968,22 @@ Melt <- function(x) {
   ))
 }
 
+# Modify parameters in calling environment
+#
+# Used exclusively for helper parameter validation functions
+#
+# @param param name of parameter to change
+# @param value new value for parameter
+#
+ModifyParam <- function(param, value) {
+  # modify in original function environment
+  env1 <- sys.frame(which = length(x = sys.frames()) - 2)
+  env1[[param]] <- value
+  # also modify in validation function environment
+  env2 <- sys.frame(which = length(x = sys.frames()) - 1)
+  env2[[param]] <- value
+}
+
 # Give hints for old paramters and their newer counterparts
 #
 # This is a non-exhaustive list. If your function isn't working properly based
@@ -2020,8 +2035,8 @@ PackageCheck <- function(..., error = TRUE) {
   if (error && any(!package.installed)) {
     stop(
       "Cannot find the following packages: ",
-       paste(pkgs[!package.installed], collapse = ', '),
-       ". Please install"
+      paste(pkgs[!package.installed], collapse = ', '),
+      ". Please install"
     )
   }
   invisible(x = package.installed)
@@ -2103,15 +2118,30 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
-# Return what was passed
-#
-# @param x anything
-#
-# @return Returns x
-#
-Same <- function(x) {
-  .Deprecated(new = 'base::identity', package = NULL)
+
+# Rectified linear units function. Calculate positive part of its argument
+# The input can be a vector and a matrix
+ReLu <- function(x) {
+  x[x < 0] <- 0
   return(x)
+}
+
+# Remove the last field from a string
+#
+# Parses a string (usually a cell name) and removes the last field based on a delimter
+#
+# @param string String to parse
+# @param delim Delimiter to use, set to underscore by default.
+#
+# @return A new string sans the last field
+#
+RemoveLastField <- function(string, delim = "_") {
+  ss <- strsplit(x = string, split = delim)[[1]]
+  if (length(x = ss) == 1) {
+    return(string)
+  } else {
+    return(paste(ss[1:(length(x = ss)-1)], collapse = delim))
+  }
 }
 
 # Sweep out array summaries

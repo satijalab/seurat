@@ -26,3 +26,4 @@ mat_norm <- LogNormalize(data = mat)
 mat_norm
 
 }
+\concept{preprocessing}

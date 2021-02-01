@@ -46,3 +46,4 @@ Load10X_Spatial(data.dir = data_dir)
 }
 
 }
+\concept{preprocessing}

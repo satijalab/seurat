@@ -10,6 +10,7 @@ NULL
 #' @param ... Extra parameters passed to \code{DimHeatmap}
 #'
 #' @rdname DimHeatmap
+#' @concept convenience
 #' @export
 #'
 PCHeatmap <- function(object, ...) {
@@ -22,6 +23,7 @@ PCHeatmap <- function(object, ...) {
 #' @param ... Extra parameters passed to \code{DimPlot}
 #'
 #' @rdname DimPlot
+#' @concept convenience
 #' @export
 #'
 PCAPlot <- function(object, ...) {
@@ -29,6 +31,7 @@ PCAPlot <- function(object, ...) {
 }
 
 #' @rdname SpatialPlot
+#' @concept convenience
 #' @export
 #'
 SpatialDimPlot <- function(
@@ -78,6 +81,7 @@ SpatialDimPlot <- function(
 }
 
 #' @rdname SpatialPlot
+#' @concept convenience
 #' @export
 #'
 SpatialFeaturePlot <- function(
@@ -115,6 +119,7 @@ SpatialFeaturePlot <- function(
 }
 
 #' @rdname DimPlot
+#' @concept convenience
 #' @export
 #'
 TSNEPlot <- function(object, ...) {
@@ -122,6 +127,7 @@ TSNEPlot <- function(object, ...) {
 }
 
 #' @rdname DimPlot
+#' @concept convenience
 #' @export
 #'
 UMAPPlot <- function(object, ...) {

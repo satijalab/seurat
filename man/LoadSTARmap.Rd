@@ -39,3 +39,4 @@ Load STARmap data
 \seealso{
 \code{\link{STARmap}}
 }
+\concept{preprocessing}

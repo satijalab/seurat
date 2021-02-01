@@ -1,0 +1,148 @@
+---
+title: "Seurat - Interaction Tips"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
+# Load in the data
+
+This vignette demonstrates some useful features for interacting with the Seurat object. For demonstration purposes, we will be using the 2,700 PBMC object that is created in the first guided tutorial. You can load the data from our [SeuratData](https://github.com/satijalab/seurat-data) package. To simulate the scenario where we have two replicates, we will randomly assign half the cells in each cluster to be from "rep1" and other half from "rep2".
+
+```{r load_data}
+library(Seurat)
+library(SeuratData)
+InstallData("pbmc3k")
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
+
+# pretend that cells were originally assigned to one of two replicates (we assign randomly here)
+# if your cells do belong to multiple replicates, and you want to add this info to the Seurat object
+# create a data frame with this information (similar to replicate.info below)
+set.seed(42)
+pbmc$replicate <- sample(c('rep1', 'rep2'), size = ncol(pbmc), replace = TRUE)
+```
+
+# Switch identity class between cluster ID and replicate
+
+```{r swap.idents}
+# Plot UMAP, coloring cells by cell type (currently stored in object@ident)
+DimPlot(pbmc, reduction = 'umap')
+# How do I create a UMAP plot where cells are colored by replicate?
+# First, store the current identities in a new column of meta.data called CellType
+pbmc$CellType <- Idents(pbmc)
+# Next, switch the identity class of all cells to reflect replicate ID
+Idents(pbmc) <- 'replicate'
+DimPlot(pbmc, reduction = 'umap')
+# alternately : DimPlot(pbmc, reduction = 'umap', group.by = "replicate")
+# you can pass the shape.by to label points by both replicate and cell type
+
+# Switch back to cell type labels
+Idents(pbmc) <- 'CellType'
+```
+
+# Tabulate cells by cluster ID, replicate, or both
+
+```{r counting}
+# How many cells are in each cluster
+table(Idents(pbmc))
+
+# How many cells are in each replicate?
+table(pbmc$replicate)
+
+# What proportion of cells are in each cluster?
+prop.table(table(Idents(pbmc)))
+
+# How does cluster membership vary by replicate?
+table(Idents(pbmc), pbmc$replicate)
+prop.table(table(Idents(pbmc), pbmc$replicate), margin = 2)
+```
+
+# Selecting particular cells and subsetting the Seurat object
+
+```{r subset}
+# What are the cell names of all NK cells?
+WhichCells(pbmc, idents = "NK")
+
+# How can I extract expression matrix for all NK cells (perhaps, to load into another package)
+nk.raw.data <- as.matrix(GetAssayData(pbmc, slot = 'counts')[, WhichCells(pbmc, ident = "NK")])
+
+# Can I create a Seurat object based on expression of a feature or value in object metadata?
+subset(pbmc, subset = MS4A1 > 1)
+subset(pbmc, subset = replicate == 'rep2')
+
+# Can I create a Seurat object of just the NK cells and B cells?
+subset(pbmc, idents = c('NK', 'B'))
+
+# Can I create a Seurat object of all cells except the NK cells and B cells?
+subset(pbmc, idents = c('NK', 'B'), invert = TRUE)
+
+# note that if you wish to perform additional rounds of clustering after subsetting
+# we recommend re-running FindVariableFeatures() and ScaleData()
+```
+
+# Calculating the average gene expression within a cluster
+
+```{r avg.exp, fig.height=8}
+# How can I calculate the average expression of all cells within a cluster?
+cluster.averages <- AverageExpression(pbmc)
+head(cluster.averages[['RNA']][, 1:5])
+
+# Return this information as a Seurat object (enables downstream plotting and analysis)
+# First, replace spaces with underscores '_' so ggplot2 doesn't fail
+orig.levels <- levels(pbmc)
+Idents(pbmc) <- gsub(pattern = ' ', replacement = '_', x = Idents(pbmc))
+orig.levels <- gsub(pattern = ' ', replacement = '_', x = orig.levels)
+levels(pbmc) <- orig.levels
+cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE)
+cluster.averages
+
+# How can I plot the average expression of NK cells vs. CD8 T cells?
+# Pass do.hover = T for an interactive plot to identify gene outliers
+CellScatter(cluster.averages, cell1 = "NK", cell2 = "CD8_T")
+
+# How can I calculate expression averages separately for each replicate?
+cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE, add.ident = "replicate")
+CellScatter(cluster.averages, cell1 = "CD8_T_rep1", cell2 = "CD8_T_rep2")
+
+# You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between replicates
+DoHeatmap(cluster.averages, features = unlist(TopFeatures(pbmc[['pca']], balanced = TRUE)), size = 3, draw.lines = FALSE)
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/interaction_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

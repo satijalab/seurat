@@ -17,3 +17,4 @@ RunMoransI(data, pos, verbose = TRUE)
 Wraps the functionality of the Moran.I function from the ape package.
 Weights are computed as 1/distance.
 }
+\concept{preprocessing}

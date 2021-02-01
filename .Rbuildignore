@@ -8,3 +8,8 @@ azure-pipelines.yml
 cran-comments.md
 travis_setup.sh
 CODE_OF_CONDUCT.md
+^_pkgdown\.yaml$
+^docs$
+^pkgdown$
+^index\.md$
+^vignettes$

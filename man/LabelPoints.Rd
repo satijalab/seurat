@@ -38,6 +38,7 @@ A ggplot object
 Add text labels to a ggplot2 plot
 }
 \examples{
+data("pbmc_small")
 ff <- TopFeatures(object = pbmc_small[['pca']])
 cc <- TopCells(object = pbmc_small[['pca']])
 plot <- FeatureScatter(object = pbmc_small, feature1 = ff[1], feature2 = ff[2])
@@ -47,3 +48,4 @@ LabelPoints(plot = plot, points = cc)
 \seealso{
 \code{\link[ggplot2]{geom_text}}
 }
+\concept{visualization}

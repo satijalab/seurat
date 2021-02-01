@@ -1,0 +1,131 @@
+---
+title: "Parallelization in Seurat with future"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+In Seurat, we have chosen to use the `future` framework for parallelization. In this vignette, we will demonstrate how you can take advantage of the `future` implementation of certain Seurat functions from a user's perspective. If you are interested in learning more about the `future` framework beyond what is described here, please see the package vignettes [here](https://cran.r-project.org/web/packages/future/index.html) for a comprehensive and detailed description. 
+
+# How to use parallelization in Seurat 
+
+To access the parallel version of functions in Seurat, you need to load the `future` package and set the `plan`. The `plan` will specify how the function is executed. The default behavior is to evaluate in a non-parallelized fashion (sequentially). To achieve parallel (asynchronous) behavior, we typically recommend the "multiprocess" strategy. By default, this uses all available cores but you can set the `workers` parameter to limit the number of concurrently active futures. 
+
+```{r future.setup}
+library(future)
+# check the current active plan
+plan()
+# change the current plan to access parallelization
+plan("multiprocess", workers = 4)
+plan()
+```
+
+# 'Futurized' functions in Seurat
+
+The following functions have been written to take advantage of the future framework and will be parallelized if the current `plan` is set appropriately. Importantly, the way you call the function shouldn't change. 
+
+* `NormalizeData()`
+* `ScaleData()`
+* `JackStraw()`
+* `FindMarkers()`
+* `FindIntegrationAnchors()`
+* `FindClusters()` - if clustering over multiple resolutions
+
+For example, to run the parallel version of `FindMarkers()`, you simply need to set the plan and call the function as usual.
+
+```{r demo}
+library(Seurat)
+pbmc <- readRDS("../data/pbmc3k_final.rds")
+
+# Enable parallelization
+plan('multiprocess', workers = 4)
+markers <- FindMarkers(pbmc, ident.1 = "NK", verbose = FALSE)
+```
+
+# Comparison of sequential vs. parallel 
+
+Here we'll perform a brief comparison the runtimes for the same function calls with and without parallelization. Note that while we expect that using a parallelized strategy will decrease the runtimes of the functions listed above, the magnitude of that decrease will depend on many factors (e.g. the size of the dataset, the number of workers, specs of the system, the future strategy, etc). The following benchmarks were performed on a desktop computer running Ubuntu 16.04.5 LTS with an Intel(R) Core(TM) i7-6800K CPU @ 3.40GHz and 96 GB of RAM.
+
+<details>
+  <summary>**Click to see bencharking code**</summary>
+
+```{r compare}
+timing.comparisons <- data.frame(fxn = character(), time = numeric(), strategy = character())
+plan("sequential")
+start <- Sys.time()
+pbmc <- ScaleData(pbmc, vars.to.regress = "percent.mt", verbose = FALSE)
+end <- Sys.time()
+timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "ScaleData", time = as.numeric(end - start, units = "secs"), strategy = "sequential"))
+
+start <- Sys.time()
+markers <- FindMarkers(pbmc, ident.1 = "NK", verbose = FALSE)
+end <- Sys.time()
+timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "FindMarkers", time = as.numeric(end - start, units = "secs"), strategy = "sequential"))
+
+plan("multiprocess", workers = 4)
+start <- Sys.time()
+pbmc <- ScaleData(pbmc, vars.to.regress = "percent.mt", verbose = FALSE)
+end <- Sys.time()
+timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "ScaleData", time = as.numeric(end - start, units = "secs"), strategy = "multiprocess"))
+
+start <- Sys.time()
+markers <- FindMarkers(pbmc, ident.1 = "NK", verbose = FALSE)
+end <- Sys.time()
+timing.comparisons <- rbind(timing.comparisons, data.frame(fxn = "FindMarkers", time = as.numeric(end - start, units = "secs"), strategy = "multiprocess"))
+```
+
+</details>
+
+```{r viz.compare}
+library(ggplot2)
+library(cowplot)
+ggplot(timing.comparisons, aes(fxn, time)) + geom_bar(aes(fill = strategy), stat = "identity", position = "dodge") + ylab("Time(s)") + xlab("Function") + theme_cowplot()
+```
+
+# Frequently asked questions
+
+1. **Where did my progress bar go?**
+<br>Unfortunately, the when running these functions in any of the parallel plan modes you will lose the progress bar. This is due to some technical limitations in the `future` framework and R generally. If you want to monitor function progress, you'll need to forgo parallelization and use `plan("sequential")`.
+
+2. **What should I do if I keep seeing the following error?**
+```
+Error in getGlobalsAndPackages(expr, envir = envir, globals = TRUE) : 
+  The total size of the X globals that need to be exported for the future expression ('FUN()') is X GiB. 
+  This exceeds the maximum allowed size of 500.00 MiB (option 'future.globals.maxSize'). The X largest globals are ... 
+```
+For certain functions, each worker needs access to certain global variables. If these are larger than the default limit, you will see this error. To get around this, you can set `options(future.globals.maxSize = X)`, where X is the maximum allowed size in bytes. So to set it to 1GB, you would run `options(future.globals.maxSize = 1000 * 1024^2)`. Note that this will increase your RAM usage so set this number mindfully. 
+
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/future_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

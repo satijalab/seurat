@@ -82,7 +82,7 @@ to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
-different colors and different shapes on cells}
+different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
 
 \item{slot}{Which slot to pull expression data from?}
 
@@ -111,7 +111,7 @@ deprecated. Please use \code{order} instead.}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{raster}{Convert points to raster format, default is \code{NULL} which
-automatically rasterizes if plotting more than 50,000 cells}
+automatically rasterizes if plotting more than 100,000 cells}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if
@@ -126,6 +126,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \code{HoverLocator} and \code{CellSelector}, respectively.
 }
 \examples{
+data("pbmc_small")
 FeaturePlot(object = pbmc_small, features = 'PC_1')
 
 }
@@ -133,3 +134,4 @@ FeaturePlot(object = pbmc_small, features = 'PC_1')
 \code{\link{DimPlot}} \code{\link{HoverLocator}}
 \code{\link{CellSelector}}
 }
+\concept{visualization}

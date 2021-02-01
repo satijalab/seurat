@@ -7,10 +7,13 @@
 FindTransferAnchors(
   reference,
   query,
-  normalization.method = c("LogNormalize", "SCT"),
+  normalization.method = "LogNormalize",
+  recompute.residuals = TRUE,
   reference.assay = NULL,
+  reference.neighbors = NULL,
   query.assay = NULL,
   reduction = "pcaproject",
+  reference.reduction = NULL,
   project.query = FALSE,
   features = NULL,
   npcs = 30,
@@ -20,9 +23,11 @@ FindTransferAnchors(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   approx.pca = TRUE,
+  mapping.score.k = NULL,
   verbose = TRUE
 )
 }
@@ -32,9 +37,15 @@ FindTransferAnchors(
 \item{query}{\code{\link{Seurat}} object to use as the query}
 
 \item{normalization.method}{Name of normalization method used: LogNormalize
-or SCT}
+or SCT.}
+
+\item{recompute.residuals}{If using SCT as a normalization method, compute
+query Pearson residuals using the reference SCT model parameters.}
 
 \item{reference.assay}{Name of the Assay to use from reference}
+
+\item{reference.neighbors}{Name of the Neighbor to use from the reference.
+Optionally enables reuse of precomputed neighbors.}
 
 \item{query.assay}{Name of the Assay to use from query}
 
@@ -46,16 +57,22 @@ Options are:
    \item{cca: Run a CCA on the reference and query }
 }}
 
+\item{reference.reduction}{Name of dimensional reduction to use from the
+reference if running the pcaproject workflow. Optionally enables reuse of
+precomputed reference dimensional reduction.}
+
 \item{project.query}{Project the PCA from the query dataset onto the
 reference. Use only in rare cases where the query dataset has a much larger
-cell number, but the reference dataset has a unique assay for transfer.}
+cell number, but the reference dataset has a unique assay for transfer. In
+this case, the default features will be set to the variable features of the
+query object that are alos present in the reference.}
 
 \item{features}{Features to use for dimensional reduction. If not specified,
 set as variable features of the reference object which are also present in
 the query.}
 
-\item{npcs}{Number of PCs to compute on reference. If null, then use an
-existing PCA structure in the reference object}
+\item{npcs}{Number of PCs to compute on reference if reference.reduction is
+not provided.}
 
 \item{l2.norm}{Perform L2 normalization on the cell embeddings after
 dimensional reduction}
@@ -65,7 +82,8 @@ neighbor search space}
 
 \item{k.anchor}{How many neighbors (k) to use when finding anchors}
 
-\item{k.filter}{How many neighbors (k) to use when filtering anchors}
+\item{k.filter}{How many neighbors (k) to use when filtering anchors. Set to
+NA to turn off filtering.}
 
 \item{k.score}{How many neighbors (k) to use when scoring anchors}
 
@@ -75,11 +93,19 @@ neighborhood search space in the anchor filtering}
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
 
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
+
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}
 
 \item{approx.pca}{Use truncated singular value decomposition to approximate
 PCA}
+
+\item{mapping.score.k}{Compute and store nearest k query neighbors in the
+AnchorSet object that is returned. You can optionally set this if you plan
+on computing the mapping score and want to enable reuse of some downstream
+neighbor calculations to make the mapping score function more efficient.}
 
 \item{verbose}{Print progress bars and output}
 }
@@ -95,8 +121,7 @@ query object using the \code{\link{TransferData}} object.
 \details{
 The main steps of this procedure are outlined below. For a more detailed
 description of the methodology, please see Stuart, Butler, et al Cell 2019.
-\url{https://doi.org/10.1016/j.cell.2019.05.031};
-\url{https://doi.org/10.1101/460147}
+\doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 
 \itemize{
 
@@ -159,6 +184,6 @@ pbmc.query <- AddMetaData(object = pbmc.query, metadata = predictions)
 }
 \references{
 Stuart T, Butler A, et al. Comprehensive Integration of
-Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
-j.cell.2019.05.031};
+Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031};
 }
+\concept{integration}

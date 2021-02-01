@@ -29,6 +29,7 @@ Select points on a scatterplot and get information about them
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 plot <- DimPlot(object = pbmc_small)
 # Follow instructions in the terminal to select points
 cells.located <- CellSelector(plot = plot)
@@ -41,3 +42,4 @@ pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCe
 \seealso{
 \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }
+\concept{visualization}

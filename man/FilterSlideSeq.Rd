@@ -49,3 +49,4 @@ ssHippo.filtered <- FilterSlideSeq(ssHippo, radius = 2300)
 # This radius looks to small so increase and repeat until satisfied
 }
 }
+\concept{objects}

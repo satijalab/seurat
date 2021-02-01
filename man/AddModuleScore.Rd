@@ -63,6 +63,7 @@ control features are randomly selected from each bin.
 }
 \examples{
 \dontrun{
+data("pbmc_small")
 cd_features <- list(c(
   'CD79B',
   'CD79A',
@@ -93,3 +94,4 @@ head(x = pbmc_small[])
 \references{
 Tirosh et al, Science (2016)
 }
+\concept{utilities}

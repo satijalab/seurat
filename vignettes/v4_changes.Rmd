@@ -1,0 +1,38 @@
+---
+title: "Changes in Seurat v4"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+---
+
+# Changes in Seurat v4
+
+We have made minor changes in v4, primarily to improve the performance of Seurat v4 on large datasets. This includes minor changes to default parameter settings, and the use of newly available packages for tasks such as the identification of k-nearest neighbors, and graph-based clustering. These changes do not adversely impact downstream results, and we provide a detailed description of key changes below. Users who wish to continue using Seurat v3, or those interested in reproducing results produced by previous versions, may continue to install previous versions [here](articles/install.html#previous).
+
+# Changes to parameter defaults
+
+## FindNeighbors
+
+* The default method for identifying k-nearest neighbors has been set to [annoy](https://github.com/spotify/annoy). This is an approximate nearest-neighbor approach that is widely used for high-dimensional analysis in many fields, including single-cell analysis. Extensive [community benchmarking](http://ann-benchmarks.com/) has shown that annoy substantially improves the speed and memory requirements of neighbor discovery, with negligible impact to downstream results, and is consistent with our analysis and testing. Users may switch back to using the previous default setting using `nn.method="rann"`.
+
+## FindMarkers
+
+* We have restructured the code of the `FindMarkers()` function to be easier to understand, interpret, and debug. The results of differential expression are unchanged. However, by default we now prefilter genes and report fold change using base 2, as is commonly done in other differential expression packages, instead of natural log. If the default option is set, the output of `FindMarkers()` will include the column avg_log2FC, instead of avg_logFC. Users can restore the previous behavior (natural log), by specifying `base = exp(1)`.
+
+## IntegrateData/TransferData
+
+* We have made minor changes to the exact calculation of the anchor weight matrix, for example, in cases where a query cell participates in multiple anchor pairs. These changes reflect an improved workflow, but do not result in meaningful differences for downstream analysis (for example, see you can compare the results of our integration vignettes using [Seurat v3]()  and [Seurat v4](articles/immune_alignment.html).
+
+## SCTransform
+
+* In `SCTransform()`, we slightly modify default parameters to improve scalability of parameter estimation for large datasets. For example, when estimating the regularized relationship between mu and theta, we compute this on a subset of the data by setting the `ncells` parameter to 5,000. The `vst()` function in sctransform v0.3 (available on CRAN [here](https://cran.r-project.org/web/packages/sctransform/index.html)) also introduces minor changes to the process of regularization. We have tested these changes extensively and found a substantial improvement in speed and memory, particularly for large dataset, with no adverse impact to performance. User can compare the results of the SCTransform vignette computed using [Seurat v3]()  and [Seurat v4](articles/sctransform_vignette.html), or set `ncells=NULL` on larger datasets to compare results.
+
+## Removed functions
+
+The following functions have been removed in Seurat v4:
+
+- `CreateGeneActivityMatrix` replaced by `GeneActivity` in [Signac](https://satijalab.org/signac/reference/GeneActivity.html)
+- `RunLSI` replaced by `RunTFIDF` and `RunSVD` in [Signac](https://satijalab.org/signac/reference/RunTFIDF.html)
+- `ReadAlevin` and `ReadAlevinCsv` moved to [SeuratWrappers](https://github.com/satijalab/seurat-wrappers), see details [here](https://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/alevin.html)
+- `ExportToCellbrowser` and `StopCellbrowser` moved to [SeuratWrappers](https://github.com/satijalab/seurat-wrappers), see details [here](https://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/cellbrowser.html)

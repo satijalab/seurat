@@ -38,3 +38,4 @@ all Graphs)}
 Keep only certain aspects of the Seurat object. Can be useful in functions that utilize merge as
 it reduces the amount of data in the merge.
 }
+\concept{objects}

@@ -16,7 +16,6 @@ IntegrateData(
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
-  do.cpp = TRUE,
   eps = 0,
   verbose = TRUE
 )
@@ -66,9 +65,6 @@ automatically.}
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
 
-\item{do.cpp}{Run cpp code where applicable. This argument is being
-deprecated and will be set to TRUE by default.}
-
 \item{eps}{Error bound on the neighbor finding algorithm (from
 \code{\link{RANN}})}
 
@@ -88,8 +84,7 @@ Perform dataset integration using a pre-computed \code{\link{AnchorSet}}.
 \details{
 The main steps of this procedure are outlined below. For a more detailed
 description of the methodology, please see Stuart, Butler, et al Cell 2019.
-\url{https://doi.org/10.1016/j.cell.2019.05.031};
-\url{https://doi.org/10.1101/460147}
+\doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 
 For pairwise integration:
 
@@ -149,6 +144,6 @@ integrated <- IntegrateData(anchorset = anchors)
 }
 \references{
 Stuart T, Butler A, et al. Comprehensive Integration of
-Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
-j.cell.2019.05.031}
+Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 }
+\concept{integration}

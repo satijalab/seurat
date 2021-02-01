@@ -34,8 +34,9 @@ CellScatter(
 
 \item{smooth}{Smooth the graph (similar to smoothScatter)}
 
-\item{raster}{Convert points to raster format, default is \code{NULL} which
-automatically rasterizes if plotting more than 50,000 cells}
+\item{raster}{Convert points to raster format, default is \code{NULL}
+which will automatically use raster if the number of points plotted is greater than
+100,000}
 }
 \value{
 A ggplot object
@@ -45,6 +46,8 @@ Creates a plot of scatter plot of features across two single cells. Pearson
 correlation between the two cells is displayed above the plot.
 }
 \examples{
+data("pbmc_small")
 CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 
 }
+\concept{visualization}

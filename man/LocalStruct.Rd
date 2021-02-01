@@ -43,3 +43,4 @@ space, compute the top num.neighbors in corrected pca space, compute the
 size of the intersection of those two sets of neighbors.
 Return the average over all groups.
 }
+\concept{integration}

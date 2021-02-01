@@ -31,3 +31,4 @@ Returns a ggplot object
 Plot cells as polygons, rather than single points. Color cells by identity, or a categorical variable
 in metadata
 }
+\concept{visualization}

@@ -23,6 +23,8 @@ Returns an Assay object
 Get an Assay object from a given Seurat object.
 }
 \examples{
+data("pbmc_small")
 GetAssay(object = pbmc_small, assay = "RNA")
 
 }
+\concept{objects}

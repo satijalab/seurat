@@ -100,3 +100,4 @@ optimizer code in Rcpp!
 To run Leiden algorithm, you must first install the leidenalg python
 package (e.g. via pip install leidenalg), see Traag et al (2018).
 }
+\concept{clustering}
