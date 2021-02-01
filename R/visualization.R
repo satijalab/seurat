@@ -3770,7 +3770,7 @@ JackStrawPlot <- function(
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
 #' PlotClusterTree(object = pbmc_small)
 #'
-PlotClusterTree <- function(object, ...) {
+PlotClusterTree <- function(object, direction = "downwards", ...) {
   if (!PackageCheck('ape', error = FALSE)) {
     stop(cluster.ape, call. = FALSE)
   }
@@ -3778,7 +3778,7 @@ PlotClusterTree <- function(object, ...) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::plot.phylo(x = data.tree, direction = direction, ...)
   ape::nodelabels()
 }
 
