@@ -50,3 +50,4 @@ data("pbmc_small")
 VizDimLoadings(object = pbmc_small)
 
 }
+\concept{visualization}

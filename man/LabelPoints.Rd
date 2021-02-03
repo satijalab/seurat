@@ -48,3 +48,4 @@ LabelPoints(plot = plot, points = cc)
 \seealso{
 \code{\link[ggplot2]{geom_text}}
 }
+\concept{visualization}

@@ -134,3 +134,4 @@ FeaturePlot(object = pbmc_small, features = 'PC_1')
 \code{\link{DimPlot}} \code{\link{HoverLocator}}
 \code{\link{CellSelector}}
 }
+\concept{visualization}

@@ -36,3 +36,4 @@ Get image scale factors
 \note{
 \code{scalefactors} objects can be created with \code{scalefactors()}
 }
+\concept{objects}

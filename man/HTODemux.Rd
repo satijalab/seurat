@@ -58,3 +58,4 @@ object <- HTODemux(object)
 \seealso{
 \code{\link{HTOHeatmap}}
 }
+\concept{preprocessing}

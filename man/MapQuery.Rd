@@ -68,3 +68,4 @@ that are often run together when mapping query data to a reference:
 \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}},
 \code{\link{ProjectUMAP}}.
 }
+\concept{integration}

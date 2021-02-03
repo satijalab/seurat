@@ -27,3 +27,4 @@ integration procedure to hold bits of data that are useful downstream.
 \item{\code{sample.tree}}{Sample tree used for ordering multi-dataset integration}
 }}
 
+\concept{objects}

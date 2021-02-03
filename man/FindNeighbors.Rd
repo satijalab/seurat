@@ -179,3 +179,4 @@ pbmc_small <- FindNeighbors(pbmc_small, features = VariableFeatures(object = pbm
 pbmc_small <- FindNeighbors(pbmc_small, reduction = "pca", dims = 1:10)
 
 }
+\concept{clustering}

@@ -42,3 +42,4 @@ pbmc_small <- CellSelector(plot = plot, object = pbmc_small, ident = 'SelectedCe
 \seealso{
 \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }
+\concept{visualization}

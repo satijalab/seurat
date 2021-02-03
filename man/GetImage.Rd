@@ -26,3 +26,4 @@ Get Image Data
 \seealso{
 \code{\link[SeuratObject:GetImage]{SeuratObject::GetImage}}
 }
+\concept{objects}

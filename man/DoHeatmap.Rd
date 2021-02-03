@@ -82,3 +82,4 @@ data("pbmc_small")
 DoHeatmap(object = pbmc_small)
 
 }
+\concept{visualization}

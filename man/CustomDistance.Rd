@@ -31,3 +31,4 @@ cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 \author{
 Jean Fan
 }
+\concept{utilities}

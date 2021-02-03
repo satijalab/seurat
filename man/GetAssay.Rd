@@ -27,3 +27,4 @@ data("pbmc_small")
 GetAssay(object = pbmc_small, assay = "RNA")
 
 }
+\concept{objects}

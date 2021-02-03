@@ -229,3 +229,4 @@ DimPlot(object = pbmc_small, reduction = 'umap')
 McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and
 Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 }
+\concept{dimensional_reduction}

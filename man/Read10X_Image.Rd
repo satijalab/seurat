@@ -25,3 +25,4 @@ Load a 10X Genomics Visium Image
 \seealso{
 \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
 }
+\concept{preprocessing}

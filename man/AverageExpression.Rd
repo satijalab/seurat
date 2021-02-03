@@ -62,3 +62,4 @@ data("pbmc_small")
 head(AverageExpression(object = pbmc_small))
 
 }
+\concept{utilities}

@@ -1,0 +1,118 @@
+---
+title: "Tips for integrating large datasets"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 85),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
+For very large datasets, the standard integration workflow can sometimes be prohibitively computationally expensive. In this workflow, we employ two options that can improve efficiency and runtimes:
+
+1. Reciprocal PCA (RPCA)
+2. Reference-based integration
+
+The main efficiency improvements are gained in `FindIntegrationAnchors()`. First, we use reciprocal PCA (RPCA) instead of CCA, to identify an effective space in which to find anchors. When determining anchors between any two datasets using reciprocal PCA, we project each dataset into the others PCA space and constrain the anchors by the same mutual neighborhood requirement. All downstream integration steps remain the same and we are able to 'correct' (or harmonize) the datasets. 
+
+Additionally, we use reference-based integration. In the standard workflow, we identify anchors between all pairs of datasets. While this gives datasets equal weight in downstream integration, it can also become computationally intensive. For example when integrating 10 different datasets, we perform 45 different pairwise comparisons. As an alternative, we introduce here the possibility of specifying one or more of the datasets as the 'reference' for integrated analysis, with the remainder designated as 'query' datasets. In this workflow, we do not identify anchors between pairs of query datasets, reducing the number of comparisons. For example, when integrating 10 datasets with one specified as a reference, we perform only 9 comparisons. Reference-based integration can be applied to either log-normalized or SCTransform-normalized datasets.
+
+This alternative workflow consists of the following steps:
+
+* Create a list of Seurat objects to integrate
+* Perform normalization, feature selection, and scaling separately for each dataset
+* Run PCA on each object in the list
+* Integrate datasets, and proceed with joint analysis
+
+In general, we observe strikingly similar results between the standard workflow and the one demonstrated here, with substantial reduction in compute time and memory. However, if the datasets are highly divergent (for example, cross-modality mapping or cross-species mapping), where only a small subset of features can be used to facilitate integration, and you may observe superior results using CCA.
+
+For this example, we will be using the "Immune Cell Atlas" data from the Human Cell Atlas which can be found [here](https://data.humancellatlas.org/explore/projects?filter=%5B%7B%22facetName%22:%22organ%22,%22terms%22:%5B%22immune%20system%22%5D%7D%5D&catalog=dcp1). 
+
+```{r libs}
+library(Seurat)
+```
+
+After acquiring the data, we first perform standard normalization and variable feature selection. 
+
+```{r hca.full.1}
+bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
+bm280k <- CreateSeuratObject(counts = bm280k.data, min.cells = 100, min.features = 500)
+bm280k.list <- SplitObject(bm280k, split.by = "orig.ident")
+bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
+  x <- NormalizeData(x, verbose = FALSE)
+  x <- FindVariableFeatures(x, verbose = FALSE)
+})
+```
+
+Next, select features for downstream integration, and run PCA on each object in the list, which is required for running the alternative reciprocal PCA workflow.
+
+```{r hca.full.2}
+features <- SelectIntegrationFeatures(object.list = bm280k.list)
+bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
+  x <- ScaleData(x, features = features, verbose = FALSE)
+  x <- RunPCA(x, features = features, verbose = FALSE)
+})
+```
+
+Since this dataset contains both men and women, we will chose one male and one female (BM1 and BM2) to use in a reference-based workflow. We determined donor sex by examining the expression of the XIST gene. 
+
+```{r integration.hca.full}
+anchors <- FindIntegrationAnchors(object.list = bm280k.list, reference = c(1, 2), reduction = "rpca", dims = 1:50)
+bm280k.integrated <- IntegrateData(anchorset = anchors, dims = 1:50)
+```
+
+```{r downstream.hca.full}
+bm280k.integrated <- ScaleData(bm280k.integrated, verbose = FALSE)
+bm280k.integrated <- RunPCA(bm280k.integrated, verbose = FALSE)
+bm280k.integrated <- RunUMAP(bm280k.integrated, dims = 1:50)
+```
+
+```{r viz.hca.full, fig.height = 9, fig.width = 16}
+DimPlot(bm280k.integrated, group.by = "orig.ident")
+```
+
+```{r save.img, include=FALSE}
+library(ggplot2)
+plot <- DimPlot(bm280k.integrated, group.by = "orig.ident") + xlab("UMAP 1") + ylab("UMAP 2") + 
+  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
+  guides(colour = guide_legend(override.aes = list(size = 10)))
+ggsave(filename = "../output/images/bm280k_integrated.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_large_datasets.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

@@ -40,6 +40,7 @@ NULL
 #' @importFrom stats ave aggregate
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
@@ -184,6 +185,7 @@ CalculateBarcodeInflections <- function(
 #' @importFrom stats pnbinom kmeans
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @seealso \code{\link{HTOHeatmap}}
 #'
@@ -350,6 +352,7 @@ HTODemux <- function(
 #' @importFrom matrixStats rowAnyNAs
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
@@ -476,6 +479,7 @@ GetResidual <- function(
 #' @importFrom jsonlite fromJSON
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' \dontrun{
@@ -531,6 +535,7 @@ Load10X_Spatial <- function(
 #' @seealso \code{\link{STARmap}}
 #'
 #' @export
+#' @concept preprocessing
 #'
 LoadSTARmap <- function(
   data.dir,
@@ -596,6 +601,7 @@ LoadSTARmap <- function(
 #' @importFrom methods as
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
@@ -637,6 +643,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' @import Matrix
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @references \url{https://www.biorxiv.org/content/10.1101/387241v1}
 #'
@@ -745,6 +752,7 @@ MULTIseqDemux <- function(
 #' @importFrom utils read.delim
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' \dontrun{
@@ -900,6 +908,7 @@ Read10X <- function(
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
+#' @concept preprocessing
 #'
 Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
@@ -988,6 +997,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @seealso \code{\link{VisiumV1}} \code{\link{Load10X_Spatial}}
 #'
 #' @export
+#' @concept preprocessing
 #'
 Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
@@ -1030,6 +1040,7 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
 #' @seealso \code{\link{SlideSeq}}
 #'
 #' @export
+#' @concept preprocessing
 #'
 ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
   if (!file.exists(paths = coord.file)) {
@@ -1063,6 +1074,7 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @importFrom methods as
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
@@ -1098,6 +1110,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
 #' @importFrom spatstat markvario ppp
 #'
 #' @export
+#' @concept preprocessing
 #'
 RunMarkVario <- function(
   spatial.location,
@@ -1142,6 +1155,7 @@ RunMarkVario <- function(
 #' @importFrom stats dist
 #'
 #' @export
+#' @concept preprocessing
 #'
 RunMoransI <- function(data, pos, verbose = TRUE) {
   mysapply <- sapply
@@ -1209,6 +1223,7 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' @return Matrix with downsampled data
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' data("pbmc_small")
@@ -1298,6 +1313,7 @@ SampleUMI <- function(
 #'
 #' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 #' @export
+#' @concept preprocessing
 #'
 #' @examples
 #' data("pbmc_small")
@@ -1614,6 +1630,7 @@ SCTransform <- function(
 #' @return Returns a subsetted Seurat object.
 #'
 #' @export
+#' @concept preprocessing
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
@@ -1678,6 +1695,7 @@ SubsetByBarcodeInflections <- function(object) {
 #' @param verbose show progress bar for calculations
 #'
 #' @rdname FindVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 FindVariableFeatures.default <- function(
@@ -1774,6 +1792,7 @@ FindVariableFeatures.default <- function(
 #' feature dispersions
 #'
 #' @rdname FindVariableFeatures
+#' @concept preprocessing
 #' @export
 #' @method FindVariableFeatures Assay
 #'
@@ -1861,12 +1880,11 @@ FindVariableFeatures.SCTAssay <- function(
   nfeatures = 2000,
   ...
 ) {
-  feature.attr <- SCTResults(object = object, slot = "feature.attributes")
-  if (length(x = feature.attr) > 1) {
-    stop("SCT assay is comprised of multiple SCT models. To change the variable features, please set manually with VariableFeatures<-")
-  } else {
-    feature.attr <- feature.attr[[1]]
+  if (length(x = slot(object = object, name = "SCTModel.list")) > 1) {
+    stop("SCT assay is comprised of multiple SCT models. To change the variable features, please set manually with VariableFeatures<-", call. = FALSE)
   }
+  feature.attr <- SCTResults(object = object, slot = "feature.attributes")
+  nfeatures <- min(nfeatures, nrow(x = feature.attr))
   top.features <- rownames(x = feature.attr)[order(feature.attr$residual_variance, decreasing = TRUE)[1:nfeatures]]
   VariableFeatures(object = object) <- top.features
   return(object)
@@ -1875,6 +1893,7 @@ FindVariableFeatures.SCTAssay <- function(
 #' @param assay Assay to use
 #'
 #' @rdname FindVariableFeatures
+#' @concept preprocessing
 #' @export
 #' @method FindVariableFeatures Seurat
 #'
@@ -1942,6 +1961,7 @@ FindVariableFeatures.Seurat <- function(
 #'
 #' @method FindSpatiallyVariableFeatures default
 #' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 #'
@@ -1993,6 +2013,7 @@ FindSpatiallyVariableFeatures.default <- function(
 #'
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
@@ -2056,6 +2077,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
 #'
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
 #' @export
 #'
 FindSpatiallyVariableFeatures.Seurat <- function(
@@ -2114,6 +2136,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 #' @param verbose display progress bar for normalization procedure
 #'
 #' @rdname NormalizeData
+#' @concept preprocessing
 #' @export
 #'
 NormalizeData.default <- function(
@@ -2219,6 +2242,7 @@ NormalizeData.default <- function(
 }
 
 #' @rdname NormalizeData
+#' @concept preprocessing
 #' @export
 #' @method NormalizeData Assay
 #'
@@ -2248,6 +2272,7 @@ NormalizeData.Assay <- function(
 #' @param assay Name of assay to use
 #'
 #' @rdname NormalizeData
+#' @concept preprocessing
 #' @export
 #' @method NormalizeData Seurat
 #'
@@ -2311,6 +2336,7 @@ NormalizeData.Seurat <- function(
 #' @importFrom future.apply future_lapply
 #'
 #' @rdname ScaleData
+#' @concept preprocessing
 #' @export
 #'
 ScaleData.default <- function(
@@ -2550,6 +2576,7 @@ ScaleData.default <- function(
 }
 
 #' @rdname ScaleData
+#' @concept preprocessing
 #' @export
 #' @method ScaleData Assay
 #'
@@ -2607,6 +2634,7 @@ ScaleData.Assay <- function(
 #' @param assay Name of Assay to scale
 #'
 #' @rdname ScaleData
+#' @concept preprocessing
 #' @export
 #' @method ScaleData Seurat
 #'

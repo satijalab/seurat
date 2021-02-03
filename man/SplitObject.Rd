@@ -31,3 +31,4 @@ pbmc_small <- AddMetaData(object = pbmc_small, metadata = groups, col.name = "gr
 obj.list <- SplitObject(pbmc_small, split.by = "group")
 
 }
+\concept{objects}

@@ -24,3 +24,4 @@ Get Cell Names
 \seealso{
 \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 }
+\concept{objects}

@@ -45,20 +45,24 @@ Useful links:
 \author{
 \strong{Maintainer}: Paul Hoffman \email{nygcSatijalab@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID})
 
-Authors:
-\itemize{
-  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
-  \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID})
-  \item Tim Stuart \email{tstuart@nygenome.org} (\href{https://orcid.org/0000-0002-3044-0897}{ORCID})
-}
-
 Other contributors:
 \itemize{
+  \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID}) [contributor]
+  \item Saket Choudhary \email{schoudhary@nygenome.org} (\href{https://orcid.org/0000-0001-5202-7633}{ORCID}) [contributor]
+  \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID}) [contributor]
   \item Jeff Farrell \email{jfarrell@g.harvard.edu} [contributor]
-  \item Shiwei Zheng \email{szheng@nygenome.org} (\href{https://orcid.org/0000-0001-6682-6743}{ORCID}) [contributor]
   \item Christoph Hafemeister \email{chafemeister@nygenome.org} (\href{https://orcid.org/0000-0001-6365-8254}{ORCID}) [contributor]
-  \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
   \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID}) [contributor]
+  \item Jaison Jain \email{jjain@nygenome.org} (\href{https://orcid.org/0000-0002-9478-5018}{ORCID}) [contributor]
+  \item Efthymia Papalexi \email{epapalexi@nygenome.org} (\href{https://orcid.org/0000-0001-5898-694X}{ORCID}) [contributor]
+  \item Patrick Roelli \email{proelli@nygenome.org} [contributor]
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID}) [contributor]
+  \item Karthik Shekhar \email{kshekhar@berkeley.edu} [contributor]
+  \item Avi Srivastava \email{asrivastava@nygenome.org} (\href{https://orcid.org/0000-0001-9798-2079}{ORCID}) [contributor]
+  \item Tim Stuart \email{tstuart@nygenome.org} (\href{https://orcid.org/0000-0002-3044-0897}{ORCID}) [contributor]
+  \item Kristof Torkenczy (\href{https://orcid.org/0000-0002-4869-7957}{ORCID}) [contributor]
+  \item Shiwei Zheng \email{szheng@nygenome.org} (\href{https://orcid.org/0000-0001-6682-6743}{ORCID}) [contributor]
+  \item Satija Lab and Collaborators [funder]
 }
 
 }

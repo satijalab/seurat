@@ -65,3 +65,4 @@ A \code{\link[patchwork]{patchwork}ed} ggplot object if
 It will color the query cells and the neighbors of the query cells in the
 DimPlot
 }
+\concept{visualization}

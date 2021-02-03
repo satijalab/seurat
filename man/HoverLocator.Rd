@@ -32,3 +32,4 @@ HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'p
 \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
 \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }
+\concept{visualization}

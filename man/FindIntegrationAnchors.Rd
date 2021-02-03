@@ -103,8 +103,7 @@ These  anchors can later be used to integrate the objects using the
 \details{
 The main steps of this procedure are outlined below. For a more detailed
 description of the methodology, please see Stuart, Butler, et al Cell 2019:
-\url{https://doi.org/10.1016/j.cell.2019.05.031};
-\url{https://doi.org/10.1101/460147}
+\doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 
 First, determine anchor.features if not explicitly specified using
 \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations
@@ -160,6 +159,6 @@ integrated <- IntegrateData(anchorset = anchors)
 }
 \references{
 Stuart T, Butler A, et al. Comprehensive Integration of
-Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
-j.cell.2019.05.031}
+Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 }
+\concept{integration}

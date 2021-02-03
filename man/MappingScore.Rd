@@ -97,3 +97,4 @@ of query cells that aren't present in the reference or the state of the cells
 in the query is significantly different from the equivalent cell type in the
 reference.
 }
+\concept{integration}

@@ -32,3 +32,4 @@ Taken from the pals package (Licence: GPL-3).
 \url{https://cran.r-project.org/package=pals}
 Credit: Kevin Wright
 }
+\concept{visualization}

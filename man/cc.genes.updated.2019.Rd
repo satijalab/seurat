@@ -52,4 +52,5 @@ cc.genes.updated.2019$g2m.genes <- UpdateSymbolList(symbols = cc.genes.updated.2
 \seealso{
 \code{\link{cc.genes}}
 }
+\concept{data}
 \keyword{datasets}

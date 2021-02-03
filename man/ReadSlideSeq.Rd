@@ -20,3 +20,4 @@ Load Slide-seq spatial data
 \seealso{
 \code{\link{SlideSeq}}
 }
+\concept{preprocessing}

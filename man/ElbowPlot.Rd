@@ -27,3 +27,4 @@ data("pbmc_small")
 ElbowPlot(object = pbmc_small)
 
 }
+\concept{visualization}

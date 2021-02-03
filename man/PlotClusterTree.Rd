@@ -24,3 +24,4 @@ pbmc_small <- BuildClusterTree(object = pbmc_small)
 PlotClusterTree(object = pbmc_small)
 
 }
+\concept{visualization}

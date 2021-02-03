@@ -88,3 +88,4 @@ DotPlot(object = pbmc_small, features = cd_genes, split.by = 'groups')
 \seealso{
 \code{RColorBrewer::brewer.pal.info}
 }
+\concept{visualization}

@@ -35,3 +35,4 @@ return a object with sub cluster labels in the sub-cluster.name variable
 \description{
 Find subclusters under one cluster
 }
+\concept{clustering}

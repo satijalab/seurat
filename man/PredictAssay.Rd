@@ -52,3 +52,4 @@ neighbors index. For each cell, it will average its k neighbors value to get
 its new imputed value. It can average expression value in assays and cell
 embeddings from dimensional reductions.
 }
+\concept{integration}

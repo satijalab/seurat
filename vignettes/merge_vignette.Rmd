@@ -1,0 +1,108 @@
+---
+title: "Seurat - Combining Two 10X Runs"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
+In this vignette, we will combine two 10X PBMC datasets: one containing 4K cells and one containing 8K cells. The datasets can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets).
+
+To start, we read in the data and create two `Seurat` objects.
+
+```{r load_data}
+library(Seurat)
+pbmc4k.data <- Read10X(data.dir = "../data/pbmc4k/filtered_gene_bc_matrices/GRCh38/")
+pbmc4k <- CreateSeuratObject(counts = pbmc4k.data, project = "PBMC4K")
+pbmc4k
+
+pbmc8k.data <- Read10X(data.dir = "../data/pbmc8k/filtered_gene_bc_matrices/GRCh38/")
+pbmc8k <- CreateSeuratObject(counts = pbmc8k.data, project = "PBMC8K")
+pbmc8k
+```
+
+
+# Merging Two `Seurat` Objects
+
+`merge()` merges the raw count matrices of two `Seurat` objects and creates a new `Seurat` object with the resulting combined raw count matrix. To easily tell which original object any particular cell came from, you can set the `add.cell.ids` parameter with an `c(x, y)` vector, which will prepend the given identifier to the beginning of each cell name. The original project ID will remain stored in object meta data under `orig.ident`
+
+```{r merge.objects}
+pbmc.combined <- merge(pbmc4k, y = pbmc8k, add.cell.ids = c('4K', '8K'), project = 'PBMC12K')
+pbmc.combined
+```
+
+```{r inspect.merge}
+# notice the cell names now have an added identifier
+head(colnames(pbmc.combined))
+table(pbmc.combined$orig.ident)
+```
+
+# Merging More Than Two `Seurat` Objects
+
+To merge more than two `Seurat` objects, simply pass a vector of multiple `Seurat` objects to the `y` parameter for `merge`; we'll demonstrate this using the 4K and 8K PBMC datasets as well as our previously computed Seurat object from the 2,700 PBMC tutorial (loaded via the [SeuratData](https://github.com/satijalab/seurat-data) package).
+
+```{r merge_three}
+library(SeuratData)
+InstallData("pbmc3k")
+pbmc3k <- LoadData("pbmc3k", type = "pbmc3k.final")
+pbmc3k
+
+pbmc.big <- merge(pbmc3k, y = c(pbmc4k, pbmc8k), add.cell.ids = c('3K', '4K', '8K'), project = 'PBMC15K')
+pbmc.big
+
+head(colnames(pbmc.big))
+tail(colnames(pbmc.big))
+unique(sapply(X = strsplit(colnames(pbmc.big), split = '_'), FUN = '[', 1))
+table(pbmc.big$orig.ident)
+```
+
+# Merge Based on Normalized Data
+
+By default, `merge()` will combine the `Seurat` objects based on the raw count matrices, erasing any previously normalized and scaled data matrices. If you want to merge the normalized data matrices as well as the raw count matrices, simply pass `merge.data = TRUE`. This should be done if the same normalization approach was applied to all objects.
+
+```{r normalize}
+pbmc4k <- NormalizeData(pbmc4k)
+pbmc8k <- NormalizeData(pbmc8k)
+pbmc.normalized <- merge(pbmc4k, y = pbmc8k, add.cell.ids = c('4K', '8K'), project = 'PBMC12K', merge.data = TRUE)
+GetAssayData(pbmc.combined)[1:10, 1:15]
+GetAssayData(pbmc.normalized)[1:10, 1:15]
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/merge_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
