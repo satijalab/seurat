@@ -21,3 +21,4 @@ as.CellDataSet(x, ...)
 \description{
 Convert objects to CellDataSet objects
 }
+\concept{objects}

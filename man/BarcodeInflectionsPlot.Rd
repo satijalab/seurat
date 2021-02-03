@@ -22,6 +22,7 @@ See [CalculateBarcodeInflections()] to calculate inflection points and
 [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
 }
 \examples{
+data("pbmc_small")
 pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 BarcodeInflectionsPlot(pbmc_small)
 
@@ -32,3 +33,4 @@ BarcodeInflectionsPlot(pbmc_small)
 \author{
 Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 }
+\concept{visualization}

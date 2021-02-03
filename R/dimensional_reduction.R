@@ -35,11 +35,13 @@ NULL
 #' @importFrom future nbrOfWorkers
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
+#' @concept dimensional_reduction
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
+#' data("pbmc_small")
 #' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 #' head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 #' }
@@ -151,6 +153,7 @@ JackStraw <- function(
 #' @param new.key name of key for new dimensional reduction
 #'
 #' @return Returns a \code{\link{Seurat}} object
+#' @concept dimensional_reduction
 #'
 #' @export
 #'
@@ -183,6 +186,7 @@ L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL) {
 #'
 #' @param object Seurat object
 #' @param \dots Additional parameters to L2Dim.
+#' @concept dimensional_reduction
 #'
 #' @export
 #'
@@ -207,10 +211,12 @@ L2CCA <- function(object, ...){
 #' at least one of the given PCs.
 #'
 #' @export
+#' @concept dimensional_reduction
 #'
 #' @seealso \code{\link{ProjectDim}} \code{\link{JackStraw}}
 #'
 #' @examples
+#' data("pbmc_small")
 #' PCASigGenes(pbmc_small, pcs.use = 1:2)
 #'
 PCASigGenes <- function(
@@ -264,8 +270,10 @@ PCASigGenes <- function(
 #' @return Returns Seurat object with the projected values
 #'
 #' @export
+#' @concept dimensional_reduction
 #'
 #' @examples
+#' data("pbmc_small")
 #' pbmc_small
 #' pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
 #' # Vizualize top projected genes in heatmap
@@ -311,6 +319,173 @@ ProjectDim <- function(
   return(object)
 }
 
+#' @param query.dims Dimensions (columns) to use from query
+#' @param reference.dims Dimensions (columns) to use from reference
+#' @param ... Additional parameters to \code{\link{RunUMAP}}
+#'
+#' @inheritParams FindNeighbors
+#' @inheritParams RunUMAP
+#'
+#' @rdname ProjectUMAP
+#' @concept dimensional_reduction
+#' @export
+#'
+ProjectUMAP.default <- function(
+  query,
+  query.dims = NULL,
+  reference,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  ...
+) {
+  query.dims <- query.dims %||% 1:ncol(x = query)
+  reference.dims <- reference.dims %||% query.dims
+ if (length(x = reference.dims) != length(x = query.dims)) {
+    stop("Length of Reference and Query number of dimensions are not equal")
+   }
+  if (any(reference.dims > ncol(x = reference))) {
+    stop("Reference dims is larger than the number of dimensions present.", call. = FALSE)
+  }
+  if (any(query.dims > ncol(x = query))) {
+    stop("Query dims is larger than the number of dimensions present.", call. = FALSE)
+  }
+  if (length(x = Misc(object = reduction.model, slot = 'model')) == 0) {
+    stop(
+      "The provided reduction.model does not have a model stored. Please try ",
+      "running umot-learn on the object first", call. = FALSE
+    )
+  }
+  query.neighbor <- FindNeighbors(
+    object = reference[, reference.dims],
+    query = query[, query.dims],
+    k.param = k.param,
+    nn.method = nn.method,
+    n.trees = n.trees,
+    annoy.metric = annoy.metric,
+    cache.index = cache.index,
+    index = index,
+    return.neighbor = TRUE,
+    l2.norm = l2.norm
+  )
+  proj.umap <- RunUMAP(object = query.neighbor, reduction.model = reduction.model, ...)
+  return(list(proj.umap = proj.umap, query.neighbor = query.neighbor))
+}
+
+#' @rdname ProjectUMAP
+#' @concept dimensional_reduction
+#' @export
+#' @method ProjectUMAP DimReduc
+#'
+ProjectUMAP.DimReduc <- function(
+  query,
+  query.dims = NULL,
+  reference,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  ...
+) {
+  proj.umap <- ProjectUMAP(
+    query = Embeddings(object = query),
+    query.dims = query.dims,
+    reference = Embeddings(object = reference),
+    reference.dims = reference.dims,
+    k.param = k.param,
+    nn.method = nn.method,
+    n.trees = 50,
+    annoy.metric = annoy.metric,
+    l2.norm = l2.norm,
+    cache.index = cache.index,
+    index = index,
+    neighbor.name = neighbor.name,
+    reduction.model = reduction.model,
+    ...
+  )
+  return(proj.umap)
+}
+
+#' @param reference Reference dataset
+#' @param query.reduction Name of reduction to use from the query for neighbor
+#' finding
+#' @param reference.reduction Name of reduction to use from the reference for
+#' neighbor finding
+#' @param neighbor.name Name to store neighbor information in the query
+#' @param reduction.name Name of projected UMAP to store in the query
+#' @param reduction.key Value for the projected UMAP key
+#' @rdname ProjectUMAP
+#' @concept dimensional_reduction
+#' @export
+#' @method ProjectUMAP Seurat
+#'
+ProjectUMAP.Seurat <- function(
+  query,
+  query.reduction,
+  query.dims = NULL,
+  reference,
+  reference.reduction,
+  reference.dims = NULL,
+  k.param = 20,
+  nn.method = "annoy",
+  n.trees = 50,
+  annoy.metric = "cosine",
+  l2.norm = FALSE,
+  cache.index = TRUE,
+  index = NULL,
+  neighbor.name = "query_ref.nn",
+  reduction.model,
+  reduction.name = "ref.umap",
+  reduction.key = "refUMAP_",
+  ...
+) {
+  if (!query.reduction %in% Reductions(object = query)) {
+    stop("The query.reduction (", query.reduction, ") is not present in the ",
+         "provided query", call. = FALSE)
+  }
+  if (!reference.reduction %in% Reductions(object = reference)) {
+    stop("The reference.reduction (", reference.reduction, ") is not present in the ",
+         "provided reference.", call. = FALSE)
+  }
+  if (!reduction.model %in% Reductions(object = reference)) {
+    stop("The reduction.model (", reduction.model, ") is not present in the ",
+         "provided reference.", call. = FALSE)
+  }
+  proj.umap <- ProjectUMAP(
+    query = query[[query.reduction]],
+    query.dims = query.dims,
+    reference = reference[[reference.reduction]],
+    reference.dims = reference.dims,
+    k.param = k.param,
+    nn.method = nn.method,
+    n.trees = n.trees,
+    annoy.metric = annoy.metric,
+    l2.norm = l2.norm,
+    cache.index = cache.index,
+    index = index,
+    neighbor.name = neighbor.name,
+    reduction.model = reference[[reduction.model]],
+    reduction.key = reduction.key,
+    ...
+  )
+  query[[reduction.name]] <- proj.umap$proj.umap
+  query[[neighbor.name]] <- proj.umap$query.neighbor
+  return(query)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -324,6 +499,7 @@ ProjectDim <- function(
 #' @importFrom irlba irlba
 #'
 #' @rdname RunCCA
+#' @concept dimensional_reduction
 #' @export
 #'
 RunCCA.default <- function(
@@ -376,6 +552,7 @@ RunCCA.default <- function(
 #' set to TRUE)
 #'
 #' @rdname RunCCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunCCA Seurat
 #'
@@ -506,6 +683,7 @@ RunCCA.Seurat <- function(
 #' @importFrom ica icafast icaimax icajade
 #'
 #' @rdname RunICA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunICA default
 #'
@@ -554,6 +732,7 @@ RunICA.default <- function(
 #' @param features Features to compute ICA on
 #'
 #' @rdname RunICA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunICA Assay
 #'
@@ -597,6 +776,7 @@ RunICA.Assay <- function(
 #' @param reduction.name dimensional reduction name
 #'
 #' @rdname RunICA
+#' @concept dimensional_reduction
 #' @method RunICA Seurat
 #' @export
 #'
@@ -636,136 +816,6 @@ RunICA.Seurat <- function(
   return(object)
 }
 
-#' @param assay Which assay to use. If NULL, use the default assay
-#' @param n Number of singular values to compute
-#' @param reduction.key Key for dimension reduction object
-#' @param scale.max Clipping value for cell embeddings. Default (NULL) is no clipping.
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
-#' @param verbose Print messages
-#'
-#' @importFrom irlba irlba
-#'
-#' @rdname RunLSI
-#' @export
-RunLSI.default <- function(
-  object,
-  assay = NULL,
-  n = 50,
-  reduction.key = 'LSI_',
-  scale.max = NULL,
-  seed.use = 42,
-  verbose = TRUE,
-  ...
-) {
-  CheckDots(...)
-  if (!is.null(seed.use)) {
-    set.seed(seed = seed.use)
-  }
-  tf.idf <- TF.IDF(data = object, verbose = verbose)
-  tf.idf <- LogNorm(data = tf.idf, display_progress = verbose, scale_factor = 1e4)
-  colnames(x = tf.idf) <- colnames(x = object)
-  rownames(x = tf.idf) <- rownames(x = object)
-  n <- min(n, ncol(x = object) - 1)
-  if (verbose) {
-    message("Running SVD on TF-IDF matrix")
-  }
-  lsi <- irlba(A = t(tf.idf), nv = n)
-  feature.loadings <- lsi$v
-  sdev <- lsi$d / sqrt(max(1, nrow(x = object) - 1))
-  cell.embeddings <- lsi$u
-  if (verbose) {
-    message('Scaling cell embeddings')
-  }
-  embed.mean <- apply(X = cell.embeddings, MARGIN = 1, FUN = mean)
-  embed.sd <- apply(X = cell.embeddings, MARGIN = 1, FUN = sd)
-  norm.embeddings <- (cell.embeddings - embed.mean) / embed.sd
-  if (!is.null(x = scale.max)) {
-    norm.embeddings[norm.embeddings > scale.max] <- scale.max
-    norm.embeddings[norm.embeddings < -scale.max] <- -scale.max
-  }
-  rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:n)
-  rownames(x = norm.embeddings) <- colnames(x = object)
-  colnames(x = norm.embeddings) <- paste0(reduction.key, 1:n)
-  reduction.data <- CreateDimReducObject(
-    embeddings = norm.embeddings,
-    loadings = feature.loadings,
-    assay = assay,
-    stdev = sdev,
-    key = reduction.key
-  )
-  return(reduction.data)
-}
-
-#' @param features Which features to use. If NULL, use variable features
-#'
-#' @rdname RunLSI
-#' @export
-#' @method RunLSI Assay
-RunLSI.Assay <- function(
-  object,
-  assay = NULL,
-  features = NULL,
-  n = 50,
-  reduction.key = 'LSI_',
-  scale.max = NULL,
-  verbose = TRUE,
-  ...
-) {
-  features <- features %||% VariableFeatures(object)
-  data.use <- GetAssayData(
-    object = object,
-    slot = 'counts'
-  )[features, ]
-  reduction.data <- RunLSI(
-    object = data.use,
-    assay = assay,
-    n = n,
-    reduction.key = reduction.key,
-    scale.max = scale.max,
-    verbose = verbose,
-    ...
-  )
-  return(reduction.data)
-}
-
-#' @param reduction.name Name for stored dimension reduction object. Default 'lsi'
-#' @examples
-#' lsi <- RunLSI(object = pbmc_small, n = 5)
-#'
-#' @rdname RunLSI
-#'
-#' @export
-#' @method RunLSI Seurat
-RunLSI.Seurat <- function(
-  object,
-  assay = NULL,
-  features = NULL,
-  n = 50,
-  reduction.key = 'LSI_',
-  reduction.name = 'lsi',
-  scale.max = NULL,
-  verbose = TRUE,
-  ...
-) {
-  assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
-  reduction.data <- RunLSI(
-    object = assay.data,
-    assay = assay,
-    features = features,
-    n = n,
-    reduction.key = reduction.key,
-    scale.max = scale.max,
-    verbose = verbose,
-    ...
-  )
-  object[[reduction.name]] <- reduction.data
-  object <- LogSeuratCommand(object = object)
-  return(object)
-}
-
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
@@ -787,6 +837,7 @@ RunLSI.Seurat <- function(
 #' @importFrom utils capture.output
 #'
 #' @rdname RunPCA
+#' @concept dimensional_reduction
 #' @export
 #'
 RunPCA.default <- function(
@@ -871,6 +922,7 @@ RunPCA.default <- function(
 #' will be dropped, and the PCA will be run using the remaining features.
 #'
 #' @rdname RunPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunPCA Assay
 #'
@@ -913,6 +965,7 @@ RunPCA.Assay <- function(
 #' @param reduction.name dimensional reduction name,  pca by default
 #'
 #' @rdname RunPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunPCA Seurat
 #'
@@ -969,6 +1022,7 @@ RunPCA.Seurat <- function(
 #' @importFrom Rtsne Rtsne
 #'
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE matrix
 #'
@@ -1010,6 +1064,7 @@ RunTSNE.matrix <- function(
 #' @param dims Which dimensions to use as input features
 #'
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE DimReduc
 #'
@@ -1033,6 +1088,7 @@ RunTSNE.DimReduc <- function(
 }
 
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE dist
 #'
@@ -1062,6 +1118,7 @@ RunTSNE.dist <- function(
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
 #'
 #' @rdname RunTSNE
+#' @concept dimensional_reduction
 #' @export
 #' @method RunTSNE Seurat
 #'
@@ -1125,6 +1182,7 @@ RunTSNE.Seurat <- function(
 #' @importFrom future nbrOfWorkers
 #'
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @method RunUMAP default
 #' @export
 #'
@@ -1180,8 +1238,9 @@ RunUMAP.default <- function(
     }
     umap.method = "uwot"
   }
-  if (is.list(x = object)) {
-    names(x = object) <- c("idx", "dist")
+  if (inherits(x = object, what = "Neighbor")) {
+    object <- list( idx = Indices(object),
+                    dist = Distances(object) )
   }
   if (!is.null(x = reduction.model)) {
     if (verbose) {
@@ -1322,6 +1381,7 @@ RunUMAP.default <- function(
     stop("Unknown umap method: ", umap.method, call. = FALSE)
   )
   if (return.model) {
+    umap.output$nn_index <- NULL
     umap.model <- umap.output
     umap.output <- umap.output$embedding
   }
@@ -1348,6 +1408,7 @@ RunUMAP.default <- function(
 #' @importFrom reticulate py_module_available import
 #'
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @method RunUMAP Graph
 #' @export
 #'
@@ -1433,6 +1494,26 @@ RunUMAP.Graph <- function(
   return(umap)
 }
 
+#' @rdname RunUMAP
+#' @concept dimensional_reduction
+#' @method RunUMAP Neighbor
+#' @export
+#'
+RunUMAP.Neighbor <- function(
+  object,
+  reduction.model,
+  ...
+) {
+  neighborlist <- list("idx" = Indices(object),
+                       "dist" = Distances(object))
+  RunUMAP(
+    object = neighborlist,
+    reduction.model = reduction.model,
+    ...
+  )
+}
+
+
 #' @param reduction.model \code{DimReduc} object that contains the umap model
 #' @param dims Which dimensions to use as input features, used only if
 #' \code{features} is NULL
@@ -1506,6 +1587,7 @@ RunUMAP.Graph <- function(
 #' @param verbose Controls verbosity
 #'
 #' @rdname RunUMAP
+#' @concept dimensional_reduction
 #' @export
 #' @method RunUMAP Seurat
 #'
@@ -1616,6 +1698,7 @@ RunUMAP.Seurat <- function(
 #' @importFrom stats prop.test
 #'
 #' @rdname ScoreJackStraw
+#' @concept dimensional_reduction
 #' @export
 #' @method ScoreJackStraw JackStrawData
 #'
@@ -1655,6 +1738,7 @@ ScoreJackStraw.JackStrawData <- function(
 }
 
 #' @rdname ScoreJackStraw
+#' @concept dimensional_reduction
 #' @export
 #' @method ScoreJackStraw DimReduc
 #'
@@ -1675,6 +1759,7 @@ ScoreJackStraw.DimReduc <- function(object, dims = 1:5, score.thresh = 1e-5, ...
 #' @seealso \code{\link{JackStrawPlot}}
 #'
 #' @rdname ScoreJackStraw
+#' @concept dimensional_reduction
 #' @export
 #' @method ScoreJackStraw Seurat
 #'
@@ -1895,32 +1980,34 @@ fftRtsne <- function(X,
     }
   }
 
-  if (is.character(initialization) && initialization =='pca') {
+  if (is.character(initialization) && initialization == 'pca') {
     if (rand_seed != -1)  {
       set.seed(rand_seed)
     }
-    if (requireNamespace("rsvd")) {
+    if (requireNamespace("rsvd", quietly = TRUE)) {
       message('Using rsvd() to compute the top PCs for initialization.')
-      X_c <- scale(X, center=T, scale=F)
-      rsvd_out <- rsvd(X_c, k=dims)
-      X_top_pcs <- rsvd_out$u %*% diag(rsvd_out$d, nrow=dims)
-    } else if(requireNamespace("irlba")) {
+      X_c <- scale(x = X, center = TRUE, scale = FALSE)
+      rsvd_out <- rsvd::rsvd(A = X_c, k = dims)
+      X_top_pcs <- rsvd_out$u %*% diag(x = rsvd_out$d, nrow = dims)
+    } else if (requireNamespace("irlba", quietly = TRUE)) {
       message('Using irlba() to compute the top PCs for initialization.')
-      X_colmeans <- colMeans(X)
-      irlba_out <- irlba(X,nv=dims, center=X_colmeans)
-      X_top_pcs <- irlba_out$u %*% diag(irlba_out$d, nrow=dims)
-    }else{
-      stop("By default, FIt-SNE initializes the embedding with the
-                     top PCs. We use either rsvd or irlba for fast computation.
-                     To use this functionality, please install the rsvd package
-                     with install.packages('rsvd') or the irlba package with
-                     install.packages('ilrba').  Otherwise, set initialization
-                     to NULL for random initialization, or any N by dims matrix
-                     for custom initialization.")
+      X_colmeans <- colMeans(x = X)
+      irlba_out <- irlba::irlba(A = X, nv = dims, center = X_colmeans)
+      X_top_pcs <- irlba_out$u %*% diag(x = irlba_out$d, nrow = dims)
+    } else {
+      stop(
+        "By default, FIt-SNE initializes the embedding with the
+        top PCs. We use either rsvd or irlba for fast computation.
+        To use this functionality, please install the rsvd package
+        with install.packages('rsvd') or the irlba package with
+        install.packages('ilrba').  Otherwise, set initialization
+        to NULL for random initialization, or any N by dims matrix
+        for custom initialization."
+      )
     }
     initialization <- 0.0001*(X_top_pcs/sd(X_top_pcs[,1]))
 
-  } else if (is.character(initialization) && initialization == 'random'){
+  } else if (is.character(x = initialization) && initialization == 'random') {
     message('Random initialization')
     initialization = NULL
   }
@@ -2122,4 +2209,130 @@ PrepDR <- function(
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
   return(data.use)
+}
+
+#' @param assay Name of Assay SPCA is being run on
+#' @param npcs Total Number of SPCs to compute and store (50 by default)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the SPCs
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. SPC by default
+#' @param graph Graph used supervised by SPCA
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'
+#' @importFrom irlba irlba
+#'
+#' @rdname RunSPCA
+#' @export
+RunSPCA.default <- function(
+  object,
+  assay = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = FALSE,
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  npcs <- min(npcs, nrow(x = object) - 1)
+  if (verbose) {
+    message("Computing sPCA transformation")
+  }
+  HSIC <- object %*% graph %*% t(x = object)
+  pca.results <- irlba(A = HSIC, nv = npcs)
+  feature.loadings <- pca.results$u
+  rownames(x = feature.loadings) <- rownames(x = object)
+  cell.embeddings <- t(object) %*% feature.loadings
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings) <-
+    paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  sdev <- pca.results$d / sqrt(max(1, nrow(x = HSIC) - 1))
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    stdev = sdev,
+    key = reduction.key
+  )
+  return(reduction.data)
+}
+
+#' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
+#' using the variable features for the Assay.
+#'
+#' @rdname RunSPCA
+#' @export
+#' @method RunSPCA Assay
+#'
+RunSPCA.Assay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunSPCA(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
+#' @param reduction.name dimensional reduction name, spca by default
+#' @rdname RunSPCA
+#' @export
+#' @method RunSPCA Seurat
+#'
+RunSPCA.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.name = "spca",
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  if (is.null(x = graph)) {
+    stop("Graph is not provided")
+  } else if (is.character(x = graph)) {
+    graph <- object[[graph]]
+  }
+  reduction.data <- RunSPCA(
+    object = assay.data,
+    assay = assay,
+    features = features,
+    npcs = npcs,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  return(object)
 }

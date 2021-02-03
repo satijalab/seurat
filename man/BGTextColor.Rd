@@ -40,3 +40,4 @@ Determine text color based on background color
 BGTextColor(background = c('black', 'white', '#E76BF3'))
 
 }
+\concept{visualization}

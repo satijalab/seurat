@@ -1,0 +1,55 @@
+vignettes:
+  - name: atacseq_integration_vignette
+    title: PBMC scATAC-seq Vignette
+    versions: [v3.2, v3.1, v3.0]
+  - name: cell_cycle_vignette
+    title: Cell-Cycle Scoring and Regression
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: conversion_vignette
+    title: Interoperability between single-cell object formats
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: de_vignette
+    title: Differential expression testing
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: dim_reduction_vignette
+    title: Seurat - Dimensional Reduction Vignette
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: future_vignette
+    title: Parallelization in Seurat with future
+    versions: [v3.2, v3.1, v3.0]
+  - name: hashing_vignette
+    title: Demultiplexing with hashtag oligos (HTOs)
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: immune_alignment
+    title: "Tutorial: Integrating stimulated vs. control PBMC datasets to learn cell-
+type specific responses"
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: integration
+    title: Integration and Label Transfer
+    versions: [v3.2, v3.1, v3.0]
+  - name: interaction_vignette
+    title: Seurat - Interaction Tips
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: mca
+    title: Guided Clustering of the Microwell-seq Mouse Cell Atlas
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: mixscape
+    title: Mixscape Vignette
+    versions: [v3.2, v3.1]
+  - name: multimodal_vignette
+    title: Using Seurat with multi-modal data
+    versions: [v3.2, v3.1, v3.0, v2.4]
+  - name: pbmc3k_tutorial
+    title: Guided tutorial --- 2,700 PBMCs
+    versions: [v3.2, v3.1, v3.0, v2.4, v1.4]
+  - name: sctransform_vignette
+    title: Using sctransform in Seurat
+    versions: [v3.2, v3.1, v3.0]
+  - name: spatial_vignette
+    title: Analysis, visualization, and integration of spatial datasets with Seurat
+    versions: [v3.2]
+  - name: visualization_vignette
+    title: New data visualization methods in v3.0
+    versions: [v3.2, v3.1, v3.0, v2.4]
+
+

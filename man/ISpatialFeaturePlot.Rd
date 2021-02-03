@@ -30,3 +30,4 @@ Returns final plot as a ggplot object
 \description{
 Visualize features spatially and interactively
 }
+\concept{visualization}

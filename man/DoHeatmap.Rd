@@ -78,6 +78,8 @@ A \code{\link[patchwork]{patchwork}ed} ggplot object if
 Draws a heatmap of single cell feature expression.
 }
 \examples{
+data("pbmc_small")
 DoHeatmap(object = pbmc_small)
 
 }
+\concept{visualization}

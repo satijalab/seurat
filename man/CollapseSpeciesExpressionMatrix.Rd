@@ -40,3 +40,4 @@ cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(cbmc.rna)
 }
 
 }
+\concept{utilities}

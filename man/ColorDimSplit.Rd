@@ -41,7 +41,7 @@ See \code{\link{DiscretePalette}} for details.}
 see \code{\link{FetchData}} for more details}
     \item{\code{shape.by}}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
-different colors and different shapes on cells}
+different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
     \item{\code{order}}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top)}
@@ -68,7 +68,7 @@ groups in cells.highlight}
     \item{\code{combine}}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
     \item{\code{raster}}{Convert points to raster format, default is \code{NULL} which
-automatically rasterizes if plotting more than 50,000 cells}
+automatically rasterizes if plotting more than 100,000 cells}
   }}
 }
 \value{
@@ -79,6 +79,7 @@ Returns a DimPlot colored based on whether the cells fall in clusters
 to the left or to the right of a node split in the cluster tree.
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 PlotClusterTree(pbmc_small)
@@ -88,3 +89,4 @@ ColorDimSplit(pbmc_small, node = 5)
 \seealso{
 \code{\link{DimPlot}}
 }
+\concept{visualization}

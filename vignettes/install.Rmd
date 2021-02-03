@@ -1,0 +1,90 @@
+---
+title: "Installation Instructions for Seurat"
+output: html_document
+---
+
+To install Seurat, [R](https://www.r-project.org/) version 4.0 or greater is required. We also recommend installing [R Studio](https://www.rstudio.com/).
+
+# Install from CRAN 
+ 
+Seurat is available on [CRAN](https://cran.r-project.org/package=Seurat) for all platforms. To install, run: 
+
+```{r eval = FALSE}
+# Enter commands in R (or R studio, if installed)
+install.packages('Seurat')
+library(Seurat)
+```
+
+If you see the warning message below, enter `y`:
+
+```{r eval=FALSE}
+package which is only available in source form, and may need compilation of C/C++/Fortran: 'Seurat'
+Do you want to attempt to install these from sources?
+y/n:
+```
+
+# Install previous versions of Seurat
+
+## Install any version 3 release
+
+Any of the Seurat version 3 releases can be installed with the following command:
+
+```{r eval = FALSE}
+remotes::install_version("Seurat", version = "3.X.X")
+```
+
+## Install the last version 2 release (2.3.4) 
+
+To facilitate easy re-installation of the last version 2 release, we are hosting the binaries on our website. These can be installed with the following command: 
+
+```{r eval = FALSE}
+source("https://z.umn.edu/archived-seurat")
+```
+
+ <details>
+  <summary>View the script</summary>
+  <script src="https://gist.github.com/satijalab/beb9bb50dedc75ee023bd5d9be5fe684.js"></script>
+</details>
+
+## Older versions of Seurat 
+Old versions of Seurat, from Seurat v2.0.1 and up, are hosted in CRAN's archive. To install an old version of Seurat, run: 
+
+```{r eval = FALSE}
+# Enter commands in R (or R studio, if installed)
+# Install the remotes package 
+install.packages('remotes')
+# Replace '2.3.0' with your desired version
+remotes::install_version(package = 'Seurat', version = package_version('2.3.0'))
+library(Seurat)
+```
+
+For versions of Seurat older than those not hosted on CRAN (versions 1.3.0 and 1.4.0), please download the packaged source code from our [releases page](https://github.com/satijalab/seurat/releases) and [install from the tarball](https://stackoverflow.com/questions/4739837/how-do-i-install-an-r-package-from-the-source-tarball-on-windows). 
+
+# Install the development version of Seurat
+
+Install the development version of Seurat - directly from [GitHub](https://github.com/satijalab/seurat/tree/develop).
+
+```{r eval = FALSE}
+# Enter commands in R (or R studio, if installed)
+# Install the remotes package
+install.packages('remotes')
+remotes::install_github(repo = 'satijalab/seurat', ref = 'develop')
+library(Seurat)
+```
+
+# Docker
+
+We provide docker images for Seurat via [dockerhub](https://hub.docker.com/r/satijalab/seurat).
+
+To pull the latest image from the command line:
+
+```sh
+docker pull satijalab/seurat:latest
+```
+
+To use as a base image in a new Dockerfile:
+
+```sh
+FROM satijalab/seurat:latest
+```
+

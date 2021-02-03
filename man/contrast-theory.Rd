@@ -28,3 +28,4 @@ Intensity(color = c('black', 'white', '#E76BF3'))
 Luminance(color = c('black', 'white', '#E76BF3'))
 
 }
+\concept{visualization}

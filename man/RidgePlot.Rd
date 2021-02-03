@@ -65,6 +65,8 @@ Draws a ridge plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
 \examples{
+data("pbmc_small")
 RidgePlot(object = pbmc_small, features = 'PC_1')
 
 }
+\concept{visualization}

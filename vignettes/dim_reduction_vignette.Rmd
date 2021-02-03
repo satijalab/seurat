@@ -1,0 +1,118 @@
+---
+title: "Seurat - Dimensional Reduction Vignette"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+# Load in the data
+
+This vignette demonstrates how to store and interact with dimensional reduction information (such as the output from `RunPCA()`) in Seurat. For demonstration purposes, we will be using the 2,700 PBMC object that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package.
+
+```{r load_data}
+library(Seurat)
+library(SeuratData)
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
+```
+
+# Explore the new dimensional reduction structure
+
+In Seurat v3.0, storing and interacting with dimensional reduction information has been generalized and formalized into the `DimReduc` object. Each dimensional reduction procedure is stored as a `DimReduc` object in the `object@reductions` slot as an element of a named list. Accessing these reductions can be done with the `[[` operator, calling the name of the reduction desired. For example, after running a principle component analysis with `RunPCA()`, `object[['pca']]` will contain the results of the PCA. By adding new elements to the list, users can add additional, and custom, dimensional reductions. Each stored dimensional reduction contains the following slots:
+
+1. **cell.embeddings**: stores the coordinates for each cell in low-dimensional space.
+2. **feature.loadings**: stores the weight for each feature along each dimension of the embedding
+3. **feature.loadings.projected**: Seurat typically calculate the dimensional reduction on a subset of genes (for example, high-variance genes), and then project that structure onto the entire dataset (all genes). The results of that projection (calculated with `ProjectDim()`) are stored in this slot. Note that the cell loadings will remain unchanged after projection but there are now feature loadings for all feature
+4. **stdev**: The standard deviations of each dimension. Most often used with PCA (storing the square roots of the eigenvalues of the covariance matrix) and can be useful when looking at the drop off in the amount of variance that is explained by each successive dimension.
+5. **key**: Sets the column names for the cell.embeddings and feature.loadings matrices. For example, for PCA, the column names are PC1, PC2, etc., so the key is "PC".
+6. **jackstraw**: Stores the results of the jackstraw procedure run using this dimensional reduction technique. Currently supported only for PCA.
+7. **misc**: Bonus slot to store any other information you might want
+
+To access these slots, we provide the `Embeddings()`,`Loadings()`, and `Stdev()` functions
+
+```{r explore}
+pbmc[['pca']]
+head(Embeddings(pbmc, reduction = "pca")[, 1:5])
+head(Loadings(pbmc, reduction = "pca")[, 1:5])
+head(Stdev(pbmc, reduction = "pca"))
+```
+
+Seurat provides `RunPCA()` (pca), <!--`RunICA` (ica),--> and `RunTSNE()` (tsne), and <!--`RunDiffusionMap` (dmap),--> representing dimensional reduction techniques commonly applied to scRNA-seq data. When using these functions, all slots are filled automatically.
+
+We also allow users to add the results of a custom dimensional reduction technique (for example, multi-dimensional scaling (MDS), or [zero-inflated factor analysis](https://github.com/epierson9/ZIFA)), that is computed separately. All you need is a matrix with each cell's coordinates in low-dimensional space, as shown below.
+
+# Storing a custom dimensional reduction calculation
+
+Though not incorporated as part of the Seurat package, its easy to run multidimensional scaling (MDS) in R. If you were interested in running MDS and storing the output in your Seurat object:
+
+```{r mds}
+# Before running  MDS, we first calculate a distance matrix between all pairs of cells.
+# Here we use a simple euclidean distance metric on all genes, using scale.data as input
+d <- dist(t(GetAssayData(pbmc, slot = 'scale.data')))
+# Run the MDS procedure, k determines the number of dimensions
+mds <- cmdscale(d = d, k = 2)
+# cmdscale returns the cell embeddings, we first label the columns to ensure downstream consistency
+colnames(mds) <- paste0("MDS_", 1:2)
+# We will now store this as a custom dimensional reduction called "mds"
+pbmc[['mds']] <- CreateDimReducObject(embeddings = mds, key = 'MDS_', assay = DefaultAssay(pbmc))
+
+# We can now use this as you would any other dimensional reduction in all downstream functions
+DimPlot(pbmc, reduction = "mds", pt.size = 0.5)
+
+# If you wold like to observe genes that are strongly correlated with the first MDS coordinate
+pbmc <- ProjectDim(pbmc, reduction = "mds")
+
+# Display the results as a heatmap
+DimHeatmap(pbmc, reduction = "mds", dims = 1, cells = 500, projected = TRUE, balanced = TRUE)
+
+# Explore how the first MDS dimension is distributed across clusters
+VlnPlot(pbmc, features = "MDS_1")
+
+# See how the first MDS dimension is correlated with the first PC dimension
+FeatureScatter(pbmc, feature1 = "MDS_1", feature2 = "PC_1")
+```
+
+
+```{r save.img, include=FALSE}
+library(ggplot2)
+plot <- DimPlot(pbmc, reduction = "mds", pt.size = 0.5)
+ggsave(filename = "../output/images/pbmc_mds.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/dim_reduction_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+
+<!-- ### Changes to PCA -->
+
+<!-- In Seurat v2.0, we have switched all PCA calculations to be performed via the irlba package to enable calculation of partial PCAs (i.e. only calculate the first X PCs). While this is an approximate algorithm, it performs remarkably similar to running a full PCA and has significant savings in terms of computation time and resources. These savings become necessary when running Seurat on increasingly large datasets. We also allow the user to decide whether to weight the PCs by the percent of the variance they explain (the weight.by.var parameter). For large datasets containing rare cell types, we often see improved results by setting this to `FALSE`, as this prevents the initial PCs (which often explain a disproportionate amount of variance) from masking rare cell types or subtle sources of heterogeneity that appear in later PCs. -->

@@ -24,9 +24,11 @@ Returns a vector of cells
 Return a list of genes with the strongest contribution to a set of components
 }
 \examples{
+data("pbmc_small")
 pbmc_small
 head(TopCells(object = pbmc_small[["pca"]]))
 # Can specify which dimension and how many cells to return
 TopCells(object = pbmc_small[["pca"]], dim = 2, ncells = 5)
 
 }
+\concept{objects}

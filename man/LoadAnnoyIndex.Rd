@@ -17,3 +17,4 @@ Returns the Neighbor object with the index stored
 \description{
 Load the Annoy index file
 }
+\concept{utilities}

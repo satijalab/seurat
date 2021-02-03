@@ -1,0 +1,142 @@
+---
+title: "Differential expression testing"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+```{r, include = FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
+# Load in the data
+
+This vignette highlights some example workflows for performing differential expression in Seurat. For demonstration purposes, we will be using the 2,700 PBMC object that is available via the [SeuratData](https://github.com/satijalab/seurat-data) package).
+
+```{r load_data}
+library(Seurat)
+library(SeuratData)
+pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
+```
+
+# Perform default differential expression tests
+
+The bulk of Seurat's differential expression features can be accessed through the `FindMarkers()` function.  As a default, Seurat performs differential expression based on the non-parametric Wilcoxon rank sum test. This replaces the previous default test ('bimod'). To test for differential expression between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
+
+```{r basic_de}
+# list options for groups to perform differential expression on
+levels(pbmc)
+# Find differentially expressed features between CD14+ and FCGR3A+ Monocytes
+monocyte.de.markers  <- FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono")
+# view results
+head(monocyte.de.markers)
+```
+
+The results data frame has the following columns : 
+
+ * p_val : p_val (unadjusted)
+ * avg_log2FC : log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.
+ * pct.1 : The percentage of cells where the feature is detected in the first group
+ * pct.2 : The percentage of cells where the feature is detected in the second group
+ * p_val_adj : Adjusted p-value, based on Bonferroni correction using all features in the dataset.
+
+If the `ident.2` parameter is omitted or set to NULL, `FindMarkers()` will test for differentially expressed features between the group specified by `ident.1` and all other cells.
+
+```{r basic_de_2}
+# Find differentially expressed features between CD14+ Monocytes and all other cells, only search for positive markers
+monocyte.de.markers  <- FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = NULL, only.pos = TRUE)
+# view results
+head(monocyte.de.markers)
+```
+
+# Prefilter features or cells to increase the speed of DE testing
+
+To increase the speed of marker discovery, particularly for large datasets, Seurat allows for pre-filtering of features or cells. For example, features that are very infrequently detected in either group of cells, or features that are expressed at similar average levels, are unlikely to be differentially expressed. Example use cases of the `min.pct`, `logfc.threshold`, `min.diff.pct`, and `max.cells.per.ident` parameters are demonstrated below.
+
+```{r prefilter}
+# Pre-filter features that are detected at <50% frequency in either CD14+ Monocytes or FCGR3A+ Monocytes
+head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", min.pct = 0.5))
+
+# Pre-filter features that have less than a  two-fold change between the average expression of CD14+ Monocytes vs FCGR3A+ Monocytes
+head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", logfc.threshold = log(2)))
+
+# Pre-filter features whose detection percentages across the two groups are similar (within 0.25) 
+head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", min.diff.pct = 0.25))
+
+# Increasing min.pct, logfc.threshold, and min.diff.pct, will increase the speed of DE testing, but could also miss features that are prefiltered
+
+# Subsample each group to a maximum of 200 cells. Can be very useful for large clusters, or computationally-intensive DE tests
+head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", max.cells.per.ident = 200))
+```
+
+# Perform DE analysis using alternative tests
+
+The following differential expression tests are currently supported:
+
+ * "wilcox" : Wilcoxon rank sum test (default)
+ * "bimod" : Likelihood-ratio test for single cell feature expression, [(McDavid et al., Bioinformatics, 2013)](https://www.ncbi.nlm.nih.gov/pubmed/23267174)
+ * "roc" : Standard AUC classifier
+ * "t" : Student's t-test
+ * "poisson" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
+ * "negbinom" : Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
+ * "LR" : Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test. 
+ * "MAST" :  GLM-framework that treates cellular detection rate as a covariate [(Finak et al, Genome Biology, 2015)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4676162/) ([Installation instructions](https://github.com/RGLab/MAST))
+ * "DESeq2" :  DE based on a model using the negative binomial distribution [(Love et al, Genome Biology, 2014)](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) ([Installation instructions](https://bioconductor.org/packages/release/bioc/html/DESeq2.html))
+ 
+For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, use the `test.use` parameter can be used to specify which DE test to use. 
+ 
+```{r include = FALSE}
+# necessary to get MAST to work properly
+library(SingleCellExperiment)
+```
+ 
+```{r multiple test}
+# Test for DE features using the MAST package
+head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", test.use = "MAST"))
+
+# Test for DE features using the DESeq2 package. Throws an error if DESeq2 has not already been installed
+# Note that the DESeq2 workflows can be computationally intensive for large datasets, but are incompatible with some feature pre-filtering options
+# We therefore suggest initially limiting the number of cells used for testing
+head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", test.use = "DESeq2", max.cells.per.ident = 50))
+```
+ 
+# Acknowledgements
+
+We thank the authors of the MAST and DESeq2 packages for their kind assistance and advice. We also point users to the following [study](https://www.nature.com/articles/nmeth.4612) by Charlotte Soneson and Mark Robinson, which performs careful and extensive evaluation of methods for single cell differential expression testing.
+
+```{r save.times, include = FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/de_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+

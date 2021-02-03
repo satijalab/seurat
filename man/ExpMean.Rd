@@ -21,3 +21,4 @@ Calculate mean of logged values in non-log space (return answer in log-space)
 ExpMean(x = c(1, 2, 3))
 
 }
+\concept{utilities}

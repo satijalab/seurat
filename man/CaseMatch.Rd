@@ -18,7 +18,9 @@ Values from search present in match with the case of match
 Match the case of character vectors
 }
 \examples{
+data("pbmc_small")
 cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
 CaseMatch(search = cd_genes, match = rownames(x = pbmc_small))
 
 }
+\concept{utilities}

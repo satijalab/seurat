@@ -19,7 +19,8 @@ FindIntegrationAnchors(
   k.filter = 200,
   k.score = 30,
   max.features = 200,
-  nn.method = "rann",
+  nn.method = "annoy",
+  n.trees = 50,
   eps = 0,
   verbose = TRUE
 )
@@ -82,6 +83,9 @@ neighborhood search space in the anchor filtering}
 \item{nn.method}{Method for nearest neighbor finding. Options include: rann,
 annoy}
 
+\item{n.trees}{More trees gives higher precision when using annoy approximate
+nearest neighbor search}
+
 \item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
 
 \item{verbose}{Print progress bars and output}
@@ -98,8 +102,7 @@ These  anchors can later be used to integrate the objects using the
 \details{
 The main steps of this procedure are outlined below. For a more detailed
 description of the methodology, please see Stuart, Butler, et al Cell 2019:
-\url{https://doi.org/10.1016/j.cell.2019.05.031};
-\url{https://doi.org/10.1101/460147}
+\doi{10.1016/j.cell.2019.05.031}; \doi{10.1101/460147}
 
 First, determine anchor.features if not explicitly specified using
 \code{\link{SelectIntegrationFeatures}}. Then for all pairwise combinations
@@ -155,6 +158,6 @@ integrated <- IntegrateData(anchorset = anchors)
 }
 \references{
 Stuart T, Butler A, et al. Comprehensive Integration of
-Single-Cell Data. Cell. 2019;177:1888-1902 \url{https://doi.org/10.1016/
-j.cell.2019.05.031}
+Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
 }
+\concept{integration}

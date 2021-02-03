@@ -21,7 +21,6 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
                                              std::vector< std::string > mat1_rownames,
                                              std::vector< std::string > mat2_rownames,
                                              std::vector< std::string > all_rownames);
-Eigen::SparseMatrix<double> RowMergeMatricesList(List mat_list, List mat_rownames, std::vector< std::string > all_rownames);
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor,
                                     bool display_progress );
 NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
@@ -35,15 +34,18 @@ Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, 
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
                             NumericVector mu,
                             bool display_progress);
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
-                              NumericVector mu, 
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
+                              NumericVector mu,
                               NumericVector sd,
                               double vmax,
                               bool display_progress);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
+template <typename S>
+std::vector<size_t> sort_indexes(const std::vector<S> &v);
+List GraphToNeighborHelper(Eigen::SparseMatrix<double> mat);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION

@@ -26,3 +26,4 @@ CellsByImage(object = object, images = "slice1")
 }
 
 }
+\concept{objects}
