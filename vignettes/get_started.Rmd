@@ -41,7 +41,7 @@ process_entry <- function(dat) {
 }
 process_wrapper_entry <- function(dat) {
   data.frame(
-    Package = dat$title,
+    Package = dat$name,
     Vignette = make_href2(url = dat$link, text = dat$title),
     Reference = make_href2(url = dat$reference, text = dat$citation),
     Source = make_href2(url = dat$source, text = dat$source)

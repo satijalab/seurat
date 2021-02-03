@@ -3,6 +3,7 @@ destination: docs
 template:
   params:
       bootswatch: flatly
+      ganalytics: UA-82807227-1
 
 navbar:
   title: "Seurat"
