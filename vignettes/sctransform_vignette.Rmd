@@ -29,12 +29,13 @@ knitr::opts_chunk$set(
   time_it = TRUE
 )
 ```
-This vignette shows how to use the sctransform wrapper in Seurat.
 
-Install sctransform and Seurat.
-```{r eval=FALSE}
-install.packages("Seurat")
-```
+Biological heterogeneity in single-cell RNA-seq data is often confounded by technical factors including sequencing depth. The number of molecules detected in each cell can vary significantly between cells, even within the same celltype.
+Interpretation of scRNA-seq data requires effective pre-processing and normalization to remove this technical variability. 
+In [Hafemeister and Satija, 2019](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) we introduce a modeling framework for the normalization and variance stabilization of molecular count data from scRNA-seq experiment.
+This procedure omits the need for heuristic steps including pseudocount addition or log-transformation and improves common downstream analytical tasks such as variable gene selection, dimensional reduction, and differential expression.
+
+In this vignette, we demonstrate how using [sctransform](https://github.com/ChristophH/sctransform/) based normalization enables recovering sharper biological distinction compared to log-normalization.
 
 ```{r packages}
 library(Seurat)
@@ -61,6 +62,18 @@ pbmc <- PercentageFeatureSet(pbmc, pattern = "^MT-", col.name = 'percent.mt')
 
 # run sctransform
 pbmc <- SCTransform(pbmc, vars.to.regress = "percent.mt", verbose = FALSE)
+```
+
+The latest version of `sctransform` also supports using [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)
+package which substantially improves the speed of the learning procedure. It can be invoked by specifying
+`method="glmGamPoi"`.
+
+```{r eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("glmGamPoi")
+pbmc <- SCTransform(pbmc, method="glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
 ```
 
 Perform dimensionality reduction by PCA and UMAP embedding

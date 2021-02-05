@@ -35,9 +35,16 @@ knitr::opts_chunk$set(
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
-For very large datasets, the standard integration workflow can sometimes be prohibitively computationally expensive. In this workflow, we discuss alternatives that can improve efficiency and runtimes, namely RPCA and reference-based integration.
+For very large datasets, the standard integration workflow can sometimes be prohibitively computationally expensive. In this workflow, we employ two options that can improve efficiency and runtimes:
 
-As demonstrated below, the workflow consists of the following steps:
+1. Reciprocal PCA (RPCA)
+2. Reference-based integration
+
+The main efficiency improvements are gained in `FindIntegrationAnchors()`. First, we use reciprocal PCA (RPCA) instead of CCA, to identify an effective space in which to find anchors. When determining anchors between any two datasets using reciprocal PCA, we project each dataset into the others PCA space and constrain the anchors by the same mutual neighborhood requirement. All downstream integration steps remain the same and we are able to 'correct' (or harmonize) the datasets. 
+
+Additionally, we use reference-based integration. In the standard workflow, we identify anchors between all pairs of datasets. While this gives datasets equal weight in downstream integration, it can also become computationally intensive. For example when integrating 10 different datasets, we perform 45 different pairwise comparisons. As an alternative, we introduce here the possibility of specifying one or more of the datasets as the 'reference' for integrated analysis, with the remainder designated as 'query' datasets. In this workflow, we do not identify anchors between pairs of query datasets, reducing the number of comparisons. For example, when integrating 10 datasets with one specified as a reference, we perform only 9 comparisons. Reference-based integration can be applied to either log-normalized or SCTransform-normalized datasets.
+
+This alternative workflow consists of the following steps:
 
 * Create a list of Seurat objects to integrate
 * Perform normalization, feature selection, and scaling separately for each dataset
@@ -64,7 +71,7 @@ bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
 })
 ```
 
-Next, select features for downstream integration, and run PCA on each object in the list, which is required for running the alternative reciprocal PCA workflow, described in more detailed below.
+Next, select features for downstream integration, and run PCA on each object in the list, which is required for running the alternative reciprocal PCA workflow.
 
 ```{r hca.full.2}
 features <- SelectIntegrationFeatures(object.list = bm280k.list)
@@ -73,12 +80,6 @@ bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
   x <- RunPCA(x, features = features, verbose = FALSE)
 })
 ```
-
-The main efficiency improvements are demonstrated in `FindIntegrationAnchors()`. First, we use reciprocal PCA (RPCA) instead of CCA, to identify an effective space in which to find anchors. When determining anchors between any two datasets using reciprocal PCA, we project each dataset into the others PCA space and constrain the anchors by the same mutual neighborhood requirement. All downstream integration steps remain the same and we are able to 'correct' (or harmonize) the datasets. 
-
-Additionally, we use reference-based integration. In the standard workflow, we identify anchors between all pairs of datasets. While this gives datasets equal weight in downstream integration, it can also become computationally intensive. For example when integrating 10 different datasets, we perform 45 different pairwise comparisons.
-
-As an alternative, we introduce here the possibility of specifying one or more of the datasets as the 'reference' for integrated analysis, with the remainder designated as 'query' datasets. In this workflow, we do not identify anchors between pairs of query datasets, reducing the number of comparisons. For example, when integrating 10 datasets with one specified as a reference, we perform only 9 comparisons. Reference-based integration can be applied to either log-normalized or SCTransform-normalized datasets. 
 
 Since this dataset contains both men and women, we will chose one male and one female (BM1 and BM2) to use in a reference-based workflow. We determined donor sex by examining the expression of the XIST gene. 
 

@@ -30,9 +30,9 @@ If you use Seurat in your research, please considering citing:
 * [Hao\*, Hao\*, et al., bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1) [Seurat V4]
 * [Stuart\*, Butler\*, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) [Seurat V3]
 * [Butler\* et al., Nat Biotechnol 2018](https://doi.org/10.1038/nbt.4096) [Seurat V2]
-* [Satija\*, Farrel\*, et al., Nat Biotechnol 2015](https://doi.org/10.1038/nbt.3192) [Seurat V1]
+* [Satija\*, Farrell\*, et al., Nat Biotechnol 2015](https://doi.org/10.1038/nbt.3192) [Seurat V1]
 
 
-All methods emphasize clear, attractive, and interpretable visualizations, and were designed to be [easily used](articles/vignettes_overview.html) by both dry-lab and wet-lab researchers.
+All methods emphasize clear, attractive, and interpretable visualizations, and were designed to be [easily used](articles/get_started.html) by both dry-lab and wet-lab researchers.
 
 Seurat is developed and maintained by the [Satija lab](authors.html) and is released under the GNU Public License (GPL 3.0).

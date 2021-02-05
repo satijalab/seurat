@@ -57,7 +57,7 @@ library(patchwork)
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
-# PBMC
+# Example 1: Mapping human peripheral blood cells 
 
 ## A Multimodal PBMC Reference Dataset
 
@@ -213,7 +213,7 @@ refquery <- RunUMAP(refquery, reduction = 'spca', dims = 1:50)
 DimPlot(refquery, group.by = 'id', shuffle = TRUE)
 ```
 
-# BMNC
+# Example 2: Mapping human bone marrow cells
 
 ## A Multimodal BMNC Reference Dataset
 

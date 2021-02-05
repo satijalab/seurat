@@ -3,6 +3,7 @@ destination: docs
 template:
   params:
       bootswatch: flatly
+      ganalytics: UA-82807227-1
 
 navbar:
   title: "Seurat"
@@ -10,7 +11,7 @@ navbar:
     - text: "Install"
       href: articles/install.html
     - text: "Get started"
-      href: articles/vignettes_overview.html
+      href: articles/get_started.html
     - text: "Vignettes"
       menu:
         - text: Introductory Vignettes
@@ -26,6 +27,8 @@ navbar:
           href: articles/integration_introduction.html
         - text: "Mapping and annotating query datasets"
           href: articles/integration_mapping.html
+        - text: "Fast integration using reciprocal PCA (RPCA)"
+          href: articles/integration_rpca.html
         - text: "Tips for integrating large datasets"
           href: articles/integration_large_datasets.html
         - text: "Integrating scRNA-seq and scATAC-seq data"
@@ -65,7 +68,7 @@ navbar:
     - text: Extensions
       href: articles/extensions.html
     - text: FAQ
-      href: articles/faq.html
+      href: "https://github.com/satijalab/seurat/discussions"
     - text: "News"
       href: news/index.html
     - text: "Reference"
