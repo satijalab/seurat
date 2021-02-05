@@ -3757,6 +3757,8 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
+#' @param direction A character string specifying the direction of the tree (default is downwards)
+#' Possible options: "rightwards", "leftwards", "upwards", and "downwards".
 #' @param \dots Additional arguments to
 #' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
