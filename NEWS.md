@@ -1,3 +1,7 @@
+# Seurat develop
+## Changes
+- `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
+
 # Seurat 4.0.0 (2020-01-27) 
 ## Added
 - Expose `FoldChange()` component in `FindMarkers()`. 

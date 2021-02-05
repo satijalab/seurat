@@ -821,7 +821,7 @@ Read10X <- function(
       )))
     }
     if (is.null(x = names(x = data.dir))) {
-      if (i < 2) {
+      if (length(x = data.dir) < 2) {
         colnames(x = data) <- cell.names
       } else {
         colnames(x = data) <- paste0(i, "_", cell.names)
