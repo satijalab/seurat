@@ -1,4 +1,7 @@
 # Seurat develop
+## Added
+- Add direction option to `PlotClusterTree()`
+
 ## Changes
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
 

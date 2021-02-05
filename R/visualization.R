@@ -3757,6 +3757,8 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
+#' @param direction A character string specifying the direction of the tree (default is downwards)
+#' Possible options: "rightwards", "leftwards", "upwards", and "downwards".
 #' @param \dots Additional arguments to
 #' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
@@ -3770,7 +3772,7 @@ JackStrawPlot <- function(
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
 #' PlotClusterTree(object = pbmc_small)
 #'
-PlotClusterTree <- function(object, ...) {
+PlotClusterTree <- function(object, direction = "downwards", ...) {
   if (!PackageCheck('ape', error = FALSE)) {
     stop(cluster.ape, call. = FALSE)
   }
@@ -3778,7 +3780,7 @@ PlotClusterTree <- function(object, ...) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::plot.phylo(x = data.tree, direction = direction, ...)
   ape::nodelabels()
 }
 
