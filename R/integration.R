@@ -443,6 +443,7 @@ FindIntegrationAnchors <- function(
 # so that the loadings can be used to project new embeddings. Must be present
 # in both input objects, with a substantial overlap in the features use to construct
 # the SVDs.
+# @param dims dimensions used for rpca
 # @param projected.name Name to store projected SVDs under (eg, "projectedpca")
 # @param features Features to use. Will subset the SVD loadings to use these features
 # before performing projection. Typically uses the anchor.features for integration.
@@ -456,6 +457,7 @@ ReciprocalProject <- function(
   object.1,
   object.2,
   reduction,
+  dims, 
   projected.name,
   features,
   do.scale,
@@ -504,22 +506,22 @@ ReciprocalProject <- function(
   reduction.dr.name.1 <- paste0(projected.name, ".1")
   reduction.dr.name.2 <- paste0(projected.name, ".2")
   object.pair[[reduction.dr.name.1]] <- CreateDimReducObject(
-    embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]])),
-    loadings = Loadings(object = object.2[[reduction]]),
+    embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]]))[,dims],
+    loadings = Loadings(object = object.2[[reduction]])[,dims],
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "1_")
   )
   object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
-    embeddings = rbind(proj.2, Embeddings(object = object.1[[reduction]])),
-    loadings = Loadings(object = object.1[[reduction]]),
+    embeddings = rbind(proj.2, Embeddings(object = object.1[[reduction]]))[,dims],
+    loadings = Loadings(object = object.1[[reduction]])[,dims],
     assay = DefaultAssay(object = object.2),
     key = paste0(projected.name, "2_")
   )
   object.pair[[reduction]] <- CreateDimReducObject(
     embeddings = rbind(
       Embeddings(object = object.1[[reduction]]),
-      Embeddings(object = object.2[[reduction]])),
-    loadings = Loadings(object = object.1[[reduction]]),
+      Embeddings(object = object.2[[reduction]]))[,dims],
+    loadings = Loadings(object = object.1[[reduction]])[,dims],
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "_")
   )
@@ -886,7 +888,7 @@ FindTransferAnchors <- function(
     }
     query <- RunPCA(
       object = query,
-      npcs = npcs,
+      npcs =  ncol(x = reference[[reference.reduction]]),
       reduction.name = reference.reduction,
       verbose = FALSE,
       features = features,
@@ -896,6 +898,7 @@ FindTransferAnchors <- function(
       object.1 = reference,
       object.2 = query,
       reduction = 'pca',
+      dims = dims, 
       projected.name = reduction,
       features = features,
       do.scale = scale,
