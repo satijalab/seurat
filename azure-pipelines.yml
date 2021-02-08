@@ -57,4 +57,3 @@ jobs:
       - script: |
           netlify deploy --prod --dir '$(Build.ArtifactStagingDirectory)/docs/docs/' --site '$(site_id)' --auth '$(auth_token)'
         displayName: 'Netlify Preview Deploy'
-
