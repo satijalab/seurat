@@ -76,7 +76,7 @@ p1 + p2
 
 # Converting to/from `loom`
 
-The [`loom`](http://loompy.org/) format is a file structure imposed on [HDF5 files](http://portal.hdfgroup.org/display/support) designed by [Sten Linnarson's](http://linnarssonlab.org/) group. It is designed to efficiently hold large single-cell genomics datasets. The ability to save Seurat objects as `loom` files is implemented in [SeuratDisk](https://mojaveazure.github.io/seurat-disk) For more details about the `loom` format, please see the [`loom` file format specification](http://linnarssonlab.org/loompy/format/index.html).
+The [`loom`](http://loompy.org/) format is a file structure imposed on [HDF5 files](http://portal.hdfgroup.org/display/support) designed by [Sten Linnarsson's](http://linnarssonlab.org/) group. It is designed to efficiently hold large single-cell genomics datasets. The ability to save Seurat objects as `loom` files is implemented in [SeuratDisk](https://mojaveazure.github.io/seurat-disk) For more details about the `loom` format, please see the [`loom` file format specification](http://linnarssonlab.org/loompy/format/index.html).
 
 ```{r prepare_loom, echo=FALSE}
 if (file.exists('../output/pbmc3k.loom')) {
@@ -91,10 +91,10 @@ pbmc.loom
 pbmc.loom$close_all()
 ```
 
-Seurat can also read in `loom` files connected via [loomR](https://github.com/mojaveazure/loomR) into a Seurat object; we demonstrate this on a subset of the [Mouse Brain Atlas](http://mousebrain.org/) created by the Linnarson lab.
+Seurat can also read in `loom` files connected via [SeuratDisk](https://github.com/mojaveazure/seurat-disk) into a Seurat object; we demonstrate this on a subset of the [Mouse Brain Atlas](http://mousebrain.org/) created by the Linnarsson lab.
 
 ```{r loom_seurat, fig.height=10}
-# download from linnarson lab
+# download from linnarsson lab
 # https://storage.googleapis.com/linnarsson-lab-loom/l6_r1_immune_cells.loom
 l6.immune <- Connect(filename = '../data/l6_r1_immune_cells.loom', mode = 'r')
 l6.immune
