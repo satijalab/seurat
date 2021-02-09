@@ -1922,11 +1922,14 @@ subset.AnchorSet <- function(
   }
   # Filter based on ident pairings
   if (!is.null(x = group.by)) {
-    anchors <- AnnotateAnchors(object = x, vars = group.by)
+    anchors <- AnnotateAnchors(anchors = x, vars = group.by)
     if (!is.null(x = disallowed.ident.pairs) && !is.null(x = ident.matrix)) {
       stop("Please use either disallowed.ident.pairs OR ident.matrix, not both.")
     }
-    unique.ids <- unique(x = c(anchors[, paste0("cell1.", group.by)], anchors[, paste0("cell2.", group.by)]))
+    unique.ids <- unique(x = c(
+      as.character(x = anchors[, paste0("cell1.", group.by)]),
+      as.character(x = anchors[, paste0("cell2.", group.by)]))
+    )
     unique.ids <- unique.ids[!is.na(x = unique.ids)]
     num.ids <- length(x = unique.ids)
     if (!is.null(x = disallowed.ident.pairs)) {
