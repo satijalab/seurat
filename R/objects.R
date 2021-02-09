@@ -1861,6 +1861,7 @@ merge.SCTAssay <- function(
 #'
 #' @export
 #' @method subset AnchorSet
+#' @concept objects
 #'
 subset.AnchorSet <- function(
   x,
