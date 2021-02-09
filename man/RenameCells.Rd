@@ -28,3 +28,4 @@ Rename Cells in an Object
 \seealso{
 \code{\link[SeuratObject:RenameCells]{SeuratObject::RenameCells}}
 }
+\concept{objects}

@@ -25,3 +25,4 @@ Get Cell Names
 \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 }
 \concept{objects}
+\concept{spatial}

@@ -34,3 +34,4 @@ populated with NAs.}
 \description{
 Merge SCTAssay objects
 }
+\concept{objects}

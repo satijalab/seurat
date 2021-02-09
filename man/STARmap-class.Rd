@@ -10,12 +10,6 @@ The STARmap class
 }
 \section{Slots}{
 
-\describe{
-\item{\code{...}}{}
-}}
-
-\section{Slots}{
-
 
 \describe{
 \item{\code{assay}}{Name of assay to associate image data with; will give this image
@@ -26,3 +20,5 @@ in a \code{Seurat} object}
 }
 }
 
+\concept{objects}
+\concept{spatial}

@@ -1962,6 +1962,7 @@ FindVariableFeatures.Seurat <- function(
 #' @method FindSpatiallyVariableFeatures default
 #' @rdname FindSpatiallyVariableFeatures
 #' @concept preprocessing
+#' @concept spatial
 #' @export
 #'
 #'
@@ -2014,6 +2015,7 @@ FindSpatiallyVariableFeatures.default <- function(
 #' @method FindSpatiallyVariableFeatures Assay
 #' @rdname FindSpatiallyVariableFeatures
 #' @concept preprocessing
+#' @concept spatial
 #' @export
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
@@ -2078,6 +2080,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
 #' @method FindSpatiallyVariableFeatures Seurat
 #' @rdname FindSpatiallyVariableFeatures
 #' @concept preprocessing
+#' @concept spatial
 #' @export
 #'
 FindSpatiallyVariableFeatures.Seurat <- function(
