@@ -2884,6 +2884,7 @@ TransferData <- function(
 #' @rdname AnnotateAnchors
 #' @export
 #' @method AnnotateAnchors default
+#' @concept integration
 #'
 AnnotateAnchors.default <- function(
   anchors,

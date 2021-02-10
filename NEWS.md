@@ -1,9 +1,11 @@
 # Seurat develop
+
 ## Added
 - Add direction option to `PlotClusterTree()`
 
 ## Changes
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
+- Bug fix for `subset.AnchorSet()`
 
 # Seurat 4.0.0 (2020-01-27) 
 ## Added
@@ -25,6 +27,7 @@
 - Add `AnnotateAnchors()` to aid in AnchorSet interpretation as well as `subset.AnchorSet()`
 - Add flexibility of choice for cell column in `Read10X()`
 - Add rasterization option to `FeatureScatter()` and `VariableFeaturePlot()`
+- Add step1 feature parameters in the SCTModel via `PrepVSTResults()`
 
 ## Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"

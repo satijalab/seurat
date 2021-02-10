@@ -113,6 +113,12 @@ reference:
 - contents:
   - has_concept("integration")
 
+- title: "Spatial"
+  desc: >
+    Functions related to the analysis of spatially-resolved single-cell data
+- contents:
+  - has_concept("spatial")
+
 - title: "Mixscape"
   desc: >
       Functions related to the mixscape algorithm

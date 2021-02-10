@@ -23,4 +23,5 @@ Returns final plot as a ggplot object
 \description{
 Visualize clusters spatially and interactively
 }
+\concept{spatial}
 \concept{visualization}

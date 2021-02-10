@@ -93,3 +93,4 @@ levels(pbmc_small[['SCT']])
 
 \code{\link{Assay}}
 }
+\concept{objects}

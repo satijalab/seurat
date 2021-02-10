@@ -49,4 +49,5 @@ Returns a ggplot object
 \description{
 Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
 }
+\concept{spatial}
 \concept{visualization}
