@@ -457,7 +457,7 @@ ReciprocalProject <- function(
   object.1,
   object.2,
   reduction,
-  dims, 
+  dims,
   projected.name,
   features,
   do.scale,
@@ -602,6 +602,8 @@ ReciprocalProject <- function(
 #' set as variable features of the reference object which are also present in
 #' the query.
 #' @param scale Scale query data.
+#' @param use.reference.stats When scaling and centering the query data, use
+#' the mean and standard deviation calculated from the reference dataset.
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT.
 #' @param recompute.residuals If using SCT as a normalization method, compute
@@ -683,6 +685,7 @@ FindTransferAnchors <- function(
   project.query = FALSE,
   features = NULL,
   scale = TRUE,
+  use.reference.stats = FALSE,
   npcs = 30,
   l2.norm = TRUE,
   dims = 1:30,
@@ -711,6 +714,7 @@ FindTransferAnchors <- function(
     project.query = project.query,
     features = features,
     scale = scale,
+    use.reference.stats = use.reference.stats,
     npcs = npcs,
     l2.norm = l2.norm,
     dims = dims,
@@ -798,7 +802,12 @@ FindTransferAnchors <- function(
           message("Performing PCA on the provided query using ", length(x = features), " features as input.")
         }
         if (normalization.method == "LogNormalize") {
-          query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
+          query <- ScaleData(
+            object = query,
+            features = features,
+            do.scale = scale,
+            verbose = FALSE
+          )
         }
         query <- RunPCA(
           object = query,
@@ -870,7 +879,12 @@ FindTransferAnchors <- function(
         message("Performing PCA on the provided reference using ", length(x = features), " features as input.")
       }
       if (normalization.method == "LogNormalize") {
-        reference <- ScaleData(object = reference, features = features, do.scale = scale, verbose = FALSE)
+        reference <- ScaleData(
+          object = reference,
+          features = features,
+          do.scale = scale,
+          verbose = FALSE
+        )
       }
       reference <- RunPCA(
         object = reference,
@@ -884,7 +898,21 @@ FindTransferAnchors <- function(
       message("Performing PCA on the provided query using ", length(x = features), " features as input.")
     }
     if (normalization.method == "LogNormalize") {
-      query <- ScaleData(object = query, features = features, do.scale = scale, verbose = FALSE)
+      # rescale based on reference
+      refscaled.query <- RescaleQuery(
+        reference = reference,
+        query = query,
+        reference.assay = reference.assay,
+        query.assay = query.assay,
+        features = features,
+        scale = scale
+      )
+      query <- SetAssayData(
+        object = query,
+        slot = "scale.data",
+        assay = query.assay,
+        new.data = refscaled.query
+      )
     }
     query <- RunPCA(
       object = query,
@@ -898,10 +926,10 @@ FindTransferAnchors <- function(
       object.1 = reference,
       object.2 = query,
       reduction = 'pca',
-      dims = dims, 
+      dims = dims,
       projected.name = reduction,
       features = features,
-      do.scale = scale,
+      do.scale = FALSE,
       do.center = FALSE,
       slot = 'scale.data',
       l2.norm = l2.norm,
@@ -930,10 +958,6 @@ FindTransferAnchors <- function(
     )
   }
   if (reduction == "lsiproject") {
-    if (!is.na(k.filter)) {
-      k.filter <- NA
-      message("Anchor filtration not supported with lsiproject, skipping filtration")
-    }
     if (project.query) {
       projected.lsi <- ProjectSVD(
         reduction = query[[reference.reduction]],
@@ -4113,25 +4137,29 @@ ParseRow <- function(clustering, i){
   return(unlist(datasets))
 }
 
-ProjectCellEmbeddings <- function(
+# Rescale query with mean and sd from reference, or known mean and SD
+#
+# @param reference A reference object
+# @param query A query object
+# @param features Features to scale
+# @param scale Scale data (divide by SD)
+# @return Returns a matrix containing the scaled query data
+RescaleQuery <- function(
   reference,
   query,
-  reduction = "pca",
   reference.assay = NULL,
   query.assay = NULL,
-  dims = 1:50,
-  scale = TRUE,
-  verbose = TRUE,
+  features = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  scale = TRUE
 ) {
-  if (verbose) {
-    message("Projecting cell embeddings")
-  }
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   query.assay <- query.assay %||% DefaultAssay(object = query)
-  features <- rownames(x = Loadings(object = reference[[reduction]]))
-  features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
+  features <- features %||% intersect(
+    rownames(x = reference[[reference.assay]]),
+    rownames(x = query[[query.assay]])
+  )
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
@@ -4142,7 +4170,7 @@ ProjectCellEmbeddings <- function(
     slot = "data")[features, ]
   if (is.null(x = feature.mean)) {
     feature.mean <- rowMeans(x = reference.data)
-    if(scale){
+    if (scale) {
       feature.sd <- sqrt(
         x = SparseRowVar2(
           mat = as(object = reference.data, Class = "dgCMatrix"),
@@ -4171,6 +4199,36 @@ ProjectCellEmbeddings <- function(
     )
   }
   dimnames(x = proj.data) <- store.names
+  return(proj.data)
+}
+
+ProjectCellEmbeddings <- function(
+  reference,
+  query,
+  reduction = "pca",
+  reference.assay = NULL,
+  query.assay = NULL,
+  dims = 1:50,
+  scale = TRUE,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  if (verbose) {
+    message("Projecting cell embeddings")
+  }
+  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
+  query.assay <- query.assay %||% DefaultAssay(object = query)
+  features <- rownames(x = Loadings(object = reference[[reduction]]))
+  features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
+  proj.data <- RescaleQuery(
+    reference = reference,
+    query = query,
+    features = features,
+    scale = scale,
+    feature.mean = feature.mean,
+    feature.sd = feature.sd
+  )
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = proj.data))
   return(proj.pca)
@@ -4233,20 +4291,34 @@ ProjectSVD <- function(
   if (do.center) {
     if (use.original.stats) {
       components <- slot(object = reduction, name = 'misc')
-      projected.u <- projected.u - components$mean[dims]
+      if ("u" %in% names(x = components)) {
+        # preferentially use original irlba output stored in misc
+        # signac scales and centers embeddings by default
+        embed.mean <- apply(X = components$u, MARGIN = 2, FUN = mean)
+      } else {
+        # raw irlba output not stored, fall back to the reference embeddings
+        ref.emb <- Embeddings(object = reduction)
+        embed.mean <- apply(X = ref.emb, MARGIN = 2, FUN = mean)
+      }
     } else {
+      # projected.u is transposed so use MARGIN = 1
       embed.mean <- apply(X = projected.u, MARGIN = 1, FUN = mean)
-      projected.u <- projected.u - embed.mean
     }
+    projected.u <- projected.u - embed.mean
   }
   if (do.scale) {
     if (use.original.stats) {
       components <- slot(object = reduction, name = 'misc')
-      projected.u <- projected.u / components$sd[dims]
+      if ("u" %in% names(x = components)) {
+        embed.sd <- apply(X = components$u, MARGIN = 2, FUN = sd)
+      } else {
+        ref.emb <- Embeddings(object = reduction)
+        embed.sd <- apply(X = ref.emb, MARGIN = 2, FUN = sd)
+      }
     } else {
       embed.sd <- apply(X = projected.u, MARGIN = 1, FUN = sd)
-      projected.u <- projected.u / embed.sd
     }
+    projected.u <- projected.u / embed.sd
   }
   return(t(x = projected.u))
 }
@@ -4623,6 +4695,7 @@ ValidateParams_FindTransferAnchors <- function(
   project.query,
   features,
   scale,
+  use.reference.stats,
   npcs,
   l2.norm,
   dims,
@@ -4648,6 +4721,9 @@ ValidateParams_FindTransferAnchors <- function(
   if (!is.logical(x = scale)) {
     stop("Scale should be TRUE or FALSE")
   }
+  if (!is.logical(x = use.reference.stats)) {
+    stop("use.reference.stats should be TRUE or FALSE")
+  }
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference",
          call. = FALSE)
@@ -4665,6 +4741,9 @@ ValidateParams_FindTransferAnchors <- function(
          call. = FALSE)
   }
   if (normalization.method == "SCT") {
+    ModifyParam(param = "k.filter", value = NA)
+  }
+  if (reduction == "lsiproject") {
     ModifyParam(param = "k.filter", value = NA)
   }
   if (!is.na(x = k.filter) && k.filter > ncol(x = query)) {
