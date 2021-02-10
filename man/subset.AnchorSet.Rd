@@ -45,3 +45,4 @@ filtered out
 \description{
 Subset an AnchorSet object
 }
+\concept{objects}

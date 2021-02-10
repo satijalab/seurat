@@ -48,3 +48,4 @@ the slot directly).
 Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
 object.
 }
+\concept{objects}

@@ -27,3 +27,4 @@ Get Image Data
 \code{\link[SeuratObject:GetImage]{SeuratObject::GetImage}}
 }
 \concept{objects}
+\concept{spatial}

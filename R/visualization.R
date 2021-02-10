@@ -2084,6 +2084,7 @@ PolyDimPlot <- function(
 #'
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 PolyFeaturePlot <- function(
   object,
@@ -2207,6 +2208,7 @@ PolyFeaturePlot <- function(
 #'
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 #' @examples
 #' \dontrun{
@@ -2421,7 +2423,7 @@ LinkedDimPlot <- function(
 #'
 #' @export
 #' @concept visualization
-#'
+#' @concept spatial
 LinkedFeaturePlot <- function(
   object,
   feature,
@@ -2554,6 +2556,7 @@ LinkedFeaturePlot <- function(
 #'
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 ISpatialDimPlot <- function(
   object,
@@ -2679,7 +2682,7 @@ ISpatialDimPlot <- function(
 #'
 #' @export
 #' @concept visualization
-#'
+#' @concept spatial
 ISpatialFeaturePlot <- function(
   object,
   feature,
@@ -2926,6 +2929,7 @@ ISpatialFeaturePlot <- function(
 #' @importFrom patchwork wrap_plots
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 #' @examples
 #' \dontrun{
