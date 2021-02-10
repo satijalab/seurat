@@ -25,6 +25,7 @@
 - Add `AnnotateAnchors()` to aid in AnchorSet interpretation as well as `subset.AnchorSet()`
 - Add flexibility of choice for cell column in `Read10X()`
 - Add rasterization option to `FeatureScatter()` and `VariableFeaturePlot()`
+- Add step1 feature parameters in the SCTModel via `PrepVSTResults()`
 
 ## Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"
