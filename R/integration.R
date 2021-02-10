@@ -602,8 +602,6 @@ ReciprocalProject <- function(
 #' set as variable features of the reference object which are also present in
 #' the query.
 #' @param scale Scale query data.
-#' @param use.reference.stats When scaling and centering the query data, use
-#' the mean and standard deviation calculated from the reference dataset.
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT.
 #' @param recompute.residuals If using SCT as a normalization method, compute
@@ -685,7 +683,6 @@ FindTransferAnchors <- function(
   project.query = FALSE,
   features = NULL,
   scale = TRUE,
-  use.reference.stats = FALSE,
   npcs = 30,
   l2.norm = TRUE,
   dims = 1:30,
@@ -714,7 +711,6 @@ FindTransferAnchors <- function(
     project.query = project.query,
     features = features,
     scale = scale,
-    use.reference.stats = use.reference.stats,
     npcs = npcs,
     l2.norm = l2.norm,
     dims = dims,
@@ -4695,7 +4691,6 @@ ValidateParams_FindTransferAnchors <- function(
   project.query,
   features,
   scale,
-  use.reference.stats,
   npcs,
   l2.norm,
   dims,
@@ -4720,9 +4715,6 @@ ValidateParams_FindTransferAnchors <- function(
   ModifyParam(param = "query", value = query)
   if (!is.logical(x = scale)) {
     stop("Scale should be TRUE or FALSE")
-  }
-  if (!is.logical(x = use.reference.stats)) {
-    stop("use.reference.stats should be TRUE or FALSE")
   }
   if (length(x = reference) > 1 | length(x = query) > 1) {
     stop("We currently only support transfer between a single query and reference",
