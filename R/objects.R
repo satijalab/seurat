@@ -1395,6 +1395,42 @@ GetTissueCoordinates.VisiumV1 <- function(
   return(coordinates)
 }
 
+
+
+#' @rdname VariableFeatures
+#' @export
+#' @method HVFInfo SCTAssay
+#'
+#' @examples
+#' # Get the HVF info directly from an SCTAssay object
+#' pbmc_small <- SCTransform(pbmc_small)
+#' HVFInfo(pbmc_small[["SCT"]], selection.method = 'sct')[1:5, ]
+#'
+HVFInfo.SCTAssay <- function(object, selection.method, status = FALSE, ...) {
+  CheckDots(...)
+  disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
+  if (tolower(x = selection.method) %in% disp.methods) {
+    selection.method <- 'mvp'
+  }
+  selection.method <- switch(
+    EXPR = tolower(x = selection.method),
+    'sctransform' = 'sct',
+    selection.method
+  )
+  vars <- c('gmean', 'variance', 'residual_variance')
+  hvf.info <- SCTResults(object = object, slot = "feature.attributes")[,vars]
+  if (status) {
+    hvf.info$variable <- FALSE
+    hvf.info[VariableFeatures(object = object), "variable"] <-  TRUE
+  }
+  return(hvf.info)
+}
+
+
+
+
+
+
 #' Get Spot Radius
 #'
 #' @inheritParams SeuratObject::Radius
