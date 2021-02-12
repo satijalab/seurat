@@ -2010,10 +2010,22 @@ VariableFeaturePlot <- function(
     pt.size = pt.size,
     raster = raster
   )
+  if (length(unique(var.status)) == 1){
+    cols <- switch(EXPR = var.status[1], 
+                   "no" = cols[1], 
+                   "yes" = cols[2]
+    )
+    labels.legend <- switch(EXPR = var.status[1], 
+                            "no" =  "Non-variable", 
+                            "yes" =  "Variable"
+    )
+  } else {
+    labels.legend <- c('Non-variable', 'Variable')
+  }
   plot <- plot +
     labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
     scale_color_manual(
-      labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
+      labels = paste(labels.legend, 'count:', table(var.status)),
       values = cols
     )
   if (log) {
