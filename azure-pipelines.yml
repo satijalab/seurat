@@ -32,6 +32,10 @@ jobs:
             Rscript -e "pkgdown::build_site(lazy = TRUE)"
             cp vignettes/assets/* docs/articles/assets/
         displayName: 'Build pkgdown site'
+      - script: |
+            find ./docs/ -name '*.png' -print0 | xargs -0 -P8 -L1 pngquant --ext .png --force --speed 1
+            html-minifier --input-dir ./docs/ --output-dir ./docs/ --file-ext html --collapse-whitespace --remove-comments --remove-optional-tags --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true 
+        displayName: 'Minify'
       - task: CopyFiles@2
         inputs:
           sourceFolder: '$(Build.SourcesDirectory)'
@@ -53,4 +57,3 @@ jobs:
       - script: |
           netlify deploy --prod --dir '$(Build.ArtifactStagingDirectory)/docs/docs/' --site '$(site_id)' --auth '$(auth_token)'
         displayName: 'Netlify Preview Deploy'
-

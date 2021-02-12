@@ -50,3 +50,4 @@ ssHippo.filtered <- FilterSlideSeq(ssHippo, radius = 2300)
 }
 }
 \concept{objects}
+\concept{spatial}

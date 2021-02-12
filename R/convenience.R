@@ -32,6 +32,7 @@ PCAPlot <- function(object, ...) {
 
 #' @rdname SpatialPlot
 #' @concept convenience
+#' @concept spatial
 #' @export
 #'
 SpatialDimPlot <- function(
@@ -82,6 +83,7 @@ SpatialDimPlot <- function(
 
 #' @rdname SpatialPlot
 #' @concept convenience
+#' @concept spatial
 #' @export
 #'
 SpatialFeaturePlot <- function(

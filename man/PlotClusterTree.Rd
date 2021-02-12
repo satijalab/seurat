@@ -4,10 +4,13 @@
 \alias{PlotClusterTree}
 \title{Plot clusters as a tree}
 \usage{
-PlotClusterTree(object, ...)
+PlotClusterTree(object, direction = "downwards", ...)
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{direction}{A character string specifying the direction of the tree (default is downwards)
+Possible options: "rightwards", "leftwards", "upwards", and "downwards".}
 
 \item{\dots}{Additional arguments to
 \code{\link[ape:plot.phylo]{ape::plot.phylo}}}

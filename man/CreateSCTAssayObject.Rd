@@ -40,3 +40,4 @@ The expected format of the input matrix is features x cells.
 Non-unique cell or feature names are not allowed. Please make unique before
 calling this function.
 }
+\concept{objects}
