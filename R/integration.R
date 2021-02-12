@@ -186,8 +186,11 @@ FindIntegrationAnchors <- function(
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
   object.list <- CheckDuplicateCellNames(object.list = object.list)
-
   slot <- "data"
+  if (reduction == "lsi") {
+    all.rownames <- lapply(X = object.list, FUN = rownames)
+    anchor.features <- Reduce(f = intersect, x = all.rownames)
+  }
   if (normalization.method == "SCT") {
     slot <- "scale.data"
     scale <- FALSE
