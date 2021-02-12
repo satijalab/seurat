@@ -1395,11 +1395,16 @@ GetTissueCoordinates.VisiumV1 <- function(
   return(coordinates)
 }
 
-
-
-#' @rdname VariableFeatures
+#' Get Variable Feature Information
+#'
+#' Get variable feature information from \code{\link{SCTAssay}} objects
+#'
+#' @inheritParams SeuratObject::HVFInfo
+#'
 #' @export
 #' @method HVFInfo SCTAssay
+#'
+#' @seealso \code{\link[SeuratObject]{HVFInfo}}
 #'
 #' @examples
 #' # Get the HVF info directly from an SCTAssay object
@@ -1425,11 +1430,6 @@ HVFInfo.SCTAssay <- function(object, selection.method, status = FALSE, ...) {
   }
   return(hvf.info)
 }
-
-
-
-
-
 
 #' Get Spot Radius
 #'
@@ -2444,8 +2444,8 @@ PrepVSTResults <- function(vst.res, cell.names) {
       y = rownames(feature.attrs)
     )
     feature.attrs[genes_step1,"genes_log_gmean_step1"] <- TRUE
-      
-    # add parameters from step1 
+
+    # add parameters from step1
     feature.attrs[, paste0("step1_", colnames(vst.res$model_pars))] <- NA
     feature.attrs[genes_step1, paste0("step1_", colnames(vst.res$model_pars))] <- vst.res$model_pars[genes_step1,]
 

@@ -2010,14 +2010,17 @@ VariableFeaturePlot <- function(
     pt.size = pt.size,
     raster = raster
   )
-  if (length(unique(var.status)) == 1){
-    cols <- switch(EXPR = var.status[1], 
-                   "no" = cols[1], 
-                   "yes" = cols[2]
-    )
-    labels.legend <- switch(EXPR = var.status[1], 
-                            "no" =  "Non-variable", 
-                            "yes" =  "Variable"
+  if (length(x = unique(x = var.status)) == 1) {
+    switch(
+      EXPR = var.status[1],
+      'yes' = {
+        cols <- cols[2]
+        labels.legend <- 'Variable'
+      },
+      'no' = {
+        cols <- cols[1]
+        labels.legend <- 'Non-variable'
+      }
     )
   } else {
     labels.legend <- c('Non-variable', 'Variable')
