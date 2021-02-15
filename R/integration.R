@@ -1815,6 +1815,8 @@ MapQuery <- function(
   refdata = NULL,
   new.reduction.name = NULL,
   reference.reduction = NULL,
+  reference.dims = NULL,
+  query.dims = NULL,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
@@ -1834,7 +1836,7 @@ MapQuery <- function(
     warning("The following arguments in integrateembeddings.args are not valid: ",
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
-  integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings))]
+  integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
@@ -1868,8 +1870,20 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
 
   if (!is.null(x = reduction.model)) {
-    ref.dims <- slot(object = anchorset, name = "command")$dims
-    query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][["pcaproject"]])
+    reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
+    if (is.null(x = query.dims)) {
+      # check if reductions parameter set in IntegrateEmbeddings params
+      if ("reductions" %in% names(x = integrateembeddings.args)) {
+        query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[integrateembeddings.args$reductions]])
+      } else {
+        # default reduction in IntegrateEmbeddings is pcaproject
+        query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][["pcaproject"]])
+      }
+    }
+    if (length(x = query.dims) != length(x = reference.dims)) {
+      message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
+      query.dims <- reference.dims
+    }
     query <- do.call(
       what = ProjectUMAP,
       args = c(list(
@@ -1877,7 +1891,7 @@ MapQuery <- function(
         query.reduction = new.reduction.name,
         query.dims = query.dims,
         reference = reference,
-        reference.dims = ref.dims,
+        reference.dims = reference.dims,
         reference.reduction = reference.reduction,
         reduction.model = reduction.model
         ), projectumap.args
