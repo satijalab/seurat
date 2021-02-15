@@ -363,8 +363,8 @@ FindIntegrationAnchors <- function(
             l2.norm = l2.norm,
             verbose = verbose
           )
-          reduction <- "projectedpca.1"
-          reduction.2 <- "projectedpca.2"
+          reduction <- "projectedpca.ref"
+          reduction.2 <- "projectedpca.query"
           if (l2.norm) {
             reduction <- paste0(reduction, ".l2")
             reduction.2 <- paste0(reduction.2, ".l2")
@@ -384,8 +384,8 @@ FindIntegrationAnchors <- function(
             l2.norm = l2.norm,
             verbose = verbose
           )
-          reduction <- "projectedlsi.1"
-          reduction.2 <- "projectedlsi.2"
+          reduction <- "projectedlsi.ref"
+          reduction.2 <- "projectedlsi.query"
           if (l2.norm) {
             reduction <- paste0(reduction, ".l2")
             reduction.2 <- paste0(reduction.2, ".l2")
@@ -506,19 +506,19 @@ ReciprocalProject <- function(
     use.original.stats = FALSE,
     verbose = verbose
   )
-  reduction.dr.name.1 <- paste0(projected.name, ".1")
-  reduction.dr.name.2 <- paste0(projected.name, ".2")
+  reduction.dr.name.1 <- paste0(projected.name, ".ref")
+  reduction.dr.name.2 <- paste0(projected.name, ".query")
   object.pair[[reduction.dr.name.1]] <- CreateDimReducObject(
     embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]]))[,dims],
     loadings = Loadings(object = object.2[[reduction]])[,dims],
     assay = DefaultAssay(object = object.1),
-    key = paste0(projected.name, "1_")
+    key = paste0(projected.name, "ref_")
   )
   object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
     embeddings = rbind(proj.2, Embeddings(object = object.1[[reduction]]))[,dims],
     loadings = Loadings(object = object.1[[reduction]])[,dims],
     assay = DefaultAssay(object = object.2),
-    key = paste0(projected.name, "2_")
+    key = paste0(projected.name, "query_")
   )
   object.pair[[reduction]] <- CreateDimReducObject(
     embeddings = rbind(
@@ -935,10 +935,10 @@ FindTransferAnchors <- function(
       verbose = verbose
     )
     # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
-    # avoids later error as we now have two reductions (rpca.1 and rpca.2)
+    # avoids later error as we now have two reductions (rpca.ref and rpca.query)
     l2.norm <- FALSE
-    reduction <- "rpca.1"
-    reduction.2 <- "rpca.2"
+    reduction <- "rpca.ref"
+    reduction.2 <- "rpca.query"
   }
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
