@@ -892,7 +892,7 @@ FindTransferAnchors <- function(
         features = features,
         approx = approx.pca
       )
-    }
+    } 
     if (verbose) {
       message("Performing PCA on the provided query using ", length(x = features), " features as input.")
     }
@@ -924,7 +924,7 @@ FindTransferAnchors <- function(
     combined.ob <- ReciprocalProject(
       object.1 = reference,
       object.2 = query,
-      reduction = 'pca',
+      reduction = reference.reduction,
       dims = dims,
       projected.name = reduction,
       features = features,
@@ -936,9 +936,14 @@ FindTransferAnchors <- function(
     )
     # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
     # avoids later error as we now have two reductions (rpca.ref and rpca.query)
-    l2.norm <- FALSE
+  if (l2.norm) {
+    reduction <- "rpca.ref.l2"
+    reduction.2 <- "rpca.query.l2"
+  } else {
     reduction <- "rpca.ref"
     reduction.2 <- "rpca.query"
+  }
+    l2.norm <- FALSE
   }
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
@@ -1823,6 +1828,7 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
+  weight.reduction <- gsub( ".l2", "", slot(object = anchorset, name = "command")$reduction)
   reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
   new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
@@ -1847,6 +1853,7 @@ MapQuery <- function(
         reference = reference,
         query = query,
         refdata = refdata,
+        weight.reduction = weight.reduction, 
         store.weights = TRUE,
         verbose = verbose
         ), transferdata.args
@@ -1860,6 +1867,7 @@ MapQuery <- function(
     args = c(list(
       anchorset = anchorset,
       reference = reference,
+      reductions = weight.reduction,
       query = query,
       new.reduction.name = new.reduction.name,
       reuse.weights.matrix = reuse.weights.matrix,
@@ -1868,7 +1876,6 @@ MapQuery <- function(
     )
   )
   slot(object = query, name = "tools")$TransferData <- NULL
-
   if (!is.null(x = reduction.model)) {
     reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
     if (is.null(x = query.dims)) {
@@ -1877,7 +1884,7 @@ MapQuery <- function(
         query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[integrateembeddings.args$reductions]])
       } else {
         # default reduction in IntegrateEmbeddings is pcaproject
-        query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][["pcaproject"]])
+        query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[weight.reduction]])
       }
     }
     if (length(x = query.dims) != length(x = reference.dims)) {
@@ -5060,11 +5067,11 @@ ValidateParams_TransferData <- function(
   }
   ModifyParam(param = "refdata", value = refdata)
   if (!inherits(x = weight.reduction, "DimReduc")) {
-    if (!weight.reduction %in% c("pcaproject", "pca", "cca", "lsiproject", "lsi")) {
-      stop("Please provide one of pcaproject, pca, cca, lsiproject, lsi or a custom DimReduc to ",
+    if (!weight.reduction %in% c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi")) {
+      stop("Please provide one of pcaproject, pca, cca, rpca.ref, lsiproject, lsi or a custom DimReduc to ",
            "the weight.reduction parameter.", call. = FALSE)
     }
-    if (weight.reduction %in% c("pcaproject", "cca", "lsiproject") &&
+    if (weight.reduction %in% c("pcaproject", "cca", "rpca.ref", "lsiproject") &&
         !weight.reduction %in% Reductions(object = combined.ob)) {
       stop("Specified weight.reduction (", weight.reduction, ") is not present ",
            "in the provided anchorset.", call. = FALSE)
