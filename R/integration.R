@@ -934,11 +934,16 @@ FindTransferAnchors <- function(
       l2.norm = l2.norm,
       verbose = verbose
     )
-    # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
-    # avoids later error as we now have two reductions (rpca.ref and rpca.query)
-    l2.norm <- FALSE
-    reduction <- "rpca.ref"
-    reduction.2 <- "rpca.query"
+    if (l2.norm) {
+      # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
+      # avoids later error as we now have two reductions (rpca.ref and rpca.query)
+      l2.norm <- FALSE
+      reduction <- "rpca.ref.l2"
+      reduction.2 <- "rpca.query.l2"
+    } else {
+      reduction <- "rpca.ref"
+      reduction.2 <- "rpca.query"
+    }
   }
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
