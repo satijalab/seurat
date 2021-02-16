@@ -486,6 +486,7 @@ ReciprocalProject <- function(
     object = object.2,
     slot = slot
   )
+
   proj.1 <- ProjectSVD(
     reduction = object.2[[reduction]],
     data = data.1,
@@ -508,15 +509,17 @@ ReciprocalProject <- function(
   )
   reduction.dr.name.1 <- paste0(projected.name, ".ref")
   reduction.dr.name.2 <- paste0(projected.name, ".query")
+
   object.pair[[reduction.dr.name.1]] <- CreateDimReducObject(
-    embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]]))[,dims],
-    loadings = Loadings(object = object.2[[reduction]])[,dims],
+    embeddings = rbind(Embeddings(object = object.1[[reduction]]), proj.2)[,dims],
+    loadings = Loadings(object = object.1[[reduction]])[,dims],
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "ref_")
   )
+  
   object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
-    embeddings = rbind(proj.2, Embeddings(object = object.1[[reduction]]))[,dims],
-    loadings = Loadings(object = object.1[[reduction]])[,dims],
+    embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]]))[,dims],
+    loadings = Loadings(object = object.2[[reduction]])[,dims],
     assay = DefaultAssay(object = object.2),
     key = paste0(projected.name, "query_")
   )
