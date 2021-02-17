@@ -779,6 +779,13 @@ FindTransferAnchors <- function(
     features = features,
     scale.data = TRUE
   )
+  # check assay in the reference.reduction
+  if (!is.null(reference.reduction) && 
+    slot(object = reference[[reference.reduction]], name = "assay.used") != reference.assay) {
+    warnings("reference assay is diffrent from the assay.used in", reference.reduction)
+    slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
+  }
+  
   reference <- DietSeurat(
     object = reference,
     assays = reference.assay,
