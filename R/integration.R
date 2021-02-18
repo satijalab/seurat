@@ -892,7 +892,7 @@ FindTransferAnchors <- function(
           object = reference,
           features = features,
           do.scale = scale,
-          verbose = FALSE
+          verbose = verbose
         )
       }
       reference <- RunPCA(
@@ -1831,7 +1831,25 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
-  weight.reduction <- gsub( ".l2", "", slot(object = anchorset, name = "command")$reduction)
+  anchor.reduction <- gsub( ".l2", "", slot(object = anchorset, name = "command")$reduction)
+  if ("weight.reduction" %in% names(x = transferdata.args)) {
+    weight.reduction.transfer <- transferdata.args$weight.reduction
+    transferdata.args$weight.reduction <- NULL
+  } else {
+    weight.reduction.transfer <- anchor.reduction
+  }
+  if ("weight.reduction" %in% names(x = integrateembeddings.args)) {
+    weight.reduction.integrate <- integrateembeddings.args$weight.reduction
+    integrateembeddings.args$weight.reduction <- NULL
+  } else {
+    weight.reduction.integrate <- anchor.reduction
+  }
+  if ("reductions" %in% names(x = integrateembeddings.args)) {
+    reductions.integrate <- integrateembeddings.args$reductions
+    integrateembeddings.args$reductions <- NULL
+  } else {
+    reductions.integrate <- anchor.reduction
+  }
   reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
   new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
@@ -1856,13 +1874,15 @@ MapQuery <- function(
         reference = reference,
         query = query,
         refdata = refdata,
-        weight.reduction = weight.reduction,
+        weight.reduction = weight.reduction.transfer,
         store.weights = TRUE,
         verbose = verbose
         ), transferdata.args
       )
     )
-    reuse.weights.matrix <- TRUE
+    if (weight.reduction.integrate == weight.reduction.transfer) {
+      reuse.weights.matrix <- TRUE
+    }
   }
 
   query <- do.call(
@@ -1870,7 +1890,8 @@ MapQuery <- function(
     args = c(list(
       anchorset = anchorset,
       reference = reference,
-      reductions = weight.reduction,
+      reductions = reductions.integrate,
+      weight.reduction = weight.reduction.integrate,
       query = query,
       new.reduction.name = new.reduction.name,
       reuse.weights.matrix = reuse.weights.matrix,
@@ -1881,15 +1902,7 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
     reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
-    if (is.null(x = query.dims)) {
-      # check if reductions parameter set in IntegrateEmbeddings params
-      if ("reductions" %in% names(x = integrateembeddings.args)) {
-        query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[integrateembeddings.args$reductions]])
-      } else {
-        # default reduction in IntegrateEmbeddings is pcaproject
-        query.dims <- 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[weight.reduction]])
-      }
-    }
+    query.dims <- query.dims %||% 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[reductions.integrate]])
     if (length(x = query.dims) != length(x = reference.dims)) {
       message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
       query.dims <- reference.dims
