@@ -516,7 +516,7 @@ ReciprocalProject <- function(
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "ref_")
   )
-  
+
   object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
     embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]]))[,dims],
     loadings = Loadings(object = object.2[[reduction]])[,dims],
@@ -780,12 +780,12 @@ FindTransferAnchors <- function(
     scale.data = TRUE
   )
   # check assay in the reference.reduction
-  if (!is.null(reference.reduction) && 
+  if (!is.null(reference.reduction) &&
     slot(object = reference[[reference.reduction]], name = "assay.used") != reference.assay) {
     warnings("reference assay is diffrent from the assay.used in", reference.reduction)
     slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
   }
-  
+
   reference <- DietSeurat(
     object = reference,
     assays = reference.assay,
@@ -902,25 +902,16 @@ FindTransferAnchors <- function(
         features = features,
         approx = approx.pca
       )
-    } 
+    }
     if (verbose) {
       message("Performing PCA on the provided query using ", length(x = features), " features as input.")
     }
     if (normalization.method == "LogNormalize") {
-      # rescale based on reference
-      refscaled.query <- RescaleQuery(
-        reference = reference,
-        query = query,
-        reference.assay = reference.assay,
-        query.assay = query.assay,
-        features = features,
-        scale = scale
-      )
-      query <- SetAssayData(
+      query <- ScaleData(
         object = query,
-        slot = "scale.data",
-        assay = query.assay,
-        new.data = refscaled.query
+        features = features,
+        do.scale = scale,
+        verbose = verbose
       )
     }
     query <- RunPCA(
@@ -955,7 +946,7 @@ FindTransferAnchors <- function(
       reduction <- "rpca.ref"
       reduction.2 <- "rpca.query"
     }
-    
+
   }
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
@@ -1865,7 +1856,7 @@ MapQuery <- function(
         reference = reference,
         query = query,
         refdata = refdata,
-        weight.reduction = weight.reduction, 
+        weight.reduction = weight.reduction,
         store.weights = TRUE,
         verbose = verbose
         ), transferdata.args
