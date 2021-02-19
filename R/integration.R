@@ -531,7 +531,20 @@ ReciprocalProject <- function(
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "_")
   )
-  if (l2.norm){
+  if (l2.norm) {
+    slot(object = object.pair[[reduction.dr.name.1]], name = "cell.embeddings") <- Sweep(
+      x = Embeddings(object = object.pair[[reduction.dr.name.1]]),
+      MARGIN = 2,
+      STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.1]]), MARGIN = 2, FUN = sd),
+      FUN = "/"
+    )
+    slot(object = object.pair[[reduction.dr.name.2]], name = "cell.embeddings") <- Sweep(
+      x = Embeddings(object = object.pair[[reduction.dr.name.2]]),
+      MARGIN = 2,
+      STATS = apply(X = Embeddings(object = object.pair[[reduction.dr.name.2]]), MARGIN = 2, FUN = sd),
+      FUN = "/"
+    )
+
     object.pair <- L2Dim(object = object.pair, reduction = reduction.dr.name.1)
     object.pair <- L2Dim(object = object.pair, reduction = reduction.dr.name.2)
   }
@@ -935,6 +948,28 @@ FindTransferAnchors <- function(
       l2.norm = l2.norm,
       verbose = verbose
     )
+    
+    projected.pca <- ProjectCellEmbeddings(
+      reference = reference,
+      reduction = reference.reduction,
+      query = query,
+      scale = scale,
+      dims = dims,
+      feature.mean = feature.mean,
+      verbose = verbose
+    )
+    orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
+    orig.loadings <- Loadings(object = reference[[reference.reduction]])
+ 
+  combined.pca <- CreateDimReducObject(
+    embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca)),
+    key = "ProjectPC_",
+    assay = reference.assay
+  )
+ 
+  combined.ob[["pcaproject"]] <- combined.pca
+  colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
+  Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
 
     if (l2.norm) {
       # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
