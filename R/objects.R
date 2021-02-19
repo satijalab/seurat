@@ -1016,7 +1016,7 @@ as.Seurat.CellDataSet <- function(
 #' set to \code{NULL} if only normalized data are present
 #' @param data name of the SingleCellExperiment assay to slot as \code{data}.
 #' Set to NULL if only counts are present
-#' @param assay Name to store expression matrices as
+#' @param assay Name of assays to convert; set to \code{NULL} for all assays to be converted
 #' @param project Project name for new Seurat object
 #'
 #' @rdname as.Seurat
@@ -1028,7 +1028,7 @@ as.Seurat.SingleCellExperiment <- function(
   x,
   counts = 'counts',
   data = 'logcounts',
-  assay = NULL,
+  assay = "RNA",
   project = 'SingleCellExperiment',
   ...
 ) {
@@ -1042,6 +1042,10 @@ as.Seurat.SingleCellExperiment <- function(
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
 
   assayn <- assay %||% SingleCellExperiment::altExpNames(x)
+
+  if (!all(assay %in% SingleCellExperiment::altExpNames(x))) {
+    stop("One of the assays you are trying to convert is not in the SingleCellExperiment object")
+  }
 
   for (assay in assayn) {
   x<-SingleCellExperiment::swapAltExp(x,name = assay,saved = NULL)
@@ -1141,7 +1145,7 @@ as.Seurat.SingleCellExperiment <- function(
   return(object)
 }
 
-#' @param assay Assay to convert
+#' @param assay Assays to convert
 #'
 #' @rdname as.SingleCellExperiment
 #' @concept objects
