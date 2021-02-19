@@ -627,6 +627,7 @@ FindMarkers.Assay <- function(
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
+    pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     fc.name = fc.name,
     base = base
