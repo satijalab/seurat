@@ -23,7 +23,7 @@ RunLDA(object, ...)
 
 \method{RunLDA}{Assay}(
   object,
-  assay,
+  assay = NULL,
   labels,
   features = NULL,
   verbose = TRUE,

@@ -7,6 +7,7 @@
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
 - Bug fix for `subset.AnchorSet()`
 - Bug fix for fold change values in `FindMarkers()` when setting a different pseudocount ([#4111](https://github.com/satijalab/seurat/pull/4111))
+- Bug fix for `RunLDA()` related to proper passing of assay parameter. 
 
 # Seurat 4.0.0 (2020-01-27) 
 ## Added
