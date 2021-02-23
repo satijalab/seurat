@@ -1867,39 +1867,31 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
-  anchor.reduction <- gsub( ".l2", "", slot(object = anchorset, name = "command")$reduction)
-  if ("weight.reduction" %in% names(x = transferdata.args)) {
-    weight.reduction.transfer <- transferdata.args$weight.reduction
-    transferdata.args$weight.reduction <- NULL
-  } else {
-    weight.reduction.transfer <- anchor.reduction
-  }
-  if ("weight.reduction" %in% names(x = integrateembeddings.args)) {
-    weight.reduction.integrate <- integrateembeddings.args$weight.reduction
-    integrateembeddings.args$weight.reduction <- NULL
-  } else {
-    weight.reduction.integrate <- anchor.reduction
-  }
-  if ("reductions" %in% names(x = integrateembeddings.args)) {
-    reductions.integrate <- integrateembeddings.args$reductions
-    integrateembeddings.args$reductions <- NULL
-  } else {
-    reductions.integrate <- anchor.reduction
-  }
+  if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
+    anchor.reduction <- "pcaproject"
+  } else { 
+    anchor.reduction <- "lsiproject"
+   }
   reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
   new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
+  # checking TransferData parameters
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
     warning("The following arguments in transferdata.args are not valid: ",
             paste(td.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
   transferdata.args <- transferdata.args[names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
+  transferdata.args$weight.reduction <- transferdata.args$weight.reduction %||% anchor.reduction
+  # checking IntegrateEmbeddings parameters
   ie.badargs <- names(x = integrateembeddings.args)[!names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   if (length(x = ie.badargs) > 0) {
     warning("The following arguments in integrateembeddings.args are not valid: ",
             paste(ie.badargs, collapse = ", "), immediate. = TRUE, call. = FALSE)
   }
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
+  integrateembeddings.args$reductions <- integrateembeddings.args$reductions %||% anchor.reduction
+  integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
+  
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
@@ -1910,13 +1902,12 @@ MapQuery <- function(
         reference = reference,
         query = query,
         refdata = refdata,
-        weight.reduction = weight.reduction.transfer,
         store.weights = TRUE,
         verbose = verbose
         ), transferdata.args
       )
     )
-    if (weight.reduction.integrate == weight.reduction.transfer) {
+    if (transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
       reuse.weights.matrix <- TRUE
     }
   }
@@ -1926,8 +1917,6 @@ MapQuery <- function(
     args = c(list(
       anchorset = anchorset,
       reference = reference,
-      reductions = reductions.integrate,
-      weight.reduction = weight.reduction.integrate,
       query = query,
       new.reduction.name = new.reduction.name,
       reuse.weights.matrix = reuse.weights.matrix,
