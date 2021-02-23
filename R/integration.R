@@ -975,11 +975,12 @@ FindTransferAnchors <- function(
       # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
       # avoids later error as we now have two reductions (rpca.ref and rpca.query)
       l2.norm <- FALSE
-      reduction <- "rpca.ref.l2"
-      reduction.2 <- "rpca.query.l2"
+      reduction <- "rpca.query.l2"
+      reduction.2 <- "rpca.ref.l2"
+  
     } else {
-      reduction <- "rpca.ref"
-      reduction.2 <- "rpca.query"
+      reduction <- "rpca.query" 
+      reduction.2 <- "rpca.ref"
     }
 
   }
