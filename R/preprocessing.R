@@ -739,10 +739,6 @@ MULTIseqDemux <- function(
 #' files provided by 10X. A vector or named vector can be given in order to load
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
-#' @param file.prefix.geo Specify file name prefix in front of barcodes, features, and matrix files.
-#' Useful for importing files downloaded from public repository without renaming.  All 3 files must
-#' have the same prefix.  All files must remain zipped with .gz suffix as downloaded from GEO.  Make sure
-#' to include the trailing "_".
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #' @param cell.column Specify which column of barcodes.tsv to use for cell names; default is 1
 #' @param unique.features Make feature names unique (default TRUE)
@@ -773,17 +769,10 @@ MULTIseqDemux <- function(
 #' seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #'
-#' # For files downloaded from NCBI GEO with file prefixes
-#' data_dir <- 'path/to/data/directory'
-#' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx with additional prefix from GEO record
-#' expression_matrix <- Read10X(data.dir = data_dir, file.prefix.geo = "GSM_XXXXXX_NAME_")
-#' seurat_object = CreateSeuratObject(counts = expression_matrix)
-#'
 #' }
 #'
 Read10X <- function(
   data.dir = NULL,
-  file.prefix.geo = NULL,
   gene.column = 2,
   cell.column = 1,
   unique.features = TRUE,
@@ -799,14 +788,6 @@ Read10X <- function(
     gene.loc <- file.path(run, 'genes.tsv')
     features.loc <- file.path(run, 'features.tsv.gz')
     matrix.loc <- file.path(run, 'matrix.mtx')
-    # import files with prefix in front of barcodes, features, matrix (ie downloaded from NCBI GEO).
-    prefix <- file.prefix.geo[i]
-    if (!is.null(x = file.prefix.geo)) {
-      barcode.loc <- paste0(run, prefix,'barcodes.tsv.gz')
-      gene.loc <- paste0(run, prefix,'genes.tsv.gz')
-      features.loc <- paste0(run, prefix,'features.tsv.gz')
-      matrix.loc <- paste0(run, prefix,'matrix.mtx.gz')
-    }
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
     if (!pre_ver_3 && is.null(x = file.prefix.geo)) {
