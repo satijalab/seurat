@@ -768,7 +768,6 @@ MULTIseqDemux <- function(
 #' data <- Read10X(data.dir = data_dir)
 #' seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
-#'
 #' }
 #'
 Read10X <- function(
@@ -790,7 +789,7 @@ Read10X <- function(
     matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
-    if (!pre_ver_3 && is.null(x = file.prefix.geo)) {
+    if (!pre_ver_3) {
       addgz <- function(s) {
         return(paste0(s, ".gz"))
       }
