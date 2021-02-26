@@ -559,7 +559,11 @@ FindNeighbors.default <- function(
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
     if (verbose) {
-      message("Computing nearest neighbor graph")
+      if (return.neighbor) {
+        message("Computing nearest neighbors")
+      } else {
+        message("Computing nearest neighbor graph")
+      }      
     }
     nn.ranked <- NNHelper(
       data = object,
