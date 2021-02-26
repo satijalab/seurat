@@ -67,7 +67,8 @@ Options are:
 
 \item{reference.reduction}{Name of dimensional reduction to use from the
 reference if running the pcaproject workflow. Optionally enables reuse of
-precomputed reference dimensional reduction.}
+precomputed reference dimensional reduction. If NULL (default), use a PCA
+computed on the reference object.}
 
 \item{project.query}{Project the PCA from the query dataset onto the
 reference. Use only in rare cases where the query dataset has a much larger
