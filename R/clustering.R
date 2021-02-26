@@ -559,7 +559,11 @@ FindNeighbors.default <- function(
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
     if (verbose) {
-      message("Computing nearest neighbor graph")
+      if (return.neighbor) {
+        message("Computing nearest neighbors")
+      } else {
+        message("Computing nearest neighbor graph")
+      }      
     }
     nn.ranked <- NNHelper(
       data = object,
@@ -787,7 +791,12 @@ FindNeighbors.Seurat <- function(
   if (length(x = neighbor.graphs) == 1) {
     neighbor.graphs <- list(nn = neighbor.graphs)
   }
-  graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
+  graph.name <- graph.name %||% 
+    if (return.neighbor) { 
+      paste0(assay, ".", names(x = neighbor.graphs))
+    } else {
+      paste0(assay, "_", names(x = neighbor.graphs))
+    }
   for (ii in 1:length(x = graph.name)) {
     if (inherits(x = neighbor.graphs[[ii]], what = "Graph")) {
       DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
