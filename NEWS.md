@@ -6,6 +6,8 @@
 ## Changes
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
 - Bug fix for `subset.AnchorSet()`
+- Bug fix for fold change values in `FindMarkers()` when setting a different pseudocount ([#4111](https://github.com/satijalab/seurat/pull/4111))
+- Bug fix for `RunLDA()` related to proper passing of assay parameter. 
 
 # Seurat 4.0.0 (2020-01-27) 
 ## Added
@@ -42,6 +44,7 @@
 - Default rasterization limit in `DimPlot()` and `FeaturePlot()` changed from 50,000 to 100,000
 - `SCTransform()` now returns a formalized `Assay` subclass `SCTAssay()`
 - When using `normalization.method='SCT'` in `FindTransferAnchors()`, normalize query using reference SCT model when possible.
+- Change default Neighbor name in `FindNeighbors` to `Assay.nn`
 
 ## Removed
 - `CreateGeneActivityMatrix` replaced by `Signac::GeneActivity()`

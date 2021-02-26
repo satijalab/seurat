@@ -627,6 +627,7 @@ FindMarkers.Assay <- function(
     cells.1 = cells.1,
     cells.2 = cells.2,
     features = features,
+    pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     fc.name = fc.name,
     base = base
@@ -680,6 +681,7 @@ FindMarkers.DimReduc <- function(
   min.cells.group = 3,
   pseudocount.use = 1,
   mean.fxn = rowMeans,
+  fc.name = NULL,
   ...
 
 ) {
@@ -705,7 +707,9 @@ FindMarkers.DimReduc <- function(
     object = object,
     cells.1 = cells.1,
     cells.2 = cells.2,
-    features = features
+    features = features,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name
   )
   # subsample cell groups if they are too large
   if (max.cells.per.ident < Inf) {

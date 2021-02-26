@@ -194,10 +194,10 @@ test_that("FindTransferAnchors with project.query and reference.reduction works"
 ref <- FindNeighbors(object = ref, reduction = "pca", dims = 1:30, return.neighbor = TRUE, k.param = 31, verbose = FALSE, l2.norm = TRUE, nn.method = "annoy")
 test_that("FindTransferAnchors with reference.neighbors precomputed works", {
   skip_on_cran()
-  anchors <- FindTransferAnchors(reference = ref, query = query, reference.neighbors = "RNA_nn", k.filter = 50)
+  anchors <- FindTransferAnchors(reference = ref, query = query, reference.neighbors = "RNA.nn", k.filter = 50)
   expect_error(FindTransferAnchors(reference = ref, query = query, reference.neighbors = "BAD", k.filter = 50))
-  expect_error(FindTransferAnchors(reference = ref, query = query, reference.neighbors = "RNA_nn", k.filter = 50, k.score = 31))
-  expect_error(FindTransferAnchors(reference = ref, query = query, reference.neighbors = "RNA_nn", k.filter = 50, k.anchor = 31))
+  expect_error(FindTransferAnchors(reference = ref, query = query, reference.neighbors = "RNA.nn", k.filter = 50, k.score = 31))
+  expect_error(FindTransferAnchors(reference = ref, query = query, reference.neighbors = "RNA.nn", k.filter = 50, k.anchor = 31))
   co <- anchors@object.list[[1]]
   expect_equal(dim(co), c(100, 160))
   expect_equal(Reductions(co), c("pcaproject", "pcaproject.l2"))
