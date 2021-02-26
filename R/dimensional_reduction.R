@@ -1661,6 +1661,14 @@ RunUMAP.Seurat <- function(
   } else {
     stop("Please specify one of dims, features, or graph")
   }
+
+  if (!is.null(nn.name) && !inherits(x = object[[nn.name]], what = "Neighbor")) {
+    stop("Please specify a Neighbor object name, ",
+         "instead of the name of a ", 
+         class(object[[nn.name]]), 
+         " object",   
+         call. = FALSE)
+  }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     reduction.model = reduction.model,
