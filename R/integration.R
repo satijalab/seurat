@@ -1027,7 +1027,7 @@ FindTransferAnchors <- function(
       orig.loadings <- Loadings(object = reference[[reference.reduction]])
     }
     combined.lsi <- CreateDimReducObject(
-      embeddings = as.matrix(x = rbind(orig.embeddings, projected.lsi)),
+      embeddings = as.matrix(x = rbind(orig.embeddings, projected.lsi))[,dims],
       key = "ProjectLSI_",
       assay = reference.assay
     )
@@ -1037,7 +1037,7 @@ FindTransferAnchors <- function(
     )
     combined.ob[["lsiproject"]] <- combined.lsi
     colnames(x = orig.loadings) <- paste0("ProjectLSI_", 1:ncol(x = orig.loadings))
-    Loadings(object = combined.ob[["lsiproject"]]) <- orig.loadings
+    Loadings(object = combined.ob[["lsiproject"]]) <- orig.loadings[,dims]
   }
   if (l2.norm) {
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
@@ -1927,7 +1927,7 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
     reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
-    query.dims <- query.dims %||% 1:ncol(x = slot(object = anchorset, name = "object.list")[[1]][[reductions.integrate]])
+    query.dims <- query.dims %||% 1:ncol(x = query[[new.reduction.name]])
     if (length(x = query.dims) != length(x = reference.dims)) {
       message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
       query.dims <- reference.dims
