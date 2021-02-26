@@ -150,7 +150,12 @@ is \code{NULL}}
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
 \item{graph.name}{Optional naming parameter for stored (S)NN graph
-(or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.}
+(or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.
+To store both the neighbor graph and the shared nearest neighbor (SNN) graph,
+you must supply a vector containing two names to the \code{graph.name}
+parameter. The first element in the vector will be used to store the nearest
+neighbor (NN) graph, and the second element used to store the SNN graph. If
+only one name is supplied, only the NN graph is stored.}
 }
 \value{
 This function can either return a \code{\link{Neighbor}} object
