@@ -1210,7 +1210,7 @@ FeaturePlot <- function(
   }
   # Make the plots
   for (i in 1:length(x = levels(x = data$split))) {
-    # Figre out which split we're working with
+    # Figure out which split we're working with
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     # Blend expression values
@@ -7076,7 +7076,7 @@ SingleDimPlot <- function(
   if (!is.null(x = order) && !is.null(x = col.by)) {
     if (typeof(x = order) == "logical") {
       if (order) {
-        data <- data[order(data[, col.by]), ]
+        data <- data[order(!is.na(x = data[, col.by]), data[, col.by]), ]
       }
     } else {
       order <- rev(x = c(
