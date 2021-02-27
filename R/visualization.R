@@ -7076,7 +7076,7 @@ SingleDimPlot <- function(
   if (!is.null(x = order) && !is.null(x = col.by)) {
     if (typeof(x = order) == "logical") {
       if (order) {
-        data <- data[order(!is.na(data[, col.by]), data[, col.by]), ]
+        data <- data[order(!is.na(x = data[, col.by]), data[, col.by]), ]
       }
     } else {
       order <- rev(x = c(
