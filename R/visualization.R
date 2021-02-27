@@ -3707,6 +3707,10 @@ GroupCorrelationPlot <- function(
 #'
 #' @param object Seurat object
 #' @param dims Dims to plot
+#' @param cols Vector of colors, each color corresponds to an individual PC. This may also be a single character
+#' or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+#' By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
+#' See \code{\link{DiscretePalette}} for details.
 #' @param reduction reduction to pull jackstraw info from
 #' @param xmax X-axis maximum on each QQ plot.
 #' @param ymax Y-axis maximum on each QQ plot.
@@ -3717,6 +3721,7 @@ GroupCorrelationPlot <- function(
 #' @seealso \code{\link{ScoreJackStraw}}
 #'
 #' @importFrom stats qunif
+#' @importFrom scales hue_pal
 #' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim
 #' coord_flip geom_abline guides guide_legend
 #' @importFrom cowplot theme_cowplot
@@ -3731,6 +3736,7 @@ GroupCorrelationPlot <- function(
 JackStrawPlot <- function(
   object,
   dims = 1:5,
+  cols = NULL,
   reduction = 'pca',
   xmax = 0.1,
   ymax = 0.3
@@ -3759,9 +3765,16 @@ JackStrawPlot <- function(
     x = data.plot$PC.Score,
     levels = paste0("PC ", score.df[, "PC"], ": ", sprintf("%1.3g", score.df[, "Score"]))
   )
+  if (is.null(x = cols)) {
+    cols <- hue_pal()(length(x = dims))
+  }
+  if (length(x = cols) < length(x = dims)) {
+    stop("Not enough colors for the number of dims selected")
+  }
   gp <- ggplot(data = data.plot, mapping = aes_string(sample = 'Value', color = 'PC.Score')) +
     stat_qq(distribution = qunif) +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
+    scale_color_manual(values = cols) +
     xlim(0, ymax) +
     ylim(0, xmax) +
     coord_flip() +

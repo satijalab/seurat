@@ -2,6 +2,7 @@
 
 ## Added
 - Add direction option to `PlotClusterTree()`
+- Add `cols` parameter to `JackStrawPlot()`
 
 ## Changes
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
