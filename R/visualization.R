@@ -2010,10 +2010,25 @@ VariableFeaturePlot <- function(
     pt.size = pt.size,
     raster = raster
   )
+  if (length(x = unique(x = var.status)) == 1) {
+    switch(
+      EXPR = var.status[1],
+      'yes' = {
+        cols <- cols[2]
+        labels.legend <- 'Variable'
+      },
+      'no' = {
+        cols <- cols[1]
+        labels.legend <- 'Non-variable'
+      }
+    )
+  } else {
+    labels.legend <- c('Non-variable', 'Variable')
+  }
   plot <- plot +
     labs(title = NULL, x = axis.labels[1], y = axis.labels[2]) +
     scale_color_manual(
-      labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
+      labels = paste(labels.legend, 'count:', table(var.status)),
       values = cols
     )
   if (log) {
@@ -2084,6 +2099,7 @@ PolyDimPlot <- function(
 #'
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 PolyFeaturePlot <- function(
   object,
@@ -2207,6 +2223,7 @@ PolyFeaturePlot <- function(
 #'
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 #' @examples
 #' \dontrun{
@@ -2421,7 +2438,7 @@ LinkedDimPlot <- function(
 #'
 #' @export
 #' @concept visualization
-#'
+#' @concept spatial
 LinkedFeaturePlot <- function(
   object,
   feature,
@@ -2554,6 +2571,7 @@ LinkedFeaturePlot <- function(
 #'
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 ISpatialDimPlot <- function(
   object,
@@ -2679,7 +2697,7 @@ ISpatialDimPlot <- function(
 #'
 #' @export
 #' @concept visualization
-#'
+#' @concept spatial
 ISpatialFeaturePlot <- function(
   object,
   feature,
@@ -2926,6 +2944,7 @@ ISpatialFeaturePlot <- function(
 #' @importFrom patchwork wrap_plots
 #' @export
 #' @concept visualization
+#' @concept spatial
 #'
 #' @examples
 #' \dontrun{
@@ -3688,6 +3707,10 @@ GroupCorrelationPlot <- function(
 #'
 #' @param object Seurat object
 #' @param dims Dims to plot
+#' @param cols Vector of colors, each color corresponds to an individual PC. This may also be a single character
+#' or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+#' By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
+#' See \code{\link{DiscretePalette}} for details.
 #' @param reduction reduction to pull jackstraw info from
 #' @param xmax X-axis maximum on each QQ plot.
 #' @param ymax Y-axis maximum on each QQ plot.
@@ -3698,6 +3721,7 @@ GroupCorrelationPlot <- function(
 #' @seealso \code{\link{ScoreJackStraw}}
 #'
 #' @importFrom stats qunif
+#' @importFrom scales hue_pal
 #' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim
 #' coord_flip geom_abline guides guide_legend
 #' @importFrom cowplot theme_cowplot
@@ -3712,6 +3736,7 @@ GroupCorrelationPlot <- function(
 JackStrawPlot <- function(
   object,
   dims = 1:5,
+  cols = NULL,
   reduction = 'pca',
   xmax = 0.1,
   ymax = 0.3
@@ -3740,9 +3765,16 @@ JackStrawPlot <- function(
     x = data.plot$PC.Score,
     levels = paste0("PC ", score.df[, "PC"], ": ", sprintf("%1.3g", score.df[, "Score"]))
   )
+  if (is.null(x = cols)) {
+    cols <- hue_pal()(length(x = dims))
+  }
+  if (length(x = cols) < length(x = dims)) {
+    stop("Not enough colors for the number of dims selected")
+  }
   gp <- ggplot(data = data.plot, mapping = aes_string(sample = 'Value', color = 'PC.Score')) +
     stat_qq(distribution = qunif) +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
+    scale_color_manual(values = cols) +
     xlim(0, ymax) +
     ylim(0, xmax) +
     coord_flip() +
@@ -3757,6 +3789,8 @@ JackStrawPlot <- function(
 #' Plots previously computed tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
+#' @param direction A character string specifying the direction of the tree (default is downwards)
+#' Possible options: "rightwards", "leftwards", "upwards", and "downwards".
 #' @param \dots Additional arguments to
 #' \code{\link[ape:plot.phylo]{ape::plot.phylo}}
 #'
@@ -3770,7 +3804,7 @@ JackStrawPlot <- function(
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
 #' PlotClusterTree(object = pbmc_small)
 #'
-PlotClusterTree <- function(object, ...) {
+PlotClusterTree <- function(object, direction = "downwards", ...) {
   if (!PackageCheck('ape', error = FALSE)) {
     stop(cluster.ape, call. = FALSE)
   }
@@ -3778,7 +3812,7 @@ PlotClusterTree <- function(object, ...) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
   data.tree <- Tool(object = object, slot = "BuildClusterTree")
-  ape::plot.phylo(x = data.tree, direction = "downwards", ...)
+  ape::plot.phylo(x = data.tree, direction = direction, ...)
   ape::nodelabels()
 }
 

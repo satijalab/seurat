@@ -24,3 +24,4 @@ platform
 }}
 
 \concept{objects}
+\concept{spatial}
