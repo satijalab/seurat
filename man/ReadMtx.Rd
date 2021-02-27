@@ -44,10 +44,9 @@ seurat_object <- CreateSeuratObject(counts = expression_matrix)
 
 # For remote files:
 
-expression_matrix <- ReadMtx(mtx = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132044&format=file&file=GSE132044\%5Fmixture\%5Fhg19\%5Fmm10\%5Fcount\%5Fmatrix\%2Emtx\%2Egz",
-cells ="https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132044&format=file&file=GSE132044\%5Fmixture\%5Fhg19\%5Fmm10\%5Fcell\%2Etsv\%2Egz",
-features = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132044&format=file&file=GSE132044\%5Fmixture\%5Fhg19\%5Fmm10\%5Fgene\%2Etsv\%2Egz",
-feature.columns = 1)
+expression_matrix <- ReadMtx(mtx = "http://localhost/matrix.mtx",
+cells = "http://localhost/barcodes.tsv",
+features = "http://localhost/genes.tsv")
 seurat_object <- CreateSeuratObject(counts = data)
 }
 
