@@ -76,6 +76,7 @@ FindMarkers(object, ...)
   min.cells.group = 3,
   pseudocount.use = 1,
   mean.fxn = rowMeans,
+  fc.name = NULL,
   ...
 )
 
