@@ -23,11 +23,11 @@ ReadMtx(
 
 \item{cell.column}{Specify which column of cells file to use for cell names; default is 1}
 
+\item{feature.column}{Specify which column of features files to use for feature/gene names; default is 2}
+
 \item{unique.features}{Make feature names unique (default TRUE)}
 
 \item{strip.suffix}{Remove trailing "-1" if present in all cell barcodes.}
-
-\item{gene.column}{Specify which column of features files to use for gene names; default is 2}
 }
 \value{
 A sparse matrix containing the expression data.

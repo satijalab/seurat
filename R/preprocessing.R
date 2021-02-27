@@ -739,7 +739,7 @@ MULTIseqDemux <- function(
 #' @param mtx Name or remote URL of the mtx file
 #' @param cells Name or remote URL of the cells/barcodes file
 #' @param features Name or remote URL of the features/genes file
-#' @param gene.column Specify which column of features files to use for gene names; default is 2
+#' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
