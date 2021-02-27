@@ -797,6 +797,7 @@ ReadMtx <- function(mtx,
   # convenience fucntion to read local or remote tab delimited files
   readTableUri <- function(uri){
     if (grepl(pattern = '^:///', x = uri)) {
+      uri <- gsub(pattern = ":///", replacement = "", x = uri)
       textcontent <- read.table(file = uri, header = FALSE, sep = '\t', row.names = NULL)
     } else{
       if (file_ext(uri)=="gz") {
@@ -865,6 +866,7 @@ ReadMtx <- function(mtx,
 
   # read mtx
   if (grepl(pattern = '^:///', x = mtx)) {
+    mtx <- gsub(pattern = ":///", replacement = "", x = mtx)
     data <- readMM(mtx)
   } else {
     if (file_ext(mtx) == "gz"){
