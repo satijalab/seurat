@@ -1679,7 +1679,6 @@ RunUMAP.Seurat <- function(
   } else {
     stop("Please specify one of dims, features, or graph")
   }
- 
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     reduction.model = reduction.model,
