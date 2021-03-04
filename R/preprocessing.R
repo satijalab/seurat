@@ -1100,6 +1100,7 @@ ReadMtx <- function(
     }
     all.files[[i]] <- uri
   }
+  message(all.files)
   cell.barcodes <- read.table(
     file = all.files[['feature list']],
     header = FALSE,
@@ -1112,7 +1113,7 @@ ReadMtx <- function(
     sep = '\t',
     row.names = NULL
   )
-  mtx <- readMM(file = all.files[['expression matrix']])
+  data <- readMM(file = all.files[['expression matrix']])
   # mtx <- build_url(url = parse_url(url = mtx))
   # cells <- build_url(url = parse_url(url = cells))
   # features <- build_url(url = parse_url(url = features))
