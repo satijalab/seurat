@@ -2039,8 +2039,8 @@ Online <- function(url, strict = FALSE, seconds = 5L) {
   }
   request <- tryCatch(
     expr = GET(url = url, timeout(seconds = seconds)),
-    error = function(...) {
-      code <- if (grepl(pattern = 'recieved')) {
+    error = function(err) {
+      code <- if (grepl(pattern = '^Timeout was reached', x = err$message)) {
         408L
       } else {
         404L
