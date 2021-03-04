@@ -731,159 +731,6 @@ MULTIseqDemux <- function(
   return(object)
 }
 
-
-#' Load in data from remote or local mtx files
-#'
-#' Enables easy loading of sparse data matrices
-#'
-#' @param mtx Name or remote URL of the mtx file
-#' @param cells Name or remote URL of the cells/barcodes file
-#' @param features Name or remote URL of the features/genes file
-#' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
-#' @param cell.column Specify which column of cells file to use for cell names; default is 1
-#' @param unique.features Make feature names unique (default TRUE)
-#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
-#'
-#' @return A sparse matrix containing the expression data.
-#'
-#' @importFrom Matrix readMM
-#' @importFrom utils read.delim
-#' @importFrom httr build_url parse_url
-#' @importFrom tools file_ext
-#'
-#'
-#' @export
-#' @concept preprocessing
-#'
-#' @examples
-#' \dontrun{
-#' # For local files:
-#'
-#' expression_matrix <- ReadMtx(genes="count_matrix.mtx.gz", features="features.tsv.gz", cells="barcodes.tsv.gz")
-#' seurat_object <- CreateSeuratObject(counts = expression_matrix)
-#'
-#' # For remote files:
-#'
-#' expression_matrix <- ReadMtx(mtx = "http://localhost/matrix.mtx",
-#' cells = "http://localhost/barcodes.tsv",
-#' features = "http://localhost/genes.tsv")
-#' seurat_object <- CreateSeuratObject(counts = data)
-#' }
-#'
-ReadMtx <- function(mtx,
-                    cells,
-                    features,
-                    cell.column = 1,
-                    feature.column = 2,
-                    unique.features = TRUE,
-                    strip.suffix = FALSE){
-  mtx <- build_url(url = parse_url(url = mtx))
-  cells <- build_url(url = parse_url(url = cells))
-  features <- build_url(url = parse_url(url = features))
-  all_files <- list("Expression matrix" = mtx, "Barcode" = cells, "Gene name" = features)
-
-  check_file_exists <- function(filetype, filepath){
-    if (grepl(pattern = '^:///', x = filepath)) {
-      filepath <- gsub(pattern = ":///", replacement = "", x = filepath)
-      if (!file.exists(paths = filepath)) {
-        stop(paste(filetype, "file missing. Expecting", filepath), call. = FALSE)
-      }
-    }
-  }
-
-  # check if all files exist
-  lapply(seq_along(all_files), function(y, n, i) { check_file_exists(n[[i]], y[[i]]) }, y=all_files, n=names(all_files))
-
-  # convenience fucntion to read local or remote tab delimited files
-  readTableUri <- function(uri){
-    if (grepl(pattern = '^:///', x = uri)) {
-      uri <- gsub(pattern = ":///", replacement = "", x = uri)
-      textcontent <- read.table(file = uri, header = FALSE, sep = '\t', row.names = NULL)
-    } else{
-      if (file_ext(uri)=="gz") {
-        textcontent <- read.table(file = gzcon(url(uri), text = TRUE),
-                                  header = FALSE, sep = '\t', row.names = NULL)
-      }  else {
-        textcontent <- read.table(file = uri, header = FALSE,
-                                  sep = '\t', row.names = NULL)
-      }
-    }
-    return (textcontent)
-  }
-
-  # read barcodes
-  cell.barcodes <- readTableUri(uri = cells)
-  bcols <- ncol(x = cell.barcodes)
-  if (bcols < cell.column) {
-    stop(paste0("cell.column was set to ", cell.column,
-                " but ", cells, " only has ", bcols, " columns.",
-                " Try setting the cell.column argument to a value <= to ", bcols, "."))
-  }
-  cell.names <- cell.barcodes[, cell.column]
-
-  if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
-    cell.names <- as.vector(x = as.character(x = sapply(
-      X = cell.names,
-      FUN = ExtractField,
-      field = 1,
-      delim = "-"
-    )))
-  }
-
-  # read features
-  feature.names <- readTableUri(uri = features)
-  fcols <- ncol(x = feature.names)
-  if (fcols < feature.column) {
-    stop(paste0("feature.column was set to ", feature.column,
-                " but ", features, " only has ", fcols, " column(s).",
-                " Try setting the feature.column argument to a value <= to ", fcols, "."))
-  }
-  if (any(is.na(x = feature.names[, feature.column]))) {
-    na.features <- which(x = is.na(x = feature.names[, feature.column]))
-    replacement.column <- ifelse(test = feature.column == 2, yes = 1, no = 2)
-    if (replacement.column > fcols){
-      stop(
-        paste0("Some features names are NA in column ", feature.column,
-               ". Try specifiying a different column."),
-        call. = FALSE,
-        immediate. = TRUE
-      )
-    } else {
-      warning(
-        paste0("Some features names are NA in column ", feature.column,
-               ". Replacing NA names with ID from column ", replacement.column, "."),
-        call. = FALSE,
-        immediate. = TRUE
-      )
-    }
-    feature.names[na.features, feature.column] <- feature.names[na.features, replacement.column]
-  }
-
-  feature.names <- feature.names[, feature.column]
-  if (unique.features) {
-    feature.names <- make.unique(names = feature.names)
-  }
-
-  # read mtx
-  if (grepl(pattern = '^:///', x = mtx)) {
-    mtx <- gsub(pattern = ":///", replacement = "", x = mtx)
-    data <- readMM(mtx)
-  } else {
-    if (file_ext(mtx) == "gz"){
-      data <- readMM(gzcon(url(mtx)))
-    } else {
-      data <- readMM(mtx)
-    }
-  }
-
-  colnames(x = data) <- cell.names
-  rownames(x = data) <- feature.names
-
-  return (data)
-}
-
-
-
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
@@ -1179,6 +1026,224 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
     coordinates = tissue.positions,
     spot.radius = spot.radius
   ))
+}
+
+#' Load in data from remote or local mtx files
+#'
+#' Enables easy loading of sparse data matrices
+#'
+#' @param mtx Name or remote URL of the mtx file
+#' @param cells Name or remote URL of the cells/barcodes file
+#' @param features Name or remote URL of the features/genes file
+#' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
+#' @param cell.column Specify which column of cells file to use for cell names; default is 1
+#' @param unique.features Make feature names unique (default TRUE)
+#' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
+#'
+#' @return A sparse matrix containing the expression data.
+#'
+#' @importFrom Matrix readMM
+#' @importFrom utils read.delim
+#' @importFrom httr build_url parse_url
+#' @importFrom tools file_ext
+#'
+#'
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' \dontrun{
+#' # For local files:
+#'
+#' expression_matrix <- ReadMtx(genes="count_matrix.mtx.gz", features="features.tsv.gz", cells="barcodes.tsv.gz")
+#' seurat_object <- CreateSeuratObject(counts = expression_matrix)
+#'
+#' # For remote files:
+#'
+#' expression_matrix <- ReadMtx(mtx = "http://localhost/matrix.mtx",
+#' cells = "http://localhost/barcodes.tsv",
+#' features = "http://localhost/genes.tsv")
+#' seurat_object <- CreateSeuratObject(counts = data)
+#' }
+#'
+ReadMtx <- function(
+  mtx,
+  cells,
+  features,
+  cell.column = 1,
+  feature.column = 2,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+) {
+  all.files <- list(
+    "expression matrix" = mtx,
+    "barcode list" = cells,
+    "feature list" = features
+  )
+  for (i in seq_along(along.with = all.files)) {
+    uri <- all.files[[i]]
+    err <- paste("Cannot find", names(x = all.files)[i], "at", uri)
+    uri <- build_url(url = parse_url(url = uri))
+    if (grepl(pattern = '^:///', x = uri)) {
+      uri <- gsub(pattern = '^:///', replacement = '', x = uri)
+      if (!file.exists(uri)) {
+        stop(err, call. = FALSE)
+      }
+    } else {
+      if (!Online(url = uri, seconds = 2L)) {
+        stop(err, call. = FALSE)
+      }
+      if (file_ext(uri) == 'gz') {
+        uri <- gzcon(con = url(description = uri))
+        on.exit(expr = close(con = uri), add = TRUE)
+      }
+    }
+    all.files[[i]] <- uri
+  }
+  cell.barcodes <- read.table(
+    file = all.files[['feature list']],
+    header = FALSE,
+    sep = '\t',
+    row.names = NULL
+  )
+  feature.names <- read.table(
+    file = all.files[['barcode list']],
+    header = FALSE,
+    sep = '\t',
+    row.names = NULL
+  )
+  mtx <- readMM(file = all.files[['expression matrix']])
+  # mtx <- build_url(url = parse_url(url = mtx))
+  # cells <- build_url(url = parse_url(url = cells))
+  # features <- build_url(url = parse_url(url = features))
+  # all_files <- list(
+  #   "Expression matrix" = mtx,
+  #   "Barcode" = cells,
+  #   "Gene name" = features
+  # )
+  # check_file_exists <- function(filetype, filepath){
+  #   if (grepl(pattern = '^:///', x = filepath)) {
+  #     filepath <- gsub(pattern = ":///", replacement = "", x = filepath)
+  #     if (!file.exists(paths = filepath)) {
+  #       stop(filetype, " file missing. Expecting ", filepath, call. = FALSE)
+  #     }
+  #   }
+  # }
+  # # check if all files exist
+  # lapply(
+  #   X = seq_along(all_files),
+  #   FUN = function(y, n, i) { check_file_exists(n[[i]], y[[i]]) },
+  #   y = all_files,
+  #   n = names(x = all_files)
+  # )
+  # # convenience function to read local or remote tab delimited files
+  # readTableUri <- function(uri){
+  #   if (grepl(pattern = '^:///', x = uri)) {
+  #     uri <- gsub(pattern = ":///", replacement = "", x = uri)
+  #     textcontent <- read.table(file = uri, header = FALSE, sep = '\t', row.names = NULL)
+  #   } else{
+  #     if (file_ext(uri) == "gz") {
+  #       textcontent <- read.table(
+  #         file = gzcon(url(uri), text = TRUE),
+  #         header = FALSE,
+  #         sep = '\t',
+  #         row.names = NULL
+  #       )
+  #     }  else {
+  #       textcontent <- read.table(
+  #         file = uri,
+  #         header = FALSE,
+  #         sep = '\t',
+  #         row.names = NULL
+  #       )
+  #     }
+  #   }
+  #   return(textcontent)
+  # }
+  # # read barcodes
+  # cell.barcodes <- readTableUri(uri = cells)
+  bcols <- ncol(x = cell.barcodes)
+  if (bcols < cell.column) {
+    stop(
+      "cell.column was set to ",
+      cell.column,
+      " but ",
+      cells,
+      " only has ",
+      bcols,
+      " columns.",
+      " Try setting the cell.column argument to a value <= to ",
+      bcols,
+      "."
+    )
+  }
+  cell.names <- cell.barcodes[, cell.column]
+  if (all(grepl(pattern = "\\-1$", x = cell.names)) & strip.suffix) {
+    cell.names <- as.vector(x = as.character(x = sapply(
+      X = cell.names,
+      FUN = ExtractField,
+      field = 1,
+      delim = "-"
+    )))
+  }
+  # # read features
+  # feature.names <- readTableUri(uri = features)
+  fcols <- ncol(x = feature.names)
+  if (fcols < feature.column) {
+    stop(
+      "feature.column was set to ",
+      feature.column,
+      " but ",
+      features,
+      " only has ",
+      fcols, " column(s).",
+      " Try setting the feature.column argument to a value <= to ",
+      fcols,
+      "."
+    )
+  }
+  if (any(is.na(x = feature.names[, feature.column]))) {
+    na.features <- which(x = is.na(x = feature.names[, feature.column]))
+    replacement.column <- ifelse(test = feature.column == 2, yes = 1, no = 2)
+    if (replacement.column > fcols) {
+      stop(
+        "Some features names are NA in column ",
+        feature.column,
+        ". Try specifiying a different column.",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    } else {
+      warning(
+        "Some features names are NA in column ",
+        feature.column,
+        ". Replacing NA names with ID from column ",
+        replacement.column,
+        ".",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    feature.names[na.features, feature.column] <- feature.names[na.features, replacement.column]
+  }
+  feature.names <- feature.names[, feature.column]
+  if (unique.features) {
+    feature.names <- make.unique(names = feature.names)
+  }
+  # # read mtx
+  # if (grepl(pattern = '^:///', x = mtx)) {
+  #   mtx <- gsub(pattern = ":///", replacement = "", x = mtx)
+  #   data <- readMM(mtx)
+  # } else {
+  #   if (file_ext(mtx) == "gz") {
+  #     data <- readMM(gzcon(url(mtx)))
+  #   } else {
+  #     data <- readMM(mtx)
+  #   }
+  # }
+  colnames(x = data) <- cell.names
+  rownames(x = data) <- feature.names
+  return(data)
 }
 
 #' Load Slide-seq spatial data
