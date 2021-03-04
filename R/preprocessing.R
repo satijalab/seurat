@@ -1094,26 +1094,24 @@ ReadMtx <- function(
         stop(err, call. = FALSE)
       }
       if (file_ext(uri) == 'gz') {
-        uri <- gzcon(con = url(description = uri))
+        uri <- gzcon(con = url(description = uri), text = TRUE)
         on.exit(expr = close(con = uri), add = TRUE)
       }
     }
     all.files[[i]] <- uri
   }
-  message(all.files)
   cell.barcodes <- read.table(
-    file = all.files[['feature list']],
-    header = FALSE,
-    sep = '\t',
-    row.names = NULL
-  )
-  feature.names <- read.table(
     file = all.files[['barcode list']],
     header = FALSE,
     sep = '\t',
     row.names = NULL
   )
-  data <- readMM(file = all.files[['expression matrix']])
+  feature.names <- read.table(
+    file = all.files[['feature list']],
+    header = FALSE,
+    sep = '\t',
+    row.names = NULL
+  )
   # mtx <- build_url(url = parse_url(url = mtx))
   # cells <- build_url(url = parse_url(url = cells))
   # features <- build_url(url = parse_url(url = features))
@@ -1242,6 +1240,8 @@ ReadMtx <- function(
   #     data <- readMM(mtx)
   #   }
   # }
+  data <- readMM(file = all.files[['expression matrix']])
+
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
   return(data)
