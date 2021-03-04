@@ -2040,7 +2040,12 @@ Online <- function(url, strict = FALSE, seconds = 5L) {
   request <- tryCatch(
     expr = GET(url = url, timeout(seconds = seconds)),
     error = function(...) {
-      return(404L)
+      code <- if (grepl(pattern = 'recieved')) {
+        408L
+      } else {
+        404L
+      }
+      return(code)
     }
   )
   return(comp(x = status_code(x = request), y = code))
