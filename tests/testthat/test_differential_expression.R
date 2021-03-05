@@ -82,7 +82,7 @@ test_that("min.pct works", {
   expect_gte(min(apply(X = results, MARGIN = 1, FUN = function(x) max(x[3], x[4]))), 0.5)
 })
 
-results <- expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.pct = 1.0, verbose = FALSE, base = exp(1)))
+results <- expect_warning(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, min.pct = 2.0, verbose = FALSE, base = exp(1)))
 test_that("min.pct warns when none met", {
   expect_equal(nrow(x = results), 0)
 })
