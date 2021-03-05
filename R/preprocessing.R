@@ -1094,8 +1094,8 @@ ReadMtx <- function(
         stop(err, call. = FALSE)
       }
       if (file_ext(uri) == 'gz') {
-        uri <- gzcon(con = url(description = uri), text = TRUE)
-        on.exit(expr = close(con = uri), add = TRUE)
+        con <- url(description = uri)
+        uri <- gzcon(con = con, text = TRUE)
       }
     }
     all.files[[i]] <- uri
