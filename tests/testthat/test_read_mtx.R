@@ -6,9 +6,9 @@ cells <- "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE126nnn/GSE126836/suppl/GSE126
 counts1 <- ReadMtx(mtx = mtx, cells = cells, features = features, feature.column = 1, skip.cell = 1, skip.feature = 1)
 
 
-mtx <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132044&format=file&file=GSE132044%5Fmixture%5Fhg19%5Fmm10%5Fcount%5Fmatrix%2Emtx%2Egz"
-cells <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132044&format=file&file=GSE132044%5Fmixture%5Fhg19%5Fmm10%5Fcell%2Etsv%2Egz"
-features <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132044&format=file&file=GSE132044%5Fmixture%5Fhg19%5Fmm10%5Fgene%2Etsv%2Egz"
+mtx <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE127774&format=file&file=GSE127774%5FACC%5FB%5Fmatrix%2Emtx%2Egz"
+cells <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE127774&format=file&file=GSE127774%5FACC%5FB%5Fbarcodes%2Etsv%2Egz"
+features <- "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE127774&format=file&file=GSE127774%5FACC%5FB%5Fgenes%2Etsv%2Egz"
 counts2 <- ReadMtx(mtx = mtx, cells = cells, features = features, feature.column = 1)
 
 
@@ -23,10 +23,10 @@ test_that("skip.cell and skip.feature work", {
 
 test_that("ReadMtx works", {
   expect_is(counts2, "dgCMatrix")
-  expect_equal(ncol(counts2), 27714)
-  expect_equal(nrow(counts2), 62046)
-  expect_equal(colnames(counts2)[1], "Mixture1.Smart-seq2.p2_A4")
-  expect_equal(rownames(counts2)[2], "hg19_ENSG00000000003_hg19_TSPAN6")
+  expect_equal(ncol(counts2), 22063)
+  expect_equal(nrow(counts2), 22530)
+  expect_equal(colnames(counts2)[1], "AAACCTGAGCAATCTC-1")
+  expect_equal(rownames(counts2)[2], "ENSPPAG00000006288")
 })
 
 
