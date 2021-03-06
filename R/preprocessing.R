@@ -1112,55 +1112,7 @@ ReadMtx <- function(
     sep = '\t',
     row.names = NULL
   )
-  # mtx <- build_url(url = parse_url(url = mtx))
-  # cells <- build_url(url = parse_url(url = cells))
-  # features <- build_url(url = parse_url(url = features))
-  # all_files <- list(
-  #   "Expression matrix" = mtx,
-  #   "Barcode" = cells,
-  #   "Gene name" = features
-  # )
-  # check_file_exists <- function(filetype, filepath){
-  #   if (grepl(pattern = '^:///', x = filepath)) {
-  #     filepath <- gsub(pattern = ":///", replacement = "", x = filepath)
-  #     if (!file.exists(paths = filepath)) {
-  #       stop(filetype, " file missing. Expecting ", filepath, call. = FALSE)
-  #     }
-  #   }
-  # }
-  # # check if all files exist
-  # lapply(
-  #   X = seq_along(all_files),
-  #   FUN = function(y, n, i) { check_file_exists(n[[i]], y[[i]]) },
-  #   y = all_files,
-  #   n = names(x = all_files)
-  # )
-  # # convenience function to read local or remote tab delimited files
-  # readTableUri <- function(uri){
-  #   if (grepl(pattern = '^:///', x = uri)) {
-  #     uri <- gsub(pattern = ":///", replacement = "", x = uri)
-  #     textcontent <- read.table(file = uri, header = FALSE, sep = '\t', row.names = NULL)
-  #   } else{
-  #     if (file_ext(uri) == "gz") {
-  #       textcontent <- read.table(
-  #         file = gzcon(url(uri), text = TRUE),
-  #         header = FALSE,
-  #         sep = '\t',
-  #         row.names = NULL
-  #       )
-  #     }  else {
-  #       textcontent <- read.table(
-  #         file = uri,
-  #         header = FALSE,
-  #         sep = '\t',
-  #         row.names = NULL
-  #       )
-  #     }
-  #   }
-  #   return(textcontent)
-  # }
-  # # read barcodes
-  # cell.barcodes <- readTableUri(uri = cells)
+  # read barcodes
   bcols <- ncol(x = cell.barcodes)
   if (bcols < cell.column) {
     stop(
@@ -1185,8 +1137,7 @@ ReadMtx <- function(
       delim = "-"
     )))
   }
-  # # read features
-  # feature.names <- readTableUri(uri = features)
+  # read features
   fcols <- ncol(x = feature.names)
   if (fcols < feature.column) {
     stop(
@@ -1229,17 +1180,7 @@ ReadMtx <- function(
   if (unique.features) {
     feature.names <- make.unique(names = feature.names)
   }
-  # # read mtx
-  # if (grepl(pattern = '^:///', x = mtx)) {
-  #   mtx <- gsub(pattern = ":///", replacement = "", x = mtx)
-  #   data <- readMM(mtx)
-  # } else {
-  #   if (file_ext(mtx) == "gz") {
-  #     data <- readMM(gzcon(url(mtx)))
-  #   } else {
-  #     data <- readMM(mtx)
-  #   }
-  # }
+
   data <- readMM(file = all.files[['expression matrix']])
 
   colnames(x = data) <- cell.names
