@@ -1037,6 +1037,8 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
 #' @param features Name or remote URL of the features/genes file
 #' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
+#' @param skip.cell Number of lines to skip in the cells file before beginning to read cell names
+#' @param skip.feature Number of lines to skip in the features file before beginning to gene names
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -1072,6 +1074,8 @@ ReadMtx <- function(
   features,
   cell.column = 1,
   feature.column = 2,
+  skip.cell = 0,
+  skip.feature = 0,
   unique.features = TRUE,
   strip.suffix = FALSE
 ) {
@@ -1104,13 +1108,15 @@ ReadMtx <- function(
     file = all.files[['barcode list']],
     header = FALSE,
     sep = '\t',
-    row.names = NULL
+    row.names = NULL,
+    skip = skip.cell
   )
   feature.names <- read.table(
     file = all.files[['feature list']],
     header = FALSE,
     sep = '\t',
-    row.names = NULL
+    row.names = NULL,
+    skip = skip.feature
   )
   # read barcodes
   bcols <- ncol(x = cell.barcodes)
@@ -1160,9 +1166,8 @@ ReadMtx <- function(
         "Some features names are NA in column ",
         feature.column,
         ". Try specifiying a different column.",
-        call. = FALSE,
-        immediate. = TRUE
-      )
+        call. = FALSE
+        )
     } else {
       warning(
         "Some features names are NA in column ",
@@ -1170,9 +1175,8 @@ ReadMtx <- function(
         ". Replacing NA names with ID from column ",
         replacement.column,
         ".",
-        call. = FALSE,
-        immediate. = TRUE
-      )
+        call. = FALSE
+        )
     }
     feature.names[na.features, feature.column] <- feature.names[na.features, replacement.column]
   }
@@ -1183,8 +1187,30 @@ ReadMtx <- function(
 
   data <- readMM(file = all.files[['expression matrix']])
 
+  if (length(cell.names)!=ncol(data)){
+    stop(
+      "Matrix has ",
+      ncol(data),
+      " columns but found ", length(cell.names),
+      " barcodes. ",
+      ifelse(test = length(cell.names) > ncol(data), yes = "Try increasing `skip.cell`. ", no = ""),
+      call. = FALSE
+      )
+  }
+  if (length(feature.names)!=nrow(data)){
+    stop(
+      "Matrix has ",
+      ncol(data),
+      " rows but found ", length(feature.names),
+      " features. ",
+      ifelse(test = length(feature.names) > nrow(data), yes = "Try increasing `skip.feature`. ", no = ""),
+      call. = FALSE
+      )
+  }
+
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
+  data <- as(data, Class="dgCMatrix")
   return(data)
 }
 

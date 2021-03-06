@@ -10,6 +10,8 @@ ReadMtx(
   features,
   cell.column = 1,
   feature.column = 2,
+  skip.cell = 0,
+  skip.feature = 0,
   unique.features = TRUE,
   strip.suffix = FALSE
 )
@@ -24,6 +26,10 @@ ReadMtx(
 \item{cell.column}{Specify which column of cells file to use for cell names; default is 1}
 
 \item{feature.column}{Specify which column of features files to use for feature/gene names; default is 2}
+
+\item{skip.cell}{Number of lines to skip in the cells file before beginning to read cell names}
+
+\item{skip.feature}{Number of lines to skip in the features file before beginning to gene names}
 
 \item{unique.features}{Make feature names unique (default TRUE)}
 
