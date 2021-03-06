@@ -26,7 +26,7 @@ test_that("ReadMtx works", {
   expect_equal(ncol(counts2), 22063)
   expect_equal(nrow(counts2), 22530)
   expect_equal(colnames(counts2)[1], "AAACCTGAGCAATCTC-1")
-  expect_equal(rownames(counts2)[2], "ENSPPAG00000006288")
+  expect_equal(rownames(counts2)[2], "ENSPPAG00000040697")
 })
 
 
