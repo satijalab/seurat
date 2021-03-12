@@ -5,6 +5,7 @@
 - Add `cols` parameter to `JackStrawPlot()`
 
 ## Changes
+- Equality added to differential expression thresholds in `FindMarkers` (e.g, >= logfc.threshold rather than >)
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
 - Bug fix for `subset.AnchorSet()`
 - Bug fix for fold change values in `FindMarkers()` when setting a different pseudocount ([#4111](https://github.com/satijalab/seurat/pull/4111))
