@@ -22,3 +22,4 @@ Get Spot Radius
 \code{\link[SeuratObject:Radius]{SeuratObject::Radius}}
 }
 \concept{objects}
+\concept{spatial}

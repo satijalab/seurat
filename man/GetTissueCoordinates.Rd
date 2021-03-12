@@ -36,3 +36,4 @@ Get Tissue Coordinates
 \code{\link[SeuratObject:GetTissueCoordinates]{SeuratObject::GetTissueCoordinates}}
 }
 \concept{objects}
+\concept{spatial}

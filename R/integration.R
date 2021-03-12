@@ -492,7 +492,8 @@ FindIntegrationAnchors <- function(
 #' }
 #' @param reference.reduction Name of dimensional reduction to use from the
 #' reference if running the pcaproject workflow. Optionally enables reuse of
-#' precomputed reference dimensional reduction.
+#' precomputed reference dimensional reduction. If NULL (default), use a PCA
+#' computed on the reference object.
 #' @param project.query Project the PCA from the query dataset onto the
 #' reference. Use only in rare cases where the query dataset has a much larger
 #' cell number, but the reference dataset has a unique assay for transfer. In
@@ -627,25 +628,25 @@ FindTransferAnchors <- function(
   if (normalization.method == "SCT") {
       # ensure all residuals required are computed
       query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
-        if (is.null(x = reference.reduction)) {
-      reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
-      features <- intersect(
-        x = features,
-        y = intersect(
-          x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
-          y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+      if (is.null(x = reference.reduction)) {
+        reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        features <- intersect(
+          x = features,
+          y = intersect(
+            x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
+            y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+          )
         )
-      )
-      reference[[reference.assay]] <- as(
-        object = CreateAssayObject(
-          data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
-        Class = "SCTAssay"
-      )
-      reference <- SetAssayData(
-        object = reference,
-        slot = "scale.data",
-        assay = reference.assay,
-        new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
+        reference[[reference.assay]] <- as(
+          object = CreateAssayObject(
+            data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
+          Class = "SCTAssay"
+        )
+        reference <- SetAssayData(
+          object = reference,
+          slot = "scale.data",
+          assay = reference.assay,
+          new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
       )
     }
     query[[query.assay]] <- as(
@@ -2675,6 +2676,7 @@ TransferData <- function(
 #' @rdname AnnotateAnchors
 #' @export
 #' @method AnnotateAnchors default
+#' @concept integration
 #'
 AnnotateAnchors.default <- function(
   anchors,

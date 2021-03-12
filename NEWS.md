@@ -1,3 +1,17 @@
+# Seurat develop
+
+## Added
+- Add direction option to `PlotClusterTree()`
+- Add `cols` parameter to `JackStrawPlot()`
+
+## Changes
+- Equality added to differential expression thresholds in `FindMarkers` (e.g, >= logfc.threshold rather than >)
+- `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
+- Bug fix for `subset.AnchorSet()`
+- Bug fix for fold change values in `FindMarkers()` when setting a different pseudocount ([#4111](https://github.com/satijalab/seurat/pull/4111))
+- Bug fix for `RunLDA()` related to proper passing of assay parameter. 
+- When using `order=TRUE` in `SingleDimPlot()`, print NA points under all others.
+
 # Seurat 4.0.0 (2020-01-27) 
 ## Added
 - Expose `FoldChange()` component in `FindMarkers()`. 
@@ -18,6 +32,7 @@
 - Add `AnnotateAnchors()` to aid in AnchorSet interpretation as well as `subset.AnchorSet()`
 - Add flexibility of choice for cell column in `Read10X()`
 - Add rasterization option to `FeatureScatter()` and `VariableFeaturePlot()`
+- Add step1 feature parameters in the SCTModel via `PrepVSTResults()`
 
 ## Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"
@@ -32,6 +47,7 @@
 - Default rasterization limit in `DimPlot()` and `FeaturePlot()` changed from 50,000 to 100,000
 - `SCTransform()` now returns a formalized `Assay` subclass `SCTAssay()`
 - When using `normalization.method='SCT'` in `FindTransferAnchors()`, normalize query using reference SCT model when possible.
+- Change default Neighbor name in `FindNeighbors` to `Assay.nn`
 
 ## Removed
 - `CreateGeneActivityMatrix` replaced by `Signac::GeneActivity()`

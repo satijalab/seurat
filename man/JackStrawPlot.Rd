@@ -4,12 +4,24 @@
 \alias{JackStrawPlot}
 \title{JackStraw Plot}
 \usage{
-JackStrawPlot(object, dims = 1:5, reduction = "pca", xmax = 0.1, ymax = 0.3)
+JackStrawPlot(
+  object,
+  dims = 1:5,
+  cols = NULL,
+  reduction = "pca",
+  xmax = 0.1,
+  ymax = 0.3
+)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{dims}{Dims to plot}
+
+\item{cols}{Vector of colors, each color corresponds to an individual PC. This may also be a single character
+or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
+By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
+See \code{\link{DiscretePalette}} for details.}
 
 \item{reduction}{reduction to pull jackstraw info from}
 

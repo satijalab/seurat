@@ -66,4 +66,5 @@ LinkedFeaturePlot(seurat.object, feature = 'Hpca')
 }
 
 }
+\concept{spatial}
 \concept{visualization}
