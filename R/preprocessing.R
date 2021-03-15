@@ -1184,33 +1184,39 @@ ReadMtx <- function(
   if (unique.features) {
     feature.names <- make.unique(names = feature.names)
   }
-
   data <- readMM(file = all.files[['expression matrix']])
-
-  if (length(cell.names)!=ncol(data)){
+  if (length(x = cell.names) != ncol(x = data)) {
     stop(
       "Matrix has ",
       ncol(data),
       " columns but found ", length(cell.names),
       " barcodes. ",
-      ifelse(test = length(cell.names) > ncol(data), yes = "Try increasing `skip.cell`. ", no = ""),
+      ifelse(
+        test = length(x = cell.names) > ncol(x = data),
+        yes = "Try increasing `skip.cell`. ",
+        no = ""
+      ),
       call. = FALSE
       )
   }
-  if (length(feature.names)!=nrow(data)){
+  if (length(x = feature.names) != nrow(x = data)) {
     stop(
       "Matrix has ",
       ncol(data),
       " rows but found ", length(feature.names),
       " features. ",
-      ifelse(test = length(feature.names) > nrow(data), yes = "Try increasing `skip.feature`. ", no = ""),
+      ifelse(
+        test = length(x = feature.names) > nrow(x = data),
+        yes = "Try increasing `skip.feature`. ",
+        no = ""
+      ),
       call. = FALSE
       )
   }
 
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
-  data <- as(data, Class="dgCMatrix")
+  data <- as(data, Class = "dgCMatrix")
   return(data)
 }
 
