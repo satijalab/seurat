@@ -1035,8 +1035,8 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
 #' @param mtx Name or remote URL of the mtx file
 #' @param cells Name or remote URL of the cells/barcodes file
 #' @param features Name or remote URL of the features/genes file
-#' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
+#' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
 #' @param skip.cell Number of lines to skip in the cells file before beginning to read cell names
 #' @param skip.feature Number of lines to skip in the features file before beginning to gene names
 #' @param unique.features Make feature names unique (default TRUE)
