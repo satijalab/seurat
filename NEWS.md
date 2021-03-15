@@ -5,11 +5,14 @@
 - Add `cols` parameter to `JackStrawPlot()`
 
 ## Changes
+- Equality added to differential expression thresholds in `FindMarkers` (e.g, >= logfc.threshold rather than >)
 - `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
 - Bug fix for `subset.AnchorSet()`
 - Bug fix for fold change values in `FindMarkers()` when setting a different pseudocount ([#4111](https://github.com/satijalab/seurat/pull/4111))
 - Bug fix for `RunLDA()` related to proper passing of assay parameter.
 - When using `order=TRUE` in `SingleDimPlot()`, print NA points under all others.
+- Remove default parameter value for `data.dir` in `Read10X()`
+- Import spatstat fxns from subpackages (spatstat.core, spatstat.geom)
 - `RunUMAP` now checks for graph/neighbor consistency
 
 # Seurat 4.0.0 (2020-01-27)

@@ -513,14 +513,14 @@ FindMarkers.default <- function(
   # feature selection (based on percentages)
   alpha.min <- pmax(fc.results$pct.1, fc.results$pct.2)
   names(x = alpha.min) <- rownames(x = fc.results)
-  features <- names(x = which(x = alpha.min > min.pct))
+  features <- names(x = which(x = alpha.min >= min.pct))
   if (length(x = features) == 0) {
     warning("No features pass min.pct threshold; returning empty data.frame")
     return(fc.results[features, ])
   }
   alpha.diff <- alpha.min - pmin(fc.results$pct.1, fc.results$pct.2)
   features <- names(
-    x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+    x = which(x = alpha.min >= min.pct & alpha.diff >= min.diff.pct)
   )
   if (length(x = features) == 0) {
     warning("No features pass min.diff.pct threshold; returning empty data.frame")
@@ -531,9 +531,9 @@ FindMarkers.default <- function(
     total.diff <- fc.results[, 1] #first column is logFC
     names(total.diff) <- rownames(fc.results)
     features.diff <- if (only.pos) {
-      names(x = which(x = total.diff > logfc.threshold))
+      names(x = which(x = total.diff >= logfc.threshold))
     } else {
-      names(x = which(x = abs(x = total.diff) > logfc.threshold))
+      names(x = which(x = abs(x = total.diff) >= logfc.threshold))
     }
     features <- intersect(x = features, y = features.diff)
     if (length(x = features) == 0) {
