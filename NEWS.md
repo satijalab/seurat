@@ -12,6 +12,7 @@
 - Bug fix for `RunLDA()` related to proper passing of assay parameter. 
 - When using `order=TRUE` in `SingleDimPlot()`, print NA points under all others.
 - Remove default parameter value for `data.dir` in `Read10X()`
+- Import spatstat fxns from subpackages (spatstat.core, spatstat.geom)
 
 # Seurat 4.0.0 (2020-01-27) 
 ## Added
