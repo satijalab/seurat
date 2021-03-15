@@ -1654,9 +1654,27 @@ RunUMAP.Seurat <- function(
         call. = FALSE
       )
     }
-  }  else if (!is.null( x = nn.name)){
+  }  else if (!is.null(x = nn.name)) {
+    if (!inherits(x = object[[nn.name]], what = "Neighbor")) {
+      stop(
+        "Please specify a Neighbor object name, ",
+        "instead of the name of a ", 
+        class(object[[nn.name]]), 
+        " object",   
+        call. = FALSE
+      )
+    }
     data.use <- object[[nn.name]]
   } else if (!is.null(x = graph)) {
+    if (!inherits(x = object[[graph]], what = "Graph")) {
+      stop(
+        "Please specify a Graph object name, ",
+        "instead of the name of a ", 
+        class(object[[graph]]), 
+        " object",   
+        call. = FALSE
+      )
+    }
     data.use <- object[[graph]]
   } else {
     stop("Please specify one of dims, features, or graph")

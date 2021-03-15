@@ -771,7 +771,7 @@ MULTIseqDemux <- function(
 #' }
 #'
 Read10X <- function(
-  data.dir = NULL,
+  data.dir,
   gene.column = 2,
   cell.column = 1,
   unique.features = TRUE,
@@ -1293,7 +1293,8 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
 #' @param data Matrix containing the data used as "marks" (e.g. gene expression)
 #' @param ... Arguments passed to markvario
 #'
-#' @importFrom spatstat markvario ppp
+#' @importFrom spatstat.core markvario
+#' @importFrom spatstat.geom ppp
 #'
 #' @export
 #' @concept preprocessing

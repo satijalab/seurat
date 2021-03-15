@@ -5,7 +5,7 @@
 \title{Load in data from 10X}
 \usage{
 Read10X(
-  data.dir = NULL,
+  data.dir,
   gene.column = 2,
   cell.column = 1,
   unique.features = TRUE,
