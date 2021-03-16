@@ -3,6 +3,7 @@
 ## Added
 - Add direction option to `PlotClusterTree()`
 - Add `cols` parameter to `JackStrawPlot()`
+- Add `ReadMtx()` to read local and remote mtx files with associated cell and feature name files
 
 ## Changes
 - Equality added to differential expression thresholds in `FindMarkers` (e.g, >= logfc.threshold rather than >)
