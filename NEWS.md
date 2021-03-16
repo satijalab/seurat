@@ -3,6 +3,8 @@
 ## Added
 - Add direction option to `PlotClusterTree()`
 - Add `cols` parameter to `JackStrawPlot()`
+- Add `lsiproject` and `rpca` options for `FindTransferAnchors()`
+- Add `rlsi` option for `FindIntegrationAnchors()`
 
 ## Changes
 - Equality added to differential expression thresholds in `FindMarkers` (e.g, >= logfc.threshold rather than >)
