@@ -1057,7 +1057,10 @@ Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
 #' \dontrun{
 #' # For local files:
 #'
-#' expression_matrix <- ReadMtx(genes="count_matrix.mtx.gz", features="features.tsv.gz", cells="barcodes.tsv.gz")
+#' expression_matrix <- ReadMtx(
+#'   mtx = "count_matrix.mtx.gz", features = "features.tsv.gz",
+#'   cells = "barcodes.tsv.gz"
+#' )
 #' seurat_object <- CreateSeuratObject(counts = expression_matrix)
 #'
 #' # For remote files:
