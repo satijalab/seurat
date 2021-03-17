@@ -1,5 +1,4 @@
-# Seurat develop
-
+# Seurat 4.0.1 (2020-03-17)
 ## Added
 - Add direction option to `PlotClusterTree()`
 - Add `cols` parameter to `JackStrawPlot()`
