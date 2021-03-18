@@ -1028,7 +1028,7 @@ as.Seurat.SingleCellExperiment <- function(
   x,
   counts = 'counts',
   data = 'logcounts',
-  assay = "RNA",
+  assay = NULL,
   project = 'SingleCellExperiment',
   ...
 ) {
@@ -1095,7 +1095,7 @@ as.Seurat.SingleCellExperiment <- function(
   object <- CreateSeuratObject(
     counts=assays[[assay]],
     Class = 'Seurat',
-    assays = assay,
+    assay = assay,
     meta.data = meta.data,
     version = packageVersion(pkg = 'Seurat'),
     project.name = project
@@ -1103,6 +1103,8 @@ as.Seurat.SingleCellExperiment <- function(
   object[[assay]]<-assays[[assay]]
   }
   DefaultAssay(object = object) <- assay
+  #add feature level meta data
+  object[[assay]] <- AddMetaData(object[[assay]],SingleCellExperiment::rowData(x))
   Idents(object = object) <- project
   # Get DimReduc information, add underscores if needed and pull from different alt EXP
   if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
@@ -1185,8 +1187,11 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
-  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assay[1]]][[]])
-
+  for (assayn in assay){
+    sce<-SingleCellExperiment::swapAltExp(sce, assayn, saved=orig.exp.name)
+    SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assayn]][[]])
+    sce<-SingleCellExperiment::swapAltExp(sce, orig.exp.name, saved=assayn)
+  }
   for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
     assay.used<-x[[dr]]@assay.used
     if(assay.used %in% SingleCellExperiment::altExpNames(sce)){
