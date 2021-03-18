@@ -17,3 +17,4 @@ A Seurat object with updated SCTAssays
 Update pre-V4 Assays generated with SCTransform in the Seurat to the new
 SCTAssay class
 }
+\concept{objects}

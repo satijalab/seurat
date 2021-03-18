@@ -12,8 +12,6 @@ The SlideSeq class represents spatial information from the Slide-seq platform
 
 \describe{
 \item{\code{coordinates}}{...}
-
-\item{\code{...}}{}
 }}
 
 \section{Slots}{
@@ -28,3 +26,4 @@ in a \code{Seurat} object}
 }
 }
 
+\concept{spatial}

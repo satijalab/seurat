@@ -1,6 +1,23 @@
-# Seurat 4.0.0 (2020-01-27) 
+# Seurat 4.0.1 (2020-03-17)
 ## Added
-- Expose `FoldChange()` component in `FindMarkers()`. 
+- Add direction option to `PlotClusterTree()`
+- Add `cols` parameter to `JackStrawPlot()`
+- Add `ReadMtx()` to read local and remote mtx files with associated cell and feature name files
+
+## Changes
+- Equality added to differential expression thresholds in `FindMarkers` (e.g, >= logfc.threshold rather than >)
+- `Read10X()` now prepends dataset number for first dataset when reading multiple datasets
+- Bug fix for `subset.AnchorSet()`
+- Bug fix for fold change values in `FindMarkers()` when setting a different pseudocount ([#4111](https://github.com/satijalab/seurat/pull/4111))
+- Bug fix for `RunLDA()` related to proper passing of assay parameter.
+- When using `order=TRUE` in `SingleDimPlot()`, print NA points under all others.
+- Remove default parameter value for `data.dir` in `Read10X()`
+- Import spatstat fxns from subpackages (spatstat.core, spatstat.geom)
+- `RunUMAP` now checks for graph/neighbor consistency
+
+# Seurat 4.0.0 (2020-01-27)
+## Added
+- Expose `FoldChange()` component in `FindMarkers()`.
 - Add the `merge.DimReduc` method
 - Add `IntegrateEmbeddings()` to correct embeddings of `DimReduc`s
 - Add `ProjectUMAP()` to project query cells into a reference UMAP space
@@ -11,20 +28,21 @@
 - Add `FindSubCluster()` to further cluster existing clusters
 - Add supervised PCA functionality via `RunSPCA()`
 - Add functionality to enable weighted nearest neighbor analyses via `FindMultiModalNeighbors()`
-- Add neighbor visualization plot via `NNPlot()`. 
+- Add neighbor visualization plot via `NNPlot()`.
 - Add `PredictAssay()` to impute expression or embeddings from nearest neighbors
 - Add `Graphs()` function to access the names of the stored Graph objects or pull a specific one
 - Add checks for NA, NaN, logical, non-integer, and infinite values during CreateAssayObject and NormalizeData.default
 - Add `AnnotateAnchors()` to aid in AnchorSet interpretation as well as `subset.AnchorSet()`
 - Add flexibility of choice for cell column in `Read10X()`
 - Add rasterization option to `FeatureScatter()` and `VariableFeaturePlot()`
+- Add step1 feature parameters in the SCTModel via `PrepVSTResults()`
 
 ## Changes
 - Default neighbor finding algorithm changed from "rann" to "annoy"
 - Default `ncells` parameter in `SCTransform()` changed to 5000
 - Default fold change in `FindMarkers()` changed from ln to log2
 - Implementation improvements to `AverageExpression()`
-- `AnchorSet` class re-implemented as a virtual class from which `IntegrationAnchorSet` and `TransferAnchorSet` now inherit. 
+- `AnchorSet` class re-implemented as a virtual class from which `IntegrationAnchorSet` and `TransferAnchorSet` now inherit.
 - Point size in `VlnPlot()` now set automatically if not specified
 - Return the sample.tree properly when integrating with a single reference dataset
 - Replace `as.character.quosure` usage with `as_label` due to deprecation
@@ -32,6 +50,7 @@
 - Default rasterization limit in `DimPlot()` and `FeaturePlot()` changed from 50,000 to 100,000
 - `SCTransform()` now returns a formalized `Assay` subclass `SCTAssay()`
 - When using `normalization.method='SCT'` in `FindTransferAnchors()`, normalize query using reference SCT model when possible.
+- Change default Neighbor name in `FindNeighbors` to `Assay.nn`
 
 ## Removed
 - `CreateGeneActivityMatrix` replaced by `Signac::GeneActivity()`

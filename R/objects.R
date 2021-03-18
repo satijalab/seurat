@@ -164,6 +164,7 @@ IntegrationData <- setClass(
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
+#' @concept objects
 #'
 #' @examples
 #' \dontrun{
@@ -194,6 +195,7 @@ SCTModel <- setClass(
 #'
 #' @name SCTAssay-class
 #' @rdname SCTAssay-class
+#' @concept objects
 #'
 #' @examples
 #' # SCTAssay objects are generated from SCTransform
@@ -218,6 +220,7 @@ SCTAssay <- setClass(
 #'
 #' @rdname ScaleFactors
 #' @concept objects
+#' @concept spatial
 #' @export
 #'
 scalefactors <- function(spot, fiducial, hires, lowres) {
@@ -239,7 +242,7 @@ setOldClass(Classes = c('scalefactors'))
 #'
 #' @inheritSection SeuratObject::SpatialImage Slots
 #' @slot coordinates ...
-#' @slot ...
+#' @concept spatial
 #'
 SlideSeq <- setClass(
   Class = 'SlideSeq',
@@ -253,7 +256,8 @@ SlideSeq <- setClass(
 #'
 #'
 #' @inheritSection SeuratObject::SpatialImage Slots
-#' @slot ...
+#' @concept objects
+#' @concept spatial
 #'
 STARmap <- setClass(
   Class = 'STARmap',
@@ -279,6 +283,7 @@ STARmap <- setClass(
 #' @name VisiumV1-class
 #' @rdname VisiumV1-class
 #' @concept objects
+#' @concept spatial
 #' @exportClass VisiumV1
 #'
 VisiumV1 <- setClass(
@@ -306,7 +311,6 @@ setClass(Class = 'SliceImage', contains = 'VisiumV1')
 #' named by image name.
 #'
 #' @return A vector of cell names
-#' @concept objects
 #'
 #' @examples
 #' \dontrun{
@@ -345,7 +349,7 @@ CellsByImage <- function(object, images = NULL, unlist = FALSE) {
 #' @importFrom Matrix colSums rowSums
 #'
 #' @export
-#'
+#' @concept objects
 #'
 CreateSCTAssayObject <- function(
   counts,
@@ -533,6 +537,7 @@ DietSeurat <- function(
 #' circular filter
 #'
 #' @concept objects
+#' @concept spatial
 #' @examples
 #' \dontrun{
 #' # This example uses the ssHippo dataset which you can download
@@ -1189,6 +1194,7 @@ Cells.SCTModel <- function(x) {
 
 #' @rdname Cells
 #' @concept objects
+#' @concept spatial
 #' @method Cells SlideSeq
 #' @export
 #'
@@ -1200,6 +1206,7 @@ Cells.SlideSeq <- function(x) {
 
 #' @rdname Cells
 #' @concept objects
+#' @concept spatial
 #' @method Cells STARmap
 #' @export
 #'
@@ -1250,6 +1257,7 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
 #' @rdname GetImage
 #' @method GetImage SlideSeq
 #' @concept objects
+#' @concept spatial
 #' @export
 #'
 #' @seealso \code{\link[SeuratObject:GetImage]{SeuratObject::GetImage}}
@@ -1266,6 +1274,7 @@ GetImage.SlideSeq <- function(
 #' @rdname GetImage
 #' @method GetImage STARmap
 #' @concept objects
+#' @concept spatial
 #' @export
 #'
 GetImage.STARmap <- function(
@@ -1283,6 +1292,7 @@ GetImage.STARmap <- function(
 #'
 #' @rdname GetImage
 #' @concept objects
+#' @concept spatial
 #' @method GetImage VisiumV1
 #' @export
 #'
@@ -1326,6 +1336,7 @@ GetImage.VisiumV1 <- function(
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates SlideSeq
 #' @concept objects
+#' @concept spatial
 #' @export
 #'
 #' @seealso \code{\link[SeuratObject:GetTissueCoordinates]{SeuratObject::GetTissueCoordinates}}
@@ -1344,6 +1355,7 @@ GetTissueCoordinates.SlideSeq <- function(object, ...) {
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates STARmap
 #' @concept objects
+#' @concept spatial
 #' @export
 #'
 GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
@@ -1360,6 +1372,7 @@ GetTissueCoordinates.STARmap <- function(object, qhulls = FALSE, ...) {
 #' @rdname GetTissueCoordinates
 #' @method GetTissueCoordinates VisiumV1
 #' @concept objects
+#' @concept spatial
 #' @export
 #'
 GetTissueCoordinates.VisiumV1 <- function(
@@ -1380,12 +1393,49 @@ GetTissueCoordinates.VisiumV1 <- function(
   return(coordinates)
 }
 
+#' Get Variable Feature Information
+#'
+#' Get variable feature information from \code{\link{SCTAssay}} objects
+#'
+#' @inheritParams SeuratObject::HVFInfo
+#'
+#' @export
+#' @method HVFInfo SCTAssay
+#'
+#' @seealso \code{\link[SeuratObject]{HVFInfo}}
+#'
+#' @examples
+#' # Get the HVF info directly from an SCTAssay object
+#' pbmc_small <- SCTransform(pbmc_small)
+#' HVFInfo(pbmc_small[["SCT"]], selection.method = 'sct')[1:5, ]
+#'
+HVFInfo.SCTAssay <- function(object, selection.method, status = FALSE, ...) {
+  CheckDots(...)
+  disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
+  if (tolower(x = selection.method) %in% disp.methods) {
+    selection.method <- 'mvp'
+  }
+  selection.method <- switch(
+    EXPR = tolower(x = selection.method),
+    'sctransform' = 'sct',
+    selection.method
+  )
+  vars <- c('gmean', 'variance', 'residual_variance')
+  hvf.info <- SCTResults(object = object, slot = "feature.attributes")[,vars]
+  if (status) {
+    hvf.info$variable <- FALSE
+    hvf.info[VariableFeatures(object = object), "variable"] <-  TRUE
+  }
+  return(hvf.info)
+}
+
 #' Get Spot Radius
 #'
 #' @inheritParams SeuratObject::Radius
 #'
 #' @rdname Radius
 #' @concept objects
+#' @concept spatial
 #' @method Radius SlideSeq
 #' @export
 #'
@@ -1397,6 +1447,7 @@ Radius.SlideSeq <- function(object) {
 
 #' @rdname Radius
 #' @concept objects
+#' @concept spatial
 #' @method Radius STARmap
 #' @export
 #'
@@ -1406,6 +1457,7 @@ Radius.STARmap <- function(object) {
 
 #' @rdname Radius
 #' @concept objects
+#' @concept spatial
 #' @method Radius VisiumV1
 #' @export
 #'
@@ -1415,6 +1467,7 @@ Radius.VisiumV1 <- function(object) {
 
 #' @rdname RenameCells
 #' @export
+#' @concept objects
 #' @method RenameCells SCTAssay
 #'
 RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
@@ -1448,6 +1501,7 @@ RenameCells.SCTAssay <- function(object, new.names = NULL, ...) {
 #' @inheritParams SeuratObject::RenameCells
 #'
 #' @rdname RenameCells
+#' @concept objects
 #' @method RenameCells SlideSeq
 #' @export
 #'
@@ -1458,6 +1512,7 @@ RenameCells.SlideSeq <- function(object, new.names = NULL, ...) {
 }
 
 #' @rdname RenameCells
+#' @concept objects
 #' @method RenameCells STARmap
 #' @export
 #'
@@ -1471,6 +1526,7 @@ RenameCells.STARmap <- function(object, new.names = NULL, ...) {
 }
 
 #' @rdname RenameCells
+#' @concept objects
 #' @method RenameCells VisiumV1
 #' @export
 #'
@@ -1505,6 +1561,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 }
 
 #' @rdname SCTResults
+#' @concept objects
 #' @export
 #' @method SCTResults<- SCTModel
 #'
@@ -1531,6 +1588,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 #' the slot directly).
 #'
 #' @rdname SCTResults
+#' @concept objects
 #' @export
 #' @method SCTResults SCTAssay
 #'
@@ -1554,6 +1612,7 @@ SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
 }
 
 #' @rdname SCTResults
+#' @concept objects
 #' @export
 #' @method SCTResults<- SCTAssay
 #'
@@ -1588,6 +1647,7 @@ SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
 #'
 #' @rdname SCTResults
 #' @export
+#' @concept objects
 #' @method SCTResults Seurat
 #'
 SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
@@ -1598,6 +1658,7 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
+#' @concept spatial
 #'
 ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
@@ -1606,6 +1667,7 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
+#' @concept spatial
 #'
 ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
@@ -1677,6 +1739,7 @@ dim.VisiumV1 <- function(x) {
 #' @return \code{levels}: SCT model names
 #'
 #' @export
+#' @concept objects
 #' @method levels SCTAssay
 #'
 #' @examples
@@ -1699,6 +1762,7 @@ levels.SCTAssay <- function(x) {
 #' @return \code{levels<-}: \code{x} with updated SCT model names
 #'
 #' @export
+#' @concept objects
 #' @method levels<- SCTAssay
 #'
 "levels<-.SCTAssay" <- function(x, value) {
@@ -1726,6 +1790,7 @@ levels.SCTAssay <- function(x) {
 #' populated with NAs.
 #' @export
 #' @method merge SCTAssay
+#' @concept objects
 #'
 merge.SCTAssay <- function(
   x = NULL,
@@ -1861,6 +1926,7 @@ merge.SCTAssay <- function(
 #'
 #' @export
 #' @method subset AnchorSet
+#' @concept objects
 #'
 subset.AnchorSet <- function(
   x,
@@ -1922,11 +1988,14 @@ subset.AnchorSet <- function(
   }
   # Filter based on ident pairings
   if (!is.null(x = group.by)) {
-    anchors <- AnnotateAnchors(object = x, vars = group.by)
+    anchors <- AnnotateAnchors(anchors = x, vars = group.by)
     if (!is.null(x = disallowed.ident.pairs) && !is.null(x = ident.matrix)) {
       stop("Please use either disallowed.ident.pairs OR ident.matrix, not both.")
     }
-    unique.ids <- unique(x = c(anchors[, paste0("cell1.", group.by)], anchors[, paste0("cell2.", group.by)]))
+    unique.ids <- unique(x = c(
+      as.character(x = anchors[, paste0("cell1.", group.by)]),
+      as.character(x = anchors[, paste0("cell2.", group.by)]))
+    )
     unique.ids <- unique.ids[!is.na(x = unique.ids)]
     num.ids <- length(x = unique.ids)
     if (!is.null(x = disallowed.ident.pairs)) {
@@ -1963,6 +2032,7 @@ subset.AnchorSet <- function(
 
 #' @export
 #' @method subset SCTAssay
+#' @concept objects
 #'
 subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
   x <- NextMethod()
@@ -2008,13 +2078,12 @@ subset.VisiumV1 <- function(x, cells, ...) {
   return(x)
 }
 
-
-
 #' Update pre-V4 Assays generated with SCTransform in the Seurat to the new
 #' SCTAssay class
 #
 #' @param object A Seurat object
 #' @export
+#' @concept objects
 #' @return A Seurat object with updated SCTAssays
 #'
 UpdateSCTAssays <- function(object) {
@@ -2373,6 +2442,11 @@ PrepVSTResults <- function(vst.res, cell.names) {
       y = rownames(feature.attrs)
     )
     feature.attrs[genes_step1,"genes_log_gmean_step1"] <- TRUE
+
+    # add parameters from step1
+    feature.attrs[, paste0("step1_", colnames(vst.res$model_pars))] <- NA
+    feature.attrs[genes_step1, paste0("step1_", colnames(vst.res$model_pars))] <- vst.res$model_pars[genes_step1,]
+
   }
   # Prepare clipping information
   clips <- list(
