@@ -242,7 +242,6 @@ setOldClass(Classes = c('scalefactors'))
 #'
 #' @inheritSection SeuratObject::SpatialImage Slots
 #' @slot coordinates ...
-#' @slot ...
 #' @concept spatial
 #'
 SlideSeq <- setClass(
@@ -257,7 +256,6 @@ SlideSeq <- setClass(
 #'
 #'
 #' @inheritSection SeuratObject::SpatialImage Slots
-#' @slot ...
 #' @concept objects
 #' @concept spatial
 #'

@@ -559,7 +559,11 @@ FindNeighbors.default <- function(
   # find the k-nearest neighbors for each single cell
   if (!distance.matrix) {
     if (verbose) {
-      message("Computing nearest neighbor graph")
+      if (return.neighbor) {
+        message("Computing nearest neighbors")
+      } else {
+        message("Computing nearest neighbor graph")
+      }
     }
     nn.ranked <- NNHelper(
       data = object,
@@ -709,6 +713,11 @@ FindNeighbors.dist <- function(
 #' @param do.plot Plot SNN graph on tSNE coordinates
 #' @param graph.name Optional naming parameter for stored (S)NN graph
 #' (or Neighbor object, if return.neighbor = TRUE). Default is assay.name_(s)nn.
+#' To store both the neighbor graph and the shared nearest neighbor (SNN) graph,
+#' you must supply a vector containing two names to the \code{graph.name}
+#' parameter. The first element in the vector will be used to store the nearest
+#' neighbor (NN) graph, and the second element used to store the SNN graph. If
+#' only one name is supplied, only the NN graph is stored.
 #'
 #' @importFrom igraph graph.adjacency plot.igraph E
 #'
@@ -787,7 +796,15 @@ FindNeighbors.Seurat <- function(
   if (length(x = neighbor.graphs) == 1) {
     neighbor.graphs <- list(nn = neighbor.graphs)
   }
-  graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
+  graph.name <- graph.name %||%
+    if (return.neighbor) {
+      paste0(assay, ".", names(x = neighbor.graphs))
+    } else {
+      paste0(assay, "_", names(x = neighbor.graphs))
+    }
+  if (length(x = graph.name) == 1) {
+    message("Only one graph name supplied, storing nearest-neighbor graph only")
+  }
   for (ii in 1:length(x = graph.name)) {
     if (inherits(x = neighbor.graphs[[ii]], what = "Graph")) {
       DefaultAssay(object = neighbor.graphs[[ii]]) <- assay
