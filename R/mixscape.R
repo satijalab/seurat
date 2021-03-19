@@ -811,7 +811,7 @@ RunMixscape <- function(
           if (n.iter == 0){
             #store pvec
             gv <- as.data.frame(x = pvec)
-            gv[, labels] <- "NT"
+            gv[, labels] <- nt.class.name
             gv[intersect(x = rownames(x = gv), y = guide.cells), labels] <- gene
             gv.list[[gene]][[s]] <- gv
           }
