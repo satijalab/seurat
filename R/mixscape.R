@@ -1177,10 +1177,9 @@ PlotPerturbScore2 <- function(
       min = -top_r / 10,
       max = 0
     )
-
+    
     if(is.null(split.by)==FALSE) {
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
-
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
         geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
@@ -1210,7 +1209,6 @@ PlotPerturbScore2 <- function(
       object = c("grey49", "grey79", col),
       nm = c(gd, paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
     )
-
     #add mixscape identities
     prtb_score$mix <- object[[mixscape.class]][prtb_score$cell.bc,]
 
@@ -1242,9 +1240,11 @@ PlotPerturbScore2 <- function(
 
     if(is.null(split.by) == FALSE){
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
-      p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
+      p2 <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+        scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
-        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        geom_point(aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        theme_classic() + 
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
