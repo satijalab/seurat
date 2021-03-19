@@ -806,7 +806,7 @@ RunMixscape <- function(
         while (!converged && n.iter < iter.num) {
           Idents(object = object) <- new.class.name
           guide.cells <- intersect(x = WhichCells(object = object, idents = gene), y = cells.s)
-          vec <- rowMeans2(x = dat[, guide.cells]) - rowMeans2(x = dat[, nt.cells])
+          vec <- rowMeans2(x = dat[, guide.cells, drop = FALSE]) - rowMeans2(x = dat[, nt.cells, drop = FALSE])
           pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
           if (n.iter == 0){
             #store pvec
