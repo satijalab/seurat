@@ -796,7 +796,7 @@ RunMixscape <- function(
           message("  ", gene)
         }
         de.genes <- prtb_markers[[s]][[gene]]
-        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells]
+        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells, drop = FALSE]
         if (slot == "scale.data") {
           dat <- ScaleData(object = dat, features = de.genes, verbose = FALSE)
         }
@@ -1014,7 +1014,7 @@ PlotPerturbScore <- function(
     }
 
   plot_list <- list()
-  
+
   for (i in 1:length(x = prtb_score_list)) {
     prtb_score <- prtb_score_list[[i]]
     prtb_score[, 2] <- as.factor(x = prtb_score[, 2])
@@ -1095,7 +1095,7 @@ PlotPerturbScore <- function(
         theme(legend.key.size = unit(1, "cm"),
               legend.text = element_text(colour ="black", size = 14),
               legend.title = element_blank(),
-              plot.title = element_text(size = 16, face = "bold")) + 
+              plot.title = element_text(size = 16, face = "bold")) +
         ggtitle(names(prtb_score_list)[i])
     }
     plot_list[[i]] <- p2
@@ -1140,29 +1140,29 @@ PlotPerturbScore2 <- function(
   before.mixscape = FALSE,
   prtb.type = "KO"
 ){
-  
+
   if(is.null(target.gene.ident) == TRUE){
     message("Please provide name of target gene class to plot")
-  } 
-  
+  }
+
   prtb_score_list <- Tool(object = object, slot = "RunMixscape")[[target.gene.ident]]
-  
+
   for (nm in names(prtb_score_list)){
     prtb_score_list[[nm]]['name'] <- nm
   }
-  
+
   prtb_score <- do.call(rbind, prtb_score_list)
   prtb_score[, 2] <- as.factor(x = prtb_score[, 2])
   gd <- setdiff(x = unique(x = prtb_score[, "gene"]), y = target.gene.ident)
   colnames(x = prtb_score)[2] <- "gene"
   prtb_score$cell.bc <- sapply(rownames(prtb_score), FUN = function(x) strsplit(x, split = "[.]")[[1]][2])
-  
+
   if (isTRUE(x = before.mixscape)) {
     cols <- setNames(
       object = c("grey49", col),
       nm = c(gd, target.gene.ident)
     )
-    
+
     p <- ggplot(data = prtb_score, mapping = aes_string(x = "pvec", color = "gene")) +
       geom_density() + theme_classic()
     top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
@@ -1177,10 +1177,10 @@ PlotPerturbScore2 <- function(
       min = -top_r / 10,
       max = 0
     )
-    
+
     if(is.null(split.by)==FALSE) {
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
-      
+
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
         geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
@@ -1191,7 +1191,7 @@ PlotPerturbScore2 <- function(
               legend.title = element_blank(), plot.title = element_text(size = 16, face = "bold"))+
         facet_wrap(vars(split))
     }
-    
+
     else{
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
@@ -1203,20 +1203,20 @@ PlotPerturbScore2 <- function(
               legend.title = element_blank(), plot.title = element_text(size = 16, face = "bold"))
     }
   }
-  
-  
+
+
   else {
     cols <- setNames(
       object = c("grey49", "grey79", col),
       nm = c(gd, paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
     )
-    
+
     #add mixscape identities
     prtb_score$mix <- object[[mixscape.class]][prtb_score$cell.bc,]
-    
+
     p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
       geom_density() + theme_classic()
-    
+
     top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
     prtb_score$y.jitter <- prtb_score$pvec
     gd2 <- setdiff(
@@ -1239,7 +1239,7 @@ PlotPerturbScore2 <- function(
       max = 0
     )
     prtb_score[, "mix"] <- as.factor(x = prtb_score[,"mix"])
-    
+
     if(is.null(split.by) == FALSE){
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
@@ -1264,7 +1264,7 @@ PlotPerturbScore2 <- function(
               legend.title = element_blank(),
               plot.title = element_text(size = 16, face = "bold"))
     }
-    
+
   }
   return(p2)
 }
