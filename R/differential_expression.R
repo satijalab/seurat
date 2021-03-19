@@ -837,14 +837,17 @@ FindMarkers.Seurat <- function(
     )
   }
   # check normalization method
-  norm.method <- Command(
-    object = object,
-    command = paste0("NormalizeData.", assay),
-    value = "normalization.method"
-  )
-  if (norm.method != "LogNormalize") {
-    mean.fxn <- function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+  norm.command <- paste0("NormalizeData.", assay)
+  if (norm.command %in% Command(object = object)) {
+    norm.method <- Command(
+      object = object,
+      command = norm.command,
+      value = "normalization.method"
+    )
+    if (norm.method != "LogNormalize") {
+      mean.fxn <- function(x) {
+        return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      }
     }
   }
   de.results <- FindMarkers(
