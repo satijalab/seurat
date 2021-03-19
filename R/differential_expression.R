@@ -836,6 +836,17 @@ FindMarkers.Seurat <- function(
       cells = c(cells$cells.1, cells$cells.2)
     )
   }
+  # check normalization method
+  norm.method <- Command(
+    object = object,
+    command = paste0("NormalizeData.", assay),
+    value = "normalization.method"
+  )
+  if (norm.method != "LogNormalize") {
+    mean.fxn <- function(x) {
+      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    }
+  }
   de.results <- FindMarkers(
     object = data.use,
     slot = slot,
