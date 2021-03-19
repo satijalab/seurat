@@ -1038,12 +1038,21 @@ as.Seurat.SingleCellExperiment <- function(
     )
   }
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
+  if (!is.null(SingleCellExperiment::altExpNames(x = x)))
+  {
   assayn <- assay %||% SingleCellExperiment::altExpNames(x = x)
   if (!all(assay %in% SingleCellExperiment::altExpNames(x = x))) {
     stop("One or more of the assays you are trying to convert is not in the SingleCellExperiment object")
   }
+  assayn<-c("originalexp",assayn)
+  }else{
+    assayn<-"originalexp"
+    }
   for (assay in assayn) {
+    if(assay != "originalexp")
+    {
     x <- SingleCellExperiment::swapAltExp(x = x, name = assay, saved = NULL)
+    }
     # Pull matrices
     mats <- list(counts = counts, data = data)
     mats <- Filter(f = Negate(f = is.null), x = mats)
@@ -1098,7 +1107,7 @@ as.Seurat.SingleCellExperiment <- function(
     }
     DefaultAssay(object = object) <- assay
     #add feature level meta data
-    object[[assay]] <- AddMetaData(object = object[[assay]], metadata = SingleCellExperiment::rowData(x = x))
+    object[[assay]] <- AddMetaData(object = object[[assay]], metadata = as.data.frame(SingleCellExperiment::rowData(x = x),row.names = row.names(object[[assay]])))
     Idents(object = object) <- project
     # Get DimReduc information, add underscores if needed and pull from different alt EXP
     if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
