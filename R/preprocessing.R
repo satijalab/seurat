@@ -2402,6 +2402,7 @@ NormalizeData.default <- function(
           args = args
         ))
       }
+    , future.seed = TRUE
     )
     do.call(
       what = switch(

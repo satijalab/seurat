@@ -937,7 +937,9 @@ AnnoySearch <- function(index, query, k, search.k = -1, include.distance = TRUE)
       res$dist <- 0.5 * (res$dist * res$dist)
     }
     list(res$item + 1, res$distance)
-  })
+  }
+  , future.seed = TRUE
+  )
   for (i in 1:n) {
     idx[i, ] <- res[[i]][[1]]
     if (include.distance) {
