@@ -1792,6 +1792,7 @@ ScoreJackStraw.Seurat <- function(
   object[[reduction]] <- ScoreJackStraw(
     object = object[[reduction]],
     dims = dims,
+    score.thresh = score.thresh,
     ...
   )
   if (do.plot) {
