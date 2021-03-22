@@ -1033,7 +1033,8 @@ as.Seurat.SingleCellExperiment <- function(
   CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop(
-      "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object",
+      "Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object.",
+      "\nhttps://bioconductor.org/packages/SingleCellExperiment/",
       call. = FALSE
     )
   }
