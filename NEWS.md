@@ -1,4 +1,6 @@
-# Unreleased
+# Seurat develop
+## Added
+- New `AddAzimuthScores()` function
 
 ## Changes
 - Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class

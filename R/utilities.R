@@ -6,6 +6,32 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add Azimuth Scores
+#'
+#' Add mapping and prediction scores from Azimuth to a
+#' \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param filename Path to Azimuth mapping scores file
+#'
+#' @return \code{object} with the mapping scores added
+#'
+#' @examples
+#' \dontrun{
+#' object <- AddAzimuthScores(object, filename = "azimuth_pred.tsv")
+#' }
+#'
+AddAzimuthScores <- function(object, filename) {
+  if (!file.exists(filename)) {
+    stop("Cannot find Azimuth scores file ", filename, call. = FALSE)
+  }
+  object <- AddMetaData(
+    object = object,
+    metadata = read.delim(file = filename, row.names = 1)
+  )
+  return(object)
+}
+
 #' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single
