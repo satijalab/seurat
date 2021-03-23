@@ -1,3 +1,11 @@
+# Unreleased
+
+## Changes
+- Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
+([#4205](https://github.com/satijalab/seurat/issues/4205))
+- Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class 
+([#3764](https://github.com/satijalab/seurat/issues/3764))
+
 # Seurat 4.0.1 (2020-03-17)
 ## Added
 - Add direction option to `PlotClusterTree()`
