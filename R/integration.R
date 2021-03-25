@@ -948,7 +948,7 @@ FindTransferAnchors <- function(
       l2.norm = l2.norm,
       verbose = verbose
     )
-    
+    # pcaproject is used as the weight.matrix in MapQuery
     projected.pca <- ProjectCellEmbeddings(
       reference = reference,
       reduction = reference.reduction,
@@ -966,7 +966,6 @@ FindTransferAnchors <- function(
     key = "ProjectPC_",
     assay = reference.assay
   )
- 
   combined.ob[["pcaproject"]] <- combined.pca
   colnames(x = orig.loadings) <- paste0("ProjectPC_", 1:ncol(x = orig.loadings))
   Loadings(object = combined.ob[["pcaproject"]]) <- orig.loadings[, dims]
@@ -977,12 +976,14 @@ FindTransferAnchors <- function(
       l2.norm <- FALSE
       reduction <- "rpca.ref.l2" 
       reduction.2 <- "rpca.query.l2"
-  
     } else {
       reduction <- "rpca.ref" 
       reduction.2 <- "rpca.query" 
     }
-
+  if (project.query) {
+    reduction <- gsub(".ref", ".query", reduction)
+    reduction.2 <- gsub(".query", ".ref", reduction.2)
+  }
   }
   # Run CCA as dimension reduction to be used in anchor finding
   if (reduction == 'cca') {
