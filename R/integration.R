@@ -507,16 +507,15 @@ ReciprocalProject <- function(
     use.original.stats = FALSE,
     verbose = verbose
   )
+  # object.1 is ref, and object.2 is query
   reduction.dr.name.1 <- paste0(projected.name, ".ref")
   reduction.dr.name.2 <- paste0(projected.name, ".query")
-
   object.pair[[reduction.dr.name.1]] <- CreateDimReducObject(
     embeddings = rbind(Embeddings(object = object.1[[reduction]]), proj.2)[,dims],
     loadings = Loadings(object = object.1[[reduction]])[,dims],
     assay = DefaultAssay(object = object.1),
     key = paste0(projected.name, "ref_")
   )
-
   object.pair[[reduction.dr.name.2]] <- CreateDimReducObject(
     embeddings = rbind(proj.1, Embeddings(object = object.2[[reduction]]))[,dims],
     loadings = Loadings(object = object.2[[reduction]])[,dims],
@@ -976,12 +975,12 @@ FindTransferAnchors <- function(
       # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
       # avoids later error as we now have two reductions (rpca.ref and rpca.query)
       l2.norm <- FALSE
-      reduction <- "rpca.query.l2"
-      reduction.2 <- "rpca.ref.l2"
+      reduction <- "rpca.ref.l2" 
+      reduction.2 <- "rpca.query.l2"
   
     } else {
-      reduction <- "rpca.query" 
-      reduction.2 <- "rpca.ref"
+      reduction <- "rpca.ref" 
+      reduction.2 <- "rpca.query" 
     }
 
   }
@@ -3370,6 +3369,7 @@ FindAnchors <- function(
     eps = eps,
     verbose = verbose
   )
+  
   object.pair <- FindAnchorPairs(
     object = object.pair,
     integration.name = "integrated",
