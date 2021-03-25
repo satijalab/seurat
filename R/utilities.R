@@ -6,6 +6,32 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add Azimuth Scores
+#'
+#' Add mapping and prediction scores from Azimuth to a
+#' \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param filename Path to Azimuth mapping scores file
+#'
+#' @return \code{object} with the mapping scores added
+#'
+#' @examples
+#' \dontrun{
+#' object <- AddAzimuthScores(object, filename = "azimuth_pred.tsv")
+#' }
+#'
+AddAzimuthScores <- function(object, filename) {
+  if (!file.exists(filename)) {
+    stop("Cannot find Azimuth scores file ", filename, call. = FALSE)
+  }
+  object <- AddMetaData(
+    object = object,
+    metadata = read.delim(file = filename, row.names = 1)
+  )
+  return(object)
+}
+
 #' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single
@@ -1985,14 +2011,14 @@ ModifyParam <- function(param, value) {
   env2[[param]] <- value
 }
 
-# Give hints for old paramters and their newer counterparts
+# Give hints for old parameters and their newer counterparts
 #
 # This is a non-exhaustive list. If your function isn't working properly based
 # on the parameters you give it, please read the documentation for your function
 #
-# @param param A vector of paramters to get hints for
+# @param param A vector of parameters to get hints for
 #
-# @return Parameter hints for the specified paramters
+# @return Parameter hints for the specified parameters
 #
 OldParamHints <- function(param) {
   param.conversion <- c(
@@ -2016,6 +2042,40 @@ OldParamHints <- function(param) {
     'assay.use' = 'assay'
   )
   return(param.conversion[param])
+}
+
+# Check if a web resource is available
+#
+# @param url A URL
+# @param strict Perform a strict web availability test
+# @param seconds Timeout in seconds
+#
+# @return \code{TRUE} if \url{is available} otherwise \code{FALSE}
+#
+#' @importFrom httr GET status_code timeout
+#
+# @keywords internal
+#
+Online <- function(url, strict = FALSE, seconds = 5L) {
+  if (isTRUE(x = strict)) {
+    code <- 200L
+    comp <- identical
+  } else {
+    code <- 404L
+    comp <- Negate(f = identical)
+  }
+  request <- tryCatch(
+    expr = GET(url = url, timeout(seconds = seconds)),
+    error = function(err) {
+      code <- if (grepl(pattern = '^Timeout was reached', x = err$message)) {
+        408L
+      } else {
+        404L
+      }
+      return(code)
+    }
+  )
+  return(comp(x = status_code(x = request), y = code))
 }
 
 # Check the existence of a package
@@ -2045,7 +2105,7 @@ PackageCheck <- function(..., error = TRUE) {
 
 # Parenting parameters from one environment to the next
 #
-# This function allows one to modifiy a parameter in a parent environement
+# This function allows one to modify a parameter in a parent environment
 # The primary use of this is to ensure logging functions store correct parameters
 # if they've been modified by a child function or method
 #

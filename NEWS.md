@@ -1,8 +1,18 @@
 # Seurat develop
+## Added
+- New `AddAzimuthScores()` function
 
+## Changes
+- Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
+([#4205](https://github.com/satijalab/seurat/issues/4205))
+- Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class 
+([#3764](https://github.com/satijalab/seurat/issues/3764))
+
+# Seurat 4.0.1 (2020-03-17)
 ## Added
 - Add direction option to `PlotClusterTree()`
 - Add `cols` parameter to `JackStrawPlot()`
+- Add `ReadMtx()` to read local and remote mtx files with associated cell and feature name files
 - Add `lsiproject` and `rpca` options for `FindTransferAnchors()`
 - Add `rlsi` option for `FindIntegrationAnchors()`
 
