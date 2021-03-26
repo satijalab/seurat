@@ -1000,6 +1000,9 @@ FindTransferAnchors <- function(
       rescale = FALSE,
       verbose = verbose
     )
+    combined.ob[["cca"]]@cell.embeddings <- Embeddings(combined.ob[["cca"]])[, dims]
+    combined.ob[["cca"]]@feature.loadings <- Loadings(combined.ob[["cca"]])[, dims]
+    combined.ob[["cca"]]@feature.loadings.projected <- Loadings(object = combined.ob[["cca"]], projected = TRUE)[, dims]
   }
   if (reduction == "lsiproject") {
     if (project.query) {
@@ -1868,13 +1871,51 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
+  # determine anchor type
   if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "pcaproject"
-  } else { 
+  } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) { 
+    anchor.reduction <- "cca"
+    ref.cca.embedding <- Embeddings(
+      anchorset@object.list[[1]][["cca"]]
+      )[anchorset@reference.cells, ]
+    rownames(x = ref.cca.embedding) <- gsub(
+      pattern =  "_reference",
+      replacement = "",
+      x = rownames(x = ref.cca.embedding)
+      )
+    query.cca.embedding <- Embeddings(
+      anchorset@object.list[[1]][["cca"]]
+      )[anchorset@query.cells, ]
+    rownames(x = query.cca.embedding) <- gsub(
+      pattern = "_query",
+      replacement = "", 
+      x = rownames(x = query.cca.embedding)
+      )
+    reference[["cca"]] <- CreateDimReducObject(
+      embeddings = ref.cca.embedding, 
+      key = "CCA_", 
+      assay = DefaultAssay(reference)
+      )
+    query[["cca"]] <- CreateDimReducObject(
+      embeddings = query.cca.embedding, 
+      key = "CCA_", 
+      assay = DefaultAssay(query)
+      )
+    reference.reduction <- new.reduction.name <- "cca"
+    reference.dims <- query.dims <- 1:ncol(x = ref.cca.embedding)
+  } else if (grepl(pattern = "lsi", x = slot(object = anchorset, name = "command")$reduction))  {
     anchor.reduction <- "lsiproject"
-   }
-  reference.reduction <- reference.reduction %||% slot(object = anchorset, name = "command")$reference.reduction
-  new.reduction.name <- new.reduction.name %||% paste0("ref.", reference.reduction)
+  } else {
+    stop("unkown type of anchors")
+  }
+ 
+  reference.reduction <- reference.reduction %||%
+    slot(object = anchorset, name = "command")$reference.reduction %||% 
+    anchor.reduction
+  new.reduction.name <- new.reduction.name %||% 
+    paste0("ref.", reference.reduction)
+  
   # checking TransferData parameters
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
@@ -1912,19 +1953,20 @@ MapQuery <- function(
       reuse.weights.matrix <- TRUE
     }
   }
-
-  query <- do.call(
-    what = IntegrateEmbeddings,
-    args = c(list(
-      anchorset = anchorset,
-      reference = reference,
-      query = query,
-      new.reduction.name = new.reduction.name,
-      reuse.weights.matrix = reuse.weights.matrix,
-      verbose = verbose
+  if (anchor.reduction != "cca"){
+    query <- do.call(
+      what = IntegrateEmbeddings,
+      args = c(list(
+        anchorset = anchorset,
+        reference = reference,
+        query = query,
+        new.reduction.name = new.reduction.name,
+        reuse.weights.matrix = reuse.weights.matrix,
+        verbose = verbose
       ), integrateembeddings.args
+      )
     )
-  )
+  }
   slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
     reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
