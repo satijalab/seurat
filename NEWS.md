@@ -1,3 +1,14 @@
+# Seurat develop
+## Added
+- New `AddAzimuthScores()` function
+
+## Changes
+- Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
+([#4205](https://github.com/satijalab/seurat/issues/4205))
+- Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class 
+([#3764](https://github.com/satijalab/seurat/issues/3764))
+- Fix passing of `score.thresh` parameter in `ScoreJackStraw()` ([#4268](https://github.com/satijalab/seurat/pull/4268))
+
 # Seurat 4.0.1 (2020-03-17)
 ## Added
 - Add direction option to `PlotClusterTree()`
