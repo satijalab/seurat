@@ -1,6 +1,7 @@
 # Seurat develop
 ## Added
 - New `AddAzimuthScores()` function
+- Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
 
 ## Changes
 - Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
