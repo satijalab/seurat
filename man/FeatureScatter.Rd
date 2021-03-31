@@ -10,6 +10,8 @@ FeatureScatter(
   feature1,
   feature2,
   cells = NULL,
+  shuffle = FALSE,
+  seed = 1,
   group.by = NULL,
   cols = NULL,
   pt.size = 1,
@@ -31,6 +33,11 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{feature2}{Second feature to plot.}
 
 \item{cells}{Cells to include on the scatter plot.}
+
+\item{shuffle}{Whether to randomly shuffle the order of points. This can be
+useful for crowded plots if points of interest are being buried. (default is FALSE)}
+
+\item{seed}{Sets the seed if randomly shuffling the order of points.}
 
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
