@@ -838,7 +838,7 @@ FindMarkers.Seurat <- function(
   }
   # check normalization method
   norm.command <- paste0("NormalizeData.", assay)
-  if (norm.command %in% Command(object = object)) {
+  if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
     norm.method <- Command(
       object = object,
       command = norm.command,
