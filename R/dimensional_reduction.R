@@ -1764,7 +1764,7 @@ ScoreJackStraw.DimReduc <- function(object, dims = 1:5, score.thresh = 1e-5, ...
   JS(object = object) <- ScoreJackStraw(
     object = JS(object = object),
     dims = dims,
-    score.thresh = 1e-5,
+    score.thresh = score.thresh,
     ...
   )
   return(object)
@@ -1792,6 +1792,7 @@ ScoreJackStraw.Seurat <- function(
   object[[reduction]] <- ScoreJackStraw(
     object = object[[reduction]],
     dims = dims,
+    score.thresh = score.thresh,
     ...
   )
   if (do.plot) {
