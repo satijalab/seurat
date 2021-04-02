@@ -1481,7 +1481,7 @@ RunUMAP.Graph <- function(
     metric_kwds = metric.kwds,
     verbose = verbose
   )
-  if (numeric_version(x = umap$pkg_resources$get_distribution("umap-learn")$version) >
+  if (numeric_version(x = umap$pkg_resources$get_distribution("umap-learn")$version) >=
       numeric_version(x = "0.5.0")) {
     umap.args <- c(umap.args, list(
       densmap = FALSE,
