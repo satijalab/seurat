@@ -960,7 +960,7 @@ FindTransferAnchors <- function(
     )
     orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
     orig.loadings <- Loadings(object = reference[[reference.reduction]])
- 
+
   combined.pca <- CreateDimReducObject(
     embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca)),
     key = "ProjectPC_",
@@ -974,11 +974,11 @@ FindTransferAnchors <- function(
       # L2 norm is done on each projected PCA in ReciprocalProject, so turn it off here
       # avoids later error as we now have two reductions (rpca.ref and rpca.query)
       l2.norm <- FALSE
-      reduction <- "rpca.ref.l2" 
+      reduction <- "rpca.ref.l2"
       reduction.2 <- "rpca.query.l2"
     } else {
-      reduction <- "rpca.ref" 
-      reduction.2 <- "rpca.query" 
+      reduction <- "rpca.ref"
+      reduction.2 <- "rpca.query"
     }
   if (project.query) {
     reduction <- gsub(".ref", ".query", reduction)
@@ -1874,7 +1874,7 @@ MapQuery <- function(
   # determine anchor type
   if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "pcaproject"
-  } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) { 
+  } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
       anchorset@object.list[[1]][["cca"]]
@@ -1889,17 +1889,17 @@ MapQuery <- function(
       )[anchorset@query.cells, ]
     rownames(x = query.cca.embedding) <- gsub(
       pattern = "_query",
-      replacement = "", 
+      replacement = "",
       x = rownames(x = query.cca.embedding)
       )
     reference[["cca"]] <- CreateDimReducObject(
-      embeddings = ref.cca.embedding, 
-      key = "CCA_", 
+      embeddings = ref.cca.embedding,
+      key = "CCA_",
       assay = DefaultAssay(reference)
       )
     query[["cca"]] <- CreateDimReducObject(
-      embeddings = query.cca.embedding, 
-      key = "CCA_", 
+      embeddings = query.cca.embedding,
+      key = "CCA_",
       assay = DefaultAssay(query)
       )
     reference.reduction <- new.reduction.name <- "cca"
@@ -1909,13 +1909,13 @@ MapQuery <- function(
   } else {
     stop("unkown type of anchors")
   }
- 
+
   reference.reduction <- reference.reduction %||%
-    slot(object = anchorset, name = "command")$reference.reduction %||% 
+    slot(object = anchorset, name = "command")$reference.reduction %||%
     anchor.reduction
-  new.reduction.name <- new.reduction.name %||% 
+  new.reduction.name <- new.reduction.name %||%
     paste0("ref.", reference.reduction)
-  
+
   # checking TransferData parameters
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
@@ -1933,7 +1933,7 @@ MapQuery <- function(
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   integrateembeddings.args$reductions <- integrateembeddings.args$reductions %||% anchor.reduction
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
-  
+
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
@@ -3412,7 +3412,7 @@ FindAnchors <- function(
     eps = eps,
     verbose = verbose
   )
-  
+
   object.pair <- FindAnchorPairs(
     object = object.pair,
     integration.name = "integrated",
@@ -3642,8 +3642,8 @@ FindNN <- function(
   }
   if (length(x = reduction.2) > 0) {
     nnab <- NNHelper(
-      data = Embeddings(object = object[[reduction.2]])[cells2, ],
-      query = Embeddings(object = object[[reduction.2]])[cells1, ],
+      data = Embeddings(object = object[[reduction.2]])[cells2, nn.dims],
+      query = Embeddings(object = object[[reduction.2]])[cells1, nn.dims],
       k = k,
       method = nn.method,
       n.trees = n.trees,
@@ -3651,8 +3651,8 @@ FindNN <- function(
       index = nn.idx2
     )
     nnba <- NNHelper(
-      data = Embeddings(object = object[[reduction]])[cells1, ],
-      query = Embeddings(object = object[[reduction]])[cells2, ],
+      data = Embeddings(object = object[[reduction]])[cells1, nn.dims],
+      query = Embeddings(object = object[[reduction]])[cells2, nn.dims],
       k = k,
       method = nn.method,
       n.trees = n.trees,
