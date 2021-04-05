@@ -1433,7 +1433,7 @@ RunUMAP.Graph <- function(
   reduction.key = 'UMAP_',
   ...
 ) {
-  CheckDots(...)
+  #CheckDots(...)
   if (umap.method != 'umap-learn') {
     warning(
       "Running UMAP on Graph objects is only supported using the umap-learn method",
@@ -1465,7 +1465,7 @@ RunUMAP.Graph <- function(
   b <- b %||% ab.params[[2]]
   n.epochs <- n.epochs %||% 0L
   random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
-  embeddings <- umap$umap_$simplicial_set_embedding(
+  umap.args <- list(
     data = data,
     graph = object,
     n_components = n.components,
@@ -1481,6 +1481,18 @@ RunUMAP.Graph <- function(
     metric_kwds = metric.kwds,
     verbose = verbose
   )
+  if (numeric_version(x = umap$pkg_resources$get_distribution("umap-learn")$version) >=
+      numeric_version(x = "0.5.0")) {
+    umap.args <- c(umap.args, list(
+      densmap = FALSE,
+      densmap_kwds = NULL,
+      output_dens = FALSE
+    ))
+  }
+  embeddings <- do.call(what = umap$umap_$simplicial_set_embedding, args = umap.args)
+  if (length(x = embeddings) == 2) {
+    embeddings <- embeddings[[1]]
+  }
   rownames(x = embeddings) <- colnames(x = data)
   colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
   # center the embeddings on zero
@@ -1658,9 +1670,9 @@ RunUMAP.Seurat <- function(
     if (!inherits(x = object[[nn.name]], what = "Neighbor")) {
       stop(
         "Please specify a Neighbor object name, ",
-        "instead of the name of a ", 
-        class(object[[nn.name]]), 
-        " object",   
+        "instead of the name of a ",
+        class(object[[nn.name]]),
+        " object",
         call. = FALSE
       )
     }
@@ -1669,9 +1681,9 @@ RunUMAP.Seurat <- function(
     if (!inherits(x = object[[graph]], what = "Graph")) {
       stop(
         "Please specify a Graph object name, ",
-        "instead of the name of a ", 
-        class(object[[graph]]), 
-        " object",   
+        "instead of the name of a ",
+        class(object[[graph]]),
+        " object",
         call. = FALSE
       )
     }
