@@ -87,7 +87,7 @@ annoy}
 \item{n.trees}{More trees gives higher precision when using annoy approximate
 nearest neighbor search}
 
-\item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
+\item{eps}{Error bound on the neighbor finding algorithm (from RANN/Annoy)}
 
 \item{verbose}{Print progress bars and output}
 }

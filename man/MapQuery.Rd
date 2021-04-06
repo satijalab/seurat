@@ -11,6 +11,8 @@ MapQuery(
   refdata = NULL,
   new.reduction.name = NULL,
   reference.reduction = NULL,
+  reference.dims = NULL,
+  query.dims = NULL,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
@@ -41,6 +43,10 @@ MapQuery(
 
 \item{reference.reduction}{Name of reduction to use from the reference for
 neighbor finding}
+
+\item{reference.dims}{Dimensions (columns) to use from reference}
+
+\item{query.dims}{Dimensions (columns) to use from query}
 
 \item{reduction.model}{\code{DimReduc} object that contains the umap model}
 
