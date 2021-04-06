@@ -570,8 +570,11 @@ ReciprocalProject <- function(
 #'   \code{project.query = TRUE}), using the \code{features} specified. The data
 #'   from the other dataset is then projected onto this learned PCA structure.
 #'   If \code{reduction = "cca"}, then CCA is performed on the reference and
-#'   query for this dimensional reduction step. If \code{l2.norm} is set to
-#'   \code{TRUE}, perform L2 normalization of the embedding vectors.}
+#'   query for this dimensional reduction step. If
+#'   \code{reduction = "lsiproject"}, the stored LSI dimension reduction in the
+#'   reference object is used to project the query dataset onto the reference.
+#'   If \code{l2.norm} is set to \code{TRUE}, perform L2 normalization of the
+#'   embedding vectors.}
 #'   \item{Identify anchors between the reference and query - pairs of cells
 #'   from each dataset that are contained within each other's neighborhoods
 #'   (also known as mutual nearest neighbors).}
@@ -604,7 +607,8 @@ ReciprocalProject <- function(
 #'    recommend using LSI when reference and query datasets are from scATAC-seq.
 #'    This requires that LSI has been computed for the reference dataset, and the
 #'    same features (eg, peaks or genome bins) are present in both the reference
-#'    and query}
+#'    and query. See \code{\link[Signac]{RunTFIDF}} and
+#'    \code{\link[Signac]{RunSVD}}}
 #'    \item{rpca: Project the PCA from the reference onto the query, and the PCA
 #'    from the query onto the reference (reciprocal PCA projection).}
 #'    \item{cca: Run a CCA on the reference and query }
@@ -643,7 +647,7 @@ ReciprocalProject <- function(
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
 #' @param eps Error bound on the neighbor finding algorithm (from
-#' \code{\link{RANN}})
+#' \code{\link{RANN}} or \code{\link{RcppAnnoy}})
 #' @param approx.pca Use truncated singular value decomposition to approximate
 #' PCA
 #' @param mapping.score.k Compute and store nearest k query neighbors in the
@@ -659,6 +663,7 @@ ReciprocalProject <- function(
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031};
 #'
 #' @export
+#' @importFrom methods slot slot<-
 #' @concept integration
 #' @examples
 #' \dontrun{
@@ -1001,9 +1006,9 @@ FindTransferAnchors <- function(
       rescale = FALSE,
       verbose = verbose
     )
-    combined.ob[["cca"]]@cell.embeddings <- Embeddings(combined.ob[["cca"]])[, dims]
-    combined.ob[["cca"]]@feature.loadings <- Loadings(combined.ob[["cca"]])[, dims]
-    combined.ob[["cca"]]@feature.loadings.projected <- Loadings(object = combined.ob[["cca"]], projected = TRUE)[, dims]
+    slot(object = combined.ob[["cca"]], name = "cell.embeddings") <- Embeddings(combined.ob[["cca"]])[, dims]
+    slot(object = combined.ob[["cca"]], name = "feature.loadings") <- Loadings(combined.ob[["cca"]])[, dims]
+    slot(object = combined.ob[["cca"]], name = "feature.loadings.projected") <- Loadings(object = combined.ob[["cca"]], projected = TRUE)[, dims]
   }
   if (reduction == "lsiproject") {
     if (project.query) {
@@ -1837,7 +1842,10 @@ LocalStruct <- function(
 #' This is a convenience wrapper function around the following three functions
 #' that are often run together when mapping query data to a reference:
 #' \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}},
-#' \code{\link{ProjectUMAP}}.
+#' \code{\link{ProjectUMAP}}. Note that by default, the \code{weight.reduction}
+#' parameter for all functions will be set to the dimension reduction method
+#' used in the \code{\link{FindTransferAnchors}} function call used to construct
+#' the anchor object.
 #'
 #' @inheritParams IntegrateEmbeddings
 #' @inheritParams TransferData
@@ -1848,11 +1856,15 @@ LocalStruct <- function(
 #' \code{\link{IntegrateEmbeddings}}
 #' @param projectumap.args A named list of additional arguments to
 #' \code{\link{ProjectUMAP}}
-#' @return Returns a modified query Seurat object containing new Assays
-#' corresponding to the features transferred and/or their corresponding prediction
-#' scores from TransferData. An integrated reduction from IntegrateEmbeddings.
-#' And an projected umap reduction of the query cells projected into the
-#' reference umap.
+#' @return Returns a modified query Seurat object containing:
+#'
+#' \itemize{
+#'   \item{New Assays corresponding to the features transferred and/or their
+#'   corresponding prediction scores from \code{\link{TransferData}}}
+#'   \item{An integrated reduction from \code{\link{IntegrateEmbeddings}}}
+#'   \item{A projected UMAP reduction of the query cells projected into the
+#'   reference UMAP using \code{\link{ProjectUMAP}}}
+#' }
 #'
 #' @export
 #' @concept integration
@@ -1878,16 +1890,16 @@ MapQuery <- function(
   } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
-      anchorset@object.list[[1]][["cca"]]
-      )[anchorset@reference.cells, ]
+      slot(object = anchorset, name = "object.list")[[1]][["cca"]]
+      )[slot(object = anchorset, name = "reference.cells"), ]
     rownames(x = ref.cca.embedding) <- gsub(
       pattern =  "_reference",
       replacement = "",
       x = rownames(x = ref.cca.embedding)
       )
     query.cca.embedding <- Embeddings(
-      anchorset@object.list[[1]][["cca"]]
-      )[anchorset@query.cells, ]
+      slot(object = anchorset, name = "object.list")[[1]][["cca"]]
+      )[slot(object = anchorset, name = "query.cells"), ]
     rownames(x = query.cca.embedding) <- gsub(
       pattern = "_query",
       replacement = "",
@@ -2703,6 +2715,7 @@ SelectIntegrationFeatures <- function(
 #' anchors. Options are:
 #' \itemize{
 #'    \item{pcaproject: Use the projected PCA used for anchor building}
+#'    \item{lsiproject: Use the projected LSI used for anchor building}
 #'    \item{pca: Use an internal PCA on the query only}
 #'    \item{cca: Use the CCA used for anchor building}
 #'    \item{custom DimReduc: User provided \code{\link{DimReduc}} object
@@ -5152,9 +5165,10 @@ ValidateParams_TransferData <- function(
     stop("None of the provided refdata elements are valid.", call. = FALSE)
   }
   ModifyParam(param = "refdata", value = refdata)
+  valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi")
   if (!inherits(x = weight.reduction, "DimReduc")) {
-    if (!weight.reduction %in% c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi")) {
-      stop("Please provide one of pcaproject, pca, cca, rpca.ref, lsiproject, lsi or a custom DimReduc to ",
+    if (!weight.reduction %in% valid.weight.reduction) {
+      stop("Please provide one of ", paste(valid.weight.reduction, collapse = ", "), " or a custom DimReduc to ",
            "the weight.reduction parameter.", call. = FALSE)
     }
     if (weight.reduction %in% c("pcaproject", "cca", "rpca.ref", "lsiproject") &&
