@@ -46,6 +46,7 @@ TransferData(
 anchors. Options are:
 \itemize{
    \item{pcaproject: Use the projected PCA used for anchor building}
+   \item{lsiproject: Use the projected LSI used for anchor building}
    \item{pca: Use an internal PCA on the query only}
    \item{cca: Use the CCA used for anchor building}
    \item{custom DimReduc: User provided \code{\link{DimReduc}} object

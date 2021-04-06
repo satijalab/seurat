@@ -62,16 +62,23 @@ neighbor finding}
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns a modified query Seurat object containing new Assays
-corresponding to the features transferred and/or their corresponding prediction
-scores from TransferData. An integrated reduction from IntegrateEmbeddings.
-And an projected umap reduction of the query cells projected into the
-reference umap.
+Returns a modified query Seurat object containing:
+
+\itemize{
+  \item{New Assays corresponding to the features transferred and/or their
+  corresponding prediction scores from \code{\link{TransferData}}}
+  \item{An integrated reduction from \code{\link{IntegrateEmbeddings}}}
+  \item{A projected UMAP reduction of the query cells projected into the
+  reference UMAP using \code{\link{ProjectUMAP}}}
+}
 }
 \description{
 This is a convenience wrapper function around the following three functions
 that are often run together when mapping query data to a reference:
 \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}},
-\code{\link{ProjectUMAP}}.
+\code{\link{ProjectUMAP}}. Note that by default, the \code{weight.reduction}
+parameter for all functions will be set to the dimension reduction method
+used in the \code{\link{FindTransferAnchors}} function call used to construct
+the anchor object.
 }
 \concept{integration}

@@ -59,7 +59,8 @@ Options are:
    recommend using LSI when reference and query datasets are from scATAC-seq.
    This requires that LSI has been computed for the reference dataset, and the
    same features (eg, peaks or genome bins) are present in both the reference
-   and query}
+   and query. See \code{\link[Signac]{RunTFIDF}} and
+   \code{\link[Signac]{RunSVD}}}
    \item{rpca: Project the PCA from the reference onto the query, and the PCA
    from the query onto the reference (reciprocal PCA projection).}
    \item{cca: Run a CCA on the reference and query }
@@ -108,7 +109,7 @@ annoy}
 nearest neighbor search}
 
 \item{eps}{Error bound on the neighbor finding algorithm (from
-\code{\link{RANN}})}
+\code{\link{RANN}} or \code{\link{RcppAnnoy}})}
 
 \item{approx.pca}{Use truncated singular value decomposition to approximate
 PCA}
@@ -143,8 +144,11 @@ description of the methodology, please see Stuart, Butler, et al Cell 2019.
   \code{project.query = TRUE}), using the \code{features} specified. The data
   from the other dataset is then projected onto this learned PCA structure.
   If \code{reduction = "cca"}, then CCA is performed on the reference and
-  query for this dimensional reduction step. If \code{l2.norm} is set to
-  \code{TRUE}, perform L2 normalization of the embedding vectors.}
+  query for this dimensional reduction step. If
+  \code{reduction = "lsiproject"}, the stored LSI dimension reduction in the
+  reference object is used to project the query dataset onto the reference.
+  If \code{l2.norm} is set to \code{TRUE}, perform L2 normalization of the
+  embedding vectors.}
   \item{Identify anchors between the reference and query - pairs of cells
   from each dataset that are contained within each other's neighborhoods
   (also known as mutual nearest neighbors).}
