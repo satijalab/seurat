@@ -86,7 +86,7 @@ NULL
 #' annoy
 #' @param n.trees More trees gives higher precision when using annoy approximate
 #' nearest neighbor search
-#' @param eps Error bound on the neighbor finding algorithm (from RANN)
+#' @param eps Error bound on the neighbor finding algorithm (from RANN/Annoy)
 #' @param verbose Print progress bars and output
 #'
 #' @return Returns an \code{\link{AnchorSet}} object that can be used as input to
@@ -155,6 +155,7 @@ FindIntegrationAnchors <- function(
   }
   if (reduction == "rlsi") {
     reduction <- "lsi"
+    normalization.method <- "LogNormalize"
     scale <- FALSE
     k.filter <- NA
   }
