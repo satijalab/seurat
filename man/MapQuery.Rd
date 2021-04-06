@@ -79,6 +79,7 @@ that are often run together when mapping query data to a reference:
 \code{\link{ProjectUMAP}}. Note that by default, the \code{weight.reduction}
 parameter for all functions will be set to the dimension reduction method
 used in the \code{\link{FindTransferAnchors}} function call used to construct
-the anchor object.
+the anchor object, and the \code{dims} parameter will be the same dimensions
+used to find anchors.
 }
 \concept{integration}

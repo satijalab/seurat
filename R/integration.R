@@ -657,7 +657,13 @@ ReciprocalProject <- function(
 #' @param verbose Print progress bars and output
 #'
 #' @return Returns an \code{AnchorSet} object that can be used as input to
-#' \code{\link{TransferData}}
+#' \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}} and
+#' \code{\link{MapQuery}}. The dimension reduction used for finding anchors is
+#' stored in the \code{AnchorSet} object and can be used for computing anchor
+#' weights in downstream functions. Note that only the requested dimensions are
+#' stored in the dimension reduction object in the \code{AnchorSet}. This means
+#' that if \code{dims=2:20} is used, for example, the dimension of the stored
+#' reduction is \code{1:19}.
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031};
@@ -1845,7 +1851,8 @@ LocalStruct <- function(
 #' \code{\link{ProjectUMAP}}. Note that by default, the \code{weight.reduction}
 #' parameter for all functions will be set to the dimension reduction method
 #' used in the \code{\link{FindTransferAnchors}} function call used to construct
-#' the anchor object.
+#' the anchor object, and the \code{dims} parameter will be the same dimensions
+#' used to find anchors.
 #'
 #' @inheritParams IntegrateEmbeddings
 #' @inheritParams TransferData
@@ -2723,7 +2730,9 @@ SelectIntegrationFeatures <- function(
 #' }
 #' @param l2.norm Perform L2 normalization on the cell embeddings after
 #' dimensional reduction
-#' @param dims Set of dimensions to use in the anchor weighting procedure
+#' @param dims Set of dimensions to use in the anchor weighting procedure. If
+#' NULL, the same dimensions that were used to find anchors will be used for
+#' weighting.
 #' @param k.weight Number of neighbors to consider when weighting anchors
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
 #' @param eps Error bound on the neighbor finding algorithm (from

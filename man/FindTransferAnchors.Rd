@@ -123,7 +123,13 @@ neighbor calculations to make the mapping score function more efficient.}
 }
 \value{
 Returns an \code{AnchorSet} object that can be used as input to
-\code{\link{TransferData}}
+\code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}} and
+\code{\link{MapQuery}}. The dimension reduction used for finding anchors is
+stored in the \code{AnchorSet} object and can be used for computing anchor
+weights in downstream functions. Note that only the requested dimensions are
+stored in the dimension reduction object in the \code{AnchorSet}. This means
+that if \code{dims=2:20} is used, for example, the dimension of the stored
+reduction is \code{1:19}.
 }
 \description{
 Find a set of anchors between a reference and query object. These

@@ -56,7 +56,9 @@ anchors. Options are:
 \item{l2.norm}{Perform L2 normalization on the cell embeddings after
 dimensional reduction}
 
-\item{dims}{Set of dimensions to use in the anchor weighting procedure}
+\item{dims}{Set of dimensions to use in the anchor weighting procedure. If
+NULL, the same dimensions that were used to find anchors will be used for
+weighting.}
 
 \item{k.weight}{Number of neighbors to consider when weighting anchors}
 
