@@ -302,7 +302,7 @@ Seurat can help you find markers that define clusters via differential expressio
 The `min.pct` argument requires a feature to be detected at a minimum percentage in either of the two groups of cells, and the thresh.test argument requires a feature to be differentially expressed (on average) by some amount between the two groups. You can set both of these to 0, but with a dramatic increase in time - since this will test a large number of features that are unlikely to be highly discriminatory. As another option to speed up these computations, `max.cells.per.ident` can be set. This will downsample each identity class to have no more cells than whatever this is set to. While there is generally going to be a loss in power, the speed increases can be significant and the most highly differentially expressed features will likely still rise to the top.
 
 ```{r markers1, fig.height=8, fig.width=15}
-# find all markers of cluster 1
+# find all markers of cluster 2
 cluster1.markers <- FindMarkers(pbmc, ident.1 = 2, min.pct = 0.25)
 head(cluster1.markers, n = 5)
 # find all markers distinguishing cluster 5 from clusters 0 and 3
