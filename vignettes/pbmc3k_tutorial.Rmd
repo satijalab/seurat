@@ -303,8 +303,8 @@ The `min.pct` argument requires a feature to be detected at a minimum percentage
 
 ```{r markers1, fig.height=8, fig.width=15}
 # find all markers of cluster 2
-cluster1.markers <- FindMarkers(pbmc, ident.1 = 2, min.pct = 0.25)
-head(cluster1.markers, n = 5)
+cluster2.markers <- FindMarkers(pbmc, ident.1 = 2, min.pct = 0.25)
+head(cluster2.markers, n = 5)
 # find all markers distinguishing cluster 5 from clusters 0 and 3
 cluster5.markers <- FindMarkers(pbmc, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
 head(cluster5.markers, n = 5)
@@ -316,7 +316,7 @@ pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_log2FC)
 Seurat has several tests for differential expression which can be set with the test.use parameter (see our [DE vignette](de_vignette.html) for details). For example, the ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect).
 
 ```{r markersroc, fig.height=8, fig.width=15}
-cluster1.markers <- FindMarkers(pbmc, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+cluster0.markers <- FindMarkers(pbmc, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
 ```
 
 We include several tools for visualizing marker expression. `VlnPlot()` (shows expression probability distributions across clusters), and `FeaturePlot()` (visualizes feature expression on a tSNE or PCA plot) are our most commonly used visualizations. We also suggest exploring `RidgePlot()`, `CellScatter()`, and `DotPlot()` as additional methods to view your dataset.
