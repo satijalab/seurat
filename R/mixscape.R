@@ -1215,6 +1215,7 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
 # @return returns matrix of perturbation differences
 #
 #' @importFrom matrixStats rowMeans2
+#' @importFrom Matrix sparseMatrix colSums
 #'
 PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neighbors, verbose) {
   nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, slot = slot)[features, nt_cells, drop = FALSE]))
