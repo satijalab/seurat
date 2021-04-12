@@ -155,7 +155,10 @@ FindIntegrationAnchors <- function(
   }
   if (reduction == "rlsi") {
     reduction <- "lsi"
-    normalization.method <- "LogNormalize"
+    if (normalization.method == "SCT") {
+      warning("Requested normalization method 'SCT' is not applicable for LSI")
+      normalization.method <- "LogNormalize"
+    }
     scale <- FALSE
     k.filter <- NA
   }
