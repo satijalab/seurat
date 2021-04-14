@@ -3521,7 +3521,7 @@ DotPlot <- function(
         data.use <- scale(x = data.use)
         data.use <- MinMax(data = data.use, min = col.min, max = col.max)
       } else {
-        data.use <- log(x = data.use)
+        data.use <- log1p(x = data.use)
       }
       return(data.use)
     }
