@@ -806,10 +806,7 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
-  if (isTRUE(x = shuffle)) {
-    set.seed(seed = seed)
-    cells <- sample(x = cells)
-  }
+
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -828,6 +825,10 @@ DimPlot <- function(
   }
   if (!is.null(x = split.by)) {
     data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    data <- data[sample(x = 1:nrow(x = data)), ]
   }
   plots <- lapply(
     X = group.by,
