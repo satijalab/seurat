@@ -2,6 +2,8 @@
 ## Added
 - New `AddAzimuthScores()` function
 - Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
+- Add `lsiproject` and `rpca` options for `FindTransferAnchors()`
+- Add `rlsi` option for `FindIntegrationAnchors()`
 
 ## Changes
 - Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
@@ -11,6 +13,8 @@
 - Fix passing of `score.thresh` parameter in `ScoreJackStraw()` ([#4268](https://github.com/satijalab/seurat/pull/4268))
 - Fix FC calculation in `FindMarkers()` non-log transformed data.
 - Add umap-learn version >= 0.5.0 compatibility for `RunUMAP()`
+- Fix `DotPlot` to use `log1p` when `scale=False`
+([#4298](https://github.com/satijalab/seurat/issues/4298))
 
 # Seurat 4.0.1 (2020-03-17)
 ## Added

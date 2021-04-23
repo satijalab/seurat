@@ -1215,18 +1215,24 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
 # @return returns matrix of perturbation differences
 #
 #' @importFrom matrixStats rowMeans2
+#' @importFrom Matrix sparseMatrix colSums
 #'
 PerturbDiff <- function(object, assay, slot, all_cells, nt_cells, features, neighbors, verbose) {
   nt_data <- as.matrix(x = expm1(x = GetAssayData(object = object, assay = assay, slot = slot)[features, nt_cells, drop = FALSE]))
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
-  new_expr <- mysapply(X = all_cells, FUN = function(i) {
-    index <- Indices(object = neighbors)[i, ]
-    nt_cells20 <- nt_cells[index]
-    avg_nt <- rowMeans2(x = nt_data[, nt_cells20, drop = FALSE])
-    avg_nt <- as.matrix(x = avg_nt)
-    colnames(x = avg_nt) <- i
-    return(avg_nt)
-  })
+  # new_expr <- mysapply(X = all_cells, FUN = function(i) {
+  #   index <- Indices(object = neighbors)[i, ]
+  #   nt_cells20 <- nt_cells[index]
+  #   avg_nt <- rowMeans2(x = nt_data[, nt_cells20, drop = FALSE])
+  #   avg_nt <- as.matrix(x = avg_nt)
+  #   colnames(x = avg_nt) <- i
+  #   return(avg_nt)
+  # })
+  idx <- Indices(object = neighbors)[all_cells,]
+  model.matrix <- sparseMatrix(i = as.vector(idx), j = rep(1:nrow(x = idx), times = ncol(x = idx)), x = 1, dims = c(length(x = nt_cells), nrow(x = idx)))
+  model.matrix <- model.matrix/rep(colSums(model.matrix), each = nrow(x = model.matrix))
+  new_expr <- nt_data %*% model.matrix
+
   new_expr <- matrix(data = new_expr, nrow = length(x = features))
   new_expr <- log1p(x = new_expr)
   rownames(x = new_expr) <- rownames(x = nt_data)
