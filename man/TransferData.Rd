@@ -46,6 +46,7 @@ TransferData(
 anchors. Options are:
 \itemize{
    \item{pcaproject: Use the projected PCA used for anchor building}
+   \item{lsiproject: Use the projected LSI used for anchor building}
    \item{pca: Use an internal PCA on the query only}
    \item{cca: Use the CCA used for anchor building}
    \item{custom DimReduc: User provided \code{\link{DimReduc}} object
@@ -55,7 +56,9 @@ anchors. Options are:
 \item{l2.norm}{Perform L2 normalization on the cell embeddings after
 dimensional reduction}
 
-\item{dims}{Set of dimensions to use in the anchor weighting procedure}
+\item{dims}{Set of dimensions to use in the anchor weighting procedure. If
+NULL, the same dimensions that were used to find anchors will be used for
+weighting.}
 
 \item{k.weight}{Number of neighbors to consider when weighting anchors}
 

@@ -6,6 +6,32 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add Azimuth Scores
+#'
+#' Add mapping and prediction scores from Azimuth to a
+#' \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param filename Path to Azimuth mapping scores file
+#'
+#' @return \code{object} with the mapping scores added
+#'
+#' @examples
+#' \dontrun{
+#' object <- AddAzimuthScores(object, filename = "azimuth_pred.tsv")
+#' }
+#'
+AddAzimuthScores <- function(object, filename) {
+  if (!file.exists(filename)) {
+    stop("Cannot find Azimuth scores file ", filename, call. = FALSE)
+  }
+  object <- AddMetaData(
+    object = object,
+    metadata = read.delim(file = filename, row.names = 1)
+  )
+  return(object)
+}
+
 #' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single
@@ -1726,13 +1752,14 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
 
 
 # Create an empty dummy assay to replace existing assay
-#
+#' @importFrom Matrix sparseMatrix
 CreateDummyAssay <- function(assay) {
-  cm <- as.sparse(x = matrix(
-    data = 0,
-    nrow = nrow(x = assay),
-    ncol = ncol(x = assay)
-  ))
+  cm <- sparseMatrix(
+    i = {},
+    j = {},
+    dims = c(nrow(x = assay), ncol(x = assay))
+  )
+  cm <- as(object = cm, Class = "dgCMatrix")
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   # TODO: restore once check.matrix is in SeuratObject

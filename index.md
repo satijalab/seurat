@@ -15,7 +15,7 @@ We are excited to release Seurat v4.0! This update brings the following new feat
 * **Rapid mapping of query datasets to references.** We introduce Azimuth, a workflow to leverage high-quality reference datasets to rapidly map new scRNA-seq datasets (queries). For example, you can map any scRNA-seq dataset of human PBMC onto our reference, automating the process of visualization, clustering annotation, and differential expression. Azimuth can be run within Seurat, or using a standalone web application that requires no installation or programming experience.
 
     - Vignette: [Mapping scRNA-seq queries onto reference datasets](articles/multimodal_reference_mapping.html)
-    - Web app: [Automated mapping, visualization, and annotation of scRNA-seq datasets from human PBMC]("https://azimuth.hubmapconsortium.org/")
+    - Web app: [Automated mapping, visualization, and annotation of scRNA-seq datasets from human PBMC](https://azimuth.hubmapconsortium.org/)
 
 Additional speed and usability updates: We have made minor changes in v4, primarily to improve the performance of Seurat v4 on large datasets. These changes substantially improve the speed and memory requirements, but do not adversely impact downstream results. We provide a detailed description of key changes [here](articles/v4_changes.html). Users who wish to fully reproduce existing results can continue to do so by continuing to install Seurat v3.  
 

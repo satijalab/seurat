@@ -1854,6 +1854,9 @@ CellScatter <- function(
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
@@ -1887,6 +1890,8 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
+  shuffle = FALSE,
+  seed = 1,
   group.by = NULL,
   cols = NULL,
   pt.size = 1,
@@ -1899,6 +1904,10 @@ FeatureScatter <- function(
   raster = NULL
 ) {
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <-  FetchData(
@@ -3512,7 +3521,7 @@ DotPlot <- function(
         data.use <- scale(x = data.use)
         data.use <- MinMax(data = data.use, min = col.min, max = col.max)
       } else {
-        data.use <- log(x = data.use)
+        data.use <- log1p(x = data.use)
       }
       return(data.use)
     }
