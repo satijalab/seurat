@@ -988,6 +988,7 @@ MixscapeHeatmap <- function(
 #' @param col Specify color of target gene class or knockout cell class. For
 #' control non-targeting and non-perturbed cells, colors are set to different
 #' shades of grey.
+#' @param mixscape.class meta data column specifying mixscape classifications.
 #' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
 #' @param split.by For datasets with more than one cell type. Set equal TRUE to visualize perturbation scores for each cell type separately.
 #' @return A ggplot object.
