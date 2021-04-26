@@ -1631,9 +1631,7 @@ MarkerTest <- function(
 # @param data.use Data to test
 # @param cells.1 Group 1 cells
 # @param cells.2 Group 2 cells
-# @param latent.vars Confounding variables to adjust for in DE test. Default is
-# "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
-# non-UMI based data, set to nGene instead.
+# @param latent.vars Confounding variables to adjust for in DE test
 # @param verbose print output
 # @param \dots Additional parameters to zero-inflated regression (zlm) function
 # in MAST
@@ -1644,17 +1642,6 @@ MarkerTest <- function(
 # genes.
 #
 #' @importFrom stats relevel
-#
-# @export
-#
-# @examples
-# \dontrun{
-#   data("pbmc_small")
-#   pbmc_small
-#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
-#               cells.2 = WhichCells(object = pbmc_small, idents = 2))
-# }
-#
 MASTDETest <- function(
   data.use,
   cells.1,
