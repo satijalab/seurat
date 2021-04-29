@@ -15,6 +15,7 @@
 - Add umap-learn version >= 0.5.0 compatibility for `RunUMAP()`
 - Fix `DotPlot` to use `log1p` when `scale=False`
 ([#4298](https://github.com/satijalab/seurat/issues/4298))
+- Fix split and shuffled `DimPlot`
 
 # Seurat 4.0.1 (2020-03-17)
 ## Added
