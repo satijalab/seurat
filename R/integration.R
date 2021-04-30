@@ -762,6 +762,7 @@ FindTransferAnchors <- function(
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
   reduction.2 <- character()
   feature.mean <- NULL
+  reference.reduction.init <- reference.reduction
   if (normalization.method == "SCT") {
       # ensure all residuals required are computed
       query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
@@ -1131,6 +1132,7 @@ FindTransferAnchors <- function(
   }
   slot(object = combined.ob, name = "reductions") <- reductions
   command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
+  slot(command, name = 'params')$reference.reduction <- reference.reduction.init
   anchor.set <- new(
     Class = "TransferAnchorSet",
     object.list = list(combined.ob),
@@ -1894,9 +1896,15 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
+
   # determine anchor type
   if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "pcaproject"
+    # check if the anchorset can be used for mapping
+    if (is.null(slot(object = anchorset, name = "command")$reference.reduction)) {
+      stop('reference.reduction is not set in FindTransferAnchors, ',
+      'so this anchor object cannot be used in MapQuery function')
+    }
   } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
@@ -1933,6 +1941,7 @@ MapQuery <- function(
     stop("unkown type of anchors")
   }
 
+  
   reference.reduction <- reference.reduction %||%
     slot(object = anchorset, name = "command")$reference.reduction %||%
     anchor.reduction
