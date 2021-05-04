@@ -910,9 +910,10 @@ MixscapeHeatmap <- function(
     if (balanced){
       pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
       neg.markers <- all.markers[which(all.markers[,fc.name] < (-logfc.threshold)),]
+     
 
       if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
-        marker.list=c(rownames(subset(pos.markers, p_val < pval.cutoff)))
+        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff)))
         if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
           marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
         } else {
@@ -958,17 +959,16 @@ MixscapeHeatmap <- function(
         }
 
       }
-
-    sub2 <- ScaleData(sub2, features = marker.list)
+    sub2 <- ScaleData(sub2, features = marker.list, assay = assay)
 
     if(isTRUE(order.by.prob)){
       p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(prtb.type) )]][,1, drop = FALSE]
       ordered.cells <- rownames(p_ko)[order(p_ko[,1], decreasing = T)]
-      p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells ,...)
+      p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells, assay = assay, ...)
     }
 
     else{
-    p <- DoHeatmap(sub2, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
+    p <- DoHeatmap(sub2, features = marker.list, label = T,cells = sample(Cells(sub2)), assay = assay,...)
     }
     return(p)
   }
