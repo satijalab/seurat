@@ -16,6 +16,7 @@
 - Fix `DotPlot` to use `log1p` when `scale=False`
 ([#4298](https://github.com/satijalab/seurat/issues/4298))
 - Fix split and shuffled `DimPlot`
+- Disallow NULL or another length 0 vector for `ident.1` in `FindMarkers()`
 
 # Seurat 4.0.1 (2020-03-17)
 ## Added
