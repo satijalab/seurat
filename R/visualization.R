@@ -4653,7 +4653,7 @@ Intensity <- function(color) {
 #'
 #' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
-#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom ggplot2 aes_string geom_text geom_label layer_scales
 #' @importFrom RANN nn2
 #'
 #' @export
