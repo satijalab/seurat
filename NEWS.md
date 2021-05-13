@@ -18,6 +18,7 @@
 - Fix split and shuffled `DimPlot`
 - Disallow NULL or another length 0 vector for `ident.1` in `FindMarkers()`
 - Fix range shift when labeling clusters on a GeomSpatial plot
+- Fix SpatialPlot distortion for non-square images.
 
 # Seurat 4.0.1 (2020-03-17)
 ## Added
