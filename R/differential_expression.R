@@ -873,6 +873,7 @@ FindMarkers.Seurat <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     base = base,
+    fc.name = fc.name,
     ...
   )
   return(de.results)
