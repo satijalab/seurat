@@ -15,7 +15,8 @@ AddAzimuthResults(object = NULL, filename)
 \code{object} with Azimuth results added
 }
 \description{
-Add mapping and prediction scores, UMAP embeddings, and imputed assay (if available)
+Add mapping and prediction scores, UMAP embeddings, and imputed assay (if
+available)
 from Azimuth to an existing or new \code{\link[SeuratObject]{Seurat}} object
 }
 \examples{
