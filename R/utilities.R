@@ -19,7 +19,7 @@ NULL
 #'
 #' @examples
 #' \dontrun{
-#' object <- AddAzimuthResults(object, filename = "azimuth_all.Rds")
+#' object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
 #' }
 #'
 #' @export

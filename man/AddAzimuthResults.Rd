@@ -21,7 +21,7 @@ from Azimuth to an existing or new \code{\link[SeuratObject]{Seurat}} object
 }
 \examples{
 \dontrun{
-object <- AddAzimuthResults(object, filename = "azimuth_all.Rds")
+object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
 }
 
 }
