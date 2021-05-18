@@ -1,6 +1,6 @@
 # Seurat develop
 ## Added
-- New `AddAzimuthScores()` function
+- New `AddAzimuthScores()` and `AddAzimuthResults()` functions
 - Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
 - Add `lsiproject` and `rpca` options for `FindTransferAnchors()`
 - Add `rlsi` option for `FindIntegrationAnchors()`
