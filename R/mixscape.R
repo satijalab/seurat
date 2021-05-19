@@ -871,6 +871,8 @@ RunMixscape <- function(
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout
 #' probability from highest to lowest score.
+#' @param group.by (Deprecated) Option to split densities based on mixscape
+#' classification. Please use mixscape.class instead
 #' @param mixscape.class metadata column with mixscape classifications.
 #' @param prtb.type specify type of CRISPR perturbation expected for labeling
 #' mixscape classifications. Default is KO.
@@ -891,9 +893,9 @@ MixscapeHeatmap <- function(
   ident.2 = NULL,
   balanced = TRUE,
   logfc.threshold = 0.25,
-  assay="RNA",
+  assay = "RNA",
   max.genes = 100,
-  test.use='wilcox',
+  test.use ='wilcox',
   max.cells.group = NULL,
   order.by.prob = TRUE,
   group.by = NULL,
@@ -904,71 +906,73 @@ MixscapeHeatmap <- function(
   ...
 )
 {
+  if (!is.null(x = group.by)) {
+    message("The group.by parameter is being deprecated. Please use ",
+            "mixscape.class instead. Setting mixscape.class = ", group.by,
+            " and continuing.")
+    mixscape.class <- group.by
+  }
   DefaultAssay(object = object) <- assay
-  if(is.numeric(max.genes)){
-    all.markers <- FindMarkers(object, ident.1 = ident.1, ident.2 = ident.2, only.pos = F, logfc.threshold = logfc.threshold,test.use = test.use)
-    if (balanced){
-      pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
-      neg.markers <- all.markers[which(all.markers[,fc.name] < (-logfc.threshold)),]
-     
-
-      if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff)))
-        if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
-          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
+  if (is.numeric(x = max.genes)) {
+    all.markers <- FindMarkers(
+      object = object,
+      ident.1 = ident.1,
+      ident.2 = ident.2,
+      only.pos = FALSE,
+      logfc.threshold = logfc.threshold,
+      test.use = test.use
+    )
+    if (balanced) {
+      pos.markers <- all.markers[which(x = all.markers[,fc.name] > (logfc.threshold)), ]
+      neg.markers <- all.markers[which(x = all.markers[,fc.name] < (-logfc.threshold)), ]
+      if (length(x = rownames(x = subset(x = pos.markers, p_val < pval.cutoff))) < max.genes ) {
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff)))
+        if (length(x = rownames(x = subset(x = neg.markers, p_val < pval.cutoff))) < max.genes){
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff)))
         } else {
-          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val <pval.cutoff))[1:max.genes])
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff))[1:max.genes])
         }
       } else {
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff))[1:max.genes])
-        if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
-          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff))[1:max.genes])
+        if (length(x = rownames(x = subset(x = neg.markers, p_val < pval.cutoff))) < max.genes) {
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff)))
         } else {
-          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < pval.cutoff))[1:max.genes])
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff))[1:max.genes])
         }
       }
     }
-
     else {
-      pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
-      if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff)))
+      pos.markers <- all.markers[which(x = all.markers[, fc.name] > (logfc.threshold)),]
+      if (length(x = rownames(x = subset(x = pos.markers, p_val < pval.cutoff))) < max.genes ){
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff)))
+      } else {
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff))[1:max.genes])
+      }
+    }
+    if (is.null(x = max.cells.group)) {
+      if (is.null(x = group.by)) {
+        sub2 <- subset(x = object, idents = c(ident.1, ident.2))
       } else{
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff))[1:max.genes])
+        sub2 <- subset(x = object, idents = c(ident.1, ident.2))
+        Idents(object = sub2) <- group.by
       }
     }
-      if(is.null(max.cells.group)){
-        if(is.null(group.by)){
-        sub2 <- subset(object, idents = c(ident.1,ident.2))
-        }
-        else{
-          sub2 <- subset(object, idents = c(ident.1,ident.2))
-          Idents(sub2) <- group.by
-        }
+    else {
+      if (is.null(x = group.by)) {
+        sub2 <- subset(x = object, idents = c(ident.1, ident.2), downsample = max.cells.group)
+      } else {
+        sub <- subset(x = object, idents = c(ident.1, ident.2))
+        Idents(object = sub) <- group.by
+        sub2 <- subset(x = sub, downsample = max.cells.group)
       }
-
-      else{
-        if (is.null(group.by)){
-          sub2 <- subset(object, idents = c(ident.1, ident.2), downsample = max.cells.group)
-
-        }
-        else{
-          sub <- subset(object, idents = c(ident.1,ident.2))
-          Idents(sub) <- group.by
-          sub2 <- subset(sub, downsample = max.cells.group)
-        }
-
-      }
-    sub2 <- ScaleData(sub2, features = marker.list, assay = assay)
-
-    if(isTRUE(order.by.prob)){
-      p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(prtb.type) )]][,1, drop = FALSE]
-      ordered.cells <- rownames(p_ko)[order(p_ko[,1], decreasing = T)]
-      p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells, assay = assay, ...)
     }
-
-    else{
-    p <- DoHeatmap(sub2, features = marker.list, label = T,cells = sample(Cells(sub2)), assay = assay,...)
+    sub2 <- ScaleData(object = sub2, features = marker.list, assay = assay)
+    if (isTRUE(x = order.by.prob)) {
+      p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(x = prtb.type) )]][, 1, drop = FALSE]
+      ordered.cells <- rownames(x = p_ko)[order(p_ko[,1], decreasing = TRUE)]
+      p <- DoHeatmap(object = sub2, features = marker.list, label = TRUE, cells = ordered.cells, assay = assay, ...)
+    } else{
+      p <- DoHeatmap(object = sub2, features = marker.list, label = TRUE, cells = sample(x = Cells(x = sub2)), assay = assay, ...)
     }
     return(p)
   }
@@ -1045,7 +1049,7 @@ PlotPerturbScore <- function(
       min = -top_r / 10,
       max = 0
     )
-    
+
     if(is.null(split.by)==FALSE) {
       prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
@@ -1112,7 +1116,7 @@ PlotPerturbScore <- function(
         scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
         geom_point(aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
-        theme_classic() + 
+        theme_classic() +
         theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
