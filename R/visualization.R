@@ -4653,7 +4653,7 @@ Intensity <- function(color) {
 #'
 #' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
-#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom ggplot2 aes_string geom_text geom_label layer_scales
 #' @importFrom RANN nn2
 #'
 #' @export
@@ -5870,8 +5870,8 @@ GeomSpatial <- ggproto(
     if (!crop) {
       y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
       data$y <- data$y + sum(y.transform)
-      panel_scales$x$continuous_range <- c(0, nrow(x = image))
-      panel_scales$y$continuous_range <- c(0, ncol(x = image))
+      panel_scales$x$continuous_range <- c(0, ncol(x = image))
+      panel_scales$y$continuous_range <- c(0, nrow(x = image))
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
@@ -7557,7 +7557,7 @@ SingleSpatialPlot <- function(
         image.alpha = image.alpha,
         crop = crop,
         stroke = stroke
-      ) + coord_fixed()
+      ) + coord_fixed() + theme(aspect.ratio = 1)
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -7601,7 +7601,7 @@ SingleSpatialPlot <- function(
     }
     plot <- plot + scale
   }
-  plot <- plot + theme_void()
+  plot <- plot + NoAxes()
   return(plot)
 }
 
