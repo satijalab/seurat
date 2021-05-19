@@ -7601,7 +7601,7 @@ SingleSpatialPlot <- function(
     }
     plot <- plot + scale
   }
-  plot <- plot + NoAxes()
+  plot <- plot + NoAxes() + theme(panel.background = element_blank())
   return(plot)
 }
 
