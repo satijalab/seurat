@@ -21,6 +21,7 @@
 - Fix SpatialPlot distortion for non-square images.
 - Fix future-related warnings in `FindIntegrationAnchors()`
 - Fix `fc.name` parameter in `FindMarkers()` ([#4474](https://github.com/satijalab/seurat/issues/4474))
+- Deprecate `group.by` parameter in `PlotPerturbScore()` in favor of `mixscape.class`.
 
 # Seurat 4.0.1 (2020-03-17)
 ## Added
