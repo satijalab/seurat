@@ -10,7 +10,7 @@ Authors@R: c(
   person(given = "Jeff", family = "Farrell", email = "jfarrell@g.harvard.edu", role = "ctb"),
   person(given = "Christoph", family = "Hafemeister", email = "chafemeister@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6365-8254")),
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
-  person(given = "Paul", family = "Hoffman", email = "nygcSatijalab@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
+  person(given = "Paul", family = "Hoffman", email = "seurat@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
   person(given = "Jaison", family = "Jain", email = "jjain@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-9478-5018")),
   person(given = "Efthymia", family = "Papalexi", email = "epapalexi@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5898-694X")),
   person(given = "Patrick", family = "Roelli", email = "proelli@nygenome.org", role = "ctb"),
