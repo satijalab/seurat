@@ -1,4 +1,4 @@
-# Seurat develop
+# Seurat 4.0.2 (2020-03-20)
 ## Added
 - New `AddAzimuthScores()` and `AddAzimuthResults()` functions
 - Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
