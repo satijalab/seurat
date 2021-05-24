@@ -1,4 +1,4 @@
-# Seurat v4.0.1
+# Seurat v4.0.2
 
 ## Test environments
 * local Ubuntu 18.04.4 install, R 4.0.3
@@ -14,8 +14,8 @@ There were no ERRORs, WARNINGs, or NOTEs
 
 ## Downstream dependencies
 
-There are no packages that depend on Seurat.
+There is one package that depends on Seurat: tidyseurat; this update does not impact its functionality
 
-There are six packages that imports Seurat: CDSeq, DUBStepR, scMappR, Signac, SignacX, and SoupX; this update does not impact their functionality
+There are seven packages that imports Seurat: CDSeq, DUBStepR, rPanglaoDB, scMappR, Signac, SignacX, and SoupX; this update does not impact their functionality
 
-There are eleven packages that suggest Seurat: BisqueRNA, clustree, conos, DIscBIO, dyngen, nanny, rliger, Rmagic, singleCellHaystack, treefit, VAM; this update does not impact their functionality.
+There are nine packages that suggest Seurat: BisqueRNA, ClustAssess, clustree, conos, DIscBIO, dyngen, rliger, Rmagic, VAM; this update does not impact their functionality.

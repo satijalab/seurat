@@ -806,10 +806,7 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
-  if (isTRUE(x = shuffle)) {
-    set.seed(seed = seed)
-    cells <- sample(x = cells)
-  }
+
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -828,6 +825,10 @@ DimPlot <- function(
   }
   if (!is.null(x = split.by)) {
     data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    data <- data[sample(x = 1:nrow(x = data)), ]
   }
   plots <- lapply(
     X = group.by,
@@ -1854,6 +1855,9 @@ CellScatter <- function(
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
@@ -1887,6 +1891,8 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
+  shuffle = FALSE,
+  seed = 1,
   group.by = NULL,
   cols = NULL,
   pt.size = 1,
@@ -1899,6 +1905,10 @@ FeatureScatter <- function(
   raster = NULL
 ) {
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <-  FetchData(
@@ -3512,7 +3522,7 @@ DotPlot <- function(
         data.use <- scale(x = data.use)
         data.use <- MinMax(data = data.use, min = col.min, max = col.max)
       } else {
-        data.use <- log(x = data.use)
+        data.use <- log1p(x = data.use)
       }
       return(data.use)
     }
@@ -4643,7 +4653,7 @@ Intensity <- function(color) {
 #'
 #' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
-#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom ggplot2 aes_string geom_text geom_label layer_scales
 #' @importFrom RANN nn2
 #'
 #' @export
@@ -4684,6 +4694,8 @@ LabelClusters <- function(
   }
   pb <- ggplot_build(plot = plot)
   if (geom == 'GeomSpatial') {
+    xrange.save <- layer_scales(plot = plot)$x$range$range
+    yrange.save <- layer_scales(plot = plot)$y$range$range
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
       y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
@@ -4760,6 +4772,10 @@ LabelClusters <- function(
       show.legend = FALSE,
       ...
     )
+  }
+  # restore old axis ranges
+  if (geom == 'GeomSpatial') {
+    plot <- suppressMessages(expr = plot + coord_fixed(xlim = xrange.save, ylim = yrange.save))
   }
   return(plot)
 }
@@ -5854,8 +5870,8 @@ GeomSpatial <- ggproto(
     if (!crop) {
       y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
       data$y <- data$y + sum(y.transform)
-      panel_scales$x$continuous_range <- c(0, nrow(x = image))
-      panel_scales$y$continuous_range <- c(0, ncol(x = image))
+      panel_scales$x$continuous_range <- c(0, ncol(x = image))
+      panel_scales$y$continuous_range <- c(0, nrow(x = image))
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
@@ -7541,7 +7557,7 @@ SingleSpatialPlot <- function(
         image.alpha = image.alpha,
         crop = crop,
         stroke = stroke
-      ) + coord_fixed()
+      ) + coord_fixed() + theme(aspect.ratio = 1)
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -7585,7 +7601,7 @@ SingleSpatialPlot <- function(
     }
     plot <- plot + scale
   }
-  plot <- plot + theme_void()
+  plot <- plot + NoAxes() + theme(panel.background = element_blank())
   return(plot)
 }
 

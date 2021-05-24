@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 4.0.1
-Date: 2021-03-17
+Version: 4.0.2
+Date: 2021-05-20
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -10,7 +10,7 @@ Authors@R: c(
   person(given = "Jeff", family = "Farrell", email = "jfarrell@g.harvard.edu", role = "ctb"),
   person(given = "Christoph", family = "Hafemeister", email = "chafemeister@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6365-8254")),
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
-  person(given = "Paul", family = "Hoffman", email = "nygcSatijalab@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
+  person(given = "Paul", family = "Hoffman", email = "seurat@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
   person(given = "Jaison", family = "Jain", email = "jjain@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-9478-5018")),
   person(given = "Efthymia", family = "Papalexi", email = "epapalexi@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5898-694X")),
   person(given = "Patrick", family = "Roelli", email = "proelli@nygenome.org", role = "ctb"),

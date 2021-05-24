@@ -1,3 +1,28 @@
+# Seurat 4.0.2 (2020-03-20)
+## Added
+- New `AddAzimuthScores()` and `AddAzimuthResults()` functions
+- Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
+- Add `lsiproject` and `rpca` options for `FindTransferAnchors()`
+- Add `rlsi` option for `FindIntegrationAnchors()`
+
+## Changes
+- Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
+([#4205](https://github.com/satijalab/seurat/issues/4205))
+- Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class
+([#3764](https://github.com/satijalab/seurat/issues/3764))
+- Fix passing of `score.thresh` parameter in `ScoreJackStraw()` ([#4268](https://github.com/satijalab/seurat/pull/4268))
+- Fix FC calculation in `FindMarkers()` non-log transformed data.
+- Add umap-learn version >= 0.5.0 compatibility for `RunUMAP()`
+- Fix `DotPlot` to use `log1p` when `scale=False`
+([#4298](https://github.com/satijalab/seurat/issues/4298))
+- Fix split and shuffled `DimPlot`
+- Disallow NULL or another length 0 vector for `ident.1` in `FindMarkers()`
+- Fix range shift when labeling clusters on a GeomSpatial plot
+- Fix SpatialPlot distortion for non-square images.
+- Fix future-related warnings in `FindIntegrationAnchors()`
+- Fix `fc.name` parameter in `FindMarkers()` ([#4474](https://github.com/satijalab/seurat/issues/4474))
+- Deprecate `group.by` parameter in `PlotPerturbScore()` in favor of `mixscape.class`.
+
 # Seurat 4.0.1 (2020-03-17)
 ## Added
 - Add direction option to `PlotClusterTree()`
