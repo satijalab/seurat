@@ -1190,9 +1190,11 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(x = sce) <- S4Vectors::DataFrame(metadata)
   for (assayn in assay){
-    sce <- SingleCellExperiment::swapAltExp(x = sce, name = assayn, saved = orig.exp.name)
-    SummarizedExperiment::rowData(x = sce) <- S4Vectors::DataFrame(x[[assayn]][[]])
-    sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = assayn)
+    if (assayn != orig.exp.name) {
+      sce <- SingleCellExperiment::swapAltExp(x = sce, name = assayn, saved = orig.exp.name)
+      SummarizedExperiment::rowData(x = sce) <- S4Vectors::DataFrame(x[[assayn]][[]])
+      sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = assayn)
+    }
   }
   for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
     assay.used <- DefaultAssay(object = x[[dr]])
@@ -1202,7 +1204,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = assay.used)
     }
   }
-  sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = NULL)
+
   return(sce)
 }
 
