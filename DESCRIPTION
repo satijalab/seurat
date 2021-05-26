@@ -24,6 +24,7 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Remotes: mojaveazure/seurat-object@feat/standard
 Depends:
     R (>= 4.0.0),
     methods
@@ -92,6 +93,7 @@ Collate:
     'mixscape.R'
     'objects.R'
     'preprocessing.R'
+    'preprocessing5.R'
     'tree.R'
     'utilities.R'
     'zzz.R'
