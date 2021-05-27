@@ -1909,9 +1909,10 @@ MapQuery <- function(
   if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "pcaproject"
     # check if the anchorset can be used for mapping
-    if (is.null(slot(object = anchorset, name = "command")$reference.reduction)) {
-      stop('reference.reduction is not set in FindTransferAnchors, ',
-      'so this anchor object cannot be used in MapQuery function')
+    if (is.null(x = slot(object = anchorset, name = "command")$reference.reduction)) {
+      stop('The reference.reduction parameter was not set when running ',
+      'FindTransferAnchors, so the resulting AnchorSet object cannot be used ',
+      'in the MapQuery function.')
     }
   } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "cca"
@@ -1949,7 +1950,7 @@ MapQuery <- function(
     stop("unkown type of anchors")
   }
 
-  
+
   reference.reduction <- reference.reduction %||%
     slot(object = anchorset, name = "command")$reference.reduction %||%
     anchor.reduction
