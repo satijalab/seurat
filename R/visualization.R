@@ -4653,7 +4653,7 @@ Intensity <- function(color) {
 #'
 #' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
-#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom ggplot2 aes_string geom_text geom_label layer_scales
 #' @importFrom RANN nn2
 #'
 #' @export
@@ -4694,6 +4694,8 @@ LabelClusters <- function(
   }
   pb <- ggplot_build(plot = plot)
   if (geom == 'GeomSpatial') {
+    xrange.save <- layer_scales(plot = plot)$x$range$range
+    yrange.save <- layer_scales(plot = plot)$y$range$range
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
       y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
@@ -4770,6 +4772,10 @@ LabelClusters <- function(
       show.legend = FALSE,
       ...
     )
+  }
+  # restore old axis ranges
+  if (geom == 'GeomSpatial') {
+    plot <- suppressMessages(expr = plot + coord_fixed(xlim = xrange.save, ylim = yrange.save))
   }
   return(plot)
 }
@@ -5864,8 +5870,8 @@ GeomSpatial <- ggproto(
     if (!crop) {
       y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
       data$y <- data$y + sum(y.transform)
-      panel_scales$x$continuous_range <- c(0, nrow(x = image))
-      panel_scales$y$continuous_range <- c(0, ncol(x = image))
+      panel_scales$x$continuous_range <- c(0, ncol(x = image))
+      panel_scales$y$continuous_range <- c(0, nrow(x = image))
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
@@ -7551,7 +7557,7 @@ SingleSpatialPlot <- function(
         image.alpha = image.alpha,
         crop = crop,
         stroke = stroke
-      ) + coord_fixed()
+      ) + coord_fixed() + theme(aspect.ratio = 1)
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -7595,7 +7601,7 @@ SingleSpatialPlot <- function(
     }
     plot <- plot + scale
   }
-  plot <- plot + theme_void()
+  plot <- plot + NoAxes() + theme(panel.background = element_blank())
   return(plot)
 }
 

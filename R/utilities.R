@@ -6,6 +6,72 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add Azimuth Results
+#'
+#' Add mapping and prediction scores, UMAP embeddings, and imputed assay (if
+#' available)
+#' from Azimuth to an existing or new \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param filename Path to Azimuth mapping scores file
+#'
+#' @return \code{object} with Azimuth results added
+#'
+#' @examples
+#' \dontrun{
+#' object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
+#' }
+#'
+#' @export
+AddAzimuthResults <- function(object = NULL, filename) {
+  if (is.null(x = filename)) {
+    stop("No Azimuth results provided.")
+  }
+  azimuth_results <- readRDS(file = filename)
+  if (!is.list(x = azimuth_results) || any(!(c('umap', 'pred.df') %in% names(x = azimuth_results)))) {
+    stop("Expected following format for azimuth_results:
+           `list(umap = <DimReduc>, pred.df = <data.frame>[, impADT = <Assay>])`")
+  }
+
+  if (is.null(x = object)) {
+    message("No existing Seurat object provided. Creating new one.")
+    object <- CreateSeuratObject(
+      counts = matrix(
+        nrow = 1,
+        ncol = nrow(x = azimuth_results$umap),
+        dimnames = list(
+          row.names = 'Dummy.feature',
+          col.names = rownames(x = azimuth_results$umap))
+      ),
+      assay = 'Dummy'
+    )
+  } else {
+    overlap.cells <- intersect(
+      x = Cells(x = object),
+      y = rownames(x = azimuth_results$umap)
+    )
+    if (!(all(overlap.cells %in% Cells(x = object)))) {
+      stop("Cells in object do not match cells in download")
+    } else if (length(x = overlap.cells) < length(x = Cells(x = object))) {
+      warning(paste0("Subsetting out ", length(x = Cells(x = object)) - length(x = overlap.cells),
+                     " cells that are absent in downloaded results (perhaps filtered by Azimuth)"))
+      object <- subset(x = object, cells = overlap.cells)
+    }
+  }
+
+  azimuth_results$pred.df$cell <- NULL
+  object <- AddMetaData(object = object, metadata = azimuth_results$pred.df)
+  object[['umap.proj']] <- azimuth_results$umap
+  if ('impADT' %in% names(x = azimuth_results)) {
+    object[['impADT']] <- azimuth_results$impADT
+    if ('Dummy' %in% Assays(object = object)) {
+      DefaultAssay(object = object) <- 'impADT'
+      object[['Dummy']] <- NULL
+    }
+  }
+  return(object)
+}
+
 #' Add Azimuth Scores
 #'
 #' Add mapping and prediction scores from Azimuth to a

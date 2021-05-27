@@ -813,6 +813,9 @@ FindMarkers.Seurat <- function(
   if (!is.null(x = assay) && !is.null(x = reduction)) {
     stop("Please only specify either assay or reduction.")
   }
+  if (length(x = ident.1) == 0) {
+    stop("At least 1 ident must be specified in `ident.1`")
+  }
   # select which data to use
   if (is.null(x = reduction)) {
     assay <- assay %||% DefaultAssay(object = object)
@@ -870,6 +873,7 @@ FindMarkers.Seurat <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     base = base,
+    fc.name = fc.name,
     ...
   )
   return(de.results)

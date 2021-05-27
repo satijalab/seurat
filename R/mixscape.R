@@ -796,7 +796,7 @@ RunMixscape <- function(
           message("  ", gene)
         }
         de.genes <- prtb_markers[[s]][[gene]]
-        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells]
+        dat <- GetAssayData(object = object[[assay]], slot = "data")[de.genes, all.cells, drop = FALSE]
         if (slot == "scale.data") {
           dat <- ScaleData(object = dat, features = de.genes, verbose = FALSE)
         }
@@ -806,12 +806,12 @@ RunMixscape <- function(
         while (!converged && n.iter < iter.num) {
           Idents(object = object) <- new.class.name
           guide.cells <- intersect(x = WhichCells(object = object, idents = gene), y = cells.s)
-          vec <- rowMeans2(x = dat[, guide.cells]) - rowMeans2(x = dat[, nt.cells])
+          vec <- rowMeans2(x = dat[, guide.cells, drop = FALSE]) - rowMeans2(x = dat[, nt.cells, drop = FALSE])
           pvec <- apply(X = dat, MARGIN = 2, FUN = ProjectVec, v2 = vec)
           if (n.iter == 0){
             #store pvec
             gv <- as.data.frame(x = pvec)
-            gv[, labels] <- "NT"
+            gv[, labels] <- nt.class.name
             gv[intersect(x = rownames(x = gv), y = guide.cells), labels] <- gene
             gv.list[[gene]][[s]] <- gv
           }
@@ -871,6 +871,8 @@ RunMixscape <- function(
 #' @param balanced Plot an equal number of genes with both groups of cells.
 #' @param order.by.prob Order cells on heatmap based on their mixscape knockout
 #' probability from highest to lowest score.
+#' @param group.by (Deprecated) Option to split densities based on mixscape
+#' classification. Please use mixscape.class instead
 #' @param mixscape.class metadata column with mixscape classifications.
 #' @param prtb.type specify type of CRISPR perturbation expected for labeling
 #' mixscape classifications. Default is KO.
@@ -891,9 +893,9 @@ MixscapeHeatmap <- function(
   ident.2 = NULL,
   balanced = TRUE,
   logfc.threshold = 0.25,
-  assay="RNA",
+  assay = "RNA",
   max.genes = 100,
-  test.use='wilcox',
+  test.use ='wilcox',
   max.cells.group = NULL,
   order.by.prob = TRUE,
   group.by = NULL,
@@ -904,71 +906,73 @@ MixscapeHeatmap <- function(
   ...
 )
 {
+  if (!is.null(x = group.by)) {
+    message("The group.by parameter is being deprecated. Please use ",
+            "mixscape.class instead. Setting mixscape.class = ", group.by,
+            " and continuing.")
+    mixscape.class <- group.by
+  }
   DefaultAssay(object = object) <- assay
-  if(is.numeric(max.genes)){
-    all.markers <- FindMarkers(object, ident.1 = ident.1, ident.2 = ident.2, only.pos = F, logfc.threshold = logfc.threshold,test.use = test.use)
-    if (balanced){
-      pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
-      neg.markers <- all.markers[which(all.markers[,fc.name] < (-logfc.threshold)),]
-
-      if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
-        marker.list=c(rownames(subset(pos.markers, p_val < pval.cutoff)))
-        if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
-          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
+  if (is.numeric(x = max.genes)) {
+    all.markers <- FindMarkers(
+      object = object,
+      ident.1 = ident.1,
+      ident.2 = ident.2,
+      only.pos = FALSE,
+      logfc.threshold = logfc.threshold,
+      test.use = test.use
+    )
+    if (balanced) {
+      pos.markers <- all.markers[which(x = all.markers[,fc.name] > (logfc.threshold)), ]
+      neg.markers <- all.markers[which(x = all.markers[,fc.name] < (-logfc.threshold)), ]
+      if (length(x = rownames(x = subset(x = pos.markers, p_val < pval.cutoff))) < max.genes ) {
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff)))
+        if (length(x = rownames(x = subset(x = neg.markers, p_val < pval.cutoff))) < max.genes){
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff)))
         } else {
-          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val <pval.cutoff))[1:max.genes])
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff))[1:max.genes])
         }
       } else {
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff))[1:max.genes])
-        if (length(rownames(subset(neg.markers, p_val < pval.cutoff))) < max.genes){
-          marker.list <- c(marker.list,rownames(subset(neg.markers, p_val < pval.cutoff)))
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff))[1:max.genes])
+        if (length(x = rownames(x = subset(x = neg.markers, p_val < pval.cutoff))) < max.genes) {
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff)))
         } else {
-          marker.list <- c(marker.list, rownames(subset(neg.markers, p_val < pval.cutoff))[1:max.genes])
+          marker.list <- c(marker.list, rownames(x = subset(x = neg.markers, p_val < pval.cutoff))[1:max.genes])
         }
       }
     }
-
     else {
-      pos.markers <- all.markers[which(all.markers[,fc.name] > (logfc.threshold)),]
-      if (length(rownames(subset(pos.markers, p_val < pval.cutoff))) < max.genes ){
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff)))
+      pos.markers <- all.markers[which(x = all.markers[, fc.name] > (logfc.threshold)),]
+      if (length(x = rownames(x = subset(x = pos.markers, p_val < pval.cutoff))) < max.genes ){
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff)))
+      } else {
+        marker.list <- c(rownames(x = subset(x = pos.markers, p_val < pval.cutoff))[1:max.genes])
+      }
+    }
+    if (is.null(x = max.cells.group)) {
+      if (is.null(x = group.by)) {
+        sub2 <- subset(x = object, idents = c(ident.1, ident.2))
       } else{
-        marker.list <- c(rownames(subset(pos.markers, p_val < pval.cutoff))[1:max.genes])
+        sub2 <- subset(x = object, idents = c(ident.1, ident.2))
+        Idents(object = sub2) <- group.by
       }
     }
-      if(is.null(max.cells.group)){
-        if(is.null(group.by)){
-        sub2 <- subset(object, idents = c(ident.1,ident.2))
-        }
-        else{
-          sub2 <- subset(object, idents = c(ident.1,ident.2))
-          Idents(sub2) <- group.by
-        }
+    else {
+      if (is.null(x = group.by)) {
+        sub2 <- subset(x = object, idents = c(ident.1, ident.2), downsample = max.cells.group)
+      } else {
+        sub <- subset(x = object, idents = c(ident.1, ident.2))
+        Idents(object = sub) <- group.by
+        sub2 <- subset(x = sub, downsample = max.cells.group)
       }
-
-      else{
-        if (is.null(group.by)){
-          sub2 <- subset(object, idents = c(ident.1, ident.2), downsample = max.cells.group)
-
-        }
-        else{
-          sub <- subset(object, idents = c(ident.1,ident.2))
-          Idents(sub) <- group.by
-          sub2 <- subset(sub, downsample = max.cells.group)
-        }
-
-      }
-
-    sub2 <- ScaleData(sub2, features = marker.list)
-
-    if(isTRUE(order.by.prob)){
-      p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(prtb.type) )]][,1, drop = FALSE]
-      ordered.cells <- rownames(p_ko)[order(p_ko[,1], decreasing = T)]
-      p <- DoHeatmap(sub2, features = marker.list, label = T, cells = ordered.cells ,...)
     }
-
-    else{
-    p <- DoHeatmap(sub2, features = marker.list, label = T,cells = sample(Cells(sub)), ...)
+    sub2 <- ScaleData(object = sub2, features = marker.list, assay = assay)
+    if (isTRUE(x = order.by.prob)) {
+      p_ko <- sub2[[paste0(mixscape.class, "_p_", tolower(x = prtb.type) )]][, 1, drop = FALSE]
+      ordered.cells <- rownames(x = p_ko)[order(p_ko[,1], decreasing = TRUE)]
+      p <- DoHeatmap(object = sub2, features = marker.list, label = TRUE, cells = ordered.cells, assay = assay, ...)
+    } else{
+      p <- DoHeatmap(object = sub2, features = marker.list, label = TRUE, cells = sample(x = Cells(x = sub2)), assay = assay, ...)
     }
     return(p)
   }
@@ -981,14 +985,16 @@ MixscapeHeatmap <- function(
 #' function.
 #'
 #' @param object An object of class Seurat.
-#' @param target.gene.ident Class identity for cells sharing the same
-#' perturbation. Name should be the same as the one used to run mixscape.
-#' @param group.by Option to split densities based on mixscape classification.
+#' @param target.gene.ident Target gene name to visualize perturbation scores for.
+#' @param target.gene.class meta data column specifying all target gene names in the experiment.
+#' @param before.mixscape Option to split densities based on mixscape classification (default) or original target gene classification.
 #' Default is set to NULL and plots cells by original class ID.
 #' @param col Specify color of target gene class or knockout cell class. For
 #' control non-targeting and non-perturbed cells, colors are set to different
 #' shades of grey.
+#' @param mixscape.class meta data column specifying mixscape classifications.
 #' @param prtb.type specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.
+#' @param split.by For datasets with more than one cell type. Set equal TRUE to visualize perturbation scores for each cell type separately.
 #' @return A ggplot object.
 #'
 #' @importFrom stats median
@@ -1000,38 +1006,52 @@ MixscapeHeatmap <- function(
 #'
 PlotPerturbScore <- function(
   object,
+  target.gene.class = "gene",
   target.gene.ident = NULL,
-  group.by = "mixscape_class",
+  mixscape.class = "mixscape_class",
   col = "orange2",
+  split.by = NULL,
+  before.mixscape = FALSE,
   prtb.type = "KO"
-) {
+){
+
+  if(is.null(target.gene.ident) == TRUE){
+    message("Please provide name of target gene class to plot")
+  }
   prtb_score_list <- Tool(object = object, slot = "RunMixscape")[[target.gene.ident]]
-  plot_list <- list()
-  Idents(object = object) <- group.by
-  for (i in 1:length(x = prtb_score_list)) {
-    prtb_score <- prtb_score_list[[i]]
-    prtb_score[, 2] <- as.factor(x = prtb_score[, 2])
-    gd <- setdiff(x = unique(x = prtb_score[, "gene"]), y = target.gene.ident)
-    colnames(x = prtb_score)[2] <- "gene"
-    if (is.null(x = group.by)) {
-      cols <- setNames(
-        object = c("grey49", col),
-        nm = c(gd, target.gene.ident)
-      )
-      p <- ggplot(data = prtb_score, mapping = aes_string(x = "pvec", color = "gene")) +
-        geom_density() + theme_classic()
-      top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
-      prtb_score$y.jitter <- prtb_score$pvec
-      prtb_score$y.jitter[prtb_score[, "gene"] == gd] <- runif(
-        n = prtb_score$y.jitter[prtb_score[, "gene"] == gd],
-        min = 0.001,
-        max = top_r / 10
-      )
-      prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident] <- runif(
-        n = prtb_score$y.jitter[prtb_score[, "gene"] == target.gene.ident],
-        min = -top_r / 10,
-        max = 0
-      )
+
+  for (nm in names(prtb_score_list)){
+    prtb_score_list[[nm]]['name'] <- nm
+  }
+  prtb_score <- do.call(rbind, prtb_score_list)
+  prtb_score[, 2] <- as.factor(x = prtb_score[, 2])
+  gd <- setdiff(x = unique(x = prtb_score[, target.gene.class]), y = target.gene.ident)
+  colnames(x = prtb_score)[2] <- "gene"
+  prtb_score$cell.bc <- sapply(rownames(prtb_score), FUN = function(x) strsplit(x, split = "[.]")[[1]][2])
+
+  if (isTRUE(x = before.mixscape)) {
+    cols <- setNames(
+      object = c("grey49", col),
+      nm = c(gd, target.gene.ident)
+    )
+
+    p <- ggplot(data = prtb_score, mapping = aes_string(x = "pvec", color = "gene")) +
+      geom_density() + theme_classic()
+    top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
+    prtb_score$y.jitter <- prtb_score$pvec
+    prtb_score$y.jitter[prtb_score[, "gene"] == gd] <- runif(
+      n = prtb_score$y.jitter[prtb_score[, "gene"] == gd],
+      min = 0.001,
+      max = top_r / 10
+    )
+    prtb_score$y.jitter[prtb_score[,"gene"] == target.gene.ident] <- runif(
+      n = prtb_score$y.jitter[prtb_score[, "gene"] == target.gene.ident],
+      min = -top_r / 10,
+      max = 0
+    )
+
+    if(is.null(split.by)==FALSE) {
+      prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
         geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
@@ -1039,45 +1059,73 @@ PlotPerturbScore <- function(
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
               legend.text = element_text(colour = "black", size = 14),
-              legend.title = element_blank()
-        )
-    } else {
-      cols <- setNames(
-        object = c("grey49", "grey79", col),
-        nm = c(gd, paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
-      )
-      #add mixscape classifications
-      prtb_score$mix <- as.character(x = prtb_score[, "gene"])
-      classes <- unique(x = object[[group.by]][, 1])
-      #define KO and NP cells
-      ko.cells <- WhichCells(object = object, idents = paste(target.gene.ident, prtb.type, sep = " "))
-      np.cells <- WhichCells(object = object, idents = paste0(target.gene.ident, " NP"))
-      prtb_score[np.cells, "mix"] <- paste0(target.gene.ident, " NP")
-      prtb_score[ko.cells, "mix"] <- paste(target.gene.ident, paste(prtb.type), sep = " ")
-      prtb_score[, "mix"] <- as.factor(x = prtb_score[,"mix"])
-      p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
-        geom_density() + theme_classic()
-      top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
-      prtb_score$y.jitter <- prtb_score$pvec
-      gd2 <- setdiff(
-        x = unique(x = prtb_score[, "mix"]),
-        y = c(paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
-      )
-      prtb_score$y.jitter[prtb_score[, "mix"] == gd2] <- runif(
-        n = prtb_score$y.jitter[prtb_score[, "mix"] == gd2],
-        min = 0.001,
-        max = top_r / 10
-      )
-      prtb_score$y.jitter[prtb_score$mix == paste(target.gene.ident, prtb.type, sep = " ")] <- runif(
-        n = prtb_score$y.jitter[prtb_score[, "mix"] == paste(target.gene.ident, prtb.type, sep = " ")],
-        min = -top_r / 10,
-        max = 0
-      )
-      prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " NP")] <- runif(
-        n = prtb_score$y.jitter[prtb_score[, "mix"] == paste0(target.gene.ident, " NP")],
-        min = -top_r / 10,
-        max = 0
-      )
+              legend.title = element_blank(), plot.title = element_text(size = 16, face = "bold"))+
+        facet_wrap(vars(split))
+    }
+
+    else{
+      p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
+        geom_density(size = 1.5) +
+        geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
+        ylab("Cell density") + xlab("perturbation score") +
+        theme(legend.key.size = unit(1, "cm"),
+              legend.text = element_text(colour = "black", size = 14),
+              legend.title = element_blank(), plot.title = element_text(size = 16, face = "bold"))
+    }
+  }
+
+
+  else {
+    cols <- setNames(
+      object = c("grey49", "grey79", col),
+      nm = c(gd, paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
+    )
+    #add mixscape identities
+    prtb_score$mix <- object[[mixscape.class]][prtb_score$cell.bc,]
+
+    p <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+      geom_density() + theme_classic()
+
+    top_r <- ggplot_build(p)$layout$panel_params[[1]]$y.range[2]
+    prtb_score$y.jitter <- prtb_score$pvec
+    gd2 <- setdiff(
+      x = unique(x = prtb_score[, "mix"]),
+      y = c(paste0(target.gene.ident, " NP"), paste(target.gene.ident, prtb.type, sep = " "))
+    )
+    prtb_score$y.jitter[prtb_score[, "mix"] == gd2] <- runif(
+      n = prtb_score$y.jitter[prtb_score[, "mix"] == gd2],
+      min = 0.001,
+      max = top_r / 10
+    )
+    prtb_score$y.jitter[prtb_score$mix == paste(target.gene.ident, prtb.type, sep = " ")] <- runif(
+      n = prtb_score$y.jitter[prtb_score[, "mix"] == paste(target.gene.ident, prtb.type, sep = " ")],
+      min = -top_r / 10,
+      max = 0
+    )
+    prtb_score$y.jitter[prtb_score$mix == paste0(target.gene.ident, " NP")] <- runif(
+      n = prtb_score$y.jitter[prtb_score[, "mix"] == paste0(target.gene.ident, " NP")],
+      min = -top_r / 10,
+      max = 0
+    )
+    prtb_score[, "mix"] <- as.factor(x = prtb_score[,"mix"])
+
+    if(is.null(split.by) == FALSE){
+      prtb_score$split <- as.character(object[[split.by]][prtb_score$cell.bc,1])
+      p2 <- ggplot(data = prtb_score, aes_string(x = "pvec", color = "mix")) +
+        scale_color_manual(values = cols, drop = FALSE) +
+        geom_density(size = 1.5) +
+        geom_point(aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
+        theme_classic() +
+        theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20)) +
+        ylab("Cell density") + xlab("perturbation score") +
+        theme(legend.key.size = unit(1, "cm"),
+              legend.text = element_text(colour ="black", size = 14),
+              legend.title = element_blank(),
+              plot.title = element_text(size = 16, face = "bold"))+
+        facet_wrap(vars(split))
+    }
+    else{
       p2 <- p + scale_color_manual(values = cols, drop = FALSE) +
         geom_density(size = 1.5) +
         geom_point(data = prtb_score, aes_string(x = "pvec", y = "y.jitter"), size = 0.1) +
@@ -1085,16 +1133,12 @@ PlotPerturbScore <- function(
         ylab("Cell density") + xlab("perturbation score") +
         theme(legend.key.size = unit(1, "cm"),
               legend.text = element_text(colour ="black", size = 14),
-              legend.title = element_blank()
-        )
+              legend.title = element_blank(),
+              plot.title = element_text(size = 16, face = "bold"))
     }
-    plot_list[[i]] <- p2
+
   }
-  if (length(x = plot_list) == 1) {
-    return(plot_list[[1]])
-  } else {
-    return(plot_list)
-  }
+  return(p2)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal

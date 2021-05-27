@@ -6,24 +6,32 @@
 \usage{
 PlotPerturbScore(
   object,
+  target.gene.class = "gene",
   target.gene.ident = NULL,
-  group.by = "mixscape_class",
+  mixscape.class = "mixscape_class",
   col = "orange2",
+  split.by = NULL,
+  before.mixscape = FALSE,
   prtb.type = "KO"
 )
 }
 \arguments{
 \item{object}{An object of class Seurat.}
 
-\item{target.gene.ident}{Class identity for cells sharing the same
-perturbation. Name should be the same as the one used to run mixscape.}
+\item{target.gene.class}{meta data column specifying all target gene names in the experiment.}
 
-\item{group.by}{Option to split densities based on mixscape classification.
-Default is set to NULL and plots cells by original class ID.}
+\item{target.gene.ident}{Target gene name to visualize perturbation scores for.}
+
+\item{mixscape.class}{meta data column specifying mixscape classifications.}
 
 \item{col}{Specify color of target gene class or knockout cell class. For
 control non-targeting and non-perturbed cells, colors are set to different
 shades of grey.}
+
+\item{split.by}{For datasets with more than one cell type. Set equal TRUE to visualize perturbation scores for each cell type separately.}
+
+\item{before.mixscape}{Option to split densities based on mixscape classification (default) or original target gene classification.
+Default is set to NULL and plots cells by original class ID.}
 
 \item{prtb.type}{specify type of CRISPR perturbation expected for labeling mixscape classifications. Default is KO.}
 }
