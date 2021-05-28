@@ -1,3 +1,7 @@
+# Seurat develop
+## Changes
+- Ensure proper reference.reduction is used in `MapQuery()`
+
 # Seurat 4.0.2 (2020-03-20)
 ## Added
 - New `AddAzimuthScores()` and `AddAzimuthResults()` functions
