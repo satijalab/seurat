@@ -2937,7 +2937,8 @@ ISpatialFeaturePlot <- function(
 #' themeing will not work when plotting multiple features/groupings
 #' @param pt.size.factor Scale the size of the spots.
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
-#' min and max
+#' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+#' alpha value for each plot.
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3174,6 +3175,11 @@ SpatialPlot <- function(
         cols = cols,
         alpha.by = if (is.null(x = group.by)) {
           features[j]
+        } else {
+          NULL
+        },
+        pt.alpha = if (!is.null(x = group.by)) {
+          alpha[j]
         } else {
           NULL
         },
@@ -7510,6 +7516,7 @@ SingleSpatialPlot <- function(
   image,
   cols = NULL,
   image.alpha = 1,
+  pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
   stroke = 0.25,
@@ -7550,14 +7557,27 @@ SingleSpatialPlot <- function(
   plot <- switch(
     EXPR = geom,
     'spatial' = {
-      plot + geom_spatial(
-        point.size.factor = pt.size.factor,
-        data = data,
-        image = image,
-        image.alpha = image.alpha,
-        crop = crop,
-        stroke = stroke
-      ) + coord_fixed() + theme(aspect.ratio = 1)
+      if (is.null(x = pt.alpha)) {
+        plot <- plot + geom_spatial(
+          point.size.factor = pt.size.factor,
+          data = data,
+          image = image,
+          image.alpha = image.alpha,
+          crop = crop,
+          stroke = stroke,
+        )
+      } else {
+        plot <- plot + geom_spatial(
+          point.size.factor = pt.size.factor,
+          data = data,
+          image = image,
+          image.alpha = image.alpha,
+          crop = crop,
+          stroke = stroke,
+          alpha = pt.alpha
+        )
+      }
+      plot + coord_fixed() + theme(aspect.ratio = 1)
     },
     'interactive' = {
       plot + geom_spatial_interactive(
