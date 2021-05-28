@@ -7490,6 +7490,7 @@ SingleRasterMap <- function(
 # By default, ggplot2 assigns colors
 # @param image.alpha Adjust the opacity of the background images. Set to 0 to
 # remove.
+# @param pt.alpha Adjust the opacity of the points if plotting a SpatialDimPlot
 # @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
