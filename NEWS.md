@@ -1,3 +1,10 @@
+## Seurat develop
+
+## Added
+
+## Changes
+- Fix issues with `as.SingleCellExperiment.Seurat` for the latest verion of SingleCellExperiment ([#4532](https://github.com/satijalab/seurat/pull/4532))
+
 # Seurat 4.0.2 (2020-03-20)
 ## Added
 - New `AddAzimuthScores()` and `AddAzimuthResults()` functions
