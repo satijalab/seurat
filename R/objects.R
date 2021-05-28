@@ -1106,15 +1106,17 @@ as.Seurat.SingleCellExperiment <- function(
     DefaultAssay(object = object) <- assay
     # add feature level meta data
     md <- SingleCellExperiment::rowData(x = x)
-    # replace underscores
-    rownames(x = md) <- gsub(pattern = "_", replacement = "-", x = rownames(x = md))
-    md <- as.data.frame(x = md)
-    # ensure order same as data
-    md <- md[rownames(x = object[[assay]]), ]
-    object[[assay]] <- AddMetaData(
-      object = object[[assay]],
-      metadata = md
-    )
+    if (ncol(x = md) > 0) {
+      # replace underscores
+      rownames(x = md) <- gsub(pattern = "_", replacement = "-", x = rownames(x = md))
+      md <- as.data.frame(x = md)
+      # ensure order same as data
+      md <- md[rownames(x = object[[assay]]), ]
+      object[[assay]] <- AddMetaData(
+        object = object[[assay]],
+        metadata = md
+      )
+    }
     Idents(object = object) <- project
     # Get DimReduc information, add underscores if needed and pull from different alt EXP
     if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
