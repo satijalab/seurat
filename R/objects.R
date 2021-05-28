@@ -1176,7 +1176,8 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   for (assayn in assay) {
   assays = list(
     counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"))
+    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"),
+    scaledata = GetAssayData(object = x, assay = assayn, slot = "scale.data"))
     assays <- assays[sapply(X = assays, FUN = nrow) != 0]
     sume <- SummarizedExperiment::SummarizedExperiment(assays = assays)
     experiments[[assayn]] <- sume
