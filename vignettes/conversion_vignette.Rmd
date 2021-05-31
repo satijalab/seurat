@@ -54,7 +54,7 @@ library(patchwork)
 
 ```{r seurat_singlecell}
 # Use PBMC3K from SeuratData
-InstallData(pbmc3k)
+InstallData("pbmc3k")
 pbmc <- LoadData(ds = "pbmc3k", type = "pbmc3k.final")
 pbmc.sce <- as.SingleCellExperiment(pbmc)
 p1 <- plotExpression(pbmc.sce, features = 'MS4A1', x = 'ident') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
