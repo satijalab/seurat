@@ -1218,7 +1218,9 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
         name = assay.used,
         saved = orig.exp.name
       )
-      SingleCellExperiment::reducedDim(x = sce, type = toupper(x = dr)) <- Embeddings(object = x[[dr]])
+    }
+    SingleCellExperiment::reducedDim(x = sce, type = toupper(x = dr)) <- Embeddings(object = x[[dr]])
+    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce)) {
       sce <- SingleCellExperiment::swapAltExp(
         x = sce,
         name = orig.exp.name,
