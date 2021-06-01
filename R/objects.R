@@ -1176,22 +1176,24 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   }
   experiments <- list()
   for (assayn in assay) {
-  assays = list(
-    counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"))
+    assays = list(
+      counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
+      logcounts = GetAssayData(object = x, assay = assayn, slot = "data"))
     assays <- assays[sapply(X = assays, FUN = nrow) != 0]
     sume <- SummarizedExperiment::SummarizedExperiment(assays = assays)
     experiments[[assayn]] <- sume
   }
   # create one single cell experiment
   sce <- as(object = experiments[[1]], Class = "SingleCellExperiment")
-  sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
   orig.exp.name <- names(x = experiments[1])
-  sce <- SingleCellExperiment::swapAltExp(
-    x = sce,
-    name = orig.exp.name,
-    saved = NULL
-  )
+  if (length(x = experiments) > 1) {
+    sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments[2:length(x = experiments)])
+    sce <- SingleCellExperiment::swapAltExp(
+      x = sce,
+      name = orig.exp.name,
+      saved = NULL
+    )
+  }
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(x = sce) <- S4Vectors::DataFrame(metadata)
