@@ -31,6 +31,9 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r, include = FALSE, cache=FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
 In this vignette, we demonstrate the ability to convert between Seurat objects, SingleCellExperiment objects, and anndata objects. 
 
 ```{r packages}
@@ -41,6 +44,7 @@ library(Seurat)
 # install SeuratDisk from GitHub using the remotes package
 # remotes::install_github(repo = 'mojaveazure/seurat-disk', ref = 'develop')
 library(SeuratDisk)
+library(SeuratData)
 library(patchwork)
 ```
 
@@ -49,9 +53,9 @@ library(patchwork)
 [`SingleCellExperiment`](https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html) is a class for storing single-cell experiment data, created by Davide Risso, Aaron Lun, and Keegan Korthauer, and is used by many Bioconductor analysis packages. Here we demonstrate converting the Seurat object produced in our 3k PBMC tutorial to SingleCellExperiment for use with Davis McCarthy's [scater](https://bioconductor.org/packages/release/bioc/html/scater.html) package. 
 
 ```{r seurat_singlecell}
-# download from satija lab
-# https://www.dropbox.com/s/kwd3kcxkmpzqg6w/pbmc3k_final.rds?dl=0
-pbmc <- readRDS(file = '../data/pbmc3k_final.rds')
+# Use PBMC3K from SeuratData
+InstallData("pbmc3k")
+pbmc <- LoadData(ds = "pbmc3k", type = "pbmc3k.final")
 pbmc.sce <- as.SingleCellExperiment(pbmc)
 p1 <- plotExpression(pbmc.sce, features = 'MS4A1', x = 'ident') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 p2 <- plotPCA(pbmc.sce, colour_by = 'ident')
