@@ -1068,7 +1068,7 @@ as.Seurat.SingleCellExperiment <- function(
       # if cell names are NULL, fill with cell_X
       if (is.null(x = colnames(x = mats[[m]]))) {
         warning(
-          "The column names of the",
+          "The column names of the ",
           names(x = mats)[m],
           " matrix is NULL. Setting cell names to cell_columnidx (e.g 'cell_1').",
           call. = FALSE,
@@ -1121,15 +1121,15 @@ as.Seurat.SingleCellExperiment <- function(
     # Get DimReduc information, add underscores if needed and pull from different alt EXP
     if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
       for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
-        embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
+        embeddings <- as.matrix(x = SingleCellExperiment::reducedDim(x = x, type = dr))
         if (is.null(x = rownames(x = embeddings))) {
           rownames(x = embeddings)  <- cell.names
         }
-        if(!grepl('_$',
+        if (isTRUE(x = !grepl('_$',
         gsub(pattern = "[[:digit:]]",
           replacement = "_",
           x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
-        ))){
+        )))) {
         key <- gsub(
           pattern = "[[:digit:]]",
           replacement = "_",
