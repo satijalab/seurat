@@ -21,7 +21,8 @@ FeatureScatter(
   combine = TRUE,
   slot = "data",
   plot.cor = TRUE,
-  raster = NULL
+  raster = NULL,
+  jitter = TRUE
 )
 }
 \arguments{
@@ -61,6 +62,8 @@ useful for crowded plots if points of interest are being buried. (default is FAL
 \item{raster}{Convert points to raster format, default is \code{NULL}
 which will automatically use raster if the number of points plotted is greater than
 100,000}
+
+\item{jitter}{Jitter for easier visualization of crowded points}
 }
 \value{
 A ggplot object
