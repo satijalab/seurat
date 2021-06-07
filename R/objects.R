@@ -1111,7 +1111,7 @@ as.Seurat.SingleCellExperiment <- function(
       rownames(x = md) <- gsub(pattern = "_", replacement = "-", x = rownames(x = md))
       md <- as.data.frame(x = md)
       # ensure order same as data
-      md <- md[rownames(x = object[[assay]]), ]
+      md <- md[rownames(x = object[[assay]]), , drop = FALSE]
       object[[assay]] <- AddMetaData(
         object = object[[assay]],
         metadata = md
