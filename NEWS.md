@@ -7,6 +7,7 @@
 - Ensure proper reference.reduction is used in `MapQuery()`
 - Fix to `UpdateSymbolList()`, no longer searches aliases and exposes the `search.types` parameter in `GeneSymbolThesarus()` ([#4545](https://github.com/satijalab/seurat/issues/4545))
 - Transfer `scale.data` slot as well when converting with `as.SingleCellExperiment.Seurat()`
+- Enable `alpha` parameter for `SpatialDimPlot()`
 
 # Seurat 4.0.2 (2020-03-20)
 ## Added

@@ -22,7 +22,8 @@ ISpatialFeaturePlot(
 \item{slot}{Which slot to pull expression data from?}
 
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
-min and max}
+min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+alpha value for each plot.}
 }
 \value{
 Returns final plot as a ggplot object
