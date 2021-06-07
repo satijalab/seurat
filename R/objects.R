@@ -1039,17 +1039,22 @@ as.Seurat.SingleCellExperiment <- function(
     )
   }
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
+  if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
+    orig.exp <- SingleCellExperiment::mainExpName(x = x) %||% "originalexp"
+  } else {
+    orig.exp <- "originalexp"
+  }
   if (!is.null(SingleCellExperiment::altExpNames(x = x))) {
     assayn <- assay %||% SingleCellExperiment::altExpNames(x = x)
     if (!all(assay %in% SingleCellExperiment::altExpNames(x = x))) {
       stop("One or more of the assays you are trying to convert is not in the SingleCellExperiment object")
     }
-    assayn <- c("originalexp", assayn)
+    assayn <- c(orig.exp, assayn)
   } else {
-    assayn <- "originalexp"
+    assayn <- orig.exp
   }
   for (assay in assayn) {
-    if (assay != "originalexp") {
+    if (assay != orig.exp) {
       x <- SingleCellExperiment::swapAltExp(x = x, name = assay, saved = NULL)
     }
     # Pull matrices
@@ -1187,6 +1192,9 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   # create one single cell experiment
   sce <- as(object = experiments[[1]], Class = "SingleCellExperiment")
   orig.exp.name <- names(x = experiments[1])
+  if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
+    SingleCellExperiment::mainExpName(sce) <- names(x = experiments[1])
+  }
   if (length(x = experiments) > 1) {
     sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
     sce <- SingleCellExperiment::swapAltExp(
