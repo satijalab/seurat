@@ -1187,12 +1187,14 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   # create one single cell experiment
   sce <- as(object = experiments[[1]], Class = "SingleCellExperiment")
   orig.exp.name <- names(x = experiments[1])
-  sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
-  sce <- SingleCellExperiment::swapAltExp(
-    x = sce,
-    name = orig.exp.name,
-    saved = NULL
-  )
+  if (length(x = experiments) > 1) {
+    sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
+    sce <- SingleCellExperiment::swapAltExp(
+      x = sce,
+      name = orig.exp.name,
+      saved = NULL
+    )
+  }
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(x = sce) <- S4Vectors::DataFrame(metadata)
