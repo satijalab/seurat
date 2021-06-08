@@ -1,6 +1,7 @@
 ## Seurat develop
 
 ## Added
+- Add `jitter` parameter to `FeatureScatter()` 
 
 ## Changes
 - Fix issues with `as.SingleCellExperiment.Seurat()` for the latest verion of SingleCellExperiment ([#4532](https://github.com/satijalab/seurat/pull/4532))

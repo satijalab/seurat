@@ -1871,6 +1871,7 @@ CellScatter <- function(
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
+#' @param jitter Jitter for easier visualization of crowded points
 #'
 #' @return A ggplot object
 #'
@@ -1902,7 +1903,8 @@ FeatureScatter <- function(
   combine = TRUE,
   slot = 'data',
   plot.cor = TRUE,
-  raster = NULL
+  raster = NULL,
+  jitter = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
@@ -1943,7 +1945,8 @@ FeatureScatter <- function(
         legend.title = 'Identity',
         span = span,
         plot.cor = plot.cor,
-        raster = raster
+        raster = raster,
+        jitter = jitter
       )
     }
   )
@@ -6850,6 +6853,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
 # 100,000
+# @param jitter Jitter for easier visualization of crowded points
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6872,7 +6876,8 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   span = NULL,
   raster = NULL,
-  plot.cor = TRUE
+  plot.cor = TRUE,
+  jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
@@ -6964,25 +6969,31 @@ SingleCorPlot <- function(
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
       guides(fill = FALSE)
   }
+  position <- NULL
+  if (jitter) {
+    position <- 'jitter'
+  } else {
+    position <- 'identity'
+  }
   if (!is.null(x = col.by)) {
     if (raster) {
       plot <- plot + geom_scattermore(
         mapping = aes_string(color = 'colors'),
-        position = 'jitter',
+        position = position,
         pointsize = pt.size
       )
     } else {
       plot <- plot + geom_point(
         mapping = aes_string(color = 'colors'),
-        position = 'jitter',
+        position = position,
         size = pt.size
       )
     }
   } else {
     if (raster) {
-      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size)
+      plot <- plot + geom_scattermore(position = position, pointsize = pt.size)
     } else {
-      plot <- plot + geom_point(position = 'jitter', size = pt.size)
+      plot <- plot + geom_point(position = position, size = pt.size)
     }
   }
   if (!is.null(x = cols)) {
