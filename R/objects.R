@@ -1039,17 +1039,22 @@ as.Seurat.SingleCellExperiment <- function(
     )
   }
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
+  if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
+    orig.exp <- SingleCellExperiment::mainExpName(x = x) %||% "originalexp"
+  } else {
+    orig.exp <- "originalexp"
+  }
   if (!is.null(SingleCellExperiment::altExpNames(x = x))) {
     assayn <- assay %||% SingleCellExperiment::altExpNames(x = x)
     if (!all(assay %in% SingleCellExperiment::altExpNames(x = x))) {
       stop("One or more of the assays you are trying to convert is not in the SingleCellExperiment object")
     }
-    assayn <- c("originalexp", assayn)
+    assayn <- c(orig.exp, assayn)
   } else {
-    assayn <- "originalexp"
+    assayn <- orig.exp
   }
   for (assay in assayn) {
-    if (assay != "originalexp") {
+    if (assay != orig.exp) {
       x <- SingleCellExperiment::swapAltExp(x = x, name = assay, saved = NULL)
     }
     # Pull matrices
@@ -1068,7 +1073,7 @@ as.Seurat.SingleCellExperiment <- function(
       # if cell names are NULL, fill with cell_X
       if (is.null(x = colnames(x = mats[[m]]))) {
         warning(
-          "The column names of the",
+          "The column names of the ",
           names(x = mats)[m],
           " matrix is NULL. Setting cell names to cell_columnidx (e.g 'cell_1').",
           call. = FALSE,
@@ -1111,7 +1116,7 @@ as.Seurat.SingleCellExperiment <- function(
       rownames(x = md) <- gsub(pattern = "_", replacement = "-", x = rownames(x = md))
       md <- as.data.frame(x = md)
       # ensure order same as data
-      md <- md[rownames(x = object[[assay]]), ]
+      md <- md[rownames(x = object[[assay]]), , drop = FALSE]
       object[[assay]] <- AddMetaData(
         object = object[[assay]],
         metadata = md
@@ -1121,15 +1126,15 @@ as.Seurat.SingleCellExperiment <- function(
     # Get DimReduc information, add underscores if needed and pull from different alt EXP
     if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
       for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
-        embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
+        embeddings <- as.matrix(x = SingleCellExperiment::reducedDim(x = x, type = dr))
         if (is.null(x = rownames(x = embeddings))) {
           rownames(x = embeddings)  <- cell.names
         }
-        if(!grepl('_$',
+        if (isTRUE(x = !grepl('_$',
         gsub(pattern = "[[:digit:]]",
           replacement = "_",
           x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
-        ))){
+        )))) {
         key <- gsub(
           pattern = "[[:digit:]]",
           replacement = "_",
@@ -1187,12 +1192,17 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   # create one single cell experiment
   sce <- as(object = experiments[[1]], Class = "SingleCellExperiment")
   orig.exp.name <- names(x = experiments[1])
-  sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
-  sce <- SingleCellExperiment::swapAltExp(
-    x = sce,
-    name = orig.exp.name,
-    saved = NULL
-  )
+  if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
+    SingleCellExperiment::mainExpName(sce) <- names(x = experiments[1])
+  }
+  if (length(x = experiments) > 1) {
+    sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
+    sce <- SingleCellExperiment::swapAltExp(
+      x = sce,
+      name = orig.exp.name,
+      saved = NULL
+    )
+  }
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(x = sce) <- S4Vectors::DataFrame(metadata)
