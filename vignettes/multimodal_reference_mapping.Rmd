@@ -29,7 +29,7 @@ knitr::opts_chunk$set(
 
 # Intro: Seurat v4 Reference Mapping
 
-This vignette introduces the process of mapping query datasets to annotated references in Seurat. In this example, we map one of the first scRNA-seq datasets released by 10X Genomics of 2,700 PBMC to our [recently described CITE-seq reference of 162,000 PBMC measured with 228 antibodies](http://www.satijalab.org/v4preprint). We chose this example to demonstrate how supervised analysis guided by a reference dataset can help to enumerate cell states that would be challenging to find with [unsupervised analysis](pbmc3k_tutorial.html). In a second example, we demonstrate how to serially map Human Cell Atlas datasets of human BMNC profiled from different individuals onto a consistent reference.
+This vignette introduces the process of mapping query datasets to annotated references in Seurat. In this example, we map one of the first scRNA-seq datasets released by 10X Genomics of 2,700 PBMC to our [recently described CITE-seq reference of 162,000 PBMC measured with 228 antibodies](https://doi.org/10.1016/j.cell.2021.04.048). We chose this example to demonstrate how supervised analysis guided by a reference dataset can help to enumerate cell states that would be challenging to find with [unsupervised analysis](pbmc3k_tutorial.html). In a second example, we demonstrate how to serially map Human Cell Atlas datasets of human BMNC profiled from different individuals onto a consistent reference.
 
 We have [previously demonstrated](integration_mapping.html) how to use reference-mapping approach to annotate cell labels in a query dataset . In Seurat v4, we have substantially improved the speed and memory requirements for integrative tasks including reference mapping, and also include new functionality to project query cells onto a previously computed UMAP visualization.
 
@@ -61,7 +61,7 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 
 ## A Multimodal PBMC Reference Dataset
 
-We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [preprint](http://www.satijalab.org/v4preprint), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
+We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
 
 ```{r pbmc.ref}
 reference <- LoadH5Seurat("../data/pbmc_multimodal.h5seurat")
@@ -86,7 +86,7 @@ The reference was normalized using `SCTransform()`, so we use the same approach 
 pbmc3k <- SCTransform(pbmc3k, verbose = FALSE)
 ```
 
-We then find anchors between reference and query. As described in the [manuscript](http://www.satijalab.org/v4preprint), we used a precomputed supervised PCA (spca) transformation for this example. We recommend the use of supervised PCA for CITE-seq datasets, and demonstrate how to compute this transformation on the next tab of this vignette. However, you can also use a standard PCA transformation.
+We then find anchors between reference and query. As described in the [manuscript](https://doi.org/10.1016/j.cell.2021.04.048), we used a precomputed supervised PCA (spca) transformation for this example. We recommend the use of supervised PCA for CITE-seq datasets, and demonstrate how to compute this transformation on the next tab of this vignette. However, you can also use a standard PCA transformation.
 
 ```{r transfer.anchors}
 anchors <- FindTransferAnchors(
@@ -194,7 +194,7 @@ FeaturePlot(pbmc3k, features = c("CD3-1", "CD45RA", "IgD"), reduction = "ref.uma
 
 In the previous examples, we visualize the query cells after mapping to the reference-derived UMAP. Keeping a consistent visualization can assist with the interpretation of new datasets. However, if there are cell states that are present in the query dataset that are not represented in the reference, they will project to the most similar cell in the reference. This is the expected behavior and functionality as established by the UMAP package, but can potentially mask the presence of new cell types in the query which may be of interest.  
 
-In our [manuscript](http://www.satijalab.org/v4preprint), we map a query dataset containing developing and differentiated neutrophils, which are not included in our reference. We find that computing a new UMAP ('de novo visualization') after merging the reference and query can help to identify these populations, as demonstrated in Supplementary Figure 8. In the 'de novo' visualization, unique cell states in the query remain separated. In this example, the 2,700 PBMC does not contain unique cell states, but we demonstrate how to compute this visualization below.
+In our [manuscript](https://doi.org/10.1016/j.cell.2021.04.048), we map a query dataset containing developing and differentiated neutrophils, which are not included in our reference. We find that computing a new UMAP ('de novo visualization') after merging the reference and query can help to identify these populations, as demonstrated in Supplementary Figure 8. In the 'de novo' visualization, unique cell states in the query remain separated. In this example, the 2,700 PBMC does not contain unique cell states, but we demonstrate how to compute this visualization below.
 
 We emphasize that if users are attempting to map datasets where the underlying samples are not PBMC, or contain cell types that are not present in the reference, computing a 'de novo' visualization is an important step in interpreting their dataset.
 
@@ -248,7 +248,7 @@ DimPlot(bm, group.by = "celltype.l2", reduction = "wnn.umap")
 
 ## Computing an sPCA transformation
 
-As described in our [manuscript](www.satijalab.org/v4preprint), we first compute a 'supervised' PCA. This identifies the  transformation of the transcriptome data that best encapsulates the structure of the WNN graph. This allows a weighted combination of the protein and RNA measurements to 'supervise' the PCA, and highlight the most relevant sources of variation. After computing this transformation, we can project it onto a query dataset. We can also compute and project a PCA projection, but recommend the use of sPCA when working with multimodal references that have been constructed with WNN analysis.
+As described in our [manuscript](https://doi.org/10.1016/j.cell.2021.04.048), we first compute a 'supervised' PCA. This identifies the  transformation of the transcriptome data that best encapsulates the structure of the WNN graph. This allows a weighted combination of the protein and RNA measurements to 'supervise' the PCA, and highlight the most relevant sources of variation. After computing this transformation, we can project it onto a query dataset. We can also compute and project a PCA projection, but recommend the use of sPCA when working with multimodal references that have been constructed with WNN analysis.
 
 The sPCA calculation is performed once, and then can be rapidly projected onto each query dataset.
 

@@ -5,9 +5,9 @@
 We are excited to release Seurat v4.0! This update brings the following new features and functionality:
 
 * **Integrative multimodal analysis.** The ability to make simultaneous measurements of multiple data types from the same cell, known as multimodal analysis, represents a new and exciting frontier for single-cell genomics. In Seurat v4, we introduce weighted nearest neighbor (WNN) analysis, an unsupervised strategy to learn the information content of each modality in each cell, and to define cellular state based on a weighted combination of both modalities.
-    In our new preprint, we generate a CITE-seq dataset featuring paired measurements of the transcriptome and 228 surface proteins, and leverage WNN to define a multimodal reference of human PBMC. You can use WNN to analyze multimodal data from a variety of technologies, including CITE-seq, ASAP-seq, 10X Genomics ATAC + RNA, and SHARE-seq.
+    In our new paper, we generate a CITE-seq dataset featuring paired measurements of the transcriptome and 228 surface proteins, and leverage WNN to define a multimodal reference of human PBMC. You can use WNN to analyze multimodal data from a variety of technologies, including CITE-seq, ASAP-seq, 10X Genomics ATAC + RNA, and SHARE-seq.
 
-    - Preprint: [Integrated analysis of multimodal single-cell data](https://satijalab.org/v4preprint)
+    - Paper: [Integrated analysis of multimodal single-cell data](https://doi.org/10.1016/j.cell.2021.04.048)
     - Vignette: [Multimodal clustering of a human bone marrow CITE-seq dataset](articles/weighted_nearest_neighbor_analysis.html)
     - Portal: [Click here](https://atlas.fredhutch.org/nygc/multimodal-pbmc/)
     - Dataset: [Download here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)
@@ -27,7 +27,7 @@ Seurat is an R package designed for QC, analysis, and exploration of single-cell
 
 If you use Seurat in your research, please considering citing:
 
-* [Hao\*, Hao\*, et al., bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1) [Seurat V4]
+* [Hao\*, Hao\*, et al., Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048) [Seurat V4]
 * [Stuart\*, Butler\*, et al., Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) [Seurat V3]
 * [Butler\* et al., Nat Biotechnol 2018](https://doi.org/10.1038/nbt.4096) [Seurat V2]
 * [Satija\*, Farrell\*, et al., Nat Biotechnol 2015](https://doi.org/10.1038/nbt.3192) [Seurat V1]
