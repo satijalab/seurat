@@ -1,5 +1,4 @@
-## Seurat develop
-
+## Seurat 4.0.3 (2020-06-08)
 ## Added
 - Add `jitter` parameter to `FeatureScatter()` 
 
@@ -11,7 +10,7 @@
 - Enable `alpha` parameter for `SpatialDimPlot()`
 - Fix `as.SingleCellExperiment.Seurat()` conversion for atypical `reducedDim` components
 
-# Seurat 4.0.2 (2020-03-20)
+# Seurat 4.0.2 (2020-05-20)
 ## Added
 - New `AddAzimuthScores()` and `AddAzimuthResults()` functions
 - Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
