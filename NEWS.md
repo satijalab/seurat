@@ -1,4 +1,4 @@
-## Seurat 4.0.3 (2020-06-08)
+## Seurat 4.0.3 (2020-06-10)
 ## Added
 - Add `jitter` parameter to `FeatureScatter()` 
 
