@@ -35,9 +35,9 @@ provided symbol}
 
 \item{search.types}{Type of query to perform:
 \describe{
- \itemize{\dQuote{\code{alias_symbol}}}{Find alternate symbols for the genes
+ \item{\dQuote{\code{alias_symbol}}}{Find alternate symbols for the genes
  described by \code{symbols}}
- \itemize{\dQuote{\code{prev_symbol}}}{Find new new symbols for the genes
+ \item{\dQuote{\code{prev_symbol}}}{Find new new symbols for the genes
  described by \code{symbols}}
 }
 This parameter accepts multiple options and short-hand options
