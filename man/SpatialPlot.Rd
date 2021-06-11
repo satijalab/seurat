@@ -136,7 +136,8 @@ themeing will not work when plotting multiple features/groupings}
 \item{pt.size.factor}{Scale the size of the spots.}
 
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
-min and max}
+min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+alpha value for each plot.}
 
 \item{stroke}{Control the width of the border around the spots}
 

@@ -27,11 +27,11 @@ citEntry(entry = "article",
                       as.person("Peter Smibert"),
                       as.person("Rahul Satija")),
   title = "Integrated analysis of multimodal single-cell data",
-  journal = "bioRxiv",
-  year = "2020",
-  doi = "10.1101/2020.10.12.335331",
-  url = "https://doi.org/10.1101/2020.10.12.335331",
-  textVersion = "Hao and Hao et al. Integrated analysis of multimodal single-cell data. bioRxiv (2020) [Seurat V4]"
+  journal = "Cell",
+  year = "2021",
+  doi = "10.1016/j.cell.2021.04.048",
+  url = "https://doi.org/10.1016/j.cell.2021.04.048",
+  textVersion = "Hao and Hao et al. Integrated analysis of multimodal single-cell data. Cell (2021) [Seurat V4]"
 )
 
 citEntry(entry = "article",

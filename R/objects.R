@@ -1039,17 +1039,22 @@ as.Seurat.SingleCellExperiment <- function(
     )
   }
   meta.data <- as.data.frame(x = SummarizedExperiment::colData(x = x))
+  if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
+    orig.exp <- SingleCellExperiment::mainExpName(x = x) %||% "originalexp"
+  } else {
+    orig.exp <- "originalexp"
+  }
   if (!is.null(SingleCellExperiment::altExpNames(x = x))) {
     assayn <- assay %||% SingleCellExperiment::altExpNames(x = x)
     if (!all(assay %in% SingleCellExperiment::altExpNames(x = x))) {
       stop("One or more of the assays you are trying to convert is not in the SingleCellExperiment object")
     }
-    assayn <- c("originalexp", assayn)
+    assayn <- c(orig.exp, assayn)
   } else {
-    assayn <- "originalexp"
+    assayn <- orig.exp
   }
   for (assay in assayn) {
-    if (assay != "originalexp") {
+    if (assay != orig.exp) {
       x <- SingleCellExperiment::swapAltExp(x = x, name = assay, saved = NULL)
     }
     # Pull matrices
@@ -1068,7 +1073,7 @@ as.Seurat.SingleCellExperiment <- function(
       # if cell names are NULL, fill with cell_X
       if (is.null(x = colnames(x = mats[[m]]))) {
         warning(
-          "The column names of the",
+          "The column names of the ",
           names(x = mats)[m],
           " matrix is NULL. Setting cell names to cell_columnidx (e.g 'cell_1').",
           call. = FALSE,
@@ -1106,28 +1111,30 @@ as.Seurat.SingleCellExperiment <- function(
     DefaultAssay(object = object) <- assay
     # add feature level meta data
     md <- SingleCellExperiment::rowData(x = x)
-    # replace underscores
-    rownames(x = md) <- gsub(pattern = "_", replacement = "-", x = rownames(x = md))
-    md <- as.data.frame(x = md)
-    # ensure order same as data
-    md <- md[rownames(x = object[[assay]]), ]
-    object[[assay]] <- AddMetaData(
-      object = object[[assay]],
-      metadata = md
-    )
+    if (ncol(x = md) > 0) {
+      # replace underscores
+      rownames(x = md) <- gsub(pattern = "_", replacement = "-", x = rownames(x = md))
+      md <- as.data.frame(x = md)
+      # ensure order same as data
+      md <- md[rownames(x = object[[assay]]), , drop = FALSE]
+      object[[assay]] <- AddMetaData(
+        object = object[[assay]],
+        metadata = md
+      )
+    }
     Idents(object = object) <- project
     # Get DimReduc information, add underscores if needed and pull from different alt EXP
     if (length(x = SingleCellExperiment::reducedDimNames(x = x)) > 0) {
       for (dr in SingleCellExperiment::reducedDimNames(x = x)) {
-        embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
+        embeddings <- as.matrix(x = SingleCellExperiment::reducedDim(x = x, type = dr))
         if (is.null(x = rownames(x = embeddings))) {
           rownames(x = embeddings)  <- cell.names
         }
-        if(!grepl('_$',
+        if (isTRUE(x = !grepl('_$',
         gsub(pattern = "[[:digit:]]",
           replacement = "_",
           x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr))[1]
-        ))){
+        )))) {
         key <- gsub(
           pattern = "[[:digit:]]",
           replacement = "_",
@@ -1173,36 +1180,65 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     stop("One or more of the assays you are trying to convert is not in the Seurat object")
   }
   experiments <- list()
-  for (assayn in assay){
+  for (assayn in assay) {
   assays = list(
     counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"))
+    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"),
+    scaledata = GetAssayData(object = x, assay = assayn, slot = "scale.data"))
     assays <- assays[sapply(X = assays, FUN = nrow) != 0]
     sume <- SummarizedExperiment::SummarizedExperiment(assays = assays)
     experiments[[assayn]] <- sume
   }
   # create one single cell experiment
   sce <- as(object = experiments[[1]], Class = "SingleCellExperiment")
-  sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
   orig.exp.name <- names(x = experiments[1])
-  sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = NULL)
+  if (packageVersion(pkg = "SingleCellExperiment") >= "1.14.0") {
+    SingleCellExperiment::mainExpName(sce) <- names(x = experiments[1])
+  }
+  if (length(x = experiments) > 1) {
+    sce <- SingleCellExperiment::SingleCellExperiment(sce, altExps = experiments)
+    sce <- SingleCellExperiment::swapAltExp(
+      x = sce,
+      name = orig.exp.name,
+      saved = NULL
+    )
+  }
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(x = sce) <- S4Vectors::DataFrame(metadata)
-  for (assayn in assay){
-    sce <- SingleCellExperiment::swapAltExp(x = sce, name = assayn, saved = orig.exp.name)
-    SummarizedExperiment::rowData(x = sce) <- S4Vectors::DataFrame(x[[assayn]][[]])
-    sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = assayn)
+  for (assayn in assay) {
+    if (assayn != orig.exp.name) {
+      sce <- SingleCellExperiment::swapAltExp(
+        x = sce,
+        name = assayn,
+        saved = orig.exp.name
+      )
+      SummarizedExperiment::rowData(x = sce) <- S4Vectors::DataFrame(x[[assayn]][[]])
+      sce <- SingleCellExperiment::swapAltExp(
+        x = sce,
+        name = orig.exp.name,
+        saved = assayn
+      )
+    }
   }
   for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
     assay.used <- DefaultAssay(object = x[[dr]])
-    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce)) {
-      sce <- SingleCellExperiment::swapAltExp(x = sce, name = assay.used, saved = orig.exp.name)
-      SingleCellExperiment::reducedDim(x = sce, toupper(x = dr)) <- Embeddings(object = x[[dr]])
-      sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = assay.used)
+    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name) {
+      sce <- SingleCellExperiment::swapAltExp(
+        x = sce,
+        name = assay.used,
+        saved = orig.exp.name
+      )
+    }
+    SingleCellExperiment::reducedDim(x = sce, type = toupper(x = dr)) <- Embeddings(object = x[[dr]])
+    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name) {
+      sce <- SingleCellExperiment::swapAltExp(
+        x = sce,
+        name = orig.exp.name,
+        saved = assay.used
+      )
     }
   }
-  sce <- SingleCellExperiment::swapAltExp(x = sce, name = orig.exp.name, saved = NULL)
   return(sce)
 }
 

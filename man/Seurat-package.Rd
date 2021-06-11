@@ -43,7 +43,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Paul Hoffman \email{nygcSatijalab@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID})
+\strong{Maintainer}: Paul Hoffman \email{seurat@nygenome.org} (\href{https://orcid.org/0000-0002-7693-8957}{ORCID})
 
 Other contributors:
 \itemize{

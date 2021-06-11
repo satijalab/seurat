@@ -210,3 +210,9 @@
       citation: La Manno et al, Nature 2018
       source: https://velocyto.org
 
+    - name: CIPR
+      title: Using CIPR with human PBMC data
+      link: http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/cipr.html
+      reference: https://doi.org/10.1186/s12859-020-3538-2
+      citation: Ekiz et. al., BMC Bioinformatics 2020
+      source: https://github.com/atakanekiz/CIPR-Package

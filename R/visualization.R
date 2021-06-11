@@ -1871,6 +1871,7 @@ CellScatter <- function(
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
+#' @param jitter Jitter for easier visualization of crowded points
 #'
 #' @return A ggplot object
 #'
@@ -1902,7 +1903,8 @@ FeatureScatter <- function(
   combine = TRUE,
   slot = 'data',
   plot.cor = TRUE,
-  raster = NULL
+  raster = NULL,
+  jitter = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
@@ -1943,7 +1945,8 @@ FeatureScatter <- function(
         legend.title = 'Identity',
         span = span,
         plot.cor = plot.cor,
-        raster = raster
+        raster = raster,
+        jitter = jitter
       )
     }
   )
@@ -2937,7 +2940,8 @@ ISpatialFeaturePlot <- function(
 #' themeing will not work when plotting multiple features/groupings
 #' @param pt.size.factor Scale the size of the spots.
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
-#' min and max
+#' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+#' alpha value for each plot.
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3174,6 +3178,11 @@ SpatialPlot <- function(
         cols = cols,
         alpha.by = if (is.null(x = group.by)) {
           features[j]
+        } else {
+          NULL
+        },
+        pt.alpha = if (!is.null(x = group.by)) {
+          alpha[j]
         } else {
           NULL
         },
@@ -6844,6 +6853,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
 # 100,000
+# @param jitter Jitter for easier visualization of crowded points
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6866,7 +6876,8 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   span = NULL,
   raster = NULL,
-  plot.cor = TRUE
+  plot.cor = TRUE,
+  jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
@@ -6958,25 +6969,31 @@ SingleCorPlot <- function(
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
       guides(fill = FALSE)
   }
+  position <- NULL
+  if (jitter) {
+    position <- 'jitter'
+  } else {
+    position <- 'identity'
+  }
   if (!is.null(x = col.by)) {
     if (raster) {
       plot <- plot + geom_scattermore(
         mapping = aes_string(color = 'colors'),
-        position = 'jitter',
+        position = position,
         pointsize = pt.size
       )
     } else {
       plot <- plot + geom_point(
         mapping = aes_string(color = 'colors'),
-        position = 'jitter',
+        position = position,
         size = pt.size
       )
     }
   } else {
     if (raster) {
-      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size)
+      plot <- plot + geom_scattermore(position = position, pointsize = pt.size)
     } else {
-      plot <- plot + geom_point(position = 'jitter', size = pt.size)
+      plot <- plot + geom_point(position = position, size = pt.size)
     }
   }
   if (!is.null(x = cols)) {
@@ -7484,6 +7501,7 @@ SingleRasterMap <- function(
 # By default, ggplot2 assigns colors
 # @param image.alpha Adjust the opacity of the background images. Set to 0 to
 # remove.
+# @param pt.alpha Adjust the opacity of the points if plotting a SpatialDimPlot
 # @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
@@ -7510,6 +7528,7 @@ SingleSpatialPlot <- function(
   image,
   cols = NULL,
   image.alpha = 1,
+  pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
   stroke = 0.25,
@@ -7550,14 +7569,27 @@ SingleSpatialPlot <- function(
   plot <- switch(
     EXPR = geom,
     'spatial' = {
-      plot + geom_spatial(
-        point.size.factor = pt.size.factor,
-        data = data,
-        image = image,
-        image.alpha = image.alpha,
-        crop = crop,
-        stroke = stroke
-      ) + coord_fixed() + theme(aspect.ratio = 1)
+      if (is.null(x = pt.alpha)) {
+        plot <- plot + geom_spatial(
+          point.size.factor = pt.size.factor,
+          data = data,
+          image = image,
+          image.alpha = image.alpha,
+          crop = crop,
+          stroke = stroke,
+        )
+      } else {
+        plot <- plot + geom_spatial(
+          point.size.factor = pt.size.factor,
+          data = data,
+          image = image,
+          image.alpha = image.alpha,
+          crop = crop,
+          stroke = stroke,
+          alpha = pt.alpha
+        )
+      }
+      plot + coord_fixed() + theme(aspect.ratio = 1)
     },
     'interactive' = {
       plot + geom_spatial_interactive(

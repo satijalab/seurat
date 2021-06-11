@@ -12,6 +12,7 @@ GeneSymbolThesarus(
   symbols,
   timeout = 10,
   several.ok = FALSE,
+  search.types = c("alias_symbol", "prev_symbol"),
   verbose = TRUE,
   ...
 )
@@ -27,20 +28,32 @@ UpdateSymbolList(
 \arguments{
 \item{symbols}{A vector of gene symbols}
 
-\item{timeout}{Time to wait before cancelling query in seconds}
+\item{timeout}{Time to wait before canceling query in seconds}
 
-\item{several.ok}{Allow several current gene sybmols for each provided symbol}
+\item{several.ok}{Allow several current gene symbols for each
+provided symbol}
+
+\item{search.types}{Type of query to perform:
+\describe{
+ \item{\dQuote{\code{alias_symbol}}}{Find alternate symbols for the genes
+ described by \code{symbols}}
+ \item{\dQuote{\code{prev_symbol}}}{Find new new symbols for the genes
+ described by \code{symbols}}
+}
+This parameter accepts multiple options and short-hand options
+(eg. \dQuote{\code{prev}} for \dQuote{\code{prev_symbol}})}
 
 \item{verbose}{Show a progress bar depicting search progress}
 
 \item{...}{Extra parameters passed to \code{\link[httr]{GET}}}
 }
 \value{
-For \code{GeneSymbolThesarus}, if \code{several.ok}, a named list
-where each entry is the current symbol found for each symbol provided and the
-names are the provided symbols. Otherwise, a named vector with the same information.
+\code{GeneSymbolThesarus}:, if \code{several.ok}, a named list
+where each entry is the current symbol found for each symbol provided and
+the names are the provided symbols. Otherwise, a named vector with the
+same information.
 
-For \code{UpdateSymbolList}, \code{symbols} with updated symbols from
+\code{UpdateSymbolList}: \code{symbols} with updated symbols from
 HGNC's gene names database
 }
 \description{
