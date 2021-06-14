@@ -117,7 +117,7 @@ pbmc.hashtag <- NormalizeData(pbmc.hashtag, assay = 'HTO', normalization.method 
 
 Here we use the Seurat function `HTODemux()` to assign single cells back to their sample origins.
 
-```{r hashtag_demux}
+```{r hashtag_demux, results = FALSE}
 # If you have a very large dataset we suggest using k_function = "clara". This is a k-medoid clustering function for large applications
 # You can also play with additional parameters (see documentation for HTODemux()) to adjust the threshold for classification
 # Here we are using the default settings
@@ -238,7 +238,7 @@ hto12 <- NormalizeData(hto12, assay = "HTO", normalization.method = "CLR")
 
 ## Demultiplex data
 
-```{r demux}
+```{r demux, results = FALSE}
 hto12 <- HTODemux(hto12, assay = "HTO", positive.quantile = 0.99)
 ```
 
