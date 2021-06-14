@@ -1,3 +1,7 @@
+## Unreleased
+## Added
+- Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
+
 ## Seurat 4.0.3 (2020-06-10)
 ## Added
 - Add `jitter` parameter to `FeatureScatter()` 
