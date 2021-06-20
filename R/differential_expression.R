@@ -1982,7 +1982,7 @@ WilcoxDETest <- function(
   verbose = TRUE,
   ...
 ) {
-  data.use <- as.matrix(data.use[, c(cells.1, cells.2), drop = FALSE])
+  data.use <- as.matrix(x = data.use[, c(cells.1, cells.2), drop = FALSE])
   j <- seq_len(length.out = length(x = cells.1))
   my.sapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
