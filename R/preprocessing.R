@@ -2259,7 +2259,9 @@ FindSpatiallyVariableFeatures.Assay <- function(
       }
     }
   }
-  data <- data[-c(rv.remove), , drop = FALSE]
+  if (length(x = rv.remove) > 0) {
+    data <- data[-c(rv.remove), , drop = FALSE]
+  }
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
       object = data,
