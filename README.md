@@ -28,7 +28,7 @@ For a version history/changelog, please see the [NEWS file](https://github.com/s
 > library(SeuratData)
 > library(future)
 
-# [https://satijalab.org/seurat/articles/de_vignette.html](https://satijalab.org/seurat/articles/de_vignette.html)
+# https://satijalab.org/seurat/articles/de_vignette.html
 > pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
 
 > plan(multiprocess(workers = 1), .cleanup=TRUE)
