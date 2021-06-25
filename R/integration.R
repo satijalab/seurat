@@ -189,6 +189,13 @@ FindIntegrationAnchors <- function(
   } else {
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
+  # check tool
+ object.list <- lapply(X = object.list, 
+                        FUN = function (obj) {
+                          obj@tools$Integration <- NULL
+                          return(obj)
+                        }
+                       )
   object.list <- CheckDuplicateCellNames(object.list = object.list)
   slot <- "data"
   if (reduction == "lsi") {
@@ -1415,6 +1422,7 @@ IntegrateData <- function(
       reference.model <- model.list[[which(reference.model)]]
     }
   }
+
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
       reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
