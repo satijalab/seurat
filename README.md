@@ -65,6 +65,8 @@ For a version history/changelog, please see the [NEWS file](https://github.com/s
 > library(future)
 > pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
 
+load(file="pbmc3k_all_org.RData")
+
 > plan(multiprocess(workers = 1), .cleanup=TRUE)
 > system.time(a1 <- FindAllMarkers(pbmc))
    user  system elapsed
