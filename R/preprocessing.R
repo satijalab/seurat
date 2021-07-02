@@ -2054,7 +2054,7 @@ FindVariableFeatures.Assay <- function(
     },
     'dispersion' = head(x = rownames(x = hvf.info), n = nfeatures),
     'vst' = head(x = rownames(x = hvf.info), n = nfeatures),
-    stop("Unkown selection method: ", selection.method)
+    stop("Unknown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
   vf.name <- ifelse(
@@ -2434,7 +2434,7 @@ NormalizeData.default <- function(
         scale.factor = scale.factor,
         verbose = verbose
       ),
-      stop("Unkown normalization method: ", normalization.method)
+      stop("Unknown normalization method: ", normalization.method)
     )
   }
   return(normalized.data)
