@@ -190,12 +190,12 @@ FindIntegrationAnchors <- function(
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
   # check tool
- object.list <- lapply(X = object.list, 
-                        FUN = function (obj) {
-                          obj@tools$Integration <- NULL
-                          return(obj)
-                        }
-                       )
+ object.list <- lapply(
+   X = object.list,
+   FUN = function (obj) {
+      slot(object = obj, name = "tools")$Integration <- NULL
+      return(obj)
+  })
   object.list <- CheckDuplicateCellNames(object.list = object.list)
   slot <- "data"
   if (reduction == "lsi") {
