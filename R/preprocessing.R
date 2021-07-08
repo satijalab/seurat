@@ -2233,8 +2233,35 @@ FindSpatiallyVariableFeatures.Assay <- function(
     features <- features[! features %in% features.computed]
   }
   data <- GetAssayData(object = object, slot = slot)
-  data <- as.matrix(x = data[features, ])
-  data <- data[RowVar(x = data) > 0, ]
+  missing.features <- which(x = ! features %in% rownames(x = data))
+  if (length(x = missing.features) > 0) {
+    remaining.features <- length(x = features) - length(x = missing.features)
+    if (length(x = remaining.features) > 0) {
+      warning("Not all requested features are present in the requested slot (",
+              slot, "). Removing ", length(x = missing.features),
+              " missing features and continuing with ", remaining.features,
+              " remaining features.", immediate. = TRUE, call. = FALSE)
+      features <- features[features %in% rownames(x = data)]
+    } else {
+      stop("None of the requested features are present in the requested slot (",
+           slot, ").", call. = FALSE)
+    }
+  }
+  image.cells <- rownames(x = spatial.location)
+  data <- as.matrix(x = data[features, image.cells, drop = FALSE])
+  rv <- RowVar(x = data)
+  rv.small <- which(x = rv < 1e-16)
+  rv.remove <- c()
+  if (length(x = rv.small) > 0) {
+    for (i in rv.small) {
+      if (var(x = data[i, ]) == 0) {
+        rv.remove <- c(rv.remove, i)
+      }
+    }
+  }
+  if (length(x = rv.remove) > 0) {
+    data <- data[-c(rv.remove), , drop = FALSE]
+  }
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
       object = data,
@@ -3018,6 +3045,9 @@ ClassifyCells <- function(data, q) {
 #
 #
 ComputeRMetric <- function(mv, r.metric = 5) {
+  if (!inherits(x = mv, what = "list")) {
+    mv <- list(mv)
+  }
   r.metric.results <- unlist(x = lapply(
     X = mv,
     FUN = function(x) {
