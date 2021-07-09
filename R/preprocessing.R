@@ -470,6 +470,7 @@ GetResidual <- function(
 #' tissue
 #' @param to.upper Converts all feature names to upper case. Can be useful when
 #' analyses require comparisons between human and mouse gene names for example.
+#' @param image An object of class VisiumV1. Typically, an output from \code{\link{Read10X_Image}}
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -495,6 +496,7 @@ Load10X_Spatial <- function(
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 ) {
   if (length(x = data.dir) > 1) {
@@ -506,10 +508,15 @@ Load10X_Spatial <- function(
     rownames(x = data) <- toupper(x = rownames(x = data))
   }
   object <- CreateSeuratObject(counts = data, assay = assay)
-  image <- Read10X_Image(
-    image.dir = file.path(data.dir, 'spatial'),
-    filter.matrix = filter.matrix
-  )
+  if (is.null(x = image)) {
+    image <- Read10X_Image(
+	    image.dir = file.path(data.dir, 'spatial'),
+	    filter.matrix = filter.matrix
+  	)
+  } else {
+    if (!inherits(x = image, what = "VisiumV1"))
+      stop("Image must be an object of class 'VisiumV1'.")
+  }
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
@@ -983,7 +990,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' Load a 10X Genomics Visium Image
 #'
 #' @param image.dir Path to directory with 10X Genomics visium image data;
-#' should include files \code{tissue_lowres_iamge.png},
+#' should include files \code{tissue_lowres_image.png},
+#' @param image.name The file name of the image. Defaults to tissue_lowres_image.png.
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue.
@@ -999,8 +1007,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
-  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
+Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", filter.matrix = TRUE, ...) {
+  image <- readPNG(source = file.path(image.dir, image.name))
   scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
   tissue.positions <- read.csv(
     file = file.path(image.dir, 'tissue_positions_list.csv'),
