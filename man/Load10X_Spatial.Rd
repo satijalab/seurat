@@ -11,6 +11,7 @@ Load10X_Spatial(
   slice = "slice1",
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 )
 }
@@ -29,6 +30,8 @@ tissue}
 
 \item{to.upper}{Converts all feature names to upper case. Can be useful when
 analyses require comparisons between human and mouse gene names for example.}
+
+\item{image}{An object of class VisiumV1. Typically, an output from \code{\link{Read10X_Image}}}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }

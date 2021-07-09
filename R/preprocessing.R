@@ -508,18 +508,16 @@ Load10X_Spatial <- function(
     rownames(x = data) <- toupper(x = rownames(x = data))
   }
   object <- CreateSeuratObject(counts = data, assay = assay)
-  
-  if(is.null(image)) {
+  if (is.null(x = image)) {
     image <- Read10X_Image(
 	    image.dir = file.path(data.dir, 'spatial'),
 	    filter.matrix = filter.matrix
   	)
-  }else{
-  if(class(image)!="VisiumV1") stop("Image must be an object of class 'VisiumV1'.")
+  } else {
+    if (!inherits(x = image, what = "VisiumV1"))
+      stop("Image must be an object of class 'VisiumV1'.")
   }
-  
   image <- image[Cells(x = object)]
-   
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
   return(object)
