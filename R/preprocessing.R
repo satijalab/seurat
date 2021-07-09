@@ -1101,7 +1101,6 @@ ReadMtx <- function(
     uri <- build_url(url = parse_url(url = uri))
     if (grepl(pattern = '^:///', x = uri)) {
       uri <- gsub(pattern = '^://', replacement = '', x = uri)
-      print(uri)
       if (!file.exists(uri)) {
         stop(err, call. = FALSE)
       }
