@@ -1274,22 +1274,23 @@ RunUMAP.default <- function(
           numeric_version(x = "0.5.0")) {
         stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
       }
-      umap.args <- list(n_neighbors = as.integer(x = n.neighbors),
-                        n_components = as.integer(x = n.components),
-                        metric = metric,
-                        n_epochs = n.epochs,
-                        learning_rate = learning.rate,
-                        min_dist = min.dist,
-                        spread = spread,
-                        set_op_mix_ratio = set.op.mix.ratio,
-                        local_connectivity = local.connectivity,
-                        repulsion_strength = repulsion.strength,
-                        negative_sample_rate = negative.sample.rate,
-                        a = a,
-                        b = b,
-                        metric_kwds = metric.kwds,
-                        angular_rp_forest = angular.rp.forest,
-                        verbose = verbose
+      umap.args <- list(
+        n_neighbors = as.integer(x = n.neighbors),
+        n_components = as.integer(x = n.components),
+        metric = metric,
+        n_epochs = n.epochs,
+        learning_rate = learning.rate,
+        min_dist = min.dist,
+        spread = spread,
+        set_op_mix_ratio = set.op.mix.ratio,
+        local_connectivity = local.connectivity,
+        repulsion_strength = repulsion.strength,
+        negative_sample_rate = negative.sample.rate,
+        a = a,
+        b = b,
+        metric_kwds = metric.kwds,
+        angular_rp_forest = angular.rp.forest,
+        verbose = verbose
       )
       if (numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) >=
           numeric_version(x = "0.5.0")) {

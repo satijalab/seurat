@@ -34,6 +34,10 @@ RunUMAP(object, ...)
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
+  densmap = FALSE,
+  dens.lambda = 2,
+  dens.frac = 0.3,
+  dens.var.shift = 0.1,
   verbose = TRUE,
   ...
 )
@@ -55,6 +59,8 @@ RunUMAP(object, ...)
   uwot.sgd = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
+  densmap = FALSE,
+  densmap.kwds = NULL,
   verbose = TRUE,
   reduction.key = "UMAP_",
   ...
@@ -91,6 +97,10 @@ RunUMAP(object, ...)
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
+  densmap = FALSE,
+  dens.lambda = 2,
+  dens.frac = 0.3,
+  dens.var.shift = 0.1,
   verbose = TRUE,
   reduction.name = "umap",
   reduction.key = "UMAP_",
@@ -183,7 +193,32 @@ approximate nearest neighbor search. This can be faster, but is mostly on useful
 use an angular style distance such as cosine, correlation etc. In the case of those metrics
 angular forests will be chosen automatically.}
 
+\item{densmap}{Whether to use the density-augmented objective of densMAP.
+Turning on this option generates an embedding where the local densities
+are encouraged to be correlated with those in the original space.
+Parameters below with the prefix ‘dens’ further control the behavior
+of this extension. Default is FALSE. Only compatible with 'umap-learn' method
+and version of umap-learn >= 0.5.0}
+
+\item{dens.lambda}{Specific parameter which controls the regularization weight
+of the density correlation term in densMAP. Higher values prioritize density
+preservation over the UMAP objective, and vice versa for values closer to zero.
+Setting this parameter to zero is equivalent to running the original UMAP algorithm.
+Default value is 2.}
+
+\item{dens.frac}{Specific parameter which controls the fraction of epochs
+(between 0 and 1) where the density-augmented objective is used in densMAP.
+The first (1 - dens_frac) fraction of epochs optimize the original UMAP
+objective before introducing the density correlation term. Default is 0.3.}
+
+\item{dens.var.shift}{Specific parameter which specifies a small constant
+added to the variance of local radii in the embedding when calculating
+the density correlation objective to prevent numerical instability from
+dividing by a small number. Default is 0.1.}
+
 \item{verbose}{Controls verbosity}
+
+\item{densmap.kwds}{A dictionary of arguments to pass on to the densMAP optimization.}
 
 \item{dims}{Which dimensions to use as input features, used only if
 \code{features} is NULL}
