@@ -1096,7 +1096,7 @@ ReadMtx <- function(
     "feature list" = features
   )
   for (i in seq_along(along.with = all.files)) {
-    uri <- normalizePath(all.files[[i]])
+    uri <- normalizePath(all.files[[i]], mustWork = FALSE)
     err <- paste("Cannot find", names(x = all.files)[i], "at", uri)
     uri <- build_url(url = parse_url(url = uri))
     if (grepl(pattern = '^:///', x = uri)) {
