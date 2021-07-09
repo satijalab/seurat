@@ -171,3 +171,17 @@ SpecificDimPlot <- function(object, ...) {
     }
   )
 }
+
+#' Read output from STARsolo
+#' @param ... Extra parameters passed to \code{ReadMtx}
+#'
+#' @rdname ReadSTARsolo
+#' @concept convenience
+#' @export
+#'
+ReadSTARsolo <- function(data.dir, ... ){
+  mtx <- file.path(data.dir, "matrix.mtx")
+  cells <- file.path(data.dir, "barcodes.tsv")
+  features <- file.path(data.dir, "features.tsv")
+  ReadMtx(mtx = mtx, cells = cells, features = features, ...)
+}
