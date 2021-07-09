@@ -1,3 +1,11 @@
+## Unreleased
+## Added
+- Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
+
+## Changes
+- Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
+- Bug fix for SCT-based integration in selecting proper reference model ([4355](https://github.com/satijalab/seurat/issues/4355))
+
 ## Seurat 4.0.3 (2020-06-10)
 ## Added
 - Add `jitter` parameter to `FeatureScatter()` 

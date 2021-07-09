@@ -25,7 +25,10 @@ cluster.ape <- paste(
 #' @param assay Assay to use for the analysis.
 #' @param features Genes to use for the analysis. Default is the set of
 #' variable genes (\code{VariableFeatures(object = object)})
-#' @param dims If set, tree is calculated in PCA space; overrides \code{features}
+#' @param dims If set, tree is calculated in dimension reduction space;
+#' overrides \code{features}
+#' @param reduction Name of dimension reduction to use. Only used if \code{dims}
+#' is not NULL.
 #' @param graph If graph is passed, build tree based on graph connectivity between
 #' clusters; overrides \code{dims} and \code{features}
 #' @param reorder Re-order identity classes (factor ordering), according to
@@ -56,6 +59,7 @@ BuildClusterTree <- function(
   assay = NULL,
   features = NULL,
   dims = NULL,
+  reduction = "pca",
   graph = NULL,
   slot = 'data',
   reorder = FALSE,
@@ -110,7 +114,7 @@ BuildClusterTree <- function(
     data.dist <- dist(x = data.dist)
   } else if (!is.null(x = dims)) {
     my.lapply <- ifelse(test = verbose, yes = pblapply, no = lapply)
-    embeddings <- Embeddings(object = object, reduction = 'pca')[, dims]
+    embeddings <- Embeddings(object = object, reduction = reduction)[, dims]
     data.dims <- my.lapply(
       X = levels(x = object),
       FUN = function(x) {
@@ -157,6 +161,7 @@ BuildClusterTree <- function(
       assay = assay,
       features = features,
       dims = dims,
+      reduction = reduction,
       graph = graph,
       slot = slot,
       reorder = FALSE,
