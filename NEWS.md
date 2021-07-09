@@ -1,6 +1,7 @@
 ## Unreleased
 ## Added
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
+- Add DensMAP option to `RunUMAP()` ([4630](https://github.com/satijalab/seurat/pull/4630))
 
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
