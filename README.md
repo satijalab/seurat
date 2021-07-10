@@ -21,7 +21,23 @@ Improvements and new features will be added on a regular basis, please post on t
 
 For a version history/changelog, please see the [NEWS file](https://github.com/satijalab/seurat/blob/master/NEWS.md).
 
-## Original version
+---
+## Benchmark results using "pbmc3k.final" dataset
+R 4.1.0 / Ubuntu 20.04 on WSL2 / Ryzen 9 4900HS 8-core CPU / 16GB memory
+
+
+**Comparison of elapsed time in second.**
+|# workers|Original version without limma|Original version with limma|Modified version without limma|Modified version with limma|
+|--:|------:|-----:|-----:|-----:|
+|1  |149.326|67.102|38.926|35.586|
+|2  |81.133|39.678|25.752|25.205|
+|4  |49.811|24.716|17.001|16.203|
+|8  |37.819|18.974|13.559|12.891|
+
+
+---
+## Benchmark details
+### Original version with limma
 ```
 > install.packages("Seurat")
 > library(Seurat)
@@ -59,7 +75,7 @@ For a version history/changelog, please see the [NEWS file](https://github.com/s
 [1] TRUE
 ```
 
-## Modified version
+### Modified version  with limma
 ```
 > devtools::install_github("mogushi/Seurat")
 > library(Seurat)
