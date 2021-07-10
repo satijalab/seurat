@@ -2035,16 +2035,13 @@ WilcoxDETest <- function(
       )
       options(Seurat.limma.wilcox.msg = FALSE)
     }
-    group.info <- data.frame(row.names = c(cells.1, cells.2))
-    group.info[cells.1, "group"] <- "Group1"
-    group.info[cells.2, "group"] <- "Group2"
-    group.info[, "group"] <- factor(x = group.info[, "group"])
-    data.use <- data.use[, rownames(x = group.info), drop = FALSE]
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),
-      FUN = function(x) {
-        return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
-      }
+      FUN = function(x, cells.1, cells.2) {
+        return(wilcox.test(x = data.use[x, cells.1], y = data.use[x, cells.2], ...)$p.value)
+      },
+      cells.1 = cells.1,
+      cells.2 = cells.2
     )
   }
   return(data.frame(p_val, row.names = rownames(x = data.use)))
