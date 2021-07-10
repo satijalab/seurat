@@ -1987,25 +1987,7 @@ WilcoxDETest <- function(
   my.sapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pbsapply,
-    no = function(X, FUN) {
-      gc(reset = TRUE)
-
-      # heuristic parameter for automatic estimation of batch size;
-      # for example, 100 genes for each iteration with 10,000-cell data
-      batch_size <- 1e6 / ncol(data.use)
-      index_list <- split(X, ceiling(X / (batch_size * nbrOfWorkers())))
-
-      if (length(index_list) == 1) {
-        p_val <- future_sapply(X = index_list[[1]], FUN = FUN)
-      } else {
-        p_val <- sapply(index_list,
-          function(z) {
-            future_sapply(X = z, FUN = FUN)
-          }
-        )
-      }
-      unlist(p_val)
-    }
+    no = future_sapply
   )
   overflow.check <- ifelse(
     test = is.na(x = suppressWarnings(length(x = data.use[1, ]) * length(x = data.use[1, ]))),
