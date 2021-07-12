@@ -9,8 +9,9 @@
 - Bug fix for SCT-based integration in selecting proper reference model ([#4355](https://github.com/satijalab/seurat/issues/4355))
 - Bug fix for reading from absolute paths in ReadMtx ([#4723](https://github.com/satijalab/seurat/issues/4723)) 
 - Bug fix in SingleCellExperiment conversion ([#4633](https://github.com/satijalab/seurat/issues/4633))
+- Bug fix in `FindVariableFeatures()` when using `selection.method = "mvp"` and `binning.method = "equal_frequency"` ([#4712](https://github.com/satijalab/seurat/issues/4712))
 
-## Seurat 4.0.3 (2020-06-10)
+## Seurat 4.0.3 (2020-06-10)`
 ## Added
 - Add `jitter` parameter to `FeatureScatter()` 
 
