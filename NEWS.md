@@ -3,6 +3,7 @@
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
 - Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
 - Add `image` parameter to `Load10X_Spatial()` and `image.name` parameter to `Read10X_Image()` ([#4641](https://github.com/satijalab/seurat/pull/4641))
+- Add `ReadSTARsolo()` function to read output from STARsolo
 
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
