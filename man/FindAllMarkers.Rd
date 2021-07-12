@@ -27,6 +27,7 @@ FindAllMarkers(
   fc.name = NULL,
   base = 2,
   return.thresh = 0.01,
+  densify = FALSE,
   ...
 )
 }
@@ -126,6 +127,8 @@ slot "avg_diff".}
 \item{base}{The base with respect to which logarithms are computed.}
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
+
+\item{densify}{Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE}
 
 \item{...}{Arguments passed to other methods and to specific DE methods}
 }
