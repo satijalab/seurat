@@ -1181,10 +1181,17 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   }
   experiments <- list()
   for (assayn in assay) {
-  assays = list(
-    counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"),
-    scaledata = GetAssayData(object = x, assay = assayn, slot = "scale.data"))
+    assays <- list(
+      counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
+      logcounts = GetAssayData(object = x, assay = assayn, slot = "data")
+    )
+    scaledata_a <- GetAssayData(object = x, assay = assayn, slot = "scale.data")
+    if (isTRUE(x = all.equal(
+      target = dim(x = assays[["counts"]]),
+      current = dim(x = scaledata_a))
+    )) {
+      assays[["scaledata"]] <- scaledata_a
+    }
     assays <- assays[sapply(X = assays, FUN = nrow) != 0]
     sume <- SummarizedExperiment::SummarizedExperiment(assays = assays)
     experiments[[assayn]] <- sume
