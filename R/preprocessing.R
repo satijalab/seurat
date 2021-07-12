@@ -1965,7 +1965,6 @@ FindVariableFeatures.default <- function(
       EXPR = binning.method,
       'equal_width' = num.bin,
       'equal_frequency' = c(
-        -1,
         quantile(
           x = feature.mean[feature.mean > 0],
           probs = seq.int(from = 0, to = 1, length.out = num.bin)
@@ -1973,7 +1972,8 @@ FindVariableFeatures.default <- function(
       ),
       stop("Unknown binning method: ", binning.method)
     )
-    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
+    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks,
+                      include.lowest = TRUE)
     names(x = data.x.bin) <- names(x = feature.mean)
     mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
     sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
