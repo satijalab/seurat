@@ -7,6 +7,8 @@
 ReadSTARsolo(data.dir, ...)
 }
 \arguments{
+\item{data.dir}{Directory containing the data files}
+
 \item{...}{Extra parameters passed to \code{ReadMtx}}
 }
 \description{
