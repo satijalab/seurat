@@ -892,12 +892,13 @@ FoldChange.default <- function(
       length(x = cells.2),
     digits = 3
   )
+  pct.diff <- pct.1 - pct.2
   # Calculate fold change
   data.1 <- mean.fxn(object[features, cells.1, drop = FALSE])
   data.2 <- mean.fxn(object[features, cells.2, drop = FALSE])
   fc <- (data.1 - data.2)
-  fc.results <- as.data.frame(x = cbind(fc, pct.1, pct.2))
-  colnames(fc.results) <- c(fc.name, "pct.1", "pct.2")
+  fc.results <- as.data.frame(x = cbind(fc, pct.1, pct.2, pct.diff))
+  colnames(fc.results) <- c(fc.name, "pct.1", "pct.2", "pct.diff")
   return(fc.results)
 }
 
