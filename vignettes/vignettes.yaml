@@ -224,3 +224,9 @@
       citation: Hippen et. al., bioRxiv 2021
       source: https://github.com/greenelab/miQC
 
+    - name: tricycle
+      title: Running estimate_cycle_position from tricycle on Seurat Objects
+      link: http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/tricycle.html
+      reference: https://doi.org/10.1101/2021.04.06.438463
+      citation: Zheng et. al., bioRxiv 2021
+      source: https://www.bioconductor.org/packages/release/bioc/html/tricycle.html
