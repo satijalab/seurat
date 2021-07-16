@@ -216,3 +216,17 @@
       reference: https://doi.org/10.1186/s12859-020-3538-2
       citation: Ekiz et. al., BMC Bioinformatics 2020
       source: https://github.com/atakanekiz/CIPR-Package
+
+    - name: miQC
+      title: Running miQC on Seurat objects
+      link: http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/miQC.html
+      reference: https://www.biorxiv.org/content/10.1101/2021.03.03.433798v1
+      citation: Hippen et. al., bioRxiv 2021
+      source: https://github.com/greenelab/miQC
+
+    - name: tricycle
+      title: Running estimate_cycle_position from tricycle on Seurat Objects
+      link: http://htmlpreview.github.io/?https://github.com/satijalab/seurat-wrappers/blob/master/docs/tricycle.html
+      reference: https://doi.org/10.1101/2021.04.06.438463
+      citation: Zheng et. al., bioRxiv 2021
+      source: https://www.bioconductor.org/packages/release/bioc/html/tricycle.html

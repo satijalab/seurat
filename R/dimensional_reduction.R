@@ -635,6 +635,9 @@ RunCCA.Seurat <- function(
     merge.data = TRUE,
     ...
   )
+  rownames(x = cca.results$ccv) <- Cells(x = combined.object)
+  colnames(x = data1) <- Cells(x = combined.object)[1:ncol(x = data1)]
+  colnames(x = data2) <- Cells(x = combined.object)[(ncol(x = data1) + 1):length(x = Cells(x = combined.object))]
   combined.object[['cca']] <- CreateDimReducObject(
     embeddings = cca.results$ccv[colnames(combined.object), ],
     assay = assay1,
