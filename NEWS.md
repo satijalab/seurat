@@ -6,6 +6,7 @@
 - Add `ReadSTARsolo()` function to read output from STARsolo
 - Add `densify` parameter to `FindMarkers()`
 - Add `ReadParsebio()` function to read output from Parse Biosciences
+- Add the `image.alpha` parameter to `SpatialDimPlot()` and `SpatialFeaturePlot()`
 
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
