@@ -54,6 +54,7 @@ SpatialDimPlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  image.alpha = 1,
   stroke = 0.25,
   label.box = TRUE,
   interactive = FALSE,
@@ -72,6 +73,7 @@ SpatialFeaturePlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  image.alpha = 1,
   stroke = 0.25,
   interactive = FALSE,
   information = NULL
