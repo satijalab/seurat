@@ -1179,6 +1179,9 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   if (!all(assay %in% Assays(object = x))) {
     stop("One or more of the assays you are trying to convert is not in the Seurat object")
   }
+  if (DefaultAssay(object = x) %in% assay) {
+    assay <- union(DefaultAssay(object = x), assay)
+  }
   experiments <- list()
   for (assayn in assay) {
     assays <- list(
