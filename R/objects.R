@@ -1179,6 +1179,9 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   if (!all(assay %in% Assays(object = x))) {
     stop("One or more of the assays you are trying to convert is not in the Seurat object")
   }
+  if (DefaultAssay(object = x) %in% assay) {
+    assay <- union(DefaultAssay(object = x), assay)
+  }
   experiments <- list()
   for (assayn in assay) {
     assays <- list(
@@ -1230,7 +1233,8 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   }
   for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
     assay.used <- DefaultAssay(object = x[[dr]])
-    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name) {
+    swap.exp <- assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name
+    if (swap.exp) {
       sce <- SingleCellExperiment::swapAltExp(
         x = sce,
         name = assay.used,
@@ -1238,7 +1242,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
     SingleCellExperiment::reducedDim(x = sce, type = toupper(x = dr)) <- Embeddings(object = x[[dr]])
-    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name) {
+    if (swap.exp) {
       sce <- SingleCellExperiment::swapAltExp(
         x = sce,
         name = orig.exp.name,
