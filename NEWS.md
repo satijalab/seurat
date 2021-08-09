@@ -17,6 +17,7 @@
 - Bug fix in `DoHeatmap()` to remove random characters from plot legend([#4660](https://github.com/satijalab/seurat/issues/4660))
 - Fix cell renaming in `RunCCA()`
 - Fix issue in SingleCellExperiment conversion where the mainExp would not be set properly
+- Fix for default dispersion info displayed in `VariableFeaturePlot()`
 
 ## Seurat 4.0.3 (2020-06-10)`
 ## Added

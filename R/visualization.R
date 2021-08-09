@@ -2003,11 +2003,15 @@ VariableFeaturePlot <- function(
     status = TRUE
   )
   var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
-  hvf.info <- hvf.info[, c(1, 3)]
+  if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
+    hvf.info <- hvf.info[, c(1, 2)]
+  } else {
+    hvf.info <- hvf.info[, c(1, 3)]
+  }
   axis.labels <- switch(
     EXPR = colnames(x = hvf.info)[2],
     'variance.standardized' = c('Average Expression', 'Standardized Variance'),
-    'dispersion.scaled' = c('Average Expression', 'Dispersion'),
+    'dispersion' = c('Average Expression', 'Dispersion'),
     'residual_variance' = c('Geometric Mean of Expression', 'Residual Variance')
   )
   log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
