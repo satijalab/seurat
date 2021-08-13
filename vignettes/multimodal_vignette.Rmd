@@ -159,8 +159,8 @@ We can leverage our paired CITE-seq measurements to help annotate clusters deriv
 VlnPlot(cbmc, "adt_CD19")
 
 # we can also identify alternative protein and RNA markers for this cluster through differential expression
-adt_markers <- FindMarkers(cbmc,ident.1 = 5, assay = 'ADT')
-rna_markers <- FindMarkers(cbmc,ident.1 = 5, assay = 'RNA')
+adt_markers <- FindMarkers(cbmc,ident.1 = 6, assay = 'ADT')
+rna_markers <- FindMarkers(cbmc,ident.1 = 6, assay = 'RNA')
 
 head(adt_markers)
 head(rna_markers)
