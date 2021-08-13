@@ -43,14 +43,14 @@ will use the features used in anchor finding.}
 \item{weight.reduction}{Dimension reduction to use when calculating anchor
 weights. This can be one of:
 \itemize{
-   \item{A string, specifying the name of a dimension reduction present in
-   all objects to be integrated}
-   \item{A vector of strings, specifying the name of a dimension reduction to
-   use for each object to be integrated}
-   \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
-   use for each object in the integration}
-   \item{NULL, in which case a new PCA will be calculated and used to
-   calculate anchor weights}
+\item{A string, specifying the name of a dimension reduction present in
+all objects to be integrated}
+\item{A vector of strings, specifying the name of a dimension reduction to
+use for each object to be integrated}
+\item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+use for each object in the integration}
+\item{NULL, in which case a new PCA will be calculated and used to
+calculate anchor weights}
 }
 Note that, if specified, the requested dimension reduction will only be used
 for calculating anchor weights in the first merge between reference and
@@ -59,8 +59,20 @@ query, and weights will need to be calculated for all cells in the object.}
 
 \item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}
 
-\item{sample.tree}{Specify the order of integration. If NULL, will compute
-automatically.}
+\item{sample.tree}{Specify the order of integration. Order of integration
+should be encoded in a matrix, where each row represents one of the pairwise
+integration steps. Negative numbers specify a dataset, positive numbers
+specify the integration results from a given row (the format of the merge
+matrix included in the \code{\link{hclust}} function output). For example:
+\code{matrix(c(-2, 1, -3, -1), ncol = 2)} gives:\preformatted{            [,1]  [,2]
+       [1,]   -2   -3
+       [2,]    1   -1
+}
+
+Which would cause dataset 2 and 3 to be integrated first, then the resulting
+object integrated with dataset 1.
+
+If NULL, the sample tree will be computed automatically.}
 
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
@@ -89,30 +101,30 @@ description of the methodology, please see Stuart, Butler, et al Cell 2019.
 For pairwise integration:
 
 \itemize{
-  \item{Construct a weights matrix that defines the association between each
-  query cell and each anchor. These weights are computed as 1 - the distance
-  between the query cell and the anchor divided by the distance of the query
-  cell to the \code{k.weight}th anchor multiplied by the anchor score
-  computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian
-  kernel width a bandwidth defined by \code{sd.weight} and normalize across
-  all \code{k.weight} anchors.}
-  \item{Compute the anchor integration matrix as the difference between the
-  two expression matrices for every pair of anchor cells}
-  \item{Compute the transformation matrix as the product of the integration
-  matrix and the weights matrix.}
-  \item{Subtract the transformation matrix from the original expression
-  matrix.}
+\item{Construct a weights matrix that defines the association between each
+query cell and each anchor. These weights are computed as 1 - the distance
+between the query cell and the anchor divided by the distance of the query
+cell to the \code{k.weight}th anchor multiplied by the anchor score
+computed in \code{\link{FindIntegrationAnchors}}. We then apply a Gaussian
+kernel width a bandwidth defined by \code{sd.weight} and normalize across
+all \code{k.weight} anchors.}
+\item{Compute the anchor integration matrix as the difference between the
+two expression matrices for every pair of anchor cells}
+\item{Compute the transformation matrix as the product of the integration
+matrix and the weights matrix.}
+\item{Subtract the transformation matrix from the original expression
+matrix.}
 }
 
 For multiple dataset integration, we perform iterative pairwise integration.
 To determine the order of integration (if not specified via
 \code{sample.tree}), we
 \itemize{
-  \item{Define a distance between datasets as the total number of cells in
-  the smaller dataset divided by the total number of anchors between the two
-  datasets.}
-  \item{Compute all pairwise distances between datasets}
-  \item{Cluster this distance matrix to determine a guide tree}
+\item{Define a distance between datasets as the total number of cells in
+the smaller dataset divided by the total number of anchors between the two
+datasets.}
+\item{Compute all pairwise distances between datasets}
+\item{Cluster this distance matrix to determine a guide tree}
 }
 }
 \examples{
