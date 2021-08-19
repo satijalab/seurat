@@ -1,4 +1,4 @@
-## Seurat 4.0.4 (2020-08-10)
+## Seurat 4.0.4 (2020-08-19)
 ## Added
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
 - Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
