@@ -1514,7 +1514,7 @@ RunUMAP.Graph <- function(
       numeric_version(x = "0.5.0")) {
     umap.args <- c(umap.args, list(
       densmap = densmap,
-      densmap_kwds = densmap_kwds,
+      densmap_kwds = densmap.kwds,
       output_dens = FALSE
     ))
   }
