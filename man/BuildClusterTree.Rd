@@ -9,6 +9,7 @@ BuildClusterTree(
   assay = NULL,
   features = NULL,
   dims = NULL,
+  reduction = "pca",
   graph = NULL,
   slot = "data",
   reorder = FALSE,
@@ -24,7 +25,11 @@ BuildClusterTree(
 \item{features}{Genes to use for the analysis. Default is the set of
 variable genes (\code{VariableFeatures(object = object)})}
 
-\item{dims}{If set, tree is calculated in PCA space; overrides \code{features}}
+\item{dims}{If set, tree is calculated in dimension reduction space;
+overrides \code{features}}
+
+\item{reduction}{Name of dimension reduction to use. Only used if \code{dims}
+is not NULL.}
 
 \item{graph}{If graph is passed, build tree based on graph connectivity between
 clusters; overrides \code{dims} and \code{features}}

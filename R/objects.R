@@ -1179,12 +1179,22 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   if (!all(assay %in% Assays(object = x))) {
     stop("One or more of the assays you are trying to convert is not in the Seurat object")
   }
+  if (DefaultAssay(object = x) %in% assay) {
+    assay <- union(DefaultAssay(object = x), assay)
+  }
   experiments <- list()
   for (assayn in assay) {
-  assays = list(
-    counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
-    logcounts = GetAssayData(object = x, assay = assayn, slot = "data"),
-    scaledata = GetAssayData(object = x, assay = assayn, slot = "scale.data"))
+    assays <- list(
+      counts = GetAssayData(object = x, assay = assayn, slot = "counts"),
+      logcounts = GetAssayData(object = x, assay = assayn, slot = "data")
+    )
+    scaledata_a <- GetAssayData(object = x, assay = assayn, slot = "scale.data")
+    if (isTRUE(x = all.equal(
+      target = dim(x = assays[["counts"]]),
+      current = dim(x = scaledata_a))
+    )) {
+      assays[["scaledata"]] <- scaledata_a
+    }
     assays <- assays[sapply(X = assays, FUN = nrow) != 0]
     sume <- SummarizedExperiment::SummarizedExperiment(assays = assays)
     experiments[[assayn]] <- sume
@@ -1223,7 +1233,8 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   }
   for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
     assay.used <- DefaultAssay(object = x[[dr]])
-    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name) {
+    swap.exp <- assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name
+    if (swap.exp) {
       sce <- SingleCellExperiment::swapAltExp(
         x = sce,
         name = assay.used,
@@ -1231,7 +1242,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
       )
     }
     SingleCellExperiment::reducedDim(x = sce, type = toupper(x = dr)) <- Embeddings(object = x[[dr]])
-    if (assay.used %in% SingleCellExperiment::altExpNames(x = sce) & assay.used != orig.exp.name) {
+    if (swap.exp) {
       sce <- SingleCellExperiment::swapAltExp(
         x = sce,
         name = orig.exp.name,

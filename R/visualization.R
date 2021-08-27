@@ -204,7 +204,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -364,7 +364,7 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_manual(values = cols)
+        scale_color_discrete(name = "Identity", na.translate = FALSE)
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
@@ -2003,11 +2003,15 @@ VariableFeaturePlot <- function(
     status = TRUE
   )
   var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
-  hvf.info <- hvf.info[, c(1, 3)]
+  if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
+    hvf.info <- hvf.info[, c(1, 2)]
+  } else {
+    hvf.info <- hvf.info[, c(1, 3)]
+  }
   axis.labels <- switch(
     EXPR = colnames(x = hvf.info)[2],
     'variance.standardized' = c('Average Expression', 'Standardized Variance'),
-    'dispersion.scaled' = c('Average Expression', 'Dispersion'),
+    'dispersion' = c('Average Expression', 'Dispersion'),
     'residual_variance' = c('Geometric Mean of Expression', 'Residual Variance')
   )
   log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
