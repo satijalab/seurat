@@ -2311,6 +2311,7 @@ PrepDR <- function(
 #'
 #' @importFrom irlba irlba
 #'
+#' @concept dimensional_reduction
 #' @rdname RunSPCA
 #' @export
 RunSPCA.default <- function(
@@ -2352,6 +2353,7 @@ RunSPCA.default <- function(
 #' using the variable features for the Assay.
 #'
 #' @rdname RunSPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunSPCA Assay
 #'
@@ -2386,6 +2388,7 @@ RunSPCA.Assay <- function(
 
 #' @param reduction.name dimensional reduction name, spca by default
 #' @rdname RunSPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunSPCA Seurat
 #'

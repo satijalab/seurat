@@ -1,6 +1,7 @@
 ## Unreleased
 ## Changes
 - Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
+- Update concept tags for `RunSPCA()` ([#4978](https://github.com/satijalab/seurat/discussions/4987))
 
 ## Seurat 4.0.4 (2020-08-19)
 ## Added
