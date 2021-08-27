@@ -2311,6 +2311,7 @@ PrepDR <- function(
 #'
 #' @importFrom irlba irlba
 #'
+#' @concept dimensional_reduction
 #' @rdname RunSPCA
 #' @export
 RunSPCA.default <- function(
