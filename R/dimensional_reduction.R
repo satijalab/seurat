@@ -1309,14 +1309,6 @@ RunUMAP.default <- function(
       umap$fit_transform(as.matrix(x = object))
     },
     'uwot' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
       if (is.list(x = object)) {
         umap(
           X = NULL,
