@@ -7219,6 +7219,13 @@ SingleExIPlot <- function(
   log = FALSE,
   raster = NULL
 ) {
+  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+    message("Rasterizing points since number of points exceeds 100,000.",
+            "\nTo disable this behavior set `raster=FALSE`")
+  }
+  raster <- raster %||% (nrow(x = data) > 1e5)
+
+
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
