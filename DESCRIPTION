@@ -24,7 +24,7 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Remotes: mojaveazure/seurat-object@feat/standard
+Remotes: mojaveazure/seurat-object@feat/export
 Depends:
     R (>= 4.0.0),
     methods
