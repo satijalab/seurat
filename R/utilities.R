@@ -1,4 +1,5 @@
 #' @include generics.R
+#' @importFrom SeuratObject PackageCheck
 #'
 NULL
 
@@ -1081,6 +1082,25 @@ MinMax <- function(data, min, max) {
   return(data2)
 }
 
+#' Calculate the percentage of a vector above some threshold
+#'
+#' @param x Vector of values
+#' @param threshold Threshold to use when calculating percentage
+#'
+#' @return Returns the percentage of \code{x} values above the given threshold
+#'
+#' @export
+#'
+#' @export
+#'
+#' @examples
+#' set.seed(42)
+#' PercentAbove(sample(1:100, 10), 75)
+#'
+PercentAbove <- function(x, threshold) {
+  return(length(x = x[x > threshold]) / length(x = x))
+}
+
 #' Calculate the percentage of all counts that belong to a given set of features
 #'
 #' This function enables you to easily calculate the percentage of all the counts belonging to a
@@ -2158,31 +2178,6 @@ Online <- function(url, strict = FALSE, seconds = 5L) {
   return(comp(x = status_code(x = request), y = code))
 }
 
-# Check the existence of a package
-#
-# @param ... Package names
-# @param error If true, throw an error if the package doesn't exist
-#
-# @return Invisibly returns boolean denoting if the package is installed
-#
-PackageCheck <- function(..., error = TRUE) {
-  pkgs <- unlist(x = c(...), use.names = FALSE)
-  package.installed <- vapply(
-    X = pkgs,
-    FUN = requireNamespace,
-    FUN.VALUE = logical(length = 1L),
-    quietly = TRUE
-  )
-  if (error && any(!package.installed)) {
-    stop(
-      "Cannot find the following packages: ",
-      paste(pkgs[!package.installed], collapse = ', '),
-      ". Please install"
-    )
-  }
-  invisible(x = package.installed)
-}
-
 # Parenting parameters from one environment to the next
 #
 # This function allows one to modify a parameter in a parent environment
@@ -2229,17 +2224,6 @@ Parenting <- function(parent.find = 'Seurat', ...) {
       }
     }
   }
-}
-
-# Calculate the percentage of a vector above some threshold
-#
-# @param x Vector of values
-# @param threshold Threshold to use when calculating percentage
-#
-# @return Returns the percentage of `x` values above the given threshold
-#
-PercentAbove <- function(x, threshold) {
-  return(length(x = x[x > threshold]) / length(x = x))
 }
 
 # Generate a random name
