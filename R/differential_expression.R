@@ -241,6 +241,7 @@ FindConservedMarkers <- function(
   grouping.var,
   assay = 'RNA',
   slot = 'data',
+  min.cells.group = 3,
   meta.method = metap::minimump,
   verbose = TRUE,
   ...
@@ -298,6 +299,20 @@ FindConservedMarkers <- function(
     }
     ident.2 <- ident.2.save
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
+    if (length(cells.1) < min.cells.group) {
+      warning(
+        level.use,
+        " has fewer than ",
+        min.cells.group,
+        " cells in Identity: ",
+        paste(ident.1, collapse = ", "),
+        ". Skipping ",
+        level.use,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      next
+    }
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(Idents(object = object)[cells.2]) > 0))
