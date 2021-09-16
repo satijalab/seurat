@@ -1,4 +1,4 @@
-# Seurat 4.0.4 (2020-08-19)
+# Seurat 4.0.4 (2021-08-19)
 ## Added
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
 - Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
@@ -19,7 +19,7 @@
 - Fix issue in SingleCellExperiment conversion where the mainExp would not be set properly
 - Fix for default dispersion info displayed in `VariableFeaturePlot()`
 
-# Seurat 4.0.3 (2020-06-10)
+# Seurat 4.0.3 (2021-06-10)
 ## Added
 - Add `jitter` parameter to `FeatureScatter()` 
 
