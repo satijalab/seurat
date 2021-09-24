@@ -189,6 +189,13 @@ FindIntegrationAnchors <- function(
   } else {
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
+  # check tool
+ object.list <- lapply(
+   X = object.list,
+   FUN = function (obj) {
+      slot(object = obj, name = "tools")$Integration <- NULL
+      return(obj)
+  })
   object.list <- CheckDuplicateCellNames(object.list = object.list)
   slot <- "data"
   if (reduction == "lsi") {
@@ -770,6 +777,7 @@ FindTransferAnchors <- function(
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
   reduction.2 <- character()
   feature.mean <- NULL
+  reference.reduction.init <- reference.reduction
   if (normalization.method == "SCT") {
       # ensure all residuals required are computed
       query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
@@ -1139,6 +1147,7 @@ FindTransferAnchors <- function(
   }
   slot(object = combined.ob, name = "reductions") <- reductions
   command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
+  slot(command, name = 'params')$reference.reduction <- reference.reduction.init
   anchor.set <- new(
     Class = "TransferAnchorSet",
     object.list = list(combined.ob),
@@ -1262,8 +1271,23 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #' query, as the merged object will subsequently contain more cells than was in
 #' query, and weights will need to be calculated for all cells in the object.
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
-#' @param sample.tree Specify the order of integration. If NULL, will compute
-#' automatically.
+#' @param sample.tree Specify the order of integration. Order of integration
+#' should be encoded in a matrix, where each row represents one of the pairwise
+#' integration steps. Negative numbers specify a dataset, positive numbers
+#' specify the integration results from a given row (the format of the merge
+#' matrix included in the \code{\link{hclust}} function output). For example:
+#' `matrix(c(-2, 1, -3, -1), ncol = 2)` gives:
+#'
+#' ```
+#'             [,1]  [,2]
+#'        [1,]   -2   -3
+#'        [2,]    1   -1
+#' ```
+#'
+#' Which would cause dataset 2 and 3 to be integrated first, then the resulting
+#' object integrated with dataset 1.
+#'
+#'  If NULL, the sample tree will be computed automatically.
 #' @param preserve.order Do not reorder objects based on size for each pairwise
 #' integration.
 #' @param eps Error bound on the neighbor finding algorithm (from
@@ -1282,6 +1306,7 @@ GetTransferPredictions <- function(object, assay = "predictions", slot = "data",
 #'
 #' @export
 #' @concept integration
+#' @md
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
@@ -1413,6 +1438,7 @@ IntegrateData <- function(
       reference.model <- model.list[[which(reference.model)]]
     }
   }
+
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
       reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
@@ -1902,9 +1928,16 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
+
   # determine anchor type
   if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "pcaproject"
+    # check if the anchorset can be used for mapping
+    if (is.null(x = slot(object = anchorset, name = "command")$reference.reduction)) {
+      stop('The reference.reduction parameter was not set when running ',
+      'FindTransferAnchors, so the resulting AnchorSet object cannot be used ',
+      'in the MapQuery function.')
+    }
   } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
@@ -1940,6 +1973,7 @@ MapQuery <- function(
   } else {
     stop("unkown type of anchors")
   }
+
 
   reference.reduction <- reference.reduction %||%
     slot(object = anchorset, name = "command")$reference.reduction %||%

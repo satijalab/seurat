@@ -126,7 +126,7 @@ After finding anchors, we use the `TransferData()` function to classify the quer
 
 ```{r label.transfer, warning = FALSE, message = FALSE}
 pancreas.query <- pancreas.list[["fluidigmc1"]]
-pancreas.anchors <- FindTransferAnchors(reference = pancreas.integrated, query = pancreas.query, dims = 1:30)
+pancreas.anchors <- FindTransferAnchors(reference = pancreas.integrated, query = pancreas.query, dims = 1:30, reference.reduction = "pca")
 predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.integrated$celltype, dims = 1:30)
 pancreas.query <- AddMetaData(pancreas.query, metadata = predictions)
 ```

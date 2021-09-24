@@ -796,14 +796,25 @@ FastRowScale <- function(
 #' @note This function requires internet access
 #'
 #' @param symbols A vector of gene symbols
-#' @param timeout Time to wait before cancelling query in seconds
-#' @param several.ok Allow several current gene sybmols for each provided symbol
+#' @param timeout Time to wait before canceling query in seconds
+#' @param several.ok Allow several current gene symbols for each
+#' provided symbol
+#' @param search.types Type of query to perform:
+#' \describe{
+#'  \item{\dQuote{\code{alias_symbol}}}{Find alternate symbols for the genes
+#'  described by \code{symbols}}
+#'  \item{\dQuote{\code{prev_symbol}}}{Find new new symbols for the genes
+#'  described by \code{symbols}}
+#' }
+#' This parameter accepts multiple options and short-hand options
+#' (eg. \dQuote{\code{prev}} for \dQuote{\code{prev_symbol}})
 #' @param verbose Show a progress bar depicting search progress
 #' @param ... Extra parameters passed to \code{\link[httr]{GET}}
 #'
-#' @return For \code{GeneSymbolThesarus}, if \code{several.ok}, a named list
-#' where each entry is the current symbol found for each symbol provided and the
-#' names are the provided symbols. Otherwise, a named vector with the same information.
+#' @return \code{GeneSymbolThesarus}:, if \code{several.ok}, a named list
+#' where each entry is the current symbol found for each symbol provided and
+#' the names are the provided symbols. Otherwise, a named vector with the
+#' same information.
 #'
 #' @source \url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 #'
@@ -827,11 +838,13 @@ GeneSymbolThesarus <- function(
   symbols,
   timeout = 10,
   several.ok = FALSE,
+  search.types = c('alias_symbol', 'prev_symbol'),
   verbose = TRUE,
   ...
 ) {
   db.url <- 'http://rest.genenames.org/fetch'
-  search.types <- c('alias_symbol', 'prev_symbol')
+  # search.types <- c('alias_symbol', 'prev_symbol')
+  search.types <- match.arg(arg = search.types, several.ok = TRUE)
   synonyms <- vector(mode = 'list', length = length(x = symbols))
   not.found <- vector(mode = 'logical', length = length(x = symbols))
   multiple.found <- vector(mode = 'logical', length = length(x = symbols))
@@ -1472,7 +1485,7 @@ RegroupIdents <- function(object, metadata) {
 
 #' @rdname UpdateSymbolList
 #'
-#' @return For \code{UpdateSymbolList}, \code{symbols} with updated symbols from
+#' @return \code{UpdateSymbolList}: \code{symbols} with updated symbols from
 #' HGNC's gene names database
 #'
 #' @export
@@ -1494,6 +1507,7 @@ UpdateSymbolList <- function(
     symbols = symbols,
     timeout = timeout,
     several.ok = several.ok,
+    search.types = 'prev_symbol',
     verbose = verbose,
     ...
   ))

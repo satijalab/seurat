@@ -31,6 +31,7 @@ FindMarkers(object, ...)
   min.cells.group = 3,
   pseudocount.use = 1,
   fc.results = NULL,
+  densify = FALSE,
   ...
 )
 
@@ -55,6 +56,7 @@ FindMarkers(object, ...)
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
+  densify = FALSE,
   ...
 )
 
@@ -77,6 +79,7 @@ FindMarkers(object, ...)
   pseudocount.use = 1,
   mean.fxn = rowMeans,
   fc.name = NULL,
+  densify = FALSE,
   ...
 )
 
@@ -105,6 +108,7 @@ FindMarkers(object, ...)
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
+  densify = FALSE,
   ...
 )
 }
@@ -199,6 +203,8 @@ of the two groups, currently only used for poisson and negative binomial tests}
 calculating logFC. 1 by default.}
 
 \item{fc.results}{data.frame from FoldChange}
+
+\item{densify}{Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
 If NULL, the appropriate function will be chose according to the slot used}

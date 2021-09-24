@@ -54,6 +54,7 @@ SpatialDimPlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  image.alpha = 1,
   stroke = 0.25,
   label.box = TRUE,
   interactive = FALSE,
@@ -72,6 +73,7 @@ SpatialFeaturePlot(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  image.alpha = 1,
   stroke = 0.25,
   interactive = FALSE,
   information = NULL
@@ -136,7 +138,8 @@ themeing will not work when plotting multiple features/groupings}
 \item{pt.size.factor}{Scale the size of the spots.}
 
 \item{alpha}{Controls opacity of spots. Provide as a vector specifying the
-min and max}
+min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+alpha value for each plot.}
 
 \item{stroke}{Control the width of the border around the spots}
 

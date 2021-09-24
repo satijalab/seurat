@@ -26,7 +26,7 @@ knitr::opts_chunk$set(
   time_it = TRUE
 )
 ```
-The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.10.12.335331v1)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
+The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
 
 This vignette introduces the WNN workflow for the analysis of multimodal single-cell datasets. The workflow consists of three steps
 
@@ -162,7 +162,7 @@ You can download the dataset from the 10x Genomics website [here](https://suppor
 
 Finally, in order to run the vignette, make sure the following packages are installed:
 
-* [Seurat v4](install.html).
+* [Seurat v4](install.html)
 * [Signac](https://satijalab.org/signac/) for the analysis of single-cell chromatin datasets
 * [EnsDb.Hsapiens.v86](https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Hsapiens.v86.html) for a set of annotations for hg38
 * [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html) to help manipulate data tables

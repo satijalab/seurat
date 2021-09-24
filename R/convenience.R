@@ -52,6 +52,7 @@ SpatialDimPlot <- function(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  image.alpha = 1,
   stroke = 0.25,
   label.box = TRUE,
   interactive = FALSE,
@@ -74,6 +75,7 @@ SpatialDimPlot <- function(
     combine = combine,
     pt.size.factor = pt.size.factor,
     alpha = alpha,
+    image.alpha = image.alpha,
     stroke = stroke,
     label.box = label.box,
     interactive = interactive,
@@ -98,6 +100,7 @@ SpatialFeaturePlot <- function(
   combine = TRUE,
   pt.size.factor = 1.6,
   alpha = c(1, 1),
+  image.alpha = 1,
   stroke = 0.25,
   interactive = FALSE,
   information = NULL
@@ -114,6 +117,7 @@ SpatialFeaturePlot <- function(
     combine = combine,
     pt.size.factor = pt.size.factor,
     alpha = alpha,
+    image.alpha = image.alpha,
     stroke = stroke,
     interactive = interactive,
     information = information
@@ -170,4 +174,45 @@ SpecificDimPlot <- function(object, ...) {
       stop(e)
     }
   )
+}
+
+#' Read output from Parse Biosciences
+#'
+#' @param data.dir Directory containing the data files
+#' @param ... Extra parameters passed to \code{\link{ReadMtx}}
+#' @concept convenience
+#' @export
+#'
+ReadParseBio <- function(data.dir, ...) {
+  mtx <- file.path(data.dir, "DGE.mtx")
+  cells <- file.path(data.dir, "cell_metadata.csv")
+  features <- file.path(data.dir, "genes.csv")
+  return(ReadMtx(
+    mtx = mtx,
+    cells = cells,
+    features = features,
+    cell.column = 1,
+    feature.column = 2,
+    cell.sep = ",",
+    feature.sep = ",",
+    skip.cell = 1,
+    skip.feature = 1,
+    mtx.transpose = TRUE
+  ))
+}
+
+#' Read output from STARsolo
+#'
+#' @param data.dir Directory containing the data files
+#' @param ... Extra parameters passed to \code{\link{ReadMtx}}
+#'
+#' @rdname ReadSTARsolo
+#' @concept convenience
+#' @export
+#'
+ReadSTARsolo <- function(data.dir, ... ) {
+  mtx <- file.path(data.dir, "matrix.mtx")
+  cells <- file.path(data.dir, "barcodes.tsv")
+  features <- file.path(data.dir, "features.tsv")
+  return(ReadMtx(mtx = mtx, cells = cells, features = features, ...))
 }
