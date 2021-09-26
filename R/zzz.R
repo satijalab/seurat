@@ -36,6 +36,13 @@ seurat_default_options <- list(
   Seurat.warn.vlnplot.split = TRUE
 )
 
+#' @importFrom methods setClassUnion
+#' @importClassesFrom Matrix dgCMatrix
+#'
+NULL
+
+setClassUnion(name = 'V3Matrix', members = c('matrix', 'dgCMatrix'))
+
 AttachDeps <- function(deps) {
   for (d in deps) {
     if (!paste0('package:', d) %in% search()) {

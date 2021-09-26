@@ -2382,9 +2382,11 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 #'
 #' @rdname NormalizeData
 #' @concept preprocessing
+#'
+#' @method NormalizeData V3Matrix
 #' @export
 #'
-NormalizeData.default <- function(
+NormalizeData.V3Matrix <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
