@@ -32,16 +32,88 @@ LogNormalize5 <- function(data, scale.factor = 1e4, margin = 2L, verbose = TRUE)
 FindVariableFeatures.default <- function(
   object,
   method = 'vst',
+  nselect = 2000L,
+  fmargin = 1L,
+  verbose = TRUE,
   ...
 ) {
-  .NotYetImplemented()
   if (is.character(x = method)) {
     method <- method[1L]
     method <- match.arg(arg = method, choices = names(x = hvf.methods))
+    method <- hvf.methods[[method]]
   }
   if (!is.function(x = method)) {
     stop("'method' must be a function for calculating highly variable features")
   }
+  return(method(
+    data = object,
+    fmargin = fmargin,
+    nselect = nselect,
+    verbose = verbose,
+    ...
+  ))
+}
+
+#' @importFrom SeuratObject DefaultLayer Features Key
+#'
+#' @method FindVariableFeatures StdAssay
+#' @export
+#'
+FindVariableFeatures.StdAssay <- function(
+  object,
+  method = 'vst',
+  nselect = 2000L,
+  layer = NULL,
+  span = 0.3,
+  clip = NULL,
+  key = NULL,
+  verbose = TRUE,
+  ...
+) {
+  layer <- layer %||% DefaultLayer(object = object)
+  data <- LayerData(object = object, layer = layer, fast = TRUE)
+  f <- if (inherits(x = data, what = 'V3Matrix')) {
+    FindVariableFeatures.default
+  } else {
+    FindVariableFeatures
+  }
+  hvf.info <- f(
+    object = data,
+    method = method,
+    nselect = nselect,
+    fmargin = .MARGIN(object = object, type = 'features'),
+    span = span,
+    clip = clip,
+    verbose = verbose,
+    ...
+  )
+  rownames(x = hvf.info) <- Features(x = object, layer = layer)
+  pattern <- '^[[:alnum:]]+_'
+  if (!any(grepl(pattern = pattern, x = colnames(x = hvf.info)))) {
+    key <- key %||% if (is.character(x = method)) {
+      if (grepl(pattern = '\\.', x = method)) {
+        x <- vapply(
+          X = unlist(x = strsplit(x = method, split = '\\.')),
+          FUN = substr,
+          FUN.VALUE = character(length = 1L),
+          start = 1L,
+          stop = 1L,
+          USE.NAMES = FALSE
+        )
+        paste(x, collapse = '')
+      } else {
+        method
+      }
+    } else {
+      SeuratObject:::RandomKey()
+    }
+    key <- suppressWarnings(expr = Key(object = key))
+    colnames(x = hvf.info) <- paste0(key, colnames(x = hvf.info))
+  } #else if (!all(grepl(pattern = pattern, x = colnames(x = hvf.info)))) {
+  #   ''
+  # }
+  object[[]] <- hvf.info
+  return(object)
 }
 
 #'
