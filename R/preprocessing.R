@@ -1911,9 +1911,10 @@ SubsetByBarcodeInflections <- function(object) {
 #'
 #' @rdname FindVariableFeatures
 #' @concept preprocessing
+#' @method FindVariableFeatures V3Matrix
 #' @export
 #'
-FindVariableFeatures.default <- function(
+FindVariableFeatures.V3Matrix <- function(
   object,
   selection.method = "vst",
   loess.span = 0.3,
