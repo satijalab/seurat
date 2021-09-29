@@ -1,8 +1,12 @@
 #' @include generics.R
 #' @include preprocessing.R
 #' @importFrom methods slot
+#' @importFrom SeuratObject .MARGIN .SparseSlots
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 NULL
+
+hvf.methods <- list()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Generics
@@ -22,7 +26,24 @@ LogNormalize5 <- function(data, scale.factor = 1e4, margin = 2L, verbose = TRUE)
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom utils setTxtProgressBar txtProgressBar
+#' @method FindVariableFeatures default
+#' @export
+#'
+FindVariableFeatures.default <- function(
+  object,
+  method = 'vst',
+  ...
+) {
+  .NotYetImplemented()
+  if (is.character(x = method)) {
+    method <- method[1L]
+    method <- match.arg(arg = method, choices = names(x = hvf.methods))
+  }
+  if (!is.function(x = method)) {
+    stop("'method' must be a function for calculating highly variable features")
+  }
+}
+
 #'
 #' @method LogNormalize5 default
 #' @export
@@ -60,7 +81,7 @@ LogNormalize5.default <- function(
   return(data)
 }
 
-#' @importFrom SeuratObject IsSparse .MARGIN
+#' @importFrom SeuratObject IsSparse
 #'
 #' @method NormalizeData default
 #' @export
@@ -82,7 +103,7 @@ NormalizeData.default <- function(
     EXPR = method,
     'LogNormalize' = {
       if (IsSparse(x = object) && .MARGIN(object = object) == cmargin) {
-        SparseNormalize(
+        .SparseNormalize(
           data = object,
           scale.factor = scale.factor,
           verbose = verbose
@@ -100,7 +121,7 @@ NormalizeData.default <- function(
   return(normalized)
 }
 
-#' @importFrom SeuratObject .MARGIN Cells DefaultLayer DefaultLayer<- Features
+#' @importFrom SeuratObject Cells DefaultLayer DefaultLayer<- Features
 #' LayerData LayerData<-
 #'
 #' @method NormalizeData StdAssay
@@ -122,7 +143,13 @@ NormalizeData.StdAssay <- function(
   if (save == DefaultLayer(object = object)) {
     default <- FALSE
   }
-  data <- NormalizeData(
+  data <- LayerData(object = object, layer = layer, fast = TRUE)
+  f <- if (inherits(x = data, what = 'V3Matrix')) {
+    NormalizeData.default
+  } else {
+    NormalizeData
+  }
+  data <- f(
     object = LayerData(object = object, layer = layer, fast = TRUE),
     method = method,
     scale.factor = 1e4,
@@ -153,10 +180,80 @@ NormalizeData.StdAssay <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom SeuratObject .SparseSlots
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#'
-SparseNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
+.FeatureVar <- function(
+  data,
+  mu,
+  fmargin = 1L,
+  standardize = FALSE,
+  sd = NULL,
+  clip = NULL,
+  verbose = TRUE
+) {
+  fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
+  ncells <- dim(x = data)[-fmargin]
+  nfeatures <- dim(x = data)[fmargin]
+  fvars <- vector(mode = 'numeric', length = nfeatures)
+  if (length(x = mu) != nfeatures) {
+    stop("Wrong number of feature means provided")
+  }
+  if (isTRUE(x = standardize)) {
+    clip <- clip %||% sqrt(x = ncells)
+    if (length(x = sd) != nfeatures) {
+      stop("Wrong number of standard deviations")
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    msg <- 'Calculating feature variances'
+    if (isTRUE(x = standardize)) {
+      msg <- paste(msg, 'of standardized and clipped values')
+    }
+    message(msg)
+    pb <- txtProgressBar(style = 3, file = stderr())
+  }
+  for (i in seq_len(length.out = nfeatures)) {
+    if (isTRUE(x = standardize) && sd[i] == 0) {
+      if (isTRUE(x = verbose)) {
+        setTxtProgressBar(pb = pb, value = i / nfeatures)
+      }
+      next
+    }
+    x <- if (fmargin == 1L) {
+      data[i, , drop = TRUE]
+    } else {
+      data[, i, drop = TRUE]
+    }
+    x <- x - mu[i]
+    if (isTRUE(x = standardize)) {
+      x <- x / sd[i]
+      x[x > clip] <- clip
+    }
+    fvars[i] <- sum(x ^ 2) / (ncells - 1L)
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / nfeatures)
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  return(fvars)
+}
+
+.Mean <- function(data, margin = 1L) {
+  nout <- dim(x = data)[margin]
+  nobs <- dim(x = data)[-margin]
+  means <- vector(mode = 'numeric', length = nout)
+  for (i in seq_len(length.out = nout)) {
+    x <- if (margin == 1L) {
+      data[i, , drop = TRUE]
+    } else {
+      data[, i, drop = TRUE]
+    }
+    means[i] <- sum(x) / nobs
+  }
+  return(means)
+}
+
+.SparseNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   entryname <- .SparseSlots(x = data, type = 'entries')
   p <- slot(object = data, name = .SparseSlots(x = data, type = 'pointers'))
   if (p[1L] == 0) {
@@ -181,6 +278,183 @@ SparseNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   }
   return(data)
 }
+
+#' @param data A sparse matrix
+#' @param mu A vector of feature means
+#' @param fmargin Feature margin
+#' @param standardize Standardize matrix rows prior to calculating variances
+#' @param sd If standardizing, a vector of standard deviations to
+#' standardize with
+#' @param clip Set upper bound for standardized variances; defaults to the
+#' square root of the number of cells
+#' @param verbose Show progress updates
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+.SparseFeatureVar <- function(
+  data,
+  mu,
+  fmargin = 1L,
+  standardize = FALSE,
+  sd = NULL,
+  clip = NULL,
+  verbose = TRUE
+) {
+  fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
+  if (fmargin != .MARGIN(object = data)) {
+    data <- t(x = data)
+    fmargin <- .MARGIN(object = data)
+  }
+  entryname <- .SparseSlots(x = data, type = 'entries')
+  p <- slot(object = data, name = .SparseSlots(x = data, type = 'pointers'))
+  if (p[1L] == 0) {
+    p <- p + 1L
+  }
+  np <- length(x = p) - 1L
+  ncells <- dim(x = data)[-fmargin]
+  fvars <- vector(mode = 'numeric', length = np)
+  if (length(x = mu) != np) {
+    stop("Wrong number of feature means provided")
+  }
+  if (isTRUE(x = standardize)) {
+    clip <- clip %||% sqrt(x = ncells)
+    if (length(x = sd) != np) {
+      stop("Wrong number of standard deviations provided")
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    msg <- 'Calculating feature variances'
+    if (isTRUE(x = standardize)) {
+      msg <- paste(msg, 'of standardized and clipped values')
+    }
+    message(msg)
+    pb <- txtProgressBar(style = 3, file = stderr())
+  }
+  for (i in seq_len(length.out = np)) {
+    if (isTRUE(x = standardize) && sd[i] == 0) {
+      if (isTRUE(x = verbose)) {
+        setTxtProgressBar(pb = pb, value = i / np)
+      }
+      next
+    }
+    idx <- seq.int(from = p[i], to = p[i + 1L] - 1L)
+    xidx <- slot(object = data, name = entryname)[idx] - mu[i]
+    nzero <- ncells - length(x = xidx)
+    csum <- nzero * ifelse(
+      test = isTRUE(x = standardize),
+      yes = ((0 - mu[i]) / sd[i]) ^ 2,
+      no = mu[i] ^ 2
+    )
+    if (isTRUE(x = standardize)) {
+      xidx <- xidx / sd[i]
+      xidx[xidx > clip] <- clip
+    }
+    fsum <- sum(xidx ^ 2) + csum
+    fvars[i] <- fsum / (ncells - 1L)
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / np)
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  return(fvars)
+}
+
+.SparseMean <- function(data, margin = 1L) {
+  margin <- SeuratObject:::.CheckFmargin(fmargin = margin)
+  if (margin != .MARGIN(object = data)) {
+    data <- t(x = data)
+    margin <- .MARGIN(object = data)
+  }
+  entryname <- .SparseSlots(x = data, type = 'entries')
+  p <- slot(object = data, name = .SparseSlots(x = data, type = 'pointers'))
+  if (p[1L] == 0) {
+    p <- p + 1L
+  }
+  np <- length(x = p) - 1L
+  nobs <- dim(x = data)[-margin]
+  means <- vector(mode = 'numeric', length = np)
+  for (i in seq_len(length.out = np)) {
+    idx <- seq.int(from = p[i], to = p[i + 1L] - 1L)
+    means[i] <- sum(slot(object = data, name = entryname)[idx]) / nobs
+  }
+  return(means)
+}
+
+#' @inheritParams stats::loess
+#' @param data A matrix
+#' @param fmargin Feature margin
+#' @param nfeatures Number of features to select
+#' @param clip After standardization values larger than \code{clip} will be set
+#' to \code{clip}; default is \code{NULL} which sets this value to the square
+#' root of the number of cells
+#'
+#' @importFrom stats loess
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+VST <- function(
+  data,
+  fmargin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  verbose = TRUE,
+  ...
+) {
+  fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
+  nfeatures <- dim(x = data)[fmargin]
+  if (IsSparse(x = data)) {
+    mean.func <- .SparseMean
+    var.func <- .SparseFeatureVar
+  } else {
+    mean.func <- .Mean
+    var.func <- .FeatureVar
+  }
+  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info$mean <- mean.func(data = data, margin = 1L)
+  hvf.info$variance <- var.func(
+    data = data,
+    mu = hvf.info$mean,
+    fmargin = fmargin,
+    verbose = verbose
+  )
+  hvf.info$variance.expected <- 0L
+  not.const <- hvf.info$variance > 0
+  fit <- loess(
+    formula = log10(x = variance) ~ log10(x = mean),
+    data = hvf.info[not.const, , drop = TRUE],
+    span = span
+  )
+  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  hvf.info$variance.standardized <- var.func(
+    data = data,
+    mu = hvf.info$mean,
+    standardize = TRUE,
+    sd = sqrt(x = hvf.info$variance.expected),
+    clip = clip,
+    verbose = verbose
+  )
+  hvf.info$variable <- FALSE
+  hvf.info$rank <- NA
+  vs <- hvf.info$variance.standardized
+  vs[vs == 0] <- NA
+  vf <- head(
+    x = order(hvf.info$variance.standardized, decreasing = TRUE),
+    n = nselect
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  # colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
+  return(hvf.info)
+}
+
+hvf.methods$vst <- VST
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 Methods
