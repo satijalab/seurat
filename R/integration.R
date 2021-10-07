@@ -1041,7 +1041,7 @@ FindTransferAnchors <- function(
         reduction = query[[reference.reduction]],
         data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
         mode = "lsi",
-        do.center = TRUE,
+        do.center = FALSE,
         do.scale = FALSE,
         use.original.stats = FALSE,
         verbose = verbose
@@ -1053,7 +1053,7 @@ FindTransferAnchors <- function(
         reduction = reference[[reference.reduction]],
         data = GetAssayData(object = query, assay = query.assay, slot = "data"),
         mode = "lsi",
-        do.center = TRUE,
+        do.center = FALSE,
         do.scale = FALSE,
         use.original.stats = FALSE,
         verbose = verbose
