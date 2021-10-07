@@ -13,6 +13,7 @@
 - Add `ReadParsebio()` function to read output from Parse Biosciences
 - Add the `image.alpha` parameter to `SpatialDimPlot()` and `SpatialFeaturePlot()`
 - Add support for the correlation metric in `RunUMAP` ([#4972](https://github.com/satijalab/seurat/issues/4972))
+- Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors` 
 
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
