@@ -1224,7 +1224,7 @@ ReadMtx <- function(
   if (length(x = feature.names) != nrow(x = data)) {
     stop(
       "Matrix has ",
-      ncol(data),
+      nrow(data),
       " rows but found ", length(feature.names),
       " features. ",
       ifelse(
