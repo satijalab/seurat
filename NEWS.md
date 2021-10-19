@@ -1,3 +1,9 @@
+# Unreleased
+## Added
+
+## Changes
+- Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
+
 # Seurat 4.0.5 (2020-10-04)
 ## Changes
 - Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
@@ -14,6 +20,7 @@
 - Add `ReadParsebio()` function to read output from Parse Biosciences
 - Add the `image.alpha` parameter to `SpatialDimPlot()` and `SpatialFeaturePlot()`
 - Add support for the correlation metric in `RunUMAP` ([#4972](https://github.com/satijalab/seurat/issues/4972))
+
 
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
