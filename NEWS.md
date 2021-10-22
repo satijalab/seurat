@@ -3,6 +3,7 @@
 
 ## Changes
 - Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
+- Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
 
 # Seurat 4.0.5 (2020-10-04)
 ## Changes
