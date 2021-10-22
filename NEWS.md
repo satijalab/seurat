@@ -3,12 +3,12 @@
 
 ## Changes
 - Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
+- Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
 
 # Seurat 4.0.5 (2020-10-04)
 ## Changes
 - Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
 - Update concept tags for `RunSPCA()` ([#4978](https://github.com/satijalab/seurat/discussions/4987))
-- Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
 - Conditionally run tests/packages that use suggested packages ([#5160](https://github.com/satijalab/seurat/pull/5160))
 
 # Seurat 4.0.4 (2020-08-19)
