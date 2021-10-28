@@ -554,8 +554,9 @@ RidgePlot <- function(
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #' @param flip flip plot orientation (identities on x-axis)
-#' @param raster Convert points to raster format, default is \code{NULL} which
-#' automatically rasterizes if plotting more than 100,000 cells
+#' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
+# default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+# number of points exceed 100,000.
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -7230,8 +7231,9 @@ SingleDimPlot <- function(
 # @param cols Colors to use for plotting
 # @param log plot Y axis on log scale
 # @param seed.use Random seed to use. If NULL, don't set a seed
-# @param raster Convert points to raster format, default is \code{NULL} which
-# automatically rasterizes if plotting more than 100,000 cells
+# @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
+# default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+# number of points exceed 100,000.
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
@@ -7240,7 +7242,6 @@ SingleDimPlot <- function(
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
 #' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim position_jitterdodge
-#' @importFrom ggrastr rasterize
 #' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
 #'
@@ -7258,12 +7259,20 @@ SingleExIPlot <- function(
   log = FALSE,
   raster = NULL
 ) {
-  if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
-    message("Rasterizing points since number of points exceeds 100,000.",
-            "\nTo disable this behavior set `raster=FALSE`")
+   if (!is.null(x = raster) && isTRUE(x = raster)){
+    if (!PackageCheck('ggrastr', error = FALSE)) {
+      stop("Please install ggrastr from CRAN to enable rasterization.")
+    }
   }
-  raster <- raster %||% (nrow(x = data) > 1e5)
-
+  if (PackageCheck('ggrastr', error = FALSE)) {
+    # Set rasterization to true if ggrastr is installed and
+    # number of points exceeds 100,000
+    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+      message("Rasterizing points since number of points exceeds 100,000.",
+              "\nTo disable this behavior set `raster=FALSE`")
+    }
+    raster <- TRUE
+  }
 
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
@@ -7325,13 +7334,13 @@ SingleExIPlot <- function(
       )
       if (is.null(x = split)) {
         if (isTRUE(x = raster)) {
-          jitter <- rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
         } else {
           jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
         }
       } else {
         if (isTRUE(x = raster)) {
-          jitter <- rasterize(geom_jitter(
+          jitter <- ggrastr::rasterize(geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
             show.legend = FALSE
