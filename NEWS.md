@@ -2,6 +2,7 @@
 ## Added
 
 ## Changes
+- Add `min.cells.group` parameter to `FindConservedMarkers` ([#5079](https://github.com/satijalab/seurat/pull/5079))
 - Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
 - Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
 
