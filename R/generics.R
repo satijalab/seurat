@@ -128,9 +128,11 @@ FindClusters <- function(object, ...) {
 #'
 #' # Pass 'clustertree' or an object of class phylo to ident.1 and
 #' # a node to ident.2 as a replacement for FindMarkersNode
-#' pbmc_small <- BuildClusterTree(object = pbmc_small)
-#' markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
-#' head(x = markers)
+#' if (requireNamespace("ape", quietly = TRUE)) {
+#'   pbmc_small <- BuildClusterTree(object = pbmc_small)
+#'   markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
+#'   head(x = markers)
+#' }
 #'
 #' @rdname FindMarkers
 #' @export FindMarkers

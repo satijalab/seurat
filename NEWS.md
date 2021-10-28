@@ -1,3 +1,77 @@
+# Unreleased
+## Added
+
+## Changes
+- Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
+- Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
+
+# Seurat 4.0.5 (2020-10-04)
+## Changes
+- Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
+- Update concept tags for `RunSPCA()` ([#4978](https://github.com/satijalab/seurat/discussions/4987))
+- Conditionally run tests/packages that use suggested packages ([#5160](https://github.com/satijalab/seurat/pull/5160))
+- Set random state in `RunUMAP()` when using the `umap-learn` method ([#5194](https://github.com/satijalab/seurat/issues/5194))
+
+# Seurat 4.0.4 (2020-08-19)
+## Added
+- Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
+- Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
+- Add `image` parameter to `Load10X_Spatial()` and `image.name` parameter to `Read10X_Image()` ([#4641](https://github.com/satijalab/seurat/pull/4641))
+- Add `ReadSTARsolo()` function to read output from STARsolo
+- Add `densify` parameter to `FindMarkers()`
+- Add `ReadParsebio()` function to read output from Parse Biosciences
+- Add the `image.alpha` parameter to `SpatialDimPlot()` and `SpatialFeaturePlot()`
+- Add support for the correlation metric in `RunUMAP` ([#4972](https://github.com/satijalab/seurat/issues/4972))
+
+
+## Changes
+- Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
+- Bug fix for SCT-based integration in selecting proper reference model ([#4355](https://github.com/satijalab/seurat/issues/4355))
+- Bug fix for reading from absolute paths in ReadMtx ([#4723](https://github.com/satijalab/seurat/issues/4723))
+- Bug fix in SingleCellExperiment conversion ([#4633](https://github.com/satijalab/seurat/issues/4633))
+- Bug fix in `FindVariableFeatures()` when using `selection.method = "mvp"` and `binning.method = "equal_frequency"` ([#4712](https://github.com/satijalab/seurat/issues/4712))
+- Bug fix in `DoHeatmap()` to remove random characters from plot legend([#4660](https://github.com/satijalab/seurat/issues/4660))
+- Fix cell renaming in `RunCCA()`
+- Fix issue in SingleCellExperiment conversion where the mainExp would not be set properly
+- Fix for default dispersion info displayed in `VariableFeaturePlot()`
+
+# Seurat 4.0.3 (2020-06-10)
+## Added
+- Add `jitter` parameter to `FeatureScatter()`
+
+## Changes
+- Fix issues with `as.SingleCellExperiment.Seurat()` for the latest verion of SingleCellExperiment ([#4532](https://github.com/satijalab/seurat/pull/4532))
+- Ensure proper reference.reduction is used in `MapQuery()`
+- Fix to `UpdateSymbolList()`, no longer searches aliases and exposes the `search.types` parameter in `GeneSymbolThesarus()` ([#4545](https://github.com/satijalab/seurat/issues/4545))
+- Transfer `scale.data` slot as well when converting with `as.SingleCellExperiment.Seurat()`
+- Enable `alpha` parameter for `SpatialDimPlot()`
+- Fix `as.SingleCellExperiment.Seurat()` conversion for atypical `reducedDim` components
+
+# Seurat 4.0.2 (2020-05-20)
+## Added
+- New `AddAzimuthScores()` and `AddAzimuthResults()` functions
+- Add `shuffle` parameter to `FeatureScatter()` ([#4280](https://github.com/satijalab/seurat/pull/4280))
+- Add `lsiproject` and `rpca` options for `FindTransferAnchors()`
+- Add `rlsi` option for `FindIntegrationAnchors()`
+
+## Changes
+- Preserve feature metadata when converting from `SingleCellExperiment` to `SeuratObject` class
+([#4205](https://github.com/satijalab/seurat/issues/4205))
+- Preserve multiple assays when converting from `SingleCellExperiment` to `SeuratObject` class
+([#3764](https://github.com/satijalab/seurat/issues/3764))
+- Fix passing of `score.thresh` parameter in `ScoreJackStraw()` ([#4268](https://github.com/satijalab/seurat/pull/4268))
+- Fix FC calculation in `FindMarkers()` non-log transformed data.
+- Add umap-learn version >= 0.5.0 compatibility for `RunUMAP()`
+- Fix `DotPlot` to use `log1p` when `scale=False`
+([#4298](https://github.com/satijalab/seurat/issues/4298))
+- Fix split and shuffled `DimPlot`
+- Disallow NULL or another length 0 vector for `ident.1` in `FindMarkers()`
+- Fix range shift when labeling clusters on a GeomSpatial plot
+- Fix SpatialPlot distortion for non-square images.
+- Fix future-related warnings in `FindIntegrationAnchors()`
+- Fix `fc.name` parameter in `FindMarkers()` ([#4474](https://github.com/satijalab/seurat/issues/4474))
+- Deprecate `group.by` parameter in `PlotPerturbScore()` in favor of `mixscape.class`.
+
 # Seurat 4.0.1 (2020-03-17)
 ## Added
 - Add direction option to `PlotClusterTree()`

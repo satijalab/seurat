@@ -70,8 +70,20 @@ weights. This can be one of:
 
 \item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}
 
-\item{sample.tree}{Specify the order of integration. If NULL, will compute
-automatically.}
+\item{sample.tree}{Specify the order of integration. Order of integration
+should be encoded in a matrix, where each row represents one of the pairwise
+integration steps. Negative numbers specify a dataset, positive numbers
+specify the integration results from a given row (the format of the merge
+matrix included in the \code{\link{hclust}} function output). For example:
+\code{matrix(c(-2, 1, -3, -1), ncol = 2)} gives:\preformatted{            [,1]  [,2]
+       [1,]   -2   -3
+       [2,]    1   -1
+}
+
+Which would cause dataset 2 and 3 to be integrated first, then the resulting
+object integrated with dataset 1.
+
+If NULL, the sample tree will be computed automatically.}
 
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}

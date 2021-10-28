@@ -204,7 +204,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -364,7 +364,7 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_manual(values = cols)
+        scale_color_discrete(name = "Identity", na.translate = FALSE)
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
@@ -655,11 +655,12 @@ VlnPlot <- function(
 #' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
-#' data("pbmc_small")
-#' pbmc_small
-#' pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
-#' PlotClusterTree(pbmc_small)
-#' ColorDimSplit(pbmc_small, node = 5)
+#' if (requireNamespace("ape", quietly = TRUE)) {
+#'   data("pbmc_small")
+#'   pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
+#'   PlotClusterTree(pbmc_small)
+#'   ColorDimSplit(pbmc_small, node = 5)
+#' }
 #'
 ColorDimSplit <- function(
   object,
@@ -810,10 +811,7 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   cells <- cells %||% colnames(x = object)
-  if (isTRUE(x = shuffle)) {
-    set.seed(seed = seed)
-    cells <- sample(x = cells)
-  }
+
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -832,6 +830,10 @@ DimPlot <- function(
   }
   if (!is.null(x = split.by)) {
     data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    data <- data[sample(x = 1:nrow(x = data)), ]
   }
   plots <- lapply(
     X = group.by,
@@ -1858,6 +1860,9 @@ CellScatter <- function(
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
+#' @param shuffle Whether to randomly shuffle the order of points. This can be
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
@@ -1871,6 +1876,7 @@ CellScatter <- function(
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
+#' @param jitter Jitter for easier visualization of crowded points
 #'
 #' @return A ggplot object
 #'
@@ -1891,6 +1897,8 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
+  shuffle = FALSE,
+  seed = 1,
   group.by = NULL,
   cols = NULL,
   pt.size = 1,
@@ -1900,9 +1908,14 @@ FeatureScatter <- function(
   combine = TRUE,
   slot = 'data',
   plot.cor = TRUE,
-  raster = NULL
+  raster = NULL,
+  jitter = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
+  if (isTRUE(x = shuffle)) {
+    set.seed(seed = seed)
+    cells <- sample(x = cells)
+  }
   object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <-  FetchData(
@@ -1937,7 +1950,8 @@ FeatureScatter <- function(
         legend.title = 'Identity',
         span = span,
         plot.cor = plot.cor,
-        raster = raster
+        raster = raster,
+        jitter = jitter
       )
     }
   )
@@ -1994,11 +2008,15 @@ VariableFeaturePlot <- function(
     status = TRUE
   )
   var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
-  hvf.info <- hvf.info[, c(1, 3)]
+  if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
+    hvf.info <- hvf.info[, c(1, 2)]
+  } else {
+    hvf.info <- hvf.info[, c(1, 3)]
+  }
   axis.labels <- switch(
     EXPR = colnames(x = hvf.info)[2],
     'variance.standardized' = c('Average Expression', 'Standardized Variance'),
-    'dispersion.scaled' = c('Average Expression', 'Dispersion'),
+    'dispersion' = c('Average Expression', 'Dispersion'),
     'residual_variance' = c('Geometric Mean of Expression', 'Residual Variance')
   )
   log <- log %||% (any(c('variance.standardized', 'residual_variance') %in% colnames(x = hvf.info)))
@@ -2931,7 +2949,8 @@ ISpatialFeaturePlot <- function(
 #' themeing will not work when plotting multiple features/groupings
 #' @param pt.size.factor Scale the size of the spots.
 #' @param alpha Controls opacity of spots. Provide as a vector specifying the
-#' min and max
+#' min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+#' alpha value for each plot.
 #' @param stroke Control the width of the border around the spots
 #' @param interactive Launch an interactive SpatialDimPlot or SpatialFeaturePlot
 #' session, see \code{\link{ISpatialDimPlot}} or
@@ -3168,6 +3187,11 @@ SpatialPlot <- function(
         cols = cols,
         alpha.by = if (is.null(x = group.by)) {
           features[j]
+        } else {
+          NULL
+        },
+        pt.alpha = if (!is.null(x = group.by)) {
+          alpha[j]
         } else {
           NULL
         },
@@ -3516,7 +3540,7 @@ DotPlot <- function(
         data.use <- scale(x = data.use)
         data.use <- MinMax(data = data.use, min = col.min, max = col.max)
       } else {
-        data.use <- log(x = data.use)
+        data.use <- log1p(x = data.use)
       }
       return(data.use)
     }
@@ -3804,10 +3828,11 @@ JackStrawPlot <- function(
 #' @concept visualization
 #'
 #' @examples
-#' data("pbmc_small")
-#' pbmc_small <- BuildClusterTree(object = pbmc_small)
-#' PlotClusterTree(object = pbmc_small)
-#'
+#' if (requireNamespace("ape", quietly = TRUE)) {
+#'   data("pbmc_small")
+#'   pbmc_small <- BuildClusterTree(object = pbmc_small)
+#'   PlotClusterTree(object = pbmc_small)
+#' }
 PlotClusterTree <- function(object, direction = "downwards", ...) {
   if (!PackageCheck('ape', error = FALSE)) {
     stop(cluster.ape, call. = FALSE)
@@ -4647,7 +4672,7 @@ Intensity <- function(color) {
 #'
 #' @importFrom stats median na.omit
 #' @importFrom ggrepel geom_text_repel geom_label_repel
-#' @importFrom ggplot2 aes_string geom_text geom_label
+#' @importFrom ggplot2 aes_string geom_text geom_label layer_scales
 #' @importFrom RANN nn2
 #'
 #' @export
@@ -4688,6 +4713,8 @@ LabelClusters <- function(
   }
   pb <- ggplot_build(plot = plot)
   if (geom == 'GeomSpatial') {
+    xrange.save <- layer_scales(plot = plot)$x$range$range
+    yrange.save <- layer_scales(plot = plot)$y$range$range
     data[, xynames["y"]] = max(data[, xynames["y"]]) - data[, xynames["y"]] + min(data[, xynames["y"]])
     if (!pb$plot$plot_env$crop) {
       y.transform <- c(0, nrow(x = pb$plot$plot_env$image)) - pb$layout$panel_params[[1]]$y.range
@@ -4764,6 +4791,10 @@ LabelClusters <- function(
       show.legend = FALSE,
       ...
     )
+  }
+  # restore old axis ranges
+  if (geom == 'GeomSpatial') {
+    plot <- suppressMessages(expr = plot + coord_fixed(xlim = xrange.save, ylim = yrange.save))
   }
   return(plot)
 }
@@ -5862,8 +5893,8 @@ GeomSpatial <- ggproto(
     if (!crop) {
       y.transform <- c(0, nrow(x = image)) - panel_scales$y.range
       data$y <- data$y + sum(y.transform)
-      panel_scales$x$continuous_range <- c(0, nrow(x = image))
-      panel_scales$y$continuous_range <- c(0, ncol(x = image))
+      panel_scales$x$continuous_range <- c(0, ncol(x = image))
+      panel_scales$y$continuous_range <- c(0, nrow(x = image))
       panel_scales$y.range <- c(0, nrow(x = image))
       panel_scales$x.range <- c(0, ncol(x = image))
     }
@@ -6836,6 +6867,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
 # 100,000
+# @param jitter Jitter for easier visualization of crowded points
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6858,7 +6890,8 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   span = NULL,
   raster = NULL,
-  plot.cor = TRUE
+  plot.cor = TRUE,
+  jitter = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
@@ -6950,25 +6983,31 @@ SingleCorPlot <- function(
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
       guides(fill = FALSE)
   }
+  position <- NULL
+  if (jitter) {
+    position <- 'jitter'
+  } else {
+    position <- 'identity'
+  }
   if (!is.null(x = col.by)) {
     if (raster) {
       plot <- plot + geom_scattermore(
         mapping = aes_string(color = 'colors'),
-        position = 'jitter',
+        position = position,
         pointsize = pt.size
       )
     } else {
       plot <- plot + geom_point(
         mapping = aes_string(color = 'colors'),
-        position = 'jitter',
+        position = position,
         size = pt.size
       )
     }
   } else {
     if (raster) {
-      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size)
+      plot <- plot + geom_scattermore(position = position, pointsize = pt.size)
     } else {
-      plot <- plot + geom_point(position = 'jitter', size = pt.size)
+      plot <- plot + geom_point(position = position, size = pt.size)
     }
   }
   if (!is.null(x = cols)) {
@@ -7499,6 +7538,7 @@ SingleRasterMap <- function(
 # By default, ggplot2 assigns colors
 # @param image.alpha Adjust the opacity of the background images. Set to 0 to
 # remove.
+# @param pt.alpha Adjust the opacity of the points if plotting a SpatialDimPlot
 # @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
 # entire background image.
 # @param pt.size.factor Sets the size of the points relative to spot.radius
@@ -7525,6 +7565,7 @@ SingleSpatialPlot <- function(
   image,
   cols = NULL,
   image.alpha = 1,
+  pt.alpha = NULL,
   crop = TRUE,
   pt.size.factor = NULL,
   stroke = 0.25,
@@ -7565,14 +7606,27 @@ SingleSpatialPlot <- function(
   plot <- switch(
     EXPR = geom,
     'spatial' = {
-      plot + geom_spatial(
-        point.size.factor = pt.size.factor,
-        data = data,
-        image = image,
-        image.alpha = image.alpha,
-        crop = crop,
-        stroke = stroke
-      ) + coord_fixed()
+      if (is.null(x = pt.alpha)) {
+        plot <- plot + geom_spatial(
+          point.size.factor = pt.size.factor,
+          data = data,
+          image = image,
+          image.alpha = image.alpha,
+          crop = crop,
+          stroke = stroke,
+        )
+      } else {
+        plot <- plot + geom_spatial(
+          point.size.factor = pt.size.factor,
+          data = data,
+          image = image,
+          image.alpha = image.alpha,
+          crop = crop,
+          stroke = stroke,
+          alpha = pt.alpha
+        )
+      }
+      plot + coord_fixed() + theme(aspect.ratio = 1)
     },
     'interactive' = {
       plot + geom_spatial_interactive(
@@ -7616,7 +7670,7 @@ SingleSpatialPlot <- function(
     }
     plot <- plot + scale
   }
-  plot <- plot + theme_void()
+  plot <- plot + NoAxes() + theme(panel.background = element_blank())
   return(plot)
 }
 

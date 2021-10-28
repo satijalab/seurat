@@ -265,7 +265,7 @@ To ensure mixscape is assigning the correct perturbation status to cells we can 
 # Explore the perturbation scores of cells.
 PlotPerturbScore(object = eccite, 
                  target.gene.ident = "IFNGR2", 
-                 group.by = "mixscape_class", 
+                 mixscape.class = "mixscape_class", 
                  col = "coral2") +labs(fill = "mixscape class")
 
 # Inspect the posterior probability values in NP and KO cells.

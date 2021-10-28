@@ -635,6 +635,9 @@ RunCCA.Seurat <- function(
     merge.data = TRUE,
     ...
   )
+  rownames(x = cca.results$ccv) <- Cells(x = combined.object)
+  colnames(x = data1) <- Cells(x = combined.object)[1:ncol(x = data1)]
+  colnames(x = data2) <- Cells(x = combined.object)[(ncol(x = data1) + 1):length(x = Cells(x = combined.object))]
   combined.object[['cca']] <- CreateDimReducObject(
     embeddings = cca.results$ccv[colnames(combined.object), ],
     assay = assay1,
@@ -1210,6 +1213,10 @@ RunUMAP.default <- function(
   seed.use = 42,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
+  densmap = FALSE,
+  dens.lambda = 2,
+  dens.frac = 0.3,
+  dens.var.shift = 0.1,
   verbose = TRUE,
   ...
 ) {
@@ -1231,6 +1238,10 @@ RunUMAP.default <- function(
     warning("'uwot-learn' is deprecated. Set umap.method = 'uwot' and return.model = TRUE")
     umap.method <- "uwot"
     return.model <- TRUE
+  }
+  if (densmap && umap.method != 'umap-learn'){
+    warning("densmap is only supported by umap-learn method. Method is changed to 'umap-learn'")
+    umap.method <- 'umap-learn'
   }
   if (return.model) {
     if (verbose) {
@@ -1254,6 +1265,9 @@ RunUMAP.default <- function(
       if (!py_module_available(module = 'umap')) {
         stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
       }
+      if (!py_module_available(module = 'sklearn')) {
+        stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
+      }
       if (!is.null(x = seed.use)) {
         py_set_seed(seed = seed.use)
       }
@@ -1261,7 +1275,14 @@ RunUMAP.default <- function(
         n.epochs <- as.integer(x = n.epochs)
       }
       umap_import <- import(module = "umap", delay_load = TRUE)
-      umap <- umap_import$UMAP(
+      sklearn <- import("sklearn", delay_load = TRUE)
+      if (densmap &&
+          numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) <
+          numeric_version(x = "0.5.0")) {
+        stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
+      }
+      random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+      umap.args <- list(
         n_neighbors = as.integer(x = n.neighbors),
         n_components = as.integer(x = n.components),
         metric = metric,
@@ -1273,23 +1294,27 @@ RunUMAP.default <- function(
         local_connectivity = local.connectivity,
         repulsion_strength = repulsion.strength,
         negative_sample_rate = negative.sample.rate,
+        random_state = random.state,
         a = a,
         b = b,
         metric_kwds = metric.kwds,
         angular_rp_forest = angular.rp.forest,
         verbose = verbose
       )
+      if (numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) >=
+          numeric_version(x = "0.5.0")) {
+        umap.args <- c(umap.args, list(
+          densmap = densmap,
+          dens_lambda = dens.lambda,
+          dens_frac = dens.frac,
+          dens_var_shift = dens.var.shift,
+          output_dens = FALSE
+        ))
+      }
+      umap <- do.call(what = umap_import$UMAP, args = umap.args)
       umap$fit_transform(as.matrix(x = object))
     },
     'uwot' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
       if (is.list(x = object)) {
         umap(
           X = NULL,
@@ -1429,11 +1454,13 @@ RunUMAP.Graph <- function(
   uwot.sgd = FALSE,
   seed.use = 42L,
   metric.kwds = NULL,
+  densmap = FALSE,
+  densmap.kwds = NULL,
   verbose = TRUE,
   reduction.key = 'UMAP_',
   ...
 ) {
-  CheckDots(...)
+  #CheckDots(...)
   if (umap.method != 'umap-learn') {
     warning(
       "Running UMAP on Graph objects is only supported using the umap-learn method",
@@ -1465,7 +1492,7 @@ RunUMAP.Graph <- function(
   b <- b %||% ab.params[[2]]
   n.epochs <- n.epochs %||% 0L
   random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
-  embeddings <- umap$umap_$simplicial_set_embedding(
+  umap.args <- list(
     data = data,
     graph = object,
     n_components = n.components,
@@ -1481,6 +1508,18 @@ RunUMAP.Graph <- function(
     metric_kwds = metric.kwds,
     verbose = verbose
   )
+  if (numeric_version(x = umap$pkg_resources$get_distribution("umap-learn")$version) >=
+      numeric_version(x = "0.5.0")) {
+    umap.args <- c(umap.args, list(
+      densmap = densmap,
+      densmap_kwds = densmap.kwds,
+      output_dens = FALSE
+    ))
+  }
+  embeddings <- do.call(what = umap$umap_$simplicial_set_embedding, args = umap.args)
+  if (length(x = embeddings) == 2) {
+    embeddings <- embeddings[[1]]
+  }
   rownames(x = embeddings) <- colnames(x = data)
   colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
   # center the embeddings on zero
@@ -1578,6 +1617,26 @@ RunUMAP.Neighbor <- function(
 #' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that
 #' use an angular style distance such as cosine, correlation etc. In the case of those metrics
 #' angular forests will be chosen automatically.
+#' @param densmap Whether to use the density-augmented objective of densMAP.
+#' Turning on this option generates an embedding where the local densities
+#' are encouraged to be correlated with those in the original space.
+#' Parameters below with the prefix ‘dens’ further control the behavior
+#' of this extension. Default is FALSE. Only compatible with 'umap-learn' method
+#' and version of umap-learn >= 0.5.0
+#' @param densmap.kwds A dictionary of arguments to pass on to the densMAP optimization.
+#' @param dens.lambda Specific parameter which controls the regularization weight
+#' of the density correlation term in densMAP. Higher values prioritize density
+#' preservation over the UMAP objective, and vice versa for values closer to zero.
+#' Setting this parameter to zero is equivalent to running the original UMAP algorithm.
+#' Default value is 2.
+#' @param dens.frac Specific parameter which controls the fraction of epochs
+#' (between 0 and 1) where the density-augmented objective is used in densMAP.
+#' The first (1 - dens_frac) fraction of epochs optimize the original UMAP
+#' objective before introducing the density correlation term. Default is 0.3.
+#' @param dens.var.shift Specific parameter which specifies a small constant
+#' added to the variance of local radii in the embedding when calculating
+#' the density correlation objective to prevent numerical instability from
+#' dividing by a small number. Default is 0.1.
 #' @param reduction.name Name to store dimensional reduction under in the Seurat object
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. UMAP by default
@@ -1620,6 +1679,10 @@ RunUMAP.Seurat <- function(
   seed.use = 42L,
   metric.kwds = NULL,
   angular.rp.forest = FALSE,
+  densmap = FALSE,
+  dens.lambda = 2,
+  dens.frac = 0.3,
+  dens.var.shift = 0.1,
   verbose = TRUE,
   reduction.name = 'umap',
   reduction.key = 'UMAP_',
@@ -1658,9 +1721,9 @@ RunUMAP.Seurat <- function(
     if (!inherits(x = object[[nn.name]], what = "Neighbor")) {
       stop(
         "Please specify a Neighbor object name, ",
-        "instead of the name of a ", 
-        class(object[[nn.name]]), 
-        " object",   
+        "instead of the name of a ",
+        class(object[[nn.name]]),
+        " object",
         call. = FALSE
       )
     }
@@ -1669,9 +1732,9 @@ RunUMAP.Seurat <- function(
     if (!inherits(x = object[[graph]], what = "Graph")) {
       stop(
         "Please specify a Graph object name, ",
-        "instead of the name of a ", 
-        class(object[[graph]]), 
-        " object",   
+        "instead of the name of a ",
+        class(object[[graph]]),
+        " object",
         call. = FALSE
       )
     }
@@ -1702,6 +1765,10 @@ RunUMAP.Seurat <- function(
     seed.use = seed.use,
     metric.kwds = metric.kwds,
     angular.rp.forest = angular.rp.forest,
+    densmap = densmap,
+    dens.lambda = dens.lambda,
+    dens.frac = dens.frac,
+    dens.var.shift = dens.var.shift,
     reduction.key = reduction.key,
     verbose = verbose
   )
@@ -1764,7 +1831,7 @@ ScoreJackStraw.DimReduc <- function(object, dims = 1:5, score.thresh = 1e-5, ...
   JS(object = object) <- ScoreJackStraw(
     object = JS(object = object),
     dims = dims,
-    score.thresh = 1e-5,
+    score.thresh = score.thresh,
     ...
   )
   return(object)
@@ -1792,6 +1859,7 @@ ScoreJackStraw.Seurat <- function(
   object[[reduction]] <- ScoreJackStraw(
     object = object[[reduction]],
     dims = dims,
+    score.thresh = score.thresh,
     ...
   )
   if (do.plot) {
@@ -2241,6 +2309,7 @@ PrepDR <- function(
 #'
 #' @importFrom irlba irlba
 #'
+#' @concept dimensional_reduction
 #' @rdname RunSPCA
 #' @export
 RunSPCA.default <- function(
@@ -2282,6 +2351,7 @@ RunSPCA.default <- function(
 #' using the variable features for the Assay.
 #'
 #' @rdname RunSPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunSPCA Assay
 #'
@@ -2316,6 +2386,7 @@ RunSPCA.Assay <- function(
 
 #' @param reduction.name dimensional reduction name, spca by default
 #' @rdname RunSPCA
+#' @concept dimensional_reduction
 #' @export
 #' @method RunSPCA Seurat
 #'
