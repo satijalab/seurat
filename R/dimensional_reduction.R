@@ -2425,3 +2425,52 @@ RunSPCA.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
+
+
+
+## run supervised LSI
+##
+RunSLSI  <- function(object,
+                     assay = NULL,
+                     graph,
+                     npc = 50, 
+                     project = TRUE,
+                     reduction.name = "slsi", 
+                     reduction.key = "SLSI_", 
+                     verbose = TRUE
+) {
+  assay <- assay %||% DefaultAssay(object)
+  X <- GetAssayData(object, assay = assay)
+  if (verbose) {
+    message("Smoothing peaks matrix")
+  }
+  XTX.smooth <- t(graph) %*% (t(X) %*% X) %*% graph
+  if (verbose) {
+    message("Running eigendecomposition")
+  }
+  svd.V <- irlba(A = XTX.smooth, nv = npc, nu = npc)
+  sigma <- sqrt(x = svd.V$d) 
+  feature.loadings <- X %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
+  feature.loadings <- as.matrix(x = feature.loadings)
+  if (project) {
+    cell.embeddings <- t(X) %*% feature.loadings %*% diag(x = 1/sigma)
+  } else {
+    cell.embeddings <- svd.V$u
+  }
+  cell.embeddings <- as.matrix(x = cell.embeddings)
+  
+  # construct svd list stored in misc for LSI projection
+  svd.lsi <- svd.V
+  svd.lsi$d <- sigma
+  svd.lsi$u <- feature.loadings
+  svd.lsi$v <- cell.embeddings
+  
+  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
+  object[[reduction.name]] <- CreateDimReducObject(embeddings = cell.embeddings,
+                                                   loadings = feature.loadings,
+                                                   key = reduction.key, 
+                                                   assay = assay,
+                                                   misc = svd.lsi
+                                                   )
+  return(object)
+}
