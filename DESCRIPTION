@@ -119,4 +119,5 @@ Suggests:
     limma,
     metap,
     enrichR,
-    mixtools
+    mixtools,
+    ggrastr
