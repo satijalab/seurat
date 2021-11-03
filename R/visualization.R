@@ -554,6 +554,9 @@ RidgePlot <- function(
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #' @param flip flip plot orientation (identities on x-axis)
+#' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
+# default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+# number of points exceed 100,000.
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -588,7 +591,8 @@ VlnPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = 'feature',
-  flip = FALSE
+  flip = FALSE,
+  raster = NULL
 ) {
   if (
     !is.null(x = split.by) &
@@ -623,7 +627,8 @@ VlnPlot <- function(
     stack = stack,
     combine = combine,
     fill.by = fill.by,
-    flip = flip
+    flip = flip,
+    raster = raster
   ))
 }
 
@@ -5574,6 +5579,8 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param flip flip plot orientation (identities on x-axis)
+# @param raster Convert points to raster format, default is \code{NULL} which
+# automatically rasterizes if plotting more than 100,000 cells
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 # \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -5602,7 +5609,8 @@ ExIPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = NULL,
-  flip = FALSE
+  flip = FALSE,
+  raster = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -5703,7 +5711,8 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        log = log
+        log = log,
+        raster = raster
       ))
     }
   )
@@ -7222,6 +7231,9 @@ SingleDimPlot <- function(
 # @param cols Colors to use for plotting
 # @param log plot Y axis on log scale
 # @param seed.use Random seed to use. If NULL, don't set a seed
+# @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
+# default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+# number of points exceed 100,000.
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
@@ -7244,8 +7256,24 @@ SingleExIPlot <- function(
   pt.size = 0,
   cols = NULL,
   seed.use = 42,
-  log = FALSE
+  log = FALSE,
+  raster = NULL
 ) {
+   if (!is.null(x = raster) && isTRUE(x = raster)){
+    if (!PackageCheck('ggrastr', error = FALSE)) {
+      stop("Please install ggrastr from CRAN to enable rasterization.")
+    }
+  }
+  if (PackageCheck('ggrastr', error = FALSE)) {
+    # Set rasterization to true if ggrastr is installed and
+    # number of points exceeds 100,000
+    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+      message("Rasterizing points since number of points exceeds 100,000.",
+              "\nTo disable this behavior set `raster=FALSE`")
+    }
+    raster <- TRUE
+  }
+
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -7305,13 +7333,25 @@ SingleExIPlot <- function(
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
-        jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+        if (isTRUE(x = raster)) {
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
+        } else {
+          jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+        }
       } else {
-        jitter <- geom_jitter(
-          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-          size = pt.size,
-          show.legend = FALSE
-        )
+        if (isTRUE(x = raster)) {
+          jitter <- ggrastr::rasterize(geom_jitter(
+            position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
+            size = pt.size,
+            show.legend = FALSE
+          ))
+        } else {
+          jitter <- geom_jitter(
+            position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
+            size = pt.size,
+            show.legend = FALSE
+          )
+        }
       }
       log.scale <- scale_y_log10()
       axis.scale <- ylim
