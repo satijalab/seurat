@@ -979,6 +979,7 @@ FeaturePlot <- function(
   blend.threshold = 0.5,
   label = FALSE,
   label.size = 4,
+  label.color = "black",
   repel = FALSE,
   ncol = NULL,
   coord.fixed = FALSE,
@@ -1261,7 +1262,8 @@ FeaturePlot <- function(
           plot = plot,
           id = 'ident',
           repel = repel,
-          size = label.size
+          size = label.size,
+          color = label.color
         )
       }
       # Make FeatureHeatmaps look nice(ish)
