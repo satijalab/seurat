@@ -468,8 +468,10 @@ GetResidual <- function(
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
-#' @param to.upper Converts all feature names to upper case. Can be useful when
-#' analyses require comparisons between human and mouse gene names for example.
+#' @param to.upper Converts all feature names to upper case. This can provide an
+#' approximate conversion of mouse to human gene names which can be useful in an
+#' explorative analysis. For cross-species comparisons, orthologous genes should
+#' be identified across species and used instead.
 #' @param image An object of class VisiumV1. Typically, an output from \code{\link{Read10X_Image}}
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'

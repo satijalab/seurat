@@ -1,4 +1,10 @@
-# Seurat 4.0.4 (2021-08-19)
+# Seurat 4.0.5 (2020-10-04)
+## Changes
+- Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
+- Update concept tags for `RunSPCA()` ([#4978](https://github.com/satijalab/seurat/discussions/4987))
+- Conditionally run tests/packages that use suggested packages ([#5160](https://github.com/satijalab/seurat/pull/5160))
+
+# Seurat 4.0.4 (2020-08-19)
 ## Added
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
 - Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
@@ -7,11 +13,12 @@
 - Add `densify` parameter to `FindMarkers()`
 - Add `ReadParsebio()` function to read output from Parse Biosciences
 - Add the `image.alpha` parameter to `SpatialDimPlot()` and `SpatialFeaturePlot()`
+- Add support for the correlation metric in `RunUMAP` ([#4972](https://github.com/satijalab/seurat/issues/4972))
 
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
 - Bug fix for SCT-based integration in selecting proper reference model ([#4355](https://github.com/satijalab/seurat/issues/4355))
-- Bug fix for reading from absolute paths in ReadMtx ([#4723](https://github.com/satijalab/seurat/issues/4723)) 
+- Bug fix for reading from absolute paths in ReadMtx ([#4723](https://github.com/satijalab/seurat/issues/4723))
 - Bug fix in SingleCellExperiment conversion ([#4633](https://github.com/satijalab/seurat/issues/4633))
 - Bug fix in `FindVariableFeatures()` when using `selection.method = "mvp"` and `binning.method = "equal_frequency"` ([#4712](https://github.com/satijalab/seurat/issues/4712))
 - Bug fix in `DoHeatmap()` to remove random characters from plot legend([#4660](https://github.com/satijalab/seurat/issues/4660))
@@ -21,7 +28,7 @@
 
 # Seurat 4.0.3 (2021-06-10)
 ## Added
-- Add `jitter` parameter to `FeatureScatter()` 
+- Add `jitter` parameter to `FeatureScatter()`
 
 ## Changes
 - Fix issues with `as.SingleCellExperiment.Seurat()` for the latest verion of SingleCellExperiment ([#4532](https://github.com/satijalab/seurat/pull/4532))

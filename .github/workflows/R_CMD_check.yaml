@@ -22,7 +22,7 @@ jobs:
               shell: bash
 
             - name: Check
-              run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check")
+              run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check", force_suggests = FALSE)
               shell: Rscript {0}
 
             - name: Upload check results
