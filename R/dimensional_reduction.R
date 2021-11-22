@@ -2260,18 +2260,19 @@ L2Norm <- function(vec) {
 # @param features  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
 # @ param verbose   Print messages and warnings
-#
+# @importFrom sparseMatrixStats rowVars
 #
 PrepDR <- function(
   object,
   features = NULL,
+  slot = 'scale.data', 
   verbose = TRUE
 ) {
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
-  data.use <- GetAssayData(object = object, slot = "scale.data")
-  if (nrow(x = data.use ) == 0) {
+  data.use <- GetAssayData(object = object, slot = slot)
+  if (nrow(x = data.use ) == 0 && slot == "scale.data") {
     stop("Data has not been scaled. Please run ScaleData and retry")
   }
   features <- features %||% VariableFeatures(object = object)
@@ -2283,7 +2284,13 @@ PrepDR <- function(
     }
   }
   features <- features.keep
-  features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
+  
+  if (inherits(x = data.use, what = 'dgCMatrix')) {
+    features.var <- rowVars(x = data.use[features, ])
+  }
+  else {
+    features.var <- RowVar(x = data.use[features, ])
+  }
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
@@ -2427,35 +2434,53 @@ RunSPCA.Seurat <- function(
 }
 
 
-
-## run supervised LSI
-##
-RunSLSI  <- function(object,
-                     assay = NULL,
-                     graph,
-                     npc = 50, 
-                     project = TRUE,
-                     reduction.name = "slsi", 
-                     reduction.key = "SLSI_", 
-                     verbose = TRUE
+#' @param assay Name of Assay SLSI is being run on
+#' @param npcs Total Number of SLSIs to compute and store (50 by default)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the SLSIs
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. SLSI by default
+#' @param graph Graph used supervised by SLSI
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'
+#' @importFrom irlba irlba
+#'
+#' @concept dimensional_reduction
+#' @rdname RunSLSI
+#' @export
+RunSLSI.default <- function(
+  object,
+  assay = NULL,
+  nlsi = 50,
+  reduction.key = "SLSI_",
+  graph = NULL,
+  verbose = TRUE,
+  project = TRUE, 
+  seed.use = 42,
+  ...
 ) {
-  assay <- assay %||% DefaultAssay(object)
-  X <- GetAssayData(object, assay = assay)
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  nlsi <- min(nlsi, nrow(x = object) - 1)
+  
   if (verbose) {
     message("Smoothing peaks matrix")
   }
-  XTX.smooth <- t(graph) %*% (t(X) %*% X) %*% graph
+  object.smooth <- t(graph) %*% (t(object) %*% object) %*% graph
   if (verbose) {
-    message("Running eigendecomposition")
+    message("Performing eigendecomposition")
   }
-  svd.V <- irlba(A = XTX.smooth, nv = npc, nu = npc)
+  svd.V <- irlba(A = object.smooth, nv = nlsi, nu = nlsi)
   sigma <- sqrt(x = svd.V$d) 
-  feature.loadings <- X %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
+  feature.loadings <- object %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
   feature.loadings <- as.matrix(x = feature.loadings)
   if (project) {
-    cell.embeddings <- t(X) %*% feature.loadings %*% diag(x = 1/sigma)
+    cell.embeddings <- t(object) %*% feature.loadings %*% diag(x = 1/sigma)
   } else {
     cell.embeddings <- svd.V$u
+    rownames(cell.embeddings) <- colnames(object)
   }
   cell.embeddings <- as.matrix(x = cell.embeddings)
   
@@ -2466,11 +2491,97 @@ RunSLSI  <- function(object,
   svd.lsi$v <- cell.embeddings
   
   colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
-  object[[reduction.name]] <- CreateDimReducObject(embeddings = cell.embeddings,
+  reduction.data <- CreateDimReducObject(embeddings = cell.embeddings,
                                                    loadings = feature.loadings,
                                                    key = reduction.key, 
                                                    assay = assay,
                                                    misc = svd.lsi
-                                                   )
+  )
+  return(reduction.data)
+}
+
+
+
+
+#' @param features Features to compute SLSI on. If features=NULL, SLSI will be run
+#' using the variable features for the Assay.
+#'
+#' @rdname RunSLSI
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSPCA Assay
+#'
+RunSLSI.Assay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nlsi = 50,
+  reduction.key = "SLSI_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    slot = "data", 
+    verbose = verbose
+  )
+  reduction.data <- RunSLSI(
+    object = data.use,
+    assay = assay,
+    nlsi = nlsi,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
+
+
+
+#' @param reduction.name dimensional reduction name, spca by default
+#' @rdname RunSLSI
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSLSI Seurat
+#'
+RunSLSI.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nlsi = 50,
+  reduction.name = "slsi",
+  reduction.key = "SLSI_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  if (is.null(x = graph)) {
+    stop("Graph is not provided")
+  } else if (is.character(x = graph)) {
+    graph <- object[[graph]]
+  }
+  reduction.data <- RunSLSI(
+    object = assay.data,
+    assay = assay,
+    features = features,
+    nlsi = nlsi,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
