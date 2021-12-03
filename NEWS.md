@@ -37,7 +37,7 @@
 - Fix issue in SingleCellExperiment conversion where the mainExp would not be set properly
 - Fix for default dispersion info displayed in `VariableFeaturePlot()`
 
-# Seurat 4.0.3 (2020-06-10)
+# Seurat 4.0.3 (2021-06-10)
 ## Added
 - Add `jitter` parameter to `FeatureScatter()`
 
