@@ -154,3 +154,8 @@ reference:
   desc: "Functions included for user convenience and to keep maintain backwards compatability"
 - contents:
   - has_concept("convenience")
+
+- title: "Re-exports"
+  desc: "Functions re-exported from other packages"
+- contents:
+  - reexports
