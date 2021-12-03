@@ -1112,8 +1112,6 @@ MinMax <- function(data, min, max) {
 #' @return Returns the percentage of \code{x} values above the given threshold
 #'
 #' @export
-#'
-#' @export
 #' @concept utilities
 #'
 #' @examples
