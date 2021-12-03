@@ -6,6 +6,7 @@
 - Add `min.cells.group` parameter to `FindConservedMarkers` ([#5079](https://github.com/satijalab/seurat/pull/5079))
 - Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
 - Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
+- Add `label.color` parameter to `FeaturePlot` ([#5314](https://github.com/satijalab/seurat/pull/5314))
 
 # Seurat 4.0.5 (2020-10-04)
 ## Changes
