@@ -581,6 +581,7 @@ CellCycleScoring <- function(
 #' \code{ncontrols} most highly expressed features are kept, and the
 #' prefix is kept. All other rows are retained.
 #'
+#' @importFrom utils head
 #' @importFrom Matrix rowSums
 #'
 #' @export
