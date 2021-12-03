@@ -15,7 +15,8 @@ SingleExIPlot(
   pt.size = 0,
   cols = NULL,
   seed.use = 42,
-  log = FALSE
+  log = FALSE,
+  raster = NULL
 )
 }
 \arguments{
@@ -41,6 +42,10 @@ expression of the attribute being potted}
 \item{seed.use}{Random seed to use. If NULL, don't set a seed}
 
 \item{log}{plot Y axis on log scale}
+
+\item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.
+default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+number of points exceed 100,000.}
 }
 \value{
 A ggplot-based Expression-by-Identity plot

@@ -1265,6 +1265,9 @@ RunUMAP.default <- function(
       if (!py_module_available(module = 'umap')) {
         stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
       }
+      if (!py_module_available(module = 'sklearn')) {
+        stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
+      }
       if (!is.null(x = seed.use)) {
         py_set_seed(seed = seed.use)
       }
@@ -1272,11 +1275,13 @@ RunUMAP.default <- function(
         n.epochs <- as.integer(x = n.epochs)
       }
       umap_import <- import(module = "umap", delay_load = TRUE)
+      sklearn <- import("sklearn", delay_load = TRUE)
       if (densmap &&
           numeric_version(x = umap_import$pkg_resources$get_distribution("umap-learn")$version) <
           numeric_version(x = "0.5.0")) {
         stop("densmap is only supported by versions >= 0.5.0 of umap-learn. Upgrade umap-learn (e.g. pip install --upgrade umap-learn).")
       }
+      random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
       umap.args <- list(
         n_neighbors = as.integer(x = n.neighbors),
         n_components = as.integer(x = n.components),
@@ -1289,6 +1294,7 @@ RunUMAP.default <- function(
         local_connectivity = local.connectivity,
         repulsion_strength = repulsion.strength,
         negative_sample_rate = negative.sample.rate,
+        random_state = random.state,
         a = a,
         b = b,
         metric_kwds = metric.kwds,
@@ -1309,14 +1315,6 @@ RunUMAP.default <- function(
       umap$fit_transform(as.matrix(x = object))
     },
     'uwot' = {
-      if (metric == 'correlation') {
-        warning(
-          "UWOT does not implement the correlation metric, using cosine instead",
-          call. = FALSE,
-          immediate. = TRUE
-        )
-        metric <- 'cosine'
-      }
       if (is.list(x = object)) {
         umap(
           X = NULL,

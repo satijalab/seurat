@@ -25,6 +25,7 @@ FeaturePlot(
   blend.threshold = 0.5,
   label = FALSE,
   label.size = 4,
+  label.color = "black",
   repel = FALSE,
   ncol = NULL,
   coord.fixed = FALSE,
@@ -93,6 +94,8 @@ different colors and different shapes on cells.  Only applicable if \code{raster
 \item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
+
+\item{label.color}{Sets the color of the label text}
 
 \item{repel}{Repel labels}
 
