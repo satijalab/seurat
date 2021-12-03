@@ -6,6 +6,98 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add Azimuth Results
+#'
+#' Add mapping and prediction scores, UMAP embeddings, and imputed assay (if
+#' available)
+#' from Azimuth to an existing or new \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param filename Path to Azimuth mapping scores file
+#'
+#' @return \code{object} with Azimuth results added
+#'
+#' @examples
+#' \dontrun{
+#' object <- AddAzimuthResults(object, filename = "azimuth_results.Rds")
+#' }
+#'
+#' @export
+AddAzimuthResults <- function(object = NULL, filename) {
+  if (is.null(x = filename)) {
+    stop("No Azimuth results provided.")
+  }
+  azimuth_results <- readRDS(file = filename)
+  if (!is.list(x = azimuth_results) || any(!(c('umap', 'pred.df') %in% names(x = azimuth_results)))) {
+    stop("Expected following format for azimuth_results:
+           `list(umap = <DimReduc>, pred.df = <data.frame>[, impADT = <Assay>])`")
+  }
+
+  if (is.null(x = object)) {
+    message("No existing Seurat object provided. Creating new one.")
+    object <- CreateSeuratObject(
+      counts = matrix(
+        nrow = 1,
+        ncol = nrow(x = azimuth_results$umap),
+        dimnames = list(
+          row.names = 'Dummy.feature',
+          col.names = rownames(x = azimuth_results$umap))
+      ),
+      assay = 'Dummy'
+    )
+  } else {
+    overlap.cells <- intersect(
+      x = Cells(x = object),
+      y = rownames(x = azimuth_results$umap)
+    )
+    if (!(all(overlap.cells %in% Cells(x = object)))) {
+      stop("Cells in object do not match cells in download")
+    } else if (length(x = overlap.cells) < length(x = Cells(x = object))) {
+      warning(paste0("Subsetting out ", length(x = Cells(x = object)) - length(x = overlap.cells),
+                     " cells that are absent in downloaded results (perhaps filtered by Azimuth)"))
+      object <- subset(x = object, cells = overlap.cells)
+    }
+  }
+
+  azimuth_results$pred.df$cell <- NULL
+  object <- AddMetaData(object = object, metadata = azimuth_results$pred.df)
+  object[['umap.proj']] <- azimuth_results$umap
+  if ('impADT' %in% names(x = azimuth_results)) {
+    object[['impADT']] <- azimuth_results$impADT
+    if ('Dummy' %in% Assays(object = object)) {
+      DefaultAssay(object = object) <- 'impADT'
+      object[['Dummy']] <- NULL
+    }
+  }
+  return(object)
+}
+
+#' Add Azimuth Scores
+#'
+#' Add mapping and prediction scores from Azimuth to a
+#' \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param filename Path to Azimuth mapping scores file
+#'
+#' @return \code{object} with the mapping scores added
+#'
+#' @examples
+#' \dontrun{
+#' object <- AddAzimuthScores(object, filename = "azimuth_pred.tsv")
+#' }
+#'
+AddAzimuthScores <- function(object, filename) {
+  if (!file.exists(filename)) {
+    stop("Cannot find Azimuth scores file ", filename, call. = FALSE)
+  }
+  object <- AddMetaData(
+    object = object,
+    metadata = read.delim(file = filename, row.names = 1)
+  )
+  return(object)
+}
+
 #' Calculate module scores for feature expression programs in single cells
 #'
 #' Calculate the average expression levels of each program (cluster) on single
@@ -704,14 +796,25 @@ FastRowScale <- function(
 #' @note This function requires internet access
 #'
 #' @param symbols A vector of gene symbols
-#' @param timeout Time to wait before cancelling query in seconds
-#' @param several.ok Allow several current gene sybmols for each provided symbol
+#' @param timeout Time to wait before canceling query in seconds
+#' @param several.ok Allow several current gene symbols for each
+#' provided symbol
+#' @param search.types Type of query to perform:
+#' \describe{
+#'  \item{\dQuote{\code{alias_symbol}}}{Find alternate symbols for the genes
+#'  described by \code{symbols}}
+#'  \item{\dQuote{\code{prev_symbol}}}{Find new new symbols for the genes
+#'  described by \code{symbols}}
+#' }
+#' This parameter accepts multiple options and short-hand options
+#' (eg. \dQuote{\code{prev}} for \dQuote{\code{prev_symbol}})
 #' @param verbose Show a progress bar depicting search progress
 #' @param ... Extra parameters passed to \code{\link[httr]{GET}}
 #'
-#' @return For \code{GeneSymbolThesarus}, if \code{several.ok}, a named list
-#' where each entry is the current symbol found for each symbol provided and the
-#' names are the provided symbols. Otherwise, a named vector with the same information.
+#' @return \code{GeneSymbolThesarus}:, if \code{several.ok}, a named list
+#' where each entry is the current symbol found for each symbol provided and
+#' the names are the provided symbols. Otherwise, a named vector with the
+#' same information.
 #'
 #' @source \url{https://www.genenames.org/} \url{https://www.genenames.org/help/rest/}
 #'
@@ -735,11 +838,13 @@ GeneSymbolThesarus <- function(
   symbols,
   timeout = 10,
   several.ok = FALSE,
+  search.types = c('alias_symbol', 'prev_symbol'),
   verbose = TRUE,
   ...
 ) {
   db.url <- 'http://rest.genenames.org/fetch'
-  search.types <- c('alias_symbol', 'prev_symbol')
+  # search.types <- c('alias_symbol', 'prev_symbol')
+  search.types <- match.arg(arg = search.types, several.ok = TRUE)
   synonyms <- vector(mode = 'list', length = length(x = symbols))
   not.found <- vector(mode = 'logical', length = length(x = symbols))
   multiple.found <- vector(mode = 'logical', length = length(x = symbols))
@@ -1380,7 +1485,7 @@ RegroupIdents <- function(object, metadata) {
 
 #' @rdname UpdateSymbolList
 #'
-#' @return For \code{UpdateSymbolList}, \code{symbols} with updated symbols from
+#' @return \code{UpdateSymbolList}: \code{symbols} with updated symbols from
 #' HGNC's gene names database
 #'
 #' @export
@@ -1402,6 +1507,7 @@ UpdateSymbolList <- function(
     symbols = symbols,
     timeout = timeout,
     several.ok = several.ok,
+    search.types = 'prev_symbol',
     verbose = verbose,
     ...
   ))
@@ -1726,13 +1832,14 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
 
 
 # Create an empty dummy assay to replace existing assay
-#
+#' @importFrom Matrix sparseMatrix
 CreateDummyAssay <- function(assay) {
-  cm <- as.sparse(x = matrix(
-    data = 0,
-    nrow = nrow(x = assay),
-    ncol = ncol(x = assay)
-  ))
+  cm <- sparseMatrix(
+    i = {},
+    j = {},
+    dims = c(nrow(x = assay), ncol(x = assay))
+  )
+  cm <- as(object = cm, Class = "dgCMatrix")
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   # TODO: restore once check.matrix is in SeuratObject

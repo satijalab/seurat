@@ -64,6 +64,7 @@ FindAllMarkers <- function(
   fc.name = NULL,
   base = 2,
   return.thresh = 1e-2,
+  densify = FALSE,
   ...
 ) {
   MapVals <- function(vec, from, to) {
@@ -139,6 +140,7 @@ FindAllMarkers <- function(
           mean.fxn = mean.fxn,
           fc.name = fc.name,
           base = base,
+          densify = densify,
           ...
         )
       },
@@ -239,6 +241,7 @@ FindConservedMarkers <- function(
   grouping.var,
   assay = 'RNA',
   slot = 'data',
+  min.cells.group = 3,
   meta.method = metap::minimump,
   verbose = TRUE,
   ...
@@ -296,6 +299,20 @@ FindConservedMarkers <- function(
     }
     ident.2 <- ident.2.save
     cells.1 <- WhichCells(object = object, idents = ident.use.1)
+    if (length(cells.1) < min.cells.group) {
+      warning(
+        level.use,
+        " has fewer than ",
+        min.cells.group,
+        " cells in Identity: ",
+        paste(ident.1, collapse = ", "),
+        ". Skipping ",
+        level.use,
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      next
+    }
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(Idents(object = object)[cells.2]) > 0))
@@ -461,6 +478,8 @@ FindConservedMarkers <- function(
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param fc.results data.frame from FoldChange
+#' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
+#'
 #'
 #' @importFrom Matrix rowMeans
 #' @importFrom stats p.adjust
@@ -490,6 +509,7 @@ FindMarkers.default <- function(
   min.cells.group = 3,
   pseudocount.use = 1,
   fc.results = NULL,
+  densify = FALSE,
   ...
 ) {
   ValidateCellGroups(
@@ -563,6 +583,7 @@ FindMarkers.default <- function(
     verbose = verbose,
     min.cells.feature = min.cells.feature,
     latent.vars = latent.vars,
+    densify = densify,
     ...
   )
   de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
@@ -608,6 +629,7 @@ FindMarkers.Assay <- function(
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
+  densify = FALSE,
   ...
 ) {
   data.slot <- ifelse(
@@ -652,6 +674,7 @@ FindMarkers.Assay <- function(
     min.cells.group = min.cells.group,
     pseudocount.use = pseudocount.use,
     fc.results = fc.results,
+    densify = densify,
     ...
   )
   return(de.results)
@@ -682,6 +705,7 @@ FindMarkers.DimReduc <- function(
   pseudocount.use = 1,
   mean.fxn = rowMeans,
   fc.name = NULL,
+  densify = FALSE,
   ...
 
 ) {
@@ -733,6 +757,7 @@ FindMarkers.DimReduc <- function(
     verbose = verbose,
     min.cells.feature = min.cells.feature,
     latent.vars = latent.vars,
+    densify = densify,
     ...
   )
   de.results <- cbind(de.results, fc.results)
@@ -802,6 +827,7 @@ FindMarkers.Seurat <- function(
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
+  densify = FALSE,
   ...
 ) {
   if (!is.null(x = group.by)) {
@@ -812,6 +838,9 @@ FindMarkers.Seurat <- function(
   }
   if (!is.null(x = assay) && !is.null(x = reduction)) {
     stop("Please only specify either assay or reduction.")
+  }
+  if (length(x = ident.1) == 0) {
+    stop("At least 1 ident must be specified in `ident.1`")
   }
   # select which data to use
   if (is.null(x = reduction)) {
@@ -836,6 +865,20 @@ FindMarkers.Seurat <- function(
       cells = c(cells$cells.1, cells$cells.2)
     )
   }
+  # check normalization method
+  norm.command <- paste0("NormalizeData.", assay)
+  if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
+    norm.method <- Command(
+      object = object,
+      command = norm.command,
+      value = "normalization.method"
+    )
+    if (norm.method != "LogNormalize") {
+      mean.fxn <- function(x) {
+        return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      }
+    }
+  }
   de.results <- FindMarkers(
     object = data.use,
     slot = slot,
@@ -856,6 +899,8 @@ FindMarkers.Seurat <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     base = base,
+    fc.name = fc.name,
+    densify = densify,
     ...
   )
   return(de.results)
@@ -1617,9 +1662,7 @@ MarkerTest <- function(
 # @param data.use Data to test
 # @param cells.1 Group 1 cells
 # @param cells.2 Group 2 cells
-# @param latent.vars Confounding variables to adjust for in DE test. Default is
-# "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
-# non-UMI based data, set to nGene instead.
+# @param latent.vars Confounding variables to adjust for in DE test
 # @param verbose print output
 # @param \dots Additional parameters to zero-inflated regression (zlm) function
 # in MAST
@@ -1630,17 +1673,6 @@ MarkerTest <- function(
 # genes.
 #
 #' @importFrom stats relevel
-#
-# @export
-#
-# @examples
-# \dontrun{
-#   data("pbmc_small")
-#   pbmc_small
-#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
-#               cells.2 = WhichCells(object = pbmc_small, idents = 2))
-# }
-#
 MASTDETest <- function(
   data.use,
   cells.1,
@@ -1755,6 +1787,7 @@ PerformDE <- function(
   verbose,
   min.cells.feature,
   latent.vars,
+  densify,
   ...
 ) {
   if (!(test.use %in% DEmethods_latent()) && !is.null(x = latent.vars)) {
@@ -1768,35 +1801,39 @@ PerformDE <- function(
   if (!test.use %in% DEmethods_checkdots()) {
     CheckDots(...)
   }
+  data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
+  if (densify){
+    data.use <- as.matrix(x = data.use)
+  }
   de.results <- switch(
     EXPR = test.use,
     'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose,
       ...
     ),
     'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -1805,7 +1842,7 @@ PerformDE <- function(
       verbose = verbose
     ),
     'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -1814,7 +1851,7 @@ PerformDE <- function(
       verbose = verbose
     ),
     'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
@@ -1822,14 +1859,14 @@ PerformDE <- function(
       ...
     ),
     "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose,
       ...
     ),
     "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
+      data.use = data.use,
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,

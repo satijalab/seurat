@@ -90,7 +90,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 \item{order.by.prob}{Order cells on heatmap based on their mixscape knockout
 probability from highest to lowest score.}
 
-\item{group.by}{Regroup cells into a different identity class prior to performing differential expression (see example)}
+\item{group.by}{(Deprecated) Option to split densities based on mixscape
+classification. Please use mixscape.class instead}
 
 \item{mixscape.class}{metadata column with mixscape classifications.}
 

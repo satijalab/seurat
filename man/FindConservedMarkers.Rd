@@ -11,6 +11,7 @@ FindConservedMarkers(
   grouping.var,
   assay = "RNA",
   slot = "data",
+  min.cells.group = 3,
   meta.method = metap::minimump,
   verbose = TRUE,
   ...
@@ -30,6 +31,8 @@ use all other cells for comparison.}
 
 \item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
 \code{slot} will be set to "counts"}
+
+\item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{meta.method}{method for combining p-values. Should be a function from
 the metap package (NOTE: pass the function, not a string)}

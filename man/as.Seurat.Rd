@@ -11,7 +11,7 @@
   x,
   counts = "counts",
   data = "logcounts",
-  assay = "RNA",
+  assay = NULL,
   project = "SingleCellExperiment",
   ...
 )
@@ -21,7 +21,7 @@
 
 \item{slot}{Slot to store expression data as}
 
-\item{assay}{Name to store expression matrices as}
+\item{assay}{Name of assays to convert; set to \code{NULL} for all assays to be converted}
 
 \item{verbose}{Show progress updates}
 
