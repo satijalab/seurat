@@ -22,3 +22,4 @@ set.seed(42)
 PercentAbove(sample(1:100, 10), 75)
 
 }
+\concept{utilities}

@@ -22,3 +22,4 @@ df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
 AutoPointSize(data = df)
 
 }
+\concept{visualization}

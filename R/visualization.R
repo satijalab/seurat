@@ -4015,6 +4015,7 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
 #' @return The "optimal" point size for visualizing these data
 #'
 #' @export
+#' @concept visualization
 #'
 #' @examples
 #' df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
@@ -4940,40 +4941,6 @@ Luminance <- function(color) {
 #'
 PurpleAndYellow <- function(k = 50) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", k = k))
-}
-
-#' Find the Quantile of Data
-#'
-#' Converts a quantile in character form to a number regarding some data.
-#' String form for a quantile is represented as a number prefixed with
-#' \dQuote{q}; for example, 10th quantile is \dQuote{q10} while 2nd quantile is
-#' \dQuote{q2}. Will only take a quantile of non-zero data values
-#'
-#' @param cutoff The cutoff to turn into a quantile
-#' @param data The data to turn find the quantile of
-#'
-#' @return The numerical representation of the quantile
-#'
-#' @importFrom stats quantile
-#'
-#' @export
-#'
-#' @examples
-#' set.seed(42)
-#' SetQuantile('q10', sample(1:100, 10))
-#'
-SetQuantile <- function(cutoff, data) {
-  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
-    this.quantile <- as.numeric(x = sub(
-      pattern = 'q',
-      replacement = '',
-      x = as.character(x = cutoff)
-    )) / 100
-    data <- unlist(x = data)
-    data <- data[data > 0]
-    cutoff <- quantile(x = data, probs = this.quantile)
-  }
-  return(as.numeric(x = cutoff))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

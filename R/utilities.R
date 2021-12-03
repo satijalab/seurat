@@ -985,6 +985,27 @@ GroupCorrelation <- function(
   return(object)
 }
 
+#' Load the Annoy index file
+#'
+#' @param object Neighbor object
+#' @param file Path to file with annoy index
+#'
+#' @return Returns the Neighbor object with the index stored
+#' @export
+#' @concept utilities
+#'
+LoadAnnoyIndex <- function(object, file){
+  metric <- slot(object = object, name = "alg.info")$metric
+  ndim <- slot(object = object, name = "alg.info")$ndim
+  if (is.null(x = metric)) {
+    stop("Provided Neighbor object wasn't generated with annoy")
+  }
+  annoy.idx <- CreateAnn(name = metric, ndim = ndim)
+  annoy.idx$load(path.expand(path = file))
+  Index(object = object) <- annoy.idx
+  return(object)
+}
+
 #' Calculate the variance to mean ratio of logged values
 #'
 #' Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
@@ -1093,6 +1114,7 @@ MinMax <- function(data, min, max) {
 #' @export
 #'
 #' @export
+#' @concept utilities
 #'
 #' @examples
 #' set.seed(42)
@@ -1433,46 +1455,6 @@ PseudobulkExpression <- function(
   }
 }
 
-#' Load the Annoy index file
-#'
-#' @param object Neighbor object
-#' @param file Path to file with annoy index
-#'
-#' @return Returns the Neighbor object with the index stored
-#' @export
-#' @concept utilities
-#'
-LoadAnnoyIndex <- function(object, file){
-  metric <- slot(object = object, name = "alg.info")$metric
-  ndim <- slot(object = object, name = "alg.info")$ndim
-  if (is.null(x = metric)) {
-    stop("Provided Neighbor object wasn't generated with annoy")
-  }
-  annoy.idx <- CreateAnn(name = metric, ndim = ndim)
-  annoy.idx$load(path.expand(path = file))
-  Index(object = object) <- annoy.idx
-  return(object)
-}
-
-#' Save the Annoy index
-#'
-#' @param object A Neighbor object with the annoy index stored
-#' @param file Path to file to write index to
-#'
-#' @export
-#' @concept utilities
-#'
-SaveAnnoyIndex <- function(
-  object,
-  file
-) {
-  index <- Index(object = object)
-  if (is.null(x = index)) {
-    stop("Index for provided Neighbor object is NULL")
-  }
-  index$save(path.expand(path = file))
-}
-
 #' Regroup idents based on meta.data info
 #'
 #' For cells in each ident, set a new identity based on the most common value
@@ -1502,6 +1484,60 @@ RegroupIdents <- function(object, metadata) {
     Idents(object = object, cells = ident.cells) <- new.ident
   }
   return(object)
+}
+
+#' Save the Annoy index
+#'
+#' @param object A Neighbor object with the annoy index stored
+#' @param file Path to file to write index to
+#'
+#' @export
+#' @concept utilities
+#'
+SaveAnnoyIndex <- function(
+  object,
+  file
+) {
+  index <- Index(object = object)
+  if (is.null(x = index)) {
+    stop("Index for provided Neighbor object is NULL")
+  }
+  index$save(path.expand(path = file))
+}
+
+#' Find the Quantile of Data
+#'
+#' Converts a quantile in character form to a number regarding some data.
+#' String form for a quantile is represented as a number prefixed with
+#' \dQuote{q}; for example, 10th quantile is \dQuote{q10} while 2nd quantile is
+#' \dQuote{q2}. Will only take a quantile of non-zero data values
+#'
+#' @param cutoff The cutoff to turn into a quantile
+#' @param data The data to turn find the quantile of
+#'
+#' @return The numerical representation of the quantile
+#'
+#' @importFrom stats quantile
+#'
+#' @export
+#' @concept utilities
+#'
+#' @examples
+#' set.seed(42)
+#' SetQuantile('q10', sample(1:100, 10))
+#'
+SetQuantile <- function(cutoff, data) {
+  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
+    this.quantile <- as.numeric(x = sub(
+      pattern = 'q',
+      replacement = '',
+      x = as.character(x = cutoff)
+    )) / 100
+    data <- unlist(x = data)
+    data <- data[data > 0]
+    cutoff <- quantile(x = data, probs = this.quantile)
+  }
+  return(as.numeric(x = cutoff))
 }
 
 #' @rdname UpdateSymbolList
