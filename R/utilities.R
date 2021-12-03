@@ -1092,8 +1092,6 @@ MinMax <- function(data, min, max) {
 #'
 #' @export
 #'
-#' @export
-#'
 #' @examples
 #' set.seed(42)
 #' PercentAbove(sample(1:100, 10), 75)
