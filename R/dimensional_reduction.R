@@ -2260,12 +2260,12 @@ L2Norm <- function(vec) {
 # @param features  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
 # @ param verbose   Print messages and warnings
-# @importFrom sparseMatrixStats rowVars
+#' @importFrom sparseMatrixStats rowVars
 #
 PrepDR <- function(
   object,
   features = NULL,
-  slot = 'scale.data', 
+  slot = 'scale.data',
   verbose = TRUE
 ) {
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
@@ -2284,7 +2284,7 @@ PrepDR <- function(
     }
   }
   features <- features.keep
-  
+
   if (inherits(x = data.use, what = 'dgCMatrix')) {
     features.var <- rowVars(x = data.use[features, ])
   }
@@ -2433,18 +2433,17 @@ RunSPCA.Seurat <- function(
   return(object)
 }
 
-
 #' @param assay Name of Assay SLSI is being run on
-#' @param npcs Total Number of SLSIs to compute and store (50 by default)
-#' @param verbose Print the top genes associated with high/low loadings for
-#' the SLSIs
+#' @param n Total Number of SLSI components to compute and store
+#' @param verbose Display messages
 #' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. SLSI by default
+#' the number for the dimension names
 #' @param graph Graph used supervised by SLSI
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
+#' @param project Project cell embeddings using SLSI feature loadings
+#' @param seed.use Set a random seed. Setting NULL will not set a seed.
 #'
 #' @importFrom irlba irlba
+#' @importMethodsFrom Matrix t
 #'
 #' @concept dimensional_reduction
 #' @rdname RunSLSI
@@ -2452,70 +2451,68 @@ RunSPCA.Seurat <- function(
 RunSLSI.default <- function(
   object,
   assay = NULL,
-  nlsi = 50,
+  n = 50,
   reduction.key = "SLSI_",
   graph = NULL,
   verbose = TRUE,
-  project = TRUE, 
+  project = TRUE,
   seed.use = 42,
   ...
 ) {
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
-  nlsi <- min(nlsi, nrow(x = object) - 1)
-  
+  n <- min(n, nrow(x = object) - 1)
+
   if (verbose) {
     message("Smoothing peaks matrix")
   }
-  object.smooth <- t(graph) %*% (t(object) %*% object) %*% graph
+  object.smooth <- t(x = graph) %*% (t(x = object) %*% object) %*% graph
   if (verbose) {
     message("Performing eigendecomposition")
   }
-  svd.V <- irlba(A = object.smooth, nv = nlsi, nu = nlsi)
-  sigma <- sqrt(x = svd.V$d) 
+  svd.V <- irlba(A = object.smooth, nv = n, nu = n)
+  sigma <- sqrt(x = svd.V$d)
   feature.loadings <- object %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
   feature.loadings <- as.matrix(x = feature.loadings)
   if (project) {
-    cell.embeddings <- t(object) %*% feature.loadings %*% diag(x = 1/sigma)
+    cell.embeddings <- t(x = object) %*% feature.loadings %*% diag(x = 1/sigma)
   } else {
     cell.embeddings <- svd.V$u
-    rownames(cell.embeddings) <- colnames(object)
+    rownames(x = cell.embeddings) <- colnames(x = object)
   }
   cell.embeddings <- as.matrix(x = cell.embeddings)
-  
+
   # construct svd list stored in misc for LSI projection
   svd.lsi <- svd.V
   svd.lsi$d <- sigma
   svd.lsi$u <- feature.loadings
   svd.lsi$v <- cell.embeddings
-  
+
   colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
-  reduction.data <- CreateDimReducObject(embeddings = cell.embeddings,
-                                                   loadings = feature.loadings,
-                                                   key = reduction.key, 
-                                                   assay = assay,
-                                                   misc = svd.lsi
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    key = reduction.key,
+    assay = assay,
+    misc = svd.lsi
   )
   return(reduction.data)
 }
 
-
-
-
-#' @param features Features to compute SLSI on. If features=NULL, SLSI will be run
+#' @param features Features to compute SLSI on. If NULL, SLSI will be run
 #' using the variable features for the Assay.
 #'
 #' @rdname RunSLSI
 #' @concept dimensional_reduction
 #' @export
-#' @method RunSPCA Assay
+#' @method RunSLSI Assay
 #'
 RunSLSI.Assay <- function(
   object,
   assay = NULL,
   features = NULL,
-  nlsi = 50,
+  n = 50,
   reduction.key = "SLSI_",
   graph = NULL,
   verbose = TRUE,
@@ -2525,13 +2522,13 @@ RunSLSI.Assay <- function(
   data.use <- PrepDR(
     object = object,
     features = features,
-    slot = "data", 
+    slot = "data",
     verbose = verbose
   )
   reduction.data <- RunSLSI(
     object = data.use,
     assay = assay,
-    nlsi = nlsi,
+    n = n,
     reduction.key = reduction.key,
     graph = graph,
     verbose = verbose,
@@ -2541,10 +2538,7 @@ RunSLSI.Assay <- function(
   return(reduction.data)
 }
 
-
-
-
-#' @param reduction.name dimensional reduction name, spca by default
+#' @param reduction.name dimensional reduction name
 #' @rdname RunSLSI
 #' @concept dimensional_reduction
 #' @export
@@ -2554,7 +2548,7 @@ RunSLSI.Seurat <- function(
   object,
   assay = NULL,
   features = NULL,
-  nlsi = 50,
+  n = 50,
   reduction.name = "slsi",
   reduction.key = "SLSI_",
   graph = NULL,
@@ -2573,7 +2567,7 @@ RunSLSI.Seurat <- function(
     object = assay.data,
     assay = assay,
     features = features,
-    nlsi = nlsi,
+    n = n,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
     graph = graph,
