@@ -2439,7 +2439,6 @@ RunSPCA.Seurat <- function(
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names
 #' @param graph Graph used supervised by SLSI
-#' @param project Project cell embeddings using SLSI feature loadings
 #' @param seed.use Set a random seed. Setting NULL will not set a seed.
 #'
 #' @importFrom irlba irlba
@@ -2455,7 +2454,6 @@ RunSLSI.default <- function(
   reduction.key = "SLSI_",
   graph = NULL,
   verbose = TRUE,
-  project = TRUE,
   seed.use = 42,
   ...
 ) {
@@ -2475,12 +2473,7 @@ RunSLSI.default <- function(
   sigma <- sqrt(x = svd.V$d)
   feature.loadings <- object %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
   feature.loadings <- as.matrix(x = feature.loadings)
-  if (project) {
-    cell.embeddings <- t(x = object) %*% feature.loadings %*% diag(x = 1/sigma)
-  } else {
-    cell.embeddings <- svd.V$u
-    rownames(x = cell.embeddings) <- colnames(x = object)
-  }
+  cell.embeddings <- t(x = object) %*% feature.loadings %*% diag(x = 1/sigma)
   cell.embeddings <- as.matrix(x = cell.embeddings)
 
   # construct svd list stored in misc for LSI projection
