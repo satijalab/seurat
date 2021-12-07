@@ -16,7 +16,6 @@ RunSLSI(object, ...)
   reduction.key = "SLSI_",
   graph = NULL,
   verbose = TRUE,
-  project = TRUE,
   seed.use = 42,
   ...
 )
@@ -61,8 +60,6 @@ the number for the dimension names}
 \item{graph}{Graph used supervised by SLSI}
 
 \item{verbose}{Display messages}
-
-\item{project}{Project cell embeddings using SLSI feature loadings}
 
 \item{seed.use}{Set a random seed. Setting NULL will not set a seed.}
 
