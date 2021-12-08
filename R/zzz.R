@@ -46,7 +46,7 @@ AttachDeps <- function(deps) {
 }
 
 .onAttach <- function(libname, pkgname) {
-  AttachDeps(deps = 'SeuratObject')
+  AttachDeps(deps = c('SeuratObject', 'Spirula'))
 }
 
 .onLoad <- function(libname, pkgname) {

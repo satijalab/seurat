@@ -24,6 +24,7 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Remotes: mojaveazure/spirula, mojaveazure/seurat-object@feat/spirula
 Depends:
     R (>= 4.0.0),
     methods
@@ -70,6 +71,7 @@ Imports:
     shiny,
     spatstat.core,
     spatstat.geom,
+    Spirula,
     stats,
     tibble,
     tools,
