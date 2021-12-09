@@ -392,6 +392,26 @@ RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
 
+
+#' Run Graph Laplacian Eigendecomposition
+#'
+#' Run a graph dimensionality reductionxxxxx
+#' xxxxxx
+#' @param object An object
+#' @param ... Arguments passed to other methods and IRLBA
+#'
+#' @return Returns Seurat object with the SPCA calculation stored in the reductions slot
+#' @export
+#'
+#' @rdname RunGraphLaplacian
+#' @export RunGraphLaplacian
+#'
+ 
+RunGraphLaplacian <- function(object, ...) {
+  UseMethod(generic = 'RunGraphLaplacian', object = object)
+}
+
+
 #' Run Independent Component Analysis on gene expression
 #'
 #' Run fastica algorithm from the ica package for ICA dimensionality reduction.

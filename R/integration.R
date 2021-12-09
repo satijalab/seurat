@@ -5583,40 +5583,6 @@ BridgeCellsRepresentation <- function(object.list,
 }
 
 
-LaplacianGraphDecomposition <- function(A, ndim = 50, type = "SM",verbose = FALSE) {
-  ## graph should not be pruned
-  n <- nrow(A)
-  # A lot faster (order of magnitude when n = 1000)
-  Dsq <- sqrt(Matrix::colSums(A))
-  L <- -Matrix::t(A / Dsq) / Dsq
-  Matrix::diag(L) <- 1 + Matrix::diag(L)
-  
-  k <- ndim + 1
-  opt <- list(tol = 1e-4)
-  if (type == "SM"){
-    res <- tryCatch(RSpectra::eigs_sym(L, k = k, which = "SM", opt = opt),
-                    error = function(c) {
-                      NULL
-                    }
-    )
-  }
-  if (type == "LM"){
-    res <- tryCatch(RSpectra::eigs_sym(L,
-                                       k = k, which = "LM", 
-                                       opt = opt
-    ),
-    error = function(c) {
-      NULL
-    }
-    )
-  }
-  
-  vec_indices <- rev(order(res$values, decreasing = TRUE)[1:ndim])
-  eigen.output <- list(eigen_vector = as.matrix(Re(res$vectors[, vec_indices])), 
-                       eigen_value = res$values[vec_indices])
-  return( eigen.output)
-}
-
 
 NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
   
@@ -5828,7 +5794,6 @@ TranferLablesNN <- function(
     x = 1,
     dims = c(nrow(select_nn), ncol(x = reference.object))
   )
-  
   reference.labels.matrix <- as.sparse(
     x = dummy_cols(
       reference.object[[group.by]]
@@ -5839,7 +5804,6 @@ TranferLablesNN <- function(
     replacement = "",
     x = colnames(reference.labels.matrix)
     )
-  
   query.label.mat <- nn.matrix %*% reference.labels.matrix
   query.label.mat <- query.label.mat/k.nn
   rownames(x = query.label.mat) <- Cells(nn.object)
@@ -5856,23 +5820,53 @@ TranferLablesNN <- function(
 
 
 
+## RunLaplacian
+###
 
-RunGraphLaplacian <- function(
+
+
+RunGraphLaplacian.Seurat <- function(
   object, 
   graph, 
   reduction.name = "lap", 
   reduction.key ="LAP_", 
   n = 50
 ) {
-  lap <- LaplacianGraphDecomposition(A = object[[graph]], ndim = n)
-  rownames(lap$eigen_vector) <- Cells(object)
-  colnames(lap$eigen_vector) <- paste0(reduction.key, 1:n )
-  object[[reduction.name]] <- CreateDimReducObject(embeddings = lap$eigen_vector,
-                                                   key = reduction.key,
-                                                   assay = DefaultAssay(object),
-                                                   stdev = lap$eigen_value
-  )
+
+  lap_dir <- RunGraphLaplacian(object = object[[graph]],
+                               n = n,  
+                               reduction.key = reduction.key 
+                               )
+  
+  object[[reduction.name]] <- lap_dir
   return(object)
+}
+
+ 
+#' @importFrom Matrix diag t rowSums
+#' @importFrom RSpectra eigs_sym
+RunGraphLaplacian.default <- function(object, 
+                                      n = 50, 
+                                      reduction.key ="LAP_", 
+                                      verbose = FALSE
+) {
+  
+  D_half <- sqrt(rowSums(object))
+  L <- -1 * (t(object / D_half) / D_half)
+  diag(L) <- 1 + diag(L)
+  L_eigen <- eigs_sym(L, k = n + 1, which = "SM") 
+  new_order <- n:1
+  lap_output <- list(eigen_vector = Re(L_eigen$vectors[, new_order]), 
+                         eigen_value = L_eigen$values[new_order]
+  )
+  rownames(lap_output$eigen_vector) <- colnames(object)
+  colnames(lap_output$eigen_vector) <- paste0(reduction.key, 1:n )
+  lap_dir <- CreateDimReducObject(embeddings = lap_output$eigen_vector,
+                       key = reduction.key,
+                       assay = DefaultAssay(object),
+                       stdev = lap_output$eigen_value
+  )
+  return(lap_dir)
 }
 
  
