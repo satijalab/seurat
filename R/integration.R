@@ -5804,17 +5804,24 @@ RunBridgeIntegration <- function(object.list,
   return(object.merge)
 }
 
-
+# Helper function to transfer labels based on neighbors object
+# @param nn.object  the query neighbors object
+# @param reference.object the reference seurat object
+# @param group.by  A vector of variables to group cells by
+# @return Returns a list for predicted labels, prediction score and matrix
+#' @importFrom Matrix sparseMatrix
+#' @importFrom fastDummies dummy_cols
+#' @importFrom Matrix rowMeans
+#'
 TranferLablesNN <- function(
   nn.object,
   reference.object,
   group.by = NULL
 ){
-  k.nn <- ncol(nn.object@nn.idx)
-  select_nn <- nn.object@nn.idx
+  select_nn <- Indices(nn.object)
+  k.nn <- ncol(select_nn)
   j <- as.numeric(x = t(x = select_nn ))
   i <- ((1:length(x = j)) - 1) %/% k.nn + 1
-  
   nn.matrix <- sparseMatrix(
     i = i,
     j = j,
@@ -5822,23 +5829,29 @@ TranferLablesNN <- function(
     dims = c(nrow(select_nn), ncol(x = reference.object))
   )
   
-  
   reference.labels.matrix <- as.sparse(
-    x = fastDummies::dummy_cols(
+    x = dummy_cols(
       reference.object[[group.by]]
     )[, -1]
   ) 
-  colnames(reference.labels.matrix) <- gsub( paste0(group.by, "_"), "",colnames(reference.labels.matrix))
+  colnames(reference.labels.matrix) <- gsub(
+    pattern = paste0(group.by, "_"),
+    replacement = "",
+    x = colnames(reference.labels.matrix)
+    )
   
-  query.label.mat <- nn.matrix %*%reference.labels.matrix
+  query.label.mat <- nn.matrix %*% reference.labels.matrix
   query.label.mat <- query.label.mat/k.nn
-  rownames(query.label.mat) <- nn.object@cell.names
-  #colnames(query.label) <- gsub(".data_", "", colnames(query.label) )
+  rownames(x = query.label.mat) <- Cells(nn.object)
   prediction.max <- apply(X = query.label.mat, MARGIN = 1, FUN = which.max)
-  query.label <-  colnames(query.label.mat)[prediction.max]
-  query.label.score <-  apply(X = query.label.mat, MARGIN = 1, FUN = max)
+  query.label <- colnames(x = query.label.mat)[prediction.max]
+  query.label.score <- apply(X = query.label.mat, MARGIN = 1, FUN = max)
   
-  return( list(labels = query.label,scores = query.label.score, prediction.mat = query.label.mat))
+  output.list <- list(labels = query.label,
+                      scores = query.label.score, 
+                      prediction.mat = query.label.mat
+                      )
+  return(output.list)
 }
 
 
