@@ -5476,3 +5476,359 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
     }
   }
 }
+
+
+
+
+
+BridgeCellsRepresentation <- function(object.list,
+                                      bridge.object, 
+                                      object.reduction.list,
+                                      bridge.reduction.list,
+                                      dims.list, 
+                                      smooth.by = NULL, 
+                                      laplacian.reduction = NULL, 
+                                      laplacian.dims = NULL, 
+                                      new.assay.name = "Bridge", 
+                                      return.all.assays = FALSE, 
+                                      l2.norm = TRUE, 
+                                      do.center = FALSE, 
+                                      bridge.cells = NULL, 
+                                      verbose = TRUE
+) {
+  
+  if (!is.null(laplacian.reduction) & !is.null(smooth.by)) {
+    stop("when laplacian.reduction is set, smooth.by should set to NULL")
+  }
+  bridge.object[['ident']] <- Idents(object = bridge.object)
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  if (!is.null(bridge.cells)) {
+    bridge.object <- subset(bridge.object, cells = bridge.cells)
+  }
+  if (verbose) {
+    message("Constructing Bridge-cells representation")
+  }
+  object.list <- my.lapply(
+    X = 1:length(x = object.list),
+    FUN = function(x) {
+      SA.inv <- MASS::ginv(
+        X = Embeddings(
+          object = bridge.object, 
+          reduction = bridge.reduction.list[[x]]
+        )[ ,dims.list[[x]]]
+      )
+      if (is.null(smooth.by)) {
+        if (!is.null(laplacian.reduction)) {
+          laplacian.dims <- laplacian.dims %||% 1:ncol(bridge.object[[laplacian.reduction]])
+          lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
+          X <- Embeddings(
+            object = object.list[[x]], 
+            reduction = object.reduction.list[[x]]
+          )[, 1:length(x = dims.list[[x]])] %*% (SA.inv %*% lap.vector)
+          
+        } else {
+          X <- Embeddings(
+            object = object.list[[x]], 
+            reduction = object.reduction.list[[x]]
+          )[, 1:length(x = dims.list[[x]])] %*% SA.inv
+          colnames(X) <- Cells(bridge.object)
+        }
+        
+      } else {
+        smooth.matrix <- as.sparse(
+          x = fastDummies::dummy_cols(
+            bridge.object[[ smooth.by ]]
+          )[, -1]
+        ) 
+        colnames(smooth.matrix) <- gsub( pattern = paste0(smooth.by,"_"),
+                                         replacement = "",
+                                         x = colnames(smooth.matrix)
+        )
+        X <- Embeddings(
+          object = object.list[[x]], 
+          reduction = object.reduction.list[[x]]
+        )[, 1:length( dims.list[[x]])] %*% as.matrix(SA.inv %*% smooth.matrix)
+      }
+      if (l2.norm) {
+        X <- L2Norm(mat = X, MARGIN = 1)
+      }
+      colnames(x = X) <- paste0('bridge_',  colnames(x = X))
+      suppressWarnings(object.list[[x]][[new.assay.name]] <- CreateAssayObject(data = t(X)))
+      object.list[[x]][[new.assay.name]]@misc$SA.inv <- SA.inv
+      DefaultAssay(object.list[[x]]) <- new.assay.name
+      VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
+      object.list[[x]] <- ScaleData(
+        object = object.list[[x]],
+        do.scale = FALSE,
+        do.center = do.center,
+        verbose = FALSE
+      )
+      return (object.list[[x]])
+    }
+  )
+  if (!return.all.assays) {
+    object.list <- my.lapply(
+      X = object.list,
+      FUN = function(x) {
+        x <- DietSeurat(object = x, assay = new.assay.name, scale.data = TRUE)
+        return(x)
+      }
+    )
+  }
+  return(object.list)
+}
+
+
+LaplacianGraphDecomposition <- function(A, ndim = 50, type = "SM",verbose = FALSE) {
+  ## graph should not be pruned
+  n <- nrow(A)
+  # A lot faster (order of magnitude when n = 1000)
+  Dsq <- sqrt(Matrix::colSums(A))
+  L <- -Matrix::t(A / Dsq) / Dsq
+  Matrix::diag(L) <- 1 + Matrix::diag(L)
+  
+  k <- ndim + 1
+  opt <- list(tol = 1e-4)
+  if (type == "SM"){
+    res <- tryCatch(RSpectra::eigs_sym(L, k = k, which = "SM", opt = opt),
+                    error = function(c) {
+                      NULL
+                    }
+    )
+  }
+  if (type == "LM"){
+    res <- tryCatch(RSpectra::eigs_sym(L,
+                                       k = k, which = "LM", 
+                                       opt = opt
+    ),
+    error = function(c) {
+      NULL
+    }
+    )
+  }
+  
+  vec_indices <- rev(order(res$values, decreasing = TRUE)[1:ndim])
+  eigen.output <- list(eigen_vector = as.matrix(Re(res$vectors[, vec_indices])), 
+                       eigen_value = res$values[vec_indices])
+  return( eigen.output)
+}
+
+
+NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
+  
+  select_nn <- nn.object@nn.idx
+  ncol.nn <-  ncol.nn %||% nrow(x = select_nn)
+  col.cells <- col.cells %||% nn.object@cell.names
+  k.nn <- ncol(select_nn)  
+  j <- as.numeric(x = t(x = select_nn ))
+  i <- ((1:length(x = j)) - 1) %/% k.nn + 1
+  nn.matrix <- sparseMatrix(
+    i = i,
+    j = j,
+    x = 1,
+    dims = c(nrow(x = select_nn), ncol.nn)
+  )
+  
+  rownames(x = nn.matrix) <- nn.object@cell.names
+  colnames(x = nn.matrix) <- col.cells
+  return( nn.matrix)
+}
+
+FindDirectAnchor <- function(
+  object.list,
+  assay = "Bridge",
+  slot = "data", 
+  reduction =  NULL,  
+  k.anchor = 20, 
+  k.score = 50, 
+  verbose = TRUE
+) {
+  reduction.name <-reduction %||% paste0(assay, ".reduc")
+  object.list <- lapply(object.list, function(x) {
+    if (is.null(reduction)) {
+      x[[reduction.name]] <- CreateDimReducObject(
+        embeddings = t(GetAssayData(
+          object = x,
+          slot = slot,
+          assay = assay
+        )),
+        key = "L_", 
+        assay = assay 
+      )
+    }  
+    DefaultAssay(x) <- assay
+    x <- DietSeurat(x, assays = assay, dimreducs = reduction.name )
+    return(x)
+  })
+  obj.both <- merge(object.list[[1]], object.list[[2]], merge.dr = reduction.name)
+  
+  objects.ncell <- sapply(X = object.list, FUN = function(x) dim(x = x)[2])
+  offsets <- as.vector(x = cumsum(x = c(0, objects.ncell)))[1:length(x = object.list)]
+  
+  anchors <- FindAnchors(object.pair = obj.both,
+                         assay =  DefaultAssay(obj.both), 
+                         slot = 'data', 
+                         cells1 = colnames(object.list[[1]]), 
+                         cells2 = colnames(object.list[[2]]),
+                         internal.neighbors = NULL,
+                         reduction = reduction.name,
+                         k.anchor = k.anchor,
+                         k.score = k.score,
+                         dims = 1:ncol(obj.both[[reduction.name]]), 
+                         k.filter = NA, 
+                         verbose = verbose
+  )
+  
+  anchors[, 1] <- anchors[, 1] + offsets[1]
+  anchors[, 2] <- anchors[, 2] + offsets[2]
+  
+  # determine all anchors
+  all.anchors <- anchors
+  all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
+  all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
+  
+  
+  
+  command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
+  reference <- NULL
+  anchor.features <- rownames( obj.both )
+  anchor.set <- new(Class = "IntegrationAnchorSet",
+                    object.list = object.list,
+                    reference.objects = reference %||% seq_along(object.list),
+                    anchors = all.anchors,
+                    offsets = offsets,
+                    anchor.features = anchor.features,
+                    command = command
+  )
+  return(anchor.set)
+}
+
+
+RunBridgeIntegration <- function(object.list,
+                                 bridge.object, 
+                                 object.reduction.list,
+                                 bridge.reduction.list,
+                                 dims.list, 
+                                 laplacian.reduction = "lap", 
+                                 laplacian.dims = NULL, 
+                                 smooth.by = NULL, 
+                                 new.assay.name = "Bridge", 
+                                 integrated.reduction.name = "bridge_dr", 
+                                 verbose = TRUE
+) {
+  if (!is.null(smooth.by)) {
+    bridge.method <- "bridge clusters"
+  } else if (!is.null(laplacian.reduction)) {
+    bridge.method <- "bridge graph"
+  } else {
+    bridge.method <- "bridge cells"
+  }
+  if (verbose) {
+    switch(
+      EXPR = bridge.method,
+      'bridge clusters' = {
+        message("Transform cells to bridge clusters space")
+      }, 
+      "bridge graph" = {
+        message('Transform cells to bridge graph laplacian space')
+      }, 
+      "bridge cells" = {
+        message('Transform cells to bridge cells space')
+      }
+    )
+  }
+  
+  object.list <- BridgeCellsRepresentation(object.list = object.list,
+                                           bridge.object = bridge.object,
+                                           object.reduction.list = object.reduction.list, 
+                                           bridge.reduction.list = bridge.reduction.list, 
+                                           dims.list = dims.list,
+                                           smooth.by = smooth.by, 
+                                           new.assay.name = new.assay.name, 
+                                           laplacian.reduction = laplacian.reduction, 
+                                           laplacian.dims = laplacian.dims, 
+                                           verbose = verbose
+  )
+  if (verbose) {
+    message("Integrating Bridge space")
+  }
+
+    anchor <- FindDirectAnchor(
+      object.list = object.list ,
+      slot = "data",  
+      assay = new.assay.name
+    )
+  anchor.emb <- merge(
+    anchor@object.list[[1]],
+    anchor@object.list[[2]], 
+    merge.dr = paste0(new.assay.name, ".reduc")
+  )
+  object.merge <- IntegrateEmbeddings(anchorset = anchor, 
+                                      reductions = anchor.emb[[paste0(new.assay.name, ".reduc")]], 
+                                      new.reduction.name = integrated.reduction.name)
+  return(object.merge)
+}
+
+
+TranferLablesNN <- function(
+  nn.object,
+  reference.object,
+  group.by = NULL
+){
+  k.nn <- ncol(nn.object@nn.idx)
+  select_nn <- nn.object@nn.idx
+  j <- as.numeric(x = t(x = select_nn ))
+  i <- ((1:length(x = j)) - 1) %/% k.nn + 1
+  
+  nn.matrix <- sparseMatrix(
+    i = i,
+    j = j,
+    x = 1,
+    dims = c(nrow(select_nn), ncol(x = reference.object))
+  )
+  
+  
+  reference.labels.matrix <- as.sparse(
+    x = fastDummies::dummy_cols(
+      reference.object[[group.by]]
+    )[, -1]
+  ) 
+  colnames(reference.labels.matrix) <- gsub( paste0(group.by, "_"), "",colnames(reference.labels.matrix))
+  
+  query.label.mat <- nn.matrix %*%reference.labels.matrix
+  query.label.mat <- query.label.mat/k.nn
+  rownames(query.label.mat) <- nn.object@cell.names
+  #colnames(query.label) <- gsub(".data_", "", colnames(query.label) )
+  prediction.max <- apply(X = query.label.mat, MARGIN = 1, FUN = which.max)
+  query.label <-  colnames(query.label.mat)[prediction.max]
+  query.label.score <-  apply(X = query.label.mat, MARGIN = 1, FUN = max)
+  
+  return( list(labels = query.label,scores = query.label.score, prediction.mat = query.label.mat))
+}
+
+
+
+
+RunGraphLaplacian <- function(
+  object, 
+  graph, 
+  reduction.name = "lap", 
+  reduction.key ="LAP_", 
+  n = 50
+) {
+  lap <- LaplacianGraphDecomposition(A = object[[graph]], ndim = n)
+  rownames(lap$eigen_vector) <- Cells(object)
+  colnames(lap$eigen_vector) <- paste0(reduction.key, 1:n )
+  object[[reduction.name]] <- CreateDimReducObject(embeddings = lap$eigen_vector,
+                                                   key = reduction.key,
+                                                   assay = DefaultAssay(object),
+                                                   stdev = lap$eigen_value
+  )
+  return(object)
+}
+
+ 
