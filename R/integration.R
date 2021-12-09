@@ -5714,6 +5714,7 @@ RunBridgeIntegration <- function(object.list,
                                  bridge.reduction.list,
                                  dims.list, 
                                  laplacian.reduction = "lap", 
+                                 anchor.type = c("direct", "cca")[1], 
                                  laplacian.dims = NULL, 
                                  smooth.by = NULL, 
                                  new.assay.name = "Bridge", 
@@ -5742,34 +5743,64 @@ RunBridgeIntegration <- function(object.list,
     )
   }
   
-  object.list <- BridgeCellsRepresentation(object.list = object.list,
-                                           bridge.object = bridge.object,
-                                           object.reduction.list = object.reduction.list, 
-                                           bridge.reduction.list = bridge.reduction.list, 
-                                           dims.list = dims.list,
-                                           smooth.by = smooth.by, 
-                                           new.assay.name = new.assay.name, 
-                                           laplacian.reduction = laplacian.reduction, 
-                                           laplacian.dims = laplacian.dims, 
-                                           verbose = verbose
+  object.list <- BridgeCellsRepresentation(
+    object.list = object.list,
+    bridge.object = bridge.object,
+    object.reduction.list = object.reduction.list, 
+    bridge.reduction.list = bridge.reduction.list, 
+    dims.list = dims.list,
+    smooth.by = smooth.by, 
+    new.assay.name = new.assay.name, 
+    laplacian.reduction = laplacian.reduction, 
+    laplacian.dims = laplacian.dims, 
+    verbose = verbose
   )
   if (verbose) {
     message("Integrating Bridge space")
   }
 
-    anchor <- FindDirectAnchor(
-      object.list = object.list ,
-      slot = "data",  
-      assay = new.assay.name
-    )
-  anchor.emb <- merge(
-    anchor@object.list[[1]],
-    anchor@object.list[[2]], 
+  bridge.reduction.name <- paste0(new.assay.name, ".reduc")
+  object.list <- lapply(
+    X = object.list, 
+    FUN =  function(x) {
+      x[[bridge.reduction.name]] <- CreateDimReducObject(
+        embeddings = t(GetAssayData(
+          object = x,
+          slot = "data",
+          assay = new.assay.name
+        )),
+        key = "L_", 
+        assay = new.assay.name 
+      )
+    return(x)
+  }
+  )
+  merge.emb <- merge(
+  object.list[[1]],
+  object.list[[2]], 
     merge.dr = paste0(new.assay.name, ".reduc")
   )
-  object.merge <- IntegrateEmbeddings(anchorset = anchor, 
-                                      reductions = anchor.emb[[paste0(new.assay.name, ".reduc")]], 
-                                      new.reduction.name = integrated.reduction.name)
+  
+  if (anchor.type == "direct") {
+    anchor <- FindDirectAnchor(
+      object.list = object.list ,
+      slot = "data", 
+      reduction = bridge.reduction.name,
+      assay = new.assay.name
+    )
+  } else if (anchor.type == "cca") {
+    anchor <- FindIntegrationAnchors(object.list = object.list, 
+                                         k.filter = NA,
+                                         scale = FALSE, 
+                                         verbose = verbose)
+  }
+
+  object.merge <- IntegrateEmbeddings(
+    anchorset = anchor, 
+    reductions = merge.emb[[paste0(new.assay.name, ".reduc")]], 
+    new.reduction.name = integrated.reduction.name
+    )
+  
   return(object.merge)
 }
 
