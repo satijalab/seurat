@@ -5503,6 +5503,8 @@ NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
 
 FindDirectAnchor <- function(
   object.list,
+  reference = NULL, 
+  anchor.type = c("Integration", "Transfer")[1], 
   assay = "Bridge",
   slot = "data", 
   reduction =  NULL,  
@@ -5510,6 +5512,11 @@ FindDirectAnchor <- function(
   k.score = 50, 
   verbose = TRUE
 ) {
+  if (!is.null(reference) ) {
+    object.list <- list(object.list[[reference]], object.list[[setdiff(c(1,2),reference)]])
+  }
+  
+  
   reduction.name <-reduction %||% paste0(assay, ".reduc")
   object.list <- lapply(object.list, function(x) {
     if (is.null(reduction)) {
@@ -5545,23 +5552,52 @@ FindDirectAnchor <- function(
                          k.filter = NA, 
                          verbose = verbose
   )
-  anchors[, 1] <- anchors[, 1] + offsets[1]
-  anchors[, 2] <- anchors[, 2] + offsets[2]
-  # determine all anchors
   all.anchors <- anchors
+  
+  all.anchors[, 1] <- all.anchors[, 1] + offsets[1]
+  all.anchors[, 2] <- all.anchors[, 2] + offsets[2]
+  # determine all anchors
+ 
   all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
   all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
   command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
-  reference <- NULL
-  anchor.features <- rownames( obj.both )
-  anchor.set <- new(Class = "IntegrationAnchorSet",
-                    object.list = object.list,
-                    reference.objects = reference %||% seq_along(object.list),
-                    anchors = all.anchors,
-                    offsets = offsets,
-                    anchor.features = anchor.features,
-                    command = command
-  )
+  reference <- reference
+  anchor.features <- rownames(obj.both)
+  if (anchor.type == "Integration") {
+    anchor.set <- new(Class = "IntegrationAnchorSet",
+                      object.list = object.list,
+                      reference.objects = reference %||% seq_along(object.list),
+                      anchors = all.anchors,
+                      offsets = offsets,
+                      anchor.features = anchor.features,
+                      command = command
+    )
+  } else if (anchor.type == "Transfer") {
+    reference.index <- reference 
+    reference <- object.list[[1]]
+    query  <- object.list[[2]]
+    query <- RenameCells(
+      object = query,
+      new.names = paste0(Cells(x = query), "_", "query")
+    )
+    reference <- RenameCells(
+      object = reference,
+      new.names = paste0(Cells(x = reference), "_", "reference")
+    )
+    combined.ob <- suppressWarnings(expr = merge(
+      x = DietSeurat(object = reference, counts = FALSE),
+      y = DietSeurat(object = query, counts = FALSE),
+    ))
+    anchor.set <- new(
+      Class = "TransferAnchorSet",
+      object.list = list(combined.ob),
+      reference.cells = colnames(x = reference),
+      query.cells = colnames(x = query),
+      anchors = anchors,
+      anchor.features = anchor.features,
+      command = command
+    )
+  }
   return(anchor.set)
 }
 
