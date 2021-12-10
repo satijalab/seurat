@@ -2,6 +2,7 @@
 
 using namespace Rcpp;
 
+// the following code in-parts taken from sparseMatrixStats (http://www.bioconductor.org/packages/release/bioc/html/sparseMatrixStats.html).
 // [[Rcpp::export]]
 NumericVector row_sum_dgcmatrix(NumericVector &x, IntegerVector &i, int rows, int cols) {
   NumericVector rowsum(rows, 0.0);
