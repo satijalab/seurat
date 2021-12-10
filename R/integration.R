@@ -5481,109 +5481,6 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 
 
 
-BridgeCellsRepresentation <- function(object.list,
-                                      bridge.object, 
-                                      object.reduction.list,
-                                      bridge.reduction.list,
-                                      dims.list, 
-                                      smooth.by = NULL, 
-                                      laplacian.reduction = NULL, 
-                                      laplacian.dims = NULL, 
-                                      new.assay.name = "Bridge", 
-                                      return.all.assays = FALSE, 
-                                      l2.norm = TRUE, 
-                                      do.center = FALSE, 
-                                      bridge.cells = NULL, 
-                                      verbose = TRUE
-) {
-  
-  if (!is.null(laplacian.reduction) & !is.null(smooth.by)) {
-    stop("when laplacian.reduction is set, smooth.by should set to NULL")
-  }
-  bridge.object[['ident']] <- Idents(object = bridge.object)
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
-  if (!is.null(bridge.cells)) {
-    bridge.object <- subset(bridge.object, cells = bridge.cells)
-  }
-  if (verbose) {
-    message("Constructing Bridge-cells representation")
-  }
-  object.list <- my.lapply(
-    X = 1:length(x = object.list),
-    FUN = function(x) {
-      SA.inv <- MASS::ginv(
-        X = Embeddings(
-          object = bridge.object, 
-          reduction = bridge.reduction.list[[x]]
-        )[ ,dims.list[[x]]]
-      )
-      if (is.null(smooth.by)) {
-        if (!is.null(laplacian.reduction)) {
-          laplacian.dims <- laplacian.dims %||% 1:ncol(bridge.object[[laplacian.reduction]])
-          lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
-          X <- Embeddings(
-            object = object.list[[x]], 
-            reduction = object.reduction.list[[x]]
-          )[, 1:length(x = dims.list[[x]])] %*% (SA.inv %*% lap.vector)
-          
-        } else {
-          X <- Embeddings(
-            object = object.list[[x]], 
-            reduction = object.reduction.list[[x]]
-          )[, 1:length(x = dims.list[[x]])] %*% SA.inv
-          colnames(X) <- Cells(bridge.object)
-        }
-        
-      } else {
-        smooth.matrix <- as.sparse(
-          x = fastDummies::dummy_cols(
-            bridge.object[[ smooth.by ]]
-          )[, -1]
-        ) 
-        colnames(smooth.matrix) <- gsub( pattern = paste0(smooth.by,"_"),
-                                         replacement = "",
-                                         x = colnames(smooth.matrix)
-        )
-        X <- Embeddings(
-          object = object.list[[x]], 
-          reduction = object.reduction.list[[x]]
-        )[, 1:length( dims.list[[x]])] %*% as.matrix(SA.inv %*% smooth.matrix)
-      }
-      if (l2.norm) {
-        X <- L2Norm(mat = X, MARGIN = 1)
-      }
-      colnames(x = X) <- paste0('bridge_',  colnames(x = X))
-      suppressWarnings(object.list[[x]][[new.assay.name]] <- CreateAssayObject(data = t(X)))
-      object.list[[x]][[new.assay.name]]@misc$SA.inv <- SA.inv
-      DefaultAssay(object.list[[x]]) <- new.assay.name
-      VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
-      object.list[[x]] <- ScaleData(
-        object = object.list[[x]],
-        do.scale = FALSE,
-        do.center = do.center,
-        verbose = FALSE
-      )
-      return (object.list[[x]])
-    }
-  )
-  if (!return.all.assays) {
-    object.list <- my.lapply(
-      X = object.list,
-      FUN = function(x) {
-        x <- DietSeurat(object = x, assay = new.assay.name, scale.data = TRUE)
-        return(x)
-      }
-    )
-  }
-  return(object.list)
-}
-
-
-
 NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
   
   select_nn <- nn.object@nn.idx
@@ -5648,17 +5545,12 @@ FindDirectAnchor <- function(
                          k.filter = NA, 
                          verbose = verbose
   )
-  
   anchors[, 1] <- anchors[, 1] + offsets[1]
   anchors[, 2] <- anchors[, 2] + offsets[2]
-  
   # determine all anchors
   all.anchors <- anchors
   all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
   all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
-  
-  
-  
   command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
   reference <- NULL
   anchor.features <- rownames( obj.both )
@@ -5674,6 +5566,91 @@ FindDirectAnchor <- function(
 }
 
 
+#'
+#'
+#'
+#'
+#'
+#'
+#' @importFrom MASS ginv
+#‘ internel
+
+BridgeCellsRepresentation <- function(object.list,
+                                      bridge.object, 
+                                      object.reduction.list,
+                                      bridge.reduction.list,
+                                      dims.list, 
+                                      laplacian.reduction = NULL, 
+                                      laplacian.dims = NULL, 
+                                      new.assay.name = "Bridge", 
+                                      return.all.assays = FALSE, 
+                                      l2.norm = TRUE, 
+                                      do.center = FALSE, 
+                                      verbose = TRUE
+) {
+  laplacian.dims <- laplacian.dims %||% 1:ncol(bridge.object[[laplacian.reduction]])
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  if (verbose) {
+    message("Constructing Bridge-cells representation")
+  }
+  object.list <- my.lapply(
+    X = 1:length(x = object.list),
+    FUN = function(x) {
+      SA.inv <- ginv(
+        X = Embeddings(
+          object = bridge.object, 
+          reduction = bridge.reduction.list[[x]]
+        )[ ,dims.list[[x]]]
+      )
+        if (!is.null(laplacian.reduction)) {
+          lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
+          X <- Embeddings(
+            object = object.list[[x]], 
+            reduction = object.reduction.list[[x]]
+          )[, 1:length(x = dims.list[[x]])] %*% (SA.inv %*% lap.vector)
+          
+        } else {
+          X <- Embeddings(
+            object = object.list[[x]], 
+            reduction = object.reduction.list[[x]]
+          )[, 1:length(x = dims.list[[x]])] %*% SA.inv
+          colnames(X) <- Cells(bridge.object)
+        }
+        
+      if (l2.norm) {
+        X <- L2Norm(mat = X, MARGIN = 1)
+      }
+      colnames(x = X) <- paste0('bridge_',  colnames(x = X))
+      suppressWarnings(object.list[[x]][[new.assay.name]] <- CreateAssayObject(data = t(X)))
+      object.list[[x]][[new.assay.name]]@misc$SA.inv <- SA.inv
+      DefaultAssay(object.list[[x]]) <- new.assay.name
+      VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
+      object.list[[x]] <- ScaleData(
+        object = object.list[[x]],
+        do.scale = FALSE,
+        do.center = do.center,
+        verbose = FALSE
+      )
+      return (object.list[[x]])
+    }
+  )
+  if (!return.all.assays) {
+    object.list <- my.lapply(
+      X = object.list,
+      FUN = function(x) {
+        x <- DietSeurat(object = x, assay = new.assay.name, scale.data = TRUE)
+        return(x)
+      }
+    )
+  }
+  return(object.list)
+}
+
+
 RunBridgeIntegration <- function(object.list,
                                  bridge.object, 
                                  object.reduction.list,
@@ -5682,14 +5659,11 @@ RunBridgeIntegration <- function(object.list,
                                  laplacian.reduction = "lap", 
                                  anchor.type = c("direct", "cca")[1], 
                                  laplacian.dims = NULL, 
-                                 smooth.by = NULL, 
                                  new.assay.name = "Bridge", 
                                  integrated.reduction.name = "bridge_dr", 
                                  verbose = TRUE
 ) {
-  if (!is.null(smooth.by)) {
-    bridge.method <- "bridge clusters"
-  } else if (!is.null(laplacian.reduction)) {
+  if (!is.null(laplacian.reduction)) {
     bridge.method <- "bridge graph"
   } else {
     bridge.method <- "bridge cells"
@@ -5697,9 +5671,6 @@ RunBridgeIntegration <- function(object.list,
   if (verbose) {
     switch(
       EXPR = bridge.method,
-      'bridge clusters' = {
-        message("Transform cells to bridge clusters space")
-      }, 
       "bridge graph" = {
         message('Transform cells to bridge graph laplacian space')
       }, 
@@ -5715,7 +5686,6 @@ RunBridgeIntegration <- function(object.list,
     object.reduction.list = object.reduction.list, 
     bridge.reduction.list = bridge.reduction.list, 
     dims.list = dims.list,
-    smooth.by = smooth.by, 
     new.assay.name = new.assay.name, 
     laplacian.reduction = laplacian.reduction, 
     laplacian.dims = laplacian.dims, 
