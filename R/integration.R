@@ -1749,6 +1749,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name)
   slot(object = anchorset, name = "reference.objects") <- 1
   anchors <- as.data.frame(x = anchors)
   anchors$dataset1 <- 1
@@ -3966,7 +3967,7 @@ MapQueryData <- function(
     X = query.datasets,
     FUN = function(dataset1) {
       if (verbose) {
-        message("Integrating dataset ", dataset1, " with reference dataset")
+        message("\nIntegrating dataset ", dataset1, " with reference dataset")
       }
       filtered.anchors <- anchors[anchors$dataset1 %in% reference.datasets & anchors$dataset2 == dataset1, ]
       integrated <- RunIntegration(
