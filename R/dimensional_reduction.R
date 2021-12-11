@@ -1386,7 +1386,12 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        uwot::umap_transform(
+        if (ncol(object$idx) != model$n_neighbors) {
+          warning("Number of neighbors between query and reference ", 
+          "is not equal to the number of neighbros within reference")
+          model$n_neighbors <- ncol(object$idx)
+        }
+       umap_transform(
           X = NULL,
           nn_method = object,
           model = model,
