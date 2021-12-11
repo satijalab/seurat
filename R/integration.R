@@ -1973,10 +1973,15 @@ MapQuery <- function(
     reference.dims <- query.dims <- 1:ncol(x = ref.cca.embedding)
   } else if (grepl(pattern = "lsi", x = slot(object = anchorset, name = "command")$reduction))  {
     anchor.reduction <- "lsiproject"
-  } else {
+  }  else if (grepl(pattern = "FindDirectAnchor",
+                    x = slot(object = 
+                             slot(object = anchor_t, name = "command"),
+                             name = "name"))) {
+    anchor.reduction <- slot(object = anchorset, name = "command")$reduction 
+  }else {
     stop("unkown type of anchors")
   }
-
+ 
 
   reference.reduction <- reference.reduction %||%
     slot(object = anchorset, name = "command")$reference.reduction %||%
@@ -2017,7 +2022,8 @@ MapQuery <- function(
         ), transferdata.args
       )
     )
-    if (transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
+    if (inherits(x = transferdata.args$weight.reduction , "character") &&
+           transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
       reuse.weights.matrix <- TRUE
     }
   }
@@ -2890,6 +2896,7 @@ TransferData <- function(
     if (verbose) {
       message("Running PCA on query dataset")
     }
+  
     features <- slot(object = anchorset, name = "anchor.features")
     query.ob <- query
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
@@ -2937,6 +2944,7 @@ TransferData <- function(
     }
     weight.reduction <- combined.ob[[weight.reduction]]
   }
+  dims <- dims %||% (1:ncol(weight.reduction))
   if (max(dims) > ncol(x = weight.reduction)) {
     stop("dims is larger than the number of available dimensions in ",
          "weight.reduction (", ncol(x = weight.reduction), ").", call. = FALSE)
@@ -5224,7 +5232,8 @@ ValidateParams_TransferData <- function(
     stop("None of the provided refdata elements are valid.", call. = FALSE)
   }
   ModifyParam(param = "refdata", value = refdata)
-  valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi")
+  object.reduction <- Reductions(object = slot(object = anchorset, name = "object.list")[[1]])
+  valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi", object.reduction)
   if (!inherits(x = weight.reduction, "DimReduc")) {
     if (!weight.reduction %in% valid.weight.reduction) {
       stop("Please provide one of ", paste(valid.weight.reduction, collapse = ", "), " or a custom DimReduc to ",
@@ -5250,8 +5259,8 @@ ValidateParams_TransferData <- function(
            ncol(x = weight.reduction), ").", call. = FALSE)
     }
   } else {
-    if (is.null(x = dims)) {
-      ModifyParam(param = "dims", value = 1:length(x = slot(object = anchorset, name = "command")$dims))
+    if (is.null(x = dims) && !is.null(x = slot(object = anchorset, name = "command")$dims)) {
+     ModifyParam(param = "dims", value = 1:length(x = slot(object = anchorset, name = "command")$dims))
     }
   }
 
@@ -5590,8 +5599,9 @@ FindDirectAnchor <- function(
       new.names = paste0(Cells(x = reference), "_", "reference")
     )
     combined.ob <- suppressWarnings(expr = merge(
-      x = DietSeurat(object = reference, counts = FALSE),
-      y = DietSeurat(object = query, counts = FALSE),
+      x = reference,
+      y = query,
+      merge.dr = reduction.name
     ))
     anchor.set <- new(
       Class = "TransferAnchorSet",
