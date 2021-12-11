@@ -2041,6 +2041,7 @@ MapQuery <- function(
       message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
       query.dims <- reference.dims
     }
+    ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
     query <- do.call(
       what = ProjectUMAP,
       args = c(list(
@@ -2050,7 +2051,8 @@ MapQuery <- function(
         reference = reference,
         reference.dims = reference.dims,
         reference.reduction = reference.reduction,
-        reduction.model = reduction.model
+        reduction.model = reduction.model,
+        k.param = ref_nn.num
         ), projectumap.args
       )
     )
