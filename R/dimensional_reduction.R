@@ -479,6 +479,7 @@ ProjectUMAP.Seurat <- function(
     neighbor.name = neighbor.name,
     reduction.model = reference[[reduction.model]],
     reduction.key = reduction.key,
+    assay = DefaultAssay(query),
     ...
   )
   query[[reduction.name]] <- proj.umap$proj.umap
