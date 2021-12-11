@@ -444,18 +444,15 @@ RunPCA <- function(object, ...) {
 #' Run Supervised Latent Semantic Indexing
 #'
 #' Run a supervised LSI (SLSI) dimensionality reduction supervised by a
-#' cell-cell kernel. SLSI is used to capture a linear transformation that
-#' maximizes its dependency to the given cell-cell kernel.
+#' cell-cell kernel. SLSI is used to capture a linear transformation of peaks 
+#' that maximizes its dependency to the given cell-cell kernel.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return Returns Seurat object with the SPCA calculation stored in the
+#' @return Returns Seurat object with the SLSI calculation stored in the
 #' reductions slot
-#' @references Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ.
-#' Supervised principal component analysis: Visualization, classification and
-#' regression on subspaces and submanifolds.
-#' Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{https://www.sciencedirect.com/science/article/pii/S0031320310005819?casa_token=AZMFg5OtPnAAAAAA:_Udu7GJ7G2ed1-XSmr-3IGSISUwcHfMpNtCj-qacXH5SBC4nwzVid36GXI3r8XG8dK5WOQui};
+#' 
 #' @export
 #'
 #' @rdname RunSLSI
