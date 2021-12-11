@@ -1911,6 +1911,8 @@ LocalStruct <- function(
 #'   reference UMAP using \code{\link{ProjectUMAP}}}
 #' }
 #'
+#' @importFrom rlang invoke
+#' 
 #' @export
 #' @concept integration
 #'
@@ -2003,9 +2005,9 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
-    query <- do.call(
-      what = TransferData,
-      args = c(list(
+    query <- invoke(
+      .fn = TransferData,
+      .args  = c(list(
         anchorset = anchorset,
         reference = reference,
         query = query,
@@ -2020,9 +2022,9 @@ MapQuery <- function(
     }
   }
   if (anchor.reduction != "cca"){
-    query <- do.call(
-      what = IntegrateEmbeddings,
-      args = c(list(
+    query <- invoke(
+      .fn = IntegrateEmbeddings,
+      .args  = c(list(
         anchorset = anchorset,
         reference = reference,
         query = query,
@@ -2042,9 +2044,9 @@ MapQuery <- function(
       query.dims <- reference.dims
     }
     ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
-    query <- do.call(
-      what = ProjectUMAP,
-      args = c(list(
+    query <- invoke(
+      .fn = ProjectUMAP,
+      .args  = c(list(
         query = query,
         query.reduction = new.reduction.name,
         query.dims = query.dims,
