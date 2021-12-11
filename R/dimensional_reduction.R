@@ -2260,7 +2260,7 @@ L2Norm <- function(vec) {
 # @param features  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
 # @ param verbose   Print messages and warnings
-#' @importFrom sparseMatrixStats rowVars
+#
 #
 PrepDR <- function(
   object,
@@ -2286,7 +2286,7 @@ PrepDR <- function(
   features <- features.keep
 
   if (inherits(x = data.use, what = 'dgCMatrix')) {
-    features.var <- rowVars(x = data.use[features, ])
+    features.var <- RowVarSparse(mat = data.use[features, ])
   }
   else {
     features.var <- RowVar(x = data.use[features, ])
