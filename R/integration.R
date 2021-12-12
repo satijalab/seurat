@@ -5734,6 +5734,7 @@ FindBridgeAnchor <- function(object.list,
     bridge.method <- "bridge cells"
   }
   if (verbose) {
+    message("Finding ", anchor.type," anchors")
     switch(
       EXPR = bridge.method,
       "bridge graph" = {
