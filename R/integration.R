@@ -1930,8 +1930,9 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
+  transfer.reduction <- slot(object = anchorset, name = "command")$reduction
   # determine anchor type
-  if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
+  if (grepl(pattern = "pca", x = transfer.reduction)) {
     anchor.reduction <- "pcaproject"
     # check if the anchorset can be used for mapping
     if (is.null(x = slot(object = anchorset, name = "command")$reference.reduction)) {
@@ -1939,7 +1940,7 @@ MapQuery <- function(
       'FindTransferAnchors, so the resulting AnchorSet object cannot be used ',
       'in the MapQuery function.')
     }
-  } else if (grepl(pattern = "cca", x = slot(object = anchorset, name = "command")$reduction)) {
+  } else if (grepl(pattern = "cca", x = transfer.reduction)) {
     anchor.reduction <- "cca"
     ref.cca.embedding <- Embeddings(
       slot(object = anchorset, name = "object.list")[[1]][["cca"]]
@@ -1969,10 +1970,14 @@ MapQuery <- function(
       )
     reference.reduction <- new.reduction.name <- "cca"
     reference.dims <- query.dims <- 1:ncol(x = ref.cca.embedding)
-  } else if (grepl(pattern = "lsi", x = slot(object = anchorset, name = "command")$reduction))  {
+  } else if (grepl(pattern = "lsi", x = transfer.reduction)) {
     anchor.reduction <- "lsiproject"
-  }  else if (grepl(pattern = "FindBridgeAnchor", x = slot(object = slot(object = anchorset, name = "command"), name = "name"))){
-    anchor.reduction <- paste0( slot(object = anchorset, name = "command")$bridge.assay.name, ".reduc")
+  }  else if (grepl(pattern = "direct", x = transfer.reduction)){
+    anchor.reduction <- paste0(
+      slot(object = anchorset, 
+           name = "command")$bridge.assay.name, 
+      ".reduc"
+      )
     ref.reduction.emb <- Embeddings(
       object = 
         slot(
