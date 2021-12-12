@@ -1930,7 +1930,6 @@ MapQuery <- function(
   projectumap.args = list(),
   verbose = TRUE
 ) {
-
   # determine anchor type
   if (grepl(pattern = "pca", x = slot(object = anchorset, name = "command")$reduction)) {
     anchor.reduction <- "pcaproject"
@@ -1972,12 +1971,27 @@ MapQuery <- function(
     reference.dims <- query.dims <- 1:ncol(x = ref.cca.embedding)
   } else if (grepl(pattern = "lsi", x = slot(object = anchorset, name = "command")$reduction))  {
     anchor.reduction <- "lsiproject"
-  }  else if (grepl(pattern = "FindDirectAnchor",
-                    x = slot(object = 
-                             slot(object = anchor_t, name = "command"),
-                             name = "name"))) {
-    anchor.reduction <- slot(object = anchorset, name = "command")$reduction 
-  }else {
+  }  else if (grepl(pattern = "FindBridgeAnchor", x = slot(object = slot(object = anchorset, name = "command"), name = "name"))){
+    anchor.reduction <- paste0( slot(object = anchorset, name = "command")$bridge.assay.name, ".reduc")
+    ref.reduction.emb <- Embeddings(
+      object = 
+        slot(
+          object = anchorset, 
+          name = "object.list"
+          )[[1]][[anchor.reduction]])[
+            slot(object = anchorset, name = "reference.cells"),]
+    rownames(ref.reduction.emb) <- gsub(
+      pattern = "_reference",
+      replacement = "",
+      x = rownames(ref.reduction.emb) 
+      )
+     reference[[anchor.reduction]] <- CreateDimReducObject(
+       embeddings = ref.reduction.emb,
+       key = "L_", 
+       assay = DefaultAssay(reference)
+       )
+  } 
+  else {
     stop("unkown type of anchors")
   }
  
@@ -5583,7 +5597,7 @@ FindDirectAnchor <- function(
     } else if (anchor.type == "Transfer") {
       reference.index <- reference 
       reference <- object.list[[reference.index]]
-      query  <- object.list[[setdiff(reference.index, c(1,2))]]
+      query  <- object.list[[setdiff(c(1,2), reference.index)]]
       query <- RenameCells(
         object = query,
         new.names = paste0(Cells(x = query), "_", "query")
@@ -5794,7 +5808,7 @@ FindBridgeAnchor <- function(object.list = NULL,
                              anchor.type = c("Integration", "Transfer")[1], 
                              reference = NULL,
                              laplacian.reduction = "lap", 
-                             anchor.method = c("direct", "cca")[1], 
+                             reduction = c("direct", "cca")[1], 
                              dims.cca = 1:30, 
                              laplacian.dims = NULL, 
                              bridge.assay.name = "Bridge", 
@@ -5850,7 +5864,7 @@ FindBridgeAnchor <- function(object.list = NULL,
     }
   )
   
-  if (anchor.method == "direct") {
+  if (reduction == "direct") {
     anchor <- FindDirectAnchor(
       object.list = object.list ,
       reference = reference,  
@@ -5859,12 +5873,13 @@ FindBridgeAnchor <- function(object.list = NULL,
       reduction = bridge.reduction.name,
       assay = bridge.assay.name
     )
-  }else if (anchor.method == "cca") {
+  } else if (reduction == "cca") {
     anchor <- switch(EXPR = anchor.type, 
                      "Integration" = {
                        anchor <- FindIntegrationAnchors(
                          object.list = object.list, 
                          k.filter = NA,
+                         reference = reference, 
                          reduction = "cca", 
                          scale = FALSE,
                          dims = dims.cca,
@@ -5889,8 +5904,11 @@ FindBridgeAnchor <- function(object.list = NULL,
                        )
                      }
     )
- 
   }
+  slot(object = anchor, name = "command") <- LogSeuratCommand(
+    object = object.list[[1]], 
+    return.command = TRUE
+    )
   return(anchor)
   
 }
