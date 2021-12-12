@@ -1438,7 +1438,6 @@ IntegrateData <- function(
       reference.model <- model.list[[which(reference.model)]]
     }
   }
-
   if (length(x = reference.datasets) == length(x = object.list)) {
     if (normalization.method == "SCT") {
       reference.integrated[[new.assay.name]] <- CreateSCTAssayObject(
@@ -5526,94 +5525,89 @@ FindDirectAnchor <- function(
   k.score = 50, 
   verbose = TRUE
 ) {
-  if (!is.null(reference) ) {
-    object.list <- list(object.list[[reference]], object.list[[setdiff(c(1,2),reference)]])
-  }
-  
-  
-  reduction.name <-reduction %||% paste0(assay, ".reduc")
-  object.list <- lapply(object.list, function(x) {
-    if (is.null(reduction)) {
-      x[[reduction.name]] <- CreateDimReducObject(
-        embeddings = t(GetAssayData(
-          object = x,
-          slot = slot,
-          assay = assay
-        )),
-        key = "L_", 
-        assay = assay 
-      )
-    }  
+  reduction.name <- reduction %||% paste0(assay, ".reduc")
+  if (!reduction %in% Reductions(object.list[[1]])) {
+    object.list <- lapply(object.list, function(x) {
+      if (is.null(reduction)) {
+        x[[reduction.name]] <- CreateDimReducObject(
+          embeddings = t(GetAssayData(
+            object = x,
+            slot = slot,
+            assay = assay
+          )),
+          key = "L_", 
+          assay = assay 
+        )
+      }  
     DefaultAssay(x) <- assay
     x <- DietSeurat(x, assays = assay, dimreducs = reduction.name )
     return(x)
-  })
-  obj.both <- merge(object.list[[1]], object.list[[2]], merge.dr = reduction.name)
-  
-  objects.ncell <- sapply(X = object.list, FUN = function(x) dim(x = x)[2])
-  offsets <- as.vector(x = cumsum(x = c(0, objects.ncell)))[1:length(x = object.list)]
-  
-  anchors <- FindAnchors(object.pair = obj.both,
-                         assay =  DefaultAssay(obj.both), 
-                         slot = 'data', 
-                         cells1 = colnames(object.list[[1]]), 
-                         cells2 = colnames(object.list[[2]]),
-                         internal.neighbors = NULL,
-                         reduction = reduction.name,
-                         k.anchor = k.anchor,
-                         k.score = k.score,
-                         dims = 1:ncol(obj.both[[reduction.name]]), 
-                         k.filter = NA, 
-                         verbose = verbose
+    }
   )
-  all.anchors <- anchors
-  
-  all.anchors[, 1] <- all.anchors[, 1] + offsets[1]
-  all.anchors[, 2] <- all.anchors[, 2] + offsets[2]
-  # determine all anchors
- 
-  all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
-  all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
-  command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
-  reference <- reference
-  anchor.features <- rownames(obj.both)
-  if (anchor.type == "Integration") {
-    anchor.set <- new(Class = "IntegrationAnchorSet",
-                      object.list = object.list,
-                      reference.objects = reference %||% seq_along(object.list),
-                      anchors = all.anchors,
-                      offsets = offsets,
-                      anchor.features = anchor.features,
-                      command = command
+}
+    object.both <- merge(object.list[[1]], object.list[[2]], merge.dr = reduction.name)
+    objects.ncell <- sapply(X = object.list, FUN = function(x) dim(x = x)[2])
+    offsets <- as.vector(x = cumsum(x = c(0, objects.ncell)))[1:length(x = object.list)]
+    anchors <- FindAnchors(object.pair = object.both,
+                           assay =  DefaultAssay(object.both), 
+                           slot = 'data', 
+                           cells1 = colnames(object.list[[1]]), 
+                           cells2 = colnames(object.list[[2]]),
+                           internal.neighbors = NULL,
+                           reduction = reduction.name,
+                           k.anchor = k.anchor,
+                           k.score = k.score,
+                           dims = 1:ncol(object.both[[reduction.name]]), 
+                           k.filter = NA, 
+                           verbose = verbose
     )
-  } else if (anchor.type == "Transfer") {
-    reference.index <- reference 
-    reference <- object.list[[1]]
-    query  <- object.list[[2]]
-    query <- RenameCells(
-      object = query,
-      new.names = paste0(Cells(x = query), "_", "query")
-    )
-    reference <- RenameCells(
-      object = reference,
-      new.names = paste0(Cells(x = reference), "_", "reference")
-    )
-    combined.ob <- suppressWarnings(expr = merge(
-      x = reference,
-      y = query,
-      merge.dr = reduction.name
-    ))
-    anchor.set <- new(
-      Class = "TransferAnchorSet",
-      object.list = list(combined.ob),
-      reference.cells = colnames(x = reference),
-      query.cells = colnames(x = query),
-      anchors = anchors,
-      anchor.features = anchor.features,
-      command = command
-    )
-  }
-  return(anchor.set)
+    inte.anchors <- anchors
+    inte.anchors[, 1] <- inte.anchors[, 1] + offsets[1]
+    inte.anchors[, 2] <- inte.anchors[, 2] + offsets[2]
+    # determine all anchors
+    inte.anchors <- rbind(inte.anchors, inte.anchors[, c(2, 1, 3)])
+    inte.anchors <- AddDatasetID(anchor.df = inte.anchors, offsets = offsets, obj.lengths = objects.ncell)
+    command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
+    
+    anchor.features <- rownames(object.both)
+    if (anchor.type == "Integration") {
+      anchor.set <- new(Class = "IntegrationAnchorSet",
+                        object.list = object.list,
+                        reference.objects = reference %||% seq_along(object.list),
+                        anchors = inte.anchors,
+                        weight.reduction = object.both[[reduction.name]], 
+                        offsets = offsets,
+                        anchor.features = anchor.features,
+                        command = command
+      )
+    } else if (anchor.type == "Transfer") {
+      reference.index <- reference 
+      reference <- object.list[[reference.index]]
+      query  <- object.list[[setdiff(reference.index, c(1,2))]]
+      query <- RenameCells(
+        object = query,
+        new.names = paste0(Cells(x = query), "_", "query")
+      )
+      reference <- RenameCells(
+        object = reference,
+        new.names = paste0(Cells(x = reference), "_", "reference")
+      )
+      combined.ob <- suppressWarnings(expr = merge(
+        x = reference,
+        y = query,
+        merge.dr = reduction.name
+      ))
+      anchor.set <- new(
+        Class = "TransferAnchorSet",
+        object.list = list(combined.ob),
+        reference.cells = colnames(x = reference),
+        query.cells = colnames(x = query),
+        anchors = anchors,
+        anchor.features = anchor.features,
+        command = command
+      )
+    }
+    return(anchor.set)
 }
 
 
@@ -5633,7 +5627,7 @@ BridgeCellsRepresentation <- function(object.list,
                                       dims.list, 
                                       laplacian.reduction = NULL, 
                                       laplacian.dims = NULL, 
-                                      new.assay.name = "Bridge", 
+                                      bridge.assay.name = "Bridge", 
                                       return.all.assays = FALSE, 
                                       l2.norm = TRUE, 
                                       do.center = FALSE, 
@@ -5676,9 +5670,9 @@ BridgeCellsRepresentation <- function(object.list,
         X <- L2Norm(mat = X, MARGIN = 1)
       }
       colnames(x = X) <- paste0('bridge_',  colnames(x = X))
-      suppressWarnings(object.list[[x]][[new.assay.name]] <- CreateAssayObject(data = t(X)))
-      object.list[[x]][[new.assay.name]]@misc$SA.inv <- SA.inv
-      DefaultAssay(object.list[[x]]) <- new.assay.name
+      suppressWarnings(object.list[[x]][[bridge.assay.name]] <- CreateAssayObject(data = t(X)))
+      object.list[[x]][[bridge.assay.name]]@misc$SA.inv <- SA.inv
+      DefaultAssay(object.list[[x]]) <- bridge.assay.name
       VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
       object.list[[x]] <- ScaleData(
         object = object.list[[x]],
@@ -5693,7 +5687,7 @@ BridgeCellsRepresentation <- function(object.list,
     object.list <- my.lapply(
       X = object.list,
       FUN = function(x) {
-        x <- DietSeurat(object = x, assay = new.assay.name, scale.data = TRUE)
+        x <- DietSeurat(object = x, assay = bridge.assay.name, scale.data = TRUE)
         return(x)
       }
     )
@@ -5790,6 +5784,117 @@ RunBridgeIntegration <- function(object.list,
   
   return(object.merge)
 }
+
+ 
+FindBridgeAnchor <- function(object.list = NULL,
+                             bridge.object, 
+                             object.reduction.list,
+                             bridge.reduction.list,
+                             dims.list, 
+                             anchor.type = c("Integration", "Transfer")[1], 
+                             reference = NULL,
+                             laplacian.reduction = "lap", 
+                             anchor.method = c("direct", "cca")[1], 
+                             dims.cca = 1:30, 
+                             laplacian.dims = NULL, 
+                             bridge.assay.name = "Bridge", 
+                             verbose = TRUE) {
+  if (!is.null(laplacian.reduction)) {
+    bridge.method <- "bridge graph"
+  } else {
+    bridge.method <- "bridge cells"
+  }
+  if (verbose) {
+    switch(
+      EXPR = bridge.method,
+      "bridge graph" = {
+        message('Transform cells to bridge graph laplacian space')
+      }, 
+      "bridge cells" = {
+        message('Transform cells to bridge cells space')
+      }
+    )
+  }
+  if (anchor.type == "Transfer") {
+    reference <- reference %||% c(1)
+    query <- setdiff(c(1,2), reference)
+  }  
+
+  bridge.reduction.name <- paste0(bridge.assay.name, ".reduc")
+  
+  object.list <- BridgeCellsRepresentation(
+    object.list = object.list ,
+    bridge.object = bridge.object,
+    object.reduction.list = object.reduction.list, 
+    bridge.reduction.list = bridge.reduction.list, 
+    dims.list = dims.list,
+    bridge.assay.name = bridge.assay.name, 
+    laplacian.reduction = laplacian.reduction, 
+    laplacian.dims = laplacian.dims, 
+    verbose = verbose
+  )
+  # assay to dimensional reduction
+  object.list <- lapply(
+    X = object.list, 
+    FUN =  function(x) {
+      x[[bridge.reduction.name]] <- CreateDimReducObject(
+        embeddings = t(GetAssayData(
+          object = x,
+          slot = "data",
+          assay = bridge.assay.name
+        )),
+        key = "L_", 
+        assay = bridge.assay.name 
+      )
+      return(x)
+    }
+  )
+  
+  if (anchor.method == "direct") {
+    anchor <- FindDirectAnchor(
+      object.list = object.list ,
+      reference = reference,  
+      slot = "data", 
+      anchor.type = anchor.type,
+      reduction = bridge.reduction.name,
+      assay = bridge.assay.name
+    )
+  }else if (anchor.method == "cca") {
+    anchor <- switch(EXPR = anchor.type, 
+                     "Integration" = {
+                       anchor <- FindIntegrationAnchors(
+                         object.list = object.list, 
+                         k.filter = NA,
+                         reduction = "cca", 
+                         scale = FALSE,
+                         dims = dims.cca,
+                         verbose = verbose)
+                       slot(
+                         object = anchor,
+                         name = "weight.reduction"
+                         ) <- merge(object.list[[1]][[bridge.reduction.name]],
+                                    object.list[[2]][[bridge.reduction.name]]
+                                    )
+                       anchor
+                     }, 
+                     "Transfer" = {
+                       anchor <-  FindTransferAnchors(
+                         reference = object.list[[reference]], 
+                         query = object.list[[query]], 
+                         reduction = "cca",
+                         scale = FALSE, 
+                         k.filter = NA,
+                         dims = dims.cca,
+                         verbose = verbose
+                       )
+                     }
+    )
+ 
+  }
+  return(anchor)
+  
+}
+
 
 # Helper function to transfer labels based on neighbors object
 # @param nn.object  the query neighbors object

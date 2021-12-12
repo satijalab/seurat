@@ -30,6 +30,7 @@ setOldClass(Classes = 'package_version')
 #' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
 #' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
+#' @slot weight.reduction The weight dimensional reduction used to calculate weight matrix
 #' @slot anchor.features The features used when performing anchor finding.
 #' @slot neighbors List containing Neighbor objects for reuse later (e.g. mapping)
 #' @slot command Store log of parameters that were used
@@ -49,6 +50,7 @@ AnchorSet <- setClass(
     query.cells = "vector",
     anchors = "ANY",
     offsets = "ANY",
+    weight.reduction = "DimReduc",
     anchor.features = "ANY",
     neighbors = "list",
     command = "ANY"
