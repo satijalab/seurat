@@ -1567,6 +1567,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
   anchors <- slot(object = anchorset, name = 'anchors')
+  reductions <- reductions %||%  slot(object = anchorset, name = 'weight.reduction')
   ValidateParams_IntegrateEmbeddings_IntegrationAnchors(
     anchorset = anchorset,
     object.list = object.list,
@@ -5514,7 +5515,6 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 
 
 NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
-  
   select_nn <- nn.object@nn.idx
   ncol.nn <-  ncol.nn %||% nrow(x = select_nn)
   col.cells <- col.cells %||% nn.object@cell.names
@@ -5715,7 +5715,7 @@ BridgeCellsRepresentation <- function(object.list,
 }
 
 
-FindBridgeAnchor <- function(object.list = NULL,
+FindBridgeAnchor <- function(object.list,
                              bridge.object, 
                              object.reduction.list,
                              bridge.reduction.list,
@@ -5723,9 +5723,9 @@ FindBridgeAnchor <- function(object.list = NULL,
                              anchor.type = c("Integration", "Transfer")[1], 
                              reference = NULL,
                              laplacian.reduction = "lap", 
+                             laplacian.dims = NULL, 
                              reduction = c("direct", "cca")[1], 
                              dims.cca = 1:30, 
-                             laplacian.dims = NULL, 
                              bridge.assay.name = "Bridge", 
                              verbose = TRUE) {
   if (!is.null(laplacian.reduction)) {
@@ -5881,9 +5881,7 @@ TranferLablesNN <- function(
 
 ## RunLaplacian
 ###
-
-
-
+ 
 RunGraphLaplacian.Seurat <- function(
   object, 
   graph, 
@@ -5891,7 +5889,6 @@ RunGraphLaplacian.Seurat <- function(
   reduction.key ="LAP_", 
   n = 50
 ) {
-
   lap_dir <- RunGraphLaplacian(object = object[[graph]],
                                n = n,  
                                reduction.key = reduction.key 
@@ -5909,8 +5906,7 @@ RunGraphLaplacian.default <- function(object,
                                       reduction.key ="LAP_", 
                                       verbose = FALSE
 ) {
-  
-  D_half <- sqrt(rowSums(object))
+  D_half <- sqrt(x = rowSums(x = object))
   L <- -1 * (t(object / D_half) / D_half)
   diag(L) <- 1 + diag(L)
   L_eigen <- eigs_sym(L, k = n + 1, which = "SM") 
