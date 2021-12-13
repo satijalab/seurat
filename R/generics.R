@@ -448,7 +448,7 @@ RunPCA <- function(object, ...) {
 #' that maximizes its dependency to the given cell-cell kernel.
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods
+#' @param ... Arguments passed to IRLBA irlba
 #'
 #' @return Returns Seurat object with the SLSI calculation stored in the
 #' reductions slot

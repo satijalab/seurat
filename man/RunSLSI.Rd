@@ -48,7 +48,7 @@ RunSLSI(object, ...)
 \arguments{
 \item{object}{An object}
 
-\item{...}{Arguments passed to other methods}
+\item{...}{Arguments passed to IRLBA irlba}
 
 \item{assay}{Name of Assay SLSI is being run on}
 
@@ -69,18 +69,12 @@ using the variable features for the Assay.}
 \item{reduction.name}{dimensional reduction name}
 }
 \value{
-Returns Seurat object with the SPCA calculation stored in the
+Returns Seurat object with the SLSI calculation stored in the
 reductions slot
 }
 \description{
 Run a supervised LSI (SLSI) dimensionality reduction supervised by a
-cell-cell kernel. SLSI is used to capture a linear transformation that
-maximizes its dependency to the given cell-cell kernel.
-}
-\references{
-Barshan E, Ghodsi A, Azimifar Z, Jahromi MZ.
-Supervised principal component analysis: Visualization, classification and
-regression on subspaces and submanifolds.
-Pattern Recognition. 2011 Jul 1;44(7):1357-71. \url{https://www.sciencedirect.com/science/article/pii/S0031320310005819?casa_token=AZMFg5OtPnAAAAAA:_Udu7GJ7G2ed1-XSmr-3IGSISUwcHfMpNtCj-qacXH5SBC4nwzVid36GXI3r8XG8dK5WOQui};
+cell-cell kernel. SLSI is used to capture a linear transformation of peaks 
+that maximizes its dependency to the given cell-cell kernel.
 }
 \concept{dimensional_reduction}

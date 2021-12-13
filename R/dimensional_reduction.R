@@ -2469,7 +2469,7 @@ RunSLSI.default <- function(
   if (verbose) {
     message("Performing eigendecomposition")
   }
-  svd.V <- irlba(A = object.smooth, nv = n, nu = n)
+  svd.V <- irlba(A = object.smooth, nv = n, nu = n, ...)
   sigma <- sqrt(x = svd.V$d)
   feature.loadings <- object %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
   feature.loadings <- as.matrix(x = feature.loadings)
