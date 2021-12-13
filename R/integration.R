@@ -6132,17 +6132,25 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
   return(m)
 }
 
-
+#' xxxxx
+#' 
+#' 
+#' @rdname LeverageScore
+#' @export
 LeverageScore.default <- function(
   object,
   features = NULL,
   nsketch = 5000L,
-  ndims = 200L,
+  ndims = NULL,
   sampling.method = c("CountSketch", "Gaussian"),
   MARGIN = 2L,
+  eps = 0.5, 
+  seed = 123,
   verbose = TRUE,
   ...
 ) {
+  features <- features %||% rownames(object)
+  ndims <- ndims %||% ncol(x = object)
   MARGIN <- MARGIN %/% 1L
   if (!MARGIN %in% seq.int(from = 1L, to = 2L)) {
     stop("'MARGIN' must be either 1 or 2")
@@ -6155,12 +6163,15 @@ LeverageScore.default <- function(
   ncells <- dim(x = object)[[MARGIN]]
   S <- switch(
     EXPR = sampling.method,
-    "CountSketch" = CountSketch(nrow = nsketch, ncol = ncells),
-    "Gaussian" = matrix(
-      data = rnorm(n = nsketch * ncells, mean = 0L, sd = 1 / ncells ^ 2),
-      nrow = nsketch,
-      ncol = ncells
-    )
+    "CountSketch" = CountSketch(nrow = nsketch, ncol = ncells, seed = seed),
+    "Gaussian" = {
+      set.seed(seed)
+      matrix(
+        data = rnorm(n = nsketch * ncells, mean = 0L, sd = 1 / (ncells ^ 2)),
+        nrow = nsketch,
+        ncol = ncells
+      )
+    }
   )
   if (!is.null(x = features)) {
     object <- if (MARGIN == 1L) {
@@ -6181,6 +6192,7 @@ LeverageScore.default <- function(
     )
     object <- tf(object)
   }
+  # row of object is cell, col of matrix is feature
   sa <- S %*% object
   qr.sa <- base::qr(x = sa)
   R <- if (inherits(x = qr.sa, what = "sparseQR")) {
@@ -6189,16 +6201,99 @@ LeverageScore.default <- function(
     base::qr.R(qr = qr.sa)
   }
   R.inv <- solve(a = R)
-  JL <- SeuratObject::as.sparse(x = JLEmbed(
-    nrow = ncol(x = R.inv),
-    ncol = ndims,
-    eps = 0.5
-  ))
   if (isTRUE(x = verbose)) {
     message("Random projection")
   }
+  JL <- SeuratObject::as.sparse(x = JLEmbed(
+    nrow = ncol(x = R.inv),
+    ncol = ndims,
+    eps = eps,
+    seed = seed
+  ))
   Z <- object %*% (R.inv %*% JL)
   return(rowSums(x = Z ^ 2))
 }
+
+#' ssssxxxxx
+#' 
+#' @rdname LeverageScore
+#' @export
+#' @method LeverageScore Assay
+#' 
+#'  
+LeverageScore.Assay <- function(object,
+                                features = NULL,
+                                nsketch = 5000L,
+                                ndims = NULL,
+                                sampling.method = c("CountSketch", "Gaussian")[1],
+                                slot = "data", 
+                                seed = 123, 
+                                eps = 0.5, 
+                                verbose = TRUE, 
+                                ...) {
+  features <- features %||% VariableFeatures(object = object)
+  ndims <- ndims%||%ncol(object)
+  data <- GetAssayData(object, slot = slot)[features,]
+  score <- LeverageScore(
+    object = data, 
+    features = features, 
+    nsketch = nsketch, 
+    ndims = ndims, 
+    sampling.method = sampling.method,
+    seed = seed, 
+    eps = eps,
+    verbose = verbose, 
+    ...
+  )
+return(score)
+}
+
+#' ssssxxxxx
+#' 
+#' @rdname LeverageScore
+#' @export
+#' @method LeverageScore Seurat
+#' 
+LeverageScore.Seurat <- function(object,
+                                 features = NULL,
+                                 assay = NULL,
+                                 nsketch = 5000L,
+                                 ndims = NULL,
+                                 var.name = "leverage.score",
+                                 sampling.method = c("CountSketch", "Gaussian")[1],
+                                 slot = "data",
+                                 eps = 0.5,
+                                 seed = 123,
+                                 verbose = TRUE,
+                                 ...
+) {
+  assay <- assay%||% DefaultAssay(object)
+  features <- features %||% VariableFeatures(object)
+  ndims <- ndims %||% ncol(object)
+  
+  if (is.null(features)) {
+    stop("No variable features are set. Please run FindVariableFeatures.")
+  }
+  if (var.name %in% colnames(object[[]])) {
+    var.name.exist <- var.name
+    var.name <- rev(make.unique(colnames(object[[]]), var.name.exist))[1]
+    warning(var.name.exist, " is already existed in the meta.data. ", 
+            var.name, " will store leverage score value")
+  }
+  object[[var.name]] <- LeverageScore(
+    object = GetAssay(object = object, assay = assay),
+    features = features, 
+    nsketch = nsketch, 
+    ndims = ndims, 
+    sampling.method = sampling.method, 
+    seed = seed, 
+    slot = slot,
+    eps = eps, 
+    verbose = verbose, 
+    ...
+  )
+  return(object)
+}
+
 
  

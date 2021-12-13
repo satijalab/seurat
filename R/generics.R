@@ -302,6 +302,18 @@ IntegrateEmbeddings <- function(anchorset, ...) {
   UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
 }
 
+
+#' Leverage score
+#' xxxx
+#' xxxx
+#' @param object An object
+#' @export LeverageScore
+#' 
+LeverageScore <- function(object, ...) {
+  UseMethod(generic = 'LeverageScore', object = object)
+}
+
+
 #' Metric for evaluating mapping success
 #'
 #' This metric was designed to help identify query cells that aren't well
