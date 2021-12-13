@@ -6144,13 +6144,25 @@ LeverageScore.default <- function(
   ndims = NULL,
   sampling.method = c("CountSketch", "Gaussian"),
   MARGIN = 2L,
-  eps = 0.5, 
+  eps = 0.5,
   seed = 123,
   verbose = TRUE,
   ...
 ) {
-  features <- features %||% rownames(object)
+  features <- features %||% rownames(x = object)
+  if (length(x = features) > 5000) {
+    stop("when the number of feature is larger than 5000, this implementation will be too slow")
+  }
+  if (length(x = features) > ncol(x = object)/1.1) {
+    stop("the number of features is too close to the number cells in the object")
+  }
   ndims <- ndims %||% ncol(x = object)
+  if (nsketch < 1.1*length(x = features)) {
+    warning("nsketch is too close to the number of features",
+            "nsketch is reset to ", round(1.1*length(x = features)))
+    nsketch <-  1.1*length(x = features)
+  }
+  nsketch <- min(nsketch, ndims)
   MARGIN <- MARGIN %/% 1L
   if (!MARGIN %in% seq.int(from = 1L, to = 2L)) {
     stop("'MARGIN' must be either 1 or 2")
@@ -6192,6 +6204,9 @@ LeverageScore.default <- function(
     )
     object <- tf(object)
   }
+  if (verbose) {
+    message("Performing QR decomposition of the sketch matrix")
+  }
   # row of object is cell, col of matrix is feature
   sa <- S %*% object
   qr.sa <- base::qr(x = sa)
@@ -6226,13 +6241,13 @@ LeverageScore.Assay <- function(object,
                                 nsketch = 5000L,
                                 ndims = NULL,
                                 sampling.method = c("CountSketch", "Gaussian")[1],
-                                slot = "data", 
-                                seed = 123, 
-                                eps = 0.5, 
-                                verbose = TRUE, 
+                                slot = "data",
+                                seed = 123,
+                                eps = 0.5,
+                                verbose = TRUE,
                                 ...) {
   features <- features %||% VariableFeatures(object = object)
-  ndims <- ndims%||%ncol(object)
+  ndims <- ndims%||%ncol(x = object)
   data <- GetAssayData(object, slot = slot)[features,]
   score <- LeverageScore(
     object = data, 
@@ -6267,19 +6282,14 @@ LeverageScore.Seurat <- function(object,
                                  verbose = TRUE,
                                  ...
 ) {
-  assay <- assay%||% DefaultAssay(object)
-  features <- features %||% VariableFeatures(object)
-  ndims <- ndims %||% ncol(object)
+  assay <- assay %||% DefaultAssay(object)
+  features <- features %||% VariableFeatures(object = object[[assay]])
+  ndims <- ndims %||% ncol(x = object)
   
   if (is.null(features)) {
     stop("No variable features are set. Please run FindVariableFeatures.")
   }
-  if (var.name %in% colnames(object[[]])) {
-    var.name.exist <- var.name
-    var.name <- rev(make.unique(colnames(object[[]]), var.name.exist))[1]
-    warning(var.name.exist, " is already existed in the meta.data. ", 
-            var.name, " will store leverage score value")
-  }
+  var.name <- CheckMetaVarName(object = object, var.name = var.name)
   object[[var.name]] <- LeverageScore(
     object = GetAssay(object = object, assay = assay),
     features = features, 
@@ -6294,6 +6304,51 @@ LeverageScore.Seurat <- function(object,
   )
   return(object)
 }
+CheckMetaVarName <- function(object, var.name) {
+  if (var.name %in% colnames(x = object[[]])) {
+    var.name.exist <- var.name
+    var.name <- rev(
+      x = make.unique(
+        names = c(colnames(object[[]]), var.name.exist)
+        )
+      )[1]
+    warning(var.name.exist, " is already existed in the meta.data. ",
+            var.name, " will store leverage score value")
+  }
+  return(var.name)
+}
 
+
+#'
+#'
+#'
+#'
+#' @return Returns a sub-sampled seurat object
+LeverageScoreSampling <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  var.name = "leverage.score",
+  seed = 123,
+  num.cells = 5000,
+  ...) {
+  var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  object <- LeverageScore(
+    object = object,
+    assay = assay, 
+    features = features, 
+    var.name = var.name, 
+    seed = seed,
+    ...
+    )
+  num.cells <- min(num.cells, ncol(x = object))
+  set.seed(seed)
+  sampled.cells <- sample(x = Cells(x = object),
+                          size = num.cells,
+                          prob = object[[var.name]][,1]
+                          )
+  object.sampled <- subset(x = object, cells = sampled.cells)
+  return(object.sampled)
+}
 
  
