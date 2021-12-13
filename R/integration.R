@@ -5533,15 +5533,21 @@ NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
   return( nn.matrix)
 }
 
+
+# Find Anchor direct from assay
+#
+#
+# @return Returns an Integration or TranserAnchor set
+
 FindDirectAnchor <- function(
   object.list,
-  reference = NULL, 
-  anchor.type = c("Integration", "Transfer")[1], 
+  reference = NULL,
+  anchor.type = c("Integration", "Transfer")[1],
   assay = "Bridge",
-  slot = "data", 
-  reduction =  NULL,  
-  k.anchor = 20, 
-  k.score = 50, 
+  slot = "data",
+  reduction =  NULL,
+  k.anchor = 20,
+  k.score = 50,
   verbose = TRUE
 ) {
   reduction.name <- reduction %||% paste0(assay, ".reduc")
@@ -5554,12 +5560,12 @@ FindDirectAnchor <- function(
             slot = slot,
             assay = assay
           )),
-          key = "L_", 
-          assay = assay 
+          key = "L_",
+          assay = assay
         )
-      }  
+      }
     DefaultAssay(x) <- assay
-    x <- DietSeurat(x, assays = assay, dimreducs = reduction.name )
+    x <- DietSeurat(x, assays = assay, dimreducs = reduction.name)
     return(x)
     }
   )
@@ -5567,17 +5573,20 @@ FindDirectAnchor <- function(
     object.both <- merge(object.list[[1]], object.list[[2]], merge.dr = reduction.name)
     objects.ncell <- sapply(X = object.list, FUN = function(x) dim(x = x)[2])
     offsets <- as.vector(x = cumsum(x = c(0, objects.ncell)))[1:length(x = object.list)]
+    if (verbose) {
+      message("Finding ",  anchor.type," anchors from assay ", assay)
+    }
     anchors <- FindAnchors(object.pair = object.both,
-                           assay =  DefaultAssay(object.both), 
-                           slot = 'data', 
-                           cells1 = colnames(object.list[[1]]), 
+                           assay =  DefaultAssay(object.both),
+                           slot = 'data',
+                           cells1 = colnames(object.list[[1]]),
                            cells2 = colnames(object.list[[2]]),
                            internal.neighbors = NULL,
                            reduction = reduction.name,
                            k.anchor = k.anchor,
                            k.score = k.score,
-                           dims = 1:ncol(object.both[[reduction.name]]), 
-                           k.filter = NA, 
+                           dims = 1:ncol(object.both[[reduction.name]]),
+                           k.filter = NA,
                            verbose = verbose
     )
     inte.anchors <- anchors
@@ -5585,22 +5594,25 @@ FindDirectAnchor <- function(
     inte.anchors[, 2] <- inte.anchors[, 2] + offsets[2]
     # determine all anchors
     inte.anchors <- rbind(inte.anchors, inte.anchors[, c(2, 1, 3)])
-    inte.anchors <- AddDatasetID(anchor.df = inte.anchors, offsets = offsets, obj.lengths = objects.ncell)
+    inte.anchors <- AddDatasetID(
+      anchor.df = inte.anchors,
+      offsets = offsets,
+      obj.lengths = objects.ncell
+      )
     command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
-    
     anchor.features <- rownames(object.both)
     if (anchor.type == "Integration") {
       anchor.set <- new(Class = "IntegrationAnchorSet",
                         object.list = object.list,
                         reference.objects = reference %||% seq_along(object.list),
                         anchors = inte.anchors,
-                        weight.reduction = object.both[[reduction.name]], 
+                        weight.reduction = object.both[[reduction.name]],
                         offsets = offsets,
                         anchor.features = anchor.features,
                         command = command
       )
     } else if (anchor.type == "Transfer") {
-      reference.index <- reference 
+      reference.index <- reference
       reference <- object.list[[reference.index]]
       query  <- object.list[[setdiff(c(1,2), reference.index)]]
       query <- RenameCells(
@@ -5630,26 +5642,26 @@ FindDirectAnchor <- function(
 }
 
 
-#'
+#' Use bridge cells to represent single-modality object
 #'
 #'
 #'
 #'
 #'
 #' @importFrom MASS ginv
-#‘ internel
+#‘ 
 
 BridgeCellsRepresentation <- function(object.list,
-                                      bridge.object, 
+                                      bridge.object,
                                       object.reduction.list,
                                       bridge.reduction.list,
                                       dims.list, 
-                                      laplacian.reduction = NULL, 
+                                      laplacian.reduction = NULL,
                                       laplacian.dims = NULL, 
-                                      bridge.assay.name = "Bridge", 
-                                      return.all.assays = FALSE, 
-                                      l2.norm = TRUE, 
-                                      do.center = FALSE, 
+                                      bridge.assay.name = "Bridge",
+                                      return.all.assays = FALSE,
+                                      l2.norm = TRUE,
+                                      do.center = FALSE,
                                       verbose = TRUE
 ) {
   laplacian.dims <- laplacian.dims %||% 1:ncol(bridge.object[[laplacian.reduction]])
@@ -5676,20 +5688,20 @@ BridgeCellsRepresentation <- function(object.list,
             object = object.list[[x]], 
             reduction = object.reduction.list[[x]]
           )[, 1:length(x = dims.list[[x]])] %*% (SA.inv %*% lap.vector)
-          
         } else {
           X <- Embeddings(
-            object = object.list[[x]], 
+            object = object.list[[x]],
             reduction = object.reduction.list[[x]]
           )[, 1:length(x = dims.list[[x]])] %*% SA.inv
           colnames(X) <- Cells(bridge.object)
         }
-        
       if (l2.norm) {
         X <- L2Norm(mat = X, MARGIN = 1)
       }
       colnames(x = X) <- paste0('bridge_',  colnames(x = X))
-      suppressWarnings(object.list[[x]][[bridge.assay.name]] <- CreateAssayObject(data = t(X)))
+      suppressWarnings(
+        object.list[[x]][[bridge.assay.name]] <- CreateAssayObject(data = t(X))
+        )
       object.list[[x]][[bridge.assay.name]]@misc$SA.inv <- SA.inv
       DefaultAssay(object.list[[x]]) <- bridge.assay.name
       VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
@@ -5756,6 +5768,8 @@ BridgeCellsRepresentation <- function(object.list,
 #'   \item{direct: Use assay data as a dimensional reduction}
 #' }
 #' @param bridge.assay.name Assay name used for bridge object reconstruction value
+#' @param k.anchor How many neighbors (k) to use when picking anchors
+#' @param k.score How many neighbors (k) to use when scoring anchors
 #' @param verbose Print messages and progress
 #' @param ... Additional parameters passed to \code{FindIntegrationAnchors} or
 #' \code{FindTransferAnchors}
@@ -5767,16 +5781,18 @@ BridgeCellsRepresentation <- function(object.list,
 #' 
 
 FindBridgeAnchor <- function(object.list,
-                             bridge.object, 
+                             bridge.object,
                              object.reduction.list,
                              bridge.reduction.list,
-                             dims.list, 
-                             anchor.type = c("Integration", "Transfer")[1], 
+                             dims.list,
+                             anchor.type = c("Integration", "Transfer")[1],
                              reference = NULL,
                              laplacian.reduction = "lap", 
                              laplacian.dims = NULL, 
                              reduction = c("direct", "cca")[1], 
                              bridge.assay.name = "Bridge",
+                             k.anchor = 20,
+                             k.score = 50,
                              verbose = TRUE,
                              ...
                              ) {
@@ -5803,16 +5819,15 @@ FindBridgeAnchor <- function(object.list,
   }  
 
   bridge.reduction.name <- paste0(bridge.assay.name, ".reduc")
-  
   object.list <- BridgeCellsRepresentation(
     object.list = object.list ,
     bridge.object = bridge.object,
-    object.reduction.list = object.reduction.list, 
-    bridge.reduction.list = bridge.reduction.list, 
+    object.reduction.list = object.reduction.list,
+    bridge.reduction.list = bridge.reduction.list,
     dims.list = dims.list,
-    bridge.assay.name = bridge.assay.name, 
-    laplacian.reduction = laplacian.reduction, 
-    laplacian.dims = laplacian.dims, 
+    bridge.assay.name = bridge.assay.name,
+    laplacian.reduction = laplacian.reduction,
+    laplacian.dims = laplacian.dims,
     verbose = verbose
   )
   # assay to dimensional reduction
@@ -5825,32 +5840,36 @@ FindBridgeAnchor <- function(object.list,
           slot = "data",
           assay = bridge.assay.name
         )),
-        key = "L_", 
+        key = "L_",
         assay = bridge.assay.name 
       )
       return(x)
     }
   )
-  
   if (reduction == "direct") {
     anchor <- FindDirectAnchor(
       object.list = object.list ,
-      reference = reference,  
-      slot = "data", 
+      reference = reference,
+      slot = "data",
       anchor.type = anchor.type,
       reduction = bridge.reduction.name,
-      assay = bridge.assay.name
+      assay = bridge.assay.name,
+      k.anchor = k.anchor,
+      k.score = k.score,
+      verbose = verbose
     )
   } else if (reduction == "cca") {
     anchor <- switch(EXPR = anchor.type, 
                      "Integration" = {
                        anchor <- FindIntegrationAnchors(
-                         object.list = object.list, 
+                         object.list = object.list,
                          k.filter = NA,
-                         reference = reference, 
-                         reduction = "cca", 
+                         reference = reference,
+                         reduction = "cca",
                          scale = FALSE,
-                         verbose = verbose, 
+                         k.anchor = k.anchor,
+                         k.score = k.score,
+                         verbose = verbose,
                          ...)
                        slot(
                          object = anchor,
@@ -5862,11 +5881,13 @@ FindBridgeAnchor <- function(object.list,
                      }, 
                      "Transfer" = {
                        anchor <-  FindTransferAnchors(
-                         reference = object.list[[reference]], 
+                         reference = object.list[[reference]],
                          query = object.list[[query]], 
                          reduction = "cca",
-                         scale = FALSE, 
+                         scale = FALSE,
                          k.filter = NA,
+                         k.anchor = k.anchor,
+                         k.score = k.score,
                          verbose = verbose,
                          ...
                        )
@@ -5874,7 +5895,7 @@ FindBridgeAnchor <- function(object.list,
     )
   }
   slot(object = anchor, name = "command") <- LogSeuratCommand(
-    object = object.list[[1]], 
+    object = object.list[[1]],
     return.command = TRUE
     )
   return(anchor)
@@ -5924,7 +5945,7 @@ TranferLablesNN <- function(
   query.label.score <- apply(X = query.label.mat, MARGIN = 1, FUN = max)
   
   output.list <- list(labels = query.label,
-                      scores = query.label.score, 
+                      scores = query.label.score,
                       prediction.mat = query.label.mat
                       )
   return(output.list)
@@ -5940,21 +5961,20 @@ TranferLablesNN <- function(
 #' @method RunGraphLaplacian Seurat
 #' 
 RunGraphLaplacian.Seurat <- function(
-  object, 
-  graph, 
-  reduction.name = "lap", 
-  reduction.key ="LAP_", 
-  n = 50, 
-  verbose = TRUE, 
+  object,
+  graph,
+  reduction.name = "lap",
+  reduction.key ="LAP_",
+  n = 50,
+  verbose = TRUE,
   ...
 ) {
   lap_dir <- RunGraphLaplacian(object = object[[graph]],
-                               n = n,  
-                               reduction.key = reduction.key , 
-                               verbose = verbose, 
+                               n = n,
+                               reduction.key = reduction.key ,
+                               verbose = verbose,
                                ...
                                )
-  
   object[[reduction.name]] <- lap_dir
   return(object)
 }
@@ -5973,13 +5993,15 @@ RunGraphLaplacian.Seurat <- function(
 #' 
 #' @importFrom Matrix diag t rowSums
 #' @importFrom RSpectra eigs_sym
-RunGraphLaplacian.default <- function(object, 
-                                      n = 50, 
-                                      reduction.key ="LAP_", 
-                                      verbose = TRUE, 
+RunGraphLaplacian.default <- function(object,
+                                      n = 50,
+                                      reduction.key ="LAP_",
+                                      verbose = TRUE,
                                       ...
 ) {
- if (!all(t(x = object)@x == object@x)) {
+ if (!all(
+   slot(object = t(x = object), name = "x") == slot(object = object, name = "x")
+   )) {
    step("Input graph is not symmetric")
  }
   if (verbose) {
@@ -5991,9 +6013,10 @@ RunGraphLaplacian.default <- function(object,
   if (verbose) {
     message("Performing eigendecomposition of the normalized laplacian graph")
   }
-  L_eigen <- eigs_sym(L, k = n + 1, which = "SM", ...) 
+  L_eigen <- eigs_sym(L, k = n + 1, which = "SM", ...)
+  #delete the first eigen vector
   new_order <- n:1
-  lap_output <- list(eigen_vector = Re(L_eigen$vectors[, new_order]), 
+  lap_output <- list(eigen_vector = Re(L_eigen$vectors[, new_order]),
                          eigen_value = L_eigen$values[new_order]
   )
   rownames(lap_output$eigen_vector) <- colnames(object)
