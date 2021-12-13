@@ -5714,6 +5714,57 @@ BridgeCellsRepresentation <- function(object.list,
   return(object.list)
 }
 
+#' Find bridge anchors between two modalities objects
+#'
+#' First, bridge object is used to reconstruct two single-modality profiles and 
+#' then project those cells into bridage graph laplacian space.
+#' Next, find a set of anchors between two single-modality objects. These
+#' anchors can later be used to integrate embeddings or transfer data from the reference to
+#' query object using the \code{\link{MapQuery}} object.
+#'
+#'  \itemize{
+#'  \item{ Bridge cells reconstruction
+#'  }
+#'   \item{ Find anchors between objects. It can be either IntegrationAnchors or TransferAnchor.
+#'  }
+#'  }
+#'  
+#'  @param object.list A list of Seurat objects between which to
+#' find anchors for downstream integration.
+#' @param bridge.object A multimodal bridge seurat which connects two
+#' single-modality objects
+#' @param object.reduction.list A list of dimensional reductions from object.list used
+#' to be reconstructed by bridge.obejct
+#' @param bridge.reduction.list A list of dimensional reductions from bridge.object used
+#' to reconstruct object.reduction.list
+#' @param dims.list A list of dimensions to use for object.reduction.list and
+#' bridge.reduction.list
+#' @param anchor.type The type of anchors. Can
+#' be one of:
+#' \itemize{
+#'   \item{Integration: Generate IntegrationAnchors for integration}
+#'   \item{Transfer: Generate TransferAnchors for transfering data}
+#' }
+#' @param reference A vector specifying the object/s to be used as a reference
+#' during integration or transfer data.
+#' @param laplacian.reduction Name of bridge graph laplacian dimensional reduction
+#' @param laplacian.dims Dimensions used for bridge graph laplacian dimensional reduction
+#' @param reduction Dimensional reduction to perform when finding anchors. Can
+#' be one of:
+#' \itemize{
+#'   \item{cca: Canonical correlation analysis}
+#'   \item{direct: Use assay data as a dimensional reduction}
+#' }
+#' @param bridge.assay.name Assay name used for bridge object reconstruction value
+#' @param verbose Print messages and progress
+#' @param ... Additional parameters passed to \code{FindIntegrationAnchors} or
+#' \code{FindTransferAnchors}
+#' 
+#' 
+#' @return Returns an \code{\link{AnchorSet}} object that can be used as input to
+#' \code{\link{IntegrateEmbeddings}}.or \code{\link{MapQuery}}
+#' @export
+#' 
 
 FindBridgeAnchor <- function(object.list,
                              bridge.object, 
@@ -5725,9 +5776,10 @@ FindBridgeAnchor <- function(object.list,
                              laplacian.reduction = "lap", 
                              laplacian.dims = NULL, 
                              reduction = c("direct", "cca")[1], 
-                             dims.cca = 1:30, 
-                             bridge.assay.name = "Bridge", 
-                             verbose = TRUE) {
+                             bridge.assay.name = "Bridge",
+                             verbose = TRUE,
+                             ...
+                             ) {
   if (!is.null(laplacian.reduction)) {
     bridge.method <- "bridge graph"
   } else {
@@ -5798,8 +5850,8 @@ FindBridgeAnchor <- function(object.list,
                          reference = reference, 
                          reduction = "cca", 
                          scale = FALSE,
-                         dims = dims.cca,
-                         verbose = verbose)
+                         verbose = verbose, 
+                         ...)
                        slot(
                          object = anchor,
                          name = "weight.reduction"
@@ -5815,8 +5867,8 @@ FindBridgeAnchor <- function(object.list,
                          reduction = "cca",
                          scale = FALSE, 
                          k.filter = NA,
-                         dims = dims.cca,
-                         verbose = verbose
+                         verbose = verbose,
+                         ...
                        )
                      }
     )
