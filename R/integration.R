@@ -5727,9 +5727,9 @@ BridgeCellsRepresentation <- function(object.list,
 #'  }
 #'   \item{ Find anchors between objects. It can be either IntegrationAnchors or TransferAnchor.
 #'  }
-#'  }
+#' }
 #'  
-#'  @param object.list A list of Seurat objects between which to
+#' @param object.list A list of Seurat objects between which to
 #' find anchors for downstream integration.
 #' @param bridge.object A multimodal bridge seurat which connects two
 #' single-modality objects
@@ -5932,37 +5932,66 @@ TranferLablesNN <- function(
 
 
 
-## RunLaplacian
-###
- 
+#' @param reduction.name dimensional reduction name, lap by default
+#' @param graph The name of graph
+#' @rdname RunGraphLaplacian
+#' @concept dimensional_reduction
+#' @export
+#' @method RunGraphLaplacian Seurat
+#' 
 RunGraphLaplacian.Seurat <- function(
   object, 
   graph, 
   reduction.name = "lap", 
   reduction.key ="LAP_", 
-  n = 50
+  n = 50, 
+  verbose = TRUE, 
+  ...
 ) {
   lap_dir <- RunGraphLaplacian(object = object[[graph]],
                                n = n,  
-                               reduction.key = reduction.key 
+                               reduction.key = reduction.key , 
+                               verbose = verbose, 
+                               ...
                                )
   
   object[[reduction.name]] <- lap_dir
   return(object)
 }
 
- 
+
+
+#' @param n Total Number of Eigenvectors to compute and store (50 by default)
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. LAP by default
+#' @param verbose Print message and process
+#'
+#'
+#' @concept dimensional_reduction
+#' @rdname RunGraphLaplacian
+#' @export
+#' 
 #' @importFrom Matrix diag t rowSums
 #' @importFrom RSpectra eigs_sym
 RunGraphLaplacian.default <- function(object, 
                                       n = 50, 
                                       reduction.key ="LAP_", 
-                                      verbose = FALSE
+                                      verbose = TRUE, 
+                                      ...
 ) {
+ if (!all(t(x = object)@x == object@x)) {
+   step("Input graph is not symmetric")
+ }
+  if (verbose) {
+    message("Generating normalized laplacian graph")
+  }
   D_half <- sqrt(x = rowSums(x = object))
   L <- -1 * (t(object / D_half) / D_half)
   diag(L) <- 1 + diag(L)
-  L_eigen <- eigs_sym(L, k = n + 1, which = "SM") 
+  if (verbose) {
+    message("Performing eigendecomposition of the normalized laplacian graph")
+  }
+  L_eigen <- eigs_sym(L, k = n + 1, which = "SM", ...) 
   new_order <- n:1
   lap_output <- list(eigen_vector = Re(L_eigen$vectors[, new_order]), 
                          eigen_value = L_eigen$values[new_order]

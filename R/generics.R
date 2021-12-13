@@ -395,12 +395,14 @@ RunCCA <- function(object1, object2, ...) {
 
 #' Run Graph Laplacian Eigendecomposition
 #'
-#' Run a graph dimensionality reductionxxxxx
-#' xxxxxx
-#' @param object An object
-#' @param ... Arguments passed to other methods and IRLBA
+#' Run a graph laplacian dimensionality reduction. It is used as a low dimensional
+#' representation for a cell-cell graph. The input graph should be symmetric 
+#' 
+#' @param object A Seurat object
+#' @param ... Arguments passed to RSpectra eigs_sym
 #'
-#' @return Returns Seurat object with the SPCA calculation stored in the reductions slot
+#' @return Returns Seurat object with the Graph laplacian eigenvector calculation
+#' stored in the reductions slot
 #' @export
 #'
 #' @rdname RunGraphLaplacian
