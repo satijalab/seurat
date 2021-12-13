@@ -6319,11 +6319,13 @@ CheckMetaVarName <- function(object, var.name) {
 }
 
 
+#' LeverageScoreSampling
 #'
 #'
-#'
-#'
+#' 
 #' @return Returns a sub-sampled seurat object
+#' @export
+#'  
 LeverageScoreSampling <- function(
   object,
   assay = NULL,
