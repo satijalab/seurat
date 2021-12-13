@@ -6029,4 +6029,176 @@ RunGraphLaplacian.default <- function(object,
   return(lap_dir)
 }
 
+
+#' @importFrom Matrix sparseMatrix
+
+CountSketch <- function(nrow, ncol, seed = 123) {
+  set.seed(seed = seed)
+  iv <- xv <- vector(mode = "numeric", length = ncol)
+  jv <- seq_len(length.out = ncol)
+  for (i in jv) {
+    iv[i] <- sample(x = seq_len(length.out = nrow), size = 1L)
+    xv[i] <- sample(x = c(-1L, 1L), size = 1L)
+  }
+  return(sparseMatrix(
+    i = iv,
+    j = jv,
+    x = xv
+  ))
+}
+
+
+LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
+  if (!is.na(x = seed)) {
+    set.seed(seed = seed)
+  }
+  s <- ceiling(x = sqrt(x = ncol))
+  prob <- c(
+    1 / (2 * s),
+    1 - (1 / s),
+    1 / (2 * s)
+  )
+  return(matrix(
+    data = sample(
+      x = seq.int(from = -1L, to = 1L),
+      size = nrow * ncol,
+      replace = TRUE,
+      prob = prob
+    ),
+    nrow = nrow
+  ))
+}
+
+
+LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
+  if (!is.na(x = seed)) {
+    set.seed(seed = seed)
+  }
+  if (!is.null(x = eps)) {
+    if (eps > 1 || eps <= 0) {
+      stop("'eps' must be 0 < eps <= 1")
+    }
+    ncol <- floor(x = 4 * log(x = ncol) / ((eps ^ 2) / 2 - (eps ^ 3 / 3)))
+  }
+  s <- ceiling(x = sqrt(x = ncol))
+  prob <- c(
+    1 / (2 * s),
+    1 - (1 / s),
+    1 / (2 * s)
+  )
+  return(matrix(
+    data = sample(
+      x = seq.int(from = -1L, to = 1L),
+      size = nrow * ncol,
+      replace = TRUE,
+      prob = prob
+    ),
+    nrow = nrow
+  ))
+}
+
+JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
+  if (!is.na(x = seed)) {
+    set.seed(seed = seed)
+  }
+  method <- method[1L]
+  method <- match.arg(arg = method)
+  if (!is.null(x = eps)) {
+    if (eps > 1 || eps <= 0) {
+      stop("'eps' must be 0 < eps <= 1")
+    }
+    ncol <- floor(x = 4 * log(x = ncol) / ((eps ^ 2) / 2 - (eps ^ 3 / 3)))
+  }
+  m <- switch(
+    EXPR = method,
+    "li" = {
+      s <- ceiling(x = sqrt(x = ncol))
+      prob <- c(
+        1 / (2 * s),
+        1 - (1 / s),
+        1 / (2 * s)
+      )
+      matrix(
+        data = sample(
+          x = seq.int(from = -1L, to = 1L),
+          size = nrow * ncol,
+          replace = TRUE,
+          prob = prob
+        ),
+        nrow = nrow
+      )
+    }
+  )
+  return(m)
+}
+
+
+LeverageScore.default <- function(
+  object,
+  features = NULL,
+  nsketch = 5000L,
+  ndims = 200L,
+  sampling.method = c("CountSketch", "Gaussian"),
+  MARGIN = 2L,
+  verbose = TRUE,
+  ...
+) {
+  MARGIN <- MARGIN %/% 1L
+  if (!MARGIN %in% seq.int(from = 1L, to = 2L)) {
+    stop("'MARGIN' must be either 1 or 2")
+  }
+  sampling.method <- sampling.method[1L]
+  sampling.method <- match.arg(arg = sampling.method)
+  if (isTRUE(x = verbose)) {
+    message(sampling.method, " sampling ", nsketch, " cells")
+  }
+  ncells <- dim(x = object)[[MARGIN]]
+  S <- switch(
+    EXPR = sampling.method,
+    "CountSketch" = CountSketch(nrow = nsketch, ncol = ncells),
+    "Gaussian" = matrix(
+      data = rnorm(n = nsketch * ncells, mean = 0L, sd = 1 / ncells ^ 2),
+      nrow = nsketch,
+      ncol = ncells
+    )
+  )
+  if (!is.null(x = features)) {
+    object <- if (MARGIN == 1L) {
+      object[, features, drop = FALSE]
+    } else {
+      object[features, , drop = FALSE]
+    }
+  }
+  if (MARGIN == 2L) {
+    tf <- tryCatch(
+      expr = methods::slot(
+        object = methods::selectMethod(f = "t", signature = class(x = object)),
+        name = ".Data"
+      ),
+      error = function(...) {
+        return(base::t)
+      }
+    )
+    object <- tf(object)
+  }
+  sa <- S %*% object
+  qr.sa <- base::qr(x = sa)
+  R <- if (inherits(x = qr.sa, what = "sparseQR")) {
+    Matrix::qrR(qr = qr.sa)
+  } else {
+    base::qr.R(qr = qr.sa)
+  }
+  R.inv <- solve(a = R)
+  JL <- SeuratObject::as.sparse(x = JLEmbed(
+    nrow = ncol(x = R.inv),
+    ncol = ndims,
+    eps = 0.5
+  ))
+  if (isTRUE(x = verbose)) {
+    message("Random projection")
+  }
+  Z <- object %*% (R.inv %*% JL)
+  return(rowSums(x = Z ^ 2))
+}
+
  
