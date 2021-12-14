@@ -2620,6 +2620,8 @@ PrepSCTIntegration <- function(
 #'
 #' @return A vector of selected features
 #'
+#' @importFrom utils head
+#'
 #' @export
 #' @concept integration
 #'

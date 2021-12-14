@@ -2309,6 +2309,8 @@ setMethod(
   }
 )
 
+#' @importFrom utils head
+#
 setMethod(
   f = 'show',
   signature = 'SCTAssay',
@@ -2631,6 +2633,8 @@ SubsetVST <- function(sct.info, cells, features) {
 # @return The top \code{num}
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
 #
+#' @importFrom utils head tail
+#
 Top <- function(data, num, balanced) {
   nr <- nrow(x = data)
   if (num > nr) {
@@ -2832,6 +2836,8 @@ UpdateSlots <- function(object) {
 #
 # @return Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
 # appropriately sized empty sparse matrix
+#
+#' @importFrom Matrix Matrix
 #
 ValidateDataForMerge <- function(assay, slot) {
   mat <- GetAssayData(object = assay, slot = slot)
