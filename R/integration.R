@@ -6134,7 +6134,7 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
 
 #' xxxxx
 #' 
-#' 
+#'  
 #' @rdname LeverageScore
 #' @export
 LeverageScore.default <- function(
@@ -6304,6 +6304,9 @@ LeverageScore.Seurat <- function(object,
   )
   return(object)
 }
+
+# Check if the var.name already existed in the meta.data 
+#
 CheckMetaVarName <- function(object, var.name) {
   if (var.name %in% colnames(x = object[[]])) {
     var.name.exist <- var.name
@@ -6319,20 +6322,26 @@ CheckMetaVarName <- function(object, var.name) {
 }
 
 
-#' LeverageScoreSampling
+#' Subset objects based on Leverage score 
 #'
-#'
+#' @param object A seurat object
+#' @param num.cells Number of sampled cells
+#' @param assay Assay used to calculate leverage score
+#' @param features Features used to calculate leverage score
+#' @param var.name Variable name stored leverage score in the meta.data
+#' @param seed Set a random seed.By default, sets the seed to 123
+#' @param ... Arguments passed to LeverageScore
 #' 
 #' @return Returns a sub-sampled seurat object
 #' @export
 #'  
 LeverageScoreSampling <- function(
   object,
+  num.cells = 5000,
   assay = NULL,
   features = NULL,
   var.name = "leverage.score",
   seed = 123,
-  num.cells = 5000,
   ...) {
   var.name <- CheckMetaVarName(object = object, var.name = var.name)
   object <- LeverageScore(
