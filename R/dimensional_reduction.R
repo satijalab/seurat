@@ -335,7 +335,7 @@ ProjectUMAP.default <- function(
   query.dims = NULL,
   reference,
   reference.dims = NULL,
-  k.param = 20,
+  k.param = 30,
   nn.method = "annoy",
   n.trees = 50,
   annoy.metric = "cosine",
@@ -389,7 +389,7 @@ ProjectUMAP.DimReduc <- function(
   query.dims = NULL,
   reference,
   reference.dims = NULL,
-  k.param = 20,
+  k.param = 30,
   nn.method = "annoy",
   n.trees = 50,
   annoy.metric = "cosine",
@@ -439,7 +439,7 @@ ProjectUMAP.Seurat <- function(
   reference,
   reference.reduction,
   reference.dims = NULL,
-  k.param = 20,
+  k.param = 30,
   nn.method = "annoy",
   n.trees = 50,
   annoy.metric = "cosine",
@@ -479,6 +479,7 @@ ProjectUMAP.Seurat <- function(
     neighbor.name = neighbor.name,
     reduction.model = reference[[reduction.model]],
     reduction.key = reduction.key,
+    assay = DefaultAssay(query),
     ...
   )
   query[[reduction.name]] <- proj.umap$proj.umap
@@ -1385,7 +1386,12 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        uwot::umap_transform(
+        if (ncol(object$idx) != model$n_neighbors) {
+          warning("Number of neighbors between query and reference ", 
+          "is not equal to the number of neighbros within reference")
+          model$n_neighbors <- ncol(object$idx)
+        }
+       umap_transform(
           X = NULL,
           nn_method = object,
           model = model,

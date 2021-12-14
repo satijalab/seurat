@@ -9,6 +9,7 @@
 - Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
 - Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
 - Add `label.color` parameter to `FeaturePlot` ([#5314](https://github.com/satijalab/seurat/pull/5314))
+- Fix issues in `ProjectUMAP` ([#5257](https://github.com/satijalab/seurat/issues/5257), [#5104](https://github.com/satijalab/seurat/issues/5104), [#5373](https://github.com/satijalab/seurat/issues/5373))
 
 # Seurat 4.0.5 (2020-10-04)
 ## Changes
