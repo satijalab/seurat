@@ -6030,6 +6030,8 @@ RunGraphLaplacian.default <- function(object,
 }
 
 
+
+
 #' @importFrom Matrix sparseMatrix
 
 CountSketch <- function(nrow, ncol, seed = 123) {
@@ -6132,9 +6134,18 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
   return(m)
 }
 
-#' xxxxx
+#' @param features Features used to calculate leverage score
+#' @param nsketch Number of rows in the random sketch matrix
+#' @param ndims Number of dimensions in the JL embeddings
+#' @param sampling.method Sampling method for generating random matrix
+#' @param MARGIN Margin 
+#' @param eps error tolerance for JL embeddings
+#' @param seed Set a random seed
+#' @param verbose Print message and process
+#' @param ...
 #' 
-#'  
+#' @importFrom Matrix qrR
+#' @importFrom SeuratObject as.sparse
 #' @rdname LeverageScore
 #' @export
 LeverageScore.default <- function(
@@ -6211,7 +6222,7 @@ LeverageScore.default <- function(
   sa <- S %*% object
   qr.sa <- base::qr(x = sa)
   R <- if (inherits(x = qr.sa, what = "sparseQR")) {
-    Matrix::qrR(qr = qr.sa)
+     qrR(qr = qr.sa)
   } else {
     base::qr.R(qr = qr.sa)
   }
@@ -6219,7 +6230,7 @@ LeverageScore.default <- function(
   if (isTRUE(x = verbose)) {
     message("Random projection")
   }
-  JL <- SeuratObject::as.sparse(x = JLEmbed(
+  JL <- as.sparse(x = JLEmbed(
     nrow = ncol(x = R.inv),
     ncol = ndims,
     eps = eps,
