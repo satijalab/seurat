@@ -752,6 +752,8 @@ ColorDimSplit <- function(
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
 #' automatically rasterizes if plotting more than 100,000 cells
+#' @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
+#' Default is c(512, 512).
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -799,7 +801,8 @@ DimPlot <- function(
   na.value = 'grey50',
   ncol = NULL,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -845,7 +848,8 @@ DimPlot <- function(
         cols.highlight = cols.highlight,
         sizes.highlight = sizes.highlight,
         na.value = na.value,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       )
       if (label) {
         plot <- LabelClusters(
@@ -986,7 +990,8 @@ FeaturePlot <- function(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
@@ -1248,7 +1253,8 @@ FeaturePlot <- function(
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
@@ -1823,7 +1829,8 @@ CellScatter <- function(
   cols = NULL,
   pt.size = 1,
   smooth = FALSE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   features <- features %||% rownames(x = object)
   data <- FetchData(
@@ -1838,7 +1845,8 @@ CellScatter <- function(
     pt.size = pt.size,
     rows.highlight = highlight,
     smooth = smooth,
-    raster = raster
+    raster = raster,
+    raster.dpi = raster.dpi
   )
   return(plot)
 }
@@ -1867,6 +1875,8 @@ CellScatter <- function(
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
+#' @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
+#' Default is c(512, 512).
 #'
 #' @return A ggplot object
 #'
@@ -1896,7 +1906,8 @@ FeatureScatter <- function(
   combine = TRUE,
   slot = 'data',
   plot.cor = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   cells <- cells %||% colnames(x = object)
   object[['ident']] <- Idents(object = object)
@@ -1933,7 +1944,8 @@ FeatureScatter <- function(
         legend.title = 'Identity',
         span = span,
         plot.cor = plot.cor,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       )
     }
   )
@@ -1978,7 +1990,8 @@ VariableFeaturePlot <- function(
   log = NULL,
   selection.method = NULL,
   assay = NULL,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
@@ -2008,7 +2021,8 @@ VariableFeaturePlot <- function(
     data = hvf.info,
     col.by = var.status,
     pt.size = pt.size,
-    raster = raster
+    raster = raster,
+    raster.dpi = raster.dpi
   )
   if (length(x = unique(x = var.status)) == 1) {
     switch(
@@ -6828,6 +6842,7 @@ globalVariables(names = '..density..', package = 'Seurat')
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
 # 100,000
+# @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore()
 #
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -6850,6 +6865,7 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   span = NULL,
   raster = NULL,
+  raster.dpi = NULL,
   plot.cor = TRUE
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
@@ -6858,6 +6874,10 @@ SingleCorPlot <- function(
             "\nTo disable this behavior set `raster=FALSE`")
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
+  if (!is.null(x = raster.dpi)) {
+    if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
+      stop("'raster.dpi' must be a two-length numeric vector")
+  }
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6947,7 +6967,8 @@ SingleCorPlot <- function(
       plot <- plot + geom_scattermore(
         mapping = aes_string(color = 'colors'),
         position = 'jitter',
-        pointsize = pt.size
+        pointsize = pt.size,
+        pixels = raster.dpi
       )
     } else {
       plot <- plot + geom_point(
@@ -6958,7 +6979,7 @@ SingleCorPlot <- function(
     }
   } else {
     if (raster) {
-      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size)
+      plot <- plot + geom_scattermore(position = 'jitter', pointsize = pt.size, pixels = raster.dpi)
     } else {
       plot <- plot + geom_point(position = 'jitter', size = pt.size)
     }
@@ -7017,6 +7038,8 @@ SingleCorPlot <- function(
 # @param raster Convert points to raster format, default is \code{NULL}
 # which will automatically use raster if the number of points plotted is greater than
 # 100,000
+# @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
+# Default is c(512, 512).
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
@@ -7039,7 +7062,8 @@ SingleDimPlot <- function(
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
   na.value = 'grey50',
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
@@ -7049,6 +7073,10 @@ SingleDimPlot <- function(
   raster <- raster %||% (nrow(x = data) > 1e5)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
+  }
+  if (!is.null(x = raster.dpi)) {
+    if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
+      stop("'raster.dpi' must be a two-length numeric vector")
   }
   if (!is.data.frame(x = data)) {
     data <- as.data.frame(x = data)
@@ -7130,7 +7158,8 @@ SingleDimPlot <- function(
         shape = shape.by,
         alpha = alpha.by
       ),
-      pointsize = pt.size
+      pointsize = pt.size,
+      pixels = raster.dpi
     )
   } else {
     plot + geom_point(
