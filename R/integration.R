@@ -6220,13 +6220,20 @@ LeverageScore.default <- function(
   }
   # row of object is cell, col of matrix is feature
   sa <- S %*% object
+
+ 
   qr.sa <- base::qr(x = sa)
   R <- if (inherits(x = qr.sa, what = "sparseQR")) {
      qrR(qr = qr.sa)
   } else {
     base::qr.R(qr = qr.sa)
   }
-  R.inv <- solve(a = R)
+ 
+  # triangular matrix inverse
+ 
+   R.inv <-  as.sparse(backsolve(r = R , x = diag(ncol(R))))
+  
+  
   if (isTRUE(x = verbose)) {
     message("Random projection")
   }
