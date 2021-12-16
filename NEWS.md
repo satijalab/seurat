@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 4.0.6 (2021-12-16)
 ## Added
 
 - Implement supervised LSI
@@ -11,14 +11,14 @@
 - Add `label.color` parameter to `FeaturePlot` ([#5314](https://github.com/satijalab/seurat/pull/5314))
 - Fix issues in `ProjectUMAP` ([#5257](https://github.com/satijalab/seurat/issues/5257), [#5104](https://github.com/satijalab/seurat/issues/5104), [#5373](https://github.com/satijalab/seurat/issues/5373))
 
-# Seurat 4.0.5 (2020-10-04)
+# Seurat 4.0.5 (2021-10-04)
 ## Changes
 - Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
 - Update concept tags for `RunSPCA()` ([#4978](https://github.com/satijalab/seurat/discussions/4987))
 - Conditionally run tests/packages that use suggested packages ([#5160](https://github.com/satijalab/seurat/pull/5160))
 - Set random state in `RunUMAP()` when using the `umap-learn` method ([#5194](https://github.com/satijalab/seurat/issues/5194))
 
-# Seurat 4.0.4 (2020-08-19)
+# Seurat 4.0.4 (2021-08-19)
 ## Added
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
 - Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
