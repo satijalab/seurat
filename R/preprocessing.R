@@ -606,7 +606,6 @@ LoadSTARmap <- function(
 #'
 #' @return Returns a matrix with the normalize and log transformed data
 #'
-#' @import Matrix
 #' @importFrom methods as
 #'
 #' @export
@@ -648,8 +647,6 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' @param verbose Prints the output
 #'
 #' @return A Seurat object with demultiplexing results stored at \code{object$MULTI_ID}
-#'
-#' @import Matrix
 #'
 #' @export
 #' @concept preprocessing
@@ -1224,7 +1221,7 @@ ReadMtx <- function(
   if (length(x = feature.names) != nrow(x = data)) {
     stop(
       "Matrix has ",
-      ncol(data),
+      nrow(data),
       " rows but found ", length(feature.names),
       " features. ",
       ifelse(
@@ -1284,8 +1281,8 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @param verbose Print progress
 #' @return Returns a matrix with the relative counts
 #'
-#' @import Matrix
 #' @importFrom methods as
+#' @importFrom Matrix colSums
 #'
 #' @export
 #' @concept preprocessing
@@ -1307,7 +1304,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
     cat("Performing relative-counts-normalization\n", file = stderr())
   }
   norm.data <- data
-  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
+  norm.data@x <- norm.data@x / rep.int(Matrix::colSums(norm.data), diff(norm.data@p)) * scale.factor
   return(norm.data)
 }
 
@@ -1432,7 +1429,6 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' @param upsample Upsamples all cells with fewer than max.umi
 #' @param verbose Display the progress bar
 #'
-#' @import Matrix
 #' @importFrom methods as
 #'
 #' @return Matrix with downsampled data
@@ -2008,6 +2004,8 @@ FindVariableFeatures.default <- function(
 #'
 #' @rdname FindVariableFeatures
 #' @concept preprocessing
+#'
+#' @importFrom utils head
 #' @export
 #' @method FindVariableFeatures Assay
 #'
@@ -3091,9 +3089,9 @@ ComputeRMetric <- function(mv, r.metric = 5) {
 #
 # @return Returns a matrix with the custom normalization
 #
+#' @importFrom Matrix t
 #' @importFrom methods as
 #' @importFrom pbapply pbapply
-# @import Matrix
 #
 CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
   if (is.data.frame(x = data)) {
@@ -3117,7 +3115,7 @@ CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
     MARGIN = margin,
     FUN = custom_function)
   if (margin == 1) {
-    norm.data = t(x = norm.data)
+    norm.data = Matrix::t(x = norm.data)
   }
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)
