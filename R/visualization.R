@@ -759,8 +759,8 @@ ColorDimSplit <- function(
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
 #' automatically rasterizes if plotting more than 100,000 cells
-#' @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
-#' Default is c(512, 512)
+#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
+#' Default is c(512, 512).
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -1888,8 +1888,8 @@ CellScatter <- function(
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
-#' @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
-#' Default is c(512, 512)
+#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
+#' Default is c(512, 512).
 #' @param jitter Jitter for easier visualization of crowded points
 #'
 #' @return A ggplot object
