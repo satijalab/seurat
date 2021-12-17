@@ -2304,6 +2304,71 @@ RemoveLastField <- function(string, delim = "_") {
   }
 }
 
+# Calculate row mean of a sparse matrix
+# @param mat sparse matrix
+# @return A vector of row mean
+#
+RowMeanSparse <- function(mat) {
+  mat <- RowSparseCheck(mat = mat)
+  output <- row_mean_dgcmatrix(
+    x = slot(object = mat, name = "x"),
+    i = slot(object = mat, name = "i"),
+    rows = nrow(x = mat),
+    cols = ncol(x = mat)
+    )
+  names(x = output) <- rownames(x = mat)
+  return(output)
+}
+
+# Calculate row sum of a sparse matrix
+#
+# @param mat sparse matrix
+# @return A vector of row sum
+#
+RowSumSparse <- function(mat) {
+  mat <- RowSparseCheck(mat = mat)
+  output <- row_sum_dgcmatrix(
+    x = slot(object = mat, name = "x"),
+    i = slot(object = mat, name = "i"),
+    rows = nrow(x = mat),
+    cols = ncol(x = mat)
+  )
+  names(x = output) <- rownames(x = mat)
+  return(output)
+}
+ 
+# Calculate row variance of a sparse matrix
+#
+# @param mat sparse matrix
+# @return A vector of row variance
+#
+RowVarSparse <- function(mat) {
+  mat <- RowSparseCheck(mat = mat)
+  output <- row_var_dgcmatrix(
+    x = slot(object = mat, name = "x"),
+    i = slot(object = mat, name = "i"),
+    rows = nrow(x = mat),
+    cols = ncol(x = mat)
+  )
+  names(x = output) <- rownames(x = mat)
+  return(output)
+}
+
+# Check if the input matrix is dgCMatrix
+#
+# @param mat sparse matrix
+# @return A dgCMatrix
+#
+RowSparseCheck <- function(mat) {
+  if (!inherits(x = mat, what = "sparseMatrix")) {
+    stop("Input should be sparse matrix")
+  } else if (class(x = mat) != "dgCMatrix") {
+    warning("Input matrix is converted to dgCMatrix.")
+    mat <- as.sparse(x = mat)
+  }
+  return(mat)
+}
+
 # Sweep out array summaries
 #
 # Reimplmentation of \code{\link[base]{sweep}} to maintain compatability with
