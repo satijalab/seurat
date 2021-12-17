@@ -1,3 +1,8 @@
+# Unreleased
+## Added
+- Add `raster.dpi` parameter to `DimPlot/FeaturePlot` to optionally rasterize individual points ([#5392](https://github.com/satijalab/seurat/pull/5392))
+
+
 # Seurat 4.0.6 (2021-12-16)
 ## Added
 
