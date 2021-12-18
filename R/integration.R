@@ -6284,7 +6284,6 @@ return(score)
 }
 
 #' ssssxxxxx
-#' @param over.write
 #' @rdname LeverageScore
 #' @export
 #' @method LeverageScore Seurat
@@ -6431,5 +6430,192 @@ HnswNN <- function(data,
   nn$alg.info <- list(metric = metric, ndim = ncol(x = data))
   return(nn)
 }
+
+
+
+IntegrationReferenceIndex <- function(object) {
+  
+  if (is.null( object@tools$Integration@sample.tree )) {
+    reference.index <- object@commands$FindIntegrationAnchors$reference
+    if ( length(reference.index) > 1) {
+      stop('the number of the reference is bigger than 1')
+    }
+  } else {
+    reference.index <- SampleIntegrationOrder(tree = object@tools$Integration@sample.tree)[1]
+  }
+  return(reference.index)
+  
+}
+
+
+IntegrateSketchEmbeddings <- function(object.list,
+                                      sketch.list,
+                                      sketch.inte,
+                                      features = NULL,
+                                      assay = 'RNA',
+                                      sketch.reduction = 'pca',
+                                      sketch.reduction.inte = 'integrated_dr',
+                                      reduction.name ='pca.correct',
+                                      reduction.key = 'PCcorrect_',
+                                      X.method = c('embeddings', 'data' , 'sketch')[3],
+                                      sketch.ratio = 0.8,
+                                      num.core = 1,
+                                      merged.object = NULL,
+                                      reference.exist = TRUE,
+                                      return.seurat = TRUE,
+                                      verbose = TRUE) {
+  if (reference.exist) {
+    reference.index <- IntegrationReferenceIndex(object = sketch.inte)
+  } else {
+    reference.index <- NULL
+  }
+  features <- features %||% rownames(x = sketch.inte[[sketch.reduction]]@feature.loadings)
+  query.index <- setdiff(x = 1:length(object.list), y = reference.index)
+  features <- Reduce(f = intersect,
+                     x = c(list(features),
+                           lapply(object.list, function(x) rownames(x)) )
+  )
+  
+  if (verbose) {
+    message("Center and scale based on sketch cells")
+  }
+  # mean and sd
+  if (X.method == 'embeddings') {
+    scale.set <- 1:length(object.list)
+  } else {
+    scale.set <- reference.index
+  }
+  mean_sd.i <- SparseMeanSd(object = sketch.inte)
+  emb.list <- list()
+  for (i in scale.set) {
+    DefaultAssay(sketch.list[[i]]) <- DefaultAssay(object.list[[i]]) <- assay
+    emb.list[[i]] <- ProjectDataEmbeddings(object =  object.list[[i]],
+                                           assay = assay,
+                                           feature.loadings =  sketch.inte[[sketch.reduction]]@feature.loadings,
+                                           ref.mean = mean_sd.i$mean,
+                                           ref.sd =  mean_sd.i$sd )
+  }
+  if (verbose) {
+    message("Correcting embeddings")
+  }
+  
+  SketchIndex <- function(q) {
+    q.cells <- Cells(sketch.list[[q]])
+    if ( X.method == 'embeddings') {
+      sketch.transform <- MASS::ginv(inte.sub[[sketch.reduction]]@cell.embeddings[q.cells ,]) %*%
+        inte.sub[[sketch.reduction.inte]]@cell.embeddings[q.cells ,]
+      emb <- emb.list[[q]]  %*% sketch.transform
+      
+    } else if (X.method == 'data') {
+      exp.mat <-  t(as.matrix(GetAssayData(inte.sub[[assay]], slot = 'data')[features,q.cells]))
+      sketch.transform <- MASS::ginv(exp.mat ) %*%
+        inte.sub[[sketch.reduction.inte]]@cell.embeddings[q.cells ,]
+      emb <- as.matrix(x = t(GetAssayData(object = object.list[[q]], slot = 'data')[features,]) %*% sketch.transform)
+      
+    } else if ( X.method == 'sketch') {
+      R <- t(CountSketch(nrow = round(sketch.ratio * length(features)), ncol = length(features)))
+      exp.mat <-  as.matrix(t(GetAssayData(inte.sub[[assay]], slot = 'data')[features,q.cells]) %*% R)
+      sketch.transform <- MASS::ginv(X = exp.mat) %*%
+        inte.sub[[sketch.reduction.inte]]@cell.embeddings[q.cells ,]
+      emb <- as.matrix((t(GetAssayData(object = object.list[[q]], slot = 'data')[features,]) %*% R) %*% sketch.transform)
+    }
+    return(emb)
+  }
+  emb.list.query <- parallel::mclapply( X = query.index,
+                                        FUN = SketchIndex,
+                                        mc.cores = num.core
+  )
+  
+  emb.m <- Reduce(f = rbind,  x = c( emb.list[reference.index], emb.list.query))
+  correct.dr <- CreateDimReducObject(embeddings = emb.m,
+                                     loadings =  sketch.inte[[sketch.reduction]]@feature.loadings[features,],
+                                     key = reduction.key,
+                                     assay = assay)
+  
+  if (!return.seurat) {
+    return(correct.dr)
+  } else {
+    if (is.null(merged.object)) {
+      if (verbose) {
+        message("Merging all objects")
+      }
+      merged.object <- merge(x = object.list[[1]], y = object.list[2:length(object.list)])
+    }
+    merged.object[[reduction.name]] <- correct.dr
+    return(merged.object)
+  }
+}
+
+
+
+ProjectDataEmbeddings <- function(object,
+                                  assay = 'RNA',
+                                  feature.loadings,
+                                  ref.mean,
+                                  ref.sd,
+                                  block.size = 5000,
+                                  scale.max = 10,
+                                  verbose = TRUE ){
+  features <- Reduce(f = intersect,
+                     x = list(names(ref.mean),
+                              rownames(object[[assay]]),
+                              rownames(feature.loadings)
+                     )
+  )
+  if (verbose) {
+    message( paste0(length(features)," features are used"))
+  }
+  
+  mat <- GetAssayData(object = object[[assay]], slot = 'data')[features,]
+  
+  ref.mean <-ref.mean[features]
+  ref.sd <- ref.sd[features]
+  
+  
+  block.size = min(block.size, ncol(object))
+  
+  cell.index <- rep(x = 1:ceiling(ncol(mat)/block.size),
+                    each = block.size )[1:ncol(mat)]
+  cells.list <- split(x = 1:ncol(mat), f = cell.index)
+  
+  if (verbose) {
+    message("ScaleData and Project to feature loadings")
+  }
+  
+  
+  emb.list <- lapply(X = cells.list,
+                     FUN =  function(x) {
+                       mat.x <- as.matrix(mat[,x])
+                       mat.x <- ( mat.x-  ref.mean)/ref.sd
+                       mat.x[mat.x > 10] <- 10
+                       cell.emb.x <- t(mat.x[features,]) %*% feature.loadings[features,]
+                       return (cell.emb.x)
+                     })
+  
+  all.emb <-  Reduce(rbind, emb.list)
+  return(all.emb)
+}
+
+
+SparseMeanSd <- function(object,
+                         assay = NULL, 
+                         slot = 'data', 
+                         eps = 1e-8 
+){
+  assay <- assay %||% DefaultAssay(object = object)
+  mat <- GetAssayData(object = object[[assay]], slot = slot)
+  if (class(mat)[1] !='dgCMatrix'){
+    stop('Matrix is not sparse')
+  }
+  
+  mat.mean <- sparseMatrixStats::rowMeans2(x = mat,  na.rm = TRUE )
+  mat.sd <- sparseMatrixStats::rowSds( x = mat, center = mat.mean)
+  names(mat.mean) <- names(mat.sd) <- rownames( mat)
+  mat.sd <- MinMax( data = mat.sd, min = eps, max = max(mat.sd))
+  output <- list(mean = mat.mean, sd = mat.sd)
+  return(output)
+}
+
+
 
  
