@@ -6390,4 +6390,46 @@ LeverageScoreSampling <- function(
   return(object.sampled)
 }
 
+
+# Run annoy
+#
+# @param data Data to build the index with
+# @param query A set of data to be queried against data
+# @param metric Distance metric; can be one of "euclidean", "cosine", "manhattan",
+# "hamming"
+# @param k Number of neighbors
+# @param ef_construction  A larger value means a better quality index, but increases build time.
+# @param ef Higher values lead to improved recall at the expense of longer search time.
+# @param n_threads Maximum number of threads to use.
+# @param index optional index object, will be recomputed if not provided
+#' @importFrom RcppHNSW hnsw_build hnsw_search
+#
+HnswNN <- function(data,
+                    query = data,
+                    metric = "euclidean",
+                    k,
+                    ef_construction = 200,
+                    ef = 10,
+                    index = NULL,
+                    n_threads = 0
+) {
+  idx <- index %||% hnsw_build(
+    X = data,
+    distance = metric,
+    ef = ef_construction,
+    n_threads = n_threads
+    )
+  nn <- hnsw_search(
+    X = query,
+    ann = idx,
+    k = k,
+    ef = ef,
+    n_threads = n_threads
+    )
+  names(nn) <- c("nn.idx", "nn.dists")
+  nn$idx <- idx
+  nn$alg.info <- list(metric = metric, ndim = ncol(x = data))
+  return(nn)
+}
+
  
