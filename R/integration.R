@@ -6282,7 +6282,7 @@ return(score)
 }
 
 #' ssssxxxxx
-#' 
+#' @param over.write
 #' @rdname LeverageScore
 #' @export
 #' @method LeverageScore Seurat
@@ -6297,6 +6297,7 @@ LeverageScore.Seurat <- function(object,
                                  slot = "data",
                                  eps = 0.5,
                                  seed = 123,
+                                 over.write = FALSE, 
                                  verbose = TRUE,
                                  ...
 ) {
@@ -6307,7 +6308,9 @@ LeverageScore.Seurat <- function(object,
   if (is.null(features)) {
     stop("No variable features are set. Please run FindVariableFeatures.")
   }
-  var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  if (!over.write) {
+    var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  }
   object[[var.name]] <- LeverageScore(
     object = GetAssay(object = object, assay = assay),
     features = features, 
@@ -6347,6 +6350,7 @@ CheckMetaVarName <- function(object, var.name) {
 #' @param assay Assay used to calculate leverage score
 #' @param features Features used to calculate leverage score
 #' @param var.name Variable name stored leverage score in the meta.data
+#' @param over.write If over write the variable with leverage score
 #' @param seed Set a random seed.By default, sets the seed to 123
 #' @param ... Arguments passed to LeverageScore
 #' 
@@ -6359,14 +6363,18 @@ LeverageScoreSampling <- function(
   assay = NULL,
   features = NULL,
   var.name = "leverage.score",
+  over.write = FALSE, 
   seed = 123,
   ...) {
-  var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  if (!over.write) {
+    var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  }
   object <- LeverageScore(
     object = object,
     assay = assay, 
     features = features, 
     var.name = var.name, 
+    over.write = over.write, 
     seed = seed,
     ...
     )
