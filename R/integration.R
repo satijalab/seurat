@@ -1679,6 +1679,17 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     slot = "anchors",
     new.data = anchors
   )
+  sample.tree <- GetIntegrationData(
+    object = reference.integrated,
+    integration.name = "Integration",
+    slot = "sample.tree"
+  )
+  unintegrated <- SetIntegrationData(
+    object = unintegrated,
+    integration.name = "Integration",
+    slot = "sample.tree",
+    new.data = sample.tree
+  )
   unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
   suppressWarnings(unintegrated <- LogSeuratCommand(object = unintegrated))
   return(unintegrated)
