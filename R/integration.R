@@ -6663,9 +6663,12 @@ SparseMeanSd <- function(object,
 
 # Run PCA on sparse matrix
 #
-#'
+#' @importFrom Matrix t
+#' @importFrom rlang exec
+#' @importFrom irlba irlba
+#' 
 #' @export
-RunPCA.Sparse <- function(
+RunPCA_Sparse <- function(
   object,
   features = NULL,
   reduction.key = "PCsp_",
@@ -6677,20 +6680,20 @@ RunPCA.Sparse <- function(
   features <- features %||% VariableFeatures(object)
   data <- GetAssayData(object = object, slot = "data")[features,]
   n <- npcs
-  args <- list(A = Matrix::t(data), nv = n)
-  args$center <- Seurat:::RowMeanSparse(data)
-  feature.var <- Seurat:::RowVarSparse(data)
+  args <- list(A = t(data), nv = n)
+  args$center <- RowMeanSparse(data)
+  feature.var <- RowVarSparse(data)
   args$totalvar <- sum(feature.var)
   if (do.scale) {
     args$scale <- sqrt(feature.var)
-    args$scale <- Seurat:::MinMax(args$scale, min = 1e-8, max = max(args$scale))
+    args$scale <- MinMax(args$scale, min = 1e-8, max = max(args$scale))
   } else {
     args$scale <- FALSE
   }
   if (verbose) {
     message("Running PCA")
   }
-  pca.irlba <- rlang::exec(.fn = irlba::irlba, !!!args)
+  pca.irlba <- exec(.fn = irlba, !!!args)
   sdev <- pca.irlba$d/sqrt(max(1, ncol(data) - 1))
   feture.loadings <- pca.irlba$v
   rownames(feture.loadings) <- rownames(data)
