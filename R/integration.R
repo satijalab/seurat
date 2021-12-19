@@ -6390,7 +6390,7 @@ LeverageScoreSampling <- function(
 }
 
 
-# Run annoy
+# Run hnsw
 #
 # @param data Data to build the index with
 # @param query A set of data to be queried against data
@@ -6434,23 +6434,27 @@ HnswNN <- function(data,
 
 
 IntegrationReferenceIndex <- function(object) {
-  
-  if (is.null( object@tools$Integration@sample.tree )) {
+  if (is.null(object@tools$Integration@sample.tree)) {
     reference.index <- object@commands$FindIntegrationAnchors$reference
-    if ( length(reference.index) > 1) {
+    if (length(x = reference.index) > 1) {
       stop('the number of the reference is bigger than 1')
     }
   } else {
     reference.index <- SampleIntegrationOrder(tree = object@tools$Integration@sample.tree)[1]
   }
   return(reference.index)
-  
 }
 
 
+
+#'
+#' @importFrom MASS ginv
+#' @importFrom Matrix t
+#' @export
+
 IntegrateSketchEmbeddings <- function(object.list,
                                       sketch.list,
-                                      sketch.inte,
+                                      sketch.object,
                                       features = NULL,
                                       assay = 'RNA',
                                       sketch.reduction = 'pca',
@@ -6459,23 +6463,21 @@ IntegrateSketchEmbeddings <- function(object.list,
                                       reduction.key = 'PCcorrect_',
                                       X.method = c('embeddings', 'data' , 'sketch')[3],
                                       sketch.ratio = 0.8,
-                                      num.core = 1,
                                       merged.object = NULL,
-                                      reference.exist = TRUE,
-                                      return.seurat = TRUE,
+                                      reference.index = NULL,
                                       verbose = TRUE) {
-  if (reference.exist) {
-    reference.index <- IntegrationReferenceIndex(object = sketch.inte)
-  } else {
-    reference.index <- NULL
-  }
-  features <- features %||% rownames(x = sketch.inte[[sketch.reduction]]@feature.loadings)
+  reference.index <- reference.index %||% IntegrationReferenceIndex(object = sketch.object)
+  features <- features %||% rownames(x = Loadings(sketch.object[[sketch.reduction]]))
   query.index <- setdiff(x = 1:length(object.list), y = reference.index)
   features <- Reduce(f = intersect,
                      x = c(list(features),
-                           lapply(object.list, function(x) rownames(x)) )
+                           lapply(X = object.list, function(x) rownames(x)))
   )
-  
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
   if (verbose) {
     message("Center and scale based on sketch cells")
   }
@@ -6485,68 +6487,110 @@ IntegrateSketchEmbeddings <- function(object.list,
   } else {
     scale.set <- reference.index
   }
-  mean_sd.i <- SparseMeanSd(object = sketch.inte)
-  emb.list <- list()
-  for (i in scale.set) {
-    DefaultAssay(sketch.list[[i]]) <- DefaultAssay(object.list[[i]]) <- assay
-    emb.list[[i]] <- ProjectDataEmbeddings(object =  object.list[[i]],
-                                           assay = assay,
-                                           feature.loadings =  sketch.inte[[sketch.reduction]]@feature.loadings,
-                                           ref.mean = mean_sd.i$mean,
-                                           ref.sd =  mean_sd.i$sd )
-  }
+  mean_sd.i <- SparseMeanSd(object = sketch.object)
+  emb.list <- my.lapply(
+    X = scale.set,
+    FUN = function(i) {
+      DefaultAssay(sketch.list[[i]]) <- DefaultAssay(object.list[[i]]) <- assay
+      emb.i <- ProjectDataEmbeddings(
+        object =  object.list[[i]],
+        assay = assay,
+        feature.loadings =  Loadings(sketch.object[[sketch.reduction]]),
+        ref.mean = mean_sd.i$mean,
+        ref.sd =  mean_sd.i$sd
+        )
+      return(emb.i)
+         }
+    )
   if (verbose) {
     message("Correcting embeddings")
   }
-  
-  SketchIndex <- function(q) {
-    q.cells <- Cells(sketch.list[[q]])
-    if ( X.method == 'embeddings') {
-      sketch.transform <- MASS::ginv(inte.sub[[sketch.reduction]]@cell.embeddings[q.cells ,]) %*%
-        inte.sub[[sketch.reduction.inte]]@cell.embeddings[q.cells ,]
-      emb <- emb.list[[q]]  %*% sketch.transform
-      
-    } else if (X.method == 'data') {
-      exp.mat <-  t(as.matrix(GetAssayData(inte.sub[[assay]], slot = 'data')[features,q.cells]))
-      sketch.transform <- MASS::ginv(exp.mat ) %*%
-        inte.sub[[sketch.reduction.inte]]@cell.embeddings[q.cells ,]
-      emb <- as.matrix(x = t(GetAssayData(object = object.list[[q]], slot = 'data')[features,]) %*% sketch.transform)
-      
-    } else if ( X.method == 'sketch') {
-      R <- t(CountSketch(nrow = round(sketch.ratio * length(features)), ncol = length(features)))
-      exp.mat <-  as.matrix(t(GetAssayData(inte.sub[[assay]], slot = 'data')[features,q.cells]) %*% R)
-      sketch.transform <- MASS::ginv(X = exp.mat) %*%
-        inte.sub[[sketch.reduction.inte]]@cell.embeddings[q.cells ,]
-      emb <- as.matrix((t(GetAssayData(object = object.list[[q]], slot = 'data')[features,]) %*% R) %*% sketch.transform)
+ 
+    
+ 
+  emb.list.query <- my.lapply(
+    X = query.index,
+    FUN = 
+    function(q) {
+      q.cells <- Cells(x = sketch.list[[q]])
+      emb <- switch(
+        EXPR = X.method, 
+        'embeddings'= {
+          sketch.transform <- ginv(
+            X = Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]) %*%
+            Embeddings(object = inte.sub[[sketch.reduction.inte]])[q.cells ,]
+          emb <- emb.list[[q]]  %*% sketch.transform
+          emb
+        }, 
+        'data' = {
+          exp.mat <- t(
+            x = as.matrix(
+              x = GetAssayData(
+                inte.sub[[assay]],
+                slot = 'data'
+              )[features,q.cells]
+            )
+          )
+          sketch.transform <- ginv(X = exp.mat) %*%
+            Embeddings(object = inte.sub[[sketch.reduction.inte]])[q.cells ,]
+          emb <- as.matrix(
+            x = t(
+              x = GetAssayData(
+                object = object.list[[q]],
+                slot = 'data')[features,]
+            ) %*% 
+              sketch.transform
+          )
+          emb
+        }, 
+        'sketch' = {
+          R <- t(
+            x = CountSketch(
+              nrow = round(sketch.ratio * length(x = features)), ncol = length(x = features)
+            )
+          )
+          exp.mat <- as.matrix(
+            x = t(
+              x = GetAssayData(
+                inte.sub[[assay]],
+                slot = 'data')[features,q.cells]
+            ) %*% 
+              R
+          )
+          sketch.transform <- ginv(X = exp.mat) %*%
+            Embeddings(object = inte.sub[[sketch.reduction.inte]])[q.cells ,]
+          emb <- as.matrix(
+            x = (
+            t(
+              x = GetAssayData(
+                object = object.list[[q]],
+                slot = 'data')[features,]
+            ) %*% 
+              R) %*% 
+              sketch.transform
+          )
+          emb
+        }
+      )
+      return(emb)
     }
-    return(emb)
-  }
-  emb.list.query <- parallel::mclapply( X = query.index,
-                                        FUN = SketchIndex,
-                                        mc.cores = num.core
-  )
-  
-  emb.m <- Reduce(f = rbind,  x = c( emb.list[reference.index], emb.list.query))
-  correct.dr <- CreateDimReducObject(embeddings = emb.m,
-                                     loadings =  sketch.inte[[sketch.reduction]]@feature.loadings[features,],
-                                     key = reduction.key,
-                                     assay = assay)
-  
-  if (!return.seurat) {
-    return(correct.dr)
-  } else {
-    if (is.null(merged.object)) {
-      if (verbose) {
-        message("Merging all objects")
-      }
-      merged.object <- merge(x = object.list[[1]], y = object.list[2:length(object.list)])
+    )
+  emb.m <- Reduce(f = rbind, x = c(emb.list[reference.index], emb.list.query))
+  correct.dr <- CreateDimReducObject(
+    embeddings = emb.m,
+    loadings =  Loadings(sketch.object[[sketch.reduction]])[features,],
+    key = reduction.key,
+    assay = assay
+    )
+  if (is.null(x = merged.object)) {
+    if (verbose) {
+      message("Merging all objects")
     }
-    merged.object[[reduction.name]] <- correct.dr
-    return(merged.object)
+    merged.object <- merge(x = object.list[[1]], y = object.list[2:length(object.list)])
   }
+  merged.object[[reduction.name]] <- correct.dr
+  return(merged.object)
 }
-
-
 
 ProjectDataEmbeddings <- function(object,
                                   assay = 'RNA',
@@ -6607,9 +6651,8 @@ SparseMeanSd <- function(object,
   if (class(mat)[1] !='dgCMatrix'){
     stop('Matrix is not sparse')
   }
-  
-  mat.mean <- sparseMatrixStats::rowMeans2(x = mat,  na.rm = TRUE )
-  mat.sd <- sparseMatrixStats::rowSds( x = mat, center = mat.mean)
+  mat.mean <-  RowMeanSparse(mat)
+  mat.sd <-  sqrt(RowVarSparse(mat))
   names(mat.mean) <- names(mat.sd) <- rownames( mat)
   mat.sd <- MinMax( data = mat.sd, min = eps, max = max(mat.sd))
   output <- list(mean = mat.mean, sd = mat.sd)
