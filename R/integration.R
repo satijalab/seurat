@@ -6506,8 +6506,6 @@ IntegrateSketchEmbeddings <- function(object.list,
     message("Correcting embeddings")
   }
  
-    
- 
   emb.list.query <- my.lapply(
     X = query.index,
     FUN = 
@@ -6575,7 +6573,11 @@ IntegrateSketchEmbeddings <- function(object.list,
       return(emb)
     }
     )
-  emb.m <- Reduce(f = rbind, x = c(emb.list[reference.index], emb.list.query))
+  if (X.method == 'embeddings') {
+    emb.m <- Reduce(f = rbind, x = c(emb.list[reference.index], emb.list.query))
+  } else {
+    emb.m <- Reduce(f = rbind, x = c(emb.list[1], emb.list.query))
+  }
   correct.dr <- CreateDimReducObject(
     embeddings = emb.m,
     loadings =  Loadings(sketch.object[[sketch.reduction]])[features,],
