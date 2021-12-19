@@ -6488,7 +6488,7 @@ IntegrateSketchEmbeddings <- function(object.list,
     scale.set <- reference.index
   }
   mean_sd.i <- SparseMeanSd(object = sketch.object)
-  emb.list <- my.lapply(
+  emb.list <- lapply(
     X = scale.set,
     FUN = function(i) {
       DefaultAssay(sketch.list[[i]]) <- DefaultAssay(object.list[[i]]) <- assay
