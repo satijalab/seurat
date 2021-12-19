@@ -6663,4 +6663,55 @@ SparseMeanSd <- function(object,
 
 
 
+# Run PCA on sparse matrix
+#
+#' @importFrom Matrix t
+#' @importFrom rlang exec
+#' @importFrom irlba irlba
+#' 
+#' @export
+RunPCA_Sparse <- function(
+  object,
+  features = NULL,
+  reduction.key = "PCsp_",
+  reduction.name = "pca.sparse",
+  npcs = 50,
+  do.scale = TRUE,
+  verbose = TRUE
+) {
+  features <- features %||% VariableFeatures(object)
+  data <- GetAssayData(object = object, slot = "data")[features,]
+  n <- npcs
+  args <- list(A = t(data), nv = n)
+  args$center <- RowMeanSparse(data)
+  feature.var <- RowVarSparse(data)
+  args$totalvar <- sum(feature.var)
+  if (do.scale) {
+    args$scale <- sqrt(feature.var)
+    args$scale <- MinMax(args$scale, min = 1e-8, max = max(args$scale))
+  } else {
+    args$scale <- FALSE
+  }
+  if (verbose) {
+    message("Running PCA")
+  }
+  pca.irlba <- exec(.fn = irlba, !!!args)
+  sdev <- pca.irlba$d/sqrt(max(1, ncol(data) - 1))
+  feture.loadings <- pca.irlba$v
+  rownames(feture.loadings) <- rownames(data)
+  embeddings <- sweep(x = pca.irlba$u, MARGIN = 2, STATS = pca.irlba$d, FUN = "*")
+  rownames(embeddings) <- colnames(data)
+  colnames(feture.loadings) <- colnames(embeddings) <- paste0(reduction.key, 1:npcs)
+  object[[reduction.name]] <- CreateDimReducObject(
+    embeddings = embeddings,
+    loadings = feture.loadings,
+    stdev = sdev,
+    key = reduction.key,
+    assay = DefaultAssay(object),
+    misc = list(d = pca.irlba$d)
+  )
+  return(object)
+}
+
+
  
