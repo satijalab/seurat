@@ -1626,6 +1626,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     reference.dr <- CreateDimReducObject(
       embeddings = as.matrix(x = t(GetAssayData(reference.integrated[[new.reduction.name.safe]]))),
       assay = intdr.assay,
+      loadings = Loadings(object = reductions),
       key = paste0(new.reduction.name.safe, "_")
     )
     DefaultAssay(object = reference.integrated) <- int.assay
@@ -1671,6 +1672,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   unintegrated[[new.reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(x = t(x = integrated.data)),
     assay = intdr.assay,
+    loadings = Loadings(object = reductions),
     key = paste0(new.reduction.name.safe, "_")
   )
   unintegrated <- SetIntegrationData(
@@ -6235,8 +6237,6 @@ LeverageScore.default <- function(
   }
   # row of object is cell, col of matrix is feature
   sa <- S %*% object
-
- 
   qr.sa <- base::qr(x = sa)
   R <- if (inherits(x = qr.sa, what = "sparseQR")) {
      qrR(qr = qr.sa)
@@ -6458,9 +6458,34 @@ IntegrationReferenceIndex <- function(object) {
   return(reference.index)
 }
 
-
-
-#'
+#' Integrate embeddings from batch-corrected sketch cell embeddings
+#' First construct a sketch-cell representation for all cells and
+#' then use this and the batch-corrected embeddings of sketched cells to
+#' construct the batch-corrected embeddings for all cells
+#' @param object.list A list of Seurat objects with all cells
+#' @param sketch.list A list of Seurat objects with sketched cells
+#' @param sketch.object A sketched Seurat objects with integraetd embeddings
+#' @param assay Assay name for raw expression
+#' @param sketch.reduction Dimensional reduction name for batch-corrected embeddings
+#' in the sketched object
+#' @param reduction.name dimensional reduction name, pca.correct by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. PCcorrect_ by default
+#' @param dictionary.method Methods to construct sketch-cell representation
+#' for all cells. sketch by default. Can be one of:
+#' \itemize{
+#' \item{sketch: Use random sketched data slot}
+#' \item{data: Use data slot}
+#' \item{embeddings: Use uncorrected dimensional reduction in the sketched object}
+#' }
+#' @param sketch.ratio Sketch ratio of data slot when dictionary.method is set to sketch
+#' @param sketch.reduction.raw Uncorrected dimensional reduction name in the sketched object
+#' when dictionary.method is set to embeddings
+#' @param merged.object A merged seurat object containing all cells
+#' @param reference.index Index for the integration reference
+#' @param verbose Print progress and message
+#' 
+#' 
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
 #' @export
@@ -6470,18 +6495,18 @@ IntegrateSketchEmbeddings <- function(object.list,
                                       sketch.object,
                                       features = NULL,
                                       assay = 'RNA',
-                                      sketch.reduction = 'pca',
-                                      sketch.reduction.inte = 'integrated_dr',
+                                      sketch.reduction = 'integrated_dr',
                                       reduction.name ='pca.correct',
                                       reduction.key = 'PCcorrect_',
-                                      X.method = c('embeddings', 'data' , 'sketch')[3],
+                                      dictionary.method = c('sketch', 'data','embeddings')[1],
                                       sketch.ratio = 0.8,
+                                      sketch.reduction.raw = NULL, 
                                       merged.object = NULL,
                                       reference.index = NULL,
                                       verbose = TRUE) {
   reference.index <- reference.index %||% IntegrationReferenceIndex(object = sketch.object)
-  features <- features %||% rownames(x = Loadings(sketch.object[[sketch.reduction]]))
-  query.index <- setdiff(x = 1:length(object.list), y = reference.index)
+  features <- rownames(x = Loadings(object = sketch.object[[sketch.reduction]]))
+  query.index <- setdiff(x = 1:length(x = object.list), y = reference.index)
   features <- Reduce(f = intersect,
                      x = c(list(features),
                            lapply(X = object.list, function(x) rownames(x)))
@@ -6495,8 +6520,11 @@ IntegrateSketchEmbeddings <- function(object.list,
     message("Center and scale based on sketch cells")
   }
   # mean and sd
-  if (X.method == 'embeddings') {
+  if (dictionary.method == 'embeddings') {
     scale.set <- 1:length(object.list)
+    if (is.null(sketch.reduction.raw)) {
+      stop("When dictionary.method is embeddings, sketch.reduction.raw needs to be specified")
+    }
   } else {
     scale.set <- reference.index
   }
@@ -6518,18 +6546,17 @@ IntegrateSketchEmbeddings <- function(object.list,
   if (verbose) {
     message("Correcting embeddings")
   }
- 
   emb.list.query <- my.lapply(
     X = query.index,
     FUN = 
     function(q) {
       q.cells <- Cells(x = sketch.list[[q]])
       emb <- switch(
-        EXPR = X.method, 
+        EXPR = dictionary.method,
         'embeddings'= {
           sketch.transform <- ginv(
-            X = Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]) %*%
-            Embeddings(object = inte.sub[[sketch.reduction.inte]])[q.cells ,]
+            X = Embeddings(object = inte.sub[[sketch.reduction.raw]])[q.cells ,]) %*%
+            Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]
           emb <- emb.list[[q]]  %*% sketch.transform
           emb
         }, 
@@ -6543,7 +6570,7 @@ IntegrateSketchEmbeddings <- function(object.list,
             )
           )
           sketch.transform <- ginv(X = exp.mat) %*%
-            Embeddings(object = inte.sub[[sketch.reduction.inte]])[q.cells ,]
+            Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]
           emb <- as.matrix(
             x = t(
               x = GetAssayData(
@@ -6569,7 +6596,7 @@ IntegrateSketchEmbeddings <- function(object.list,
               R
           )
           sketch.transform <- ginv(X = exp.mat) %*%
-            Embeddings(object = inte.sub[[sketch.reduction.inte]])[q.cells ,]
+            Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]
           emb <- as.matrix(
             x = (
             t(
@@ -6586,13 +6613,13 @@ IntegrateSketchEmbeddings <- function(object.list,
       return(emb)
     }
     )
-  if (X.method == 'embeddings') {
+  if (dictionary.method == 'embeddings') {
     emb.m <- Reduce(f = rbind, x = c(emb.list[reference.index], emb.list.query))
   } else {
     emb.m <- Reduce(f = rbind, x = c(emb.list[1], emb.list.query))
   }
   correct.dr <- CreateDimReducObject(
-    embeddings = emb.m,
+    embeddings = as.matrix(emb.m),
     loadings =  Loadings(sketch.object[[sketch.reduction]])[features,],
     key = reduction.key,
     assay = assay
@@ -6612,7 +6639,7 @@ ProjectDataEmbeddings <- function(object,
                                   feature.loadings,
                                   ref.mean,
                                   ref.sd,
-                                  block.size = 5000,
+                                  block.size = NULL,
                                   scale.max = 10,
                                   verbose = TRUE ){
   features <- Reduce(f = intersect,
@@ -6621,37 +6648,44 @@ ProjectDataEmbeddings <- function(object,
                               rownames(feature.loadings)
                      )
   )
+  feature.loadings <- feature.loadings[features,]
   if (verbose) {
     message( paste0(length(features)," features are used"))
   }
-  
   mat <- GetAssayData(object = object[[assay]], slot = 'data')[features,]
-  
+  if (!inherits(x = mat, what = "dgCMatrix")) {
+    mat <- as.sparse(mat)
+  }
   ref.mean <-ref.mean[features]
   ref.sd <- ref.sd[features]
-  
-  
-  block.size = min(block.size, ncol(object))
-  
-  cell.index <- rep(x = 1:ceiling(ncol(mat)/block.size),
-                    each = block.size )[1:ncol(mat)]
-  cells.list <- split(x = 1:ncol(mat), f = cell.index)
-  
   if (verbose) {
     message("ScaleData and Project to feature loadings")
   }
-  
-  
-  emb.list <- lapply(X = cells.list,
-                     FUN =  function(x) {
-                       mat.x <- as.matrix(mat[,x])
-                       mat.x <- ( mat.x-  ref.mean)/ref.sd
-                       mat.x[mat.x > 10] <- 10
-                       cell.emb.x <- t(mat.x[features,]) %*% feature.loadings[features,]
-                       return (cell.emb.x)
-                     })
-  
-  all.emb <-  Reduce(rbind, emb.list)
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  if (!is.null(block.size)) {
+    block.size = min(block.size, ncol(object))
+    cell.index <- rep(x = 1:ceiling(ncol(mat)/block.size),
+                      each = block.size )[1:ncol(mat)]
+    cells.list <- split(x = 1:ncol(mat), f = cell.index)
+    emb.list <- my.lapply(X = cells.list,
+                       FUN =  function(x) {
+                         mat.x <- as.matrix(mat[,x])
+                         mat.x <- (mat.x - ref.mean) / ref.sd
+                         mat.x[mat.x > scale.max] <- scale.max
+                         cell.emb.x <- t(mat.x ) %*% feature.loadings
+                         return (cell.emb.x)
+                       }
+                       )
+    all.emb <-  Reduce(rbind, emb.list)
+  } else {
+    mat <- (mat - ref.mean) / ref.sd
+    mat[mat > scale.max] <- scale.max
+    all.emb <- t(mat) %*% feature.loadings
+  }
   return(all.emb)
 }
 
@@ -6668,8 +6702,8 @@ SparseMeanSd <- function(object,
   }
   mat.mean <-  RowMeanSparse(mat)
   mat.sd <-  sqrt(RowVarSparse(mat))
-  names(mat.mean) <- names(mat.sd) <- rownames( mat)
-  mat.sd <- MinMax( data = mat.sd, min = eps, max = max(mat.sd))
+  names(mat.mean) <- names(mat.sd) <- rownames(mat)
+  mat.sd <- MinMax(data = mat.sd, min = eps, max = max(mat.sd))
   output <- list(mean = mat.mean, sd = mat.sd)
   return(output)
 }
