@@ -1679,11 +1679,13 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     slot = "anchors",
     new.data = anchors
   )
-  sample.tree <- GetIntegrationData(
-    object = reference.integrated,
-    integration.name = "Integration",
-    slot = "sample.tree"
-  )
+  if (!is.null(x = Tool(object = reference.integrated, slot = "Integration"))) {
+    sample.tree <- GetIntegrationData(
+      object = reference.integrated,
+      integration.name = "Integration",
+      slot = "sample.tree"
+    )
+  }
   unintegrated <- SetIntegrationData(
     object = unintegrated,
     integration.name = "Integration",
