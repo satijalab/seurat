@@ -845,6 +845,20 @@ FindMarkers.Seurat <- function(
   # select which data to use
   if (is.null(x = reduction)) {
     assay <- assay %||% DefaultAssay(object = object)
+
+    if (inherits(x = object[[assay]], what = "SCTAssay") && length(x = levels(x = object[[assay]])) > 1) {
+      cell_attributes <- SCTResults(object = object[[assay]], slot = "cell.attributes")
+      observed_median_umis <- lapply(
+        X = cell_attributes,
+        FUN = function(x) median(x[, "umi"])
+      )
+      model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
+      min_median_umi <- min(unlist(x = observed_median_umis))
+      if (any(unlist(model_median_umis) != min_median_umi)){
+        stop("Object contains multiple models with unequal library sizes. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
+      }
+    }
+
     data.use <- object[[assay]]
     cellnames.use <-  colnames(x = data.use)
   } else {
@@ -1875,6 +1889,101 @@ PerformDE <- function(
     stop("Unknown test: ", test.use)
   )
   return(de.results)
+}
+
+#' Prepare object to run differential expression on SCT assay with multiple models
+#'
+#' Given a merged object with multiple SCT models, this function uses minimum
+#' of the median UMI (calculated using the raw UMI counts) of individual objects
+#' to reverse the individual SCT regression model using minimum of median UMI
+#' as the sequencing depth covariate.
+#' The counts slot of the SCT assay is replaced with recorrected counts and
+#' the data slot is replaced with log1p of recorrected counts.
+#' @param object Seurat object with SCT assays
+#' @param assay Assay name where for SCT objects are stored; Default is 'SCT'
+#' @param verbose Print messages and progress
+#' @importFrom Matrix Matrix
+#' @importFrom sctransform correct_counts
+#'
+#' @return object Seurat object with recorrected counts and data in the SCT assay.
+#' @export
+PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
+  if (length(x = levels(x = object[[assay]])) == 1) {
+    if (verbose) {
+      message("Only one SCT model is stored - skipping recalculating corrected counts")
+    }
+    return(object)
+  }
+  observed_median_umis <- lapply(
+    X = SCTResults(object = object[[assay]], slot = "cell.attributes"),
+    FUN = function(x) median(x[, "umi"])
+  )
+  model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
+  min_median_umi <- min(unlist(x = observed_median_umis))
+  if (all(unlist(model_median_umis) == min_median_umi)){
+    if (verbose){
+      message("Minimum UMI unchnaged. Skipping re-correction.")
+    }
+    return (object)
+  }
+  if (verbose) {
+    message(paste0("Found ", length(x = levels(x = object[[assay]])), " SCT models.",
+                   " Recorrecting SCT counts using minimum median counts: ", min_median_umi))
+  }
+  umi.assay <- unique(
+    x = unlist(
+      x = SCTResults(object = object[[assay]], slot = "umi.assay")
+    )
+  )
+  if (length(x = umi.assay) > 1) {
+    stop("Multiple UMI assays are used for SCTransform: ",
+         paste(umi.assay, collapse = ", ")
+    )
+  }
+  raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
+  corrected_counts <- Matrix(
+    nrow = nrow(x = raw_umi),
+    ncol = ncol(x = raw_umi),
+    data = 0,
+    dimnames = dimnames(x = raw_umi),
+    sparse = TRUE
+  )
+  cell_attr <- SCTResults(object = object[[assay]], slot = "cell.attributes")
+  model_pars_fit <- lapply(
+    X = SCTResults(object = object[[assay]], slot = "feature.attributes"),
+    FUN = function(x) x[, c("theta", "(Intercept)", "log_umi")]
+  )
+  arguments <- SCTResults(object = object[[assay]], slot = "arguments")
+  model_str <- SCTResults(object = object[[assay]], slot = "model")
+  set_median_umi <- rep(min_median_umi, length(levels(x = object[[assay]])))
+  names(set_median_umi) <- levels(x = object[[assay]])
+  set_median_umi <- as.list(set_median_umi)
+  # correct counts
+  for (model_name in levels(x = object[[assay]]) ) {
+    model_genes <- rownames(x = model_pars_fit[[model_name]])
+    x <- list(
+      model_str = model_str[[model_name]],
+      arguments = arguments[[model_name]],
+      model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
+      cell_attr = cell_attr[[model_name]]
+    )
+    cells <- rownames(x = cell_attr[[model_name]])
+    umi <- raw_umi[model_genes, cells]
+
+    umi_corrected <- correct_counts(
+      x = x,
+      umi = umi,
+      verbosity = 0,
+      scale_factor = min_median_umi
+    )
+    corrected_counts[rownames(umi_corrected), colnames(umi_corrected)] <- umi_corrected
+  }
+  corrected_data <- log1p(corrected_counts)
+  suppressWarnings({object <- SetAssayData(object = object, assay = assay, slot = "counts", new.data = corrected_counts)})
+  suppressWarnings({object <- SetAssayData(object = object, assay = assay, slot = "data", new.data = corrected_data)})
+  SCTResults(object = object[[assay]], slot = "median_umi") <- set_median_umi
+
+  return(object)
 }
 
 # given a UMI count matrix, estimate NB theta parameter for each gene
