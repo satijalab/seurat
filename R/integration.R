@@ -6653,10 +6653,7 @@ ProjectDataEmbeddings <- function(object,
     message( paste0(length(features)," features are used"))
   }
   mat <- GetAssayData(object = object[[assay]], slot = 'data')[features,]
-  if (!inherits(x = mat, what = "dgCMatrix")) {
-    mat <- as.sparse(mat)
-  }
-  ref.mean <-ref.mean[features]
+  ref.mean <- ref.mean[features]
   ref.sd <- ref.sd[features]
   if (verbose) {
     message("ScaleData and Project to feature loadings")
@@ -6682,6 +6679,9 @@ ProjectDataEmbeddings <- function(object,
                        )
     all.emb <-  Reduce(rbind, emb.list)
   } else {
+    if (inherits(x = mat, what = "dgCMatrix")) {
+      mat <- as.matrix(mat)
+    }
     mat <- (mat - ref.mean) / ref.sd
     mat[mat > scale.max] <- scale.max
     all.emb <- t(mat) %*% feature.loadings
@@ -6693,10 +6693,12 @@ ProjectDataEmbeddings <- function(object,
 SparseMeanSd <- function(object,
                          assay = NULL, 
                          slot = 'data', 
+                         features = NULL, 
                          eps = 1e-8 
 ){
+  features <- features %||% rownames(object[[assay]])
   assay <- assay %||% DefaultAssay(object = object)
-  mat <- GetAssayData(object = object[[assay]], slot = slot)
+  mat <- GetAssayData(object = object[[assay]], slot = slot)[features,]
   if (class(mat)[1] !='dgCMatrix'){
     stop('Matrix is not sparse')
   }
