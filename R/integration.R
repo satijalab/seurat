@@ -5533,8 +5533,8 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 
 NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
   select_nn <- nn.object@nn.idx
-  ncol.nn <-  ncol.nn %||% nrow(x = select_nn)
   col.cells <- col.cells %||% nn.object@cell.names
+  ncol.nn <-  ncol.nn %||% length(col.cells)
   k.nn <- ncol(select_nn)  
   j <- as.numeric(x = t(x = select_nn ))
   i <- ((1:length(x = j)) - 1) %/% k.nn + 1
@@ -5929,7 +5929,7 @@ FindBridgeAnchor <- function(object.list,
 #' @importFrom fastDummies dummy_cols
 #' @importFrom Matrix rowMeans
 #'
-TranferLablesNN <- function(
+TransferLablesNN <- function(
   nn.object,
   reference.object,
   group.by = NULL
@@ -5968,6 +5968,37 @@ TranferLablesNN <- function(
   return(output.list)
 }
 
+
+TransferExpressionNN<- function(
+  nn.object,
+  reference.object,
+  var.name = NULL
+){
+ 
+  nn.matrix <- NNtoGraph(nn.object = nn.object, 
+                         col.cells = Cells(reference.object)
+                         )
+  reference.exp.matrix <- FetchData(object = reference.object, vars = var.name)
+  # remove NA
+  reference.exp.matrix <- reference.exp.matrix[complete.cases(reference.exp.matrix), ,drop= F]
+  nn.matrix <- nn.matrix[, rownames(reference.exp.matrix)]
+  
+  # remove NO neighbor query
+  nn.sum <- RowSumSparse(mat = nn.matrix) 
+  nn.matrix <- nn.matrix[nn.sum > 2, ]
+  nn.sum <- nn.sum[nn.sum>2]
+  
+  # transfer data
+  reference.exp.matrix <- as.matrix(reference.exp.matrix)
+  query.exp.mat <- nn.matrix %*% reference.exp.matrix
+  query.exp.mat <- sweep(x = query.exp.mat, MARGIN = 1, STATS = nn.sum, FUN = "/")
+  
+  # set output for all query cells
+  query.exp.all <- data.frame(row.names = Cells(nn.object))
+  query.exp.all[rownames(query.exp.mat),1] <- query.exp.mat[,1]
+  colnames(query.exp.all) <- var.name
+  return(query.exp.all)
+}
 
 
 #' @param reduction.name dimensional reduction name, lap by default
@@ -6763,4 +6794,5 @@ RunPCA_Sparse <- function(
 }
 
 
+ 
  
