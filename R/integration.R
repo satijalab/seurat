@@ -6727,6 +6727,7 @@ SparseMeanSd <- function(object,
                          features = NULL, 
                          eps = 1e-8 
 ){
+  assay <- assay%||% DefaultAssay(object)
   features <- features %||% rownames(object[[assay]])
   assay <- assay %||% DefaultAssay(object = object)
   mat <- GetAssayData(object = object[[assay]], slot = slot)[features,]
