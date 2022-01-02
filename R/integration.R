@@ -6794,6 +6794,16 @@ RunPCA_Sparse <- function(
   return(object)
 }
 
+SmoothLabels <- function(labels, clusters ) {
+  cluster.set <- unique(clusters)
+  smooth.labels <- labels
+  for (c in cluster.set) {
+    cell.c <- which(clusters == c)
+    smooth.labels[cell.c] <- names(sort(table(labels[cell.c]), decreasing = T)[1])
+  }
+  return(smooth.labels)
+}
+
 
  
  
