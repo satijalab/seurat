@@ -852,6 +852,15 @@ FindMarkers.Seurat <- function(
         X = cell_attributes,
         FUN = function(x) median(x[, "umi"])
       )
+      model.list <- slot(object = object[[assay]], "SCTModel.list")
+      median_umi.status <- lapply(X = model.list,
+                                  FUN = function(x) { return(tryCatch(
+                                    expr = slot(object = x, name = 'median_umi'),
+                                    error = function(...) {return(NULL)})
+                                  )})
+      if (any(is.null(unlist(median_umi.status)))){
+        stop("SCT assay does not contain median UMI information. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
+      }
       model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
       min_median_umi <- min(unlist(x = observed_median_umis))
       if (any(unlist(model_median_umis) != min_median_umi)){
@@ -1918,6 +1927,19 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     X = SCTResults(object = object[[assay]], slot = "cell.attributes"),
     FUN = function(x) median(x[, "umi"])
   )
+  model.list <- slot(object = object[[assay]], "SCTModel.list")
+  median_umi.status <- lapply(X = model.list,
+                              FUN = function(x) { return(tryCatch(
+                                expr = slot(object = x, name = 'median_umi'),
+                                error = function(...) {return(NULL)})
+                                )})
+  if (any(is.null(unlist(median_umi.status)))){
+    # For old SCT objects  median_umi is set to median umi as calculated from
+    slot(object = object[[assay]], "SCTModel.list") <- lapply(model.list,
+                                                              FUN = UpdateSlots)
+    SCTResults(object = object[[assay]], slot = "median_umi") <- observed_median_umis
+
+  }
   model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
   min_median_umi <- min(unlist(x = observed_median_umis))
   if (all(unlist(model_median_umis) == min_median_umi)){
