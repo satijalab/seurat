@@ -2,6 +2,8 @@
 ## Added
 - Add `raster.dpi` parameter to `DimPlot/FeaturePlot` to optionally rasterize individual points ([#5392](https://github.com/satijalab/seurat/pull/5392))
 
+## Changes
+- Update `ReadParseBio` to support split-pipe 0.9.6p ([#5446](https://github.com/satijalab/seurat/pull/5446))
 
 # Seurat 4.0.6 (2021-12-16)
 ## Added
