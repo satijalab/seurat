@@ -186,7 +186,7 @@ SpecificDimPlot <- function(object, ...) {
 ReadParseBio <- function(data.dir, ...) {
   mtx <- file.path(data.dir, "DGE.mtx")
   cells <- file.path(data.dir, "cell_metadata.csv")
-  features <- file.path(data.dir, "genes.csv")
+  features <- file.path(data.dir, "all_genes.csv")
   return(ReadMtx(
     mtx = mtx,
     cells = cells,
