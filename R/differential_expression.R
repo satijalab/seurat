@@ -1934,7 +1934,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
                                 error = function(...) {return(NULL)})
                                 )})
   if (any(is.null(unlist(median_umi.status)))){
-    # For old SCT objects  median_umi is set to median umi as calculated from
+    # For old SCT objects  median_umi is set to median umi as calculated from obserbed UMIs
     slot(object = object[[assay]], "SCTModel.list") <- lapply(model.list,
                                                               FUN = UpdateSlots)
     SCTResults(object = object[[assay]], slot = "median_umi") <- observed_median_umis
