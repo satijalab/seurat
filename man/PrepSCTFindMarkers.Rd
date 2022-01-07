@@ -24,3 +24,14 @@ as the sequencing depth covariate.
 The counts slot of the SCT assay is replaced with recorrected counts and
 the data slot is replaced with log1p of recorrected counts.
 }
+\examples{
+data("pbmc_small")
+pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+pbmc_merged <- merge(x = pbmc_small1, y = pbmc_small2)
+pbmc_merged <- PrepSCTFindMarkers(object = pbmc_merged)
+markers <- FindMarkers(object = pbmc_merged, ident.1="0", ident.2="1", assay="SCT")
+pbmc_subset <- subset(pbmc_merged, idents =Run c("0", "1"))
+markers_subset <- FindMarkers(object = pbmcx, ident.1="0", ident.2="1", assay="SCT", recorrect_umi = FALSE)
+}
+\concept{differential_expression}

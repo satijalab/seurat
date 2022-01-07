@@ -56,12 +56,12 @@ In this vignette, we use [sctransform v2](https://github.com/satijalab/sctransfo
 
 ## Install sctransform
 
-We will install sctransform v2 from Github. We also recommend installing [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
+We will install sctransform v2 from Github. We will also install the [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
 
 ```{r}
 # install glmGamPoi
-##if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-##BiocManager::install("glmGamPoi")
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("glmGamPoi")
 # install sctransform
 ##devtools::install("satijalab/sctransform", ref="develop") 
 ```
@@ -177,9 +177,19 @@ To run differential expression, we make use of 'corrected counts' that are store
 
 ```{r runde}
 immune.combined.sct <- PrepSCTFindMarkers(immune.combined.sct)
+
 b.interferon.response <- FindMarkers(immune.combined.sct, assay = "SCT", 
                                      ident.1 = "B_STIM", ident.2 = "B_CTRL", verbose = FALSE)
 head(b.interferon.response, n = 15)
+```
+
+If running on a subset of the original object after running `PrepSCTFindMarkers()`, `FindMarkers()` should be invoked with `recorrect_umi = FALSE` to use the existing corrected counts:
+
+```{r runde2}
+immune.combined.sct.subset <- subset(immune.combined.sct, idents = c("B_STIM", "B_CTRL"))
+b.interferon.response.subset <- FindMarkers(immune.combined.sct.subset, assay = "SCT", 
+                                            ident.1 = "B_STIM", ident.2 = "B_CTRL", 
+                                            verbose = FALSE, recorrect_umi = FALSE)
 ```
 
 We can also use the corrected counts for visualization:

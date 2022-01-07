@@ -680,6 +680,108 @@ FindMarkers.Assay <- function(
   return(de.results)
 }
 
+
+#' @rdname FindMarkers
+#' @concept differential_expression
+#' @export
+#' @method FindMarkers SCTAssay
+#'
+FindMarkers.SCTAssay <- function(
+  object,
+  slot = "data",
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = 'wilcox',
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
+  densify = FALSE,
+  recorrect_umi = TRUE,
+  ...
+) {
+  data.slot <- ifelse(
+    test = test.use %in% DEmethods_counts(),
+    yes = 'counts',
+    no = slot
+  )
+  if (recorrect_umi && length(x = levels(x = object)) > 1) {
+    cell_attributes <- SCTResults(object = object, slot = "cell.attributes")
+    observed_median_umis <- lapply(
+      X = cell_attributes,
+      FUN = function(x) median(x[, "umi"])
+    )
+    model.list <- slot(object = object, "SCTModel.list")
+    median_umi.status <- lapply(X = model.list,
+                                FUN = function(x) { return(tryCatch(
+                                  expr = slot(object = x, name = 'median_umi'),
+                                  error = function(...) {return(NULL)})
+                                )})
+    if (any(is.null(unlist(median_umi.status)))){
+      stop("SCT assay does not contain median UMI information. Run `PrepSCTFindMarkers()` before running `FindMarkers()` or invoke `FindMarkers(recorrect_umi=FALSE)`")
+    }
+    model_median_umis <- SCTResults(object = object, slot = "median_umi")
+    min_median_umi <- min(unlist(x = observed_median_umis))
+    if (any(unlist(model_median_umis) != min_median_umi)){
+      stop("Object contains multiple models with unequal library sizes. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
+    }
+  }
+
+  data.use <-  GetAssayData(object = object, slot = data.slot)
+  counts <- switch(
+    EXPR = data.slot,
+    'scale.data' = GetAssayData(object = object, slot = "counts"),
+    numeric()
+  )
+  fc.results <- FoldChange(
+    object = object,
+    slot = data.slot,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    pseudocount.use = pseudocount.use,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name,
+    base = base
+  )
+  de.results <- FindMarkers(
+    object = data.use,
+    slot = data.slot,
+    counts = counts,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    logfc.threshold = logfc.threshold,
+    test.use = test.use,
+    min.pct = min.pct,
+    min.diff.pct = min.diff.pct,
+    verbose = verbose,
+    only.pos = only.pos,
+    max.cells.per.ident = max.cells.per.ident,
+    random.seed = random.seed,
+    latent.vars = latent.vars,
+    min.cells.feature = min.cells.feature,
+    min.cells.group = min.cells.group,
+    pseudocount.use = pseudocount.use,
+    fc.results = fc.results,
+    densify = densify,
+    ...
+  )
+  return(de.results)
+}
+
+
 #' @importFrom Matrix rowMeans
 #' @rdname FindMarkers
 #' @concept differential_expression
@@ -845,29 +947,6 @@ FindMarkers.Seurat <- function(
   # select which data to use
   if (is.null(x = reduction)) {
     assay <- assay %||% DefaultAssay(object = object)
-
-    if (inherits(x = object[[assay]], what = "SCTAssay") && length(x = levels(x = object[[assay]])) > 1) {
-      cell_attributes <- SCTResults(object = object[[assay]], slot = "cell.attributes")
-      observed_median_umis <- lapply(
-        X = cell_attributes,
-        FUN = function(x) median(x[, "umi"])
-      )
-      model.list <- slot(object = object[[assay]], "SCTModel.list")
-      median_umi.status <- lapply(X = model.list,
-                                  FUN = function(x) { return(tryCatch(
-                                    expr = slot(object = x, name = 'median_umi'),
-                                    error = function(...) {return(NULL)})
-                                  )})
-      if (any(is.null(unlist(median_umi.status)))){
-        stop("SCT assay does not contain median UMI information. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
-      }
-      model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
-      min_median_umi <- min(unlist(x = observed_median_umis))
-      if (any(unlist(model_median_umis) != min_median_umi)){
-        stop("Object contains multiple models with unequal library sizes. Run `PrepSCTFindMarkers()` before running `FindMarkers()`.")
-      }
-    }
-
     data.use <- object[[assay]]
     cellnames.use <-  colnames(x = data.use)
   } else {
@@ -1916,6 +1995,18 @@ PerformDE <- function(
 #'
 #' @return object Seurat object with recorrected counts and data in the SCT assay.
 #' @export
+#'
+#' @concept differential_expression
+#' @examples
+#' data("pbmc_small")
+#' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+#' pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20)
+#' pbmc_merged <- merge(x = pbmc_small1, y = pbmc_small2)
+#' pbmc_merged <- PrepSCTFindMarkers(object = pbmc_merged)
+#' markers <- FindMarkers(object = pbmc_merged, ident.1="0", ident.2="1", assay="SCT")
+#' pbmc_subset <- subset(pbmc_merged, idents =Run c("0", "1"))
+#' markers_subset <- FindMarkers(object = pbmcx, ident.1="0", ident.2="1", assay="SCT", recorrect_umi = FALSE)
+
 PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   if (length(x = levels(x = object[[assay]])) == 1) {
     if (verbose) {
@@ -1944,7 +2035,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   min_median_umi <- min(unlist(x = observed_median_umis))
   if (all(unlist(model_median_umis) == min_median_umi)){
     if (verbose){
-      message("Minimum UMI unchnaged. Skipping re-correction.")
+      message("Minimum UMI unchanged. Skipping re-correction.")
     }
     return (object)
   }
