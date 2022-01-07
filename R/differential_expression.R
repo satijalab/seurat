@@ -729,7 +729,8 @@ FindMarkers.SCTAssay <- function(
                                   error = function(...) {return(NULL)})
                                 )})
     if (any(is.null(unlist(median_umi.status)))){
-      stop("SCT assay does not contain median UMI information. Run `PrepSCTFindMarkers()` before running `FindMarkers()` or invoke `FindMarkers(recorrect_umi=FALSE)`")
+      stop("SCT assay does not contain median UMI information.",
+           "Run `PrepSCTFindMarkers()` before running `FindMarkers()` or invoke `FindMarkers(recorrect_umi=FALSE)`.")
     }
     model_median_umis <- SCTResults(object = object, slot = "median_umi")
     min_median_umi <- min(unlist(x = observed_median_umis))
@@ -951,7 +952,7 @@ FindMarkers.Seurat <- function(
     cellnames.use <-  colnames(x = data.use)
   } else {
     data.use <- object[[reduction]]
-    cellnames.use <- rownames(data.use)
+    cellnames.use <- rownames(x = data.use)
   }
   cells <- IdentsToCells(
     object = object,
@@ -1993,7 +1994,7 @@ PerformDE <- function(
 #' @importFrom Matrix Matrix
 #' @importFrom sctransform correct_counts
 #'
-#' @return object Seurat object with recorrected counts and data in the SCT assay.
+#' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
 #'
 #' @concept differential_expression
@@ -2018,30 +2019,33 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     X = SCTResults(object = object[[assay]], slot = "cell.attributes"),
     FUN = function(x) median(x[, "umi"])
   )
-  model.list <- slot(object = object[[assay]], "SCTModel.list")
+  model.list <- slot(object = object[[assay]], name = "SCTModel.list")
   median_umi.status <- lapply(X = model.list,
                               FUN = function(x) { return(tryCatch(
                                 expr = slot(object = x, name = 'median_umi'),
                                 error = function(...) {return(NULL)})
-                                )})
-  if (any(is.null(unlist(median_umi.status)))){
+                              )})
+  if (any(is.null(x = unlist(x = median_umi.status)))){
     # For old SCT objects  median_umi is set to median umi as calculated from obserbed UMIs
-    slot(object = object[[assay]], "SCTModel.list") <- lapply(model.list,
-                                                              FUN = UpdateSlots)
+    slot(object = object[[assay]], name = "SCTModel.list") <- lapply(X = model.list,
+                                                                     FUN = UpdateSlots)
     SCTResults(object = object[[assay]], slot = "median_umi") <- observed_median_umis
 
   }
   model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
   min_median_umi <- min(unlist(x = observed_median_umis))
-  if (all(unlist(model_median_umis) == min_median_umi)){
+  if (all(unlist(x = model_median_umis) == min_median_umi)){
     if (verbose){
       message("Minimum UMI unchanged. Skipping re-correction.")
     }
-    return (object)
+    return(object)
   }
   if (verbose) {
-    message(paste0("Found ", length(x = levels(x = object[[assay]])), " SCT models.",
-                   " Recorrecting SCT counts using minimum median counts: ", min_median_umi))
+    message(paste0("Found ",
+                   length(x = levels(x = object[[assay]])),
+                   " SCT models.",
+                   " Recorrecting SCT counts using minimum median counts: ",
+                   min_median_umi))
   }
   umi.assay <- unique(
     x = unlist(
@@ -2072,7 +2076,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   names(set_median_umi) <- levels(x = object[[assay]])
   set_median_umi <- as.list(set_median_umi)
   # correct counts
-  for (model_name in levels(x = object[[assay]]) ) {
+  for (model_name in levels(x = object[[assay]])) {
     model_genes <- rownames(x = model_pars_fit[[model_name]])
     x <- list(
       model_str = model_str[[model_name]],
@@ -2092,8 +2096,14 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
     corrected_counts[rownames(umi_corrected), colnames(umi_corrected)] <- umi_corrected
   }
   corrected_data <- log1p(corrected_counts)
-  suppressWarnings({object <- SetAssayData(object = object, assay = assay, slot = "counts", new.data = corrected_counts)})
-  suppressWarnings({object <- SetAssayData(object = object, assay = assay, slot = "data", new.data = corrected_data)})
+  suppressWarnings({object <- SetAssayData(object = object,
+                                           assay = assay,
+                                           slot = "counts",
+                                           new.data = corrected_counts)})
+  suppressWarnings({object <- SetAssayData(object = object,
+                                           assay = assay,
+                                           slot = "data",
+                                           new.data = corrected_data)})
   SCTResults(object = object[[assay]], slot = "median_umi") <- set_median_umi
 
   return(object)

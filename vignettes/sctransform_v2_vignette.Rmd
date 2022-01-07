@@ -120,7 +120,7 @@ p1 | p2
 
 ## Perform integration using pearson residuals
 
-To perform integration using the pearson residuals calculaated above, we use the `PrepSCTIntegration()` function after selecting a list of informative features  using `SelectIntegrationFeatures()`:
+To perform integration using the pearson residuals calculated above, we use the `PrepSCTIntegration()` function after selecting a list of informative features  using `SelectIntegrationFeatures()`:
 
 ```{r prepinteg}
 stim <- SCTransform(stim, vst.flavor = "v2", verbose = FALSE) %>% RunPCA(npcs = 30, verbose = FALSE)
