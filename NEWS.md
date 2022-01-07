@@ -1,6 +1,7 @@
 # Unreleased
 ## Added
 - Add `raster.dpi` parameter to `DimPlot/FeaturePlot` to optionally rasterize individual points ([#5392](https://github.com/satijalab/seurat/pull/5392))
+- Add support for sctransform v2, differential expression on with SCT
 
 ## Changes
 - Update `ReadParseBio` to support split-pipe 0.9.6p ([#5446](https://github.com/satijalab/seurat/pull/5446))
