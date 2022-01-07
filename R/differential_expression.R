@@ -1921,7 +1921,7 @@ PerformDE <- function(
 #' @importFrom Matrix Matrix
 #' @importFrom sctransform correct_counts
 #'
-#' @return object Seurat object with recorrected counts and data in the SCT assay.
+#' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
 PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   if (length(x = levels(x = object[[assay]])) == 1) {

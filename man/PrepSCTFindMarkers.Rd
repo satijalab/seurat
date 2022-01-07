@@ -14,7 +14,7 @@ PrepSCTFindMarkers(object, assay = "SCT", verbose = TRUE)
 \item{verbose}{Print messages and progress}
 }
 \value{
-object Seurat object with recorrected counts and data in the SCT assay.
+Returns a Seurat object with recorrected counts and data in the SCT assay.
 }
 \description{
 Given a merged object with multiple SCT models, this function uses minimum
