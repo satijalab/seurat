@@ -2577,7 +2577,7 @@ PrepVSTResults <- function(vst.res, cell.names) {
     if ("umi" %in% colnames(x = cell.attrs)) {
       median_umi <- median(cell.attrs$umi)
     } else if ("log_umi" %in% colnames(x = cell.attrs)) {
-      median_umi <- median(10 ^ cell.attrs$umi)
+      median_umi <- median(10 ^ cell.attrs$log_umi)
     }
   }
   vst.res.SCTModel  <- SCTModel(
