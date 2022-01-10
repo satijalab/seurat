@@ -2253,8 +2253,10 @@ setAs(
           X = 1:length(x = vst.res),
           FUN = function(i) {
             vst.res[[i]]$umi.assay <- umi.assay[[i]]
-            return(PrepVSTResults(vst.res = vst.res[[i]],
-                                  cell.names = colnames(x = from)))
+            return(PrepVSTResults(
+              vst.res = vst.res[[i]],
+              cell.names = colnames(x = from)
+            ))
           }
         )
         names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
