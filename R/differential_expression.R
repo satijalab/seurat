@@ -1812,15 +1812,14 @@ MASTDETest <- function(
     object = paste0(" ~ ", paste(latent.vars.names, collapse = "+"))
   )
   zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
-  summaryCond <- summary(object = zlmCond, doLRT = 'conditionGroup2')
-  summaryDt <- summaryCond$datatable
+  lr_results <- MAST::lrTest(zlmCond, 'condition')
   # fcHurdle <- merge(
   #   summaryDt[contrast=='conditionGroup2' & component=='H', .(primerid, `Pr(>Chisq)`)], #hurdle P values
   #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
   # ) #logFC coefficients
   # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
-  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
-  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
+  p_val <- lr_results[,"hurdle", "Pr(>Chisq)"]
+  genes.return <- names(p_val)
   # p_val <- subset(summaryDt, component == "H")[, 4]
   # genes.return <- subset(summaryDt, component == "H")[, 1]
   to.return <- data.frame(p_val, row.names = genes.return)
