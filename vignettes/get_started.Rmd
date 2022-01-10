@@ -125,7 +125,7 @@ Seurat also offers additional novel statistical methods for analyzing single-cel
 
 * Weighted-nearest neighbor (WNN) analysis: to define cell state based on multiple modalities [[paper](https://doi.org/10.1016/j.cell.2021.04.048)]
 * Mixscape: to analyze data from pooled single-cell CRISPR screens [[paper](https://doi.org/10.1038/s41588-021-00778-2)]
-* SCTransform: Improved normalization for single-cell RNA-seq data [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)]
+* SCTransform: Improved normalization for single-cell RNA-seq data [[paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)]]
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 3)

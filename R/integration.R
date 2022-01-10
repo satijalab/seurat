@@ -1912,7 +1912,7 @@ LocalStruct <- function(
 #' }
 #'
 #' @importFrom rlang invoke
-#' 
+#'
 #' @export
 #' @concept integration
 #'
