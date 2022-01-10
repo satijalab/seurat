@@ -2258,9 +2258,6 @@ setAs(
         )
         names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
       }
-      if (length(x = vst.res) > 1) {
-        vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
-      }
       object.list$misc[[vst.use]] <- NULL
       object.list$SCTModel.list <- vst.res
     }
