@@ -407,9 +407,10 @@ GetResidual <- function(
     }
   }
   features <- intersect(x = features.orig, y = features)
-  if (length(x = sct.models) > 1 & verbose) {
-    message("This SCTAssay contains multiple SCT models. ",
-            "Computing residuals for cells using different models")
+  if (length(x = sct.models) > 1 && verbose) {
+    message(
+      "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
+    )
   }
   new.residuals <- lapply(
     X = sct.models,
