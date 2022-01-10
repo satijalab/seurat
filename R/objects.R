@@ -2253,7 +2253,8 @@ setAs(
           X = 1:length(x = vst.res),
           FUN = function(i) {
             vst.res[[i]]$umi.assay <- umi.assay[[i]]
-            return(PrepVSTResults(vst.res = vst.res[[i]], cell.names = colnames(x = from)))
+            return(PrepVSTResults(vst.res = vst.res[[i]],
+                                  cell.names = colnames(x = from)))
           }
         )
         names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
@@ -2573,8 +2574,13 @@ PrepVSTResults <- function(vst.res, cell.names) {
   if ("scale_factor" %in% names(vst.res$arguments)){
     median_umi <- vst.res$arguments$scale_factor
   }
-  if (is.na(median_umi)) median_umi <- median(cell.attrs$umi)
-
+  if (is.na(median_umi)) {
+    if ("umi" %in% colnames(x = cell.attrs)) {
+      median_umi <- median(cell.attrs$umi)
+    } else if ("log_umi" %in% colnames(x = cell.attrs)) {
+      median_umi <- median(10 ^ cell.attrs$umi)
+    }
+  }
   vst.res.SCTModel  <- SCTModel(
     feature.attributes = feature.attrs,
     cell.attributes = cell.attrs,
