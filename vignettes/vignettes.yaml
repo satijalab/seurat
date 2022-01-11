@@ -76,7 +76,7 @@
         Examples of how to use the SCTransform wrapper in Seurat.
       image: assets/sctransform.png
 
-    - title: sctransform, v2 regularization
+    - title: SCTransform, v2 regularization
       name: sctransform_v2_vignette
       summary: |
         Examples of how to perform normalization, feature selection, integration, and differential expression with an updated version of sctransform.

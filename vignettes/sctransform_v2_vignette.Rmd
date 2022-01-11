@@ -1,5 +1,5 @@
 ---
-title: 'Introduction to sctransform v2'
+title: 'Introduction to SCTransform, v2 regularization'
 output:
   html_document:
     theme: united
