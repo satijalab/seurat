@@ -5,6 +5,7 @@
 
 ## Changes
 - Update `ReadParseBio` to support split-pipe 0.9.6p ([#5446](https://github.com/satijalab/seurat/pull/5446))
+- Fixes for MAST differential expression ([#5441](https://github.com/satijalab/seurat/issues/5441))
 
 # Seurat 4.0.6 (2021-12-16)
 ## Added
