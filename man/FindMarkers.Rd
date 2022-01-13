@@ -243,6 +243,8 @@ slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
 
+\item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE}
+
 \item{ident.1}{Identity class to define markers for; pass an object of class
 \code{phylo} or 'clustertree' to find markers for a node in a cluster tree;
 passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
