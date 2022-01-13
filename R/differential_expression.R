@@ -680,7 +680,8 @@ FindMarkers.Assay <- function(
   return(de.results)
 }
 
-
+#' @param recorrect_umi Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE
+#'
 #' @rdname FindMarkers
 #' @concept differential_expression
 #' @export
