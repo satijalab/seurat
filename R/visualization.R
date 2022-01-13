@@ -1346,8 +1346,8 @@ FeaturePlot <- function(
         }
       }
       if (!(is.null(x = keep.scale)) && keep.scale == "feature" && !blend) {
-        max.feature.value <- max(data.single[, feature])
-        min.feature.value <- min(data.single[, feature])
+        max.feature.value <- max(data[, feature])
+        min.feature.value <- min(data[, feature])
         plot <- suppressMessages(plot & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value)))
       }
       # Add coord_fixed
@@ -1481,8 +1481,8 @@ FeaturePlot <- function(
       plots <- plots & NoLegend()
     }
     if (!(is.null(x = keep.scale)) && keep.scale == "all" && !blend) {
-      max.feature.value <- max(data.plot[, features])
-      min.feature.value <- min(data.plot[, features])
+      max.feature.value <- max(data[, features])
+      min.feature.value <- min(data[, features])
       plots <- suppressMessages(plots & scale_color_gradientn(colors = cols, limits = c(min.feature.value, max.feature.value)))
     }
   }
