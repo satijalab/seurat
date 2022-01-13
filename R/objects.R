@@ -159,6 +159,7 @@ IntegrationData <- setClass(
 #' and the default is RNA
 #' @slot model A formula used in SCTransform
 #' @slot arguments other information used in SCTransform
+#' @slot median_umi Median UMI (or scale factor) used to calculate corrected counts
 #'
 #' @seealso \code{\link{Assay}}
 #'
@@ -180,7 +181,8 @@ SCTModel <- setClass(
     clips = 'list',
     umi.assay = 'character',
     model = 'character',
-    arguments = "list"
+    arguments = 'list',
+    median_umi = 'numeric'
   )
 )
 
@@ -1660,7 +1662,7 @@ RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
 #'
 SCTResults.SCTModel <- function(object, slot, ...) {
   CheckDots(...)
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1677,7 +1679,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 #' @method SCTResults<- SCTModel
 #'
 "SCTResults<-.SCTModel" <- function(object, slot, ..., value) {
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1705,7 +1707,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 #'
 SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
   CheckDots(...)
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips', 'umi.assay',  'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1728,7 +1730,7 @@ SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
 #' @method SCTResults<- SCTAssay
 #'
 "SCTResults<-.SCTAssay" <- function(object, slot, model = NULL, ..., value) {
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -2251,13 +2253,13 @@ setAs(
           X = 1:length(x = vst.res),
           FUN = function(i) {
             vst.res[[i]]$umi.assay <- umi.assay[[i]]
-            return(PrepVSTResults(vst.res = vst.res[[i]], cell.names = colnames(x = from)))
+            return(PrepVSTResults(
+              vst.res = vst.res[[i]],
+              cell.names = colnames(x = from)
+            ))
           }
         )
         names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
-      }
-      if (length(x = vst.res) > 1) {
-        vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
       }
       object.list$misc[[vst.use]] <- NULL
       object.list$SCTModel.list <- vst.res
@@ -2309,6 +2311,8 @@ setMethod(
   }
 )
 
+#' @importFrom utils head
+#
 setMethod(
   f = 'show',
   signature = 'SCTAssay',
@@ -2564,13 +2568,26 @@ PrepVSTResults <- function(vst.res, cell.names) {
     'vst' = vst.res$arguments$res_clip_range,
     'sct' = vst.res$arguments$sct.clip.range
   )
+  median_umi <- NA
+  # check if a custom scale_factor was provided to vst()
+  if ("scale_factor" %in% names(vst.res$arguments)){
+    median_umi <- vst.res$arguments$scale_factor
+  }
+  if (is.na(median_umi)) {
+    if ("umi" %in% colnames(x = cell.attrs)) {
+      median_umi <- median(cell.attrs$umi)
+    } else if ("log_umi" %in% colnames(x = cell.attrs)) {
+      median_umi <- median(10 ^ cell.attrs$log_umi)
+    }
+  }
   vst.res.SCTModel  <- SCTModel(
     feature.attributes = feature.attrs,
     cell.attributes = cell.attrs,
     clips = clips,
     umi.assay = vst.res$umi.assay %||% "RNA",
     model =  vst.res$model_str,
-    arguments =  vst.res$arguments
+    arguments =  vst.res$arguments,
+    median_umi = median_umi
   )
   return(vst.res.SCTModel)
 }
@@ -2630,6 +2647,8 @@ SubsetVST <- function(sct.info, cells, features) {
 #
 # @return The top \code{num}
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
+#
+#' @importFrom utils head tail
 #
 Top <- function(data, num, balanced) {
   nr <- nrow(x = data)
@@ -2832,6 +2851,8 @@ UpdateSlots <- function(object) {
 #
 # @return Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
 # appropriately sized empty sparse matrix
+#
+#' @importFrom Matrix Matrix
 #
 ValidateDataForMerge <- function(assay, slot) {
   mat <- GetAssayData(object = assay, slot = slot)

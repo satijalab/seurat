@@ -1,5 +1,6 @@
 #' @importFrom utils globalVariables
 #' @importFrom ggplot2 ggproto GeomViolin
+#' @importFrom SeuratObject DefaultDimReduc
 #'
 NULL
 
@@ -16,7 +17,7 @@ NULL
 #' @param dims Dimensions to plot
 #' @param nfeatures Number of genes to plot
 #' @param cells A list of cells to plot. If numeric, just plots the top cells.
-#' @param reduction Which dimmensional reduction to use
+#' @param reduction Which dimensional reduction to use
 #' @param balanced Plot an equal number of genes with both + and - scores.
 #' @param projected Use the full projected dimensional reduction
 #' @param ncol Number of columns to plot
@@ -554,6 +555,9 @@ RidgePlot <- function(
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #' @param flip flip plot orientation (identities on x-axis)
+#' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
+# default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+# number of points exceed 100,000.
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -588,7 +592,8 @@ VlnPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = 'feature',
-  flip = FALSE
+  flip = FALSE,
+  raster = NULL
 ) {
   if (
     !is.null(x = split.by) &
@@ -623,7 +628,8 @@ VlnPlot <- function(
     stack = stack,
     combine = combine,
     fill.by = fill.by,
-    flip = flip
+    flip = flip,
+    raster = raster
   ))
 }
 
@@ -753,6 +759,8 @@ ColorDimSplit <- function(
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #' @param raster Convert points to raster format, default is \code{NULL} which
 #' automatically rasterizes if plotting more than 100,000 cells
+#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
+#' Default is c(512, 512).
 #'
 #' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -800,7 +808,8 @@ DimPlot <- function(
   na.value = 'grey50',
   ncol = NULL,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
@@ -847,7 +856,8 @@ DimPlot <- function(
         cols.highlight = cols.highlight,
         sizes.highlight = sizes.highlight,
         na.value = na.value,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       )
       if (label) {
         plot <- LabelClusters(
@@ -981,6 +991,7 @@ FeaturePlot <- function(
   blend.threshold = 0.5,
   label = FALSE,
   label.size = 4,
+  label.color = "black",
   repel = FALSE,
   ncol = NULL,
   coord.fixed = FALSE,
@@ -988,7 +999,8 @@ FeaturePlot <- function(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   # TODO: deprecate fully on 3.2.0
   if (!is.null(x = sort.cell)) {
@@ -1250,7 +1262,8 @@ FeaturePlot <- function(
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
-        raster = raster
+        raster = raster,
+        raster.dpi = raster.dpi
       ) +
         scale_x_continuous(limits = xlims) +
         scale_y_continuous(limits = ylims) +
@@ -1263,7 +1276,8 @@ FeaturePlot <- function(
           plot = plot,
           id = 'ident',
           repel = repel,
-          size = label.size
+          size = label.size,
+          color = label.color
         )
       }
       # Make FeatureHeatmaps look nice(ish)
@@ -1825,7 +1839,8 @@ CellScatter <- function(
   cols = NULL,
   pt.size = 1,
   smooth = FALSE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   features <- features %||% rownames(x = object)
   data <- FetchData(
@@ -1840,7 +1855,8 @@ CellScatter <- function(
     pt.size = pt.size,
     rows.highlight = highlight,
     smooth = smooth,
-    raster = raster
+    raster = raster,
+    raster.dpi = raster.dpi
   )
   return(plot)
 }
@@ -1872,6 +1888,8 @@ CellScatter <- function(
 #' @param raster Convert points to raster format, default is \code{NULL}
 #' which will automatically use raster if the number of points plotted is greater than
 #' 100,000
+#' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
+#' Default is c(512, 512).
 #' @param jitter Jitter for easier visualization of crowded points
 #'
 #' @return A ggplot object
@@ -1905,6 +1923,7 @@ FeatureScatter <- function(
   slot = 'data',
   plot.cor = TRUE,
   raster = NULL,
+  raster.dpi = c(512, 512),
   jitter = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
@@ -1947,6 +1966,7 @@ FeatureScatter <- function(
         span = span,
         plot.cor = plot.cor,
         raster = raster,
+        raster.dpi = raster.dpi,
         jitter = jitter
       )
     }
@@ -1992,7 +2012,8 @@ VariableFeaturePlot <- function(
   log = NULL,
   selection.method = NULL,
   assay = NULL,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
@@ -2026,7 +2047,8 @@ VariableFeaturePlot <- function(
     data = hvf.info,
     col.by = var.status,
     pt.size = pt.size,
-    raster = raster
+    raster = raster,
+    raster.dpi = raster.dpi
   )
   if (length(x = unique(x = var.status)) == 1) {
     switch(
@@ -3997,6 +4019,30 @@ AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
   return(blank)
 }
 
+#' Automagically calculate a point size for ggplot2-based scatter plots
+#'
+#' It happens to look good
+#'
+#' @param data A data frame being passed to ggplot2
+#' @param raster If TRUE, point size is set to 1
+#'
+#' @return The "optimal" point size for visualizing these data
+#'
+#' @export
+#' @concept visualization
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
+#' AutoPointSize(data = df)
+#'
+AutoPointSize <- function(data, raster = NULL) {
+  return(ifelse(
+    test = isTRUE(x = raster),
+    yes = 1,
+    no = min(1583 / nrow(x = data), 1)
+  ))
+}
+
 #' Determine text color based on background color
 #'
 #' @param background A vector of background colors; supports R color names and
@@ -5261,27 +5307,6 @@ WhiteBackground <- function(...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Automagically calculate a point size for ggplot2-based scatter plots
-#
-# It happens to look good
-#
-# @param data A data frame being passed to ggplot2
-# @param raster If TRUE, point size is set to 1
-#
-# @return The "optimal" point size for visualizing these data
-#
-# @examples
-# df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
-# AutoPointSize(data = df)
-#
-AutoPointSize <- function(data, raster = NULL) {
-  return(ifelse(
-    test = isTRUE(x = raster),
-    yes = 1,
-    no = min(1583 / nrow(x = data), 1)
-  ))
-}
-
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
 #
 # Inspired by MASS::bandwidth.nrd and graphics:::.smoothScatterCalcDensity
@@ -5494,60 +5519,6 @@ Col2Hex <- function(...) {
   return(colors)
 }
 
-# Find the default DimReduc
-#
-# Searches for DimReducs matching 'umap', 'tsne', or 'pca', case-insensitive, and
-# in that order. Priority given to DimReducs matching the DefaultAssay or assay specified
-# (eg. 'pca' for the default assay weights higher than 'umap' for a non-default assay)
-#
-# @param object A Seurat object
-# @param assay Name of assay to use; defaults to the default assay of the object
-#
-# @return The default DimReduc, if possible
-#
-DefaultDimReduc <- function(object, assay = NULL) {
-  object <- UpdateSlots(object = object)
-  assay <- assay %||% DefaultAssay(object = object)
-  drs.use <- c('umap', 'tsne', 'pca')
-  dim.reducs <- FilterObjects(object = object, classes.keep = 'DimReduc')
-  drs.assay <- Filter(
-    f = function(x) {
-      return(DefaultAssay(object = object[[x]]) == assay)
-    },
-    x = dim.reducs
-  )
-  if (length(x = drs.assay) > 0) {
-    index <- lapply(
-      X = drs.use,
-      FUN = grep,
-      x = drs.assay,
-      ignore.case = TRUE
-    )
-    index <- Filter(f = length, x = index)
-    if (length(x = index) > 0) {
-      return(drs.assay[min(index[[1]])])
-    }
-  }
-  index <- lapply(
-    X = drs.use,
-    FUN = grep,
-    x = dim.reducs,
-    ignore.case = TRUE
-  )
-  index <- Filter(f = length, x = index)
-  if (length(x = index) < 1) {
-    stop(
-      "Unable to find a DimReduc matching one of '",
-      paste(drs.use[1:(length(x = drs.use) - 1)], collapse = "', '"),
-      "', or '",
-      drs.use[length(x = drs.use)],
-      "', please specify a dimensional reduction to use",
-      call. = FALSE
-    )
-  }
-  return(dim.reducs[min(index[[1]])])
-}
-
 # Plot feature expression by identity
 #
 # Basically combines the codebase for VlnPlot and RidgePlot
@@ -5574,6 +5545,8 @@ DefaultDimReduc <- function(object, assay = NULL) {
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param flip flip plot orientation (identities on x-axis)
+# @param raster Convert points to raster format, default is \code{NULL} which
+# automatically rasterizes if plotting more than 100,000 cells
 #
 # @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
 # \code{combine = TRUE}; otherwise, a list of ggplot objects
@@ -5602,7 +5575,8 @@ ExIPlot <- function(
   stack = FALSE,
   combine = TRUE,
   fill.by = NULL,
-  flip = FALSE
+  flip = FALSE,
+  raster = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -5703,7 +5677,8 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        log = log
+        log = log,
+        raster = raster
       ))
     }
   )
@@ -6800,35 +6775,6 @@ SetHighlight <- function(
   ))
 }
 
-# Find the quantile of a data
-#
-# Converts a quantile in character form to a number regarding some data
-# String form for a quantile is represented as a number prefixed with 'q'
-# For example, 10th quantile is 'q10' while 2nd quantile is 'q2'
-#
-# Will only take a quantile of non-zero data values
-#
-# @param cutoff The cutoff to turn into a quantile
-# @param data The data to turn find the quantile of
-#
-# @return The numerical representation of the quantile
-#
-#' @importFrom stats quantile
-#
-SetQuantile <- function(cutoff, data) {
-  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
-    this.quantile <- as.numeric(x = sub(
-      pattern = 'q',
-      replacement = '',
-      x = as.character(x = cutoff)
-    )) / 100
-    data <- unlist(x = data)
-    data <- data[data > 0]
-    cutoff <- quantile(x = data, probs = this.quantile)
-  }
-  return(as.numeric(x = cutoff))
-}
-
 #' @importFrom shiny brushedPoints
 #
 ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0L)) {#}, selected = NULL) {
@@ -6847,29 +6793,36 @@ ShinyBrush <- function(plot.data, brush, outputs, inverts = character(length = 0
 }
 
 globalVariables(names = '..density..', package = 'Seurat')
-# A single correlation plot
-#
-# @param data.plot A data frame with two columns to be plotted
-# @param col.by A vector or factor of values to color the plot by
-# @param cols An optional vector of colors to use
-# @param pt.size Point size for the plot
-# @param smooth Make a smoothed scatter plot
-# @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
-# @param legend.title Optional legend title
-# @param raster Convert points to raster format, default is \code{NULL}
-# which will automatically use raster if the number of points plotted is greater than
-# 100,000
-# @param jitter Jitter for easier visualization of crowded points
-#
-# @param ... Extra parameters to MASS::kde2d
-#
+#' A single correlation plot
+#'
+#' @param data A data frame with two columns to be plotted
+#' @param col.by A vector or factor of values to color the plot by
+#' @param cols An optional vector of colors to use
+#' @param pt.size Point size for the plot
+#' @param smooth Make a smoothed scatter plot
+#' @param rows.highight A vector of rows to highlight (like cells.highlight in
+#' \code{\link{SingleDimPlot}})
+#' @param legend.title Optional legend title
+#' @param raster Convert points to raster format, default is \code{NULL}
+#' which will automatically use raster if the number of points plotted is
+#' greater than 100,000
+#' @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
+#' Default is c(512, 512)
+#' @param plot.cor ...
+#' @param jitter Jitter for easier visualization of crowded points
+#'
+#' @return A ggplot2 object
+#'
 #' @importFrom stats cor
-# #' @importFrom MASS kde2d
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string geom_point labs scale_color_brewer
 #' scale_color_manual guides stat_density2d aes scale_fill_continuous
 #' @importFrom scattermore geom_scattermore
+#'
+#' @keywords internal
+#'
+#' @export
 #'
 SingleCorPlot <- function(
   data,
@@ -6882,6 +6835,7 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   span = NULL,
   raster = NULL,
+  raster.dpi = NULL,
   plot.cor = TRUE,
   jitter = TRUE
 ) {
@@ -6891,6 +6845,10 @@ SingleCorPlot <- function(
             "\nTo disable this behavior set `raster=FALSE`")
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
+  if (!is.null(x = raster.dpi)) {
+    if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
+      stop("'raster.dpi' must be a two-length numeric vector")
+  }
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -6986,7 +6944,8 @@ SingleCorPlot <- function(
       plot <- plot + geom_scattermore(
         mapping = aes_string(color = 'colors'),
         position = position,
-        pointsize = pt.size
+        pointsize = pt.size,
+        pixels = raster.dpi
       )
     } else {
       plot <- plot + geom_point(
@@ -6997,7 +6956,7 @@ SingleCorPlot <- function(
     }
   } else {
     if (raster) {
-      plot <- plot + geom_scattermore(position = position, pointsize = pt.size)
+      plot <- plot + geom_scattermore(position = position, pointsize = pt.size, pixels = raster.dpi)
     } else {
       plot <- plot + geom_point(position = position, size = pt.size)
     }
@@ -7024,43 +6983,52 @@ SingleCorPlot <- function(
   return(plot)
 }
 
-# Plot a single dimension
-#
-# @param data Data to plot
-# @param dims A two-length numeric vector with dimensions to use
-# @param pt.size Adjust point size for plotting
-# @param col.by ...
-# @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
-# or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-# By default, ggplot2 assigns colors
-# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
-# (that can be pulled with FetchData) allowing for both different colors and different shapes on
-# cells.
-# @param alpha.by Mapping variable for the point alpha value
-# @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
-# points of interest are being buried. Provide either a full list of valid idents or a subset to be
-# plotted last (on top).
-# @param label Whether to label the clusters
-# @param repel Repel labels
-# @param label.size Sets size of labels
-# @param cells.highlight A list of character or numeric vectors of cells to
-# highlight. If only one group of cells desired, can simply
-# pass a vector instead of a list. If set, colors selected cells to the color(s)
-# in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
-#  will also resize to the size(s) passed to \code{sizes.highlight}
-# @param cols.highlight A vector of colors to highlight the cells as; will
-# repeat to the length groups in cells.highlight
-# @param sizes.highlight Size of highlighted cells; will repeat to the length
-# groups in cells.highlight
-# @param na.value Color value for NA points when using custom scale.
-# @param raster Convert points to raster format, default is \code{NULL}
-# which will automatically use raster if the number of points plotted is greater than
-# 100,000
-#
+#' Plot a single dimension
+#'
+#' @param data Data to plot
+#' @param dims A two-length numeric vector with dimensions to use
+#' @param col.by ...
+#' @param cols Vector of colors, each color corresponds to an identity class.
+#' This may also be a single character or numeric value corresponding to a
+#' palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.By
+#' default, ggplot2 assigns colors
+#' @param pt.size Adjust point size for plotting
+#' @param shape.by If NULL, all points are circles (default). You can specify
+#' any cell attribute (that can be pulled with \code{\link{FetchData}})
+#' allowing for both different colors and different shapes on cells.
+#' @param alpha.by Mapping variable for the point alpha value
+#' @param order Specify the order of plotting for the idents. This can be
+#' useful for crowded plots if points of interest are being buried. Provide
+#' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param label Whether to label the clusters
+#' @param repel Repel labels
+#' @param label.size Sets size of labels
+#' @param cells.highlight A list of character or numeric vectors of cells to
+#' highlight. If only one group of cells desired, can simply
+#' pass a vector instead of a list. If set, colors selected cells to the color(s)
+#' in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
+#' will also resize to the size(s) passed to \code{sizes.highlight}
+#' @param cols.highlight A vector of colors to highlight the cells as; will
+#' repeat to the length groups in cells.highlight
+#' @param sizes.highlight Size of highlighted cells; will repeat to the length
+#' groups in cells.highlight
+#' @param na.value Color value for NA points when using custom scale.
+#' @param raster Convert points to raster format, default is \code{NULL}
+#' which will automatically use raster if the number of points plotted is
+#' greater than 100,000
+#' @param raster.dpi the pixel resolution for rastered plots, passed to geom_scattermore().
+#' Default is c(512, 512)
+#'
+#' @return A ggplot2 object
+#'
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot aes_string geom_point labs guides scale_color_brewer
 #' scale_color_manual element_rect guide_legend discrete_scale
+#'
+#' @keywords internal
+#'
+#' @export
 #'
 SingleDimPlot <- function(
   data,
@@ -7078,7 +7046,8 @@ SingleDimPlot <- function(
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
   na.value = 'grey50',
-  raster = NULL
+  raster = NULL,
+  raster.dpi = NULL
 ) {
   pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
@@ -7086,6 +7055,10 @@ SingleDimPlot <- function(
             "\nTo disable this behavior set `raster=FALSE`")
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
+  if (!is.null(x = raster.dpi)) {
+    if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
+      stop("'raster.dpi' must be a two-length numeric vector")
+  }
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -7169,7 +7142,8 @@ SingleDimPlot <- function(
         shape = shape.by,
         alpha = alpha.by
       ),
-      pointsize = pt.size
+      pointsize = pt.size,
+      pixels = raster.dpi
     )
   } else {
     plot + geom_point(
@@ -7210,28 +7184,36 @@ SingleDimPlot <- function(
   return(plot)
 }
 
-# Plot a single expression by identity on a plot
-#
-# @param type Make either a 'ridge' or 'violin' plot
-# @param data Data to plot
-# @param idents Idents to use
-# @param sort Sort identity classes (on the x-axis) by the average
-# expression of the attribute being potted
-# @param y.max Maximum Y value to plot
-# @param adjust Adjust parameter for geom_violin
-# @param cols Colors to use for plotting
-# @param log plot Y axis on log scale
-# @param seed.use Random seed to use. If NULL, don't set a seed
-#
-# @return A ggplot-based Expression-by-Identity plot
-#
-# @import ggplot2
+#' Plot a single expression by identity on a plot
+#'
+#' @param data Data to plot
+#' @param idents Idents to use
+#' @param split Use a split violin plot
+#' @param type Make either a \dQuote{ridge} or \dQuote{violin} plot
+#' @param sort Sort identity classes (on the x-axis) by the average
+#' expression of the attribute being potted
+#' @param y.max Maximum Y value to plot
+#' @param adjust Adjust parameter for geom_violin
+#' @param pt.size Size of points for violin plots
+#' @param cols Colors to use for plotting
+#' @param seed.use Random seed to use. If NULL, don't set a seed
+#' @param log plot Y axis on log scale
+#' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
+#' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
+#' number of points exceed 100,000.
+#'
+#' @return A ggplot-based Expression-by-Identity plot
+#'
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim position_jitterdodge
-#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
+#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter
+#' ylim position_jitterdodge scale_fill_manual scale_y_log10 scale_x_log10
+#' scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
+#'
+#' @keywords internal
+#' @export
 #'
 SingleExIPlot <- function(
   data,
@@ -7244,8 +7226,23 @@ SingleExIPlot <- function(
   pt.size = 0,
   cols = NULL,
   seed.use = 42,
-  log = FALSE
+  log = FALSE,
+  raster = NULL
 ) {
+   if (!is.null(x = raster) && isTRUE(x = raster)){
+    if (!PackageCheck('ggrastr', error = FALSE)) {
+      stop("Please install ggrastr from CRAN to enable rasterization.")
+    }
+  }
+  if (PackageCheck('ggrastr', error = FALSE)) {
+    # Set rasterization to true if ggrastr is installed and
+    # number of points exceeds 100,000
+    if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
+      message("Rasterizing points since number of points exceeds 100,000.",
+              "\nTo disable this behavior set `raster=FALSE`")
+    }
+    raster <- TRUE
+  }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -7305,13 +7302,25 @@ SingleExIPlot <- function(
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       if (is.null(x = split)) {
-        jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+        if (isTRUE(x = raster)) {
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
+        } else {
+          jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+        }
       } else {
-        jitter <- geom_jitter(
-          position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
-          size = pt.size,
-          show.legend = FALSE
-        )
+        if (isTRUE(x = raster)) {
+          jitter <- ggrastr::rasterize(geom_jitter(
+            position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
+            size = pt.size,
+            show.legend = FALSE
+          ))
+        } else {
+          jitter <- geom_jitter(
+            position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
+            size = pt.size,
+            show.legend = FALSE
+          )
+        }
       }
       log.scale <- scale_y_log10()
       axis.scale <- ylim
@@ -7386,14 +7395,20 @@ SingleExIPlot <- function(
   return(plot)
 }
 
-# A single heatmap from base R using image
-#
-# @param data matrix of data to plot
-# @param order optional vector of cell names to specify order in plot
-# @param title Title for plot
-#
-#' @importFrom graphics par plot.new
-#
+#' A single heatmap from base R using \code{\link[graphics]{image}}
+#'
+#' @param data matrix of data to plot
+#' @param order optional vector of cell names to specify order in plot
+#' @param title Title for plot
+#'
+#' @return No return, generates a base-R heatmap using \code{\link[graphics]{image}}
+#'
+#' @importFrom graphics axis image par plot.new title
+#'
+#' @keywords internal
+#'
+#' @export
+#'
 SingleImageMap <- function(data, order = NULL, title = NULL) {
   if (!is.null(x = order)) {
     data <- data[order, ]
@@ -7439,20 +7454,27 @@ SinglePolyPlot <- function(data, group.by, ...) {
   return(plot)
 }
 
-# A single heatmap from ggplot2 using geom_raster
-#
-# @param data A matrix or data frame with data to plot
-# @param raster switch between geom_raster and geom_tile
-# @param cell.order ...
-# @param feature.order ...
-# @param cols A vector of colors to use
-# @param disp.min Minimum display value (all values below are clipped)
-# @param disp.max Maximum display value (all values above are clipped)
-# @param limits A two-length numeric vector with the limits for colors on the plot
-# @param group.by A vector to group cells by, should be one grouping identity per cell
+#' A single heatmap from ggplot2 using geom_raster
+#'
+#' @param data A matrix or data frame with data to plot
+#' @param raster switch between geom_raster and geom_tile
+#' @param cell.order ...
+#' @param feature.order ...
+#' @param colors A vector of colors to use
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param limits A two-length numeric vector with the limits for colors on the plot
+#' @param group.by A vector to group cells by, should be one grouping identity per cell
+#'
+#' @return A ggplot2 object
 #
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
-#' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend geom_tile
+#' scale_fill_gradientn theme element_blank labs geom_point guides
+#' guide_legend geom_tile
+#'
+#' @keywords internal
+#'
+#' @export
 #
 SingleRasterMap <- function(
   data,
@@ -7498,36 +7520,45 @@ SingleRasterMap <- function(
   return(plot)
 }
 
-# Base plotting function for all Spatial plots
-#
-# @param data Data.frame with info to be plotted
-# @param image SpatialImage object to be plotted
-# @param cols Vector of colors, each color corresponds to an identity class. This may also be a single character
-# or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
-# By default, ggplot2 assigns colors
-# @param image.alpha Adjust the opacity of the background images. Set to 0 to
-# remove.
-# @param pt.alpha Adjust the opacity of the points if plotting a SpatialDimPlot
-# @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
-# entire background image.
-# @param pt.size.factor Sets the size of the points relative to spot.radius
-# @param stroke Control the width of the border around the spots
-# @param col.by Mapping variable for the point color
-# @param alpha.by Mapping variable for the point alpha value
-# @param cells.highlight A list of character or numeric vectors of cells to
-# highlight. If only one group of cells desired, can simply pass a vector
-# instead of a list. If set, colors selected cells to the color(s) in
-# cols.highlight
-# @param cols.highlight A vector of colors to highlight the cells as; ordered
-# the same as the groups in cells.highlight; last color corresponds to
-# unselected cells.
-# @param geom Switch between normal spatial geom and geom to enable hover
-# functionality
-# @param na.value Color for spots with NA values
-
+#' Base plotting function for all Spatial plots
+#'
+#' @param data Data.frame with info to be plotted
+#' @param image \code{SpatialImage} object to be plotted
+#' @param cols Vector of colors, each color corresponds to an identity class.
+#' This may also be a single character
+#' or numeric value corresponding to a palette as specified by
+#' \code{\link[RColorBrewer]{brewer.pal.info}}. By default, ggplot2 assigns
+#' colors
+#' @param image.alpha Adjust the opacity of the background images. Set to 0 to
+#' remove.
+#' @param pt.alpha Adjust the opacity of the points if plotting a
+#' \code{SpatialDimPlot}
+#' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE}
+#' to show entire background image.
+#' @param pt.size.factor Sets the size of the points relative to spot.radius
+#' @param stroke Control the width of the border around the spots
+#' @param col.by Mapping variable for the point color
+#' @param alpha.by Mapping variable for the point alpha value
+#' @param cells.highlight A list of character or numeric vectors of cells to
+#' highlight. If only one group of cells desired, can simply pass a vector
+#' instead of a list. If set, colors selected cells to the color(s) in
+#' cols.highlight
+#' @param cols.highlight A vector of colors to highlight the cells as; ordered
+#' the same as the groups in cells.highlight; last color corresponds to
+#' unselected cells.
+#' @param geom Switch between normal spatial geom and geom to enable hover
+#' functionality
+#' @param na.value Color for spots with NA values
+#'
+#' @return A ggplot2 object
+#'
 #' @importFrom tibble tibble
 #' @importFrom ggplot2 ggplot aes_string coord_fixed geom_point xlim ylim
 #' coord_cartesian labs theme_void theme scale_fill_brewer
+#'
+#' @keywords internal
+#'
+#' @export
 #'
 SingleSpatialPlot <- function(
   data,

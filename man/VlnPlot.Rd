@@ -24,7 +24,8 @@ VlnPlot(
   stack = FALSE,
   combine = TRUE,
   fill.by = "feature",
-  flip = FALSE
+  flip = FALSE,
+  raster = NULL
 )
 }
 \arguments{
@@ -71,6 +72,8 @@ ggplot object. If \code{FALSE}, return a list of ggplot}
 \item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 
 \item{flip}{flip plot orientation (identities on x-axis)}
+
+\item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

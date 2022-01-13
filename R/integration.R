@@ -1749,6 +1749,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name)
   slot(object = anchorset, name = "reference.objects") <- 1
   anchors <- as.data.frame(x = anchors)
   anchors$dataset1 <- 1
@@ -1910,6 +1911,8 @@ LocalStruct <- function(
 #'   reference UMAP using \code{\link{ProjectUMAP}}}
 #' }
 #'
+#' @importFrom rlang invoke
+#'
 #' @export
 #' @concept integration
 #'
@@ -2002,9 +2005,9 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
-    query <- do.call(
-      what = TransferData,
-      args = c(list(
+    query <- invoke(
+      .fn = TransferData,
+      .args  = c(list(
         anchorset = anchorset,
         reference = reference,
         query = query,
@@ -2019,9 +2022,9 @@ MapQuery <- function(
     }
   }
   if (anchor.reduction != "cca"){
-    query <- do.call(
-      what = IntegrateEmbeddings,
-      args = c(list(
+    query <- invoke(
+      .fn = IntegrateEmbeddings,
+      .args  = c(list(
         anchorset = anchorset,
         reference = reference,
         query = query,
@@ -2040,16 +2043,18 @@ MapQuery <- function(
       message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
       query.dims <- reference.dims
     }
-    query <- do.call(
-      what = ProjectUMAP,
-      args = c(list(
+    ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
+    query <- invoke(
+      .fn = ProjectUMAP,
+      .args  = c(list(
         query = query,
         query.reduction = new.reduction.name,
         query.dims = query.dims,
         reference = reference,
         reference.dims = reference.dims,
         reference.reduction = reference.reduction,
-        reduction.model = reduction.model
+        reduction.model = reduction.model,
+        k.param = ref_nn.num
         ), projectumap.args
       )
     )
@@ -2614,6 +2619,8 @@ PrepSCTIntegration <- function(
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
 #' @return A vector of selected features
+#'
+#' @importFrom utils head
 #'
 #' @export
 #' @concept integration
@@ -3966,7 +3973,7 @@ MapQueryData <- function(
     X = query.datasets,
     FUN = function(dataset1) {
       if (verbose) {
-        message("Integrating dataset ", dataset1, " with reference dataset")
+        message("\nIntegrating dataset ", dataset1, " with reference dataset")
       }
       filtered.anchors <- anchors[anchors$dataset1 %in% reference.datasets & anchors$dataset2 == dataset1, ]
       integrated <- RunIntegration(
