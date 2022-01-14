@@ -56,7 +56,7 @@ In this vignette, we use [sctransform v2](https://github.com/satijalab/sctransfo
 
 ## Install sctransform
 
-We will install sctransform v2 from Github. We will also install the [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
+We will install sctransform v2 from CRAN (v0.3.3). We will also install the [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
 
 ```{r results='hide', message=FALSE, warning=FALSE}
 # install glmGamPoi
