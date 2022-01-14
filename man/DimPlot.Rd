@@ -32,7 +32,8 @@ DimPlot(
   na.value = "grey50",
   ncol = NULL,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 )
 
 PCAPlot(object, ...)
@@ -108,6 +109,9 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{raster}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
+
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
 
 \item{...}{Extra parameters passed to \code{DimPlot}}
 }
