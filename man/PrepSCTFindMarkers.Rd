@@ -30,8 +30,20 @@ pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
 pbmc_small2 <- SCTransform(object = pbmc_small, variable.features.n = 20)
 pbmc_merged <- merge(x = pbmc_small1, y = pbmc_small2)
 pbmc_merged <- PrepSCTFindMarkers(object = pbmc_merged)
-markers <- FindMarkers(object = pbmc_merged, ident.1 = "0", ident.2 = "1", assay = "SCT")
+markers <- FindMarkers(
+  object = pbmc_merged,
+  ident.1 = "0",
+  ident.2 = "1",
+  assay = "SCT"
+)
 pbmc_subset <- subset(pbmc_merged, idents = c("0", "1"))
-markers_subset <- FindMarkers(object = pbmc_subset, ident.1 = "0", ident.2 = "1", assay = "SCT", recorrect_umi = FALSE)
+markers_subset <- FindMarkers(
+  object = pbmc_subset,
+  ident.1 = "0",
+  ident.2 = "1",
+  assay = "SCT",
+  recorrect_umi = FALSE
+)
+
 }
 \concept{differential_expression}
