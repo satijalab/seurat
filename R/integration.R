@@ -2076,9 +2076,10 @@ MapQuery <- function(
       )
     )
   }
-  if (!store.weights) {
-  slot(object = query, name = "tools")$TransferData <- NULL
+  if (store.weights) {
+    slot(object = query, name = "tools")$MapQuery <- slot(object = query, name = "tools")$TransferData 
   }
+  slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
     reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
     query.dims <- query.dims %||% 1:ncol(x = query[[new.reduction.name]])
