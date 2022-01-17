@@ -1910,6 +1910,7 @@ LocalStruct <- function(
 #' @inheritParams IntegrateEmbeddings
 #' @inheritParams TransferData
 #' @inheritParams ProjectUMAP
+#' @param store.weights Determine if the weight matrix is stored. 
 #' @param transferdata.args A named list of additional arguments to
 #' \code{\link{TransferData}}
 #' @param integrateembeddings.args A named list of additional arguments to
@@ -1940,6 +1941,7 @@ MapQuery <- function(
   reference.reduction = NULL,
   reference.dims = NULL,
   query.dims = NULL,
+  store.weights = FALSE, 
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
@@ -2040,8 +2042,9 @@ MapQuery <- function(
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   integrateembeddings.args$reductions <- integrateembeddings.args$reductions %||% anchor.reduction
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
-
-  slot(object = query, name = "tools")$TransferData <- NULL
+ if (!store.weights) {
+   slot(object = query, name = "tools")$TransferData <- NULL
+ }
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
     query <- invoke(

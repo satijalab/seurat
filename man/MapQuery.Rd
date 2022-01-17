@@ -13,6 +13,7 @@ MapQuery(
   reference.reduction = NULL,
   reference.dims = NULL,
   query.dims = NULL,
+  store.weights = FALSE,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
@@ -47,6 +48,8 @@ neighbor finding}
 \item{reference.dims}{Dimensions (columns) to use from reference}
 
 \item{query.dims}{Dimensions (columns) to use from query}
+
+\item{store.weights}{Determine if the weight matrix is stored.}
 
 \item{reduction.model}{\code{DimReduc} object that contains the umap model}
 
