@@ -2042,9 +2042,7 @@ MapQuery <- function(
   integrateembeddings.args <- integrateembeddings.args[names(x = integrateembeddings.args) %in% names(x = formals(fun = IntegrateEmbeddings.TransferAnchorSet))]
   integrateembeddings.args$reductions <- integrateembeddings.args$reductions %||% anchor.reduction
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
- if (!store.weights) {
-   slot(object = query, name = "tools")$TransferData <- NULL
- }
+  slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
     query <- invoke(
@@ -2078,7 +2076,9 @@ MapQuery <- function(
       )
     )
   }
+  if (!store.weights) {
   slot(object = query, name = "tools")$TransferData <- NULL
+  }
   if (!is.null(x = reduction.model)) {
     reference.dims <- reference.dims %||% slot(object = anchorset, name = "command")$dims
     query.dims <- query.dims %||% 1:ncol(x = query[[new.reduction.name]])
