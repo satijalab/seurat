@@ -69,6 +69,8 @@ groups in cells.highlight}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
     \item{\code{raster}}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
+    \item{\code{raster.dpi}}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
   }}
 }
 \value{

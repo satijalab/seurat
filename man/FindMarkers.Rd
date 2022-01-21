@@ -5,6 +5,7 @@
 \alias{FindMarkersNode}
 \alias{FindMarkers.default}
 \alias{FindMarkers.Assay}
+\alias{FindMarkers.SCTAssay}
 \alias{FindMarkers.DimReduc}
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
@@ -57,6 +58,32 @@ FindMarkers(object, ...)
   fc.name = NULL,
   base = 2,
   densify = FALSE,
+  ...
+)
+
+\method{FindMarkers}{SCTAssay}(
+  object,
+  slot = "data",
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  mean.fxn = NULL,
+  fc.name = NULL,
+  base = 2,
+  densify = FALSE,
+  recorrect_umi = TRUE,
   ...
 )
 
@@ -215,6 +242,8 @@ according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
 slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
+
+\item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE}
 
 \item{ident.1}{Identity class to define markers for; pass an object of class
 \code{phylo} or 'clustertree' to find markers for a node in a cluster tree;

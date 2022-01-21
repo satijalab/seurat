@@ -33,7 +33,8 @@ FeaturePlot(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 )
 }
 \arguments{
@@ -115,6 +116,9 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{raster}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
+
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

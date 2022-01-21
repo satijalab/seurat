@@ -23,31 +23,31 @@
     - title: Introduction to scRNA-seq integration
       name: integration_introduction
       summary: |
-        An introduction to integrating scRNA-seq datasets in order to identify and compare shared cell types across experiments
+        An introduction to integrating scRNA-seq datasets in order to identify and compare shared cell types across experiments.
       image: pbmc_alignment.jpg
 
     - title: Mapping and annotating query datasets
       name: integration_mapping
       summary: |
-        Learn how to map a query scRNA-seq dataset onto a reference in order to automate the annotation and visualization of query cells
+        Learn how to map a query scRNA-seq dataset onto a reference in order to automate the annotation and visualization of query cells.
       image: assets/anchorsb_2018.png
 
     - title: Fast integration using reciprocal PCA (RPCA)
       name: integration_rpca
       summary: |
-        Identify anchors using the reciprocal PCA (rPCA) workflow, which performs a faster and more conservative integration
+        Identify anchors using the reciprocal PCA (rPCA) workflow, which performs a faster and more conservative integration.
       image: rpca_integration.jpg
 
     - title: Tips for integrating large datasets
       name: integration_large_datasets
       summary: |
-        Tips and examples for integrating very large scRNA-seq datasets (including >200,000 cells)
+        Tips and examples for integrating very large scRNA-seq datasets (including >200,000 cells).
       image: bm280k_integrated.jpg
 
     - title: Integrating scRNA-seq and scATAC-seq data
       name: atacseq_integration_vignette
       summary: |
-        Annotate, visualize, and interpret an scATAC-seq experiment using scRNA-seq data from the same biological system
+        Annotate, visualize, and interpret an scATAC-seq experiment using scRNA-seq data from the same biological system.
       image: atacseq_integration_vignette.jpg
 
     - title: Multimodal Reference Mapping
@@ -61,7 +61,7 @@
     - title: Weighted Nearest Neighbor Analysis
       name: weighted_nearest_neighbor_analysis
       summary: |
-        Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4
+        Analyze multimodal single-cell data with weighted nearest neighbor analysis in Seurat v4.
       image: weighted_nearest_neighbor_analysis.jpg
 
     - title: Mixscape
@@ -76,6 +76,11 @@
         Examples of how to use the SCTransform wrapper in Seurat.
       image: assets/sctransform.png
 
+    - title: SCTransform, v2 regularization
+      name: sctransform_v2_vignette
+      summary: |
+        Examples of how to perform normalization, feature selection, integration, and differential expression with an updated version of sctransform.
+      image: assets/sctransform_v2.png
 - category: Other
   vignettes:
     - title: Visualization
@@ -87,7 +92,7 @@
     - title: Cell Cycle Regression
       name: cell_cycle_vignette
       summary: |
-        Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes
+        Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes.
       image: cell_cycle_vignette.jpg
 
     - title: Differential Expression Testing

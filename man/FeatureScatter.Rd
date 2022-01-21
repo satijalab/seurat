@@ -22,6 +22,7 @@ FeatureScatter(
   slot = "data",
   plot.cor = TRUE,
   raster = NULL,
+  raster.dpi = c(512, 512),
   jitter = TRUE
 )
 }
@@ -62,6 +63,9 @@ useful for crowded plots if points of interest are being buried. (default is FAL
 \item{raster}{Convert points to raster format, default is \code{NULL}
 which will automatically use raster if the number of points plotted is greater than
 100,000}
+
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
 
 \item{jitter}{Jitter for easier visualization of crowded points}
 }

@@ -1,4 +1,4 @@
-# Seurat v4.0.6
+# Seurat v4.1.0
 
 ## Test environments
 * local Ubuntu 20.04 install, R 4.1.2
