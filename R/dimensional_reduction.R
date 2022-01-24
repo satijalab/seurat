@@ -335,7 +335,7 @@ ProjectUMAP.default <- function(
   query.dims = NULL,
   reference,
   reference.dims = NULL,
-  k.param = 20,
+  k.param = 30,
   nn.method = "annoy",
   n.trees = 50,
   annoy.metric = "cosine",
@@ -389,7 +389,7 @@ ProjectUMAP.DimReduc <- function(
   query.dims = NULL,
   reference,
   reference.dims = NULL,
-  k.param = 20,
+  k.param = 30,
   nn.method = "annoy",
   n.trees = 50,
   annoy.metric = "cosine",
@@ -439,7 +439,7 @@ ProjectUMAP.Seurat <- function(
   reference,
   reference.reduction,
   reference.dims = NULL,
-  k.param = 20,
+  k.param = 30,
   nn.method = "annoy",
   n.trees = 50,
   annoy.metric = "cosine",
@@ -479,6 +479,7 @@ ProjectUMAP.Seurat <- function(
     neighbor.name = neighbor.name,
     reduction.model = reference[[reduction.model]],
     reduction.key = reduction.key,
+    assay = DefaultAssay(query),
     ...
   )
   query[[reduction.name]] <- proj.umap$proj.umap
@@ -1385,7 +1386,12 @@ RunUMAP.default <- function(
         )
       }
       if (is.list(x = object)) {
-        uwot::umap_transform(
+        if (ncol(object$idx) != model$n_neighbors) {
+          warning("Number of neighbors between query and reference ", 
+          "is not equal to the number of neighbros within reference")
+          model$n_neighbors <- ncol(object$idx)
+        }
+       umap_transform(
           X = NULL,
           nn_method = object,
           model = model,
@@ -2265,13 +2271,14 @@ L2Norm <- function(vec) {
 PrepDR <- function(
   object,
   features = NULL,
+  slot = 'scale.data',
   verbose = TRUE
 ) {
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
-  data.use <- GetAssayData(object = object, slot = "scale.data")
-  if (nrow(x = data.use ) == 0) {
+  data.use <- GetAssayData(object = object, slot = slot)
+  if (nrow(x = data.use ) == 0 && slot == "scale.data") {
     stop("Data has not been scaled. Please run ScaleData and retry")
   }
   features <- features %||% VariableFeatures(object = object)
@@ -2283,7 +2290,13 @@ PrepDR <- function(
     }
   }
   features <- features.keep
-  features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
+
+  if (inherits(x = data.use, what = 'dgCMatrix')) {
+    features.var <- RowVarSparse(mat = data.use[features, ])
+  }
+  else {
+    features.var <- RowVar(x = data.use[features, ])
+  }
   features.keep <- features[features.var > 0]
   if (length(x = features.keep) < length(x = features)) {
     features.exclude <- setdiff(x = features, y = features.keep)
@@ -2414,6 +2427,146 @@ RunSPCA.Seurat <- function(
     assay = assay,
     features = features,
     npcs = npcs,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+#' @param assay Name of Assay SLSI is being run on
+#' @param n Total Number of SLSI components to compute and store
+#' @param verbose Display messages
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names
+#' @param graph Graph used supervised by SLSI
+#' @param seed.use Set a random seed. Setting NULL will not set a seed.
+#'
+#' @importFrom irlba irlba
+#' @importMethodsFrom Matrix t
+#'
+#' @concept dimensional_reduction
+#' @rdname RunSLSI
+#' @export
+RunSLSI.default <- function(
+  object,
+  assay = NULL,
+  n = 50,
+  reduction.key = "SLSI_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  n <- min(n, nrow(x = object) - 1)
+
+  if (verbose) {
+    message("Smoothing peaks matrix")
+  }
+  object.smooth <- t(x = graph) %*% (t(x = object) %*% object) %*% graph
+  if (verbose) {
+    message("Performing eigendecomposition")
+  }
+  svd.V <- irlba(A = object.smooth, nv = n, nu = n, ...)
+  sigma <- sqrt(x = svd.V$d)
+  feature.loadings <- object %*% (graph %*% svd.V$u) %*% diag(x = 1/sigma)
+  feature.loadings <- as.matrix(x = feature.loadings)
+  cell.embeddings <- t(x = object) %*% feature.loadings %*% diag(x = 1/sigma)
+  cell.embeddings <- as.matrix(x = cell.embeddings)
+
+  # construct svd list stored in misc for LSI projection
+  svd.lsi <- svd.V
+  svd.lsi$d <- sigma
+  svd.lsi$u <- feature.loadings
+  svd.lsi$v <- cell.embeddings
+
+  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(cell.embeddings))
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    key = reduction.key,
+    assay = assay,
+    misc = svd.lsi
+  )
+  return(reduction.data)
+}
+
+#' @param features Features to compute SLSI on. If NULL, SLSI will be run
+#' using the variable features for the Assay.
+#'
+#' @rdname RunSLSI
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSLSI Assay
+#'
+RunSLSI.Assay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.key = "SLSI_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    slot = "data",
+    verbose = verbose
+  )
+  reduction.data <- RunSLSI(
+    object = data.use,
+    assay = assay,
+    n = n,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
+#' @param reduction.name dimensional reduction name
+#' @rdname RunSLSI
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSLSI Seurat
+#'
+RunSLSI.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.name = "slsi",
+  reduction.key = "SLSI_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  if (is.null(x = graph)) {
+    stop("Graph is not provided")
+  } else if (is.character(x = graph)) {
+    graph <- object[[graph]]
+  }
+  reduction.data <- RunSLSI(
+    object = assay.data,
+    assay = assay,
+    features = features,
+    n = n,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
     graph = graph,

@@ -13,7 +13,8 @@ VariableFeaturePlot(
   log = NULL,
   selection.method = NULL,
   assay = NULL,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 )
 }
 \arguments{
@@ -45,6 +46,9 @@ For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
 \item{raster}{Convert points to raster format, default is \code{NULL}
 which will automatically use raster if the number of points plotted is greater than
 100,000}
+
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
 }
 \value{
 A ggplot object

@@ -48,6 +48,8 @@ and the default is RNA}
 
 \item{\code{arguments}}{other information used in SCTransform}
 
+\item{\code{median_umi}}{Median UMI (or scale factor) used to calculate corrected counts}
+
 \item{\code{SCTModel.list}}{A list containing SCT models}
 }}
 

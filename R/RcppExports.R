@@ -109,3 +109,15 @@ SNN_SmallestNonzero_Dist <- function(snn, mat, n, nearest_dist) {
     .Call('_Seurat_SNN_SmallestNonzero_Dist', PACKAGE = 'Seurat', snn, mat, n, nearest_dist)
 }
 
+row_sum_dgcmatrix <- function(x, i, rows, cols) {
+    .Call('_Seurat_row_sum_dgcmatrix', PACKAGE = 'Seurat', x, i, rows, cols)
+}
+
+row_mean_dgcmatrix <- function(x, i, rows, cols) {
+    .Call('_Seurat_row_mean_dgcmatrix', PACKAGE = 'Seurat', x, i, rows, cols)
+}
+
+row_var_dgcmatrix <- function(x, i, rows, cols) {
+    .Call('_Seurat_row_var_dgcmatrix', PACKAGE = 'Seurat', x, i, rows, cols)
+}
+

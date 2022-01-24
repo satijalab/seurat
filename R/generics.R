@@ -441,9 +441,30 @@ RunPCA <- function(object, ...) {
   UseMethod(generic = 'RunPCA', object = object)
 }
 
+#' Run Supervised Latent Semantic Indexing
+#'
+#' Run a supervised LSI (SLSI) dimensionality reduction supervised by a
+#' cell-cell kernel. SLSI is used to capture a linear transformation of peaks
+#' that maximizes its dependency to the given cell-cell kernel.
+#'
+#' @param object An object
+#' @param ... Arguments passed to IRLBA irlba
+#'
+#' @return Returns Seurat object with the SLSI calculation stored in the
+#' reductions slot
+#'
+#' @export
+#'
+#' @rdname RunSLSI
+#' @export RunSLSI
+#'
+RunSLSI <- function(object, ...) {
+  UseMethod(generic = 'RunSLSI', object = object)
+}
+
 #' Run Supervised Principal Component Analysis
 #'
-#' Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
+#' Run a supervised PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
 #' SPCA is used to capture a linear transformation which maximizes its dependency to
 #' the given cell-cell kernel. We use SNN graph as the kernel to supervise the linear
 #' matrix factorization.
@@ -485,8 +506,9 @@ RunTSNE <- function(object, ...) {
 #' Run UMAP
 #'
 #' Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
-#' reduction technique. To run, you must first install the umap-learn python
-#' package (e.g. via \code{pip install umap-learn}). Details on this package can be
+#' reduction technique. To run using \code{umap.method="umap-learn"}, you must
+#' first install the umap-learn python package (e.g. via
+#' \code{pip install umap-learn}). Details on this package can be
 #' found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
 #' discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 #' \url{https://arxiv.org/abs/1802.03426}.

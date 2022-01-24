@@ -13,3 +13,4 @@ CODE_OF_CONDUCT.md
 ^pkgdown$
 ^index\.md$
 ^vignettes$
+^LICENSE\.md$
