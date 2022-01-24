@@ -1,4 +1,5 @@
 #' @include generics.R
+#' @importFrom progressr progressor
 #'
 NULL
 
@@ -1241,6 +1242,392 @@ ReadMtx <- function(
   return(data)
 }
 
+#' Read Nanostring SMI data
+#'
+#' Read Nanostring SMI data
+#'
+#' @param data.dir Path to the directory with Vizgen MERFISH files; requires at
+#' least one of the following files present:
+#' \itemize{
+#'  \item \dQuote{\code{cell_by_gene.csv}}: used for reading count matrix
+#'  \item \dQuote{\code{cell_metadata.csv}}: used for reading cell spatial
+#'  coordinate matrices
+#'  \item \dQuote{\code{detected_transcripts.csv}}: used for reading molecule
+#'  spatial coordinate matrices
+#' }
+#' @param data.dir Directory containing all Nanostring SMI files with
+#' default filenames
+#' @param mtx.file Path to Nanostring cell x gene matrix CSV
+#' @param metadata.file Contains metadata including cell center, area,
+#' and stain intensities
+#' @param molecules.file Path to molecules file
+#' @param segmentations.file Path to segmentations CSV
+#' @param type Type of cell spatial coordinate matrices to read; choose one
+#' or more of:
+#' \itemize{
+#'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
+#'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
+#' }
+#' @param metadata Type of available metadata to read;
+#' choose zero or more of:
+#' \itemize{
+#'  \item \dQuote{Area}: number of pixels in cell segmentation
+#'  \item \dQuote{fov}: cell's fov
+#'  \item \dQuote{Mean.MembraneStain}: mean membrane stain intensity
+#'  \item \dQuote{Mean.DAPI}: mean DAPI stain intensity
+#'  \item \dQuote{Mean.G}: mean green channel stain intensity
+#'  \item \dQuote{Mean.Y}: mean yellow channel stain intensity
+#'  \item \dQuote{Mean.R}: mean red channel stain intensity
+#'  \item \dQuote{Max.MembraneStain}: max membrane stain intensity
+#'  \item \dQuote{Max.DAPI}: max DAPI stain intensity
+#'  \item \dQuote{Max.G}: max green channel stain intensity
+#'  \item \dQuote{Max.Y}: max yellow stain intensity
+#'  \item \dQuote{Max.R}: max red stain intensity
+#' }
+#' @param mols.filter Filter molecules that match provided string
+#' @param genes.filter Filter genes from cell x gene matrix that match
+#' provided string
+#' @param fov.filter Only load in select FOVs. Nanostring SMI data contains
+#' 30 total FOVs.
+#' @param subset.counts.matrix If the counts matrix should be built from
+#' molecule coordinates for a specific segmentation; One of:
+#' \itemize{
+#'  \item \dQuote{Nuclear}: nuclear segmentations
+#'  \item \dQuote{Cytoplasm}: cell cytoplasm segmentations
+#'  \item \dQuote{Membrane}: cell membrane segmentations
+#' }
+#' @param cell.mols.only If TRUE, only load molecules within a cell
+#'
+#' @return A list with some combination of the following values
+#' \itemize{
+#'  \item \dQuote{\code{matrix}}: a
+#'  \link[Matrix:dgCMatrix-class]{sparse matrix} with expression data; cells
+#'   are columns and features are rows
+#'  \item \dQuote{\code{centroids}}: a data frame with cell centroid
+#'   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{pixels}}: a data frame with molecule pixel coordinates
+#'   in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
+#' }
+#'
+#' @importFrom future.apply future_lapply
+#'
+#' @export
+#'
+#' @concept input
+#'
+#' @template section-progressr
+#' @template section-future
+#'
+#' @templateVar pkg data.table
+#' @template note-reqdpkg
+#'
+ReadNanostring <- function(
+  data.dir,
+  mtx.file = NULL,
+  metadata.file = NULL,
+  molecules.file = NULL,
+  segmentations.file = NULL,
+  type = 'centroids',
+  mol.type = 'pixels',
+  metadata = NULL,
+  mols.filter = NA_character_,
+  genes.filter = NA_character_,
+  fov.filter = NULL,
+  subset.counts.matrix = NULL,
+  cell.mols.only = TRUE
+) {
+  if (!requireNamespace("data.table", quietly = TRUE)) {
+    stop("Please install 'data.table' for this function")
+  }
+
+  # Argument checking
+  type <- match.arg(
+    arg = type,
+    choices = c('centroids', 'segmentations'),
+    several.ok = TRUE
+  )
+  mol.type <- match.arg(
+    arg = mol.type,
+    choices = c('pixels'),
+    several.ok = TRUE
+  )
+  if (!is.null(metadata)) {
+    metadata <- match.arg(
+      arg = metadata,
+      choices = c(
+        "Area", "fov", "Mean.MembraneStain", "Mean.DAPI", "Mean.G",
+        "Mean.Y", "Mean.R", "Max.MembraneStain", "Max.DAPI", "Max.G",
+        "Max.Y", "Max.R"
+      ),
+      several.ok = TRUE
+    )
+  }
+
+  use.dir <- all(vapply(
+    X = c(mtx.file, metadata.file, molecules.file),
+    FUN = function(x) {
+      return(is.null(x = x) || is.na(x = x))
+    },
+    FUN.VALUE = logical(length = 1L)
+  ))
+
+  if (use.dir && !dir.exists(paths = data.dir)) {
+    stop("Cannot find Nanostring directory ", data.dir)
+  }
+  # Identify input files
+  files <- c(
+    matrix = mtx.file %||% '[_a-zA-Z0-9]*_exprMat_file.csv',
+    metadata.file = metadata.file %||% '[_a-zA-Z0-9]*_metadata_file.csv',
+    molecules.file = molecules.file %||% '[_a-zA-Z0-9]*_tx_file.csv',
+    segmentations.file = segmentations.file %||% '[_a-zA-Z0-9]*-polygons.csv'
+  )
+
+  files <- vapply(
+    X = files,
+    FUN = function(x) {
+      x <- as.character(x = x)
+      if (isTRUE(x = dirname(path = x) == '.')) {
+        fnames <- list.files(
+          path = data.dir,
+          pattern = x,
+          recursive = FALSE,
+          full.names = TRUE
+        )
+        return(sort(x = fnames, decreasing = TRUE)[1L])
+      } else {
+        return(x)
+      }
+    },
+    FUN.VALUE = character(length = 1L),
+    USE.NAMES = TRUE
+  )
+  files[!file.exists(files)] <- NA_character_
+
+  if (all(is.na(x = files))) {
+    stop("Cannot find Nanostring input files in ", data.dir)
+  }
+  # Checking for loading spatial coordinates
+  if (!is.na(x = files[['metadata.file']])) {
+    pprecoord <- progressor()
+    pprecoord(
+      message = "Preloading cell spatial coordinates",
+      class = 'sticky',
+      amount = 0
+    )
+    md <- data.table::fread(
+      file = files[['metadata.file']],
+      sep = ',',
+      data.table = FALSE,
+      verbose = FALSE
+    )
+
+    # filter metadata file by FOVs
+    if (!is.null(x = fov.filter)) {
+      md <- md[md$fov %in% fov.filter,]
+    }
+    pprecoord(type = 'finish')
+  }
+  if (!is.na(x = files[['segmentations.file']])) {
+    ppresegs <- progressor()
+    ppresegs(
+      message = "Preloading cell segmentation vertices",
+      class = 'sticky',
+      amount = 0
+    )
+    segs <- data.table::fread(
+      file = files[['segmentations.file']],
+      sep = ',',
+      data.table = FALSE,
+      verbose = FALSE
+    )
+
+    # filter metadata file by FOVs
+    if (!is.null(x = fov.filter)) {
+      segs <- segs[segs$fov %in% fov.filter,]
+    }
+    ppresegs(type = 'finish')
+  }
+  # Check for loading of molecule coordinates
+  if (!is.na(x = files[['molecules.file']])) {
+    ppremol <- progressor()
+    ppremol(
+      message = "Preloading molecule coordinates",
+      class = 'sticky',
+      amount = 0
+    )
+    mx <- data.table::fread(
+      file = files[['molecules.file']],
+      sep = ',',
+      verbose = FALSE
+    )
+
+    # filter molecules file by FOVs
+    if (!is.null(x = fov.filter)) {
+      mx <- mx[mx$fov %in% fov.filter,]
+    }
+
+    # Molecules outside of a cell have a cell_ID of 0
+    if (cell.mols.only) {
+      mx <- mx[mx$cell_ID != 0,]
+    }
+
+    if (!is.na(x = mols.filter)) {
+      ppremol(
+        message = paste("Filtering molecules with pattern", mols.filter),
+        class = 'sticky',
+        amount = 0
+      )
+      mx <- mx[!grepl(pattern = mols.filter, x = mx$target), , drop = FALSE]
+    }
+    ppremol(type = 'finish')
+    mols <- rep_len(x = files[['molecules.file']], length.out = length(x = mol.type))
+    names(x = mols) <- mol.type
+    files <- c(files, mols)
+    files <- files[setdiff(x = names(x = files), y = 'molecules.file')]
+  }
+  files <- files[!is.na(x = files)]
+
+  outs <- list("matrix"=NULL, "pixels"=NULL, "centroids"=NULL)
+  if (!is.null(metadata)) {
+    outs <- append(outs, list("metadata" = NULL))
+  }
+  if ("segmentations" %in% type) {
+    outs <- append(outs, list("segmentations" = NULL))
+  }
+
+  for (otype in names(x = outs)) {
+    outs[[otype]] <- switch(
+      EXPR = otype,
+      'matrix' = {
+        ptx <- progressor()
+        ptx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
+        if (!is.null(subset.counts.matrix)) {
+          tx <- build.cellcomp.matrix(mols.df=mx, class=subset.counts.matrix)
+        } else {
+          tx <- data.table::fread(
+            file = files[[otype]],
+            sep = ',',
+            data.table = FALSE,
+            verbose = FALSE
+          )
+          # Combination of Cell ID (for non-zero cell_IDs) and FOV are assumed to be unique. Used to create barcodes / rownames.
+          bcs <- paste0(as.character(tx$cell_ID), "_", tx$fov)
+          rownames(x = tx) <- bcs
+          # remove all rows which represent counts of mols not assigned to a cell for each FOV
+          tx <- tx[!tx$cell_ID == 0,]
+          # filter fovs from counts matrix
+          if (!is.null(x = fov.filter)) {
+            tx <- tx[tx$fov %in% fov.filter,]
+          }
+          tx <- subset(tx, select = -c(fov, cell_ID))
+        }
+
+        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+        if (!is.na(x = genes.filter)) {
+          ptx(
+            message = paste("Filtering genes with pattern", genes.filter),
+            class = 'sticky',
+            amount = 0
+          )
+          tx <- tx[!grepl(pattern = genes.filter, x = rownames(x = tx)), , drop = FALSE]
+        }
+        # only keep cells with counts greater than 0
+        tx <- tx[, which(colSums(tx) != 0)]
+        ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
+
+        if ((sum(tx == 0) / length(x = tx)) > ratio) {
+          ptx(
+            message = 'Converting counts to sparse matrix',
+            class = 'sticky',
+            amount = 0
+          )
+          tx <- as.sparse(x = tx)
+        }
+
+        ptx(type = 'finish')
+
+        tx
+      },
+      'centroids' = {
+        pcents <- progressor()
+        pcents(
+          message = 'Creating centroid coordinates',
+          class = 'sticky',
+          amount = 0
+        )
+        pcents(type = 'finish')
+        data.frame(
+          x = md$CenterX_global_px,
+          y = md$CenterY_global_px,
+          cell = paste0(as.character(md$cell_ID), "_", md$fov),
+          stringsAsFactors = FALSE
+        )
+      },
+      'segmentations' = {
+        pcents <- progressor()
+        pcents(
+          message = 'Creating segmentation coordinates',
+          class = 'sticky',
+          amount = 0
+        )
+        pcents(type = 'finish')
+        data.frame(
+          x = segs$x_global_px,
+          y = segs$y_global_px,
+          cell = paste0(as.character(segs$cellID), "_", segs$fov),  # cell_ID column in this file doesn't have an underscore
+          stringsAsFactors = FALSE
+        )
+      },
+      'metadata' = {
+        pmeta <- progressor()
+        pmeta(
+          message = 'Loading metadata',
+          class = 'sticky',
+          amount = 0
+        )
+        pmeta(type = 'finish')
+        df <- md[,metadata]
+        df$cell <- paste0(as.character(md$cell_ID), "_", md$fov)
+        df
+      },
+      'pixels' = {
+        ppixels <- progressor()
+        ppixels(
+          message = 'Creating pixel-level molecule coordinates',
+          class = 'sticky',
+          amount = 0
+        )
+        df <- data.frame(
+          x = mx$x_global_px,
+          y = mx$y_global_px,
+          gene = mx$target,
+          stringsAsFactors = FALSE
+        )
+        ppixels(type = 'finish')
+        df
+      },
+      # 'microns' = {
+      #   pmicrons <- progressor()
+      #   pmicrons(
+      #     message = "Creating micron-level molecule coordinates",
+      #     class = 'sticky',
+      #     amount = 0
+      #   )
+      #   df <- data.frame(
+      #     x = mx$global_x,
+      #     y = mx$global_y,
+      #     gene = mx$gene,
+      #     stringsAsFactors = FALSE
+      #   )
+      #   pmicrons(type = 'finish')
+      #   df
+      # },
+      stop("Unknown Nanostring input type: ", outs[[otype]])
+    )
+  }
+  return(outs)
+}
+
 #' Load Slide-seq spatial data
 #'
 #' @param coord.file Path to csv file containing bead coordinate positions
@@ -1270,6 +1657,638 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
     )
   )
   return(slide.seq)
+}
+
+#' Read Data From Vitessce
+#'
+#' Read in data from Vitessce-formatted JSON files
+#'
+#' @param counts Path or URL to a Vitessce-formatted JSON file with
+#' expression data; should end in \dQuote{\code{.genes.json}} or
+#' \dQuote{\code{.clusters.json}}; pass \code{NULL} to skip
+#' @param coords Path or URL to a Vitessce-formatted JSON file with cell/spot
+#' spatial coordinates; should end in \dQuote{\code{.cells.json}};
+#' pass \code{NULL} to skip
+#' @param molecules Path or URL to a Vitessce-formatted JSON file with molecule
+#' spatial coordinates; should end in \dQuote{\code{.molecules.json}};
+#' pass \code{NULL} to skip
+#' @param type Type of cell/spot spatial coordinates to return,
+#' choose one or more from:
+#' \itemize{
+#'  \item \dQuote{segmentations} cell/spot segmentations
+#'  \item \dQuote{centroids} cell/spot centroids
+#' }
+#' @param filter A character to filter molecules by, pass \code{NA} to skip
+#' molecule filtering
+#'
+#' @return A list with some combination of the following values:
+#' \itemize{
+#'  \item \dQuote{\code{counts}}: if \code{counts} is not \code{NULL}, an
+#'   expression matrix with cells as columns and features as rows
+#'  \item \dQuote{\code{centroids}}: if \code{coords} is not \code{NULL} and
+#'   \code{type} is contains\dQuote{centroids}, a data frame with cell centroids
+#'   in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{segmentations}}: if \code{coords} is not \code{NULL} and
+#'   \code{type} contains \dQuote{centroids}, a data frame with cell
+#'   segmentations in three columns: \dQuote{x}, \dQuote{y} and \dQuote{cell}
+#'  \item \dQuote{\code{molecules}}: if \code{molecules} is not \code{NULL}, a
+#'   data frame with molecule spatial coordinates in three columns: \dQuote{x},
+#'   \dQuote{y}, and \dQuote{gene}
+#' }
+#'
+#' @importFrom jsonlite read_json
+#' @importFrom tools file_ext file_path_sans_ext
+#'
+#' @export
+#'
+#' @concept input
+#'
+#' @template section-progressr
+#'
+#' @templateVar pkg jsonlite
+#' @template note-reqdpkg
+#'
+#' @examples
+#' coords <- ReadVitessce(
+#'   counts = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
+#'   coords = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
+#'   molecules = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
+#' )
+#' names(coords)
+#' coords$counts[1:10, 1:10]
+#' head(coords$centroids)
+#' head(coords$segmentations)
+#' head(coords$molecules)
+#'
+ReadVitessce <- function(
+  counts = NULL,
+  coords = NULL,
+  molecules = NULL,
+  type = c('segmentations', 'centroids'),
+  filter = NA_character_
+) {
+  if (!requireNamespace('jsonlite', quietly = TRUE)) {
+    stop("Please install 'jsonlite' for this function")
+  }
+  type <- match.arg(arg = type, several.ok = TRUE)
+  nouts <- c(
+    counts %iff% 'counts',
+    coords %iff% type,
+    molecules %iff% 'molecules'
+  )
+  outs <- vector(mode = 'list', length = length(x = nouts))
+  names(x = outs) <- nouts
+  if (!is.null(x = coords)) {
+    ppreload <- progressor()
+    ppreload(message = "Preloading coordinates", class = 'sticky', amount = 0)
+    cells <- read_json(path = coords)
+    ppreload(type = 'finish')
+  }
+  for (i in nouts) {
+    outs[[i]] <- switch(
+      EXPR = i,
+      'counts' = {
+        counts.type <- file_ext(x = basename(path = file_path_sans_ext(
+          x = counts
+        )))
+        cts <- switch(
+          EXPR = counts.type,
+          'clusters' = .ReadVitessceClusters(counts = counts),
+          'genes' = .ReadVitessceGenes(counts = counts),
+          stop("Unknown Vitessce counts filetype: '", counts.type, "'")
+        )
+        pcts <- progressor()
+        if (!is.na(x = filter)) {
+          pcts(
+            message = paste("Filtering genes with pattern", filter),
+            class = 'sticky',
+            amount = 0
+          )
+          cts <- cts[!grepl(pattern = filter, x = rownames(x = cts)), , drop = FALSE]
+        }
+        ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
+        if ((sum(cts == 0) / length(x = cts)) > ratio) {
+          pcts(
+            message = 'Converting counts to sparse matrix',
+            class = 'sticky',
+            amount = 0
+          )
+          cts <- as.sparse(x = cts)
+        }
+        pcts(type = 'finish')
+        cts
+      },
+      'centroids' = {
+        pcents <- progressor(steps = length(x = cells))
+        pcents(message = "Reading centroids", class = 'sticky', amount = 0)
+        centroids <- lapply(
+          X = names(x = cells),
+          FUN = function(x) {
+            cents <- cells[[x]]$xy
+            names(x = cents) <- c('x', 'y')
+            cents <- as.data.frame(x = cents)
+            cents$cell <- x
+            pcents()
+            return(cents)
+          }
+        )
+        pcents(type = 'finish')
+        do.call(what = 'rbind', args = centroids)
+      },
+      'segmentations' = {
+        psegs <- progressor(steps = length(x = cells))
+        psegs(message = "Reading segmentations", class = 'sticky', amount = 0)
+        segmentations <- lapply(
+          X = names(x = cells),
+          FUN = function(x) {
+            poly <- cells[[x]]$poly
+            poly <- lapply(X = poly, FUN = unlist)
+            poly <- as.data.frame(x = do.call(what = 'rbind', args = poly))
+            colnames(x = poly) <- c('x', 'y')
+            poly$cell <- x
+            psegs()
+            return(poly)
+          }
+        )
+        psegs(type = 'finish')
+        do.call(what = 'rbind', args = segmentations)
+      },
+      'molecules' = {
+        pmols1 <- progressor()
+        pmols1(message = "Reading molecules", class = 'sticky', amount = 0)
+        pmols1(type = 'finish')
+        mols <- read_json(path = molecules)
+        pmols2 <- progressor(steps = length(x = mols))
+        mols <- lapply(
+          X = names(x = mols),
+          FUN = function(m) {
+            x <- mols[[m]]
+            x <- lapply(X = x, FUN = unlist)
+            x <- as.data.frame(x = do.call(what = 'rbind', args = x))
+            colnames(x = x) <- c('x', 'y')
+            x$gene <- m
+            pmols2()
+            return(x)
+          }
+        )
+        mols <- do.call(what = 'rbind', args = mols)
+        pmols2(type = 'finish')
+        if (!is.na(x = filter)) {
+          pmols3 <- progressor()
+          pmols3(
+            message = paste("Filtering molecules with pattern", filter),
+            class = 'sticky',
+            amount = 0
+          )
+          pmols3(type = 'finish')
+          mols <- mols[!grepl(pattern = filter, x = mols$gene), , drop = FALSE]
+        }
+        mols
+      },
+      stop("Unknown data type: ", i)
+    )
+  }
+  return(outs)
+}
+
+#' Read MERFISH Input from Vizgen
+#'
+#' Read in MERFISH data from Vizgen-formatted files
+#'
+#' @inheritParams ReadVitessce
+#' @param data.dir Path to the directory with Vizgen MERFISH files; requires at
+#' least one of the following files present:
+#' \itemize{
+#'  \item \dQuote{\code{cell_by_gene.csv}}: used for reading count matrix
+#'  \item \dQuote{\code{cell_metadata.csv}}: used for reading cell spatial
+#'  coordinate matrices
+#'  \item \dQuote{\code{detected_transcripts.csv}}: used for reading molecule
+#'  spatial coordinate matrices
+#' }
+#' @param transcripts Optional file path for counts matrix; pass \code{NA} to
+#' suppress reading counts matrix
+#' @param spatial Optional file path for spatial metadata; pass \code{NA} to
+#' suppress reading spatial coordinates. If \code{spatial} is provided and
+#' \code{type} is \dQuote{polygons}, uses \code{dirname(spatial)} instead of
+#' \code{data.dir} to find HDF5 files
+#' @param molecules Optional file path for molecule coordinates file; pass
+#' \code{NA} to suppress reading spatial molecule information
+#' @param type Type of cell spatial coordinate matrices to read; choose one
+#' or more of:
+#' \itemize{
+#'  \item \dQuote{polygons}: cell polygon boundaries; requires
+#'  \href{https://cran.r-project.org/package=hdf5r}{\pkg{hdf5r}} to be
+#'   installed and requires a directory \dQuote{\code{cell_boundaries}} within
+#'   \code{data.dir}. Within \dQuote{\code{cell_boundaries}}, there must be
+#'   one or more HDF5 file named \dQuote{\code{feature_data_##.hdf5}}
+#'  \item \dQuote{centroids}: cell centroids in micron coordinate space
+#'  \item \dQuote{boxes}: cell box outlines in micron coordinate space
+#' }
+#' @param mol.type Type of molecule spatial coordinate matrices to read;
+#' choose one or more of:
+#' \itemize{
+#'  \item \dQuote{pixels}: molecule coordinates in pixel space
+#'  \item \dQuote{microns}: molecule coordinates in micron space
+#' }
+#' @param metadata Type of available metadata to read;
+#' choose zero or more of:
+#' \itemize{
+#'  \item \dQuote{volume}: estimated cell volume
+#'  \item \dQuote{fov}: cell's fov
+#' }
+#' @param z Z-index to load; must be between 0 and 6, inclusive
+#'
+#' @return A list with some combination of the following values
+#' \itemize{
+#'  \item \dQuote{\code{transcripts}}: a
+#'  \link[Matrix:dgCMatrix-class]{sparse matrix} with expression data; cells
+#'   are columns and features are rows
+#'  \item \dQuote{\code{polygons}}: a data frame with cell polygon outlines in
+#'   three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{centroids}}: a data frame with cell centroid
+#'   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{boxes}}: a data frame with cell box outlines in three
+#'   columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{microns}}: a data frame with molecule micron
+#'   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
+#'  \item \dQuote{\code{pixels}}: a data frame with molecule pixel coordinates
+#'   in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
+#'  \item \dQuote{\code{metadata}}: a data frame with the cell-level metadata
+#'   requested by \code{metadata}
+#' }
+#'
+#' @importFrom future.apply future_lapply
+#'
+#' @export
+#'
+#' @concept input
+#'
+#' @template section-progressr
+#' @template section-future
+#'
+#' @templateVar pkg data.table
+#' @template note-reqdpkg
+#'
+ReadVizgen <- function(
+  data.dir,
+  transcripts = NULL,
+  spatial = NULL,
+  molecules = NULL,
+  type = 'polygons',
+  mol.type = 'microns',
+  metadata = NULL,
+  filter = NA_character_,
+  z = 3L
+) {
+  # TODO: handle multiple polygons per z-plane
+  if (!requireNamespace("data.table", quietly = TRUE)) {
+    stop("Please install 'data.table' for this function")
+  }
+  # hdf5r is only used for loading polygon boundaries
+  # Not needed for all Vizgen input
+  hdf5 <- requireNamespace("hdf5r", quietly = TRUE)
+  # Argument checking
+  type <- match.arg(
+    arg = type,
+    choices = c('polygons', 'centroids', 'boxes'),
+    several.ok = TRUE
+  )
+  mol.type <- match.arg(
+    arg = mol.type,
+    choices = c('pixels', 'microns'),
+    several.ok = TRUE
+  )
+  if (!is.null(x = metadata)) {
+    metadata <- match.arg(
+      arg = metadata,
+      choices = c("volume", "fov"),
+      several.ok = TRUE
+    )
+  }
+  if (!z %in% seq.int(from = 0L, to = 6L)) {
+    stop("The z-index must be in the range [0, 6]")
+  }
+  use.dir <- all(vapply(
+    X = c(transcripts, spatial, molecules),
+    FUN = function(x) {
+      return(is.null(x = x) || is.na(x = x))
+    },
+    FUN.VALUE = logical(length = 1L)
+  ))
+  if (use.dir && !dir.exists(paths = data.dir)) {
+    stop("Cannot find Vizgen directory ", data.dir)
+  }
+  # Identify input files
+  files <- c(
+    transcripts = transcripts %||% 'cell_by_gene[_a-zA-Z0-9]*.csv',
+    spatial = spatial %||% 'cell_metadata[_a-zA-Z0-9]*.csv',
+    molecules = molecules %||% 'detected_transcripts[_a-zA-Z0-9]*.csv'
+  )
+  files[is.na(x = files)] <- NA_character_
+  h5dir <- file.path(
+    ifelse(
+      test = dirname(path = files['spatial']) == '.',
+      yes = data.dir,
+      no = dirname(path = files['spatial'])
+    ),
+    'cell_boundaries'
+  )
+  zidx <- paste0('zIndex_', z)
+  files <- vapply(
+    X = files,
+    FUN = function(x) {
+      x <- as.character(x = x)
+      if (isTRUE(x = dirname(path = x) == '.')) {
+        fnames <- list.files(
+          path = data.dir,
+          pattern = x,
+          recursive = FALSE,
+          full.names = TRUE
+        )
+        return(sort(x = fnames, decreasing = TRUE)[1L])
+      } else {
+        return(x)
+      }
+    },
+    FUN.VALUE = character(length = 1L),
+    USE.NAMES = TRUE
+  )
+  files[!file.exists(files)] <- NA_character_
+  if (all(is.na(x = files))) {
+    stop("Cannot find Vizgen input files in ", data.dir)
+  }
+  # Checking for loading spatial coordinates
+  if (!is.na(x = files[['spatial']])) {
+    pprecoord <- progressor()
+    pprecoord(
+      message = "Preloading cell spatial coordinates",
+      class = 'sticky',
+      amount = 0
+    )
+    sp <- data.table::fread(
+      file = files[['spatial']],
+      sep = ',',
+      data.table = FALSE,
+      verbose = FALSE
+      # showProgress = progressr:::progressr_in_globalenv(action = 'query')
+      # showProgress = verbose
+    )
+    pprecoord(type = 'finish')
+    rownames(x = sp) <- as.character(x = sp[, 1])
+    sp <- sp[, -1, drop = FALSE]
+    # Check to see if we can load polygons
+    if ('polygons' %in% type) {
+      poly <- if (isFALSE(x = hdf5)) {
+        warning(
+          "Cannot find hdf5r; unable to load polygon coordinates",
+          immediate. = TRUE
+        )
+        FALSE
+      } else if (!dir.exists(paths = h5dir)) {
+        warning("Cannot find cell boundary H5 files", immediate. = TRUE)
+        FALSE
+      } else {
+        TRUE
+      }
+      if (isFALSE(x = poly)) {
+        type <- setdiff(x = type, y = 'polygons')
+      }
+    }
+    spatials <- rep_len(x = files[['spatial']], length.out = length(x = type))
+    names(x = spatials) <- type
+    files <- c(files, spatials)
+    files <- files[setdiff(x = names(x = files), y = 'spatial')]
+  } else if (!is.null(x = metadata)) {
+    warning(
+      "metadata can only be loaded when spatial coordinates are loaded",
+      immediate. = TRUE
+    )
+    metadata <- NULL
+  }
+  # Check for loading of molecule coordinates
+  if (!is.na(x = files[['molecules']])) {
+    ppremol <- progressor()
+    ppremol(
+      message = "Preloading molecule coordinates",
+      class = 'sticky',
+      amount = 0
+    )
+    mx <- data.table::fread(
+      file = files[['molecules']],
+      sep = ',',
+      verbose = FALSE
+      # showProgress = verbose
+    )
+    mx <- mx[mx$global_z == z, , drop = FALSE]
+    if (!is.na(x = filter)) {
+      ppremol(
+        message = paste("Filtering molecules with pattern", filter),
+        class = 'sticky',
+        amount = 0
+      )
+      mx <- mx[!grepl(pattern = filter, x = mx$gene), , drop = FALSE]
+    }
+    ppremol(type = 'finish')
+    mols <- rep_len(x = files[['molecules']], length.out = length(x = mol.type))
+    names(x = mols) <- mol.type
+    files <- c(files, mols)
+    files <- files[setdiff(x = names(x = files), y = 'molecules')]
+  }
+  files <- files[!is.na(x = files)]
+  # Read input data
+  outs <- vector(mode = 'list', length = length(x = files))
+  names(x = outs) <- names(x = files)
+  if (!is.null(metadata)) {
+    outs <- c(outs, list(metadata = NULL))
+  }
+  for (otype in names(x = outs)) {
+    outs[[otype]] <- switch(
+      EXPR = otype,
+      'transcripts' = {
+        ptx <- progressor()
+        ptx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
+        tx <- data.table::fread(
+          file = files[[otype]],
+          sep = ',',
+          data.table = FALSE,
+          verbose = FALSE
+        )
+        rownames(x = tx) <- as.character(x = tx[, 1])
+        tx <- t(x = as.matrix(x = tx[, -1, drop = FALSE]))
+        if (!is.na(x = filter)) {
+          ptx(
+            message = paste("Filtering genes with pattern", filter),
+            class = 'sticky',
+            amount = 0
+          )
+          tx <- tx[!grepl(pattern = filter, x = rownames(x = tx)), , drop = FALSE]
+        }
+        ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
+        if ((sum(tx == 0) / length(x = tx)) > ratio) {
+          ptx(
+            message = 'Converting counts to sparse matrix',
+            class = 'sticky',
+            amount = 0
+          )
+          tx <- as.sparse(x = tx)
+        }
+        ptx(type = 'finish')
+        tx
+      },
+      'centroids' = {
+        pcents <- progressor()
+        pcents(
+          message = 'Creating centroid coordinates',
+          class = 'sticky',
+          amount = 0
+        )
+        pcents(type = 'finish')
+        data.frame(
+          x = sp$center_x,
+          y = sp$center_y,
+          cell = rownames(x = sp),
+          stringsAsFactors = FALSE
+        )
+      },
+      'polygons' = {
+        ppoly <- progressor(steps = length(x = unique(x = sp$fov)))
+        ppoly(
+          message = "Creating polygon coordinates",
+          class = 'sticky',
+          amount = 0
+        )
+        pg <- future_lapply(
+          X = unique(x = sp$fov),
+          FUN = function(f, ...) {
+            fname <- file.path(h5dir, paste0('feature_data_', f, '.hdf5'))
+            if (!file.exists(fname)) {
+              warning(
+                "Cannot find HDF5 file for field of view ",
+                f,
+                immediate. = TRUE
+              )
+              return(NULL)
+            }
+            hfile <- hdf5r::H5File$new(filename = fname, mode = 'r')
+            on.exit(expr = hfile$close_all())
+            cells <- rownames(x = subset(x = sp, subset = fov == f))
+            df <- lapply(
+              X = cells,
+              FUN = function(x) {
+                return(tryCatch(
+                  expr = {
+                    cc <- hfile[['featuredata']][[x]][[zidx]][['p_0']][['coordinates']]$read()
+                    cc <- as.data.frame(x = t(x = cc))
+                    colnames(x = cc) <- c('x', 'y')
+                    cc$cell <- x
+                    cc
+                  },
+                  error = function(...) {
+                    return(NULL)
+                  }
+                ))
+              }
+            )
+            ppoly()
+            return(do.call(what = 'rbind', args = df))
+          }
+        )
+        ppoly(type = 'finish')
+        pg <- do.call(what = 'rbind', args = pg)
+        npg <- length(x = unique(x = pg$cell))
+        if (npg < nrow(x = sp)) {
+          warning(
+            nrow(x = sp) - npg,
+            " cells missing polygon information",
+            immediate. = TRUE
+          )
+        }
+        pg
+      },
+      'boxes' = {
+        pbox <- progressor(steps = nrow(x = sp))
+        pbox(message = "Creating box coordinates", class = 'sticky', amount = 0)
+        bx <- future_lapply(
+          X = rownames(x = sp),
+          FUN = function(cell) {
+            row <- sp[cell, ]
+            df <- expand.grid(
+              x = c(row$min_x, row$max_x),
+              y = c(row$min_y, row$max_y),
+              cell = cell,
+              KEEP.OUT.ATTRS = FALSE,
+              stringsAsFactors = FALSE
+            )
+            df <- df[c(1, 3, 4, 2), , drop = FALSE]
+            pbox()
+            return(df)
+          }
+        )
+        pbox(type = 'finish')
+        do.call(what = 'rbind', args = bx)
+      },
+      'metadata' = {
+        pmeta <- progressor()
+        pmeta(
+          message = 'Loading metadata',
+          class = 'sticky',
+          amount = 0
+        )
+        pmeta(type = 'finish')
+        sp[, metadata, drop = FALSE]
+      },
+      'pixels' = {
+        ppixels <- progressor()
+        ppixels(
+          message = 'Creating pixel-level molecule coordinates',
+          class = 'sticky',
+          amount = 0
+        )
+        df <- data.frame(
+          x = mx$x,
+          y = mx$y,
+          gene = mx$gene,
+          stringsAsFactors = FALSE
+        )
+        # if (!is.na(x = filter)) {
+        #   ppixels(
+        #     message = paste("Filtering molecules with pattern", filter),
+        #     class = 'sticky',
+        #     amount = 0
+        #   )
+        #   df <- df[!grepl(pattern = filter, x = df$gene), , drop = FALSE]
+        # }
+        ppixels(type = 'finish')
+        df
+      },
+      'microns' = {
+        pmicrons <- progressor()
+        pmicrons(
+          message = "Creating micron-level molecule coordinates",
+          class = 'sticky',
+          amount = 0
+        )
+        df <- data.frame(
+          x = mx$global_x,
+          y = mx$global_y,
+          gene = mx$gene,
+          stringsAsFactors = FALSE
+        )
+        # if (!is.na(x = filter)) {
+        #   pmicrons(
+        #     message = paste("Filtering molecules with pattern", filter),
+        #     class = 'sticky',
+        #     amount = 0
+        #   )
+        #   df <- df[!grepl(pattern = filter, x = df$gene), , drop = FALSE]
+        # }
+        pmicrons(type = 'finish')
+        df
+      },
+      stop("Unknown MERFISH input type: ", type)
+    )
+  }
+  return(outs)
 }
 
 #' Normalize raw data to fractions
@@ -2933,6 +3952,113 @@ ScaleData.Seurat <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Read Vitessce Expression Data
+#'
+#' @inheritParams ReadVitessce
+#'
+#' @return An expression matrix with cells as columns and features as rows
+#'
+#' @name vitessce-helpers
+#' @rdname vitessce-helpers
+#'
+#' @importFrom jsonlite read_json
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+.ReadVitessceGenes <- function(counts) {
+  p1 <- progressor()
+  p1(
+    message = "Reading counts in Vitessce genes format",
+    class = 'sticky',
+    amount = 0
+  )
+  p1(type = 'finish')
+  cts <- read_json(path = counts)
+  p2 <- progressor(steps = length(x = cts))
+  cts <- lapply(
+    X = names(x = cts),
+    FUN = function(x) {
+      expr <- cts[[x]]$cells
+      expr <- as.matrix(x = expr)
+      colnames(x = expr) <- x
+      p2()
+      return(expr)
+    }
+  )
+  p2(type = 'finish')
+  cts <- Reduce(
+    f = function(x, y) {
+      a <- merge(x = x, y = y, by = 0, all = TRUE)
+      rownames(x = a) <- a$Row.names
+      a$Row.names <- NULL
+      return(as.matrix(x = a))
+    },
+    x = cts
+  )
+  cts[is.na(x = cts)] <- 0
+  return(t(x = cts))
+}
+
+#' @name vitessce-helpers
+#' @rdname vitessce-helpers
+#'
+#' @importFrom jsonlite read_json
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+.ReadVitessceClusters <- function(counts) {
+  p1 <- progressor()
+  p1(
+    message = "Reading counts in Vitessce clusters format",
+    class = 'sticky',
+    amount = 0
+  )
+  p1(type = 'finish')
+  cts <- read_json(path = counts)
+  # p2 <- progressor(steps = length(x = cts))
+  cells <- unlist(x = cts$cols)
+  features <- unlist(x = cts$rows)
+  cts <- lapply(X = cts[['matrix']], FUN = unlist)
+  cts <- t(x = as.data.frame(x = cts))
+  dimnames(x = cts) <- list(features, cells)
+  return(cts)
+}
+
+
+#' @name nanostring-helpers
+#' @rdname nanostring-helpers
+#'
+#' @return data frame containing counts for cells based on a single class of segmentation (eg Nuclear)
+#'
+#' @keywords internal
+#'
+#' @noRd
+#'
+build.cellcomp.matrix <- function(mols.df, class=NULL) {
+  if (!is.null(class)) {
+    if (!(class %in% c("Nuclear", "Membrane", "Cytoplasm"))) {
+      stop(paste("Cannot subset matrix based on segmentation:", class))
+    }
+    mols.df <- mols.df[mols.df$CellComp == class,]  # subset based on cell class
+  }
+  mols.df$bc <- paste0(as.character(mols.df$cell_ID), "_", as.character(mols.df$fov))
+  ncol <- length(unique(mols.df$target))
+  nrow <- length(unique(mols.df$bc))  # will mols.df already have a cell barcode column at this point
+  mtx <- matrix(data=rep(0, nrow*ncol), nrow=nrow, ncol=ncol)
+  colnames(mtx) <- unique(mols.df$target)
+  rownames(mtx) <- unique(mols.df$bc)
+  for (row in 1:nrow(mols.df)) {
+    mol <- mols.df[row, "target"]
+    bc <- mols.df[row, "bc"]
+    mtx[bc, mol] <- mtx[bc, mol] + 1
+  }
+  return(as.data.frame(mtx))
+}
 
 # Bin spatial regions into grid and average expression values
 #

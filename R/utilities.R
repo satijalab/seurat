@@ -1625,40 +1625,90 @@ as.data.frame.Matrix <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Set a default value if an object is null
-#
-# @param lhs An object to set if it's null
-# @param rhs The value to provide if x is null
-#
-# @return rhs if lhs is null, else lhs
-#
-# @author Hadley Wickham
-# @references https://adv-r.hadley.nz/functions.html#missing-arguments
-#
-`%||%` <- function(lhs, rhs) {
-  if (!is.null(x = lhs)) {
-    return(lhs)
-  } else {
-    return(rhs)
-  }
+.AsList <- function(x) {
+  x <- as.list(x = x)
+  return(sapply(
+    X = unique(x = names(x = x)),
+    FUN = function(i) {
+      return(unlist(
+        x = x[which(x = names(x = x) == i)],
+        recursive = FALSE,
+        use.names = FALSE
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  ))
 }
 
-# Set a default value if an object is NOT null
-#
-# @param lhs An object to set if it's NOT null
-# @param rhs The value to provide if x is NOT null
-#
-# @return lhs if lhs is null, else rhs
-#
-# @author Hadley Wickham
-# @references https://adv-r.hadley.nz/functions.html#missing-arguments
-#
-`%iff%` <- function(lhs, rhs) {
-  if (!is.null(x = lhs)) {
-    return(rhs)
-  } else {
-    return(lhs)
+#' @importFrom ggplot2 cut_number
+#'
+.Cut <- function(min, max, n) {
+  breaks <- levels(x = cut_number(x = c(min, max), n = n))
+  breaks <- gsub(pattern = '.*,', replacement = '', x = breaks)
+  breaks <- gsub(pattern = ']$', replacement = '', x = breaks)
+  as.numeric(x = breaks)
+}
+
+.FindE <- function(x) {
+  x <- as.character(x = x)
+  if (grepl(pattern = 'e', x = x)) {
+    return(as.integer(x = gsub(pattern = '.*e', replacement = '', x = x)))
+  } else if (grepl(pattern = '^0\\.', x = x)) {
+    x <- unlist(x = strsplit(
+      x = gsub(pattern = '.*\\.', replacement = '', x = x),
+      split = ''
+    ))
+    idx <- which(x = x != '0')
+    return(-idx)
   }
+  stop("Invalid format")
+}
+
+#' @importFrom ggplot2 vars
+#' @importFrom rlang !! sym is_na
+#' @importFrom SeuratObject Segmentations
+#'
+NULL
+
+.LayersByImage <- function(object, images, layers) {
+  if (!is.list(x = layers)) {
+    if (is.null(x = names(x = layers))) {
+      layers <- rep_len(x = list(layers), length.out = length(x = images))
+      names(x = layers) <- images
+    } else {
+      layers <- .AsList(x = layers)
+    }
+  }
+  if (any(!nchar(x = names(x = layers)))) {
+    missing <- setdiff(x = images, y = names(x = layers))
+    idx <- which(x = !nchar(x = names(x = layers)))
+    layers <- c(
+      layers[intersect(x = names(x = layers), y = images)],
+      rep_len(x = layers[idx], length.out = length(x = missing))
+    )
+    names(x = layers)[!nchar(x = names(x = layers))] <- missing
+  }
+  if (any(!images %in% names(x = layers))) {
+    for (i in setdiff(x = images, y = names(x = layers))) {
+      layers[[i]] <- Segmentations(object = object[[i]])[1L]
+    }
+  }
+  images <- union(x = images, y = names(x = layers))
+  if (length(x = layers) != length(x = images)) {
+    images <- intersect(x = images, y = names(x = layers))
+  }
+  layers <- layers[images]
+  for (i in images) {
+    layers[[i]] <- Filter(
+      f = function(x) {
+        return(x %in% Segmentations(object = object[[i]]) || is_na(x = x))
+      },
+      x = layers[[i]]
+    )
+  }
+  layers <- Filter(f = length, x = layers)
+  return(layers)
 }
 
 # Generate chunk points
@@ -2336,7 +2386,7 @@ RowSumSparse <- function(mat) {
   names(x = output) <- rownames(x = mat)
   return(output)
 }
- 
+
 # Calculate row variance of a sparse matrix
 #
 # @param mat sparse matrix

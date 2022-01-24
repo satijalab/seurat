@@ -1,8 +1,21 @@
 #' @importFrom utils globalVariables
-#' @importFrom ggplot2 ggproto GeomViolin
+#' @importFrom ggplot2 fortify GeomViolin ggproto
 #' @importFrom SeuratObject DefaultDimReduc
 #'
 NULL
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom methods setGeneric
+#'
+setGeneric(
+  name = '.PrepImageData',
+  def = function(data, cells, ...) {
+    standardGeneric(f = '.PrepImageData')
+  }
+)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Heatmaps
@@ -2235,6 +2248,210 @@ PolyFeaturePlot <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Spatial Plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Spatial Plots
+#'
+#' @inheritParams DimPlot
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param images A vector if images to plot
+#' @param layers A vector of segmentation layers per image to plot; can be a
+#' character vector, a named character vector, or a named list. Names should
+#' be the names of images and values should be the names of segmentation layers
+# @param group.by ...
+# @param split.by ...
+#' @param crop Crop the plots to area with cells only; choose from:
+#' \itemize{
+#'  \item \code{TRUE} to crop all plots to the area constrained by the layer
+#'  \item \code{NA} to crop all plots to the area constrained by the image
+#'  \item \code{FALSE} to skip cropping
+#' }
+#' @param overlap Overlay layers from a single image to create a single plot;
+#' if \code{TRUE}, then layers are stacked in the order they're given
+#' (first is lowest)
+#' @param combine Combine plots into a single
+#' \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
+#' return a list of ggplot objects
+#'
+#' @return If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
+#' ggplot object; otherwise, a list of ggplot objects
+#'
+#' @importFrom rlang !! is_na sym
+#' @importFrom patchwork wrap_plots
+#' @importFrom ggplot2 facet_wrap vars
+#' @importFrom SeuratObject .DefaultSpatialCoords Cells DefaultSegmentation
+#' FetchData Images
+#'
+#' @export
+#'
+ImageDimPlot <- function(
+  object,
+  images = NULL,
+  layers = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  cols = NULL,
+  molecules = NULL,
+  mols.size = 0.1,
+  mols.cols = NULL,
+  nmols = 1000,
+  alpha = molecules %iff% 0.3 %||% 0.6,
+  border.color = 'black',
+  border.size = 0.3,
+  na.value = 'grey50',
+  crop = NA,
+  cells = NULL,
+  overlap = FALSE,
+  combine = TRUE
+) {
+  cells <- cells %||% Cells(x = object)
+  # Determine images to use
+  images <- images %||% .DefaultSpatialCoords(object = object)
+  images <- Filter(
+    f = function(x) {
+      return(
+        x %in% Images(object = object) &&
+          inherits(x = object[[x]], what = 'SpatialCoords')
+      )
+    },
+    x = images
+  )
+  if (!length(x = images)) {
+    stop("No compatible spatial coordinates present")
+  }
+  # Identify layers to use
+  layers <- layers %||% sapply(
+    X = images,
+    FUN = function(x) {
+      return(DefaultSegmentation(object = object[[x]]))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  layers <- .LayersByImage(object = object, images = images, layers = layers)
+  images <- names(x = layers)
+  overlap <- rep_len(x = overlap, length.out = length(x = images))
+  crop <- rep_len(x = crop, length.out = length(x = images))
+  # Prepare plotting data
+  group.by <- layers %!NA% group.by %||% 'ident'
+  vars <- c(group.by, split.by)
+  md <- if (!is_na(x = vars)) {
+    FetchData(
+      object = object,
+      vars = vars[!is.na(x = vars)],
+      cells = cells
+    )
+  } else {
+    NULL
+  }
+  pnames <- unlist(x = lapply(
+    X = seq_along(along.with = images),
+    FUN = function(i) {
+      return(if (isTRUE(x = overlap[i])) {
+        images[i]
+      } else {
+        paste(images[i], layers[[i]], sep = '_')
+      })
+    }
+  ))
+  pdata <- vector(mode = 'list', length = length(x = pnames))
+  names(x = pdata) <- pnames
+  for (i in names(x = pdata)) {
+    img <- unlist(x = strsplit(x = i, split = '_'))[1L]
+    # Apply overlap
+    lyr <- unlist(x = strsplit(x = i, split = '_'))[2L]
+    if (is.na(x = lyr)) {
+      lyr <- layers[[img]]
+    }
+    # TODO: Apply crop
+    pdata[[i]] <- lapply(
+      X = lyr,
+      FUN = function(l) {
+        if (l == 'NA') {
+          return(NA)
+        }
+        df <- fortify(model = object[[img]][[l]])
+        df <- df[df$cell %in% cells, , drop = FALSE]
+        if (!is.null(x = md)) {
+          df <- merge(x = df, y = md, by.x = 'cell', by.y = 0, all.x = TRUE)
+        }
+        df$cell <- paste(l, df$cell, sep = '_')
+        df$layer <- l
+        return(df)
+      }
+    )
+    pdata[[i]] <- if (!is_na(x = pdata[[i]])) {
+      do.call(what = 'rbind', args = pdata[[i]])
+    } else {
+      unlist(x = pdata[[i]])
+    }
+  }
+  # Fetch molecule information
+  if (!is.null(x = molecules)) {
+    molecules <- .MolsByImage(
+      object = object,
+      images = images,
+      molecules = molecules
+    )
+    mdata <- vector(mode = 'list', length = length(x = images))
+    names(x = mdata) <- images
+    for (img in names(x = mdata)) {
+      if (!img %in% names(x = molecules)) {
+        mdata[[img]] <- NULL
+        next
+      }
+      imols <- gsub(
+        pattern = paste0('^', Key(object = object[[img]])),
+        replacement = '',
+        x = molecules[[img]]
+      )
+      mdata[[img]] <- FetchData(
+        object = object[[img]],
+        vars = imols,
+        nmols = nmols
+      )
+    }
+  } else {
+    mdata <- NULL
+  }
+  # Build the plots
+  plots <- vector(
+    mode = 'list',
+    length = length(x = pdata) * ifelse(
+      test = length(x = group.by),
+      yes = length(x = group.by),
+      no = 1L
+    )
+  )
+  idx <- 1L
+  for (group in group.by) {
+    for (i in seq_along(along.with = pdata)) {
+      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L]
+      p <- SingleImagePlot(
+        data = pdata[[i]],
+        col.by = pdata[[i]] %!NA% group,
+        molecules = mdata[[img]],
+        cols = cols,
+        mols.size = mols.size,
+        mols.cols = mols.cols,
+        alpha = alpha,
+        border.color = border.color,
+        border.size = border.size,
+        na.value = na.value
+      )
+      if (!is.null(x = split.by)) {
+        p <- p + facet_wrap(
+          facets = vars(!!sym(x = split.by))
+        )
+      }
+      plots[[idx]] <- p
+      idx <- idx + 1L
+    }
+  }
+  if (isTRUE(x = combine)) {
+    plots <- wrap_plots(plots)
+  }
+  return(plots)
+}
 
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
@@ -5304,8 +5521,162 @@ WhiteBackground <- function(...) {
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Fortify Methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Prepare Coordinates for Spatial Plots
+#'
+#' @inheritParams SeuratObject::GetTissueCoordinates
+#' @param model A \code{\link{[SeuratObject:Segmentation-class]Segmentation}},
+#' \code{\link[SeuratObject:Centroids-class]{Centroids}},
+#' or \code{\link[SeuratObject:Molecules-class]{Molecules}} object
+#' @param data Extra data to be used for annotating the cell segmentations; the
+#' easiest way to pass data is a one-column
+#' \code{\link[base:data.frame]{data frame}} with the values to color by and
+#' the cell names are rownames
+#' @param ... Arguments passed to other methods
+#'
+#' @name fortify-Spatial
+#' @rdname fortify-Spatial
+#'
+#' @importFrom SeuratObject GetTissueCoordinates
+#'
+#' @keywords internal
+#'
+#' @method fortify Centroids
+#' @export
+#'
+#' @aliases fortify
+#'
+fortify.Centroids <- function(model, data, ...) {
+  df <- GetTissueCoordinates(object = model, full = FALSE)
+  if (missing(x = data)) {
+    data <- NULL
+  }
+  data <- .PrepImageData(data = data, cells = lengths(x = model), ...)
+  df <- cbind(df, data)
+  return(df)
+}
+
+#' @rdname fortify-Spatial
+#' @method fortify Molecules
+#'
+#' @importFrom SeuratObject FetchData
+#'
+#' @export
+#'
+fortify.Molecules <- function(
+  model,
+  data,
+  nmols = NULL,
+  seed = NA_integer_,
+  ...
+) {
+  return(FetchData(object = object, vars = data, nmols = nmols, seed = seed, ...))
+  # coords <- GetTissueCoordinates(object = model, features = data)
+  # if (!is.null(x = nmols)) {
+  #   if (!is.na(x = seed)) {
+  #     set.seed(seed = seed)
+  #   }
+  #   coords <- lapply(
+  #     X = unique(x = coords$molecule),
+  #     FUN = function(m) {
+  #       df <- coords[coords$molecule == m, , drop = FALSE]
+  #       if (nrow(x = df) > nmols) {
+  #         idx <- sample(x = seq_len(length.out = nrow(x = df)), size = nmols)
+  #         df <- df[idx, , drop = FALSE]
+  #       }
+  #       return(df)
+  #     }
+  #   )
+  #   coords <- do.call(what = 'rbind', args = coords)
+  # }
+  # return(coords)
+}
+
+#' @rdname fortify-Spatial
+#' @method fortify Segmentation
+#' @export
+#'
+fortify.Segmentation <- function(model, data, ...) {
+  df <- GetTissueCoordinates(object = model, full = TRUE)
+  if (missing(x = data)) {
+    data <- NULL
+  }
+  data <- .PrepImageData(data = data, cells = lengths(x = model), ...)
+  df <- cbind(df, data)
+  return(df)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom SeuratObject Features Key Keys Molecules
+#'
+.MolsByImage <- function(object, images, molecules) {
+  keys <- Key(object = object)[images]
+  keyed.mols <- sapply(
+    X = names(x = keys),
+    FUN = function(img) {
+      if (is.null(x = Molecules(object = object[[img]]))) {
+        return(NULL)
+      }
+      key <- keys[img]
+      mols <- grep(pattern = paste0('^', key), x = molecules, value = TRUE)
+      names(x = mols) <- mols
+      mols <- gsub(pattern = paste0('^', key), replacement = '', x = mols)
+      keyed <- sapply(
+        X = SeuratObject::Keys(object = object[[img]]),
+        FUN = function(x) {
+          return(grep(pattern = paste0('^', x), x = mols, value = TRUE))
+        }
+      )
+      keyed <- unlist(x = keyed)
+      names(x = keyed) <- gsub(
+        pattern = '^.*\\.',
+        replacement = '',
+        x = names(x = keyed)
+      )
+      missing <- mols[!mols %in% keyed]
+      missing <- missing[missing %in% Features(x = object[[img]])]
+      if (length(x = missing)) {
+        # TODO: replace with default molecules
+        default <- Molecules(object = object[[img]])[1L]
+        mn <- names(x = missing)
+        missing <- paste0(
+          SeuratObject::Key(object = object[[img]][[default]]),
+          missing
+        )
+        names(x = missing) <- mn
+      }
+      return(c(missing, keyed))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  found <- names(x = unlist(x = keyed.mols))
+  found <- gsub(pattern = '^.*\\.', replacement = '', x = found)
+  missing <- setdiff(x = molecules, y = found)
+  names(x = missing) <- missing
+  for (img in images) {
+    imissing <- missing
+    for (i in seq_along(along.with = imissing)) {
+      for (lkey in Keys(object = object[[img]])) {
+        imissing[[i]] <- gsub(
+          pattern = paste0('^', lkey),
+          replacement = '',
+          x = imissing[[i]]
+        )
+      }
+    }
+    imissing <- names(x = imissing[imissing %in% Features(x = object[[img]])])
+    keyed.mols[[img]] <- c(keyed.mols[[img]], imissing)
+  }
+  keyed.mols <- Filter(f = length, x = keyed.mols)
+  keyed.mols <- sapply(X = keyed.mols, FUN = unname, simplify = FALSE)
+  return(keyed.mols)
+}
 
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
 #
@@ -7433,6 +7804,151 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
   title(main = title)
 }
 
+#' Single Spatial Plot
+#'
+#' @param data A data frame with the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{x}}
+#'  \item \dQuote{\code{y}}
+#'  \item \dQuote{\code{cell}}
+#' }
+#' @param col.by ...
+#' @param cols ...
+#' @param molecules ...
+#' @param mols.size ...
+#' @param mols.cols ...
+#' @param border.color ...
+#' @param border.size ...
+#' @param na.value ...
+#' @param ... ...
+#'
+#' @return A ggplot object
+#'
+#' @importFrom rlang is_na
+#' @importFrom SeuratObject %NA%
+#' @importFrom ggplot2 aes_string
+#' geom_point
+#' geom_polygon
+#' ggplot
+#' guides
+#' guide_legend
+#' scale_alpha_manual
+#' scale_color_manual
+#'
+#' @keywords internal
+#'
+SingleImagePlot <- function(
+  data,
+  col.by = NA,
+  cols = NULL,
+  molecules = NULL,
+  mols.size = 0.1,
+  mols.cols = NULL,
+  alpha = molecules %iff% 0.3 %||% 0.6,
+  border.color = 'black',
+  border.size = 0.3,
+  na.value = 'grey50',
+  ...
+) {
+  # Check input data
+  if (!is_na(x = data)) {
+    if (!all(c('x', 'y', 'cell', 'layer') %in% colnames(x = data))) {
+      stop("Invalid data coordinates")
+    }
+    if (!is_na(x = col.by)) {
+      if (!col.by  %in% colnames(x = data)) {
+        warning(
+          "Cannot find 'col.by' ('",
+          col.by,
+          "') in data coordinates",
+          immediate. = TRUE
+        )
+        col.by <- NA
+      } else if (!is.factor(x = data[[col.by]])) {
+        data[[col.by]] <- factor(
+          x = data[[col.by]],
+          levels = unique(x = data[[col.by]])
+        )
+      }
+    }
+    if (!is.factor(x = data$layer)) {
+      data$layer <- factor(x = data$layer, levels = unique(x = data$layer))
+    }
+    # Determine alphas
+    alpha.min <- 1 * (10 ^ .FindE(x = alpha))
+    if (alpha.min == alpha) {
+      alpha.min <- 1 * (10 ^ (.FindE(x = alpha) - 1))
+    }
+    alphas <- .Cut(
+      min = alpha.min,
+      max = alpha,
+      n = length(x = levels(x = data$layer))
+    )
+  }
+  # Assemble plot
+  plot <- ggplot(
+    data = data %NA% NULL,
+    mapping = aes_string(
+      x = 'y',
+      y = 'x',
+      alpha = 'layer',
+      fill = col.by %NA% NULL
+    )
+  )
+  if (!is_na(x = data)) {
+    plot <- plot +
+      scale_alpha_manual(values = alphas) +
+      if (anyDuplicated(x = data$cell)) {
+        geom_polygon(
+          mapping = aes_string(group = 'cell'),
+          color = border.color,
+          size = border.size
+        )
+      } else {
+        geom_point(
+          shape = 21,
+          color = border.color
+        )
+      }
+    if (length(x = levels(x = data$layer)) == 1L) {
+      plot <- plot + guides(alpha = 'none')
+    }
+    # Adjust guides
+    if (!is.null(x = col.by) && length(x = levels(x = data[[col.by]] == 1L))) {
+      plot <- plot + guides(fill = 'none')
+    }
+  }
+  # Add molecule layers
+  if (is.data.frame(x = molecules)) {
+    if (all(c('x', 'y', 'molecule') %in% colnames(x = molecules))) {
+      if (!is.factor(x = molecules$molecule)) {
+        molecules$molecule <- factor(
+          x = molecules$molecule,
+          levels = unique(x = molecules$molecule)
+        )
+      }
+      plot <- plot + geom_point(
+        mapping = aes_string(fill = NULL, alpha = NULL, color = "molecule"),
+        data = molecules,
+        size = mols.size,
+        show.legend = c(color = TRUE, fill = FALSE, alpha = FALSE)
+      ) +
+        guides(color = guide_legend(override.aes = list(size = 3L))) +
+        scale_color_manual(
+          name = 'Molecules',
+          values = mols.cols %||% DiscretePalette(
+            n = length(x = levels(x = molecules$molecule)),
+            palette = 'alphabet'
+          ),
+          guide = guide_legend()
+        )
+    } else {
+      warning("Invalid molecule coordinates", immediate. = TRUE)
+    }
+  }
+  return(plot)
+}
+
 # A single polygon plot
 #
 # @param data Data to plot
@@ -7714,3 +8230,97 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
   colnames(x = data) <- df.names
   return(data)
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# S4 Methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'data.frame', cells = 'rle'),
+  definition = function(data, cells, ...) {
+    data <- sapply(
+      X = colnames(x = data),
+      FUN = function(x) {
+        j <- data[[x]]
+        names(x = j) <- rownames(x = data)
+        return(.PrepImageData(data = j, cells = cells, name = x))
+      },
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    return(do.call(what = 'cbind', args = data))
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'factor', cells = 'rle'),
+  definition = function(data, cells, name, ...) {
+    f <- getMethod(
+      f = '.PrepImageData',
+      signature = c(data = 'vector', cells = 'rle')
+    )
+    return(f(data = data, cells = cells, name = name, ...))
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'list', cells = 'rle'),
+  definition = function(data, cells, ...) {
+    .NotYetImplemented()
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'NULL', cells = 'rle'),
+  definition = function(data, cells, ...) {
+    return(SeuratObject:::EmptyDF(n = sum(cells$lengths)))
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'vector', cells = 'rle'),
+  definition = function(data, cells, name, ...) {
+    name <- as.character(x = name)
+    if (name %in% c('x', 'y', 'cell')) {
+      stop("'name' cannot be 'x', 'y', or 'cell'", call. = FALSE)
+    }
+    cnames <- cells$values
+    if (is.null(x = names(x = data))) {
+      mlen <- min(sapply(X = list(data, cnames), FUN = length))
+      names(x = data)[1:mlen] <- cnames[1:mlen]
+    }
+    if (anyDuplicated(x = names(x = data))) {
+      dup <- duplicated(x = names(x = data))
+      warning(
+        sum(dup),
+        ifelse(test = sum(dup) == 1, yes = ' cell', no = ' cells'),
+        ' duplicated, using only the first occurance',
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (length(x = data) < length(x = cnames)) {
+      mcells <- setdiff(x = cnames, y = names(x = data))
+      warning(
+        "Missing data for some cells, filling with NA",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      data[mcells] <- NA
+    } else if (length(x = data) > length(x = cnames)) {
+      warning(
+        "More cells provided than present",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    data <- data.frame(rep.int(x = data[cnames], times = cells$lengths))
+    colnames(x = data) <- name
+    return(data)
+  }
+)

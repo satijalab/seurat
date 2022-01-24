@@ -67,11 +67,10 @@ Imports:
     scales,
     scattermore (>= 0.7),
     sctransform (>= 0.3.3),
-    SeuratObject (>= 4.0.999.9900),
+    SeuratObject (>= 4.0.999.9005),
     shiny,
     spatstat.core,
     spatstat.geom,
-    Spirula,
     stats,
     tibble,
     tools,
@@ -122,4 +121,5 @@ Suggests:
     metap,
     enrichR,
     mixtools,
-    ggrastr
+    ggrastr,
+    data.table
