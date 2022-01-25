@@ -2250,7 +2250,9 @@ PolyFeaturePlot <- function(
 # Spatial Plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Spatial Plots
+#' Spatial Cluster Plots
+#'
+#' Visualize clusters or other categorical groupings in a spatial context
 #'
 #' @inheritParams DimPlot
 #' @inheritParams SingleImagePlot
@@ -2260,12 +2262,7 @@ PolyFeaturePlot <- function(
 #' character vector, a named character vector, or a named list. Names should
 #' be the names of images and values should be the names of segmentation layers
 #' @param molecules A vector of molecules to plot
-#' @param crop Crop the plots to area with cells only; choose from:
-#' \itemize{
-#'  \item \code{TRUE} to crop all plots to the area constrained by the layer
-#'  \item \code{NA} to crop all plots to the area constrained by the image
-#'  \item \code{FALSE} to skip cropping
-#' }
+#' @param crop Crop the plots to area with cells only
 #' @param overlap Overlay layers from a single image to create a single plot;
 #' if \code{TRUE}, then layers are stacked in the order they're given
 #' (first is lowest)
@@ -2281,7 +2278,7 @@ PolyFeaturePlot <- function(
 #' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 element_blank facet_wrap vars
 #' @importFrom SeuratObject .DefaultSpatialCoords Cells
-#' DefaultSegmentation FetchData Images
+#' DefaultSegmentation FetchData Images Overlay
 #'
 #' @export
 #'
@@ -2300,7 +2297,7 @@ ImageDimPlot <- function(
   border.color = 'black',
   border.size = 0.3,
   na.value = 'grey50',
-  crop = NA,
+  crop = TRUE,
   cells = NULL,
   overlap = FALSE,
   axes = FALSE,
@@ -2334,6 +2331,7 @@ ImageDimPlot <- function(
   images <- names(x = layers)
   overlap <- rep_len(x = overlap, length.out = length(x = images))
   crop <- rep_len(x = crop, length.out = length(x = images))
+  names(x = crop) <- images
   # Prepare plotting data
   group.by <- layers %!NA% group.by %||% 'ident'
   vars <- c(group.by, split.by)
@@ -2398,17 +2396,23 @@ ImageDimPlot <- function(
     mdata <- vector(mode = 'list', length = length(x = images))
     names(x = mdata) <- images
     for (img in names(x = mdata)) {
+      idata <- object[[img]]
       if (!img %in% names(x = molecules)) {
         mdata[[img]] <- NULL
         next
       }
+      if (isTRUE(x = crop[img])) {
+        idata <- Overlay(x = idata, y = idata)
+      }
       imols <- gsub(
-        pattern = paste0('^', Key(object = object[[img]])),
+        # pattern = paste0('^', Key(object = object[[img]])),
+        pattern = paste0('^', Key(object = idata)),
         replacement = '',
         x = molecules[[img]]
       )
       mdata[[img]] <- FetchData(
-        object = object[[img]],
+        # object = object[[img]],
+        object = idata,
         vars = imols,
         nmols = nmols
       )
@@ -2459,12 +2463,36 @@ ImageDimPlot <- function(
   return(plots)
 }
 
+#' Spatial Feature Plots
+#'
+#' Visualize expression in a spatial context
+#'
+#' @inheritParams ImageDimPlot
+#'
+#' @inherit ImageDimPlot return
+#'
+#' @export
+#'
 ImageFeaturePlot <- function(
   object,
   features,
   images = NULL,
   layers = NULL,
   split.by = NULL,
+  cols = NULL,
+  molecules = NULL,
+  mols.size = 0.1,
+  mols.cols = NULL,
+  nmols = 1000,
+  alpha = molecules %iff% 0.3 %||% 0.6,
+  border.color = 'black',
+  border.size = 0.3,
+  na.value = 'grey50',
+  crop = NA,
+  cells = NULL,
+  overlap = FALSE,
+  axes = FALSE,
+  combine = TRUE,
   ...
 ) {
   ''
@@ -7873,7 +7901,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @return A ggplot object
 #'
 #' @importFrom rlang is_na
-#' @importFrom SeuratObject %NA%
+#' @importFrom SeuratObject %NA% %!NA%
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 aes_string geom_point geom_polygon ggplot guides
 #' guide_legend scale_alpha_manual scale_color_manual scale_fill_brewer
@@ -7942,6 +7970,7 @@ SingleImagePlot <- function(
       n = length(x = levels(x = data$layer))
     )
   }
+  crop <- data %!NA% crop %NA% FALSE
   # Assemble plot
   plot <- ggplot(
     data = data %NA% NULL,

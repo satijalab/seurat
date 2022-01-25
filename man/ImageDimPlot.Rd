@@ -2,7 +2,7 @@
 % Please edit documentation in R/visualization.R
 \name{ImageDimPlot}
 \alias{ImageDimPlot}
-\title{Spatial Plots}
+\title{Spatial Cluster Plots}
 \usage{
 ImageDimPlot(
   object,
@@ -19,7 +19,7 @@ ImageDimPlot(
   border.color = "black",
   border.size = 0.3,
   na.value = "grey50",
-  crop = NA,
+  crop = TRUE,
   cells = NULL,
   overlap = FALSE,
   axes = FALSE,
@@ -62,12 +62,7 @@ to suppress borders}
 
 \item{na.value}{Color value for NA points when using custom scale}
 
-\item{crop}{Crop the plots to area with cells only; choose from:
-\itemize{
- \item \code{TRUE} to crop all plots to the area constrained by the layer
- \item \code{NA} to crop all plots to the area constrained by the image
- \item \code{FALSE} to skip cropping
-}}
+\item{crop}{Crop the plots to area with cells only}
 
 \item{cells}{Vector of cells to plot (default is all cells)}
 
@@ -86,5 +81,5 @@ If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
 ggplot object; otherwise, a list of ggplot objects
 }
 \description{
-Spatial Plots
+Visualize clusters or other categorical groupings in a spatial context
 }
