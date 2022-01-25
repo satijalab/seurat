@@ -22,6 +22,7 @@ ImageDimPlot(
   crop = NA,
   cells = NULL,
   overlap = FALSE,
+  axes = FALSE,
   combine = TRUE
 )
 }
@@ -45,6 +46,20 @@ or numeric value corresponding to a palette as specified by \code{\link[RColorBr
 By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
 See \code{\link{DiscretePalette}} for details.}
 
+\item{molecules}{A vector of molecules to plot}
+
+\item{mols.size}{Point size for molecules}
+
+\item{mols.cols}{A vector of color for molecules}
+
+\item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
+layers, \code{alpha} is equivalent to max alpha}
+
+\item{border.color}{Color of cell segmentation border; pass \code{NA}
+to suppress borders}
+
+\item{border.size}{Thickness of cell segmentation borders}
+
 \item{na.value}{Color value for NA points when using custom scale}
 
 \item{crop}{Crop the plots to area with cells only; choose from:
@@ -59,6 +74,8 @@ See \code{\link{DiscretePalette}} for details.}
 \item{overlap}{Overlay layers from a single image to create a single plot;
 if \code{TRUE}, then layers are stacked in the order they're given
 (first is lowest)}
+
+\item{axes}{Keep axes and panel background}
 
 \item{combine}{Combine plots into a single
 \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},

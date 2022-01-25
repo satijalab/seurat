@@ -2138,7 +2138,8 @@ PolyDimPlot <- function(
 
 #' Polygon FeaturePlot
 #'
-#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
+#' Plot cells as polygons, rather than single points. Color cells by any value
+#' accessible by \code{\link{FetchData}}.
 #'
 #' @inheritParams FeaturePlot
 #' @param poly.data Name of the polygon dataframe in the misc slot
@@ -2252,13 +2253,13 @@ PolyFeaturePlot <- function(
 #' Spatial Plots
 #'
 #' @inheritParams DimPlot
+#' @inheritParams SingleImagePlot
 #' @param object A \code{\link[SeuratObject]{Seurat}} object
 #' @param images A vector if images to plot
 #' @param layers A vector of segmentation layers per image to plot; can be a
 #' character vector, a named character vector, or a named list. Names should
 #' be the names of images and values should be the names of segmentation layers
-# @param group.by ...
-# @param split.by ...
+#' @param molecules A vector of molecules to plot
 #' @param crop Crop the plots to area with cells only; choose from:
 #' \itemize{
 #'  \item \code{TRUE} to crop all plots to the area constrained by the layer
@@ -2268,6 +2269,7 @@ PolyFeaturePlot <- function(
 #' @param overlap Overlay layers from a single image to create a single plot;
 #' if \code{TRUE}, then layers are stacked in the order they're given
 #' (first is lowest)
+#' @param axes Keep axes and panel background
 #' @param combine Combine plots into a single
 #' \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
@@ -2277,9 +2279,9 @@ PolyFeaturePlot <- function(
 #'
 #' @importFrom rlang !! is_na sym
 #' @importFrom patchwork wrap_plots
-#' @importFrom ggplot2 facet_wrap vars
-#' @importFrom SeuratObject .DefaultSpatialCoords Cells DefaultSegmentation
-#' FetchData Images
+#' @importFrom ggplot2 element_blank facet_wrap vars
+#' @importFrom SeuratObject .DefaultSpatialCoords Cells
+#' DefaultSegmentation FetchData Images
 #'
 #' @export
 #'
@@ -2301,6 +2303,7 @@ ImageDimPlot <- function(
   crop = NA,
   cells = NULL,
   overlap = FALSE,
+  axes = FALSE,
   combine = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
@@ -2443,6 +2446,9 @@ ImageDimPlot <- function(
           facets = vars(!!sym(x = split.by))
         )
       }
+      if (!isTRUE(x = axes)) {
+        p <- p + NoAxes(panel.background = element_blank())
+      }
       plots[[idx]] <- p
       idx <- idx + 1L
     }
@@ -2451,6 +2457,17 @@ ImageDimPlot <- function(
     plots <- wrap_plots(plots)
   }
   return(plots)
+}
+
+ImageFeaturePlot <- function(
+  object,
+  features,
+  images = NULL,
+  layers = NULL,
+  split.by = NULL,
+  ...
+) {
+  ''
 }
 
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
@@ -4736,6 +4753,9 @@ DiscretePalette <- function(n, palette = NULL) {
       "#967ACC", "#C7B8E6", "#333333", "#666666", "#999999", "#CCCCCC"
     )
   )
+  if (is.null(x = n)) {
+    return(names(x = palettes))
+  }
   if (is.null(x = palette)) {
     if (n <= 26) {
       palette <- "alphabet"
@@ -7806,36 +7826,62 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 
 #' Single Spatial Plot
 #'
-#' @param data A data frame with the following columns:
+#' @param data A data frame with at least the following columns:
 #' \itemize{
-#'  \item \dQuote{\code{x}}
-#'  \item \dQuote{\code{y}}
-#'  \item \dQuote{\code{cell}}
+#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
+#'   plotted on the \emph{y}-axis
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
+#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{cell}}: Cell name
+#'  \item \dQuote{\code{layer}}: Segmentation layer label; when plotting
+#'   multiple segmentation layers, the order of layer transparency is set by
+#'   factor levels for this column
 #' }
-#' @param col.by ...
-#' @param cols ...
-#' @param molecules ...
-#' @param mols.size ...
-#' @param mols.cols ...
-#' @param border.color ...
-#' @param border.size ...
-#' @param na.value ...
-#' @param ... ...
+#' Can pass \code{NA} to \code{data} suppress segmentation visualization
+#' @param col.by Name of column in \code{data} to color cell segmentations by;
+#' pass \code{NA} to suppress coloring
+#' @param cols Colors for cell segmentations; can be one of the
+#' following:
+#' \itemize{
+#'  \item \code{NULL} for default ggplot2 colors
+#'  \item A numeric value or name of a
+#'   \link[RColorBrewer:RColorBrewer]{color brewer palette}
+#'  \item Name of a palette for \code{\link{DiscretePalette}}
+#'  \item A vector of colors equal to the length of unique levels of
+#'   \code{data$col.by}
+#' }
+#' @param molecules A data frame with spatially-resolved molecule coordinates;
+#' should have the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
+#'   plotted on the \emph{y}-axis
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
+#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{molecule}}: Molecule name
+#' }
+#' @param mols.size Point size for molecules
+#' @param mols.cols A vector of color for molecules
+#' @param alpha Alpha value, should be between 0 and 1; when plotting multiple
+#' layers, \code{alpha} is equivalent to max alpha
+#' @param border.color Color of cell segmentation border; pass \code{NA}
+#' to suppress borders
+#' @param border.size Thickness of cell segmentation borders
+#' @param na.value Color value for \code{NA} segmentations when
+#' using custom scale
+#' @param ... Ignored
 #'
 #' @return A ggplot object
 #'
 #' @importFrom rlang is_na
 #' @importFrom SeuratObject %NA%
-#' @importFrom ggplot2 aes_string
-#' geom_point
-#' geom_polygon
-#' ggplot
-#' guides
-#' guide_legend
-#' scale_alpha_manual
-#' scale_color_manual
+#' @importFrom RColorBrewer brewer.pal.info
+#' @importFrom ggplot2 aes_string geom_point geom_polygon ggplot guides
+#' guide_legend scale_alpha_manual scale_color_manual scale_fill_brewer
+#' scale_fill_manual
 #'
 #' @keywords internal
+#'
+#' @export
 #'
 SingleImagePlot <- function(
   data,
@@ -7871,11 +7917,22 @@ SingleImagePlot <- function(
         )
       }
     }
+    if (is_na(x = col.by) && !is.null(x = cols)) {
+      col.by <- RandomName(length = 7L)
+      data[[col.by]] <- TRUE
+    }
     if (!is.factor(x = data$layer)) {
       data$layer <- factor(x = data$layer, levels = unique(x = data$layer))
     }
     # Determine alphas
-    alpha.min <- 1 * (10 ^ .FindE(x = alpha))
+    if (is.na(x = alpha)) {
+      alpha <- 1L
+    }
+    alpha.min <- ifelse(
+      test = alpha < 1L,
+      yes = 1 * (10 ^ .FindE(x = alpha)),
+      no = 0.1
+    )
     if (alpha.min == alpha) {
       alpha.min <- 1 * (10 ^ (.FindE(x = alpha) - 1))
     }
@@ -7893,6 +7950,7 @@ SingleImagePlot <- function(
       y = 'x',
       alpha = 'layer',
       fill = col.by %NA% NULL
+      # fill = col.by
     )
   )
   if (!is_na(x = data)) {
@@ -7910,11 +7968,26 @@ SingleImagePlot <- function(
           color = border.color
         )
       }
+    if (!is.null(x = cols)) {
+      plot <- plot + if (is.numeric(x = cols) || cols[1L] %in% rownames(x = brewer.pal.info)) {
+        scale_fill_brewer(palette = cols, na.value = na.value)
+      } else if (cols[1] %in% DiscretePalette(n = NULL)) {
+        scale_fill_manual(
+          values = DiscretePalette(
+            n = length(x = levels(x = data[[col.by]])),
+            palette = cols
+          ),
+          na.value = na.value
+        )
+      } else {
+        scale_fill_manual(values = cols, na.value = na.value)
+      }
+    }
     if (length(x = levels(x = data$layer)) == 1L) {
       plot <- plot + guides(alpha = 'none')
     }
     # Adjust guides
-    if (!is.null(x = col.by) && length(x = levels(x = data[[col.by]] == 1L))) {
+    if (length(x = levels(x = data[[col.by]])) <= 1L) {
       plot <- plot + guides(fill = 'none')
     }
   }

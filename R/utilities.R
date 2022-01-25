@@ -1665,12 +1665,8 @@ as.data.frame.Matrix <- function(
   stop("Invalid format")
 }
 
-#' @importFrom ggplot2 vars
-#' @importFrom rlang !! sym is_na
 #' @importFrom SeuratObject Segmentations
 #'
-NULL
-
 .LayersByImage <- function(object, images, layers) {
   if (!is.list(x = layers)) {
     if (is.null(x = names(x = layers))) {
