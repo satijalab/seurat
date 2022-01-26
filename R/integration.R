@@ -2044,7 +2044,7 @@ MapQuery <- function(
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
-  if (!is.null(x = refdata)) {
+ 
     query <- invoke(
       .fn = TransferData,
       .args  = c(list(
@@ -2053,6 +2053,7 @@ MapQuery <- function(
         query = query,
         refdata = refdata,
         store.weights = TRUE,
+        only.weights =  is.null(x = refdata), 
         verbose = verbose
         ), transferdata.args
       )
@@ -2061,8 +2062,7 @@ MapQuery <- function(
            transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
       reuse.weights.matrix <- TRUE
     }
- 
-  }
+
   if (anchor.reduction != "cca"){
     query <- invoke(
       .fn = IntegrateEmbeddings,
@@ -2842,6 +2842,7 @@ SelectIntegrationFeatures <- function(
 #' or "counts"
 #' @param prediction.assay Return an \code{Assay} object with the prediction
 #' scores for each class stored in the \code{data} slot.
+#' @param only.weights Only return weights matrix
 #' @param store.weights Optionally store the weights matrix used for predictions
 #' in the returned query object.
 #'
@@ -2906,6 +2907,7 @@ TransferData <- function(
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
+  only.weights = FALSE, 
   store.weights = TRUE
 ) {
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
@@ -2930,6 +2932,7 @@ TransferData <- function(
     eps = eps,
     n.trees = n.trees,
     verbose = verbose,
+    only.weights = only.weights, 
     slot = slot,
     prediction.assay = prediction.assay,
     label.transfer = label.transfer
@@ -3022,8 +3025,14 @@ TransferData <- function(
     integration.name = "integrated",
     slot = 'weights'
   )
-  
-
+  if (only.weights) {
+    if (is.null(x = query)) {
+      return(weights)
+    } else {
+      slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
+      return(query)
+    }
+  }  
   anchors <- as.data.frame(x = anchors)
   query.cells <- unname(obj = sapply(
     X = query.cells,
@@ -5213,89 +5222,101 @@ ValidateParams_TransferData <- function(
   n.trees,
   verbose,
   slot,
+  only.weights, 
   prediction.assay,
   label.transfer
 ) {
-  if (!inherits(x = refdata, what = "list")) {
-    refdata <- list(id = refdata)
-  }
-  for (i in 1:length(x = refdata)) {
-    if (inherits(x = refdata[[i]], what = c("character", "factor"))) {
-      # check is it's in the reference object
-      if (length(x = refdata[[i]]) == 1) {
-        if (is.null(x = reference)) {
-          warning("If providing a single string to refdata element number ", i,
-                  ", please provide the reference object. Skipping element ", i,
-                  ".", call. = FALSE, immediate. = TRUE)
-          refdata[[i]] <- FALSE
-          next
-        }
-        if (refdata[[i]] %in% Assays(object = reference)) {
-          refdata[[i]] <- GetAssayData(object = reference, assay = refdata[[i]])
-          colnames(x = refdata[[i]]) <- paste0(colnames(x = refdata[[i]]), "_reference")
-          label.transfer[[i]] <- FALSE
-          next
-        } else if (refdata[[i]] %in% colnames(x = reference[[]])) {
-          refdata[[i]] <- reference[[refdata[[i]]]][, 1]
-        } else {
-          warning("Element number ", i, " provided to refdata does not exist in ",
-                  "the provided reference object.", call. = FALSE, immediate. = TRUE)
-          refdata[[i]] <- FALSE
-          next
-        }
-      } else if (length(x = refdata[[i]]) != length(x = reference.cells)) {
-        warning("Please provide a vector that is the same length as the number ",
-                "of reference cells used in anchor finding.\n",
-                "Length of vector provided: ", length(x = refdata[[i]]), "\n",
-                "Length of vector required: ", length(x = reference.cells),
-                "\nSkipping element ", i, ".", call. = FALSE, immediate. = TRUE)
-        refdata[[i]] <- FALSE
-      }
-      label.transfer[[i]] <- TRUE
-    } else if (inherits(x = refdata[[i]], what = c("dgCMatrix", "matrix"))) {
-      if (ncol(x = refdata[[i]]) != length(x = reference.cells)) {
-        warning("Please provide a matrix that has the same number of columns as ",
-                "the number of reference cells used in anchor finding.\n",
-                "Number of columns in provided matrix : ", ncol(x = refdata[[i]]), "\n",
-                "Number of columns required           : ", length(x = reference.cells),
-                "\nSkipping element ", i, ".", call. = FALSE, immediate. = TRUE)
-        refdata[[i]] <- FALSE
-      } else {
-        colnames(x = refdata[[i]]) <- paste0(colnames(x = refdata[[i]]), "_reference")
-        if (any(!colnames(x = refdata[[i]]) == reference.cells)) {
-          if (any(!colnames(x = refdata[[i]]) %in% reference.cells) || any(!reference.cells %in% colnames(x = refdata[[i]]))) {
-            warning("Some (or all) of the column names of the provided refdata ",
-                    "don't match the reference cells used in anchor finding ",
-                    "\nSkipping element", i, ".", call. = FALSE, immediate. = TRUE)
+  ## check refdata
+  if (is.null(refdata)) {
+    if (!only.weights) {
+      stop("refdata is NULL and only.weights is FALSE")
+    } 
+  } else {
+    if (!inherits(x = refdata, what = "list")) {
+      refdata <- list(id = refdata)
+    }
+    for (i in 1:length(x = refdata)) {
+      if (inherits(x = refdata[[i]], what = c("character", "factor"))) {
+        # check is it's in the reference object
+        if (length(x = refdata[[i]]) == 1) {
+          if (is.null(x = reference)) {
+            warning("If providing a single string to refdata element number ", i,
+                    ", please provide the reference object. Skipping element ", i,
+                    ".", call. = FALSE, immediate. = TRUE)
             refdata[[i]] <- FALSE
+            next
+          }
+          if (refdata[[i]] %in% Assays(object = reference)) {
+            refdata[[i]] <- GetAssayData(object = reference, assay = refdata[[i]])
+            colnames(x = refdata[[i]]) <- paste0(colnames(x = refdata[[i]]), "_reference")
+            label.transfer[[i]] <- FALSE
+            next
+          } else if (refdata[[i]] %in% colnames(x = reference[[]])) {
+            refdata[[i]] <- reference[[refdata[[i]]]][, 1]
           } else {
-            refdata[[i]] <- refdata[[i]][, reference.cells]
+            warning("Element number ", i, " provided to refdata does not exist in ",
+                    "the provided reference object.", call. = FALSE, immediate. = TRUE)
+            refdata[[i]] <- FALSE
+            next
+          }
+        } else if (length(x = refdata[[i]]) != length(x = reference.cells)) {
+          warning("Please provide a vector that is the same length as the number ",
+                  "of reference cells used in anchor finding.\n",
+                  "Length of vector provided: ", length(x = refdata[[i]]), "\n",
+                  "Length of vector required: ", length(x = reference.cells),
+                  "\nSkipping element ", i, ".", call. = FALSE, immediate. = TRUE)
+          refdata[[i]] <- FALSE
+        }
+        label.transfer[[i]] <- TRUE
+      } else if (inherits(x = refdata[[i]], what = c("dgCMatrix", "matrix"))) {
+        if (ncol(x = refdata[[i]]) != length(x = reference.cells)) {
+          warning("Please provide a matrix that has the same number of columns as ",
+                  "the number of reference cells used in anchor finding.\n",
+                  "Number of columns in provided matrix : ", ncol(x = refdata[[i]]), "\n",
+                  "Number of columns required           : ", length(x = reference.cells),
+                  "\nSkipping element ", i, ".", call. = FALSE, immediate. = TRUE)
+          refdata[[i]] <- FALSE
+        } else {
+          colnames(x = refdata[[i]]) <- paste0(colnames(x = refdata[[i]]), "_reference")
+          if (any(!colnames(x = refdata[[i]]) == reference.cells)) {
+            if (any(!colnames(x = refdata[[i]]) %in% reference.cells) || any(!reference.cells %in% colnames(x = refdata[[i]]))) {
+              warning("Some (or all) of the column names of the provided refdata ",
+                      "don't match the reference cells used in anchor finding ",
+                      "\nSkipping element", i, ".", call. = FALSE, immediate. = TRUE)
+              refdata[[i]] <- FALSE
+            } else {
+              refdata[[i]] <- refdata[[i]][, reference.cells]
+            }
           }
         }
+        if (!slot %in% c("counts", "data")) {
+          stop("Please specify slot as either 'counts' or 'data'.")
+        }
+        label.transfer[[i]] <- FALSE
+      } else {
+        warning("Please provide either a vector (character or factor) for label ",
+                "transfer or a matrix for feature transfer. \nType provided: ",
+                class(x = refdata[[i]]))
+        refdata[[i]] <- FALSE
       }
-      if (!slot %in% c("counts", "data")) {
-        stop("Please specify slot as either 'counts' or 'data'.")
+      if (names(x = refdata)[i] == "") {
+        possible.names <- make.unique(names = c(names(x = refdata), paste0("e", i)))
+        names(x = refdata)[i] <- possible.names[length(x = possible.names)]
+        if (verbose) {
+          message("refdata element ", i, " is not named. Setting name as ", names(x = refdata)[i])
+        }
       }
-      label.transfer[[i]] <- FALSE
-    } else {
-      warning("Please provide either a vector (character or factor) for label ",
-              "transfer or a matrix for feature transfer. \nType provided: ",
-              class(x = refdata[[i]]))
-      refdata[[i]] <- FALSE
     }
-    if (names(x = refdata)[i] == "") {
-      possible.names <- make.unique(names = c(names(x = refdata), paste0("e", i)))
-      names(x = refdata)[i] <- possible.names[length(x = possible.names)]
-      if (verbose) {
-        message("refdata element ", i, " is not named. Setting name as ", names(x = refdata)[i])
-      }
+    ModifyParam(param = "label.transfer", value = label.transfer)
+    if (all(unlist(x = lapply(X = refdata, FUN = isFALSE)))) {
+      stop("None of the provided refdata elements are valid.", call. = FALSE)
     }
+    ModifyParam(param = "refdata", value = refdata)
   }
-  ModifyParam(param = "label.transfer", value = label.transfer)
-  if (all(unlist(x = lapply(X = refdata, FUN = isFALSE)))) {
-    stop("None of the provided refdata elements are valid.", call. = FALSE)
-  }
-  ModifyParam(param = "refdata", value = refdata)
+  
+  
+  
+  
   object.reduction <- Reductions(object = slot(object = anchorset, name = "object.list")[[1]])
   valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi", object.reduction)
   if (!inherits(x = weight.reduction, "DimReduc")) {
