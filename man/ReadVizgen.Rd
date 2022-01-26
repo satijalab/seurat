@@ -9,7 +9,7 @@ ReadVizgen(
   transcripts = NULL,
   spatial = NULL,
   molecules = NULL,
-  type = "polygons",
+  type = "segmentations",
   mol.type = "microns",
   metadata = NULL,
   filter = NA_character_,
@@ -32,7 +32,7 @@ suppress reading counts matrix}
 
 \item{spatial}{Optional file path for spatial metadata; pass \code{NA} to
 suppress reading spatial coordinates. If \code{spatial} is provided and
-\code{type} is \dQuote{polygons}, uses \code{dirname(spatial)} instead of
+\code{type} is \dQuote{segmentations}, uses \code{dirname(spatial)} instead of
 \code{data.dir} to find HDF5 files}
 
 \item{molecules}{Optional file path for molecule coordinates file; pass
@@ -41,7 +41,7 @@ suppress reading spatial coordinates. If \code{spatial} is provided and
 \item{type}{Type of cell spatial coordinate matrices to read; choose one
 or more of:
 \itemize{
- \item \dQuote{polygons}: cell polygon boundaries; requires
+ \item \dQuote{segmentations}: cell segmentation vertices; requires
  \href{https://cran.r-project.org/package=hdf5r}{\pkg{hdf5r}} to be
   installed and requires a directory \dQuote{\code{cell_boundaries}} within
   \code{data.dir}. Within \dQuote{\code{cell_boundaries}}, there must be
@@ -75,7 +75,7 @@ A list with some combination of the following values
  \item \dQuote{\code{transcripts}}: a
  \link[Matrix:dgCMatrix-class]{sparse matrix} with expression data; cells
   are columns and features are rows
- \item \dQuote{\code{polygons}}: a data frame with cell polygon outlines in
+ \item \dQuote{\code{segmentations}}: a data frame with cell polygon outlines in
   three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
  \item \dQuote{\code{centroids}}: a data frame with cell centroid
   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
@@ -123,4 +123,4 @@ to \pkg{future}, see
 }
 
 \concept{future}
-\concept{input}
+\concept{preprocessing}

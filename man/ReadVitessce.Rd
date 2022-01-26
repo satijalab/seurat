@@ -83,4 +83,4 @@ head(coords$segmentations)
 head(coords$molecules)
 
 }
-\concept{input}
+\concept{preprocessing}
