@@ -19,30 +19,59 @@ SingleImagePlot(
 )
 }
 \arguments{
-\item{data}{A data frame with the following columns:
+\item{data}{A data frame with at least the following columns:
 \itemize{
- \item \dQuote{\code{x}}
- \item \dQuote{\code{y}}
- \item \dQuote{\code{cell}}
+ \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
+  plotted on the \emph{y}-axis
+ \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
+  plotted on the \emph{x}-axis
+ \item \dQuote{\code{cell}}: Cell name
+ \item \dQuote{\code{layer}}: Segmentation layer label; when plotting
+  multiple segmentation layers, the order of layer transparency is set by
+  factor levels for this column
+}
+Can pass \code{NA} to \code{data} suppress segmentation visualization}
+
+\item{col.by}{Name of column in \code{data} to color cell segmentations by;
+pass \code{NA} to suppress coloring}
+
+\item{cols}{Colors for cell segmentations; can be one of the
+following:
+\itemize{
+ \item \code{NULL} for default ggplot2 colors
+ \item A numeric value or name of a
+  \link[RColorBrewer:RColorBrewer]{color brewer palette}
+ \item Name of a palette for \code{\link{DiscretePalette}}
+ \item A vector of colors equal to the length of unique levels of
+  \code{data$col.by}
 }}
 
-\item{col.by}{...}
+\item{molecules}{A data frame with spatially-resolved molecule coordinates;
+should have the following columns:
+\itemize{
+ \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
+  plotted on the \emph{y}-axis
+ \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
+  plotted on the \emph{x}-axis
+ \item \dQuote{\code{molecule}}: Molecule name
+}}
 
-\item{cols}{...}
+\item{mols.size}{Point size for molecules}
 
-\item{molecules}{...}
+\item{mols.cols}{A vector of color for molecules}
 
-\item{mols.size}{...}
+\item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
+layers, \code{alpha} is equivalent to max alpha}
 
-\item{mols.cols}{...}
+\item{border.color}{Color of cell segmentation border; pass \code{NA}
+to suppress borders}
 
-\item{border.color}{...}
+\item{border.size}{Thickness of cell segmentation borders}
 
-\item{border.size}{...}
+\item{na.value}{Color value for \code{NA} segmentations when
+using custom scale}
 
-\item{na.value}{...}
-
-\item{...}{...}
+\item{...}{Ignored}
 }
 \value{
 A ggplot object
