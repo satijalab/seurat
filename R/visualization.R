@@ -2467,9 +2467,24 @@ ImageDimPlot <- function(
 #'
 #' Visualize expression in a spatial context
 #'
+#' @inheritParams FeaturePlot
 #' @inheritParams ImageDimPlot
+#' @param scale Set color scaling across multiple plots; choose from:
+#' \itemize{
+#'  \item \dQuote{\code{feature}}: Plots per-feature are scaled across splits
+#'  \item \dQuote{\code{all}}: Plots per-feature are scaled across all features
+#'  \item \dQuote{\code{none}}: Plots are not scaled; \strong{note}: setting
+#'   \code{scale} to \dQuote{\code{none}} will result in color scales that are
+#'   \emph{not} comparable between plots
+#' }
 #'
 #' @inherit ImageDimPlot return
+#'
+# @importFrom rlang !! is_na sym
+#' @importFrom patchwork wrap_plots
+# @importFrom ggplot2 element_blank facet_wrap vars
+#' @importFrom SeuratObject .DefaultSpatialCoords Cells
+#' DefaultSegmentation FetchData Images Overlay
 #'
 #' @export
 #'
@@ -2478,8 +2493,14 @@ ImageFeaturePlot <- function(
   features,
   images = NULL,
   layers = NULL,
+  cols = if (isTRUE(x = blend)) {
+    c("lightgrey", "#ff0000", "#00ff00")
+  } else {
+    c("lightgrey", "blue")
+  },
+  min.cutoff = NA,
+  max.cutoff = NA,
   split.by = NULL,
-  cols = NULL,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
@@ -2487,15 +2508,384 @@ ImageFeaturePlot <- function(
   alpha = molecules %iff% 0.3 %||% 0.6,
   border.color = 'black',
   border.size = 0.3,
-  na.value = 'grey50',
-  crop = NA,
+  blend = FALSE,
+  blend.threshold = 0.5,
+  crop = TRUE,
   cells = NULL,
+  scale = c('feature', 'all', 'none'),
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
   ...
 ) {
-  ''
+  cells <- cells %||% Cells(x = object)
+  scale <- scale[[1L]]
+  scale <- match.arg(arg = scale)
+  # Determine images to use
+  images <- images %||% .DefaultSpatialCoords(object = object)
+  images <- Filter(
+    f = function(x) {
+      return(
+        x %in% Images(object = object) &&
+          inherits(x = object[[x]], what = 'SpatialCoords')
+      )
+    },
+    x = images
+  )
+  if (!length(x = images)) {
+    stop("No compatible spatial coordinates present")
+  }
+  # Identify layers to use
+  layers <- layers %||% sapply(
+    X = images,
+    FUN = function(x) {
+      return(DefaultSegmentation(object = object[[x]]))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  layers <- .LayersByImage(object = object, images = images, layers = layers)
+  images <- names(x = layers)
+  if (isTRUE(x = blend) || !is.null(x = split.by)) {
+    type <- ifelse(test = isTRUE(x = 'blend'), yes = 'Blended', no = 'Split')
+    if (length(x = images) != 1L) {
+      images <- images[1L]
+      warning(
+        type,
+        ' image feature plots can only be done on a single image, using "',
+        images,
+        '"',
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (any(!overlap)) {
+      warning(
+        type,
+        " image feature plots require overlapped segmentations",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    overlap <- TRUE
+  }
+  overlap <- rep_len(x = overlap, length.out = length(x = images))
+  crop <- rep_len(x = crop, length.out = length(x = images))
+  names(x = crop) <- images
+  # # Checks for blending
+  # if (isTRUE(x = blend)) {
+  #   if (length(x = features) != 2L) {
+  #     stop("Blended feature plots only works with two features")
+  #   }
+  #   default.colors <- eval(expr = formals(fun = ImageFeaturePlot)$cols)
+  #   cols <- switch(
+  #     EXPR = as.character(x = length(x = cols)),
+  #     '0' = {
+  #       warning("No colors provided, using default colors", immediate. = TRUE)
+  #       default.colors
+  #     },
+  #     '1' = {
+  #       warning(
+  #         "Only one color provided, assuming specified is double-negative and augmenting with default colors",
+  #         immediate. = TRUE
+  #       )
+  #       c(cols, default.colors[2:3])
+  #     },
+  #     '2' = {
+  #       warning(
+  #         "Only two colors provided, assuming specified are for features and augmenting with '",
+  #         default.colors[1],
+  #         "' for double-negatives",
+  #         immediate. = TRUE
+  #       )
+  #       c(default.colors[1], cols)
+  #     },
+  #     '3' = cols,
+  #     {
+  #       warning(
+  #         "More than three colors provided, using only first three",
+  #         immediate. = TRUE
+  #       )
+  #       cols[1:3]
+  #     }
+  #   )
+  # }
+  # Get feature, splitting data
+  md <- FetchData(
+    object = object,
+    vars = c(features, split.by[1L]),
+    cells = cells
+  )
+  split.by <- intersect(x = split.by, y = colnames(x = md))
+  if (!length(x = split.by)) {
+    split.by <- NULL
+  }
+  imax <- ifelse(
+    test = is.null(x = split.by),
+    yes = ncol(x = md),
+    no = ncol(x = md) - length(x = split.by)
+  )
+  features <- colnames(x = md)[1:imax]
+  # Determine cutoffs
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = min(md[[feature]]),
+        no = cutoff
+      ))
+    },
+    cutoff = min.cutoff,
+    feature = features
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = max(md[[feature]]),
+        no = cutoff
+      ))
+    },
+    cutoff = max.cutoff,
+    feature = features
+  )
+  check.lengths <- unique(x = vapply(
+    X = list(features, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check.lengths) != 1) {
+    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+  }
+  brewer.gran <- ifelse(
+    test = length(x = cols) == 1,
+    yes = brewer.pal.info[cols, ]$maxcolors,
+    no = length(x = cols)
+  )
+  # Apply cutoffs
+  for (i in seq_along(along.with = features)) {
+    f <- features[[i]]
+    data.feature <- md[[f]]
+    min.use <- SetQuantile(cutoff = min.cutoff[i], data = data.feature)
+    max.use <- SetQuantile(cutoff = max.cutoff[i], data = data.feature)
+    data.feature[data.feature < min.use] <- min.use
+    data.feature[data.feature > max.use] <- max.use
+    if (brewer.gran != 2) {
+      data.feature <- if (all(data.feature == 0)) {
+        rep_len(x = 0, length.out = length(x = data.feature))
+      } else {
+        as.numeric(x = as.factor(x = cut(
+          x = as.numeric(x = data.feature),
+          breaks = brewer.gran
+        )))
+      }
+    }
+    md[[f]] <- data.feature
+  }
+  # Figure out splits
+  if (is.null(x = split.by)) {
+    split.by <- RandomName()
+    md[[split.by]] <- factor(x = split.by)
+  }
+  if (!is.factor(x = md[[split.by]])) {
+    md[[split.by]] <- factor(x = md[[split.by]])
+  }
+  # Prepare plotting data
+  pnames <- unlist(x = lapply(
+    X = seq_along(along.with = images),
+    FUN = function(i) {
+      return(if (isTRUE(x = overlap[i])) {
+        images[i]
+      } else {
+        paste(images[i], layers[[i]], sep = '_')
+      })
+    }
+  ))
+  pdata <- vector(mode = 'list', length = length(x = pnames))
+  names(x = pdata) <- pnames
+  for (i in names(x = pdata)) {
+    img <- unlist(x = strsplit(x = i, split = '_'))[1L]
+    # Apply overlap
+    lyr <- unlist(x = strsplit(x = i, split = '_'))[2L]
+    if (is.na(x = lyr)) {
+      lyr <- layers[[img]]
+    }
+    pdata[[i]] <- lapply(
+      X = lyr,
+      FUN = function(l) {
+        df <- fortify(model = object[[img]][[l]])
+        df <- df[df$cell %in% cells, , drop = FALSE]
+        if (!is.null(x = md)) {
+          df <- merge(x = df, y = md, by.x = 'cell', by.y = 0, all.x = TRUE)
+        }
+        df$cell <- paste(l, df$cell, sep = '_')
+        df$layer <- l
+        return(df)
+      }
+    )
+    pdata[[i]] <- if (!is_na(x = pdata[[i]])) {
+      do.call(what = 'rbind', args = pdata[[i]])
+    } else {
+      unlist(x = pdata[[i]])
+    }
+  }
+  # Fetch molecule information
+  if (!is.null(x = molecules)) {
+    molecules <- .MolsByImage(
+      object = object,
+      images = images,
+      molecules = molecules
+    )
+    mdata <- vector(mode = 'list', length = length(x = images))
+    names(x = mdata) <- images
+    for (img in names(x = mdata)) {
+      idata <- object[[img]]
+      if (!img %in% names(x = molecules)) {
+        mdata[[img]] <- NULL
+        next
+      }
+      if (isTRUE(x = crop[img])) {
+        idata <- Overlay(x = idata, y = idata)
+      }
+      imols <- gsub(
+        pattern = paste0('^', Key(object = idata)),
+        replacement = '',
+        x = molecules[[img]]
+      )
+      mdata[[img]] <- FetchData(
+        object = idata,
+        vars = imols,
+        nmols = nmols
+      )
+    }
+  } else {
+    mdata <- NULL
+  }
+  # # Set blended colors
+  # if (isTRUE(x = blend)) {
+  #   ncol <- 4
+  #   color.matrix <- BlendMatrix(
+  #     two.colors = cols[2:3],
+  #     col.threshold = blend.threshold,
+  #     negative.color = cols[1]
+  #   )
+  #   cols <- cols[2:3]
+  #   colors <- list(
+  #     color.matrix[, 1],
+  #     color.matrix[1, ],
+  #     as.vector(x = color.matrix)
+  #   )
+  # }
+  limits <- switch(
+    EXPR = scale,
+    'all' = range(unlist(x = md[, features])),
+    NULL
+  )
+  # Build the plots
+  plots <- vector(
+    mode = 'list',
+    length = length(x = levels(x = md[[split.by]]))
+  )
+  names(x = plots) <- levels(x = md[[split.by]])
+  for (i in seq_along(along.with = levels(x = md[[split.by]]))) {
+    ident <- levels(x = md[[split.by]])[i]
+    plots[[ident]] <- vector(mode = 'list', length = length(x = pdata))
+    names(x = plots[[ident]]) <- names(x = pdata)
+    for (j in seq_along(along.with = pdata)) {
+      key <- names(x = pdata)[j]
+      img <- unlist(x = strsplit(x = key, split = '_'))[1L]
+      # if (isTRUE(x = blend)) {
+      #   # features <- features[1:2]
+      #   no.expression <- features[colMeans(x = pdata[[i]][, features]) == 0]
+      #   if (length(x = no.expression)) {
+      #     stop("The following features")
+      #   }
+      # }
+      plots[[ident]][[key]] <- vector(
+        mode = 'list',
+        length = length(x = features)
+      )
+      for (y in seq_along(along.with = features)) {
+        feature <- features[y]
+        p <- SingleImagePlot(
+          data = pdata[[j]],
+          col.by = feature,
+          col.factor = FALSE,
+          cols = NULL,
+          molecules = mdata[[img]],
+          mols.size = mols.size,
+          mols.cols = mols.cols,
+          alpha = alpha,
+          border.color = border.color,
+          border.size = border.size
+        ) +
+          cowplot::theme_cowplot() +
+          CenterTitle()
+        if (!isTRUE(x = axes)) {
+          p <- p + NoAxes(panel.background = ggplot2::element_blank())
+        }
+        # Add colors for unblended plots
+        if (!isTRUE(x = blend)) {
+          if (length(x = cols) == 1L) {
+            p <- p + scale_fill_brewer(palette = cols)
+          } else {
+            cols.grad <- cols
+            fexp <- pdata[[j]][pdata[[j]][[split.by]] == ident, feature, drop = TRUE]
+            fexp <- unique(x = fexp)
+            if (length(x = fexp) == 1L) {
+              warning(
+                "All cells have the same value (",
+                fexp,
+                ") of ",
+                feature,
+                call. = FALSE,
+                immediate. = TRUE
+              )
+              if (fexp == 0) {
+                cols.grad <- cols.grad[1L]
+              }
+            }
+            if (scale == 'feature') {
+              limits <- range(pdata[[j]][[feature]])
+            }
+            p <- p + ggplot2::scale_fill_gradientn(
+              colors = cols.grad,
+              guide = 'colorbar',
+              limits = limits
+            )
+          }
+        }
+        # Add some labels
+        p <- p + if (i == 1L) {
+          ggplot2::labs(title = feature)
+        } else {
+          ggplot2::labs(title = NULL)
+        }
+        plots[[ident]][[key]][[y]] <- p
+      }
+    }
+    plots[[ident]] <- unlist(
+      x = plots[[ident]],
+      recursive = FALSE,
+      use.names = FALSE
+    )
+  }
+  plots <- unlist(x = plots, recursive = FALSE, use.names = FALSE)
+  if (isTRUE(x = combine)) {
+    # if (isTRUE(x = blend)) {
+    #
+    # } else
+    if (length(x = levels(x = md[[split.by]])) > 1L) {
+      plots <- wrap_plots(
+        plots,
+        ncol = length(x = features),
+        nrow = length(x = levels(x = md[[split.by]]))
+      )
+    } else {
+      plots <- wrap_plots(plots)
+    }
+  }
+  return(plots)
 }
 
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
@@ -7868,6 +8258,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' Can pass \code{NA} to \code{data} suppress segmentation visualization
 #' @param col.by Name of column in \code{data} to color cell segmentations by;
 #' pass \code{NA} to suppress coloring
+#' @param col.factor Are the colors a factor or discrete?
 #' @param cols Colors for cell segmentations; can be one of the
 #' following:
 #' \itemize{
@@ -7892,8 +8283,9 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @param alpha Alpha value, should be between 0 and 1; when plotting multiple
 #' layers, \code{alpha} is equivalent to max alpha
 #' @param border.color Color of cell segmentation border; pass \code{NA}
-#' to suppress borders
-#' @param border.size Thickness of cell segmentation borders
+#' to suppress borders for segmentation-based plots
+#' @param border.size Thickness of cell segmentation borders; pass \code{NA}
+#' to suppress borders for centroid-based plots
 #' @param na.value Color value for \code{NA} segmentations when
 #' using custom scale
 #' @param ... Ignored
@@ -7914,6 +8306,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 SingleImagePlot <- function(
   data,
   col.by = NA,
+  col.factor = TRUE,
   cols = NULL,
   molecules = NULL,
   mols.size = 0.1,
@@ -7938,11 +8331,13 @@ SingleImagePlot <- function(
           immediate. = TRUE
         )
         col.by <- NA
-      } else if (!is.factor(x = data[[col.by]])) {
+      } else if (isTRUE(x = col.factor) && !is.factor(x = data[[col.by]])) {
         data[[col.by]] <- factor(
           x = data[[col.by]],
           levels = unique(x = data[[col.by]])
         )
+      } else if (isFALSE(x = col.factor) && is.factor(x = data[[col.by]])) {
+        data[[col.by]] <- as.vector(x = data[[col.by]])
       }
     }
     if (is_na(x = col.by) && !is.null(x = cols)) {
@@ -7970,7 +8365,6 @@ SingleImagePlot <- function(
       n = length(x = levels(x = data$layer))
     )
   }
-  crop <- data %!NA% crop %NA% FALSE
   # Assemble plot
   plot <- ggplot(
     data = data %NA% NULL,
@@ -7994,7 +8388,8 @@ SingleImagePlot <- function(
       } else {
         geom_point(
           shape = 21,
-          color = border.color
+          color = border.color,
+          stroke = border.size
         )
       }
     if (!is.null(x = cols)) {
@@ -8016,7 +8411,7 @@ SingleImagePlot <- function(
       plot <- plot + guides(alpha = 'none')
     }
     # Adjust guides
-    if (length(x = levels(x = data[[col.by]])) <= 1L) {
+    if (isTRUE(x = col.factor) && length(x = levels(x = data[[col.by]])) <= 1L) {
       plot <- plot + guides(fill = 'none')
     }
   }

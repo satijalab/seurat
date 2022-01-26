@@ -56,9 +56,10 @@ See \code{\link{DiscretePalette}} for details.}
 layers, \code{alpha} is equivalent to max alpha}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
-to suppress borders}
+to suppress borders for segmentation-based plots}
 
-\item{border.size}{Thickness of cell segmentation borders}
+\item{border.size}{Thickness of cell segmentation borders; pass \code{NA}
+to suppress borders for centroid-based plots}
 
 \item{na.value}{Color value for NA points when using custom scale}
 

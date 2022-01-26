@@ -7,6 +7,7 @@
 SingleImagePlot(
   data,
   col.by = NA,
+  col.factor = TRUE,
   cols = NULL,
   molecules = NULL,
   mols.size = 0.1,
@@ -34,6 +35,8 @@ Can pass \code{NA} to \code{data} suppress segmentation visualization}
 
 \item{col.by}{Name of column in \code{data} to color cell segmentations by;
 pass \code{NA} to suppress coloring}
+
+\item{col.factor}{Are the colors a factor or discrete?}
 
 \item{cols}{Colors for cell segmentations; can be one of the
 following:
@@ -64,9 +67,10 @@ should have the following columns:
 layers, \code{alpha} is equivalent to max alpha}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
-to suppress borders}
+to suppress borders for segmentation-based plots}
 
-\item{border.size}{Thickness of cell segmentation borders}
+\item{border.size}{Thickness of cell segmentation borders; pass \code{NA}
+to suppress borders for centroid-based plots}
 
 \item{na.value}{Color value for \code{NA} segmentations when
 using custom scale}
