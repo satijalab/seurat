@@ -49,7 +49,7 @@ neighbor finding}
 
 \item{query.dims}{Dimensions (columns) to use from query}
 
-\item{store.weights}{Determine if the weight matrix is stored.}
+\item{store.weights}{Determine if the weight and anchor matrices are stored.}
 
 \item{reduction.model}{\code{DimReduc} object that contains the umap model}
 
