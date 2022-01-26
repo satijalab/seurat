@@ -1910,7 +1910,7 @@ LocalStruct <- function(
 #' @inheritParams IntegrateEmbeddings
 #' @inheritParams TransferData
 #' @inheritParams ProjectUMAP
-#' @param store.weights Determine if the weight matrix is stored. 
+#' @param store.weights Determine if the weight and anchor matrices are stored. 
 #' @param transferdata.args A named list of additional arguments to
 #' \code{\link{TransferData}}
 #' @param integrateembeddings.args A named list of additional arguments to
@@ -2061,6 +2061,7 @@ MapQuery <- function(
            transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
       reuse.weights.matrix <- TRUE
     }
+ 
   }
   if (anchor.reduction != "cca"){
     query <- invoke(
@@ -2078,6 +2079,7 @@ MapQuery <- function(
   }
   if (store.weights) {
     slot(object = query, name = "tools")$MapQuery <- slot(object = query, name = "tools")$TransferData 
+    slot(object = query, name = "tools")$MapQuery$anchor <- anchorset@anchors
   }
   slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
@@ -3020,6 +3022,8 @@ TransferData <- function(
     integration.name = "integrated",
     slot = 'weights'
   )
+  
+
   anchors <- as.data.frame(x = anchors)
   query.cells <- unname(obj = sapply(
     X = query.cells,
@@ -3047,6 +3051,26 @@ TransferData <- function(
       prediction.scores <- t(x = weights) %*% prediction.mat
       colnames(x = prediction.scores) <- possible.ids
       rownames(x = prediction.scores) <- query.cells
+      if ("bridge.sets" %in% names(anchorset@weight.reduction@misc)) {
+        bridge.weight <- anchorset@weight.reduction@misc$bridge.sets
+        bridge.prediction.matrix <- as.sparse(
+          x = dummy_cols(
+            refdata[[rd]][ bridge.weight$bridge.ref_anchor ]
+          )[, -1]
+        ) 
+        colnames(bridge.prediction.matrix) <- gsub(
+          pattern = ".data_",
+          replacement = "",
+          x = colnames(bridge.prediction.matrix)
+        )
+        bridge.prediction.matrix <- bridge.prediction.matrix[ , possible.ids, drop = FALSE]
+         
+         bridge.prediction.scores <- t(bridge.weight$query.weights) %*%
+        (t(bridge.weight$bridge.weights) %*% 
+           bridge.prediction.matrix)[bridge.weight$query.ref_anchor,]
+         prediction.scores <- (prediction.scores + bridge.prediction.scores)/2
+         prediction.scores <- as.matrix(prediction.scores)
+      }
       prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
       prediction.ids <- as.character(prediction.ids)
       prediction.max <- apply(X = prediction.scores, MARGIN = 1, FUN = max)
@@ -5913,6 +5937,16 @@ FindBridgeAnchor <- function(object.list,
                          ...
                        )
                      }
+    )
+  }
+  
+  if (anchor.type == "Transfer") {
+
+    slot(object = anchor, name = "weight.reduction")@misc$bridge.sets <- list(
+      bridge.weights =  bridge.object@tools$MapQuery$weights.matrix, 
+      bridge.ref_anchor = bridge.object@tools$MapQuery$anchor[,1], 
+      query.weights = object.list[[query]]@tools$MapQuery$weights.matrix, 
+      query.ref_anchor = object.list[[query]]@tools$MapQuery$anchor[,1]
     )
   }
   slot(object = anchor, name = "command") <- LogSeuratCommand(
