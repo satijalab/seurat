@@ -2077,9 +2077,16 @@ MapQuery <- function(
       )
     )
   }
+    slot(object = query, name = "tools")$MapQuery <- NULL
   if (store.weights) {
-    slot(object = query, name = "tools")$MapQuery <- slot(object = query, name = "tools")$TransferData 
-    slot(object = query, name = "tools")$MapQuery$anchor <- anchorset@anchors
+    slot(object = query, name = "tools")$MapQuery <- slot(
+      object = query, 
+      name = "tools"
+      )$TransferData 
+    slot(object = query, name = "tools")$MapQuery$anchor <- slot(
+      object = anchorset,
+      name = "anchors"
+      )
   }
   slot(object = query, name = "tools")$TransferData <- NULL
   if (!is.null(x = reduction.model)) {
@@ -3071,14 +3078,26 @@ TransferData <- function(
           pattern = ".data_",
           replacement = "",
           x = colnames(bridge.prediction.matrix)
-        )
-        bridge.prediction.matrix <- bridge.prediction.matrix[ , possible.ids, drop = FALSE]
-         
+        ) 
+        extra.id <- setdiff(possible.ids, colnames(bridge.prediction.matrix))
+        if (length(extra.id) > 0) {
+          extra.prediction <- as.sparse(
+            matrix(data = 0,
+                   nrow = nrow(bridge.prediction.matrix),
+                   ncol = length(extra.id))
+            )
+          colnames(extra.prediction) <- extra.id
+          bridge.prediction.matrix <- cbind(
+            bridge.prediction.matrix,
+            extra.prediction
+            )
+        }
+        bridge.prediction.matrix <- bridge.prediction.matrix[,possible.ids, drop = FALSE]
          bridge.prediction.scores <- t(bridge.weight$query.weights) %*%
         (t(bridge.weight$bridge.weights) %*% 
            bridge.prediction.matrix)[bridge.weight$query.ref_anchor,]
          prediction.scores <- (prediction.scores + bridge.prediction.scores)/2
-         prediction.scores <- as.matrix(prediction.scores)
+         prediction.scores <- as.matrix(x = prediction.scores)
       }
       prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
       prediction.ids <- as.character(prediction.ids)
@@ -5862,6 +5881,8 @@ FindBridgeAnchor <- function(object.list,
                              verbose = TRUE,
                              ...
                              ) {
+  
+  
   if (!is.null(laplacian.reduction)) {
     bridge.method <- "bridge graph"
   } else {
@@ -5879,9 +5900,18 @@ FindBridgeAnchor <- function(object.list,
       }
     )
   }
+
   if (anchor.type == "Transfer") {
     reference <- reference %||% c(1)
     query <- setdiff(c(1,2), reference)
+    ## check weight matrix
+    if (is.null(bridge.object@tools$MapQuery)) {
+      stop("No weights stored between reference and bridge obejcts.", 
+           "Please set store.weights to TRUE in MapQuery")
+    } else if (is.null(object.list[[query]]@tools$MapQuery)) {
+      stop("No weights stored between query and bridge obejcts.", 
+           "Please set store.weights to TRUE in MapQuery")
+    }
   }  
 
   bridge.reduction.name <- paste0(bridge.assay.name, ".reduc")
@@ -5962,12 +5992,20 @@ FindBridgeAnchor <- function(object.list,
   }
   
   if (anchor.type == "Transfer") {
-
-    slot(object = anchor, name = "weight.reduction")@misc$bridge.sets <- list(
-      bridge.weights =  bridge.object@tools$MapQuery$weights.matrix, 
-      bridge.ref_anchor = bridge.object@tools$MapQuery$anchor[,1], 
-      query.weights = object.list[[query]]@tools$MapQuery$weights.matrix, 
-      query.ref_anchor = object.list[[query]]@tools$MapQuery$anchor[,1]
+    slot( object = anchor,name = "weight.reduction"
+          )@misc$bridge.sets <- list(
+      bridge.weights =   slot(object = bridge.object,
+                              name = "tools"
+                              )$MapQuery$weights.matrix, 
+      bridge.ref_anchor =  slot(object = bridge.object,
+                                name = "tools"
+                                )$MapQuery$anchor[,1], 
+      query.weights =  slot(object = object.list[[query]],
+                            name = "tools"
+                            )$MapQuery$weights.matrix, 
+      query.ref_anchor =  slot(object = object.list[[query]],
+                               name = "tools"
+                               )$MapQuery$anchor[,1]
     )
   }
   slot(object = anchor, name = "command") <- LogSeuratCommand(
@@ -5975,7 +6013,6 @@ FindBridgeAnchor <- function(object.list,
     return.command = TRUE
     )
   return(anchor)
-  
 }
 
 
