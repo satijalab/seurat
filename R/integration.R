@@ -6641,7 +6641,7 @@ IntegrateSketchEmbeddings <- function(object.list,
   # check cell names
  cells.sketch.list <- unlist(lapply(X = sketch.list, function(x) Cells(x) ))
  if (length(x = setdiff(x = cells.sketch.list, y = Cells(sketch.object))) != 0) {
-   stop("Cells name in object.list are not unique. Rename is needed.")
+   stop("Cells name in object.list are the same with Cells in sketch.object.")
  }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
