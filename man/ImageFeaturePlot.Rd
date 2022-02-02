@@ -98,7 +98,8 @@ to suppress borders for centroid-based plots}
  \item \dQuote{\code{none}}: Plots are not scaled; \strong{note}: setting
   \code{scale} to \dQuote{\code{none}} will result in color scales that are
   \emph{not} comparable between plots
-}}
+}
+Ignored if \code{blend = TRUE}}
 
 \item{overlap}{Overlay layers from a single image to create a single plot;
 if \code{TRUE}, then layers are stacked in the order they're given

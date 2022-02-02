@@ -2477,12 +2477,14 @@ ImageDimPlot <- function(
 #'   \code{scale} to \dQuote{\code{none}} will result in color scales that are
 #'   \emph{not} comparable between plots
 #' }
+#' Ignored if \code{blend = TRUE}
 #'
 #' @inherit ImageDimPlot return
 #'
-# @importFrom rlang !! is_na sym
 #' @importFrom patchwork wrap_plots
-# @importFrom ggplot2 element_blank facet_wrap vars
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 dup_axis element_blank element_text facet_wrap guides
+#' labs margin vars scale_y_continuous theme
 #' @importFrom SeuratObject .DefaultSpatialCoords Cells
 #' DefaultSegmentation FetchData Images Overlay
 #'
@@ -2521,6 +2523,18 @@ ImageFeaturePlot <- function(
   cells <- cells %||% Cells(x = object)
   scale <- scale[[1L]]
   scale <- match.arg(arg = scale)
+  # Set a theme to remove right-hand Y axis lines
+  # Also sets right-hand Y axis text label formatting
+  no.right <- theme(
+    axis.line.y.right = element_blank(),
+    axis.ticks.y.right = element_blank(),
+    axis.text.y.right = element_blank(),
+    axis.title.y.right = element_text(
+      face = "bold",
+      size = 14,
+      margin = margin(r = 7)
+    )
+  )
   # Determine images to use
   images <- images %||% .DefaultSpatialCoords(object = object)
   images <- Filter(
@@ -2546,6 +2560,7 @@ ImageFeaturePlot <- function(
   )
   layers <- .LayersByImage(object = object, images = images, layers = layers)
   images <- names(x = layers)
+  # Check overlaps/crops
   if (isTRUE(x = blend) || !is.null(x = split.by)) {
     type <- ifelse(test = isTRUE(x = 'blend'), yes = 'Blended', no = 'Split')
     if (length(x = images) != 1L) {
@@ -2559,7 +2574,7 @@ ImageFeaturePlot <- function(
         immediate. = TRUE
       )
     }
-    if (any(!overlap)) {
+    if (any(!overlap) && length(x = layers[[images]]) > 1L) {
       warning(
         type,
         " image feature plots require overlapped segmentations",
@@ -2571,45 +2586,45 @@ ImageFeaturePlot <- function(
   }
   overlap <- rep_len(x = overlap, length.out = length(x = images))
   crop <- rep_len(x = crop, length.out = length(x = images))
-  names(x = crop) <- images
-  # # Checks for blending
-  # if (isTRUE(x = blend)) {
-  #   if (length(x = features) != 2L) {
-  #     stop("Blended feature plots only works with two features")
-  #   }
-  #   default.colors <- eval(expr = formals(fun = ImageFeaturePlot)$cols)
-  #   cols <- switch(
-  #     EXPR = as.character(x = length(x = cols)),
-  #     '0' = {
-  #       warning("No colors provided, using default colors", immediate. = TRUE)
-  #       default.colors
-  #     },
-  #     '1' = {
-  #       warning(
-  #         "Only one color provided, assuming specified is double-negative and augmenting with default colors",
-  #         immediate. = TRUE
-  #       )
-  #       c(cols, default.colors[2:3])
-  #     },
-  #     '2' = {
-  #       warning(
-  #         "Only two colors provided, assuming specified are for features and augmenting with '",
-  #         default.colors[1],
-  #         "' for double-negatives",
-  #         immediate. = TRUE
-  #       )
-  #       c(default.colors[1], cols)
-  #     },
-  #     '3' = cols,
-  #     {
-  #       warning(
-  #         "More than three colors provided, using only first three",
-  #         immediate. = TRUE
-  #       )
-  #       cols[1:3]
-  #     }
-  #   )
-  # }
+  names(x = crop) <- names(x = overlap) <- images
+  # Checks for blending
+  if (isTRUE(x = blend)) {
+    if (length(x = features) != 2L) {
+      stop("Blended feature plots only works with two features")
+    }
+    default.colors <- eval(expr = formals(fun = ImageFeaturePlot)$cols)
+    cols <- switch(
+      EXPR = as.character(x = length(x = cols)),
+      '0' = {
+        warning("No colors provided, using default colors", immediate. = TRUE)
+        default.colors
+      },
+      '1' = {
+        warning(
+          "Only one color provided, assuming specified is double-negative and augmenting with default colors",
+          immediate. = TRUE
+        )
+        c(cols, default.colors[2:3])
+      },
+      '2' = {
+        warning(
+          "Only two colors provided, assuming specified are for features and augmenting with '",
+          default.colors[1],
+          "' for double-negatives",
+          immediate. = TRUE
+        )
+        c(default.colors[1], cols)
+      },
+      '3' = cols,
+      {
+        warning(
+          "More than three colors provided, using only first three",
+          immediate. = TRUE
+        )
+        cols[1:3]
+      }
+    )
+  }
   # Get feature, splitting data
   md <- FetchData(
     object = object,
@@ -2690,6 +2705,28 @@ ImageFeaturePlot <- function(
   if (!is.factor(x = md[[split.by]])) {
     md[[split.by]] <- factor(x = md[[split.by]])
   }
+  # Apply blends
+  if (isTRUE(x = blend)) {
+    md <- lapply(
+      X = levels(x = md[[split.by]]),
+      FUN = function(x) {
+        df <- md[as.character(x = md[[split.by]]) == x, , drop = FALSE]
+        no.expression <- features[colMeans(x = df[, features]) == 0]
+        if (length(x = no.expression)) {
+          stop(
+            "The following features have no value: ",
+            paste(no.expression, collapse = ', ')
+          )
+        }
+        return(cbind(
+          df[, split.by, drop = FALSE],
+          BlendExpression(data = df[, features])
+        ))
+      }
+    )
+    md <- do.call(what = 'rbind', args = md)
+    features <- setdiff(x = colnames(x = md), y = split.by)
+  }
   # Prepare plotting data
   pnames <- unlist(x = lapply(
     X = seq_along(along.with = images),
@@ -2761,21 +2798,22 @@ ImageFeaturePlot <- function(
   } else {
     mdata <- NULL
   }
-  # # Set blended colors
-  # if (isTRUE(x = blend)) {
-  #   ncol <- 4
-  #   color.matrix <- BlendMatrix(
-  #     two.colors = cols[2:3],
-  #     col.threshold = blend.threshold,
-  #     negative.color = cols[1]
-  #   )
-  #   cols <- cols[2:3]
-  #   colors <- list(
-  #     color.matrix[, 1],
-  #     color.matrix[1, ],
-  #     as.vector(x = color.matrix)
-  #   )
-  # }
+  # Set blended colors
+  if (isTRUE(x = blend)) {
+    ncol <- 4
+    color.matrix <- BlendMatrix(
+      two.colors = cols[2:3],
+      col.threshold = blend.threshold,
+      negative.color = cols[1]
+    )
+    cols <- cols[2:3]
+    colors <- list(
+      color.matrix[, 1],
+      color.matrix[1, ],
+      as.vector(x = color.matrix)
+    )
+    blend.legend <- BlendMap(color.matrix = color.matrix)
+  }
   limits <- switch(
     EXPR = scale,
     'all' = range(unlist(x = md[, features])),
@@ -2791,27 +2829,55 @@ ImageFeaturePlot <- function(
     ident <- levels(x = md[[split.by]])[i]
     plots[[ident]] <- vector(mode = 'list', length = length(x = pdata))
     names(x = plots[[ident]]) <- names(x = pdata)
+    if (isTRUE(x = blend)) {
+      blend.key <- suppressMessages(
+        expr = blend.legend +
+          scale_y_continuous(
+            sec.axis = dup_axis(name = ifelse(
+              test = length(x = levels(x = md[[split.by]])) > 1,
+              yes = ident,
+              no = ''
+            )),
+            expand = c(0, 0)
+          ) +
+          labs(
+            x = features[1L],
+            y = features[2L],
+            title = if (i == 1L) {
+              paste('Color threshold:', blend.threshold)
+            } else {
+              NULL
+            }
+          ) +
+          no.right
+      )
+    }
     for (j in seq_along(along.with = pdata)) {
       key <- names(x = pdata)[j]
       img <- unlist(x = strsplit(x = key, split = '_'))[1L]
-      # if (isTRUE(x = blend)) {
-      #   # features <- features[1:2]
-      #   no.expression <- features[colMeans(x = pdata[[i]][, features]) == 0]
-      #   if (length(x = no.expression)) {
-      #     stop("The following features")
-      #   }
-      # }
       plots[[ident]][[key]] <- vector(
         mode = 'list',
-        length = length(x = features)
+        length = length(x = features) + ifelse(
+          test = isTRUE(x = blend),
+          yes = 1L,
+          no = 0L
+        )
       )
+      data.plot <- pdata[[j]][as.character(x = pdata[[j]][[split.by]]) == ident, , drop = FALSE]
       for (y in seq_along(along.with = features)) {
         feature <- features[y]
+        # Get blended colors
+        cols.use <- if (isTRUE(x = blend)) {
+          cc <- as.numeric(x = as.character(x = data.plot[, feature])) + 1
+          colors[[y]][sort(unique(x = cc))]
+        } else {
+          NULL
+        }
         p <- SingleImagePlot(
-          data = pdata[[j]],
+          data = data.plot,
           col.by = feature,
-          col.factor = FALSE,
-          cols = NULL,
+          col.factor = blend,
+          cols = cols.use,
           molecules = mdata[[img]],
           mols.size = mols.size,
           mols.cols = mols.cols,
@@ -2819,10 +2885,32 @@ ImageFeaturePlot <- function(
           border.color = border.color,
           border.size = border.size
         ) +
-          cowplot::theme_cowplot() +
+          theme_cowplot() +
           CenterTitle()
+        # Remove fill guides for blended plots
+        if (isTRUE(x = blend)) {
+          p <- p + guides(fill = 'none')
+        }
+        # Remove axes
         if (!isTRUE(x = axes)) {
-          p <- p + NoAxes(panel.background = ggplot2::element_blank())
+          p <- p + NoAxes(panel.background = element_blank())
+        } else if (isTRUE(x = blend) || length(x = levels(x = md[[split.by]])) > 1L) {
+          if (y != 1L) {
+            p <- p + theme(
+              axis.line.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              axis.text.y = element_blank(),
+              axis.title.y.left = element_blank()
+            )
+          }
+          if (i != length(x = levels(x = md[[split.by]]))) {
+            p <- p + theme(
+              axis.line.x = element_blank(),
+              axis.ticks.x = element_blank(),
+              axis.text.x = element_blank(),
+              axis.title.x = element_blank()
+            )
+          }
         }
         # Add colors for unblended plots
         if (!isTRUE(x = blend)) {
@@ -2830,7 +2918,7 @@ ImageFeaturePlot <- function(
             p <- p + scale_fill_brewer(palette = cols)
           } else {
             cols.grad <- cols
-            fexp <- pdata[[j]][pdata[[j]][[split.by]] == ident, feature, drop = TRUE]
+            fexp <- data.plot[data.plot[[split.by]] == ident, feature, drop = TRUE]
             fexp <- unique(x = fexp)
             if (length(x = fexp) == 1L) {
               warning(
@@ -2845,6 +2933,7 @@ ImageFeaturePlot <- function(
                 cols.grad <- cols.grad[1L]
               }
             }
+            # Check if we're scaling the colorbar across splits
             if (scale == 'feature') {
               limits <- range(pdata[[j]][[feature]])
             }
@@ -2863,6 +2952,15 @@ ImageFeaturePlot <- function(
         }
         plots[[ident]][[key]][[y]] <- p
       }
+      if (isTRUE(x = blend)) {
+        plots[[ident]][[key]][[length(x = plots[[ident]][[key]])]] <- blend.key
+      } else if (length(x = levels(x = md[[split.by]])) > 1L) {
+        plots[[ident]][[key]][[y]] <- suppressMessages(
+          expr = plots[[ident]][[key]][[y]] +
+            scale_y_continuous(sec.axis = dup_axis(name = ident)) +
+            no.right
+        )
+      }
     }
     plots[[ident]] <- unlist(
       x = plots[[ident]],
@@ -2872,14 +2970,16 @@ ImageFeaturePlot <- function(
   }
   plots <- unlist(x = plots, recursive = FALSE, use.names = FALSE)
   if (isTRUE(x = combine)) {
-    # if (isTRUE(x = blend)) {
-    #
-    # } else
-    if (length(x = levels(x = md[[split.by]])) > 1L) {
+    if (isTRUE(x = blend) || length(x = levels(x = md[[split.by]])) > 1L) {
       plots <- wrap_plots(
         plots,
-        ncol = length(x = features),
-        nrow = length(x = levels(x = md[[split.by]]))
+        ncol = ifelse(
+          test = isTRUE(x = blend),
+          yes = 4L,
+          no = length(x = features)
+        ),
+        nrow = length(x = levels(x = md[[split.by]])),
+        guides = 'collect'
       )
     } else {
       plots <- wrap_plots(plots)
