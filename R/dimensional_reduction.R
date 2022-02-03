@@ -1387,8 +1387,8 @@ RunUMAP.default <- function(
       }
       if (is.list(x = object)) {
         if (ncol(object$idx) != model$n_neighbors) {
-          warning("Number of neighbors between query and reference ", 
-          "is not equal to the number of neighbros within reference")
+          warning("Number of neighbors between query and reference ",
+          "is not equal to the number of neighbors within reference")
           model$n_neighbors <- ncol(object$idx)
         }
        umap_transform(
