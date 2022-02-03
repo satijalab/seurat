@@ -1,3 +1,7 @@
+#' @importFrom SeuratObject progressor
+#'
+NULL
+
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
