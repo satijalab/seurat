@@ -1665,46 +1665,46 @@ as.data.frame.Matrix <- function(
   stop("Invalid format")
 }
 
-#' @importFrom SeuratObject Segmentations
+#' @importFrom SeuratObject Boundaries
 #'
-.LayersByImage <- function(object, images, layers) {
-  if (!is.list(x = layers)) {
-    if (is.null(x = names(x = layers))) {
-      layers <- rep_len(x = list(layers), length.out = length(x = images))
-      names(x = layers) <- images
+.BoundariesByImage <- function(object, fov, boundaries) {
+  if (!is.list(x = boundaries)) {
+    if (is.null(x = names(x = boundaries))) {
+      boundaries <- rep_len(x = list(boundaries), length.out = length(x = fov))
+      names(x = boundaries) <- fov
     } else {
-      layers <- .AsList(x = layers)
+      boundaries <- .AsList(x = boundaries)
     }
   }
-  if (any(!nchar(x = names(x = layers)))) {
-    missing <- setdiff(x = images, y = names(x = layers))
-    idx <- which(x = !nchar(x = names(x = layers)))
-    layers <- c(
-      layers[intersect(x = names(x = layers), y = images)],
-      rep_len(x = layers[idx], length.out = length(x = missing))
+  if (any(!nchar(x = names(x = boundaries)))) {
+    missing <- setdiff(x = fov, y = names(x = boundaries))
+    idx <- which(x = !nchar(x = names(x = boundaries)))
+    boundaries <- c(
+      boundaries[intersect(x = names(x = boundaries), y = fov)],
+      rep_len(x = boundaries[idx], length.out = length(x = missing))
     )
-    names(x = layers)[!nchar(x = names(x = layers))] <- missing
+    names(x = boundaries)[!nchar(x = names(x = boundaries))] <- missing
   }
-  if (any(!images %in% names(x = layers))) {
-    for (i in setdiff(x = images, y = names(x = layers))) {
-      layers[[i]] <- Segmentations(object = object[[i]])[1L]
+  if (any(!fov %in% names(x = boundaries))) {
+    for (i in setdiff(x = fov, y = names(x = boundaries))) {
+      boundaries[[i]] <- Boundaries(object = object[[i]])[1L]
     }
   }
-  images <- union(x = images, y = names(x = layers))
-  if (length(x = layers) != length(x = images)) {
-    images <- intersect(x = images, y = names(x = layers))
+  fov <- union(x = fov, y = names(x = boundaries))
+  if (length(x = boundaries) != length(x = fov)) {
+    fov <- intersect(x = fov, y = names(x = boundaries))
   }
-  layers <- layers[images]
-  for (i in images) {
-    layers[[i]] <- Filter(
+  boundaries <- boundaries[fov]
+  for (i in fov) {
+    boundaries[[i]] <- Filter(
       f = function(x) {
-        return(x %in% Segmentations(object = object[[i]]) || is_na(x = x))
+        return(x %in% Boundaries(object = object[[i]]) || is_na(x = x))
       },
-      x = layers[[i]]
+      x = boundaries[[i]]
     )
   }
-  layers <- Filter(f = length, x = layers)
-  return(layers)
+  boundaries <- Filter(f = length, x = boundaries)
+  return(boundaries)
 }
 
 # Generate chunk points

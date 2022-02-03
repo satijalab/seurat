@@ -6,8 +6,8 @@
 \usage{
 ImageDimPlot(
   object,
-  images = NULL,
-  layers = NULL,
+  fov = NULL,
+  boundaries = NULL,
   group.by = NULL,
   split.by = NULL,
   cols = NULL,
@@ -29,11 +29,12 @@ ImageDimPlot(
 \arguments{
 \item{object}{A \code{\link[SeuratObject]{Seurat}} object}
 
-\item{images}{A vector if images to plot}
+\item{fov}{Name of FOV to plot}
 
-\item{layers}{A vector of segmentation layers per image to plot; can be a
-character vector, a named character vector, or a named list. Names should
-be the names of images and values should be the names of segmentation layers}
+\item{boundaries}{A vector of segmentation boundaries per image to plot;
+can be a character vector, a named character vector, or a named list.
+Names should be the names of FOVs and values should be the names of
+segmentation boundaries}
 
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
@@ -53,7 +54,7 @@ See \code{\link{DiscretePalette}} for details.}
 \item{mols.cols}{A vector of color for molecules}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
-layers, \code{alpha} is equivalent to max alpha}
+boundaries, \code{alpha} is equivalent to max alpha}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
 to suppress borders for segmentation-based plots}
@@ -67,9 +68,9 @@ to suppress borders for centroid-based plots}
 
 \item{cells}{Vector of cells to plot (default is all cells)}
 
-\item{overlap}{Overlay layers from a single image to create a single plot;
-if \code{TRUE}, then layers are stacked in the order they're given
-(first is lowest)}
+\item{overlap}{Overlay boundaries from a single image to create a single
+plot; if \code{TRUE}, then boundaries are stacked in the order they're
+given (first is lowest)}
 
 \item{axes}{Keep axes and panel background}
 

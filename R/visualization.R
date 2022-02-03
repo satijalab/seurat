@@ -2257,15 +2257,16 @@ PolyFeaturePlot <- function(
 #' @inheritParams DimPlot
 #' @inheritParams SingleImagePlot
 #' @param object A \code{\link[SeuratObject]{Seurat}} object
-#' @param images A vector if images to plot
-#' @param layers A vector of segmentation layers per image to plot; can be a
-#' character vector, a named character vector, or a named list. Names should
-#' be the names of images and values should be the names of segmentation layers
+#' @param fov Name of FOV to plot
+#' @param boundaries A vector of segmentation boundaries per image to plot;
+#' can be a character vector, a named character vector, or a named list.
+#' Names should be the names of FOVs and values should be the names of
+#' segmentation boundaries
 #' @param molecules A vector of molecules to plot
 #' @param crop Crop the plots to area with cells only
-#' @param overlap Overlay layers from a single image to create a single plot;
-#' if \code{TRUE}, then layers are stacked in the order they're given
-#' (first is lowest)
+#' @param overlap Overlay boundaries from a single image to create a single
+#' plot; if \code{TRUE}, then boundaries are stacked in the order they're
+#' given (first is lowest)
 #' @param axes Keep axes and panel background
 #' @param combine Combine plots into a single
 #' \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
@@ -2277,15 +2278,15 @@ PolyFeaturePlot <- function(
 #' @importFrom rlang !! is_na sym
 #' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 element_blank facet_wrap vars
-#' @importFrom SeuratObject .DefaultSpatialCoords Cells
-#' DefaultSegmentation FetchData Images Overlay
+#' @importFrom SeuratObject .DefaultFOV Cells
+#' DefaultBoundary FetchData Images Overlay
 #'
 #' @export
 #'
 ImageDimPlot <- function(
   object,
-  images = NULL,
-  layers = NULL,
+  fov = NULL,
+  boundaries = NULL,
   group.by = NULL,
   split.by = NULL,
   cols = NULL,
@@ -2304,36 +2305,40 @@ ImageDimPlot <- function(
   combine = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
-  # Determine images to use
-  images <- images %||% .DefaultSpatialCoords(object = object)
-  images <- Filter(
+  # Determine FOV to use
+  fov <- fov %||% .DefaultFOV(object = object)
+  fov <- Filter(
     f = function(x) {
       return(
         x %in% Images(object = object) &&
-          inherits(x = object[[x]], what = 'SpatialCoords')
+          inherits(x = object[[x]], what = 'FOV')
       )
     },
-    x = images
+    x = fov
   )
-  if (!length(x = images)) {
+  if (!length(x = fov)) {
     stop("No compatible spatial coordinates present")
   }
-  # Identify layers to use
-  layers <- layers %||% sapply(
-    X = images,
+  # Identify boundaries to use
+  boundaries <- boundaries %||% sapply(
+    X = fov,
     FUN = function(x) {
-      return(DefaultSegmentation(object = object[[x]]))
+      return(DefaultBoundary(object = object[[x]]))
     },
     simplify = FALSE,
     USE.NAMES = TRUE
   )
-  layers <- .LayersByImage(object = object, images = images, layers = layers)
-  images <- names(x = layers)
-  overlap <- rep_len(x = overlap, length.out = length(x = images))
-  crop <- rep_len(x = crop, length.out = length(x = images))
-  names(x = crop) <- images
+  boundaries <- .BoundariesByImage(
+    object = object,
+    fov = fov,
+    boundaries = boundaries
+  )
+  fov <- names(x = boundaries)
+  overlap <- rep_len(x = overlap, length.out = length(x = fov))
+  crop <- rep_len(x = crop, length.out = length(x = fov))
+  names(x = crop) <- fov
   # Prepare plotting data
-  group.by <- layers %!NA% group.by %||% 'ident'
+  group.by <- boundaries %!NA% group.by %||% 'ident'
   vars <- c(group.by, split.by)
   md <- if (!is_na(x = vars)) {
     FetchData(
@@ -2345,12 +2350,12 @@ ImageDimPlot <- function(
     NULL
   }
   pnames <- unlist(x = lapply(
-    X = seq_along(along.with = images),
+    X = seq_along(along.with = fov),
     FUN = function(i) {
       return(if (isTRUE(x = overlap[i])) {
-        images[i]
+        fov[i]
       } else {
-        paste(images[i], layers[[i]], sep = '_')
+        paste(fov[i], boundaries[[i]], sep = '_')
       })
     }
   ))
@@ -2361,7 +2366,7 @@ ImageDimPlot <- function(
     # Apply overlap
     lyr <- unlist(x = strsplit(x = i, split = '_'))[2L]
     if (is.na(x = lyr)) {
-      lyr <- layers[[img]]
+      lyr <- boundaries[[img]]
     }
     # TODO: Apply crop
     pdata[[i]] <- lapply(
@@ -2376,7 +2381,7 @@ ImageDimPlot <- function(
           df <- merge(x = df, y = md, by.x = 'cell', by.y = 0, all.x = TRUE)
         }
         df$cell <- paste(l, df$cell, sep = '_')
-        df$layer <- l
+        df$boundary <- l
         return(df)
       }
     )
@@ -2388,13 +2393,13 @@ ImageDimPlot <- function(
   }
   # Fetch molecule information
   if (!is.null(x = molecules)) {
-    molecules <- .MolsByImage(
+    molecules <- .MolsByFOV(
       object = object,
-      images = images,
+      fov = fov,
       molecules = molecules
     )
-    mdata <- vector(mode = 'list', length = length(x = images))
-    names(x = mdata) <- images
+    mdata <- vector(mode = 'list', length = length(x = fov))
+    names(x = mdata) <- fov
     for (img in names(x = mdata)) {
       idata <- object[[img]]
       if (!img %in% names(x = molecules)) {
@@ -2405,13 +2410,11 @@ ImageDimPlot <- function(
         idata <- Overlay(x = idata, y = idata)
       }
       imols <- gsub(
-        # pattern = paste0('^', Key(object = object[[img]])),
         pattern = paste0('^', Key(object = idata)),
         replacement = '',
         x = molecules[[img]]
       )
       mdata[[img]] <- FetchData(
-        # object = object[[img]],
         object = idata,
         vars = imols,
         nmols = nmols
@@ -2485,16 +2488,16 @@ ImageDimPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 dup_axis element_blank element_text facet_wrap guides
 #' labs margin vars scale_y_continuous theme
-#' @importFrom SeuratObject .DefaultSpatialCoords Cells
-#' DefaultSegmentation FetchData Images Overlay
+#' @importFrom SeuratObject .DefaultFOV Cells DefaultBoundary
+#' FetchData Images Overlay
 #'
 #' @export
 #'
 ImageFeaturePlot <- function(
   object,
   features,
-  images = NULL,
-  layers = NULL,
+  fov = NULL,
+  boundaries = NULL,
   cols = if (isTRUE(x = blend)) {
     c("lightgrey", "#ff0000", "#00ff00")
   } else {
@@ -2535,46 +2538,50 @@ ImageFeaturePlot <- function(
       margin = margin(r = 7)
     )
   )
-  # Determine images to use
-  images <- images %||% .DefaultSpatialCoords(object = object)
-  images <- Filter(
+  # Determine fov to use
+  fov <- fov %||% .DefaultFOV(object = object)
+  fov <- Filter(
     f = function(x) {
       return(
         x %in% Images(object = object) &&
-          inherits(x = object[[x]], what = 'SpatialCoords')
+          inherits(x = object[[x]], what = 'FOV')
       )
     },
-    x = images
+    x = fov
   )
-  if (!length(x = images)) {
+  if (!length(x = fov)) {
     stop("No compatible spatial coordinates present")
   }
-  # Identify layers to use
-  layers <- layers %||% sapply(
-    X = images,
+  # Identify boundaries to use
+  boundaries <- boundaries %||% sapply(
+    X = fov,
     FUN = function(x) {
-      return(DefaultSegmentation(object = object[[x]]))
+      return(DefaultBoundary(object = object[[x]]))
     },
     simplify = FALSE,
     USE.NAMES = TRUE
   )
-  layers <- .LayersByImage(object = object, images = images, layers = layers)
-  images <- names(x = layers)
+  boundaries <- .BoundariesByImage(
+    object = object,
+    fov = fov,
+    boundaries = boundaries
+  )
+  fov <- names(x = boundaries)
   # Check overlaps/crops
   if (isTRUE(x = blend) || !is.null(x = split.by)) {
     type <- ifelse(test = isTRUE(x = 'blend'), yes = 'Blended', no = 'Split')
-    if (length(x = images) != 1L) {
-      images <- images[1L]
+    if (length(x = fov) != 1L) {
+      fov <- fov[1L]
       warning(
         type,
         ' image feature plots can only be done on a single image, using "',
-        images,
+        fov,
         '"',
         call. = FALSE,
         immediate. = TRUE
       )
     }
-    if (any(!overlap) && length(x = layers[[images]]) > 1L) {
+    if (any(!overlap) && length(x = boundaries[[fov]]) > 1L) {
       warning(
         type,
         " image feature plots require overlapped segmentations",
@@ -2584,9 +2591,9 @@ ImageFeaturePlot <- function(
     }
     overlap <- TRUE
   }
-  overlap <- rep_len(x = overlap, length.out = length(x = images))
-  crop <- rep_len(x = crop, length.out = length(x = images))
-  names(x = crop) <- names(x = overlap) <- images
+  overlap <- rep_len(x = overlap, length.out = length(x = fov))
+  crop <- rep_len(x = crop, length.out = length(x = fov))
+  names(x = crop) <- names(x = overlap) <- fov
   # Checks for blending
   if (isTRUE(x = blend)) {
     if (length(x = features) != 2L) {
@@ -2729,12 +2736,12 @@ ImageFeaturePlot <- function(
   }
   # Prepare plotting data
   pnames <- unlist(x = lapply(
-    X = seq_along(along.with = images),
+    X = seq_along(along.with = fov),
     FUN = function(i) {
       return(if (isTRUE(x = overlap[i])) {
-        images[i]
+        fov[i]
       } else {
-        paste(images[i], layers[[i]], sep = '_')
+        paste(fov[i], boundaries[[i]], sep = '_')
       })
     }
   ))
@@ -2745,7 +2752,7 @@ ImageFeaturePlot <- function(
     # Apply overlap
     lyr <- unlist(x = strsplit(x = i, split = '_'))[2L]
     if (is.na(x = lyr)) {
-      lyr <- layers[[img]]
+      lyr <- boundaries[[img]]
     }
     pdata[[i]] <- lapply(
       X = lyr,
@@ -2756,7 +2763,7 @@ ImageFeaturePlot <- function(
           df <- merge(x = df, y = md, by.x = 'cell', by.y = 0, all.x = TRUE)
         }
         df$cell <- paste(l, df$cell, sep = '_')
-        df$layer <- l
+        df$boundary <- l
         return(df)
       }
     )
@@ -2768,13 +2775,13 @@ ImageFeaturePlot <- function(
   }
   # Fetch molecule information
   if (!is.null(x = molecules)) {
-    molecules <- .MolsByImage(
+    molecules <- .MolsByFOV(
       object = object,
-      images = images,
+      fov = fov,
       molecules = molecules
     )
-    mdata <- vector(mode = 'list', length = length(x = images))
-    names(x = mdata) <- images
+    mdata <- vector(mode = 'list', length = length(x = fov))
+    names(x = mdata) <- fov
     for (img in names(x = mdata)) {
       idata <- object[[img]]
       if (!img %in% names(x = molecules)) {
@@ -6152,8 +6159,8 @@ fortify.Segmentation <- function(model, data, ...) {
 
 #' @importFrom SeuratObject Features Key Keys Molecules
 #'
-.MolsByImage <- function(object, images, molecules) {
-  keys <- Key(object = object)[images]
+.MolsByFOV <- function(object, fov, molecules) {
+  keys <- Key(object = object)[fov]
   keyed.mols <- sapply(
     X = names(x = keys),
     FUN = function(img) {
@@ -6197,7 +6204,7 @@ fortify.Segmentation <- function(model, data, ...) {
   found <- gsub(pattern = '^.*\\.', replacement = '', x = found)
   missing <- setdiff(x = molecules, y = found)
   names(x = missing) <- missing
-  for (img in images) {
+  for (img in fov) {
     imissing <- missing
     for (i in seq_along(along.with = imissing)) {
       for (lkey in Keys(object = object[[img]])) {
@@ -8351,8 +8358,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
 #'   plotted on the \emph{x}-axis
 #'  \item \dQuote{\code{cell}}: Cell name
-#'  \item \dQuote{\code{layer}}: Segmentation layer label; when plotting
-#'   multiple segmentation layers, the order of layer transparency is set by
+#'  \item \dQuote{\code{boundary}}: Segmentation boundary label; when plotting
+#'   multiple segmentation layers, the order of boundary transparency is set by
 #'   factor levels for this column
 #' }
 #' Can pass \code{NA} to \code{data} suppress segmentation visualization
@@ -8381,7 +8388,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' @param mols.size Point size for molecules
 #' @param mols.cols A vector of color for molecules
 #' @param alpha Alpha value, should be between 0 and 1; when plotting multiple
-#' layers, \code{alpha} is equivalent to max alpha
+#' boundaries, \code{alpha} is equivalent to max alpha
 #' @param border.color Color of cell segmentation border; pass \code{NA}
 #' to suppress borders for segmentation-based plots
 #' @param border.size Thickness of cell segmentation borders; pass \code{NA}
@@ -8419,7 +8426,7 @@ SingleImagePlot <- function(
 ) {
   # Check input data
   if (!is_na(x = data)) {
-    if (!all(c('x', 'y', 'cell', 'layer') %in% colnames(x = data))) {
+    if (!all(c('x', 'y', 'cell', 'boundary') %in% colnames(x = data))) {
       stop("Invalid data coordinates")
     }
     if (!is_na(x = col.by)) {
@@ -8444,8 +8451,11 @@ SingleImagePlot <- function(
       col.by <- RandomName(length = 7L)
       data[[col.by]] <- TRUE
     }
-    if (!is.factor(x = data$layer)) {
-      data$layer <- factor(x = data$layer, levels = unique(x = data$layer))
+    if (!is.factor(x = data$boundary)) {
+      data$boundary <- factor(
+        x = data$boundary,
+        levels = unique(x = data$boundary)
+      )
     }
     # Determine alphas
     if (is.na(x = alpha)) {
@@ -8462,7 +8472,7 @@ SingleImagePlot <- function(
     alphas <- .Cut(
       min = alpha.min,
       max = alpha,
-      n = length(x = levels(x = data$layer))
+      n = length(x = levels(x = data$boundary))
     )
   }
   # Assemble plot
@@ -8471,7 +8481,7 @@ SingleImagePlot <- function(
     mapping = aes_string(
       x = 'y',
       y = 'x',
-      alpha = 'layer',
+      alpha = 'boundary',
       fill = col.by %NA% NULL
       # fill = col.by
     )
@@ -8507,7 +8517,7 @@ SingleImagePlot <- function(
         scale_fill_manual(values = cols, na.value = na.value)
       }
     }
-    if (length(x = levels(x = data$layer)) == 1L) {
+    if (length(x = levels(x = data$boundary)) == 1L) {
       plot <- plot + guides(alpha = 'none')
     }
     # Adjust guides
@@ -8515,7 +8525,7 @@ SingleImagePlot <- function(
       plot <- plot + guides(fill = 'none')
     }
   }
-  # Add molecule layers
+  # Add molecule sets
   if (is.data.frame(x = molecules)) {
     if (all(c('x', 'y', 'molecule') %in% colnames(x = molecules))) {
       if (!is.factor(x = molecules$molecule)) {
