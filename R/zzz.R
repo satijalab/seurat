@@ -1,4 +1,4 @@
-#' @importFrom SeuratObject progressor
+#' @importFrom progressr progressor
 #'
 NULL
 

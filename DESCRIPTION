@@ -56,6 +56,7 @@ Imports:
     pbapply,
     plotly (>= 4.9.0),
     png,
+    progressr,
     RANN,
     RColorBrewer,
     Rcpp (>= 1.0.7),
