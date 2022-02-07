@@ -2262,6 +2262,7 @@ PolyFeaturePlot <- function(
 #' character vector, a named character vector, or a named list. Names should
 #' be the names of images and values should be the names of segmentation layers
 #' @param molecules A vector of molecules to plot
+#' @param background.color Plot background color
 #' @param crop Crop the plots to area with cells only
 #' @param overlap Overlay layers from a single image to create a single plot;
 #' if \code{TRUE}, then layers are stacked in the order they're given
@@ -2289,14 +2290,17 @@ ImageDimPlot <- function(
   group.by = NULL,
   split.by = NULL,
   cols = NULL,
+  size = 0.1,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
+  mols.alpha = 1.0,
   nmols = 1000,
   alpha = molecules %iff% 0.3 %||% 0.6,
   border.color = 'black',
-  border.size = 0.3,
+  border.size = NULL,
   na.value = 'grey50',
+  background.color = "black",
   crop = TRUE,
   cells = NULL,
   overlap = FALSE,
@@ -2393,17 +2397,19 @@ ImageDimPlot <- function(
       images = images,
       molecules = molecules
     )
+
     mdata <- vector(mode = 'list', length = length(x = images))
     names(x = mdata) <- images
+
     for (img in names(x = mdata)) {
       idata <- object[[img]]
       if (!img %in% names(x = molecules)) {
         mdata[[img]] <- NULL
         next
       }
-      if (isTRUE(x = crop[img])) {
-        idata <- Overlay(x = idata, y = idata)
-      }
+      # if (isTRUE(x = crop[img])) {
+      #   idata <- Overlay(x = idata, y = idata)
+      # }
       imols <- gsub(
         # pattern = paste0('^', Key(object = object[[img]])),
         pattern = paste0('^', Key(object = idata)),
@@ -2438,9 +2444,11 @@ ImageDimPlot <- function(
         col.by = pdata[[i]] %!NA% group,
         molecules = mdata[[img]],
         cols = cols,
+        size = size,
+        alpha = alpha,
         mols.size = mols.size,
         mols.cols = mols.cols,
-        alpha = alpha,
+        mols.alpha = mols.alpha,
         border.color = border.color,
         border.size = border.size,
         na.value = na.value
@@ -2452,6 +2460,15 @@ ImageDimPlot <- function(
       }
       if (!isTRUE(x = axes)) {
         p <- p + NoAxes(panel.background = element_blank())
+      }
+      # Set background color to black
+      p <- p + theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = background.color, colour = background.color)
+      )
+      if (!anyDuplicated(x = pdata[[i]]$cell)) {
+        p <- p + guides(fill = guide_legend(override.aes = list(size=4L, alpha=1)))
       }
       plots[[idx]] <- p
       idx <- idx + 1L
@@ -2509,7 +2526,7 @@ ImageFeaturePlot <- function(
   nmols = 1000,
   alpha = molecules %iff% 0.3 %||% 0.6,
   border.color = 'black',
-  border.size = 0.3,
+  border.size = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   crop = TRUE,
@@ -8369,6 +8386,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #'  \item A vector of colors equal to the length of unique levels of
 #'   \code{data$col.by}
 #' }
+#' @param size Point size for cells when plotting centroids
 #' @param molecules A data frame with spatially-resolved molecule coordinates;
 #' should have the following columns:
 #' \itemize{
@@ -8380,6 +8398,7 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #' }
 #' @param mols.size Point size for molecules
 #' @param mols.cols A vector of color for molecules
+#' @param mols.alpha Alpha value for molecules, should be between 0 and 1
 #' @param alpha Alpha value, should be between 0 and 1; when plotting multiple
 #' layers, \code{alpha} is equivalent to max alpha
 #' @param border.color Color of cell segmentation border; pass \code{NA}
@@ -8408,12 +8427,14 @@ SingleImagePlot <- function(
   col.by = NA,
   col.factor = TRUE,
   cols = NULL,
+  size = 0.1,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
+  mols.alpha = 1.0,
   alpha = molecules %iff% 0.3 %||% 0.6,
   border.color = 'black',
-  border.size = 0.3,
+  border.size = NULL,
   na.value = 'grey50',
   ...
 ) {
@@ -8480,16 +8501,23 @@ SingleImagePlot <- function(
     plot <- plot +
       scale_alpha_manual(values = alphas) +
       if (anyDuplicated(x = data$cell)) {
+        if (is.null(border.size)) {
+          border.size <- 0.3
+        }
         geom_polygon(
           mapping = aes_string(group = 'cell'),
           color = border.color,
           size = border.size
         )
       } else {
+        if (is.null(border.size)) {
+          border.size <- 0.0
+        }
         geom_point(
           shape = 21,
           color = border.color,
-          stroke = border.size
+          stroke = border.size,
+          size = size
         )
       }
     if (!is.null(x = cols)) {
@@ -8528,6 +8556,7 @@ SingleImagePlot <- function(
         mapping = aes_string(fill = NULL, alpha = NULL, color = "molecule"),
         data = molecules,
         size = mols.size,
+        alpha = mols.alpha,
         show.legend = c(color = TRUE, fill = FALSE, alpha = FALSE)
       ) +
         guides(color = guide_legend(override.aes = list(size = 3L))) +
