@@ -7,8 +7,8 @@
 ImageFeaturePlot(
   object,
   features,
-  images = NULL,
-  layers = NULL,
+  fov = NULL,
+  boundaries = NULL,
   cols = if (isTRUE(x = blend)) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
     c("lightgrey", "blue") },
   min.cutoff = NA,
@@ -43,11 +43,12 @@ ImageFeaturePlot(
     (e.g. the PC 1 scores - "PC_1")
 }}
 
-\item{images}{A vector if images to plot}
+\item{fov}{Name of FOV to plot}
 
-\item{layers}{A vector of segmentation layers per image to plot; can be a
-character vector, a named character vector, or a named list. Names should
-be the names of images and values should be the names of segmentation layers}
+\item{boundaries}{A vector of segmentation boundaries per image to plot;
+can be a character vector, a named character vector, or a named list.
+Names should be the names of FOVs and values should be the names of
+segmentation boundaries}
 
 \item{cols}{The two colors to form the gradient over. Provide as string vector with
 the first color corresponding to low values, the second to high. Also accepts a Brewer
@@ -75,7 +76,7 @@ to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 \item{mols.cols}{A vector of color for molecules}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
-layers, \code{alpha} is equivalent to max alpha}
+boundaries, \code{alpha} is equivalent to max alpha}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
 to suppress borders for segmentation-based plots}
@@ -101,9 +102,9 @@ to suppress borders for centroid-based plots}
 }
 Ignored if \code{blend = TRUE}}
 
-\item{overlap}{Overlay layers from a single image to create a single plot;
-if \code{TRUE}, then layers are stacked in the order they're given
-(first is lowest)}
+\item{overlap}{Overlay boundaries from a single image to create a single
+plot; if \code{TRUE}, then boundaries are stacked in the order they're
+given (first is lowest)}
 
 \item{axes}{Keep axes and panel background}
 

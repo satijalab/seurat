@@ -27,8 +27,8 @@ SingleImagePlot(
  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
   plotted on the \emph{x}-axis
  \item \dQuote{\code{cell}}: Cell name
- \item \dQuote{\code{layer}}: Segmentation layer label; when plotting
-  multiple segmentation layers, the order of layer transparency is set by
+ \item \dQuote{\code{boundary}}: Segmentation boundary label; when plotting
+  multiple segmentation layers, the order of boundary transparency is set by
   factor levels for this column
 }
 Can pass \code{NA} to \code{data} suppress segmentation visualization}
@@ -64,7 +64,7 @@ should have the following columns:
 \item{mols.cols}{A vector of color for molecules}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
-layers, \code{alpha} is equivalent to max alpha}
+boundaries, \code{alpha} is equivalent to max alpha}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
 to suppress borders for segmentation-based plots}
