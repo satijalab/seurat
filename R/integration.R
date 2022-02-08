@@ -5596,26 +5596,49 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 }
 
 
+#' Convert Neighbor class to an asymmetrical Graph class
+#' @param nn.object A neighbor class object
+#' @param col.cells Cells names of the neighbors, cell names in nn.object is used by default
+#' @param weighted Determine if use distance in the Graph
+#' 
+#' 
+#' @export
+#' @importFrom Matrix sparseMatrix
+#' @return Returns a Graph object
 
 
 
-NNtoGraph <- function(nn.object, ncol.nn = NULL, col.cells = NULL) {
-  select_nn <- nn.object@nn.idx
-  col.cells <- col.cells %||% nn.object@cell.names
-  ncol.nn <-  ncol.nn %||% length(col.cells)
-  k.nn <- ncol(select_nn)  
-  j <- as.numeric(x = t(x = select_nn ))
+NNtoGraph <- function(
+  nn.object, 
+  col.cells = NULL, 
+  weighted = FALSE) {
+  select_nn <- Indices(object = nn.object)
+  col.cells <- col.cells %||% Cells(x = nn.object)
+  ncol.nn <- length(x = col.cells)
+  k.nn <- ncol(x = select_nn)  
+  j <- as.numeric(x = t(x = select_nn))
   i <- ((1:length(x = j)) - 1) %/% k.nn + 1
-  nn.matrix <- sparseMatrix(
-    i = i,
-    j = j,
-    x = 1,
-    dims = c(nrow(x = select_nn), ncol.nn)
-  )
-  
-  rownames(x = nn.matrix) <- nn.object@cell.names
+  if (weighted) {
+    select_nn_dist <- Distances(object = nn.object)
+    dist.element <- as.numeric(x = t(x = select_nn_dist))
+    nn.matrix <- Matrix::sparseMatrix(
+      i = i,
+      j = j,
+      x = dist.element,
+      dims = c(nrow(x = select_nn), ncol.nn)
+    )
+  } else {
+    nn.matrix <- sparseMatrix(
+      i = i,
+      j = j,
+      x = 1,
+      dims = c(nrow(x = select_nn), ncol.nn)
+    )
+  }
+  rownames(x = nn.matrix) <- Cells(x = nn.object)
   colnames(x = nn.matrix) <- col.cells
-  return( nn.matrix)
+  nn.matrix <- as.Graph(x = nn.matrix)
+  return(nn.matrix)
 }
 
 

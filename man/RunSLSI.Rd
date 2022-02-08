@@ -74,7 +74,7 @@ reductions slot
 }
 \description{
 Run a supervised LSI (SLSI) dimensionality reduction supervised by a
-cell-cell kernel. SLSI is used to capture a linear transformation of peaks 
+cell-cell kernel. SLSI is used to capture a linear transformation of peaks
 that maximizes its dependency to the given cell-cell kernel.
 }
 \concept{dimensional_reduction}
