@@ -2076,6 +2076,10 @@ MapQuery <- function(
       ), integrateembeddings.args
       )
     )
+    Misc(
+      object = query[[new.reduction.name]],
+      slot = 'ref.dims'
+      ) <-  slot(object = anchorset, name = "command")$dims
   }
     slot(object = query, name = "tools")$MapQuery <- NULL
   if (store.weights) {
@@ -5781,6 +5785,24 @@ BridgeCellsRepresentation <- function(object.list,
   if (verbose) {
     message("Constructing Bridge-cells representation")
   }
+  dims.list <- list()
+  for (i in 1:length(object.reduction.list)) {
+   ref.dims <- list(  
+    object= Misc(object.list[[i]][[object.reduction.list[[i]]]], slot = 'ref.dims'),
+    bridge = Misc( bridge.object[[bridge.reduction.list[[i]]]], slot = 'ref.dims')
+   )
+   all.dims <- list(
+     object = 1:ncol(object.list[[i]][[object.reduction.list[[i]]]]),
+     bridge = 1:ncol( bridge.object[[bridge.reduction.list[[i]] ]])
+     )
+   projected.dims.index <- which(sapply(ref.dims, function(x) !is.null(x)))
+   reference.dims.index <- setdiff(c(1:2), projected.dims.index)
+   dims.list[[i]] <- list()
+   dims.list[[i]][[reference.dims.index]] <- ref.dims[[projected.dims.index ]]
+   dims.list[[i]][[projected.dims.index]] <- all.dims[[projected.dims.index]]
+   names(dims.list[[i]]) <- c('object', 'bridge')
+    }
+
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(x) {
@@ -5788,19 +5810,19 @@ BridgeCellsRepresentation <- function(object.list,
         X = Embeddings(
           object = bridge.object, 
           reduction = bridge.reduction.list[[x]]
-        )[ ,dims.list[[x]]]
+        )[ ,dims.list[[x]]$bridge]
       )
         if (!is.null(laplacian.reduction)) {
           lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
           X <- Embeddings(
             object = object.list[[x]], 
             reduction = object.reduction.list[[x]]
-          )[, 1:length(x = dims.list[[x]])] %*% (SA.inv %*% lap.vector)
+          )[,   dims.list[[x]]$object] %*% (SA.inv %*% lap.vector)
         } else {
           X <- Embeddings(
             object = object.list[[x]],
             reduction = object.reduction.list[[x]]
-          )[, 1:length(x = dims.list[[x]])] %*% SA.inv
+          )[,  dims.list[[x]]$object] %*% SA.inv
           colnames(X) <- Cells(bridge.object)
         }
       if (l2.norm) {
