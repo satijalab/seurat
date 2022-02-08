@@ -5904,13 +5904,16 @@ FindBridgeAnchor <- function(object.list,
   if (anchor.type == "Transfer") {
     reference <- reference %||% c(1)
     query <- setdiff(c(1,2), reference)
-    ## check weight matrix
+    stored.bridge.weights <- FALSE
+    # check weight matrix
     if (is.null(bridge.object@tools$MapQuery)) {
-      stop("No weights stored between reference and bridge obejcts.", 
+      warning("No weights stored between reference and bridge obejcts.",
            "Please set store.weights to TRUE in MapQuery")
     } else if (is.null(object.list[[query]]@tools$MapQuery)) {
-      stop("No weights stored between query and bridge obejcts.", 
+      warning("No weights stored between query and bridge obejcts.",
            "Please set store.weights to TRUE in MapQuery")
+    } else {
+      stored.bridge.weights <- TRUE
     }
   }  
 
@@ -5991,23 +5994,24 @@ FindBridgeAnchor <- function(object.list,
     )
   }
   
-  if (anchor.type == "Transfer") {
-    slot( object = anchor,name = "weight.reduction"
-          )@misc$bridge.sets <- list(
-      bridge.weights =   slot(object = bridge.object,
-                              name = "tools"
-                              )$MapQuery$weights.matrix, 
-      bridge.ref_anchor =  slot(object = bridge.object,
+    if (stored.bridge.weights) {
+      slot( object = anchor,name = "weight.reduction"
+      )@misc$bridge.sets <- list(
+        bridge.weights =   slot(object = bridge.object,
                                 name = "tools"
-                                )$MapQuery$anchor[,1], 
-      query.weights =  slot(object = object.list[[query]],
-                            name = "tools"
-                            )$MapQuery$weights.matrix, 
-      query.ref_anchor =  slot(object = object.list[[query]],
-                               name = "tools"
-                               )$MapQuery$anchor[,1]
-    )
-  }
+        )$MapQuery$weights.matrix, 
+        bridge.ref_anchor =  slot(object = bridge.object,
+                                  name = "tools"
+        )$MapQuery$anchor[,1], 
+        query.weights =  slot(object = object.list[[query]],
+                              name = "tools"
+        )$MapQuery$weights.matrix, 
+        query.ref_anchor =  slot(object = object.list[[query]],
+                                 name = "tools"
+        )$MapQuery$anchor[,1]
+      )
+    }
+ 
   slot(object = anchor, name = "command") <- LogSeuratCommand(
     object = object.list[[1]],
     return.command = TRUE
