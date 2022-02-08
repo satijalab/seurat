@@ -6910,5 +6910,117 @@ SmoothLabels <- function(labels, clusters ) {
 }
 
 
+
+ProjectDimReduc <- function(query,
+                            reference, 
+                            mode = c('pcaproject', 'lsiproject'),
+                            reference.reduction, 
+                            query.assay = NULL, 
+                            reference.assay = NULL, 
+                            features = NULL, 
+                            do.scale = TRUE, 
+                            reduction.name = NULL, 
+                            reduction.key= NULL, 
+                            combine = FALSE,
+                            verbose = TRUE
+) {
+  
+  query.assay <- query.assay %||% DefaultAssay(object = query)
+  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
+  DefaultAssay(query) <- query.assay
+  DefaultAssay(reference) <- reference.assay
+  reduction.name <- reduction.name %||% reference.reduction
+  reduction.key <- reduction.key %||% Key(reference[[reference.reduction]])
+  
+  if (reduction.name %in% Reductions(query)) {
+    warning(reduction.name,
+            ' already exists in the query object. It will be overwritten.'
+    )
+  }
+  features <- features %||% rownames(x = Loadings(object = reference[[reference.reduction]]))
+  features <- intersect(x = features, y = rownames(x = query))
+  
+  if (mode == 'lsiproject') {
+    if (verbose) {
+      message('LSI projection to ', reference.reduction)
+    }
+    projected.embeddings <- ProjectSVD(
+      reduction = reference[[reference.reduction]],
+      data = GetAssayData(object = query, assay = query.assay, slot = "data"),
+      mode = "lsi",
+      do.center = FALSE,
+      do.scale = FALSE,
+      features = features, 
+      use.original.stats = FALSE,
+      verbose = verbose
+    )
+  } else if (mode == 'pcaproject') {
+    if (inherits(query[[query.assay]], what = 'SCTAssay')) {
+      if (verbose) {
+        message('PCA projection to ', reference.reduction, ' in SCT assay')
+      }
+      query <- suppressWarnings(
+        expr = GetResidual(object = query, 
+                           assay = query.assay, 
+                           features = features, 
+                           verbose = FALSE)
+      )
+      query.mat <- GetAssayData(object = query, slot = 'scale.data')[features,]
+      
+      projected.embeddings <- t(
+        crossprod(x = Loadings(
+          object = reference[[reference.reduction]])[features, ],
+          y = query.mat
+        )
+      )
+    } else {
+      if (verbose) {
+        message('PCA projection to ', reference.reduction)
+      }
+      projected.embeddings <- ProjectCellEmbeddings(
+        reference = reference,
+        reduction = reference.reduction,
+        query = query,
+        scale = do.scale,
+        dims = 1:ncol(reference[[reference.reduction]]),
+        feature.mean = NULL,
+        verbose = verbose
+      )
+    }
+  }
+  
+  query[[reduction.name]] <- CreateDimReducObject(
+    embeddings = projected.embeddings,
+    loadings = Loadings(reference[[reference.reduction]])[features,],
+    assay = query.assay,
+    key = reduction.key,
+    misc = Misc(reference[[reference.reduction]])
+  )
+  
+  if (combine) {
+    query <- DietSeurat(object = query,
+                        dimreducs = reduction.name, 
+                        features = features, 
+                        assays = query.assay
+    )
+    reference <- DietSeurat(object = reference, 
+                            dimreducs = reference.reduction, 
+                            features = features, 
+                            assays = reference.assay)
+    
+    suppressWarnings(
+      combine.obj <- merge(query, reference,
+                           merge.dr = c(reduction.name, reference.reduction)
+      )
+    )
+    Idents(combine.obj)  <- c(rep(x = 'query', times = ncol(query)), 
+                              rep(x = 'reference', times = ncol(reference)))
+    return(combine.obj)
+  } else {
+    return(query)
+  }
+}
+
+
  
  
