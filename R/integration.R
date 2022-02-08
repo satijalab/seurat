@@ -6910,36 +6910,55 @@ SmoothLabels <- function(labels, clusters ) {
 }
 
 
-
+ 
+#' Project query data to reference dimensional reduction
+#' 
+#' @param query Query object
+#' @param reference Reference object
+#' @param mode Projection mode name for projection
+#'  \itemize{
+#' \item{pcaproject: PCA projection}
+#' \item{lsiproject: LSI projection}
+#' }
+#' @param reference.reduction Name of dimensional reduction in the reference object
+#' @param combine Determine if query and reference objects are combined 
+#' @param query.assay Assay used for query object
+#' @param reference.assay Assay used for reference object
+#' @param features Features used for projection
+#' @param do.scale Determine if scale expression matrix in the pcaproject mode
+#' @param reduction.name dimensional reduction name, reference.reduction is used by default
+#' @param reduction.key dimensional reduction key, the key in reference.reduction
+#' is used by default
+#' @param verbose Print progress and message
+#' 
+#' @return Returns a query-only or query-reference combined seurat object
+#' @export
 ProjectDimReduc <- function(query,
                             reference, 
                             mode = c('pcaproject', 'lsiproject'),
-                            reference.reduction, 
+                            reference.reduction,
+                            combine = FALSE,
                             query.assay = NULL, 
                             reference.assay = NULL, 
                             features = NULL, 
                             do.scale = TRUE, 
                             reduction.name = NULL, 
                             reduction.key= NULL, 
-                            combine = FALSE,
                             verbose = TRUE
 ) {
-  
   query.assay <- query.assay %||% DefaultAssay(object = query)
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
-  DefaultAssay(query) <- query.assay
-  DefaultAssay(reference) <- reference.assay
+  DefaultAssay(object = query) <- query.assay
+  DefaultAssay(object = reference) <- reference.assay
   reduction.name <- reduction.name %||% reference.reduction
-  reduction.key <- reduction.key %||% Key(reference[[reference.reduction]])
-  
-  if (reduction.name %in% Reductions(query)) {
+  reduction.key <- reduction.key %||% Key(object = reference[[reference.reduction]])
+  if (reduction.name %in% Reductions(object = query)) {
     warning(reduction.name,
             ' already exists in the query object. It will be overwritten.'
     )
   }
   features <- features %||% rownames(x = Loadings(object = reference[[reference.reduction]]))
   features <- intersect(x = features, y = rownames(x = query))
-  
   if (mode == 'lsiproject') {
     if (verbose) {
       message('LSI projection to ', reference.reduction)
@@ -6988,7 +7007,6 @@ ProjectDimReduc <- function(query,
       )
     }
   }
-  
   query[[reduction.name]] <- CreateDimReducObject(
     embeddings = projected.embeddings,
     loadings = Loadings(reference[[reference.reduction]])[features,],
@@ -6996,7 +7014,6 @@ ProjectDimReduc <- function(query,
     key = reduction.key,
     misc = Misc(reference[[reference.reduction]])
   )
-  
   if (combine) {
     query <- DietSeurat(object = query,
                         dimreducs = reduction.name, 
@@ -7007,20 +7024,16 @@ ProjectDimReduc <- function(query,
                             dimreducs = reference.reduction, 
                             features = features, 
                             assays = reference.assay)
-    
     suppressWarnings(
       combine.obj <- merge(query, reference,
                            merge.dr = c(reduction.name, reference.reduction)
       )
     )
-    Idents(combine.obj)  <- c(rep(x = 'query', times = ncol(query)), 
-                              rep(x = 'reference', times = ncol(reference)))
+    Idents(combine.obj) <- c(rep(x = 'query', times = ncol(query)), 
+                            rep(x = 'reference', times = ncol(reference))
+                            )
     return(combine.obj)
   } else {
     return(query)
   }
 }
-
-
- 
- 
