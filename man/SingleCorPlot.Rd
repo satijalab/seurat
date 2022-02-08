@@ -15,6 +15,7 @@ SingleCorPlot(
   na.value = "grey50",
   span = NULL,
   raster = NULL,
+  raster.dpi = NULL,
   plot.cor = TRUE,
   jitter = TRUE
 )
@@ -35,6 +36,9 @@ SingleCorPlot(
 \item{raster}{Convert points to raster format, default is \code{NULL}
 which will automatically use raster if the number of points plotted is
 greater than 100,000}
+
+\item{raster.dpi}{the pixel resolution for rastered plots, passed to geom_scattermore().
+Default is c(512, 512)}
 
 \item{plot.cor}{...}
 

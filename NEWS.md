@@ -1,3 +1,13 @@
+# Seurat 4.1.0 (2022-01-14)
+## Added
+- Add `raster.dpi` parameter to `DimPlot/FeaturePlot` to optionally rasterize individual points ([#5392](https://github.com/satijalab/seurat/pull/5392))
+- Add support for sctransform v2, differential expression on with SCT
+
+## Changes
+- Update `ReadParseBio` to support split-pipe 0.9.6p ([#5446](https://github.com/satijalab/seurat/pull/5446))
+- Fixes for MAST differential expression ([#5441](https://github.com/satijalab/seurat/issues/5441))
+- Fix scaling options when using `split.by` in `FeaturePlot()` ([#5243](https://github.com/satijalab/seurat/issues/5243)) 
+
 # Seurat 4.0.6 (2021-12-16)
 ## Added
 

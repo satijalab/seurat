@@ -48,6 +48,8 @@ navbar:
           href: articles/mixscape_vignette.html
         - text: "Using sctransform in Seurat"
           href: articles/sctransform_vignette.html
+        - text: "SCTransform, v2 regularization"
+          href: articles/sctransform_v2_vignette.html
         - text: -------
         - text: Other
         - text: "Data visualization vignette"
