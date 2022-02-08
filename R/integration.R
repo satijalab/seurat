@@ -6642,6 +6642,11 @@ IntegrateSketchEmbeddings <- function(object.list,
                      x = c(list(features),
                            lapply(X = object.list, function(x) rownames(x)))
   )
+  # check cell names
+ cells.sketch.list <- unlist(lapply(X = sketch.list, function(x) Cells(x) ))
+ if (length(x = setdiff(x = cells.sketch.list, y = Cells(sketch.object))) != 0) {
+   stop("Cells name in object.list are the same with Cells in sketch.object.")
+ }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
@@ -6686,8 +6691,8 @@ IntegrateSketchEmbeddings <- function(object.list,
         EXPR = dictionary.method,
         'embeddings'= {
           sketch.transform <- ginv(
-            X = Embeddings(object = inte.sub[[sketch.reduction.raw]])[q.cells ,]) %*%
-            Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]
+            X = Embeddings(object = sketch.object[[sketch.reduction.raw]])[q.cells ,]) %*%
+            Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
           emb <- emb.list[[q]]  %*% sketch.transform
           emb
         }, 
@@ -6695,13 +6700,13 @@ IntegrateSketchEmbeddings <- function(object.list,
           exp.mat <- t(
             x = as.matrix(
               x = GetAssayData(
-                inte.sub[[assay]],
+                sketch.object[[assay]],
                 slot = 'data'
               )[features,q.cells]
             )
           )
           sketch.transform <- ginv(X = exp.mat) %*%
-            Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]
+            Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
           emb <- as.matrix(
             x = t(
               x = GetAssayData(
@@ -6721,13 +6726,13 @@ IntegrateSketchEmbeddings <- function(object.list,
           exp.mat <- as.matrix(
             x = t(
               x = GetAssayData(
-                inte.sub[[assay]],
+                sketch.object[[assay]],
                 slot = 'data')[features,q.cells]
             ) %*% 
               R
           )
           sketch.transform <- ginv(X = exp.mat) %*%
-            Embeddings(object = inte.sub[[sketch.reduction]])[q.cells ,]
+            Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
           emb <- as.matrix(
             x = (
             t(
