@@ -5767,7 +5767,6 @@ BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
                                       object.reduction.list,
                                       bridge.reduction.list,
-                                      dims.list, 
                                       laplacian.reduction = NULL,
                                       laplacian.dims = NULL, 
                                       bridge.assay.name = "Bridge",
@@ -5879,8 +5878,6 @@ BridgeCellsRepresentation <- function(object.list,
 #' to be reconstructed by bridge.obejct
 #' @param bridge.reduction.list A list of dimensional reductions from bridge.object used
 #' to reconstruct object.reduction.list
-#' @param dims.list A list of dimensions to use for object.reduction.list and
-#' bridge.reduction.list
 #' @param anchor.type The type of anchors. Can
 #' be one of:
 #' \itemize{
@@ -5914,7 +5911,6 @@ FindBridgeAnchor <- function(object.list,
                              bridge.object,
                              object.reduction.list,
                              bridge.reduction.list,
-                             dims.list,
                              anchor.type = c("Integration", "Transfer")[1],
                              reference = NULL,
                              laplacian.reduction = "lap", 
