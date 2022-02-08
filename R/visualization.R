@@ -2263,7 +2263,7 @@ PolyFeaturePlot <- function(
 #' Names should be the names of FOVs and values should be the names of
 #' segmentation boundaries
 #' @param molecules A vector of molecules to plot
-#' @param background.color Plot background color
+#' @param dark.background Set plot background to black
 #' @param crop Crop the plots to area with cells only
 #' @param overlap Overlay boundaries from a single image to create a single
 #' plot; if \code{TRUE}, then boundaries are stacked in the order they're
@@ -2301,7 +2301,7 @@ ImageDimPlot <- function(
   border.color = 'black',
   border.size = NULL,
   na.value = 'grey50',
-  background.color = "black",
+  dark.background = TRUE,
   crop = TRUE,
   cells = NULL,
   overlap = FALSE,
@@ -2410,9 +2410,9 @@ ImageDimPlot <- function(
         mdata[[img]] <- NULL
         next
       }
-      # if (isTRUE(x = crop[img])) {
-      #   idata <- Overlay(x = idata, y = idata)
-      # }
+      if (isTRUE(x = crop[img])) {
+        idata <- Overlay(x = idata, y = idata)
+      }
       imols <- gsub(
         pattern = paste0('^', Key(object = idata)),
         replacement = '',
@@ -2459,15 +2459,13 @@ ImageDimPlot <- function(
           facets = vars(!!sym(x = split.by))
         )
       }
+      # Set background color to black
+      if (isTRUE(dark.background)) {
+        p <- p + DarkTheme()
+      }
       if (!isTRUE(x = axes)) {
         p <- p + NoAxes(panel.background = element_blank())
       }
-      # Set background color to black
-      p <- p + theme(
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_rect(fill = background.color, colour = background.color)
-      )
       if (!anyDuplicated(x = pdata[[i]]$cell)) {
         p <- p + guides(fill = guide_legend(override.aes = list(size=4L, alpha=1)))
       }

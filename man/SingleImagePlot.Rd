@@ -9,12 +9,14 @@ SingleImagePlot(
   col.by = NA,
   col.factor = TRUE,
   cols = NULL,
+  size = 0.1,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
+  mols.alpha = 1,
   alpha = molecules \%iff\% 0.3 \%||\% 0.6,
   border.color = "black",
-  border.size = 0.3,
+  border.size = NULL,
   na.value = "grey50",
   ...
 )
@@ -49,6 +51,8 @@ following:
   \code{data$col.by}
 }}
 
+\item{size}{Point size for cells when plotting centroids}
+
 \item{molecules}{A data frame with spatially-resolved molecule coordinates;
 should have the following columns:
 \itemize{
@@ -62,6 +66,8 @@ should have the following columns:
 \item{mols.size}{Point size for molecules}
 
 \item{mols.cols}{A vector of color for molecules}
+
+\item{mols.alpha}{Alpha value for molecules, should be between 0 and 1}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
 boundaries, \code{alpha} is equivalent to max alpha}

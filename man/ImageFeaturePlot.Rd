@@ -20,7 +20,7 @@ ImageFeaturePlot(
   nmols = 1000,
   alpha = molecules \%iff\% 0.3 \%||\% 0.6,
   border.color = "black",
-  border.size = 0.3,
+  border.size = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
   crop = TRUE,

@@ -11,14 +11,17 @@ ImageDimPlot(
   group.by = NULL,
   split.by = NULL,
   cols = NULL,
+  size = 0.1,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
+  mols.alpha = 1,
   nmols = 1000,
   alpha = molecules \%iff\% 0.3 \%||\% 0.6,
   border.color = "black",
-  border.size = 0.3,
+  border.size = NULL,
   na.value = "grey50",
+  dark.background = TRUE,
   crop = TRUE,
   cells = NULL,
   overlap = FALSE,
@@ -47,11 +50,15 @@ or numeric value corresponding to a palette as specified by \code{\link[RColorBr
 By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
 See \code{\link{DiscretePalette}} for details.}
 
+\item{size}{Point size for cells when plotting centroids}
+
 \item{molecules}{A vector of molecules to plot}
 
 \item{mols.size}{Point size for molecules}
 
 \item{mols.cols}{A vector of color for molecules}
+
+\item{mols.alpha}{Alpha value for molecules, should be between 0 and 1}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
 boundaries, \code{alpha} is equivalent to max alpha}
@@ -63,6 +70,8 @@ to suppress borders for segmentation-based plots}
 to suppress borders for centroid-based plots}
 
 \item{na.value}{Color value for NA points when using custom scale}
+
+\item{dark.background}{Set plot background to black}
 
 \item{crop}{Crop the plots to area with cells only}
 
