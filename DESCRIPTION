@@ -30,6 +30,7 @@ Depends:
 Imports:
     cluster,
     cowplot,
+    fastDummies,
     fitdistrplus,
     future,
     future.apply,
@@ -59,6 +60,7 @@ Imports:
     RColorBrewer,
     Rcpp (>= 1.0.7),
     RcppAnnoy (>= 0.0.18),
+    RcppHNSW,
     reticulate,
     rlang,
     ROCR,
