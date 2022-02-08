@@ -5795,11 +5795,27 @@ BridgeCellsRepresentation <- function(object.list,
      bridge = 1:ncol( bridge.object[[bridge.reduction.list[[i]] ]])
      )
    projected.dims.index <- which(sapply(ref.dims, function(x) !is.null(x)))
-   reference.dims.index <- setdiff(c(1:2), projected.dims.index)
-   dims.list[[i]] <- list()
-   dims.list[[i]][[reference.dims.index]] <- ref.dims[[projected.dims.index ]]
-   dims.list[[i]][[projected.dims.index]] <- all.dims[[projected.dims.index]]
-   names(dims.list[[i]]) <- c('object', 'bridge')
+   if (length(projected.dims.index) == 0) {
+     warning('No reference dims found in the dimensional reduction,',
+             ' all dims in the dimensional reduction will be used.')
+     if (all.dims[[1]] == all.dims[[2]]) {
+       dims.list[[i]]  <- all.dims 
+     } else {
+       stop( 'The number of dimensions in the object.list ', 
+             object.reduction.list[[i]],
+             ' (', length(all.dims[[1]]), ') ',
+       ' and the number of dimensions in the bridge object ',
+       bridge.reduction.list[[i]], 
+       ' (', length(all.dims[[2]]), ') ',
+       ' is different.') 
+     }
+   } else {
+     reference.dims.index <- setdiff(c(1:2), projected.dims.index)
+     dims.list[[i]] <- list()
+     dims.list[[i]][[reference.dims.index]] <- ref.dims[[projected.dims.index ]]
+     dims.list[[i]][[projected.dims.index]] <- all.dims[[projected.dims.index]]
+     names(dims.list[[i]]) <- c('object', 'bridge')
+   }
     }
 
   object.list <- my.lapply(
@@ -5964,7 +5980,6 @@ FindBridgeAnchor <- function(object.list,
     bridge.object = bridge.object,
     object.reduction.list = object.reduction.list,
     bridge.reduction.list = bridge.reduction.list,
-    dims.list = dims.list,
     bridge.assay.name = bridge.assay.name,
     laplacian.reduction = laplacian.reduction,
     laplacian.dims = laplacian.dims,
