@@ -6049,7 +6049,7 @@ FindBridgeAnchor <- function(object.list,
                      }
     )
   }
-  
+  if (anchor.type == "Transfer") {
     if (stored.bridge.weights) {
       slot( object = anchor,name = "weight.reduction"
       )@misc$bridge.sets <- list(
@@ -6067,6 +6067,7 @@ FindBridgeAnchor <- function(object.list,
         )$MapQuery$anchor[,1]
       )
     }
+  }
  
   slot(object = anchor, name = "command") <- LogSeuratCommand(
     object = object.list[[1]],
