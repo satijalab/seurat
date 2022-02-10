@@ -5651,7 +5651,7 @@ NNtoGraph <- function(
 #
 # @return Returns an Integration or TranserAnchor set
 
-FindDirectAnchor <- function(
+FindAssayAnchor <- function(
   object.list,
   reference = NULL,
   anchor.type = c("Integration", "Transfer")[1],
@@ -6002,7 +6002,7 @@ FindBridgeAnchor <- function(object.list,
     }
   )
   if (reduction == "direct") {
-    anchor <- FindDirectAnchor(
+    anchor <- FindAssayAnchor(
       object.list = object.list ,
       reference = reference,
       slot = "data",
