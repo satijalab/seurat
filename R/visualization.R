@@ -2452,16 +2452,13 @@ ImageDimPlot <- function(
         mols.alpha = mols.alpha,
         border.color = border.color,
         border.size = border.size,
-        na.value = na.value
+        na.value = na.value,
+        dark.background = dark.background
       )
       if (!is.null(x = split.by)) {
         p <- p + facet_wrap(
           facets = vars(!!sym(x = split.by))
         )
-      }
-      # Set background color to black
-      if (isTRUE(dark.background)) {
-        p <- p + DarkTheme()
       }
       if (!isTRUE(x = axes)) {
         p <- p + NoAxes(panel.background = element_blank())
@@ -2526,6 +2523,7 @@ ImageFeaturePlot <- function(
   alpha = molecules %iff% 0.3 %||% 0.6,
   border.color = 'white',
   border.size = NULL,
+  dark.background = TRUE,
   blend = FALSE,
   blend.threshold = 0.5,
   crop = TRUE,
@@ -2903,7 +2901,8 @@ ImageFeaturePlot <- function(
           mols.cols = mols.cols,
           alpha = alpha,
           border.color = border.color,
-          border.size = border.size
+          border.size = border.size,
+          dark.background = dark.background
         ) +
           theme_cowplot() +
           CenterTitle()
@@ -8439,6 +8438,7 @@ SingleImagePlot <- function(
   border.color = 'white',
   border.size = NULL,
   na.value = 'grey50',
+  dark.background = TRUE,
   ...
 ) {
   # Check input data
@@ -8577,6 +8577,10 @@ SingleImagePlot <- function(
     } else {
       warning("Invalid molecule coordinates", immediate. = TRUE)
     }
+  }
+
+  if (isTRUE(dark.background)) {
+    plot <- plot + DarkTheme()
   }
   return(plot)
 }

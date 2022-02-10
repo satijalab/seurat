@@ -130,13 +130,14 @@ LoadNanostring <- function(data.dir, fov = 'fov', assay = 'Nanostring') {
     assay = assay
   )
   obj <- CreateSeuratObject(counts = data$matrix, assay = assay)
-  coords <- subset(
-    x = coords,
-    cells = intersect(
-      x = Cells(x = coords[["segmentation"]]),
-      y = Cells(x = obj)
-    )
+
+  # subset both object and coords based on the cells shared by both
+  cells <- intersect(
+    Cells(x = coords, boundary = "segmentation"),
+    Cells(x = coords, boundary = "centroids")
   )
+  cells <- intersect(Cells(obj), cells)
+  coords <- subset(x = coords, cells = cells)
   obj[[fov]] <- coords
   return(obj)
 }
