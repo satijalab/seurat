@@ -68,7 +68,7 @@ Imports:
     scales,
     scattermore (>= 0.7),
     sctransform (>= 0.3.3),
-    SeuratObject (>= 4.0.999.9007),
+    SeuratObject (>= 4.0.999.9009),
     shiny,
     spatstat.core,
     spatstat.geom,
