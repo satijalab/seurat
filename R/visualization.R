@@ -2513,6 +2513,7 @@ ImageFeaturePlot <- function(
   } else {
     c("lightgrey", "blue")
   },
+  size = 0.1,
   min.cutoff = NA,
   max.cutoff = NA,
   split.by = NULL,
@@ -2894,6 +2895,7 @@ ImageFeaturePlot <- function(
         p <- SingleImagePlot(
           data = data.plot,
           col.by = feature,
+          size = size,
           col.factor = blend,
           cols = cols.use,
           molecules = mdata[[img]],
@@ -2904,7 +2906,6 @@ ImageFeaturePlot <- function(
           border.size = border.size,
           dark.background = dark.background
         ) +
-          theme_cowplot() +
           CenterTitle()
         # Remove fill guides for blended plots
         if (isTRUE(x = blend)) {
