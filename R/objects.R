@@ -454,6 +454,7 @@ CreateSCTAssayObject <- function(
 #' remove all DimReducs)
 #' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
 #' all Graphs)
+#' @param misc Preserve the `@misc` slot (default is TRUE)
 #'
 #' @export
 #' @concept objects
@@ -466,7 +467,8 @@ DietSeurat <- function(
   features = NULL,
   assays = NULL,
   dimreducs = NULL,
-  graphs = NULL
+  graphs = NULL,
+  misc = TRUE
 ) {
   object <- UpdateSlots(object = object)
   assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
@@ -508,6 +510,11 @@ DietSeurat <- function(
       }
     }
   }
+  # remove misc when desired
+  if (isFALSE(x = misc)) {
+    object@misc <- list()
+  }
+
   # remove unspecified DimReducs and Graphs
   all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
   objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
