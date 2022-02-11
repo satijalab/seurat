@@ -2281,7 +2281,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between the reference and query Seurat objects. \n",
-        "This can be used as input to TransferData.")
+        "This can be used as input to TransferData.\n")
   }
 )
 
@@ -2291,7 +2291,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData.")
+        "This can be used as input to IntegrateData.\n")
   }
 )
 
@@ -2302,7 +2302,7 @@ setMethod(
     cat(
       'A ModalityWeights object containing modality weights between',
       paste(slot(object = object, name = "modality.assay"), collapse = " and "),
-      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.\n")
   }
 )
 
@@ -2314,7 +2314,7 @@ setMethod(
       "An sctransform model.\n",
       " Model formula: ", slot(object = object, name = "model"),
       "\n  Parameters stored for", nrow(x = SCTResults(object = object, slot = "feature.attributes")), "features,",
-      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells")
+      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells.\n")
   }
 )
 
