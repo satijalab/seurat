@@ -67,7 +67,7 @@ Imports:
     Rtsne,
     scales,
     scattermore (>= 0.7),
-    sctransform (>= 0.3.3),
+    sctransform,
     SeuratObject (>= 4.0.4),
     shiny,
     spatstat.core,
