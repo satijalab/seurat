@@ -2310,7 +2310,7 @@ ImageDimPlot <- function(
 ) {
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
-  fov <- fov %||% .DefaultFOV(object = object)
+  fov <- fov %||% DefaultFOV(object = object)
   fov <- Filter(
     f = function(x) {
       return(
@@ -2511,7 +2511,7 @@ ImageFeaturePlot <- function(
   cols = if (isTRUE(x = blend)) {
     c("lightgrey", "#ff0000", "#00ff00")
   } else {
-    c("lightgrey", "blue")
+    c("lightgrey", "firebrick1")
   },
   size = 0.1,
   min.cutoff = NA,
@@ -2551,7 +2551,7 @@ ImageFeaturePlot <- function(
     )
   )
   # Determine fov to use
-  fov <- fov %||% .DefaultFOV(object = object)
+  fov <- fov %||% DefaultFOV(object = object)
   fov <- Filter(
     f = function(x) {
       return(
@@ -8400,7 +8400,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #'  \item \dQuote{\code{molecule}}: Molecule name
 #' }
 #' @param mols.size Point size for molecules
-#' @param mols.cols A vector of color for molecules
+#' @param mols.cols A vector of color for molecules. The "Set1" palette from
+#' RColorBrewer is used by default.
 #' @param mols.alpha Alpha value for molecules, should be between 0 and 1
 #' @param alpha Alpha value, should be between 0 and 1; when plotting multiple
 #' boundaries, \code{alpha} is equivalent to max alpha
@@ -8501,7 +8502,6 @@ SingleImagePlot <- function(
       y = 'x',
       alpha = 'boundary',
       fill = col.by %NA% NULL
-      # fill = col.by
     )
   )
   if (!is_na(x = data)) {
@@ -8517,6 +8517,7 @@ SingleImagePlot <- function(
           size = border.size
         )
       } else {
+        # Default to no borders when plotting centroids
         if (is.null(border.size)) {
           border.size <- 0.0
         }
@@ -8569,9 +8570,9 @@ SingleImagePlot <- function(
         guides(color = guide_legend(override.aes = list(size = 3L))) +
         scale_color_manual(
           name = 'Molecules',
-          values = mols.cols %||% DiscretePalette(
+          values = mols.cols %||% brewer.pal(
             n = length(x = levels(x = molecules$molecule)),
-            palette = 'alphabet'
+            name = "Set1"
           ),
           guide = guide_legend()
         )
