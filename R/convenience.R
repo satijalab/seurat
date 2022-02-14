@@ -22,10 +22,13 @@ NULL
 LoadAkoya <- function(
   filename,
   type = c('inform', 'processor', 'qupath'),
-  fov = 'fov',
+  fov = NULL,
   assay = 'Akoya',
   ...
 ) {
+  if (is.null(fov)) {
+    stop("Please provide an FOV name.")
+  }
   # read in matrix and centroids
   data <- ReadAkoya(filename = filename, type = type)
   # convert centroids into coords object
@@ -66,8 +69,10 @@ LoadAkoya <- function(
 #'
 #' @rdname ReadVitessce
 #'
-LoadHuBMAPCODEX <- function(data.dir, fov = "fov", assay = 'CODEX') {
-  # TODO: come up with a better function names
+LoadHuBMAPCODEX <- function(data.dir, fov = NULL, assay = 'CODEX') {
+  if (is.null(fov)) {
+    stop("Please provide an FOV name.")
+  }
   data <- ReadVitessce(
     counts = file.path(data.dir, "reg1_stitched_expressions.clusters.json"),
     coords = file.path(data.dir, "reg1_stitched_expressions.cells.json"),
@@ -98,7 +103,10 @@ LoadHuBMAPCODEX <- function(data.dir, fov = "fov", assay = 'CODEX') {
 #'
 #' @rdname ReadNanostring
 #'
-LoadNanostring <- function(data.dir, fov = 'fov', assay = 'Nanostring') {
+LoadNanostring <- function(data.dir, fov = NULL, assay = 'Nanostring') {
+  if (is.null(fov)) {
+    stop("Please provide an FOV name.")
+  }
   data <- ReadNanostring(
     data.dir = data.dir,
     metadata = c(
@@ -151,7 +159,10 @@ LoadNanostring <- function(data.dir, fov = 'fov', assay = 'Nanostring') {
 #'
 #' @rdname ReadVizgen
 #'
-LoadVizgen <- function(data.dir, fov = "fov", assay = 'Vizgen', z = 3L) {
+LoadVizgen <- function(data.dir, fov = NULL, assay = 'Vizgen', z = 3L) {
+  if (is.null(fov)) {
+    stop("Please provide an FOV name.")
+  }
   data <- ReadVizgen(
     data.dir = data.dir,
     filter = "^Blank-",
