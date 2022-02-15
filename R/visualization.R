@@ -2302,7 +2302,7 @@ ImageDimPlot <- function(
   border.size = NULL,
   na.value = 'grey50',
   dark.background = TRUE,
-  crop = TRUE,
+  crop = FALSE,
   cells = NULL,
   overlap = FALSE,
   axes = FALSE,
@@ -2527,7 +2527,7 @@ ImageFeaturePlot <- function(
   dark.background = TRUE,
   blend = FALSE,
   blend.threshold = 0.5,
-  crop = TRUE,
+  crop = FALSE,
   cells = NULL,
   scale = c('feature', 'all', 'none'),
   overlap = FALSE,
@@ -3712,7 +3712,7 @@ ISpatialFeaturePlot <- function(
 #' default, ggplot2 assigns colors
 #' @param image.alpha Adjust the opacity of the background images. Set to 0 to
 #' remove.
-#' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
+#' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
 #' data, or scale.data)
