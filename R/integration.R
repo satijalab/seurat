@@ -1567,7 +1567,10 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.datasets <- slot(object = anchorset, name = 'reference.objects')
   object.list <- slot(object = anchorset, name = 'object.list')
   anchors <- slot(object = anchorset, name = 'anchors')
-  reductions <- reductions %||%  slot(object = anchorset, name = 'weight.reduction')
+  reductions <- reductions %||%  slot(
+    object = anchorset,
+    name = 'weight.reduction'
+  )
   ValidateParams_IntegrateEmbeddings_IntegrationAnchors(
     anchorset = anchorset,
     object.list = object.list,
@@ -1624,7 +1627,9 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   )
   if (length(x = reference.datasets) == length(x = object.list)) {
     reference.dr <- CreateDimReducObject(
-      embeddings = as.matrix(x = t(GetAssayData(reference.integrated[[new.reduction.name.safe]]))),
+      embeddings = as.matrix(x = t(GetAssayData(
+        object = reference.integrated[[new.reduction.name.safe]]
+      ))),
       assay = intdr.assay,
       loadings = Loadings(object = reductions),
       key = paste0(new.reduction.name.safe, "_")
@@ -1910,15 +1915,15 @@ LocalStruct <- function(
 #' @inheritParams IntegrateEmbeddings
 #' @inheritParams TransferData
 #' @inheritParams ProjectUMAP
-#' @param store.weights Determine if the weight and anchor matrices are stored. 
+#' @param store.weights Determine if the weight and anchor matrices are stored.
 #' @param transferdata.args A named list of additional arguments to
 #' \code{\link{TransferData}}
 #' @param integrateembeddings.args A named list of additional arguments to
 #' \code{\link{IntegrateEmbeddings}}
 #' @param projectumap.args A named list of additional arguments to
 #' \code{\link{ProjectUMAP}}
-#' @return Returns a modified query Seurat object containing:
 #'
+#' @return Returns a modified query Seurat object containing:#'
 #' \itemize{
 #'   \item{New Assays corresponding to the features transferred and/or their
 #'   corresponding prediction scores from \code{\link{TransferData}}}
@@ -1941,7 +1946,7 @@ MapQuery <- function(
   reference.reduction = NULL,
   reference.dims = NULL,
   query.dims = NULL,
-  store.weights = FALSE, 
+  store.weights = FALSE,
   reduction.model = NULL,
   transferdata.args = list(),
   integrateembeddings.args = list(),
@@ -1990,41 +1995,38 @@ MapQuery <- function(
     reference.dims <- query.dims <- 1:ncol(x = ref.cca.embedding)
   } else if (grepl(pattern = "lsi", x = transfer.reduction)) {
     anchor.reduction <- "lsiproject"
-  }  else if (grepl(pattern = "direct", x = transfer.reduction)){
+  }  else if (grepl(pattern = "direct", x = transfer.reduction)) {
     anchor.reduction <- paste0(
-      slot(object = anchorset, 
-           name = "command")$bridge.assay.name, 
+      slot(object = anchorset,
+           name = "command")$bridge.assay.name,
       ".reduc"
       )
     ref.reduction.emb <- Embeddings(
-      object = 
+      object =
         slot(
-          object = anchorset, 
+          object = anchorset,
           name = "object.list"
           )[[1]][[anchor.reduction]])[
             slot(object = anchorset, name = "reference.cells"),]
     rownames(ref.reduction.emb) <- gsub(
       pattern = "_reference",
       replacement = "",
-      x = rownames(ref.reduction.emb) 
+      x = rownames(ref.reduction.emb)
       )
      reference[[anchor.reduction]] <- CreateDimReducObject(
        embeddings = ref.reduction.emb,
-       key = "L_", 
+       key = "L_",
        assay = DefaultAssay(reference)
        )
-  } 
+  }
   else {
     stop("unkown type of anchors")
   }
- 
-
   reference.reduction <- reference.reduction %||%
     slot(object = anchorset, name = "command")$reference.reduction %||%
     anchor.reduction
   new.reduction.name <- new.reduction.name %||%
     paste0("ref.", reference.reduction)
-
   # checking TransferData parameters
   td.badargs <- names(x = transferdata.args)[!names(x = transferdata.args) %in% names(x = formals(fun = TransferData))]
   if (length(x = td.badargs) > 0) {
@@ -2044,26 +2046,24 @@ MapQuery <- function(
   integrateembeddings.args$weight.reduction <- integrateembeddings.args$weight.reduction %||% anchor.reduction
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
- 
-    query <- invoke(
-      .fn = TransferData,
-      .args  = c(list(
-        anchorset = anchorset,
-        reference = reference,
-        query = query,
-        refdata = refdata,
-        store.weights = TRUE,
-        only.weights =  is.null(x = refdata), 
-        verbose = verbose
-        ), transferdata.args
-      )
+  query <- invoke(
+    .fn = TransferData,
+    .args  = c(list(
+      anchorset = anchorset,
+      reference = reference,
+      query = query,
+      refdata = refdata,
+      store.weights = TRUE,
+      only.weights =  is.null(x = refdata),
+      verbose = verbose
+    ), transferdata.args
     )
-    if (inherits(x = transferdata.args$weight.reduction , "character") &&
-           transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
-      reuse.weights.matrix <- TRUE
-    }
-
-  if (anchor.reduction != "cca"){
+  )
+  if (inherits(x = transferdata.args$weight.reduction , "character") &&
+      transferdata.args$weight.reduction == integrateembeddings.args$weight.reduction) {
+    reuse.weights.matrix <- TRUE
+  }
+  if (anchor.reduction != "cca") {
     query <- invoke(
       .fn = IntegrateEmbeddings,
       .args  = c(list(
@@ -2081,12 +2081,12 @@ MapQuery <- function(
       slot = 'ref.dims'
       ) <-  slot(object = anchorset, name = "command")$dims
   }
-    slot(object = query, name = "tools")$MapQuery <- NULL
+  slot(object = query, name = "tools")$MapQuery <- NULL
   if (store.weights) {
     slot(object = query, name = "tools")$MapQuery <- slot(
-      object = query, 
+      object = query,
       name = "tools"
-      )$TransferData 
+      )$TransferData
     slot(object = query, name = "tools")$MapQuery$anchor <- slot(
       object = anchorset,
       name = "anchors"
@@ -2873,9 +2873,13 @@ SelectIntegrationFeatures <- function(
 #'
 #' @references Stuart T, Butler A, et al. Comprehensive Integration of
 #' Single-Cell Data. Cell. 2019;177:1888-1902 \doi{10.1016/j.cell.2019.05.031}
+#'
 #' @importFrom Matrix t
+#'
 #' @export
+#'
 #' @concept integration
+#'
 #' @examples
 #' \dontrun{
 #' # to install the SeuratData package see https://github.com/satijalab/seurat-data
@@ -2918,7 +2922,7 @@ TransferData <- function(
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
-  only.weights = FALSE, 
+  only.weights = FALSE,
   store.weights = TRUE
 ) {
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
@@ -2943,7 +2947,7 @@ TransferData <- function(
     eps = eps,
     n.trees = n.trees,
     verbose = verbose,
-    only.weights = only.weights, 
+    only.weights = only.weights,
     slot = slot,
     prediction.assay = prediction.assay,
     label.transfer = label.transfer
@@ -2952,7 +2956,7 @@ TransferData <- function(
     if (verbose) {
       message("Running PCA on query dataset")
     }
-  
+
     features <- slot(object = anchorset, name = "anchor.features")
     query.ob <- query
     query.ob <- ScaleData(object = query.ob, features = features, verbose = FALSE)
@@ -3043,7 +3047,7 @@ TransferData <- function(
       slot(object = query, name = "tools")[["TransferData"]] <- list(weights.matrix = weights)
       return(query)
     }
-  }  
+  }
   anchors <- as.data.frame(x = anchors)
   query.cells <- unname(obj = sapply(
     X = query.cells,
@@ -3061,8 +3065,12 @@ TransferData <- function(
       anchors$id1 <- refdata[[rd]][anchors[, "cell1"]]
       reference.ids <- factor(x = anchors$id1, levels = unique(x = refdata[[rd]]))
       possible.ids <- levels(x = reference.ids)
-      prediction.mat <- matrix(nrow = nrow(x = anchors), ncol = length(x = possible.ids), data = 0)
-      for(i in 1:length(x = possible.ids)) {
+      prediction.mat <- matrix(
+        nrow = nrow(x = anchors),
+        ncol = length(x = possible.ids),
+        data = 0
+      )
+      for (i in 1:length(x = possible.ids)) {
         prediction.mat[which(reference.ids == possible.ids[i]), i] = 1
       }
       if (verbose) {
@@ -3077,19 +3085,19 @@ TransferData <- function(
           x = dummy_cols(
             refdata[[rd]][ bridge.weight$bridge.ref_anchor ]
           )[, -1]
-        ) 
+        )
         colnames(bridge.prediction.matrix) <- gsub(
           pattern = ".data_",
           replacement = "",
           x = colnames(bridge.prediction.matrix)
-        ) 
+        )
         extra.id <- setdiff(possible.ids, colnames(bridge.prediction.matrix))
         if (length(extra.id) > 0) {
-          extra.prediction <- as.sparse(
-            matrix(data = 0,
-                   nrow = nrow(bridge.prediction.matrix),
-                   ncol = length(extra.id))
-            )
+          extra.prediction <- as.sparse(x = matrix(
+            data = 0,
+            nrow = nrow(bridge.prediction.matrix),
+            ncol = length(extra.id)
+          ))
           colnames(extra.prediction) <- extra.id
           bridge.prediction.matrix <- cbind(
             bridge.prediction.matrix,
@@ -3098,7 +3106,7 @@ TransferData <- function(
         }
         bridge.prediction.matrix <- bridge.prediction.matrix[,possible.ids, drop = FALSE]
          bridge.prediction.scores <- t(bridge.weight$query.weights) %*%
-        (t(bridge.weight$bridge.weights) %*% 
+        (t(bridge.weight$bridge.weights) %*%
            bridge.prediction.matrix)[bridge.weight$query.ref_anchor,]
          prediction.scores <- (prediction.scores + bridge.prediction.scores)/2
          prediction.scores <- as.matrix(x = prediction.scores)
@@ -3106,7 +3114,7 @@ TransferData <- function(
       prediction.ids <- possible.ids[apply(X = prediction.scores, MARGIN = 1, FUN = which.max)]
       prediction.ids <- as.character(prediction.ids)
       prediction.max <- apply(X = prediction.scores, MARGIN = 1, FUN = max)
-      if (is.null(x = query)){
+      if (is.null(x = query)) {
         prediction.scores <- cbind(prediction.scores, max = prediction.max)
       }
       predictions <- data.frame(
@@ -5245,7 +5253,7 @@ ValidateParams_TransferData <- function(
   n.trees,
   verbose,
   slot,
-  only.weights, 
+  only.weights,
   prediction.assay,
   label.transfer
 ) {
@@ -5253,7 +5261,7 @@ ValidateParams_TransferData <- function(
   if (is.null(refdata)) {
     if (!only.weights) {
       stop("refdata is NULL and only.weights is FALSE")
-    } 
+    }
   } else {
     if (!inherits(x = refdata, what = "list")) {
       refdata <- list(id = refdata)
@@ -5336,10 +5344,10 @@ ValidateParams_TransferData <- function(
     }
     ModifyParam(param = "refdata", value = refdata)
   }
-  
-  
-  
-  
+
+
+
+
   object.reduction <- Reductions(object = slot(object = anchorset, name = "object.list")[[1]])
   valid.weight.reduction <- c("pcaproject", "pca", "cca", "rpca.ref","lsiproject", "lsi", object.reduction)
   if (!inherits(x = weight.reduction, "DimReduc")) {
@@ -5604,22 +5612,22 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 #' @param nn.object A neighbor class object
 #' @param col.cells Cells names of the neighbors, cell names in nn.object is used by default
 #' @param weighted Determine if use distance in the Graph
-#' 
-#' 
-#' @export
-#' @importFrom Matrix sparseMatrix
+#'
 #' @return Returns a Graph object
-
-
-
+#'
+#' @importFrom Matrix sparseMatrix
+#'
+#' @export
+#'
 NNtoGraph <- function(
-  nn.object, 
-  col.cells = NULL, 
-  weighted = FALSE) {
+  nn.object,
+  col.cells = NULL,
+  weighted = FALSE
+) {
   select_nn <- Indices(object = nn.object)
   col.cells <- col.cells %||% Cells(x = nn.object)
   ncol.nn <- length(x = col.cells)
-  k.nn <- ncol(x = select_nn)  
+  k.nn <- ncol(x = select_nn)
   j <- as.numeric(x = t(x = select_nn))
   i <- ((1:length(x = j)) - 1) %/% k.nn + 1
   if (weighted) {
@@ -5650,7 +5658,6 @@ NNtoGraph <- function(
 #
 #
 # @return Returns an Integration or TranserAnchor set
-
 FindAssayAnchor <- function(
   object.list,
   reference = NULL,
@@ -5755,16 +5762,16 @@ FindAssayAnchor <- function(
 
 
 #' Use bridge cells to represent single-modality object
-#' 
+#'
 #' @inheritParams FindBridgeAnchor
-#' @param return.all.assays if return all assays in the object.list. 
+#' @param return.all.assays if return all assays in the object.list.
 #' Only bridge assay is returned by default.
 #'
 #'
 #' @importFrom MASS ginv
 #' @return Returns a object list in which each object has a bridge cell derived assay
 #' @export
-#' 
+#'
 
 
 BridgeCellsRepresentation <- function(object.list,
@@ -5772,7 +5779,7 @@ BridgeCellsRepresentation <- function(object.list,
                                       object.reduction.list,
                                       bridge.reduction.list,
                                       laplacian.reduction = NULL,
-                                      laplacian.dims = NULL, 
+                                      laplacian.dims = NULL,
                                       bridge.assay.name = "Bridge",
                                       return.all.assays = FALSE,
                                       l2.norm = TRUE,
@@ -5790,7 +5797,7 @@ BridgeCellsRepresentation <- function(object.list,
   }
   dims.list <- list()
   for (i in 1:length(object.reduction.list)) {
-   ref.dims <- list(  
+   ref.dims <- list(
     object= Misc(object.list[[i]][[object.reduction.list[[i]]]], slot = 'ref.dims'),
     bridge = Misc( bridge.object[[bridge.reduction.list[[i]]]], slot = 'ref.dims')
    )
@@ -5803,15 +5810,15 @@ BridgeCellsRepresentation <- function(object.list,
      warning('No reference dims found in the dimensional reduction,',
              ' all dims in the dimensional reduction will be used.')
      if (all.dims[[1]] == all.dims[[2]]) {
-       dims.list[[i]]  <- all.dims 
+       dims.list[[i]]  <- all.dims
      } else {
-       stop( 'The number of dimensions in the object.list ', 
+       stop( 'The number of dimensions in the object.list ',
              object.reduction.list[[i]],
              ' (', length(all.dims[[1]]), ') ',
        ' and the number of dimensions in the bridge object ',
-       bridge.reduction.list[[i]], 
+       bridge.reduction.list[[i]],
        ' (', length(all.dims[[2]]), ') ',
-       ' is different.') 
+       ' is different.')
      }
    } else {
      reference.dims.index <- setdiff(c(1:2), projected.dims.index)
@@ -5827,14 +5834,14 @@ BridgeCellsRepresentation <- function(object.list,
     FUN = function(x) {
       SA.inv <- ginv(
         X = Embeddings(
-          object = bridge.object, 
+          object = bridge.object,
           reduction = bridge.reduction.list[[x]]
         )[ ,dims.list[[x]]$bridge]
       )
         if (!is.null(laplacian.reduction)) {
           lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
           X <- Embeddings(
-            object = object.list[[x]], 
+            object = object.list[[x]],
             reduction = object.reduction.list[[x]]
           )[,   dims.list[[x]]$object] %*% (SA.inv %*% lap.vector)
         } else {
@@ -5877,7 +5884,7 @@ BridgeCellsRepresentation <- function(object.list,
 
 #' Find bridge anchors between two modalities objects
 #'
-#' First, bridge object is used to reconstruct two single-modality profiles and 
+#' First, bridge object is used to reconstruct two single-modality profiles and
 #' then project those cells into bridage graph laplacian space.
 #' Next, find a set of anchors between two single-modality objects. These
 #' anchors can later be used to integrate embeddings or transfer data from the reference to
@@ -5889,7 +5896,7 @@ BridgeCellsRepresentation <- function(object.list,
 #'   \item{ Find anchors between objects. It can be either IntegrationAnchors or TransferAnchor.
 #'  }
 #' }
-#'  
+#'
 #' @param object.list A list of Seurat objects between which to
 #' find anchors for downstream integration.
 #' @param bridge.object A multimodal bridge seurat which connects two
@@ -5920,12 +5927,12 @@ BridgeCellsRepresentation <- function(object.list,
 #' @param verbose Print messages and progress
 #' @param ... Additional parameters passed to \code{FindIntegrationAnchors} or
 #' \code{FindTransferAnchors}
-#' 
-#' 
+#'
+#'
 #' @return Returns an \code{\link{AnchorSet}} object that can be used as input to
 #' \code{\link{IntegrateEmbeddings}}.or \code{\link{MapQuery}}
 #' @export
-#' 
+#'
 
 FindBridgeAnchor <- function(object.list,
                              bridge.object,
@@ -5933,17 +5940,17 @@ FindBridgeAnchor <- function(object.list,
                              bridge.reduction.list,
                              anchor.type = c("Integration", "Transfer")[1],
                              reference = NULL,
-                             laplacian.reduction = "lap", 
-                             laplacian.dims = NULL, 
-                             reduction = c("direct", "cca")[1], 
+                             laplacian.reduction = "lap",
+                             laplacian.dims = NULL,
+                             reduction = c("direct", "cca")[1],
                              bridge.assay.name = "Bridge",
                              k.anchor = 20,
                              k.score = 50,
                              verbose = TRUE,
                              ...
                              ) {
-  
-  
+
+
   if (!is.null(laplacian.reduction)) {
     bridge.method <- "bridge graph"
   } else {
@@ -5955,7 +5962,7 @@ FindBridgeAnchor <- function(object.list,
       EXPR = bridge.method,
       "bridge graph" = {
         message('Transform cells to bridge graph laplacian space')
-      }, 
+      },
       "bridge cells" = {
         message('Transform cells to bridge cells space')
       }
@@ -5976,7 +5983,7 @@ FindBridgeAnchor <- function(object.list,
     } else {
       stored.bridge.weights <- TRUE
     }
-  }  
+  }
 
   bridge.reduction.name <- paste0(bridge.assay.name, ".reduc")
   object.list <- BridgeCellsRepresentation(
@@ -5991,7 +5998,7 @@ FindBridgeAnchor <- function(object.list,
   )
   # assay to dimensional reduction
   object.list <- lapply(
-    X = object.list, 
+    X = object.list,
     FUN =  function(x) {
       x[[bridge.reduction.name]] <- CreateDimReducObject(
         embeddings = t(GetAssayData(
@@ -6000,7 +6007,7 @@ FindBridgeAnchor <- function(object.list,
           assay = bridge.assay.name
         )),
         key = "L_",
-        assay = bridge.assay.name 
+        assay = bridge.assay.name
       )
       return(x)
     }
@@ -6018,7 +6025,7 @@ FindBridgeAnchor <- function(object.list,
       verbose = verbose
     )
   } else if (reduction == "cca") {
-    anchor <- switch(EXPR = anchor.type, 
+    anchor <- switch(EXPR = anchor.type,
                      "Integration" = {
                        anchor <- FindIntegrationAnchors(
                          object.list = object.list,
@@ -6037,11 +6044,11 @@ FindBridgeAnchor <- function(object.list,
                                     object.list[[2]][[bridge.reduction.name]]
                                     )
                        anchor
-                     }, 
+                     },
                      "Transfer" = {
                        anchor <-  FindTransferAnchors(
                          reference = object.list[[reference]],
-                         query = object.list[[query]], 
+                         query = object.list[[query]],
                          reduction = "cca",
                          scale = FALSE,
                          k.filter = NA,
@@ -6059,20 +6066,20 @@ FindBridgeAnchor <- function(object.list,
       )@misc$bridge.sets <- list(
         bridge.weights =   slot(object = bridge.object,
                                 name = "tools"
-        )$MapQuery$weights.matrix, 
+        )$MapQuery$weights.matrix,
         bridge.ref_anchor =  slot(object = bridge.object,
                                   name = "tools"
-        )$MapQuery$anchor[,1], 
+        )$MapQuery$anchor[,1],
         query.weights =  slot(object = object.list[[query]],
                               name = "tools"
-        )$MapQuery$weights.matrix, 
+        )$MapQuery$weights.matrix,
         query.ref_anchor =  slot(object = object.list[[query]],
                                  name = "tools"
         )$MapQuery$anchor[,1]
       )
     }
   }
- 
+
   slot(object = anchor, name = "command") <- LogSeuratCommand(
     object = object.list[[1]],
     return.command = TRUE
@@ -6109,7 +6116,7 @@ TransferLablesNN <- function(
     x = dummy_cols(
       reference.object[[group.by]]
     )[, -1]
-  ) 
+  )
   colnames(reference.labels.matrix) <- gsub(
     pattern = paste0(group.by, "_"),
     replacement = "",
@@ -6121,7 +6128,7 @@ TransferLablesNN <- function(
   prediction.max <- apply(X = query.label.mat, MARGIN = 1, FUN = which.max)
   query.label <- colnames(x = query.label.mat)[prediction.max]
   query.label.score <- apply(X = query.label.mat, MARGIN = 1, FUN = max)
-  
+
   output.list <- list(labels = query.label,
                       scores = query.label.score,
                       prediction.mat = query.label.mat
@@ -6135,25 +6142,25 @@ TransferExpressionNN<- function(
   reference.object,
   var.name = NULL
 ){
- 
-  nn.matrix <- NNtoGraph(nn.object = nn.object, 
+
+  nn.matrix <- NNtoGraph(nn.object = nn.object,
                          col.cells = Cells(reference.object)
                          )
   reference.exp.matrix <- FetchData(object = reference.object, vars = var.name)
   # remove NA
   reference.exp.matrix <- reference.exp.matrix[complete.cases(reference.exp.matrix), ,drop= F]
   nn.matrix <- nn.matrix[, rownames(reference.exp.matrix)]
-  
+
   # remove NO neighbor query
-  nn.sum <- RowSumSparse(mat = nn.matrix) 
+  nn.sum <- RowSumSparse(mat = nn.matrix)
   nn.matrix <- nn.matrix[nn.sum > 2, ]
   nn.sum <- nn.sum[nn.sum>2]
-  
+
   # transfer data
   reference.exp.matrix <- as.matrix(reference.exp.matrix)
   query.exp.mat <- nn.matrix %*% reference.exp.matrix
   query.exp.mat <- sweep(x = query.exp.mat, MARGIN = 1, STATS = nn.sum, FUN = "/")
-  
+
   # set output for all query cells
   query.exp.all <- data.frame(row.names = Cells(nn.object))
   query.exp.all[rownames(query.exp.mat),1] <- query.exp.mat[,1]
@@ -6168,7 +6175,7 @@ TransferExpressionNN<- function(
 #' @concept dimensional_reduction
 #' @export
 #' @method RunGraphLaplacian Seurat
-#' 
+#'
 RunGraphLaplacian.Seurat <- function(
   object,
   graph,
@@ -6199,7 +6206,7 @@ RunGraphLaplacian.Seurat <- function(
 #' @concept dimensional_reduction
 #' @rdname RunGraphLaplacian
 #' @export
-#' 
+#'
 #' @importFrom Matrix diag t rowSums
 #' @importFrom RSpectra eigs_sym
 RunGraphLaplacian.default <- function(object,
@@ -6347,12 +6354,12 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
 #' @param nsketch Number of rows in the random sketch matrix
 #' @param ndims Number of dimensions in the JL embeddings
 #' @param sampling.method Sampling method for generating random matrix
-#' @param MARGIN Margin 
+#' @param MARGIN Margin
 #' @param eps error tolerance for JL embeddings
 #' @param seed Set a random seed
 #' @param verbose Print message and process
 #' @param ...
-#' 
+#'
 #' @importFrom Matrix qrR
 #' @importFrom SeuratObject as.sparse
 #' @rdname LeverageScore
@@ -6435,12 +6442,12 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
- 
+
   # triangular matrix inverse
- 
+
    R.inv <-  as.sparse(backsolve(r = R , x = diag(ncol(R))))
-  
-  
+
+
   if (isTRUE(x = verbose)) {
     message("Random projection")
   }
@@ -6455,12 +6462,12 @@ LeverageScore.default <- function(
 }
 
 #' ssssxxxxx
-#' 
+#'
 #' @rdname LeverageScore
 #' @export
 #' @method LeverageScore Assay
-#' 
-#'  
+#'
+#'
 LeverageScore.Assay <- function(object,
                                 features = NULL,
                                 nsketch = 5000L,
@@ -6475,28 +6482,28 @@ LeverageScore.Assay <- function(object,
   ndims <- ndims%||%ncol(x = object)
   data <- GetAssayData(object, slot = slot)[features,]
   score <- LeverageScore(
-    object = data, 
-    features = features, 
-    nsketch = nsketch, 
-    ndims = ndims, 
+    object = data,
+    features = features,
+    nsketch = nsketch,
+    ndims = ndims,
     sampling.method = sampling.method,
-    seed = seed, 
+    seed = seed,
     eps = eps,
-    verbose = verbose, 
+    verbose = verbose,
     ...
   )
 return(score)
 }
 
- 
- 
+
+
 #' @inheritParams LeverageScoreSampling
 #' @param slot The slot used for leverage score calculation. data slot is used by default
-#' 
+#'
 #' @rdname LeverageScore
 #' @export
 #' @method LeverageScore Seurat
-#' 
+#'
 LeverageScore.Seurat <- function(object,
                                  features = NULL,
                                  assay = NULL,
@@ -6507,14 +6514,14 @@ LeverageScore.Seurat <- function(object,
                                  slot = "data",
                                  eps = 0.5,
                                  seed = 123,
-                                 over.write = FALSE, 
+                                 over.write = FALSE,
                                  verbose = TRUE,
                                  ...
 ) {
   assay <- assay %||% DefaultAssay(object)
   features <- features %||% VariableFeatures(object = object[[assay]])
   ndims <- ndims %||% ncol(x = object)
-  
+
   if (is.null(features)) {
     stop("No variable features are set. Please run FindVariableFeatures.")
   }
@@ -6523,20 +6530,20 @@ LeverageScore.Seurat <- function(object,
   }
   object[[var.name]] <- LeverageScore(
     object = GetAssay(object = object, assay = assay),
-    features = features, 
-    nsketch = nsketch, 
-    ndims = ndims, 
-    sampling.method = sampling.method, 
-    seed = seed, 
+    features = features,
+    nsketch = nsketch,
+    ndims = ndims,
+    sampling.method = sampling.method,
+    seed = seed,
     slot = slot,
-    eps = eps, 
-    verbose = verbose, 
+    eps = eps,
+    verbose = verbose,
     ...
   )
   return(object)
 }
 
-# Check if the var.name already existed in the meta.data 
+# Check if the var.name already existed in the meta.data
 #
 CheckMetaVarName <- function(object, var.name) {
   if (var.name %in% colnames(x = object[[]])) {
@@ -6553,7 +6560,7 @@ CheckMetaVarName <- function(object, var.name) {
 }
 
 
-#' Subset objects based on Leverage score 
+#' Subset objects based on Leverage score
 #'
 #' @param object A seurat object
 #' @param num.cells Number of sampled cells
@@ -6563,17 +6570,17 @@ CheckMetaVarName <- function(object, var.name) {
 #' @param over.write If over write the variable with leverage score
 #' @param seed Set a random seed.By default, sets the seed to 123
 #' @param ... Arguments passed to LeverageScore
-#' 
+#'
 #' @return Returns a sub-sampled seurat object
 #' @export
-#'  
+#'
 LeverageScoreSampling <- function(
   object,
   num.cells = 5000,
   assay = NULL,
   features = NULL,
   var.name = "leverage.score",
-  over.write = FALSE, 
+  over.write = FALSE,
   seed = 123,
   ...) {
   if (!over.write) {
@@ -6581,10 +6588,10 @@ LeverageScoreSampling <- function(
   }
   object <- LeverageScore(
     object = object,
-    assay = assay, 
-    features = features, 
-    var.name = var.name, 
-    over.write = over.write, 
+    assay = assay,
+    features = features,
+    var.name = var.name,
+    over.write = over.write,
     seed = seed,
     ...
     )
@@ -6681,8 +6688,8 @@ IntegrationReferenceIndex <- function(object) {
 #' @param merged.object A merged seurat object containing all cells
 #' @param reference.index Index for the integration reference
 #' @param verbose Print progress and message
-#' 
-#' 
+#'
+#'
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
 #' @export
@@ -6697,7 +6704,7 @@ IntegrateSketchEmbeddings <- function(object.list,
                                       reduction.key = 'PCcorrect_',
                                       dictionary.method = c('sketch', 'data','embeddings')[1],
                                       sketch.ratio = 0.8,
-                                      sketch.reduction.raw = NULL, 
+                                      sketch.reduction.raw = NULL,
                                       merged.object = NULL,
                                       reference.index = NULL,
                                       verbose = TRUE) {
@@ -6750,7 +6757,7 @@ IntegrateSketchEmbeddings <- function(object.list,
   }
   emb.list.query <- my.lapply(
     X = query.index,
-    FUN = 
+    FUN =
     function(q) {
       q.cells <- Cells(x = sketch.list[[q]])
       emb <- switch(
@@ -6761,7 +6768,7 @@ IntegrateSketchEmbeddings <- function(object.list,
             Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
           emb <- emb.list[[q]]  %*% sketch.transform
           emb
-        }, 
+        },
         'data' = {
           exp.mat <- t(
             x = as.matrix(
@@ -6778,11 +6785,11 @@ IntegrateSketchEmbeddings <- function(object.list,
               x = GetAssayData(
                 object = object.list[[q]],
                 slot = 'data')[features,]
-            ) %*% 
+            ) %*%
               sketch.transform
           )
           emb
-        }, 
+        },
         'sketch' = {
           R <- t(
             x = CountSketch(
@@ -6794,7 +6801,7 @@ IntegrateSketchEmbeddings <- function(object.list,
               x = GetAssayData(
                 sketch.object[[assay]],
                 slot = 'data')[features,q.cells]
-            ) %*% 
+            ) %*%
               R
           )
           sketch.transform <- ginv(X = exp.mat) %*%
@@ -6805,8 +6812,8 @@ IntegrateSketchEmbeddings <- function(object.list,
               x = GetAssayData(
                 object = object.list[[q]],
                 slot = 'data')[features,]
-            ) %*% 
-              R) %*% 
+            ) %*%
+              R) %*%
               sketch.transform
           )
           emb
@@ -6893,10 +6900,10 @@ ProjectDataEmbeddings <- function(object,
 
 
 SparseMeanSd <- function(object,
-                         assay = NULL, 
-                         slot = 'data', 
-                         features = NULL, 
-                         eps = 1e-8 
+                         assay = NULL,
+                         slot = 'data',
+                         features = NULL,
+                         eps = 1e-8
 ){
   assay <- assay%||% DefaultAssay(object)
   features <- features %||% rownames(object[[assay]])
@@ -6921,7 +6928,7 @@ SparseMeanSd <- function(object,
 #' @importFrom rlang exec
 #' @importFrom irlba irlba
 #
-# 
+#
 RunPCA_Sparse <- function(
   object,
   features = NULL,
@@ -6976,9 +6983,9 @@ SmoothLabels <- function(labels, clusters ) {
 }
 
 
- 
+
 #' Project query data to reference dimensional reduction
-#' 
+#'
 #' @param query Query object
 #' @param reference Reference object
 #' @param mode Projection mode name for projection
@@ -6987,7 +6994,7 @@ SmoothLabels <- function(labels, clusters ) {
 #' \item{lsiproject: LSI projection}
 #' }
 #' @param reference.reduction Name of dimensional reduction in the reference object
-#' @param combine Determine if query and reference objects are combined 
+#' @param combine Determine if query and reference objects are combined
 #' @param query.assay Assay used for query object
 #' @param reference.assay Assay used for reference object
 #' @param features Features used for projection
@@ -6996,20 +7003,20 @@ SmoothLabels <- function(labels, clusters ) {
 #' @param reduction.key dimensional reduction key, the key in reference.reduction
 #' is used by default
 #' @param verbose Print progress and message
-#' 
+#'
 #' @return Returns a query-only or query-reference combined seurat object
 #' @export
 ProjectDimReduc <- function(query,
-                            reference, 
+                            reference,
                             mode = c('pcaproject', 'lsiproject'),
                             reference.reduction,
                             combine = FALSE,
-                            query.assay = NULL, 
-                            reference.assay = NULL, 
-                            features = NULL, 
-                            do.scale = TRUE, 
-                            reduction.name = NULL, 
-                            reduction.key= NULL, 
+                            query.assay = NULL,
+                            reference.assay = NULL,
+                            features = NULL,
+                            do.scale = TRUE,
+                            reduction.name = NULL,
+                            reduction.key= NULL,
                             verbose = TRUE
 ) {
   query.assay <- query.assay %||% DefaultAssay(object = query)
@@ -7035,7 +7042,7 @@ ProjectDimReduc <- function(query,
       mode = "lsi",
       do.center = FALSE,
       do.scale = FALSE,
-      features = features, 
+      features = features,
       use.original.stats = FALSE,
       verbose = verbose
     )
@@ -7045,13 +7052,13 @@ ProjectDimReduc <- function(query,
         message('PCA projection to ', reference.reduction, ' in SCT assay')
       }
       query <- suppressWarnings(
-        expr = GetResidual(object = query, 
-                           assay = query.assay, 
-                           features = features, 
+        expr = GetResidual(object = query,
+                           assay = query.assay,
+                           features = features,
                            verbose = FALSE)
       )
       query.mat <- GetAssayData(object = query, slot = 'scale.data')[features,]
-      
+
       projected.embeddings <- t(
         crossprod(x = Loadings(
           object = reference[[reference.reduction]])[features, ],
@@ -7082,20 +7089,20 @@ ProjectDimReduc <- function(query,
   )
   if (combine) {
     query <- DietSeurat(object = query,
-                        dimreducs = reduction.name, 
-                        features = features, 
+                        dimreducs = reduction.name,
+                        features = features,
                         assays = query.assay
     )
-    reference <- DietSeurat(object = reference, 
-                            dimreducs = reference.reduction, 
-                            features = features, 
+    reference <- DietSeurat(object = reference,
+                            dimreducs = reference.reduction,
+                            features = features,
                             assays = reference.assay)
     suppressWarnings(
       combine.obj <- merge(query, reference,
                            merge.dr = c(reduction.name, reference.reduction)
       )
     )
-    Idents(combine.obj) <- c(rep(x = 'query', times = ncol(query)), 
+    Idents(combine.obj) <- c(rep(x = 'query', times = ncol(query)),
                             rep(x = 'reference', times = ncol(reference))
                             )
     return(combine.obj)
