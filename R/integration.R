@@ -5755,13 +5755,17 @@ FindAssayAnchor <- function(
 
 
 #' Use bridge cells to represent single-modality object
-#'
-#'
-#'
+#' 
+#' @inheritParams FindBridgeAnchor
+#' @param return.all.assays if return all assays in the object.list. 
+#' Only bridge assay is returned by default.
 #'
 #'
 #' @importFrom MASS ginv
-#‘ 
+#' @return Returns a object list in which each object has a bridge cell derived assay
+#' @export
+#' 
+
 
 BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
@@ -6484,7 +6488,11 @@ LeverageScore.Assay <- function(object,
 return(score)
 }
 
-#' ssssxxxxx
+ 
+ 
+#' @inheritParams LeverageScoreSampling
+#' @param slot The slot used for leverage score calculation. data slot is used by default
+#' 
 #' @rdname LeverageScore
 #' @export
 #' @method LeverageScore Seurat
@@ -6652,7 +6660,8 @@ IntegrationReferenceIndex <- function(object) {
 #' construct the batch-corrected embeddings for all cells
 #' @param object.list A list of Seurat objects with all cells
 #' @param sketch.list A list of Seurat objects with sketched cells
-#' @param sketch.object A sketched Seurat objects with integraetd embeddings
+#' @param sketch.object A sketched Seurat objects with integrated embeddings
+#' @param features Features used for sketch integration
 #' @param assay Assay name for raw expression
 #' @param sketch.reduction Dimensional reduction name for batch-corrected embeddings
 #' in the sketched object
@@ -6911,8 +6920,8 @@ SparseMeanSd <- function(object,
 #' @importFrom Matrix t
 #' @importFrom rlang exec
 #' @importFrom irlba irlba
-#' 
-#' @export
+#
+# 
 RunPCA_Sparse <- function(
   object,
   features = NULL,

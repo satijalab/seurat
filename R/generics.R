@@ -303,11 +303,19 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 }
 
 
-#' Leverage score
-#' xxxx
-#' xxxx
+#' Calculate Leverage score for all cells
+#' 
+#' Leverage score can be used to sample representative cells from scRNA data. 
+#' The more abundant population will be assigned less leverage score. 
+#' Leverage-score can guarantee that both abundant and rare populations will be sampled.
+#' We used variable features in the data slot to calculate leverage score for all cells. 
+#' 
 #' @param object An object
 #' @export LeverageScore
+#' @return Returns a seurat object with additional column storing leverage score
+#' #' @references Clarkson KL, Woodruff DP.
+#' Low Rank Approximation and Regression in Input Sparsity Time.
+#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45. \url{https://https://arxiv.org/abs/1207.6365};
 #' 
 LeverageScore <- function(object, ...) {
   UseMethod(generic = 'LeverageScore', object = object)
