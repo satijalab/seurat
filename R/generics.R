@@ -304,19 +304,24 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 
 
 #' Calculate Leverage score for all cells
-#' 
-#' Leverage score can be used to sample representative cells from scRNA data. 
-#' The more abundant population will be assigned less leverage score. 
-#' Leverage-score can guarantee that both abundant and rare populations will be sampled.
-#' We used variable features in the data slot to calculate leverage score for all cells. 
-#' 
+#'
+#' Leverage score can be used to sample representative cells from scRNA data.
+#' The more abundant population will be assigned less leverage score.
+#' Leverage-score can guarantee that both abundant and rare populations will
+#' be sampled. We used variable features in the data slot to calculate leverage
+#' score for all cells.
+#'
 #' @param object An object
-#' @export LeverageScore
+#'
 #' @return Returns a seurat object with additional column storing leverage score
-#' #' @references Clarkson KL, Woodruff DP.
+#'
+#' @export LeverageScore
+#'
+#' @references Clarkson KL, Woodruff DP.
 #' Low Rank Approximation and Regression in Input Sparsity Time.
-#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45. \url{https://https://arxiv.org/abs/1207.6365};
-#' 
+#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45.
+#' \url{https://https://arxiv.org/abs/1207.6365};
+#'
 LeverageScore <- function(object, ...) {
   UseMethod(generic = 'LeverageScore', object = object)
 }
@@ -415,20 +420,21 @@ RunCCA <- function(object1, object2, ...) {
 
 #' Run Graph Laplacian Eigendecomposition
 #'
-#' Run a graph laplacian dimensionality reduction. It is used as a low dimensional
-#' representation for a cell-cell graph. The input graph should be symmetric 
-#' 
-#' @param object A Seurat object
-#' @param ... Arguments passed to RSpectra eigs_sym
+#' Run a graph laplacian dimensionality reduction. It is used as a low
+#' dimensional representation for a cell-cell graph. The input graph
+#' should be symmetric
 #'
-#' @return Returns Seurat object with the Graph laplacian eigenvector calculation
-#' stored in the reductions slot
-#' @export
+#' @param object A Seurat object
+#' @param ... Arguments passed to
+#' \code{\link[RSpectra:eigs_sym]{RSpectra::eigs_sym}}
+#'
+#' @return Returns Seurat object with the Graph laplacian eigenvector
+#' calculation stored in the reductions slot
 #'
 #' @rdname RunGraphLaplacian
 #' @export RunGraphLaplacian
 #'
- 
+
 RunGraphLaplacian <- function(object, ...) {
   UseMethod(generic = 'RunGraphLaplacian', object = object)
 }
