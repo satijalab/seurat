@@ -3004,7 +3004,7 @@ TransferData <- function(
     }
     weight.reduction <- combined.ob[[weight.reduction]]
   }
-  dims <- dims %||% (1:ncol(weight.reduction))
+  dims <- dims %||% seq_len(length.out = ncol(x = weight.reduction))
   if (max(dims) > ncol(x = weight.reduction)) {
     stop("dims is larger than the number of available dimensions in ",
          "weight.reduction (", ncol(x = weight.reduction), ").", call. = FALSE)
