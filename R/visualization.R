@@ -2291,6 +2291,7 @@ ImageDimPlot <- function(
   group.by = NULL,
   split.by = NULL,
   cols = NULL,
+  shuffle.cols = FALSE,
   size = 0.5,
   molecules = NULL,
   mols.size = 0.1,
@@ -2445,6 +2446,7 @@ ImageDimPlot <- function(
         col.by = pdata[[i]] %!NA% group,
         molecules = mdata[[img]],
         cols = cols,
+        shuffle.cols = shuffle.cols,
         size = size,
         alpha = alpha,
         mols.size = mols.size,
@@ -5226,7 +5228,7 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#' Discrete colour palettes from the pals package
+#' Discrete colour palettes from pals
 #'
 #' These are included here because pals depends on a number of compiled
 #' packages, and this can lead to increases in run time for Travis,
@@ -5239,8 +5241,9 @@ CustomPalette <- function(
 #'
 #' @param n Number of colours to be generated.
 #' @param palette Options are
-#' "alphabet", "alphabet2", "glasbey", "polychrome", and "stepped".
+#' "alphabet", "alphabet2", "glasbey", "polychrome", "stepped", and "parade".
 #' Can be omitted and the function will use the one based on the requested n.
+#' @param shuffle Shuffle the colors in the selected palette.
 #'
 #' @return A vector of colors
 #'
@@ -5252,7 +5255,7 @@ CustomPalette <- function(
 #' @export
 #' @concept visualization
 #'
-DiscretePalette <- function(n, palette = NULL) {
+DiscretePalette <- function(n, palette = NULL, shuffle = FALSE) {
   palettes <- list(
     alphabet = c(
       "#F0A0FF", "#0075DC", "#993F00", "#4C005C", "#191919", "#005C31",
@@ -5289,6 +5292,21 @@ DiscretePalette <- function(n, palette = NULL) {
       "#CCAA7A", "#E6D2B8", "#54990F", "#78B33E", "#A3CC7A", "#CFE6B8",
       "#0F8299", "#3E9FB3", "#7ABECC", "#B8DEE6", "#3D0F99", "#653EB3",
       "#967ACC", "#C7B8E6", "#333333", "#666666", "#999999", "#CCCCCC"
+    ),
+    parade = c(
+      '#ff6969', '#9b37ff', '#cd3737', '#69cdff', '#ffff69', '#69cdcd',
+      '#9b379b', '#3737cd', '#ffff9b', '#cdff69', '#ff9b37', '#37ffff',
+      '#9b69ff', '#37cd69', '#ff3769', '#ff3737', '#37ff9b', '#cdcd37',
+      '#3769cd', '#37cdff', '#9b3737', '#ff699b', '#9b9bff', '#cd9b37',
+      '#69ff37', '#cd3769', '#cd69cd', '#cd6937', '#3737ff', '#cdcd69',
+      '#ff9b69', '#cd37cd', '#9bff37', '#cd379b', '#cd6969', '#69ff9b',
+      '#ff379b', '#9bff9b', '#6937ff', '#69cd37', '#cdff37', '#9bff69',
+      '#9b37cd', '#ff37ff', '#ff37cd', '#ffff37', '#37cd9b', '#379bff',
+      '#ffcd37', '#379b37', '#ff9bff', '#379b9b', '#69ffcd', '#379bcd',
+      '#ff69ff', '#ff9b9b', '#37ff69', '#ff6937', '#6969ff', '#699bff',
+      '#ffcd69', '#69ffff', '#37ff37', '#6937cd', '#37cd37', '#3769ff',
+      '#cd69ff', '#6969cd', '#9bcd37', '#69ff69', '#37cdcd', '#cd37ff',
+      '#37379b', '#37ffcd', '#69cd69', '#ff69cd', '#9bffff', '#9b9b37'
     )
   )
   if (is.null(x = n)) {
@@ -5307,7 +5325,11 @@ DiscretePalette <- function(n, palette = NULL) {
   if (n > length(x = palette.vec)) {
     warning("Not enough colours in specified palette")
   }
-  palette.vec[seq_len(length.out = n)]
+  if (isTRUE(shuffle)) {
+    palette.vec <- sample(palette.vec)
+  }
+  palette <- palette.vec[seq_len(length.out = n)]
+  return(palette)
 }
 
 #' @rdname CellSelector
@@ -8389,6 +8411,8 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
 #'  \item A vector of colors equal to the length of unique levels of
 #'   \code{data$col.by}
 #' }
+#' @param shuffle.cols Randomly shuffle colors when a palette or
+#' vector of colors is provided to \code{cols}
 #' @param size Point size for cells when plotting centroids
 #' @param molecules A data frame with spatially-resolved molecule coordinates;
 #' should have the following columns:
@@ -8431,6 +8455,7 @@ SingleImagePlot <- function(
   col.by = NA,
   col.factor = TRUE,
   cols = NULL,
+  shuffle.cols = FALSE,
   size = 0.1,
   molecules = NULL,
   mols.size = 0.1,
@@ -8530,16 +8555,28 @@ SingleImagePlot <- function(
       }
     if (!is.null(x = cols)) {
       plot <- plot + if (is.numeric(x = cols) || cols[1L] %in% rownames(x = brewer.pal.info)) {
-        scale_fill_brewer(palette = cols, na.value = na.value)
+        palette <- brewer.pal(n = length(x = levels(x = data[[col.by]])), cols)
+        if (length(palette) < length(x = levels(x = data[[col.by]]))) {
+          num.blank <- length(x = levels(x = data[[col.by]])) - length(palette)
+          palette <- c(palette, rep(na.value, num.blank))
+        }
+        if (isTRUE(shuffle.cols)) {
+          palette <- sample(palette)
+        }
+        scale_fill_manual(values = palette, na.value = na.value)
       } else if (cols[1] %in% DiscretePalette(n = NULL)) {
         scale_fill_manual(
           values = DiscretePalette(
             n = length(x = levels(x = data[[col.by]])),
-            palette = cols
+            palette = cols,
+            shuffle = shuffle.cols
           ),
           na.value = na.value
         )
       } else {
+        if (isTRUE(shuffle.cols)) {
+          cols <- sample(cols)
+        }
         scale_fill_manual(values = cols, na.value = na.value)
       }
     }
