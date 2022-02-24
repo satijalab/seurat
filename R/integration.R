@@ -5795,6 +5795,13 @@ BridgeCellsRepresentation <- function(object.list,
   if (verbose) {
     message("Constructing Bridge-cells representation")
   }
+  single.object = FALSE
+  if (length(x = object.list) == 1 &
+      inherits(x = object.list, what = 'Seurat')
+  ) {
+    object.list <- list(object.list)
+    single.object = TRUE
+  }
   dims.list <- list()
   for (i in 1:length(object.reduction.list)) {
    ref.dims <- list(
@@ -5878,6 +5885,9 @@ BridgeCellsRepresentation <- function(object.list,
         return(x)
       }
     )
+  }
+  if (single.object) {
+    object.list <- object.list[[1]]
   }
   return(object.list)
 }
