@@ -5776,8 +5776,8 @@ FindAssayAnchor <- function(
 
 BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
-                                      object.reduction.list,
-                                      bridge.reduction.list,
+                                      object.reduction,
+                                      bridge.reduction,
                                       laplacian.reduction = NULL,
                                       laplacian.dims = NULL,
                                       bridge.assay.name = "Bridge",
@@ -5803,14 +5803,14 @@ BridgeCellsRepresentation <- function(object.list,
     single.object = TRUE
   }
   dims.list <- list()
-  for (i in 1:length(object.reduction.list)) {
+  for (i in 1:length(object.reduction)) {
    ref.dims <- list(
-    object= Misc(object.list[[i]][[object.reduction.list[[i]]]], slot = 'ref.dims'),
-    bridge = Misc( bridge.object[[bridge.reduction.list[[i]]]], slot = 'ref.dims')
+    object= Misc(object.list[[i]][[object.reduction[[i]]]], slot = 'ref.dims'),
+    bridge = Misc( bridge.object[[bridge.reduction[[i]]]], slot = 'ref.dims')
    )
    all.dims <- list(
-     object = 1:ncol(object.list[[i]][[object.reduction.list[[i]]]]),
-     bridge = 1:ncol( bridge.object[[bridge.reduction.list[[i]] ]])
+     object = 1:ncol(object.list[[i]][[object.reduction[[i]]]]),
+     bridge = 1:ncol( bridge.object[[bridge.reduction[[i]] ]])
      )
    projected.dims.index <- which(sapply(ref.dims, function(x) !is.null(x)))
    if (length(projected.dims.index) == 0) {
@@ -5820,10 +5820,10 @@ BridgeCellsRepresentation <- function(object.list,
        dims.list[[i]]  <- all.dims
      } else {
        stop( 'The number of dimensions in the object.list ',
-             object.reduction.list[[i]],
+             object.reduction[[i]],
              ' (', length(all.dims[[1]]), ') ',
        ' and the number of dimensions in the bridge object ',
-       bridge.reduction.list[[i]],
+       bridge.reduction[[i]],
        ' (', length(all.dims[[2]]), ') ',
        ' is different.')
      }
@@ -5842,19 +5842,19 @@ BridgeCellsRepresentation <- function(object.list,
       SA.inv <- ginv(
         X = Embeddings(
           object = bridge.object,
-          reduction = bridge.reduction.list[[x]]
+          reduction = bridge.reduction[[x]]
         )[ ,dims.list[[x]]$bridge]
       )
         if (!is.null(laplacian.reduction)) {
           lap.vector <- Embeddings(bridge.object[[laplacian.reduction]])[,laplacian.dims]
           X <- Embeddings(
             object = object.list[[x]],
-            reduction = object.reduction.list[[x]]
+            reduction = object.reduction[[x]]
           )[,   dims.list[[x]]$object] %*% (SA.inv %*% lap.vector)
         } else {
           X <- Embeddings(
             object = object.list[[x]],
-            reduction = object.reduction.list[[x]]
+            reduction = object.reduction[[x]]
           )[,  dims.list[[x]]$object] %*% SA.inv
           colnames(X) <- Cells(bridge.object)
         }
@@ -5911,10 +5911,10 @@ BridgeCellsRepresentation <- function(object.list,
 #' find anchors for downstream integration.
 #' @param bridge.object A multimodal bridge seurat which connects two
 #' single-modality objects
-#' @param object.reduction.list A list of dimensional reductions from object.list used
+#' @param object.reduction A list of dimensional reductions from object.list used
 #' to be reconstructed by bridge.obejct
-#' @param bridge.reduction.list A list of dimensional reductions from bridge.object used
-#' to reconstruct object.reduction.list
+#' @param bridge.reduction A list of dimensional reductions from bridge.object used
+#' to reconstruct object.reduction
 #' @param anchor.type The type of anchors. Can
 #' be one of:
 #' \itemize{
@@ -5945,8 +5945,8 @@ BridgeCellsRepresentation <- function(object.list,
 
 FindBridgeAnchor <- function(object.list,
                              bridge.object,
-                             object.reduction.list,
-                             bridge.reduction.list,
+                             object.reduction,
+                             bridge.reduction,
                              anchor.type = c("Integration", "Transfer")[1],
                              reference = NULL,
                              laplacian.reduction = "lap",
@@ -5999,8 +5999,8 @@ FindBridgeAnchor <- function(object.list,
     object.list[[query]] <- BridgeCellsRepresentation(
       object.list = object.list[[query]] ,
       bridge.object = bridge.object,
-      object.reduction.list = object.reduction.list[[query]] ,
-      bridge.reduction.list = bridge.reduction.list[[query]] ,
+      object.reduction = object.reduction[[query]] ,
+      bridge.reduction = bridge.reduction[[query]] ,
       bridge.assay.name = bridge.assay.name,
       laplacian.reduction = laplacian.reduction,
       laplacian.dims = laplacian.dims,
@@ -6010,8 +6010,8 @@ FindBridgeAnchor <- function(object.list,
     object.list <- BridgeCellsRepresentation(
       object.list = object.list ,
       bridge.object = bridge.object,
-      object.reduction.list = object.reduction.list,
-      bridge.reduction.list = bridge.reduction.list,
+      object.reduction = object.reduction,
+      bridge.reduction = bridge.reduction,
       bridge.assay.name = bridge.assay.name,
       laplacian.reduction = laplacian.reduction,
       laplacian.dims = laplacian.dims,
@@ -7129,9 +7129,9 @@ PrepareBridgeReference <- function (
   reference.assay = NULL,
   bridge.ref.assay = 'RNA',
   bridge.query.assay = 'ATAC',
-  bridge.query.features = NULL, 
   supervised.reduction = c(NULL, 'slsi', 'spca' )[1],
   bridge.query.reduction = NULL, 
+  bridge.query.features = NULL, 
   laplacian.reduction.name = 'lap',
   laplacian.reduction.key = 'lap_',
   laplacian.reduction.dims = 1:50,
@@ -7150,7 +7150,6 @@ PrepareBridgeReference <- function (
     stop('bridge object', bridge.query.assay,
          ' has no variable genes and bridge.query.features has no input')
   }
-
   # modality harmonization
   reference.assay <- reference.assay %||% DefaultAssay(reference) 
   DefaultAssay(reference) <- reference.assay
@@ -7172,7 +7171,6 @@ PrepareBridgeReference <- function (
                      store.weights = TRUE,
                      verbose = verbose
   )
-  
   bridge.ref.reduction <- paste0('ref.', reference.reduction)
   bridge <- FindNeighbors(object = bridge,
                           reduction = bridge.ref.reduction,
@@ -7206,16 +7204,15 @@ PrepareBridgeReference <- function (
                      }
     )
   }
-  
   # bridge representation
-  reference.bridge <- BridgeCellsRepresentation(object.list =  reference,
-                                                bridge.object = bridge,
-                                                object.reduction.list = c(reference.reduction),
-                                                bridge.reduction.list =  c(bridge.ref.reduction),
-                                                laplacian.reduction = laplacian.reduction.name,
-                                                laplacian.dims = laplacian.reduction.dims
+  reference.bridge <- BridgeCellsRepresentation(
+    object.list =  reference,
+    bridge.object = bridge,
+    object.reduction = c(reference.reduction),
+    bridge.reduction =  c(bridge.ref.reduction),
+    laplacian.reduction = laplacian.reduction.name,
+    laplacian.dims = laplacian.reduction.dims
   )
-  
   param.list <- list(
     reference.reduction = reference.reduction,
     reference.dims = reference.dims,
@@ -7243,44 +7240,42 @@ FindBridgeTransferAnchors <- function(
   dims,
   reduction = c('lsiproject', 'pcaproject')[1]
 ){
-  
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  
-  
   bridge.query.assay <- BridgeReference$params.list$bridge.query.assay
   bridge.query.reduction <- BridgeReference$params.list$bridge.query.reduction %||%
-    BridgeReference$params.list$supervised.reduction
+  BridgeReference$params.list$supervised.reduction
   
   reference.reduction <- BridgeReference$params.list$reference.reduction
   bridge.ref.reduction <- BridgeReference$params.list$bridge.ref.reduction
   
   DefaultAssay(BridgeReference$bridge) <- bridge.query.assay
   
-  if ( reduction == "lsiproject") {
-    
-    query.anchor <- FindTransferAnchors( reference = BridgeReference$bridge,
-                                         reference.reduction = bridge.query.reduction,
-                                         dims = dims,
-                                         query = query,
-                                         reduction = reduction,
-                                         scale = FALSE, 
-                                         features = rownames(BridgeReference$bridge[[bridge.query.reduction]]@feature.loadings ),
-                                         k.filter = NA)
+  if (reduction == "lsiproject") {
+
+    query.anchor <- FindTransferAnchors(
+      reference = BridgeReference$bridge,
+      reference.reduction = bridge.query.reduction,
+      dims = dims,
+      query = query,
+      reduction = reduction,
+      scale = FALSE,
+      features = rownames(BridgeReference$bridge[[bridge.query.reduction]]@feature.loadings ),
+      k.filter = NA
+      )
     query <- MapQuery(anchorset =  query.anchor,
                       reference = BridgeReference$bridge,
                       query = query,
                       store.weights = TRUE
     )
   }
-  
-  
-  bridge_anchor  <- FindBridgeAnchor(object.list = list(BridgeReference$reference, query),
-                                     bridge.object = BridgeReference$bridge,
-                                     object.reduction.list =  list(reference.reduction, paste0('ref.', bridge.query.reduction)),
-                                     bridge.reduction.list =  list(bridge.ref.reduction, bridge.query.reduction), 
-                                     anchor.type = "Transfer",
-                                     reference.bridge.stored = TRUE
+  bridge_anchor  <- FindBridgeAnchor(
+    object.list = list(BridgeReference$reference, query),
+    bridge.object = BridgeReference$bridge,
+    object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
+    bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
+    anchor.type = "Transfer",
+    reference.bridge.stored = TRUE
   )
   return(bridge_anchor)
 }
