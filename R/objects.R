@@ -116,6 +116,31 @@ ModalityWeights <- setClass(
   )
 )
 
+
+
+
+#' The BridgeReferenceSet Class
+#' The BridgeReferenceSet is an output from PrepareBridgeReference
+#' @slot bridge The multi-omic object
+#' @slot reference The Reference object only containing bridge representation assay 
+#' @slot params A list of parameters used in the PrepareBridgeReference
+#' @slot command Store log of parameters that were used
+#' 
+#' @name BridgeReferenceSet-class
+#' @rdname BridgeReferenceSet-class
+#' @concept objects
+#' @exportClass BridgeReferenceSet
+#' 
+BridgeReferenceSet <- setClass(
+  Class = "BridgeReferenceSet",
+  slots = list(
+    bridge = "ANY",
+    reference = "ANY",
+    params = "list", 
+    command = "ANY"
+  )
+)
+
 #' The IntegrationData Class
 #'
 #' The IntegrationData object is an intermediate storage container used internally throughout the
@@ -2298,6 +2323,22 @@ setMethod(
       'A ModalityWeights object containing modality weights between',
       paste(slot(object = object, name = "modality.assay"), collapse = " and "),
       "assays \n", "This can be used as input to FindMultiModelNeighbors.")
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'BridgeReferenceSet',
+  definition = function(object) {
+    cat(
+      'A BridgeReferenceSet object has a bridge object with ',
+      ncol(slot(object = object, name = 'bridge')),
+      'cells and a reference object with ',
+      ncol(slot(object = object, name = 'reference')),
+      'cells. \n','The bridge query reduction is ', 
+      slot(object = object, name = 'params')$bridge.query.reduction %||%
+        slot(object = object, name = 'params')$supervised.reduction, 
+   "\n This can be used as input to FindBridgeTransferAnchors and FindBridgeIntegrationAnchors")
   }
 )
 

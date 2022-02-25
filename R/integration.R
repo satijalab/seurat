@@ -7146,9 +7146,9 @@ PrepareBridgeReference <- function (
   }
   bridge.query.features <- bridge.query.features %||%
     VariableFeatures(object = bridge[[bridge.query.assay]])
-  if (length(x = bridge.query.features == 0)) {
-    stop('bridge object', bridge.query.assay,
-         ' has no variable genes and bridge.query.features has no input')
+  if (length(x = bridge.query.features) == 0) {
+    stop('bridge object ', bridge.query.assay,
+         ' assay has no variable genes and bridge.query.features has no input')
   }
   # modality harmonization
   reference.assay <- reference.assay %||% DefaultAssay(reference) 
@@ -7213,7 +7213,9 @@ PrepareBridgeReference <- function (
     laplacian.reduction = laplacian.reduction.name,
     laplacian.dims = laplacian.reduction.dims
   )
-  param.list <- list(
+  
+  
+  params <- list(
     reference.reduction = reference.reduction,
     reference.dims = reference.dims,
     reference.assay = reference.assay,
@@ -7225,13 +7227,17 @@ PrepareBridgeReference <- function (
     laplacian.reduction.name = laplacian.reduction.name,
     laplacian.reduction.dims = laplacian.reduction.dims
   )
-  
-  output.list <- list(bridge = bridge,
-                      reference = reference.bridge,
-                      params.list = param.list
+  bridge_reference.set <- new(
+    Class = "BridgeReferenceSet",
+    bridge = bridge,
+    reference = reference.bridge,
+    params = params
   )
-  return(output.list)
+  return(bridge_reference.set)
 }
+
+
+
 
 FindBridgeTransferAnchors <- function( 
   BridgeReference,
@@ -7242,36 +7248,34 @@ FindBridgeTransferAnchors <- function(
 ){
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  bridge.query.assay <- BridgeReference$params.list$bridge.query.assay
-  bridge.query.reduction <- BridgeReference$params.list$bridge.query.reduction %||%
-  BridgeReference$params.list$supervised.reduction
-  
-  reference.reduction <- BridgeReference$params.list$reference.reduction
-  bridge.ref.reduction <- BridgeReference$params.list$bridge.ref.reduction
-  
-  DefaultAssay(BridgeReference$bridge) <- bridge.query.assay
+  params <- slot(object = BridgeReference, name = "params")
+  bridge.query.assay <- params$bridge.query.assay
+  bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
+  reference.reduction <- params$reference.reduction
+  bridge.ref.reduction <- params$bridge.ref.reduction
+  DefaultAssay(BridgeReference@bridge) <- bridge.query.assay
   
   if (reduction == "lsiproject") {
 
     query.anchor <- FindTransferAnchors(
-      reference = BridgeReference$bridge,
+      reference = BridgeReference@bridge,
       reference.reduction = bridge.query.reduction,
       dims = dims,
       query = query,
       reduction = reduction,
       scale = FALSE,
-      features = rownames(BridgeReference$bridge[[bridge.query.reduction]]@feature.loadings ),
+      features = rownames(BridgeReference@bridge[[bridge.query.reduction]]@feature.loadings ),
       k.filter = NA
       )
     query <- MapQuery(anchorset =  query.anchor,
-                      reference = BridgeReference$bridge,
+                      reference = BridgeReference@bridge,
                       query = query,
                       store.weights = TRUE
     )
   }
   bridge_anchor  <- FindBridgeAnchor(
-    object.list = list(BridgeReference$reference, query),
-    bridge.object = BridgeReference$bridge,
+    object.list = list(BridgeReference@reference, query),
+    bridge.object = BridgeReference@bridge,
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Transfer",
