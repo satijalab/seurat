@@ -7,8 +7,8 @@
 BridgeCellsRepresentation(
   object.list,
   bridge.object,
-  object.reduction.list,
-  bridge.reduction.list,
+  object.reduction,
+  bridge.reduction,
   laplacian.reduction = NULL,
   laplacian.dims = NULL,
   bridge.assay.name = "Bridge",
@@ -25,11 +25,11 @@ find anchors for downstream integration.}
 \item{bridge.object}{A multimodal bridge seurat which connects two
 single-modality objects}
 
-\item{object.reduction.list}{A list of dimensional reductions from object.list used
+\item{object.reduction}{A list of dimensional reductions from object.list used
 to be reconstructed by bridge.obejct}
 
-\item{bridge.reduction.list}{A list of dimensional reductions from bridge.object used
-to reconstruct object.reduction.list}
+\item{bridge.reduction}{A list of dimensional reductions from bridge.object used
+to reconstruct object.reduction}
 
 \item{laplacian.reduction}{Name of bridge graph laplacian dimensional reduction}
 
@@ -37,7 +37,7 @@ to reconstruct object.reduction.list}
 
 \item{bridge.assay.name}{Assay name used for bridge object reconstruction value}
 
-\item{return.all.assays}{if return all assays in the object.list. 
+\item{return.all.assays}{if return all assays in the object.list.
 Only bridge assay is returned by default.}
 
 \item{verbose}{Print messages and progress}

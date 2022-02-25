@@ -6849,6 +6849,7 @@ IntegrateSketchEmbeddings <- function(object.list,
   return(merged.object)
 }
 
+
 ProjectDataEmbeddings <- function(object,
                                   assay = 'RNA',
                                   feature.loadings,
@@ -7118,12 +7119,39 @@ ProjectDimReduc <- function(query,
 }
 
 
-
-
+#' Prepare the multi-omic bridge datasets and unimodal reference
+#' First perform within-modality harmonization of bridge and reference
+#' then perform dimensional reduction on the SNN graph of bridge datasets
+#' via Laplacian Eigendecomposition
+#' Lastly, construct a bridge dictionary representation for unimodal reference cells
+#' @param reference A reference Seurat object
+#' @param bridge A multi-omic bridge Seurat object
+#' @param reference.reduction Name of dimensional reduction of the reference object
+#' @param reference.dims Number of dimensions used for the reference.reduction
+#' @param normlization.method Name of normalization method used: LogNormalize
+#' or SCT
+#' @param reference.assay Assay name for reference
+#' in the sketched object
+#' @param bridge.ref.assay Assay name for bridge used for reference mapping
+#' @param bridge.query.assay Assay name for bridge used for query mapping
+#' @param supervised.reduction Determine if perform supervised LSI or supervised PCA
+#' @param bridge.query.reduction Name of dimensions used for the query-bridge harmonization. 
+#' bridge.query.reduction and supervised.reduction needs to set one
+#' @param bridge.query.features Features used for bridge query dimensional reduction
+#' @param laplacian.reduction.name Name of dimensional reduction name of graph laplacian eigenspace
+#' @param laplacian.reduction.key dimensional reduction key
+#' @param laplacian.reduction.dims Number of dimenions used for graph laplacian eigenspace
+#' @param verbose Print progress and message
+#'
+#'#' @return 
+#' @export
+#' @return Returns a \code{BridgeReferenceSet} that can be used as input to \code{\link{FindBridgeTransferAnchors}}
+#' The parameters used are stored in the \code{BridgeReferenceSet} as well
+#' 
 PrepareBridgeReference <- function (
   reference,
   bridge,
-  reference.reduction = 'spca',
+  reference.reduction = 'pca',
   reference.dims = 1:50,
   normlization.method = c('SCT', 'LogNormalization'),
   reference.assay = NULL,
@@ -7174,7 +7202,7 @@ PrepareBridgeReference <- function (
   bridge.ref.reduction <- paste0('ref.', reference.reduction)
   bridge <- FindNeighbors(object = bridge,
                           reduction = bridge.ref.reduction,
-                          dims = 1:ncol(bridge[[bridge.ref.reduction]]),
+                          dims = 1:ncol(x = bridge[[bridge.ref.reduction]]),
                           return.neighbor = FALSE,
                           graph.name = c('bridge.ref.nn', 'bridge.ref.snn'),
                           prune.SNN = 0)
@@ -7213,38 +7241,66 @@ PrepareBridgeReference <- function (
     laplacian.reduction = laplacian.reduction.name,
     laplacian.dims = laplacian.reduction.dims
   )
-  
-  
-  params <- list(
-    reference.reduction = reference.reduction,
-    reference.dims = reference.dims,
-    reference.assay = reference.assay,
-    bridge.ref.assay = bridge.ref.assay,
-    bridge.query.assay = bridge.query.assay,
-    supervised.reduction = supervised.reduction,
-    bridge.ref.reduction = bridge.ref.reduction, 
-    bridge.query.reduction = bridge.query.reduction, 
-    laplacian.reduction.name = laplacian.reduction.name,
-    laplacian.reduction.dims = laplacian.reduction.dims
-  )
   bridge_reference.set <- new(
     Class = "BridgeReferenceSet",
     bridge = bridge,
     reference = reference.bridge,
-    params = params
+    params = list(
+      reference.reduction = reference.reduction,
+      reference.dims = reference.dims,
+      reference.assay = reference.assay,
+      bridge.ref.assay = bridge.ref.assay,
+      bridge.query.assay = bridge.query.assay,
+      supervised.reduction = supervised.reduction,
+      bridge.ref.reduction = bridge.ref.reduction, 
+      bridge.query.reduction = bridge.query.reduction, 
+      laplacian.reduction.name = laplacian.reduction.name,
+      laplacian.reduction.dims = laplacian.reduction.dims
+    )
   )
   return(bridge_reference.set)
 }
 
 
+#' Find bridge anchors between unimodal query and the other unimodal reference
+#' usnig a pre-computed \code{\link{BridgeReferenceSet}}.
+#'
+#' First, harmonized the bridge and query cells in the bridge query reduction space.
+#' Then, constructe the bridge dictionary representations for query cells. 
+#' Next, find a set of anchors between query and reference in the bridge graph laplacian eigenspace. 
+#' These anchors can later be used to integrate embeddings or transfer data from the reference to
+#' query object using the \code{\link{MapQuery}} object.
 
-
+#' @param BridgeReference BridgeReferenceSet object generated from
+#'  \code{\link{PrepareBridgeReference}}
+#' @param query A query Seurat object
+#' @param query.assay Assay name for query-bridge integration
+#' @param dims Number of dimensions for query-bridge integration
+#' @param reduction Dimensional reduction to perform when finding anchors.
+#' Options are:
+#' \itemize{
+#'    \item{pcaproject: Project the PCA from the bridge onto the query. We
+#'    recommend using PCA when bridge and query datasets are from scRNA-seq}
+#'    \item{lsiproject: Project the LSI from the bridge onto the query. We
+#'    recommend using LSI when bridge and query datasets are from scATAC-seq or scCUT&TAG data.
+#'    This requires that LSI or supervised LSI has been computed for the bridge dataset, and the
+#'    same features (eg, peaks or genome bins) are present in both the bridge
+#'    and query.
+#' }
+#' @param verbose Print messages and progress
+#'
+#' @export
+#' @return Returns an \code{AnchorSet} object that can be used as input to
+#' \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}} and
+#' \code{\link{MapQuery}}.
+#' 
 FindBridgeTransferAnchors <- function( 
   BridgeReference,
   query,
   query.assay = NULL,
   dims,
-  reduction = c('lsiproject', 'pcaproject')[1]
+  reduction = c('lsiproject', 'pcaproject')[1], 
+  verbose = TRUE
 ){
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
@@ -7256,7 +7312,6 @@ FindBridgeTransferAnchors <- function(
   DefaultAssay(BridgeReference@bridge) <- bridge.query.assay
   
   if (reduction == "lsiproject") {
-
     query.anchor <- FindTransferAnchors(
       reference = BridgeReference@bridge,
       reference.reduction = bridge.query.reduction,
@@ -7265,7 +7320,8 @@ FindBridgeTransferAnchors <- function(
       reduction = reduction,
       scale = FALSE,
       features = rownames(BridgeReference@bridge[[bridge.query.reduction]]@feature.loadings ),
-      k.filter = NA
+      k.filter = NA,
+      verbose = verbose
       )
     query <- MapQuery(anchorset =  query.anchor,
                       reference = BridgeReference@bridge,
@@ -7279,7 +7335,8 @@ FindBridgeTransferAnchors <- function(
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Transfer",
-    reference.bridge.stored = TRUE
+    reference.bridge.stored = TRUE,
+    verbose = verbose
   )
   return(bridge_anchor)
 }

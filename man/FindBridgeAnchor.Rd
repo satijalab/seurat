@@ -7,14 +7,15 @@
 FindBridgeAnchor(
   object.list,
   bridge.object,
-  object.reduction.list,
-  bridge.reduction.list,
+  object.reduction,
+  bridge.reduction,
   anchor.type = c("Integration", "Transfer")[1],
   reference = NULL,
   laplacian.reduction = "lap",
   laplacian.dims = NULL,
   reduction = c("direct", "cca")[1],
   bridge.assay.name = "Bridge",
+  reference.bridge.stored = FALSE,
   k.anchor = 20,
   k.score = 50,
   verbose = TRUE,
@@ -28,11 +29,11 @@ find anchors for downstream integration.}
 \item{bridge.object}{A multimodal bridge seurat which connects two
 single-modality objects}
 
-\item{object.reduction.list}{A list of dimensional reductions from object.list used
+\item{object.reduction}{A list of dimensional reductions from object.list used
 to be reconstructed by bridge.obejct}
 
-\item{bridge.reduction.list}{A list of dimensional reductions from bridge.object used
-to reconstruct object.reduction.list}
+\item{bridge.reduction}{A list of dimensional reductions from bridge.object used
+to reconstruct object.reduction}
 
 \item{anchor.type}{The type of anchors. Can
 be one of:
@@ -71,7 +72,7 @@ Returns an \code{\link{AnchorSet}} object that can be used as input to
 \code{\link{IntegrateEmbeddings}}.or \code{\link{MapQuery}}
 }
 \description{
-First, bridge object is used to reconstruct two single-modality profiles and 
+First, bridge object is used to reconstruct two single-modality profiles and
 then project those cells into bridage graph laplacian space.
 Next, find a set of anchors between two single-modality objects. These
 anchors can later be used to integrate embeddings or transfer data from the reference to

@@ -65,8 +65,7 @@ neighbor finding}
 \item{verbose}{Print progress bars and output}
 }
 \value{
-Returns a modified query Seurat object containing:
-
+Returns a modified query Seurat object containing:#'
 \itemize{
   \item{New Assays corresponding to the features transferred and/or their
   corresponding prediction scores from \code{\link{TransferData}}}
