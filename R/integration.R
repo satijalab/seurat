@@ -7346,3 +7346,47 @@ FindBridgeTransferAnchors <- function(
   )
   return(bridge_anchor)
 }
+
+
+
+#' @importFrom rlang invoke
+#' 
+FastIntegration <- function(
+  object.list,
+  reference = NULL,
+  reduction = 'rpca',
+  anchor.features = 2000,
+  k.anchor = 20,
+  dims = 1:30,
+  new.reduction.name = 'integrated_dr',
+  npcs = 50,
+  findintegrationanchors.args = list(),
+  verbose = TRUE
+) { 
+  anchor <- invoke(
+    .fn = FindIntegrationAnchors,
+    .args = c(list(
+      object.list = object.list,
+      reference = reference,
+      anchor.features = anchor.features,
+      reduction = reduction,
+      k.anchor = k.anchor,
+      dims = dims,
+      verbose = verbose
+    ), findintegrationanchors.args
+    )
+  )
+  
+  object_merged <- merge(object.list[[1]], object.list[2:length(object.list)])
+  anchor.feature <- slot(object = anchor, name = 'anchor.features')
+  object_merged <- ScaleData(object_merged,features = anchor.feature, verbose = FALSE)
+  object_merged <- RunPCA(object_merged, features = features, verbose = FALSE, npcs = npcs)
+  temp <- atoms_merged[["pca"]]
+  object_merged <- IntegrateEmbeddings(
+    anchorset = anchor,
+    reductions = object_merged[['pca']],
+    new.reduction.name = new.reduction.name,
+    verbose = verbose)
+  object_merged[['pca']] <- temp
+  return(object_merged)
+}
