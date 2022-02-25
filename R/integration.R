@@ -6229,7 +6229,7 @@ RunGraphLaplacian.default <- function(object,
  if (!all(
    slot(object = t(x = object), name = "x") == slot(object = object, name = "x")
    )) {
-   step("Input graph is not symmetric")
+   stop("Input graph is not symmetric")
  }
   if (verbose) {
     message("Generating normalized laplacian graph")
@@ -6499,8 +6499,7 @@ LeverageScore.Assay <- function(object,
     sampling.method = sampling.method,
     seed = seed,
     eps = eps,
-    verbose = verbose,
-    ...
+    verbose = verbose
   )
 return(score)
 }
@@ -6546,8 +6545,7 @@ LeverageScore.Seurat <- function(object,
     seed = seed,
     slot = slot,
     eps = eps,
-    verbose = verbose,
-    ...
+    verbose = verbose
   )
   return(object)
 }

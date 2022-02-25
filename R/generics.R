@@ -312,7 +312,7 @@ IntegrateEmbeddings <- function(anchorset, ...) {
 #' score for all cells.
 #'
 #' @param object An object
-#'
+#' @param ... Arguments passed to other methods
 #' @return Returns a seurat object with additional column storing leverage score
 #'
 #' @export LeverageScore
