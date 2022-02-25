@@ -23,8 +23,7 @@ RunGraphLaplacian(object, ...)
 \arguments{
 \item{object}{A Seurat object}
 
-\item{...}{Arguments passed to
-\code{\link[RSpectra:eigs_sym]{RSpectra::eigs_sym}}}
+\item{...}{Arguments passed to eigs_sym}
 
 \item{graph}{The name of graph}
 

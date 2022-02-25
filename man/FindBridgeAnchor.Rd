@@ -58,6 +58,8 @@ be one of:
 
 \item{bridge.assay.name}{Assay name used for bridge object reconstruction value}
 
+\item{reference.bridge.stored}{If refernece has stored the bridge dictionary representation}
+
 \item{k.anchor}{How many neighbors (k) to use when picking anchors}
 
 \item{k.score}{How many neighbors (k) to use when scoring anchors}

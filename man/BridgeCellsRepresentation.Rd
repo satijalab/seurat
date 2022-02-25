@@ -37,7 +37,12 @@ to reconstruct object.reduction}
 
 \item{bridge.assay.name}{Assay name used for bridge object reconstruction value}
 
-\item{return.all.assays}{if return all assays in the object.list.
+\item{return.all.assays}{if return all assays in the object.list.}
+
+\item{l2.norm}{if l2 normalize dictionary representation}
+
+\item{do.center}{if center dictionary representation
+
 Only bridge assay is returned by default.}
 
 \item{verbose}{Print messages and progress}

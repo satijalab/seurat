@@ -5765,6 +5765,9 @@ FindAssayAnchor <- function(
 #'
 #' @inheritParams FindBridgeAnchor
 #' @param return.all.assays if return all assays in the object.list.
+#' @param l2.norm if l2 normalize dictionary representation
+#' @param do.center if center dictionary representation
+#' 
 #' Only bridge assay is returned by default.
 #'
 #'
@@ -5881,7 +5884,7 @@ BridgeCellsRepresentation <- function(object.list,
     object.list <- my.lapply(
       X = object.list,
       FUN = function(x) {
-        x <- DietSeurat(object = x, assay = bridge.assay.name, scale.data = TRUE)
+        x <- DietSeurat(object = x, assays = bridge.assay.name, scale.data = TRUE)
         return(x)
       }
     )
@@ -5932,6 +5935,7 @@ BridgeCellsRepresentation <- function(object.list,
 #'   \item{direct: Use assay data as a dimensional reduction}
 #' }
 #' @param bridge.assay.name Assay name used for bridge object reconstruction value
+#' @param reference.bridge.stored If refernece has stored the bridge dictionary representation
 #' @param k.anchor How many neighbors (k) to use when picking anchors
 #' @param k.score How many neighbors (k) to use when scoring anchors
 #' @param verbose Print messages and progress
@@ -6207,6 +6211,7 @@ RunGraphLaplacian.Seurat <- function(
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. LAP by default
 #' @param verbose Print message and process
+#' @param ... Arguments passed to eigs_sym
 #'
 #'
 #' @concept dimensional_reduction
@@ -6379,8 +6384,7 @@ LeverageScore.default <- function(
   MARGIN = 2L,
   eps = 0.5,
   seed = 123,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   features <- features %||% rownames(x = object)
   if (length(x = features) > 5000) {
@@ -6482,8 +6486,8 @@ LeverageScore.Assay <- function(object,
                                 slot = "data",
                                 seed = 123,
                                 eps = 0.5,
-                                verbose = TRUE,
-                                ...) {
+                                verbose = TRUE
+                                ) {
   features <- features %||% VariableFeatures(object = object)
   ndims <- ndims%||%ncol(x = object)
   data <- GetAssayData(object, slot = slot)[features,]
@@ -6521,8 +6525,7 @@ LeverageScore.Seurat <- function(object,
                                  eps = 0.5,
                                  seed = 123,
                                  over.write = FALSE,
-                                 verbose = TRUE,
-                                 ...
+                                 verbose = TRUE
 ) {
   assay <- assay %||% DefaultAssay(object)
   features <- features %||% VariableFeatures(object = object[[assay]])
