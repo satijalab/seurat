@@ -6369,7 +6369,6 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
 #' @param eps error tolerance for JL embeddings
 #' @param seed Set a random seed
 #' @param verbose Print message and process
-#' @param ...
 #'
 #' @importFrom Matrix qrR
 #' @importFrom SeuratObject as.sparse
@@ -7287,6 +7286,7 @@ PrepareBridgeReference <- function (
 #'    This requires that LSI or supervised LSI has been computed for the bridge dataset, and the
 #'    same features (eg, peaks or genome bins) are present in both the bridge
 #'    and query.
+#' }
 #' }
 #' @param verbose Print messages and progress
 #'
