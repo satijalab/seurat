@@ -6383,7 +6383,8 @@ LeverageScore.default <- function(
   MARGIN = 2L,
   eps = 0.5,
   seed = 123,
-  verbose = TRUE
+  verbose = TRUE, 
+  ...
 ) {
   features <- features %||% rownames(x = object)
   if (length(x = features) > 5000) {
@@ -6485,7 +6486,8 @@ LeverageScore.Assay <- function(object,
                                 slot = "data",
                                 seed = 123,
                                 eps = 0.5,
-                                verbose = TRUE
+                                verbose = TRUE,
+                                ...
                                 ) {
   features <- features %||% VariableFeatures(object = object)
   ndims <- ndims%||%ncol(x = object)
@@ -6498,7 +6500,8 @@ LeverageScore.Assay <- function(object,
     sampling.method = sampling.method,
     seed = seed,
     eps = eps,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
 return(score)
 }
@@ -6523,7 +6526,8 @@ LeverageScore.Seurat <- function(object,
                                  eps = 0.5,
                                  seed = 123,
                                  over.write = FALSE,
-                                 verbose = TRUE
+                                 verbose = TRUE,
+                                 ...
 ) {
   assay <- assay %||% DefaultAssay(object)
   features <- features %||% VariableFeatures(object = object[[assay]])
@@ -6544,7 +6548,8 @@ LeverageScore.Seurat <- function(object,
     seed = seed,
     slot = slot,
     eps = eps,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   return(object)
 }
