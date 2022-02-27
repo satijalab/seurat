@@ -7358,11 +7358,37 @@ FastIntegration <- function(
   anchor.features = 2000,
   k.anchor = 20,
   dims = 1:30,
+  scale = TRUE,
   new.reduction.name = 'integrated_dr',
   npcs = 50,
   findintegrationanchors.args = list(),
   verbose = TRUE
 ) { 
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  
+  if (reduction == 'rpca') {
+    if (is.numeric(x = anchor.features)) {
+      anchor.features <- SelectIntegrationFeatures(
+        object.list = object.list,
+        nfeatures = anchor.features,
+        verbose = FALSE
+      )
+    }
+    if (verbose) {
+      message('Performing PCA for each object')
+    }
+    object.list <- my.lapply(X = object.list,
+                             FUN = function(x) {
+      x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+      x <- RunPCA(x, features = anchor.features, verbose = FALSE)
+      return(x)
+    }
+    )
+  }
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
     .args = c(list(
@@ -7370,6 +7396,7 @@ FastIntegration <- function(
       reference = reference,
       anchor.features = anchor.features,
       reduction = reduction,
+      scale = scale,
       k.anchor = k.anchor,
       dims = dims,
       verbose = verbose
@@ -7381,12 +7408,13 @@ FastIntegration <- function(
   anchor.feature <- slot(object = anchor, name = 'anchor.features')
   object_merged <- ScaleData(object_merged,features = anchor.feature, verbose = FALSE)
   object_merged <- RunPCA(object_merged, features = features, verbose = FALSE, npcs = npcs)
-  temp <- atoms_merged[["pca"]]
+  temp <- object_merged[["pca"]]
   object_merged <- IntegrateEmbeddings(
     anchorset = anchor,
     reductions = object_merged[['pca']],
     new.reduction.name = new.reduction.name,
     verbose = verbose)
   object_merged[['pca']] <- temp
+  VariableFeatures(object_merged) <- anchor.feature
   return(object_merged)
 }
