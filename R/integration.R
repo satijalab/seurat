@@ -7305,7 +7305,7 @@ FindBridgeTransferAnchors <- function(
   query,
   query.assay = NULL,
   dims,
-  reduction = c('lsiproject', 'pcaproject')[1], 
+  reduction = c('lsiproject', 'pcaproject')[1],
   verbose = TRUE
 ){
   query.assay <- query.assay %||% DefaultAssay(query)
@@ -7316,7 +7316,6 @@ FindBridgeTransferAnchors <- function(
   reference.reduction <- params$reference.reduction
   bridge.ref.reduction <- params$bridge.ref.reduction
   DefaultAssay(BridgeReference@bridge) <- bridge.query.assay
-  
   if (reduction == "lsiproject") {
     query.anchor <- FindTransferAnchors(
       reference = BridgeReference@bridge,
@@ -7348,8 +7347,22 @@ FindBridgeTransferAnchors <- function(
 }
 
 
-
+#' Perform integration on the joint PCA cell embeddings
+#' This is a convenience wrapper function around the following three functions
+#' that are often run together when perform integration. 
+#' #' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
+#' \code{\link{IntegrateEmbeddings}}. 
+#' 
+#' @inheritParams FindIntegrationAnchors
+#' @param new.reduction.name Name of integrated dimensional reduction
+#' @param npcs Total Number of PCs to compute and store (50 by default)
+#' @param findintegrationanchors.args A named list of additional arguments to
+#' \code{\link{FindIntegrationAnchors}}
+#' @param verbose Print messages and progress
+#' 
 #' @importFrom rlang invoke
+#' @return Returns a Seurat object with integrated dimensional reduction
+#' @export
 #' 
 FastIntegration <- function(
   object.list,
@@ -7369,15 +7382,14 @@ FastIntegration <- function(
     yes = pblapply,
     no = future_lapply
   )
-  
+  if (is.numeric(x = anchor.features)) {
+    anchor.features <- SelectIntegrationFeatures(
+      object.list = object.list,
+      nfeatures = anchor.features,
+      verbose = FALSE
+    )
+  }
   if (reduction == 'rpca') {
-    if (is.numeric(x = anchor.features)) {
-      anchor.features <- SelectIntegrationFeatures(
-        object.list = object.list,
-        nfeatures = anchor.features,
-        verbose = FALSE
-      )
-    }
     if (verbose) {
       message('Performing PCA for each object')
     }
@@ -7403,11 +7415,19 @@ FastIntegration <- function(
     ), findintegrationanchors.args
     )
   )
-  
-  object_merged <- merge(object.list[[1]], object.list[2:length(object.list)])
+  object_merged <- merge(x = object.list[[1]],
+                         y = object.list[2:length(object.list)]
+                         )
   anchor.feature <- slot(object = anchor, name = 'anchor.features')
-  object_merged <- ScaleData(object_merged,features = anchor.feature, verbose = FALSE)
-  object_merged <- RunPCA(object_merged, features = features, verbose = FALSE, npcs = npcs)
+  object_merged <- ScaleData(object = object_merged,
+                             features = anchor.feature,
+                             verbose = FALSE
+                             )
+  object_merged <- RunPCA(object_merged,
+                          features = anchor.feature,
+                          verbose = FALSE,
+                          npcs = npcs
+                          )
   temp <- object_merged[["pca"]]
   object_merged <- IntegrateEmbeddings(
     anchorset = anchor,
@@ -7415,6 +7435,7 @@ FastIntegration <- function(
     new.reduction.name = new.reduction.name,
     verbose = verbose)
   object_merged[['pca']] <- temp
-  VariableFeatures(object_merged) <- anchor.feature
+  VariableFeatures(object = object_merged) <- anchor.feature
   return(object_merged)
 }
+

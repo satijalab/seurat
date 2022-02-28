@@ -18,7 +18,8 @@ LeverageScore(object, ...)
   MARGIN = 2L,
   eps = 0.5,
   seed = 123,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 
 \method{LeverageScore}{Assay}(
@@ -30,7 +31,8 @@ LeverageScore(object, ...)
   slot = "data",
   seed = 123,
   eps = 0.5,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 
 \method{LeverageScore}{Seurat}(
@@ -45,13 +47,14 @@ LeverageScore(object, ...)
   eps = 0.5,
   seed = 123,
   over.write = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{
 \item{object}{An object}
 
-\item{...}{}
+\item{...}{Arguments passed to other methods}
 
 \item{features}{Features used to calculate leverage score}
 
