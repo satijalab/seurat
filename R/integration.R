@@ -7089,7 +7089,7 @@ ProjectDimReduc <- function(query,
 #' @param bridge A multi-omic bridge Seurat object
 #' @param reference.reduction Name of dimensional reduction of the reference object
 #' @param reference.dims Number of dimensions used for the reference.reduction
-#' @param normlization.method Name of normalization method used: LogNormalize
+#' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT
 #' @param reference.assay Assay name for reference
 #' in the sketched object
@@ -7114,7 +7114,7 @@ PrepareBridgeReference <- function (
   bridge,
   reference.reduction = 'pca',
   reference.dims = 1:50,
-  normlization.method = c('SCT', 'LogNormalization'),
+  normalization.method = c('SCT', 'LogNormalization'),
   reference.assay = NULL,
   bridge.ref.assay = 'RNA',
   bridge.query.assay = 'ATAC',
