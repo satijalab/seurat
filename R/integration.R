@@ -7321,7 +7321,7 @@ FindBridgeTransferAnchors <- function(
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
 #' 
-FastIntegration <- function(
+FastAnchorIntegration <- function(
   object.list,
   reference = NULL,
   reduction = 'rpca',
