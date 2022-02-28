@@ -7106,8 +7106,8 @@ ProjectDimReduc <- function(query,
 #'
 #'#' @return 
 #' @export
-#' @return Returns a \code{BridgeReferenceSet} that can be used as input to \code{\link{FindBridgeTransferAnchors}}
-#' The parameters used are stored in the \code{BridgeReferenceSet} as well
+#' @return Returns a \code{bridge.reference.setSet} that can be used as input to \code{\link{FindBridgeTransferAnchors}}
+#' The parameters used are stored in the \code{bridge.reference.setSet} as well
 #' 
 PrepareBridgeReference <- function (
   reference,
@@ -7232,7 +7232,7 @@ PrepareBridgeReference <- function (
 #' These anchors can later be used to integrate embeddings or transfer data from the reference to
 #' query object using the \code{\link{MapQuery}} object.
 
-#' @param BridgeReference BridgeReferenceSet object generated from
+#' @param bridge.reference.set BridgeReferenceSet object generated from
 #'  \code{\link{PrepareBridgeReference}}
 #' @param query A query Seurat object
 #' @param query.assay Assay name for query-bridge integration
@@ -7257,7 +7257,7 @@ PrepareBridgeReference <- function (
 #' \code{\link{MapQuery}}.
 #' 
 FindBridgeTransferAnchors <- function( 
-  BridgeReference,
+  bridge.reference.set,
   query,
   query.assay = NULL,
   dims,
@@ -7266,33 +7266,33 @@ FindBridgeTransferAnchors <- function(
 ){
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- slot(object = BridgeReference, name = "params")
+  params <- slot(object = bridge.reference.set, name = "params")
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
   bridge.ref.reduction <- params$bridge.ref.reduction
-  DefaultAssay(BridgeReference@bridge) <- bridge.query.assay
+  DefaultAssay(bridge.reference.set@bridge) <- bridge.query.assay
   if (reduction == "lsiproject") {
     query.anchor <- FindTransferAnchors(
-      reference = BridgeReference@bridge,
+      reference = bridge.reference.set@bridge,
       reference.reduction = bridge.query.reduction,
       dims = dims,
       query = query,
       reduction = reduction,
       scale = FALSE,
-      features = rownames(BridgeReference@bridge[[bridge.query.reduction]]@feature.loadings ),
+      features = rownames(bridge.reference.set@bridge[[bridge.query.reduction]]@feature.loadings ),
       k.filter = NA,
       verbose = verbose
       )
     query <- MapQuery(anchorset =  query.anchor,
-                      reference = BridgeReference@bridge,
+                      reference = bridge.reference.set@bridge,
                       query = query,
                       store.weights = TRUE
     )
   }
   bridge_anchor  <- FindBridgeAnchor(
-    object.list = list(BridgeReference@reference, query),
-    bridge.object = BridgeReference@bridge,
+    object.list = list(bridge.reference.set@reference, query),
+    bridge.object = bridge.reference.set@bridge,
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Transfer",
@@ -7303,7 +7303,8 @@ FindBridgeTransferAnchors <- function(
 }
 
 
-#' Perform integration on the joint PCA cell embeddings
+#' Perform integration on the joint PCA cell embeddings.
+#' 
 #' This is a convenience wrapper function around the following three functions
 #' that are often run together when perform integration. 
 #' #' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},

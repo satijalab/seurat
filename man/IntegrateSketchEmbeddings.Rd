@@ -16,11 +16,9 @@ IntegrateSketchEmbeddings(
   sketch.reduction = "integrated_dr",
   reduction.name = "pca.correct",
   reduction.key = "PCcorrect_",
-  dictionary.method = c("sketch", "data", "embeddings")[1],
+  dictionary.method = c("sketch", "data")[1],
   sketch.ratio = 0.8,
-  sketch.reduction.raw = NULL,
   merged.object = NULL,
-  reference.index = NULL,
   verbose = TRUE
 )
 }
@@ -48,17 +46,11 @@ for all cells. sketch by default. Can be one of:
 \itemize{
 \item{sketch: Use random sketched data slot}
 \item{data: Use data slot}
-\item{embeddings: Use uncorrected dimensional reduction in the sketched object}
 }}
 
 \item{sketch.ratio}{Sketch ratio of data slot when dictionary.method is set to sketch}
 
-\item{sketch.reduction.raw}{Uncorrected dimensional reduction name in the sketched object
-when dictionary.method is set to embeddings}
-
 \item{merged.object}{A merged seurat object containing all cells}
-
-\item{reference.index}{Index for the integration reference}
 
 \item{verbose}{Print progress and message}
 }
