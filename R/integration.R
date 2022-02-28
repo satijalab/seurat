@@ -6691,13 +6691,9 @@ IntegrationReferenceIndex <- function(object) {
 #' \itemize{
 #' \item{sketch: Use random sketched data slot}
 #' \item{data: Use data slot}
-#' \item{embeddings: Use uncorrected dimensional reduction in the sketched object}
 #' }
 #' @param sketch.ratio Sketch ratio of data slot when dictionary.method is set to sketch
-#' @param sketch.reduction.raw Uncorrected dimensional reduction name in the sketched object
-#' when dictionary.method is set to embeddings
 #' @param merged.object A merged seurat object containing all cells
-#' @param reference.index Index for the integration reference
 #' @param verbose Print progress and message
 #'
 #'
@@ -6705,23 +6701,21 @@ IntegrationReferenceIndex <- function(object) {
 #' @importFrom Matrix t
 #' @export
 
-IntegrateSketchEmbeddings <- function(object.list,
-                                      sketch.list,
-                                      sketch.object,
-                                      features = NULL,
-                                      assay = 'RNA',
-                                      sketch.reduction = 'integrated_dr',
-                                      reduction.name ='pca.correct',
-                                      reduction.key = 'PCcorrect_',
-                                      dictionary.method = c('sketch', 'data','embeddings')[1],
-                                      sketch.ratio = 0.8,
-                                      sketch.reduction.raw = NULL,
-                                      merged.object = NULL,
-                                      reference.index = NULL,
-                                      verbose = TRUE) {
-  reference.index <- reference.index %||% IntegrationReferenceIndex(object = sketch.object)
-  features <- rownames(x = Loadings(object = sketch.object[[sketch.reduction]]))
-  query.index <- setdiff(x = 1:length(x = object.list), y = reference.index)
+IntegrateSketchEmbeddings <- function(
+  object.list,
+  sketch.list,
+  sketch.object,
+  features = NULL,
+  assay = 'RNA',
+  sketch.reduction = 'integrated_dr',
+  reduction.name ='pca.correct',
+  reduction.key = 'PCcorrect_',
+  dictionary.method = c('sketch', 'data')[1],
+  sketch.ratio = 0.8,
+  merged.object = NULL,
+  verbose = TRUE) {
+  # check features
+  features <- features %||%rownames(x = Loadings(object = sketch.object[[sketch.reduction]]))
   features <- Reduce(f = intersect,
                      x = c(list(features),
                            lapply(X = object.list, function(x) rownames(x)))
@@ -6737,49 +6731,15 @@ IntegrateSketchEmbeddings <- function(object.list,
     no = future_lapply
   )
   if (verbose) {
-    message("Center and scale based on sketch cells")
-  }
-  # mean and sd
-  if (dictionary.method == 'embeddings') {
-    scale.set <- 1:length(object.list)
-    if (is.null(sketch.reduction.raw)) {
-      stop("When dictionary.method is embeddings, sketch.reduction.raw needs to be specified")
-    }
-  } else {
-    scale.set <- reference.index
-  }
-  mean_sd.i <- SparseMeanSd(object = sketch.object)
-  emb.list <- lapply(
-    X = scale.set,
-    FUN = function(i) {
-      DefaultAssay(sketch.list[[i]]) <- DefaultAssay(object.list[[i]]) <- assay
-      emb.i <- ProjectDataEmbeddings(
-        object =  object.list[[i]],
-        assay = assay,
-        feature.loadings =  Loadings(sketch.object[[sketch.reduction]]),
-        ref.mean = mean_sd.i$mean,
-        ref.sd =  mean_sd.i$sd
-        )
-      return(emb.i)
-         }
-    )
-  if (verbose) {
     message("Correcting embeddings")
   }
-  emb.list.query <- my.lapply(
-    X = query.index,
+  emb.list <- my.lapply(
+    X = 1:length(sketch.list),
     FUN =
     function(q) {
       q.cells <- Cells(x = sketch.list[[q]])
       emb <- switch(
         EXPR = dictionary.method,
-        'embeddings'= {
-          sketch.transform <- ginv(
-            X = Embeddings(object = sketch.object[[sketch.reduction.raw]])[q.cells ,]) %*%
-            Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
-          emb <- emb.list[[q]]  %*% sketch.transform
-          emb
-        },
         'data' = {
           exp.mat <- t(
             x = as.matrix(
@@ -6833,11 +6793,7 @@ IntegrateSketchEmbeddings <- function(object.list,
       return(emb)
     }
     )
-  if (dictionary.method == 'embeddings') {
-    emb.m <- Reduce(f = rbind, x = c(emb.list[reference.index], emb.list.query))
-  } else {
-    emb.m <- Reduce(f = rbind, x = c(emb.list[1], emb.list.query))
-  }
+  emb.m <- Reduce(f = rbind, x = emb.list)
   correct.dr <- CreateDimReducObject(
     embeddings = as.matrix(emb.m),
     loadings =  Loadings(sketch.object[[sketch.reduction]])[features,],
