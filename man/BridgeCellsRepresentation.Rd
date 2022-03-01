@@ -2,7 +2,7 @@
 % Please edit documentation in R/integration.R
 \name{BridgeCellsRepresentation}
 \alias{BridgeCellsRepresentation}
-\title{Constructing a dictionary representation for each unimodal dataset}
+\title{Construct a dictionary representation for each unimodal dataset}
 \usage{
 BridgeCellsRepresentation(
   object.list,
@@ -24,21 +24,21 @@ BridgeCellsRepresentation(
 represent unimodal datasets}
 
 \item{object.reduction}{A list of dimensional reductions from object.list used
-to be reconstructed by bridge.object.}
+to be reconstructed by bridge.object}
 
 \item{bridge.reduction}{A list of dimensional reductions from bridge.object used
-to reconstruct object.reduction.}
+to reconstruct object.reduction}
 
 \item{laplacian.reduction}{Name of bridge graph laplacian dimensional reduction}
 
 \item{laplacian.dims}{Dimensions used for bridge graph laplacian dimensional reduction}
 
-\item{bridge.assay.name}{Assay name used for bridge object reconstruction value}
+\item{bridge.assay.name}{Assay name used for bridge object reconstruction value (default is 'Bridge')}
 
-\item{return.all.assays}{if return all assays in the object.list.
+\item{return.all.assays}{Whether to return all assays in the object.list.
 Only bridge assay is returned by default.}
 
-\item{l2.norm}{Determine if l2 normalize dictionary representation.}
+\item{l2.norm}{Whether to l2 normalize the dictionary representation}
 
 \item{verbose}{Print messages and progress}
 }
@@ -46,5 +46,5 @@ Only bridge assay is returned by default.}
 Returns a object list in which each object has a bridge cell derived assay
 }
 \description{
-Constructing a dictionary representation for each unimodal dataset
+Construct a dictionary representation for each unimodal dataset
 }

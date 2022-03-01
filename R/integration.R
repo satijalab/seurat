@@ -5762,22 +5762,22 @@ FindAssayAnchor <- function(
 }
 
 
-#' Constructing a dictionary representation for each unimodal dataset
+#' Construct a dictionary representation for each unimodal dataset
 #'
 #'
 #' @param object.list A list of Seurat objects
 #' @param bridge.object A multi-omic bridge Seurat which is used as the basis to
 #' represent unimodal datasets
 #' @param object.reduction A list of dimensional reductions from object.list used
-#' to be reconstructed by bridge.object.
+#' to be reconstructed by bridge.object
 #' @param bridge.reduction A list of dimensional reductions from bridge.object used
-#' to reconstruct object.reduction.
+#' to reconstruct object.reduction
 #' @param laplacian.reduction Name of bridge graph laplacian dimensional reduction
 #' @param laplacian.dims Dimensions used for bridge graph laplacian dimensional reduction
-#' @param bridge.assay.name Assay name used for bridge object reconstruction value
-#' @param return.all.assays if return all assays in the object.list.
+#' @param bridge.assay.name Assay name used for bridge object reconstruction value (default is 'Bridge')
+#' @param return.all.assays Whether to return all assays in the object.list.
 #' Only bridge assay is returned by default.
-#' @param l2.norm Determine if l2 normalize dictionary representation.
+#' @param l2.norm Whether to l2 normalize the dictionary representation
 #' @param verbose Print messages and progress
 #'
 #' @importFrom MASS ginv
@@ -7204,9 +7204,10 @@ PrepareBridgeReference <- function (
 #'
 #' Find a set of anchors between unimodal query and the other unimodal reference
 #' using a pre-computed \code{\link{BridgeReferenceSet}}.
-#' First, harmonized the bridge and query cells in the bridge query reduction space.
-#' Then, construct the bridge dictionary representations for query cells.
-#' Next, find a set of anchors between query and reference in the bridge graph laplacian eigenspace.
+#' This function performs three steps:
+#' 1. Harmonize the bridge and query cells in the bridge query reduction space
+#' 2. Construct the bridge dictionary representations for query cells
+#' 3. Find a set of anchors between query and reference in the bridge graph laplacian eigenspace
 #' These anchors can later be used to integrate embeddings or transfer data from the reference to
 #' query object using the \code{\link{MapQuery}} object.
 
