@@ -5789,14 +5789,13 @@ BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
                                       object.reduction,
                                       bridge.reduction,
-                                      laplacian.reduction = NULL,
-                                      laplacian.dims = NULL,
+                                      laplacian.reduction = 'lap',
+                                      laplacian.dims = 1:50,
                                       bridge.assay.name = "Bridge",
                                       return.all.assays = FALSE,
                                       l2.norm = TRUE,
                                       verbose = TRUE
 ) {
-  laplacian.dims <- laplacian.dims %||% 1:ncol(bridge.object[[laplacian.reduction]])
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
@@ -5859,7 +5858,7 @@ BridgeCellsRepresentation <- function(object.list,
           X <- Embeddings(
             object = object.list[[x]],
             reduction = object.reduction[[x]]
-          )[,   dims.list[[x]]$object] %*% (SA.inv %*% lap.vector)
+          )[, dims.list[[x]]$object] %*% (SA.inv %*% lap.vector)
         } else {
           X <- Embeddings(
             object = object.list[[x]],
@@ -6263,9 +6262,16 @@ RunGraphLaplacian.default <- function(object,
   return(lap_dir)
 }
 
+Clarkson, K. L., & Woodruff, D. P. (2017). Low-rank approximation and regression in input sparsity time. Journal of the ACM (JACM), 63(6), 1-45.
 
-
-
+#' Generate CountSketch random matrix
+#' 
+#' @param nrow Number of sketching random cells
+#' @param ncol Number of cells in the original data
+#' @param seed Random seed for sampling
+#' @references Clarkson, KL. & Woodruff, DP.
+#' Low-rank approximation and regression in input sparsity time.
+#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45. \url{https://dl.acm.org/doi/abs/10.1145/3019134};
 #' @importFrom Matrix sparseMatrix
 
 CountSketch <- function(nrow, ncol, seed = 123) {
@@ -6341,12 +6347,15 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
   return(m)
 }
 
-#' @param object A seurat object
+#' @param object A Seurat object
 #' @param features Features used to calculate leverage score
 #' @param nsketch Number of rows in the random sketch matrix (default is 5000)
 #' @param ndims Number of dimensions in the Johnson–Lindenstrauss (JL) embeddings (default is all dimensions)
 #' @param sampling.method Sampling method for generating random matrix
-#' @param MARGIN Margin
+#' \itemize{
+#'   \item{CountSketch: generate a sparsed \code{CountSketch} random matrix}
+#'   \item{Gaussian: generate a gaussian random matrix with mean = 0 and sd = 1 / (ncells ^ 2)}
+#' }
 #' @param eps error tolerance for JL embeddings (default is 0.5)
 #' @param seed Set a random seed (default is 123)
 #' @param verbose Print message and process (default is TRUE)
@@ -6355,13 +6364,13 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
 #' @importFrom SeuratObject as.sparse
 #' @rdname LeverageScore
 #' @export
+#' 
 LeverageScore.default <- function(
   object,
   features = NULL,
   nsketch = 5000L,
   ndims = NULL,
   sampling.method = c("CountSketch", "Gaussian"),
-  MARGIN = 2L,
   eps = 0.5,
   seed = 123,
   verbose = TRUE,
@@ -6381,16 +6390,12 @@ LeverageScore.default <- function(
     nsketch <-  1.1*length(x = features)
   }
   nsketch <- min(nsketch, ndims)
-  MARGIN <- MARGIN %/% 1L
-  if (!MARGIN %in% seq.int(from = 1L, to = 2L)) {
-    stop("'MARGIN' must be either 1 or 2")
-  }
   sampling.method <- sampling.method[1L]
   sampling.method <- match.arg(arg = sampling.method)
   if (isTRUE(x = verbose)) {
     message(sampling.method, " sampling ", nsketch, " cells")
   }
-  ncells <- dim(x = object)[[MARGIN]]
+  ncells <- ncol(x = object)
   S <- switch(
     EXPR = sampling.method,
     "CountSketch" = CountSketch(nrow = nsketch, ncol = ncells, seed = seed),
@@ -6906,7 +6911,11 @@ RunPCA_Sparse <- function(
   return(object)
 }
 
-SmoothLabels <- function(labels, clusters ) {
+# Smoothing labels based on the clusters
+# @param labels the original labels
+# @param clusters the clusters that are used to smooth labels
+#
+SmoothLabels <- function(labels, clusters) {
   cluster.set <- unique(clusters)
   smooth.labels <- labels
   for (c in cluster.set) {
@@ -7244,7 +7253,7 @@ FindBridgeTransferAnchors <- function(
   extended.reference,
   query,
   query.assay = NULL,
-  dims,
+  dims = 1:30,
   reduction = c('lsiproject', 'pcaproject'),
   verbose = TRUE
 ) {
