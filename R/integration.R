@@ -5988,7 +5988,6 @@ FindBridgeAnchor <- function(object.list,
       stored.bridge.weights <- TRUE
     }
   }
-  bridge.reduction.name <- paste0(bridge.assay.name, ".reduc")
   if (reference.bridge.stored) {
     object.list[[query]] <- BridgeCellsRepresentation(
       object.list = object.list[[query]] ,
@@ -6049,12 +6048,20 @@ FindBridgeAnchor <- function(object.list,
                          k.score = k.score,
                          verbose = verbose,
                          ...)
+                       object.merge <- merge(x = object.list[[1]],
+                                             y = object.list[2:length(object.list)]
+                                             )
                        slot(
                          object = anchor,
                          name = "weight.reduction"
-                         ) <- merge(object.list[[1]][[bridge.reduction.name]],
-                                    object.list[[2]][[bridge.reduction.name]]
-                                    )
+                         ) <- CreateDimReducObject(
+                           embeddings = t(GetAssayData(
+                             object = object.merge,
+                             slot = 'data'
+                           )),
+                           key = "L_",
+                           assay = bridge.assay.name
+                         )
                        anchor
                      },
                      "Transfer" = {
