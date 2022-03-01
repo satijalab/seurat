@@ -6650,27 +6650,31 @@ IntegrationReferenceIndex <- function(object) {
 
 #' Integrate embeddings from the integrated atoms
 #'
+#' The main steps of this procedure are outlined below. For a more detailed
+#' description of the methodology, please see Hao,  et al Biorxiv 2022:
+#' \doi{10.1101/2022.02.24.481684}
+#'
 #' First learn a atom dictionary representation to reconstruct each cell.
-#' Then, relying on this dictionary representation,
+#' Then, using this dictionary representation,
 #' reconstruct the embeddings of each cell from the integrated atoms.
 #'
 #' @param object A Seurat object with all cells for one dataset
 #' @param atom.sketch.object A sketched Seurat objects with integrated embeddings
 #' @param features Features used for atomic sketch integration
-#' @param assay Assay name for original expression
+#' @param assay Assay name for original expression (default is 'RNA')
 #' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
-#' in the sketched object
-#' @param reduction.name dimensional reduction name, pca.correct by default
+#' in the sketched object (default is 'integrated_dr')
+#' @param reduction.name dimensional reduction name (default is 'pca.correct')
 #' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. PCcorrect_ by default
+#' the number for the dimension names. (default is 'PCcorrect_')
 #' @param dictionary.method Methods to construct sketch-cell representation
-#' for all cells. sketch by default. Can be one of:
+#' for all cells (default is 'sketch'). Can be one of:
 #' \itemize{
 #' \item{sketch: Use random sketched data slot}
 #' \item{data: Use data slot}
 #' }
-#' @param sketch.ratio Sketch ratio of data slot when dictionary.method is set to sketch
-#' @param verbose Print progress and message
+#' @param sketch.ratio Sketch ratio of data slot when \code{dictionary.method} is set to 'sketch' (default is 0.8)
+#' @param verbose Print progress and message (default is TRUE)
 #'
 #' @return Returns a Seurat object with an integrated dimensional reduction
 #' @importFrom MASS ginv
