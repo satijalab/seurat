@@ -6262,14 +6262,14 @@ RunGraphLaplacian.default <- function(object,
   return(lap_dir)
 }
 
-#' Generate CountSketch random matrix
-#' 
-#' @param nrow Number of sketching random cells
-#' @param ncol Number of cells in the original data
-#' @param seed Random seed for sampling
-#' @references Clarkson, KL. & Woodruff, DP.
-#' Low-rank approximation and regression in input sparsity time.
-#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45. \url{https://dl.acm.org/doi/abs/10.1145/3019134};
+# Generate CountSketch random matrix
+#
+# @param nrow Number of sketching random cells
+# @param ncol Number of cells in the original data
+# @param seed Random seed for sampling
+# @references Clarkson, KL. & Woodruff, DP.
+# Low-rank approximation and regression in input sparsity time.
+# Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45. \url{https://dl.acm.org/doi/abs/10.1145/3019134};
 #' @importFrom Matrix sparseMatrix
 
 CountSketch <- function(nrow, ncol, seed = 123) {
@@ -6287,7 +6287,11 @@ CountSketch <- function(nrow, ncol, seed = 123) {
   ))
 }
 
-
+# Generate a very sparse random matrix to improve the computational speed up of
+# random projection.
+#
+# @reference Ping Li, Trevor J. Hastie, and Kenneth W. Church, "Very sparse random projections(2006)".
+#
 LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)
@@ -6310,6 +6314,13 @@ LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
 }
 
 
+# Generate JL random projection embeddings
+#
+#
+# @reference Aghila G and Siddharth R (2020).
+# RandPro: Random Projection with Classification. R package version 0.2.2.
+# https://CRAN.R-project.org/package=RandPro
+#
 JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)
