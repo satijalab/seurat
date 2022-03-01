@@ -15,7 +15,6 @@ LeverageScore(object, ...)
   nsketch = 5000L,
   ndims = NULL,
   sampling.method = c("CountSketch", "Gaussian"),
-  MARGIN = 2L,
   eps = 0.5,
   seed = 123,
   verbose = TRUE,
@@ -52,7 +51,7 @@ LeverageScore(object, ...)
 )
 }
 \arguments{
-\item{object}{A seurat object}
+\item{object}{A Seurat object}
 
 \item{...}{Arguments passed to other methods}
 
@@ -62,9 +61,11 @@ LeverageScore(object, ...)
 
 \item{ndims}{Number of dimensions in the Johnson–Lindenstrauss (JL) embeddings (default is all dimensions)}
 
-\item{sampling.method}{Sampling method for generating random matrix}
-
-\item{MARGIN}{Margin}
+\item{sampling.method}{Sampling method for generating random matrix
+\itemize{
+  \item{CountSketch: generate a sparsed \code{CountSketch} random matrix}
+  \item{Gaussian: generate a gaussian random matrix with mean = 0 and sd = 1 / (ncells ^ 2)}
+}}
 
 \item{eps}{error tolerance for JL embeddings (default is 0.5)}
 

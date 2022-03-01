@@ -6262,8 +6262,6 @@ RunGraphLaplacian.default <- function(object,
   return(lap_dir)
 }
 
-Clarkson, K. L., & Woodruff, D. P. (2017). Low-rank approximation and regression in input sparsity time. Journal of the ACM (JACM), 63(6), 1-45.
-
 #' Generate CountSketch random matrix
 #' 
 #' @param nrow Number of sketching random cells
