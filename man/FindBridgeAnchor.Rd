@@ -2,18 +2,18 @@
 % Please edit documentation in R/integration.R
 \name{FindBridgeAnchor}
 \alias{FindBridgeAnchor}
-\title{Find bridge anchors between two modalities objects}
+\title{Find bridge anchors between two unimodal datasets}
 \usage{
 FindBridgeAnchor(
   object.list,
   bridge.object,
   object.reduction,
   bridge.reduction,
-  anchor.type = c("Integration", "Transfer")[1],
+  anchor.type = c("Transfer", "Integration"),
   reference = NULL,
   laplacian.reduction = "lap",
   laplacian.dims = NULL,
-  reduction = c("direct", "cca")[1],
+  reduction = c("direct", "cca"),
   bridge.assay.name = "Bridge",
   reference.bridge.stored = FALSE,
   k.anchor = 20,
@@ -23,17 +23,16 @@ FindBridgeAnchor(
 )
 }
 \arguments{
-\item{object.list}{A list of Seurat objects between which to
-find anchors for downstream integration.}
+\item{object.list}{A list of Seurat objects}
 
-\item{bridge.object}{A multimodal bridge seurat which connects two
-single-modality objects}
+\item{bridge.object}{A multi-omic bridge Seurat which is used as the basis to
+represent unimodal datasets}
 
 \item{object.reduction}{A list of dimensional reductions from object.list used
-to be reconstructed by bridge.obejct}
+to be reconstructed by bridge.object.}
 
 \item{bridge.reduction}{A list of dimensional reductions from bridge.object used
-to reconstruct object.reduction}
+to reconstruct object.reduction.}
 
 \item{anchor.type}{The type of anchors. Can
 be one of:

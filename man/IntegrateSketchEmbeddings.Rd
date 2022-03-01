@@ -2,20 +2,17 @@
 % Please edit documentation in R/integration.R
 \name{IntegrateSketchEmbeddings}
 \alias{IntegrateSketchEmbeddings}
-\title{Integrate embeddings from batch-corrected sketch cell embeddings
-First construct a sketch-cell representation for all cells and
-then use this and the batch-corrected embeddings of sketched cells to
-construct the batch-corrected embeddings for all cells}
+\title{Integrate embeddings from the integrated atoms}
 \usage{
 IntegrateSketchEmbeddings(
   object,
-  sketch.object,
+  atom.sketch.object,
   features = NULL,
   assay = "RNA",
-  sketch.reduction = "integrated_dr",
+  atom.sketch.reduction = "integrated_dr",
   reduction.name = "pca.correct",
   reduction.key = "PCcorrect_",
-  dictionary.method = c("sketch", "data")[1],
+  dictionary.method = c("sketch", "data"),
   sketch.ratio = 0.8,
   verbose = TRUE
 )
@@ -23,13 +20,13 @@ IntegrateSketchEmbeddings(
 \arguments{
 \item{object}{A Seurat object with all cells for one dataset}
 
-\item{sketch.object}{A sketched Seurat objects with integrated embeddings}
+\item{atom.sketch.object}{A sketched Seurat objects with integrated embeddings}
 
-\item{features}{Features used for sketch integration}
+\item{features}{Features used for atomic sketch integration}
 
-\item{assay}{Assay name for raw expression}
+\item{assay}{Assay name for original expression}
 
-\item{sketch.reduction}{Dimensional reduction name for batch-corrected embeddings
+\item{atom.sketch.reduction}{Dimensional reduction name for batch-corrected embeddings
 in the sketched object}
 
 \item{reduction.name}{dimensional reduction name, pca.correct by default}
@@ -52,8 +49,7 @@ for all cells. sketch by default. Can be one of:
 Returns a Seurat object with an integrated dimensional reduction
 }
 \description{
-Integrate embeddings from batch-corrected sketch cell embeddings
-First construct a sketch-cell representation for all cells and
-then use this and the batch-corrected embeddings of sketched cells to
-construct the batch-corrected embeddings for all cells
+First learn a atom dictionary representation to reconstruct each cell.
+Then, relying on this dictionary representation, 
+reconstruct the embeddings of each cell from the integrated atoms.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/integration.R
 \name{LeverageScoreSampling}
 \alias{LeverageScoreSampling}
-\title{Subset objects based on Leverage score}
+\title{Sampling cells from objects based on Leverage score}
 \usage{
 LeverageScoreSampling(
   object,
@@ -16,7 +16,7 @@ LeverageScoreSampling(
 )
 }
 \arguments{
-\item{object}{A seurat object}
+\item{object}{A Seurat object}
 
 \item{num.cells}{Number of sampled cells}
 
@@ -33,8 +33,8 @@ LeverageScoreSampling(
 \item{...}{Arguments passed to LeverageScore}
 }
 \value{
-Returns a sub-sampled seurat object
+Returns a subset Seurat object with sampled cells
 }
 \description{
-Subset objects based on Leverage score
+Sampling cells from objects based on Leverage score
 }

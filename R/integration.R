@@ -5657,11 +5657,11 @@ NNtoGraph <- function(
 # Find Anchor direct from assay
 #
 #
-# @return Returns an Integration or TranserAnchor set
+# @return Returns a TranserAnchor or Integration set
 FindAssayAnchor <- function(
   object.list,
   reference = NULL,
-  anchor.type = c("Integration", "Transfer")[1],
+  anchor.type = c("Transfer", "Integration"),
   assay = "Bridge",
   slot = "data",
   reduction =  NULL,
@@ -5669,6 +5669,7 @@ FindAssayAnchor <- function(
   k.score = 50,
   verbose = TRUE
 ) {
+  anchor.type <- match.arg(arg = anchor.type)
   reduction.name <- reduction %||% paste0(assay, ".reduc")
   if ( is.null(x = reduction) || !reduction %in% Reductions(object.list[[1]])) {
     object.list <- lapply(object.list, function(x) {
@@ -5761,21 +5762,27 @@ FindAssayAnchor <- function(
 }
 
 
-#' Use bridge cells to represent single-modality object
+#' Constructing a dictionary representation for each unimodal dataset
 #'
-#' @inheritParams FindBridgeAnchor
-#' @param return.all.assays if return all assays in the object.list.
-#' @param l2.norm if l2 normalize dictionary representation
-#' @param do.center if center dictionary representation
 #' 
+#' @param object.list A list of Seurat objects
+#' @param bridge.object A multi-omic bridge Seurat which is used as the basis to
+#' represent unimodal datasets
+#' @param object.reduction A list of dimensional reductions from object.list used
+#' to be reconstructed by bridge.object.
+#' @param bridge.reduction A list of dimensional reductions from bridge.object used
+#' to reconstruct object.reduction.
+#' @param laplacian.reduction Name of bridge graph laplacian dimensional reduction
+#' @param laplacian.dims Dimensions used for bridge graph laplacian dimensional reduction
+#' @param bridge.assay.name Assay name used for bridge object reconstruction value
+#' @param return.all.assays if return all assays in the object.list. 
 #' Only bridge assay is returned by default.
-#'
+#' @param l2.norm Determine if l2 normalize dictionary representation.
 #'
 #' @importFrom MASS ginv
 #' @return Returns a object list in which each object has a bridge cell derived assay
 #' @export
 #'
-
 
 BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
@@ -5786,7 +5793,6 @@ BridgeCellsRepresentation <- function(object.list,
                                       bridge.assay.name = "Bridge",
                                       return.all.assays = FALSE,
                                       l2.norm = TRUE,
-                                      do.center = FALSE,
                                       verbose = TRUE
 ) {
   laplacian.dims <- laplacian.dims %||% 1:ncol(bridge.object[[laplacian.reduction]])
@@ -5838,7 +5844,6 @@ BridgeCellsRepresentation <- function(object.list,
      names(dims.list[[i]]) <- c('object', 'bridge')
    }
     }
-
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(x) {
@@ -5871,12 +5876,6 @@ BridgeCellsRepresentation <- function(object.list,
       object.list[[x]][[bridge.assay.name]]@misc$SA.inv <- SA.inv
       DefaultAssay(object.list[[x]]) <- bridge.assay.name
       VariableFeatures(object = object.list[[x]]) <- rownames(object.list[[x]])
-      object.list[[x]] <- ScaleData(
-        object = object.list[[x]],
-        do.scale = FALSE,
-        do.center = do.center,
-        verbose = FALSE
-      )
       return (object.list[[x]])
     }
   )
@@ -5895,7 +5894,7 @@ BridgeCellsRepresentation <- function(object.list,
   return(object.list)
 }
 
-#' Find bridge anchors between two modalities objects
+#' Find bridge anchors between two unimodal datasets
 #'
 #' First, bridge object is used to reconstruct two single-modality profiles and
 #' then project those cells into bridage graph laplacian space.
@@ -5910,14 +5909,7 @@ BridgeCellsRepresentation <- function(object.list,
 #'  }
 #' }
 #'
-#' @param object.list A list of Seurat objects between which to
-#' find anchors for downstream integration.
-#' @param bridge.object A multimodal bridge seurat which connects two
-#' single-modality objects
-#' @param object.reduction A list of dimensional reductions from object.list used
-#' to be reconstructed by bridge.obejct
-#' @param bridge.reduction A list of dimensional reductions from bridge.object used
-#' to reconstruct object.reduction
+#' @inheritParams BridgeCellsRepresentation
 #' @param anchor.type The type of anchors. Can
 #' be one of:
 #' \itemize{
@@ -5926,15 +5918,12 @@ BridgeCellsRepresentation <- function(object.list,
 #' }
 #' @param reference A vector specifying the object/s to be used as a reference
 #' during integration or transfer data.
-#' @param laplacian.reduction Name of bridge graph laplacian dimensional reduction
-#' @param laplacian.dims Dimensions used for bridge graph laplacian dimensional reduction
 #' @param reduction Dimensional reduction to perform when finding anchors. Can
 #' be one of:
 #' \itemize{
 #'   \item{cca: Canonical correlation analysis}
 #'   \item{direct: Use assay data as a dimensional reduction}
 #' }
-#' @param bridge.assay.name Assay name used for bridge object reconstruction value
 #' @param reference.bridge.stored If refernece has stored the bridge dictionary representation
 #' @param k.anchor How many neighbors (k) to use when picking anchors
 #' @param k.score How many neighbors (k) to use when scoring anchors
@@ -5951,11 +5940,11 @@ FindBridgeAnchor <- function(object.list,
                              bridge.object,
                              object.reduction,
                              bridge.reduction,
-                             anchor.type = c("Integration", "Transfer")[1],
+                             anchor.type = c("Transfer", "Integration"),
                              reference = NULL,
                              laplacian.reduction = "lap",
                              laplacian.dims = NULL,
-                             reduction = c("direct", "cca")[1],
+                             reduction = c("direct", "cca"),
                              bridge.assay.name = "Bridge",
                              reference.bridge.stored = FALSE,
                              k.anchor = 20,
@@ -5963,7 +5952,8 @@ FindBridgeAnchor <- function(object.list,
                              verbose = TRUE,
                              ...
                              ) {
-
+  anchor.type <- match.arg(arg = anchor.type)
+  reduction <- match.arg(arg = reduction)
   if (!is.null(laplacian.reduction)) {
     bridge.method <- "bridge graph"
   } else {
@@ -5997,7 +5987,6 @@ FindBridgeAnchor <- function(object.list,
       stored.bridge.weights <- TRUE
     }
   }
-
   bridge.reduction.name <- paste0(bridge.assay.name, ".reduc")
   if (reference.bridge.stored) {
     object.list[[query]] <- BridgeCellsRepresentation(
@@ -6022,7 +6011,6 @@ FindBridgeAnchor <- function(object.list,
       verbose = verbose
     )
   }
-
   if (reduction == "direct") {
     anchor <- FindAssayAnchor(
       object.list = object.list ,
@@ -6035,6 +6023,19 @@ FindBridgeAnchor <- function(object.list,
       verbose = verbose
     )
   } else if (reduction == "cca") {
+    # set data slot to scale.data slot
+    object.list <- lapply(
+      X = object.list,
+      FUN = function(x) {
+     x <- SetAssayData(
+       object = x,
+       slot = "scale.data",
+       new.data = as.matrix(
+         x = GetAssayData(object = x, slot = "data")
+         ))
+     return(x)
+     }
+     )
     anchor <- switch(EXPR = anchor.type,
                      "Integration" = {
                        anchor <- FindIntegrationAnchors(
@@ -6089,7 +6090,6 @@ FindBridgeAnchor <- function(object.list,
       )
     }
   }
-
   slot(object = anchor, name = "command") <- LogSeuratCommand(
     object = object.list[[1]],
     return.command = TRUE
@@ -6151,8 +6151,7 @@ TransferExpressionNN<- function(
   nn.object,
   reference.object,
   var.name = NULL
-){
-
+) {
   nn.matrix <- NNtoGraph(nn.object = nn.object,
                          col.cells = Cells(reference.object)
                          )
@@ -6299,33 +6298,6 @@ LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
 }
 
 
-LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
-  if (!is.na(x = seed)) {
-    set.seed(seed = seed)
-  }
-  if (!is.null(x = eps)) {
-    if (eps > 1 || eps <= 0) {
-      stop("'eps' must be 0 < eps <= 1")
-    }
-    ncol <- floor(x = 4 * log(x = ncol) / ((eps ^ 2) / 2 - (eps ^ 3 / 3)))
-  }
-  s <- ceiling(x = sqrt(x = ncol))
-  prob <- c(
-    1 / (2 * s),
-    1 - (1 / s),
-    1 / (2 * s)
-  )
-  return(matrix(
-    data = sample(
-      x = seq.int(from = -1L, to = 1L),
-      size = nrow * ncol,
-      replace = TRUE,
-      prob = prob
-    ),
-    nrow = nrow
-  ))
-}
-
 JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
   if (!is.na(x = seed)) {
     set.seed(seed = seed)
@@ -6454,10 +6426,7 @@ LeverageScore.default <- function(
   }
 
   # triangular matrix inverse
-
    R.inv <-  as.sparse(backsolve(r = R , x = diag(ncol(R))))
-
-
   if (isTRUE(x = verbose)) {
     message("Random projection")
   }
@@ -6471,8 +6440,7 @@ LeverageScore.default <- function(
   return(rowSums(x = Z ^ 2))
 }
 
-#' ssssxxxxx
-#'
+
 #' @rdname LeverageScore
 #' @export
 #' @method LeverageScore Assay
@@ -6571,9 +6539,9 @@ CheckMetaVarName <- function(object, var.name) {
 }
 
 
-#' Subset objects based on Leverage score
+#' Sampling cells from objects based on Leverage score
 #'
-#' @param object A seurat object
+#' @param object A Seurat object
 #' @param num.cells Number of sampled cells
 #' @param assay Assay used to calculate leverage score
 #' @param features Features used to calculate leverage score
@@ -6582,7 +6550,7 @@ CheckMetaVarName <- function(object, var.name) {
 #' @param seed Set a random seed.By default, sets the seed to 123
 #' @param ... Arguments passed to LeverageScore
 #'
-#' @return Returns a sub-sampled seurat object
+#' @return Returns a subset Seurat object with sampled cells
 #' @export
 #'
 LeverageScoreSampling <- function(
@@ -6672,16 +6640,17 @@ IntegrationReferenceIndex <- function(object) {
   return(reference.index)
 }
 
-#' Integrate embeddings from batch-corrected sketch cell embeddings
-#' First construct a sketch-cell representation for all cells and
-#' then use this and the batch-corrected embeddings of sketched cells to
-#' construct the batch-corrected embeddings for all cells
+#' Integrate embeddings from the integrated atoms
+#' 
+#' First learn a atom dictionary representation to reconstruct each cell.
+#' Then, relying on this dictionary representation, 
+#' reconstruct the embeddings of each cell from the integrated atoms. 
 #' 
 #' @param object A Seurat object with all cells for one dataset
-#' @param sketch.object A sketched Seurat objects with integrated embeddings
-#' @param features Features used for sketch integration
-#' @param assay Assay name for raw expression
-#' @param sketch.reduction Dimensional reduction name for batch-corrected embeddings
+#' @param atom.sketch.object A sketched Seurat objects with integrated embeddings
+#' @param features Features used for atomic sketch integration
+#' @param assay Assay name for original expression
+#' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
 #' in the sketched object
 #' @param reduction.name dimensional reduction name, pca.correct by default
 #' @param reduction.key dimensional reduction key, specifies the string before
@@ -6702,26 +6671,28 @@ IntegrationReferenceIndex <- function(object) {
 
 IntegrateSketchEmbeddings <- function(
   object,
-  sketch.object,
+  atom.sketch.object,
   features = NULL,
   assay = 'RNA',
-  sketch.reduction = 'integrated_dr',
+  atom.sketch.reduction = 'integrated_dr',
   reduction.name ='pca.correct',
   reduction.key = 'PCcorrect_',
-  dictionary.method = c('sketch', 'data')[1],
+  dictionary.method = c('sketch', 'data'),
   sketch.ratio = 0.8,
-  verbose = TRUE) {
+  verbose = TRUE
+  ) {
+  dictionary.method <- match.arg(arg = dictionary.method)
   # check features
-  features <- features %||%rownames(x = Loadings(object = sketch.object[[sketch.reduction]]))
+  features <- features %||%rownames(x = Loadings(object = atom.sketch.object[[atom.sketch.reduction]]))
   features <- intersect(features, rownames(object))
   # check cell names
- cells.sketch <- intersect(x = Cells(sketch.object), y = Cells(object))
- if (length(x = cells.sketch) == 0) {
-   stop("Cell names in object are the same with those in sketch.object.")
- } 
- if (verbose) {
-   message(length(cells.sketch),' atomic cells are identified in the sketch.object')
- }
+  cells.sketch <- intersect(x = Cells(atom.sketch.object), y = Cells(object))
+  if (length(x = cells.sketch) == 0) {
+    stop("Cell names in object are the same with those in atom.sketch.object.")
+  } 
+  if (verbose) {
+    message(length(cells.sketch),' atomic cells are identified in the atom.sketch.object')
+  }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
@@ -6736,13 +6707,13 @@ IntegrateSketchEmbeddings <- function(
       exp.mat <- t(
         x = as.matrix(
           x = GetAssayData(
-            sketch.object[[assay]],
+            atom.sketch.object[[assay]],
             slot = 'data'
           )[features, cells.sketch]
         )
       )
       sketch.transform <- ginv(X = exp.mat) %*%
-        Embeddings(object = sketch.object[[sketch.reduction]])[cells.sketch ,]
+        Embeddings(object = atom.sketch.object[[atom.sketch.reduction]])[cells.sketch ,]
       emb <- as.matrix(
         x = t(
           x = GetAssayData(
@@ -6762,13 +6733,13 @@ IntegrateSketchEmbeddings <- function(
       exp.mat <- as.matrix(
         x = t(
           x = GetAssayData(
-            sketch.object[[assay]],
+            atom.sketch.object[[assay]],
             slot = 'data')[features,cells.sketch]
         ) %*%
           R
       )
       sketch.transform <- ginv(X = exp.mat) %*%
-        Embeddings(object = sketch.object[[sketch.reduction]])[cells.sketch ,]
+        Embeddings(object = atom.sketch.object[[atom.sketch.reduction]])[cells.sketch ,]
       emb <- as.matrix(
         x = (
           t(
@@ -6784,10 +6755,10 @@ IntegrateSketchEmbeddings <- function(
   )
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(emb),
-    loadings =  Loadings(sketch.object[[sketch.reduction]])[features,],
+    loadings =  Loadings(atom.sketch.object[[atom.sketch.reduction]])[features,],
     key = reduction.key,
     assay = assay
-    )
+  )
   return(object)
 }
 
@@ -7062,11 +7033,15 @@ ProjectDimReduc <- function(query,
 }
 
 
-#' Prepare the multi-omic bridge datasets and unimodal reference
-#' First perform within-modality harmonization of bridge and reference
-#' then perform dimensional reduction on the SNN graph of bridge datasets
+#' Prepare the bridge and reference datasets
+#' 
+#' Preprocess the multi-omic bridge and unimodel reference datasets into
+#' an extended reference.
+#' First perform within-modality harmonization between bridge and reference.
+#' Then perform dimensional reduction on the SNN graph of bridge datasets
 #' via Laplacian Eigendecomposition
 #' Lastly, construct a bridge dictionary representation for unimodal reference cells
+#' 
 #' @param reference A reference Seurat object
 #' @param bridge A multi-omic bridge Seurat object
 #' @param reference.reduction Name of dimensional reduction of the reference object
@@ -7074,9 +7049,8 @@ ProjectDimReduc <- function(query,
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT
 #' @param reference.assay Assay name for reference
-#' in the sketched object
-#' @param bridge.ref.assay Assay name for bridge used for reference mapping
-#' @param bridge.query.assay Assay name for bridge used for query mapping
+#' @param bridge.ref.assay Assay name for bridge used for reference mapping. RNA by default
+#' @param bridge.query.assay Assay name for bridge used for query mapping. ATAC by default
 #' @param supervised.reduction Determine if perform supervised dimensional reduction
 #' #' Options are:
 #' \itemize{
@@ -7091,11 +7065,10 @@ ProjectDimReduc <- function(query,
 #' bridge.query.reduction and supervised.reduction needs to set one
 #' @param bridge.query.features Features used for bridge query dimensional reduction
 #' @param laplacian.reduction.name Name of dimensional reduction name of graph laplacian eigenspace
-#' @param laplacian.reduction.key dimensional reduction key
-#' @param laplacian.reduction.dims Number of dimenions used for graph laplacian eigenspace
+#' @param laplacian.reduction.key Dimensional reduction key
+#' @param laplacian.reduction.dims Number of dimensions used for graph laplacian eigenspace
 #' @param verbose Print progress and message
 #'
-#'#' @return 
 #' @export
 #' @return Returns a \code{BridgeReferenceSet} that can be used as input to
 #'  \code{\link{FindBridgeTransferAnchors}}.
@@ -7110,7 +7083,7 @@ PrepareBridgeReference <- function (
   reference.assay = NULL,
   bridge.ref.assay = 'RNA',
   bridge.query.assay = 'ATAC',
-  supervised.reduction = c('slsi', 'spca', NULL )[1],
+  supervised.reduction = c('slsi', 'spca', NULL ),
   bridge.query.reduction = NULL, 
   bridge.query.features = NULL, 
   laplacian.reduction.name = 'lap',
@@ -7119,6 +7092,7 @@ PrepareBridgeReference <- function (
   verbose = TRUE
 ) {
   ## checking
+  supervised.reduction <- match.arg(arg = supervised.reduction)
   if (!is.null(x = bridge.query.reduction) & !is.null(x = supervised.reduction)) {
     stop('bridge.query.reduction and supervised.reduction can only set one')
   }
@@ -7134,7 +7108,7 @@ PrepareBridgeReference <- function (
   # modality harmonization
   reference.assay <- reference.assay %||% DefaultAssay(reference) 
   DefaultAssay(reference) <- reference.assay
-  DefaultAssay(bridge) <-  bridge.ref.assay
+  DefaultAssay(bridge) <- bridge.ref.assay
   ref.anchor  <- FindTransferAnchors(
     reference =  reference,
     reference.reduction = reference.reduction,
@@ -7215,11 +7189,12 @@ PrepareBridgeReference <- function (
 }
 
 
-#' Find bridge anchors between unimodal query and the other unimodal reference
+#' Find bridge anchors between query and extended bridge-reference
+#' 
+#' Find a set of anchors between unimodal query and the other unimodal reference
 #' using a pre-computed \code{\link{BridgeReferenceSet}}.
-#'
 #' First, harmonized the bridge and query cells in the bridge query reduction space.
-#' Then, constructe the bridge dictionary representations for query cells. 
+#' Then, construct the bridge dictionary representations for query cells. 
 #' Next, find a set of anchors between query and reference in the bridge graph laplacian eigenspace. 
 #' These anchors can later be used to integrate embeddings or transfer data from the reference to
 #' query object using the \code{\link{MapQuery}} object.
@@ -7253,9 +7228,10 @@ FindBridgeTransferAnchors <- function(
   query,
   query.assay = NULL,
   dims,
-  reduction = c('lsiproject', 'pcaproject')[1],
+  reduction = c('lsiproject', 'pcaproject'),
   verbose = TRUE
-){
+) {
+  reduction <-  match.arg(arg = reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
   params <- slot(object = extended.reference, name = "params")
