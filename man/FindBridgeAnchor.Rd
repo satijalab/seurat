@@ -12,7 +12,7 @@ FindBridgeAnchor(
   anchor.type = c("Transfer", "Integration"),
   reference = NULL,
   laplacian.reduction = "lap",
-  laplacian.dims = NULL,
+  laplacian.dims = 1:50,
   reduction = c("direct", "cca"),
   bridge.assay.name = "Bridge",
   reference.bridge.stored = FALSE,
