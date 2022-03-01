@@ -18,17 +18,17 @@ LeverageScoreSampling(
 \arguments{
 \item{object}{A Seurat object}
 
-\item{num.cells}{Number of sampled cells}
+\item{num.cells}{Number of sampled cells (default is 5000)}
 
 \item{assay}{Assay used to calculate leverage score}
 
 \item{features}{Features used to calculate leverage score}
 
-\item{var.name}{Variable name stored leverage score in the meta.data}
+\item{var.name}{Variable name stored leverage score in the meta.data (default is 'leverage.score')}
 
-\item{over.write}{If over write the variable with leverage score}
+\item{over.write}{Whether to over write the variable with leverage score (default is FALSE)}
 
-\item{seed}{Set a random seed.By default, sets the seed to 123}
+\item{seed}{Set a random seed (default is 123)}
 
 \item{...}{Arguments passed to LeverageScore}
 }

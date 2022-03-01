@@ -6341,14 +6341,15 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
   return(m)
 }
 
+#' @param object A seurat object
 #' @param features Features used to calculate leverage score
-#' @param nsketch Number of rows in the random sketch matrix
-#' @param ndims Number of dimensions in the JL embeddings
+#' @param nsketch Number of rows in the random sketch matrix (default is 5000)
+#' @param ndims Number of dimensions in the Johnson–Lindenstrauss (JL) embeddings (default is all dimensions)
 #' @param sampling.method Sampling method for generating random matrix
 #' @param MARGIN Margin
-#' @param eps error tolerance for JL embeddings
-#' @param seed Set a random seed
-#' @param verbose Print message and process
+#' @param eps error tolerance for JL embeddings (default is 0.5)
+#' @param seed Set a random seed (default is 123)
+#' @param verbose Print message and process (default is TRUE)
 #'
 #' @importFrom Matrix qrR
 #' @importFrom SeuratObject as.sparse
@@ -6550,12 +6551,12 @@ CheckMetaVarName <- function(object, var.name) {
 #' Sampling cells from objects based on Leverage score
 #'
 #' @param object A Seurat object
-#' @param num.cells Number of sampled cells
+#' @param num.cells Number of sampled cells (default is 5000)
 #' @param assay Assay used to calculate leverage score
 #' @param features Features used to calculate leverage score
-#' @param var.name Variable name stored leverage score in the meta.data
-#' @param over.write If over write the variable with leverage score
-#' @param seed Set a random seed.By default, sets the seed to 123
+#' @param var.name Variable name stored leverage score in the meta.data (default is 'leverage.score')
+#' @param over.write Whether to over write the variable with leverage score (default is FALSE)
+#' @param seed Set a random seed (default is 123)
 #' @param ... Arguments passed to LeverageScore
 #'
 #' @return Returns a subset Seurat object with sampled cells
