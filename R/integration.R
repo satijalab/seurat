@@ -5778,6 +5778,7 @@ FindAssayAnchor <- function(
 #' @param return.all.assays if return all assays in the object.list. 
 #' Only bridge assay is returned by default.
 #' @param l2.norm Determine if l2 normalize dictionary representation.
+#' @param verbose Print messages and progress
 #'
 #' @importFrom MASS ginv
 #' @return Returns a object list in which each object has a bridge cell derived assay
