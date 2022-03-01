@@ -7095,7 +7095,16 @@ ProjectDimReduc <- function(query,
 #' in the sketched object
 #' @param bridge.ref.assay Assay name for bridge used for reference mapping
 #' @param bridge.query.assay Assay name for bridge used for query mapping
-#' @param supervised.reduction Determine if perform supervised LSI or supervised PCA
+#' @param supervised.reduction Determine if perform supervised dimensional reduction
+#' #' Options are:
+#' \itemize{
+#'    \item{slsi: Perform supervised LSI as the dimensional reduction for
+#'    the bridge-query integration}
+#'    \item{spca: Perform supervised PCA as the dimensional reduction for
+#'    the bridge-query integration}
+#'    \item{NULL: no supervised dimensional reduction will be calculated.
+#'    bridge.query.reduction is used for the bridge-query integration}
+#' }
 #' @param bridge.query.reduction Name of dimensions used for the query-bridge harmonization. 
 #' bridge.query.reduction and supervised.reduction needs to set one
 #' @param bridge.query.features Features used for bridge query dimensional reduction
@@ -7106,8 +7115,9 @@ ProjectDimReduc <- function(query,
 #'
 #'#' @return 
 #' @export
-#' @return Returns a \code{bridge.reference.setSet} that can be used as input to \code{\link{FindBridgeTransferAnchors}}
-#' The parameters used are stored in the \code{bridge.reference.setSet} as well
+#' @return Returns a \code{BridgeReferenceSet} that can be used as input to
+#'  \code{\link{FindBridgeTransferAnchors}}.
+#' The parameters used are stored in the \code{BridgeReferenceSet} as well
 #' 
 PrepareBridgeReference <- function (
   reference,
@@ -7224,7 +7234,7 @@ PrepareBridgeReference <- function (
 
 
 #' Find bridge anchors between unimodal query and the other unimodal reference
-#' usnig a pre-computed \code{\link{BridgeReferenceSet}}.
+#' using a pre-computed \code{\link{BridgeReferenceSet}}.
 #'
 #' First, harmonized the bridge and query cells in the bridge query reduction space.
 #' Then, constructe the bridge dictionary representations for query cells. 
@@ -7232,7 +7242,7 @@ PrepareBridgeReference <- function (
 #' These anchors can later be used to integrate embeddings or transfer data from the reference to
 #' query object using the \code{\link{MapQuery}} object.
 
-#' @param bridge.reference.set BridgeReferenceSet object generated from
+#' @param extended.reference BridgeReferenceSet object generated from
 #'  \code{\link{PrepareBridgeReference}}
 #' @param query A query Seurat object
 #' @param query.assay Assay name for query-bridge integration
@@ -7257,7 +7267,7 @@ PrepareBridgeReference <- function (
 #' \code{\link{MapQuery}}.
 #' 
 FindBridgeTransferAnchors <- function( 
-  bridge.reference.set,
+  extended.reference,
   query,
   query.assay = NULL,
   dims,
@@ -7266,33 +7276,33 @@ FindBridgeTransferAnchors <- function(
 ){
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- slot(object = bridge.reference.set, name = "params")
+  params <- slot(object = extended.reference, name = "params")
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
   bridge.ref.reduction <- params$bridge.ref.reduction
-  DefaultAssay(bridge.reference.set@bridge) <- bridge.query.assay
+  DefaultAssay(extended.reference@bridge) <- bridge.query.assay
   if (reduction == "lsiproject") {
     query.anchor <- FindTransferAnchors(
-      reference = bridge.reference.set@bridge,
+      reference = extended.reference@bridge,
       reference.reduction = bridge.query.reduction,
       dims = dims,
       query = query,
       reduction = reduction,
       scale = FALSE,
-      features = rownames(bridge.reference.set@bridge[[bridge.query.reduction]]@feature.loadings ),
+      features = rownames(extended.reference@bridge[[bridge.query.reduction]]@feature.loadings),
       k.filter = NA,
       verbose = verbose
-      )
+    )
     query <- MapQuery(anchorset =  query.anchor,
-                      reference = bridge.reference.set@bridge,
+                      reference = extended.reference@bridge,
                       query = query,
                       store.weights = TRUE
     )
   }
   bridge_anchor  <- FindBridgeAnchor(
-    object.list = list(bridge.reference.set@reference, query),
-    bridge.object = bridge.reference.set@bridge,
+    object.list = list(extended.reference@reference, query),
+    bridge.object = extended.reference@bridge,
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Transfer",
