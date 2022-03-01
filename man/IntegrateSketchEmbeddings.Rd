@@ -50,6 +50,6 @@ Returns a Seurat object with an integrated dimensional reduction
 }
 \description{
 First learn a atom dictionary representation to reconstruct each cell.
-Then, relying on this dictionary representation, 
+Then, relying on this dictionary representation,
 reconstruct the embeddings of each cell from the integrated atoms.
 }

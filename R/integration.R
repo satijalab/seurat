@@ -5764,7 +5764,7 @@ FindAssayAnchor <- function(
 
 #' Constructing a dictionary representation for each unimodal dataset
 #'
-#' 
+#'
 #' @param object.list A list of Seurat objects
 #' @param bridge.object A multi-omic bridge Seurat which is used as the basis to
 #' represent unimodal datasets
@@ -5775,7 +5775,7 @@ FindAssayAnchor <- function(
 #' @param laplacian.reduction Name of bridge graph laplacian dimensional reduction
 #' @param laplacian.dims Dimensions used for bridge graph laplacian dimensional reduction
 #' @param bridge.assay.name Assay name used for bridge object reconstruction value
-#' @param return.all.assays if return all assays in the object.list. 
+#' @param return.all.assays if return all assays in the object.list.
 #' Only bridge assay is returned by default.
 #' @param l2.norm Determine if l2 normalize dictionary representation.
 #' @param verbose Print messages and progress
@@ -6363,7 +6363,7 @@ LeverageScore.default <- function(
   MARGIN = 2L,
   eps = 0.5,
   seed = 123,
-  verbose = TRUE, 
+  verbose = TRUE,
   ...
 ) {
   features <- features %||% rownames(x = object)
@@ -6649,11 +6649,11 @@ IntegrationReferenceIndex <- function(object) {
 }
 
 #' Integrate embeddings from the integrated atoms
-#' 
+#'
 #' First learn a atom dictionary representation to reconstruct each cell.
-#' Then, relying on this dictionary representation, 
-#' reconstruct the embeddings of each cell from the integrated atoms. 
-#' 
+#' Then, relying on this dictionary representation,
+#' reconstruct the embeddings of each cell from the integrated atoms.
+#'
 #' @param object A Seurat object with all cells for one dataset
 #' @param atom.sketch.object A sketched Seurat objects with integrated embeddings
 #' @param features Features used for atomic sketch integration
@@ -6697,7 +6697,7 @@ IntegrateSketchEmbeddings <- function(
   cells.sketch <- intersect(x = Cells(atom.sketch.object), y = Cells(object))
   if (length(x = cells.sketch) == 0) {
     stop("Cell names in object are the same with those in atom.sketch.object.")
-  } 
+  }
   if (verbose) {
     message(length(cells.sketch),' atomic cells are identified in the atom.sketch.object')
   }
@@ -7042,24 +7042,26 @@ ProjectDimReduc <- function(query,
 
 
 #' Prepare the bridge and reference datasets
-#' 
-#' Preprocess the multi-omic bridge and unimodel reference datasets into
+#'
+#' Preprocess the multi-omic bridge and unimodal reference datasets into
 #' an extended reference.
-#' First perform within-modality harmonization between bridge and reference.
-#' Then perform dimensional reduction on the SNN graph of bridge datasets
-#' via Laplacian Eigendecomposition
-#' Lastly, construct a bridge dictionary representation for unimodal reference cells
-#' 
+#' This function performs the following three steps:
+#' 1. Performs within-modality harmonization between bridge and reference
+#' 2. Performs dimensional reduction on the SNN graph of bridge datasets via
+#' Laplacian Eigendecomposition
+#' 3. Constructs a bridge dictionary representation for unimodal reference cells
+#'
 #' @param reference A reference Seurat object
 #' @param bridge A multi-omic bridge Seurat object
-#' @param reference.reduction Name of dimensional reduction of the reference object
-#' @param reference.dims Number of dimensions used for the reference.reduction
+#' @param reference.reduction Name of dimensional reduction of the reference object (default is 'pca')
+#' @param reference.dims Number of dimensions used for the reference.reduction (default is 50)
 #' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT
-#' @param reference.assay Assay name for reference
+#' @param reference.assay Assay name for reference (default is \code{\link{DefaultAssay}})
 #' @param bridge.ref.assay Assay name for bridge used for reference mapping. RNA by default
 #' @param bridge.query.assay Assay name for bridge used for query mapping. ATAC by default
-#' @param supervised.reduction Determine if perform supervised dimensional reduction
+#' @param supervised.reduction Type of supervised dimensional reduction to be performed
+#' for integrating the bridge and query.
 #' #' Options are:
 #' \itemize{
 #'    \item{slsi: Perform supervised LSI as the dimensional reduction for
@@ -7069,19 +7071,20 @@ ProjectDimReduc <- function(query,
 #'    \item{NULL: no supervised dimensional reduction will be calculated.
 #'    bridge.query.reduction is used for the bridge-query integration}
 #' }
-#' @param bridge.query.reduction Name of dimensions used for the query-bridge harmonization. 
-#' bridge.query.reduction and supervised.reduction needs to set one
+#' @param bridge.query.reduction Name of dimensions used for the bridge-query harmonization.
+#' Requires either 'bridge.query.reduction' or 'supervised.reduction' to be not NULL.
 #' @param bridge.query.features Features used for bridge query dimensional reduction
-#' @param laplacian.reduction.name Name of dimensional reduction name of graph laplacian eigenspace
-#' @param laplacian.reduction.key Dimensional reduction key
-#' @param laplacian.reduction.dims Number of dimensions used for graph laplacian eigenspace
-#' @param verbose Print progress and message
+#' (default is NULL which uses VariableFeatures from the bridge object)
+#' @param laplacian.reduction.name Name of dimensional reduction name of graph laplacian eigenspace (default is 'lap')
+#' @param laplacian.reduction.key Dimensional reduction key (default is 'lap_')
+#' @param laplacian.reduction.dims Number of dimensions used for graph laplacian eigenspace (default is 50)
+#' @param verbose Print progress and message (default is TRUE)
 #'
 #' @export
 #' @return Returns a \code{BridgeReferenceSet} that can be used as input to
 #'  \code{\link{FindBridgeTransferAnchors}}.
 #' The parameters used are stored in the \code{BridgeReferenceSet} as well
-#' 
+#'
 PrepareBridgeReference <- function (
   reference,
   bridge,
@@ -7091,9 +7094,9 @@ PrepareBridgeReference <- function (
   reference.assay = NULL,
   bridge.ref.assay = 'RNA',
   bridge.query.assay = 'ATAC',
-  supervised.reduction = c('slsi', 'spca', NULL ),
-  bridge.query.reduction = NULL, 
-  bridge.query.features = NULL, 
+  supervised.reduction = c('slsi', 'spca', NULL),
+  bridge.query.reduction = NULL,
+  bridge.query.features = NULL,
   laplacian.reduction.name = 'lap',
   laplacian.reduction.key = 'lap_',
   laplacian.reduction.dims = 1:50,
@@ -7114,7 +7117,7 @@ PrepareBridgeReference <- function (
          ' assay has no variable genes and bridge.query.features has no input')
   }
   # modality harmonization
-  reference.assay <- reference.assay %||% DefaultAssay(reference) 
+  reference.assay <- reference.assay %||% DefaultAssay(reference)
   DefaultAssay(reference) <- reference.assay
   DefaultAssay(bridge) <- bridge.ref.assay
   ref.anchor  <- FindTransferAnchors(
@@ -7148,7 +7151,7 @@ PrepareBridgeReference <- function (
                               verbose = verbose)
   DefaultAssay(object = bridge) <- bridge.query.assay
   if (!is.null(supervised.reduction)) {
-    bridge <- switch(EXPR = supervised.reduction, 
+    bridge <- switch(EXPR = supervised.reduction,
                      'slsi' = {
                        bridge.reduc <- RunSLSI(object = bridge,
                                                features = VariableFeatures(bridge),
@@ -7156,7 +7159,7 @@ PrepareBridgeReference <- function (
                                                assay = bridge.query.assay
                        )
                        bridge.reduc
-                     }, 
+                     },
                      'spca' = {
                        bridge.reduc <- RunSPCA(object = bridge,
                                                features = VariableFeatures(bridge),
@@ -7187,8 +7190,8 @@ PrepareBridgeReference <- function (
       bridge.ref.assay = bridge.ref.assay,
       bridge.query.assay = bridge.query.assay,
       supervised.reduction = supervised.reduction,
-      bridge.ref.reduction = bridge.ref.reduction, 
-      bridge.query.reduction = bridge.query.reduction, 
+      bridge.ref.reduction = bridge.ref.reduction,
+      bridge.query.reduction = bridge.query.reduction,
       laplacian.reduction.name = laplacian.reduction.name,
       laplacian.reduction.dims = laplacian.reduction.dims
     )
@@ -7198,12 +7201,12 @@ PrepareBridgeReference <- function (
 
 
 #' Find bridge anchors between query and extended bridge-reference
-#' 
+#'
 #' Find a set of anchors between unimodal query and the other unimodal reference
 #' using a pre-computed \code{\link{BridgeReferenceSet}}.
 #' First, harmonized the bridge and query cells in the bridge query reduction space.
-#' Then, construct the bridge dictionary representations for query cells. 
-#' Next, find a set of anchors between query and reference in the bridge graph laplacian eigenspace. 
+#' Then, construct the bridge dictionary representations for query cells.
+#' Next, find a set of anchors between query and reference in the bridge graph laplacian eigenspace.
 #' These anchors can later be used to integrate embeddings or transfer data from the reference to
 #' query object using the \code{\link{MapQuery}} object.
 
@@ -7230,8 +7233,8 @@ PrepareBridgeReference <- function (
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{TransferData}}, \code{\link{IntegrateEmbeddings}} and
 #' \code{\link{MapQuery}}.
-#' 
-FindBridgeTransferAnchors <- function( 
+#'
+FindBridgeTransferAnchors <- function(
   extended.reference,
   query,
   query.assay = NULL,
@@ -7280,23 +7283,23 @@ FindBridgeTransferAnchors <- function(
 
 
 #' Perform integration on the joint PCA cell embeddings.
-#' 
+#'
 #' This is a convenience wrapper function around the following three functions
-#' that are often run together when perform integration. 
+#' that are often run together when perform integration.
 #' #' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
-#' \code{\link{IntegrateEmbeddings}}. 
-#' 
+#' \code{\link{IntegrateEmbeddings}}.
+#'
 #' @inheritParams FindIntegrationAnchors
 #' @param new.reduction.name Name of integrated dimensional reduction
 #' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param findintegrationanchors.args A named list of additional arguments to
 #' \code{\link{FindIntegrationAnchors}}
 #' @param verbose Print messages and progress
-#' 
+#'
 #' @importFrom rlang invoke
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
-#' 
+#'
 FastAnchorIntegration <- function(
   object.list,
   reference = NULL,
@@ -7309,7 +7312,7 @@ FastAnchorIntegration <- function(
   npcs = 50,
   findintegrationanchors.args = list(),
   verbose = TRUE
-) { 
+) {
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,

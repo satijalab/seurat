@@ -35,10 +35,12 @@ to reconstruct object.reduction.}
 
 \item{bridge.assay.name}{Assay name used for bridge object reconstruction value}
 
-\item{return.all.assays}{if return all assays in the object.list. 
+\item{return.all.assays}{if return all assays in the object.list.
 Only bridge assay is returned by default.}
 
 \item{l2.norm}{Determine if l2 normalize dictionary representation.}
+
+\item{verbose}{Print messages and progress}
 }
 \value{
 Returns a object list in which each object has a bridge cell derived assay
