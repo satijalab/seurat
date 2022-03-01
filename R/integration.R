@@ -6676,7 +6676,7 @@ IntegrationReferenceIndex <- function(object) {
 #' First construct a sketch-cell representation for all cells and
 #' then use this and the batch-corrected embeddings of sketched cells to
 #' construct the batch-corrected embeddings for all cells
-#' @param object.list A list of Seurat objects with all cells
+#' @param object A Seurat object with all cells for one dataset
 #' @param sketch.list A list of Seurat objects with sketched cells
 #' @param sketch.object A sketched Seurat objects with integrated embeddings
 #' @param features Features used for sketch integration
@@ -6702,7 +6702,7 @@ IntegrationReferenceIndex <- function(object) {
 #' @export
 
 IntegrateSketchEmbeddings <- function(
-  object.list,
+  object = NULL,
   sketch.list,
   sketch.object,
   features = NULL,
@@ -6716,10 +6716,7 @@ IntegrateSketchEmbeddings <- function(
   verbose = TRUE) {
   # check features
   features <- features %||%rownames(x = Loadings(object = sketch.object[[sketch.reduction]]))
-  features <- Reduce(f = intersect,
-                     x = c(list(features),
-                           lapply(X = object.list, function(x) rownames(x)))
-  )
+  features <- intersect(features, rownames(object))
   # check cell names
  cells.sketch.list <- unlist(lapply(X = sketch.list, function(x) Cells(x) ))
  if (length(x = setdiff(x = cells.sketch.list, y = Cells(sketch.object))) != 0) {
@@ -7089,7 +7086,7 @@ ProjectDimReduc <- function(query,
 #' @param bridge A multi-omic bridge Seurat object
 #' @param reference.reduction Name of dimensional reduction of the reference object
 #' @param reference.dims Number of dimensions used for the reference.reduction
-#' @param normlization.method Name of normalization method used: LogNormalize
+#' @param normalization.method Name of normalization method used: LogNormalize
 #' or SCT
 #' @param reference.assay Assay name for reference
 #' in the sketched object
@@ -7124,11 +7121,11 @@ PrepareBridgeReference <- function (
   bridge,
   reference.reduction = 'pca',
   reference.dims = 1:50,
-  normlization.method = c('SCT', 'LogNormalization'),
+  normalization.method = c('SCT', 'LogNormalization'),
   reference.assay = NULL,
   bridge.ref.assay = 'RNA',
   bridge.query.assay = 'ATAC',
-  supervised.reduction = c(NULL, 'slsi', 'spca' )[1],
+  supervised.reduction = c('slsi', 'spca', NULL )[1],
   bridge.query.reduction = NULL, 
   bridge.query.features = NULL, 
   laplacian.reduction.name = 'lap',
@@ -7156,7 +7153,7 @@ PrepareBridgeReference <- function (
   ref.anchor  <- FindTransferAnchors(
     reference =  reference,
     reference.reduction = reference.reduction,
-    normalization.method = normlization.method,
+    normalization.method = normalization.method,
     dims = reference.dims,
     query = bridge,
     recompute.residuals = TRUE,
@@ -7331,7 +7328,7 @@ FindBridgeTransferAnchors <- function(
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
 #' 
-FastIntegration <- function(
+FastAnchorIntegration <- function(
   object.list,
   reference = NULL,
   reduction = 'rpca',
