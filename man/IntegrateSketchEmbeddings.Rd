@@ -8,8 +8,7 @@ then use this and the batch-corrected embeddings of sketched cells to
 construct the batch-corrected embeddings for all cells}
 \usage{
 IntegrateSketchEmbeddings(
-  object.list,
-  sketch.list,
+  object,
   sketch.object,
   features = NULL,
   assay = "RNA",
@@ -18,14 +17,11 @@ IntegrateSketchEmbeddings(
   reduction.key = "PCcorrect_",
   dictionary.method = c("sketch", "data")[1],
   sketch.ratio = 0.8,
-  merged.object = NULL,
   verbose = TRUE
 )
 }
 \arguments{
-\item{object.list}{A list of Seurat objects with all cells}
-
-\item{sketch.list}{A list of Seurat objects with sketched cells}
+\item{object}{A Seurat object with all cells for one dataset}
 
 \item{sketch.object}{A sketched Seurat objects with integrated embeddings}
 
@@ -50,9 +46,10 @@ for all cells. sketch by default. Can be one of:
 
 \item{sketch.ratio}{Sketch ratio of data slot when dictionary.method is set to sketch}
 
-\item{merged.object}{A merged seurat object containing all cells}
-
 \item{verbose}{Print progress and message}
+}
+\value{
+Returns a Seurat object with an integrated dimensional reduction
 }
 \description{
 Integrate embeddings from batch-corrected sketch cell embeddings

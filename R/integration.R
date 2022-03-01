@@ -6676,8 +6676,8 @@ IntegrationReferenceIndex <- function(object) {
 #' First construct a sketch-cell representation for all cells and
 #' then use this and the batch-corrected embeddings of sketched cells to
 #' construct the batch-corrected embeddings for all cells
+#' 
 #' @param object A Seurat object with all cells for one dataset
-#' @param sketch.list A list of Seurat objects with sketched cells
 #' @param sketch.object A sketched Seurat objects with integrated embeddings
 #' @param features Features used for sketch integration
 #' @param assay Assay name for raw expression
@@ -6693,17 +6693,15 @@ IntegrationReferenceIndex <- function(object) {
 #' \item{data: Use data slot}
 #' }
 #' @param sketch.ratio Sketch ratio of data slot when dictionary.method is set to sketch
-#' @param merged.object A merged seurat object containing all cells
 #' @param verbose Print progress and message
 #'
-#'
+#' @return Returns a Seurat object with an integrated dimensional reduction
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
 #' @export
 
 IntegrateSketchEmbeddings <- function(
-  object = NULL,
-  sketch.list,
+  object,
   sketch.object,
   features = NULL,
   assay = 'RNA',
@@ -6712,15 +6710,17 @@ IntegrateSketchEmbeddings <- function(
   reduction.key = 'PCcorrect_',
   dictionary.method = c('sketch', 'data')[1],
   sketch.ratio = 0.8,
-  merged.object = NULL,
   verbose = TRUE) {
   # check features
   features <- features %||%rownames(x = Loadings(object = sketch.object[[sketch.reduction]]))
   features <- intersect(features, rownames(object))
   # check cell names
- cells.sketch.list <- unlist(lapply(X = sketch.list, function(x) Cells(x) ))
- if (length(x = setdiff(x = cells.sketch.list, y = Cells(sketch.object))) != 0) {
-   stop("Cells name in object.list are the same with Cells in sketch.object.")
+ cells.sketch <- intersect(x = Cells(sketch.object), y = Cells(object))
+ if (length(x = cells.sketch) == 0) {
+   stop("Cell names in object are the same with those in sketch.object.")
+ } 
+ if (verbose) {
+   message(length(cells.sketch),' atomic cells are identified in the sketch.object')
  }
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
@@ -6730,82 +6730,67 @@ IntegrateSketchEmbeddings <- function(
   if (verbose) {
     message("Correcting embeddings")
   }
-  emb.list <- my.lapply(
-    X = 1:length(sketch.list),
-    FUN =
-    function(q) {
-      q.cells <- Cells(x = sketch.list[[q]])
-      emb <- switch(
-        EXPR = dictionary.method,
-        'data' = {
-          exp.mat <- t(
-            x = as.matrix(
-              x = GetAssayData(
-                sketch.object[[assay]],
-                slot = 'data'
-              )[features,q.cells]
-            )
-          )
-          sketch.transform <- ginv(X = exp.mat) %*%
-            Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
-          emb <- as.matrix(
-            x = t(
-              x = GetAssayData(
-                object = object.list[[q]],
-                slot = 'data')[features,]
-            ) %*%
-              sketch.transform
-          )
-          emb
-        },
-        'sketch' = {
-          R <- t(
-            x = CountSketch(
-              nrow = round(sketch.ratio * length(x = features)), ncol = length(x = features)
-            )
-          )
-          exp.mat <- as.matrix(
-            x = t(
-              x = GetAssayData(
-                sketch.object[[assay]],
-                slot = 'data')[features,q.cells]
-            ) %*%
-              R
-          )
-          sketch.transform <- ginv(X = exp.mat) %*%
-            Embeddings(object = sketch.object[[sketch.reduction]])[q.cells ,]
-          emb <- as.matrix(
-            x = (
-            t(
-              x = GetAssayData(
-                object = object.list[[q]],
-                slot = 'data')[features,]
-            ) %*%
-              R) %*%
-              sketch.transform
-          )
-          emb
-        }
+  emb <- switch(
+    EXPR = dictionary.method,
+    'data' = {
+      exp.mat <- t(
+        x = as.matrix(
+          x = GetAssayData(
+            sketch.object[[assay]],
+            slot = 'data'
+          )[features, cells.sketch]
+        )
       )
-      return(emb)
+      sketch.transform <- ginv(X = exp.mat) %*%
+        Embeddings(object = sketch.object[[sketch.reduction]])[cells.sketch ,]
+      emb <- as.matrix(
+        x = t(
+          x = GetAssayData(
+            object = object,
+            slot = 'data')[features,]
+        ) %*%
+          sketch.transform
+      )
+      emb
+    },
+    'sketch' = {
+      R <- t(
+        x = CountSketch(
+          nrow = round(sketch.ratio * length(x = features)), ncol = length(x = features)
+        )
+      )
+      exp.mat <- as.matrix(
+        x = t(
+          x = GetAssayData(
+            sketch.object[[assay]],
+            slot = 'data')[features,cells.sketch]
+        ) %*%
+          R
+      )
+      sketch.transform <- ginv(X = exp.mat) %*%
+        Embeddings(object = sketch.object[[sketch.reduction]])[cells.sketch ,]
+      emb <- as.matrix(
+        x = (
+          t(
+            x = GetAssayData(
+              object = object,
+              slot = 'data')[features,]
+          ) %*%
+            R) %*%
+          sketch.transform
+      )
+      emb
     }
-    )
-  emb.m <- Reduce(f = rbind, x = emb.list)
-  correct.dr <- CreateDimReducObject(
-    embeddings = as.matrix(emb.m),
+  )
+  object[[reduction.name]] <- CreateDimReducObject(
+    embeddings = as.matrix(emb),
     loadings =  Loadings(sketch.object[[sketch.reduction]])[features,],
     key = reduction.key,
     assay = assay
     )
-  if (is.null(x = merged.object)) {
-    if (verbose) {
-      message("Merging all objects")
-    }
-    merged.object <- merge(x = object.list[[1]], y = object.list[2:length(object.list)])
-  }
-  merged.object[[reduction.name]] <- correct.dr
-  return(merged.object)
+  return(object)
 }
+
 
 
 ProjectDataEmbeddings <- function(object,
