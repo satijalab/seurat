@@ -31,7 +31,6 @@ test_that("Read10X handles missing files properly", {
 if (requireNamespace("hdf5r", quietly = TRUE)) {
   context("Load10X_Spatial")
   dname <- "../testdata/visium"
-
   txsp <- Load10X_Spatial(data.dir = '../testdata/visium')
   test_that("10x Spatial Data Parsing", {
     expect_is(txsp, "Seurat")

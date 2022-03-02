@@ -967,7 +967,11 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
-        message("Genome ", genome, " has multiple modalities, returning a list of matrices for this genome")
+        message(
+          "Genome ",
+          genome,
+          " has multiple modalities, returning a list of matrices for this genome"
+        )
         sparse.mat <- sapply(
           X = types.unique,
           FUN = function(x) {
