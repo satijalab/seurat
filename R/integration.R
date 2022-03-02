@@ -5609,6 +5609,8 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 
 
 #' Convert Neighbor class to an asymmetrical Graph class
+#' 
+#' 
 #' @param nn.object A neighbor class object
 #' @param col.cells Cells names of the neighbors, cell names in nn.object is used by default
 #' @param weighted Determine if use distance in the Graph
@@ -5633,7 +5635,7 @@ NNtoGraph <- function(
   if (weighted) {
     select_nn_dist <- Distances(object = nn.object)
     dist.element <- as.numeric(x = t(x = select_nn_dist))
-    nn.matrix <- Matrix::sparseMatrix(
+    nn.matrix <- sparseMatrix(
       i = i,
       j = j,
       x = dist.element,
@@ -5654,7 +5656,7 @@ NNtoGraph <- function(
 }
 
 
-# Find Anchor direct from assay
+# Find Anchor directly from assay
 #
 #
 # @return Returns a TranserAnchor or Integration set
@@ -5784,7 +5786,6 @@ FindAssayAnchor <- function(
 #' @return Returns a object list in which each object has a bridge cell derived assay
 #' @export
 #'
-
 BridgeCellsRepresentation <- function(object.list,
                                       bridge.object,
                                       object.reduction,
@@ -5971,7 +5972,6 @@ FindBridgeAnchor <- function(object.list,
       }
     )
   }
-
   if (anchor.type == "Transfer") {
     reference <- reference %||% c(1)
     query <- setdiff(c(1,2), reference)
@@ -6153,7 +6153,8 @@ TransferLablesNN <- function(
   return(output.list)
 }
 
-
+# transfer continuous value based on neighbors
+#
 TransferExpressionNN<- function(
   nn.object,
   reference.object,
@@ -6593,7 +6594,7 @@ LeverageScoreSampling <- function(
 }
 
 
-# Run hnsw
+# Run hnsw to find neighbors
 #
 # @param data Data to build the index with
 # @param query A set of data to be queried against data
@@ -6635,7 +6636,8 @@ HnswNN <- function(data,
 }
 
 
-
+# Calculate reference index from the integrated object
+#
 IntegrationReferenceIndex <- function(object) {
   if (is.null(object@tools$Integration@sample.tree)) {
     reference.index <- object@commands$FindIntegrationAnchors$reference
@@ -6775,7 +6777,8 @@ IntegrateSketchEmbeddings <- function(
 }
 
 
-
+# Project data slot to the dimensional reduction
+#
 ProjectDataEmbeddings <- function(object,
                                   assay = 'RNA',
                                   feature.loadings,
@@ -6831,7 +6834,8 @@ ProjectDataEmbeddings <- function(object,
   return(all.emb)
 }
 
-
+# Calculate mean and sd
+#
 SparseMeanSd <- function(object,
                          assay = NULL,
                          slot = 'data',
