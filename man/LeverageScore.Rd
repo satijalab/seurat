@@ -15,7 +15,6 @@ LeverageScore(object, ...)
   nsketch = 5000L,
   ndims = NULL,
   sampling.method = c("CountSketch", "Gaussian"),
-  MARGIN = 2L,
   eps = 0.5,
   seed = 123,
   verbose = TRUE,
@@ -52,33 +51,35 @@ LeverageScore(object, ...)
 )
 }
 \arguments{
-\item{object}{An object}
+\item{object}{A Seurat object}
 
 \item{...}{Arguments passed to other methods}
 
 \item{features}{Features used to calculate leverage score}
 
-\item{nsketch}{Number of rows in the random sketch matrix}
+\item{nsketch}{Number of rows in the random sketch matrix (default is 5000)}
 
-\item{ndims}{Number of dimensions in the JL embeddings}
+\item{ndims}{Number of dimensions in the Johnson–Lindenstrauss (JL) embeddings (default is all dimensions)}
 
-\item{sampling.method}{Sampling method for generating random matrix}
+\item{sampling.method}{Sampling method for generating random matrix
+\itemize{
+  \item{CountSketch: generate a sparsed \code{CountSketch} random matrix}
+  \item{Gaussian: generate a gaussian random matrix with mean = 0 and sd = 1 / (ncells ^ 2)}
+}}
 
-\item{MARGIN}{Margin}
+\item{eps}{error tolerance for JL embeddings (default is 0.5)}
 
-\item{eps}{error tolerance for JL embeddings}
+\item{seed}{Set a random seed (default is 123)}
 
-\item{seed}{Set a random seed}
-
-\item{verbose}{Print message and process}
+\item{verbose}{Print message and process (default is TRUE)}
 
 \item{slot}{The slot used for leverage score calculation. data slot is used by default}
 
 \item{assay}{Assay used to calculate leverage score}
 
-\item{var.name}{Variable name stored leverage score in the meta.data}
+\item{var.name}{Variable name stored leverage score in the meta.data (default is 'leverage.score')}
 
-\item{over.write}{If over write the variable with leverage score}
+\item{over.write}{Whether to over write the variable with leverage score (default is FALSE)}
 }
 \value{
 Returns a seurat object with additional column storing leverage score

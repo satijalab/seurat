@@ -24,32 +24,37 @@ IntegrateSketchEmbeddings(
 
 \item{features}{Features used for atomic sketch integration}
 
-\item{assay}{Assay name for original expression}
+\item{assay}{Assay name for original expression (default is 'RNA')}
 
 \item{atom.sketch.reduction}{Dimensional reduction name for batch-corrected embeddings
-in the sketched object}
+in the sketched object (default is 'integrated_dr')}
 
-\item{reduction.name}{dimensional reduction name, pca.correct by default}
+\item{reduction.name}{dimensional reduction name (default is 'pca.correct')}
 
 \item{reduction.key}{dimensional reduction key, specifies the string before
-the number for the dimension names. PCcorrect_ by default}
+the number for the dimension names. (default is 'PCcorrect_')}
 
 \item{dictionary.method}{Methods to construct sketch-cell representation
-for all cells. sketch by default. Can be one of:
+for all cells (default is 'sketch'). Can be one of:
 \itemize{
 \item{sketch: Use random sketched data slot}
 \item{data: Use data slot}
 }}
 
-\item{sketch.ratio}{Sketch ratio of data slot when dictionary.method is set to sketch}
+\item{sketch.ratio}{Sketch ratio of data slot when \code{dictionary.method} is set to 'sketch' (default is 0.8)}
 
-\item{verbose}{Print progress and message}
+\item{verbose}{Print progress and message (default is TRUE)}
 }
 \value{
 Returns a Seurat object with an integrated dimensional reduction
 }
 \description{
+The main steps of this procedure are outlined below. For a more detailed
+description of the methodology, please see Hao,  et al Biorxiv 2022:
+\doi{10.1101/2022.02.24.481684}
+}
+\details{
 First learn a atom dictionary representation to reconstruct each cell.
-Then, relying on this dictionary representation, 
+Then, using this dictionary representation,
 reconstruct the embeddings of each cell from the integrated atoms.
 }

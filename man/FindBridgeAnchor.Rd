@@ -12,7 +12,7 @@ FindBridgeAnchor(
   anchor.type = c("Transfer", "Integration"),
   reference = NULL,
   laplacian.reduction = "lap",
-  laplacian.dims = NULL,
+  laplacian.dims = 1:50,
   reduction = c("direct", "cca"),
   bridge.assay.name = "Bridge",
   reference.bridge.stored = FALSE,
@@ -29,10 +29,10 @@ FindBridgeAnchor(
 represent unimodal datasets}
 
 \item{object.reduction}{A list of dimensional reductions from object.list used
-to be reconstructed by bridge.object.}
+to be reconstructed by bridge.object}
 
 \item{bridge.reduction}{A list of dimensional reductions from bridge.object used
-to reconstruct object.reduction.}
+to reconstruct object.reduction}
 
 \item{anchor.type}{The type of anchors. Can
 be one of:
@@ -55,7 +55,7 @@ be one of:
   \item{direct: Use assay data as a dimensional reduction}
 }}
 
-\item{bridge.assay.name}{Assay name used for bridge object reconstruction value}
+\item{bridge.assay.name}{Assay name used for bridge object reconstruction value (default is 'Bridge')}
 
 \item{reference.bridge.stored}{If refernece has stored the bridge dictionary representation}
 
