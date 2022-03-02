@@ -6370,6 +6370,7 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
 #' @param verbose Print message and process (default is TRUE)
 #'
 #' @importFrom Matrix qrR
+#' @importFrom Matrix t
 #' @importFrom SeuratObject as.sparse
 #' @rdname LeverageScore
 #' @export
@@ -6418,24 +6419,9 @@ LeverageScore.default <- function(
     }
   )
   if (!is.null(x = features)) {
-    object <- if (MARGIN == 1L) {
-      object[, features, drop = FALSE]
-    } else {
-      object[features, , drop = FALSE]
-    }
+    object <- object[features, , drop = FALSE]
   }
-  if (MARGIN == 2L) {
-    tf <- tryCatch(
-      expr = methods::slot(
-        object = methods::selectMethod(f = "t", signature = class(x = object)),
-        name = ".Data"
-      ),
-      error = function(...) {
-        return(base::t)
-      }
-    )
-    object <- tf(object)
-  }
+    object <- t(object)
   if (verbose) {
     message("Performing QR decomposition of the sketch matrix")
   }
@@ -6447,7 +6433,6 @@ LeverageScore.default <- function(
   } else {
     base::qr.R(qr = qr.sa)
   }
-
   # triangular matrix inverse
    R.inv <-  as.sparse(backsolve(r = R , x = diag(ncol(R))))
   if (isTRUE(x = verbose)) {
