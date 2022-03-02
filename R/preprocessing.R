@@ -954,7 +954,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
       p = indptr[],
       x = as.numeric(x = counts[]),
       dims = shp[],
-      giveCsparse = FALSE
+      repr = "T"
     )
     if (unique.features) {
       features <- make.unique(names = features)
