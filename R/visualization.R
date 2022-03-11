@@ -4882,7 +4882,7 @@ LabelPoints <- function(
   xynames <- GetXYAesthetics(plot = plot)
   points <- points %||% rownames(x = plot$data)
   if (is.numeric(x = points)) {
-    points <- rownames(x = plot$data)
+    points <- rownames(x = plot$data)[points]
   }
   points <- intersect(x = points, y = rownames(x = plot$data))
   if (length(x = points) == 0) {
