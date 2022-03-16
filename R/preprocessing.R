@@ -1558,7 +1558,7 @@ SCTransform <- function(
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
-  cell.attr <- slot(object = object, name = 'meta.data')
+  cell.attr <- slot(object = object, name = 'meta.data') %>% as.character()
   vst.args <- list(...)
   # check for batch_var in meta data
   if ('batch_var' %in% names(x = vst.args)) {
