@@ -6697,7 +6697,7 @@ IntegrateSketchEmbeddings <- function(
   ) {
   dictionary.method <- match.arg(arg = dictionary.method)
   # check features
-  features <- features %||%rownames(x = Loadings(object = atom.sketch.object[[atom.sketch.reduction]]))
+  features <- features %||% VariableFeatures(object = atom.sketch.object)
   features <- intersect(features, rownames(object))
   # check cell names
   cells.sketch <- intersect(x = Cells(atom.sketch.object), y = Cells(object))
@@ -6769,7 +6769,7 @@ IntegrateSketchEmbeddings <- function(
   )
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(emb),
-    loadings =  Loadings(atom.sketch.object[[atom.sketch.reduction]])[features,],
+    loadings = Loadings(atom.sketch.object[[atom.sketch.reduction]]),
     key = reduction.key,
     assay = assay
   )
