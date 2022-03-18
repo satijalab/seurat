@@ -5972,9 +5972,9 @@ FindBridgeAnchor <- function(object.list,
       }
     )
   }
+  reference <- reference %||% c(1)
+  query <- setdiff(c(1,2), reference)
   if (anchor.type == "Transfer") {
-    reference <- reference %||% c(1)
-    query <- setdiff(c(1,2), reference)
     stored.bridge.weights <- FALSE
     # check weight matrix
     if (is.null(bridge.object@tools$MapQuery)) {
