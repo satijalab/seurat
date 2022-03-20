@@ -7308,7 +7308,7 @@ FindBridgeTransferAnchors <- function(
 #' These integration anchors can later be used to integrate query and reference
 #' using the \code{\link{IntegrateEmbeddings}} object.
 #'
-#' @inheritParams FindIntegrationAnchors
+#' @inheritParams FindBridgeTransferAnchors
 #' @export
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{IntegrateEmbeddings}}.
