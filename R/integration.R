@@ -7300,6 +7300,68 @@ FindBridgeTransferAnchors <- function(
 }
 
 
+
+#' Find integration bridge anchors between query and extended bridge-reference
+#' 
+#' Find a set of anchors between unimodal query and the other unimodal reference
+#' using a pre-computed \code{\link{BridgeReferenceSet}}.
+#' These integration anchors can later be used to integrate query and reference
+#' using the \code{\link{IntegrateEmbeddings}} object.
+#'
+#' @inheritParams FindIntegrationAnchors
+#' @export
+#' @return Returns an \code{AnchorSet} object that can be used as input to
+#' \code{\link{IntegrateEmbeddings}}.
+#'
+FindBridgeIntegrationAnchors <- function(
+  extended.reference,
+  query,
+  query.assay = NULL,
+  dims = 1:30,
+  scale = FALSE,
+  reduction = c('lsiproject', 'pcaproject'),
+  verbose = TRUE
+) {
+  reduction <-  match.arg(arg = reduction)
+  query.assay <- query.assay %||% DefaultAssay(query)
+  DefaultAssay(query) <- query.assay
+  params <- slot(object = extended.reference, name = "params")
+  bridge.query.assay <- params$bridge.query.assay
+  bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
+  reference.reduction <- params$reference.reduction
+  bridge.ref.reduction <- params$bridge.ref.reduction
+  DefaultAssay(extended.reference@bridge) <- bridge.query.assay
+  
+  query.anchor <- FindTransferAnchors(
+    reference = extended.reference@bridge,
+    reference.reduction = bridge.query.reduction,
+    dims = dims,
+    query = query,
+    reduction = reduction,
+    scale = scale,
+    features = rownames(extended.reference@bridge[[bridge.query.reduction]]@feature.loadings),
+    k.filter = NA,
+    verbose = verbose
+  )
+  query <- MapQuery(anchorset =  query.anchor,
+                    reference = extended.reference@bridge,
+                    query = query,
+                    store.weights = TRUE
+  )
+  bridge_anchor  <- FindBridgeAnchor(
+    object.list = list(extended.reference@reference, query),
+    bridge.object = extended.reference@bridge,
+    reduction = 'direct',
+    object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
+    bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
+    anchor.type = "Integration",
+    reference.bridge.stored = TRUE,
+    verbose = verbose
+  )
+  return(bridge_anchor)
+}
+
+
 #' Perform integration on the joint PCA cell embeddings.
 #'
 #' This is a convenience wrapper function around the following three functions
