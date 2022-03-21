@@ -7408,6 +7408,7 @@ FastRPCAIntegration <- function(
     yes = pblapply,
     no = future_lapply
   )
+  reduction <- 'rpca'
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
