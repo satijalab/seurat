@@ -7309,6 +7309,15 @@ FindBridgeTransferAnchors <- function(
 #' using the \code{\link{IntegrateEmbeddings}} object.
 #'
 #' @inheritParams FindBridgeTransferAnchors
+#' @param integration.reduction Dimensional reduction to perform when finding anchors
+#' between query and reference.
+#' Options are:
+#' \itemize{
+#'    \item{direct: find anchors directly on the bridge representation space}
+#'    \item{cca: perform cca on the on the bridge representation space and find anchors
+#' }
+#' }
+#' 
 #' @export
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{IntegrateEmbeddings}}.
@@ -7320,9 +7329,11 @@ FindBridgeIntegrationAnchors <- function(
   dims = 1:30,
   scale = FALSE,
   reduction = c('lsiproject', 'pcaproject'),
+  integration.reduction = c('direct', 'cca'),
   verbose = TRUE
 ) {
   reduction <-  match.arg(arg = reduction)
+  integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
   params <- slot(object = extended.reference, name = "params")
@@ -7351,7 +7362,7 @@ FindBridgeIntegrationAnchors <- function(
   bridge_anchor  <- FindBridgeAnchor(
     object.list = list(extended.reference@reference, query),
     bridge.object = extended.reference@bridge,
-    reduction = 'direct',
+    reduction = integration.reduction,
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Integration",
