@@ -7398,6 +7398,7 @@ FastRPCAIntegration <- function(
   k.anchor = 20,
   dims = 1:30,
   scale = TRUE,
+  normalization.method = c("LogNormalize", "SCT"),
   new.reduction.name = 'integrated_dr',
   npcs = 50,
   findintegrationanchors.args = list(),
@@ -7428,6 +7429,11 @@ FastRPCAIntegration <- function(
     }
     )
   }
+  if (normalization.method == 'SCT') {
+    object.list <- PrepSCTIntegration(object.list = object.list,
+                                      anchor.features = anchor.features
+                                      )
+  }
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
     .args = c(list(
@@ -7435,6 +7441,7 @@ FastRPCAIntegration <- function(
       reference = reference,
       anchor.features = anchor.features,
       reduction = reduction,
+      normalization.method = normalization.method,
       scale = scale,
       k.anchor = k.anchor,
       dims = dims,
