@@ -7417,23 +7417,25 @@ FastRPCAIntegration <- function(
       verbose = FALSE
     )
   }
-  if (reduction == 'rpca') {
+  if (normalization.method == 'SCT') {
+    scale <- FALSE
+    object.list <- PrepSCTIntegration(object.list = object.list,
+                                      anchor.features = anchor.features
+    )
+  }
     if (verbose) {
       message('Performing PCA for each object')
     }
     object.list <- my.lapply(X = object.list,
                              FUN = function(x) {
-      x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+      if (normalization.method != 'SCT') {
+        x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+      }
       x <- RunPCA(x, features = anchor.features, verbose = FALSE)
       return(x)
     }
     )
-  }
-  if (normalization.method == 'SCT') {
-    object.list <- PrepSCTIntegration(object.list = object.list,
-                                      anchor.features = anchor.features
-                                      )
-  }
+
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
     .args = c(list(
@@ -7453,10 +7455,13 @@ FastRPCAIntegration <- function(
                          y = object.list[2:length(object.list)]
                          )
   anchor.feature <- slot(object = anchor, name = 'anchor.features')
-  object_merged <- ScaleData(object = object_merged,
-                             features = anchor.feature,
-                             verbose = FALSE
-                             )
+  if (normalization.method != 'SCT') {
+    object_merged <- ScaleData(object = object_merged,
+                               features = anchor.feature,
+                               do.scale = scale,
+                               verbose = FALSE
+    )
+  }
   object_merged <- RunPCA(object_merged,
                           features = anchor.feature,
                           verbose = FALSE,
