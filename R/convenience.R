@@ -100,20 +100,6 @@ LoadHuBMAPCODEX <- function(data.dir, fov, assay = 'CODEX') {
 LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
   data <- ReadNanostring(
     data.dir = data.dir,
-    metadata = c(
-      'Area',
-      'fov',
-      'Mean.MembraneStain',
-      'Mean.DAPI',
-      'Mean.G',
-      'Mean.Y',
-      'Mean.R',
-      'Max.MembraneStain',
-      'Max.DAPI',
-      'Max.G',
-      'Max.Y',
-      'Max.R'
-    ),
     type = c("centroids", "segmentations")
   )
   segs <- CreateSegmentation(data$segmentations)
