@@ -3542,13 +3542,16 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
-  if (length(x = levels(x = data.plot$id)) == 1) {
+  ngroup <- length(x = levels(x = data.plot$id))
+  if (ngroup == 1) {
     scale <- FALSE
     warning(
       "Only one identity present, the expression values will be not scaled",
       call. = FALSE,
       immediate. = TRUE
     )
+  } else if (ngroup < 5 & scale) {
+    warning("Scaling data with a low number of groups may produce misleading results")
   }
   avg.exp.scaled <- sapply(
     X = unique(x = data.plot$features.plot),
