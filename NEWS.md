@@ -2,7 +2,7 @@
 
 ## Changes
 - Fix `giveCsparse` related warnings in `Read10X_h5`
-
+- Fix ident labeling for `SpatialPlot`
 
 
 # Seurat 4.1.0 (2022-01-14)
