@@ -2418,7 +2418,7 @@ LinkedDimPlot <- function(
           dims = dims,
           col.by = group.by,
           alpha.by = plot.env$alpha.by
-        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
+        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = "none")
         plot.env$dimplot
       }
     )
@@ -2555,7 +2555,7 @@ LinkedFeaturePlot <- function(
           scale_fill_gradientn(name = feature, colours = cols) +
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(alpha = "none")
         plot.env$spatialplot
       }
     )
@@ -2914,7 +2914,7 @@ ISpatialFeaturePlot <- function(
         scale_fill_gradientn(name = plot.env$feature, colours = FeaturePalettes[[plot.env$palette]]) +
         theme(legend.position = 'top') +
         scale_alpha(range = c(input$alpha, 1)) +
-        guides(alpha = FALSE)
+        guides(alpha = "none")
       plot.env$plot
     })
   }
@@ -3232,7 +3232,7 @@ SpatialPlot <- function(
           ) +
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(alpha = "none")
       } else if (label) {
         plot <- LabelClusters(
           plot = plot,
@@ -7666,6 +7666,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
+      cols <- cols[names(x = cols) %in% data$ident]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
