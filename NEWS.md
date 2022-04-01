@@ -3,6 +3,7 @@
 ## Changes
 - Fix `giveCsparse` related warnings in `Read10X_h5`
 - Fix ident labeling for `SpatialPlot`
+- Fix `ReadMtx` on Windows ([#5687](https://github.com/satijalab/seurat/issues/5687))
 
 
 # Seurat 4.1.0 (2022-01-14)
