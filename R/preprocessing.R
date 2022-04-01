@@ -1107,10 +1107,19 @@ ReadMtx <- function(
     "feature list" = features
   )
   for (i in seq_along(along.with = all.files)) {
-    uri <- normalizePath(all.files[[i]], mustWork = FALSE)
+    uri <- tryCatch(
+      expr = {
+        con <- url(description = all.files[[i]])
+        close(con = con)
+        all.files[[i]]
+      },
+      error = function(...) {
+        return(normalizePath(path = all.files[[i]], winslash = '/'))
+      }
+    )
     err <- paste("Cannot find", names(x = all.files)[i], "at", uri)
     uri <- build_url(url = parse_url(url = uri))
-    if (grepl(pattern = '^:///', x = uri)) {
+    if (grepl(pattern = '^[A-Z]?:///', x = uri)) {
       uri <- gsub(pattern = '^://', replacement = '', x = uri)
       if (!file.exists(uri)) {
         stop(err, call. = FALSE)
