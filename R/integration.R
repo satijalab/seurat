@@ -6666,9 +6666,6 @@ IntegrationReferenceIndex <- function(object) {
 #' @param assay Assay name for original expression (default is 'RNA')
 #' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
 #' in the sketched object (default is 'integrated_dr')
-#' @param reduction.name dimensional reduction name (default is 'pca.correct')
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. (default is 'PCcorrect_')
 #' @param dictionary.method Methods to construct sketch-cell representation
 #' for all cells (default is 'sketch'). Can be one of:
 #' \itemize{
@@ -6689,12 +6686,12 @@ IntegrateSketchEmbeddings <- function(
   features = NULL,
   assay = 'RNA',
   atom.sketch.reduction = 'integrated_dr',
-  reduction.name ='pca.correct',
-  reduction.key = 'PCcorrect_',
   dictionary.method = c('sketch', 'data'),
   sketch.ratio = 0.8,
   verbose = TRUE
   ) {
+  reduction.name = atom.sketch.reduction
+  reduction.key =  Key(object = atom.sketch.object[[atom.sketch.reduction]])
   dictionary.method <- match.arg(arg = dictionary.method)
   # check features
   features <- features %||% VariableFeatures(object = atom.sketch.object)
