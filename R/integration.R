@@ -7081,7 +7081,7 @@ ProjectDimReduc <- function(query,
 #'    bridge.query.reduction is used for the bridge-query integration}
 #' }
 #' @param bridge.query.reduction Name of dimensions used for the bridge-query harmonization.
-#' Requires either 'bridge.query.reduction' or 'supervised.reduction' to be not NULL.
+#' 'bridge.query.reduction' and 'supervised.reduction' cannot be NULL together.
 #' @param bridge.query.features Features used for bridge query dimensional reduction
 #' (default is NULL which uses VariableFeatures from the bridge object)
 #' @param laplacian.reduction.name Name of dimensional reduction name of graph laplacian eigenspace (default is 'lap')
@@ -7311,7 +7311,7 @@ FindBridgeTransferAnchors <- function(
 #' Options are:
 #' \itemize{
 #'    \item{direct: find anchors directly on the bridge representation space}
-#'    \item{cca: perform cca on the on the bridge representation space and find anchors
+#'    \item{cca: perform cca on the on the bridge representation space and then find anchors
 #' }
 #' }
 #' 
