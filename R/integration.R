@@ -5972,9 +5972,9 @@ FindBridgeAnchor <- function(object.list,
       }
     )
   }
+  reference <- reference %||% c(1)
+  query <- setdiff(c(1,2), reference)
   if (anchor.type == "Transfer") {
-    reference <- reference %||% c(1)
-    query <- setdiff(c(1,2), reference)
     stored.bridge.weights <- FALSE
     # check weight matrix
     if (is.null(bridge.object@tools$MapQuery)) {
@@ -6666,9 +6666,6 @@ IntegrationReferenceIndex <- function(object) {
 #' @param assay Assay name for original expression (default is 'RNA')
 #' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
 #' in the sketched object (default is 'integrated_dr')
-#' @param reduction.name dimensional reduction name (default is 'pca.correct')
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. (default is 'PCcorrect_')
 #' @param dictionary.method Methods to construct sketch-cell representation
 #' for all cells (default is 'sketch'). Can be one of:
 #' \itemize{
@@ -6689,15 +6686,15 @@ IntegrateSketchEmbeddings <- function(
   features = NULL,
   assay = 'RNA',
   atom.sketch.reduction = 'integrated_dr',
-  reduction.name ='pca.correct',
-  reduction.key = 'PCcorrect_',
   dictionary.method = c('sketch', 'data'),
   sketch.ratio = 0.8,
   verbose = TRUE
   ) {
+  reduction.name = atom.sketch.reduction
+  reduction.key =  Key(object = atom.sketch.object[[atom.sketch.reduction]])
   dictionary.method <- match.arg(arg = dictionary.method)
   # check features
-  features <- features %||%rownames(x = Loadings(object = atom.sketch.object[[atom.sketch.reduction]]))
+  features <- features %||% VariableFeatures(object = atom.sketch.object)
   features <- intersect(features, rownames(object))
   # check cell names
   cells.sketch <- intersect(x = Cells(atom.sketch.object), y = Cells(object))
@@ -6769,7 +6766,7 @@ IntegrateSketchEmbeddings <- function(
   )
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(emb),
-    loadings =  Loadings(atom.sketch.object[[atom.sketch.reduction]])[features,],
+    loadings = Loadings(atom.sketch.object[[atom.sketch.reduction]]),
     key = reduction.key,
     assay = assay
   )
@@ -7084,7 +7081,7 @@ ProjectDimReduc <- function(query,
 #'    bridge.query.reduction is used for the bridge-query integration}
 #' }
 #' @param bridge.query.reduction Name of dimensions used for the bridge-query harmonization.
-#' Requires either 'bridge.query.reduction' or 'supervised.reduction' to be not NULL.
+#' 'bridge.query.reduction' and 'supervised.reduction' cannot be NULL together.
 #' @param bridge.query.features Features used for bridge query dimensional reduction
 #' (default is NULL which uses VariableFeatures from the bridge object)
 #' @param laplacian.reduction.name Name of dimensional reduction name of graph laplacian eigenspace (default is 'lap')
@@ -7300,6 +7297,79 @@ FindBridgeTransferAnchors <- function(
 }
 
 
+
+#' Find integration bridge anchors between query and extended bridge-reference
+#' 
+#' Find a set of anchors between unimodal query and the other unimodal reference
+#' using a pre-computed \code{\link{BridgeReferenceSet}}.
+#' These integration anchors can later be used to integrate query and reference
+#' using the \code{\link{IntegrateEmbeddings}} object.
+#'
+#' @inheritParams FindBridgeTransferAnchors
+#' @param integration.reduction Dimensional reduction to perform when finding anchors
+#' between query and reference.
+#' Options are:
+#' \itemize{
+#'    \item{direct: find anchors directly on the bridge representation space}
+#'    \item{cca: perform cca on the on the bridge representation space and then find anchors
+#' }
+#' }
+#' 
+#' @export
+#' @return Returns an \code{AnchorSet} object that can be used as input to
+#' \code{\link{IntegrateEmbeddings}}.
+#'
+FindBridgeIntegrationAnchors <- function(
+  extended.reference,
+  query,
+  query.assay = NULL,
+  dims = 1:30,
+  scale = FALSE,
+  reduction = c('lsiproject', 'pcaproject'),
+  integration.reduction = c('direct', 'cca'),
+  verbose = TRUE
+) {
+  reduction <-  match.arg(arg = reduction)
+  integration.reduction <-  match.arg(arg = integration.reduction)
+  query.assay <- query.assay %||% DefaultAssay(query)
+  DefaultAssay(query) <- query.assay
+  params <- slot(object = extended.reference, name = "params")
+  bridge.query.assay <- params$bridge.query.assay
+  bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
+  reference.reduction <- params$reference.reduction
+  bridge.ref.reduction <- params$bridge.ref.reduction
+  DefaultAssay(extended.reference@bridge) <- bridge.query.assay
+  
+  query.anchor <- FindTransferAnchors(
+    reference = extended.reference@bridge,
+    reference.reduction = bridge.query.reduction,
+    dims = dims,
+    query = query,
+    reduction = reduction,
+    scale = scale,
+    features = rownames(extended.reference@bridge[[bridge.query.reduction]]@feature.loadings),
+    k.filter = NA,
+    verbose = verbose
+  )
+  query <- MapQuery(anchorset =  query.anchor,
+                    reference = extended.reference@bridge,
+                    query = query,
+                    store.weights = TRUE
+  )
+  bridge_anchor  <- FindBridgeAnchor(
+    object.list = list(extended.reference@reference, query),
+    bridge.object = extended.reference@bridge,
+    reduction = integration.reduction,
+    object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
+    bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
+    anchor.type = "Integration",
+    reference.bridge.stored = TRUE,
+    verbose = verbose
+  )
+  return(bridge_anchor)
+}
+
+
 #' Perform integration on the joint PCA cell embeddings.
 #'
 #' This is a convenience wrapper function around the following three functions
@@ -7318,14 +7388,14 @@ FindBridgeTransferAnchors <- function(
 #' @return Returns a Seurat object with integrated dimensional reduction
 #' @export
 #'
-FastAnchorIntegration <- function(
+FastRPCAIntegration <- function(
   object.list,
   reference = NULL,
-  reduction = 'rpca',
   anchor.features = 2000,
   k.anchor = 20,
   dims = 1:30,
   scale = TRUE,
+  normalization.method = c("LogNormalize", "SCT"),
   new.reduction.name = 'integrated_dr',
   npcs = 50,
   findintegrationanchors.args = list(),
@@ -7336,6 +7406,7 @@ FastAnchorIntegration <- function(
     yes = pblapply,
     no = future_lapply
   )
+  reduction <- 'rpca'
   if (is.numeric(x = anchor.features)) {
     anchor.features <- SelectIntegrationFeatures(
       object.list = object.list,
@@ -7343,18 +7414,25 @@ FastAnchorIntegration <- function(
       verbose = FALSE
     )
   }
-  if (reduction == 'rpca') {
+  if (normalization.method == 'SCT') {
+    scale <- FALSE
+    object.list <- PrepSCTIntegration(object.list = object.list,
+                                      anchor.features = anchor.features
+    )
+  }
     if (verbose) {
       message('Performing PCA for each object')
     }
     object.list <- my.lapply(X = object.list,
                              FUN = function(x) {
-      x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+      if (normalization.method != 'SCT') {
+        x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+      }
       x <- RunPCA(x, features = anchor.features, verbose = FALSE)
       return(x)
     }
     )
-  }
+
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
     .args = c(list(
@@ -7362,6 +7440,7 @@ FastAnchorIntegration <- function(
       reference = reference,
       anchor.features = anchor.features,
       reduction = reduction,
+      normalization.method = normalization.method,
       scale = scale,
       k.anchor = k.anchor,
       dims = dims,
@@ -7373,10 +7452,13 @@ FastAnchorIntegration <- function(
                          y = object.list[2:length(object.list)]
                          )
   anchor.feature <- slot(object = anchor, name = 'anchor.features')
-  object_merged <- ScaleData(object = object_merged,
-                             features = anchor.feature,
-                             verbose = FALSE
-                             )
+  if (normalization.method != 'SCT') {
+    object_merged <- ScaleData(object = object_merged,
+                               features = anchor.feature,
+                               do.scale = scale,
+                               verbose = FALSE
+    )
+  }
   object_merged <- RunPCA(object_merged,
                           features = anchor.feature,
                           verbose = FALSE,

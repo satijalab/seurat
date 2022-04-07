@@ -10,8 +10,6 @@ IntegrateSketchEmbeddings(
   features = NULL,
   assay = "RNA",
   atom.sketch.reduction = "integrated_dr",
-  reduction.name = "pca.correct",
-  reduction.key = "PCcorrect_",
   dictionary.method = c("sketch", "data"),
   sketch.ratio = 0.8,
   verbose = TRUE
@@ -28,11 +26,6 @@ IntegrateSketchEmbeddings(
 
 \item{atom.sketch.reduction}{Dimensional reduction name for batch-corrected embeddings
 in the sketched object (default is 'integrated_dr')}
-
-\item{reduction.name}{dimensional reduction name (default is 'pca.correct')}
-
-\item{reduction.key}{dimensional reduction key, specifies the string before
-the number for the dimension names. (default is 'PCcorrect_')}
 
 \item{dictionary.method}{Methods to construct sketch-cell representation
 for all cells (default is 'sketch'). Can be one of:
