@@ -454,7 +454,7 @@ CreateSCTAssayObject <- function(
 #' remove all DimReducs)
 #' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
 #' all Graphs)
-#' @param misc Preserve the `@misc` slot (default is TRUE)
+#' @param misc Preserve the \code{misc} slot; default is \code{TRUE}
 #'
 #' @export
 #' @concept objects
@@ -511,8 +511,8 @@ DietSeurat <- function(
     }
   }
   # remove misc when desired
-  if (isFALSE(x = misc)) {
-    object@misc <- list()
+  if (!isTRUE(x = misc)) {
+    slot(object = object, name = "misc") <- list()
   }
 
   # remove unspecified DimReducs and Graphs
