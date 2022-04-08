@@ -3551,7 +3551,11 @@ DotPlot <- function(
       immediate. = TRUE
     )
   } else if (ngroup < 5 & scale) {
-    warning("Scaling data with a low number of groups may produce misleading results")
+    warning(
+      "Scaling data with a low number of groups may produce misleading results",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   avg.exp.scaled <- sapply(
     X = unique(x = data.plot$features.plot),
