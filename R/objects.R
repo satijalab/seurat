@@ -511,7 +511,7 @@ DietSeurat <- function(
     }
   }
   # remove misc when desired
-  if (isFALSE(x = misc)) {
+  if (!isTRUE(x = misc)) {
     slot(object = object, name = "misc") <- list()
   }
 
