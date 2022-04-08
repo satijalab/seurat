@@ -512,7 +512,7 @@ DietSeurat <- function(
   }
   # remove misc when desired
   if (isFALSE(x = misc)) {
-    object@misc <- list()
+    slot(object = object, name = "misc") <- list()
   }
 
   # remove unspecified DimReducs and Graphs
