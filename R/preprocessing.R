@@ -468,11 +468,8 @@ GetResidual <- function(
 #' @param slice Name for the stored image of the tissue slice
 #' @param filter.matrix Only keep spots that have been determined to be over
 #' tissue
-#' @param to.upper Converts all feature names to upper case. This can provide an
-#' approximate conversion of mouse to human gene names which can be useful in an
-#' explorative analysis. For cross-species comparisons, orthologous genes should
-#' be identified across species and used instead.
-#' @param image An object of class VisiumV1. Typically, an output from \code{\link{Read10X_Image}}
+#' @param to.upper Converts all feature names to upper case. Can be useful when
+#' analyses require comparisons between human and mouse gene names for example.
 #' @param ... Arguments passed to \code{\link{Read10X_h5}}
 #'
 #' @return A \code{Seurat} object
@@ -498,7 +495,6 @@ Load10X_Spatial <- function(
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
-  image = NULL,
   ...
 ) {
   if (length(x = data.dir) > 1) {
@@ -510,15 +506,10 @@ Load10X_Spatial <- function(
     rownames(x = data) <- toupper(x = rownames(x = data))
   }
   object <- CreateSeuratObject(counts = data, assay = assay)
-  if (is.null(x = image)) {
-    image <- Read10X_Image(
-	    image.dir = file.path(data.dir, 'spatial'),
-	    filter.matrix = filter.matrix
-  	)
-  } else {
-    if (!inherits(x = image, what = "VisiumV1"))
-      stop("Image must be an object of class 'VisiumV1'.")
-  }
+  image <- Read10X_Image(
+    image.dir = file.path(data.dir, 'spatial'),
+    filter.matrix = filter.matrix
+  )
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
@@ -594,45 +585,6 @@ LoadSTARmap <- function(
     qhulls = qhulls
   )
   return(starmap)
-}
-
-#' Normalize raw data
-#'
-#' Normalize count data per cell and transform to log scale
-#'
-#' @param data Matrix with the raw count data
-#' @param scale.factor Scale the data. Default is 1e4
-#' @param verbose Print progress
-#'
-#' @return Returns a matrix with the normalize and log transformed data
-#'
-#' @import Matrix
-#' @importFrom methods as
-#'
-#' @export
-#' @concept preprocessing
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
-#' mat
-#' mat_norm <- LogNormalize(data = mat)
-#' mat_norm
-#'
-LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
-  if (is.data.frame(x = data)) {
-    data <- as.matrix(x = data)
-  }
-  if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
-  }
-  # call Rcpp function to normalize
-  if (verbose) {
-    cat("Performing log-normalization\n", file = stderr())
-  }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
-  colnames(x = norm.data) <- colnames(x = data)
-  rownames(x = norm.data) <- rownames(x = data)
-  return(norm.data)
 }
 
 #' Demultiplex samples based on classification method from MULTI-seq (McGinnis et al., bioRxiv 2018)
@@ -992,8 +944,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' Load a 10X Genomics Visium Image
 #'
 #' @param image.dir Path to directory with 10X Genomics visium image data;
-#' should include files \code{tissue_lowres_image.png},
-#' @param image.name The file name of the image. Defaults to tissue_lowres_image.png.
+#' should include files \code{tissue_lowres_iamge.png},
 #' \code{scalefactors_json.json} and \code{tissue_positions_list.csv}
 #' @param filter.matrix Filter spot/feature matrix to only include spots that
 #' have been determined to be over tissue.
@@ -1009,8 +960,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' @export
 #' @concept preprocessing
 #'
-Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", filter.matrix = TRUE, ...) {
-  image <- readPNG(source = file.path(image.dir, image.name))
+Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
+  image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
   scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
   tissue.positions <- read.csv(
     file = file.path(image.dir, 'tissue_positions_list.csv'),
@@ -1047,11 +998,8 @@ Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", fil
 #' @param features Name or remote URL of the features/genes file
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
 #' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
-#' @param cell.sep Specify the delimiter in the cell name file
-#' @param feature.sep Specify the delimiter in the feature name file
 #' @param skip.cell Number of lines to skip in the cells file before beginning to read cell names
 #' @param skip.feature Number of lines to skip in the features file before beginning to gene names
-#' @param mtx.transpose Transpose the matrix after reading in
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -1090,11 +1038,8 @@ ReadMtx <- function(
   features,
   cell.column = 1,
   feature.column = 2,
-  cell.sep = "\t",
-  feature.sep = "\t",
   skip.cell = 0,
   skip.feature = 0,
-  mtx.transpose = FALSE,
   unique.features = TRUE,
   strip.suffix = FALSE
 ) {
@@ -1104,11 +1049,11 @@ ReadMtx <- function(
     "feature list" = features
   )
   for (i in seq_along(along.with = all.files)) {
-    uri <- normalizePath(all.files[[i]], mustWork = FALSE)
+    uri <- all.files[[i]]
     err <- paste("Cannot find", names(x = all.files)[i], "at", uri)
     uri <- build_url(url = parse_url(url = uri))
     if (grepl(pattern = '^:///', x = uri)) {
-      uri <- gsub(pattern = '^://', replacement = '', x = uri)
+      uri <- gsub(pattern = '^:///', replacement = '', x = uri)
       if (!file.exists(uri)) {
         stop(err, call. = FALSE)
       }
@@ -1126,14 +1071,14 @@ ReadMtx <- function(
   cell.barcodes <- read.table(
     file = all.files[['barcode list']],
     header = FALSE,
-    sep = cell.sep,
+    sep = '\t',
     row.names = NULL,
     skip = skip.cell
   )
   feature.names <- read.table(
     file = all.files[['feature list']],
     header = FALSE,
-    sep = feature.sep,
+    sep = '\t',
     row.names = NULL,
     skip = skip.feature
   )
@@ -1204,9 +1149,6 @@ ReadMtx <- function(
     feature.names <- make.unique(names = feature.names)
   }
   data <- readMM(file = all.files[['expression matrix']])
-  if (mtx.transpose) {
-    data <- t(x = data)
-  }
   if (length(x = cell.names) != ncol(x = data)) {
     stop(
       "Matrix has ",
@@ -1911,7 +1853,6 @@ SubsetByBarcodeInflections <- function(object) {
 #'
 #' @rdname FindVariableFeatures
 #' @concept preprocessing
-#' @method FindVariableFeatures V3Matrix
 #' @export
 #'
 FindVariableFeatures.V3Matrix <- function(
@@ -1977,6 +1918,7 @@ FindVariableFeatures.V3Matrix <- function(
       EXPR = binning.method,
       'equal_width' = num.bin,
       'equal_frequency' = c(
+        -1,
         quantile(
           x = feature.mean[feature.mean > 0],
           probs = seq.int(from = 0, to = 1, length.out = num.bin)
@@ -1984,8 +1926,7 @@ FindVariableFeatures.V3Matrix <- function(
       ),
       stop("Unknown binning method: ", binning.method)
     )
-    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks,
-                      include.lowest = TRUE)
+    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
     names(x = data.x.bin) <- names(x = feature.mean)
     mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
     sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
@@ -2074,7 +2015,7 @@ FindVariableFeatures.Assay <- function(
     },
     'dispersion' = head(x = rownames(x = hvf.info), n = nfeatures),
     'vst' = head(x = rownames(x = hvf.info), n = nfeatures),
-    stop("Unknown selection method: ", selection.method)
+    stop("Unkown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
   vf.name <- ifelse(
@@ -2253,35 +2194,8 @@ FindSpatiallyVariableFeatures.Assay <- function(
     features <- features[! features %in% features.computed]
   }
   data <- GetAssayData(object = object, slot = slot)
-  missing.features <- which(x = ! features %in% rownames(x = data))
-  if (length(x = missing.features) > 0) {
-    remaining.features <- length(x = features) - length(x = missing.features)
-    if (length(x = remaining.features) > 0) {
-      warning("Not all requested features are present in the requested slot (",
-              slot, "). Removing ", length(x = missing.features),
-              " missing features and continuing with ", remaining.features,
-              " remaining features.", immediate. = TRUE, call. = FALSE)
-      features <- features[features %in% rownames(x = data)]
-    } else {
-      stop("None of the requested features are present in the requested slot (",
-           slot, ").", call. = FALSE)
-    }
-  }
-  image.cells <- rownames(x = spatial.location)
-  data <- as.matrix(x = data[features, image.cells, drop = FALSE])
-  rv <- RowVar(x = data)
-  rv.small <- which(x = rv < 1e-16)
-  rv.remove <- c()
-  if (length(x = rv.small) > 0) {
-    for (i in rv.small) {
-      if (var(x = data[i, ]) == 0) {
-        rv.remove <- c(rv.remove, i)
-      }
-    }
-  }
-  if (length(x = rv.remove) > 0) {
-    data <- data[-c(rv.remove), , drop = FALSE]
-  }
+  data <- as.matrix(x = data[features, ])
+  data <- data[RowVar(x = data) > 0, ]
   if (nrow(x = data) != 0) {
     svf.info <- FindSpatiallyVariableFeatures(
       object = data,
@@ -2362,6 +2276,50 @@ FindSpatiallyVariableFeatures.Seurat <- function(
   object <- LogSeuratCommand(object = object)
 }
 
+#' @rdname LogNormalize
+#' @method LogNormalize data.frame
+#' @export
+#'
+LogNormalize.data.frame <- function(
+  data,
+  scale.factor = 1e4,
+  verbose = TRUE,
+  ...
+) {
+  return(LogNormalize(
+    data = as.matrix(x = data),
+    scale.factor = scale.factor,
+    verbose = verbose,
+    ...
+  ))
+}
+
+#' @rdname LogNormalize
+#' @method LogNormalize V3Matrix
+#' @export
+#'
+LogNormalize.V3Matrix <- function(
+  data,
+  scale.factor = 1e4,
+  verbose = TRUE,
+  ...
+) {
+  # if (is.data.frame(x = data)) {
+  #   data <- as.matrix(x = data)
+  # }
+  if (!inherits(x = data, what = 'dgCMatrix')) {
+    data <- as(object = data, Class = "dgCMatrix")
+  }
+  # call Rcpp function to normalize
+  if (verbose) {
+    cat("Performing log-normalization\n", file = stderr())
+  }
+  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
+  colnames(x = norm.data) <- colnames(x = data)
+  rownames(x = norm.data) <- rownames(x = data)
+  return(norm.data)
+}
+
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #'
@@ -2383,8 +2341,6 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 #'
 #' @rdname NormalizeData
 #' @concept preprocessing
-#'
-#' @method NormalizeData V3Matrix
 #' @export
 #'
 NormalizeData.V3Matrix <- function(
@@ -2483,7 +2439,7 @@ NormalizeData.V3Matrix <- function(
         scale.factor = scale.factor,
         verbose = verbose
       ),
-      stop("Unknown normalization method: ", normalization.method)
+      stop("Unkown normalization method: ", normalization.method)
     )
   }
   return(normalized.data)
@@ -3067,9 +3023,6 @@ ClassifyCells <- function(data, q) {
 #
 #
 ComputeRMetric <- function(mv, r.metric = 5) {
-  if (!inherits(x = mv, what = "list")) {
-    mv <- list(mv)
-  }
   r.metric.results <- unlist(x = lapply(
     X = mv,
     FUN = function(x) {
