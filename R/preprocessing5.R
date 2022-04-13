@@ -12,12 +12,6 @@ hvf.methods <- list()
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @export
-#'
-LogNormalize5 <- function(data, scale.factor = 1e4, margin = 2L, verbose = TRUE) {
-  UseMethod(generic = 'LogNormalize5', object = data)
-}
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,42 +20,54 @@ LogNormalize5 <- function(data, scale.factor = 1e4, margin = 2L, verbose = TRUE)
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom rlang is_quosure quo_get_env quo_get_expr
 #' @method FindVariableFeatures default
 #' @export
 #'
 FindVariableFeatures.default <- function(
   object,
-  method = 'vst',
+  method = VST,
   nselect = 2000L,
-  fmargin = 1L,
   verbose = TRUE,
   ...
 ) {
+  if (is_quosure(x = method)) {
+    method <- eval(
+      expr = quo_get_expr(quo = method),
+      envir = quo_get_env(quo = method)
+    )
+  }
   if (is.character(x = method)) {
-    method <- method[1L]
-    method <- match.arg(arg = method, choices = names(x = hvf.methods))
-    method <- hvf.methods[[method]]
+    method <- get(x = method)
   }
   if (!is.function(x = method)) {
-    stop("'method' must be a function for calculating highly variable features")
+    stop(
+      "'method' must be a function for calculating highly variable features",
+      call. = FALSE
+    )
   }
   return(method(
     data = object,
-    fmargin = fmargin,
     nselect = nselect,
     verbose = verbose,
     ...
   ))
 }
 
-#' @importFrom SeuratObject DefaultLayer Features Key
+g <- function(x, method = VST) {
+  method <- enquo(arg = method)
+  FindVariableFeatures(object = x, method = method, layer = 'counts')
+}
+
+#' @importFrom rlang as_name enquo is_quosure
+#' @importFrom SeuratObject DefaultLayer Features Key Layers
 #'
 #' @method FindVariableFeatures StdAssay
 #' @export
 #'
 FindVariableFeatures.StdAssay <- function(
   object,
-  method = 'vst',
+  method = VST,
   nselect = 2000L,
   layer = NULL,
   span = 0.3,
@@ -70,61 +76,122 @@ FindVariableFeatures.StdAssay <- function(
   verbose = TRUE,
   ...
 ) {
-  layer <- layer %||% DefaultLayer(object = object)
-  data <- LayerData(object = object, layer = layer, fast = TRUE)
-  f <- if (inherits(x = data, what = 'V3Matrix')) {
-    FindVariableFeatures.default
-  } else {
-    FindVariableFeatures
-  }
-  hvf.info <- f(
-    object = data,
-    method = method,
-    nselect = nselect,
-    fmargin = .MARGIN(object = object, type = 'features'),
-    span = span,
-    clip = clip,
-    verbose = verbose,
-    ...
-  )
-  rownames(x = hvf.info) <- Features(x = object, layer = layer)
-  pattern <- '^[[:alnum:]]+_'
-  if (!any(grepl(pattern = pattern, x = colnames(x = hvf.info)))) {
-    key <- key %||% if (is.character(x = method)) {
-      if (grepl(pattern = '\\.', x = method)) {
-        x <- vapply(
-          X = unlist(x = strsplit(x = method, split = '\\.')),
-          FUN = substr,
-          FUN.VALUE = character(length = 1L),
-          start = 1L,
-          stop = 1L,
-          USE.NAMES = FALSE
-        )
-        paste(x, collapse = '')
-      } else {
-        method
-      }
-    } else {
-      SeuratObject:::RandomKey()
+  layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- Layers(object = object, search = layer)
+  if (is.null(x = key)) {
+    false <- function(...) {
+      return(FALSE)
     }
-    key <- suppressWarnings(expr = Key(object = key))
-    colnames(x = hvf.info) <- paste0(key, colnames(x = hvf.info))
-  } #else if (!all(grepl(pattern = pattern, x = colnames(x = hvf.info)))) {
-  #   ''
-  # }
-  object[[]] <- hvf.info
+    key <- if (tryCatch(expr = is_quosure(x = method), error = false)) {
+      method
+    } else if (is.function(x = method)) {
+      substitute(expr = method)
+    } else if (is.call(x = enquo(arg = method))) {
+      enquo(arg = method)
+    } else if (is.character(x = method)) {
+      method
+    } else {
+      parse(text = method)
+    }
+    key <- .Abbrv(x = as_name(x = key))
+  }
+  warn.var <- warn.rank <- TRUE
+  for (i in seq_along(along.with = layer)) {
+    if (isTRUE(x = verbose)) {
+      message("Finding variable features for layer ", layer[i])
+    }
+    data <- LayerData(object = object, layer = layer[i], fast = TRUE)
+    f <- if (inherits(x = data, what = 'V3Matrix')) {
+      FindVariableFeatures.default
+    } else {
+      FindVariableFeatures
+    }
+    hvf.info <- f(
+      object = data,
+      method = method,
+      nselect = nselect,
+      span = span,
+      clip = clip,
+      verbose = verbose,
+      ...
+    )
+    if (warn.var) {
+      if (!'variable' %in% colnames(x = hvf.info) || !is.logical(x = hvf.info$variable)) {
+        warning(
+          "No variable feature indication in HVF info for method ",
+          key,
+          ", `VariableFeatures` will not work",
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        warn.var <- FALSE
+      }
+    } else if (warn.rank && !'rank' %in% colnames(x = hvf.info)) {
+      warning(
+        "No variable feature rank in HVF info for method ",
+        key,
+        ", `VariableFeatures` will return variable features in assay order",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      warn.rank <- FALSE
+    }
+    colnames(x = hvf.info) <- paste(
+      'vf',
+      key,
+      layer[i],
+      colnames(x = hvf.info),
+      sep = '_'
+    )
+    rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
+    object[[colnames(x = hvf.info)]] <- hvf.info
+  }
   return(object)
 }
 
-#'
-#' @method LogNormalize5 default
+#' @importFrom rlang enquo
+#' @method FindVariableFeatures Seurat5
 #' @export
 #'
-LogNormalize5.default <- function(
+FindVariableFeatures.Seurat5 <- function(
+  object,
+  assay = NULL,
+  method = VST,
+  nselect = 2000L,
+  layer = NULL,
+  span = 0.3,
+  clip = NULL,
+  key = NULL,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  method <- enquo(arg = method)
+  object[[assay]] <- FindVariableFeatures(
+    object = object[[assay]],
+    method = method,
+    nselect = nselect,
+    layer = layer,
+    span = span,
+    clip = clip,
+    key = key,
+    verbose = verbose,
+    ...
+  )
+  return(object)
+}
+
+#' @rdname LogNormalize
+#' @method LogNormalize default
+#' @export
+#'
+LogNormalize.default <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   margin <- SeuratObject:::.CheckFmargin(fmargin = margin)
   ncells <- dim(x = data)[margin]
@@ -164,7 +231,6 @@ NormalizeData.default <- function(
   scale.factor = 1e4,
   cmargin = 2L,
   margin = 1L,
-  block.size = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -181,7 +247,7 @@ NormalizeData.default <- function(
           verbose = verbose
         )
       } else {
-        LogNormalize5(
+        LogNormalize(
           data = object,
           scale.factor = scale.factor,
           margin = cmargin,
@@ -204,44 +270,171 @@ NormalizeData.StdAssay <- function(
   method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
-  block.size = NULL,
   layer = NULL,
-  save = 'normalized',
+  save = 'data',
   default = TRUE,
   verbose = TRUE,
   ...
 ) {
-  layer <- layer %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- Layers(object = object, search = layer)
   if (save == DefaultLayer(object = object)) {
     default <- FALSE
   }
-  data <- LayerData(object = object, layer = layer, fast = TRUE)
-  f <- if (inherits(x = data, what = 'V3Matrix')) {
-    NormalizeData.default
-  } else {
-    NormalizeData
+  if (length(x = save) != length(x = layer)) {
+    save <- make.unique(names = gsub(
+      pattern = olayer,
+      replacement = save,
+      x = layer
+    ))
   }
-  data <- f(
-    object = LayerData(object = object, layer = layer, fast = TRUE),
-    method = method,
-    scale.factor = 1e4,
-    cmargin = .MARGIN(object = object, type = 'cells'),
-    margin = margin,
-    block.size = block.size,
-    verbose = verbose,
-    ...
-  )
-  LayerData(
-    object = object,
-    layer = save,
-    features = Features(x = object, layer = layer),
-    cells = Cells(x = object, layer = layer)
-  ) <- data
+  for (i in seq_along(along.with = layer)) {
+    l <- layer[i]
+    if (isTRUE(x = verbose)) {
+      message("Normalizing layer: ", l)
+    }
+    LayerData(
+      object = object,
+      layer = save[i],
+      features = Features(x = object, layer = l),
+      cells = Cells(x = object, layer = l)
+    ) <- NormalizeData(
+      object = LayerData(object = object, layer = l, fast = TRUE),
+      method = method,
+      scale.factor = scale.factor,
+      margin = margin,
+      verbose = verbose,
+      ...
+    )
+  }
   if (isTRUE(x = default)) {
-    DefaultLayer(object = object) <- save
+    DefaultLayer(object = object) <- save[1L]
   }
   gc(verbose = FALSE)
   return(object)
+}
+
+#' @importFrom SeuratObject DefaultAssay
+#'
+#' @method NormalizeData Seurat5
+#' @export
+#'
+NormalizeData.Seurat5 <- function(
+  object,
+  assay = NULL,
+  method = 'LogNormalize',
+  scale.factor = 1e4,
+  margin = 1L,
+  layer = NULL,
+  save = 'data',
+  default = TRUE,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  object[[assay]] <- NormalizeData(
+    object = object[[assay]],
+    method = method,
+    scale.factor = scale.factor,
+    margin = margin,
+    layer = layer,
+    save = save,
+    default = default,
+    verbose = verbose,
+    ...
+  )
+  return(object)
+}
+
+#' @rdname VST
+#' @method VST default
+#' @export
+#'
+VST.default <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  .NotYetImplemented()
+}
+
+#' @importFrom stats loess
+#' @importFrom Matrix rowMeans
+#'
+#' @rdname VST
+#' @method VST dgCMatrix
+#' @export
+#'
+VST.dgCMatrix <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  verbose = TRUE,
+  ...
+) {
+  nfeatures <- nrow(x = data)
+  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  # Calculate feature menas
+  hvf.info$mean <- Matrix::rowMeans(x = data)
+  # Calculate feature variance
+  hvf.info$variance <- SparseRowVar2(
+    mat = data,
+    mu = hvf.info$mean,
+    display_progress = verbose
+  )
+  hvf.info$variance.expected <- 0L
+  not.const <- hvf.info$variance > 0
+  fit <- loess(
+    formula = log10(x = variance) ~ log10(x = mean),
+    data = hvf.info[not.const, , drop = TRUE],
+    span = span
+  )
+  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  hvf.info$variance.standardized <- SparseRowVarStd(
+    mat = data,
+    mu = hvf.info$mean,
+    sd = sqrt(x = hvf.info$variance.expected),
+    vmax = clip %||% sqrt(x = ncol(x = data)),
+    display_progress = TRUE
+  )
+  # Set variable features
+  hvf.info$variable <- FALSE
+  hvf.info$rank <- NA
+  vf <- head(
+    x = order(hvf.info$variance.standardized, decreasing = TRUE),
+    n = nselect
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  return(hvf.info)
+}
+
+#' @rdname VST
+#' @method VST matrix
+#' @export
+#'
+VST.matrix <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  return(VST(
+    data = as.sparse(x = data),
+    margin = margin,
+    nselect = nselect,
+    span = span,
+    clip = clip,
+    ...
+  ))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -459,18 +652,19 @@ NormalizeData.StdAssay <- function(
 #' @inheritParams stats::loess
 #' @param data A matrix
 #' @param fmargin Feature margin
-#' @param nfeatures Number of features to select
+#' @param nselect Number of features to select
 #' @param clip After standardization values larger than \code{clip} will be set
 #' to \code{clip}; default is \code{NULL} which sets this value to the square
 #' root of the number of cells
 #'
 #' @importFrom stats loess
+#' @importFrom Matrix rowMeans
 #'
 #' @keywords internal
 #'
 #' @noRd
 #'
-VST <- function(
+.VST <- function(
   data,
   fmargin = 1L,
   nselect = 2000L,
@@ -481,6 +675,8 @@ VST <- function(
 ) {
   fmargin <- SeuratObject:::.CheckFmargin(fmargin = fmargin)
   nfeatures <- dim(x = data)[fmargin]
+  # TODO: Support transposed matrices
+  # nfeatures <- nrow(x = data)
   if (IsSparse(x = data)) {
     mean.func <- .SparseMean
     var.func <- .SparseFeatureVar
@@ -489,7 +685,8 @@ VST <- function(
     var.func <- .FeatureVar
   }
   hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
-  hvf.info$mean <- mean.func(data = data, margin = 1L)
+  # hvf.info$mean <- mean.func(data = data, margin = fmargin)
+  hvf.info$mean <- rowMeans(x = data)
   hvf.info$variance <- var.func(
     data = data,
     mu = hvf.info$mean,
@@ -526,7 +723,7 @@ VST <- function(
   return(hvf.info)
 }
 
-hvf.methods$vst <- VST
+# hvf.methods$vst <- VST
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 Methods
