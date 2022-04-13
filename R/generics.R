@@ -300,6 +300,41 @@ IntegrateEmbeddings <- function(anchorset, ...) {
   UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
 }
 
+#' @export
+#'
+LeverageScore <- function(object, ...) {
+  UseMethod(generic = 'LeverageScore', object = object)
+}
+
+#' Normalize Raw Data
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the data; default is \code{1e4}
+#' @param verbose Print progress
+#'
+#' @return A matrix with the normalized and log-transformed data
+#'
+#' @template param-dotsm
+#'
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- LogNormalize(data = mat)
+#' mat_norm
+#'
+LogNormalize <- function(
+  data,
+  scale.factor = 1e4,
+  # margin = 2L,
+  verbose = TRUE,
+  ...
+) {
+  UseMethod(generic = 'LogNormalize', object = data)
+}
+
 #' Metric for evaluating mapping success
 #'
 #' This metric was designed to help identify query cells that aren't well
@@ -603,4 +638,47 @@ SCTResults <- function(object, ...) {
 #'
 "SCTResults<-" <- function(object, ..., value) {
   UseMethod(generic = 'SCTResults<-', object = object)
+}
+
+#' Variance Stabilizing Transformation
+#'
+#' Apply variance stabilizing transformation for selection of variable features
+#'
+#' @inheritParams stats::loess
+#' @param data A matrix-like object
+#' @param margin Unused
+#' @param nselect Number of of features to select
+#' @param clip Upper bound for values post-standardization; defaults to the
+#' square root of the number of cells
+#' @param verbose ...
+#'
+#' @template param-dotsm
+#'
+#' @return A data frame with the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{mean}}: ...
+#'  \item \dQuote{\code{variance}}: ...
+#'  \item \dQuote{\code{variance.expected}}: ...
+#'  \item \dQuote{\code{variance.standardized}}: ...
+#'  \item \dQuote{\code{variable}}: \code{TRUE} if the feature selected as
+#'   variable, otherwise \code{FALSE}
+#'  \item \dQuote{\code{rank}}: If the feature is selected as variable, then how
+#'   it compares to other variable features with lower ranks as more variable;
+#'   otherwise, \code{NA}
+#' }
+#'
+#' @rdname VST
+#' @export VST
+#'
+#' @keywords internal
+#'
+VST <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  UseMethod(generic = 'VST', object = data)
 }
