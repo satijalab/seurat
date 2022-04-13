@@ -1,0 +1,290 @@
+#' @include zzz.R
+#' @include generics.R
+#' @importFrom rlang enquo is_quosure quo_get_env quo_get_expr
+#'
+NULL
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for Seurat-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom Matrix qrR
+#'
+#' @method LeverageScore default
+#' @export
+#'
+LeverageScore.default <- function(
+  object,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  eps = 0.5,
+  seed = 123L,
+  verbose = TRUE,
+  ...
+) {
+  # Check the dimensions of the object, nsketch, and ndims
+  ncells <- ncol(x = object)
+  if (nrow(x = object) > 5000L) {
+    stop("too slow", call. = FALSE)
+  } else if (nrow(x = object) > (ncells / 1.1)) {
+    stop("too square", call. = FALSE)
+  }
+  ndims <- ndims %||% ncells
+  if (nsketch < (1.1 * nrow(x = object))) {
+    nsketch <- 1.1 * nrow(x = object)
+    warning(
+      "'nsketch' is too close to the number of features, setting to ",
+      round(x = nsketch, digits = 2L),
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  nsketch <- min(nsketch, ndims)
+  # Check the method
+  if (is_quosure(x = method)) {
+    method <- eval(
+      expr = quo_get_expr(quo = method),
+      envir = quo_get_env(quo = method)
+    )
+  }
+  if (is.character(x = method)) {
+    method <- get(x = method)
+  }
+  stopifnot(is.function(x = method))
+  # Run the sketching
+  if (isTRUE(x = verbose)) {
+    message("sampling ", nsketch, " cells")
+  }
+  S <- method(nsketch = nsketch, ncells = ncells, seed = seed, ...)
+  object <- t(x = object)
+  if (isTRUE(x = verbose)) {
+    message("Performing QR decomposition")
+  }
+  sa <- S %*% object
+  qr.sa <- base::qr(x = sa)
+  R <- if (inherits(x = qr.sa, what = 'sparseQR')) {
+    qrR(qr = qr.sa)
+  } else {
+    base::qr.R(qr = qr.sa)
+  }
+  R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
+  if (isTRUE(x = verbose)) {
+    message("Performing random projection")
+  }
+  JL <- as.sparse(x = JLEmbed(
+    nrow = ncol(x = R.inv),
+    ncol = ndims,
+    eps = eps,
+    seed = seed
+  ))
+  Z <- object %*% (R.inv %*% JL)
+  return(rowSums(x = Z ^ 2))
+}
+
+#' @method LeverageScore StdAssay
+#' @export
+#'
+LeverageScore.StdAssay <- function(
+  object,
+  features = NULL,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  layer = 'data',
+  eps = 0.5,
+  seed = 123L,
+  verbose = TRUE,
+  ...
+) {
+  layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- Layers(object = object, search = layer)
+  if (!is_quosure(x = method)) {
+    method <- enquo(arg = method)
+  }
+  scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
+  row.names(x = scores) <- colnames(x = object)
+  scores[, layer] <- NA_real_
+  for (i in seq_along(along.with = layer)) {
+    l <- layer[i]
+    if (isTRUE(x = verbose)) {
+      message("Running LeverageScore for layer ", l)
+    }
+    scores[Cells(x = object, layer = l), l] <- LeverageScore(
+      object = LayerData(
+        object = object,
+        layer = l,
+        features = features %||% VariableFeatures(object = object, layer = l),
+        fast = TRUE
+      ),
+      nsketch = nsketch,
+      ndims = ndims %||% ncol(x = object),
+      method = method,
+      eps = eps,
+      seed = seed,
+      verbose = verbose,
+      ...
+    )
+  }
+  names(x = scores) <- paste0('leverage_score_', names(x = scores))
+  return(scores)
+}
+
+#' @method LeverageScore Seurat5
+#' @export
+#'
+LeverageScore.Seurat5 <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  layer = 'data',
+  eps = 0.5,
+  seed = 123L,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  method <- enquo(arg = method)
+  scores <- LeverageScore(
+    object = object[[assay]],
+    features = features,
+    nsketch = nsketch,
+    ndims = ndims,
+    method = method,
+    layer = layer,
+    eps = eps,
+    seed = seed,
+    verbose = verbose,
+    ...
+  )
+  names(x = scores) <- paste0("seurat_", names(x = scores))
+  object[[]] <- scores
+  return(object)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for R-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Generate CountSketch random matrix
+#'
+#' @inheritParams base::set.seed
+#' @param nsketch Number of sketching random cells
+#' @param ncells Number of cells in the original data
+#' @param ... Ignored
+#'
+#' @return ...
+#'
+#' @importFrom Matrix sparseMatrix
+#'
+#' @export
+#'
+#' @keywords internal
+#'
+#' @references Clarkson, KL. & Woodruff, DP.
+#' Low-rank approximation and regression in input sparsity time.
+#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45.
+#' \url{https://dl.acm.org/doi/abs/10.1145/3019134};
+
+CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
+  if (!is.na(x = seed)) {
+    set.seed(seed = seed)
+  }
+  iv <- xv <- vector(mode = "numeric", length = ncells)
+  jv <- seq_len(length.out = ncells)
+  for (i in jv) {
+    iv[i] <- sample(x = seq_len(length.out = nsketch), size = 1L)
+    xv[i] <- sample(x = c(-1L, 1L), size = 1L)
+  }
+  return(sparseMatrix(
+    i = iv,
+    j = jv,
+    x = xv
+  ))
+}
+
+#' Gaussian sketching
+#'
+#' @inheritParams CountSketch
+#'
+#' @return ...
+#'
+#' @export
+#'
+#' @keywords internal
+#'
+GaussianSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
+  if (!is.na(x = seed)) {
+    set.seed(seed = seed)
+  }
+  return(matrix(
+    data = rnorm(n = nsketch * ncells, mean = 0L, sd = 1 / (ncells ^ 2)),
+    nrow = nsketch,
+    ncol = ncells
+  ))
+}
+
+#' Generate JL random projection embeddings
+#'
+#' @keywords internal
+#'
+#' @references Aghila G and Siddharth R (2020).
+#' RandPro: Random Projection with Classification. R package version 0.2.2.
+#' \url{https://CRAN.R-project.org/package=RandPro}
+#'
+#' @noRd
+#
+JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA_integer_, method = "li") {
+  if (!is.na(x = seed)) {
+    set.seed(seed = seed)
+  }
+  method <- method[1L]
+  method <- match.arg(arg = method)
+  if (!is.null(x = eps)) {
+    if (eps > 1 || eps <= 0) {
+      stop("'eps' must be 0 < eps <= 1")
+    }
+    ncol <- floor(x = 4 * log(x = ncol) / ((eps ^ 2) / 2 - (eps ^ 3 / 3)))
+  }
+  m <- switch(
+    EXPR = method,
+    "li" = {
+      s <- ceiling(x = sqrt(x = ncol))
+      prob <- c(
+        1 / (2 * s),
+        1 - (1 / s),
+        1 / (2 * s)
+      )
+      matrix(
+        data = sample(
+          x = seq.int(from = -1L, to = 1L),
+          size = nrow * ncol,
+          replace = TRUE,
+          prob = prob
+        ),
+        nrow = nrow
+      )
+    }
+  )
+  return(m)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# S4 Methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
