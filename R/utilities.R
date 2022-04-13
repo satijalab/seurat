@@ -1570,40 +1570,33 @@ as.data.frame.Matrix <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Set a default value if an object is null
-#
-# @param lhs An object to set if it's null
-# @param rhs The value to provide if x is null
-#
-# @return rhs if lhs is null, else lhs
-#
-# @author Hadley Wickham
-# @references https://adv-r.hadley.nz/functions.html#missing-arguments
-#
-`%||%` <- function(lhs, rhs) {
-  if (!is.null(x = lhs)) {
-    return(lhs)
-  } else {
-    return(rhs)
-  }
-}
-
-# Set a default value if an object is NOT null
-#
-# @param lhs An object to set if it's NOT null
-# @param rhs The value to provide if x is NOT null
-#
-# @return lhs if lhs is null, else rhs
-#
-# @author Hadley Wickham
-# @references https://adv-r.hadley.nz/functions.html#missing-arguments
-#
-`%iff%` <- function(lhs, rhs) {
-  if (!is.null(x = lhs)) {
-    return(rhs)
-  } else {
-    return(lhs)
-  }
+#' Create Abbreviations
+#'
+#' @param x A character vector
+#' @param digits Include digits in the abbreviation
+#'
+#' @return Abbreviated versions of \code{x}
+#'
+#' @keywords internal
+#'
+#' @examples
+#' .Abbrv(c('HelloWorld, 'LetsGo3', 'tomato'))
+#' .Abbrv(c('HelloWorld, 'LetsGo3', 'tomato'), digits = FALSE)
+#' .Abbrv('Wow3', digits = FALSE)
+#'
+#' @noRd
+#'
+.Abbrv <- function(x, digits = TRUE) {
+  pattern <- ifelse(test = isTRUE(x = digits), yes = '[A-Z0-9]+', no = '[A-Z]+')
+  y <- vapply(
+    X = regmatches(x = x, m = gregexec(pattern = pattern, text = x)),
+    FUN = paste,
+    FUN.VALUE = character(length = 1L),
+    collapse = ''
+  )
+  na <- nchar(x = y) <= 1L
+  y[na] <- x[na]
+  return(tolower(x = y))
 }
 
 # Generate chunk points

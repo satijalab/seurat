@@ -145,6 +145,18 @@ NULL
 # Functions and Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom SeuratObject %||%
+#' @rdname reexports
+#' @export
+#'
+SeuratObject::`%||%`
+
+#' @importFrom SeuratObject %iff%
+#' @rdname reexports
+#' @export
+#'
+SeuratObject::`%iff%`
+
 #' @importFrom SeuratObject AddMetaData
 #' @rdname reexports
 #' @export
