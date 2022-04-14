@@ -12,6 +12,70 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom SeuratObject Key Key<- Layers
+#'
+#' @export
+#'
+LeverageScoreSampling <- function(
+  object,
+  assay = NULL,
+  ncells = 5000,
+  save = 'sketch',
+  default = TRUE,
+  seed = NA_integer_,
+  ...
+) {
+  # browser()
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  # TODO: fix this in [[<-,Seurat5
+  if (save == assay) {
+    stop("Cannot overwrite existing assays", call. = FALSE)
+  }
+  if (save %in% Assays(object = object)) {
+    if (save == DefaultAssay(object = object)) {
+      DefaultAssay(object = object) <- assay
+    }
+    object[[save]] <- NULL
+  }
+  vars <- grep(
+    pattern = '^seurat_leverage_score_',
+    x = names(x = object[[]]),
+    value = TRUE
+  )
+  names(x = vars) <- vars
+  vars <- gsub(pattern = '^seurat_leverage_score_', replacement = '', x = vars)
+  vars <- vars[vars %in% Layers(object = object[[assay]])]
+  if (!length(x = vars)) {
+    stop("No leverage scores found for assay ", assay, call. = FALSE)
+  }
+  cells <- lapply(
+    X = seq_along(along.with = vars),
+    FUN = function(i, seed) {
+      if (!is.na(x = seed)) {
+        set.seed(seed = seed)
+      }
+      return(sample(
+        x = Cells(x = object[[assay]], layer = vars[i]),
+        size = ncells,
+        prob = object[[names(x = vars)[i], drop = TRUE, na.rm = TRUE]]
+      ))
+    },
+    seed = seed
+  )
+  sketched <- suppressWarnings(expr = subset(
+    x = object[[assay]],
+    cells = Reduce(f = union, x = cells),
+    layers = vars
+  ))
+  Key(object = sketched) <- Key(object = save, quiet = TRUE)
+  object[[save]] <- sketched
+  if (isTRUE(x = default)) {
+    DefaultAssay(object = object) <- save
+  }
+  return(object)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
