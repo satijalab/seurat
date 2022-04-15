@@ -4,6 +4,7 @@
 - Fix `giveCsparse` related warnings in `Read10X_h5`
 - Fix ident labeling for `SpatialPlot`
 - Fix `ReadMtx` on Windows ([#5687](https://github.com/satijalab/seurat/issues/5687))
+- Fix `VlnPlot` to switch on rasterization only when required ([#5846](https://github.com/satijalab/seurat/pull/5846))
 
 
 # Seurat 4.1.0 (2022-01-14)
