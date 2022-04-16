@@ -3286,10 +3286,14 @@ SpatialPlot <- function(
   #     images = GetImage(object = object, mode = 'plotly', image = images)
   #   ))
   # }
-  if (length(x = images) > 1 && combine) {
-    plots <- wrap_plots(plots = plots, ncol = length(x = images))
-  } else if (length(x = images == 1) && combine) {
-    plots <- wrap_plots(plots = plots, ncol = ncol)
+  if (combine) {
+    if (!is.null(x = ncol)) {
+      return(wrap_plots(plots = plots, ncol = ncol))
+    }
+    if (length(x = images) > 1) {
+      return(wrap_plots(plots = plots, ncol = length(x = images)))
+    }
+    return(wrap_plots(plots = plots))
   }
   return(plots)
 }
