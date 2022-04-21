@@ -1873,7 +1873,7 @@ CellScatter <- function(
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
 #' @param shuffle Whether to randomly shuffle the order of points. This can be
-#' useful for crowded plots if points of interest are being buried. (default is FALSE)
+#' useful for crowded plots if points of interest are being buried. (default is TRUE)
 #' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
@@ -1890,7 +1890,7 @@ CellScatter <- function(
 #' 100,000
 #' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
 #' Default is c(512, 512).
-#' @param jitter Jitter for easier visualization of crowded points
+#' @param jitter Jitter for easier visualization of crowded points (default is FALSE)
 #'
 #' @return A ggplot object
 #'
@@ -1911,7 +1911,7 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
-  shuffle = FALSE,
+  shuffle = TRUE,
   seed = 1,
   group.by = NULL,
   cols = NULL,
@@ -1924,7 +1924,7 @@ FeatureScatter <- function(
   plot.cor = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = TRUE
+  jitter = FALSE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
