@@ -1873,7 +1873,7 @@ CellScatter <- function(
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
 #' @param shuffle Whether to randomly shuffle the order of points. This can be
-#' useful for crowded plots if points of interest are being buried. (default is TRUE)
+#' useful for crowded plots if points of interest are being buried. (default is FALSE)
 #' @param seed Sets the seed if randomly shuffling the order of points.
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
@@ -1911,7 +1911,7 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
-  shuffle = TRUE,
+  shuffle = FALSE,
   seed = 1,
   group.by = NULL,
   cols = NULL,
