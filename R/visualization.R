@@ -1890,7 +1890,7 @@ CellScatter <- function(
 #' 100,000
 #' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
 #' Default is c(512, 512).
-#' @param jitter Jitter for easier visualization of crowded points
+#' @param jitter Jitter for easier visualization of crowded points (default is FALSE)
 #'
 #' @return A ggplot object
 #'
@@ -1924,7 +1924,7 @@ FeatureScatter <- function(
   plot.cor = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = TRUE
+  jitter = FALSE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
