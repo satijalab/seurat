@@ -2367,9 +2367,10 @@ ImageDimPlot <- function(
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
-    img <- unlist(x = strsplit(x = i, split = '_'))[1L]
+    ul <- unlist(x = strsplit(x = i, split = '_'))
+    img <- paste(ul[1:length(ul)-1], collapse = '_')
     # Apply overlap
-    lyr <- unlist(x = strsplit(x = i, split = '_'))[2L]
+    lyr <- ul[length(ul)]
     if (is.na(x = lyr)) {
       lyr <- boundaries[[img]]
     }
@@ -2762,9 +2763,10 @@ ImageFeaturePlot <- function(
   pdata <- vector(mode = 'list', length = length(x = pnames))
   names(x = pdata) <- pnames
   for (i in names(x = pdata)) {
-    img <- unlist(x = strsplit(x = i, split = '_'))[1L]
+    ul <- unlist(x = strsplit(x = i, split = '_'))
+    img <- paste(ul[1:length(ul)-1], collapse = '_')
     # Apply overlap
-    lyr <- unlist(x = strsplit(x = i, split = '_'))[2L]
+    lyr <- ul[length(ul)]
     if (is.na(x = lyr)) {
       lyr <- boundaries[[img]]
     }
