@@ -166,15 +166,15 @@
     },
     "SeuratObject": {
       "Package": "SeuratObject",
-      "Version": "4.9.9.9014",
+      "Version": "4.9.9.9015",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteUsername": "mojaveazure",
       "RemoteRepo": "seurat-object",
       "RemoteRef": "feat/standard",
-      "RemoteSha": "7a6c3222b5220191a841f11fb98fc9b4e9548d57",
-      "Hash": "494398a3f9dddd678cd0fadabdc4b8b2",
+      "RemoteSha": "a3a604e47e3ad026520eec0096b5dc31a2211a82",
+      "Hash": "437a8f6c9e8e877cd9d814f02345459f",
       "Requirements": [
         "Matrix",
         "Rcpp",
