@@ -1308,7 +1308,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @method Cells SCTModel
 #' @export
 #'
-Cells.SCTModel <- function(x) {
+Cells.SCTModel <- function(x, ...) {
   return(rownames(x = slot(object = x, name = "cell.attributes")))
 }
 
@@ -1320,7 +1320,7 @@ Cells.SCTModel <- function(x) {
 #'
 #' @seealso \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 #'
-Cells.SlideSeq <- function(x) {
+Cells.SlideSeq <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1330,7 +1330,7 @@ Cells.SlideSeq <- function(x) {
 #' @method Cells STARmap
 #' @export
 #'
-Cells.STARmap <- function(x) {
+Cells.STARmap <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1339,7 +1339,7 @@ Cells.STARmap <- function(x) {
 #' @method Cells VisiumV1
 #' @export
 #'
-Cells.VisiumV1 <- function(x) {
+Cells.VisiumV1 <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
