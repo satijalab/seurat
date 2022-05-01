@@ -1903,7 +1903,7 @@ CellScatter <- function(
 #' 100,000
 #' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
 #' Default is c(512, 512).
-#' @param jitter Jitter for easier visualization of crowded points
+#' @param jitter Jitter for easier visualization of crowded points (default is FALSE)
 #'
 #' @return A ggplot object
 #'
@@ -1937,7 +1937,7 @@ FeatureScatter <- function(
   plot.cor = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = TRUE
+  jitter = FALSE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
@@ -3194,7 +3194,7 @@ LinkedDimPlot <- function(
           dims = dims,
           col.by = group.by,
           alpha.by = plot.env$alpha.by
-        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
+        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = "none")
         plot.env$dimplot
       }
     )
@@ -3331,7 +3331,7 @@ LinkedFeaturePlot <- function(
           scale_fill_gradientn(name = feature, colours = cols) +
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(alpha = "none")
         plot.env$spatialplot
       }
     )
@@ -3690,7 +3690,7 @@ ISpatialFeaturePlot <- function(
         scale_fill_gradientn(name = plot.env$feature, colours = FeaturePalettes[[plot.env$palette]]) +
         theme(legend.position = 'top') +
         scale_alpha(range = c(input$alpha, 1)) +
-        guides(alpha = FALSE)
+        guides(alpha = "none")
       plot.env$plot
     })
   }
@@ -4008,7 +4008,7 @@ SpatialPlot <- function(
           ) +
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(alpha = "none")
       } else if (label) {
         plot <- LabelClusters(
           plot = plot,
@@ -4062,10 +4062,14 @@ SpatialPlot <- function(
   #     images = GetImage(object = object, mode = 'plotly', image = images)
   #   ))
   # }
-  if (length(x = images) > 1 && combine) {
-    plots <- wrap_plots(plots = plots, ncol = length(x = images))
-  } else if (length(x = images == 1) && combine) {
-    plots <- wrap_plots(plots = plots, ncol = ncol)
+  if (combine) {
+    if (!is.null(x = ncol)) {
+      return(wrap_plots(plots = plots, ncol = ncol))
+    }
+    if (length(x = images) > 1) {
+      return(wrap_plots(plots = plots, ncol = length(x = images)))
+    }
+    return(wrap_plots(plots = plots))
   }
   return(plots)
 }
@@ -4318,10 +4322,17 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
-  if (length(x = levels(x = data.plot$id)) == 1) {
+  ngroup <- length(x = levels(x = data.plot$id))
+  if (ngroup == 1) {
     scale <- FALSE
     warning(
       "Only one identity present, the expression values will be not scaled",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  } else if (ngroup < 5 & scale) {
+    warning(
+      "Scaling data with a low number of groups may produce misleading results",
       call. = FALSE,
       immediate. = TRUE
     )
@@ -8193,8 +8204,9 @@ SingleExIPlot <- function(
     if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
+      # change raster to TRUE
+      raster <- TRUE
     }
-    raster <- TRUE
   }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
@@ -8859,6 +8871,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
+      cols <- cols[names(x = cols) %in% data$ident]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
