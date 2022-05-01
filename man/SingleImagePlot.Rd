@@ -9,15 +9,17 @@ SingleImagePlot(
   col.by = NA,
   col.factor = TRUE,
   cols = NULL,
+  shuffle.cols = FALSE,
   size = 0.1,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
   mols.alpha = 1,
   alpha = molecules \%iff\% 0.3 \%||\% 0.6,
-  border.color = "black",
+  border.color = "white",
   border.size = NULL,
   na.value = "grey50",
+  dark.background = TRUE,
   ...
 )
 }
@@ -51,6 +53,9 @@ following:
   \code{data$col.by}
 }}
 
+\item{shuffle.cols}{Randomly shuffle colors when a palette or
+vector of colors is provided to \code{cols}}
+
 \item{size}{Point size for cells when plotting centroids}
 
 \item{molecules}{A data frame with spatially-resolved molecule coordinates;
@@ -65,7 +70,8 @@ should have the following columns:
 
 \item{mols.size}{Point size for molecules}
 
-\item{mols.cols}{A vector of color for molecules}
+\item{mols.cols}{A vector of color for molecules. The "Set1" palette from
+RColorBrewer is used by default.}
 
 \item{mols.alpha}{Alpha value for molecules, should be between 0 and 1}
 

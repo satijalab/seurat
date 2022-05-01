@@ -11,18 +11,19 @@ ImageDimPlot(
   group.by = NULL,
   split.by = NULL,
   cols = NULL,
-  size = 0.1,
+  shuffle.cols = FALSE,
+  size = 0.5,
   molecules = NULL,
   mols.size = 0.1,
   mols.cols = NULL,
   mols.alpha = 1,
   nmols = 1000,
-  alpha = molecules \%iff\% 0.3 \%||\% 0.6,
-  border.color = "black",
+  alpha = 1,
+  border.color = "white",
   border.size = NULL,
   na.value = "grey50",
   dark.background = TRUE,
-  crop = TRUE,
+  crop = FALSE,
   cells = NULL,
   overlap = FALSE,
   axes = FALSE,
@@ -50,13 +51,17 @@ or numeric value corresponding to a palette as specified by \code{\link[RColorBr
 By default, ggplot2 assigns colors. We also include a number of palettes from the pals package.
 See \code{\link{DiscretePalette}} for details.}
 
+\item{shuffle.cols}{Randomly shuffle colors when a palette or
+vector of colors is provided to \code{cols}}
+
 \item{size}{Point size for cells when plotting centroids}
 
 \item{molecules}{A vector of molecules to plot}
 
 \item{mols.size}{Point size for molecules}
 
-\item{mols.cols}{A vector of color for molecules}
+\item{mols.cols}{A vector of color for molecules. The "Set1" palette from
+RColorBrewer is used by default.}
 
 \item{mols.alpha}{Alpha value for molecules, should be between 0 and 1}
 

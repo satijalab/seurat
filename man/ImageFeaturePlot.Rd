@@ -10,7 +10,8 @@ ImageFeaturePlot(
   fov = NULL,
   boundaries = NULL,
   cols = if (isTRUE(x = blend)) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
-    c("lightgrey", "blue") },
+    c("lightgrey", "firebrick1") },
+  size = 0.5,
   min.cutoff = NA,
   max.cutoff = NA,
   split.by = NULL,
@@ -18,12 +19,13 @@ ImageFeaturePlot(
   mols.size = 0.1,
   mols.cols = NULL,
   nmols = 1000,
-  alpha = molecules \%iff\% 0.3 \%||\% 0.6,
-  border.color = "black",
+  alpha = 1,
+  border.color = "white",
   border.size = NULL,
+  dark.background = TRUE,
   blend = FALSE,
   blend.threshold = 0.5,
-  crop = TRUE,
+  crop = FALSE,
   cells = NULL,
   scale = c("feature", "all", "none"),
   overlap = FALSE,
@@ -60,6 +62,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
   \item{3+ colors:}{First color used for double-negatives, colors 2 and 3 used for per-feature expression, all others ignored}
 }}
 
+\item{size}{Point size for cells when plotting centroids}
+
 \item{min.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
@@ -73,7 +77,8 @@ to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{mols.size}{Point size for molecules}
 
-\item{mols.cols}{A vector of color for molecules}
+\item{mols.cols}{A vector of color for molecules. The "Set1" palette from
+RColorBrewer is used by default.}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
 boundaries, \code{alpha} is equivalent to max alpha}
@@ -83,6 +88,8 @@ to suppress borders for segmentation-based plots}
 
 \item{border.size}{Thickness of cell segmentation borders; pass \code{NA}
 to suppress borders for centroid-based plots}
+
+\item{dark.background}{Set plot background to black}
 
 \item{blend}{Scale and blend expression values to visualize coexpression of two features}
 

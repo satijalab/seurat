@@ -15,7 +15,7 @@ ReadAkoya(
 LoadAkoya(
   filename,
   type = c("inform", "processor", "qupath"),
-  fov = "fov",
+  fov,
   assay = "Akoya",
   ...
 )

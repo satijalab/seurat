@@ -13,7 +13,7 @@ ReadVitessce(
   filter = NA_character_
 )
 
-LoadHuBMAPCODEX(data.dir, fov = "fov", assay = "CODEX")
+LoadHuBMAPCODEX(data.dir, fov, assay = "CODEX")
 }
 \arguments{
 \item{counts}{Path or URL to a Vitessce-formatted JSON file with

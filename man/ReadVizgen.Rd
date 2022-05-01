@@ -17,7 +17,7 @@ ReadVizgen(
   z = 3L
 )
 
-LoadVizgen(data.dir, fov = "fov", assay = "Vizgen", z = 3L)
+LoadVizgen(data.dir, fov, assay = "Vizgen", z = 3L)
 }
 \arguments{
 \item{data.dir}{Path to the directory with Vizgen MERFISH files; requires at

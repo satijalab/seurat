@@ -21,7 +21,7 @@ ReadNanostring(
   cell.mols.only = TRUE
 )
 
-LoadNanostring(data.dir, fov = "fov", assay = "Nanostring")
+LoadNanostring(data.dir, fov, assay = "Nanostring")
 }
 \arguments{
 \item{data.dir}{Path to folder containing Nanostring SMI outputs}
