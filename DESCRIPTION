@@ -24,7 +24,6 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Remotes: mojaveazure/seurat-object@feat/imaging
 Depends:
     R (>= 4.0.0),
     methods
@@ -68,7 +67,7 @@ Imports:
     scales,
     scattermore (>= 0.7),
     sctransform (>= 0.3.3),
-    SeuratObject (>= 4.0.999.9009),
+    SeuratObject (>= 4.1.0),
     shiny,
     spatstat.core,
     spatstat.geom,
