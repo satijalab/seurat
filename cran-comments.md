@@ -8,7 +8,21 @@
 * win-builder (release, devel)
 
 ## R CMD check results
-There were no ERRORs, WARNINGs, or NOTEs
+There were no ERRORs or WARNINGs
+
+There was one NOTE:
+
+* checking CRAN incoming feasibility ... NOTE
+Maintainer: 'Paul Hoffman <seurat@nygenome.org>'
+
+Found the following (possibly) invalid URLs:
+  URL: https://www.science.org/doi/abs/10.1126/science.aad0501
+    From: man/cc.genes.Rd
+          man/cc.genes.updated.2019.Rd
+    Status: 503
+    Message: Service Unavailable
+
+This URL is valid and the service still exists. When navigating to the URL either via the documentation or directly, you are taken to the correct article
 
 ## Downstream dependencies
 
