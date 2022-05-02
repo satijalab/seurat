@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 4.1.1 (2022-05-01)
 
 ## Changes
 - Fix `giveCsparse` related warnings in `Read10X_h5`
@@ -8,6 +8,7 @@
 - Fix `ncol` behavior in `SpatialPlot` ([#5774](https://github.com/satijalab/seurat/issues/5774))
 - Set `jitter` to FALSE in `FeatureScatter` ([#5876](https://github.com/satijalab/seurat/pull/5876))
 - Update `Cells` methods to new signature (`x, ...`)
+- Replace use of `default.stringsAsFactors()` with `getOption("stringsAsFactors")`
 
 # Seurat 4.1.0 (2022-01-14)
 ## Added
