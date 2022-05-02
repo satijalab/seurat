@@ -7,6 +7,7 @@
 - Fix `VlnPlot` to switch on rasterization only when required ([#5846](https://github.com/satijalab/seurat/pull/5846))
 - Fix `ncol` behavior in `SpatialPlot` ([#5774](https://github.com/satijalab/seurat/issues/5774))
 - Set `jitter` to FALSE in `FeatureScatter` ([#5876](https://github.com/satijalab/seurat/pull/5876))
+- Update `Cells` methods to new signature (`x, ...`)
 
 # Seurat 4.1.0 (2022-01-14)
 ## Added
