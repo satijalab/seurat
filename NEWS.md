@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 4.1.1 (2022-05-01)
 
 ## Changes
 - Fix `giveCsparse` related warnings in `Read10X_h5`
