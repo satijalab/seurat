@@ -7,16 +7,18 @@
 \alias{Cells.VisiumV1}
 \title{Get Cell Names}
 \usage{
-\method{Cells}{SCTModel}(x)
+\method{Cells}{SCTModel}(x, ...)
 
-\method{Cells}{SlideSeq}(x)
+\method{Cells}{SlideSeq}(x, ...)
 
-\method{Cells}{STARmap}(x)
+\method{Cells}{STARmap}(x, ...)
 
-\method{Cells}{VisiumV1}(x)
+\method{Cells}{VisiumV1}(x, ...)
 }
 \arguments{
 \item{x}{An object}
+
+\item{...}{Arguments passed to other methods}
 }
 \description{
 Get Cell Names
