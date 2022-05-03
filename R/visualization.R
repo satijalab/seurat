@@ -2307,7 +2307,8 @@ ImageDimPlot <- function(
   cells = NULL,
   overlap = FALSE,
   axes = FALSE,
-  combine = TRUE
+  combine = TRUE,
+  coord.fixed = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
   # Determine FOV to use
@@ -2469,6 +2470,9 @@ ImageDimPlot <- function(
       if (!anyDuplicated(x = pdata[[i]]$cell)) {
         p <- p + guides(fill = guide_legend(override.aes = list(size=4L, alpha=1)))
       }
+      if (isTRUE(coord.fixed)) {
+        p <- p + coord_fixed()
+      }
       plots[[idx]] <- p
       idx <- idx + 1L
     }
@@ -2536,6 +2540,7 @@ ImageFeaturePlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
+  coord.fixed = TRUE,
   ...
 ) {
   cells <- cells %||% Cells(x = object)
@@ -2914,6 +2919,9 @@ ImageFeaturePlot <- function(
         # Remove fill guides for blended plots
         if (isTRUE(x = blend)) {
           p <- p + guides(fill = 'none')
+        }
+        if (isTRUE(coord.fixed)) {
+          p <- p + coord_fixed()
         }
         # Remove axes
         if (!isTRUE(x = axes)) {
