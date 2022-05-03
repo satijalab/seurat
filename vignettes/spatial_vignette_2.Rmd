@@ -32,7 +32,7 @@ knitr::opts_chunk$set(
 
 # Overview
 
-In this vignette, we introduce a Seurat extension to analyze new types of spatially-resolved data. We have [previoulsy introduced a spatial framework](https://satijalab.org/seurat/articles/spatial_vignette.html) which is compatible with sequencing-based technologies, like the 10x Genomics Visium system, or SLIDE-seq. Here, we extend this framework to analyze new data types that are captured via highly multiplexed imaging. In contrast to sequencing-based technologies, these datasets are often targeted (i.e. they profile a pre-selected set of genes). However they can resolve individual molecules - retaining single-cell (and subcellular) resolution. These approaches also often capture cellular boundaries (segmentations). 
+In this vignette, we introduce a Seurat extension to analyze new types of spatially-resolved data. We have [previously introduced a spatial framework](https://satijalab.org/seurat/articles/spatial_vignette.html) which is compatible with sequencing-based technologies, like the 10x Genomics Visium system, or SLIDE-seq. Here, we extend this framework to analyze new data types that are captured via highly multiplexed imaging. In contrast to sequencing-based technologies, these datasets are often targeted (i.e. they profile a pre-selected set of genes). However they can resolve individual molecules - retaining single-cell (and subcellular) resolution. These approaches also often capture cellular boundaries (segmentations).
 
 We update the Seurat infrastructure to enable the analysis, visualization, and exploration of these exciting datasets. In this vignette, we focus on three datasets produced by different multiplexed imaging technologies, each of which is publicly available. We will be adding support for additional imaging-based technologies in the coming months.
 
@@ -44,7 +44,7 @@ First, we install the updated versions of Seurat and SeuratObject that support t
 
 ```{r init, message=FALSE, warning=FALSE}
 library(remotes)
-remotes::install_github("satijalab/seurat", "feat/imaging", quiet = TRUE)
+remotes::install_github("satijalab/seurat", "feat/imaging")
 library(Seurat)
 library(future)
 plan("multisession", workers = 10)
@@ -96,12 +96,12 @@ head(FetchData(vizgen.obj[["s2r1"]][["molecules"]], vars="Chrm1"))
 ## Preprocessing and unsupervised analysis
 We start by performing a standard unsupervised clustering analysis, essentially first treating the dataset as an scRNA-seq experiment. We use SCTransform-based normalization, though we slightly modify the default clipping parameters to mitigate the effect of outliers that we occasionally observe in smFISH experiments. After normalization, we can run dimensional reduction and clustering.
 
-```{r analysis}
-vizgen.obj <- SCTransform(vizgen.obj, assay = "Vizgen", clip.range = c(-10,10), verbose = FALSE)
-vizgen.obj <- RunPCA(vizgen.obj, npcs = 30, features = rownames(vizgen.obj), verbose = FALSE)
-vizgen.obj <- RunUMAP(vizgen.obj, dims = 1:30, verbose = FALSE)
-vizgen.obj <- FindNeighbors(vizgen.obj, reduction = "pca", dims = 1:30, verbose = FALSE)
-vizgen.obj <- FindClusters(vizgen.obj, resolution = 0.3, verbose = FALSE)
+```{r analysis, results='hide'}
+vizgen.obj <- SCTransform(vizgen.obj, assay = "Vizgen", clip.range = c(-10,10),)
+vizgen.obj <- RunPCA(vizgen.obj, npcs = 30, features = rownames(vizgen.obj))
+vizgen.obj <- RunUMAP(vizgen.obj, dims = 1:30)
+vizgen.obj <- FindNeighbors(vizgen.obj, reduction = "pca", dims = 1:30)
+vizgen.obj <- FindClusters(vizgen.obj, resolution = 0.3)
 ```
 
 We can then visualize the results of the clustering either in UMAP space (with `DimPlot()`) or overlaid on the image with `ImageDimPlot()`.
@@ -141,7 +141,7 @@ p1 + p2
 
 We can find markers of individual clusters and visualize their spatial expression pattern. We can color cells based on their quantified expression of an individual gene, using `ImageFeaturePlot()`, which is analagous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. Since MERFISH images individual molecules, we can also visualize the location of individual *molecules*. 
 
-```{r, fig.height=8, fig.width=12}
+```{r, fig.height=7, fig.width=12}
 p1 <- ImageFeaturePlot(vizgen.obj, features = "Slc17a7")
 p2 <- ImageDimPlot(vizgen.obj, molecules = "Slc17a7", nmols = 10000, alpha = 0.3, mols.cols = "red")
 p1 + p2
@@ -151,7 +151,7 @@ Note that the `nmols` parameter can be used to reduce the total number of molecu
 
 Plotting molecules is especially useful for visualizing co-expression of multiple genes on the same plot.
 
-```{r, fig.height=8, fig.width=12}
+```{r, fig.height=7, fig.width=12}
 p1 <- ImageDimPlot(vizgen.obj, fov = "s2r1", alpha = 0.3, molecules = c("Slc17a7", "Olig1"), nmols = 10000)
 markers.14 <- FindMarkers(vizgen.obj, ident.1 = "14")
 p2 <- ImageDimPlot(vizgen.obj, fov = "s2r1", alpha = 0.3, molecules = rownames(markers.14)[1:4], nmols = 10000)
@@ -164,16 +164,16 @@ We can zoom into a region of tissue, creating a new field of view. For example, 
 
 ```{r, fig.height=5, fig.width=14}
 # create a Crop
-cropped.coords <- Crop(vizgen.obj[["s2r1"]], x=c(1750, 3000), y=c(3750, 5250), coords = "plot")
+cropped.coords <- Crop(vizgen.obj[["s2r1"]], x = c(1750, 3000), y = c(3750, 5250), coords = "plot")
 # set a new field of view (fov)
 vizgen.obj[["hippo"]] <- cropped.coords
 
 # visualize FOV using default settings (no cell boundaries)
-p1 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, size = 0.7, border.color = "white", cols = "polychrome")
+p1 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, size = 0.7, border.color = "white", cols = "polychrome", coord.fixed = FALSE)
 
 # visualize FOV with full cell segmentations
 DefaultBoundary(vizgen.obj[["hippo"]]) <- "segmentation"
-p2 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome")
+p2 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome", coord.fixed = FALSE)
 
 # simplify cell segmentations
 vizgen.obj[["hippo"]][["simplified.segmentations"]] <- Simplify(coords = vizgen.obj[["hippo"]][["segmentation"]], tol = 3)
@@ -181,7 +181,7 @@ DefaultBoundary(vizgen.obj[["hippo"]]) <- "simplified.segmentations"
 
 # visualize FOV with simplified cell segmentations
 DefaultBoundary(vizgen.obj[["hippo"]]) <- "simplified.segmentations"
-p3 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome")
+p3 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1, cols = "polychrome", coord.fixed = FALSE)
 
 p1 + p2 + p3
 ```
@@ -194,7 +194,7 @@ The tol parameter determines how simplified the resulting segmentations are. A h
 </details>
 
 We can visualize individual molecules plotted at higher resolution after zooming-in
-```{r, fig.height=10, fig.width=8}
+```{r, fig.height=8, fig.width=8}
 # Since there is nothing behind the segmentations, alpha will slightly mute colors
 ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], cols = "polychrome", mols.size = 1, alpha = 0.5, mols.cols = c("red", "blue", "yellow", "green"))
 ```
@@ -205,7 +205,7 @@ This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI).
 
 In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `LoadNanostring()` function, which parses the outputs available on the public download site. Note that the coordinates for the cell boundaries were provided by Nanostring by request, and are available for download [here](https://www.dropbox.com/s/hl3peavrx92bluy/Lung5_Rep1-polygons.csv?dl=0). 
 
-For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung) reference version 1.0.0.  You can download the precomputed results [here](https://www.dropbox.com/s/dshqlogvlj60mtj/azimuth_annnotations.Rds?dl=0), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process. 
+For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0.  You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
 
 ```{r load}
 nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/spatial_vignette_data/nanostring/lung5_rep1", fov="lung5.rep1")
@@ -278,12 +278,12 @@ DefaultBoundary(nano.obj[["zoom1"]]) <- "segmentation"
 ```
 
 ```{r, fig.width=11, fig.height=7}
-ImageDimPlot(nano.obj, fov = "zoom1", cols = "polychrome")
+ImageDimPlot(nano.obj, fov = "zoom1", cols = "polychrome", coord.fixed = FALSE)
 ```
 
 ```{r, fig.width=11, fig.height=7}
 # note the clouds of TPSAB1 molecules denoting mast cells
-ImageDimPlot(nano.obj, fov = "zoom1", cols = "polychrome", alpha = 0.3, molecules = c("KRT17", "IL7R", "TPSAB1"), mols.size = 0.3, nmols = 20000, border.color = "black")
+ImageDimPlot(nano.obj, fov = "zoom1", cols = "polychrome", alpha = 0.3, molecules = c("KRT17", "IL7R", "TPSAB1"), mols.size = 0.3, nmols = 20000, border.color = "black", coord.fixed = FALSE)
 ```
 
 # Human Lymph Node: Akoya CODEX system

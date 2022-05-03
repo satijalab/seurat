@@ -31,6 +31,7 @@ ImageFeaturePlot(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
+  coord.fixed = TRUE,
   ...
 )
 }
@@ -117,6 +118,8 @@ given (first is lowest)}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
+
+\item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 }
 \value{
 If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}

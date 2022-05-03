@@ -2272,6 +2272,7 @@ PolyFeaturePlot <- function(
 #' @param combine Combine plots into a single
 #' \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
+#' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #'
 #' @return If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
 #' ggplot object; otherwise, a list of ggplot objects
