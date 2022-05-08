@@ -1281,7 +1281,7 @@ PseudobulkExpression <- function(
     category.matrix <- category.matrix[, colsums > 0]
     colsums <- colsums[colsums > 0]
     if (pb.method == 'average') {
-      category.matrix <- Sweep(
+      category.matrix <- SweepSparse(
         x = category.matrix,
         MARGIN = 2,
         STATS = colsums,
@@ -1332,12 +1332,12 @@ PseudobulkExpression <- function(
         warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
       }
     }
-    data.return[[i]] <- as.matrix(x = (data.use %*% category.matrix))
+    data.return[[i]] <- data.use %*% category.matrix
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
     if (slot[1] == 'scale.data') {
-      na.matrix <- data.return[[1]]
+      na.matrix <- as.matrix(x = as.madata.return[[1]])
       na.matrix[1:length(x = na.matrix)] <- NA
       # TODO: restore once check.matrix is in SeuratObject
       # toRet <- CreateSeuratObject(
@@ -1397,7 +1397,7 @@ PseudobulkExpression <- function(
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         if (slot[i] == 'scale.data') {
-          na.matrix <- data.return[[i]]
+          na.matrix <- as.matrix(x = data.return[[i]])
           na.matrix[1:length(x = na.matrix)] <- NA
           # TODO: restore once check.matrix is in SeuratObject
           # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
@@ -1441,10 +1441,11 @@ PseudobulkExpression <- function(
       }
     }
     if ('ident' %in% group.by) {
-      first.cells <- c()
-      for (i in 1:ncol(x = category.matrix)) {
-        first.cells <- c(first.cells, Position(x = category.matrix[,i], f = function(x) {x > 0}))
+      first.cells <- sapply(X = 1:ncol(x = category.matrix),
+                            FUN = function(x) {
+        return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
       }
+      )
       Idents(object = toRet) <- Idents(object = object)[first.cells]
     }
     return(toRet)
@@ -2461,6 +2462,30 @@ ToNumeric <- function(x){
   num <- suppressWarnings(expr = as.numeric(x = x))
   if (!is.na(x = num)) {
     return(num)
+  }
+  return(x)
+}
+
+
+# sparse version of sweep
+SweepSparse <- function(
+  x,
+  MARGIN,
+  STATS,
+  FUN = "/"
+  ) {
+  if (!inherits(x = x, what = 'dgCMatrix')) {
+    stop('input should be dgCMatrix. eg: x <- as(x, "CsparseMatrix")')
+  }
+  fun <- match.fun(FUN)
+  if (MARGIN == 1) {
+    idx <- x@i + 1
+    x@x <- fun(x@x, STATS[idx])
+  } else if (MARGIN == 2) {
+    x <- as(x, "RsparseMatrix")
+    idx <- x@j + 1
+    x@x <- fun(x@x, STATS[idx])
+    x <- as(x, "CsparseMatrix")
   }
   return(x)
 }
