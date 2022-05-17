@@ -5604,6 +5604,7 @@ ExIPlot <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
+  cells <- Cells(x = object, assay = NULL)
   if (isTRUE(x = stack)) {
     if (!is.null(x = ncol)) {
       warning(
@@ -5626,14 +5627,15 @@ ExIPlot <- function(
       no = min(length(x = features), 3)
     )
   }
-  data <- FetchData(object = object, vars = features, slot = slot)
+  if (!is.null(x = idents)) {
+    cells <- intersect(
+      x = names(x = Idents(object = object)[Idents(object = object) %in% idents]),
+      y = cells
+    )
+  }
+  data <- FetchData(object = object, vars = features, slot = slot, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
-  if (is.null(x = idents)) {
-    cells <- colnames(x = object)
-  } else {
-    cells <- names(x = Idents(object = object)[Idents(object = object) %in% idents])
-  }
   data <- data[cells, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
     Idents(object = object)[cells]
