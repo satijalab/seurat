@@ -308,7 +308,7 @@ NormalizeData.StdAssay <- function(
     )
   }
   if (isTRUE(x = default)) {
-    DefaultLayer(object = object) <- save[1L]
+    DefaultLayer(object = object) <- save
   }
   gc(verbose = FALSE)
   return(object)
