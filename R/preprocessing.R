@@ -2637,7 +2637,7 @@ ScaleData.default <- function(
     if (any(vars.to.regress %in% rownames(x = object))) {
       latent.data <- cbind(
         latent.data,
-        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], , drop=F])
+        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], , drop=FALSE])
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
