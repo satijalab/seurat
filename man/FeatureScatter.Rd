@@ -23,7 +23,7 @@ FeatureScatter(
   plot.cor = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = TRUE
+  jitter = FALSE
 )
 }
 \arguments{
@@ -67,7 +67,7 @@ which will automatically use raster if the number of points plotted is greater t
 \item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
 Default is c(512, 512).}
 
-\item{jitter}{Jitter for easier visualization of crowded points}
+\item{jitter}{Jitter for easier visualization of crowded points (default is FALSE)}
 }
 \value{
 A ggplot object

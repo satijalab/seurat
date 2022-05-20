@@ -493,7 +493,7 @@ HTOHeatmap <- function(
 #' @param same.y.lims Set all the y-axis limits to the same values
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
-#' @param slot Use non-normalized counts data for plotting
+#' @param slot Slot to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -1893,7 +1893,7 @@ CellScatter <- function(
 #' 100,000
 #' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
 #' Default is c(512, 512).
-#' @param jitter Jitter for easier visualization of crowded points
+#' @param jitter Jitter for easier visualization of crowded points (default is FALSE)
 #'
 #' @return A ggplot object
 #'
@@ -1927,7 +1927,7 @@ FeatureScatter <- function(
   plot.cor = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = TRUE
+  jitter = FALSE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
@@ -3289,10 +3289,14 @@ SpatialPlot <- function(
   #     images = GetImage(object = object, mode = 'plotly', image = images)
   #   ))
   # }
-  if (length(x = images) > 1 && combine) {
-    plots <- wrap_plots(plots = plots, ncol = length(x = images))
-  } else if (length(x = images == 1) && combine) {
-    plots <- wrap_plots(plots = plots, ncol = ncol)
+  if (combine) {
+    if (!is.null(x = ncol)) {
+      return(wrap_plots(plots = plots, ncol = ncol))
+    }
+    if (length(x = images) > 1) {
+      return(wrap_plots(plots = plots, ncol = length(x = images)))
+    }
+    return(wrap_plots(plots = plots))
   }
   return(plots)
 }
@@ -3545,10 +3549,17 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
-  if (length(x = levels(x = data.plot$id)) == 1) {
+  ngroup <- length(x = levels(x = data.plot$id))
+  if (ngroup == 1) {
     scale <- FALSE
     warning(
       "Only one identity present, the expression values will be not scaled",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  } else if (ngroup < 5 & scale) {
+    warning(
+      "Scaling data with a low number of groups may produce misleading results",
       call. = FALSE,
       immediate. = TRUE
     )
@@ -5542,7 +5553,7 @@ Col2Hex <- function(...) {
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
-# @param slot Use non-normalized counts data for plotting
+# @param slot Slot to pull expression data from (e.g. "counts" or "data")
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
@@ -7243,8 +7254,9 @@ SingleExIPlot <- function(
     if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
+      # change raster to TRUE
+      raster <- TRUE
     }
-    raster <- TRUE
   }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
