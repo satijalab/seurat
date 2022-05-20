@@ -205,7 +205,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -365,10 +365,11 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_manual(values = cols[-length(cols)],
-                           name = "Identity",
-                           na.translate = FALSE
-                           )
+        scale_color_manual(
+          values = cols[-length(x = cols)],
+          name = "Identity",
+          na.translate = FALSE
+        )
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
