@@ -7212,7 +7212,7 @@ SingleDimPlot <- function(
 #' @param pt.size Size of points for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
-#' @param log plot Y axis on log scale
+#' @param log plot Y axis on log10 scale
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
