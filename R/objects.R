@@ -481,6 +481,7 @@ CreateSCTAssayObject <- function(
 #' remove all DimReducs)
 #' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
 #' all Graphs)
+#' @param misc Preserve the \code{misc} slot; default is \code{TRUE}
 #'
 #' @export
 #' @concept objects
@@ -493,7 +494,8 @@ DietSeurat <- function(
   features = NULL,
   assays = NULL,
   dimreducs = NULL,
-  graphs = NULL
+  graphs = NULL,
+  misc = TRUE
 ) {
   object <- UpdateSlots(object = object)
   assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
@@ -535,6 +537,11 @@ DietSeurat <- function(
       }
     }
   }
+  # remove misc when desired
+  if (!isTRUE(x = misc)) {
+    slot(object = object, name = "misc") <- list()
+  }
+
   # remove unspecified DimReducs and Graphs
   all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
   objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
@@ -1328,7 +1335,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @method Cells SCTModel
 #' @export
 #'
-Cells.SCTModel <- function(x) {
+Cells.SCTModel <- function(x, ...) {
   return(rownames(x = slot(object = x, name = "cell.attributes")))
 }
 
@@ -1340,7 +1347,7 @@ Cells.SCTModel <- function(x) {
 #'
 #' @seealso \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 #'
-Cells.SlideSeq <- function(x) {
+Cells.SlideSeq <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1350,7 +1357,7 @@ Cells.SlideSeq <- function(x) {
 #' @method Cells STARmap
 #' @export
 #'
-Cells.STARmap <- function(x) {
+Cells.STARmap <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1359,7 +1366,7 @@ Cells.STARmap <- function(x) {
 #' @method Cells VisiumV1
 #' @export
 #'
-Cells.VisiumV1 <- function(x) {
+Cells.VisiumV1 <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
@@ -2301,7 +2308,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between the reference and query Seurat objects. \n",
-        "This can be used as input to TransferData.")
+        "This can be used as input to TransferData.\n")
   }
 )
 
@@ -2311,7 +2318,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData.")
+        "This can be used as input to IntegrateData.\n")
   }
 )
 
@@ -2322,7 +2329,7 @@ setMethod(
     cat(
       'A ModalityWeights object containing modality weights between',
       paste(slot(object = object, name = "modality.assay"), collapse = " and "),
-      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.\n")
   }
 )
 
@@ -2350,7 +2357,7 @@ setMethod(
       "An sctransform model.\n",
       " Model formula: ", slot(object = object, name = "model"),
       "\n  Parameters stored for", nrow(x = SCTResults(object = object, slot = "feature.attributes")), "features,",
-      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells")
+      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells.\n")
   }
 )
 

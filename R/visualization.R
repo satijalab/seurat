@@ -205,7 +205,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -365,7 +365,11 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_discrete(name = "Identity", na.translate = FALSE)
+        scale_color_manual(
+          values = cols[-length(x = cols)],
+          name = "Identity",
+          na.translate = FALSE
+        )
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
@@ -490,7 +494,7 @@ HTOHeatmap <- function(
 #' @param same.y.lims Set all the y-axis limits to the same values
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
-#' @param slot Use non-normalized counts data for plotting
+#' @param slot Slot to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -1890,7 +1894,7 @@ CellScatter <- function(
 #' 100,000
 #' @param raster.dpi Pixel resolution for rasterized plots, passed to geom_scattermore().
 #' Default is c(512, 512).
-#' @param jitter Jitter for easier visualization of crowded points
+#' @param jitter Jitter for easier visualization of crowded points (default is FALSE)
 #'
 #' @return A ggplot object
 #'
@@ -1924,7 +1928,7 @@ FeatureScatter <- function(
   plot.cor = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512),
-  jitter = TRUE
+  jitter = FALSE
 ) {
   cells <- cells %||% colnames(x = object)
   if (isTRUE(x = shuffle)) {
@@ -2418,7 +2422,7 @@ LinkedDimPlot <- function(
           dims = dims,
           col.by = group.by,
           alpha.by = plot.env$alpha.by
-        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = FALSE)
+        ) + scale_alpha_ordinal(range = alpha) + guides(alpha = "none")
         plot.env$dimplot
       }
     )
@@ -2555,7 +2559,7 @@ LinkedFeaturePlot <- function(
           scale_fill_gradientn(name = feature, colours = cols) +
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(alpha = "none")
         plot.env$spatialplot
       }
     )
@@ -2914,7 +2918,7 @@ ISpatialFeaturePlot <- function(
         scale_fill_gradientn(name = plot.env$feature, colours = FeaturePalettes[[plot.env$palette]]) +
         theme(legend.position = 'top') +
         scale_alpha(range = c(input$alpha, 1)) +
-        guides(alpha = FALSE)
+        guides(alpha = "none")
       plot.env$plot
     })
   }
@@ -3232,7 +3236,7 @@ SpatialPlot <- function(
           ) +
           theme(legend.position = 'top') +
           scale_alpha(range = alpha) +
-          guides(alpha = FALSE)
+          guides(alpha = "none")
       } else if (label) {
         plot <- LabelClusters(
           plot = plot,
@@ -3286,10 +3290,14 @@ SpatialPlot <- function(
   #     images = GetImage(object = object, mode = 'plotly', image = images)
   #   ))
   # }
-  if (length(x = images) > 1 && combine) {
-    plots <- wrap_plots(plots = plots, ncol = length(x = images))
-  } else if (length(x = images == 1) && combine) {
-    plots <- wrap_plots(plots = plots, ncol = ncol)
+  if (combine) {
+    if (!is.null(x = ncol)) {
+      return(wrap_plots(plots = plots, ncol = ncol))
+    }
+    if (length(x = images) > 1) {
+      return(wrap_plots(plots = plots, ncol = length(x = images)))
+    }
+    return(wrap_plots(plots = plots))
   }
   return(plots)
 }
@@ -3542,10 +3550,17 @@ DotPlot <- function(
   if (!is.null(x = id.levels)) {
     data.plot$id <- factor(x = data.plot$id, levels = id.levels)
   }
-  if (length(x = levels(x = data.plot$id)) == 1) {
+  ngroup <- length(x = levels(x = data.plot$id))
+  if (ngroup == 1) {
     scale <- FALSE
     warning(
       "Only one identity present, the expression values will be not scaled",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  } else if (ngroup < 5 & scale) {
+    warning(
+      "Scaling data with a low number of groups may produce misleading results",
       call. = FALSE,
       immediate. = TRUE
     )
@@ -5539,7 +5554,7 @@ Col2Hex <- function(...) {
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
-# @param slot Use non-normalized counts data for plotting
+# @param slot Slot to pull expression data from (e.g. "counts" or "data")
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
@@ -7197,7 +7212,7 @@ SingleDimPlot <- function(
 #' @param pt.size Size of points for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
-#' @param log plot Y axis on log scale
+#' @param log plot Y axis on log10 scale
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
@@ -7240,8 +7255,9 @@ SingleExIPlot <- function(
     if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
       message("Rasterizing points since number of points exceeds 100,000.",
               "\nTo disable this behavior set `raster=FALSE`")
+      # change raster to TRUE
+      raster <- TRUE
     }
-    raster <- TRUE
   }
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
@@ -7666,6 +7682,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
+      cols <- cols[names(x = cols) %in% data$ident]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale

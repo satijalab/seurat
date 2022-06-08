@@ -954,7 +954,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
       p = indptr[],
       x = as.numeric(x = counts[]),
       dims = shp[],
-      giveCsparse = FALSE
+      repr = "T"
     )
     if (unique.features) {
       features <- make.unique(names = features)
@@ -967,7 +967,11 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
-        message("Genome ", genome, " has multiple modalities, returning a list of matrices for this genome")
+        message(
+          "Genome ",
+          genome,
+          " has multiple modalities, returning a list of matrices for this genome"
+        )
         sparse.mat <- sapply(
           X = types.unique,
           FUN = function(x) {
@@ -1103,10 +1107,19 @@ ReadMtx <- function(
     "feature list" = features
   )
   for (i in seq_along(along.with = all.files)) {
-    uri <- normalizePath(all.files[[i]], mustWork = FALSE)
+    uri <- tryCatch(
+      expr = {
+        con <- url(description = all.files[[i]])
+        close(con = con)
+        all.files[[i]]
+      },
+      error = function(...) {
+        return(normalizePath(path = all.files[[i]], winslash = '/'))
+      }
+    )
     err <- paste("Cannot find", names(x = all.files)[i], "at", uri)
     uri <- build_url(url = parse_url(url = uri))
-    if (grepl(pattern = '^:///', x = uri)) {
+    if (grepl(pattern = '^[A-Z]?:///', x = uri)) {
       uri <- gsub(pattern = '^://', replacement = '', x = uri)
       if (!file.exists(uri)) {
         stop(err, call. = FALSE)
@@ -2624,7 +2637,7 @@ ScaleData.default <- function(
     if (any(vars.to.regress %in% rownames(x = object))) {
       latent.data <- cbind(
         latent.data,
-        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], ])
+        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], , drop=FALSE])
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL

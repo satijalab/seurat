@@ -1611,7 +1611,7 @@ as.data.frame.Matrix <- function(
   row.names = NULL,
   optional = FALSE,
   ...,
-  stringsAsFactors = default.stringsAsFactors()
+  stringsAsFactors = getOption(x = "stringsAsFactors", default = FALSE)
 ) {
   return(as.data.frame(
     x = as.matrix(x = x),

@@ -38,7 +38,7 @@ RPCA-based integration runs significantly faster, and also represents a more con
 
 * A substantial fraction of cells in one dataset have no matching type in the other
 * Datasets originate from the same platform (i.e. multiple lanes of 10x genomics)
-* There are a large number of datasets or cells to integrate (see [here](https://satijalab.org/seurat/articles/integration_large_datasets.html) for more tips on integrating large datasets)
+* There are a large number of datasets or cells to integrate (see [here](integration_large_datasets.html) for more tips on integrating large datasets) 
 
 Below, we demonstrate the use of reciprocal PCA to align the same stimulated and resting datasets first analyzed in our [introduction to scRNA-seq integration](integration_introduction.html) vignette. While the list of commands is nearly identical, this workflow requires users to run principal components analysis (PCA) individually on each dataset prior to integration. Users should also set the 'reduction' argument to 'rpca', when running `FindIntegrationAnchors()`.
 

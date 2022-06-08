@@ -1,7 +1,25 @@
+# Unreleased
+
+## Changes
+- Fix legend color in `DoHeatmap()` ([#5783](https://github.com/satijalab/seurat/issues/5783))
+- Fix bug in `ScaleData()` when regressing out one gene ([#5970](https://github.com/satijalab/seurat/pull/5970))
+
+# Seurat 4.1.1 (2022-05-01)
+
+## Changes
+- Fix `giveCsparse` related warnings in `Read10X_h5`
+- Fix ident labeling for `SpatialPlot` ([#5774](https://github.com/satijalab/seurat/issues/5774))
+- Fix `ReadMtx` on Windows ([#5687](https://github.com/satijalab/seurat/issues/5687))
+- Fix `VlnPlot` to switch on rasterization only when required ([#5846](https://github.com/satijalab/seurat/pull/5846))
+- Fix `ncol` behavior in `SpatialPlot` ([#5774](https://github.com/satijalab/seurat/issues/5774))
+- Set `jitter` to FALSE in `FeatureScatter` ([#5876](https://github.com/satijalab/seurat/pull/5876))
+- Update `Cells` methods to new signature (`x, ...`)
+- Replace use of `default.stringsAsFactors()` with `getOption("stringsAsFactors")`
+
 # Seurat 4.1.0 (2022-01-14)
 ## Added
 - Add `raster.dpi` parameter to `DimPlot/FeaturePlot` to optionally rasterize individual points ([#5392](https://github.com/satijalab/seurat/pull/5392))
-- Add support for sctransform v2, differential expression on with SCT
+- Add support for sctransform v2, differential expression with SCT assay
 
 ## Changes
 - Update `ReadParseBio` to support split-pipe 0.9.6p ([#5446](https://github.com/satijalab/seurat/pull/5446))
