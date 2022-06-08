@@ -2701,6 +2701,63 @@ SelectIntegrationFeatures <- function(
   return(features)
 }
 
+.FeatureRank <- function(features, flist, ranks = FALSE) {
+  franks <- vapply(
+    X = features,
+    FUN = function(x) {
+      return(median(x = unlist(x = lapply(
+        X = flist,
+        FUN = function(fl) {
+          if (x %in% fl) {
+            return(which(x = x == fl))
+          }
+          return(NULL)
+        }
+      ))))
+    },
+    FUN.VALUE = numeric(length = 1L)
+  )
+  franks <- sort(x = franks)
+  if (!isTRUE(x = ranks)) {
+    franks <- names(x = franks)
+  }
+  return(franks)
+}
+
+SelectIntegrationFeatures5 <- function(
+  object,
+  nfeatures = 2000,
+  assay = NULL,
+  layers = NULL,
+  verbose = TRUE,
+  # fvf.nfeatures = 2000,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  layers <- Layers(object = object[[assay]], search = layers)
+  vf.list <- lapply(
+    X = layers,
+    FUN = function(x) {
+      return(VariableFeatures(object = object, assay = assay, layer = x))
+    }
+  )
+  var.features <- unname(obj = unlist(x = vf.list))
+  fmat <- slot(object = object[[assay]], name = 'features')[, layers]
+  fmat <- droplevels(x = fmat)
+  var.features <- var.features[var.features %in% rownames(x = fmat)]
+  var.features <- sort(x = table(var.features), decreasing = TRUE)
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  features <- names(x = var.features[which(x = var.features > tie.val)])
+  if (length(x = features)) {
+    features <- .FeatureRank(features = features, flist = vf.list)
+  }
+  features.tie <- .FeatureRank(
+    features = names(x = var.features[which(x = var.features == tie.val)]),
+    flist = vf.list
+  )
+  return(head(x = c(features, features.tie), n = nfeatures))
+}
+
 #' Transfer data
 #'
 #' Transfer categorical or continuous data across single-cell datasets. For

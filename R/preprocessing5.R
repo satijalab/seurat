@@ -347,6 +347,131 @@ NormalizeData.Seurat5 <- function(
   return(object)
 }
 
+#' @importFrom SeuratObject StitchMatrix
+#'
+#' @method ScaleData StdAssay
+#' @export
+#'
+ScaleData.StdAssay <- function(
+  object,
+  features = NULL,
+  layer = NULL,
+  vars.to.regress = NULL,
+  latent.data = NULL,
+  split.by = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale= TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  save = 'scale.data',
+  verbose = TRUE,
+  ...
+) {
+  use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
+  layer <- Layers(object = object, search = layer)
+  if (isTRUE(x = use.umi)) {
+    message("'use.umi' is TRUE, please make sure 'layer' specifies raw counts")
+  }
+  features <- features %||% Reduce(
+    f = union,
+    x = lapply(
+      X = layer,
+      FUN = function(x) {
+        return(VariableFeatures(object = object, layer = layer))
+      }
+    )
+  )
+  if (!length(x = features)) {
+    features <- Reduce(f = union, x = lapply(X = layer, FUN = Features, x = object))
+  }
+  ldata <- if (length(x = layer) > 1L) {
+    StitchMatrix(
+      x = LayerData(object = object, layer = layer[1L], features = features),
+      y = lapply(
+        X = layer[2:length(x = layer)],
+        FUN = LayerData,
+        object = object,
+        features = features
+      ),
+      rowmap = slot(object = object, name = 'features')[features, layer],
+      colmap = slot(object = object, name = 'cells')[, layer]
+    )
+  } else {
+    LayerData(object = object, layer = layer, features = features)
+  }
+  LayerData(object = object, layer = save, features = features) <- ScaleData(
+    object = ldata,
+    features = features,
+    vars.to.regress = vars.to.regress,
+    latent.data = latent.data,
+    split.by = split.by,
+    model.use = model.use,
+    use.umi = use.umi,
+    do.scale = do.scale,
+    do.center = do.center,
+    scale.max = scale.max,
+    block.size = block.size,
+    min.cells.to.block = min.cells.to.block,
+    verbose = verbose,
+    ...
+  )
+  return(object)
+}
+
+#' @importFrom rlang is_scalar_character
+#'
+#' @method ScaleData Seurat5
+#' @export
+#'
+ScaleData.Seurat5 <- function(
+  object,
+  features = NULL,
+  assay = NULL,
+  layer = NULL,
+  vars.to.regress = NULL,
+  split.by = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  vars.to.regress <- intersect(x = vars.to.regress, y = names(x = object[[]]))
+  latent.data <- if (length(x = vars.to.regress)) {
+    object[[vars.to.regress]]
+  } else {
+    NULL
+  }
+  if (is_scalar_character(x = split.by)) {
+    split.by <- object[[split.by]]
+  }
+  object[[assay]] <- ScaleData(
+    object = object[[assay]],
+    features = features,
+    layer = layer,
+    vars.to.regress = vars.to.regress,
+    latent.data = latent.data,
+    split.by = split.by,
+    model.use = model.use,
+    use.umi = use.umi,
+    do.scale = do.scale,
+    do.center = do.center,
+    scale.max = scale.max,
+    min.cells.to.block = min.cells.to.block,
+    verbose = verbose,
+    ...
+  )
+  return(object)
+}
+
 #' @rdname VST
 #' @method VST default
 #' @export

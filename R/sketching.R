@@ -25,7 +25,6 @@ LeverageScoreSampling <- function(
   seed = NA_integer_,
   ...
 ) {
-  # browser()
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
   # TODO: fix this in [[<-,Seurat5
@@ -68,6 +67,13 @@ LeverageScoreSampling <- function(
     cells = Reduce(f = union, x = cells),
     layers = vars
   ))
+  for (lyr in vars) {
+    try(
+      expr = VariableFeatures(object = sketched, selection.method = "sketch", layer = lyr) <-
+        VariableFeatures(object = object[[assay]], layer = lyr),
+      silent = TRUE
+    )
+  }
   Key(object = sketched) <- Key(object = save, quiet = TRUE)
   object[[save]] <- sketched
   if (isTRUE(x = default)) {
