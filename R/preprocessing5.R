@@ -444,7 +444,9 @@ ScaleData.Seurat5 <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  vars.to.regress <- intersect(x = vars.to.regress, y = names(x = object[[]]))
+  if (!is.null(x = vars.to.regress)) {
+    vars.to.regress <- intersect(x = vars.to.regress, y = names(x = object[[]]))
+  }
   latent.data <- if (length(x = vars.to.regress)) {
     object[[vars.to.regress]]
   } else {
