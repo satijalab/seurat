@@ -2724,6 +2724,8 @@ SelectIntegrationFeatures <- function(
   return(franks)
 }
 
+#' @export
+#'
 SelectIntegrationFeatures5 <- function(
   object,
   nfeatures = 2000,

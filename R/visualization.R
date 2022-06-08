@@ -805,8 +805,11 @@ DimPlot <- function(
     stop("'dims' must be a two-length vector")
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
-  cells <- cells %||% colnames(x = object)
-
+  # cells <- cells %||% colnames(x = object)
+  cells <- cells %||% Cells(
+    x = object,
+    assay = DefaultAssay(object = object[[reduction]])
+  )
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)

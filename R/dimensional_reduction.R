@@ -965,6 +965,45 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @method RunPCA StdAssay
+#' @export
+#'
+RunPCA.StdAssay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  layer = 'scale.data',
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  return(RunPCA(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  ))
+}
+
 #' @param reduction.name dimensional reduction name,  pca by default
 #'
 #' @rdname RunPCA
@@ -1005,6 +1044,45 @@ RunPCA.Seurat <- function(
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+#' @method RunPCA Seurat5
+#' @export
+#'
+RunPCA.Seurat5 <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  # assay.data <- GetAssay(object = object, assay = assay)
+  reduction.data <- RunPCA(
+    object = object[[assay]],
+    assay = assay,
+    features = features,
+    npcs = npcs,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  # object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -2289,6 +2367,36 @@ PrepDR <- function(
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
   return(data.use)
+}
+
+PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
+  layer <- layer[1L]
+  layer <- match.arg(arg = layer, choices = Layers(object = object))
+  features <- features %||% VariableFeatures(object = object, layer = layer)
+  if (!length(x = features)) {
+    stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
+  }
+  data.use <- LayerData(object = object, layer = layer, features = features)
+  features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+  features.keep <- features[features.var > 0]
+  if (!length(x = features.keep)) {
+    stop("None of the requested features have any variance", call. = FALSE)
+  } else if (length(x = features.keep) < length(x = features)) {
+    exclude <- setdiff(x = features, y = features.keep)
+    if (isTRUE(x = verbose)) {
+      warning(
+        "The following ",
+        length(x = exclude),
+        " features requested have zero variance; running reduction without them: ",
+        paste(exclude, collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+  # features <- features.keep
+  # features <- features[!is.na(x = features)]
+  return(LayerData(object = object, layer = layer, features = features.keep))
 }
 
 #' @param assay Name of Assay SPCA is being run on
