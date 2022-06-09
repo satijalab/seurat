@@ -1784,6 +1784,164 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   return(query)
 }
 
+
+#' Integrate embeddings from the integrated atoms
+#'
+#' The main steps of this procedure are outlined below. For a more detailed
+#' description of the methodology, please see Hao,  et al Biorxiv 2022:
+#' \doi{10.1101/2022.02.24.481684}
+#'
+#' First learn a atom dictionary representation to reconstruct each cell.
+#' Then, using this dictionary representation,
+#' reconstruct the embeddings of each cell from the integrated atoms.
+#'
+#' @param object A Seurat object with all cells for one dataset
+#' @param atom.assay Assay name for sketched-cell expression (default is 'sketch')
+#' @param orig.assay Assay name for original expression (default is 'RNA')
+#' @param features Features used for atomic sketch integration
+#' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
+#' in the sketched object (default is 'integrated_dr')
+#' @param dictionary.method Methods to construct sketch-cell representation
+#' for all cells (default is 'sketch'). Can be one of:
+#' \itemize{
+#' \item{sketch: Use random sketched data slot}
+#' \item{data: Use data slot}
+#' }
+#' @param sketch.ratio Sketch ratio of data slot when \code{dictionary.method} is set to 'sketch' (default is 0.8)
+#' @param layers Names of layers for correction.
+#' @param verbose Print progress and message (default is TRUE)
+#'
+#' @return Returns a Seurat object with an integrated dimensional reduction
+#' @importFrom MASS ginv
+#' @importFrom Matrix t
+#' @export
+
+IntegrateSketchEmbeddings <- function(
+  object,
+  atom.assay = 'sketch',
+  orig.assay = 'RNA',
+  features = NULL,
+  atom.sketch.reduction = 'integrated_dr',
+  dictionary.method = c('sketch', 'data'),
+  sketch.ratio = 0.8,
+  layers = NULL,
+  verbose = TRUE
+) {
+  reduction.name = atom.sketch.reduction
+  reduction.key =  Key(object = object[[atom.sketch.reduction]])
+  dictionary.method <- match.arg(arg = dictionary.method)
+  layers <- setdiff(x = Layers(object = object[[atom.assay]], search = 'data'), 
+                    y = 'scale.data') %||% layers
+  # check layers
+  layers.missing <- setdiff(layers, Layers(object = object[[orig.assay]], search = 'data'))
+  if (length(layers.missing) > 0) {
+    stop('layer ', layers.missing, ' are not present in ', orig.assay, " assay")
+  }
+  
+  # check features
+  features <- features %||% VariableFeatures(object = atom.sketch.object)
+  features <- intersect(features,
+                        LayerIntersectFeatures(object = object, assay = atom.assay, layers = layers)
+                        )
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  
+  emb_all.mat <- matrix(data = NA, nrow = ncol(object), ncol = ncol(object[[atom.sketch.reduction]]))
+  ncells <- c(0, sapply(X = layers,
+                        FUN = function(x) ncol(LayerData(object = object[[orig.assay]], layer = x))
+                        )
+              )
+  block_set <- lapply(X = seq_along(along.with = layers),
+                      FUN =  function(x) (sum(ncells[1:x]) + 1) : sum(ncells[1:(x + 1)])
+                      )
+
+  for (i in seq_along(along.with = layers)) {
+    cells.sketch <-   Cells(object[[atom.assay]], layer = layers[i])
+    if (verbose) {
+      message(length(cells.sketch),' atomic cells are identified in the atom.sketch.object')
+    }
+    if (verbose) {
+      message("Correcting embeddings")
+    }
+    
+    emb <- switch(
+      EXPR = dictionary.method,
+      'data' = {
+        exp.mat <- t(
+          x = as.matrix(
+            LayerData(
+              object = object[[atom.assay]],
+              layer = layers[i],
+              features = features
+              )
+          )
+        )
+        sketch.transform <- ginv(X = exp.mat) %*%
+          Embeddings(object = object[[atom.sketch.reduction]])[cells.sketch ,]
+        emb <- as.matrix(
+          x =  t(as(
+            object =  LayerData(
+              object = object[[orig.assay]],
+              layer = layers[i],
+              features = features
+            ),
+            Class = "CsparseMatrix")) %*%
+            sketch.transform
+        )
+        emb
+      },
+      'sketch' = {
+        R <- t(
+          x = CountSketch(
+            nsketch = round(sketch.ratio * length(x = features)), ncells = length(x = features)
+          )
+        )
+        exp.mat <- as.matrix(
+          x = t(
+            x = LayerData(
+              object = object[[atom.assay]],
+              layer = layers[i],
+              features = features
+            )
+          ) %*%
+            R
+        )
+        sketch.transform <- ginv(X = exp.mat) %*%
+          Embeddings(object = object[[atom.sketch.reduction]])[cells.sketch ,]
+        emb <- as.matrix(
+          x = (
+            t(as(
+              object =  LayerData(
+                object = object[[orig.assay]],
+                layer = layers[i],
+                features = features
+              ),
+              Class = "CsparseMatrix"))
+              %*%
+              R) %*%
+            sketch.transform
+        )
+        emb
+      }
+    )
+    emb_all.mat[ block_set[[i]],]  <- as.matrix(emb)
+  }
+
+  object[[reduction.name]] <- CreateDimReducObject(
+    embeddings = emb_all.mat,
+    loadings = Loadings(object[[atom.sketch.reduction]]),
+    key = reduction.key,
+    assay = orig.assay
+  )
+  return(object)
+}
+
+
+
+
 #' Calculate the local structure preservation metric
 #'
 #' Calculates a metric that describes how well the local structure of each group
