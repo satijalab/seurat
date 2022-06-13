@@ -774,9 +774,8 @@ FindNeighbors.Seurat <- function(
     )
   } else {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- GetAssay(object = object, assay = assay)
     neighbor.graphs <- FindNeighbors(
-      object = data.use,
+      object = object[[assay]],
       features = features,
       k.param = k.param,
       compute.SNN = compute.SNN,

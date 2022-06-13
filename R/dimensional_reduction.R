@@ -799,9 +799,8 @@ RunICA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunICA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     nics = nics,
@@ -1027,9 +1026,8 @@ RunPCA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunPCA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     npcs = npcs,
@@ -1066,7 +1064,6 @@ RunPCA.Seurat5 <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  # assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunPCA(
     object = object[[assay]],
     assay = assay,
@@ -2505,14 +2502,13 @@ RunSPCA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   if (is.null(x = graph)) {
     stop("Graph is not provided")
   } else if (is.character(x = graph)) {
     graph <- object[[graph]]
   }
   reduction.data <- RunSPCA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     npcs = npcs,

@@ -2070,10 +2070,10 @@ FindVariableFeatures.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, Assays(object = object))
   assay.data <- FindVariableFeatures(
-    object = assay.data,
+    object = object[[assay]],
     selection.method = selection.method,
     loess.span = loess.span,
     clip.max = clip.max,
@@ -2497,9 +2497,8 @@ NormalizeData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- NormalizeData(
-    object = assay.data,
+    object = object[[assay]],
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
@@ -2858,8 +2857,8 @@ ScaleData.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
   if (any(vars.to.regress %in% colnames(x = object[[]]))) {
     latent.data <- object[[vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]]]
   } else {
@@ -2869,7 +2868,8 @@ ScaleData.Seurat <- function(
     split.by <- object[[split.by]]
   }
   assay.data <- ScaleData(
-    object = assay.data,
+    # object = assay.data,
+    object = object[[assay]],
     features = features,
     vars.to.regress = vars.to.regress,
     latent.data = latent.data,
