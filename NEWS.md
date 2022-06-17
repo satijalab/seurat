@@ -3,6 +3,7 @@
 ## Changes
 - Fix legend color in `DoHeatmap()` ([#5783](https://github.com/satijalab/seurat/issues/5783))
 - Fix bug in `ScaleData()` when regressing out one gene ([#5970](https://github.com/satijalab/seurat/pull/5970))
+- Fix name pulling in `PlotPerturbScore()` ([#6081](https://github.com/satijalab/seurat/pull/6081))
 
 # Seurat 4.1.1 (2022-05-01)
 
