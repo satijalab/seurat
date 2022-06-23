@@ -1796,95 +1796,153 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' reconstruct the embeddings of each cell from the integrated atoms.
 #'
 #' @param object A Seurat object with all cells for one dataset
-#' @param atom.assay Assay name for sketched-cell expression (default is 'sketch')
-#' @param orig.assay Assay name for original expression (default is 'RNA')
+#' @param atoms Assay name for sketched-cell expression (default is 'sketch')
+#' @param orig Assay name for original expression (default is 'RNA')
 #' @param features Features used for atomic sketch integration
-#' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
+#' @param reduction Dimensional reduction name for batch-corrected embeddings
 #' in the sketched object (default is 'integrated_dr')
-#' @param dictionary.method Methods to construct sketch-cell representation
+#' @param method Methods to construct sketch-cell representation
 #' for all cells (default is 'sketch'). Can be one of:
 #' \itemize{
-#' \item{sketch: Use random sketched data slot}
-#' \item{data: Use data slot}
+#'  \item \dQuote{\code{sketch}}: Use random sketched data slot
+#'  \item \dQuote{\code{data}}: Use data slot
 #' }
-#' @param sketch.ratio Sketch ratio of data slot when \code{dictionary.method} is set to 'sketch' (default is 0.8)
+#' @param ratio Sketch ratio of data slot when \code{dictionary.method} is set
+#' to \dQuote{\code{sketch}}; defaults to 0.8
+#' @param reduction.name Name to save new reduction as; defaults to
+#' \code{paste0(reduction, '.orig')}
+#' @param reduction.key Key for new dimensional reduction; defaults to creating
+#' one from \code{reduction.name}
 #' @param layers Names of layers for correction.
-#' @param verbose Print progress and message (default is TRUE)
+#' @param verbose Print progress and message
 #'
 #' @return Returns a Seurat object with an integrated dimensional reduction
+#'
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
+#'
 #' @export
-
+#'
 IntegrateSketchEmbeddings <- function(
   object,
-  atom.assay = 'sketch',
-  orig.assay = 'RNA',
-  features = NULL,
-  atom.sketch.reduction = 'integrated_dr',
-  dictionary.method = c('sketch', 'data'),
-  sketch.ratio = 0.8,
+  atoms = 'sketch', # DefaultAssay(object)
+  orig = 'RNA',
+  features = NULL, # VF from object[[atom.assay]]
+  reduction = 'integrated_dr', # harmony; rerun UMAP on this
+  method = c('sketch', 'data'),
+  ratio = 0.8,
+  reduction.name = NULL,
+  reduction.key = NULL,
   layers = NULL,
   verbose = TRUE
 ) {
-  reduction.name = atom.sketch.reduction
-  reduction.key =  Key(object = object[[atom.sketch.reduction]])
-  dictionary.method <- match.arg(arg = dictionary.method)
-  layers <- setdiff(x = Layers(object = object[[atom.assay]], search = 'data'), 
-                    y = 'scale.data') %||% layers
-  # check layers
-  layers.missing <- setdiff(layers, Layers(object = object[[orig.assay]], search = 'data'))
-  if (length(layers.missing) > 0) {
-    stop('layer ', layers.missing, ' are not present in ', orig.assay, " assay")
+  # Check input and output dimensional reductions
+  reduction <- match.arg(arg = reduction, choices = Reductions(object = object))
+  reduction.name <- reduction.name %||% paste0(reduction, '.orig')
+  reduction.key <- reduction.key %||% Key(object = reduction.name, quiet = TRUE)
+  if (reduction.name %in% Reductions(object = object)) {
+    warning(
+      "'",
+      reduction.name,
+      "' already exists, overwriting",
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
-  
-  # check features
-  features <- features %||% VariableFeatures(object = atom.sketch.object)
-  features <- intersect(features,
-                        LayerIntersectFeatures(object = object, assay = atom.assay, layers = layers)
-                        )
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
+  # Check the method being used
+  method <- method[1L]
+  method <- match.arg(arg = method)
+  # Check our layers
+  atoms <- match.arg(arg = atoms, choices = Assays(object = object))
+  orig <- match.arg(arg = orig, choices = Assays(object = object))
+  layer.orig <- layers
+  layers <- layers %||% intersect(
+    x = DefaultLayer(object[[atoms]]),
+    y = Layers(object[[orig]])
   )
-  
-  emb_all.mat <- matrix(data = NA, nrow = ncol(object), ncol = ncol(object[[atom.sketch.reduction]]))
-  ncells <- c(0, sapply(X = layers,
-                        FUN = function(x) ncol(LayerData(object = object[[orig.assay]], layer = x))
-                        )
-              )
-  block_set <- lapply(X = seq_along(along.with = layers),
-                      FUN =  function(x) (sum(ncells[1:x]) + 1) : sum(ncells[1:(x + 1)])
-                      )
-
-  for (i in seq_along(along.with = layers)) {
-    cells.sketch <-   Cells(object[[atom.assay]], layer = layers[i])
-    if (verbose) {
-      message(length(cells.sketch),' atomic cells are identified in the atom.sketch.object')
+  if (is.null(x = layer.orig)) {
+    atoms.missing <- setdiff(x = layers, DefaultLayer(object = object[[atoms]]))
+    if (length(x = atoms.missing) == length(x = layers)) {
+      stop("None of the requested layers are present in the atoms")
+    } else if (length(x = atoms.missing)) {
+      warning(
+        length(x = atoms.missing),
+        " layers missing from the atoms",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      layers <- intersect(x = layers, y = DefaultLayer(object = object[[atoms]]))
     }
-    if (verbose) {
+  }
+  # check layers
+  layers.missing <- setdiff(layers, Layers(object = object[[orig]]))
+  if (length(x = layers.missing)) {
+    stop('layer ', layers.missing[1L], ' are not present in ', orig, " assay")
+  }
+  # check features
+  features <- features %||% unlist(x = VariableFeatures(
+    object = object[[atoms]],
+    layer = layers
+  ))
+  # TODO: see if we can handle missing features with `union`
+  features.atom <- Reduce(
+    f = intersect,
+    x = lapply(
+      X = layers,
+      FUN = function(lyr) {
+        return(Features(x = object[[atoms]], layer = lyr))
+      }
+    )
+  )
+  features <- intersect(x = features, y = features.atom)
+  emb.all <- matrix(
+    data = NA_real_,
+    nrow = ncol(x = object[[orig]]),
+    ncol = length(x = object[[reduction]])
+  )
+  ncells <- c(
+    0,
+    sapply(
+      X = layers,
+      FUN = function(lyr) {
+        return(length(x = Cells(x = object[[orig]], layer = lyr)))
+      }
+    )
+  )
+  blocks <- lapply(
+    X = seq_along(along.with = layers),
+    FUN =  function(x) {
+      return((sum(ncells[1:x]) + 1):sum(ncells[1:(x + 1)]))
+    }
+  )
+  for (i in seq_along(along.with = layers)) {
+    cells.sketch <- Cells(x = object[[atoms]], layer = layers[i])
+    if (isTRUE(x = verbose)) {
+      message(
+        length(x = cells.sketch),
+        ' atomic cells identified in the atoms'
+      )
       message("Correcting embeddings")
     }
-    
     emb <- switch(
-      EXPR = dictionary.method,
+      EXPR = method,
       'data' = {
         exp.mat <- t(
           x = as.matrix(
             LayerData(
-              object = object[[atom.assay]],
+              object = object[[atoms]],
               layer = layers[i],
               features = features
               )
           )
         )
         sketch.transform <- ginv(X = exp.mat) %*%
-          Embeddings(object = object[[atom.sketch.reduction]])[cells.sketch ,]
+          Embeddings(object = object[[reduction]])[cells.sketch ,]
         emb <- as.matrix(
-          x =  t(as(
+          # TODO: update as.sparse to have default method with `as(x, "CsparseMatrix")`
+          x =  t(x = as(
             object =  LayerData(
-              object = object[[orig.assay]],
+              object = object[[orig]],
               layer = layers[i],
               features = features
             ),
@@ -1894,28 +1952,22 @@ IntegrateSketchEmbeddings <- function(
         emb
       },
       'sketch' = {
-        R <- t(
-          x = CountSketch(
-            nsketch = round(sketch.ratio * length(x = features)), ncells = length(x = features)
-          )
-        )
-        exp.mat <- as.matrix(
-          x = t(
-            x = LayerData(
-              object = object[[atom.assay]],
-              layer = layers[i],
-              features = features
-            )
-          ) %*%
-            R
-        )
+        R <- t(x = CountSketch(
+          nsketch = round(x = ratio * length(x = features)),
+          ncells = length(x = features)
+        ))
+        exp.mat <- as.matrix(x = t(x = LayerData(
+          object = object[[atoms]],
+          layer = layers[i],
+          features = features
+        )) %*% R)
         sketch.transform <- ginv(X = exp.mat) %*%
-          Embeddings(object = object[[atom.sketch.reduction]])[cells.sketch ,]
+          Embeddings(object = object[[reduction]])[cells.sketch ,]
         emb <- as.matrix(
           x = (
             t(as(
               object =  LayerData(
-                object = object[[orig.assay]],
+                object = object[[orig]],
                 layer = layers[i],
                 features = features
               ),
@@ -1927,20 +1979,18 @@ IntegrateSketchEmbeddings <- function(
         emb
       }
     )
-    emb_all.mat[ block_set[[i]],]  <- as.matrix(emb)
+    emb.all[ blocks[[i]],]  <- as.matrix(x = emb)
   }
-
-  object[[reduction.name]] <- CreateDimReducObject(
-    embeddings = emb_all.mat,
-    loadings = Loadings(object[[atom.sketch.reduction]]),
+  rownames(x = emb.all) <- colnames(x = object[[orig]])
+  object[[reduction.name]] <- suppressWarnings(expr = CreateDimReducObject(
+    embeddings = emb.all,
+    loadings = Loadings(object = object[[reduction]]),
     key = reduction.key,
-    assay = orig.assay
-  )
+    assay = orig
+  ))
+  CheckGC()
   return(object)
 }
-
-
-
 
 #' Calculate the local structure preservation metric
 #'
@@ -2888,25 +2938,31 @@ SelectIntegrationFeatures5 <- function(
   object,
   nfeatures = 2000,
   assay = NULL,
+  method = NULL,
   layers = NULL,
   verbose = TRUE,
-  # fvf.nfeatures = 2000,
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   layers <- Layers(object = object[[assay]], search = layers)
-  vf.list <- lapply(
-    X = layers,
-    FUN = function(x) {
-      return(VariableFeatures(object = object, assay = assay, layer = x))
-    }
+  vf.list <- VariableFeatures(
+    object = object,
+    assay = assay,
+    method = method,
+    layer = layers
   )
-  var.features <- unname(obj = unlist(x = vf.list))
-  fmat <- slot(object = object[[assay]], name = 'features')[, layers]
-  fmat <- droplevels(x = fmat)
-  var.features <- var.features[var.features %in% rownames(x = fmat)]
+  var.features <- unlist(x = vf.list, use.names = FALSE)
   var.features <- sort(x = table(var.features), decreasing = TRUE)
+  # Select only variable features present in all layers
+  fmat <- slot(object = object[[assay]], name = 'features')[, layers]
+  idx <- which(x = apply(
+    X = fmat[names(x = var.features), , drop = FALSE],
+    MARGIN = 1L,
+    FUN = all
+  ))
+  var.features <- var.features[idx]
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  # Select integration features
   features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features)) {
     features <- .FeatureRank(features = features, flist = vf.list)
