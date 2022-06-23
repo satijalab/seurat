@@ -69,7 +69,7 @@ LeverageScoreSampling <- function(
   ))
   for (lyr in vars) {
     try(
-      expr = VariableFeatures(object = sketched, selection.method = "sketch", layer = lyr) <-
+      expr = VariableFeatures(object = sketched, method = "sketch", layer = lyr) <-
         VariableFeatures(object = object[[assay]], layer = lyr),
       silent = TRUE
     )
@@ -127,7 +127,8 @@ LeverageScore.default <- function(
     )
   }
   if (is.character(x = method)) {
-    method <- get(x = method)
+    # method <- get(x = method)
+    method <- match.fun(FUN = method)
   }
   stopifnot(is.function(x = method))
   # Run the sketching
@@ -206,6 +207,42 @@ LeverageScore.StdAssay <- function(
   }
   names(x = scores) <- paste0('leverage_score_', names(x = scores))
   return(scores)
+}
+
+#' @method LeverageScore Seurat
+#' @export
+#'
+LeverageScore.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  layer = 'data',
+  eps = 0.5,
+  seed = 123L,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  method <- enquo(arg = method)
+  scores <- LeverageScore(
+    object = object[[assay]],
+    features = features,
+    nsketch = nsketch,
+    ndims = ndims,
+    method = method,
+    layer = layer,
+    eps = eps,
+    seed = seed,
+    verbose = verbose,
+    ...
+  )
+  names(x = scores) <- paste0("seurat_", names(x = scores))
+  object[[]] <- scores
+  return(object)
 }
 
 #' @method LeverageScore Seurat5
