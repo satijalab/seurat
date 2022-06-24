@@ -7401,6 +7401,7 @@ FastRPCAIntegration <- function(
   findintegrationanchors.args = list(),
   verbose = TRUE
 ) {
+  npcs <- max(npcs, dims)
   my.lapply <- ifelse(
     test = verbose && nbrOfWorkers() == 1,
     yes = pblapply,
@@ -7428,7 +7429,7 @@ FastRPCAIntegration <- function(
       if (normalization.method != 'SCT') {
         x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
       }
-      x <- RunPCA(x, features = anchor.features, verbose = FALSE)
+      x <- RunPCA(x, features = anchor.features, verbose = FALSE, npcs = npcs)
       return(x)
     }
     )
