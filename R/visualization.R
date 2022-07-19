@@ -554,6 +554,7 @@ RidgePlot <- function(
 #'
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
+#' @param alpha Alpha value for geom_violin
 #' @param split.by A variable to split the violin plots by,
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
@@ -581,6 +582,7 @@ VlnPlot <- function(
   features,
   cols = NULL,
   pt.size = NULL,
+  alpha = 1,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -624,6 +626,7 @@ VlnPlot <- function(
     same.y.lims = same.y.lims,
     adjust = adjust,
     pt.size = pt.size,
+    alpha = alpha,
     cols = cols,
     group.by = group.by,
     split.by = split.by,
@@ -5553,6 +5556,7 @@ Col2Hex <- function(...) {
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param adjust Adjust parameter for geom_violin
 # @param pt.size Point size for geom_violin
+# @param alpha Alpha value for geom_violin
 # @param cols Colors to use for plotting
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
@@ -5586,6 +5590,7 @@ ExIPlot <- function(
   adjust = 1,
   cols = NULL,
   pt.size = 0,
+  alpha = 1,
   group.by = NULL,
   split.by = NULL,
   log = FALSE,
@@ -5695,6 +5700,7 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
+        alpha = alpha,
         log = log,
         raster = raster
       ))
@@ -7217,6 +7223,7 @@ SingleDimPlot <- function(
 #' @param y.max Maximum Y value to plot
 #' @param adjust Adjust parameter for geom_violin
 #' @param pt.size Size of points for violin plots
+#' @param alpha Alpha vlaue for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
 #' @param log plot Y axis on log10 scale
@@ -7246,6 +7253,7 @@ SingleExIPlot <- function(
   y.max = NULL,
   adjust = 1,
   pt.size = 0,
+  alpha = 1,
   cols = NULL,
   seed.use = 42,
   log = FALSE,
@@ -7326,21 +7334,23 @@ SingleExIPlot <- function(
       )
       if (is.null(x = split)) {
         if (isTRUE(x = raster)) {
-          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE))
         } else {
-          jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+          jitter <- geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
         }
       } else {
         if (isTRUE(x = raster)) {
           jitter <- ggrastr::rasterize(geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
+            alpha = alpha,
             show.legend = FALSE
           ))
         } else {
           jitter <- geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
+            alpha = alpha,
             show.legend = FALSE
           )
         }
@@ -7359,7 +7369,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
+      jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)
