@@ -1,3 +1,8 @@
+# Unreleased
+
+## Changes
+- Support spaceranger 2.0 ([#6208](https://github.com/satijalab/seurat/pull/6208))
+
 # Seurat 4.1.1 (2022-05-01)
 
 ## Changes
