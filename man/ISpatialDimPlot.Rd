@@ -14,9 +14,7 @@ ISpatialDimPlot(object, image = NULL, group.by = NULL, alpha = c(0.3, 1))
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
 
-\item{alpha}{Controls opacity of spots. Provide as a vector specifying the
-min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
-alpha value for each plot.}
+\item{alpha}{Alpha value for plotting (default is 1)}
 }
 \value{
 Returns final plot as a ggplot object

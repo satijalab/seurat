@@ -41,9 +41,7 @@ LinkedFeaturePlot(
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
 
-\item{alpha}{Controls opacity of spots. Provide as a vector specifying the
-min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
-alpha value for each plot.}
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
