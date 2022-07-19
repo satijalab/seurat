@@ -747,6 +747,7 @@ ColorDimSplit <- function(
 #' @param label.color Sets the color of the label text
 #' @param label.box Whether to put a box around the label text (geom_text vs
 #' geom_label)
+#' @param alpha Alpha value for plotting (default is 1)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -806,6 +807,7 @@ DimPlot <- function(
   label.color = 'black',
   label.box = FALSE,
   repel = FALSE,
+  alpha = 1,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
@@ -855,6 +857,7 @@ DimPlot <- function(
         pt.size = pt.size,
         shape.by = shape.by,
         order = order,
+        alpha = alpha,
         label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
@@ -7011,6 +7014,7 @@ SingleCorPlot <- function(
 #' @param shape.by If NULL, all points are circles (default). You can specify
 #' any cell attribute (that can be pulled with \code{\link{FetchData}})
 #' allowing for both different colors and different shapes on cells.
+#' @param alpha Alpha value for plotting (default is 1)
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
@@ -7052,6 +7056,7 @@ SingleDimPlot <- function(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha = 1,
   alpha.by = NULL,
   order = NULL,
   label = FALSE,
@@ -7158,6 +7163,7 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       pointsize = pt.size,
+      alpha = alpha,
       pixels = raster.dpi
     )
   } else {
@@ -7169,7 +7175,8 @@ SingleDimPlot <- function(
         shape = shape.by,
         alpha = alpha.by
       ),
-      size = pt.size
+      size = pt.size,
+      alpha = alpha
     )
   }
   plot <- plot +
