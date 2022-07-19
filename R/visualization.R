@@ -989,6 +989,7 @@ FeaturePlot <- function(
     c('lightgrey', 'blue')
   },
   pt.size = NULL,
+  alpha = 1,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -1269,6 +1270,7 @@ FeaturePlot <- function(
         col.by = feature,
         order = order,
         pt.size = pt.size,
+        alpha = alpha,
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
