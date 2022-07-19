@@ -205,7 +205,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -365,7 +365,11 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_discrete(name = "Identity", na.translate = FALSE)
+        scale_color_manual(
+          values = cols[-length(x = cols)],
+          name = "Identity",
+          na.translate = FALSE
+        )
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
@@ -490,7 +494,7 @@ HTOHeatmap <- function(
 #' @param same.y.lims Set all the y-axis limits to the same values
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
-#' @param slot Use non-normalized counts data for plotting
+#' @param slot Slot to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -5550,7 +5554,7 @@ Col2Hex <- function(...) {
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
-# @param slot Use non-normalized counts data for plotting
+# @param slot Slot to pull expression data from (e.g. "counts" or "data")
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
@@ -7208,7 +7212,7 @@ SingleDimPlot <- function(
 #' @param pt.size Size of points for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
-#' @param log plot Y axis on log scale
+#' @param log plot Y axis on log10 scale
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
