@@ -1015,11 +1015,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", filter.matrix = TRUE, ...) {
   image <- readPNG(source = file.path(image.dir, image.name))
   scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
-  tissue.positions.path <- Sys.glob(file.path(image.dir, 'tissue_positions*'))
+  tissue.positions.path <- Sys.glob(paths = file.path(image.dir, 'tissue_positions*'))
   tissue.positions <- read.csv(
     file = tissue.positions.path,
     col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
-    header = {ifelse(basename(tissue.positions.path) == "tissue_positions.csv", TRUE, FALSE)},
+    header = ifelse(
+      test = basename(tissue.positions.path) == "tissue_positions.csv",
+      yes = TRUE,
+      no = FALSE
+    ),
     as.is = TRUE,
     row.names = 1
   )
