@@ -140,6 +140,11 @@ FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 scale.data being pearson residuals; sctransform::vst intermediate results are saved
 in misc slot of new assay.
 }
+\examples{
+data("pbmc_small")
+SCTransform(object = pbmc_small)
+
+}
 \seealso{
 \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
 }
