@@ -615,6 +615,17 @@ ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
+#' Perform sctransform-based normalization
+#' @param object An object
+#' @param ... Arguments passed to other methods (not used)
+#'
+#' @rdname SCTransform
+#' @export SCTransform
+#'
+SCTransform <- function(object, ...) {
+  UseMethod(generic = 'SCTransform', object = object)
+}
+
 #' Get SCT results from an Assay
 #'
 #' Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
