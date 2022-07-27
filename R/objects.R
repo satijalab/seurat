@@ -1182,7 +1182,7 @@ as.Seurat.SingleCellExperiment <- function(
 as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   CheckDots(...)
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
-    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingleCellExperiment object")
   }
   assay <- assay %||% Assays(object = x)
   if (!all(assay %in% Assays(object = x))) {
