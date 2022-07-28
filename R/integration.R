@@ -7255,8 +7255,10 @@ FindBridgeTransferAnchors <- function(
   dims = 1:30,
   scale = FALSE,
   reduction = c('lsiproject', 'pcaproject'),
+  bridge.reduction = c('direct', 'cca'),
   verbose = TRUE
 ) {
+  bridge.reduction <- match.arg(arg = bridge.reduction)
   reduction <-  match.arg(arg = reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
@@ -7290,6 +7292,7 @@ FindBridgeTransferAnchors <- function(
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Transfer",
+    reduction = bridge.reduction,
     reference.bridge.stored = TRUE,
     verbose = verbose
   )
