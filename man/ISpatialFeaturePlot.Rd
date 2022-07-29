@@ -13,15 +13,18 @@ ISpatialFeaturePlot(
 )
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{A Seurat object}
 
 \item{feature}{Feature to visualize}
 
 \item{image}{Name of the image to use in the plot}
 
-\item{slot}{Which slot to pull expression data from?}
+\item{slot}{If plotting a feature, which data slot to pull from (counts,
+data, or scale.data)}
 
-\item{alpha}{Alpha value for plotting (default is 1)}
+\item{alpha}{Controls opacity of spots. Provide as a vector specifying the
+min and max for SpatialFeaturePlot. For SpatialDimPlot, provide a single
+alpha value for each plot.}
 }
 \value{
 Returns final plot as a ggplot object

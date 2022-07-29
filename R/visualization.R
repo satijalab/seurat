@@ -553,8 +553,8 @@ RidgePlot <- function(
 #' scores, etc.)
 #'
 #' @inheritParams RidgePlot
-#' @param pt.size Point size for geom_violin
-#' @param alpha Alpha value for geom_violin
+#' @param pt.size Point size for points
+#' @param alpha Alpha value for points
 #' @param split.by A variable to split the violin plots by,
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
@@ -2610,8 +2610,8 @@ LinkedFeaturePlot <- function(
 
 #' Visualize clusters spatially and interactively
 #'
-#' @inheritParams DimPlot
 #' @inheritParams SpatialPlot
+#' @inheritParams DimPlot
 #' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
@@ -2736,8 +2736,8 @@ ISpatialDimPlot <- function(
 
 #' Visualize features spatially and interactively
 #'
-#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @inheritParams FeaturePlot
 #' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
@@ -5557,8 +5557,8 @@ Col2Hex <- function(...) {
 # @param y.max Maximum y axis value
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param adjust Adjust parameter for geom_violin
-# @param pt.size Point size for geom_violin
-# @param alpha Alpha value for geom_violin
+# @param pt.size Point size for points
+# @param alpha Alpha value for points
 # @param cols Colors to use for plotting
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
