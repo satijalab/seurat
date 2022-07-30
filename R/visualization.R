@@ -2251,9 +2251,9 @@ PolyFeaturePlot <- function(
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
 #'
-#' @inheritParams DimPlot
-#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @inheritParams FeaturePlot
+#' @inheritParams DimPlot
 #' @param feature Feature to visualize
 #' @param image Name of the image to use in the plot
 #'
