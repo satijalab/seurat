@@ -1,3 +1,8 @@
+#' @importFrom methods slot
+#' @importFrom rlang abort arg_match caller_env check_installed inform warn
+#'
+NULL
+
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
