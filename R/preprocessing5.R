@@ -1,5 +1,6 @@
 #' @include generics.R
 #' @include preprocessing.R
+#' @importFrom stats loess
 #' @importFrom methods slot
 #' @importFrom SeuratObject .MARGIN .SparseSlots
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -220,6 +221,135 @@ LogNormalize.default <- function(
   return(data)
 }
 
+#' @method LogNormalize DelayedMatrix
+#' @export
+#'
+LogNormalize.DelayedMatrix <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  verbose = TRUE,
+  sink = NULL,
+  ...
+) {
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with delayed matrices'
+  )
+  if (is.null(x = sink)) {
+    sink <- DelayedArray::AutoRealizationSink(
+      dim = dim(x = data),
+      dimnames = dimnames(x = data),
+      as.sparse = DelayedArray::is_sparse(x = data)
+    )
+  }
+  if (!inherits(x = sink, what = 'RealizationSink')) {
+    abort(message = "'sink' must be a RealizationSink")
+  } else if (!all(dim(x = sink) == dim(x = data))) {
+    abort(message = "'sink' must be the same size as 'data'")
+  }
+  if (!margin %in% c(1L, 2L)) {
+    abort(message = "'margin' must be 1 or 2")
+  }
+  grid <- if (margin == 1L) {
+    DelayedArray::rowAutoGrid(x = data)
+  } else {
+    DelayedArray::colAutoGrid(x = data)
+  }
+  sparse <- DelayedArray::is_sparse(x = data)
+  if (isTRUE(x = verbose)) {
+    pb <- txtProgressBar(file = stderr(), style = 3)
+  }
+  for (i in seq_len(length.out = length(x = grid))) {
+    vp <- grid[[i]]
+    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
+  if (isTRUE(x = sparse)) {
+      x <- DelayedArray::sparse2dense(sas = x)
+    }
+    x <- apply(
+      X = x,
+      MARGIN = margin,
+      FUN = function(x) {
+        log1p(x = x / sum(x) * scale.factor)
+      }
+    )
+    if (isTRUE(x = sparse)) {
+      x <- DelayedArray::dense2sparse(x = x)
+    }
+    DelayedArray::write_block(sink = sink, viewport = vp, block = x)
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / length(x = grid))
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  DelayedArray::close(con = sink)
+  return(as(object = sink, Class = "DelayedArray"))
+}
+
+#' @method LogNormalize H5ADMatrix
+#' @export
+#'
+LogNormalize.H5ADMatrix <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  verbose = TRUE,
+  layer = 'data',
+  ...
+) {
+  results <- LogNormalize.HDF5Matrix(
+    data = data,
+    scale.factor = scale.factor,
+    margin = margin,
+    verbose = verbose,
+    layer = file.path('layers', layer, fsep = '/'),
+    ...
+  )
+  rpath <- slot(object = slot(object = results, name = 'seed'), name = 'filepath')
+  return(HDF5Array::H5ADMatrix(filepath = rpath, layer = layer))
+}
+
+#' @method LogNormalize HDF5Matrix
+#' @export
+#'
+LogNormalize.HDF5Matrix <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  verbose = TRUE,
+  layer = 'data',
+  ...
+) {
+  check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
+  fpath <- slot(object = slot(object = data, name = 'seed'), name = 'filepath')
+  if (.DelayedH5DExists(object = data, path = layer)) {
+    rhdf5::h5delete(file = fpath, name = layer)
+    dpath <- file.path(
+      dirname(path = layer),
+      paste0('.', basename(layer), '_dimnames'),
+      fsep = '/'
+    )
+    rhdf5::h5delete(file = fpath, name = dpath)
+  }
+  sink <- HDF5Array::HDF5RealizationSink(
+    dim = dim(x = data),
+    dimnames = dimnames(x = data),
+    as.sparse = DelayedArray::is_sparse(x = data),
+    filepath = fpath,
+    name = layer
+  )
+  return(LogNormalize.DelayedMatrix(
+    data = data,
+    scale.factor = scale.factor,
+    margin = margin,
+    verbose = verbose,
+    sink = sink,
+    ...
+  ))
+}
+
 #' @importFrom SeuratObject IsSparse
 #'
 #' @method NormalizeData default
@@ -251,13 +381,58 @@ NormalizeData.default <- function(
           data = object,
           scale.factor = scale.factor,
           margin = cmargin,
-          verbose = verbose
+          verbose = verbose,
+          ...
         )
       }
     }
   )
   return(normalized)
 }
+
+.DelayedH5DExists <- function(object, path) {
+  check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 files')
+  if (!inherits(x = object, what = c('HDF5Array', 'H5ADMatrix'))) {
+    abort(message = "'object' must be an HDF5Array or H5ADMatrix")
+  }
+  on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
+  fpath <- slot(object = slot(object = object, name = 'seed'), name = 'filepath')
+  h5loc <- rhdf5::H5Fopen(
+    name = fpath,
+    flags = 'H5F_ACC_RDWR',
+    fapl = NULL,
+    native = FALSE
+  )
+  return(rhdf5::H5Lexists(h5loc = h5loc, name = path))
+}
+
+# #' @method NormalizeData DelayedArray
+# #' @export
+# #'
+# NormalizeData.DelayedArray <- function(
+#   object,
+#   method = c('LogNormalize'),
+#   scale.factor = 1e4,
+#   cmargin = 2L,
+#   margin = 1L,
+#   layer = 'data',
+#   verbose = TRUE,
+#   ...
+# ) {
+#   method <- arg_match(arg = method)
+#   normalized <- switch(
+#     EXPR = method,
+#     LogNormalize = LogNormalize(
+#       data = object,
+#       scale.factor = scale.factor,
+#       margin = 2L,
+#       verbose = TRUE,
+#       layer = layer,
+#       ...
+#     )
+#   )
+#   return(normalized)
+# }
 
 #' @importFrom SeuratObject Cells DefaultLayer DefaultLayer<- Features
 #' LayerData LayerData<-
@@ -299,11 +474,12 @@ NormalizeData.StdAssay <- function(
       features = Features(x = object, layer = l),
       cells = Cells(x = object, layer = l)
     ) <- NormalizeData(
-      object = LayerData(object = object, layer = l, fast = TRUE),
+      object = LayerData(object = object, layer = l, fast = NA),
       method = method,
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
+      layer = save,
       ...
     )
   }
@@ -489,7 +665,138 @@ VST.default <- function(
   .NotYetImplemented()
 }
 
-#' @importFrom stats loess
+#' @method VST DelayedMatrix
+#' @export
+#'
+VST.DelayedMatrix <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  verbose = TRUE,
+  ...
+) {
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with delayed matrices'
+  )
+  if (!margin %in% c(1L, 2L)) {
+    abort(message = "'margin' must be 1 or 2")
+  }
+  grid <- if (margin == 1L) {
+    DelayedArray::rowAutoGrid(x = data)
+  } else {
+    DelayedArray::colAutoGrid(x = data)
+  }
+  nfeatures <- dim(x = data)[margin]
+  ncells <- dim(x = data)[-margin]
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
+  # Calculate feature means
+  hvf.info$mean <- if (margin == 1L) {
+    DelayedArray::rowMeans(x = data)
+  } else {
+    DelayedArray::colMeans(x = data)
+  }
+  # Calculate variance
+  hvf.info$variance <- NA_real_
+  if (isTRUE(x = verbose)) {
+    inform(message = "Calculating feature variances")
+    pb <- txtProgressBar(style = 3L, file = stderr())
+  }
+  for (i in seq_len(length.out = length(x = grid))) {
+    vp <- grid[[i]]
+    idx <- seq.int(
+      from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
+      to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
+    )
+    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = FALSE)
+    mu <- hvf.info$mean[idx]
+    hvf.info$variance[idx] <- vapply(
+      X = seq_along(along.with = mu),
+      FUN = function(j) {
+        y <- if (margin == 1L) {
+          x[j, ]
+        } else {
+          x[, j]
+        }
+        y <- y - mu[j]
+        return(sum(y ^ 2) / (ncells - 1L))
+      },
+      FUN.VALUE = numeric(length = 1L)
+    )
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / length(x = grid))
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  hvf.info$variance.expected <- 0
+  not.const <- hvf.info$variance > 0
+  fit <- loess(
+    formula = log10(x = variance) ~ log10(x = mean),
+    data = hvf.info[not.const, , drop = FALSE],
+    span = span
+  )
+  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  # Calculate standardized variance
+  hvf.info$variance.standardized <- NA_real_
+  if (isTRUE(x = verbose)) {
+    inform(
+      message = "Calculating feature variances of standardized and clipped values"
+    )
+    pb <- txtProgressBar(style = 3L, file = stderr())
+  }
+  clip <- clip %||% sqrt(x = ncells)
+  for (i in seq_len(length.out = length(x = grid))) {
+    vp <- grid[[i]]
+    idx <- seq.int(
+      from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
+      to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
+    )
+    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = FALSE)
+    mu <- hvf.info$mean[idx]
+    sd <- sqrt(x = hvf.info$variance.expected[idx])
+    hvf.info$variance.standardized[idx] <- vapply(
+      X = seq_along(along.with = mu),
+      FUN = function(j) {
+        if (sd[j] == 0) {
+          return(0)
+        }
+        y <- if (margin == 1L) {
+          x[j, ]
+        } else {
+          x[, j]
+        }
+        y <- y - mu[j]
+        y <- y / sd[j]
+        y[y > clip] <- clip
+        return(sum(y ^ 2) / (ncells - 1L))
+      },
+      FUN.VALUE = numeric(length = 1L)
+    )
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / length(x = grid))
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  # Set variable status
+  hvf.info$variable <- FALSE
+  hvf.info$rank <- NA_integer_
+  vs <- hvf.info$variance.standardized
+  vs[vs == 0] <- NA
+  vf <- head(
+    x = order(vs, decreasing = TRUE),
+    n = nselect
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  return(hvf.info)
+}
+
 #' @importFrom Matrix rowMeans
 #'
 #' @rdname VST
@@ -507,7 +814,7 @@ VST.dgCMatrix <- function(
 ) {
   nfeatures <- nrow(x = data)
   hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
-  # Calculate feature menas
+  # Calculate feature means
   hvf.info$mean <- Matrix::rowMeans(x = data)
   # Calculate feature variance
   hvf.info$variance <- SparseRowVar2(
@@ -784,7 +1091,6 @@ VST.matrix <- function(
 #' to \code{clip}; default is \code{NULL} which sets this value to the square
 #' root of the number of cells
 #'
-#' @importFrom stats loess
 #' @importFrom Matrix rowMeans
 #'
 #' @keywords internal
