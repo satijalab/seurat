@@ -12,7 +12,7 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom SeuratObject Key Key<- Layers
+#' @importFrom SeuratObject CastAssay Key Key<- Layers
 #'
 #' @export
 #'
@@ -23,13 +23,14 @@ LeverageScoreSampling <- function(
   save = 'sketch',
   default = TRUE,
   seed = NA_integer_,
+  cast = NULL,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
   # TODO: fix this in [[<-,Seurat5
   if (save == assay) {
-    stop("Cannot overwrite existing assays", call. = FALSE)
+    abort(message = "Cannot overwrite existing assays")
   }
   if (save %in% Assays(object = object)) {
     if (save == DefaultAssay(object = object)) {
@@ -73,6 +74,9 @@ LeverageScoreSampling <- function(
         VariableFeatures(object = object[[assay]], layer = lyr),
       silent = TRUE
     )
+  }
+  if (!is.null(x = cast)) {
+    sketched <- CastAssay(object = sketched, to = cast, ...)
   }
   Key(object = sketched) <- Key(object = save, quiet = TRUE)
   object[[save]] <- sketched
@@ -127,7 +131,6 @@ LeverageScore.default <- function(
     )
   }
   if (is.character(x = method)) {
-    # method <- get(x = method)
     method <- match.fun(FUN = method)
   }
   stopifnot(is.function(x = method))
