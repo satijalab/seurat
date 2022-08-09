@@ -189,6 +189,7 @@ DimHeatmap <- function(
 #' @param label Label the cell identies above the color bar
 #' @param size Size of text above color bar
 #' @param hjust Horizontal justification of text above color bar
+#' @param vjust Vertical justification of text above color bar
 #' @param angle Angle of text above color bar
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
@@ -229,6 +230,7 @@ DoHeatmap <- function(
   label = TRUE,
   size = 5.5,
   hjust = 0,
+  vjust = 0,
   angle = 45,
   raster = TRUE,
   draw.lines = TRUE,
@@ -387,7 +389,7 @@ DoHeatmap <- function(
           stat = "identity",
           data = label.x.pos,
           aes_string(label = 'group', x = 'label.x.pos'),
-          y = y.max + y.max * 0.03 * 0.5,
+          y = y.max + y.max * 0.03 * 0.5 + vjust,
           angle = angle,
           hjust = hjust,
           size = size
