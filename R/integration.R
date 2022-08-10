@@ -6123,7 +6123,6 @@ TransferLablesNN <- function(
   if (!is.null(x = weight.matrix) & !is.null(x = nn.object)) {
     warning('both nn.object and weight matrix are set. Only weight matrix is used for label transfer')
   }
-
   if (is.null(x = weight.matrix)) {
     select_nn <- Indices(nn.object)
     k.nn <- ncol(select_nn)
@@ -6135,11 +6134,11 @@ TransferLablesNN <- function(
       x = 1,
       dims = c(nrow(select_nn), ncol(x = reference.object))
     )
-  } else if (nrow(weights) == ncol(reference.object)) {
-    nn.matrix <- t(weights)
+  } else if (nrow(weight.matrix) == ncol(reference.object)) {
+    nn.matrix <- t(weight.matrix)
     k.nn <- 1
-  } else if (ncol(weights) == ncol(reference.object)) {
-    nn.matrix <- weights
+  } else if (ncol(weight.matrix) == ncol(reference.object)) {
+    nn.matrix <- weight.matrix
     k.nn <- 1
   } else {
     stop('wrong weights matrix input')
