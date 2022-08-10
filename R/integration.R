@@ -3976,7 +3976,6 @@ FindWeights <- function(
     sd = sd.weight,
     display_progress = verbose
   )
-
   object <- SetIntegrationData(
     object = object,
     integration.name = integration.name,
@@ -6109,26 +6108,43 @@ FindBridgeAnchor <- function(object.list,
 # @param nn.object  the query neighbors object
 # @param reference.object the reference seurat object
 # @param group.by  A vector of variables to group cells by
+# @param weight.matrix A reference x query cell weight matrix
 # @return Returns a list for predicted labels, prediction score and matrix
 #' @importFrom Matrix sparseMatrix
 #' @importFrom fastDummies dummy_cols
-#' @importFrom Matrix rowMeans
+#' @importFrom Matrix rowMeans t
 #'
 TransferLablesNN <- function(
-  nn.object,
+  nn.object = NULL,
   reference.object,
-  group.by = NULL
+  group.by = NULL,
+  weight.matrix = NULL
 ){
-  select_nn <- Indices(nn.object)
-  k.nn <- ncol(select_nn)
-  j <- as.numeric(x = t(x = select_nn ))
-  i <- ((1:length(x = j)) - 1) %/% k.nn + 1
-  nn.matrix <- sparseMatrix(
-    i = i,
-    j = j,
-    x = 1,
-    dims = c(nrow(select_nn), ncol(x = reference.object))
-  )
+  if (!is.null(x = weight.matrix) & !is.null(x = nn.object)) {
+    warning('both nn.object and weight matrix are set. Only weight matrix is used for label transfer')
+  }
+
+  if (is.null(x = weight.matrix)) {
+    select_nn <- Indices(nn.object)
+    k.nn <- ncol(select_nn)
+    j <- as.numeric(x = t(x = select_nn ))
+    i <- ((1:length(x = j)) - 1) %/% k.nn + 1
+    nn.matrix <- sparseMatrix(
+      i = i,
+      j = j,
+      x = 1,
+      dims = c(nrow(select_nn), ncol(x = reference.object))
+    )
+  } else if (nrow(weights) == ncol(reference.object)) {
+    nn.matrix <- t(weights)
+    k.nn <- 1
+  } else if (ncol(weights) == ncol(reference.object)) {
+    nn.matrix <- weights
+    k.nn <- 1
+  } else {
+    stop('wrong weights matrix input')
+  }
+
   reference.labels.matrix <- as.sparse(
     x = dummy_cols(
       reference.object[[group.by]]
@@ -6139,6 +6155,7 @@ TransferLablesNN <- function(
     replacement = "",
     x = colnames(reference.labels.matrix)
     )
+
   query.label.mat <- nn.matrix %*% reference.labels.matrix
   query.label.mat <- query.label.mat/k.nn
   rownames(x = query.label.mat) <- Cells(nn.object)
