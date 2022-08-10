@@ -164,6 +164,62 @@ LeverageScore.default <- function(
   return(rowSums(x = Z ^ 2))
 }
 
+#' @method LeverageScore DelayedMatrix
+#' @export
+#'
+LeverageScore.DelayedMatrix <- function(
+  object,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  eps = 0.5,
+  seed = 123L,
+  verbose = TRUE,
+  ...
+) {
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with delayed matrices'
+  )
+  if (!is_quosure(x = method)) {
+    method <- enquo(arg = method)
+  }
+  grid <- DelayedArray::colAutoGrid(x = object)
+  scores <- vector(mode = 'numeric', length = ncol(x = object))
+  if (isTRUE(x = verbose)) {
+    pb <- txtProgressBar(style = 3L, file = stderr())
+  }
+  for (i in length(x = grid)) {
+    vp <- grid[[i]]
+    idx <- seq.int(
+      from = IRanges::start(x = slot(object = vp, name = 'ranges')[2L]),
+      to = IRanges::end(x = slot(object = vp, name = 'ranges')[2L])
+    )
+    x <- as.sparse(x = DelayedArray::read_block(
+      x = object,
+      viewport = vp,
+      as.sparse = FALSE
+    ))
+    scores[idx] <- LeverageScore(
+      object = x,
+      nsketch = nsketch,
+      ndims = ndims,
+      method = method,
+      eps = 0.5,
+      seed = seed,
+      verbose = FALSE
+      # ...
+    )
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / length(x = grid))
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  return(scores)
+}
+
 #' @method LeverageScore StdAssay
 #' @export
 #'
