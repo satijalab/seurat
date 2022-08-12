@@ -1791,8 +1791,11 @@ MASTDETest <- function(
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
   latent.vars <- latent.vars %||% group.info
-  group.info[cells.1, "group"] <- "Group1"
-  group.info[cells.2, "group"] <- "Group2"
+  # NH: I've switched the Group1/2's around in order to have fold changes reflect Group2 vs Group1 in the fold changes.
+  # Group1 is used as reference group in this MAST code below, but in Seurat::FindMarkers, cells.2
+  # is usually used to refer to the control group for other methods, which is a bit confusing.
+  group.info[cells.1, "group"] <- "Group2"
+  group.info[cells.2, "group"] <- "Group1"
   group.info[, "group"] <- factor(x = group.info[, "group"])
   latent.vars.names <- c("condition", colnames(x = latent.vars))
   latent.vars <- cbind(latent.vars, group.info)
@@ -1809,22 +1812,32 @@ MASTDETest <- function(
   cond <- factor(x = SummarizedExperiment::colData(sca)$group)
   cond <- relevel(x = cond, ref = "Group1")
   SummarizedExperiment::colData(sca)$condition <- cond
+  # NH: Add in calculation for cellular detection rate and include this into model as well. This should further help to
+  # improve estimates of fold change, whilst taking into account the number of genes in which a cell is actually expressed or "on".
+  cdr <- colSums(SummarizedExperiment::assay(sca)>0)
+  SummarizedExperiment::colData(sca)$ngeneson <- scale(cdr)
   fmla <- as.formula(
-    object = paste0(" ~ ", paste(latent.vars.names, collapse = "+"))
+    object = paste0(" ~ ", "ngeneson+", paste(latent.vars.names, collapse = "+"))
   )
   zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
   summaryCond <- MAST::summary(object = zlmCond, doLRT = 'conditionGroup2')
   summaryDt <- summaryCond$datatable
-  # fcHurdle <- merge(
-  #   summaryDt[contrast=='conditionGroup2' & component=='H', .(primerid, `Pr(>Chisq)`)], #hurdle P values
-  #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
-  # ) #logFC coefficients
-  # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
-  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
-  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
-  # p_val <- subset(summaryDt, component == "H")[, 4]
-  # genes.return <- subset(summaryDt, component == "H")[, 1]
-  to.return <- data.frame(p_val, row.names = genes.return)
+
+  #NH: Rather than only returning p-values we return a data.frame of all summary statistics for Hurdle model that will be relevant.
+  # Im also returning the confidence internvals for the fold change too as why not if we went to the trouble of calculating them...
+  fcHurdle <- merge(summaryDt[summaryDt$contrast=="conditionGroup2" & summaryDt$component == "H", c("primerid", "Pr(>Chisq)")],
+                    summaryDt[summaryDt$contrast=="conditionGroup2" & summaryDt$component == "logFC", c("primerid", "coef", "ci.hi", "ci.lo")])
+
+  p_val <- fcHurdle[[2]]
+  genes.return <- fcHurdle[["primerid"]]
+  mast_log2fc <- fcHurdle[["coef"]]
+  ci.hi <- fcHurdle[["ci.hi"]]
+  ci.lo <- fcHurdle[["ci.lo"]]
+  to.return <- data.frame(p_val,
+                          mast_log2fc,
+                          ci.hi,
+                          ci.lo,
+                          row.names = genes.return)
   return(to.return)
 }
 
