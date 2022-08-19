@@ -263,19 +263,13 @@ LogNormalize.DelayedMatrix <- function(
   for (i in seq_len(length.out = length(x = grid))) {
     vp <- grid[[i]]
     x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
-  if (isTRUE(x = sparse)) {
-      x <- DelayedArray::sparse2dense(sas = x)
-    }
-    x <- apply(
-      X = x,
-      MARGIN = margin,
-      FUN = function(x) {
-        log1p(x = x / sum(x) * scale.factor)
-      }
+    x <- LogNormalize(
+      data = x,
+      scale.factor = scale.factor,
+      margin = margin,
+      verbose = FALSE,
+      ...
     )
-    if (isTRUE(x = sparse)) {
-      x <- DelayedArray::dense2sparse(x = x)
-    }
     DelayedArray::write_block(sink = sink, viewport = vp, block = x)
     if (isTRUE(x = verbose)) {
       setTxtProgressBar(pb = pb, value = i / length(x = grid))
@@ -348,6 +342,34 @@ LogNormalize.HDF5Matrix <- function(
     sink = sink,
     ...
   ))
+}
+
+#' @method LogNormalize SparseArraySeed
+#' @export
+#'
+LogNormalize.SparseArraySeed <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  return.seed = TRUE,
+  verbose= TRUE,
+  ...
+) {
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with SparseArraySeeds'
+  )
+  data <- LogNormalize(
+    data = as(object = data, Class = 'CsparseMatrix'),
+    scale.factor = scale.factor,
+    margin = margin,
+    verbose = verbose,
+    ...
+  )
+  if (!isFALSE(x = return.seed)) {
+    data <- as(object = data, Class = 'SparseArraySeed')
+  }
+  return(data)
 }
 
 #' @importFrom SeuratObject IsSparse
