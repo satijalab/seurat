@@ -836,7 +836,6 @@ VST.DelayedMatrix <- function(
   if (isTRUE(x = verbose)) {
     close(con = pb)
   }
-  browser()
   hvf.info <- do.call(what = 'rbind', args = hvf.info)
   # Set variable status
   hvf.info$variable <- FALSE
