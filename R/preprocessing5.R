@@ -713,17 +713,23 @@ VST.DelayedMatrix <- function(
   }
   nfeatures <- dim(x = data)[margin]
   ncells <- dim(x = data)[-margin]
-  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
+  # hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
+  hvf.info <- vector(mode = 'list', length = length(x = grid))
+  sparse <- DelayedArray::is_sparse(x = data)
   # Calculate feature means
-  hvf.info$mean <- if (margin == 1L) {
-    DelayedArray::rowMeans(x = data)
-  } else {
-    DelayedArray::colMeans(x = data)
-  }
+  # if (isTRUE(x = verbose)) {
+  #   inform(message = "Calculating feature means")
+  # }
+  # hvf.info$mean <- if (margin == 1L) {
+  #   DelayedArray::rowMeans(x = data)
+  # } else {
+  #   DelayedArray::colMeans(x = data)
+  # }
   # Calculate variance
   hvf.info$variance <- NA_real_
   if (isTRUE(x = verbose)) {
-    inform(message = "Calculating feature variances")
+    # inform(message = "Calculating feature variances")
+    inform(message = "Identifying variable features")
     pb <- txtProgressBar(style = 3L, file = stderr())
   }
   for (i in seq_len(length.out = length(x = grid))) {
@@ -732,21 +738,97 @@ VST.DelayedMatrix <- function(
       from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
       to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
     )
-    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = FALSE)
-    mu <- hvf.info$mean[idx]
-    hvf.info$variance[idx] <- vapply(
-      X = seq_along(along.with = mu),
-      FUN = function(j) {
-        y <- if (margin == 1L) {
-          x[j, ]
-        } else {
-          x[, j]
-        }
-        y <- y - mu[j]
-        return(sum(y ^ 2) / (ncells - 1L))
-      },
-      FUN.VALUE = numeric(length = 1L)
+    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
+    if (isTRUE(x = sparse)) {
+      x <- as(object = x, Class = "CsparseMatrix")
+    }
+    hvf.info[[i]] <- VST(
+      data = x,
+      margin = margin,
+      nselect = floor(x = nselect / length(x = grid)),
+      span = span,
+      clip = clip,
+      verbose = FALSE,
+      ...
     )
+  #   if (margin == 2L) {
+  #     x <- t(x = x)
+  #   }
+  #   mu <- hvf.info$mean[idx]
+  #   hvf.info$variance[idx] <- rowSums(x = ((x - mu) ^ 2) / (ncells - 1L))
+  #   # hvf.info$variance[idx] <- vapply(
+  #   #   X = seq_along(along.with = mu),
+  #   #   FUN = function(j) {
+  #   #     y <- if (margin == 1L) {
+  #   #       x[j, ]
+  #   #     } else {
+  #   #       x[, j]
+  #   #     }
+  #   #     y <- y - mu[j]
+  #   #     return(sum(y ^ 2) / (ncells - 1L))
+  #   #   },
+  #   #   FUN.VALUE = numeric(length = 1L)
+  #   # )
+  #   if (isTRUE(x = verbose)) {
+  #     setTxtProgressBar(pb = pb, value = i / length(x = grid))
+  #   }
+  # }
+  # if (isTRUE(x = verbose)) {
+  #   close(con = pb)
+  # }
+  # hvf.info$variance.expected <- 0
+  # not.const <- hvf.info$variance > 0
+  # fit <- loess(
+  #   formula = log10(x = variance) ~ log10(x = mean),
+  #   data = hvf.info[not.const, , drop = FALSE],
+  #   span = span
+  # )
+  # hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  # # Calculate standardized variance
+  # hvf.info$variance.standardized <- NA_real_
+  # if (isTRUE(x = verbose)) {
+  #   inform(
+  #     message = "Calculating feature variances of standardized and clipped values"
+  #   )
+  #   pb <- txtProgressBar(style = 3L, file = stderr())
+  # }
+  # clip <- clip %||% sqrt(x = ncells)
+  # for (i in seq_len(length.out = length(x = grid))) {
+  #   vp <- grid[[i]]
+  #   idx <- seq.int(
+  #     from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
+  #     to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
+  #   )
+  #   x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
+  #   if (isTRUE(x = sparse)) {
+  #     x <- as(object = x, Class = "CsparseMatrix")
+  #   }
+  #   if (margin == 2L) {
+  #     x <- t(x = x)
+  #   }
+  #   mu <- hvf.info$mean[idx]
+  #   sd <- sqrt(x = hvf.info$variance.expected[idx])
+  #   hvf.info$variance.standardized[idx] <- 0
+  #   sdn <- which(x = sd != 0)
+  #   hvf.info$variance.standardized[idx[sdn]] <- rowSums(x = (((x[sdn, ] - mu[sdn]) / sd[sdn]) ^ 2) / (ncells - 1L))
+  #   # hvf.info$variance.standardized[idx] <- vapply(
+  #   #   X = seq_along(along.with = mu),
+  #   #   FUN = function(j) {
+  #   #     if (sd[j] == 0) {
+  #   #       return(0)
+  #   #     }
+  #   #     y <- if (margin == 1L) {
+  #   #       x[j, ]
+  #   #     } else {
+  #   #       x[, j]
+  #   #     }
+  #   #     y <- y - mu[j]
+  #   #     y <- y / sd[j]
+  #   #     y[y > clip] <- clip
+  #   #     return(sum(y ^ 2) / (ncells - 1L))
+  #   #   },
+  #   #   FUN.VALUE = numeric(length = 1L)
+  #   # )
     if (isTRUE(x = verbose)) {
       setTxtProgressBar(pb = pb, value = i / length(x = grid))
     }
@@ -754,57 +836,8 @@ VST.DelayedMatrix <- function(
   if (isTRUE(x = verbose)) {
     close(con = pb)
   }
-  hvf.info$variance.expected <- 0
-  not.const <- hvf.info$variance > 0
-  fit <- loess(
-    formula = log10(x = variance) ~ log10(x = mean),
-    data = hvf.info[not.const, , drop = FALSE],
-    span = span
-  )
-  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  # Calculate standardized variance
-  hvf.info$variance.standardized <- NA_real_
-  if (isTRUE(x = verbose)) {
-    inform(
-      message = "Calculating feature variances of standardized and clipped values"
-    )
-    pb <- txtProgressBar(style = 3L, file = stderr())
-  }
-  clip <- clip %||% sqrt(x = ncells)
-  for (i in seq_len(length.out = length(x = grid))) {
-    vp <- grid[[i]]
-    idx <- seq.int(
-      from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
-      to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
-    )
-    x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = FALSE)
-    mu <- hvf.info$mean[idx]
-    sd <- sqrt(x = hvf.info$variance.expected[idx])
-    hvf.info$variance.standardized[idx] <- vapply(
-      X = seq_along(along.with = mu),
-      FUN = function(j) {
-        if (sd[j] == 0) {
-          return(0)
-        }
-        y <- if (margin == 1L) {
-          x[j, ]
-        } else {
-          x[, j]
-        }
-        y <- y - mu[j]
-        y <- y / sd[j]
-        y[y > clip] <- clip
-        return(sum(y ^ 2) / (ncells - 1L))
-      },
-      FUN.VALUE = numeric(length = 1L)
-    )
-    if (isTRUE(x = verbose)) {
-      setTxtProgressBar(pb = pb, value = i / length(x = grid))
-    }
-  }
-  if (isTRUE(x = verbose)) {
-    close(con = pb)
-  }
+  browser()
+  hvf.info <- do.call(what = 'rbind', args = hvf.info)
   # Set variable status
   hvf.info$variable <- FALSE
   hvf.info$rank <- NA_integer_
@@ -857,7 +890,7 @@ VST.dgCMatrix <- function(
     mu = hvf.info$mean,
     sd = sqrt(x = hvf.info$variance.expected),
     vmax = clip %||% sqrt(x = ncol(x = data)),
-    display_progress = TRUE
+    display_progress = verbose
   )
   # Set variable features
   hvf.info$variable <- FALSE

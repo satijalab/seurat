@@ -12,6 +12,66 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+DelayedLeverageScore <- function(
+  object,
+  assay = NULL,
+  nsketch = 5000L,
+  ncells = 5000L,
+  layer = 'data',
+  save = 'sketch',
+  method = CountSketch,
+  eps = 0.5,
+  default = TRUE,
+  seed = NA_integer_,
+  # cast = NULL,
+  verbose = TRUE,
+  ...
+) {
+  .NotYetImplemented()
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with delayed matrices'
+  )
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  # TODO: fix this in [[<-,Seurat5
+  if (save == assay) {
+    abort(message = "Cannot overwrite existing assays")
+  }
+  if (save %in% Assays(object = object)) {
+    if (save == DefaultAssay(object = object)) {
+      DefaultAssay(object = object) <- assay
+    }
+    object[[save]] <- NULL
+  }
+  layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- Layers(object = object, assay = assay, search = layer)
+  scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
+  row.names(x = scores) <- colnames(x = object)
+  scores[, layer] <- NA_real_
+  for (i in seq_along(along.with = layer)) {
+    l <- layer[i]
+    if (isTRUE(x = verbose)) {
+      message("Running LeverageScore for layer ", l)
+    }
+    # scores[Cells(x = object, layer = l), l] <- LeverageScore(
+    #   object = LayerData(
+    #     object = object,
+    #     layer = l,
+    #     features = features %||% VariableFeatures(object = object, layer = l),
+    #     fast = TRUE
+    #   ),
+    #   nsketch = nsketch,
+    #   ndims = ndims %||% ncol(x = object),
+    #   method = method,
+    #   eps = eps,
+    #   seed = seed,
+    #   verbose = verbose,
+    #   ...
+    # )
+  }
+}
+
 #' @importFrom SeuratObject CastAssay Key Key<- Layers
 #'
 #' @export
@@ -19,7 +79,7 @@ NULL
 LeverageScoreSampling <- function(
   object,
   assay = NULL,
-  ncells = 5000,
+  ncells = 5000L,
   save = 'sketch',
   default = TRUE,
   seed = NA_integer_,
