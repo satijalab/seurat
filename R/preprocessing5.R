@@ -726,7 +726,7 @@ VST.DelayedMatrix <- function(
   #   DelayedArray::colMeans(x = data)
   # }
   # Calculate variance
-  hvf.info$variance <- NA_real_
+  # hvf.info$variance <- NA_real_
   if (isTRUE(x = verbose)) {
     # inform(message = "Calculating feature variances")
     inform(message = "Identifying variable features")
