@@ -1689,7 +1689,7 @@ RunLeiden <- function(
         graph_from_adj_list(adjlist = object)
       } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
         if (inherits(x = object, what = 'Graph')) {
-          object <- as(object = object, Class = "dgCMatrix")
+          object <- as.sparse(x = object)
         }
         graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
       } else if (inherits(x = object, what = 'igraph')) {
