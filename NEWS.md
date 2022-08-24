@@ -4,6 +4,8 @@
 - Fix legend color in `DoHeatmap()` ([#5783](https://github.com/satijalab/seurat/issues/5783))
 - Fix bug in `ScaleData()` when regressing out one gene ([#5970](https://github.com/satijalab/seurat/pull/5970))
 - Fix bug in `SpatialDimPlot()` when using `group.by` ([#6179](https://github.com/satijalab/seurat/issues/6179))
+- Add `add.noise` parameter in `VlnPlot()`
+([#5756](https://github.com/satijalab/seurat/issues/5756))
 
 # Seurat 4.1.1 (2022-05-01)
 
