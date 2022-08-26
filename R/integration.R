@@ -2502,7 +2502,7 @@ MixingMetric <- function(
 #'   normalization.method = "SCT",
 #'   anchor.features = features
 #' )
-#' pancreas.integrated <- IntegrateData(anchors)
+#' pancreas.integrated <- IntegrateData(anchors, normalization.method = "SCT")
 #' }
 #'
 PrepSCTIntegration <- function(
