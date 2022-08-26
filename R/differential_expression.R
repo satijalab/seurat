@@ -59,7 +59,7 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -476,7 +476,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
+#' calculating logFC. 1/10000 by default.
 #' @param fc.results data.frame from FoldChange
 #' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
@@ -507,7 +507,7 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   fc.results = NULL,
   densify = FALSE,
   ...
@@ -625,7 +625,7 @@ FindMarkers.Assay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -704,7 +704,7 @@ FindMarkers.SCTAssay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -806,7 +806,7 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
@@ -927,7 +927,7 @@ FindMarkers.Seurat <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -1062,7 +1062,7 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
@@ -1143,7 +1143,7 @@ FoldChange.DimReduc <- function(
 #' @param assay Assay to use in fold change calculation
 #' @param slot Slot to pull data from
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
+#' calculating logFC. 1/10000 by default.
 #' @param mean.fxn Function to use for fold change or average difference calculation
 #' @param base The base with respect to which logarithms are computed.
 #' @param fc.name Name of the fold change, average difference, or custom function column
@@ -1163,7 +1163,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = 1/10000,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
