@@ -125,9 +125,12 @@ AddAzimuthScores <- function(object, filename) {
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names
 #' database; see \code{\link{UpdateSymbolList}} for more details
+#' @param return_object Return \code{object} with the module scores stored as
+#' metadata. If \code{FALSE}, returns the module scores as a data frame.
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
-#' @return Returns a Seurat object with module scores added to object meta data;
+#' @return Returns either a Seurat object with module scores added to object
+#' meta data, or a data frame with module scores as columns;
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
@@ -179,6 +182,7 @@ AddModuleScore <- function(
   name = 'Cluster',
   seed = 1,
   search = FALSE,
+  return_object = TRUE,
   ...
 ) {
   if (!is.null(x = seed)) {
@@ -313,10 +317,14 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[[colnames(x = features.scores.use)]] <- features.scores.use
   CheckGC()
   DefaultAssay(object = object) <- assay.old
-  return(object)
+  if (return_object) {
+    object[[colnames(x = features.scores.use)]] <- features.scores.use
+    return(object)
+  } else {
+    return(features.scores.use)
+  }
 }
 
 #' Aggregated feature expression by identity class
