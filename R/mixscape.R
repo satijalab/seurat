@@ -1027,8 +1027,8 @@ PlotPerturbScore <- function(
   prtb_score[, 2] <- as.factor(x = prtb_score[, 2])
   gd <- setdiff(x = unique(x = prtb_score[, target.gene.class]), y = target.gene.ident)
   colnames(x = prtb_score)[2] <- "gene"
-  prtb_score$cell.bc <- sapply(rownames(prtb_score), FUN = function(x) strsplit(x, split = "[.]")[[1]][2])
-
+  prtb_score$cell.bc <- sapply(rownames(prtb_score), FUN = function(x) substring(x, regexpr("[.]", x) + 1))
+  
   if (isTRUE(x = before.mixscape)) {
     cols <- setNames(
       object = c("grey49", col),

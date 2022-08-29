@@ -1379,6 +1379,10 @@ RunUMAP.default <- function(
         object = reduction.model,
         slot = "model"
       )
+      # add num_precomputed_nns to <v0.1.13 uwot models to prevent errors with newer versions of uwot
+      if (!"num_precomputed_nns" %in% names(model)) {
+        model$num_precomputed_nns <- 1
+      }
       if (length(x = model) == 0) {
         stop(
           "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
