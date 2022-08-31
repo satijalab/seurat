@@ -2176,7 +2176,7 @@ MappingScore.default <- function(
   ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
   query.cells.projected <- Matrix::crossprod(
-    x = as(object = ref.pca, Class = "dgCMatrix"),
+    x = as.sparse(x = ref.pca),
     y = weights.matrix
   )
   colnames(x = query.cells.projected) <- query.cells
@@ -2215,7 +2215,7 @@ MappingScore.default <- function(
   orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
   query.cells.back.corrected <- Matrix::t(
     x = Matrix::crossprod(
-      x = as(object = orig.pca, Class = "dgCMatrix"),
+      x = as.sparse(x = orig.pca),
       y = weights.matrix)[1:ndim, ]
   )
   query.cells.back.corrected <- as.matrix(x = query.cells.back.corrected)
@@ -3037,7 +3037,7 @@ TransferData <- function(
       rownames(x = new.data) <- rownames(x = refdata[[rd]])
       colnames(x = new.data) <- query.cells
       if (inherits(x = new.data, what = "Matrix")) {
-        new.data <- as(object = new.data, Class = "dgCMatrix")
+        new.data <- as.sparse(x = new.data)
       }
       if (slot == "counts") {
         # TODO: restore once check.matrix is in SeuratObject
@@ -4031,7 +4031,7 @@ NNtoMatrix <- function(idx, distance, k) {
     x = as.numeric(x = nn[, 3]),
     Dim = as.integer(x = c(nrow(idx), nrow(x = idx)))
   )
-  nn.matrix <- as(object = nn.matrix, Class = 'dgCMatrix')
+  nn.matrix <- as.sparse(x = nn.matrix)
   return(nn.matrix)
 }
 
@@ -4353,7 +4353,7 @@ RescaleQuery <- function(
     if (scale) {
       feature.sd <- sqrt(
         x = SparseRowVar2(
-          mat = as(object = reference.data, Class = "dgCMatrix"),
+          mat = as.sparse(x = reference.data),
           mu = feature.mean,
           display_progress = FALSE
         )
@@ -4372,7 +4372,7 @@ RescaleQuery <- function(
   store.names <- dimnames(x = proj.data)
   if (is.numeric(x = feature.mean) && feature.mean[[1]] != "SCT") {
     proj.data <- FastSparseRowScaleWithKnownStats(
-      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mat = as.sparse(x = proj.data),
       mu = feature.mean,
       sigma = feature.sd,
       display_progress = FALSE
@@ -4840,9 +4840,9 @@ TransformDataMatrix <- function(
     slot = "data")[features.to.integrate, nn.cells2]
   )
 
-  integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
-                               weights = as(weights, "dgCMatrix"),
-                               expression_cells2 = as(data.use2, "dgCMatrix"))
+  integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
+                               weights = as.sparse(x = weights),
+                               expression_cells2 = as.sparse(x = data.use2))
   dimnames(integrated) <- dimnames(data.use2)
 
   new.expression <- t(rbind(data.use1, integrated))

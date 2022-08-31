@@ -1894,7 +1894,7 @@ CreateDummyAssay <- function(assay) {
     j = {},
     dims = c(nrow(x = assay), ncol(x = assay))
   )
-  cm <- as(object = cm, Class = "dgCMatrix")
+  cm <- as.sparse(x = cm)
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
   # TODO: restore once check.matrix is in SeuratObject
