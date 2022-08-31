@@ -131,6 +131,8 @@ AddAzimuthScores <- function(object, filename) {
 #' each module is stored as \code{name#} for each module program present in
 #' \code{features}
 #'
+#' @importFrom future.apply future_sapply
+#' @importFrom future nbrOfWorkers
 #' @importFrom ggplot2 cut_number
 #' @importFrom Matrix rowMeans colMeans
 #'
@@ -295,19 +297,42 @@ AddModuleScore <- function(
     nrow = length(x = ctrl.use),
     ncol = ncol(x = object)
   )
-  for (i in 1:length(ctrl.use)) {
-    features.use <- ctrl.use[[i]]
-    ctrl.scores[i, ] <- Matrix::colMeans(x = assay.data[features.use, ])
+
+  if (nbrOfWorkers() > 1) {
+    ctrl.scores <- future_sapply(1:length(ctrl.use), function(i) {
+      features.use <- ctrl.use[[i]]
+      ctrl.scores[i, ] <- Matrix::colMeans(x = assay.data[features.use, ])
+    })
+
+    ctrl.scores <- matrix(t(ctrl.scores), nrow = cluster.length, ncol = length(x = rownames(ctrl.scores)))
+  } else {
+    for (i in 1:length(ctrl.use)) {
+      features.use <- ctrl.use[[i]]
+      ctrl.scores[i, ] <- Matrix::colMeans(x = assay.data[features.use, ])
+    }
   }
+
   features.scores <- matrix(
     data = numeric(length = 1L),
     nrow = cluster.length,
     ncol = ncol(x = object)
   )
-  for (i in 1:cluster.length) {
-    features.use <- features[[i]]
-    data.use <- assay.data[features.use, , drop = FALSE]
-    features.scores[i, ] <- Matrix::colMeans(x = data.use)
+
+  if (nbrOfWorkers() > 1) {
+    features.scores <- future_sapply(1:cluster.length, function(i) {
+      features.use <- features[[i]]
+      data.use <- assay.data[features.use, , drop = FALSE]
+      features.scores[i, ] <- Matrix::colMeans(x = data.use)
+    })
+
+    features.scores <- matrix(t(features.scores), nrow = cluster.length, ncol = length(x = rownames(features.scores)))
+
+  } else {
+    for (i in 1:cluster.length) {
+      features.use <- features[[i]]
+      data.use <- assay.data[features.use, , drop = FALSE]
+      features.scores[i, ] <- Matrix::colMeans(x = data.use)
+    }
   }
   features.scores.use <- features.scores - ctrl.scores
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
@@ -2336,7 +2361,7 @@ RowSumSparse <- function(mat) {
   names(x = output) <- rownames(x = mat)
   return(output)
 }
- 
+
 # Calculate row variance of a sparse matrix
 #
 # @param mat sparse matrix
