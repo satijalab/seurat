@@ -624,7 +624,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   # call Rcpp function to normalize
   if (verbose) {
@@ -891,7 +891,7 @@ Read10X <- function(
   for (j in 1:length(x = full.data[[1]])) {
     list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
     # Fix for Issue #913
-    list_of_data[[j]] <- as(object = list_of_data[[j]], Class = "dgCMatrix")
+    list_of_data[[j]] <- as.sparse(x = list_of_data[[j]])
   }
   names(x = list_of_data) <- names(x = full.data[[1]])
   # If multiple features, will return a list, otherwise
@@ -961,7 +961,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     }
     rownames(x = sparse.mat) <- features
     colnames(x = sparse.mat) <- barcodes[]
-    sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
+    sparse.mat <- as.sparse(x = sparse.mat)
     # Split v3 multimodal
     if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
@@ -1255,7 +1255,7 @@ ReadMtx <- function(
 
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
-  data <- as(data, Class = "dgCMatrix")
+  data <- as.sparse(x = data)
   return(data)
 }
 
@@ -1318,7 +1318,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   if (verbose) {
     cat("Performing relative-counts-normalization\n", file = stderr())
@@ -1468,7 +1468,7 @@ SampleUMI <- function(
   upsample = FALSE,
   verbose = FALSE
 ) {
-  data <- as(object = data, Class = "dgCMatrix")
+  data <- as.sparse(x = data)
   if (length(x = max.umi) == 1) {
     new_data <- RunUMISampling(
       data = data,
@@ -1946,7 +1946,7 @@ FindVariableFeatures.default <- function(
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
   }
   if (!inherits(x = object, what = 'dgCMatrix')) {
-    object <- as(object = object, Class = 'dgCMatrix')
+    object <- as.sparse(x = object)
   }
   if (selection.method == "vst") {
     if (clip.max == 'auto') {
@@ -3118,7 +3118,7 @@ CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
   # margin <- switch(
