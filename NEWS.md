@@ -9,6 +9,7 @@
 - Add `add.noise` parameter in `VlnPlot()`
 ([#5756](https://github.com/satijalab/seurat/issues/5756))
 - Fix uwot model backwards compatibility ([#6345](https://github.com/satijalab/seurat/issues/6345))
+- Allow `pseudocount.use` in differential expression functions to be set at the `Assay` level
 
 # Seurat 4.1.1 (2022-05-01)
 
