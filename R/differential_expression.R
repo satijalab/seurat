@@ -59,7 +59,7 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1/10000,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -476,7 +476,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1/10000 by default.
+#' calculating logFC. 1 by default.
 #' @param fc.results data.frame from FoldChange
 #' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
@@ -507,11 +507,12 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1/10000,
+  pseudocount.use = 1,
   fc.results = NULL,
   densify = FALSE,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   ValidateCellGroups(
     object = object,
     cells.1 = cells.1,
@@ -625,13 +626,14 @@ FindMarkers.Assay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1/10000,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
   densify = FALSE,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -704,7 +706,7 @@ FindMarkers.SCTAssay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1/10000,
+  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -712,6 +714,7 @@ FindMarkers.SCTAssay <- function(
   recorrect_umi = TRUE,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -806,13 +809,14 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1/10000,
+  pseudocount.use = 1,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
   ...
 
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   if (test.use %in% DEmethods_counts()) {
     stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
          paste(DEmethods_counts(), collapse=", "))
@@ -927,7 +931,7 @@ FindMarkers.Seurat <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1/10000,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -1062,12 +1066,13 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 1/10000,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
@@ -1111,11 +1116,12 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   mean.fxn <- mean.fxn %||% rowMeans
   fc.name <- fc.name %||% "avg_diff"
   data <- t(x = Embeddings(object = object))
@@ -1143,7 +1149,7 @@ FoldChange.DimReduc <- function(
 #' @param assay Assay to use in fold change calculation
 #' @param slot Slot to pull data from
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1/10000 by default.
+#' calculating logFC.
 #' @param mean.fxn Function to use for fold change or average difference calculation
 #' @param base The base with respect to which logarithms are computed.
 #' @param fc.name Name of the fold change, average difference, or custom function column
@@ -1163,7 +1169,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1/10000,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,

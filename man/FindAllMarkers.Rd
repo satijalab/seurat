@@ -22,7 +22,7 @@ FindAllMarkers(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
