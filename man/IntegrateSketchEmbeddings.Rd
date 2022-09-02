@@ -6,12 +6,14 @@
 \usage{
 IntegrateSketchEmbeddings(
   object,
-  atom.assay = "sketch",
-  orig.assay = "RNA",
+  atoms = "sketch",
+  orig = "RNA",
   features = NULL,
-  atom.sketch.reduction = "integrated_dr",
-  dictionary.method = c("sketch", "data"),
-  sketch.ratio = 0.8,
+  reduction = "integrated_dr",
+  method = c("sketch", "data"),
+  ratio = 0.8,
+  reduction.name = NULL,
+  reduction.key = NULL,
   layers = NULL,
   verbose = TRUE
 )
@@ -19,27 +21,34 @@ IntegrateSketchEmbeddings(
 \arguments{
 \item{object}{A Seurat object with all cells for one dataset}
 
-\item{atom.assay}{Assay name for sketched-cell expression (default is 'sketch')}
+\item{atoms}{Assay name for sketched-cell expression (default is 'sketch')}
 
-\item{orig.assay}{Assay name for original expression (default is 'RNA')}
+\item{orig}{Assay name for original expression (default is 'RNA')}
 
 \item{features}{Features used for atomic sketch integration}
 
-\item{atom.sketch.reduction}{Dimensional reduction name for batch-corrected embeddings
+\item{reduction}{Dimensional reduction name for batch-corrected embeddings
 in the sketched object (default is 'integrated_dr')}
 
-\item{dictionary.method}{Methods to construct sketch-cell representation
+\item{method}{Methods to construct sketch-cell representation
 for all cells (default is 'sketch'). Can be one of:
 \itemize{
-\item{sketch: Use random sketched data slot}
-\item{data: Use data slot}
+ \item \dQuote{\code{sketch}}: Use random sketched data slot
+ \item \dQuote{\code{data}}: Use data slot
 }}
 
-\item{sketch.ratio}{Sketch ratio of data slot when \code{dictionary.method} is set to 'sketch' (default is 0.8)}
+\item{ratio}{Sketch ratio of data slot when \code{dictionary.method} is set
+to \dQuote{\code{sketch}}; defaults to 0.8}
+
+\item{reduction.name}{Name to save new reduction as; defaults to
+\code{paste0(reduction, '.orig')}}
+
+\item{reduction.key}{Key for new dimensional reduction; defaults to creating
+one from \code{reduction.name}}
 
 \item{layers}{Names of layers for correction.}
 
-\item{verbose}{Print progress and message (default is TRUE)}
+\item{verbose}{Print progress and message}
 }
 \value{
 Returns a Seurat object with an integrated dimensional reduction

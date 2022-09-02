@@ -12,24 +12,85 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom SeuratObject Key Key<- Layers
+DelayedLeverageScore <- function(
+  object,
+  assay = NULL,
+  nsketch = 5000L,
+  ncells = 5000L,
+  layer = 'data',
+  save = 'sketch',
+  method = CountSketch,
+  eps = 0.5,
+  default = TRUE,
+  seed = NA_integer_,
+  # cast = NULL,
+  verbose = TRUE,
+  ...
+) {
+  .NotYetImplemented()
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with delayed matrices'
+  )
+  assay <- assay[1L] %||% DefaultAssay(object = object)
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  # TODO: fix this in [[<-,Seurat5
+  if (save == assay) {
+    abort(message = "Cannot overwrite existing assays")
+  }
+  if (save %in% Assays(object = object)) {
+    if (save == DefaultAssay(object = object)) {
+      DefaultAssay(object = object) <- assay
+    }
+    object[[save]] <- NULL
+  }
+  layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- Layers(object = object, assay = assay, search = layer)
+  scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
+  row.names(x = scores) <- colnames(x = object)
+  scores[, layer] <- NA_real_
+  for (i in seq_along(along.with = layer)) {
+    l <- layer[i]
+    if (isTRUE(x = verbose)) {
+      message("Running LeverageScore for layer ", l)
+    }
+    # scores[Cells(x = object, layer = l), l] <- LeverageScore(
+    #   object = LayerData(
+    #     object = object,
+    #     layer = l,
+    #     features = features %||% VariableFeatures(object = object, layer = l),
+    #     fast = TRUE
+    #   ),
+    #   nsketch = nsketch,
+    #   ndims = ndims %||% ncol(x = object),
+    #   method = method,
+    #   eps = eps,
+    #   seed = seed,
+    #   verbose = verbose,
+    #   ...
+    # )
+  }
+}
+
+#' @importFrom SeuratObject CastAssay Key Key<- Layers
 #'
 #' @export
 #'
 LeverageScoreSampling <- function(
   object,
   assay = NULL,
-  ncells = 5000,
+  ncells = 5000L,
   save = 'sketch',
   default = TRUE,
   seed = NA_integer_,
+  cast = NULL,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
   # TODO: fix this in [[<-,Seurat5
   if (save == assay) {
-    stop("Cannot overwrite existing assays", call. = FALSE)
+    abort(message = "Cannot overwrite existing assays")
   }
   if (save %in% Assays(object = object)) {
     if (save == DefaultAssay(object = object)) {
@@ -73,6 +134,9 @@ LeverageScoreSampling <- function(
         VariableFeatures(object = object[[assay]], layer = lyr),
       silent = TRUE
     )
+  }
+  if (!is.null(x = cast)) {
+    sketched <- CastAssay(object = sketched, to = cast, ...)
   }
   Key(object = sketched) <- Key(object = save, quiet = TRUE)
   object[[save]] <- sketched
@@ -127,7 +191,6 @@ LeverageScore.default <- function(
     )
   }
   if (is.character(x = method)) {
-    # method <- get(x = method)
     method <- match.fun(FUN = method)
   }
   stopifnot(is.function(x = method))
@@ -159,6 +222,62 @@ LeverageScore.default <- function(
   ))
   Z <- object %*% (R.inv %*% JL)
   return(rowSums(x = Z ^ 2))
+}
+
+#' @method LeverageScore DelayedMatrix
+#' @export
+#'
+LeverageScore.DelayedMatrix <- function(
+  object,
+  nsketch = 5000L,
+  ndims = NULL,
+  method = CountSketch,
+  eps = 0.5,
+  seed = 123L,
+  verbose = TRUE,
+  ...
+) {
+  check_installed(
+    pkg = 'DelayedArray',
+    reason = 'for working with delayed matrices'
+  )
+  if (!is_quosure(x = method)) {
+    method <- enquo(arg = method)
+  }
+  grid <- DelayedArray::colAutoGrid(x = object)
+  scores <- vector(mode = 'numeric', length = ncol(x = object))
+  if (isTRUE(x = verbose)) {
+    pb <- txtProgressBar(style = 3L, file = stderr())
+  }
+  for (i in length(x = grid)) {
+    vp <- grid[[i]]
+    idx <- seq.int(
+      from = IRanges::start(x = slot(object = vp, name = 'ranges')[2L]),
+      to = IRanges::end(x = slot(object = vp, name = 'ranges')[2L])
+    )
+    x <- as.sparse(x = DelayedArray::read_block(
+      x = object,
+      viewport = vp,
+      as.sparse = FALSE
+    ))
+    scores[idx] <- LeverageScore(
+      object = x,
+      nsketch = nsketch,
+      ndims = ndims,
+      method = method,
+      eps = 0.5,
+      seed = seed,
+      verbose = FALSE
+      # ...
+    )
+    if (isTRUE(x = verbose)) {
+      setTxtProgressBar(pb = pb, value = i / length(x = grid))
+    }
+  }
+  if (isTRUE(x = verbose)) {
+    close(con = pb)
+  }
+  return(scores)
 }
 
 #' @method LeverageScore StdAssay

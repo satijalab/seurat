@@ -1105,7 +1105,7 @@ FeaturePlot <- function(
   } else if (!all(dims %in% colnames(x = data))) {
     stop("The dimensions requested were not found", call. = FALSE)
   }
-  features <- colnames(x = data)[4:ncol(x = data)]
+  features <- setdiff(x = names(x = data), y = c(dims, 'ident'))
   # Determine cutoffs
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
@@ -1137,37 +1137,32 @@ FeaturePlot <- function(
   if (length(x = check.lengths) != 1) {
     stop("There must be the same number of minimum and maximum cuttoffs as there are features")
   }
+  names(x = min.cutoff) <- names(x = max.cutoff) <- features
   brewer.gran <- ifelse(
     test = length(x = cols) == 1,
     yes = brewer.pal.info[cols, ]$maxcolors,
     no = length(x = cols)
   )
   # Apply cutoffs
-  data[, 4:ncol(x = data)] <- sapply(
-    X = 4:ncol(x = data),
-    FUN = function(index) {
-      data.feature <- as.vector(x = data[, index])
-      min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
-      max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
-      data.feature[data.feature < min.use] <- min.use
-      data.feature[data.feature > max.use] <- max.use
-      if (brewer.gran == 2) {
-        return(data.feature)
-      }
-      data.cut <- if (all(data.feature == 0)) {
-        0
-      }
-      else {
+  for (i in seq_along(along.with = features)) {
+    f <- features[i]
+    data.feature <- data[[f]]
+    min.use <- SetQuantile(cutoff = min.cutoff[f], data = data.feature)
+    max.use <- SetQuantile(cutoff = max.cutoff[f], data = data.feature)
+    data.feature[data.feature < min.use] <- min.use
+    data.feature[data.feature > max.use] <- max.use
+    if (brewer.gran != 2) {
+      data.feature <- if (all(data.feature == 0)) {
+        rep_len(x = 0, length.out = length(x = data.feature))
+      } else {
         as.numeric(x = as.factor(x = cut(
           x = as.numeric(x = data.feature),
-          breaks = brewer.gran
+          breaks = 2
         )))
       }
-      return(data.cut)
     }
-  )
-  colnames(x = data)[4:ncol(x = data)] <- features
-  rownames(x = data) <- cells
+    data[[f]] <- data.feature
+  }
   # Figure out splits (FeatureHeatmap)
   data$split <- if (is.null(x = split.by)) {
     RandomName()
