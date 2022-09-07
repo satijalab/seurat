@@ -1419,7 +1419,7 @@ SampleUMI <- function(
 #' Use regularized negative binomial regression to normalize UMI count data
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
-#' https://github.com/ChristophH/sctransform.
+#' https://github.com/satijalab/sctransform.
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 #' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
@@ -1819,7 +1819,7 @@ SCTransform.Assay <- function(
 #'
 SCTransform.Seurat <- function(
     object,
-    assay = 'RNA',
+    assay = NULL,
     new.assay.name = 'SCT',
     reference.SCT.model = NULL,
     do.correct.umi = TRUE,
@@ -1838,11 +1838,12 @@ SCTransform.Seurat <- function(
     ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  umi <- GetAssay(object = object, assay = assay, slot = "counts")
-  assay.obj <- GetAssay(object = object, assay = assay)
+  if (verbose){
+    message("Running SCTransform on assay: ", assay)
+  }
   cell.attr <- slot(object = object, name = 'meta.data')
 
-  assay.data <- SCTransform(object = assay.obj,
+  assay.data <- SCTransform(object = object[[assay]],
                             cell.attr = cell.attr,
                             reference.SCT.model = reference.SCT.model,
                             do.correct.umi = do.correct.umi,
