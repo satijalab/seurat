@@ -467,6 +467,7 @@ DietSeurat <- function(
   graphs = NULL
 ) {
   object <- UpdateSlots(object = object)
+  return(object)
   assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
   assays <- assays[assays %in% FilterObjects(object = object, classes.keep = 'Assay')]
   if (length(x = assays) == 0) {
@@ -492,6 +493,7 @@ DietSeurat <- function(
             object[[assay]] <- NULL
           }
         } else {
+          browser()
           object[[assay]] <- subset(x = object[[assay]], features = features.assay)
         }
       }

@@ -4494,6 +4494,7 @@ PairwiseIntegrateReference <- function(
     # TODO: restore once check.matrix is in SeuratObject
     # merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
+    merged.obj[[new.assay.name]]@key <- paste0(new.assay.name,'_')
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
@@ -4508,6 +4509,7 @@ PairwiseIntegrateReference <- function(
   integrated.data <- integrated.data[, colnames(x = unintegrated)]
   new.assay <- new(
     Class = 'Assay',
+    key = paste0(new.assay.name, "_"),
     counts =  new(Class = "dgCMatrix"),
     data = integrated.data,
     scale.data = matrix(),
@@ -5115,6 +5117,7 @@ TransformDataMatrix <- function(
   new.expression <- new.expression[, colnames(object)]
   new.assay <- new(
     Class = 'Assay',
+    key = paste0(new.assay.name,"_"),
     counts = new(Class = "dgCMatrix"),
     data = new.expression,
     scale.data = matrix(),
