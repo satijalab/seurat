@@ -1516,8 +1516,6 @@ FetchResiduals <- function(object,
     layer_cells <- Cells(x = object[[umi.assay]], layer = l)
     all_cells <- c(all_cells, layer_cells)
     total_cells <- total_cells + length(layer_cells)
-    # cat(layer_cells)
-    # stop("")
     # calculate residual using this model and these cells
     new.residuals[[i]] <- FetchResidualSCTModel(
       object = object,
@@ -1556,11 +1554,6 @@ FetchResiduals <- function(object,
     new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
 
-  # if (any(!features.orig %in% rownames(x = new.scale))) {
-  #   bad.features <- features.orig[which(!features.orig %in% rownames(x = new.scale))]
-  #   warning("Residuals not computed for the following requested features: ",
-  #           paste(bad.features, collapse = ", "), call. = FALSE)
-  # }
   return(new.scale)
 }
 
