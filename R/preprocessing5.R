@@ -1265,16 +1265,14 @@ SCTransform.StdAssay <- function(
       features = Features(x = object, layer = l),
       cells = Cells(x = object, layer = l)
       )
-    feature.grid <- DelayedArray::rowAutoGrid(x = counts)
-    ##TODO: handle this later for boundary conditions
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = 2000)
+    ## Sample  cells
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncells)
 
-    ##TODO: handle this later for boundary conditions
     vp <- cells.grid[[1L]]
-
-    # Read a block from a delayed matrix
     sparse <- DelayedArray::is_sparse(x = counts) # TRUE
-    block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = sparse)
+    block <- DelayedArray::read_block(x = counts,
+                                      viewport = vp,
+                                      as.sparse = sparse)
 
     counts <- as(object = block, Class = 'dgCMatrix')
     cell.attr.object <- cell.attr[colnames(x = counts),]
