@@ -1341,8 +1341,8 @@ SCTransform.StdAssay <- function(
   }
 
   # Return array by merging everythin
-  if (length(x = sct.assay.list)>1){
-    merged.assay <- merge.SCTAssay(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
+  if (length(x = sct.assay.list) > 1){
+    merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
