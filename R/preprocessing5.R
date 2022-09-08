@@ -1304,6 +1304,7 @@ SCTransform.StdAssay <- function(
 
     residual.type <- vst.out[['residual_type']] %||% 'pearson'
     sct.method <- vst.out[['sct.method']]
+    variable.feature.list <- list()
     # create output assay and put (corrected) umi counts in count slot
     if (do.correct.umi & residual.type == 'pearson') {
       if (verbose) {
@@ -1318,6 +1319,7 @@ SCTransform.StdAssay <- function(
     }
     # set the variable genes
     VariableFeatures(object = assay.out) <- vst.out$variable_features
+    variable.feature.list[[dataset.names[i]]] <- vst.out$variable_features
     # put log1p transformed counts in data
     assay.out <- SetAssayData(
       object = assay.out,
@@ -1342,7 +1344,11 @@ SCTransform.StdAssay <- function(
 
   # Return array by merging everythin
   if (length(x = sct.assay.list) > 1){
+
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
+    # set variable features as the union of the features
+    variable.features <- Reduce(f = union, x = variable.feature.list)
+    VariableFeatures(object = merged.assay) <- variable.features
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
@@ -1679,6 +1685,16 @@ FetchResidualSCTModel <- function(object,
       block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
       ## TODO: Maybe read only interesting genes
       umi.all <- as(object = block, Class = "dgCMatrix")
+
+      # calcluclate min_variance for get_residuals
+      # required when vst_out$arguments$min_variance == "umi_median"
+      # only calculated once
+      if (i==1){
+        nz_median <- median(umi.all@x)
+        min_var_custom <- (nz_median / 5)^2
+        print(paste("min_var_custom", min_var_custom))
+      }
+
       umi <- umi.all[features_to_compute, , drop = FALSE]
 
       ## Add cell_attr for missing cells
@@ -1704,10 +1720,16 @@ FetchResidualSCTModel <- function(object,
           message("sct.model: ", SCTModel)
         }
       }
+      if (vst_out$arguments$min_variance == "umi_median"){
+        min_var <- min_var_custom
+      } else {
+        min_var <- vst_out$arguments$min_variance
+      }
       new_residual <- get_residuals(
         vst_out = vst_out,
         umi = umi,
         residual_type = "pearson",
+        min_variance = min_var,
         res_clip_range = c(clip.min, clip.max),
         verbosity = as.numeric(x = verbose) * 2
       )
