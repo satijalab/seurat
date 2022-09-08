@@ -1250,6 +1250,10 @@ SCTransform.StdAssay <- function(
     verbose = TRUE,
     ...
 ) {
+  if (!is.null(reference.SCT.model)){
+    do.correct.umi <- FALSE
+    do.center <- FALSE
+  }
   olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
   layers <- Layers(object = object, search = layer)
   dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
@@ -1268,81 +1272,105 @@ SCTransform.StdAssay <- function(
     ## Sample  cells
     cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncells)
 
-    vp <- cells.grid[[1L]]
-    sparse <- DelayedArray::is_sparse(x = counts) # TRUE
-    block <- DelayedArray::read_block(x = counts,
-                                      viewport = vp,
-                                      as.sparse = sparse)
-
-    counts <- as(object = block, Class = 'dgCMatrix')
-    cell.attr.object <- cell.attr[colnames(x = counts),]
-
-    if (!identical(rownames(cell.attr.object), colnames(counts))) {
-      # print(length(setdiff(rownames(cell.attr.object), colnames(counts))))
-      # print(length(setdiff(colnames(counts),rownames(cell.attr.object))))
-      stop("cell attribute row names must match column names of count matrix")
-    }
-    vst.out <- SCTransform(object = counts,
-                           cell.attr = cell.attr.object,
-                           reference.SCT.model = reference.SCT.model,
-                           do.correct.umi = do.correct.umi,
-                           ncells = ncells,
-                           residual.features = residual.features,
-                           variable.features.n = variable.features.n,
-                           variable.features.rv.th = variable.features.rv.th,
-                           vars.to.regress = vars.to.regress,
-                           do.scale = do.scale,
-                           do.center = do.center,
-                           clip.range = clip.range,
-                           conserve.memory = conserve.memory,
-                           return.only.var.genes = return.only.var.genes,
-                           seed.use = seed.use,
-                           verbose = verbose,
-                           ...)
-
-    residual.type <- vst.out[['residual_type']] %||% 'pearson'
-    sct.method <- vst.out[['sct.method']]
+    # if there is no reference model we randomly select a subset of cells
+    # TODO: randomize this set of cells
     variable.feature.list <- list()
-    # create output assay and put (corrected) umi counts in count slot
-    if (do.correct.umi & residual.type == 'pearson') {
-      if (verbose) {
-        message('Place corrected count matrix in counts slot')
+
+    GetSCT.Chunked <- function(vp){
+      sparse <- DelayedArray::is_sparse(x = counts) # TRUE
+      block <- DelayedArray::read_block(x = counts,
+                                        viewport = vp,
+                                        as.sparse = sparse)
+
+      counts <- as(object = block, Class = 'dgCMatrix')
+      cell.attr.object <- cell.attr[colnames(x = counts),]
+
+      if (!identical(rownames(cell.attr.object), colnames(counts))) {
+        # print(length(setdiff(rownames(cell.attr.object), colnames(counts))))
+        # print(length(setdiff(colnames(counts),rownames(cell.attr.object))))
+        stop("cell attribute row names must match column names of count matrix")
       }
-      if (is.null(reference.SCT.model)){
-        assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
-        vst.out$umi_corrected <- NULL
+      vst.out <- SCTransform(object = counts,
+                             cell.attr = cell.attr.object,
+                             reference.SCT.model = reference.SCT.model,
+                             do.correct.umi = do.correct.umi,
+                             ncells = ncells,
+                             residual.features = residual.features,
+                             variable.features.n = variable.features.n,
+                             variable.features.rv.th = variable.features.rv.th,
+                             vars.to.regress = vars.to.regress,
+                             do.scale = do.scale,
+                             do.center = do.center,
+                             clip.range = clip.range,
+                             conserve.memory = conserve.memory,
+                             return.only.var.genes = return.only.var.genes,
+                             seed.use = seed.use,
+                             verbose = verbose,
+                             ...)
+
+      residual.type <- vst.out[['residual_type']] %||% 'pearson'
+      sct.method <- vst.out[['sct.method']]
+      # create output assay and put (corrected) umi counts in count slot
+      if (do.correct.umi & residual.type == 'pearson') {
+        if (verbose) {
+          message('Place corrected count matrix in counts slot')
+        }
+        if (is.null(reference.SCT.model)){
+          assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+          vst.out$umi_corrected <- NULL
+        } else {
+          assay.out <- CreateAssayObject(counts = counts)
+        }
+
       } else {
+        # TODO: restore once check.matrix is in SeuratObject
+        # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
         assay.out <- CreateAssayObject(counts = counts)
       }
-
-    } else {
-      # TODO: restore once check.matrix is in SeuratObject
-      # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
-      assay.out <- CreateAssayObject(counts = counts)
+      # set the variable genes
+      VariableFeatures(object = assay.out) <- vst.out$variable_features
+      # put log1p transformed counts in data
+      assay.out <- SetAssayData(
+        object = assay.out,
+        slot = 'data',
+        new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+      )
+      scale.data <- vst.out$y
+      assay.out <- SetAssayData(
+        object = assay.out,
+        slot = 'scale.data',
+        new.data = scale.data
+      )
+      vst.out$y <- NULL
+      # save clip.range into vst model
+      vst.out$arguments$sct.clip.range <- clip.range
+      vst.out$arguments$sct.method <- sct.method
+      Misc(object = assay.out, slot = 'vst.out') <- vst.out
+      assay.out <- as(object = assay.out, Class = "SCTAssay")
+      return (assay.out)
     }
-    # set the variable genes
-    VariableFeatures(object = assay.out) <- vst.out$variable_features
-    variable.feature.list[[dataset.names[i]]] <- vst.out$variable_features
-    # put log1p transformed counts in data
-    assay.out <- SetAssayData(
-      object = assay.out,
-      slot = 'data',
-      new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
-    )
-    scale.data <- vst.out$y
-    assay.out <- SetAssayData(
-      object = assay.out,
-      slot = 'scale.data',
-      new.data = scale.data
-    )
-    vst.out$y <- NULL
-    # save clip.range into vst model
-    vst.out$arguments$sct.clip.range <- clip.range
-    vst.out$arguments$sct.method <- sct.method
-    Misc(object = assay.out, slot = 'vst.out') <- vst.out
-    assay.out <- as(object = assay.out, Class = "SCTAssay")
 
-    sct.assay.list[[dataset.names[i]]] <- assay.out
+    if (is.null(reference.SCT.model)){
+      # No reference model so just select the first block of cells
+      vp <- cells.grid[[1L]]
+      assay.out <- GetSCT.Chunked(vp = vp)
+      variable.feature.list[[dataset.names[i]]] <- VariableFeatures(assay.out)
+      sct.assay.list[[dataset.names[i]]] <- assay.out
+    } else {
+      sct.assay.list.temp <- list()
+      for (i in seq_len(length.out = length(x = cells.grid))) {
+        vp <- cells.grid[[i]]
+        assay.out <- GetSCT.Chunked(vp = vp)
+        sct.assay.list.temp[[paste0("chunk", i)]] <- assay.out
+      }
+      if (length(sct.assay.list.temp)>1){
+        assay.out <- merge(x = sct.assay.list.temp[[1]],
+                           y = sct.assay.list.temp[2:length(sct.assay.list.temp)])
+      } else {
+        assay.out <- sct.assay.list.temp[[1]]
+      }
+      sct.assay.list[[dataset.names[i]]] <- assay.out
+    }
   }
 
   # Return array by merging everythin
