@@ -1826,6 +1826,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 IntegrateSketchEmbeddings <- function(
   object,
   atoms = 'sketch', # DefaultAssay(object)
+  atoms.layers = NULL,
   orig = 'RNA',
   features = NULL, # VF from object[[atom.assay]]
   reduction = 'integrated_dr', # harmony; rerun UMAP on this
@@ -1837,6 +1838,7 @@ IntegrateSketchEmbeddings <- function(
   verbose = TRUE
 ) {
   # Check input and output dimensional reductions
+  atoms.layers <- atoms.layers %||% layers
   reduction <- match.arg(arg = reduction, choices = Reductions(object = object))
   reduction.name <- reduction.name %||% paste0(reduction, '.orig')
   reduction.key <- reduction.key %||% Key(object = reduction.name, quiet = TRUE)
@@ -1888,7 +1890,7 @@ IntegrateSketchEmbeddings <- function(
   features.atom <- Reduce(
     f = intersect,
     x = lapply(
-      X = layers,
+      X = atoms.layers,
       FUN = function(lyr) {
         return(Features(x = object[[atoms]], layer = lyr))
       }
@@ -1915,8 +1917,16 @@ IntegrateSketchEmbeddings <- function(
       return((sum(ncells[1:x]) + 1):sum(ncells[1:(x + 1)]))
     }
   )
+  if (length(atoms.layers) == 1) {
+    atoms.layers <- rep(atoms.layers, length(layers))
+  }
   for (i in seq_along(along.with = layers)) {
-    cells.sketch <- Cells(x = object[[atoms]], layer = layers[i])
+    if (length(unique(atoms.layers)) == length(layers)) {
+      cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
+    } else if (length(unique(atoms.layers)) == 1) {
+      cells.sketch <- intersect(Cells(x = object[[atoms]][[atoms.layers[[1]]]]),
+                                Cells(object[[orig]][layers[i]]))
+    }
     if (isTRUE(x = verbose)) {
       message(
         length(x = cells.sketch),
@@ -1924,6 +1934,12 @@ IntegrateSketchEmbeddings <- function(
       )
       message("Correcting embeddings")
     }
+     if (inherits(x = object[[orig]][[layers[i]]], what = 'DelayedMatrix') ) {
+       matrix.prod.function <- crossprod_DelayedAssay
+       } else { 
+         matrix.prod.function <- crossprod
+       }
+    
     emb <- switch(
       EXPR = method,
       'data' = {
@@ -1938,17 +1954,12 @@ IntegrateSketchEmbeddings <- function(
         )
         sketch.transform <- ginv(X = exp.mat) %*%
           Embeddings(object = object[[reduction]])[cells.sketch ,]
-        emb <- as.matrix(
-          # TODO: update as.sparse to have default method with `as(x, "CsparseMatrix")`
-          x =  t(x = as(
-            object =  LayerData(
-              object = object[[orig]],
-              layer = layers[i],
-              features = features
-            ),
-            Class = "CsparseMatrix")) %*%
-            sketch.transform
-        )
+        emb <- matrix.prod.function(x = sketch.transform,
+                                    y = LayerData(
+                                      object = object[[orig]],
+                                      layer = layers[i],
+                                      features = features
+                                    ))
         emb
       },
       'sketch' = {
@@ -1958,24 +1969,18 @@ IntegrateSketchEmbeddings <- function(
         ))
         exp.mat <- as.matrix(x = t(x = LayerData(
           object = object[[atoms]],
-          layer = layers[i],
+          layer = atoms.layers[i],
           features = features
-        )) %*% R)
+        )[,cells.sketch]) %*% R)
         sketch.transform <- ginv(X = exp.mat) %*%
           Embeddings(object = object[[reduction]])[cells.sketch ,]
-        emb <- as.matrix(
-          x = (
-            t(as(
-              object =  LayerData(
-                object = object[[orig]],
-                layer = layers[i],
-                features = features
-              ),
-              Class = "CsparseMatrix"))
-              %*%
-              R) %*%
-            sketch.transform
-        )
+        emb <- matrix.prod.function(x = R %*% sketch.transform,
+                             y = LayerData(
+                               object = object[[orig]],
+                               layer = layers[i],
+                               features = features
+                             ))
+        emb <- t(emb)
         emb
       }
     )
@@ -5804,3 +5809,139 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
   return(emb.mat)
 }
+
+
+#' Perform integration on the joint PCA cell embeddings.
+#'
+#' This is a convenience wrapper function around the following three functions
+#' that are often run together when perform integration.
+#' #' \code{\link{FindIntegrationAnchors}}, \code{\link{RunPCA}},
+#' \code{\link{IntegrateEmbeddings}}.
+#'
+#' @inheritParams FindIntegrationAnchors
+#' @param new.reduction.name Name of integrated dimensional reduction
+#' @param npcs Total Number of PCs to compute and store (50 by default)
+#' @param findintegrationanchors.args A named list of additional arguments to
+#' \code{\link{FindIntegrationAnchors}}
+#' @param verbose Print messages and progress
+#'
+#' @importFrom rlang invoke
+#' @return Returns a Seurat object with integrated dimensional reduction
+#' @export
+#'
+FastRPCAIntegration <- function(
+  object.list,
+  reference = NULL,
+  anchor.features = 2000,
+  k.anchor = 20,
+  dims = 1:30,
+  scale = TRUE,
+  normalization.method = c("LogNormalize", "SCT"),
+  new.reduction.name = 'integrated_dr',
+  npcs = 50,
+  findintegrationanchors.args = list(),
+  verbose = TRUE
+) {
+  npcs <- max(npcs, dims)
+  my.lapply <- ifelse(
+    test = verbose && nbrOfWorkers() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
+  reduction <- 'rpca'
+  if (is.numeric(x = anchor.features)) {
+    anchor.features <- SelectIntegrationFeatures(
+      object.list = object.list,
+      nfeatures = anchor.features,
+      verbose = FALSE
+    )
+  }
+  if (normalization.method == 'SCT') {
+    scale <- FALSE
+    object.list <- PrepSCTIntegration(object.list = object.list,
+                                      anchor.features = anchor.features
+    )
+  }
+  if (verbose) {
+    message('Performing PCA for each object')
+  }
+  object.list <- my.lapply(X = object.list,
+                           FUN = function(x) {
+                             if (normalization.method != 'SCT') {
+                               x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+                             }
+                             x <- RunPCA(x, features = anchor.features, verbose = FALSE, npcs = npcs)
+                             return(x)
+                           }
+  )
+  
+  anchor <- invoke(
+    .fn = FindIntegrationAnchors,
+    .args = c(list(
+      object.list = object.list,
+      reference = reference,
+      anchor.features = anchor.features,
+      reduction = reduction,
+      normalization.method = normalization.method,
+      scale = scale,
+      k.anchor = k.anchor,
+      dims = dims,
+      verbose = verbose
+    ), findintegrationanchors.args
+    )
+  )
+  object_merged <- merge(x = object.list[[1]],
+                         y = object.list[2:length(object.list)]
+  )
+  anchor.feature <- slot(object = anchor, name = 'anchor.features')
+  if (normalization.method != 'SCT') {
+    object_merged <- ScaleData(object = object_merged,
+                               features = anchor.feature,
+                               do.scale = scale,
+                               verbose = FALSE
+    )
+  }
+  object_merged <- RunPCA(object_merged,
+                          features = anchor.feature,
+                          verbose = FALSE,
+                          npcs = npcs
+  )
+  temp <- object_merged[["pca"]]
+  object_merged <- IntegrateEmbeddings(
+    anchorset = anchor,
+    reductions = object_merged[['pca']],
+    new.reduction.name = new.reduction.name,
+    verbose = verbose)
+  object_merged[['pca']] <- temp
+  VariableFeatures(object = object_merged) <- anchor.feature
+  return(object_merged)
+}
+
+crossprod_DelayedAssay <- function(x, y, block.size = 1e9) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y) 
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  product.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    product.list[[i]] <- as.matrix(t(x) %*% block)
+  }
+  product.mat <- matrix(data = unlist(product.list), nrow = ncol(x) , ncol = ncol(y))
+  colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- rownames(x)
+  return(product.mat)
+}
+
