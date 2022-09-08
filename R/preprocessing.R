@@ -1419,16 +1419,15 @@ SampleUMI <- function(
 #' Use regularized negative binomial regression to normalize UMI count data
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
-#' https://github.com/ChristophH/sctransform.
+#' https://github.com/satijalab/sctransform.
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 #' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
 #' scale.data being pearson residuals; sctransform::vst intermediate results are saved
 #' in misc slot of new assay.
 #'
-#' @param object A seurat object
-#' @param assay Name of assay to pull the count data from; default is 'RNA'
-#' @param new.assay.name Name for the new assay containing the normalized data
+#' @param object UMI counts matrix
+#' @param cell.attr A metadata with cell attributes
 #' @param reference.SCT.model If not NULL, compute residuals for the object
 #' using the provided SCT model; supports only log_umi as the latent variable.
 #' If residual.features are not specified, compute for the top variable.features.n
@@ -1469,17 +1468,14 @@ SampleUMI <- function(
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
-#' @export
+#'
+#' @rdname SCTransform
 #' @concept preprocessing
+#' @export
 #'
-#' @examples
-#' data("pbmc_small")
-#' SCTransform(object = pbmc_small)
-#'
-SCTransform <- function(
+SCTransform.default <- function(
   object,
-  assay = 'RNA',
-  new.assay.name = 'SCT',
+  cell.attr,
   reference.SCT.model = NULL,
   do.correct.umi = TRUE,
   ncells = 5000,
@@ -1489,21 +1485,15 @@ SCTransform <- function(
   vars.to.regress = NULL,
   do.scale = FALSE,
   do.center = TRUE,
-  clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
+  clip.range = c(-sqrt(x = ncol(x = umi) / 30), sqrt(x = ncol(x = umi) / 30)),
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
   verbose = TRUE,
   ...
 ) {
-  if (!is.null(x = seed.use)) {
-    set.seed(seed = seed.use)
-  }
-  assay <- assay %||% DefaultAssay(object = object)
-  assay.obj <- GetAssay(object = object, assay = assay)
-  umi <- GetAssayData(object = assay.obj, slot = 'counts')
-  cell.attr <- slot(object = object, name = 'meta.data')
   vst.args <- list(...)
+  umi <- object
   # check for batch_var in meta data
   if ('batch_var' %in% names(x = vst.args)) {
     if (!(vst.args[['batch_var']] %in% colnames(x = cell.attr))) {
@@ -1711,28 +1701,7 @@ SCTransform <- function(
       }
       vst.out
     })
-  # create output assay and put (corrected) umi counts in count slot
-  if (do.correct.umi & residual.type == 'pearson') {
-    if (verbose) {
-      message('Place corrected count matrix in counts slot')
-    }
-    # TODO: restore once check.matrix is in SeuratObject
-    # assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected,)
-    vst.out$umi_corrected <- NULL
-  } else {
-    # TODO: restore once check.matrix is in SeuratObject
-    # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
-    assay.out <- CreateAssayObject(counts = umi)
-  }
-  # set the variable genes
-  VariableFeatures(object = assay.out) <- residual.features %||% top.features
-  # put log1p transformed counts in data
-  assay.out <- SetAssayData(
-    object = assay.out,
-    slot = 'data',
-    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
-  )
+  vst.out$sct.method <- sct.method
   scale.data <- vst.out$y
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
@@ -1752,21 +1721,149 @@ SCTransform <- function(
     min.cells.to.block = 3000,
     verbose = verbose
   )
+  vst.out$y <- scale.data
+  vst.out$variable_features <- residual.features %||% top.features
+
+  return(vst.out)
+}
+
+#' @rdname SCTransform
+#' @concept preprocessing
+#' @export
+#' @method SCTransform Assay
+#'
+SCTransform.Assay <- function(
+    object,
+    cell.attr,
+    reference.SCT.model = NULL,
+    do.correct.umi = TRUE,
+    ncells = 5000,
+    residual.features = NULL,
+    variable.features.n = 3000,
+    variable.features.rv.th = 1.3,
+    vars.to.regress = NULL,
+    do.scale = FALSE,
+    do.center = TRUE,
+    clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
+    conserve.memory = FALSE,
+    return.only.var.genes = TRUE,
+    seed.use = 1448145,
+    verbose = TRUE,
+    ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  umi <- GetAssayData(object = object, slot = 'counts')
+  vst.out <- SCTransform(object = umi,
+                         cell.attr = cell.attr,
+                         reference.SCT.model = reference.SCT.model,
+                         do.correct.umi = do.correct.umi,
+                         ncells = ncells,
+                         residual.features = residual.features,
+                         variable.features.n = variable.features.n,
+                         variable.features.rv.th = variable.features.rv.th,
+                         vars.to.regress = vars.to.regress,
+                         do.scale = do.scale,
+                         do.center = do.center,
+                         clip.range = clip.range,
+                         conserve.memory = conserve.memory,
+                         return.only.var.genes = return.only.var.genes,
+                         seed.use = seed.use,
+                         verbose = verbose,
+                         ...)
+  residual.type <- vst.out[['residual_type']] %||% 'pearson'
+  sct.method <- vst.out[["sct.method"]]
+  # create output assay and put (corrected) umi counts in count slot
+  if (do.correct.umi & residual.type == 'pearson') {
+    if (verbose) {
+      message('Place corrected count matrix in counts slot')
+    }
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+    vst.out$umi_corrected <- NULL
+  } else {
+    # TODO: restore once check.matrix is in SeuratObject
+    # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
+    assay.out <- CreateAssayObject(counts = umi)
+  }
+  # set the variable genes
+  VariableFeatures(object = assay.out) <- vst.out$variable_features
+  # put log1p transformed counts in data
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'data',
+    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
+  )
+  scale.data <- vst.out$y
   assay.out <- SetAssayData(
     object = assay.out,
     slot = 'scale.data',
     new.data = scale.data
   )
-  # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   # save clip.range into vst model
   vst.out$arguments$sct.clip.range <- clip.range
   vst.out$arguments$sct.method <- sct.method
   Misc(object = assay.out, slot = 'vst.out') <- vst.out
   assay.out <- as(object = assay.out, Class = "SCTAssay")
-  assay.out <- SCTAssay(assay.out, assay.orig = assay)
-  slot(object = slot(object = assay.out, name = "SCTModel.list")[[1]], name = "umi.assay") <- assay
-  object[[new.assay.name]] <- assay.out
+  return(assay.out)
+}
+
+#' @param assay Name of assay to pull the count data from; default is 'RNA'
+#' @param new.assay.name Name for the new assay containing the normalized data; default is 'SCT'
+#'
+#' @rdname SCTransform
+#' @concept preprocessing
+#' @export
+#' @method SCTransform Seurat
+#'
+SCTransform.Seurat <- function(
+    object,
+    assay = NULL,
+    new.assay.name = 'SCT',
+    reference.SCT.model = NULL,
+    do.correct.umi = TRUE,
+    ncells = 5000,
+    residual.features = NULL,
+    variable.features.n = 3000,
+    variable.features.rv.th = 1.3,
+    vars.to.regress = NULL,
+    do.scale = FALSE,
+    do.center = TRUE,
+    clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
+    conserve.memory = FALSE,
+    return.only.var.genes = TRUE,
+    seed.use = 1448145,
+    verbose = TRUE,
+    ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (verbose){
+    message("Running SCTransform on assay: ", assay)
+  }
+  cell.attr <- slot(object = object, name = 'meta.data')
+
+  assay.data <- SCTransform(object = object[[assay]],
+                            cell.attr = cell.attr,
+                            reference.SCT.model = reference.SCT.model,
+                            do.correct.umi = do.correct.umi,
+                            ncells = ncells,
+                            residual.features = residual.features,
+                            variable.features.n = variable.features.n,
+                            variable.features.rv.th = variable.features.rv.th,
+                            vars.to.regress = vars.to.regress,
+                            do.scale = do.scale,
+                            do.center = do.center,
+                            clip.range = clip.range,
+                            conserve.memory = conserve.memory,
+                            return.only.var.genes = return.only.var.genes,
+                            seed.use = seed.use,
+                            verbose = verbose,
+                            ...)
+  assay.data <- SCTAssay(assay.data, assay.orig = assay)
+  slot(object = slot(object = assay.data, name = "SCTModel.list")[[1]], name = "umi.assay") <- assay
+  object[[new.assay.name]] <- assay.data
+
   if (verbose) {
     message(paste("Set default assay to", new.assay.name))
   }
