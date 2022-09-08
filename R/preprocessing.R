@@ -1465,6 +1465,7 @@ SampleUMI <- function(
 #' slot of the new assay.
 #'
 #' @importFrom stats setNames
+#' @importFrom Matrix colSums
 #' @importFrom sctransform vst get_residual_var get_residuals correct_counts
 #'
 #' @seealso \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
@@ -1575,13 +1576,10 @@ SCTransform.default <- function(
       do.correct.umi <- FALSE
       vst.out <- reference.SCT.model
       clip.range <- vst.out$arguments$sct.clip.range
-      umi.field <- paste0("nCount_", assay)
-      vst.out$cell_attr <-
-        if (umi.field %in% colnames(x = object[[]])) {
-          data.frame(log_umi = log10(x = object[[umi.field, drop = T]]))
-        } else {
-          data.frame(log_umi = log10(x = CalcN(object = object[[assay]])$nCount))
-        }
+      cell_attr <-  data.frame(log_umi = log10(x = colSums(umi)))
+      rownames(cell_attr) <- colnames(x = umi)
+      vst.out$cell_attr <- cell_attr
+
       all.features  <- intersect(
         x =  rownames(x = vst.out$gene_attr),
         y = rownames(x = umi)

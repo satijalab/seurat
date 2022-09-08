@@ -1265,16 +1265,14 @@ SCTransform.StdAssay <- function(
       features = Features(x = object, layer = l),
       cells = Cells(x = object, layer = l)
       )
-    feature.grid <- DelayedArray::rowAutoGrid(x = counts)
-    ##TODO: handle this later for boundary conditions
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = 2000)
+    ## Sample  cells
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncells)
 
-    ##TODO: handle this later for boundary conditions
     vp <- cells.grid[[1L]]
-
-    # Read a block from a delayed matrix
     sparse <- DelayedArray::is_sparse(x = counts) # TRUE
-    block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = sparse)
+    block <- DelayedArray::read_block(x = counts,
+                                      viewport = vp,
+                                      as.sparse = sparse)
 
     counts <- as(object = block, Class = 'dgCMatrix')
     cell.attr.object <- cell.attr[colnames(x = counts),]
@@ -1304,6 +1302,7 @@ SCTransform.StdAssay <- function(
 
     residual.type <- vst.out[['residual_type']] %||% 'pearson'
     sct.method <- vst.out[['sct.method']]
+    variable.feature.list <- list()
     # create output assay and put (corrected) umi counts in count slot
     if (do.correct.umi & residual.type == 'pearson') {
       if (verbose) {
@@ -1318,6 +1317,7 @@ SCTransform.StdAssay <- function(
     }
     # set the variable genes
     VariableFeatures(object = assay.out) <- vst.out$variable_features
+    variable.feature.list[[dataset.names[i]]] <- vst.out$variable_features
     # put log1p transformed counts in data
     assay.out <- SetAssayData(
       object = assay.out,
@@ -1341,8 +1341,12 @@ SCTransform.StdAssay <- function(
   }
 
   # Return array by merging everythin
-  if (length(x = sct.assay.list)>1){
-    merged.assay <- merge.SCTAssay(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
+  if (length(x = sct.assay.list) > 1){
+
+    merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
+    # set variable features as the union of the features
+    variable.features <- Reduce(f = union, x = variable.feature.list)
+    VariableFeatures(object = merged.assay) <- variable.features
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
@@ -1516,8 +1520,6 @@ FetchResiduals <- function(object,
     layer_cells <- Cells(x = object[[umi.assay]], layer = l)
     all_cells <- c(all_cells, layer_cells)
     total_cells <- total_cells + length(layer_cells)
-    # cat(layer_cells)
-    # stop("")
     # calculate residual using this model and these cells
     new.residuals[[i]] <- FetchResidualSCTModel(
       object = object,
@@ -1556,11 +1558,6 @@ FetchResiduals <- function(object,
     new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
 
-  # if (any(!features.orig %in% rownames(x = new.scale))) {
-  #   bad.features <- features.orig[which(!features.orig %in% rownames(x = new.scale))]
-  #   warning("Residuals not computed for the following requested features: ",
-  #           paste(bad.features, collapse = ", "), call. = FALSE)
-  # }
   return(new.scale)
 }
 
@@ -1677,7 +1674,9 @@ FetchResidualSCTModel <- function(object,
       layer = layer,
       cells = layer.cells
     )
-    cells.grid <- DelayedArray::colAutoGrid(x = counts) # , ncol = 5000)
+
+    # iterate over 2k cells at once
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = 2000)
     new_residuals <- list()
     # cat(dim(counts))
 
@@ -1686,6 +1685,16 @@ FetchResidualSCTModel <- function(object,
       block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
       ## TODO: Maybe read only interesting genes
       umi.all <- as(object = block, Class = "dgCMatrix")
+
+      # calcluclate min_variance for get_residuals
+      # required when vst_out$arguments$min_variance == "umi_median"
+      # only calculated once
+      if (i==1){
+        nz_median <- median(umi.all@x)
+        min_var_custom <- (nz_median / 5)^2
+        print(paste("min_var_custom", min_var_custom))
+      }
+
       umi <- umi.all[features_to_compute, , drop = FALSE]
 
       ## Add cell_attr for missing cells
@@ -1708,13 +1717,20 @@ FetchResidualSCTModel <- function(object,
         if (sct.method == "reference") {
           message("using reference sct model")
         } else {
-          message("sct.model: ", SCTModel)
+          message("sct.model: ", SCTModel, " on ", ncol(x = umi), " cells: ",
+                  colnames(x = umi.all)[1], " .. ", colnames(x = umi.all)[ncol(umi.all)])
         }
+      }
+      if (vst_out$arguments$min_variance == "umi_median"){
+        min_var <- min_var_custom
+      } else {
+        min_var <- vst_out$arguments$min_variance
       }
       new_residual <- get_residuals(
         vst_out = vst_out,
         umi = umi,
         residual_type = "pearson",
+        min_variance = min_var,
         res_clip_range = c(clip.min, clip.max),
         verbosity = as.numeric(x = verbose) * 2
       )
