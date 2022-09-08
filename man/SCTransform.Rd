@@ -51,7 +51,7 @@ SCTransform(object, ...)
 
 \method{SCTransform}{Seurat}(
   object,
-  assay = "RNA",
+  assay = NULL,
   new.assay.name = "SCT",
   reference.SCT.model = NULL,
   do.correct.umi = TRUE,
@@ -133,17 +133,12 @@ slot of the new assay.
 }
 \description{
 This function calls sctransform::vst. The sctransform package is available at
-https://github.com/ChristophH/sctransform.
+https://github.com/satijalab/sctransform.
 Use this function as an alternative to the NormalizeData,
 FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
 scale.data being pearson residuals; sctransform::vst intermediate results are saved
 in misc slot of new assay.
-}
-\examples{
-data("pbmc_small")
-SCTransform(object = pbmc_small)
-
 }
 \seealso{
 \code{\link[sctransform]{correct_counts}} \code{\link[sctransform]{get_residuals}}
