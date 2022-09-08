@@ -1676,7 +1676,9 @@ FetchResidualSCTModel <- function(object,
       layer = layer,
       cells = layer.cells
     )
-    cells.grid <- DelayedArray::colAutoGrid(x = counts) # , ncol = 5000)
+
+    # iterate over 2k cells at once
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = 2000)
     new_residuals <- list()
     # cat(dim(counts))
 
@@ -1717,7 +1719,8 @@ FetchResidualSCTModel <- function(object,
         if (sct.method == "reference") {
           message("using reference sct model")
         } else {
-          message("sct.model: ", SCTModel)
+          message("sct.model: ", SCTModel, " on ", ncol(x = umi), " cells: ",
+                  colnames(x = umi.all)[1], " .. ", colnames(x = umi.all)[ncol(umi.all)])
         }
       }
       if (vst_out$arguments$min_variance == "umi_median"){
