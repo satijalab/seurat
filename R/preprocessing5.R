@@ -1308,8 +1308,13 @@ SCTransform.StdAssay <- function(
       if (verbose) {
         message('Place corrected count matrix in counts slot')
       }
-      assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
-      vst.out$umi_corrected <- NULL
+      if (is.null(reference.SCT.model)){
+        assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+        vst.out$umi_corrected <- NULL
+      } else {
+        assay.out <- CreateAssayObject(counts = counts)
+      }
+
     } else {
       # TODO: restore once check.matrix is in SeuratObject
       # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
