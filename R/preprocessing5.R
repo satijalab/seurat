@@ -1250,6 +1250,7 @@ SCTransform.StdAssay <- function(
     verbose = TRUE,
     ...
 ) {
+
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
@@ -1270,7 +1271,7 @@ SCTransform.StdAssay <- function(
       cells = Cells(x = object, layer = l)
       )
     ## Sample  cells
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncells)
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
 
     # if there is no reference model we randomly select a subset of cells
     # TODO: randomize this set of cells
@@ -1283,7 +1284,7 @@ SCTransform.StdAssay <- function(
                                         as.sparse = sparse)
 
       counts <- as(object = block, Class = 'dgCMatrix')
-      cell.attr.object <- cell.attr[colnames(x = counts),]
+      cell.attr.object <- cell.attr[colnames(x = counts),, drop = FALSE]
 
       if (!identical(rownames(cell.attr.object), colnames(counts))) {
         # print(length(setdiff(rownames(cell.attr.object), colnames(counts))))
@@ -1372,10 +1373,8 @@ SCTransform.StdAssay <- function(
       sct.assay.list[[dataset.names[i]]] <- assay.out
     }
   }
-
   # Return array by merging everythin
   if (length(x = sct.assay.list) > 1){
-
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
     # set variable features as the union of the features
     variable.features <- Reduce(f = union, x = variable.feature.list)

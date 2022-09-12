@@ -426,7 +426,7 @@ GetResidual <- function(
   )
   existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
   all.features <- union(x = rownames(x = existing.data), y = features)
-  new.scale <- matrix(
+   new.scale <- matrix(
     data = NA,
     nrow = length(x = all.features),
     ncol = ncol(x = object),
