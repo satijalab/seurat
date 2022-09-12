@@ -10,8 +10,12 @@ FeaturePlot(
   features,
   dims = c(1, 2),
   cells = NULL,
-  cols = if (blend) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
-    c("lightgrey", "blue") },
+  cols = if (blend) {
+     c("lightgrey", "#ff0000", "#00ff00")
+ } else {
+    
+    c("lightgrey", "blue")
+ },
   pt.size = NULL,
   order = FALSE,
   min.cutoff = NA,
@@ -25,6 +29,7 @@ FeaturePlot(
   blend.threshold = 0.5,
   label = FALSE,
   label.size = 4,
+  label.color = "black",
   repel = FALSE,
   ncol = NULL,
   coord.fixed = FALSE,
@@ -32,7 +37,8 @@ FeaturePlot(
   sort.cell = NULL,
   interactive = FALSE,
   combine = TRUE,
-  raster = NULL
+  raster = NULL,
+  raster.dpi = c(512, 512)
 )
 }
 \arguments{
@@ -94,6 +100,8 @@ different colors and different shapes on cells.  Only applicable if \code{raster
 
 \item{label.size}{Sets size of labels}
 
+\item{label.color}{Sets the color of the label text}
+
 \item{repel}{Repel labels}
 
 \item{ncol}{Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}}
@@ -112,6 +120,9 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 
 \item{raster}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
+
+\item{raster.dpi}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
 }
 \value{
 A \code{\link[patchwork]{patchwork}ed} ggplot object if

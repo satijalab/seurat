@@ -159,6 +159,7 @@ IntegrationData <- setClass(
 #' and the default is RNA
 #' @slot model A formula used in SCTransform
 #' @slot arguments other information used in SCTransform
+#' @slot median_umi Median UMI (or scale factor) used to calculate corrected counts
 #'
 #' @seealso \code{\link{Assay}}
 #'
@@ -180,7 +181,8 @@ SCTModel <- setClass(
     clips = 'list',
     umi.assay = 'character',
     model = 'character',
-    arguments = "list"
+    arguments = 'list',
+    median_umi = 'numeric'
   )
 )
 
@@ -452,6 +454,7 @@ CreateSCTAssayObject <- function(
 #' remove all DimReducs)
 #' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
 #' all Graphs)
+#' @param misc Preserve the \code{misc} slot; default is \code{TRUE}
 #'
 #' @export
 #' @concept objects
@@ -464,7 +467,8 @@ DietSeurat <- function(
   features = NULL,
   assays = NULL,
   dimreducs = NULL,
-  graphs = NULL
+  graphs = NULL,
+  misc = TRUE
 ) {
   object <- UpdateSlots(object = object)
   assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
@@ -506,6 +510,11 @@ DietSeurat <- function(
       }
     }
   }
+  # remove misc when desired
+  if (!isTRUE(x = misc)) {
+    slot(object = object, name = "misc") <- list()
+  }
+
   # remove unspecified DimReducs and Graphs
   all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
   objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
@@ -1299,7 +1308,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @method Cells SCTModel
 #' @export
 #'
-Cells.SCTModel <- function(x) {
+Cells.SCTModel <- function(x, ...) {
   return(rownames(x = slot(object = x, name = "cell.attributes")))
 }
 
@@ -1311,7 +1320,7 @@ Cells.SCTModel <- function(x) {
 #'
 #' @seealso \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 #'
-Cells.SlideSeq <- function(x) {
+Cells.SlideSeq <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1321,7 +1330,7 @@ Cells.SlideSeq <- function(x) {
 #' @method Cells STARmap
 #' @export
 #'
-Cells.STARmap <- function(x) {
+Cells.STARmap <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1330,7 +1339,7 @@ Cells.STARmap <- function(x) {
 #' @method Cells VisiumV1
 #' @export
 #'
-Cells.VisiumV1 <- function(x) {
+Cells.VisiumV1 <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
@@ -1660,7 +1669,7 @@ RenameCells.VisiumV1 <- function(object, new.names = NULL, ...) {
 #'
 SCTResults.SCTModel <- function(object, slot, ...) {
   CheckDots(...)
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1677,7 +1686,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 #' @method SCTResults<- SCTModel
 #'
 "SCTResults<-.SCTModel" <- function(object, slot, ..., value) {
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1705,7 +1714,7 @@ SCTResults.SCTModel <- function(object, slot, ...) {
 #'
 SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
   CheckDots(...)
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay',  'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips', 'umi.assay',  'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1728,7 +1737,7 @@ SCTResults.SCTAssay <- function(object, slot, model = NULL, ...) {
 #' @method SCTResults<- SCTAssay
 #'
 "SCTResults<-.SCTAssay" <- function(object, slot, model = NULL, ..., value) {
-  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments')
+  slots.use <- c('feature.attributes', 'cell.attributes', 'clips','umi.assay', 'model', 'arguments', 'median_umi')
   if (!slot %in% slots.use) {
     stop(
       "'slot' must be one of ",
@@ -1896,6 +1905,7 @@ levels.SCTAssay <- function(x) {
 #' Merge SCTAssay objects
 #'
 #' @inheritParams SeuratObject::merge
+#' @param x A \code{\link[SeuratObject]{Seurat}} object
 #' @param na.rm If na.rm = TRUE, this will only preserve residuals that are
 #' present in all SCTAssays being merged. Otherwise, missing residuals will be
 #' populated with NAs.
@@ -2251,13 +2261,13 @@ setAs(
           X = 1:length(x = vst.res),
           FUN = function(i) {
             vst.res[[i]]$umi.assay <- umi.assay[[i]]
-            return(PrepVSTResults(vst.res = vst.res[[i]], cell.names = colnames(x = from)))
+            return(PrepVSTResults(
+              vst.res = vst.res[[i]],
+              cell.names = colnames(x = from)
+            ))
           }
         )
         names(x = vst.res) <- paste0("model", 1:length(x = vst.res))
-      }
-      if (length(x = vst.res) > 1) {
-        vst.res <- merge(x = vst.res[[1]], y = vst.res[2:length(x = vst.res)])
       }
       object.list$misc[[vst.use]] <- NULL
       object.list$SCTModel.list <- vst.res
@@ -2272,7 +2282,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between the reference and query Seurat objects. \n",
-        "This can be used as input to TransferData.")
+        "This can be used as input to TransferData.\n")
   }
 )
 
@@ -2282,7 +2292,7 @@ setMethod(
   definition = function(object) {
     cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
         "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
-        "This can be used as input to IntegrateData.")
+        "This can be used as input to IntegrateData.\n")
   }
 )
 
@@ -2293,7 +2303,7 @@ setMethod(
     cat(
       'A ModalityWeights object containing modality weights between',
       paste(slot(object = object, name = "modality.assay"), collapse = " and "),
-      "assays \n", "This can be used as input to FindMultiModelNeighbors.")
+      "assays \n", "This can be used as input to FindMultiModelNeighbors.\n")
   }
 )
 
@@ -2305,10 +2315,12 @@ setMethod(
       "An sctransform model.\n",
       " Model formula: ", slot(object = object, name = "model"),
       "\n  Parameters stored for", nrow(x = SCTResults(object = object, slot = "feature.attributes")), "features,",
-      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells")
+      nrow(x = SCTResults(object = object, slot = "cell.attributes")), "cells.\n")
   }
 )
 
+#' @importFrom utils head
+#
 setMethod(
   f = 'show',
   signature = 'SCTAssay',
@@ -2564,13 +2576,26 @@ PrepVSTResults <- function(vst.res, cell.names) {
     'vst' = vst.res$arguments$res_clip_range,
     'sct' = vst.res$arguments$sct.clip.range
   )
+  median_umi <- NA
+  # check if a custom scale_factor was provided to vst()
+  if ("scale_factor" %in% names(vst.res$arguments)){
+    median_umi <- vst.res$arguments$scale_factor
+  }
+  if (is.na(median_umi)) {
+    if ("umi" %in% colnames(x = cell.attrs)) {
+      median_umi <- median(cell.attrs$umi)
+    } else if ("log_umi" %in% colnames(x = cell.attrs)) {
+      median_umi <- median(10 ^ cell.attrs$log_umi)
+    }
+  }
   vst.res.SCTModel  <- SCTModel(
     feature.attributes = feature.attrs,
     cell.attributes = cell.attrs,
     clips = clips,
     umi.assay = vst.res$umi.assay %||% "RNA",
     model =  vst.res$model_str,
-    arguments =  vst.res$arguments
+    arguments =  vst.res$arguments,
+    median_umi = median_umi
   )
   return(vst.res.SCTModel)
 }
@@ -2631,6 +2656,8 @@ SubsetVST <- function(sct.info, cells, features) {
 # @return The top \code{num}
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
 #
+#' @importFrom utils head tail
+#
 Top <- function(data, num, balanced) {
   nr <- nrow(x = data)
   if (num > nr) {
@@ -2670,10 +2697,10 @@ UpdateAssay <- function(old.assay, assay){
   counts <- old.assay@raw.data
   data <- old.assay@data
   if (!inherits(x = counts, what = 'dgCMatrix')) {
-    counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    counts <- as.sparse(x = as.matrix(x = counts))
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = as.matrix(x = data), Class = 'dgCMatrix')
+    data <- as.sparse(x = as.matrix(x = data))
   }
   new.assay <- new(
     Class = 'Assay',
@@ -2833,6 +2860,8 @@ UpdateSlots <- function(object) {
 # @return Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
 # appropriately sized empty sparse matrix
 #
+#' @importFrom Matrix Matrix
+#
 ValidateDataForMerge <- function(assay, slot) {
   mat <- GetAssayData(object = assay, slot = slot)
   if (any(dim(x = mat) == c(0, 0))) {
@@ -2853,7 +2882,7 @@ ValidateDataForMerge <- function(assay, slot) {
       ncol = data.dims[2],
       dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
     )
-    mat <- as(object = mat, Class = "dgCMatrix")
+    mat <- as.sparse(x = mat)
   }
   return(mat)
 }

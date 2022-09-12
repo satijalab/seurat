@@ -407,8 +407,10 @@ GetResidual <- function(
     }
   }
   features <- intersect(x = features.orig, y = features)
-  if (length(x = sct.models) > 1 & verbose) {
-    message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
+  if (length(x = sct.models) > 1 && verbose) {
+    message(
+      "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
+    )
   }
   new.residuals <- lapply(
     X = sct.models,
@@ -600,8 +602,6 @@ LoadSTARmap <- function(
 #' @param verbose Prints the output
 #'
 #' @return A Seurat object with demultiplexing results stored at \code{object$MULTI_ID}
-#'
-#' @import Matrix
 #'
 #' @export
 #' @concept preprocessing
@@ -844,7 +844,7 @@ Read10X <- function(
   for (j in 1:length(x = full.data[[1]])) {
     list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
     # Fix for Issue #913
-    list_of_data[[j]] <- as(object = list_of_data[[j]], Class = "dgCMatrix")
+    list_of_data[[j]] <- as.sparse(x = list_of_data[[j]])
   }
   names(x = list_of_data) <- names(x = full.data[[1]])
   # If multiple features, will return a list, otherwise
@@ -907,20 +907,24 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
       p = indptr[],
       x = as.numeric(x = counts[]),
       dims = shp[],
-      giveCsparse = FALSE
+      repr = "T"
     )
     if (unique.features) {
       features <- make.unique(names = features)
     }
     rownames(x = sparse.mat) <- features
     colnames(x = sparse.mat) <- barcodes[]
-    sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
+    sparse.mat <- as.sparse(x = sparse.mat)
     # Split v3 multimodal
     if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
-        message("Genome ", genome, " has multiple modalities, returning a list of matrices for this genome")
+        message(
+          "Genome ",
+          genome,
+          " has multiple modalities, returning a list of matrices for this genome"
+        )
         sparse.mat <- sapply(
           X = types.unique,
           FUN = function(x) {
@@ -963,10 +967,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 Read10X_Image <- function(image.dir, filter.matrix = TRUE, ...) {
   image <- readPNG(source = file.path(image.dir, 'tissue_lowres_image.png'))
   scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
+  tissue.positions.path <- Sys.glob(paths = file.path(image.dir, 'tissue_positions*'))
   tissue.positions <- read.csv(
-    file = file.path(image.dir, 'tissue_positions_list.csv'),
+    file = tissue.positions.path,
     col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
-    header = FALSE,
+    header = ifelse(
+      test = basename(tissue.positions.path) == "tissue_positions.csv",
+      yes = TRUE,
+      no = FALSE
+    ),
     as.is = TRUE,
     row.names = 1
   )
@@ -1049,11 +1058,20 @@ ReadMtx <- function(
     "feature list" = features
   )
   for (i in seq_along(along.with = all.files)) {
-    uri <- all.files[[i]]
+    uri <- tryCatch(
+      expr = {
+        con <- url(description = all.files[[i]])
+        close(con = con)
+        all.files[[i]]
+      },
+      error = function(...) {
+        return(normalizePath(path = all.files[[i]], winslash = '/'))
+      }
+    )
     err <- paste("Cannot find", names(x = all.files)[i], "at", uri)
     uri <- build_url(url = parse_url(url = uri))
-    if (grepl(pattern = '^:///', x = uri)) {
-      uri <- gsub(pattern = '^:///', replacement = '', x = uri)
+    if (grepl(pattern = '^[A-Z]?:///', x = uri)) {
+      uri <- gsub(pattern = '^://', replacement = '', x = uri)
       if (!file.exists(uri)) {
         stop(err, call. = FALSE)
       }
@@ -1166,7 +1184,7 @@ ReadMtx <- function(
   if (length(x = feature.names) != nrow(x = data)) {
     stop(
       "Matrix has ",
-      ncol(data),
+      nrow(data),
       " rows but found ", length(feature.names),
       " features. ",
       ifelse(
@@ -1180,7 +1198,7 @@ ReadMtx <- function(
 
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
-  data <- as(data, Class = "dgCMatrix")
+  data <- as.sparse(x = data)
   return(data)
 }
 
@@ -1226,8 +1244,8 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @param verbose Print progress
 #' @return Returns a matrix with the relative counts
 #'
-#' @import Matrix
 #' @importFrom methods as
+#' @importFrom Matrix colSums
 #'
 #' @export
 #' @concept preprocessing
@@ -1243,13 +1261,13 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   if (verbose) {
     cat("Performing relative-counts-normalization\n", file = stderr())
   }
   norm.data <- data
-  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
+  norm.data@x <- norm.data@x / rep.int(Matrix::colSums(norm.data), diff(norm.data@p)) * scale.factor
   return(norm.data)
 }
 
@@ -1374,7 +1392,6 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' @param upsample Upsamples all cells with fewer than max.umi
 #' @param verbose Display the progress bar
 #'
-#' @import Matrix
 #' @importFrom methods as
 #'
 #' @return Matrix with downsampled data
@@ -1394,7 +1411,7 @@ SampleUMI <- function(
   upsample = FALSE,
   verbose = FALSE
 ) {
-  data <- as(object = data, Class = "dgCMatrix")
+  data <- as.sparse(x = data)
   if (length(x = max.umi) == 1) {
     new_data <- RunUMISampling(
       data = data,
@@ -1872,7 +1889,7 @@ FindVariableFeatures.V3Matrix <- function(
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
   }
   if (!inherits(x = object, what = 'dgCMatrix')) {
-    object <- as(object = object, Class = 'dgCMatrix')
+    object <- as.sparse(x = object)
   }
   if (selection.method == "vst") {
     if (clip.max == 'auto') {
@@ -1950,6 +1967,8 @@ FindVariableFeatures.V3Matrix <- function(
 #'
 #' @rdname FindVariableFeatures
 #' @concept preprocessing
+#'
+#' @importFrom utils head
 #' @export
 #' @method FindVariableFeatures Assay
 #'
@@ -2582,7 +2601,7 @@ ScaleData.default <- function(
     if (any(vars.to.regress %in% rownames(x = object))) {
       latent.data <- cbind(
         latent.data,
-        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], ])
+        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], , drop=FALSE])
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
@@ -3047,16 +3066,16 @@ ComputeRMetric <- function(mv, r.metric = 5) {
 #
 # @return Returns a matrix with the custom normalization
 #
+#' @importFrom Matrix t
 #' @importFrom methods as
 #' @importFrom pbapply pbapply
-# @import Matrix
 #
 CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
   if (is.data.frame(x = data)) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
   # margin <- switch(
@@ -3073,7 +3092,7 @@ CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
     MARGIN = margin,
     FUN = custom_function)
   if (margin == 1) {
-    norm.data = t(x = norm.data)
+    norm.data = Matrix::t(x = norm.data)
   }
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)

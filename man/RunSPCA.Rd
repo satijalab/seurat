@@ -74,7 +74,7 @@ using the variable features for the Assay.}
 Returns Seurat object with the SPCA calculation stored in the reductions slot
 }
 \description{
-Run a supervied PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
+Run a supervised PCA (SPCA) dimensionality reduction supervised by a cell-cell kernel.
 SPCA is used to capture a linear transformation which maximizes its dependency to
 the given cell-cell kernel. We use SNN graph as the kernel to supervise the linear
 matrix factorization.

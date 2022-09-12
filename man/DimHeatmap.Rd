@@ -34,7 +34,7 @@ PCHeatmap(object, ...)
 
 \item{cells}{A list of cells to plot. If numeric, just plots the top cells.}
 
-\item{reduction}{Which dimmensional reduction to use}
+\item{reduction}{Which dimensional reduction to use}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 

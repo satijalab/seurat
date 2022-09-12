@@ -31,7 +31,7 @@ FoldChange(object, ...)
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
@@ -47,7 +47,7 @@ FoldChange(object, ...)
   slot = "data",
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
@@ -74,7 +74,7 @@ If NULL, use all features}
 \item{slot}{Slot to pull data from}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
-calculating logFC. 1 by default.}
+calculating logFC.}
 
 \item{base}{The base with respect to which logarithms are computed.}
 
