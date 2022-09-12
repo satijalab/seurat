@@ -1752,6 +1752,10 @@ SCTransform.Assay <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+  if (!is.null(reference.SCT.model)){
+    do.correct.umi <- FALSE
+    do.center <- FALSE
+  }
   umi <- GetAssayData(object = object, slot = 'counts')
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
