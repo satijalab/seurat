@@ -1348,6 +1348,9 @@ SCTransform.StdAssay <- function(
       vst.out$arguments$sct.method <- sct.method
       Misc(object = assay.out, slot = 'vst.out') <- vst.out
       assay.out <- as(object = assay.out, Class = "SCTAssay")
+      #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
+      # does not like character(0) keys being merged
+      assay.out@key <- "sct"
       return (assay.out)
     }
 
@@ -1365,8 +1368,12 @@ SCTransform.StdAssay <- function(
         sct.assay.list.temp[[paste0("chunk", i)]] <- assay.out
       }
       if (length(sct.assay.list.temp)>1){
+        # this currently fails in merge.StdAssay step
+        # assignment of an object of class “list” is not valid for
+        # slot ‘key’ in an object of class “Assay”; is(value, "character") is not TRUE
         assay.out <- merge(x = sct.assay.list.temp[[1]],
                            y = sct.assay.list.temp[2:length(sct.assay.list.temp)])
+
       } else {
         assay.out <- sct.assay.list.temp[[1]]
       }
@@ -1583,9 +1590,13 @@ FetchResiduals <- function(object,
   if (length(x = new.residuals) == 1 & is.list(x = new.residuals)) {
     new.residuals <- new.residuals[[1]]
   } else {
-    new.residuals <- Reduce(cbind, new.residuals)
+    #new.residuals <- Reduce(cbind, new.residuals)
+    new.residuals <- matrix(data = unlist(new.residuals), nrow = nrow(new.scale) , ncol = ncol(new.scale))
+    colnames(new.residuals) <- colnames(new.scale)
+    rownames(new.residuals) <- rownames(new.scale)
   }
   new.scale[rownames(x = new.residuals), colnames(x = new.residuals)] <- new.residuals
+
   if (na.rm) {
     new.scale <- new.scale[!rowAnyNAs(x = new.scale), ]
   }
