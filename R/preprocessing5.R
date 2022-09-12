@@ -1350,7 +1350,6 @@ SCTransform.StdAssay <- function(
       assay.out <- as(object = assay.out, Class = "SCTAssay")
       #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
-      assay.out@key <- "sct"
       return (assay.out)
     }
 
