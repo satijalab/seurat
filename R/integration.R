@@ -1927,7 +1927,7 @@ IntegrateSketchEmbeddings <- function(
       cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
     } else if (length(unique(atoms.layers)) == 1) {
       cells.sketch <- intersect(Cells(x = object[[atoms]][[atoms.layers[[1]]]]),
-                                Cells(object[[orig]][layers[i]]))
+                                Cells(object[[orig]][[layers[i] ]] ))
     }
     if (isTRUE(x = verbose)) {
       message(
