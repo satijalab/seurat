@@ -1375,14 +1375,13 @@ IntegrateData <- function(
   }
   if (normalization.method == "SCT") {
     model.list <- list()
-    scale.data <- list()
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       if (length(x = setdiff(x = features.to.integrate, y = features)) != 0) {
         object.list[[i]] <- GetResidual(
-           object = object.list[[i]],
-           features = setdiff(x = features.to.integrate, y = features),
-           verbose = verbose
+          object = object.list[[i]],
+          features = setdiff(x = features.to.integrate, y = features),
+          verbose = verbose
         )
       }
       model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
@@ -2790,6 +2789,12 @@ PrepSCTIntegration <- function(
         object = obj,
         assay = assay[i],
         slot = 'scale.data'
+      )
+      obj <- SetAssayData(
+        object = obj,
+        slot = 'scale.data',
+        new.data = scale.data[anchor.features, ],
+        assay = assay[i]
       )
       return(obj)
     }
