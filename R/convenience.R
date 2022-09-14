@@ -170,6 +170,37 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
   return(obj)
 }
 
+#' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @importFrom SeuratObject Cells CreateCentroids CreateFOV
+#' CreateSegmentation CreateSeuratObject
+#'
+#' @export
+#'
+#' @rdname ReadXenium
+#'
+LoadXenium <- function(data.dir, fov, assay = 'Xenium') {
+  data <- ReadXenium(
+    data.dir = data.dir,
+    type = c("centroids", "segmentations"),
+  )
+
+  segmentations.data <- list(
+    "centroids" = CreateCentroids(data$centroids),
+    "segmentation" = CreateSegmentation(data$segmentations)
+  )
+  coords <- CreateFOV(
+    coords = segmentations.data,
+    type = c("segmentation", "centroids"),
+    molecules = data$microns,
+    assay = assay
+  )
+
+  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+  xenium.obj[[fov]] <- coords
+  return(xenium.obj)
+}
+
 #' @param ... Extra parameters passed to \code{DimHeatmap}
 #'
 #' @rdname DimHeatmap
