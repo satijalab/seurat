@@ -1738,13 +1738,13 @@ FetchResidualSCTModel <- function(object,
       ## TODO: Maybe read only interesting genes
       umi.all <- as(object = block, Class = "dgCMatrix")
 
-      # calcluclate min_variance for get_residuals
+      # calculate min_variance for get_residuals
       # required when vst_out$arguments$min_variance == "umi_median"
       # only calculated once
       if (i==1){
         nz_median <- median(umi.all@x)
         min_var_custom <- (nz_median / 5)^2
-        print(paste("min_var_custom", min_var_custom))
+        # print(paste("min_var_custom", min_var_custom))
       }
 
       umi <- umi.all[features_to_compute, , drop = FALSE]
