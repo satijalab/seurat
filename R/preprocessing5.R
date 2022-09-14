@@ -751,84 +751,84 @@ VST.DelayedMatrix <- function(
       verbose = FALSE,
       ...
     )
-  #   if (margin == 2L) {
-  #     x <- t(x = x)
-  #   }
-  #   mu <- hvf.info$mean[idx]
-  #   hvf.info$variance[idx] <- rowSums(x = ((x - mu) ^ 2) / (ncells - 1L))
-  #   # hvf.info$variance[idx] <- vapply(
-  #   #   X = seq_along(along.with = mu),
-  #   #   FUN = function(j) {
-  #   #     y <- if (margin == 1L) {
-  #   #       x[j, ]
-  #   #     } else {
-  #   #       x[, j]
-  #   #     }
-  #   #     y <- y - mu[j]
-  #   #     return(sum(y ^ 2) / (ncells - 1L))
-  #   #   },
-  #   #   FUN.VALUE = numeric(length = 1L)
-  #   # )
-  #   if (isTRUE(x = verbose)) {
-  #     setTxtProgressBar(pb = pb, value = i / length(x = grid))
-  #   }
-  # }
-  # if (isTRUE(x = verbose)) {
-  #   close(con = pb)
-  # }
-  # hvf.info$variance.expected <- 0
-  # not.const <- hvf.info$variance > 0
-  # fit <- loess(
-  #   formula = log10(x = variance) ~ log10(x = mean),
-  #   data = hvf.info[not.const, , drop = FALSE],
-  #   span = span
-  # )
-  # hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  # # Calculate standardized variance
-  # hvf.info$variance.standardized <- NA_real_
-  # if (isTRUE(x = verbose)) {
-  #   inform(
-  #     message = "Calculating feature variances of standardized and clipped values"
-  #   )
-  #   pb <- txtProgressBar(style = 3L, file = stderr())
-  # }
-  # clip <- clip %||% sqrt(x = ncells)
-  # for (i in seq_len(length.out = length(x = grid))) {
-  #   vp <- grid[[i]]
-  #   idx <- seq.int(
-  #     from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
-  #     to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
-  #   )
-  #   x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
-  #   if (isTRUE(x = sparse)) {
-  #     x <- as(object = x, Class = "CsparseMatrix")
-  #   }
-  #   if (margin == 2L) {
-  #     x <- t(x = x)
-  #   }
-  #   mu <- hvf.info$mean[idx]
-  #   sd <- sqrt(x = hvf.info$variance.expected[idx])
-  #   hvf.info$variance.standardized[idx] <- 0
-  #   sdn <- which(x = sd != 0)
-  #   hvf.info$variance.standardized[idx[sdn]] <- rowSums(x = (((x[sdn, ] - mu[sdn]) / sd[sdn]) ^ 2) / (ncells - 1L))
-  #   # hvf.info$variance.standardized[idx] <- vapply(
-  #   #   X = seq_along(along.with = mu),
-  #   #   FUN = function(j) {
-  #   #     if (sd[j] == 0) {
-  #   #       return(0)
-  #   #     }
-  #   #     y <- if (margin == 1L) {
-  #   #       x[j, ]
-  #   #     } else {
-  #   #       x[, j]
-  #   #     }
-  #   #     y <- y - mu[j]
-  #   #     y <- y / sd[j]
-  #   #     y[y > clip] <- clip
-  #   #     return(sum(y ^ 2) / (ncells - 1L))
-  #   #   },
-  #   #   FUN.VALUE = numeric(length = 1L)
-  #   # )
+    #   if (margin == 2L) {
+    #     x <- t(x = x)
+    #   }
+    #   mu <- hvf.info$mean[idx]
+    #   hvf.info$variance[idx] <- rowSums(x = ((x - mu) ^ 2) / (ncells - 1L))
+    #   # hvf.info$variance[idx] <- vapply(
+    #   #   X = seq_along(along.with = mu),
+    #   #   FUN = function(j) {
+    #   #     y <- if (margin == 1L) {
+    #   #       x[j, ]
+    #   #     } else {
+    #   #       x[, j]
+    #   #     }
+    #   #     y <- y - mu[j]
+    #   #     return(sum(y ^ 2) / (ncells - 1L))
+    #   #   },
+    #   #   FUN.VALUE = numeric(length = 1L)
+    #   # )
+    #   if (isTRUE(x = verbose)) {
+    #     setTxtProgressBar(pb = pb, value = i / length(x = grid))
+    #   }
+    # }
+    # if (isTRUE(x = verbose)) {
+    #   close(con = pb)
+    # }
+    # hvf.info$variance.expected <- 0
+    # not.const <- hvf.info$variance > 0
+    # fit <- loess(
+    #   formula = log10(x = variance) ~ log10(x = mean),
+    #   data = hvf.info[not.const, , drop = FALSE],
+    #   span = span
+    # )
+    # hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+    # # Calculate standardized variance
+    # hvf.info$variance.standardized <- NA_real_
+    # if (isTRUE(x = verbose)) {
+    #   inform(
+    #     message = "Calculating feature variances of standardized and clipped values"
+    #   )
+    #   pb <- txtProgressBar(style = 3L, file = stderr())
+    # }
+    # clip <- clip %||% sqrt(x = ncells)
+    # for (i in seq_len(length.out = length(x = grid))) {
+    #   vp <- grid[[i]]
+    #   idx <- seq.int(
+    #     from = IRanges::start(x = slot(object = vp, name = 'ranges')[margin]),
+    #     to = IRanges::end(x = slot(object = vp, name = 'ranges')[margin])
+    #   )
+    #   x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
+    #   if (isTRUE(x = sparse)) {
+    #     x <- as(object = x, Class = "CsparseMatrix")
+    #   }
+    #   if (margin == 2L) {
+    #     x <- t(x = x)
+    #   }
+    #   mu <- hvf.info$mean[idx]
+    #   sd <- sqrt(x = hvf.info$variance.expected[idx])
+    #   hvf.info$variance.standardized[idx] <- 0
+    #   sdn <- which(x = sd != 0)
+    #   hvf.info$variance.standardized[idx[sdn]] <- rowSums(x = (((x[sdn, ] - mu[sdn]) / sd[sdn]) ^ 2) / (ncells - 1L))
+    #   # hvf.info$variance.standardized[idx] <- vapply(
+    #   #   X = seq_along(along.with = mu),
+    #   #   FUN = function(j) {
+    #   #     if (sd[j] == 0) {
+    #   #       return(0)
+    #   #     }
+    #   #     y <- if (margin == 1L) {
+    #   #       x[j, ]
+    #   #     } else {
+    #   #       x[, j]
+    #   #     }
+    #   #     y <- y - mu[j]
+    #   #     y <- y / sd[j]
+    #   #     y[y > clip] <- clip
+    #   #     return(sum(y ^ 2) / (ncells - 1L))
+    #   #   },
+    #   #   FUN.VALUE = numeric(length = 1L)
+    #   # )
     if (isTRUE(x = verbose)) {
       setTxtProgressBar(pb = pb, value = i / length(x = grid))
     }
@@ -1231,26 +1231,25 @@ VST.matrix <- function(
 #' @export
 #'
 SCTransform.StdAssay <- function(
-    object,
-    layer = 'counts',
-    cell.attr = NULL,
-    reference.SCT.model = NULL,
-    do.correct.umi = TRUE,
-    ncells = 5000,
-    residual.features = NULL,
-    variable.features.n = 3000,
-    variable.features.rv.th = 1.3,
-    vars.to.regress = NULL,
-    do.scale = FALSE,
-    do.center = TRUE,
-    clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
-    conserve.memory = FALSE,
-    return.only.var.genes = TRUE,
-    seed.use = 1448145,
-    verbose = TRUE,
-    ...
+  object,
+  layer = 'counts',
+  cell.attr = NULL,
+  reference.SCT.model = NULL,
+  do.correct.umi = TRUE,
+  ncells = 5000,
+  residual.features = NULL,
+  variable.features.n = 3000,
+  variable.features.rv.th = 1.3,
+  vars.to.regress = NULL,
+  do.scale = FALSE,
+  do.center = TRUE,
+  clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
+  conserve.memory = FALSE,
+  return.only.var.genes = TRUE,
+  seed.use = 1448145,
+  verbose = TRUE,
+  ...
 ) {
-
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
@@ -1264,27 +1263,28 @@ SCTransform.StdAssay <- function(
     if (isTRUE(x = verbose)) {
       message("Running SCTransform on layer: ", l)
     }
+    all_cells <-  Cells(x = object, layer = l)
+    all_features <- Features(x = object, layer = l)
     counts <- LayerData(
       object = object,
       layer = l,
-      features = Features(x = object, layer = l),
-      cells = Cells(x = object, layer = l)
-      )
+      features = all_features,
+      cells = all_cells
+    )
     ## Sample  cells
     cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
-
     # if there is no reference model we randomly select a subset of cells
     # TODO: randomize this set of cells
     variable.feature.list <- list()
 
-    GetSCT.Chunked <- function(vp){
+    GetSCT.Chunked <- function(vp, reference.SCT.model = NULL, do.correct.umi = TRUE){
       sparse <- DelayedArray::is_sparse(x = counts) # TRUE
       block <- DelayedArray::read_block(x = counts,
                                         viewport = vp,
                                         as.sparse = sparse)
 
       counts <- as(object = block, Class = 'dgCMatrix')
-      cell.attr.object <- cell.attr[colnames(x = counts),, drop = FALSE]
+      cell.attr.object <- cell.attr[colnames(x = counts),, drop=FALSE]
 
       if (!identical(rownames(cell.attr.object), colnames(counts))) {
         # print(length(setdiff(rownames(cell.attr.object), colnames(counts))))
@@ -1316,13 +1316,8 @@ SCTransform.StdAssay <- function(
         if (verbose) {
           message('Place corrected count matrix in counts slot')
         }
-        if (is.null(reference.SCT.model)){
-          assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
-          vst.out$umi_corrected <- NULL
-        } else {
-          assay.out <- CreateAssayObject(counts = counts)
-        }
-
+        assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
+        vst.out$umi_corrected <- NULL
       } else {
         # TODO: restore once check.matrix is in SeuratObject
         # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
@@ -1350,100 +1345,116 @@ SCTransform.StdAssay <- function(
       assay.out <- as(object = assay.out, Class = "SCTAssay")
       #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
+      assay.out@key <- "sct"
       return (assay.out)
     }
-
+    local.reference.SCT.model <- NULL
     if (is.null(reference.SCT.model)){
       # No reference model so just select the first block of cells
       vp <- cells.grid[[1L]]
-      assay.out <- GetSCT.Chunked(vp = vp)
-      variable.feature.list[[dataset.names[i]]] <- VariableFeatures(assay.out)
-      sct.assay.list[[dataset.names[i]]] <- assay.out
+      assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = FALSE)
+      local.reference.SCT.model <- assay.out@SCTModel.list[[1]]
+      variable.features <- VariableFeatures(assay.out)
+      #residuals <- FetchResiduals(object, features = VariableFeatures(assay.out), assay = )
+      # once we have the model, just calculate residuals for all
+      # cells
+      vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
+      min_var <- vst_out.reference$arguments$min_variance
+      if (min_var == "umi_median"){
+        block <- DelayedArray::read_block(x = counts,
+                                          viewport = vp,
+                                          as.sparse = TRUE)
+
+        counts.x <- as(object = block, Class = 'dgCMatrix')
+        min_var <- (median(counts.x@x)/5)^2
+      }
+      res_clip_range <-  vst_out.reference$arguments$res_clip_range
+      residuals <- list()
+      corrected_counts <- list()
+      cell_attrs <- list()
+      for (i in seq_len(length.out = length(x = cells.grid))) {
+        vp <- cells.grid[[i]]
+        block <- DelayedArray::read_block(x = counts,
+                                          viewport = vp,
+                                          as.sparse = TRUE)
+
+        counts.vp <- as(object = block, Class = 'dgCMatrix')
+        cell.attr.object <- cell.attr[colnames(x = counts.vp),, drop=FALSE]
+        vst_out <- vst_out.reference
+        cell_attr <- data.frame(
+          umi = colSums(counts.vp),
+          log_umi = log10(x = colSums(counts.vp))
+        )
+        rownames(cell_attr) <- colnames(counts.vp)
+        vst_out$cell_attr <- cell_attr
+
+        new_residual <- get_residuals(
+          vst_out = vst_out,
+          umi = counts.vp[all_features,],
+          residual_type = "pearson",
+          min_variance = min_var,
+          res_clip_range = res_clip_range,
+          verbosity = as.numeric(x = verbose) * 2
+        )
+        corrected_counts[[i]] <- correct_counts(
+          x = vst_out,
+          umi = counts.vp[all_features,],
+          verbosity = as.numeric(x = verbose) * 2
+        )
+        residuals[[i]] <- new_residual
+        cell_attrs[[i]] <- cell_attr
+      }
+
+
+      new.residuals <- Reduce(cbind, residuals)
+      corrected_counts <- Reduce(cbind, corrected_counts)
+      cell_attrs <- Reduce(rbind, cell_attrs)
+
+      vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),]
+      SCTModel.list <- PrepVSTResults(
+        vst.res = vst_out.reference,
+        cell.names = all_cells
+      )
+      SCTModel.list <- list(model1 = SCTModel.list)
+
+      merged.assay <- CreateSCTAssayObject(scale.data = new.residuals, data = corrected_counts, SCTModel.list=SCTModel.list)
+      VariableFeatures(merged.assay) <- variable.features
     } else {
       sct.assay.list.temp <- list()
       for (i in seq_len(length.out = length(x = cells.grid))) {
         vp <- cells.grid[[i]]
-        assay.out <- GetSCT.Chunked(vp = vp)
+        assay.out <- GetSCT.Chunked(vp = vp,
+                                    reference.SCT.model = reference.SCT.model %||% local.reference.SCT.model,
+                                    do.correct.umi = do.correct.umi)
         sct.assay.list.temp[[paste0("chunk", i)]] <- assay.out
-      }
+        }
       if (length(sct.assay.list.temp)>1){
         # this currently fails in merge.StdAssay step
         # assignment of an object of class “list” is not valid for
         # slot ‘key’ in an object of class “Assay”; is(value, "character") is not TRUE
         assay.out <- merge(x = sct.assay.list.temp[[1]],
                            y = sct.assay.list.temp[2:length(sct.assay.list.temp)])
-
-      } else {
-        assay.out <- sct.assay.list.temp[[1]]
-      }
+        } else {
+          assay.out <- sct.assay.list.temp[[1]]
+          }
       sct.assay.list[[dataset.names[i]]] <- assay.out
+      # Return array by merging everythin
+      if (length(x = sct.assay.list) > 1){
+        merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
+        # set variable features as the union of the features
+        variable.features <- Reduce(f = union, x = variable.feature.list)
+        VariableFeatures(object = merged.assay) <- variable.features
+        # set the names of SCTmodels to be layer names
+        models <- slot(object = merged.assay, name="SCTModel.list")
+        names(models) <- names(x = sct.assay.list)
+        slot(object = merged.assay, name="SCTModel.list") <- models
+      } else {
+        merged.assay <- sct.assay.list[[1]]
+      }
     }
-  }
-  # Return array by merging everythin
-  if (length(x = sct.assay.list) > 1){
-    merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
-    # set variable features as the union of the features
-    variable.features <- Reduce(f = union, x = variable.feature.list)
-    VariableFeatures(object = merged.assay) <- variable.features
-    # set the names of SCTmodels to be layer names
-    models <- slot(object = merged.assay, name="SCTModel.list")
-    names(models) <- names(x = sct.assay.list)
-    slot(object = merged.assay, name="SCTModel.list") <- models
-  } else {
-    return (sct.assay.list[[1]])
   }
   gc(verbose = FALSE)
   return(merged.assay)
-}
-
-#' @importFrom SeuratObject DefaultAssay
-#'
-#' @method SCTransform Seurat5
-#' @export
-#'
-SCTransform.Seurat5 <- function(
-    object,
-    assay = NULL,
-    reference.SCT.model = NULL,
-    do.correct.umi = TRUE,
-    ncells = 5000,
-    residual.features = NULL,
-    variable.features.n = 3000,
-    variable.features.rv.th = 1.3,
-    vars.to.regress = NULL,
-    do.scale = FALSE,
-    do.center = TRUE,
-    clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
-    conserve.memory = FALSE,
-    return.only.var.genes = TRUE,
-    seed.use = 1448145,
-    save.data = 'data',
-    save.scaledata = 'scale.data',
-    verbose = TRUE,
-    ...
-) {
-  assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = Assays(object = object))
-  cell.attr.list <- slot(object = object, name = 'meta.data')
-
-  object[[assay]] <- SCTransform(object = object[[assay]],
-                                 cell.attr.list = cell.attr.list,
-                                 reference.SCT.model = reference.SCT.model,
-                                 do.correct.umi = do.correct.umi,
-                                 ncells = ncells,
-                                 residual.features = residual.features,
-                                 variable.features.n = variable.features.n,
-                                 variable.features.rv.th = variable.features.rv.th,
-                                 vars.to.regress = vars.to.regress,
-                                 do.scale = do.scale,
-                                 do.center = do.center,
-                                 clip.range = clip.range,
-                                 conserve.memory = conserve.memory,
-                                 return.only.var.genes = return.only.var.genes,
-                                 seed.use = seed.use,
-                                 verbose = verbose,
-                                 ...)
-  return(object)
 }
 
 
@@ -1718,7 +1729,7 @@ FetchResidualSCTModel <- function(object,
     )
 
     # iterate over 2k cells at once
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = 2000)
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
     new_residuals <- list()
     # cat(dim(counts))
 
@@ -1744,7 +1755,6 @@ FetchResidualSCTModel <- function(object,
         umi = colSums(umi.all),
         log_umi = log10(x = colSums(umi.all))
       )
-      cell_attr$cells_step1 <- FALSE
       # cell_attr <- as.matrix(x = cell_attr)
       rownames(cell_attr) <- colnames(umi)
       if (sct.method == "reference") {

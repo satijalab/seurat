@@ -782,19 +782,30 @@ FindTransferAnchors <- function(
   reference.reduction.init <- reference.reduction
   if (normalization.method == "SCT") {
       # ensure all residuals required are computed
-      query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
+      #query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
+      query.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = query, assay = query.assay, features = features, verbose = FALSE))
       if (is.null(x = reference.reduction)) {
-        reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        #reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        reference.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        # features <- intersect(
+        #   x = features,
+        #   y = intersect(
+        #     x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
+        #     y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+        #   )
+        # )
         features <- intersect(
           x = features,
           y = intersect(
-            x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
-            y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
+            x = rownames(x = query.sct.scaledata),
+            y = rownames(x = reference.sct.scaledata)
           )
         )
+
         reference[[reference.assay]] <- as(
           object = CreateAssayObject(
-            data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
+            #data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
+            data = reference.sct.scaledata[features, ]),
           Class = "SCTAssay"
         )
         reference <- SetAssayData(
@@ -806,7 +817,8 @@ FindTransferAnchors <- function(
     }
     query[[query.assay]] <- as(
       object = CreateAssayObject(
-        data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
+        #data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
+        data = query.sct.scaledata[features, ]),
       Class = "SCTAssay"
     )
     query <- SetAssayData(
@@ -1374,21 +1386,31 @@ IntegrateData <- function(
   }
   if (normalization.method == "SCT") {
     model.list <- list()
+    scale.data <- list()
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       if (length(x = setdiff(x = features.to.integrate, y = features)) != 0) {
-        object.list[[i]] <- GetResidual(
+        # object.list[[i]] <- GetResidual(
+        #   object = object.list[[i]],
+        #   features = setdiff(x = features.to.integrate, y = features),
+        #   verbose = verbose
+        # )
+        scale.data[[i]] <- FetchResiduals(
           object = object.list[[i]],
           features = setdiff(x = features.to.integrate, y = features),
           verbose = verbose
         )
       }
       model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
+      # object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
+      #   data = GetAssayData(
+      #     object = object.list[[i]],
+      #     assay = assay,
+      #     slot = "scale.data")
+      #   )
+      # )
       object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
-        data = GetAssayData(
-          object = object.list[[i]],
-          assay = assay,
-          slot = "scale.data")
+        data = scale.data[[i]]
         )
       )
     }
@@ -1938,10 +1960,10 @@ IntegrateSketchEmbeddings <- function(
     }
      if (inherits(x = object[[orig]][[layers[i]]], what = 'DelayedMatrix') ) {
        matrix.prod.function <- crossprod_DelayedAssay
-       } else { 
+       } else {
          matrix.prod.function <- crossprod
        }
-    
+
     emb <- switch(
       EXPR = method,
       'data' = {
@@ -2776,23 +2798,33 @@ PrepSCTIntegration <- function(
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
-      obj <- GetResidual(
-        object = object.list[[i]],
+      # obj <- GetResidual(
+      #   object = object.list[[i]],
+      #   assay = assay[i],
+      #   features = anchor.features,
+      #   replace.value = ifelse(test = is.null(x = sct.clip.range), yes = FALSE, no = TRUE),
+      #   clip.range = sct.clip.range,
+      #   verbose = FALSE
+      # )
+      # scale.data <- GetAssayData(
+      #   object = obj,
+      #   assay = assay[i],
+      #   slot = 'scale.data'
+      # )
+      obj <- object.list[[i]]
+      scale.data <- FetchResiduals(
+        object = obj,
         assay = assay[i],
         features = anchor.features,
         replace.value = ifelse(test = is.null(x = sct.clip.range), yes = FALSE, no = TRUE),
         clip.range = sct.clip.range,
         verbose = FALSE
       )
-      scale.data <- GetAssayData(
-        object = obj,
-        assay = assay[i],
-        slot = 'scale.data'
-      )
+      cells <- Cells(x = obj)
       obj <- SetAssayData(
         object = obj,
         slot = 'scale.data',
-        new.data = scale.data[anchor.features, ],
+        new.data = scale.data[anchor.features, cells],
         assay = assay[i]
       )
       return(obj)
@@ -5775,24 +5807,24 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.mean = NULL,
   feature.sd = NULL
 ) {
-  RowMeanSparse <- sparseMatrixStats::rowMeans2 
-  RowVarSparse <- sparseMatrixStats::rowVars 
+  RowMeanSparse <- sparseMatrixStats::rowMeans2
+  RowVarSparse <- sparseMatrixStats::rowVars
   dims <- dims %||% 1:ncol(reference[[reduction]])
   assay <- assay %||% DefaultAssay(reference)
-  features <- intersect(rownames(query.data), 
+  features <- intersect(rownames(query.data),
                         rownames(reference[[reduction]]@feature.loadings))
   query.data <- query.data[features,]
-  feature.mean <- feature.mean[features] %||% 
+  feature.mean <- feature.mean[features] %||%
     RowMeanSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,])
-  
-  feature.sd <- feature.sd[features] %||% 
-    sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
+
+  feature.sd <- feature.sd[features] %||%
+    sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,]))
   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-  
-  
+
+
   setAutoBlockSize(size = block.size) # 1 GB
   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
-  
+
   emb.list <- list()
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
@@ -5877,7 +5909,7 @@ FastRPCAIntegration <- function(
                              return(x)
                            }
   )
-  
+
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
     .args = c(list(
@@ -5928,7 +5960,7 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e9) {
   if (nrow(x) != nrow(y)) {
     stop('row of x and y should be the same')
   }
-  sparse <- DelayedArray::is_sparse(x = y) 
+  sparse <- DelayedArray::is_sparse(x = y)
   suppressMessages(setAutoBlockSize(size = block.size))
   cells.grid <- DelayedArray::colAutoGrid(x = y)
   product.list <- list()
