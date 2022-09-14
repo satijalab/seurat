@@ -1355,7 +1355,6 @@ SCTransform.StdAssay <- function(
       assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = FALSE)
       local.reference.SCT.model <- assay.out@SCTModel.list[[1]]
       variable.features <- VariableFeatures(assay.out)
-      #residuals <- FetchResiduals(object, features = VariableFeatures(assay.out), assay = )
       # once we have the model, just calculate residuals for all
       # cells
       vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
@@ -1417,14 +1416,14 @@ SCTransform.StdAssay <- function(
       )
       SCTModel.list <- list(model1 = SCTModel.list)
 
-      merged.assay <- CreateSCTAssayObject(scale.data = new.residuals, data = corrected_counts, SCTModel.list=SCTModel.list)
+      merged.assay <- CreateSCTAssayObject(scale.data = new.residuals, data = corrected_counts, SCTModel.list = SCTModel.list)
       VariableFeatures(merged.assay) <- variable.features
     } else {
       sct.assay.list.temp <- list()
       for (i in seq_len(length.out = length(x = cells.grid))) {
         vp <- cells.grid[[i]]
         assay.out <- GetSCT.Chunked(vp = vp,
-                                    reference.SCT.model = reference.SCT.model %||% local.reference.SCT.model,
+                                    reference.SCT.model = reference.SCT.model,
                                     do.correct.umi = do.correct.umi)
         sct.assay.list.temp[[paste0("chunk", i)]] <- assay.out
         }

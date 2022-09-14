@@ -783,10 +783,8 @@ FindTransferAnchors <- function(
   if (normalization.method == "SCT") {
       # ensure all residuals required are computed
       query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
-      #query.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = query, assay = query.assay, features = features, verbose = FALSE))
       if (is.null(x = reference.reduction)) {
         reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
-        #reference.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = reference, assay = reference.assay, features = features, verbose = FALSE))
         features <- intersect(
           x = features,
           y = intersect(
@@ -794,18 +792,9 @@ FindTransferAnchors <- function(
             y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
           )
         )
-        # features <- intersect(
-        #   x = features,
-        #   y = intersect(
-        #     x = rownames(x = query.sct.scaledata),
-        #     y = rownames(x = reference.sct.scaledata)
-        #   )
-        # )
-
         reference[[reference.assay]] <- as(
           object = CreateAssayObject(
             data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
-            #data = reference.sct.scaledata[features, ]),
           Class = "SCTAssay"
         )
         reference <- SetAssayData(
@@ -818,7 +807,6 @@ FindTransferAnchors <- function(
     query[[query.assay]] <- as(
       object = CreateAssayObject(
         data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
-        #data = query.sct.scaledata[features, ]),
       Class = "SCTAssay"
     )
     query <- SetAssayData(
@@ -1391,34 +1379,25 @@ IntegrateData <- function(
     for (i in 1:length(x = object.list)) {
       assay <- DefaultAssay(object = object.list[[i]])
       if (length(x = setdiff(x = features.to.integrate, y = features)) != 0) {
-        # object.list[[i]] <- GetResidual(
-        #   object = object.list[[i]],
-        #   features = setdiff(x = features.to.integrate, y = features),
-        #   verbose = verbose
-        # )
-        scale.data[[i]] <- FetchResiduals(
-          object = object.list[[i]],
-          features = setdiff(x = features.to.integrate, y = features),
-          verbose = verbose
+        object.list[[i]] <- GetResidual(
+           object = object.list[[i]],
+           features = setdiff(x = features.to.integrate, y = features),
+           verbose = verbose
         )
-      } else {
-        scale.data[[i]] <- GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
       }
       model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
-      # object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
-      #   data = GetAssayData(
-      #     object = object.list[[i]],
-      #     assay = assay,
-      #     slot = "scale.data")
-      #   )
-      # )
-      object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(data = scale.data[[i]], scale.data = scale.data[[i]]))
+      object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
+        data = GetAssayData(
+          object = object.list[[i]],
+          assay = assay,
+          slot = "scale.data")
+        )
+      )
     }
     model.list <- unlist(x = model.list)
     slot(object = anchorset, name = "object.list") <- object.list
   }
   # perform pairwise integration of reference objects
-  #browser()
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
     new.assay.name = new.assay.name,
@@ -2799,34 +2778,18 @@ PrepSCTIntegration <- function(
   object.list <- my.lapply(
     X = 1:length(x = object.list),
     FUN = function(i) {
-      # obj <- GetResidual(
-      #   object = object.list[[i]],
-      #   assay = assay[i],
-      #   features = anchor.features,
-      #   replace.value = ifelse(test = is.null(x = sct.clip.range), yes = FALSE, no = TRUE),
-      #   clip.range = sct.clip.range,
-      #   verbose = FALSE
-      # )
-      # scale.data <- GetAssayData(
-      #   object = obj,
-      #   assay = assay[i],
-      #   slot = 'scale.data'
-      # )
-      obj <- object.list[[i]]
-      scale.data <- FetchResiduals(
-        object = obj,
+      obj <- GetResidual(
+        object = object.list[[i]],
         assay = assay[i],
         features = anchor.features,
         replace.value = ifelse(test = is.null(x = sct.clip.range), yes = FALSE, no = TRUE),
         clip.range = sct.clip.range,
         verbose = FALSE
       )
-      cells <- Cells(x = obj)
-      obj <- SetAssayData(
+      scale.data <- GetAssayData(
         object = obj,
-        slot = 'scale.data',
-        new.data = scale.data[anchor.features, cells],
-        assay = assay[i]
+        assay = assay[i],
+        slot = 'scale.data'
       )
       return(obj)
     }
@@ -4458,7 +4421,6 @@ PairwiseIntegrateReference <- function(
   for (ii in 1:length(x = object.list)) {
     cellnames.list[[ii]] <- colnames(x = object.list[[ii]])
   }
-  print(object.list[[reference.objects[[1]]]])
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[reference.objects[[1]]]],
     y = object.list[reference.objects[2:length(x = reference.objects)]]
