@@ -1927,12 +1927,12 @@ merge.SCTAssay <- function(
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {
           parent.environ <- sys.frame(which = parent.call[1])
           seurat.object <- parent.environ$objects[[assay]]
-          #seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
-          scale.data <- suppressWarnings(expr = FetchResiduals(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
-          cells <- Cells(x = seurat.object)
-          obj.models <- seurat.object[[parent.environ$assay]]@SCTModel.list
-          obj.data <- GetAssayData(object = seurat.object, assay = parent.environ$assay, slot = "data")
-          seurat.object[[parent.environ$assay]] <- CreateSCTAssayObject(scale.data = scale.data, data = obj.data, SCTModel.list = obj.models)
+          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+          #scale.data <- suppressWarnings(expr = FetchResiduals(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+          #cells <- Cells(x = seurat.object)
+          #obj.models <- seurat.object[[parent.environ$assay]]@SCTModel.list
+          #obj.data <- GetAssayData(object = seurat.object, assay = parent.environ$assay, slot = "data")
+          ##seurat.object[[parent.environ$assay]] <- CreateSCTAssayObject(scale.data = scale.data, data = obj.data, SCTModel.list = obj.models)
           # seurat.object <- SetAssayData(
           #   object = seurat.object,
           #   slot = 'scale.data',

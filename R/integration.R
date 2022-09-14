@@ -782,30 +782,30 @@ FindTransferAnchors <- function(
   reference.reduction.init <- reference.reduction
   if (normalization.method == "SCT") {
       # ensure all residuals required are computed
-      #query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
-      query.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = query, assay = query.assay, features = features, verbose = FALSE))
+      query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
+      #query.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = query, assay = query.assay, features = features, verbose = FALSE))
       if (is.null(x = reference.reduction)) {
-        #reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
-        reference.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = reference, assay = reference.assay, features = features, verbose = FALSE))
-        # features <- intersect(
-        #   x = features,
-        #   y = intersect(
-        #     x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
-        #     y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
-        #   )
-        # )
+        reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        #reference.sct.scaledata <- suppressWarnings(expr = FetchResiduals(object = reference, assay = reference.assay, features = features, verbose = FALSE))
         features <- intersect(
           x = features,
           y = intersect(
-            x = rownames(x = query.sct.scaledata),
-            y = rownames(x = reference.sct.scaledata)
+            x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
+            y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
           )
         )
+        # features <- intersect(
+        #   x = features,
+        #   y = intersect(
+        #     x = rownames(x = query.sct.scaledata),
+        #     y = rownames(x = reference.sct.scaledata)
+        #   )
+        # )
 
         reference[[reference.assay]] <- as(
           object = CreateAssayObject(
-            #data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
-            data = reference.sct.scaledata[features, ]),
+            data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
+            #data = reference.sct.scaledata[features, ]),
           Class = "SCTAssay"
         )
         reference <- SetAssayData(
@@ -817,8 +817,8 @@ FindTransferAnchors <- function(
     }
     query[[query.assay]] <- as(
       object = CreateAssayObject(
-        #data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
-        data = query.sct.scaledata[features, ]),
+        data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
+        #data = query.sct.scaledata[features, ]),
       Class = "SCTAssay"
     )
     query <- SetAssayData(
@@ -1368,13 +1368,7 @@ IntegrateData <- function(
   anchors <- slot(object = anchorset, name = 'anchors')
   ref <- object.list[reference.datasets]
   features <- features %||% slot(object = anchorset, name = "anchor.features")
-  #print(Idents(object.list[[1]]))
-  #print(Idents(object.list[[2]]))
-  # for (obj in seq_along(along.with = object.list)){
-  #   object <- object.list[[obj]]
-  #   idents <- Idents(object = object.list[[obj]])
-  #   print(all(names(x = idents) == colnames(x = object)))
-  # }
+
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]

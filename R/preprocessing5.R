@@ -1658,7 +1658,7 @@ FetchResidualSCTModel <- function(object,
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
 
   sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
-
+  layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
   if (!is.null(reference.SCT.model)) {
     # use reference SCT model
     sct.method <- "reference"
