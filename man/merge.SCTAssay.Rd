@@ -14,6 +14,8 @@
 )
 }
 \arguments{
+\item{x}{A \code{\link[SeuratObject]{Seurat}} object}
+
 \item{y}{A single \code{Seurat} object or a list of \code{Seurat} objects}
 
 \item{add.cell.ids}{A character vector of \code{length(x = c(x, y))};

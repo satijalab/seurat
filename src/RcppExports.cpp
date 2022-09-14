@@ -359,6 +359,48 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// row_sum_dgcmatrix
+NumericVector row_sum_dgcmatrix(NumericVector& x, IntegerVector& i, int rows, int cols);
+RcppExport SEXP _Seurat_row_sum_dgcmatrix(SEXP xSEXP, SEXP iSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector& >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    rcpp_result_gen = Rcpp::wrap(row_sum_dgcmatrix(x, i, rows, cols));
+    return rcpp_result_gen;
+END_RCPP
+}
+// row_mean_dgcmatrix
+NumericVector row_mean_dgcmatrix(NumericVector& x, IntegerVector& i, int rows, int cols);
+RcppExport SEXP _Seurat_row_mean_dgcmatrix(SEXP xSEXP, SEXP iSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector& >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    rcpp_result_gen = Rcpp::wrap(row_mean_dgcmatrix(x, i, rows, cols));
+    return rcpp_result_gen;
+END_RCPP
+}
+// row_var_dgcmatrix
+NumericVector row_var_dgcmatrix(NumericVector& x, IntegerVector& i, int rows, int cols);
+RcppExport SEXP _Seurat_row_var_dgcmatrix(SEXP xSEXP, SEXP iSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector& >::type i(iSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    rcpp_result_gen = Rcpp::wrap(row_var_dgcmatrix(x, i, rows, cols));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 RcppExport SEXP isnull(SEXP);
 
@@ -390,6 +432,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
     {"_Seurat_SNN_SmallestNonzero_Dist", (DL_FUNC) &_Seurat_SNN_SmallestNonzero_Dist, 4},
+    {"_Seurat_row_sum_dgcmatrix", (DL_FUNC) &_Seurat_row_sum_dgcmatrix, 4},
+    {"_Seurat_row_mean_dgcmatrix", (DL_FUNC) &_Seurat_row_mean_dgcmatrix, 4},
+    {"_Seurat_row_var_dgcmatrix", (DL_FUNC) &_Seurat_row_var_dgcmatrix, 4},
     {"isnull", (DL_FUNC) &isnull, 1},
     {NULL, NULL, 0}
 };

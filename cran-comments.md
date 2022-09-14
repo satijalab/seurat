@@ -1,19 +1,33 @@
-# Seurat v4.0.4
+# Seurat v4.1.1
 
 ## Test environments
-* local Ubuntu 20.04 install, R 4.1.0
+* local Ubuntu 20.04 install, R 4.1.3
 * Ubuntu 16.04.6 (on travis-ci), R 4.0.0, R devel
 * macOS 10.13.6 (on travis-ci), R 4.0.2
 * Windows Server 2012 R2 (on AppVeyor), R 4.1.0 Patched
-* win-builder (oldrelease, release, devel)
+* win-builder (release, devel)
 
 ## R CMD check results
-There were no ERRORs, WARNINGs, or NOTEs
+There were no ERRORs or WARNINGs
+
+There was one NOTE:
+
+* checking CRAN incoming feasibility ... NOTE
+Maintainer: 'Paul Hoffman <seurat@nygenome.org>'
+
+Found the following (possibly) invalid URLs:
+  URL: https://www.science.org/doi/abs/10.1126/science.aad0501
+    From: man/cc.genes.Rd
+          man/cc.genes.updated.2019.Rd
+    Status: 503
+    Message: Service Unavailable
+
+This URL is valid and the service still exists. When navigating to the URL either via the documentation or directly, you are taken to the correct article
 
 ## Downstream dependencies
 
-There is one package that depends on Seurat: tidyseurat; this update does not impact its functionality
+There no packages that depend on Seurat
 
-There are eight packages that import Seurat: CDSeq, DUBStepR, PhitestR, rPanglaoDB, scMappR, Signac, SignacX, and SoupX; this update does not impact their functionality
+There are sixteen packages that import Seurat: CAMML, CIDER, DR.SC, DUBStepR, maple, Platypus, rPanglaoDB, scDiffCom, scMappR, SCRIP, scRNAstat, Signac, SignacX, SoupX, spruce, and tidyseurat; this update does not impact their functionality
 
-There are ten packages that suggest Seurat: BisqueRNA, ClustAssess, clustree, conos, DIscBIO, dyngen, harmony, rliger, Rmagic, and VAM; this update does not impact their functionality.
+There are twelve packages that suggest Seurat: BisqueRNA, CIARA, ClustAssess, clustree, conos, DIscBIO, dyngen, harmony, rliger, Rmagic, treefit, and VAM; this update does not impact their functionality.

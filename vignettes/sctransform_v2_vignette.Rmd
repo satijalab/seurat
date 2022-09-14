@@ -1,0 +1,229 @@
+---
+title: 'Introduction to SCTransform, v2 regularization'
+output:
+  html_document:
+    theme: united
+  pdf_document: default
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list() # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+
+```
+
+## TL;DR
+
+We recently introduced [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) to perform normalization and variance stabilization of scRNA-seq datasets. We now release an updated version ('v2'), based on [our broad analysis](https://www.biorxiv.org/content/10.1101/2021.07.07.451498v1) of 59 scRNA-seq datasets spanning a range of technologies, systems, and sequencing depths. This update improves speed and memory consumption, the stability of parameter estimates, the identification of variable features, and the the ability to perform downstream differential expression analyses.
+
+Users can install sctransform v2 from CRAN (sctransform v0.3.3) and invoke the use of the updated method via the `vst.flavor` argument.
+
+```{r tldr, eval=FALSE}
+# install sctransform >= 0.3.3
+install.packages("sctransform") 
+# invoke sctransform - requires Seurat>=4.1
+object <- SCTransform(object, vst.flavor = "v2")
+```
+
+## Introduction
+
+Heterogeneity in single-cell RNA-seq (scRNA-seq) data is driven by multiple sources, including biological variation in cellular state as well as technical variation introduced during experimental processing. In [Choudhary and Satija, 2021](https://www.biorxiv.org/content/10.1101/2021.07.07.451498v1) we provide a set of recommendations for modeling variation in scRNA-seq data, particularly when using generalized linear models or likelihood-based approaches for preprocessing and downstream analysis. 
+
+In this vignette, we use [sctransform v2](https://github.com/satijalab/sctransform/) based workflow to perform a comparative analysis of human immune cells (PBMC) in either a [resting or interferon-stimulated state](https://www.nature.com/articles/nbt.4042). In this vignette we apply sctransform-v2 based normalization to perform the following tasks:
+
+* Create an 'integrated' data assay for downstream analysis
+* Compare the datasets to find cell-type specific responses to stimulation
+* Obtain cell type markers that are conserved in both control and stimulated cells
+
+## Install sctransform
+
+We will install sctransform v2 from CRAN (v0.3.3). We will also install the [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# install glmGamPoi
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("glmGamPoi")
+# install sctransform from Github
+install.packages("sctransform") 
+```
+
+## Setup the Seurat objects
+
+
+```{r data}
+library(Seurat)
+library(SeuratData)
+library(patchwork)
+library(dplyr)
+library(ggplot2)
+```
+The dataset is available through our [SeuratData](https://github.com/satijalab/seurat-data) package.
+
+```{r installdata, eval=FALSE}
+# install dataset
+InstallData("ifnb")
+```
+
+```{r init, results='hide', message=FALSE, fig.keep='none'}
+# load dataset
+LoadData("ifnb")
+
+# split the dataset into a list of two seurat objects (stim and CTRL)
+ifnb.list <- SplitObject(ifnb, split.by = "stim")
+
+ctrl <- ifnb.list[["CTRL"]]
+stim <- ifnb.list[["STIM"]]
+```
+
+## Perform normalization and dimensionality reduction
+
+To perform normalization, we invoke `SCTransform` with an additional flag `vst.flavor="v2"` to invoke
+the v2 regularization. This provides some improvements over our original approach first introduced in [Hafemeister and Satija, 2019](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1). 
+
+* We fix the slope parameter of the GLM to $\ln(10)$ with $\log_{10}(\text{total UMI})$ used as the predictor as proposed by [Lause et al.](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02451-7)
+* We utilize an improved parameter estimation procedure that alleviates uncertainty and bias that result from fitting GLM models for very lowly expressed genes.
+* We place a lower bound on gene-level standard deviation when calculating Pearson residuals. This prevents genes with extremely low expression (only 1-2 detected UMIs) from having a high pearson residual.
+
+
+```{r ctrldimreduc, fig.width=10, fig.height=4}
+# normalize and run dimensionality reduction on control dataset
+ctrl <- SCTransform(ctrl, vst.flavor = "v2", verbose = FALSE) %>%
+  RunPCA(npcs = 30, verbose = FALSE) %>%
+  RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE) %>%
+  FindNeighbors(reduction = "pca", dims = 1:30, verbose = FALSE) %>%
+  FindClusters(resolution = 0.7, verbose = FALSE)
+
+p1 <- DimPlot(ctrl, label = T, repel = T) + ggtitle("Unsupervised clustering")
+p2 <- DimPlot(ctrl, label = T, repel = T, group.by = "seurat_annotations") + ggtitle("Annotated celltypes")
+
+p1 | p2
+```
+
+## Perform integration using pearson residuals
+
+To perform integration using the pearson residuals calculated above, we use the `PrepSCTIntegration()` function after selecting a list of informative features  using `SelectIntegrationFeatures()`:
+
+```{r prepinteg}
+stim <- SCTransform(stim, vst.flavor = "v2", verbose = FALSE) %>% RunPCA(npcs = 30, verbose = FALSE)
+ifnb.list <- list(ctrl = ctrl, stim = stim)
+features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)
+ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features)
+```
+
+To integrate the two datasets, we use the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
+
+```{r ifnb.cca.sct.anchors}
+immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, 
+                                         normalization.method = "SCT", anchor.features = features)
+immune.combined.sct <- IntegrateData(anchorset = immune.anchors, normalization.method = "SCT")
+```
+
+## Perform an integrated analysis
+
+Now we can run a single integrated analysis on all cells:
+
+```{r ifnb.cca.sct.clustering, results='hide', message=FALSE}
+immune.combined.sct <- RunPCA(immune.combined.sct, verbose = FALSE)
+immune.combined.sct <- RunUMAP(immune.combined.sct, reduction = "pca", dims = 1:30, verbose = FALSE)
+immune.combined.sct <- FindNeighbors(immune.combined.sct, reduction = "pca", dims = 1:30)
+immune.combined.sct <- FindClusters(immune.combined.sct, resolution = 0.3)
+```
+
+To visualize the two conditions side-by-side, we can use the `split.by` argument to show each condition colored by cluster. 
+
+```{r split.dim}
+DimPlot(immune.combined.sct, reduction = "umap", split.by = "stim")
+```
+
+We can also visualize the distribution of annotated celltypes across control and stimulated datasets:
+
+```{r immunesca.cca.sct.split.dims, fig.width=13, fig.height=4}
+p1 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = "stim")
+p2 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = "seurat_clusters", label = TRUE, repel = TRUE)
+p3 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = "seurat_annotations", label = TRUE, repel = TRUE)
+p1 | p2 | p3
+```
+
+
+## Identify differential expressed genes across conditions
+
+Using the normalized datasets with known celltype annotation, we can ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. 
+
+```{r de.genes}
+immune.combined.sct$celltype.stim <- paste(immune.combined.sct$seurat_annotations, 
+                                           immune.combined.sct$stim, sep = "_")
+Idents(immune.combined.sct) <- "celltype.stim"
+```
+
+To run differential expression, we make use of 'corrected counts' that are stored in the `data` slot of the the `SCT` assay. Corrected counts are obtained by setting the sequencing depth for all the cells to a fixed value and reversing the learned regularized negative-binomial regression model. Prior to performing differential expression, we first run `PrepSCTFindMarkers`, which ensures that the fixed value is set properly. Then we use `FindMarkers(assay="SCT")` to find differentially expressed genes. Here, we aim to identify genes that are differently expressed between stimulated and control B cells. 
+
+```{r runde}
+immune.combined.sct <- PrepSCTFindMarkers(immune.combined.sct)
+
+b.interferon.response <- FindMarkers(immune.combined.sct, assay = "SCT", 
+                                     ident.1 = "B_STIM", ident.2 = "B_CTRL", verbose = FALSE)
+head(b.interferon.response, n = 15)
+```
+
+If running on a subset of the original object after running `PrepSCTFindMarkers()`, `FindMarkers()` should be invoked with `recorrect_umi = FALSE` to use the existing corrected counts:
+
+```{r runde2}
+immune.combined.sct.subset <- subset(immune.combined.sct, idents = c("B_STIM", "B_CTRL"))
+b.interferon.response.subset <- FindMarkers(immune.combined.sct.subset, assay = "SCT", 
+                                            ident.1 = "B_STIM", ident.2 = "B_CTRL", 
+                                            verbose = FALSE, recorrect_umi = FALSE)
+```
+
+We can also use the corrected counts for visualization:
+
+```{r feature.heatmaps, fig.height = 14}
+Idents(immune.combined.sct) <- "seurat_annotations"
+DefaultAssay(immune.combined.sct) <- "SCT"
+FeaturePlot(immune.combined.sct, features = c("CD3D", "GNLY", "IFI6"), 
+            split.by = "stim", max.cutoff = 3, cols = c("grey", "red"))
+```
+
+```{r splitvln, fig.height = 12}
+plots <- VlnPlot(immune.combined.sct, features = c("LYZ", "ISG15", "CXCL10"), 
+                 split.by = "stim", group.by = "seurat_annotations", pt.size = 0, combine = FALSE)
+wrap_plots(plots = plots, ncol = 1)
+```
+
+### Identify conserved cell type markers
+
+To identify canonical cell type marker genes that are conserved across conditions, we provide the `FindConservedMarkers()` function. This function performs differential gene expression testing for each dataset/group and combines the p-values using meta-analysis methods from the MetaDE R package. For example, we can identify genes that are conserved markers irrespective of stimulation condition in NK cells. Note that the `PrepSCTFindMarkers` command does not to be rerun here.
+
+```{r conserved.markers, warning=FALSE}
+nk.markers <- FindConservedMarkers(immune.combined.sct, assay = "SCT", ident.1 = "NK", grouping.var = "stim", verbose = FALSE)
+head(nk.markers)
+```
+
+```{r save.times, include = FALSE}
+# write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/sctransform2.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

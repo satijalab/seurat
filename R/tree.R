@@ -49,10 +49,12 @@ cluster.ape <- paste(
 #' @concept tree
 #'
 #' @examples
-#' data("pbmc_small")
-#' pbmc_small
-#' pbmc_small <- BuildClusterTree(object = pbmc_small)
-#' Tool(object = pbmc_small, slot = 'BuildClusterTree')
+#' if (requireNamespace("ape", quietly = TRUE)) {
+#'   data("pbmc_small")
+#'   pbmc_small
+#'   pbmc_small <- BuildClusterTree(object = pbmc_small)
+#'   Tool(object = pbmc_small, slot = 'BuildClusterTree')
+#' }
 #'
 BuildClusterTree <- function(
   object,
