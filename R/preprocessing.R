@@ -1949,6 +1949,138 @@ ReadNanostring <- function(
   return(outs)
 }
 
+#' Read and Load 10x Genomics Xenium in-situ data
+#'
+#' @param data.dir Directory containing all Xenium output files with
+#' default filenames
+#' @param type Type of cell spatial coordinate matrices to read; choose one
+#' or more of:
+#' \itemize{
+#'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
+#'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
+#' }
+#' @param read.mols Whether or not to read per-transcript data. Can be very
+#' slow and consume a lot of memory for large datasets.
+#' @param mols.qv.threshold Remove transcript molecules with
+#' a QV less than this threshold. QV >= 20 is the standard threshold
+#' used to construct the cell x gene count matrix.
+#' @param mols.filter Filter molecules that match provided string
+#' @param genes.filter Filter genes from cell x gene matrix that match
+#' provided string
+
+#' @param subset.counts.matrix If the counts matrix should be built from
+#' molecule coordinates for a specific segmentation; One of:
+#' \itemize{
+#'  \item \dQuote{Nuclear}: nuclear segmentations
+#'  \item \dQuote{Cytoplasm}: cell cytoplasm segmentations
+#'  \item \dQuote{Membrane}: cell membrane segmentations
+#' }
+#' @param cell.mols.only If TRUE, only load molecules within a cell
+#'
+#' @return \code{ReadXenium}: A list with some combination of the
+#' following values:
+#' \itemize{
+#'  \item \dQuote{\code{matrix}}: a
+#'  \link[Matrix:dgCMatrix-class]{sparse matrix} with expression data; cells
+#'   are columns and features are rows
+#'  \item \dQuote{\code{centroids}}: a data frame with cell centroid
+#'   coordinates in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{cell}
+#'  \item \dQuote{\code{pixels}}: a data frame with molecule pixel coordinates
+#'   in three columns: \dQuote{x}, \dQuote{y}, and \dQuote{gene}
+#' }
+#'
+#'
+#' @export
+#' @concept preprocessing
+#'
+ReadXenium <- function(
+  data.dir,
+  type = 'centroids',
+  read.mols = TRUE,
+  mols.qv.threshold = 20
+) {
+
+  # Argument checking
+  type <- match.arg(
+    arg = type,
+    choices = c('centroids', 'segmentations'),
+    several.ok = TRUE
+  )
+
+  outs <- list("matrix"=NULL, "microns"=NULL, "centroids"=NULL)
+  if ("segmentations" %in% type) {
+    outs <- append(outs, list("segmentations" = NULL))
+  }
+
+  for (otype in names(x = outs)) {
+    outs[[otype]] <- switch(
+      EXPR = otype,
+      'matrix' = {
+        pmtx <- progressor()
+        pmtx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
+        matrix <- suppressWarnings(Read10X(data.dir = file.path(data.dir, "cell_feature_matrix/")))
+        pmtx(type = "finish")
+        matrix
+      },
+      'centroids' = {
+        pcents <- progressor()
+        pcents(
+          message = 'Loading cell centroids',
+          class = 'sticky',
+          amount = 0
+        )
+        cell_info <- read.csv(file.path(data.dir, "cells.csv.gz"))
+        cell_centroid_df <- data.frame(
+          x = cell_info$x_centroid,
+          y = cell_info$y_centroid,
+          cell = cell_info$cell_id,
+          stringsAsFactors = FALSE
+        )
+        pcents(type = 'finish')
+        cell_centroid_df
+      },
+      'segmentations' = {
+        psegs <- progressor()
+        psegs(
+          message = 'Loading cell segmentations',
+          class = 'sticky',
+          amount = 0
+        )
+
+        # load cell boundaries
+        cell_boundaries_df <- read.csv(file.path(data.dir, "cell_boundaries.csv.gz"), stringsAsFactors = FALSE)
+        names(cell_boundaries_df) <- c("cell", "x", "y")
+        psegs(type = "finish")
+        cell_boundaries_df
+      },
+      'microns' = {
+        pmicrons <- progressor()
+        pmicrons(
+          message = "Loading molecule coordinates",
+          class = 'sticky',
+          amount = 0
+        )
+
+        # molecules 
+        transcripts <- read.csv(file.path(data.dir, "transcripts.csv.gz"))
+        transcripts <- subset(transcripts, qv >= mols.qv.threshold)
+
+        df <- 
+          data.frame(
+            x = transcripts$x_location,
+            y = transcripts$y_location,
+            gene = transcripts$feature_name,
+            stringsAsFactors = FALSE
+          )
+        pmicrons(type = 'finish')
+        df
+      },
+      stop("Unknown Xenium input type: ", outs[[otype]])
+    )
+  }
+  return(outs)
+}
+
 #' Load Slide-seq spatial data
 #'
 #' @param coord.file Path to csv file containing bead coordinate positions
