@@ -1368,6 +1368,13 @@ IntegrateData <- function(
   anchors <- slot(object = anchorset, name = 'anchors')
   ref <- object.list[reference.datasets]
   features <- features %||% slot(object = anchorset, name = "anchor.features")
+  #print(Idents(object.list[[1]]))
+  #print(Idents(object.list[[2]]))
+  # for (obj in seq_along(along.with = object.list)){
+  #   object <- object.list[[obj]]
+  #   idents <- Idents(object = object.list[[obj]])
+  #   print(all(names(x = idents) == colnames(x = object)))
+  # }
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
@@ -1400,6 +1407,8 @@ IntegrateData <- function(
           features = setdiff(x = features.to.integrate, y = features),
           verbose = verbose
         )
+      } else {
+        scale.data[[i]] <- GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data")
       }
       model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
       # object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
@@ -1409,15 +1418,13 @@ IntegrateData <- function(
       #     slot = "scale.data")
       #   )
       # )
-      object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
-        data = scale.data[[i]]
-        )
-      )
+      object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(data = scale.data[[i]], scale.data = scale.data[[i]]))
     }
     model.list <- unlist(x = model.list)
     slot(object = anchorset, name = "object.list") <- object.list
   }
   # perform pairwise integration of reference objects
+  #browser()
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
     new.assay.name = new.assay.name,
@@ -4457,6 +4464,7 @@ PairwiseIntegrateReference <- function(
   for (ii in 1:length(x = object.list)) {
     cellnames.list[[ii]] <- colnames(x = object.list[[ii]])
   }
+  print(object.list[[reference.objects[[1]]]])
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[reference.objects[[1]]]],
     y = object.list[reference.objects[2:length(x = reference.objects)]]
