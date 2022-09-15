@@ -5797,6 +5797,8 @@ ProjectCellEmbeddings_DelayedAssay <- function(
     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
   
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = query.data)
   emb.list <- list()
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
