@@ -1278,7 +1278,7 @@ SCTransform.StdAssay <- function(
     variable.feature.list <- list()
 
     GetSCT.Chunked <- function(vp, reference.SCT.model = NULL, do.correct.umi = TRUE){
-      sparse <- DelayedArray::is_sparse(x = counts) # TRUE
+      sparse <- DelayedArray::is_sparse(x = counts)
       block <- DelayedArray::read_block(x = counts,
                                         viewport = vp,
                                         as.sparse = sparse)
@@ -1300,8 +1300,8 @@ SCTransform.StdAssay <- function(
                              variable.features.n = variable.features.n,
                              variable.features.rv.th = variable.features.rv.th,
                              vars.to.regress = vars.to.regress,
-                             do.scale = do.scale,
-                             do.center = do.center,
+                             do.scale = FALSE,
+                             do.center = FALSE,
                              clip.range = clip.range,
                              conserve.memory = conserve.memory,
                              return.only.var.genes = return.only.var.genes,
@@ -1345,13 +1345,15 @@ SCTransform.StdAssay <- function(
       assay.out <- as(object = assay.out, Class = "SCTAssay")
       #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
-      assay.out@key <- "sct"
+      assay.out@key <- "sct_"
       return (assay.out)
     }
     local.reference.SCT.model <- NULL
     if (is.null(reference.SCT.model)){
-      # No reference model so just select the first block of cells
-      vp <- cells.grid[[1L]]
+      # No reference model so just select the some block of cells
+      set.seed(seed = seed.use)
+      selected.block <-  sample(x = seq.int(from = 1, to = length(cells.grid)), size = 1)
+      vp <- cells.grid[[selected.block]]
       assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = FALSE)
       local.reference.SCT.model <- assay.out@SCTModel.list[[1]]
       variable.features <- VariableFeatures(assay.out)
@@ -1371,53 +1373,75 @@ SCTransform.StdAssay <- function(
       residuals <- list()
       corrected_counts <- list()
       cell_attrs <- list()
-      for (i in seq_len(length.out = length(x = cells.grid))) {
-        vp <- cells.grid[[i]]
-        block <- DelayedArray::read_block(x = counts,
-                                          viewport = vp,
-                                          as.sparse = TRUE)
+      if (length(cells.grid)==1){
+        merged.assay <- assay.out
+        corrected_counts[[1]] <- GetAssayData(object = assay.out, slot="data")
+        residuals[[1]] <- GetAssayData(object = assay.out, slot="scale.data")
+        cell_attrs[[1]] <- vst_out.reference$cell_attr
+      } else {
+        for (i in seq_len(length.out = length(x = cells.grid))) {
+          vp <- cells.grid[[i]]
+          print(paste0("chunk ", i))
+          block <- DelayedArray::read_block(x = counts,
+                                            viewport = vp,
+                                            as.sparse = TRUE)
 
-        counts.vp <- as(object = block, Class = 'dgCMatrix')
-        cell.attr.object <- cell.attr[colnames(x = counts.vp),, drop=FALSE]
-        vst_out <- vst_out.reference
-        cell_attr <- data.frame(
-          umi = colSums(counts.vp),
-          log_umi = log10(x = colSums(counts.vp))
-        )
-        rownames(cell_attr) <- colnames(counts.vp)
-        vst_out$cell_attr <- cell_attr
+          counts.vp <- as(object = block, Class = 'dgCMatrix')
+          cell.attr.object <- cell.attr[colnames(x = counts.vp),, drop=FALSE]
+          vst_out <- vst_out.reference
+          cell_attr <- data.frame(
+            umi = colSums(counts.vp),
+            log_umi = log10(x = colSums(counts.vp))
+          )
+          rownames(cell_attr) <- colnames(counts.vp)
+          vst_out$cell_attr <- cell_attr
 
-        new_residual <- get_residuals(
-          vst_out = vst_out,
-          umi = counts.vp[all_features,],
-          residual_type = "pearson",
-          min_variance = min_var,
-          res_clip_range = res_clip_range,
-          verbosity = as.numeric(x = verbose) * 2
+          new_residual <- get_residuals(
+            vst_out = vst_out,
+            umi = counts.vp[all_features,],
+            residual_type = "pearson",
+            min_variance = min_var,
+            res_clip_range = res_clip_range,
+            verbosity = as.numeric(x = verbose) * 2
+          )
+          corrected_counts[[i]] <- correct_counts(
+            x = vst_out,
+            umi = counts.vp[all_features,],
+            verbosity = as.numeric(x = verbose) * 2
+          )
+          residuals[[i]] <- new_residual
+          cell_attrs[[i]] <- cell_attr
+        }
+        new.residuals <- Reduce(cbind, residuals)
+        corrected_counts <- Reduce(cbind, corrected_counts)
+        cell_attrs <- Reduce(rbind, cell_attrs)
+
+        vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),]
+        SCTModel.list <- PrepVSTResults(
+          vst.res = vst_out.reference,
+          cell.names = all_cells
         )
-        corrected_counts[[i]] <- correct_counts(
-          x = vst_out,
-          umi = counts.vp[all_features,],
-          verbosity = as.numeric(x = verbose) * 2
+        SCTModel.list <- list(model1 = SCTModel.list)
+
+        # scale data here as do.center and do.scale are set to FALSE inside
+        new.residuals <- ScaleData(
+          new.residuals,
+          features = NULL,
+          #vars.to.regress = vars.to.regress,
+          #latent.data = cell.attr[, vars.to.regress, drop = FALSE],
+          model.use = 'linear',
+          use.umi = FALSE,
+          do.scale = do.scale,
+          do.center = do.center,
+          scale.max = Inf,
+          block.size = 750,
+          min.cells.to.block = 3000,
+          verbose = verbose
         )
-        residuals[[i]] <- new_residual
-        cell_attrs[[i]] <- cell_attr
+        merged.assay <- CreateSCTAssayObject(scale.data = new.residuals, data = corrected_counts, SCTModel.list = SCTModel.list)
+        VariableFeatures(merged.assay) <- variable.features
       }
 
-
-      new.residuals <- Reduce(cbind, residuals)
-      corrected_counts <- Reduce(cbind, corrected_counts)
-      cell_attrs <- Reduce(rbind, cell_attrs)
-
-      vst_out.reference$cell_attr <- cell_attrs[colnames(new.residuals),]
-      SCTModel.list <- PrepVSTResults(
-        vst.res = vst_out.reference,
-        cell.names = all_cells
-      )
-      SCTModel.list <- list(model1 = SCTModel.list)
-
-      merged.assay <- CreateSCTAssayObject(scale.data = new.residuals, data = corrected_counts, SCTModel.list = SCTModel.list)
-      VariableFeatures(merged.assay) <- variable.features
     } else {
       sct.assay.list.temp <- list()
       for (i in seq_len(length.out = length(x = cells.grid))) {
@@ -1433,9 +1457,28 @@ SCTransform.StdAssay <- function(
         # slot ‘key’ in an object of class “Assay”; is(value, "character") is not TRUE
         assay.out <- merge(x = sct.assay.list.temp[[1]],
                            y = sct.assay.list.temp[2:length(sct.assay.list.temp)])
+
         } else {
           assay.out <- sct.assay.list.temp[[1]]
-          }
+        }
+
+      scale.data <- GetAssayData(object = assay.out, slot = "scale.data")
+      # scale data here as do.center and do.scale are set to FALSE inside
+      scale.data <- ScaleData(
+        scale.data,
+        features = NULL,
+        #vars.to.regress = vars.to.regress,
+        #latent.data = cell.attr[, vars.to.regress, drop = FALSE],
+        model.use = 'linear',
+        use.umi = FALSE,
+        do.scale = do.scale,
+        do.center = do.center,
+        scale.max = Inf,
+        block.size = 750,
+        min.cells.to.block = 3000,
+        verbose = verbose
+      )
+      assay.out <- SetAssayData(object = assay.out, slot = "scale.data", new.data = scale.data)
       sct.assay.list[[dataset.names[i]]] <- assay.out
       # Return array by merging everythin
       if (length(x = sct.assay.list) > 1){
