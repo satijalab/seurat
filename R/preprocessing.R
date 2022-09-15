@@ -2111,7 +2111,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose,
     ...
   )
-  object[[names(x = hvf.info)]] <- hvf.info
+  object[names(x = hvf.info)] <- hvf.info
   hvf.info <- hvf.info[which(x = hvf.info[, 1, drop = TRUE] != 0), ]
   if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$vst.variance.standardized, decreasing = TRUE), , drop = FALSE]
@@ -2142,7 +2142,7 @@ FindVariableFeatures.Assay <- function(
     no = 'mvp'
   )
   vf.name <- paste0(vf.name, '.variable')
-  object[[vf.name]] <- rownames(x = object[[]]) %in% top.features
+  object[vf.name] <- rownames(x = object[]) %in% top.features
   return(object)
 }
 

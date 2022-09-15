@@ -5795,8 +5795,7 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.sd <- feature.sd[features] %||% 
     sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-  
-  
+
   setAutoBlockSize(size = block.size) # 1 GB
   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
   
