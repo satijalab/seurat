@@ -2127,6 +2127,20 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   return(object)
 }
 
+PrepSCTFindMarkers.V5 <- function(object, assay = "SCT", umi.assay = "RNA", layer = "counts", verbose = TRUE) {
+
+  layers <- Layers(object = object[[umi.assay]], search = layer)
+  dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
+  for (i in seq_along(along.with = layers)) {
+    l <- layers[i]
+    counts <- LayerData(
+      object = object[[umi.assay]],
+      layer = l
+      )
+  }
+  cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
+}
+
 # given a UMI count matrix, estimate NB theta parameter for each gene
 # and use fit of relationship with mean to assign regularized theta to each gene
 #
