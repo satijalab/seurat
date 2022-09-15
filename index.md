@@ -35,4 +35,4 @@ If you use Seurat in your research, please considering citing:
 
 All methods emphasize clear, attractive, and interpretable visualizations, and were designed to be [easily used](articles/get_started.html) by both dry-lab and wet-lab researchers.
 
-Seurat is developed and maintained by the [Satija lab](authors.html) and is released under the GNU Public License (GPL 3.0).
+Seurat is developed and maintained by the [Satija lab](authors.html) and is released under the MIT license.

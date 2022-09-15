@@ -243,8 +243,9 @@ Returns a Seurat object containing a UMAP representation
 }
 \description{
 Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
-reduction technique. To run, you must first install the umap-learn python
-package (e.g. via \code{pip install umap-learn}). Details on this package can be
+reduction technique. To run using \code{umap.method="umap-learn"}, you must
+first install the umap-learn python package (e.g. via
+\code{pip install umap-learn}). Details on this package can be
 found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
 discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 \url{https://arxiv.org/abs/1802.03426}.

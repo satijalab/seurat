@@ -22,9 +22,10 @@ Plots dendogram (must be precomputed using BuildClusterTree), returns no value
 Plots previously computed tree (from BuildClusterTree)
 }
 \examples{
-data("pbmc_small")
-pbmc_small <- BuildClusterTree(object = pbmc_small)
-PlotClusterTree(object = pbmc_small)
-
+if (requireNamespace("ape", quietly = TRUE)) {
+  data("pbmc_small")
+  pbmc_small <- BuildClusterTree(object = pbmc_small)
+  PlotClusterTree(object = pbmc_small)
+}
 }
 \concept{visualization}
