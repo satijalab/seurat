@@ -823,6 +823,9 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   # cells <- cells %||% colnames(x = object)
+  
+  ##### Cells for all cells in the assay.
+  #### Cells function should not only get default layer
   cells <- cells %||% Cells(
     x = object,
     assay = DefaultAssay(object = object[[reduction]])
