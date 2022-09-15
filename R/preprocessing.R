@@ -365,7 +365,7 @@ GetResidual <- function(
   object,
   features,
   assay = NULL,
-  umi.assay = NULL,
+  umi.assay = "RNA",
   clip.range = NULL,
   replace.value = FALSE,
   na.rm = TRUE,
@@ -412,20 +412,36 @@ GetResidual <- function(
       "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
     )
   }
-  new.residuals <- lapply(
-    X = sct.models,
-    FUN = function(x) {
-      GetResidualSCTModel(
-        object = object,
-        assay = assay,
-        SCTModel = x,
-        new_features = features,
-        replace.value = replace.value,
-        clip.range = clip.range,
-        verbose = verbose
-      )
-    }
-  )
+  if (class(x = object[[umi.assay]]) == "Assay"){
+    new.residuals <- lapply(
+      X = sct.models,
+      FUN = function(x) {
+        GetResidualSCTModel(
+          object = object,
+          assay = assay,
+          SCTModel = x,
+          new_features = features,
+          replace.value = replace.value,
+          clip.range = clip.range,
+          verbose = verbose
+        )
+      }
+    )
+  } else if (class(x = object[[umi.assay]]) == "Assay5"){
+    new.residuals <- lapply(
+      X = sct.models,
+      FUN = function(x) {
+        FetchResidualSCTModel(object = object,
+                              umi.assay = umi.assay,
+                              SCTModel = x,
+                              new_features = features,
+                              replace.value = replace.value,
+                              clip.range = clip.range,
+                              verbose = verbose)
+      }
+    )
+  }
+
   existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
   all.features <- union(x = rownames(x = existing.data), y = features)
    new.scale <- matrix(

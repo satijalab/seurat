@@ -1356,6 +1356,7 @@ IntegrateData <- function(
   anchors <- slot(object = anchorset, name = 'anchors')
   ref <- object.list[reference.datasets]
   features <- features %||% slot(object = anchorset, name = "anchor.features")
+
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
@@ -1939,10 +1940,10 @@ IntegrateSketchEmbeddings <- function(
     }
      if (inherits(x = object[[orig]][[layers[i]]], what = 'DelayedMatrix') ) {
        matrix.prod.function <- crossprod_DelayedAssay
-       } else { 
+       } else {
          matrix.prod.function <- crossprod
        }
-    
+
     emb <- switch(
       EXPR = method,
       'data' = {
@@ -5782,20 +5783,37 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.mean = NULL,
   feature.sd = NULL
 ) {
+<<<<<<< HEAD
+=======
+  RowMeanSparse <- sparseMatrixStats::rowMeans2
+  RowVarSparse <- sparseMatrixStats::rowVars
+>>>>>>> 0a3e6a971f87cd6913f30ca8ef27cea89c5e0637
   dims <- dims %||% 1:ncol(reference[[reduction]])
   assay <- assay %||% DefaultAssay(reference)
-  features <- intersect(rownames(query.data), 
+  features <- intersect(rownames(query.data),
                         rownames(reference[[reduction]]@feature.loadings))
   query.data <- query.data[features,]
+<<<<<<< HEAD
   feature.mean <- feature.mean[features] %||% 
     RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
    
   feature.sd <- feature.sd[features] %||% 
     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
+=======
+  feature.mean <- feature.mean[features] %||%
+    RowMeanSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,])
+>>>>>>> 0a3e6a971f87cd6913f30ca8ef27cea89c5e0637
 
+  feature.sd <- feature.sd[features] %||%
+    sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,]))
+  feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
   setAutoBlockSize(size = block.size) # 1 GB
   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0a3e6a971f87cd6913f30ca8ef27cea89c5e0637
   emb.list <- list()
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
@@ -5880,7 +5898,7 @@ FastRPCAIntegration <- function(
                              return(x)
                            }
   )
-  
+
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
     .args = c(list(
@@ -5931,7 +5949,7 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e9) {
   if (nrow(x) != nrow(y)) {
     stop('row of x and y should be the same')
   }
-  sparse <- DelayedArray::is_sparse(x = y) 
+  sparse <- DelayedArray::is_sparse(x = y)
   suppressMessages(setAutoBlockSize(size = block.size))
   cells.grid <- DelayedArray::colAutoGrid(x = y)
   product.list <- list()
