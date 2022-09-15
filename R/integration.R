@@ -5783,37 +5783,20 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.mean = NULL,
   feature.sd = NULL
 ) {
-<<<<<<< HEAD
-=======
-  RowMeanSparse <- sparseMatrixStats::rowMeans2
-  RowVarSparse <- sparseMatrixStats::rowVars
->>>>>>> 0a3e6a971f87cd6913f30ca8ef27cea89c5e0637
+ 
   dims <- dims %||% 1:ncol(reference[[reduction]])
   assay <- assay %||% DefaultAssay(reference)
   features <- intersect(rownames(query.data),
                         rownames(reference[[reduction]]@feature.loadings))
   query.data <- query.data[features,]
-<<<<<<< HEAD
+ 
   feature.mean <- feature.mean[features] %||% 
     RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
    
   feature.sd <- feature.sd[features] %||% 
     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-=======
-  feature.mean <- feature.mean[features] %||%
-    RowMeanSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,])
->>>>>>> 0a3e6a971f87cd6913f30ca8ef27cea89c5e0637
-
-  feature.sd <- feature.sd[features] %||%
-    sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,]))
-  feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-  setAutoBlockSize(size = block.size) # 1 GB
-  cells.grid <- DelayedArray::colAutoGrid(x = query.data)
-<<<<<<< HEAD
-=======
-
->>>>>>> 0a3e6a971f87cd6913f30ca8ef27cea89c5e0637
+  
   emb.list <- list()
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
