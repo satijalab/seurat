@@ -1043,7 +1043,7 @@ FindTransferAnchors <- function(
         reduction = query[[reference.reduction]],
         data = GetAssayData(object = reference, assay = reference.assay, slot = "data"),
         mode = "lsi",
-        do.center = TRUE,
+        do.center = FALSE,
         do.scale = FALSE,
         use.original.stats = FALSE,
         verbose = verbose
@@ -1055,7 +1055,7 @@ FindTransferAnchors <- function(
         reduction = reference[[reference.reduction]],
         data = GetAssayData(object = query, assay = query.assay, slot = "data"),
         mode = "lsi",
-        do.center = TRUE,
+        do.center = FALSE,
         do.scale = FALSE,
         use.original.stats = FALSE,
         verbose = verbose
@@ -1752,6 +1752,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name)
   slot(object = anchorset, name = "reference.objects") <- 1
   anchors <- as.data.frame(x = anchors)
   anchors$dataset1 <- 1
@@ -1928,7 +1929,7 @@ IntegrateSketchEmbeddings <- function(
       cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
     } else if (length(unique(atoms.layers)) == 1) {
       cells.sketch <- intersect(Cells(x = object[[atoms]][[atoms.layers[[1]]]]),
-                                Cells(object[[orig]][layers[i]]))
+                                Cells(object[[orig]][[layers[i] ]] ))
     }
     if (isTRUE(x = verbose)) {
       message(
@@ -2126,6 +2127,8 @@ LocalStruct <- function(
 #'   reference UMAP using \code{\link{ProjectUMAP}}}
 #' }
 #'
+#' @importFrom rlang invoke
+#'
 #' @export
 #' @concept integration
 #'
@@ -2218,9 +2221,9 @@ MapQuery <- function(
   slot(object = query, name = "tools")$TransferData <- NULL
   reuse.weights.matrix <- FALSE
   if (!is.null(x = refdata)) {
-    query <- do.call(
-      what = TransferData,
-      args = c(list(
+    query <- invoke(
+      .fn = TransferData,
+      .args  = c(list(
         anchorset = anchorset,
         reference = reference,
         query = query,
@@ -2235,9 +2238,9 @@ MapQuery <- function(
     }
   }
   if (anchor.reduction != "cca"){
-    query <- do.call(
-      what = IntegrateEmbeddings,
-      args = c(list(
+    query <- invoke(
+      .fn = IntegrateEmbeddings,
+      .args  = c(list(
         anchorset = anchorset,
         reference = reference,
         query = query,
@@ -2256,16 +2259,18 @@ MapQuery <- function(
       message("Query and reference dimensions are not equal, proceeding with reference dimensions.")
       query.dims <- reference.dims
     }
-    query <- do.call(
-      what = ProjectUMAP,
-      args = c(list(
+    ref_nn.num <- Misc(object = reference[[reduction.model]], slot = "model")$n_neighbors
+    query <- invoke(
+      .fn = ProjectUMAP,
+      .args  = c(list(
         query = query,
         query.reduction = new.reduction.name,
         query.dims = query.dims,
         reference = reference,
         reference.dims = reference.dims,
         reference.reduction = reference.reduction,
-        reduction.model = reduction.model
+        reduction.model = reduction.model,
+        k.param = ref_nn.num
         ), projectumap.args
       )
     )
@@ -2387,7 +2392,7 @@ MappingScore.default <- function(
   ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
   query.cells.projected <- Matrix::crossprod(
-    x = as(object = ref.pca, Class = "dgCMatrix"),
+    x = as.sparse(x = ref.pca),
     y = weights.matrix
   )
   colnames(x = query.cells.projected) <- query.cells
@@ -2426,7 +2431,7 @@ MappingScore.default <- function(
   orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
   query.cells.back.corrected <- Matrix::t(
     x = Matrix::crossprod(
-      x = as(object = orig.pca, Class = "dgCMatrix"),
+      x = as.sparse(x = orig.pca),
       y = weights.matrix)[1:ndim, ]
   )
   query.cells.back.corrected <- as.matrix(x = query.cells.back.corrected)
@@ -2713,7 +2718,7 @@ MixingMetric <- function(
 #'   normalization.method = "SCT",
 #'   anchor.features = features
 #' )
-#' pancreas.integrated <- IntegrateData(anchors)
+#' pancreas.integrated <- IntegrateData(anchors, normalization.method = "SCT")
 #' }
 #'
 PrepSCTIntegration <- function(
@@ -2830,6 +2835,8 @@ PrepSCTIntegration <- function(
 #' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
 #'
 #' @return A vector of selected features
+#'
+#' @importFrom utils head
 #'
 #' @export
 #' @concept integration
@@ -3311,7 +3318,7 @@ TransferData <- function(
       rownames(x = new.data) <- rownames(x = refdata[[rd]])
       colnames(x = new.data) <- query.cells
       if (inherits(x = new.data, what = "Matrix")) {
-        new.data <- as(object = new.data, Class = "dgCMatrix")
+        new.data <- as.sparse(x = new.data)
       }
       if (slot == "counts") {
         # TODO: restore once check.matrix is in SeuratObject
@@ -4247,7 +4254,7 @@ MapQueryData <- function(
     X = query.datasets,
     FUN = function(dataset1) {
       if (verbose) {
-        message("Integrating dataset ", dataset1, " with reference dataset")
+        message("\nIntegrating dataset ", dataset1, " with reference dataset")
       }
       filtered.anchors <- anchors[anchors$dataset1 %in% reference.datasets & anchors$dataset2 == dataset1, ]
       integrated <- RunIntegration(
@@ -4305,7 +4312,7 @@ NNtoMatrix <- function(idx, distance, k) {
     x = as.numeric(x = nn[, 3]),
     Dim = as.integer(x = c(nrow(idx), nrow(x = idx)))
   )
-  nn.matrix <- as(object = nn.matrix, Class = 'dgCMatrix')
+  nn.matrix <- as.sparse(x = nn.matrix)
   return(nn.matrix)
 }
 
@@ -4629,7 +4636,7 @@ RescaleQuery <- function(
     if (scale) {
       feature.sd <- sqrt(
         x = SparseRowVar2(
-          mat = as(object = reference.data, Class = "dgCMatrix"),
+          mat = as.sparse(x = reference.data),
           mu = feature.mean,
           display_progress = FALSE
         )
@@ -4648,7 +4655,7 @@ RescaleQuery <- function(
   store.names <- dimnames(x = proj.data)
   if (is.numeric(x = feature.mean) && feature.mean[[1]] != "SCT") {
     proj.data <- FastSparseRowScaleWithKnownStats(
-      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mat = as.sparse(x = proj.data),
       mu = feature.mean,
       sigma = feature.sd,
       display_progress = FALSE
@@ -5116,9 +5123,9 @@ TransformDataMatrix <- function(
     slot = "data")[features.to.integrate, nn.cells2]
   )
 
-  integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
-                               weights = as(weights, "dgCMatrix"),
-                               expression_cells2 = as(data.use2, "dgCMatrix"))
+  integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
+                               weights = as.sparse(x = weights),
+                               expression_cells2 = as.sparse(x = data.use2))
   dimnames(integrated) <- dimnames(data.use2)
 
   new.expression <- t(rbind(data.use1, integrated))
@@ -5789,8 +5796,6 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.sd <- feature.sd[features] %||%
     sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,]))
   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-
-
   setAutoBlockSize(size = block.size) # 1 GB
   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
 

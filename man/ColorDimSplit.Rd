@@ -69,6 +69,8 @@ groups in cells.highlight}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
     \item{\code{raster}}{Convert points to raster format, default is \code{NULL} which
 automatically rasterizes if plotting more than 100,000 cells}
+    \item{\code{raster.dpi}}{Pixel resolution for rasterized plots, passed to geom_scattermore().
+Default is c(512, 512).}
   }}
 }
 \value{
@@ -79,11 +81,12 @@ Returns a DimPlot colored based on whether the cells fall in clusters
 to the left or to the right of a node split in the cluster tree.
 }
 \examples{
-data("pbmc_small")
-pbmc_small
-pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
-PlotClusterTree(pbmc_small)
-ColorDimSplit(pbmc_small, node = 5)
+if (requireNamespace("ape", quietly = TRUE)) {
+  data("pbmc_small")
+  pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
+  PlotClusterTree(pbmc_small)
+  ColorDimSplit(pbmc_small, node = 5)
+}
 
 }
 \seealso{

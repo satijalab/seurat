@@ -1,9 +1,59 @@
-## Unreleased
+# Unreleased
+
+## Changes
+- Fix legend color in `DoHeatmap()` ([#5783](https://github.com/satijalab/seurat/issues/5783))
+- Fix bug in `ScaleData()` when regressing out one gene ([#5970](https://github.com/satijalab/seurat/pull/5970))
+- Fix name pulling in `PlotPerturbScore()` ([#6081](https://github.com/satijalab/seurat/pull/6081))
+- Support spaceranger 2.0 ([#6208](https://github.com/satijalab/seurat/pull/6208))
+- Fix bug in `SpatialDimPlot()` when using `group.by` ([#6179](https://github.com/satijalab/seurat/issues/6179))
+- Add `add.noise` parameter in `VlnPlot()`
+([#5756](https://github.com/satijalab/seurat/issues/5756))
+- Fix uwot model backwards compatibility ([#6345](https://github.com/satijalab/seurat/issues/6345))
+- Allow `pseudocount.use` in differential expression functions to be set at the `Assay` level
+
+# Seurat 4.1.1 (2022-05-01)
+
+## Changes
+- Fix `giveCsparse` related warnings in `Read10X_h5`
+- Fix ident labeling for `SpatialPlot` ([#5774](https://github.com/satijalab/seurat/issues/5774))
+- Fix `ReadMtx` on Windows ([#5687](https://github.com/satijalab/seurat/issues/5687))
+- Fix `VlnPlot` to switch on rasterization only when required ([#5846](https://github.com/satijalab/seurat/pull/5846))
+- Fix `ncol` behavior in `SpatialPlot` ([#5774](https://github.com/satijalab/seurat/issues/5774))
+- Set `jitter` to FALSE in `FeatureScatter` ([#5876](https://github.com/satijalab/seurat/pull/5876))
+- Update `Cells` methods to new signature (`x, ...`)
+- Replace use of `default.stringsAsFactors()` with `getOption("stringsAsFactors")`
+
+# Seurat 4.1.0 (2022-01-14)
+## Added
+- Add `raster.dpi` parameter to `DimPlot/FeaturePlot` to optionally rasterize individual points ([#5392](https://github.com/satijalab/seurat/pull/5392))
+- Add support for sctransform v2, differential expression with SCT assay
+
+## Changes
+- Update `ReadParseBio` to support split-pipe 0.9.6p ([#5446](https://github.com/satijalab/seurat/pull/5446))
+- Fixes for MAST differential expression ([#5441](https://github.com/satijalab/seurat/issues/5441))
+- Fix scaling options when using `split.by` in `FeaturePlot()` ([#5243](https://github.com/satijalab/seurat/issues/5243)) 
+
+# Seurat 4.0.6 (2021-12-16)
+## Added
+
+- Implement supervised LSI
+
+## Changes
+- Add `raster` parameter to `VlnPlot` to optionally rasterize individual points ([#5076](https://github.com/satijalab/seurat/pull/5076))
+- Add `min.cells.group` parameter to `FindConservedMarkers` ([#5079](https://github.com/satijalab/seurat/pull/5079))
+- Set `do.center` to FALSE for `lsiproject` in `FindTransferAnchors`
+- Fix error message in `ReadMtx()` ([#5158](https://github.com/satijalab/seurat/issues/5158))
+- Add `label.color` parameter to `FeaturePlot` ([#5314](https://github.com/satijalab/seurat/pull/5314))
+- Fix issues in `ProjectUMAP` ([#5257](https://github.com/satijalab/seurat/issues/5257), [#5104](https://github.com/satijalab/seurat/issues/5104), [#5373](https://github.com/satijalab/seurat/issues/5373))
+
+# Seurat 4.0.5 (2021-10-04)
 ## Changes
 - Update documentation for `to.upper` parameter in `Load10X_Spatial()` ([#4576](https://github.com/satijalab/seurat/issues/4576))
 - Update concept tags for `RunSPCA()` ([#4978](https://github.com/satijalab/seurat/discussions/4987))
+- Conditionally run tests/packages that use suggested packages ([#5160](https://github.com/satijalab/seurat/pull/5160))
+- Set random state in `RunUMAP()` when using the `umap-learn` method ([#5194](https://github.com/satijalab/seurat/issues/5194))
 
-## Seurat 4.0.4 (2020-08-19)
+# Seurat 4.0.4 (2021-08-19)
 ## Added
 - Add `reduction` parameter to `BuildClusterTree()` ([#4598](https://github.com/satijalab/seurat/issues/4598))
 - Add DensMAP option to `RunUMAP()` ([#4630](https://github.com/satijalab/seurat/pull/4630))
@@ -14,10 +64,11 @@
 - Add the `image.alpha` parameter to `SpatialDimPlot()` and `SpatialFeaturePlot()`
 - Add support for the correlation metric in `RunUMAP` ([#4972](https://github.com/satijalab/seurat/issues/4972))
 
+
 ## Changes
 - Warn and continue rather than erroring if not all features are available in `FindSpatiallyVariableFeatures()` ([#4611](https://github.com/satijalab/seurat/issues/4611))
 - Bug fix for SCT-based integration in selecting proper reference model ([#4355](https://github.com/satijalab/seurat/issues/4355))
-- Bug fix for reading from absolute paths in ReadMtx ([#4723](https://github.com/satijalab/seurat/issues/4723)) 
+- Bug fix for reading from absolute paths in ReadMtx ([#4723](https://github.com/satijalab/seurat/issues/4723))
 - Bug fix in SingleCellExperiment conversion ([#4633](https://github.com/satijalab/seurat/issues/4633))
 - Bug fix in `FindVariableFeatures()` when using `selection.method = "mvp"` and `binning.method = "equal_frequency"` ([#4712](https://github.com/satijalab/seurat/issues/4712))
 - Bug fix in `DoHeatmap()` to remove random characters from plot legend([#4660](https://github.com/satijalab/seurat/issues/4660))
@@ -25,9 +76,9 @@
 - Fix issue in SingleCellExperiment conversion where the mainExp would not be set properly
 - Fix for default dispersion info displayed in `VariableFeaturePlot()`
 
-## Seurat 4.0.3 (2020-06-10)
+# Seurat 4.0.3 (2021-06-10)
 ## Added
-- Add `jitter` parameter to `FeatureScatter()` 
+- Add `jitter` parameter to `FeatureScatter()`
 
 ## Changes
 - Fix issues with `as.SingleCellExperiment.Seurat()` for the latest verion of SingleCellExperiment ([#4532](https://github.com/satijalab/seurat/pull/4532))

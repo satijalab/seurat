@@ -1,9 +1,14 @@
+url: https://satijalab.org/seurat
+
 destination: docs
 
 template:
   params:
       bootswatch: flatly
       ganalytics: UA-82807227-1
+  docsearch:
+      api_key: ead918d7fe8467a2fd38e97f5bbe3ecb
+      index_name: seurat
 
 navbar:
   title: "Seurat"
@@ -43,6 +48,8 @@ navbar:
           href: articles/mixscape_vignette.html
         - text: "Using sctransform in Seurat"
           href: articles/sctransform_vignette.html
+        - text: "SCTransform, v2 regularization"
+          href: articles/sctransform_v2_vignette.html
         - text: -------
         - text: Other
         - text: "Data visualization vignette"
@@ -149,3 +156,8 @@ reference:
   desc: "Functions included for user convenience and to keep maintain backwards compatability"
 - contents:
   - has_concept("convenience")
+
+- title: "Re-exports"
+  desc: "Functions re-exported from other packages"
+- contents:
+  - reexports
