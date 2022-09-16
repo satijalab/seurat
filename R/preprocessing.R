@@ -1876,7 +1876,7 @@ SCTransform.Seurat <- function(
   if (verbose){
     message("Running SCTransform on assay: ", assay)
   }
-  cell.attr <- slot(object = object, name = 'meta.data')
+  cell.attr <- slot(object = object, name = 'meta.data')[colnames(object[[assay]]),]
 
   assay.data <- SCTransform(object = object[[assay]],
                             cell.attr = cell.attr,
