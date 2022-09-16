@@ -26,6 +26,7 @@ DimPlot(
   label.color = "black",
   label.box = FALSE,
   repel = FALSE,
+  alpha = 1,
   cells.highlight = NULL,
   cols.highlight = "#DE2D26",
   sizes.highlight = 1,
@@ -87,6 +88,8 @@ useful for crowded plots if points of interest are being buried. (default is FAL
 geom_label)}
 
 \item{repel}{Repel labels}
+
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{cells.highlight}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply

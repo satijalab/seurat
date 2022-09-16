@@ -189,6 +189,7 @@ DimHeatmap <- function(
 #' @param label Label the cell identies above the color bar
 #' @param size Size of text above color bar
 #' @param hjust Horizontal justification of text above color bar
+#' @param vjust Vertical justification of text above color bar
 #' @param angle Angle of text above color bar
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
@@ -229,6 +230,7 @@ DoHeatmap <- function(
   label = TRUE,
   size = 5.5,
   hjust = 0,
+  vjust = 0,
   angle = 45,
   raster = TRUE,
   draw.lines = TRUE,
@@ -387,7 +389,7 @@ DoHeatmap <- function(
           stat = "identity",
           data = label.x.pos,
           aes_string(label = 'group', x = 'label.x.pos'),
-          y = y.max + y.max * 0.03 * 0.5,
+          y = y.max + y.max * 0.03 * 0.5 + vjust,
           angle = angle,
           hjust = hjust,
           size = size
@@ -553,7 +555,8 @@ RidgePlot <- function(
 #' scores, etc.)
 #'
 #' @inheritParams RidgePlot
-#' @param pt.size Point size for geom_violin
+#' @param pt.size Point size for points
+#' @param alpha Alpha value for points
 #' @param split.by A variable to split the violin plots by,
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
@@ -582,6 +585,7 @@ VlnPlot <- function(
   features,
   cols = NULL,
   pt.size = NULL,
+  alpha = 1,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -626,6 +630,7 @@ VlnPlot <- function(
     same.y.lims = same.y.lims,
     adjust = adjust,
     pt.size = pt.size,
+    alpha = alpha,
     cols = cols,
     group.by = group.by,
     split.by = split.by,
@@ -750,6 +755,7 @@ ColorDimSplit <- function(
 #' @param label.color Sets the color of the label text
 #' @param label.box Whether to put a box around the label text (geom_text vs
 #' geom_label)
+#' @param alpha Alpha value for plotting (default is 1)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -809,6 +815,7 @@ DimPlot <- function(
   label.color = 'black',
   label.box = FALSE,
   repel = FALSE,
+  alpha = 1,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
@@ -864,6 +871,7 @@ DimPlot <- function(
         pt.size = pt.size,
         shape.by = shape.by,
         order = order,
+        alpha = alpha,
         label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
@@ -992,6 +1000,7 @@ FeaturePlot <- function(
     c('lightgrey', 'blue')
   },
   pt.size = NULL,
+  alpha = 1,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -1267,6 +1276,7 @@ FeaturePlot <- function(
         col.by = feature,
         order = order,
         pt.size = pt.size,
+        alpha = alpha,
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
@@ -2247,9 +2257,9 @@ PolyFeaturePlot <- function(
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
 #'
-#' @inheritParams DimPlot
-#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @inheritParams FeaturePlot
+#' @inheritParams DimPlot
 #' @param feature Feature to visualize
 #' @param image Name of the image to use in the plot
 #'
@@ -2606,8 +2616,8 @@ LinkedFeaturePlot <- function(
 
 #' Visualize clusters spatially and interactively
 #'
-#' @inheritParams DimPlot
 #' @inheritParams SpatialPlot
+#' @inheritParams DimPlot
 #' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
@@ -2732,8 +2742,8 @@ ISpatialDimPlot <- function(
 
 #' Visualize features spatially and interactively
 #'
-#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @inheritParams FeaturePlot
 #' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
@@ -5553,7 +5563,8 @@ Col2Hex <- function(...) {
 # @param y.max Maximum y axis value
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param adjust Adjust parameter for geom_violin
-# @param pt.size Point size for geom_violin
+# @param pt.size Point size for points
+# @param alpha Alpha value for points
 # @param cols Colors to use for plotting
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
@@ -5588,6 +5599,7 @@ ExIPlot <- function(
   adjust = 1,
   cols = NULL,
   pt.size = 0,
+  alpha = 1,
   group.by = NULL,
   split.by = NULL,
   log = FALSE,
@@ -5701,6 +5713,7 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
+        alpha = alpha,
         log = log,
         add.noise = add.noise,
         raster = raster
@@ -7025,6 +7038,7 @@ SingleCorPlot <- function(
 #' @param shape.by If NULL, all points are circles (default). You can specify
 #' any cell attribute (that can be pulled with \code{\link{FetchData}})
 #' allowing for both different colors and different shapes on cells.
+#' @param alpha Alpha value for plotting (default is 1)
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
@@ -7066,6 +7080,7 @@ SingleDimPlot <- function(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha = 1,
   alpha.by = NULL,
   order = NULL,
   label = FALSE,
@@ -7172,6 +7187,7 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       pointsize = pt.size,
+      alpha = alpha,
       pixels = raster.dpi
     )
   } else {
@@ -7183,7 +7199,8 @@ SingleDimPlot <- function(
         shape = shape.by,
         alpha = alpha.by
       ),
-      size = pt.size
+      size = pt.size,
+      alpha = alpha
     )
   }
   plot <- plot +
@@ -7224,6 +7241,7 @@ SingleDimPlot <- function(
 #' @param y.max Maximum Y value to plot
 #' @param adjust Adjust parameter for geom_violin
 #' @param pt.size Size of points for violin plots
+#' @param alpha Alpha vlaue for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
 #' @param log plot Y axis on log10 scale
@@ -7254,6 +7272,7 @@ SingleExIPlot <- function(
   y.max = NULL,
   adjust = 1,
   pt.size = 0,
+  alpha = 1,
   cols = NULL,
   seed.use = 42,
   log = FALSE,
@@ -7338,21 +7357,23 @@ SingleExIPlot <- function(
       )
       if (is.null(x = split)) {
         if (isTRUE(x = raster)) {
-          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE))
         } else {
-          jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+          jitter <- geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
         }
       } else {
         if (isTRUE(x = raster)) {
           jitter <- ggrastr::rasterize(geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
+            alpha = alpha,
             show.legend = FALSE
           ))
         } else {
           jitter <- geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
+            alpha = alpha,
             show.legend = FALSE
           )
         }
@@ -7371,7 +7392,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
+      jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)
