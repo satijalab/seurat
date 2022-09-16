@@ -1345,7 +1345,6 @@ SCTransform.StdAssay <- function(
       assay.out <- as(object = assay.out, Class = "SCTAssay")
       #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
-      assay.out@key <- "sct"
       return (assay.out)
     }
     local.reference.SCT.model <- NULL
@@ -1662,9 +1661,9 @@ FetchResidualSCTModel <- function(object,
     # use reference SCT model
     sct.method <- "reference"
   }
+  
   scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
-
-  scale.data.cells.common <- intersect(colnames(x = scale.data.cells), layer.cells)
+  scale.data.cells.common <- intersect( scale.data.cells, layer.cells)
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
 
   if (length(x = setdiff(x = layer.cells, y = scale.data.cells)) == 0) {
