@@ -1737,16 +1737,16 @@ FetchResidualSCTModel <- function(object,
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
 
   sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
+
+
   layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
   if (!is.null(reference.SCT.model)) {
     # use reference SCT model
     sct.method <- "reference"
   }
   scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
-
-  scale.data.cells.common <- intersect(colnames(x = scale.data.cells), layer.cells)
+  scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
-
   if (length(x = setdiff(x = layer.cells, y = scale.data.cells)) == 0) {
     existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
     full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data), ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
@@ -1763,6 +1763,16 @@ FetchResidualSCTModel <- function(object,
     features_to_compute <- new_features
   } else {
     features_to_compute <- setdiff(x = new_features, y = existing_features)
+  }
+  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
+    existing_features <- names(x = which(x = ! apply(
+      X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
+      MARGIN = 1,
+      FUN = anyNA)
+    ))
+  } else {
+    existing_features <- character()
   }
   if (sct.method == "reference.model") {
     if (verbose) {
@@ -1781,7 +1791,8 @@ FetchResidualSCTModel <- function(object,
   diff_features <- setdiff(x = features_to_compute, y = model.features)
   intersect_features <- intersect(x = features_to_compute, y = model.features)
   if (sct.method == "reference") {
-    vst_out <- reference.SCT.model
+    vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+
     # override clip.range
     clip.range <- vst_out$arguments$sct.clip.range
     umi.field <- paste0("nCount_", assay)
@@ -1795,6 +1806,7 @@ FetchResidualSCTModel <- function(object,
     vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
   } else {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
+    clip.range <- vst_out$arguments$sct.clip.range
   }
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
@@ -1834,37 +1846,46 @@ FetchResidualSCTModel <- function(object,
         umi = colSums(umi.all),
         log_umi = log10(x = colSums(umi.all))
       )
-      # cell_attr <- as.matrix(x = cell_attr)
-      rownames(cell_attr) <- colnames(umi)
-      if (sct.method == "reference") {
-        vst_out$cell_attr <- cell_attr[colnames(umi), ]
+      rownames(cell_attr) <- colnames(umi.all)
+      if (sct.method %in% c("reference.model", "reference")) {
+        vst_out$cell_attr <- cell_attr[colnames(umi.all), ,drop=FALSE]
       } else {
         cell_attr_existing <- vst_out$cell_attr
         cells_missing <- setdiff(rownames(cell_attr), rownames(cell_attr_existing))
-        vst_out$cell_attr <- rbind(cell_attr_existing, cell_attr[cells_missing, ])
-        vst_out$cell_attr <- vst_out$cell_attr[colnames(umi), ]
+        vst_out$cell_attr <- rbind(cell_attr_existing, cell_attr[cells_missing, , drop=FALSE])
+        vst_out$cell_attr <- vst_out$cell_attr[colnames(umi), , drop=FALSE]
       }
       if (verbose) {
-        if (sct.method == "reference") {
+        if (sct.method == "reference.model") {
           message("using reference sct model")
         } else {
           message("sct.model: ", SCTModel, " on ", ncol(x = umi), " cells: ",
                   colnames(x = umi.all)[1], " .. ", colnames(x = umi.all)[ncol(umi.all)])
         }
       }
+
       if (vst_out$arguments$min_variance == "umi_median"){
         min_var <- min_var_custom
       } else {
         min_var <- vst_out$arguments$min_variance
       }
-      new_residual <- get_residuals(
-        vst_out = vst_out,
-        umi = umi,
-        residual_type = "pearson",
-        min_variance = min_var,
-        res_clip_range = c(clip.min, clip.max),
-        verbosity = as.numeric(x = verbose) * 2
-      )
+      if (nrow(umi)>0){
+        new_residual <- get_residuals(
+          vst_out = vst_out,
+          umi = umi,
+          residual_type = "pearson",
+          min_variance = min_var,
+          res_clip_range = c(clip.min, clip.max),
+          verbosity = as.numeric(x = verbose) * 2
+        )
+      } else {
+        return(matrix(
+          data = NA,
+          nrow = length(x = features_to_compute),
+          ncol = length(x = colnames(umi.all)),
+          dimnames = list(features_to_compute, colnames(umi.all))
+        ))
+      }
       new_residual <- as.matrix(x = new_residual)
       new_residuals[[i]] <- new_residual
     }
