@@ -5783,39 +5783,44 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.mean = NULL,
   feature.sd = NULL
 ) {
-  RowMeanSparse <- sparseMatrixStats::rowMeans2
-  RowVarSparse <- sparseMatrixStats::rowVars
+ 
   dims <- dims %||% 1:ncol(reference[[reduction]])
   assay <- assay %||% DefaultAssay(reference)
   features <- intersect(rownames(query.data),
                         rownames(reference[[reduction]]@feature.loadings))
   query.data <- query.data[features,]
-  feature.mean <- feature.mean[features] %||%
-    RowMeanSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,])
-
-  feature.sd <- feature.sd[features] %||%
-    sqrt(RowVarSparse(x = LayerData(object = reference[[assay]], layer = 'data')[features,]))
-  feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-  setAutoBlockSize(size = block.size) # 1 GB
-  cells.grid <- DelayedArray::colAutoGrid(x = query.data)
-
-  emb.list <- list()
-  for (i in seq_len(length.out = length(x = cells.grid))) {
-    vp <- cells.grid[[i]]
-    data.block <- DelayedArray::read_block(x = query.data,
-                                           viewport = vp,
-                                           as.sparse = TRUE)
-    data.block <- t(apply(data.block, MARGIN = 2, function(x) {
-      x <- (x - feature.mean)/feature.sd
-      return(x)
-    }))
-    emb.block <- data.block %*% reference[[reduction]]@feature.loadings[features,]
-    emb.list[[i]] <- t(emb.block)
-  }
-  # list to matrix, column has to be cells
-  emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
-  rownames(emb.mat) <- colnames(query.data)
-  colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
+ if (IsSCT(object[[assay]])) {
+# TODO: SCT reiduals projection
+   
+ } else {
+   feature.mean <- feature.mean[features] %||% 
+     RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
+   
+   feature.sd <- feature.sd[features] %||% 
+     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
+   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
+   
+   suppressMessages(setAutoBlockSize(size = block.size))
+   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
+   emb.list <- list()
+   for (i in seq_len(length.out = length(x = cells.grid))) {
+     vp <- cells.grid[[i]]
+     data.block <- DelayedArray::read_block(x = query.data,
+                                            viewport = vp,
+                                            as.sparse = TRUE)
+     data.block <- apply(data.block, MARGIN = 2, function(x) {
+       x <- (x - feature.mean)/feature.sd
+       return(x)
+     }) 
+     emb.block <- t(reference[[reduction]]@feature.loadings[features,dims]) %*%  data.block
+     emb.list[[i]] <- emb.block
+   }
+   # list to matrix, column has to be cells
+   emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
+   rownames(emb.mat) <- colnames(query.data)
+   colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
+ }
+  
   return(emb.mat)
 }
 

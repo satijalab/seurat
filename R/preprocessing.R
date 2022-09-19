@@ -412,7 +412,7 @@ GetResidual <- function(
       "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
     )
   }
-  if (class(x = object[[umi.assay]]) == "Assay"){
+  if ((!umi.assay %in% Assays(object = object)) || class(x = object[[umi.assay]])[1] == "Assay"){
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
@@ -427,7 +427,7 @@ GetResidual <- function(
         )
       }
     )
-  } else if (class(x = object[[umi.assay]]) == "Assay5"){
+  } else if (class(x = object[[umi.assay]])[1] == "Assay5"){
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
@@ -1876,7 +1876,7 @@ SCTransform.Seurat <- function(
   if (verbose){
     message("Running SCTransform on assay: ", assay)
   }
-  cell.attr <- slot(object = object, name = 'meta.data')
+  cell.attr <- slot(object = object, name = 'meta.data')[colnames(object[[assay]]),]
 
   assay.data <- SCTransform(object = object[[assay]],
                             cell.attr = cell.attr,

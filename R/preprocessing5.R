@@ -145,7 +145,7 @@ FindVariableFeatures.StdAssay <- function(
       sep = '_'
     )
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
-    object[[colnames(x = hvf.info)]] <- hvf.info
+    object[colnames(x = hvf.info)] <- hvf.info
   }
   return(object)
 }
@@ -1346,7 +1346,6 @@ SCTransform.StdAssay <- function(
       assay.out <- as(object = assay.out, Class = "SCTAssay")
       #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
-      assay.out@key <- "sct_"
       return (assay.out)
     }
     local.reference.SCT.model <- NULL
