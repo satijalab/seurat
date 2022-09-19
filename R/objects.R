@@ -1937,7 +1937,8 @@ merge.SCTAssay <- function(
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {
           parent.environ <- sys.frame(which = parent.call[1])
           seurat.object <- parent.environ$objects[[assay]]
-          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features,
+                                                               assay = parent.environ$assay, verbose = FALSE))
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])
