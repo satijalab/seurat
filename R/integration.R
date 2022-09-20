@@ -5384,7 +5384,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   reference.cells <- gsub(pattern = "_reference", replacement = "", x = reference.cells)
-  if (!isTRUE(x = all.equal(target = reference.cells, current = Cells(x = reference)))) {
+  if (!isTRUE(x = all.equal(target = reference.cells, current = as.character(x = Cells(x = reference))))) {
     stop("The set of cells used as a reference in the AnchorSet does not match ",
          "the set of cells provided in the reference object.")
   }
