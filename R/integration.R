@@ -3636,7 +3636,16 @@ FindIntegrationMatrix <- function(
   anchors2 <- nn.cells2[anchors[, "cell2"]]
   data.use1 <- data.use1[anchors1, ]
   data.use2 <- data.use2[anchors2, ]
-  integration.matrix <- data.use2 - data.use1
+  overflow <- as.numeric(length(data.use1) * 2) / (2^31 - 1)
+  if (overflow > 1) {
+    chunks <- sort((1:ncol(data.use1)) %% ceiling(overflow))
+    integration.matrix <- matrix(nrow = nrow(data.use1), ncol = 0)
+    for (ck in unique(chunks)) {
+      integration.matrix <- cbind(integration.matrix, data.use2[, chunks == ck] - data.use1[, chunks == ck])
+    }
+  } else {
+    integration.matrix <- data.use2 - data.use1
+  }
   object <- SetIntegrationData(
     object = object,
     integration.name = integration.name,
