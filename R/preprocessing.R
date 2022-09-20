@@ -1790,14 +1790,10 @@ SCTransform <- function(
     if (verbose) {
       message('Place corrected count matrix in counts slot')
     }
-    # TODO: restore once check.matrix is in SeuratObject
-    # assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected,)
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
     vst.out$umi_corrected <- NULL
   } else {
-    # TODO: restore once check.matrix is in SeuratObject
-    # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
-    assay.out <- CreateAssayObject(counts = umi)
+    assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
   }
   # set the variable genes
   VariableFeatures(object = assay.out) <- residual.features %||% top.features
