@@ -33,10 +33,7 @@ PolyFeaturePlot(
 
 \item{ncol}{Number of columns to split the plot into}
 
-\item{min.cutoff}{Vector of minimum and maximum cutoff values for each feature,
-may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
-
-\item{max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
+\item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
 \item{common.scale}{...}

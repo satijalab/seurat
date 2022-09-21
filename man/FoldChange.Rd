@@ -22,6 +22,7 @@ FoldChange(object, ...)
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
+  norm.method = NULL,
   ...
 )
 
@@ -77,6 +78,9 @@ If NULL, use all features}
 calculating logFC.}
 
 \item{base}{The base with respect to which logarithms are computed.}
+
+\item{norm.method}{Normalization method for mean function selection
+when \code{slot} is \dQuote{\code{data}}}
 
 \item{ident.1}{Identity class to calculate fold change for; pass an object of class
 \code{phylo} or 'clustertree' to calculate fold change for a node in a cluster tree;

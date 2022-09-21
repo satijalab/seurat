@@ -95,7 +95,7 @@ Collate:
     'tree.R'
     'utilities.R'
     'zzz.R'
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 Encoding: UTF-8
 Suggests:
     ape,
