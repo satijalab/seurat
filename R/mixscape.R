@@ -106,17 +106,11 @@ CalcPerturbSig <- function(
   slot(object = object, name = "tools")[[paste("CalcPerturbSig", assay, reduction, sep = ".")]] <- all_neighbors
   all_diff <- do.call(what = cbind, args = all_diff)
   prtb.assay <- suppressWarnings(
-    # TODO: restore once check.matrix is in SeuratObject
-    # expr = CreateAssayObject(
-    #   data =  all_diff[, colnames(x = object)],
-    #   min.cells = -Inf,
-    #   min.features = -Inf,
-    #   check.matrix = FALSE
-    # )
     expr = CreateAssayObject(
       data =  all_diff[, colnames(x = object)],
       min.cells = -Inf,
-      min.features = -Inf
+      min.features = -Inf,
+      check.matrix = FALSE
     )
   )
   object[[new.assay.name]] <- prtb.assay
@@ -1028,7 +1022,7 @@ PlotPerturbScore <- function(
   gd <- setdiff(x = unique(x = prtb_score[, target.gene.class]), y = target.gene.ident)
   colnames(x = prtb_score)[2] <- "gene"
   prtb_score$cell.bc <- sapply(rownames(prtb_score), FUN = function(x) substring(x, regexpr("[.]", x) + 1))
-  
+
   if (isTRUE(x = before.mixscape)) {
     cols <- setNames(
       object = c("grey49", col),
@@ -1217,23 +1211,14 @@ GetMissingPerturb <- function(object, assay, features, verbose = TRUE) {
   }
   all_diff <- do.call(what = cbind, args = all_diff)
   all_diff <- all_diff[, colnames(x = object[[assay]]), drop = FALSE]
-  # TODO: restore once check.matrix is in SeuratObject
-  # new.assay <- CreateAssayObject(
-  #   data = rbind(
-  #     GetAssayData(object = object[[assay]], slot = "data"),
-  #     all_diff
-  #   ),
-  #   min.cells = 0,
-  #   min.features = 0,
-  #   check.matrix = FALSE
-  # )
   new.assay <- CreateAssayObject(
     data = rbind(
       GetAssayData(object = object[[assay]], slot = "data"),
       all_diff
     ),
     min.cells = 0,
-    min.features = 0
+    min.features = 0,
+    check.matrix = FALSE
   )
   new.assay <- SetAssayData(
     object = new.assay,

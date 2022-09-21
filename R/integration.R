@@ -1461,19 +1461,12 @@ IntegrateData <- function(
   } else {
     active.assay <- DefaultAssay(object = ref[[1]])
     reference.integrated[[active.assay]] <- NULL
-    # TODO: restore once check.matrix is in SeuratObject
-    # reference.integrated[[active.assay]] <- CreateAssayObject(
-    #   data = GetAssayData(
-    #     object = reference.integrated[[new.assay.name]],
-    #     slot = 'data'
-    #   ),
-    #   check.matrix = FALSE
-    # )
     reference.integrated[[active.assay]] <- CreateAssayObject(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
         slot = 'data'
-      )
+      ),
+      check.matrix = FALSE
     )
     DefaultAssay(object = reference.integrated) <- active.assay
     reference.integrated[[new.assay.name]] <- NULL
@@ -1496,13 +1489,9 @@ IntegrateData <- function(
     )
 
     # Construct final assay object
-    # TODO: restore once check.matrix is in SeuratObject
-    # integrated.assay <- CreateAssayObject(
-    #   data = integrated.data,
-    #   check.matrix = FALSE
-    # )
     integrated.assay <- CreateAssayObject(
-      data = integrated.data
+      data = integrated.data,
+      check.matrix = FALSE
     )
     if (normalization.method == "SCT") {
       integrated.assay <- CreateSCTAssayObject(
@@ -1594,13 +1583,9 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
-      # TODO: restore once check.matrix is in SeuratObject
-      # expr = CreateAssayObject(
-      #   data = embeddings,
-      #   check.matrix = FALSE
-      # )
       expr = CreateAssayObject(
-        data = embeddings
+        data = embeddings,
+        check.matrix = FALSE
       )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
@@ -1636,18 +1621,11 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   }
   active.assay <- DefaultAssay(object = object.list[reference.datasets][[1]])
   reference.integrated[[active.assay]] <- NULL
-  # TODO: restore once check.matrix is in SeuratObject
-  # reference.integrated[[active.assay]] <- CreateAssayObject(
-  #   data = GetAssayData(
-  #     object = reference.integrated[[new.reduction.name.safe]],
-  #     slot = 'data',
-  #     check.matrix = FALSE
-  #   )
-  # )
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data'
+      slot = 'data',
+      check.matrix = FALSE
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1734,13 +1712,9 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     )[ , dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
-      # TODO restore once check.matrix is in SeuratObject
-      # expr = CreateAssayObject(
-      #   data = embeddings,
-      #   check.matrix = FALSE
-      # )
       expr = CreateAssayObject(
-        data = embeddings
+        data = embeddings,
+        check.matrix = FALSE
       )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
@@ -3014,9 +2988,9 @@ TransferData <- function(
         stringsAsFactors = FALSE
       )
       if (prediction.assay || !is.null(x = query)) {
-        # TODO: restore once check.matrix is in SeuratObject
-        # predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE)
-        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
+        predictions <- CreateAssayObject(
+          data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE
+        )
         Key(object = predictions) <- paste0("predictionscore", rd.name, "_")
       }
       if (is.null(x = query)) {
@@ -3040,13 +3014,9 @@ TransferData <- function(
         new.data <- as.sparse(x = new.data)
       }
       if (slot == "counts") {
-        # TODO: restore once check.matrix is in SeuratObject
-        # new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
-        new.assay <- CreateAssayObject(counts = new.data)
+        new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
       } else if (slot == "data") {
-        # TODO: restore once check.matrix is in SeuratObject
-        # new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
-        new.assay <- CreateAssayObject(data = new.data)
+        new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
       }
       Key(object = new.assay) <- paste0(rd.name, "_")
       if (is.null(x = query)) {
@@ -4096,13 +4066,9 @@ PairwiseIntegrateReference <- function(
   features.to.integrate <- features.to.integrate %||% features
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
-    # TODO: restore once check.matrix is in SeuratObject
-    # ref.obj[[new.assay.name]] <- CreateAssayObject(
-    #   data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
-    #   check.matrix = FALSE
-    # )
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ]
+      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+      check.matrix = FALSE
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
@@ -4225,9 +4191,7 @@ PairwiseIntegrateReference <- function(
       verbose = verbose
     )
     integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
-    # TODO: restore once check.matrix is in SeuratObject
-    # merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
-    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
+    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
