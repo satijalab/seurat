@@ -3634,8 +3634,8 @@ FindIntegrationMatrix <- function(
   )
   anchors1 <- nn.cells1[anchors[, "cell1"]]
   anchors2 <- nn.cells2[anchors[, "cell2"]]
-  data.use1 <- data.use1[anchors1, ]
-  data.use2 <- data.use2[anchors2, ]
+  data.use1 <- data.use1[rownames(data.use1) %in% anchors1, ]
+  data.use2 <- data.use2[rownames(data.use2) %in% anchors2, ]
   overflow <- as.numeric(length(data.use1) * 2) / (2^31 - 1)
   if (overflow > 1) {
     chunks <- sort((1:ncol(data.use1)) %% ceiling(overflow))
