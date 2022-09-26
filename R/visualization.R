@@ -2902,9 +2902,10 @@ ImageFeaturePlot <- function(
         } else {
           NULL
         }
+        colnames(data.plot) <- gsub("-", "_", colnames(data.plot))
         p <- SingleImagePlot(
           data = data.plot,
-          col.by = feature,
+          col.by = gsub("-", "_", feature),
           size = size,
           col.factor = blend,
           cols = cols.use,
@@ -2916,7 +2917,7 @@ ImageFeaturePlot <- function(
           border.size = border.size,
           dark.background = dark.background
         ) +
-          CenterTitle()
+          CenterTitle() + labs(fill=feature)
         # Remove fill guides for blended plots
         if (isTRUE(x = blend)) {
           p <- p + guides(fill = 'none')
