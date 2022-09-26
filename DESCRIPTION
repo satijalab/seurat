@@ -49,7 +49,7 @@ Imports:
     leiden (>= 0.3.1),
     lmtest,
     MASS,
-    Matrix (>= 1.2-14),
+    Matrix (>= 1.5.0),
     matrixStats,
     miniUI,
     patchwork,

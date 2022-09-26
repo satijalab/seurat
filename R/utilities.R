@@ -2333,7 +2333,7 @@ RowVarSparse <- function(mat) {
 RowSparseCheck <- function(mat) {
   if (!inherits(x = mat, what = "sparseMatrix")) {
     stop("Input should be sparse matrix")
-  } else if (class(x = mat) != "dgCMatrix") {
+  } else if (!is(object = mat, class2 = "dgCMatrix")) {
     warning("Input matrix is converted to dgCMatrix.")
     mat <- as.sparse(x = mat)
   }
