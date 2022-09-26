@@ -205,7 +205,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -365,7 +365,11 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_discrete(name = "Identity", na.translate = FALSE)
+        scale_color_manual(
+          values = cols[-length(x = cols)],
+          name = "Identity",
+          na.translate = FALSE
+        )
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
@@ -490,7 +494,7 @@ HTOHeatmap <- function(
 #' @param same.y.lims Set all the y-axis limits to the same values
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
-#' @param slot Use non-normalized counts data for plotting
+#' @param slot Slot to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -555,6 +559,7 @@ RidgePlot <- function(
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #' @param flip flip plot orientation (identities on x-axis)
+#' @param add.noise determine if adding a small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 # default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 # number of points exceed 100,000.
@@ -593,6 +598,7 @@ VlnPlot <- function(
   combine = TRUE,
   fill.by = 'feature',
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
   if (
@@ -629,6 +635,7 @@ VlnPlot <- function(
     combine = combine,
     fill.by = fill.by,
     flip = flip,
+    add.noise = add.noise,
     raster = raster
   ))
 }
@@ -5550,12 +5557,13 @@ Col2Hex <- function(...) {
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
-# @param slot Use non-normalized counts data for plotting
+# @param slot Slot to pull expression data from (e.g. "counts" or "data")
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param flip flip plot orientation (identities on x-axis)
+# @param add.noise determine if adding a small noise for plotting
 # @param raster Convert points to raster format, default is \code{NULL} which
 # automatically rasterizes if plotting more than 100,000 cells
 #
@@ -5587,6 +5595,7 @@ ExIPlot <- function(
   combine = TRUE,
   fill.by = NULL,
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -5672,6 +5681,7 @@ ExIPlot <- function(
       pt.size = pt.size,
       log = log,
       fill.by = fill.by,
+      add.noise = add.noise,
       flip = flip
     ))
   }
@@ -5689,6 +5699,7 @@ ExIPlot <- function(
         cols = cols,
         pt.size = pt.size,
         log = log,
+        add.noise = add.noise,
         raster = raster
       ))
     }
@@ -6380,6 +6391,7 @@ MultiExIPlot <- function(
   seed.use = 42,
   log = FALSE,
   fill.by = NULL,
+  add.noise = TRUE,
   flip = NULL
 ) {
   if (!(fill.by %in% c("feature", "ident"))) {
@@ -6446,6 +6458,9 @@ MultiExIPlot <- function(
     data$expression <- data$expression + 1
   } else {
     noise <- rnorm(n = nrow(x = data)) / 100000
+  }
+  if (!add.noise) {
+    noise <- noise*0
   }
   for (f in unique(x = data$feature)) {
     if (all(data$expression[(data$feature == f)] == data$expression[(data$feature == f)][1])) {
@@ -7208,7 +7223,8 @@ SingleDimPlot <- function(
 #' @param pt.size Size of points for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
-#' @param log plot Y axis on log scale
+#' @param log plot Y axis on log10 scale
+#' @param add.noise determine if adding small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
@@ -7238,6 +7254,7 @@ SingleExIPlot <- function(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
@@ -7281,6 +7298,9 @@ SingleExIPlot <- function(
     data[, feature] <- data[, feature] + 1
   } else {
     noise <- rnorm(n = length(x = data[, feature])) / 100000
+  }
+  if (!add.noise) {
+    noise <-  noise * 0
   }
   if (all(data[, feature] == data[, feature][1])) {
     warning(paste0("All cells have the same value of ", feature, "."))
@@ -7678,7 +7698,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
-      cols <- cols[names(x = cols) %in% data$ident]
+      cols <- cols[names(x = cols) %in% data[[gsub(pattern = '`', replacement = "", x = col.by)]]]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale

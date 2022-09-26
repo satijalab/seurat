@@ -25,6 +25,7 @@ VlnPlot(
   combine = TRUE,
   fill.by = "feature",
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 )
 }
@@ -59,7 +60,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{slot}{Use non-normalized counts data for plotting}
+\item{slot}{Slot to pull expression data from (e.g. "counts" or "data")}
 
 \item{split.plot}{plot each group of the split violin plots by multiple or
 single violin shapes.}
@@ -72,6 +73,8 @@ ggplot object. If \code{FALSE}, return a list of ggplot}
 \item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 
 \item{flip}{flip plot orientation (identities on x-axis)}
+
+\item{add.noise}{determine if adding a small noise for plotting}
 
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.}
 }

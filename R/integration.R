@@ -1461,19 +1461,12 @@ IntegrateData <- function(
   } else {
     active.assay <- DefaultAssay(object = ref[[1]])
     reference.integrated[[active.assay]] <- NULL
-    # TODO: restore once check.matrix is in SeuratObject
-    # reference.integrated[[active.assay]] <- CreateAssayObject(
-    #   data = GetAssayData(
-    #     object = reference.integrated[[new.assay.name]],
-    #     slot = 'data'
-    #   ),
-    #   check.matrix = FALSE
-    # )
     reference.integrated[[active.assay]] <- CreateAssayObject(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
         slot = 'data'
-      )
+      ),
+      check.matrix = FALSE
     )
     DefaultAssay(object = reference.integrated) <- active.assay
     reference.integrated[[new.assay.name]] <- NULL
@@ -1496,13 +1489,9 @@ IntegrateData <- function(
     )
 
     # Construct final assay object
-    # TODO: restore once check.matrix is in SeuratObject
-    # integrated.assay <- CreateAssayObject(
-    #   data = integrated.data,
-    #   check.matrix = FALSE
-    # )
     integrated.assay <- CreateAssayObject(
-      data = integrated.data
+      data = integrated.data,
+      check.matrix = FALSE
     )
     if (normalization.method == "SCT") {
       integrated.assay <- CreateSCTAssayObject(
@@ -1594,13 +1583,9 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
-      # TODO: restore once check.matrix is in SeuratObject
-      # expr = CreateAssayObject(
-      #   data = embeddings,
-      #   check.matrix = FALSE
-      # )
       expr = CreateAssayObject(
-        data = embeddings
+        data = embeddings,
+        check.matrix = FALSE
       )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
@@ -1636,18 +1621,11 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   }
   active.assay <- DefaultAssay(object = object.list[reference.datasets][[1]])
   reference.integrated[[active.assay]] <- NULL
-  # TODO: restore once check.matrix is in SeuratObject
-  # reference.integrated[[active.assay]] <- CreateAssayObject(
-  #   data = GetAssayData(
-  #     object = reference.integrated[[new.reduction.name.safe]],
-  #     slot = 'data',
-  #     check.matrix = FALSE
-  #   )
-  # )
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data'
+      slot = 'data',
+      check.matrix = FALSE
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1734,13 +1712,9 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     )[ , dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
-      # TODO restore once check.matrix is in SeuratObject
-      # expr = CreateAssayObject(
-      #   data = embeddings,
-      #   check.matrix = FALSE
-      # )
       expr = CreateAssayObject(
-        data = embeddings
+        data = embeddings,
+        check.matrix = FALSE
       )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
@@ -2176,7 +2150,7 @@ MappingScore.default <- function(
   ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
   query.cells.projected <- Matrix::crossprod(
-    x = as(object = ref.pca, Class = "dgCMatrix"),
+    x = as.sparse(x = ref.pca),
     y = weights.matrix
   )
   colnames(x = query.cells.projected) <- query.cells
@@ -2215,7 +2189,7 @@ MappingScore.default <- function(
   orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
   query.cells.back.corrected <- Matrix::t(
     x = Matrix::crossprod(
-      x = as(object = orig.pca, Class = "dgCMatrix"),
+      x = as.sparse(x = orig.pca),
       y = weights.matrix)[1:ndim, ]
   )
   query.cells.back.corrected <- as.matrix(x = query.cells.back.corrected)
@@ -2502,7 +2476,7 @@ MixingMetric <- function(
 #'   normalization.method = "SCT",
 #'   anchor.features = features
 #' )
-#' pancreas.integrated <- IntegrateData(anchors)
+#' pancreas.integrated <- IntegrateData(anchors, normalization.method = "SCT")
 #' }
 #'
 PrepSCTIntegration <- function(
@@ -3014,9 +2988,9 @@ TransferData <- function(
         stringsAsFactors = FALSE
       )
       if (prediction.assay || !is.null(x = query)) {
-        # TODO: restore once check.matrix is in SeuratObject
-        # predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE)
-        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
+        predictions <- CreateAssayObject(
+          data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE
+        )
         Key(object = predictions) <- paste0("predictionscore", rd.name, "_")
       }
       if (is.null(x = query)) {
@@ -3037,16 +3011,12 @@ TransferData <- function(
       rownames(x = new.data) <- rownames(x = refdata[[rd]])
       colnames(x = new.data) <- query.cells
       if (inherits(x = new.data, what = "Matrix")) {
-        new.data <- as(object = new.data, Class = "dgCMatrix")
+        new.data <- as.sparse(x = new.data)
       }
       if (slot == "counts") {
-        # TODO: restore once check.matrix is in SeuratObject
-        # new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
-        new.assay <- CreateAssayObject(counts = new.data)
+        new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
       } else if (slot == "data") {
-        # TODO: restore once check.matrix is in SeuratObject
-        # new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
-        new.assay <- CreateAssayObject(data = new.data)
+        new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
       }
       Key(object = new.assay) <- paste0(rd.name, "_")
       if (is.null(x = query)) {
@@ -4031,7 +4001,7 @@ NNtoMatrix <- function(idx, distance, k) {
     x = as.numeric(x = nn[, 3]),
     Dim = as.integer(x = c(nrow(idx), nrow(x = idx)))
   )
-  nn.matrix <- as(object = nn.matrix, Class = 'dgCMatrix')
+  nn.matrix <- as.sparse(x = nn.matrix)
   return(nn.matrix)
 }
 
@@ -4096,13 +4066,9 @@ PairwiseIntegrateReference <- function(
   features.to.integrate <- features.to.integrate %||% features
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
-    # TODO: restore once check.matrix is in SeuratObject
-    # ref.obj[[new.assay.name]] <- CreateAssayObject(
-    #   data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
-    #   check.matrix = FALSE
-    # )
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ]
+      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+      check.matrix = FALSE
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
@@ -4225,9 +4191,7 @@ PairwiseIntegrateReference <- function(
       verbose = verbose
     )
     integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
-    # TODO: restore once check.matrix is in SeuratObject
-    # merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
-    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
+    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
@@ -4353,7 +4317,7 @@ RescaleQuery <- function(
     if (scale) {
       feature.sd <- sqrt(
         x = SparseRowVar2(
-          mat = as(object = reference.data, Class = "dgCMatrix"),
+          mat = as.sparse(x = reference.data),
           mu = feature.mean,
           display_progress = FALSE
         )
@@ -4372,7 +4336,7 @@ RescaleQuery <- function(
   store.names <- dimnames(x = proj.data)
   if (is.numeric(x = feature.mean) && feature.mean[[1]] != "SCT") {
     proj.data <- FastSparseRowScaleWithKnownStats(
-      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mat = as.sparse(x = proj.data),
       mu = feature.mean,
       sigma = feature.sd,
       display_progress = FALSE
@@ -4840,9 +4804,9 @@ TransformDataMatrix <- function(
     slot = "data")[features.to.integrate, nn.cells2]
   )
 
-  integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
-                               weights = as(weights, "dgCMatrix"),
-                               expression_cells2 = as(data.use2, "dgCMatrix"))
+  integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
+                               weights = as.sparse(x = weights),
+                               expression_cells2 = as.sparse(x = data.use2))
   dimnames(integrated) <- dimnames(data.use2)
 
   new.expression <- t(rbind(data.use1, integrated))
@@ -5384,7 +5348,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   reference.cells <- gsub(pattern = "_reference", replacement = "", x = reference.cells)
-  if (!isTRUE(x = all.equal(target = reference.cells, current = Cells(x = reference)))) {
+  if (!isTRUE(x = all.equal(target = reference.cells, current = as.character(x = Cells(x = reference))))) {
     stop("The set of cells used as a reference in the AnchorSet does not match ",
          "the set of cells provided in the reference object.")
   }

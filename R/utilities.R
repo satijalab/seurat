@@ -1339,18 +1339,11 @@ PseudobulkExpression <- function(
     if (slot[1] == 'scale.data') {
       na.matrix <- data.return[[1]]
       na.matrix[1:length(x = na.matrix)] <- NA
-      # TODO: restore once check.matrix is in SeuratObject
-      # toRet <- CreateSeuratObject(
-      #   counts = na.matrix,
-      #   project = if (pb.method == "average") "Average" else "Aggregate",
-      #   assay = names(x = data.return)[1],
-      #   check.matrix = FALSE,
-      #   ...
-      # )
       toRet <- CreateSeuratObject(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1372,18 +1365,11 @@ PseudobulkExpression <- function(
         new.data = data.return[[1]]
       )
     } else {
-      # TODO: restore once check.matrix is in SeuratObject
-      # toRet <- CreateSeuratObject(
-      #   counts = data.return[[1]],
-      #   project = if (pb.method == "average") "Average" else "Aggregate",
-      #   assay = names(x = data.return)[1],
-      #   check.matrix = FALSE,
-      #   ...
-      # )
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1399,9 +1385,7 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- data.return[[i]]
           na.matrix[1:length(x = na.matrix)] <- NA
-          # TODO: restore once check.matrix is in SeuratObject
-          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1421,9 +1405,7 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          # TODO: restore once check.matrix is in SeuratObject
-          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1894,16 +1876,12 @@ CreateDummyAssay <- function(assay) {
     j = {},
     dims = c(nrow(x = assay), ncol(x = assay))
   )
-  cm <- as(object = cm, Class = "dgCMatrix")
+  cm <- as.sparse(x = cm)
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
-  # TODO: restore once check.matrix is in SeuratObject
-  # return(CreateAssayObject(
-  #   counts = cm,
-  #   check.matrix = FALSE
-  # ))
   return(CreateAssayObject(
-    counts = cm
+    counts = cm,
+    check.matrix = FALSE
   ))
 }
 
@@ -2336,7 +2314,7 @@ RowSumSparse <- function(mat) {
   names(x = output) <- rownames(x = mat)
   return(output)
 }
- 
+
 # Calculate row variance of a sparse matrix
 #
 # @param mat sparse matrix
@@ -2362,7 +2340,7 @@ RowVarSparse <- function(mat) {
 RowSparseCheck <- function(mat) {
   if (!inherits(x = mat, what = "sparseMatrix")) {
     stop("Input should be sparse matrix")
-  } else if (class(x = mat) != "dgCMatrix") {
+  } else if (!is(object = mat, class2 = "dgCMatrix")) {
     warning("Input matrix is converted to dgCMatrix.")
     mat <- as.sparse(x = mat)
   }
