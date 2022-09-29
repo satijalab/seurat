@@ -16,6 +16,7 @@ SingleExIPlot(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  add.noise = TRUE,
   raster = NULL
 )
 }
@@ -41,7 +42,9 @@ expression of the attribute being potted}
 
 \item{seed.use}{Random seed to use. If NULL, don't set a seed}
 
-\item{log}{plot Y axis on log scale}
+\item{log}{plot Y axis on log10 scale}
+
+\item{add.noise}{determine if adding small noise for plotting}
 
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.
 default is \code{NULL} which automatically rasterizes if ggrastr is installed and

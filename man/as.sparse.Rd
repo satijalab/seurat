@@ -12,7 +12,7 @@
   row.names = NULL,
   optional = FALSE,
   ...,
-  stringsAsFactors = default.stringsAsFactors()
+  stringsAsFactors = getOption(x = "stringsAsFactors", default = FALSE)
 )
 }
 \arguments{

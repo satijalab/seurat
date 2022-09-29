@@ -22,6 +22,7 @@ FoldChange(object, ...)
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
+  norm.method = NULL,
   ...
 )
 
@@ -31,7 +32,7 @@ FoldChange(object, ...)
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
@@ -47,7 +48,7 @@ FoldChange(object, ...)
   slot = "data",
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
@@ -74,9 +75,12 @@ If NULL, use all features}
 \item{slot}{Slot to pull data from}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
-calculating logFC. 1 by default.}
+calculating logFC.}
 
 \item{base}{The base with respect to which logarithms are computed.}
+
+\item{norm.method}{Normalization method for mean function selection
+when \code{slot} is \dQuote{\code{data}}}
 
 \item{ident.1}{Identity class to calculate fold change for; pass an object of class
 \code{phylo} or 'clustertree' to calculate fold change for a node in a cluster tree;

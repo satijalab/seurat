@@ -13,7 +13,7 @@ pr:
 jobs:
   - job: 'Build_all_vignettes'
     timeoutInMinutes: 4320
-    pool: Default
+    pool: Pool2
     variables:
       R_LIBS_USER: '$(Agent.BuildDirectory)/R/library'
     container: satijalab/seurat-pkgdown:develop
