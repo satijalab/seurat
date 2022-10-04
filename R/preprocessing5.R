@@ -317,7 +317,8 @@ LogNormalize.HDF5Matrix <- function(
   ...
 ) {
   check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
-  fpath <- slot(object = slot(object = data, name = 'seed'), name = 'filepath')
+  # fpath <- slot(object = slot(object = data, name = 'seed'), name = 'filepath')
+  fpath <- DelayedArray::path(object = data)
   if (.DelayedH5DExists(object = data, path = layer)) {
     rhdf5::h5delete(file = fpath, name = layer)
     dpath <- file.path(
@@ -352,7 +353,7 @@ LogNormalize.SparseArraySeed <- function(
   scale.factor = 1e4,
   margin = 2L,
   return.seed = TRUE,
-  verbose= TRUE,
+  verbose = TRUE,
   ...
 ) {
   check_installed(
@@ -370,6 +371,55 @@ LogNormalize.SparseArraySeed <- function(
     data <- as(object = data, Class = 'SparseArraySeed')
   }
   return(data)
+}
+
+#' @method LogNormalize TileDBMatrix
+#' @export
+#'
+LogNormalize.TileDBMatrix <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  return.seed = TRUE,
+  verbose= TRUE,
+  layer = 'data',
+  ...
+) {
+  check_installed(
+    pkg = 'TileDBArray',
+    reason = 'for working with TileDB matrices'
+  )
+  odir <- c(
+    dirname(path = DelayedArray::path(object = data)),
+    getwd(),
+    tempdir(check = TRUE)
+  )
+  # file.access returns 0 (FALSE) for true and -1 (TRUE) for false
+  idx <- which(x = !file.access(names = odir, mode = 2L))[1L]
+  if (rlang::is_na(x = odir)) {
+    abort(message = "Unable to find a directory to write normalized TileDB matrix")
+  }
+  out <- file.path(odir[idx], layer)
+  if (!file.access(names = out, mode = 0L)) {
+    warn(message = paste(sQuote(x = out), "exists, overwriting"))
+    unlink(x = out, recursive = TRUE, force = TRUE)
+  }
+  sink <- TileDBArray::TileDBRealizationSink(
+    dim = dim(x = data),
+    dimnames = dimnames(x = data),
+    type = BiocGenerics::type(x = data),
+    path = out,
+    attr = layer,
+    sparse = DelayedArray::is_sparse(x = data)
+  )
+  return(LogNormalize.DelayedMatrix(
+    data = data,
+    scale.factor = scale.factor,
+    margin = margin,
+    verbose = verbose,
+    sink = sink,
+    ...
+  ))
 }
 
 #' @importFrom SeuratObject IsSparse
