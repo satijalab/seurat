@@ -5977,7 +5977,7 @@ CountSketch_DelayedAssay <- function(object, block.size = 1e9, nsketch = 5000L, 
     }
     ncells.block <- ncol(block)
     S.block <- CountSketch(nsketch = nsketch, ncells = ncells.block, seed = seed)
-    SA.mat <- SA.mat + (S.block %*% t(block))
+    SA.mat <- SA.mat + as.matrix(S.block %*% t(block))
   }
   return(SA.mat)
 }
