@@ -441,7 +441,8 @@ CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
   return(sparseMatrix(
     i = iv,
     j = jv,
-    x = xv
+    x = xv,
+    dims = c(nsketch, ncells)
   ))
 }
 
