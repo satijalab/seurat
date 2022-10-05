@@ -5965,7 +5965,7 @@ CountSketch_DelayedAssay <- function(object, block.size = 1e9, nsketch = 5000L, 
   sparse <- DelayedArray::is_sparse(x = object)
   suppressMessages(setAutoBlockSize(size = block.size))
   cells.grid <- DelayedArray::colAutoGrid(x = object)
-  sa.list <- list()
+  SA.mat <- matrix(data = 0, nrow = nsketch, ncol = nrow(object))
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
     block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
@@ -5977,8 +5977,35 @@ CountSketch_DelayedAssay <- function(object, block.size = 1e9, nsketch = 5000L, 
     }
     ncells.block <- ncol(block)
     S.block <- CountSketch(nsketch = nsketch, ncells = ncells.block, seed = seed)
-    sa.list[[i]] <- as.matrix(S.block %*% t(block))
+    SA.mat <- SA.mat + (S.block %*% t(block))
   }
-  SA.mat <- Reduce("+", sa.list)
   return(SA.mat)
 }
+
+crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e9) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  norm.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    norm.list[[i]] <- colSums(x = as.matrix(t(x) %*% block) ^ 2)
+  }
+  norm.vector <- unlist(norm.list)
+  return(norm.vector)
+  
+}
+
