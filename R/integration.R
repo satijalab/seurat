@@ -5959,3 +5959,26 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e9) {
   return(product.mat)
 }
 
+
+
+CountSketch_DelayedAssay <- function(object, block.size = 1e9, nsketch = 5000L, seed = 123) {
+  sparse <- DelayedArray::is_sparse(x = object)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = object)
+  sa.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
+    
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    ncells.block <- ncol(block)
+    S.block <- CountSketch(nsketch = nsketch, ncells = ncells.block, seed = seed)
+    sa.list[[i]] <- as.matrix(S.block %*% t(block))
+  }
+  SA.mat <- Reduce("+", sa.list)
+  return(SA.mat)
+}
