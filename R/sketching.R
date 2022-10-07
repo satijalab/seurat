@@ -150,7 +150,7 @@ LeverageScoreSampling <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom Matrix qrR
+#' @importFrom Matrix qrR t
 #'
 #' @method LeverageScore default
 #' @export
@@ -224,6 +224,7 @@ LeverageScore.default <- function(
   return(rowSums(x = Z ^ 2))
 }
 
+#' @importFrom Matrix qrR t
 #' @method LeverageScore DelayedMatrix
 #' @export
 #'
@@ -234,6 +235,7 @@ LeverageScore.DelayedMatrix <- function(
   method = CountSketch,
   eps = 0.5,
   seed = 123L,
+  block.size = 1e8,
   verbose = TRUE,
   ...
 ) {
@@ -244,41 +246,49 @@ LeverageScore.DelayedMatrix <- function(
   if (!is_quosure(x = method)) {
     method <- enquo(arg = method)
   }
-  grid <- DelayedArray::colAutoGrid(x = object)
-  scores <- vector(mode = 'numeric', length = ncol(x = object))
-  if (isTRUE(x = verbose)) {
-    pb <- txtProgressBar(style = 3L, file = stderr())
+  sa <- SketchMatrixProd(object = object,
+                         block.size = block.size,
+                         nsketch = nsketch,
+                         method = method,
+                         ...)
+  qr.sa <- base::qr(x = sa)
+  R <- if (inherits(x = qr.sa, what = 'sparseQR')) {
+    qrR(qr = qr.sa)
+  } else {
+    base::qr.R(qr = qr.sa)
   }
-  for (i in length(x = grid)) {
-    vp <- grid[[i]]
-    idx <- seq.int(
-      from = IRanges::start(x = slot(object = vp, name = 'ranges')[2L]),
-      to = IRanges::end(x = slot(object = vp, name = 'ranges')[2L])
-    )
-    x <- as.sparse(x = DelayedArray::read_block(
-      x = object,
-      viewport = vp,
-      as.sparse = FALSE
-    ))
-    scores[idx] <- LeverageScore(
-      object = x,
-      nsketch = nsketch,
-      ndims = ndims,
-      method = method,
-      eps = 0.5,
-      seed = seed,
-      verbose = FALSE
-      # ...
-    )
-    if (isTRUE(x = verbose)) {
-      setTxtProgressBar(pb = pb, value = i / length(x = grid))
+  if (length(x = which(x = diag(x = R) == 0))> 0) {
+    warning("not all features are variable features")
+    var.index <- which(x = diag(x = R) != 0)
+    R <- R[var.index, var.index]
+  }
+  R.inv <- as.sparse(x = backsolve(r = R, x = diag(x = ncol(x = R))))
+  JL <- as.sparse(x = JLEmbed(
+    nrow = ncol(x = R.inv),
+    ncol = ndims,
+    eps = eps,
+    seed = seed
+  ))
+  RP.mat <- R.inv %*% JL
+  sparse <- DelayedArray::is_sparse(x = object)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = object)
+  norm.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
     }
+    norm.list[[i]] <- colSums(x = as.matrix(t(RP.mat) %*% block[1:ncol(R),]) ^ 2)
   }
-  if (isTRUE(x = verbose)) {
-    close(con = pb)
-  }
+ scores <- unlist(norm.list)
   return(scores)
 }
+
+
 
 #' @method LeverageScore StdAssay
 #' @export
@@ -328,6 +338,14 @@ LeverageScore.StdAssay <- function(
   return(scores)
 }
 
+
+#' @method LeverageScore Assay
+#' @export
+#' 
+LeverageScore.Assay <- LeverageScore.StdAssay
+
+
+
 #' @method LeverageScore Seurat
 #' @export
 #'
@@ -364,41 +382,6 @@ LeverageScore.Seurat <- function(
   return(object)
 }
 
-#' @method LeverageScore Seurat5
-#' @export
-#'
-LeverageScore.Seurat5 <- function(
-  object,
-  assay = NULL,
-  features = NULL,
-  nsketch = 5000L,
-  ndims = NULL,
-  method = CountSketch,
-  layer = 'data',
-  eps = 0.5,
-  seed = 123L,
-  verbose = TRUE,
-  ...
-) {
-  assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = Assays(object = object))
-  method <- enquo(arg = method)
-  scores <- LeverageScore(
-    object = object[[assay]],
-    features = features,
-    nsketch = nsketch,
-    ndims = ndims,
-    method = method,
-    layer = layer,
-    eps = eps,
-    seed = seed,
-    verbose = verbose,
-    ...
-  )
-  names(x = scores) <- paste0("seurat_", names(x = scores))
-  object[[]] <- scores
-  return(object)
-}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
@@ -512,6 +495,47 @@ JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA_integer_, method = "li") {
   )
   return(m)
 }
+
+
+
+SketchMatrixProd <- function(
+    object,
+    method = CountSketch,
+    block.size = 1e9,
+    nsketch = 5000L,
+    seed = 123L, 
+    ...) {
+  
+  if (is_quosure(x = method)) {
+    method <- eval(
+      expr = quo_get_expr(quo = method),
+      envir = quo_get_env(quo = method)
+    )
+  }
+  if (is.character(x = method)) {
+    method <- match.fun(FUN = method)
+  }
+  stopifnot(is.function(x = method))
+  sparse <- DelayedArray::is_sparse(x = object)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = object)
+  SA.mat <- matrix(data = 0, nrow = nsketch, ncol = nrow(object))
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
+    
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    ncells.block <- ncol(block)
+    S.block <- method(nsketch = nsketch, ncells = ncells.block, seed = seed, ...)
+    SA.mat <- SA.mat + as.matrix(S.block %*% t(block))
+  }
+  return(SA.mat)
+}
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 Methods

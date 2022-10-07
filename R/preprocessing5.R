@@ -47,12 +47,14 @@ FindVariableFeatures.default <- function(
       call. = FALSE
     )
   }
-  return(method(
+  var.gene.ouput <- method(
     data = object,
     nselect = nselect,
     verbose = verbose,
     ...
-  ))
+  )
+  rownames(x = var.gene.ouput) <- rownames(x = object)
+  return(var.gene.ouput)
 }
 
 g <- function(x, method = VST) {
