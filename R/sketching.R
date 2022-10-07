@@ -249,11 +249,11 @@ LeverageScore.DelayedMatrix <- function(
   if (isTRUE(x = verbose)) {
     pb <- txtProgressBar(style = 3L, file = stderr())
   }
-  for (i in length(x = grid)) {
+  for (i in seq_len(length.out = length(x = grid))) {
     vp <- grid[[i]]
     idx <- seq.int(
-      from = IRanges::start(x = slot(object = vp, name = 'ranges')[2L]),
-      to = IRanges::end(x = slot(object = vp, name = 'ranges')[2L])
+      from = IRanges::start(x = vp)[2L],
+      to = IRanges::end(x = vp)[2L]
     )
     x <- as.sparse(x = DelayedArray::read_block(
       x = object,
