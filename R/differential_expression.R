@@ -59,7 +59,6 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -136,7 +135,6 @@ FindAllMarkers <- function(
           latent.vars = latent.vars,
           min.cells.feature = min.cells.feature,
           min.cells.group = min.cells.group,
-          pseudocount.use = pseudocount.use,
           mean.fxn = mean.fxn,
           fc.name = fc.name,
           base = base,
@@ -604,6 +602,9 @@ FindMarkers.default <- function(
   return(de.results)
 }
 
+#' @param norm.method Normalization method for fold change calculation when
+#' \code{slot} is \dQuote{\code{data}}
+#'
 #' @rdname FindMarkers
 #' @concept differential_expression
 #' @export
@@ -631,6 +632,7 @@ FindMarkers.Assay <- function(
   fc.name = NULL,
   base = 2,
   densify = FALSE,
+  norm.method = NULL,
   ...
 ) {
   pseudocount.use <- pseudocount.use %||% 1
@@ -654,7 +656,8 @@ FindMarkers.Assay <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     fc.name = fc.name,
-    base = base
+    base = base,
+    norm.method = norm.method
   )
   de.results <- FindMarkers(
     object = data.use,
@@ -931,7 +934,6 @@ FindMarkers.Seurat <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = NULL,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -975,17 +977,14 @@ FindMarkers.Seurat <- function(
   }
   # check normalization method
   norm.command <- paste0("NormalizeData.", assay)
-  if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
-    norm.method <- Command(
+  norm.method <- if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
+    Command(
       object = object,
       command = norm.command,
       value = "normalization.method"
     )
-    if (norm.method != "LogNormalize") {
-      mean.fxn <- function(x) {
-        return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-      }
-    }
+  } else {
+    NULL
   }
   de.results <- FindMarkers(
     object = data.use,
@@ -1004,11 +1003,11 @@ FindMarkers.Seurat <- function(
     latent.vars = latent.vars,
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
-    pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     base = base,
     fc.name = fc.name,
     densify = densify,
+    norm.method = norm.method,
     ...
   )
   return(de.results)
@@ -1054,7 +1053,9 @@ FoldChange.default <- function(
   return(fc.results)
 }
 
-
+#' @param norm.method Normalization method for mean function selection
+#' when \code{slot} is \dQuote{\code{data}}
+#'
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
 #' @concept differential_expression
@@ -1070,19 +1071,25 @@ FoldChange.Assay <- function(
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
+  norm.method = NULL,
   ...
 ) {
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
+  default.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+  }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
-    'data' = function(x) {
-      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-    },
+    'data' = switch(
+      EXPR = norm.method %||% '',
+      'LogNormalize' = function(x) {
+        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+      },
+      default.mean.fxn
+    ),
     'scale.data' = rowMeans,
-    function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    }
+    default.mean.fxn
   )
   # Omit the decimal value of e from the column name if base == exp(1)
   base.text <- ifelse(

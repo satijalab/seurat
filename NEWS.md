@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 4.2.0 (2022-09-21)
 
 ## Changes
 - Fix legend color in `DoHeatmap()` ([#5783](https://github.com/satijalab/seurat/issues/5783))
