@@ -68,6 +68,8 @@ Imports:
     sctransform (>= 0.3.4),
     SeuratObject (>= 4.1.2),
     shiny,
+    spam,
+    spam64,
     spatstat.core,
     spatstat.geom,
     stats,
