@@ -2023,7 +2023,8 @@ ReadXenium <- function(
 
   outs <- match.arg(
     arg = outs,
-    choices = c("matrix", "microns")
+    choices = c("matrix", "microns"),
+    several.ok = TRUE
   )
 
   outs <- c(outs, type)
