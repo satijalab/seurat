@@ -21,7 +21,6 @@ hvf.methods <- list()
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom rlang is_quosure quo_get_env quo_get_expr
 #' @method FindVariableFeatures default
 #' @export
 #'
@@ -60,7 +59,6 @@ g <- function(x, method = VST) {
   FindVariableFeatures(object = x, method = method, layer = 'counts')
 }
 
-#' @importFrom rlang as_name enquo is_quosure
 #' @importFrom SeuratObject DefaultLayer Features Key Layers
 #'
 #' @method FindVariableFeatures StdAssay
@@ -145,7 +143,7 @@ FindVariableFeatures.StdAssay <- function(
       sep = '_'
     )
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
-    object[[colnames(x = hvf.info)]] <- hvf.info
+    object[colnames(x = hvf.info)] <- hvf.info
   }
   return(object)
 }
@@ -528,7 +526,7 @@ NormalizeData.StdAssay <- function(
   method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
-  layer = NULL,
+  layer = NULL, # TODO: set to counts
   save = 'data',
   default = TRUE,
   verbose = TRUE,
@@ -536,7 +534,7 @@ NormalizeData.StdAssay <- function(
 ) {
   olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
   layer <- Layers(object = object, search = layer)
-  if (save == DefaultLayer(object = object)) {
+  if (save %in% olayer) {
     default <- FALSE
   }
   if (length(x = save) != length(x = layer)) {
