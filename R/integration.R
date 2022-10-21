@@ -5458,7 +5458,9 @@ ValidateParams_IntegrateEmbeddings_IntegrationAnchors <- function(
       for (i in 1:nobs) {
         if (!isTRUE(all.equal(
           target = Cells(x = weight.reduction[[i]]),
-          current = Cells(x = object.list[[i]])))
+          current = Cells(x = object.list[[i]]),
+          check.attributes = FALSE
+          ))
         ) {
           stop("Cell names in the provided weight.reduction ", i, " don't ",
                "match with the cell names in object ", i, ".", call. = FALSE)
@@ -5506,7 +5508,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   reference.cells <- gsub(pattern = "_reference", replacement = "", x = reference.cells)
-  if (!isTRUE(x = all.equal(target = reference.cells, current = Cells(x = reference)))) {
+  if (!isTRUE(x = all.equal(target = reference.cells, current = Cells(x = reference), check.attributes = FALSE))) {
     stop("The set of cells used as a reference in the AnchorSet does not match ",
          "the set of cells provided in the reference object.")
   }
@@ -5596,7 +5598,8 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
       weight.reduction <- RenameCells(object = weight.reduction, new.names = paste0(Cells(x = weight.reduction), "_query"))
       if (!isTRUE(all.equal(
         target = Cells(x = weight.reduction),
-        current = Cells(x = query)
+        current = Cells(x = query),
+        check.attributes = FALSE
       ))) {
         stop("Cell names in the provided weight.reduction  don't ",
              "match with the cell names in the query object.", call. = FALSE)
