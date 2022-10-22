@@ -128,7 +128,8 @@ CalcPerturbSig <- function(
 #' positive DE genes.If false, only positive DE gene will be displayed.
 #' @param max.genes Maximum number of genes to use as input to enrichR.
 #' @param p.val.cutoff Cutoff to select DE genes.
-#' @param cols A list of colors to use for barplots.
+#' @param cols A list of colors to use for barplots. First color for negative
+#' values and second color for positive values
 #' @param enrich.database Database to use from enrichR.
 #' @param num.pathway Number of pathways to display in barplot.
 #' @param return.gene.list Return list of DE genes
@@ -241,51 +242,68 @@ DEenrichRPlot <- function(
   if(nrow(pos.markers) == 0){
     message("No positive markers to plot")
 
+    p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval"))
+
     if (isTRUE(x = balanced)) {
+      if(!is.null(cols)){
+        p2 <- p2 + geom_bar(stat = "identity", fill = cols[1])
+      } else {
+        p2 <- p2 + geom_bar(stat = "identity", fill = "indianred2")
+      }
 
-      p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
-        geom_bar(stat = "identity", fill = "indianred2") +
-        coord_flip() + xlab("Pathway") +
-        scale_fill_manual(values = cols, drop = FALSE) +
-        ylab("-log10(pval)") +
-        ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
-        theme_classic() +
-        geom_text(aes_string(label = "term", y = 0),
-                  size = 5,
-                  color = "black",
-                  position = position_dodge(1),
-                  hjust = 0)+
-        theme(axis.title.y= element_blank(),
-              axis.text.y = element_blank(),
-              axis.ticks.y = element_blank())
-      p <- p2
+       p2 <- p2 + coord_flip() + xlab("Pathway") +
+         ylab("-log10(pval)") +
+         ggtitle(paste(enrich.database, ident.1, sep = "_", "negative markers")) +
+         theme_classic() +
+         geom_text(aes_string(label = "term", y = 0),
+                   size = 5,
+                   color = "black",
+                   position = position_dodge(1),
+                   hjust = 0) +
+         theme(axis.title.y= element_blank(),
+               axis.text.y = element_blank(),
+               axis.ticks.y = element_blank())
 
+
+       p <- p2
     }
+
     else{
       stop("Nothing to plot")
     }
   }
 
   else {
-  p <- ggplot(data = pos.er, aes_string(x = "term", y = "log10pval")) +
-    geom_bar(stat = "identity", fill = "dodgerblue") +
-    coord_flip() + xlab("Pathway") +
-    scale_fill_manual(values = cols, drop = FALSE) +
-    ylab("-log10(pval)") +
-    ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) +
-    theme_classic() +
-    geom_text(aes_string(label = "term", y = 0),
-              size = 5,
-              color = "black",
-              position = position_dodge(1),
-              hjust = 0)+
-    theme(axis.title.y= element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank())
-  if (isTRUE(x = balanced)) {
+    p <- ggplot(data = pos.er, aes_string(x = "term", y = "log10pval"))
+    if(!is.null(cols)){
+      p <- p + geom_bar(stat = "identity", fill = cols[2])
+    } else {
+      p <- p + geom_bar(stat = "identity", fill = "dodgerblue")
+    }
 
-    p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval")) +
-      geom_bar(stat = "identity", fill = "indianred2") +
+    p  <- p + coord_flip() + xlab("Pathway") +
+      scale_fill_manual(values = cols, drop = FALSE) +
+      ylab("-log10(pval)") +
+      ggtitle(paste(enrich.database, ident.1, sep = "_", "positive markers")) +
+      theme_classic() +
+      geom_text(aes_string(label = "term", y = 0),
+                size = 5,
+                color = "black",
+                position = position_dodge(1),
+                hjust = 0) +
+      theme(axis.title.y= element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank())
+
+  if (isTRUE(x = balanced)) {
+    p2 <- ggplot(data = neg.er, aes_string(x = "term", y = "log10pval"))
+    if(!is.null(cols)){
+      p2 <- p2 + geom_bar(stat = "identity", fill = cols[1])
+    } else {
+      p2 <- p2 + geom_bar(stat = "identity", fill = "indianred2")
+    }
+
+    p2 <- p2 +
       coord_flip() + xlab("Pathway") +
       scale_fill_manual(values = cols, drop = FALSE) +
       ylab("-log10(pval)") +
