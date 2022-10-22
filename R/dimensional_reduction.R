@@ -1385,6 +1385,9 @@ RunUMAP.default <- function(
           call. = FALSE
         )
       }
+      if (!"num_precomputed_nns" %in% names(x = model)) {
+        model$num_precomputed_nns <- 0
+      }
       if (is.list(x = object)) {
         if (ncol(object$idx) != model$n_neighbors) {
           warning("Number of neighbors between query and reference ", 
