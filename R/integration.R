@@ -1596,6 +1596,8 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name.safe)
+  
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
     new.assay.name = new.reduction.name.safe,

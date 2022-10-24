@@ -189,6 +189,70 @@ HarmonyIntegration <- function(
 
 attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 
+#' Seurat-CCA Integration
+#' 
+#' @inheritParams FindIntegrationAnchors
+#' @export
+#'
+
+CCAIntegration <- function(
+    object = NULL,
+    assay = NULL,
+    layers = NULL,
+    orig.reduction = 'pca',
+    new.reduction = 'integrated.dr',
+    reference = NULL,
+    anchor.features = NULL,
+    normalization.method = c("LogNormalize", "SCT"),
+    dims = 1:30,
+    k.filter = NA,
+    scale.data.layer = 'scale.data',
+    verbose = TRUE,
+    ...) {
+  anchor.features <- anchor.features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  layers <- layers %||% Layers(object, search = 'data')
+  object <- RunPCA(object = object,
+                   assay = assay,
+                   features = anchor.features,
+                   reduction.name = orig.reduction,
+                   reduction.key = paste0(orig.reduction,"_"),
+                   verbose = verbose
+  )
+  
+  object.list <- list()
+  for (i in seq_along(along.with = layers)) {
+    object.list[[i]] <- CreateSeuratObject(counts = object[[assay]][[layers[i]]] )
+    object.list[[i]][['RNA']][[scale.data.layer]] <- object[[assay]]$scale.data[,Cells(object.list[[i]])]
+    object.list[[i]][['RNA']]$counts <- NULL
+  }
+  anchor <- FindIntegrationAnchors(object.list = object.list, 
+                                   anchor.features = anchor.features, 
+                                   scale = FALSE, 
+                                   reduction = 'cca', 
+                                   normalization.method = normalization.method,
+                                   dims = dims,
+                                   k.filter = k.filter,
+                                   reference = reference,
+                                   verbose = verbose,
+                                   ...
+  )
+
+  ## diet Seurat object 
+  ###
+
+  ###
+  object_merged <- IntegrateEmbeddings(anchorset = anchor,
+                                       reductions = object[[orig.reduction]],
+                                       new.reduction.name = new.reduction,
+                                       verbose = verbose)
+  object[[new.reduction]] <- object_merged[[new.reduction]]
+  return(object)
+}
+
+
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
