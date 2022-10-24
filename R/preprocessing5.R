@@ -21,7 +21,6 @@ hvf.methods <- list()
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom rlang is_quosure quo_get_env quo_get_expr
 #' @method FindVariableFeatures default
 #' @export
 #'
@@ -62,7 +61,6 @@ g <- function(x, method = VST) {
   FindVariableFeatures(object = x, method = method, layer = 'counts')
 }
 
-#' @importFrom rlang as_name enquo is_quosure
 #' @importFrom SeuratObject DefaultLayer Features Key Layers
 #'
 #' @method FindVariableFeatures StdAssay
@@ -247,6 +245,10 @@ LogNormalize.DelayedMatrix <- function(
   }
   if (!inherits(x = sink, what = 'RealizationSink')) {
     abort(message = "'sink' must be a RealizationSink")
+  } else if (inherits(x = sink, what = 'arrayRealizationSink')) {
+    # arrayRealizationSinks do not support write_block with rowAutoGrid or colAutoGrid
+    # Because of course they don't
+    abort(message = "Array RealizationSinks are not supported due to issues with {DelayedArray}")
   } else if (!all(dim(x = sink) == dim(x = data))) {
     abort(message = "'sink' must be the same size as 'data'")
   }
@@ -265,6 +267,9 @@ LogNormalize.DelayedMatrix <- function(
   for (i in seq_len(length.out = length(x = grid))) {
     vp <- grid[[i]]
     x <- DelayedArray::read_block(x = data, viewport = vp, as.sparse = sparse)
+    if (isTRUE(x = sparse)) {
+      x <- as(object = x, Class = 'dgCMatrix')
+    }
     x <- LogNormalize(
       data = x,
       scale.factor = scale.factor,
@@ -319,7 +324,6 @@ LogNormalize.HDF5Matrix <- function(
   ...
 ) {
   check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
-  # fpath <- slot(object = slot(object = data, name = 'seed'), name = 'filepath')
   fpath <- DelayedArray::path(object = data)
   if (.DelayedH5DExists(object = data, path = layer)) {
     rhdf5::h5delete(file = fpath, name = layer)
@@ -347,34 +351,6 @@ LogNormalize.HDF5Matrix <- function(
   ))
 }
 
-#' @method LogNormalize SparseArraySeed
-#' @export
-#'
-LogNormalize.SparseArraySeed <- function(
-  data,
-  scale.factor = 1e4,
-  margin = 2L,
-  return.seed = TRUE,
-  verbose = TRUE,
-  ...
-) {
-  check_installed(
-    pkg = 'DelayedArray',
-    reason = 'for working with SparseArraySeeds'
-  )
-  data <- LogNormalize(
-    data = as(object = data, Class = 'CsparseMatrix'),
-    scale.factor = scale.factor,
-    margin = margin,
-    verbose = verbose,
-    ...
-  )
-  if (!isFALSE(x = return.seed)) {
-    data <- as(object = data, Class = 'SparseArraySeed')
-  }
-  return(data)
-}
-
 #' @method LogNormalize TileDBMatrix
 #' @export
 #'
@@ -382,7 +358,6 @@ LogNormalize.TileDBMatrix <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
-  return.seed = TRUE,
   verbose= TRUE,
   layer = 'data',
   ...
@@ -398,7 +373,7 @@ LogNormalize.TileDBMatrix <- function(
   )
   # file.access returns 0 (FALSE) for true and -1 (TRUE) for false
   idx <- which(x = !file.access(names = odir, mode = 2L))[1L]
-  if (rlang::is_na(x = odir)) {
+  if (rlang::is_na(x = idx)) {
     abort(message = "Unable to find a directory to write normalized TileDB matrix")
   }
   out <- file.path(odir[idx], layer)
@@ -414,8 +389,42 @@ LogNormalize.TileDBMatrix <- function(
     attr = layer,
     sparse = DelayedArray::is_sparse(x = data)
   )
-  return(LogNormalize.DelayedMatrix(
-    data = data,
+  return(NextMethod(
+    generic = 'LogNormalize',
+    object = data,
+    scale.factor = scale.factor,
+    margin = margin,
+    verbose = verbose,
+    sink = sink,
+    ...
+  ))
+}
+
+#' @method LogNormalize TENxMatrix
+#' @export
+#'
+LogNormalize.TENxMatrix <- function(
+  data,
+  scale.factor = 1e4,
+  margin = 2L,
+  verbose= TRUE,
+  layer = 'data',
+  ...
+) {
+  check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
+  fpath <- DelayedArray::path(object = data)
+  if (.DelayedH5DExists(object = data, path = layer)) {
+    rhdf5::h5delete(file = fpath, name = layer)
+  }
+  sink <- HDF5Array::TENxRealizationSink(
+    dim = dim(x = data),
+    dimnames = dimnames(x = data),
+    filepath = fpath,
+    group = layer
+  )
+  return(NextMethod(
+    generic = 'LogNormalize',
+    object = data,
     scale.factor = scale.factor,
     margin = margin,
     verbose = verbose,
@@ -466,11 +475,11 @@ NormalizeData.default <- function(
 
 .DelayedH5DExists <- function(object, path) {
   check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 files')
-  if (!inherits(x = object, what = c('HDF5Array', 'H5ADMatrix'))) {
+  if (!inherits(x = object, what = c('HDF5Array', 'H5ADMatrix', 'TENxMatrix'))) {
     abort(message = "'object' must be an HDF5Array or H5ADMatrix")
   }
   on.exit(expr = rhdf5::h5closeAll(), add = TRUE)
-  fpath <- slot(object = slot(object = object, name = 'seed'), name = 'filepath')
+  fpath <- DelayedArray::path(object = object)
   h5loc <- rhdf5::H5Fopen(
     name = fpath,
     flags = 'H5F_ACC_RDWR',
@@ -519,7 +528,7 @@ NormalizeData.StdAssay <- function(
   method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
-  layer = NULL,
+  layer = NULL, # TODO: set to counts
   save = 'data',
   default = TRUE,
   verbose = TRUE,
@@ -527,7 +536,7 @@ NormalizeData.StdAssay <- function(
 ) {
   olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
   layer <- Layers(object = object, search = layer)
-  if (save == DefaultLayer(object = object)) {
+  if (save %in% olayer) {
     default <- FALSE
   }
   if (length(x = save) != length(x = layer)) {

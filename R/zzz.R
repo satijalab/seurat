@@ -1,5 +1,15 @@
 #' @importFrom methods slot
-#' @importFrom rlang abort arg_match caller_env check_installed inform warn
+#' @importFrom rlang abort
+#' arg_match
+#' as_name
+#' caller_env
+#' check_installed
+#' enquo
+#' inform
+#' is_quosure
+#' quo_get_env
+#' quo_get_expr
+#' warn
 #'
 NULL
 
