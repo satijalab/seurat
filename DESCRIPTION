@@ -96,6 +96,7 @@ Collate:
     'objects.R'
     'preprocessing.R'
     'preprocessing5.R'
+    'roxygen.R'
     'sketching.R'
     'tree.R'
     'utilities.R'
