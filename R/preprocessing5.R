@@ -615,6 +615,7 @@ ScaleData.StdAssay <- function(
   layer = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
+  by.layer = FALSE,
   split.by = NULL,
   model.use = 'linear',
   use.umi = FALSE,
@@ -628,53 +629,93 @@ ScaleData.StdAssay <- function(
   ...
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
+  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
-    message("'use.umi' is TRUE, please make sure 'layer' specifies raw counts")
+    inform(
+      message = "'use.umi' is TRUE, please make sure 'layer' specifies raw counts"
+    )
   }
   features <- features %||% Reduce(
     f = union,
     x = lapply(
       X = layer,
       FUN = function(x) {
-        return(VariableFeatures(object = object, layer = layer))
+        return(VariableFeatures(object = object, layer = x))
       }
     )
   )
   if (!length(x = features)) {
     features <- Reduce(f = union, x = lapply(X = layer, FUN = Features, x = object))
   }
-  ldata <- if (length(x = layer) > 1L) {
-    StitchMatrix(
-      x = LayerData(object = object, layer = layer[1L], features = features),
-      y = lapply(
-        X = layer[2:length(x = layer)],
-        FUN = LayerData,
-        object = object,
-        features = features
-      ),
-      rowmap = slot(object = object, name = 'features')[features, layer],
-      colmap = slot(object = object, name = 'cells')[, layer]
-    )
+  if (isTRUE(x = by.layer)) {
+    if (length(x = save) != length(x = layer)) {
+      save <- make.unique(names = gsub(
+        pattern = olayer,
+        replacement = save,
+        x = layer
+      ))
+    }
+    for (i in seq_along(along.with = layer)) {
+      lyr <- layer[i]
+      if (isTRUE(x = verbose)) {
+        inform(message = paste("Scaling data for layer", sQuote(x = lyr)))
+      }
+      LayerData(object = object, layer = save[i], ...) <- ScaleData(
+        object = LayerData(
+          object = object,
+          layer = lyr,
+          features = features,
+          fast = NA
+        ),
+        features = features,
+        vars.to.regress = vars.to.regress,
+        latent.data = latent.data,
+        split.by = split.by,
+        model.use = model.use,
+        use.umi = use.umi,
+        do.scale = do.scale,
+        do.center = do.center,
+        scale.max = scale.max,
+        block.size = block.size,
+        min.cells.to.block = min.cells.to.block,
+        verbose = verbose,
+        ...
+      )
+    }
   } else {
-    LayerData(object = object, layer = layer, features = features)
+    ldata <- if (length(x = layer) > 1L) {
+      StitchMatrix(
+        x = LayerData(object = object, layer = layer[1L], features = features),
+        y = lapply(
+          X = layer[2:length(x = layer)],
+          FUN = LayerData,
+          object = object,
+          features = features
+        ),
+        rowmap = slot(object = object, name = 'features')[features, layer],
+        colmap = slot(object = object, name = 'cells')[, layer]
+      )
+    } else {
+      LayerData(object = object, layer = layer, features = features)
+    }
+    LayerData(object = object, layer = save, features = features) <- ScaleData(
+      object = ldata,
+      features = features,
+      vars.to.regress = vars.to.regress,
+      latent.data = latent.data,
+      split.by = split.by,
+      model.use = model.use,
+      use.umi = use.umi,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = scale.max,
+      block.size = block.size,
+      min.cells.to.block = min.cells.to.block,
+      verbose = verbose,
+      ...
+    )
   }
-  LayerData(object = object, layer = save, features = features) <- ScaleData(
-    object = ldata,
-    features = features,
-    vars.to.regress = vars.to.regress,
-    latent.data = latent.data,
-    split.by = split.by,
-    model.use = model.use,
-    use.umi = use.umi,
-    do.scale = do.scale,
-    do.center = do.center,
-    scale.max = scale.max,
-    block.size = block.size,
-    min.cells.to.block = min.cells.to.block,
-    verbose = verbose,
-    ...
-  )
   return(object)
 }
 
