@@ -1,4 +1,4 @@
-#' @importFrom methods slot
+#' @importFrom methods slot slot<-
 #' @importFrom rlang abort
 #' arg_match
 #' as_name
