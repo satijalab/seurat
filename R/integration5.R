@@ -342,7 +342,6 @@ JointPCAIntegration <- function(
                    reduction.key = paste0(orig.reduction,"_"),
                    verbose = verbose
   )
-  
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     object.list[[i]] <- CreateSeuratObject(counts = object[[assay]][[layers[i]]] )
@@ -350,6 +349,7 @@ JointPCAIntegration <- function(
     object.list[[i]][['joint.pca']] <- CreateDimReducObject(
       embeddings = Embeddings(object = object[[orig.reduction]])[Cells(object.list[[i]]),],
       assay = 'RNA',
+      loadings = Loadings(object[[orig.reduction]]),
       key = 'J_'
     )
   }

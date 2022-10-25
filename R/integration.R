@@ -412,6 +412,7 @@ FindIntegrationAnchors <- function(
         object.pair[['joint.pca']] <- CreateDimReducObject(
           embeddings = rbind(Embeddings(object.1[['joint.pca']]),
                              Embeddings(object.2[['joint.pca']])),
+          loadings = Loadings(object.1[['joint.pca']]),
             key = 'Joint_', 
           assay = 'ToIntegrate')
         if (l2.norm) {
@@ -3779,6 +3780,7 @@ FindAnchors <- function(
       max.features = max.features,
       projected = projected
     )
+
     if(length(top.features) == 2){
       top.features <- intersect(top.features[[1]], top.features[[2]])
     } else{
