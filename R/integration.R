@@ -71,6 +71,7 @@ NULL
 #' \itemize{
 #'   \item{cca: Canonical correlation analysis}
 #'   \item{rpca: Reciprocal PCA}
+#'   \item{jpca: Joint PCA}
 #'   \item{rlsi: Reciprocal LSI}
 #' }
 #' @param l2.norm Perform L2 normalization on the CCA cell embeddings after
@@ -136,7 +137,7 @@ FindIntegrationAnchors <- function(
   scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
   sct.clip.range = NULL,
-  reduction = c("cca", "rpca", "rlsi"),
+  reduction = c("cca", "rpca", "jpca", "rlsi"),
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
@@ -261,7 +262,11 @@ FindIntegrationAnchors <- function(
   # if using pca or lsi, only need to compute the internal neighborhood structure once
   # for each dataset
   internal.neighbors <- list()
-  if (nn.reduction %in% c("pca", "lsi")) {
+  if (nn.reduction %in% c("pca", "lsi","jpca")) {
+    if (nn.reduction == 'jpca') {
+      nn.reduction <- 'joint.pca'
+      reduction <- 'joint.pca'
+    }
     k.filter <- NA
     if (verbose) {
       message("Computing within dataset neighborhoods")
@@ -401,10 +406,28 @@ FindIntegrationAnchors <- function(
         }
         object.pair
       },
+      'joint.pca' = {
+        object.pair <- merge(x = object.1, y = object.2)
+        reduction.2 <- "joint.pca"
+        object.pair[['joint.pca']] <- CreateDimReducObject(
+          embeddings = rbind(Embeddings(object.1[['joint.pca']]),
+                             Embeddings(object.2[['joint.pca']])),
+            key = 'Joint_', 
+          assay = 'ToIntegrate')
+        if (l2.norm) {
+          object.pair <- L2Dim(object = object.pair,
+                               reduction = 'joint.pca',
+                               new.dr = 'joint.pca.l2',
+                               new.key = 'Jl2_'
+                               )
+          reduction <- paste0(reduction, ".l2")
+          reduction.2 <- paste0(reduction.2, ".l2")
+        }
+        object.pair
+      },
       stop("Invalid reduction parameter. Please choose either cca, rpca, or rlsi")
     )
     internal.neighbors <- internal.neighbors[c(i, j)]
-
     anchors <- FindAnchors(
       object.pair = object.pair,
       assay = c("ToIntegrate", "ToIntegrate"),
