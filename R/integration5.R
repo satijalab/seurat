@@ -199,7 +199,7 @@ CCAIntegration <- function(
     object = NULL,
     assay = NULL,
     layers = NULL,
-    orig.reduction = 'pca',
+    orig.reduction = 'pca.rna',
     new.reduction = 'integrated.dr',
     reference = NULL,
     anchor.features = NULL,
@@ -327,6 +327,71 @@ IntegrateLayers.Seurat <- function(
   for (i in names(x = value)) {
     object[[i]] <- value[[i]]
   }
+  return(object)
+}
+
+
+
+#' Seurat-RPCA Integration
+#' 
+#' @inheritParams FindIntegrationAnchors
+#' @export
+#'
+
+RPCAIntegration <- function(
+    object = NULL,
+    assay = NULL,
+    layers = NULL,
+    orig.reduction = 'pca.rna',
+    new.reduction = 'integrated.dr',
+    reference = NULL,
+    anchor.features = NULL,
+    normalization.method = c("LogNormalize", "SCT"),
+    dims = 1:30,
+    k.filter = NA,
+    scale.data.layer = 'scale.data',
+    verbose = TRUE,
+    ...) {
+  anchor.features <- anchor.features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  layers <- layers %||% Layers(object, search = 'data')
+  object <- RunPCA(object = object,
+                   assay = assay,
+                   features = anchor.features,
+                   reduction.name = orig.reduction,
+                   reduction.key = paste0(orig.reduction,"_"),
+                   verbose = verbose
+  )
+  
+  object.list <- list()
+  for (i in seq_along(along.with = layers)) {
+    object.list[[i]] <- CreateSeuratObject(counts = object[[assay]][[layers[i]]] )
+    VariableFeatures(object =  object.list[[i]]) <- anchor.features
+    object.list[[i]] <- ScaleData( object.list[[i]], verbose = FALSE)
+    object.list[[i]] <- RunPCA( object.list[[i]], verbose = FALSE)
+    object.list[[i]][['RNA']]$counts <- NULL
+  }
+
+  anchor <- FindIntegrationAnchors(object.list = object.list, 
+                                   anchor.features = anchor.features, 
+                                   scale = FALSE, 
+                                   reduction = 'rpca', 
+                                   normalization.method = normalization.method,
+                                   dims = dims,
+                                   k.filter = k.filter,
+                                   reference = reference,
+                                   verbose = verbose,
+                                   ...
+  )
+  ## diet Seurat object 
+  ###
+  
+  ###
+  object_merged <- IntegrateEmbeddings(anchorset = anchor,
+                                       reductions = object[[orig.reduction]],
+                                       new.reduction.name = new.reduction,
+                                       verbose = verbose)
+  object[[new.reduction]] <- object_merged[[new.reduction]]
   return(object)
 }
 
