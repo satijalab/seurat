@@ -184,7 +184,7 @@ HarmonyIntegration <- function(
     key = key,
     assay = assay
   ))
-  return(list(pca = pca, harmony = dr))
+  return(list('pca' = pca, 'harmony' = dr))
 }
 
 attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
@@ -325,42 +325,46 @@ JointPCAIntegration <- function(
     orig.reduction = 'pca.rna',
     new.reduction = 'integrated.dr',
     reference = NULL,
-    anchor.features = NULL,
+    features = NULL,
     normalization.method = NULL,
     dims = 1:30,
+    npcs = 50,
     k.filter = NA,
+    scale.layer = 'scale.data',
     verbose = TRUE,
+    groups = NULL,
     ...
 ) {
-  anchor.features <- anchor.features %||% SelectIntegrationFeatures5(object = object)
-  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-  object <- RunPCA(object = object,
-                   assay = assay,
-                   features = anchor.features,
-                   reduction.name = orig.reduction,
-                   reduction.key = paste0(orig.reduction,"_"),
-                   verbose = verbose
+  npcs <- max(npcs, dims)
+  pca <- RunPCA(
+    object = object,
+    assay = assay,
+    features = features,
+    layer = scale.layer,
+    npcs = npcs,
+    verbose = verbose
   )
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[assay]][[layers[i]]] )
+    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]] )
     object.list[[i]][['RNA']]$counts <- NULL
     object.list[[i]][['joint.pca']] <- CreateDimReducObject(
-      embeddings = Embeddings(object = object[[orig.reduction]])[Cells(object.list[[i]]),],
+      embeddings = Embeddings(object = pca)[Cells(object.list[[i]]),],
       assay = 'RNA',
-      loadings = Loadings(object[[orig.reduction]]),
+      loadings = Loadings(pca),
       key = 'J_'
     )
   }
-  
   ## diet Seurat object 
   ###
   
   ### 
   
   anchor <- FindIntegrationAnchors(object.list = object.list, 
-                                   anchor.features = anchor.features, 
+                                   anchor.features = features, 
                                    scale = FALSE, 
                                    reduction = 'jpca',
                                    normalization.method = normalization.method,
@@ -371,11 +375,12 @@ JointPCAIntegration <- function(
                                    ...
   )
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = object[[orig.reduction]],
+                                       reductions = pca,
                                        new.reduction.name = new.reduction,
                                        verbose = verbose)
-  object[[new.reduction]] <- object_merged[[new.reduction]]
-  return(object)
+  output.list <- list(pca, object_merged[[new.reduction]])
+  names(output.list) <- c(orig.reduction, new.reduction)
+  return(output.list)
 }
 
 
