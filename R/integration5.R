@@ -206,7 +206,7 @@ CCAIntegration <- function(
     normalization.method = c("LogNormalize", "SCT"),
     dims = 1:30,
     k.filter = NA,
-    scale.data.layer = 'scale.data',
+    scale.layer = 'scale.data',
     verbose = TRUE,
     ...) {
   anchor.features <- anchor.features %||% SelectIntegrationFeatures5(object = object)
@@ -263,35 +263,39 @@ RPCAIntegration <- function(
     orig.reduction = 'pca.rna',
     new.reduction = 'integrated.dr',
     reference = NULL,
-    anchor.features = NULL,
+    features = NULL,
     normalization.method = c("LogNormalize", "SCT"),
     dims = 1:30,
+    npcs = 50,
     k.filter = NA,
-    scale.data.layer = 'scale.data',
+    scale.layer = 'scale.data',
+    groups = NULL,
     verbose = TRUE,
     ...) {
-  anchor.features <- anchor.features %||% SelectIntegrationFeatures5(object = object)
-  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-  object <- RunPCA(object = object,
-                   assay = assay,
-                   features = anchor.features,
-                   reduction.name = orig.reduction,
-                   reduction.key = paste0(orig.reduction,"_"),
-                   verbose = verbose
+  npcs <- max(npcs, dims)
+  pca <- RunPCA(
+    object = object,
+    assay = assay,
+    features = features,
+    layer = scale.layer,
+    npcs = npcs,
+    verbose = verbose
   )
   
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[assay]][[layers[i]]] )
-    VariableFeatures(object =  object.list[[i]]) <- anchor.features
+    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]] )
+    VariableFeatures(object =  object.list[[i]]) <- features
     object.list[[i]] <- ScaleData( object.list[[i]], verbose = FALSE)
     object.list[[i]] <- RunPCA( object.list[[i]], verbose = FALSE)
     object.list[[i]][['RNA']]$counts <- NULL
   }
   
   anchor <- FindIntegrationAnchors(object.list = object.list, 
-                                   anchor.features = anchor.features, 
+                                   anchor.features = features, 
                                    scale = FALSE, 
                                    reduction = 'rpca', 
                                    normalization.method = normalization.method,
@@ -306,11 +310,13 @@ RPCAIntegration <- function(
   
   ###
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = object[[orig.reduction]],
+                                       reductions = pca,
                                        new.reduction.name = new.reduction,
                                        verbose = verbose)
-  object[[new.reduction]] <- object_merged[[new.reduction]]
-  return(object)
+  
+  output.list <- list(pca, object_merged[[new.reduction]])
+  names(output.list) <- c(orig.reduction, new.reduction)
+  return(output.list)
 }
 
 #' Seurat-Joint PCA Integration
