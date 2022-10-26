@@ -6,7 +6,7 @@
 \usage{
 HarmonyIntegration(
   object,
-  assay,
+  orig,
   groups,
   features = NULL,
   scale.layer = "scale.data",
@@ -30,7 +30,7 @@ HarmonyIntegration(
 \arguments{
 \item{object}{An \code{\link[SeuratObject]{Assay5}} object}
 
-\item{assay}{Name of \code{object} in the containing \code{Seurat} object}
+\item{orig}{\link[SeuratObject:DimReduc]{Dimensional reduction} to correct}
 
 \item{groups}{A data frame ...}
 
