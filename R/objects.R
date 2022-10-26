@@ -441,84 +441,108 @@ CreateSCTAssayObject <- function(
 
 #' Slim down a Seurat object
 #'
-#' Keep only certain aspects of the Seurat object. Can be useful in functions that utilize merge as
-#' it reduces the amount of data in the merge.
+#' Keep only certain aspects of the Seurat object. Can be useful in functions
+#' that utilize merge as it reduces the amount of data in the merge
 #'
-#' @param object Seurat object
-#' @param counts Preserve the count matrices for the assays specified
-#' @param data Preserve the data slot for the assays specified
-#' @param scale.data Preserve the scale.data slot for the assays specified
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param layers A vector or named list of layers to keep
 #' @param features Only keep a subset of features, defaults to all features
 #' @param assays Only keep a subset of assays specified here
-#' @param dimreducs Only keep a subset of DimReducs specified here (if NULL,
-#' remove all DimReducs)
-#' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
-#' all Graphs)
+#' @param dimreducs Only keep a subset of DimReducs specified here (if
+#' \code{NULL}, remove all DimReducs)
+#' @param graphs Only keep a subset of Graphs specified here (if \code{NULL},
+#' remove all Graphs)
 #' @param misc Preserve the \code{misc} slot; default is \code{TRUE}
+#' @param ... Ignored
+#'
+#' @return \code{object} with only the sub-object specified retained
+#'
+#' @importFrom SeuratObject .FilterObjects .PropagateList Assays
+#' Layers UpdateSlots
 #'
 #' @export
+#'
 #' @concept objects
 #'
 DietSeurat <- function(
   object,
-  counts = TRUE,
-  data = TRUE,
-  scale.data = FALSE,
+  layers = NULL,
   features = NULL,
   assays = NULL,
   dimreducs = NULL,
   graphs = NULL,
-  misc = TRUE
+  misc = TRUE,
+  ...
 ) {
+  CheckDots(...)
   object <- UpdateSlots(object = object)
-  return(object)
-  assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
-  assays <- assays[assays %in% FilterObjects(object = object, classes.keep = 'Assay')]
-  if (length(x = assays) == 0) {
-    stop("No assays provided were found in the Seurat object")
+  assays <- assays %||% Assays(object = object)
+  assays <- intersect(x = assays, y = Assays(object = object))
+  if (!length(x = assays)) {
+    abort(message = "No assays provided were found in the Seurat object")
   }
   if (!DefaultAssay(object = object) %in% assays) {
-    stop("The default assay is slated to be removed, please change the default assay")
+    abort(
+      message = "The default assay is slated to be removed, please change the default assay"
+    )
   }
-  if (!counts && !data) {
-    stop("Either one or both of 'counts' and 'data' must be kept")
+  layers <- layers %||% assays
+  layers <- .PropagateList(x = layers, names = assays)
+  for (assay in names(x = layers)) {
+    layers[[assay]] <- tryCatch(
+      expr = Layers(object = object[[assay]], search = layers[[assay]]),
+      error = function(...) {
+        return(character(length = 0L))
+      }
+    )
   }
-  for (assay in FilterObjects(object = object, classes.keep = 'Assay')) {
+  layers <- Filter(f = length, x = layers)
+  if (!length(x = layers)) {
+    abort(message = "None of the requested layers found")
+  }
+  for (assay in Assays(object = object)) {
     if (!(assay %in% assays)) {
       object[[assay]] <- NULL
-    } else {
-      if (!is.null(x = features)) {
-        features.assay <- intersect(x = features, y = rownames(x = object[[assay]]))
-        if (length(x = features.assay) == 0) {
-          if (assay == DefaultAssay(object = object)) {
-            stop("The default assay is slated to be removed, please change the default assay")
-          } else {
-            warning("No features found in assay '", assay, "', removing...")
-            object[[assay]] <- NULL
-          }
-        } else {
-          browser()
-          object[[assay]] <- subset(x = object[[assay]], features = features.assay)
-        }
+      next
+    }
+    layers.rm <- setdiff(
+      x = Layers(object = object[[assay]]),
+      y = layers[[assay]]
+    )
+    if (length(x = layers.rm)) {
+      if (inherits(x = object[[assay]], what = 'Assay') && all(c('counts', 'data') %in% layers.rm)) {
+        abort(message = "Cannot remove both 'counts' and 'data' from v3 Assays")
       }
-      if (!counts) {
-        slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+      for (lyr in layers.rm) {
+        object[[assay]][[lyr]] <- NULL
       }
-      if (!data) {
-        stop('data = FALSE currently not supported')
+    }
+    if (!is.null(x = features)) {
+      features.assay <- intersect(
+        x = features,
+        y = rownames(x = object[[assay]])
+      )
+      if (!length(x = features.assay)) {
+        warn(message = paste0(
+          'No features found in assay ',
+          sQuote(x = assay),
+          ', removing...'
+        ))
+        object[[assay]] <- NULL
+        next
       }
-      if (!scale.data) {
-        slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
-      }
+      object[[assay]] <- subset(x = object[[assay]], features = features.assay)
     }
   }
   # remove misc when desired
   if (!isTRUE(x = misc)) {
     slot(object = object, name = "misc") <- list()
   }
-
   # remove unspecified DimReducs and Graphs
-  all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
+  all.objects <- .FilterObjects(
+    object = object,
+    classes.keep = c('DimReduc', 'Graph')
+  )
   objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
   for (ob in objects.to.remove) {
     object[[ob]] <- NULL
