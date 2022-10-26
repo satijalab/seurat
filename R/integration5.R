@@ -178,7 +178,6 @@ CCAIntegration <- function(
 #' @inheritParams FindIntegrationAnchors
 #' @export
 #'
-
 RPCAIntegration <- function(
     object = NULL,
     assay = NULL,

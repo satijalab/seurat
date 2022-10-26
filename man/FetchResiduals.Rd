@@ -7,7 +7,7 @@
 FetchResiduals(
   object,
   features,
-  assay = NULL,
+  assay = "SCT",
   umi.assay = "RNA",
   layer = "counts",
   clip.range = NULL,

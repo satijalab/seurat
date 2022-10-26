@@ -7,6 +7,7 @@
 IntegrateSketchEmbeddings(
   object,
   atoms = "sketch",
+  atoms.layers = NULL,
   orig = "RNA",
   features = NULL,
   reduction = "integrated_dr",
