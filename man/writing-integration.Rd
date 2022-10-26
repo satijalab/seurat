@@ -15,8 +15,8 @@ objects that can be added back to a \code{Seurat} object (eg. a
 Every integration method function should expect the following arguments:
 \itemize{
  \item \dQuote{\code{object}}: an \code{\link[SeuratObject]{Assay5}} object
- \item \dQuote{\code{assay}}: name of \code{object} in the original
- \code{\link[SeuratObject]{Seurat}} object
+ \item \dQuote{\code{orig}}: \link[SeuratObject:DimReduc]{dimensional
+ reduction} to correct
  \item \dQuote{\code{layers}}: names of normalized layers in \code{object}
  \item \dQuote{\code{scale.layer}}: name(s) of scaled layer(s) in
  \code{object}

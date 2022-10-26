@@ -15,7 +15,8 @@ NULL
 #'
 #' @inheritParams harmony::HarmonyMatrix
 #' @param object An \code{\link[SeuratObject]{Assay5}} object
-#' @param assay Name of \code{object} in the containing \code{Seurat} object
+# @param assay Name of \code{object} in the containing \code{Seurat} object
+#' @param orig \link[SeuratObject:DimReduc]{Dimensional reduction} to correct
 #' @param groups A data frame ...
 #' @param features ...
 #' @param scale.layer ...
@@ -39,7 +40,7 @@ NULL
 #'
 HarmonyIntegration <- function(
   object,
-  assay,
+  orig,
   groups,
   features = NULL,
   scale.layer = 'scale.data',
@@ -65,20 +66,22 @@ HarmonyIntegration <- function(
   )
   if (!inherits(x = object, what = 'StdAssay')) {
     abort(message = "'object' must be a v5 assay object")
+  } else if (!inherits(x = orig, what = 'DimReduc')) {
+    abort(message = "'orig' must be a dimensional reduction")
   }
-  # Run joint PCA
-  features <- features %||% Features(x = object, layer = scale.layer)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
+  # # Run joint PCA
+  # features <- features %||% Features(x = object, layer = scale.layer)
+  # pca <- RunPCA(
+  #   object = object,
+  #   assay = assay,
+  #   features = features,
+  #   layer = scale.layer,
+  #   npcs = npcs,
+  #   verbose = verbose
+  # )
   # Run Harmony
   harmony.embed <- harmony::HarmonyMatrix(
-    data_mat = Embeddings(object = pca),
+    data_mat = Embeddings(object = orig),
     meta_data = groups,
     vars_use = 'group',
     do_pca = FALSE,
@@ -96,14 +99,15 @@ HarmonyIntegration <- function(
     return_object = FALSE,
     verbose = verbose
   )
-  rownames(x = harmony.embed) <- Cells(x = pca)
+  rownames(x = harmony.embed) <- Cells(x = orig)
   # TODO add feature loadings from PCA
   dr <- suppressWarnings(expr = CreateDimReducObject(
     embeddings = harmony.embed,
     key = key,
-    assay = assay
+    # assay = assay
+    assay = DefaultAssay(object = orig)
   ))
-  return(list('pca' = pca, 'harmony' = dr))
+  return(list(harmony = dr))
 }
 
 attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
@@ -304,7 +308,9 @@ JointPCAIntegration <- function(
 #'
 #' @param object A \code{\link[SeuratObject]{Seurat}} object
 #' @param method Integration method function
-#' @param group.by ...
+#' @param orig Name of dimensional reduction for correction
+#' @param group.by Name of meta data to group cells by; defaults to splits
+#' assay layers
 #' @param assay Name of assay for integration
 #' @param features A vector of features to use for integration
 #' @param layers Names of normalized layers in \code{assay}
@@ -326,6 +332,7 @@ JointPCAIntegration <- function(
 IntegrateLayers <- function(
   object,
   method,
+  orig = NULL,
   group.by = NULL,
   assay = NULL,
   features = NULL,
@@ -361,6 +368,15 @@ IntegrateLayers <- function(
   if (!length(x = features)) {
     abort(message = "None of the features provided are found in this assay")
   }
+  # Check our dimensional reduction
+  orig <- orig %||% DefaultDimReduc(object = object, assay = assay)
+  if (!orig %in% Reductions(object = object)) {
+    abort(message = paste(sQuote(x = orig), 'is not a dimensional reduction'))
+  }
+  obj.orig <- object[[orig]]
+  if (is.null(x = DefaultAssay(object = obj.orig))) {
+    DefaultAssay(object = obj.orig) <- assay
+  }
   # Check our groups
   groups <- if (is.null(x = group.by) && length(x = layers) > 1L) {
     cmap <- slot(object = object[[assay]], name = 'cells')[, layers]
@@ -382,6 +398,7 @@ IntegrateLayers <- function(
   value <- method(
     object = object[[assay]],
     assay = assay,
+    orig = obj.orig,
     layers = layers,
     scale.layer = scale.layer,
     features = features,
@@ -419,8 +436,10 @@ IntegrateLayers <- function(
 #' Every integration method function should expect the following arguments:
 #' \itemize{
 #'  \item \dQuote{\code{object}}: an \code{\link[SeuratObject]{Assay5}} object
-#'  \item \dQuote{\code{assay}}: name of \code{object} in the original
-#'  \code{\link[SeuratObject]{Seurat}} object
+#  \item \dQuote{\code{assay}}: name of \code{object} in the original
+#  \code{\link[SeuratObject]{Seurat}} object
+#'  \item \dQuote{\code{orig}}: \link[SeuratObject:DimReduc]{dimensional
+#'  reduction} to correct
 #'  \item \dQuote{\code{layers}}: names of normalized layers in \code{object}
 #'  \item \dQuote{\code{scale.layer}}: name(s) of scaled layer(s) in
 #'  \code{object}
