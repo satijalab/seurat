@@ -18,8 +18,17 @@ IntegrateLayers(
 \arguments{
 \item{object}{A \code{\link[SeuratObject]{Seurat}} object}
 
-\item{method}{Integration method function; can choose from:
-\Sexpr[stage=render,results=rd]{Seurat::.rd_methods("integration")}}
+\item{method}{Integration method function}
+
+\item{group.by}{...}
+
+\item{assay}{Name of assay for integration}
+
+\item{features}{A vector of features to use for integration}
+
+\item{layers}{Names of normalized layers in \code{assay}}
+
+\item{scale.layer}{Name(s) of scaled layer(s) in \code{assay}}
 
 \item{...}{Arguments passed on to \code{method}}
 }
@@ -29,25 +38,13 @@ IntegrateLayers(
 \description{
 Integrate Layers
 }
-\section{Integration Methods Functions}{
+\section{Integration Method Functions}{
 
-Integration method functions can be written by anyone to implement any
-integration method in Seurat. These methods should expect to take a
-\link[SeuratObject:Assay5]{v5 assay} as input and return a named list of
-objects that can be added back to a \code{Seurat} object (eg. a
-\link[SeuratObject:DimReduc]{dimensional reduction} or cell-level meta data)
-
-Every integration method function should expect the following arguments:
-\itemize{
- \item \dQuote{\code{object}}: an \code{\link[SeuratObject]{Assay5}} object
- \item \dQuote{\code{assay}}: name of \code{object} in the original
- \code{\link[SeuratObject]{Seurat}} object
- \item \dQuote{\code{layers}}: names of normalized layers in \code{object}
- \item \dQuote{\code{scale.layer}}: name(s) of scaled layer(s) in
- \code{object}
- \item \dQuote{\code{features}}: a vector of features for integration
- \item \dQuote{\code{groups}}: a one-column data frame with the groups for
- each cell in \code{object}; the column name will be \dQuote{group}
-}
+The following integration method functions are available:
+\Sexpr[stage=render,results=rd]{Seurat::.rd_methods("integration")}
 }
 
+\seealso{
+\link[Seurat:writing-integration]{Writing integration method functions}
+}
+\concept{integration}

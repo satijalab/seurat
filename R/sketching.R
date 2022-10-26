@@ -429,7 +429,6 @@ CountSketch <- function(nsketch, ncells, seed = NA_integer_, ...) {
   ))
 }
 
-
 #' Gaussian sketching
 #'
 #' @inheritParams CountSketch

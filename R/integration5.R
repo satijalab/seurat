@@ -7,36 +7,321 @@ NULL
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Harmony Integration
+#'
+#' @inheritParams harmony::HarmonyMatrix
+#' @param object An \code{\link[SeuratObject]{Assay5}} object
+#' @param assay Name of \code{object} in the containing \code{Seurat} object
+#' @param groups A data frame ...
+#' @param features ...
+#' @param scale.layer ...
+#' @param layers ...
+#' @param ... Ignored
+#'
+#' @return ...
+#'
+#' @note This function requires the
+#' \href{https://cran.r-project.org/package=harmony}{\pkg{harmony}} package
+#' to be installed
+#'
+# @templateVar pkg harmony
+# @template note-reqdpkg
+#'
+#' @export
+#'
+#' @concept integration
+#'
+#' @seealso \code{\link[harmony:HarmonyMatrix]{harmony::HarmonyMatrix}()}
+#'
+HarmonyIntegration <- function(
+  object,
+  assay,
+  groups,
+  features = NULL,
+  scale.layer = 'scale.data',
+  layers = NULL,
+  npcs = 50L,
+  key = 'harmony_',
+  theta = NULL,
+  lambda = NULL,
+  sigma = 0.1,
+  nclust = NULL,
+  tau = 0,
+  block.size = 0.05,
+  max.iter.harmony = 10L,
+  max.iter.cluster = 20L,
+  epsilon.cluster = 1e-05,
+  epsilon.harmony = 1e-04,
+  verbose = TRUE,
+  ...
+) {
+  check_installed(
+    pkg = "harmony",
+    reason = "for running integration with Harmony"
+  )
+  if (!inherits(x = object, what = 'StdAssay')) {
+    abort(message = "'object' must be a v5 assay object")
+  }
+  # Run joint PCA
+  features <- features %||% Features(x = object, layer = scale.layer)
+  pca <- RunPCA(
+    object = object,
+    assay = assay,
+    features = features,
+    layer = scale.layer,
+    npcs = npcs,
+    verbose = verbose
+  )
+  # Run Harmony
+  harmony.embed <- harmony::HarmonyMatrix(
+    data_mat = Embeddings(object = pca),
+    meta_data = groups,
+    vars_use = 'group',
+    do_pca = FALSE,
+    npcs = 0L,
+    theta = theta,
+    lambda = lambda,
+    sigma = sigma,
+    nclust = nclust,
+    tau = tau,
+    block.size = block.size,
+    max.iter.harmony = max.iter.harmony,
+    max.iter.cluster = max.iter.cluster,
+    epsilon.cluster = epsilon.cluster,
+    epsilon.harmony = epsilon.harmony,
+    return_object = FALSE,
+    verbose = verbose
+  )
+  rownames(x = harmony.embed) <- Cells(x = pca)
+  # TODO add feature loadings from PCA
+  dr <- suppressWarnings(expr = CreateDimReducObject(
+    embeddings = harmony.embed,
+    key = key,
+    assay = assay
+  ))
+  return(list('pca' = pca, 'harmony' = dr))
+}
+
+attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
+
+#' Seurat-CCA Integration
+#'
+#' @inheritParams FindIntegrationAnchors
+#' @export
+#'
+CCAIntegration <- function(
+    object = NULL,
+    assay = NULL,
+    layers = NULL,
+    orig.reduction = 'pca.rna',
+    new.reduction = 'integrated.dr',
+    reference = NULL,
+    features = NULL,
+    normalization.method = c("LogNormalize", "SCT"),
+    dims = 1:30,
+    npcs = 50,
+    groups = NULL,
+    k.filter = NA,
+    scale.layer = 'scale.data',
+    verbose = TRUE,
+    ...) {
+  features <- features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% 'RNA'
+  layers <- layers %||% Layers(object, search = 'data')
+  npcs <- max(npcs, dims)
+  pca <- RunPCA(
+    object = object,
+    assay = assay,
+    features = features,
+    layer = scale.layer,
+    npcs = npcs,
+    verbose = verbose
+  )
+  object.list <- list()
+  for (i in seq_along(along.with = layers)) {
+    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
+    object.list[[i]][['RNA']]$scale.data <- object[[scale.layer]][features, Cells(object.list[[i]])]
+    object.list[[i]][['RNA']]$counts <- NULL
+  }
+
+  anchor <- FindIntegrationAnchors(object.list = object.list,
+                                   anchor.features = features,
+                                   scale = FALSE,
+                                   reduction = 'cca',
+                                   normalization.method = normalization.method,
+                                   dims = dims,
+                                   k.filter = k.filter,
+                                   reference = reference,
+                                   verbose = verbose,
+                                   ...
+  )
+  object_merged <- IntegrateEmbeddings(anchorset = anchor,
+                                       reductions = pca,
+                                       new.reduction.name = new.reduction,
+                                       verbose = verbose
+                                       )
+  output.list <- list(pca, object_merged[[new.reduction]])
+  names(output.list) <- c(orig.reduction, new.reduction)
+  return(output.list)
+}
+
+#' Seurat-RPCA Integration
+#'
+#' @inheritParams FindIntegrationAnchors
+#' @export
+#'
+
+RPCAIntegration <- function(
+    object = NULL,
+    assay = NULL,
+    layers = NULL,
+    orig.reduction = 'pca.rna',
+    new.reduction = 'integrated.dr',
+    reference = NULL,
+    features = NULL,
+    normalization.method = c("LogNormalize", "SCT"),
+    dims = 1:30,
+    npcs = 50,
+    k.filter = NA,
+    scale.layer = 'scale.data',
+    groups = NULL,
+    verbose = TRUE,
+    ...) {
+  features <- features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% 'RNA'
+  layers <- layers %||% Layers(object, search = 'data')
+  npcs <- max(npcs, dims)
+  pca <- RunPCA(
+    object = object,
+    assay = assay,
+    features = features,
+    layer = scale.layer,
+    npcs = npcs,
+    verbose = verbose
+  )
+
+  object.list <- list()
+  for (i in seq_along(along.with = layers)) {
+    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
+    VariableFeatures(object =  object.list[[i]]) <- features
+    object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
+    object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
+    object.list[[i]][['RNA']]$counts <- NULL
+  }
+  anchor <- FindIntegrationAnchors(object.list = object.list,
+                                   anchor.features = features,
+                                   scale = FALSE,
+                                   reduction = 'rpca',
+                                   normalization.method = normalization.method,
+                                   dims = dims,
+                                   k.filter = k.filter,
+                                   reference = reference,
+                                   verbose = verbose,
+                                   ...
+  )
+  object_merged <- IntegrateEmbeddings(anchorset = anchor,
+                                       reductions = pca,
+                                       new.reduction.name = new.reduction,
+                                       verbose = verbose
+                                       )
+
+  output.list <- list(pca, object_merged[[new.reduction]])
+  names(output.list) <- c(orig.reduction, new.reduction)
+  return(output.list)
+}
+
+#' Seurat-Joint PCA Integration
+#'
+#' @inheritParams FindIntegrationAnchors
+#' @export
+#'
+JointPCAIntegration <- function(
+    object = NULL,
+    assay = NULL,
+    layers = NULL,
+    orig.reduction = 'pca.rna',
+    new.reduction = 'integrated.dr',
+    reference = NULL,
+    features = NULL,
+    normalization.method = NULL,
+    dims = 1:30,
+    npcs = 50,
+    k.anchor = 20,
+    scale.layer = 'scale.data',
+    verbose = TRUE,
+    groups = NULL,
+    ...
+) {
+  features <- features %||% SelectIntegrationFeatures5(object = object)
+  assay <- assay %||% 'RNA'
+  layers <- layers %||% Layers(object, search = 'data')
+  npcs <- max(npcs, dims)
+  pca <- RunPCA(
+    object = object,
+    assay = assay,
+    features = features,
+    layer = scale.layer,
+    npcs = npcs,
+    verbose = verbose
+  )
+  object.list <- list()
+  for (i in seq_along(along.with = layers)) {
+    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features[1:2], ] )
+    object.list[[i]][['RNA']]$counts <- NULL
+    object.list[[i]][['joint.pca']] <- CreateDimReducObject(
+      embeddings = Embeddings(object = pca)[Cells(object.list[[i]]),],
+      assay = 'RNA',
+      loadings = Loadings(pca),
+      key = 'J_'
+    )
+  }
+  anchor <- FindIntegrationAnchors(object.list = object.list,
+                                   anchor.features = features,
+                                   scale = FALSE,
+                                   reduction = 'jpca',
+                                   normalization.method = normalization.method,
+                                   dims = dims,
+                                   k.anchor = k.anchor,
+                                   k.filter = NA,
+                                   reference = reference,
+                                   verbose = verbose,
+                                   ...
+  )
+  object_merged <- IntegrateEmbeddings(anchorset = anchor,
+                                       reductions = pca,
+                                       new.reduction.name = new.reduction,
+                                       verbose = verbose)
+  output.list <- list(pca, object_merged[[new.reduction]])
+  names(output.list) <- c(orig.reduction, new.reduction)
+  return(output.list)
+}
+
 #' Integrate Layers
 #'
 #' @param object A \code{\link[SeuratObject]{Seurat}} object
-#' @param method Integration method function; can choose from:
-#' \Sexpr[stage=render,results=rd]{Seurat::.rd_methods("integration")}
+#' @param method Integration method function
+#' @param group.by ...
+#' @param assay Name of assay for integration
+#' @param features A vector of features to use for integration
+#' @param layers Names of normalized layers in \code{assay}
+#' @param scale.layer Name(s) of scaled layer(s) in \code{assay}
 #' @param ... Arguments passed on to \code{method}
 #'
 #' @return \code{object} with integration data added to it
 #'
-#' @section Integration Methods Functions:
-#' Integration method functions can be written by anyone to implement any
-#' integration method in Seurat. These methods should expect to take a
-#' \link[SeuratObject:Assay5]{v5 assay} as input and return a named list of
-#' objects that can be added back to a \code{Seurat} object (eg. a
-#' \link[SeuratObject:DimReduc]{dimensional reduction} or cell-level meta data)
-#'
-#' Every integration method function should expect the following arguments:
-#' \itemize{
-#'  \item \dQuote{\code{object}}: an \code{\link[SeuratObject]{Assay5}} object
-#'  \item \dQuote{\code{assay}}: name of \code{object} in the original
-#'  \code{\link[SeuratObject]{Seurat}} object
-#'  \item \dQuote{\code{layers}}: names of normalized layers in \code{object}
-#'  \item \dQuote{\code{scale.layer}}: name(s) of scaled layer(s) in
-#'  \code{object}
-#'  \item \dQuote{\code{features}}: a vector of features for integration
-#'  \item \dQuote{\code{groups}}: a one-column data frame with the groups for
-#'  each cell in \code{object}; the column name will be \dQuote{group}
-#' }
+#' @section Integration Method Functions:
+#' The following integration method functions are available:
+#' \Sexpr[stage=render,results=rd]{Seurat::.rd_methods("integration")}
 #'
 #' @export
+#'
+#' @concept integration
+#'
+#' @seealso \link[Seurat:writing-integration]{Writing integration method functions}
 #'
 IntegrateLayers <- function(
   object,
@@ -110,357 +395,58 @@ IntegrateLayers <- function(
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Functions
+# Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' Harmony Integration
-#'
-#' @export
-#'
-HarmonyIntegration <- function(
-  object,
-  assay,
-  groups,
-  features = NULL,
-  scale.layer = 'scale.data',
-  layers = NULL,
-  npcs = 50L,
-  key = 'harmony_',
-  theta = NULL,
-  lambda = NULL,
-  sigma = 0.1,
-  nclust = NULL,
-  tau = 0,
-  block.size = 0.05,
-  max.iter.harmony = 10L,
-  max.iter.cluster = 20L,
-  epsilon.cluster = 1e-05,
-  epsilon.harmony = 1e-04,
-  # project.dim = TRUE,
-  verbose = TRUE,
-  ...
-) {
-  check_installed(
-    pkg = "harmony",
-    reason = "for running integration with Harmony"
-  )
-  if (!inherits(x = object, what = 'StdAssay')) {
-    abort(message = "'object' must be a v5 assay object")
-  }
-  # Run joint PCA
-  features <- features %||% Features(x = object, layer = scale.layer)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
-  # Run Harmony
-  harmony.embed <- harmony::HarmonyMatrix(
-    data_mat = Embeddings(object = pca),
-    meta_data = groups,
-    vars_use = 'group',
-    do_pca = FALSE,
-    npcs = 0L,
-    theta = theta,
-    lambda = lambda,
-    sigma = sigma,
-    nclust = nclust,
-    tau = tau,
-    block.size = block.size,
-    max.iter.harmony = max.iter.harmony,
-    max.iter.cluster = max.iter.cluster,
-    epsilon.cluster = epsilon.cluster,
-    epsilon.harmony = epsilon.harmony,
-    return_object = FALSE,
-    verbose = verbose
-  )
-  rownames(x = harmony.embed) <- Cells(x = pca)
-  # TODO add feature loadings from PCA
-  dr <- suppressWarnings(expr = CreateDimReducObject(
-    embeddings = harmony.embed,
-    key = key,
-    assay = assay
-  ))
-  return(list('pca' = pca, 'harmony' = dr))
-}
-
-attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
-
-#' Seurat-CCA Integration
-#' 
-#' @inheritParams FindIntegrationAnchors
-#' @export
-#'
-
-CCAIntegration <- function(
-    object = NULL,
-    assay = NULL,
-    layers = NULL,
-    orig.reduction = 'pca.rna',
-    new.reduction = 'integrated.dr',
-    reference = NULL,
-    features = NULL,
-    normalization.method = c("LogNormalize", "SCT"),
-    dims = 1:30,
-    npcs = 50,
-    groups = NULL,
-    k.filter = NA,
-    scale.layer = 'scale.data',
-    verbose = TRUE,
-    ...) {
-  features <- features %||% SelectIntegrationFeatures5(object = object)
-  assay <- assay %||% 'RNA'
-  layers <- layers %||% Layers(object, search = 'data')
-  npcs <- max(npcs, dims)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
-  object.list <- list()
-  for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
-    object.list[[i]][['RNA']]$scale.data <- object[[scale.layer]][features, Cells(object.list[[i]])]
-    object.list[[i]][['RNA']]$counts <- NULL
-  }
-  
-  anchor <- FindIntegrationAnchors(object.list = object.list,
-                                   anchor.features = features,
-                                   scale = FALSE,
-                                   reduction = 'cca',
-                                   normalization.method = normalization.method,
-                                   dims = dims,
-                                   k.filter = k.filter,
-                                   reference = reference,
-                                   verbose = verbose,
-                                   ...
-  )
-  object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = pca,
-                                       new.reduction.name = new.reduction,
-                                       verbose = verbose
-                                       )
-  output.list <- list(pca, object_merged[[new.reduction]])
-  names(output.list) <- c(orig.reduction, new.reduction)
-  return(output.list)
-}
-
-#' Seurat-RPCA Integration
-#' 
-#' @inheritParams FindIntegrationAnchors
-#' @export
-#'
-
-RPCAIntegration <- function(
-    object = NULL,
-    assay = NULL,
-    layers = NULL,
-    orig.reduction = 'pca.rna',
-    new.reduction = 'integrated.dr',
-    reference = NULL,
-    features = NULL,
-    normalization.method = c("LogNormalize", "SCT"),
-    dims = 1:30,
-    npcs = 50,
-    k.filter = NA,
-    scale.layer = 'scale.data',
-    groups = NULL,
-    verbose = TRUE,
-    ...) {
-  features <- features %||% SelectIntegrationFeatures5(object = object)
-  assay <- assay %||% 'RNA'
-  layers <- layers %||% Layers(object, search = 'data')
-  npcs <- max(npcs, dims)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
-  
-  object.list <- list()
-  for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
-    VariableFeatures(object =  object.list[[i]]) <- features
-    object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
-    object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
-    object.list[[i]][['RNA']]$counts <- NULL
-  }
-  anchor <- FindIntegrationAnchors(object.list = object.list,
-                                   anchor.features = features,
-                                   scale = FALSE,
-                                   reduction = 'rpca', 
-                                   normalization.method = normalization.method,
-                                   dims = dims,
-                                   k.filter = k.filter,
-                                   reference = reference,
-                                   verbose = verbose,
-                                   ...
-  )
-  object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = pca,
-                                       new.reduction.name = new.reduction,
-                                       verbose = verbose
-                                       )
-  
-  output.list <- list(pca, object_merged[[new.reduction]])
-  names(output.list) <- c(orig.reduction, new.reduction)
-  return(output.list)
-}
-
-#' Seurat-Joint PCA Integration
-#' 
-#' @inheritParams FindIntegrationAnchors
-#' @export
-#'
-JointPCAIntegration <- function(
-    object = NULL,
-    assay = NULL,
-    layers = NULL,
-    orig.reduction = 'pca.rna',
-    new.reduction = 'integrated.dr',
-    reference = NULL,
-    features = NULL,
-    normalization.method = NULL,
-    dims = 1:30,
-    npcs = 50,
-    k.anchor = 20,
-    scale.layer = 'scale.data',
-    verbose = TRUE,
-    groups = NULL,
-    ...
-) {
-  features <- features %||% SelectIntegrationFeatures5(object = object)
-  assay <- assay %||% 'RNA'
-  layers <- layers %||% Layers(object, search = 'data')
-  npcs <- max(npcs, dims)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
-  object.list <- list()
-  for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features[1:2], ] )
-    object.list[[i]][['RNA']]$counts <- NULL
-    object.list[[i]][['joint.pca']] <- CreateDimReducObject(
-      embeddings = Embeddings(object = pca)[Cells(object.list[[i]]),],
-      assay = 'RNA',
-      loadings = Loadings(pca),
-      key = 'J_'
-    )
-  }
-  anchor <- FindIntegrationAnchors(object.list = object.list, 
-                                   anchor.features = features, 
-                                   scale = FALSE, 
-                                   reduction = 'jpca',
-                                   normalization.method = normalization.method,
-                                   dims = dims,
-                                   k.anchor = k.anchor,
-                                   k.filter = NA,
-                                   reference = reference,
-                                   verbose = verbose,
-                                   ...
-  )
-  object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = pca,
-                                       new.reduction.name = new.reduction,
-                                       verbose = verbose)
-  output.list <- list(pca, object_merged[[new.reduction]])
-  names(output.list) <- c(orig.reduction, new.reduction)
-  return(output.list)
-}
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# @method IntegrateLayers StdAssay
-# @export
-#'
-IntegrateLayers.StdAssay <- function(
-  object,
-  method,
-  assay,
-  features, # TODO: allow selectintegrationfeatures to run on v5 assays
-  layers = NULL,
-  group.by = NULL,
-  ...
-) {
-  if (is_quosure(x = method)) {
-    method <- eval(
-      expr = quo_get_expr(quo = method),
-      envir = quo_get_env(quo = method)
-    )
-  }
-  if (is.character(x = method)) {
-    method <- get(x = method)
-  }
-  if (!is.function(x = method)) {
-    abort(message = "'method' must be a function for integrating layers")
-  }
-  layers <- Layers(object = object, search = layers)
-  if (!is.null(x = group.by)) {
-    object <- split(x = object, f = group.by, drop = TRUE)
-  }
-  return(method(object = object, features = features, assay = assay, layers = layers, ...))
-}
-
-# @method IntegrateLayers Seurat
-# @export
-#'
-IntegrateLayers.Seurat <- function(
-  object,
-  method,
-  group.by = NULL,
-  assay = NULL,
-  features = NULL,
-  layers = NULL,
-  ...
-) {
-  method <- enquo(arg = method)
-  assay <- assay %||% DefaultAssay(object = object)
-  if (!inherits(x = object[[assay]], what = 'StdAssay')) {
-    abort(message = "'assay' must be a v5 assay")
-  }
-  features <- features %||% SelectIntegrationFeatures5(object = object, assay = assay)
-  group.by <- if (is.null(x = group.by)) {
-    group.by
-  } else if (rlang::is_na(x = group.by)) {
-    Idents(object = object)
-  } else if (is_scalar_character(x = group.by) && group.by %in% names(x = object[[]])) {
-    object[[group.by, drop = TRUE]]
-  } else {
-    abort(message = "'group.by' must be the name of a column in cell-level meta data")
-  }
-  value <- IntegrateLayers(
-    object = object[[assay]],
-    method = method,
-    assay = assay,
-    features = features,
-    layers = layers,
-    group.by = group.by,
-    ...
-  )
-  for (i in names(x = value)) {
-    object[[i]] <- value[[i]]
-  }
-  return(object)
-}
-
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Writing Integration Method Functions
+#'
+#' Integration method functions can be written by anyone to implement any
+#' integration method in Seurat. These methods should expect to take a
+#' \link[SeuratObject:Assay5]{v5 assay} as input and return a named list of
+#' objects that can be added back to a \code{Seurat} object (eg. a
+#' \link[SeuratObject:DimReduc]{dimensional reduction} or cell-level meta data)
+#'
+#' @section Provided Parameters:
+#' Every integration method function should expect the following arguments:
+#' \itemize{
+#'  \item \dQuote{\code{object}}: an \code{\link[SeuratObject]{Assay5}} object
+#'  \item \dQuote{\code{assay}}: name of \code{object} in the original
+#'  \code{\link[SeuratObject]{Seurat}} object
+#'  \item \dQuote{\code{layers}}: names of normalized layers in \code{object}
+#'  \item \dQuote{\code{scale.layer}}: name(s) of scaled layer(s) in
+#'  \code{object}
+#'  \item \dQuote{\code{features}}: a vector of features for integration
+#'  \item \dQuote{\code{groups}}: a one-column data frame with the groups for
+#'  each cell in \code{object}; the column name will be \dQuote{group}
+#' }
+#'
+#' @section Method Discovery:
+#' The documentation for \code{\link{IntegrateLayers}()} will automatically
+#' link to integration method functions provided by packages in the
+#' \code{\link[base]{search}()} space. To make an integration method function
+#' discoverable by the documentation, simply add an attribute named
+#' \dQuote{\code{Seurat.method}} to the function with a value of
+#' \dQuote{\code{integration}}
+#' \preformatted{
+#' attr(MyIntegrationFunction, which = "Seurat.method") <- "integration"
+#' }
+#'
+#' @keywords internal
+#'
+#' @concept integration
+#'
+#' @name writing-integration
+#' @rdname writing-integration
+#'
+#' @seealso \code{\link{IntegrateLayers}()}
+#'
+NULL
