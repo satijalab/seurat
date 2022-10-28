@@ -1834,6 +1834,37 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
   return(SCTResults(object = object[[assay]], slot = slot, model = model, ...))
 }
 
+#' @method VariableFeatures SCTAssay
+#' @export
+#'
+VariableFeatures.SCTAssay <- function(object, layer = NULL, n = 2000, simplify = TRUE, ...) {
+  layer <- layer %||% levels(object)[1L]
+  layer <- match.arg(arg = layer, choices = levels(x = object), several.ok = TRUE)
+  # fetch vf from every model)
+  model.list <- slot(object = object, name = "SCTModel.list")
+  variable.features <- list()
+  for (i in seq_along(layer)){
+    model <- model.list[[layer[[i]]]]
+    feature.attr <- SCTResults(object = model, slot = "feature.attributes")
+    feature.variance <- feature.attr[,"residual_variance"]
+    names(x = feature.variance) <- rownames(x = feature.attr)
+    feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+    if (!is.null(x = n)) {
+      top.features <- names(x = feature.variance)[1:min(n, length(x = feature.variance))]
+    } else {
+      top.features <- names(x = feature.variance)
+    }
+    variable.features[[i]] <- top.features
+  }
+  names(variable.features) <- names(layer)
+
+  if (isTRUE(x = simplify)) {
+    variable.features <- Reduce(f = union, x = variable.features)
+  }
+  return(variable.features)
+}
+
+
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
