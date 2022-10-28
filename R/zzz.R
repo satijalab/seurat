@@ -6,7 +6,9 @@
 #' check_installed
 #' enquo
 #' inform
+#' is_na
 #' is_quosure
+#' is_scalar_integerish
 #' quo_get_env
 #' quo_get_expr
 #' warn
