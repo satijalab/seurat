@@ -121,13 +121,12 @@ CCAIntegration <- function(
     object = NULL,
     assay = NULL,
     layers = NULL,
-    orig.reduction = 'pca.rna',
+    orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
     features = NULL,
     normalization.method = c("LogNormalize", "SCT"),
     dims = 1:30,
-    npcs = 50,
     groups = NULL,
     k.filter = NA,
     scale.layer = 'scale.data',
@@ -136,15 +135,7 @@ CCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-  npcs <- max(npcs, dims)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
+  
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
@@ -164,12 +155,12 @@ CCAIntegration <- function(
                                    ...
   )
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = pca,
+                                       reductions = orig,
                                        new.reduction.name = new.reduction,
                                        verbose = verbose
                                        )
-  output.list <- list(pca, object_merged[[new.reduction]])
-  names(output.list) <- c(orig.reduction, new.reduction)
+  output.list <- list(object_merged[[new.reduction]])
+  names(output.list) <- c(new.reduction)
   return(output.list)
 }
 
@@ -182,13 +173,12 @@ RPCAIntegration <- function(
     object = NULL,
     assay = NULL,
     layers = NULL,
-    orig.reduction = 'pca.rna',
+    orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
     features = NULL,
     normalization.method = c("LogNormalize", "SCT"),
     dims = 1:30,
-    npcs = 50,
     k.filter = NA,
     scale.layer = 'scale.data',
     groups = NULL,
@@ -197,15 +187,6 @@ RPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-  npcs <- max(npcs, dims)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
 
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
@@ -227,13 +208,13 @@ RPCAIntegration <- function(
                                    ...
   )
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = pca,
+                                       reductions = orig,
                                        new.reduction.name = new.reduction,
                                        verbose = verbose
                                        )
 
-  output.list <- list(pca, object_merged[[new.reduction]])
-  names(output.list) <- c(orig.reduction, new.reduction)
+  output.list <- list(object_merged[[new.reduction]])
+  names(output.list) <- c(new.reduction)
   return(output.list)
 }
 
@@ -246,13 +227,12 @@ JointPCAIntegration <- function(
     object = NULL,
     assay = NULL,
     layers = NULL,
-    orig.reduction = 'pca.rna',
+    orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
     features = NULL,
     normalization.method = NULL,
     dims = 1:30,
-    npcs = 50,
     k.anchor = 20,
     scale.layer = 'scale.data',
     verbose = TRUE,
@@ -262,23 +242,15 @@ JointPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-  npcs <- max(npcs, dims)
-  pca <- RunPCA(
-    object = object,
-    assay = assay,
-    features = features,
-    layer = scale.layer,
-    npcs = npcs,
-    verbose = verbose
-  )
+ 
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features[1:2], ] )
     object.list[[i]][['RNA']]$counts <- NULL
     object.list[[i]][['joint.pca']] <- CreateDimReducObject(
-      embeddings = Embeddings(object = pca)[Cells(object.list[[i]]),],
+      embeddings = Embeddings(object = orig)[Cells(object.list[[i]]),],
       assay = 'RNA',
-      loadings = Loadings(pca),
+      loadings = Loadings(orig),
       key = 'J_'
     )
   }
@@ -295,11 +267,11 @@ JointPCAIntegration <- function(
                                    ...
   )
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
-                                       reductions = pca,
+                                       reductions = orig,
                                        new.reduction.name = new.reduction,
                                        verbose = verbose)
-  output.list <- list(pca, object_merged[[new.reduction]])
-  names(output.list) <- c(orig.reduction, new.reduction)
+  output.list <- list(object_merged[[new.reduction]])
+  names(output.list) <- c(new.reduction)
   return(output.list)
 }
 
