@@ -1906,6 +1906,7 @@ IntegrateSketchEmbeddings <- function(
     nrow = ncol(x = object[[orig]]),
     ncol = length(x = object[[reduction]])
   )
+  rownames(emb.all) <- colnames(object[[orig]])
   ncells <- c(
     0,
     sapply(
@@ -1914,12 +1915,6 @@ IntegrateSketchEmbeddings <- function(
         return(length(x = Cells(x = object[[orig]], layer = lyr)))
       }
     )
-  )
-  blocks <- lapply(
-    X = seq_along(along.with = layers),
-    FUN =  function(x) {
-      return((sum(ncells[1:x]) + 1):sum(ncells[1:(x + 1)]))
-    }
   )
   if (length(atoms.layers) == 1) {
     atoms.layers <- rep(atoms.layers, length(layers))
@@ -1988,15 +1983,17 @@ IntegrateSketchEmbeddings <- function(
         emb
       }
     )
-    emb.all[ blocks[[i]],]  <- as.matrix(x = emb)
+ 
+    emb.all[rownames(emb), ]  <- as.matrix(x = emb)
+
   }
-  rownames(x = emb.all) <- colnames(x = object[[orig]])
-  object[[reduction.name]] <- suppressWarnings(expr = CreateDimReducObject(
+   
+  object[[reduction.name]] <- CreateDimReducObject(
     embeddings = emb.all,
     loadings = Loadings(object = object[[reduction]]),
     key = reduction.key,
     assay = orig
-  ))
+  )
   CheckGC()
   return(object)
 }
