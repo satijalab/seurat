@@ -34,6 +34,7 @@ Imports:
     fitdistrplus,
     future,
     future.apply,
+    generics (>= 0.1.3),
     ggplot2 (>= 3.3.0),
     ggrepel,
     ggridges,

@@ -145,6 +145,12 @@ NULL
 # Functions and Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom generics components
+#' @rdname reexports
+#' @export
+#'
+generics::components
+
 #' @importFrom SeuratObject %||%
 #' @rdname reexports
 #' @export

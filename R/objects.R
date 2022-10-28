@@ -1338,6 +1338,17 @@ Cells.SCTModel <- function(x, ...) {
   return(rownames(x = slot(object = x, name = "cell.attributes")))
 }
 
+#' @method Cells SCTAssay
+#' @export
+#'
+Cells.SCTAssay <- function(x, layer = NA) {
+  layer <- layer %||% levels(x = x)[1L]
+  if (rlang::is_na(x = layer)) {
+    return(colnames(x = x))
+  }
+  return(Cells(x = components(object = x, model = layer)))
+}
+
 #' @rdname Cells
 #' @concept objects
 #' @concept spatial
@@ -1369,6 +1380,29 @@ Cells.VisiumV1 <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
+#' @importFrom SeuratObject DefaultLayer Layers
+#'
+#' @method Features SCTAssay
+#' @export
+#'
+Features.SCTAssay <- function(x, layer = NA) {
+  layer <- layer %||% DefaultLayer(object = x)
+  if (rlang::is_na(x = layer)) {
+    return(rownames(x = x))
+  }
+  layer <- rlang::arg_match(arg = layer, values = c(Layers(object = x), levels(x = x)))
+  if (layer %in% levels(x = x)) {
+    return(Features(x = components(object = x, model = layer)))
+  }
+  return(NextMethod())
+}
+
+#' @method Features SCTModel
+#' @export
+#'
+Features.SCTModel <- function(x, ...) {
+  return(rownames(x = SCTResults(object = x, slot = 'feature.attributes')))
+}
 
 #' @param assay Assay to get
 #'
@@ -1394,7 +1428,6 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   }
   return(slot(object = object, name = 'assays')[[assay]])
 }
-
 
 #' Get Image Data
 #'
@@ -1838,6 +1871,14 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
   return(subset(x = x, cells = i))
 }
 
+#' @method components SCTAssay
+#' @export
+#'
+components.SCTAssay <- function(object, model) {
+  model <- rlang::arg_match(arg = model, values = levels(x = object))
+  return(slot(object = object, name = 'SCTModel.list')[[model]])
+}
+
 #' @method dim SlideSeq
 #' @concept objects
 #' @export
@@ -1866,7 +1907,6 @@ dim.STARmap <- function(x) {
 dim.VisiumV1 <- function(x) {
   return(dim(x = GetImage(object = x)$raster))
 }
-
 
 #' @rdname SCTAssay-class
 #' @name SCTAssay-class
