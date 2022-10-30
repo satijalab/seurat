@@ -1982,10 +1982,9 @@ IntegrateSketchEmbeddings <- function(
     emb.list[[i]] <- as.matrix(x = emb)
   }
    emb.all <- t(matrix(data = unlist(emb.list),
-                     nrow = ncol(x = object[[orig]]),
-                     ncol = length(x = object[[reduction]])
+                     nrow = length(x = object[[reduction]]),
+                     ncol = ncol(x = object[[orig]]) 
                      ))
-   rownames(x = emb.all) <- colnames(object[[orig]])
    emb.all <- emb.all[colnames(object[[orig]]), ]
    
   object[[reduction.name]] <- CreateDimReducObject(
