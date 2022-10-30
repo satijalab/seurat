@@ -2563,3 +2563,27 @@ RowVarDelayedAssay <- function(x, block.size = 1e8) {
   return(var.mat)
 }
 
+
+
+# sparse version of sweep
+SweepSparse <- function(
+    x,
+    MARGIN,
+    STATS,
+    FUN = "/"
+) {
+  if (!inherits(x = x, what = 'dgCMatrix')) {
+    stop('input should be dgCMatrix. eg: x <- as(x, "CsparseMatrix")')
+  }
+  fun <- match.fun(FUN)
+  if (MARGIN == 1) {
+    idx <- x@i + 1
+    x@x <- fun(x@x, STATS[idx])
+  } else if (MARGIN == 2) {
+    x <- as(x, "RsparseMatrix")
+    idx <- x@j + 1
+    x@x <- fun(x@x, STATS[idx])
+    x <- as(x, "CsparseMatrix")
+  }
+  return(x)
+}
