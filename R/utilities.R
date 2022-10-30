@@ -2435,3 +2435,131 @@ ToNumeric <- function(x){
   }
   return(x)
 }
+
+
+
+# cross product from delayed array
+#
+crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  product.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    product.list[[i]] <- as.matrix(t(x) %*% block)
+  }
+  product.mat <- matrix(data = unlist(product.list), nrow = ncol(x) , ncol = ncol(y))
+  colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- rownames(x)
+  return(product.mat)
+}
+
+# cross product row norm from delayed array
+#
+crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  norm.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    norm.list[[i]] <- colSums(x = as.matrix(t(x) %*% block) ^ 2)
+  }
+  norm.vector <- unlist(norm.list)
+  return(norm.vector)
+  
+}
+
+# row mean from delayed array
+#
+RowMeanDelayedAssay <- function(x, block.size = 1e8) {
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('input x should a DelayedMatrix')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  if (sparse ) {
+    row.sum.function <- RowSumSparse
+  } else {
+    row.sum.function <- rowSums2
+  }
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  sum.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    sum.list[[i]] <- row.sum.function(mat = block)
+  }
+  mean.mat <- Reduce('+', sum.list)
+  mean.mat <- mean.mat/ncol(x)
+  return(mean.mat)
+}
+
+# row variance from delayed array
+#
+RowVarDelayedAssay <- function(x, block.size = 1e8) {
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('input x should a DelayedMatrix')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  if (sparse ) {
+    row.sum.function <- RowSumSparse
+  } else {
+    row.sum.function <- rowSums2
+  }
+  
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  sum2.list <- list()
+  sum.list <- list()
+  
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    sum2.list[[i]] <- row.sum.function(mat = block**2)
+    sum.list[[i]] <- row.sum.function(mat = block)
+  }
+  sum.mat <- Reduce('+', sum.list)
+  sum2.mat <- Reduce('+', sum2.list)
+  var.mat <- sum2.mat/ncol(x) - (sum.mat/ncol(x))**2 
+  var.mat <- var.mat * ncol(counts) / (ncol(counts) - 1)
+  return(var.mat)
+}
+
