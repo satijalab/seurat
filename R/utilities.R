@@ -2575,6 +2575,9 @@ SweepSparse <- function(
   if (!inherits(x = x, what = 'dgCMatrix')) {
     stop('input should be dgCMatrix. eg: x <- as(x, "CsparseMatrix")')
   }
+  if (dim(x = x)[MARGIN] != length(STATS)){
+    warning("Length of STATS is not equal to dim(x)[MARGIN]")
+  }
   fun <- match.fun(FUN)
   if (MARGIN == 1) {
     idx <- x@i + 1
