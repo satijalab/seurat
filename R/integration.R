@@ -1901,12 +1901,7 @@ IntegrateSketchEmbeddings <- function(
     )
   )
   features <- intersect(x = features, y = features.atom)
-  emb.all <- matrix(
-    data = NA_real_,
-    nrow = ncol(x = object[[orig]]),
-    ncol = length(x = object[[reduction]])
-  )
-  rownames(emb.all) <- colnames(object[[orig]])
+
   ncells <- c(
     0,
     sapply(
@@ -1919,6 +1914,8 @@ IntegrateSketchEmbeddings <- function(
   if (length(atoms.layers) == 1) {
     atoms.layers <- rep(atoms.layers, length(layers))
   }
+  emb.list <- list()
+  
   for (i in seq_along(along.with = layers)) {
     if (length(unique(atoms.layers)) == length(layers)) {
       cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
@@ -1973,20 +1970,23 @@ IntegrateSketchEmbeddings <- function(
         )[,cells.sketch]) %*% R)
         sketch.transform <- ginv(X = exp.mat) %*%
           Embeddings(object = object[[reduction]])[cells.sketch ,]
-        emb <- matrix.prod.function(x = R %*% sketch.transform,
+         emb <- matrix.prod.function(x = R %*% sketch.transform,
                              y = LayerData(
                                object = object[[orig]],
                                layer = layers[i],
                                features = features
                              ))
-        emb <- t(emb)
         emb
       }
     )
- 
-    emb.all[rownames(emb), ]  <- as.matrix(x = emb)
-
+    emb.list[[i]] <- as.matrix(x = emb)
   }
+   emb.all <- t(matrix(data = unlist(emb.list),
+                     nrow = ncol(x = object[[orig]]),
+                     ncol = length(x = object[[reduction]])
+                     ))
+   rownames(x = emb.all) <- colnames(object[[orig]])
+   emb.all <- emb.all[colnames(object[[orig]]), ]
    
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = emb.all,
@@ -5918,7 +5918,7 @@ FastRPCAIntegration <- function(
   return(object_merged)
 }
 
-crossprod_DelayedAssay <- function(x, y, block.size = 1e9) {
+crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
   # perform t(x) %*% y in blocks for y
   if (!inherits(x = y, 'DelayedMatrix')) {
     stop('y should a DelayedMatrix')
