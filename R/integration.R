@@ -413,7 +413,7 @@ FindIntegrationAnchors <- function(
           embeddings = rbind(Embeddings(object.1[['joint.pca']]),
                              Embeddings(object.2[['joint.pca']])),
           loadings = Loadings(object.1[['joint.pca']]),
-            key = 'Joint_', 
+            key = 'Joint_',
           assay = 'ToIntegrate')
         if (l2.norm) {
           object.pair <- L2Dim(object = object.pair,
@@ -1621,7 +1621,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
   new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name.safe)
-  
+
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
     new.assay.name = new.reduction.name.safe,
@@ -1983,11 +1983,11 @@ IntegrateSketchEmbeddings <- function(
         emb
       }
     )
- 
+
     emb.all[rownames(emb), ]  <- as.matrix(x = emb)
 
   }
-   
+
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = emb.all,
     loadings = Loadings(object = object[[reduction]]),
@@ -2975,6 +2975,38 @@ SelectIntegrationFeatures5 <- function(
   var.features <- var.features[idx]
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
   # Select integration features
+  features <- names(x = var.features[which(x = var.features > tie.val)])
+  if (length(x = features)) {
+    features <- .FeatureRank(features = features, flist = vf.list)
+  }
+  features.tie <- .FeatureRank(
+    features = names(x = var.features[which(x = var.features == tie.val)]),
+    flist = vf.list
+  )
+  return(head(x = c(features, features.tie), n = nfeatures))
+}
+
+#' @export
+#'
+SelectSCTIntegrationFeatures <- function(object, nfeatures = 2000, assay = NULL, verbose = TRUE, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!inherits(x = object[[assay]], what = 'SCTAssay')) {
+    abort(message = "'assay' must be an SCTAssay")
+  }
+  models <- levels(x = object[[assay]])
+  vf.list <- VariableFeatures(
+    object = object[[assay]],
+    layer = models,
+    n = nfeatures,
+    simplify = FALSE
+  )
+  var.features <- sort(
+    x = table(unlist(x = vf.list, use.names = FALSE)),
+    decreasing = TRUE
+  )
+  idx <- which(x = var.features == length(x = models))
+  var.features <- var.features[idx]
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features)) {
     features <- .FeatureRank(features = features, flist = vf.list)
@@ -5770,7 +5802,7 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   feature.mean = NULL,
   feature.sd = NULL
 ) {
- 
+
   dims <- dims %||% 1:ncol(reference[[reduction]])
   assay <- assay %||% DefaultAssay(reference)
   features <- intersect(rownames(query.data),
@@ -5778,15 +5810,15 @@ ProjectCellEmbeddings_DelayedAssay <- function(
   query.data <- query.data[features,]
  if (IsSCT(object[[assay]])) {
 # TODO: SCT reiduals projection
-   
+
  } else {
-   feature.mean <- feature.mean[features] %||% 
+   feature.mean <- feature.mean[features] %||%
      RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
-   
-   feature.sd <- feature.sd[features] %||% 
-     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,])) 
+
+   feature.sd <- feature.sd[features] %||%
+     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
    feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-   
+
    suppressMessages(setAutoBlockSize(size = block.size))
    cells.grid <- DelayedArray::colAutoGrid(x = query.data)
    emb.list <- list()
@@ -5798,7 +5830,7 @@ ProjectCellEmbeddings_DelayedAssay <- function(
      data.block <- apply(data.block, MARGIN = 2, function(x) {
        x <- (x - feature.mean)/feature.sd
        return(x)
-     }) 
+     })
      emb.block <- t(reference[[reduction]]@feature.loadings[features,dims]) %*%  data.block
      emb.list[[i]] <- emb.block
    }
@@ -5807,7 +5839,7 @@ ProjectCellEmbeddings_DelayedAssay <- function(
    rownames(emb.mat) <- colnames(query.data)
    colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
  }
-  
+
   return(emb.mat)
 }
 
@@ -5970,6 +6002,6 @@ crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e9) {
   }
   norm.vector <- unlist(norm.list)
   return(norm.vector)
-  
+
 }
 

@@ -16,11 +16,12 @@ NULL
 #' @inheritParams harmony::HarmonyMatrix
 #' @param object An \code{\link[SeuratObject]{Assay5}} object
 # @param assay Name of \code{object} in the containing \code{Seurat} object
-#' @param orig \link[SeuratObject:DimReduc]{Dimensional reduction} to correct
-#' @param groups A data frame ...
-#' @param features ...
-#' @param scale.layer ...
-#' @param layers ...
+#' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
+#' @param groups A one-column data frame with grouping information; column
+#' should be called \code{group}
+#' @param features Ignored
+#' @param scale.layer Ignored
+#' @param layers Ignored
 #' @param ... Ignored
 #'
 #' @return ...
@@ -64,8 +65,8 @@ HarmonyIntegration <- function(
     pkg = "harmony",
     reason = "for running integration with Harmony"
   )
-  if (!inherits(x = object, what = 'StdAssay')) {
-    abort(message = "'object' must be a v5 assay object")
+  if (!inherits(x = object, what = c('StdAssay', 'SCTAssay'))) {
+    abort(message = "'object' must be a v5 or SCT assay")
   } else if (!inherits(x = orig, what = 'DimReduc')) {
     abort(message = "'orig' must be a dimensional reduction")
   }
@@ -135,7 +136,7 @@ CCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-  
+
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
@@ -163,6 +164,8 @@ CCAIntegration <- function(
   names(output.list) <- c(new.reduction)
   return(output.list)
 }
+
+attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-RPCA Integration
 #'
@@ -218,6 +221,8 @@ RPCAIntegration <- function(
   return(output.list)
 }
 
+attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
+
 #' Seurat-Joint PCA Integration
 #'
 #' @inheritParams FindIntegrationAnchors
@@ -242,7 +247,7 @@ JointPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
- 
+
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features[1:2], ] )
@@ -274,6 +279,8 @@ JointPCAIntegration <- function(
   names(output.list) <- c(new.reduction)
   return(output.list)
 }
+
+attr(x = JointPCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Integrate Layers
 #'
@@ -326,15 +333,26 @@ IntegrateLayers <- function(
   }
   # Check our assay
   assay <- assay %||% DefaultAssay(object = object)
-  if (!inherits(x = object[[assay]], what = 'StdAssay')) {
-    abort(message = "'assay' must be a v5 assay")
+  if (inherits(x = object[[assay]], what = 'SCTAssay')) {
+    layers <- 'data'
+    scale.layer <- 'scale.data'
+    features <- features %||% SelectSCTIntegrationFeatures(
+      object = object,
+      assay = assay
+    )
+  } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
+    layers <- Layers(object = object, assay = assay, search = layers)
+    scale.layer <- Layers(object = object, search = scale.layer)
+    features <- features %||% SelectIntegrationFeatures5(
+      object = object,
+      assay = assay
+    )
+  } else {
+    abort(message = "'assay' must be a v5 or SCT assay")
   }
-  layers <- Layers(object = object, assay = assay, search = layers)
-  features <- features %||% SelectIntegrationFeatures5(object = object, assay = assay)
-  scale.layer <- Layers(object = object, search = scale.layer)
   features <- intersect(
     x = features,
-    y = Features(x = object[[assay]], layer = scale.layer)
+    y = Features(x = object, assay = assay, layer = scale.layer)
   )
   if (!length(x = features)) {
     abort(message = "None of the features provided are found in this assay")
@@ -349,13 +367,26 @@ IntegrateLayers <- function(
     DefaultAssay(object = obj.orig) <- assay
   }
   # Check our groups
-  groups <- if (is.null(x = group.by) && length(x = layers) > 1L) {
+  groups <- if (inherits(x = object[[assay]], what = 'SCTAssay')) {
+    if (!is.null(x = group.by)) {
+      warn(
+        message = "Groups are set automatically by model when integrating SCT assays"
+      )
+    }
+    df <- SeuratObject::EmptyDF(n = ncol(x = object[[assay]]))
+    row.names(x = df) <- colnames(x = object[[assay]])
+    for (model in levels(x = object[[assay]])) {
+      cc <- Cells(x = object[[assay]], layer = model)
+      df[cc, "group"] <- model
+    }
+    df
+  } else if (is.null(x = group.by) && length(x = layers) > 1L) {
     cmap <- slot(object = object[[assay]], name = 'cells')[, layers]
     as.data.frame(x = labels(
       object = cmap,
       values = Cells(x = object[[assay]], layer = scale.layer)
     ))
-  } else if (is_scalar_character(x = group.by)  && group.by %in% names(x = object[[]])) {
+  } else if (is_scalar_character(x = group.by) && group.by %in% names(x = object[[]])) {
     FetchData(
       object = object,
       vars = group.by,
@@ -364,7 +395,7 @@ IntegrateLayers <- function(
   } else {
     abort(message = "'group.by' must correspond to a column of cell-level meta data")
   }
-  names(x = groups) <- "group"
+  names(x = groups) <- 'group'
   # Run the integration method
   value <- method(
     object = object[[assay]],
