@@ -1839,6 +1839,7 @@ IntegrateSketchEmbeddings <- function(
   reduction.name = NULL,
   reduction.key = NULL,
   layers = NULL,
+  seed = 123,
   verbose = TRUE
 ) {
   # Check input and output dimensional reductions
@@ -1901,12 +1902,6 @@ IntegrateSketchEmbeddings <- function(
     )
   )
   features <- intersect(x = features, y = features.atom)
-  emb.all <- matrix(
-    data = NA_real_,
-    nrow = ncol(x = object[[orig]]),
-    ncol = length(x = object[[reduction]])
-  )
-  rownames(emb.all) <- colnames(object[[orig]])
   ncells <- c(
     0,
     sapply(
@@ -1919,6 +1914,8 @@ IntegrateSketchEmbeddings <- function(
   if (length(atoms.layers) == 1) {
     atoms.layers <- rep(atoms.layers, length(layers))
   }
+  emb.list <- list()
+  cells.list <- list()
   for (i in seq_along(along.with = layers)) {
     if (length(unique(atoms.layers)) == length(layers)) {
       cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
@@ -1964,7 +1961,8 @@ IntegrateSketchEmbeddings <- function(
       'sketch' = {
         R <- t(x = CountSketch(
           nsketch = round(x = ratio * length(x = features)),
-          ncells = length(x = features)
+          ncells = length(x = features),
+          seed = seed
         ))
         exp.mat <- as.matrix(x = t(x = LayerData(
           object = object[[atoms]],
@@ -1973,21 +1971,24 @@ IntegrateSketchEmbeddings <- function(
         )[,cells.sketch]) %*% R)
         sketch.transform <- ginv(X = exp.mat) %*%
           Embeddings(object = object[[reduction]])[cells.sketch ,]
-        emb <- matrix.prod.function(x = R %*% sketch.transform,
+         emb <- matrix.prod.function(x = R %*% sketch.transform,
                              y = LayerData(
                                object = object[[orig]],
                                layer = layers[i],
                                features = features
                              ))
-        emb <- t(emb)
         emb
       }
     )
-
-    emb.all[rownames(emb), ]  <- as.matrix(x = emb)
-
+    emb.list[[i]] <- as.matrix(x = emb)
+    cells.list[[i]] <- colnames(x = emb)
   }
-
+   emb.all <- t(matrix(data = unlist(emb.list),
+                     nrow = length(x = object[[reduction]]),
+                     ncol = ncol(x = object[[orig]])
+                     ))
+   rownames(emb.all) <- unlist(cells.list)
+   emb.all <- emb.all[colnames(object[[orig]]), ]
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = emb.all,
     loadings = Loadings(object = object[[reduction]]),
@@ -6004,4 +6005,3 @@ crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e9) {
   return(norm.vector)
 
 }
-
