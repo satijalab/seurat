@@ -30,15 +30,16 @@ HarmonyIntegration(
 \arguments{
 \item{object}{An \code{\link[SeuratObject]{Assay5}} object}
 
-\item{orig}{\link[SeuratObject:DimReduc]{Dimensional reduction} to correct}
+\item{orig}{A \link[SeuratObject:DimReduc]{dimensional reduction} to correct}
 
-\item{groups}{A data frame ...}
+\item{groups}{A one-column data frame with grouping information; column
+should be called \code{group}}
 
-\item{features}{...}
+\item{features}{Ignored}
 
-\item{scale.layer}{...}
+\item{scale.layer}{Ignored}
 
-\item{layers}{...}
+\item{layers}{Ignored}
 
 \item{npcs}{If doing PCA on input matrix, number of PCs to compute.}
 
