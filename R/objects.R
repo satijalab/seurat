@@ -472,9 +472,35 @@ DietSeurat <- function(
   dimreducs = NULL,
   graphs = NULL,
   misc = TRUE,
+  counts = deprecated(),
+  data = deprecated(),
+  scale.data = deprecated(),
   ...
 ) {
   CheckDots(...)
+  dep.args <- c(counts = counts, data = data, scale.data = scale.data)
+  for (lyr in names(x = dep.args)) {
+    if (is_present(arg = dep.args[[lyr]])) {
+      if (is.null(x = layers)) {
+        layers <- unique(x = unlist(x = lapply(
+          X = Assays(object = object),
+          FUN = function(x) {
+            return(Layers(object = object[[x]]))
+          }
+        )))
+      }
+      deprecate_soft(
+        when = '5.0.0',
+        what = paste0('DietSeurat(', lyr, ' = )'),
+        with = 'DietSeurat(layers = )'
+      )
+      layers <- if (isTRUE(x = dep.args[[lyr]])) {
+        c(layers, lyr)
+      } else {
+        Filter(f = \(x) x != lyr, x = layers)
+      }
+    }
+  }
   object <- UpdateSlots(object = object)
   assays <- assays %||% Assays(object = object)
   assays <- intersect(x = assays, y = Assays(object = object))
