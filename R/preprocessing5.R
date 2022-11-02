@@ -823,7 +823,7 @@ VST.DelayedMatrix <- function(
     span = span
   )
   hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  
+
   suppressMessages(setAutoBlockSize(size = block.size))
   grid <- if (margin == 1L) {
     DelayedArray::rowAutoGrid(x = data)
@@ -848,7 +848,7 @@ VST.DelayedMatrix <- function(
                                   sd = sqrt(hvf.info$variance.expected),
                                   vmax =  clip %||% sqrt(x = ncol(x = data)),
                                   display_progress = FALSE)
-    
+
     var_stand.list[[i]] <- block.stat * (ncol(block) - 1)
   }
   hvf.info$variance.standardized <- Reduce(f = '+', x = var_stand.list)/
@@ -863,7 +863,7 @@ VST.DelayedMatrix <- function(
   hvf.info$variable[vf] <- TRUE
   hvf.info$rank[vf] <- seq_along(along.with = vf)
  rownames(hvf.info) <- rownames(data)
- 
+
   return(hvf.info)
 }
 
@@ -1302,10 +1302,6 @@ SCTransform.StdAssay <- function(
       cell.attr.object <- cell.attr[colnames(x = counts.chunk),, drop=FALSE]
 
       if (!identical(rownames(cell.attr.object), colnames(counts.chunk))) {
-        print(length(setdiff(rownames(cell.attr.object), colnames(counts.chunk))))
-        print(length(setdiff(colnames(counts.chunk),rownames(cell.attr.object))))
-        print(rownames(cell.attr.object)[1:5])
-        print(colnames(counts.chunk)[1:5])
         stop("cell attribute row names must match column names of count matrix")
       }
       vst.out <- SCTransform(object = counts.chunk,
@@ -1360,7 +1356,6 @@ SCTransform.StdAssay <- function(
       vst.out$arguments$sct.method <- sct.method
       Misc(object = assay.out, slot = 'vst.out') <- vst.out
       assay.out <- as(object = assay.out, Class = "SCTAssay")
-      #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
       return (assay.out)
     }
@@ -1370,7 +1365,7 @@ SCTransform.StdAssay <- function(
       set.seed(seed = seed.use)
       selected.block <-  sample(x = seq.int(from = 1, to = length(cells.grid)), size = 1)
       if (verbose){
-        message("Using block", selected.block, " from ", dataset.names[[dataset.index]], " to learn model.")
+        message("Using block ", selected.block, " from ", dataset.names[[dataset.index]], " to learn model.")
       }
       vp <- cells.grid[[selected.block]]
       assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = FALSE)
@@ -1448,6 +1443,7 @@ SCTransform.StdAssay <- function(
           cell_attrs[[i]] <- cell_attr
         }
         new.residuals <- Reduce(cbind, residuals)
+
         corrected_counts <- Reduce(cbind, corrected_counts)
         cell_attrs <- Reduce(rbind, cell_attrs)
 
@@ -1533,10 +1529,61 @@ SCTransform.StdAssay <- function(
   }
   # Return array by merging everythin
   if (length(x = sct.assay.list) > 1){
+    vf.list <- lapply(X  = sct.assay.list, FUN = function(object) VariableFeatures(object = object))
+    variable.features.union <- Reduce(f = union, x = vf.list)
+    var.features.sorted <- sort(
+      x = table(unlist(x = vf.list, use.names = FALSE)),
+      decreasing = TRUE
+    )
+    # idx <- which(x = var.features == length(x = sct.assay.list))
+    # select top ranking features
+    #var.features <- names(x = var.features.sorted[1:variable.features.n])
+    # calculate residuals for union of features
+    var.features <- variable.features.union
+    for (layer.name in names(sct.assay.list)){
+      vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
+
+      all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
+      all_features <- Features(x = object, layer = paste0(layer, ".", layer.name))
+      variable.features.target <- intersect(x = rownames(x = vst_out$model_pars_fit), y = var.features)
+      variable.features.target <- setdiff(x = variable.features.target, y = VariableFeatures(sct.assay.list[[layer.name]]))
+      if (length(variable.features.target )<1){
+        next
+      }
+      counts <- LayerData(
+        object = object,
+        layer = paste0(layer, ".", layer.name),
+        cells = all_cells
+      )
+      cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncol(counts))
+      vp <- cells.grid[[1L]]
+      block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
+      counts.vp <- as(object = block, Class = 'dgCMatrix')
+
+      if (vst_out$arguments$min_var == "umi_median"){
+        nz_median <- median(counts.vp@x)
+        min_var_custom <- (nz_median / 5)^2
+      } else {
+        min_var_custom <- vst_out$arguments$min_var
+      }
+      vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
+      vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
+
+      new_residual <- get_residuals(
+        vst_out = vst_out,
+        umi = counts.vp[variable.features.target,],
+        residual_type = "pearson",
+        min_variance = min_var_custom,
+        verbosity =  FALSE
+      )
+      old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
+      merged_residual <- rbind(old_residual, new_residual)
+      sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
+      VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
+    }
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
-    # set variable features as the union of the features
-    variable.features <- Reduce(f = union, x = variable.feature.list)
-    VariableFeatures(object = merged.assay) <- variable.features
+
+    VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
@@ -1609,9 +1656,9 @@ FetchResiduals <- function(object,
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
     return(object)
   }
-  possible.features <- unique(x = unlist(x = lapply(X = sct.models, FUN = function(x) {
+  possible.features <- Reduce(f = union, x = lapply(X = sct.models, FUN = function(x) {
     rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
-  })))
+  }))
   bad.features <- setdiff(x = features, y = possible.features)
   if (length(x = bad.features) > 0) {
     warning("The following requested features are not present in any models: ",
@@ -1633,10 +1680,17 @@ FetchResiduals <- function(object,
       return(object)
     }
   }
+
   features <- intersect(x = features.orig, y = features)
-  if (length(x = sct.models) > 1 & verbose) {
-    message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
-  }
+  if (length(features) < 1){
+    warning("The following requested features are not present in all the models: ",
+            paste(features.orig, collapse = ", "),
+            call. = FALSE
+    )
+    return (NULL)
+  }  #if (length(x = sct.models) > 1 & verbose) {
+  #  message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
+  #}
 
   # Get all (count) layers
   layers <- Layers(object = object[[umi.assay]], search = layer)
@@ -1764,13 +1818,15 @@ FetchResidualSCTModel <- function(object,
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
   if (length(x = setdiff(x = layer.cells, y = scale.data.cells)) == 0) {
     existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
-    full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data), ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
-    full.scale.data[rownames(x = existing.scale.data), colnames(x = existing.scale.data)] <- existing.scale.data
-    existing_features <- names(x = which(x = !apply(
-      X = full.scale.data,
-      MARGIN = 1,
-      FUN = anyNA
-    )))
+    #full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data),
+    #                          ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
+    #full.scale.data[rownames(x = existing.scale.data), colnames(x = existing.scale.data)] <- existing.scale.data
+    #existing_features <- names(x = which(x = !apply(
+    #  X = full.scale.data,
+    #  MARGIN = 1,
+    #  FUN = anyNA
+    #)))
+    existing_features <- rownames(x = existing.scale.data)
   } else {
     existing_features <- character()
   }
@@ -1780,6 +1836,10 @@ FetchResidualSCTModel <- function(object,
     features_to_compute <- setdiff(x = new_features, y = existing_features)
   }
   scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  if (length(features_to_compute)<1){
+    return (scale.data.cells[intersect(x = rownames(x = scale.data.cells), y = new_features),,drop=FALSE])
+  }
+
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
       X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
@@ -1835,9 +1895,9 @@ FetchResidualSCTModel <- function(object,
     )
 
     # iterate over 2k cells at once
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
+    #cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = length(x = layer.cells))
     new_residuals <- list()
-    # cat(dim(counts))
 
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
@@ -1851,9 +1911,7 @@ FetchResidualSCTModel <- function(object,
       if (i==1){
         nz_median <- median(umi.all@x)
         min_var_custom <- (nz_median / 5)^2
-        # print(paste("min_var_custom", min_var_custom))
       }
-
       umi <- umi.all[features_to_compute, , drop = FALSE]
 
       ## Add cell_attr for missing cells
@@ -1867,8 +1925,18 @@ FetchResidualSCTModel <- function(object,
       } else {
         cell_attr_existing <- vst_out$cell_attr
         cells_missing <- setdiff(rownames(cell_attr), rownames(cell_attr_existing))
-        vst_out$cell_attr <- rbind(cell_attr_existing, cell_attr[cells_missing, , drop=FALSE])
-        vst_out$cell_attr <- vst_out$cell_attr[colnames(umi), , drop=FALSE]
+        if (length(cells_missing)>0){
+          cell_attr_missing <- cell_attr[cells_missing, ,drop=FALSE]
+          missing_cols <- setdiff(x = colnames(x = cell_attr_existing),
+                                  y = colnames(x = cell_attr_missing))
+
+          if (length(x = missing_cols) > 0) {
+            cell_attr_missing[, missing_cols] <- NA
+          }
+          vst_out$cell_attr <- rbind(cell_attr_existing,
+                                     cell_attr_missing)
+          vst_out$cell_attr <- vst_out$cell_attr[colnames(umi), , drop=FALSE]
+        }
       }
       if (verbose) {
         if (sct.method == "reference.model") {
