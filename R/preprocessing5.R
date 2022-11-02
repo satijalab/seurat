@@ -1656,9 +1656,9 @@ FetchResiduals <- function(object,
     warning("SCT model not present in assay", call. = FALSE, immediate. = TRUE)
     return(object)
   }
-  possible.features <- unique(x = unlist(x = lapply(X = sct.models, FUN = function(x) {
+  possible.features <- Reduce(f = union, x = lapply(X = sct.models, FUN = function(x) {
     rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = x))
-  })))
+  }))
   bad.features <- setdiff(x = features, y = possible.features)
   if (length(x = bad.features) > 0) {
     warning("The following requested features are not present in any models: ",
@@ -1680,10 +1680,17 @@ FetchResiduals <- function(object,
       return(object)
     }
   }
+
   features <- intersect(x = features.orig, y = features)
-  if (length(x = sct.models) > 1 & verbose) {
-    message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
-  }
+  if (length(features) < 1){
+    warning("The following requested features are not present in all the models: ",
+            paste(features.orig, collapse = ", "),
+            call. = FALSE
+    )
+    return (NULL)
+  }  #if (length(x = sct.models) > 1 & verbose) {
+  #  message("This SCTAssay contains multiple SCT models. Computing residuals for cells using")
+  #}
 
   # Get all (count) layers
   layers <- Layers(object = object[[umi.assay]], search = layer)
@@ -1811,13 +1818,15 @@ FetchResidualSCTModel <- function(object,
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
   if (length(x = setdiff(x = layer.cells, y = scale.data.cells)) == 0) {
     existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
-    full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data), ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
-    full.scale.data[rownames(x = existing.scale.data), colnames(x = existing.scale.data)] <- existing.scale.data
-    existing_features <- names(x = which(x = !apply(
-      X = full.scale.data,
-      MARGIN = 1,
-      FUN = anyNA
-    )))
+    #full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data),
+    #                          ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
+    #full.scale.data[rownames(x = existing.scale.data), colnames(x = existing.scale.data)] <- existing.scale.data
+    #existing_features <- names(x = which(x = !apply(
+    #  X = full.scale.data,
+    #  MARGIN = 1,
+    #  FUN = anyNA
+    #)))
+    existing_features <- rownames(x = existing.scale.data)
   } else {
     existing_features <- character()
   }
@@ -1827,6 +1836,10 @@ FetchResidualSCTModel <- function(object,
     features_to_compute <- setdiff(x = new_features, y = existing_features)
   }
   scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  if (length(features_to_compute)<1){
+    return (scale.data.cells[intersect(x = rownames(x = scale.data.cells), y = new_features),,drop=FALSE])
+  }
+
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
       X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
@@ -1882,9 +1895,9 @@ FetchResidualSCTModel <- function(object,
     )
 
     # iterate over 2k cells at once
-    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
+    #cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
+    cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = length(x = layer.cells))
     new_residuals <- list()
-    # cat(dim(counts))
 
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
@@ -1899,7 +1912,6 @@ FetchResidualSCTModel <- function(object,
         nz_median <- median(umi.all@x)
         min_var_custom <- (nz_median / 5)^2
       }
-
       umi <- umi.all[features_to_compute, , drop = FALSE]
 
       ## Add cell_attr for missing cells
@@ -1913,8 +1925,18 @@ FetchResidualSCTModel <- function(object,
       } else {
         cell_attr_existing <- vst_out$cell_attr
         cells_missing <- setdiff(rownames(cell_attr), rownames(cell_attr_existing))
-        vst_out$cell_attr <- rbind(cell_attr_existing, cell_attr[cells_missing, , drop=FALSE])
-        vst_out$cell_attr <- vst_out$cell_attr[colnames(umi), , drop=FALSE]
+        if (length(cells_missing)>0){
+          cell_attr_missing <- cell_attr[cells_missing, ,drop=FALSE]
+          missing_cols <- setdiff(x = colnames(x = cell_attr_existing),
+                                  y = colnames(x = cell_attr_missing))
+
+          if (length(x = missing_cols) > 0) {
+            cell_attr_missing[, missing_cols] <- NA
+          }
+          vst_out$cell_attr <- rbind(cell_attr_existing,
+                                     cell_attr_missing)
+          vst_out$cell_attr <- vst_out$cell_attr[colnames(umi), , drop=FALSE]
+        }
       }
       if (verbose) {
         if (sct.method == "reference.model") {
