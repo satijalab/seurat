@@ -1531,16 +1531,16 @@ SCTransform.StdAssay <- function(
   if (length(x = sct.assay.list) > 1){
     vf.list <- lapply(X  = sct.assay.list, FUN = function(object) VariableFeatures(object = object))
     variable.features.union <- Reduce(f = union, x = vf.list)
-    var.features <- sort(
+    var.features.sorted <- sort(
       x = table(unlist(x = vf.list, use.names = FALSE)),
       decreasing = TRUE
     )
     # idx <- which(x = var.features == length(x = sct.assay.list))
-    var.features <- names(x = var.features[1:variable.features.n])
-
-    #browser()
+    # select top ranking features
+    #var.features <- names(x = var.features.sorted[1:variable.features.n])
+    # calculate residuals for union of features
+    var.features <- variable.features.union
     for (layer.name in names(sct.assay.list)){
-      #object.sct <- CreateSeurat5Object(counts = )
       vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
 
       all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
@@ -1576,10 +1576,11 @@ SCTransform.StdAssay <- function(
         min_variance = min_var_custom,
         verbosity =  FALSE
       )
-      sct.assay.list[[layer.name]]@scale.data <- rbind(sct.assay.list[[layer.name]]@scale.data, new_residual)
+      old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
+      merged_residual <- rbind(old_residual, new_residual)
+      sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
+      VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
     }
-    sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
-    variable.feature.list[[dataset.names[dataset.index]]] <- VariableFeatures(assay.out)
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
 
     VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
