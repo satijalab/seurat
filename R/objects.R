@@ -1837,7 +1837,7 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
 #' @method VariableFeatures SCTModel
 #' @export
 #'
-VariableFeatures.SCTModel <- function(object, n = 2000, ...) {
+VariableFeatures.SCTModel <- function(object, n = 3000, ...) {
   if (!is_scalar_integerish(x = n) || (!is_na(x = n < 1L) && n < 1L)) {
     abort(message = "'n' must be a single positive integer")
   }
@@ -1857,7 +1857,7 @@ VariableFeatures.SCTModel <- function(object, n = 2000, ...) {
 VariableFeatures.SCTAssay <- function(
   object,
   layer = NULL,
-  n = 2000,
+  n = 3000,
   simplify = TRUE,
   ...
 ) {
@@ -2146,6 +2146,8 @@ merge.SCTAssay <- function(
     combined.assay,
     SCTModel.list = model.list
   )
+  features <- VariableFeatures(object = combined.assay)
+  VariableFeatures(object = combined.assay) <- features
   return(combined.assay)
 }
 

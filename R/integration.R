@@ -2989,7 +2989,7 @@ SelectIntegrationFeatures5 <- function(
 
 #' @export
 #'
-SelectSCTIntegrationFeatures <- function(object, nfeatures = 2000, assay = NULL, verbose = TRUE, ...) {
+SelectSCTIntegrationFeatures <- function(object, nfeatures = 3000, assay = NULL, verbose = TRUE, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!inherits(x = object[[assay]], what = 'SCTAssay')) {
     abort(message = "'assay' must be an SCTAssay")
@@ -3005,8 +3005,10 @@ SelectSCTIntegrationFeatures <- function(object, nfeatures = 2000, assay = NULL,
     x = table(unlist(x = vf.list, use.names = FALSE)),
     decreasing = TRUE
   )
-  idx <- which(x = var.features == length(x = models))
-  var.features <- var.features[idx]
+  for (i in 1:length(x = models)) {
+    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[models[[i]]]])
+    var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
+  }
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features)) {

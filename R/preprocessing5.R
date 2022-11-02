@@ -823,7 +823,7 @@ VST.DelayedMatrix <- function(
     span = span
   )
   hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  
+
   suppressMessages(setAutoBlockSize(size = block.size))
   grid <- if (margin == 1L) {
     DelayedArray::rowAutoGrid(x = data)
@@ -848,7 +848,7 @@ VST.DelayedMatrix <- function(
                                   sd = sqrt(hvf.info$variance.expected),
                                   vmax =  clip %||% sqrt(x = ncol(x = data)),
                                   display_progress = FALSE)
-    
+
     var_stand.list[[i]] <- block.stat * (ncol(block) - 1)
   }
   hvf.info$variance.standardized <- Reduce(f = '+', x = var_stand.list)/
@@ -863,7 +863,7 @@ VST.DelayedMatrix <- function(
   hvf.info$variable[vf] <- TRUE
   hvf.info$rank[vf] <- seq_along(along.with = vf)
  rownames(hvf.info) <- rownames(data)
- 
+
   return(hvf.info)
 }
 
@@ -1302,10 +1302,6 @@ SCTransform.StdAssay <- function(
       cell.attr.object <- cell.attr[colnames(x = counts.chunk),, drop=FALSE]
 
       if (!identical(rownames(cell.attr.object), colnames(counts.chunk))) {
-        print(length(setdiff(rownames(cell.attr.object), colnames(counts.chunk))))
-        print(length(setdiff(colnames(counts.chunk),rownames(cell.attr.object))))
-        print(rownames(cell.attr.object)[1:5])
-        print(colnames(counts.chunk)[1:5])
         stop("cell attribute row names must match column names of count matrix")
       }
       vst.out <- SCTransform(object = counts.chunk,
@@ -1360,7 +1356,6 @@ SCTransform.StdAssay <- function(
       vst.out$arguments$sct.method <- sct.method
       Misc(object = assay.out, slot = 'vst.out') <- vst.out
       assay.out <- as(object = assay.out, Class = "SCTAssay")
-      #TODO: Add a key to prevent hitting a bug in merge.StdAssay which
       # does not like character(0) keys being merged
       return (assay.out)
     }
@@ -1370,7 +1365,7 @@ SCTransform.StdAssay <- function(
       set.seed(seed = seed.use)
       selected.block <-  sample(x = seq.int(from = 1, to = length(cells.grid)), size = 1)
       if (verbose){
-        message("Using block", selected.block, " from ", dataset.names[[dataset.index]], " to learn model.")
+        message("Using block ", selected.block, " from ", dataset.names[[dataset.index]], " to learn model.")
       }
       vp <- cells.grid[[selected.block]]
       assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = FALSE)
@@ -1448,6 +1443,7 @@ SCTransform.StdAssay <- function(
           cell_attrs[[i]] <- cell_attr
         }
         new.residuals <- Reduce(cbind, residuals)
+
         corrected_counts <- Reduce(cbind, corrected_counts)
         cell_attrs <- Reduce(rbind, cell_attrs)
 
@@ -1533,10 +1529,60 @@ SCTransform.StdAssay <- function(
   }
   # Return array by merging everythin
   if (length(x = sct.assay.list) > 1){
+    vf.list <- lapply(X  = sct.assay.list, FUN = function(object) VariableFeatures(object = object))
+    variable.features.union <- Reduce(f = union, x = vf.list)
+    var.features <- sort(
+      x = table(unlist(x = vf.list, use.names = FALSE)),
+      decreasing = TRUE
+    )
+    # idx <- which(x = var.features == length(x = sct.assay.list))
+    var.features <- names(x = var.features[1:variable.features.n])
+
+    #browser()
+    for (layer.name in names(sct.assay.list)){
+      #object.sct <- CreateSeurat5Object(counts = )
+      vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
+
+      all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
+      all_features <- Features(x = object, layer = paste0(layer, ".", layer.name))
+      variable.features.target <- intersect(x = rownames(x = vst_out$model_pars_fit), y = var.features)
+      variable.features.target <- setdiff(x = variable.features.target, y = VariableFeatures(sct.assay.list[[layer.name]]))
+      if (length(variable.features.target )<1){
+        next
+      }
+      counts <- LayerData(
+        object = object,
+        layer = paste0(layer, ".", layer.name),
+        cells = all_cells
+      )
+      cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = ncol(counts))
+      vp <- cells.grid[[1L]]
+      block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
+      counts.vp <- as(object = block, Class = 'dgCMatrix')
+
+      if (vst_out$arguments$min_var == "umi_median"){
+        nz_median <- median(counts.vp@x)
+        min_var_custom <- (nz_median / 5)^2
+      } else {
+        min_var_custom <- vst_out$arguments$min_var
+      }
+      vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
+      vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
+
+      new_residual <- get_residuals(
+        vst_out = vst_out,
+        umi = counts.vp[variable.features.target,],
+        residual_type = "pearson",
+        min_variance = min_var_custom,
+        verbosity =  FALSE
+      )
+      sct.assay.list[[layer.name]]@scale.data <- rbind(sct.assay.list[[layer.name]]@scale.data, new_residual)
+    }
+    sct.assay.list[[dataset.names[dataset.index]]] <- assay.out
+    variable.feature.list[[dataset.names[dataset.index]]] <- VariableFeatures(assay.out)
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
-    # set variable features as the union of the features
-    variable.features <- Reduce(f = union, x = variable.feature.list)
-    VariableFeatures(object = merged.assay) <- variable.features
+
+    VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
@@ -1851,7 +1897,6 @@ FetchResidualSCTModel <- function(object,
       if (i==1){
         nz_median <- median(umi.all@x)
         min_var_custom <- (nz_median / 5)^2
-        # print(paste("min_var_custom", min_var_custom))
       }
 
       umi <- umi.all[features_to_compute, , drop = FALSE]
