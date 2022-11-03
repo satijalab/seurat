@@ -1804,20 +1804,18 @@ FetchResidualSCTModel <- function(object,
 
   model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
   model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
-
   sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
-
-
   layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
   if (!is.null(reference.SCT.model)) {
     # use reference SCT model
     sct.method <- "reference"
   }
-  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  scale.data.cells <- colnames(x = existing.scale.data)
   scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
   if (length(x = setdiff(x = layer.cells, y = scale.data.cells)) == 0) {
-    existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+    # existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
     #full.scale.data <- matrix(data = NA, nrow = nrow(x = existing.scale.data),
     #                          ncol = length(x = layer.cells), dimnames = list(rownames(x = existing.scale.data), layer.cells))
     #full.scale.data[rownames(x = existing.scale.data), colnames(x = existing.scale.data)] <- existing.scale.data
@@ -1835,9 +1833,8 @@ FetchResidualSCTModel <- function(object,
   } else {
     features_to_compute <- setdiff(x = new_features, y = existing_features)
   }
-  scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
   if (length(features_to_compute)<1){
-    return (scale.data.cells[intersect(x = rownames(x = scale.data.cells), y = new_features),,drop=FALSE])
+    return (existing.scale.data[intersect(x = rownames(x = scale.data.cells), y = new_features),,drop=FALSE])
   }
 
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {

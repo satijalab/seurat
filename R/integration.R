@@ -3011,14 +3011,33 @@ SelectSCTIntegrationFeatures <- function(object, nfeatures = 3000, assay = NULL,
   }
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
-  if (length(x = features)) {
-    features <- .FeatureRank(features = features, flist = vf.list)
+  if (length(x = features) > 0) {
+    feature.ranks <- sapply(X = features, FUN = function(x) {
+      ranks <- sapply(X = vf.list, FUN = function(vf) {
+        if (x %in% vf) {
+          return(which(x = x == vf))
+        }
+        return(NULL)
+      })
+      median(x = unlist(x = ranks))
+    })
+    features <- names(x = sort(x = feature.ranks))
   }
-  features.tie <- .FeatureRank(
-    features = names(x = var.features[which(x = var.features == tie.val)]),
-    flist = vf.list
+  features.tie <- var.features[which(x = var.features == tie.val)]
+  tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
+    ranks <- sapply(X = vf.list, FUN = function(vf) {
+      if (x %in% vf) {
+        return(which(x = x == vf))
+      }
+      return(NULL)
+    })
+    median(x = unlist(x = ranks))
+  })
+  features <- c(
+    features,
+    names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
   )
-  return(head(x = c(features, features.tie), n = nfeatures))
+  return(features)
 }
 
 #' Transfer data
