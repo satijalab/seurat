@@ -1732,24 +1732,7 @@ SCTransform.default <- function(
       }
       vst.out
     })
-  # create output assay and put (corrected) umi counts in count slot
-  if (do.correct.umi & residual.type == 'pearson') {
-    if (verbose) {
-      message('Place corrected count matrix in counts slot')
-    }
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
-    vst.out$umi_corrected <- NULL
-  } else {
-    assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
-  }
-  # set the variable genes
-  VariableFeatures(object = assay.out) <- residual.features %||% top.features
-  # put log1p transformed counts in data
-  assay.out <- SetAssayData(
-    object = assay.out,
-    slot = 'data',
-    new.data = log1p(x = GetAssayData(object = assay.out, slot = 'counts'))
-  )
+
   scale.data <- vst.out$y
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
