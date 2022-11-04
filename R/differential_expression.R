@@ -784,6 +784,7 @@ FindMarkers.SCTAssay <- function(
     pseudocount.use = pseudocount.use,
     fc.results = fc.results,
     densify = densify,
+    norm.method = 'LogNormalize' # do expm1 on data slot
     ...
   )
   return(de.results)
