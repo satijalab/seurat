@@ -16,6 +16,7 @@ IntegrateSketchEmbeddings(
   reduction.name = NULL,
   reduction.key = NULL,
   layers = NULL,
+  seed = 123,
   verbose = TRUE
 )
 }

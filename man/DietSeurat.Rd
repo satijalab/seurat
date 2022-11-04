@@ -12,6 +12,9 @@ DietSeurat(
   dimreducs = NULL,
   graphs = NULL,
   misc = TRUE,
+  counts = deprecated(),
+  data = deprecated(),
+  scale.data = deprecated(),
   ...
 )
 }
