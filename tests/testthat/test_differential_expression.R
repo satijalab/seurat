@@ -46,11 +46,11 @@ test_that("Default settings work as expected", {
 
   # SCT normalization
   expect_equal(results.sct[1, "p_val"], 6.225491e-11)
-  expect_equal(results.sct[1, "avg_logFC"], -0.6768721, tolerance = 1e-6)
+  expect_equal(results.sct[1, "avg_logFC"], -1.081321, tolerance = 1e-6)
   expect_equal(results.sct[1, "pct.1"], 0.111)
   expect_equal(results.sct[1, "pct.2"], 0.96)
   expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08)
-  expect_equal(nrow(x = results.sct), 92)
+  expect_equal(nrow(x = results.sct), 158)
   expect_equal(rownames(x = results.sct)[1], "TYMP")
 })
 
