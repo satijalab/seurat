@@ -752,6 +752,12 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
+  if (is.null(x = mean.fxn)){
+    mean.fxn <- function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+
+    }
+  }
   fc.results <- FoldChange(
     object = object,
     slot = data.slot,
@@ -761,8 +767,7 @@ FindMarkers.SCTAssay <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     fc.name = fc.name,
-    base = base,
-    norm.method = 'LogNormalize' # do expm1 on data slot
+    base = base
     )
   de.results <- FindMarkers(
     object = data.use,
@@ -785,7 +790,6 @@ FindMarkers.SCTAssay <- function(
     pseudocount.use = pseudocount.use,
     fc.results = fc.results,
     densify = densify,
-    norm.method = 'LogNormalize', # do expm1 on data slot
     ...
   )
   return(de.results)
