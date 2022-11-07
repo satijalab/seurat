@@ -1,6 +1,8 @@
 # Unreleased
+
 ## Changes
 - Replaced import from {spatstat.core} with {spatstat.explore}
+- Fix bug in `FindMarkers()` when using `SCT` assay ([#6856](https://github.com/satijalab/seurat/issues/6586))
 
 # Seurat 4.2.0 (2022-09-21)
 

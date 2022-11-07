@@ -46,11 +46,11 @@ test_that("Default settings work as expected", {
 
   # SCT normalization
   expect_equal(results.sct[1, "p_val"], 6.225491e-11)
-  expect_equal(results.sct[1, "avg_logFC"], -0.6768721, tolerance = 1e-6)
+  expect_equal(results.sct[1, "avg_logFC"], -1.081321, tolerance = 1e-6)
   expect_equal(results.sct[1, "pct.1"], 0.111)
   expect_equal(results.sct[1, "pct.2"], 0.96)
   expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08)
-  expect_equal(nrow(x = results.sct), 92)
+  expect_equal(nrow(x = results.sct), 158)
   expect_equal(rownames(x = results.sct)[1], "TYMP")
 })
 
@@ -96,8 +96,8 @@ test_that("setting pseudocount.use works", {
   expect_equal(results[1, "avg_logFC"], -2.630395, tolerance = 1e-6)
   expect_equal(nrow(x = results.clr), 182)
   expect_equal(results.clr[1, "avg_logFC"], -2.317338, tolerance = 1e-6)
-  expect_equal(nrow(results.sct), 185)
-  expect_equal(results.sct[1, "avg_logFC"], -1.845681, tolerance = 1e-6)
+  expect_equal(nrow(results.sct), 194)
+  expect_equal(results.sct[1, "avg_logFC"], -2.253920, tolerance = 1e-6)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), mean.fxn = rowMeans))
@@ -308,12 +308,12 @@ test_that("FindAllMarkers works as expected", {
   expect_equal(rownames(x = results.clr)[1], "HLA-DPB1")
 
   # SCT normalization
-  expect_equal(results.sct[1, "p_val"], 6.225491e-11)
-  expect_equal(results.sct[1, "avg_log2FC"], -1.265307, tolerance = 1e-6)
+  expect_equal(results.sct[1, "p_val"], 4.25861e-12)
+  expect_equal(results.sct[1, "avg_log2FC"], -2.70188, tolerance = 1e-6)
   expect_equal(results.sct[1, "pct.1"], 0.167)
   expect_equal(results.sct[1, "pct.2"], 0.909)
-  expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08)
-  expect_equal(nrow(x = results.sct), 201)
+  expect_equal(results.sct[1, "p_val_adj"], 9.368941e-10)
+  expect_equal(nrow(x = results.sct), 210)
   expect_equal(rownames(x = results.sct)[1], "HLA-DPB1")
 
   # pseudocount.use = 0.1
