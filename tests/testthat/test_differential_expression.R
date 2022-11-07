@@ -96,8 +96,8 @@ test_that("setting pseudocount.use works", {
   expect_equal(results[1, "avg_logFC"], -2.630395, tolerance = 1e-6)
   expect_equal(nrow(x = results.clr), 182)
   expect_equal(results.clr[1, "avg_logFC"], -2.317338, tolerance = 1e-6)
-  expect_equal(nrow(results.sct), 185)
-  expect_equal(results.sct[1, "avg_logFC"], -1.845681, tolerance = 1e-6)
+  expect_equal(nrow(results.sct), 194)
+  expect_equal(results.sct[1, "avg_logFC"], -2.253920, tolerance = 1e-6)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), mean.fxn = rowMeans))
