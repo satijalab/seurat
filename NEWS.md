@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 4.2.1 (2022-11-07)
 
 ## Changes
 - Replaced import from `spatstat.core` with `spatstat.explore`
