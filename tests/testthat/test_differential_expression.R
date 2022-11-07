@@ -308,12 +308,12 @@ test_that("FindAllMarkers works as expected", {
   expect_equal(rownames(x = results.clr)[1], "HLA-DPB1")
 
   # SCT normalization
-  expect_equal(results.sct[1, "p_val"], 6.225491e-11)
-  expect_equal(results.sct[1, "avg_log2FC"], -1.265307, tolerance = 1e-6)
+  expect_equal(results.sct[1, "p_val"], 4.25861e-12)
+  expect_equal(results.sct[1, "avg_log2FC"], -2.70188, tolerance = 1e-6)
   expect_equal(results.sct[1, "pct.1"], 0.167)
   expect_equal(results.sct[1, "pct.2"], 0.909)
-  expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08)
-  expect_equal(nrow(x = results.sct), 201)
+  expect_equal(results.sct[1, "p_val_adj"], 9.368941e-10)
+  expect_equal(nrow(x = results.sct), 210)
   expect_equal(rownames(x = results.sct)[1], "HLA-DPB1")
 
   # pseudocount.use = 0.1
