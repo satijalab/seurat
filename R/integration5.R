@@ -133,15 +133,23 @@ CCAIntegration <- function(
     scale.layer = 'scale.data',
     verbose = TRUE,
     ...) {
+  normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
-
+  if (normalization.method == 'SCT') {
+    object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
+    object.sct$split <- groups
+    object.list <- SplitObject(object = object.sct,split.by = 'split')
+    object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
+   
+  } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
     object.list[[i]][['RNA']]$scale.data <- object[[scale.layer]][features, Cells(object.list[[i]])]
     object.list[[i]][['RNA']]$counts <- NULL
+  }
   }
 
   anchor <- FindIntegrationAnchors(object.list = object.list,
@@ -155,6 +163,10 @@ CCAIntegration <- function(
                                    verbose = verbose,
                                    ...
   )
+  anchor@object.list <- lapply(anchor@object.list, function(x) {
+    x <- DietSeurat(x, features = features[1:2])
+    return(x)
+  })
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
@@ -212,7 +224,7 @@ RPCAIntegration <- function(
       object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
       object.list[[i]][['RNA']]$counts <- NULL
     }
-    }
+  }
 
   anchor <- FindIntegrationAnchors(object.list = object.list,
                                    anchor.features = features,
@@ -225,6 +237,10 @@ RPCAIntegration <- function(
                                    verbose = verbose,
                                    ...
   )
+  anchor@object.list <- lapply(anchor@object.list, function(x) {
+    x <- DietSeurat(x, features = features[1:2])
+    return(x)
+  })
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
