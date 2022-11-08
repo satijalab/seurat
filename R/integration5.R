@@ -236,7 +236,7 @@ JointPCAIntegration <- function(
     new.reduction = 'integrated.dr',
     reference = NULL,
     features = NULL,
-    normalization.method = NULL,
+    normalization.method = c("LogNormalize", "SCT"),
     dims = 1:30,
     k.anchor = 20,
     scale.layer = 'scale.data',
@@ -244,23 +244,41 @@ JointPCAIntegration <- function(
     groups = NULL,
     ...
 ) {
+  normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
-  assay <- assay %||% 'RNA'
+  features.diet <- features[1:2]
+  assay <- assay %||%  DefaultAssay(object)
   layers <- layers %||% Layers(object, search = 'data')
 
   object.list <- list()
-  for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features[1:2], ] )
-    object.list[[i]][['RNA']]$counts <- NULL
-    object.list[[i]][['joint.pca']] <- CreateDimReducObject(
-      embeddings = Embeddings(object = orig)[Cells(object.list[[i]]),],
-      assay = 'RNA',
+  if (normalization.method == 'SCT') {
+    object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
+    object.sct <- DietSeurat(object = object.sct, features = features.diet)
+    object.sct[['joint.pca']] <- CreateDimReducObject(
+      embeddings = Embeddings(object = orig),
+      assay = 'SCT',
       loadings = Loadings(orig),
       key = 'J_'
     )
+    object.sct$split <- groups
+    object.list <- SplitObject(object = object.sct,split.by = 'split')
+    object.list  <- PrepSCTIntegration(object.list, anchor.features = features.diet)
+    } else {
+    
+    for (i in seq_along(along.with = layers)) {
+      object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features.diet, ] )
+      object.list[[i]][['RNA']]$counts <- NULL
+      object.list[[i]][['joint.pca']] <- CreateDimReducObject(
+        embeddings = Embeddings(object = orig)[Cells(object.list[[i]]),],
+        assay = 'RNA',
+        loadings = Loadings(orig),
+        key = 'J_'
+      )
+    }
   }
+
   anchor <- FindIntegrationAnchors(object.list = object.list,
-                                   anchor.features = features,
+                                   anchor.features = features.diet,
                                    scale = FALSE,
                                    reduction = 'jpca',
                                    normalization.method = normalization.method,

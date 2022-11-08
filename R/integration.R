@@ -1408,6 +1408,7 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
+      print(i)
       model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
       object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
         data = GetAssayData(
