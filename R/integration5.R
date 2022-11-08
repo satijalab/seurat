@@ -263,6 +263,10 @@ JointPCAIntegration <- function(
     object.sct$split <- groups
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features.diet)
+    object.list <- lapply(object.list, function(x) {
+      x[['SCT']]@SCTModel.list <- list()
+      return(x)
+    })
     } else {
     
     for (i in seq_along(along.with = layers)) {

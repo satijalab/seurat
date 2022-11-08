@@ -2313,7 +2313,10 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
     attr <- SCTResults(object = x, slot = "cell.attributes", model = m)
     attr <- attr[intersect(x = rownames(x = attr), y = Cells(x = x)), , drop = FALSE]
     SCTResults(object = x, slot = "cell.attributes", model = m) <- attr
-  }
+   if (nrow(x = attr) == 0) {
+     slot(object = x, name = 'SCTModel.list')[[m]] <- NULL
+   }
+    }
   return(x)
 }
 
