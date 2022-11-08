@@ -8060,6 +8060,10 @@ SingleDimPlot <- function(
     dims <- colnames(x = data)[dims]
   }
   if (!is.null(x = cells.highlight)) {
+    if (inherits(x = cells.highlight, what = "data.frame")) {
+      stop("cells.highlight cannot be a dataframe. ",
+           "Please supply a vector or list")
+    }
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
       cells.all = rownames(x = data),
