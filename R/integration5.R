@@ -187,18 +187,33 @@ RPCAIntegration <- function(
     groups = NULL,
     verbose = TRUE,
     ...) {
+  normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
 
-  object.list <- list()
-  for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
-    VariableFeatures(object =  object.list[[i]]) <- features
-    object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
-    object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
-    object.list[[i]][['RNA']]$counts <- NULL
-  }
+  if (normalization.method == 'SCT') {
+    object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
+    object.sct$split <- groups
+    
+    object.list <- SplitObject(object = object.sct,split.by = 'split')
+    object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
+    object.list <- lapply(object.list, function(x) {
+      x <- RunPCA(object = x, features = features, verbose = FALSE)
+      return(x)
+    }
+    )
+  } else {
+    object.list <- list()
+    for (i in seq_along(along.with = layers)) {
+      object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
+      VariableFeatures(object =  object.list[[i]]) <- features
+      object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
+      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
+      object.list[[i]][['RNA']]$counts <- NULL
+    }
+    }
+
   anchor <- FindIntegrationAnchors(object.list = object.list,
                                    anchor.features = features,
                                    scale = FALSE,
@@ -250,7 +265,7 @@ JointPCAIntegration <- function(
   assay <- assay %||%  DefaultAssay(object)
   layers <- layers %||% Layers(object, search = 'data')
 
-  object.list <- list()
+ 
   if (normalization.method == 'SCT') {
     object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
     object.sct <- DietSeurat(object = object.sct, features = features.diet)
@@ -268,7 +283,7 @@ JointPCAIntegration <- function(
       return(x)
     })
     } else {
-    
+    object.list <- list()
     for (i in seq_along(along.with = layers)) {
       object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features.diet, ] )
       object.list[[i]][['RNA']]$counts <- NULL
