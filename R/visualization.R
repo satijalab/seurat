@@ -2270,6 +2270,7 @@ PolyFeaturePlot <- function(
 #' Names should be the names of FOVs and values should be the names of
 #' segmentation boundaries
 #' @param molecules A vector of molecules to plot
+#' @param nmols Max number of each molecule specified in `molecules` to plot
 #' @param dark.background Set plot background to black
 #' @param crop Crop the plots to area with cells only
 #' @param overlap Overlay boundaries from a single image to create a single
@@ -2277,17 +2278,17 @@ PolyFeaturePlot <- function(
 #' given (first is lowest)
 #' @param axes Keep axes and panel background
 #' @param combine Combine plots into a single
-#' \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
+#' \code{patchwork} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #'
-#' @return If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
+#' @return If \code{combine = TRUE}, a \code{patchwork}
 #' ggplot object; otherwise, a list of ggplot objects
 #'
 #' @importFrom rlang !! is_na sym
 #' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 element_blank facet_wrap vars
-#' @importFrom SeuratObject .DefaultFOV Cells
+#' @importFrom SeuratObject DefaultFOV Cells
 #' DefaultBoundary FetchData Images Overlay
 #'
 #' @export
@@ -2513,7 +2514,7 @@ ImageDimPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 dup_axis element_blank element_text facet_wrap guides
 #' labs margin vars scale_y_continuous theme
-#' @importFrom SeuratObject .DefaultFOV Cells DefaultBoundary
+#' @importFrom SeuratObject DefaultFOV Cells DefaultBoundary
 #' FetchData Images Overlay
 #'
 #' @export
@@ -2548,8 +2549,7 @@ ImageFeaturePlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE,
-  ...
+  coord.fixed = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
   scale <- scale[[1L]]
@@ -4681,10 +4681,10 @@ PlotClusterTree <- function(object, direction = "downwards", ...) {
 #' @param balanced Return an equal number of genes with + and - scores. If
 #' FALSE (default), returns the top genes ranked by the scores absolute values
 #' @param ncol Number of columns to display
-#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param combine Combine plots into a single \code{patchwork}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' @return A \code{patchwork} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom patchwork wrap_plots
@@ -6137,9 +6137,9 @@ WhiteBackground <- function(...) {
 #' Prepare Coordinates for Spatial Plots
 #'
 #' @inheritParams SeuratObject::GetTissueCoordinates
-#' @param model A \code{\link{[SeuratObject:Segmentation-class]Segmentation}},
-#' \code{\link[SeuratObject:Centroids-class]{Centroids}},
-#' or \code{\link[SeuratObject:Molecules-class]{Molecules}} object
+#' @param model A \code{\linkS4class{Segmentation}},
+#' \code{\linkS4class{Centroids}},
+#' or \code{\linkS4class{Molecules}} object
 #' @param data Extra data to be used for annotating the cell segmentations; the
 #' easiest way to pass data is a one-column
 #' \code{\link[base:data.frame]{data frame}} with the values to color by and
@@ -6182,26 +6182,7 @@ fortify.Molecules <- function(
   seed = NA_integer_,
   ...
 ) {
-  return(FetchData(object = object, vars = data, nmols = nmols, seed = seed, ...))
-  # coords <- GetTissueCoordinates(object = model, features = data)
-  # if (!is.null(x = nmols)) {
-  #   if (!is.na(x = seed)) {
-  #     set.seed(seed = seed)
-  #   }
-  #   coords <- lapply(
-  #     X = unique(x = coords$molecule),
-  #     FUN = function(m) {
-  #       df <- coords[coords$molecule == m, , drop = FALSE]
-  #       if (nrow(x = df) > nmols) {
-  #         idx <- sample(x = seq_len(length.out = nrow(x = df)), size = nmols)
-  #         df <- df[idx, , drop = FALSE]
-  #       }
-  #       return(df)
-  #     }
-  #   )
-  #   coords <- do.call(what = 'rbind', args = coords)
-  # }
-  # return(coords)
+  return(FetchData(object = model, vars = data, nmols = nmols, seed = seed, ...))
 }
 
 #' @rdname fortify-Spatial
@@ -8977,6 +8958,7 @@ setMethod(
   }
 )
 
+#' @importFrom methods getMethod
 setMethod(
   f = '.PrepImageData',
   signature = c(data = 'factor', cells = 'rle'),
@@ -9001,7 +8983,7 @@ setMethod(
   f = '.PrepImageData',
   signature = c(data = 'NULL', cells = 'rle'),
   definition = function(data, cells, ...) {
-    return(SeuratObject:::EmptyDF(n = sum(cells$lengths)))
+    return(SeuratObject::EmptyDF(n = sum(cells$lengths)))
   }
 )
 

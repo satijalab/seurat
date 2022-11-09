@@ -42,6 +42,12 @@ or more of:
  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
 }}
 
+\item{mol.type}{Type of molecule spatial coordinate matrices to read;
+choose one or more of:
+\itemize{
+ \item \dQuote{pixels}: molecule coordinates in pixel space
+}}
+
 \item{metadata}{Type of available metadata to read;
 choose zero or more of:
 \itemize{

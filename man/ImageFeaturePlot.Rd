@@ -9,8 +9,12 @@ ImageFeaturePlot(
   features,
   fov = NULL,
   boundaries = NULL,
-  cols = if (isTRUE(x = blend)) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
-    c("lightgrey", "firebrick1") },
+  cols = if (isTRUE(x = blend)) {
+     c("lightgrey", "#ff0000", "#00ff00")
+ } else {
+   
+     c("lightgrey", "firebrick1")
+ },
   size = 0.5,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -31,8 +35,7 @@ ImageFeaturePlot(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE,
-  ...
+  coord.fixed = TRUE
 )
 }
 \arguments{
@@ -65,10 +68,7 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 
 \item{size}{Point size for cells when plotting centroids}
 
-\item{min.cutoff}{Vector of minimum and maximum cutoff values for each feature,
-may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
-
-\item{max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
+\item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
 \item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
@@ -80,6 +80,8 @@ to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{mols.cols}{A vector of color for molecules. The "Set1" palette from
 RColorBrewer is used by default.}
+
+\item{nmols}{Max number of each molecule specified in `molecules` to plot}
 
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
 boundaries, \code{alpha} is equivalent to max alpha}
@@ -122,7 +124,7 @@ ggplot object. If \code{FALSE}, return a list of ggplot objects}
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 }
 \value{
-If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
+If \code{combine = TRUE}, a \code{patchwork}
 ggplot object; otherwise, a list of ggplot objects
 }
 \description{

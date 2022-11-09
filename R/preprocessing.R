@@ -7,6 +7,11 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+globalVariables(
+  names = c('fov', 'cell_ID'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Calculate the Barcode Distribution Inflection
 #'
 #' This function calculates an adaptive inflection point ("knee") of the barcode distribution
@@ -1591,6 +1596,11 @@ ReadMtx <- function(
 #'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
 #'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
 #' }
+#' @param mol.type Type of molecule spatial coordinate matrices to read;
+#' choose one or more of:
+#' \itemize{
+#'  \item \dQuote{pixels}: molecule coordinates in pixel space
+#' }
 #' @param metadata Type of available metadata to read;
 #' choose zero or more of:
 #' \itemize{
@@ -2040,9 +2050,12 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @examples
 #' \dontrun{
 #' coords <- ReadVitessce(
-#'   counts = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
-#'   coords = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
-#'   molecules = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
+#'   counts =
+#'      "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
+#'   coords =
+#'      "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
+#'   molecules =
+#'      "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
 #' )
 #' names(coords)
 #' coords$counts[1:10, 1:10]
