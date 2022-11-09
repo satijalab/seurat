@@ -2090,7 +2090,8 @@ ReadXenium <- function(
 
         # molecules
         if (has_dt) {
-          transcripts <- as.data.frame(data.table::fread(file.path(data.dir, "transcripts.csv.gz"))[qv >= mols.qv.threshold])
+          tx_dt <- as.data.frame(data.table::fread(file.path(data.dir, "transcripts.csv.gz")))
+          transcripts <- subset(tx_dt, qv >= mols.qv.threshold)
         } else {
           transcripts <- read.csv(file.path(data.dir, "transcripts.csv.gz"))
           transcripts <- subset(transcripts, qv >= mols.qv.threshold)
