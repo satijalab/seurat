@@ -179,7 +179,7 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 #'
 #' @rdname ReadXenium
 #'
-LoadXenium <- function(data.dir, fov, assay = 'Xenium') {
+LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
   data <- ReadXenium(
     data.dir = data.dir,
     type = c("centroids", "segmentations"),
@@ -197,6 +197,10 @@ LoadXenium <- function(data.dir, fov, assay = 'Xenium') {
   )
 
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+  xenium.obj[["BLANK"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
+  xenium.obj[["DUMMY"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
+  xenium.obj[["ERCC"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
+
   xenium.obj[[fov]] <- coords
   return(xenium.obj)
 }

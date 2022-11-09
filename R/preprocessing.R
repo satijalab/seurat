@@ -787,6 +787,7 @@ Read10X <- function(
   strip.suffix = FALSE
 ) {
   full.data <- list()
+  has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
   for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
     if (!dir.exists(paths = run)) {
@@ -815,7 +816,12 @@ Read10X <- function(
       stop("Expression matrix file missing. Expecting ", basename(path = matrix.loc))
     }
     data <- readMM(file = matrix.loc)
-    cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+    if (has_dt) {
+      cell.barcodes <- as.data.frame(data.table::fread(barcode.loc, header = FALSE))
+    } else {
+      cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
+    }
+
     if (ncol(x = cell.barcodes) > 1) {
       cell.names <- cell.barcodes[, cell.column]
     } else {
@@ -838,11 +844,17 @@ Read10X <- function(
     } else {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
-    feature.names <- read.delim(
-      file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc),
-      header = FALSE,
-      stringsAsFactors = FALSE
-    )
+
+    if (has_dt) {
+      feature.names <- as.data.frame(data.table::fread(ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc), header = FALSE))
+    } else {
+      feature.names <- read.delim(
+        file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc),
+        header = FALSE,
+        stringsAsFactors = FALSE
+      )
+    }
+
     if (any(is.na(x = feature.names[, gene.column]))) {
       warning(
         'Some features names are NA. Replacing NA names with ID from the opposite column requested',
@@ -1953,14 +1965,17 @@ ReadNanostring <- function(
 #'
 #' @param data.dir Directory containing all Xenium output files with
 #' default filenames
+#' @param outs Types of molecular outputs to read; choose one or more of:
+#' \itemize{
+#'  \item \dQuote{matrix}: the counts matrix
+#'  \item \dQuote{microns}: molecule coordinates
+#' }
 #' @param type Type of cell spatial coordinate matrices to read; choose one
 #' or more of:
 #' \itemize{
 #'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
 #'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
 #' }
-#' @param read.mols Whether or not to read per-transcript data. Can be very
-#' slow and consume a lot of memory for large datasets.
 #' @param mols.qv.threshold Remove transcript molecules with
 #' a QV less than this threshold. QV >= 20 is the standard threshold
 #' used to construct the cell x gene count matrix.
@@ -1995,25 +2010,29 @@ ReadNanostring <- function(
 #'
 ReadXenium <- function(
   data.dir,
-  type = 'centroids',
-  read.mols = TRUE,
+  outs = c("matrix", "microns"),
+  type = "centroids",
   mols.qv.threshold = 20
 ) {
-
   # Argument checking
   type <- match.arg(
     arg = type,
-    choices = c('centroids', 'segmentations'),
+    choices = c("centroids", "segmentations"),
     several.ok = TRUE
   )
 
-  outs <- list("matrix"=NULL, "microns"=NULL, "centroids"=NULL)
-  if ("segmentations" %in% type) {
-    outs <- append(outs, list("segmentations" = NULL))
-  }
+  outs <- match.arg(
+    arg = outs,
+    choices = c("matrix", "microns"),
+    several.ok = TRUE
+  )
 
-  for (otype in names(x = outs)) {
-    outs[[otype]] <- switch(
+  outs <- c(outs, type)
+
+  has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
+
+  data <- sapply(outs, function(otype) {
+    switch(
       EXPR = otype,
       'matrix' = {
         pmtx <- progressor()
@@ -2029,7 +2048,11 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        cell_info <- read.csv(file.path(data.dir, "cells.csv.gz"))
+        if (has_dt) {
+          cell_info <- as.data.frame(data.table::fread(file.path(data.dir, "cells.csv.gz")))
+        } else {
+          cell_info <- read.csv(file.path(data.dir, "cells.csv.gz"))
+        }
         cell_centroid_df <- data.frame(
           x = cell_info$x_centroid,
           y = cell_info$y_centroid,
@@ -2048,7 +2071,11 @@ ReadXenium <- function(
         )
 
         # load cell boundaries
-        cell_boundaries_df <- read.csv(file.path(data.dir, "cell_boundaries.csv.gz"), stringsAsFactors = FALSE)
+        if (has_dt) {
+          cell_boundaries_df <- as.data.frame(data.table::fread(file.path(data.dir, "cell_boundaries.csv.gz")))
+        } else {
+          cell_boundaries_df <- read.csv(file.path(data.dir, "cell_boundaries.csv.gz"), stringsAsFactors = FALSE)
+        }
         names(cell_boundaries_df) <- c("cell", "x", "y")
         psegs(type = "finish")
         cell_boundaries_df
@@ -2061,11 +2088,15 @@ ReadXenium <- function(
           amount = 0
         )
 
-        # molecules 
-        transcripts <- read.csv(file.path(data.dir, "transcripts.csv.gz"))
-        transcripts <- subset(transcripts, qv >= mols.qv.threshold)
+        # molecules
+        if (has_dt) {
+          transcripts <- as.data.frame(data.table::fread(file.path(data.dir, "transcripts.csv.gz"))[qv >= mols.qv.threshold])
+        } else {
+          transcripts <- read.csv(file.path(data.dir, "transcripts.csv.gz"))
+          transcripts <- subset(transcripts, qv >= mols.qv.threshold)
+        }
 
-        df <- 
+        df <-
           data.frame(
             x = transcripts$x_location,
             y = transcripts$y_location,
@@ -2075,10 +2106,10 @@ ReadXenium <- function(
         pmicrons(type = 'finish')
         df
       },
-      stop("Unknown Xenium input type: ", outs[[otype]])
+      stop("Unknown Xenium input type: ", otype)
     )
-  }
-  return(outs)
+  }, USE.NAMES = TRUE)
+  return(data)
 }
 
 #' Load Slide-seq spatial data
