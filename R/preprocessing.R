@@ -7,6 +7,11 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+globalVariables(
+  names = c('fov', 'cell_ID'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Calculate the Barcode Distribution Inflection
 #'
 #' This function calculates an adaptive inflection point ("knee") of the barcode distribution
@@ -625,7 +630,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   # call Rcpp function to normalize
   if (verbose) {
@@ -904,7 +909,7 @@ Read10X <- function(
   for (j in 1:length(x = full.data[[1]])) {
     list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
     # Fix for Issue #913
-    list_of_data[[j]] <- as(object = list_of_data[[j]], Class = "dgCMatrix")
+    list_of_data[[j]] <- as.sparse(x = list_of_data[[j]])
   }
   names(x = list_of_data) <- names(x = full.data[[1]])
   # If multiple features, will return a list, otherwise
@@ -974,7 +979,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     }
     rownames(x = sparse.mat) <- features
     colnames(x = sparse.mat) <- barcodes[]
-    sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
+    sparse.mat <- as.sparse(x = sparse.mat)
     # Split v3 multimodal
     if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
@@ -1028,10 +1033,15 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", filter.matrix = TRUE, ...) {
   image <- readPNG(source = file.path(image.dir, image.name))
   scale.factors <- fromJSON(txt = file.path(image.dir, 'scalefactors_json.json'))
+  tissue.positions.path <- Sys.glob(paths = file.path(image.dir, 'tissue_positions*'))
   tissue.positions <- read.csv(
-    file = file.path(image.dir, 'tissue_positions_list.csv'),
+    file = tissue.positions.path,
     col.names = c('barcodes', 'tissue', 'row', 'col', 'imagerow', 'imagecol'),
-    header = FALSE,
+    header = ifelse(
+      test = basename(tissue.positions.path) == "tissue_positions.csv",
+      yes = TRUE,
+      no = FALSE
+    ),
     as.is = TRUE,
     row.names = 1
   )
@@ -1579,7 +1589,7 @@ ReadMtx <- function(
 
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
-  data <- as(data, Class = "dgCMatrix")
+  data <- as.sparse(x = data)
   return(data)
 }
 
@@ -1597,6 +1607,11 @@ ReadMtx <- function(
 #' \itemize{
 #'  \item \dQuote{centroids}: cell centroids in pixel coordinate space
 #'  \item \dQuote{segmentations}: cell segmentations in pixel coordinate space
+#' }
+#' @param mol.type Type of molecule spatial coordinate matrices to read;
+#' choose one or more of:
+#' \itemize{
+#'  \item \dQuote{pixels}: molecule coordinates in pixel space
 #' }
 #' @param metadata Type of available metadata to read;
 #' choose zero or more of:
@@ -2199,9 +2214,12 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' @examples
 #' \dontrun{
 #' coords <- ReadVitessce(
-#'   counts = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
-#'   coords = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
-#'   molecules = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
+#'   counts =
+#'      "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
+#'   coords =
+#'      "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
+#'   molecules =
+#'      "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
 #' )
 #' names(coords)
 #' coords$counts[1:10, 1:10]
@@ -2812,7 +2830,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   if (verbose) {
     cat("Performing relative-counts-normalization\n", file = stderr())
@@ -2832,7 +2850,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
 #' @param data Matrix containing the data used as "marks" (e.g. gene expression)
 #' @param ... Arguments passed to markvario
 #'
-#' @importFrom spatstat.core markvario
+#' @importFrom spatstat.explore markvario
 #' @importFrom spatstat.geom ppp
 #'
 #' @export
@@ -2962,7 +2980,7 @@ SampleUMI <- function(
   upsample = FALSE,
   verbose = FALSE
 ) {
-  data <- as(object = data, Class = "dgCMatrix")
+  data <- as.sparse(x = data)
   if (length(x = max.umi) == 1) {
     new_data <- RunUMISampling(
       data = data,
@@ -3284,14 +3302,10 @@ SCTransform <- function(
     if (verbose) {
       message('Place corrected count matrix in counts slot')
     }
-    # TODO: restore once check.matrix is in SeuratObject
-    # assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
-    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected,)
+    assay.out <- CreateAssayObject(counts = vst.out$umi_corrected, check.matrix = FALSE)
     vst.out$umi_corrected <- NULL
   } else {
-    # TODO: restore once check.matrix is in SeuratObject
-    # assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
-    assay.out <- CreateAssayObject(counts = umi)
+    assay.out <- CreateAssayObject(counts = umi, check.matrix = FALSE)
   }
   # set the variable genes
   VariableFeatures(object = assay.out) <- residual.features %||% top.features
@@ -3440,7 +3454,7 @@ FindVariableFeatures.default <- function(
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
   }
   if (!inherits(x = object, what = 'dgCMatrix')) {
-    object <- as(object = object, Class = 'dgCMatrix')
+    object <- as.sparse(x = object)
   }
   if (selection.method == "vst") {
     if (clip.max == 'auto') {
@@ -4136,7 +4150,7 @@ ScaleData.default <- function(
     if (any(vars.to.regress %in% rownames(x = object))) {
       latent.data <- cbind(
         latent.data,
-        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], ])
+        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], , drop=FALSE])
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
@@ -4719,7 +4733,7 @@ CustomNormalize <- function(data, custom_function, margin, verbose = TRUE) {
     data <- as.matrix(x = data)
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = data, Class = "dgCMatrix")
+    data <- as.sparse(x = data)
   }
   myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
   # margin <- switch(

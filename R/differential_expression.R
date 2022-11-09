@@ -59,7 +59,6 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -136,7 +135,6 @@ FindAllMarkers <- function(
           latent.vars = latent.vars,
           min.cells.feature = min.cells.feature,
           min.cells.group = min.cells.group,
-          pseudocount.use = pseudocount.use,
           mean.fxn = mean.fxn,
           fc.name = fc.name,
           base = base,
@@ -512,6 +510,7 @@ FindMarkers.default <- function(
   densify = FALSE,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   ValidateCellGroups(
     object = object,
     cells.1 = cells.1,
@@ -603,6 +602,9 @@ FindMarkers.default <- function(
   return(de.results)
 }
 
+#' @param norm.method Normalization method for fold change calculation when
+#' \code{slot} is \dQuote{\code{data}}
+#'
 #' @rdname FindMarkers
 #' @concept differential_expression
 #' @export
@@ -630,8 +632,10 @@ FindMarkers.Assay <- function(
   fc.name = NULL,
   base = 2,
   densify = FALSE,
+  norm.method = NULL,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -652,7 +656,8 @@ FindMarkers.Assay <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     fc.name = fc.name,
-    base = base
+    base = base,
+    norm.method = norm.method
   )
   de.results <- FindMarkers(
     object = data.use,
@@ -712,6 +717,7 @@ FindMarkers.SCTAssay <- function(
   recorrect_umi = TRUE,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -746,6 +752,12 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
+  if (is.null(x = mean.fxn)){
+    mean.fxn <- function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+
+    }
+  }
   fc.results <- FoldChange(
     object = object,
     slot = data.slot,
@@ -756,7 +768,7 @@ FindMarkers.SCTAssay <- function(
     mean.fxn = mean.fxn,
     fc.name = fc.name,
     base = base
-  )
+    )
   de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
@@ -813,6 +825,7 @@ FindMarkers.DimReduc <- function(
   ...
 
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   if (test.use %in% DEmethods_counts()) {
     stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
          paste(DEmethods_counts(), collapse=", "))
@@ -927,7 +940,6 @@ FindMarkers.Seurat <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -971,17 +983,14 @@ FindMarkers.Seurat <- function(
   }
   # check normalization method
   norm.command <- paste0("NormalizeData.", assay)
-  if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
-    norm.method <- Command(
+  norm.method <- if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
+    Command(
       object = object,
       command = norm.command,
       value = "normalization.method"
     )
-    if (norm.method != "LogNormalize") {
-      mean.fxn <- function(x) {
-        return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-      }
-    }
+  } else {
+    NULL
   }
   de.results <- FindMarkers(
     object = data.use,
@@ -1000,11 +1009,11 @@ FindMarkers.Seurat <- function(
     latent.vars = latent.vars,
     min.cells.feature = min.cells.feature,
     min.cells.group = min.cells.group,
-    pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     base = base,
     fc.name = fc.name,
     densify = densify,
+    norm.method = norm.method,
     ...
   )
   return(de.results)
@@ -1050,7 +1059,9 @@ FoldChange.default <- function(
   return(fc.results)
 }
 
-
+#' @param norm.method Normalization method for mean function selection
+#' when \code{slot} is \dQuote{\code{data}}
+#'
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
 #' @concept differential_expression
@@ -1066,18 +1077,25 @@ FoldChange.Assay <- function(
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
+  norm.method = NULL,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
+  default.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+  }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
-    'data' = function(x) {
-      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-    },
+    'data' = switch(
+      EXPR = norm.method %||% '',
+      'LogNormalize' = function(x) {
+        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+      },
+      default.mean.fxn
+    ),
     'scale.data' = rowMeans,
-    function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    }
+    default.mean.fxn
   )
   # Omit the decimal value of e from the column name if base == exp(1)
   base.text <- ifelse(
@@ -1111,11 +1129,12 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
 ) {
+  pseudocount.use <- pseudocount.use %||% 1
   mean.fxn <- mean.fxn %||% rowMeans
   fc.name <- fc.name %||% "avg_diff"
   data <- t(x = Embeddings(object = object))
@@ -1143,7 +1162,7 @@ FoldChange.DimReduc <- function(
 #' @param assay Assay to use in fold change calculation
 #' @param slot Slot to pull data from
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
+#' calculating logFC.
 #' @param mean.fxn Function to use for fold change or average difference calculation
 #' @param base The base with respect to which logarithms are computed.
 #' @param fc.name Name of the fold change, average difference, or custom function column
@@ -1163,7 +1182,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = NULL,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,

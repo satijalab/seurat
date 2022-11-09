@@ -58,6 +58,7 @@ FindMarkers(object, ...)
   fc.name = NULL,
   base = 2,
   densify = FALSE,
+  norm.method = NULL,
   ...
 )
 
@@ -131,7 +132,6 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -242,6 +242,9 @@ according to the logarithm base (eg, "avg_log2FC"), or if using the scale.data
 slot "avg_diff".}
 
 \item{base}{The base with respect to which logarithms are computed.}
+
+\item{norm.method}{Normalization method for fold change calculation when
+\code{slot} is \dQuote{\code{data}}}
 
 \item{recorrect_umi}{Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE}
 

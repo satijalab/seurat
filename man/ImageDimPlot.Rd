@@ -66,6 +66,8 @@ RColorBrewer is used by default.}
 
 \item{mols.alpha}{Alpha value for molecules, should be between 0 and 1}
 
+\item{nmols}{Max number of each molecule specified in `molecules` to plot}
+
 \item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
 boundaries, \code{alpha} is equivalent to max alpha}
 
@@ -90,13 +92,13 @@ given (first is lowest)}
 \item{axes}{Keep axes and panel background}
 
 \item{combine}{Combine plots into a single
-\code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
+\code{patchwork} ggplot object.If \code{FALSE},
 return a list of ggplot objects}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 }
 \value{
-If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
+If \code{combine = TRUE}, a \code{patchwork}
 ggplot object; otherwise, a list of ggplot objects
 }
 \description{

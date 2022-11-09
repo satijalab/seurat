@@ -86,9 +86,12 @@ this function. For more details about \pkg{progressr}, please read
 \examples{
 \dontrun{
 coords <- ReadVitessce(
-  counts = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
-  coords = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
-  molecules = "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
+  counts = 
+     "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.genes.json",
+  coords = 
+     "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.cells.json",
+  molecules = 
+     "https://s3.amazonaws.com/vitessce-data/0.0.31/master_release/wang/wang.molecules.json"
 )
 names(coords)
 coords$counts[1:10, 1:10]

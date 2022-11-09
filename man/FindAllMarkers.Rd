@@ -22,7 +22,6 @@ FindAllMarkers(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -112,9 +111,6 @@ Default is no downsampling. Not activated by default (set to Inf)}
 of the two groups, currently only used for poisson and negative binomial tests}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}
-
-\item{pseudocount.use}{Pseudocount to add to averaged expression values when
-calculating logFC. 1 by default.}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
 If NULL, the appropriate function will be chose according to the slot used}

@@ -1308,7 +1308,7 @@ as.sparse.H5Group <- function(x, ...) {
 #' @method Cells SCTModel
 #' @export
 #'
-Cells.SCTModel <- function(x) {
+Cells.SCTModel <- function(x, ...) {
   return(rownames(x = slot(object = x, name = "cell.attributes")))
 }
 
@@ -1320,7 +1320,7 @@ Cells.SCTModel <- function(x) {
 #'
 #' @seealso \code{\link[SeuratObject:Cells]{SeuratObject::Cells}}
 #'
-Cells.SlideSeq <- function(x) {
+Cells.SlideSeq <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1330,7 +1330,7 @@ Cells.SlideSeq <- function(x) {
 #' @method Cells STARmap
 #' @export
 #'
-Cells.STARmap <- function(x) {
+Cells.STARmap <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x)))
 }
 
@@ -1339,7 +1339,7 @@ Cells.STARmap <- function(x) {
 #' @method Cells VisiumV1
 #' @export
 #'
-Cells.VisiumV1 <- function(x) {
+Cells.VisiumV1 <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
@@ -1905,6 +1905,7 @@ levels.SCTAssay <- function(x) {
 #' Merge SCTAssay objects
 #'
 #' @inheritParams SeuratObject::merge
+#' @param x A \code{\link[SeuratObject]{Seurat}} object
 #' @param na.rm If na.rm = TRUE, this will only preserve residuals that are
 #' present in all SCTAssays being merged. Otherwise, missing residuals will be
 #' populated with NAs.
@@ -2696,10 +2697,10 @@ UpdateAssay <- function(old.assay, assay){
   counts <- old.assay@raw.data
   data <- old.assay@data
   if (!inherits(x = counts, what = 'dgCMatrix')) {
-    counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    counts <- as.sparse(x = as.matrix(x = counts))
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = as.matrix(x = data), Class = 'dgCMatrix')
+    data <- as.sparse(x = as.matrix(x = data))
   }
   new.assay <- new(
     Class = 'Assay',
@@ -2881,7 +2882,7 @@ ValidateDataForMerge <- function(assay, slot) {
       ncol = data.dims[2],
       dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
     )
-    mat <- as(object = mat, Class = "dgCMatrix")
+    mat <- as.sparse(x = mat)
   }
   return(mat)
 }

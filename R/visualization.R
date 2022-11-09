@@ -218,7 +218,7 @@ DimHeatmap <- function(
 #'
 #' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_discrete
+#' @importFrom ggplot2 annotation_raster coord_cartesian scale_color_manual
 #' ggplot_build aes_string geom_text
 #' @importFrom patchwork wrap_plots
 #' @export
@@ -378,7 +378,11 @@ DoHeatmap <- function(
           ymax = y.max
         ) +
         coord_cartesian(ylim = c(0, y.max), clip = 'off') +
-        scale_color_discrete(name = "Identity", na.translate = FALSE)
+        scale_color_manual(
+          values = cols[-length(x = cols)],
+          name = "Identity",
+          na.translate = FALSE
+        )
       if (label) {
         x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
         # Attempt to pull xdivs from x.major in ggplot2 < 3.3.0; if NULL, pull from the >= 3.3.0 slot
@@ -503,7 +507,7 @@ HTOHeatmap <- function(
 #' @param same.y.lims Set all the y-axis limits to the same values
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
-#' @param slot Use non-normalized counts data for plotting
+#' @param slot Slot to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -568,6 +572,7 @@ RidgePlot <- function(
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #' @param flip flip plot orientation (identities on x-axis)
+#' @param add.noise determine if adding a small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 # default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 # number of points exceed 100,000.
@@ -606,6 +611,7 @@ VlnPlot <- function(
   combine = TRUE,
   fill.by = 'feature',
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
   if (
@@ -642,6 +648,7 @@ VlnPlot <- function(
     combine = combine,
     fill.by = fill.by,
     flip = flip,
+    add.noise = add.noise,
     raster = raster
   ))
 }
@@ -2263,6 +2270,7 @@ PolyFeaturePlot <- function(
 #' Names should be the names of FOVs and values should be the names of
 #' segmentation boundaries
 #' @param molecules A vector of molecules to plot
+#' @param nmols Max number of each molecule specified in `molecules` to plot
 #' @param dark.background Set plot background to black
 #' @param crop Crop the plots to area with cells only
 #' @param overlap Overlay boundaries from a single image to create a single
@@ -2270,17 +2278,17 @@ PolyFeaturePlot <- function(
 #' given (first is lowest)
 #' @param axes Keep axes and panel background
 #' @param combine Combine plots into a single
-#' \code{\link[patchwork]{patchworked}} ggplot object.If \code{FALSE},
+#' \code{patchwork} ggplot object.If \code{FALSE},
 #' return a list of ggplot objects
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #'
-#' @return If \code{combine = TRUE}, a \code{\link[patchwork]{patchwork}ed}
+#' @return If \code{combine = TRUE}, a \code{patchwork}
 #' ggplot object; otherwise, a list of ggplot objects
 #'
 #' @importFrom rlang !! is_na sym
 #' @importFrom patchwork wrap_plots
 #' @importFrom ggplot2 element_blank facet_wrap vars
-#' @importFrom SeuratObject .DefaultFOV Cells
+#' @importFrom SeuratObject DefaultFOV Cells
 #' DefaultBoundary FetchData Images Overlay
 #'
 #' @export
@@ -2506,7 +2514,7 @@ ImageDimPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 dup_axis element_blank element_text facet_wrap guides
 #' labs margin vars scale_y_continuous theme
-#' @importFrom SeuratObject .DefaultFOV Cells DefaultBoundary
+#' @importFrom SeuratObject DefaultFOV Cells DefaultBoundary
 #' FetchData Images Overlay
 #'
 #' @export
@@ -2541,8 +2549,7 @@ ImageFeaturePlot <- function(
   overlap = FALSE,
   axes = FALSE,
   combine = TRUE,
-  coord.fixed = TRUE,
-  ...
+  coord.fixed = TRUE
 ) {
   cells <- cells %||% Cells(x = object)
   scale <- scale[[1L]]
@@ -2902,9 +2909,10 @@ ImageFeaturePlot <- function(
         } else {
           NULL
         }
+        colnames(data.plot) <- gsub("-", "_", colnames(data.plot))
         p <- SingleImagePlot(
           data = data.plot,
-          col.by = feature,
+          col.by = gsub("-", "_", feature),
           size = size,
           col.factor = blend,
           cols = cols.use,
@@ -2916,7 +2924,7 @@ ImageFeaturePlot <- function(
           border.size = border.size,
           dark.background = dark.background
         ) +
-          CenterTitle()
+          CenterTitle() + labs(fill=feature)
         # Remove fill guides for blended plots
         if (isTRUE(x = blend)) {
           p <- p + guides(fill = 'none')
@@ -4673,10 +4681,10 @@ PlotClusterTree <- function(object, direction = "downwards", ...) {
 #' @param balanced Return an equal number of genes with + and - scores. If
 #' FALSE (default), returns the top genes ranked by the scores absolute values
 #' @param ncol Number of columns to display
-#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param combine Combine plots into a single \code{patchwork}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' @return A \code{patchwork} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom patchwork wrap_plots
@@ -6129,9 +6137,9 @@ WhiteBackground <- function(...) {
 #' Prepare Coordinates for Spatial Plots
 #'
 #' @inheritParams SeuratObject::GetTissueCoordinates
-#' @param model A \code{\link{[SeuratObject:Segmentation-class]Segmentation}},
-#' \code{\link[SeuratObject:Centroids-class]{Centroids}},
-#' or \code{\link[SeuratObject:Molecules-class]{Molecules}} object
+#' @param model A \code{\linkS4class{Segmentation}},
+#' \code{\linkS4class{Centroids}},
+#' or \code{\linkS4class{Molecules}} object
 #' @param data Extra data to be used for annotating the cell segmentations; the
 #' easiest way to pass data is a one-column
 #' \code{\link[base:data.frame]{data frame}} with the values to color by and
@@ -6174,26 +6182,7 @@ fortify.Molecules <- function(
   seed = NA_integer_,
   ...
 ) {
-  return(FetchData(object = object, vars = data, nmols = nmols, seed = seed, ...))
-  # coords <- GetTissueCoordinates(object = model, features = data)
-  # if (!is.null(x = nmols)) {
-  #   if (!is.na(x = seed)) {
-  #     set.seed(seed = seed)
-  #   }
-  #   coords <- lapply(
-  #     X = unique(x = coords$molecule),
-  #     FUN = function(m) {
-  #       df <- coords[coords$molecule == m, , drop = FALSE]
-  #       if (nrow(x = df) > nmols) {
-  #         idx <- sample(x = seq_len(length.out = nrow(x = df)), size = nmols)
-  #         df <- df[idx, , drop = FALSE]
-  #       }
-  #       return(df)
-  #     }
-  #   )
-  #   coords <- do.call(what = 'rbind', args = coords)
-  # }
-  # return(coords)
+  return(FetchData(object = model, vars = data, nmols = nmols, seed = seed, ...))
 }
 
 #' @rdname fortify-Spatial
@@ -6512,12 +6501,13 @@ Col2Hex <- function(...) {
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
-# @param slot Use non-normalized counts data for plotting
+# @param slot Slot to pull expression data from (e.g. "counts" or "data")
 # @param stack Horizontally stack plots for multiple feature
 # @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param flip flip plot orientation (identities on x-axis)
+# @param add.noise determine if adding a small noise for plotting
 # @param raster Convert points to raster format, default is \code{NULL} which
 # automatically rasterizes if plotting more than 100,000 cells
 #
@@ -6549,6 +6539,7 @@ ExIPlot <- function(
   combine = TRUE,
   fill.by = NULL,
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -6634,6 +6625,7 @@ ExIPlot <- function(
       pt.size = pt.size,
       log = log,
       fill.by = fill.by,
+      add.noise = add.noise,
       flip = flip
     ))
   }
@@ -6651,6 +6643,7 @@ ExIPlot <- function(
         cols = cols,
         pt.size = pt.size,
         log = log,
+        add.noise = add.noise,
         raster = raster
       ))
     }
@@ -7342,6 +7335,7 @@ MultiExIPlot <- function(
   seed.use = 42,
   log = FALSE,
   fill.by = NULL,
+  add.noise = TRUE,
   flip = NULL
 ) {
   if (!(fill.by %in% c("feature", "ident"))) {
@@ -7408,6 +7402,9 @@ MultiExIPlot <- function(
     data$expression <- data$expression + 1
   } else {
     noise <- rnorm(n = nrow(x = data)) / 100000
+  }
+  if (!add.noise) {
+    noise <- noise*0
   }
   for (f in unique(x = data$feature)) {
     if (all(data$expression[(data$feature == f)] == data$expression[(data$feature == f)][1])) {
@@ -8044,6 +8041,10 @@ SingleDimPlot <- function(
     dims <- colnames(x = data)[dims]
   }
   if (!is.null(x = cells.highlight)) {
+    if (inherits(x = cells.highlight, what = "data.frame")) {
+      stop("cells.highlight cannot be a dataframe. ",
+           "Please supply a vector or list")
+    }
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
       cells.all = rownames(x = data),
@@ -8170,7 +8171,8 @@ SingleDimPlot <- function(
 #' @param pt.size Size of points for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
-#' @param log plot Y axis on log scale
+#' @param log plot Y axis on log10 scale
+#' @param add.noise determine if adding small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
@@ -8200,6 +8202,7 @@ SingleExIPlot <- function(
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
@@ -8243,6 +8246,9 @@ SingleExIPlot <- function(
     data[, feature] <- data[, feature] + 1
   } else {
     noise <- rnorm(n = length(x = data[, feature])) / 100000
+  }
+  if (!add.noise) {
+    noise <-  noise * 0
   }
   if (all(data[, feature] == data[, feature][1])) {
     warning(paste0("All cells have the same value of ", feature, "."))
@@ -8880,7 +8886,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
-      cols <- cols[names(x = cols) %in% data$ident]
+      cols <- cols[names(x = cols) %in% data[[gsub(pattern = '`', replacement = "", x = col.by)]]]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale
@@ -8952,6 +8958,7 @@ setMethod(
   }
 )
 
+#' @importFrom methods getMethod
 setMethod(
   f = '.PrepImageData',
   signature = c(data = 'factor', cells = 'rle'),
@@ -8976,7 +8983,7 @@ setMethod(
   f = '.PrepImageData',
   signature = c(data = 'NULL', cells = 'rle'),
   definition = function(data, cells, ...) {
-    return(SeuratObject:::EmptyDF(n = sum(cells$lengths)))
+    return(SeuratObject::EmptyDF(n = sum(cells$lengths)))
   }
 )
 
