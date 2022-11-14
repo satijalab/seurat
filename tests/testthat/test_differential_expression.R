@@ -326,6 +326,34 @@ test_that("FindAllMarkers works as expected", {
   expect_equal(rownames(results.pseudo)[1], "HLA-DPB1")
 })
 
+
+# Tests for running FindMarkers post integration/transfer
+ref <- pbmc_small
+ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
+query <- CreateSeuratObject(
+  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1)
+)
+query2 <- CreateSeuratObject(
+  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1)
+)
+query.list <- list(query, query2)
+query.list <- lapply(X = query.list, FUN = NormalizeData, verbose = FALSE)
+query.list <- lapply(X = query.list, FUN = FindVariableFeatures, verbose = FALSE, nfeatures = 100)
+query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
+query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
+
+anchors <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
+object <- suppressMessages(IntegrateData(anchorset = anchors,  k.weight = 25, verbose = FALSE))
+object <- suppressMessages(ScaleData(object, verbose = FALSE))
+object <- suppressMessages(RunPCA(object, verbose = FALSE))
+object <- suppressMessages(FindNeighbors(object = object, verbose = FALSE))
+object <- suppressMessages(FindClusters(object, verbose = FALSE))
+markers <- FindMarkers(object = object, ident.1="0", ident.2="1")
+test_that("FindMarkers recognizes log normalizatio", {
+  expect_equal(markers[1, "p_val"], 1.598053e-14)
+  expect_equal(markers[1, "avg_log2FC"], -2.614686)
+})
+
 # Tests for FindConservedMarkers
 # -------------------------------------------------------------------------------
 
