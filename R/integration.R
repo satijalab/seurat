@@ -7281,7 +7281,7 @@ FindBridgeIntegrationAnchors <- function(
     verbose = verbose
   )
   return(bridge_anchor)
-
+}
 ## project delayed array to reference PCA
 
 
@@ -7446,5 +7446,5 @@ FastRPCAIntegration <- function(
   object_merged[['pca']] <- temp
   VariableFeatures(object = object_merged) <- anchor.feature
   return(object_merged)
-}
 
+}
