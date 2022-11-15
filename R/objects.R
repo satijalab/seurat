@@ -30,6 +30,7 @@ setOldClass(Classes = 'package_version')
 #' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
 #' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
+#' @slot weight.reduction The weight dimensional reduction used to calculate weight matrix
 #' @slot anchor.features The features used when performing anchor finding.
 #' @slot neighbors List containing Neighbor objects for reuse later (e.g. mapping)
 #' @slot command Store log of parameters that were used
@@ -49,6 +50,7 @@ AnchorSet <- setClass(
     query.cells = "vector",
     anchors = "ANY",
     offsets = "ANY",
+    weight.reduction = "DimReduc",
     anchor.features = "ANY",
     neighbors = "list",
     command = "ANY"
@@ -110,6 +112,31 @@ ModalityWeights <- setClass(
     modality.assay = "vector",
     params = "list",
     score.matrix = "list",
+    command = "ANY"
+  )
+)
+
+
+
+
+#' The BridgeReferenceSet Class
+#' The BridgeReferenceSet is an output from PrepareBridgeReference
+#' @slot bridge The multi-omic object
+#' @slot reference The Reference object only containing bridge representation assay 
+#' @slot params A list of parameters used in the PrepareBridgeReference
+#' @slot command Store log of parameters that were used
+#' 
+#' @name BridgeReferenceSet-class
+#' @rdname BridgeReferenceSet-class
+#' @concept objects
+#' @exportClass BridgeReferenceSet
+#' 
+BridgeReferenceSet <- setClass(
+  Class = "BridgeReferenceSet",
+  slots = list(
+    bridge = "ANY",
+    reference = "ANY",
+    params = "list", 
     command = "ANY"
   )
 )
@@ -2458,6 +2485,22 @@ setMethod(
       'A ModalityWeights object containing modality weights between',
       paste(slot(object = object, name = "modality.assay"), collapse = " and "),
       "assays \n", "This can be used as input to FindMultiModelNeighbors.\n")
+  }
+)
+
+setMethod(
+  f = 'show',
+  signature = 'BridgeReferenceSet',
+  definition = function(object) {
+    cat(
+      'A BridgeReferenceSet object has a bridge object with ',
+      ncol(slot(object = object, name = 'bridge')),
+      'cells and a reference object with ',
+      ncol(slot(object = object, name = 'reference')),
+      'cells. \n','The bridge query reduction is ', 
+      slot(object = object, name = 'params')$bridge.query.reduction %||%
+        slot(object = object, name = 'params')$supervised.reduction, 
+   "\n This can be used as input to FindBridgeTransferAnchors and FindBridgeIntegrationAnchors")
   }
 )
 

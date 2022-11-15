@@ -1607,6 +1607,10 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
         args <- args[intersect(x = names(x = args), y = names(x = formals(fun = AnnoyNN)))]
         do.call(what = 'AnnoyNN', args = args)
       },
+      "hnsw" = {
+        args <- args[intersect(x = names(x = args), y = names(x = formals(fun = HnswNN)))]
+        do.call(what = 'HnswNN', args = args)
+      }, 
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )
   )

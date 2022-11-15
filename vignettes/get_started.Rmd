@@ -105,7 +105,7 @@ We provide a series of vignettes, tutorials, and analysis walkthroughs to help u
 
 For new users of Seurat, we suggest starting with a guided walk through of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics. This tutorial implements the major components of a standard unsupervised clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
 
-We provide additional introductory vignettes for users who are interested in analyzing multimodal single-cell datasets (e.g. from CITE-seq, or the 10x mulitome kit), or spatial datasets (e.g. from 10x visium or SLIDE-seq).
+We provide additional introductory vignettes for users who are interested in analyzing multimodal single-cell datasets (e.g. from CITE-seq, or the 10x multiome kit), or spatial datasets (e.g. 10x Visium or Vizgen MERFISH).
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 1)

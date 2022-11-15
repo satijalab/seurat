@@ -1,0 +1,191 @@
+---
+title: "Atomic sketch integration for scRNA-seq data"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+
+The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2022](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1) proposed a dictionary learning based method, atomic sketch integration, could also enable efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory at once. In [our manuscript](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1) we use atomic sketch integration to integrate millions of scRNA-seq from human lung and human PBMC.
+ 
+In this vignette, we demonstrate how to use atomic sketch integration to harmonize scRNA-seq experiments from five studies, each profiling of human immune cells (PBMC) from COVID patients. Specifically, we demonstrate how to perform the following steps
+
+* Sample a representative subset of cells ('atoms') from each dataset
+* Integrate the atoms from each dataset
+* Reconstruct (integrate) the full datasets, based on the atoms
+
+First, we install the updated version of Seurat that supports this infrastructure, as well as other packages necessary for this vignette.
+
+```{r install, eval=FALSE}
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
+remotes::install_github("satijalab/seurat", "feat/dictionary")
+```
+
+```{r  message=FALSE, warning=FALSE}
+library(Seurat)
+library(SeuratDisk)
+library(patchwork)
+```
+
+## Downloading datasets
+
+We obtained datasets in h5seurat format from a public [resource compiled by the Gottardo Lab](https://atlas.fredhutch.org/fredhutch/covid/). In this analysis, we use the [Arunachalam](https://s3.us-west-2.amazonaws.com/atlas.fredhutch.org/data/hutch/covid19/downloads/arunachalam_2020_processed.HDF5), [Combes](https://s3.us-west-2.amazonaws.com/atlas.fredhutch.org/data/hutch/covid19/downloads/combes_2021_processed.HDF5), [Lee](https://s3.us-west-2.amazonaws.com/atlas.fredhutch.org/data/hutch/covid19/downloads/lee_2020_processed.HDF5), [Wilk](https://s3.us-west-2.amazonaws.com/atlas.fredhutch.org/data/hutch/covid19/downloads/wilk_2020_processed.HDF5), and [Yao](https://s3.us-west-2.amazonaws.com/atlas.fredhutch.org/data/hutch/covid19/downloads/yao_2021_processed.HDF5) datasets, but you can download additional data from this resource and include it in the vignette below.
+
+## Sample representative atoms from each dataset
+
+Inspired by pioneering work aiming to identify ['sketches'](https://www.sciencedirect.com/science/article/pii/S2405471219301528) of scRNA-seq data, our first step is to sample a representative set of cells from each dataset. We compute a leverage score (estimate of ['statistical leverage'](https://arxiv.org/abs/1109.3843)) for each cell, which helps to identify cells that are likely to be member of rare subpopulations and ensure that these are included in our representative sample. Importantly, the estimation of leverage scores only requires data normalization, can be computed efficiently for sparse datasets, and does not require any intensive computation or dimensional reduction steps.
+
+We load each object separately, perform basic preprocessing (normalization and variable feature selection), and select and store 5,000 representative cells (which we call 'atoms') from each dataset. We then delete the full dataset from memory, before loading the next one in.
+
+```{r init, results='hide', message=FALSE, fig.keep='none'}
+
+file.dir <- '/brahms/haoy/vignette_data/PBMCVignette/'
+files.set <- c("arunachalam_2020_processed.HDF5", "combes_2021_processed.HDF5","lee_2020_processed.HDF5","wilk_2020_processed.HDF5","yao_2021_processed.HDF5")
+
+atoms.list <- list()
+for (i in 1:length(files.set)) {
+
+  # load in Seurat object
+  object <- LoadH5Seurat(file = paste0(file.dir ,files.set[i]), assays = 'RNA')
+  dataset_name <- gsub("_processed.HDF5", "", files.set[i])
+  object$dataset <- dataset_name
+  
+  # Rename cells to avoid future conflicts
+  object <- RenameCells(object = object,  add.cell.id = dataset_name)
+  
+  # basic preprocessing 
+  object <- NormalizeData(object)
+  object <- FindVariableFeatures(object)
+  
+  # calculate leverage score and sample 5000 cells based on leverage score
+  atoms.i <- LeverageScoreSampling(object = object, num.cells = 5000)
+  atoms.list[[i]] <- atoms.i
+}
+
+# delete full object from memory 
+# note that this is optional, if you can store the full datasets in memory, you dont have to reload them later
+rm(object)
+```
+
+
+## Perform integration on the atoms from different datasets
+
+Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we utilize a new wrapper function that takes a list of Seurat object and runs an optimized version of the [Fast integration using reciprocal PCA](https://satijalab.org/seurat/articles/integration_rpca.html) in Seurat workflow. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated_dr`). We perform SCTransform normalization prior to performing integration, but this step is optional.
+
+However, we emphasize that you can perform integration here using any analysis technique that places cells across datasets into a shared space. For example, we also demonstrate below how to use [Harmony](https://github.com/immunogenomics/harmony), as an alternative integration approach.
+
+
+```{r fast.integration}
+# optional step: SCTransform normalization
+for (i in 1:length(atoms.list)) {
+  atoms.list[[i]] <- SCTransform(atoms.list[[i]], verbose = FALSE)
+}
+
+# perform integration 
+features <- SelectIntegrationFeatures(object.list = atoms.list)
+atoms.merge <- FastRPCAIntegration(object.list = atoms.list, dims = 1:30, normalization.method = 'SCT', anchor.features = features)
+
+# we can generate a 2D visualization representing the integrated atoms
+atom.reduction <- 'integrated_dr'
+atoms.merge <- RunUMAP(atoms.merge, reduction = atom.reduction, dims = 1:30, return.model = TRUE)
+DimPlot(atoms.merge, group.by = 'dataset')
+```
+
+<details>
+  <summary>**Alternative: integrate atoms using Harmony**</summary>
+
+As an alternative approach to integrate atoms, and to demonstrate the flexibility of our atomic sketch procedure, we can also use the [Harmony within the Seurat workflow](https://github.com/immunogenomics/harmony) to integrate the atoms. The integration procedure returns a Seurat object with a low-dimensional space (stored as the `harmony` dimensional reduction) that jointly represents atoms from all datasets.
+
+```{r,  eval = FALSE}
+library(harmony)
+atoms.merge <- merge(atoms.list[[1]], atoms.list[2:length(atoms.list)])
+VariableFeatures(atoms.merge) <- SelectIntegrationFeatures(object.list = atoms.list)
+atoms.merge <- ScaleData(atoms.merge)
+atoms.merge <- RunPCA(atoms.merge)
+atoms.merge <- RunHarmony(atoms.merge, project.dim = FALSE, group.by.vars = 'dataset')
+atom.reduction <- 'harmony'
+
+atoms.merge <- RunUMAP(atoms.merge, reduction = atom.reduction, dims = 1:30, return.model = TRUE)
+DimPlot(atoms.merge, group.by = 'dataset')
+```
+
+</details>
+
+---
+
+## Integrate all cells from all datasets
+
+Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `IntegrateSketchEmbeddings` function to integrate all cells. After this function is run, each cell in the object has a 
+
+```{r load.full.data}
+integrated_objects <- list()
+for (i in 1:length(files.set)) {
+  
+   # load in Seurat object / basic preprocessing 
+  object <- LoadH5Seurat(file = paste0(file.dir , files.set[i]), assays = 'RNA')
+  dataset_name <- gsub("_processed.HDF5", "", files.set[i])
+  object$dataset <- dataset_name
+  object <- RenameCells(object = object,  add.cell.id = dataset_name)
+  object <- NormalizeData(object)
+  
+  # Integrate all cells into the same space as the atoms
+  object  <- IntegrateSketchEmbeddings(object = object, atom.sketch.object = atoms.merge, atom.sketch.reduction = atom.reduction, features = features)
+ 
+  # At this point, you can save the results/delete the object
+  # Since we want to compute a joint visualization of all cells later, 
+  # we save the object with the dimensional reduction and just the top 100 variable features
+  object <- DietSeurat(object, features = features[1:100], dimreducs = 'integrated_dr')
+  integrated_objects[[i]] <- object
+  rm(object)
+}
+```
+
+We perform UMAP visualization on the integrated embeddings.
+```{r  }
+obj.merge <- merge(integrated_objects[[1]], integrated_objects[2:length(integrated_objects)], merge.dr = 'integrated_dr')
+obj.merge <- RunUMAP(obj.merge, reduction = 'integrated_dr', dims = 1:30)
+```
+
+Now we can visualize the results, plotting the scRNA-seq cells based on dataset batches and pre-annotated labels annotations on the UMAP embedding. We also add pre-computed cell annotations to this object (you can download the cell annotation metadata at [this link](https://seurat.nygenome.org/vignette_data/atomic_integration/pbmc_annotations.txt)).
+
+```{r split.dim}
+annotation_data <- read.table("/brahms/haoy/vignette_data/PBMCVignette/pbmc_annotations.txt")
+obj.merge <- AddMetaData(obj.merge, metadata = annotation_data)
+DimPlot(obj.merge, reduction = "umap", group.by = "dataset", shuffle = TRUE, raster = FALSE)
+DimPlot(obj.merge, reduction = "umap", group.by = "celltype.l2", raster = FALSE)
+```
+
+Note that Neutrophils are present primarily in a single dataset (Combes), present at very low frequency in two others (Wilk and Lee), and absent in the remaining datasets. Despite the fact that this population is not present in all samples, it is correctly integrated by our atomic sketch procedure.
+ 
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

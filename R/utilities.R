@@ -1281,7 +1281,7 @@ PseudobulkExpression <- function(
     category.matrix <- category.matrix[, colsums > 0]
     colsums <- colsums[colsums > 0]
     if (pb.method == 'average') {
-      category.matrix <- Sweep(
+      category.matrix <- SweepSparse(
         x = category.matrix,
         MARGIN = 2,
         STATS = colsums,
@@ -1332,12 +1332,12 @@ PseudobulkExpression <- function(
         warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
       }
     }
-    data.return[[i]] <- as.matrix(x = (data.use %*% category.matrix))
+    data.return[[i]] <- data.use %*% category.matrix
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
     if (slot[1] == 'scale.data') {
-      na.matrix <- data.return[[1]]
+      na.matrix <- as.matrix(x = as.madata.return[[1]])
       na.matrix[1:length(x = na.matrix)] <- NA
       toRet <- CreateSeuratObject(
         counts = na.matrix,
@@ -1383,7 +1383,7 @@ PseudobulkExpression <- function(
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         if (slot[i] == 'scale.data') {
-          na.matrix <- data.return[[i]]
+          na.matrix <- as.matrix(x = data.return[[i]])
           na.matrix[1:length(x = na.matrix)] <- NA
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
           toRet <- SetAssayData(
@@ -1423,10 +1423,11 @@ PseudobulkExpression <- function(
       }
     }
     if ('ident' %in% group.by) {
-      first.cells <- c()
-      for (i in 1:ncol(x = category.matrix)) {
-        first.cells <- c(first.cells, Position(x = category.matrix[,i], f = function(x) {x > 0}))
+      first.cells <- sapply(X = 1:ncol(x = category.matrix),
+                            FUN = function(x) {
+        return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
       }
+      )
       Idents(object = toRet) <- Idents(object = object)[first.cells]
     }
     return(toRet)
@@ -2590,3 +2591,4 @@ SweepSparse <- function(
   }
   return(x)
 }
+

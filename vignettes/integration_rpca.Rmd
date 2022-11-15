@@ -34,7 +34,8 @@ In this vignette, we present a slightly modified workflow for the integration of
 
 By identifying shared sources of variation between datasets, CCA is well-suited for identifying anchors when cell types are conserved, but there are very substantial differences in gene expression across experiments. CCA-based integration therefore enables integrative analysis when experimental conditions or disease states introduce very strong expression shifts, or when integrating datasets across modalities and species. However, CCA-based integration may also lead to overcorrection, especially when a large proportion of cells are non-overlapping across datasets.
 
-RPCA-based integration runs significantly faster, and also represents a more conservative approach where cells in different biological states are less likely to 'align' after integration. We therefore,recommend RPCA during integrative analysis where:
+RPCA-based integration runs significantly faster, and also represents a more conservative approach where cells in different biological states are less likely to 'align' after integration. We therefore recommend RPCA during integrative analysis where:
+
 * A substantial fraction of cells in one dataset have no matching type in the other
 * Datasets originate from the same platform (i.e. multiple lanes of 10x genomics)
 * There are a large number of datasets or cells to integrate (see [here](integration_large_datasets.html) for more tips on integrating large datasets) 

@@ -337,6 +337,7 @@ LogNormalize <- function(
   UseMethod(generic = 'LogNormalize', object = data)
 }
 
+
 #' Metric for evaluating mapping success
 #'
 #' This metric was designed to help identify query cells that aren't well
@@ -426,6 +427,29 @@ ProjectUMAP <- function(query, ...) {
 RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
+
+
+#' Run Graph Laplacian Eigendecomposition
+#'
+#' Run a graph laplacian dimensionality reduction. It is used as a low
+#' dimensional representation for a cell-cell graph. The input graph
+#' should be symmetric
+#'
+#' @param object A Seurat object
+#' @param ... Arguments passed to
+#' \code{\link[RSpectra:eigs_sym]{RSpectra::eigs_sym}}
+#'
+#' @return Returns Seurat object with the Graph laplacian eigenvector
+#' calculation stored in the reductions slot
+#'
+#' @rdname RunGraphLaplacian
+#' @export RunGraphLaplacian
+#'
+
+RunGraphLaplacian <- function(object, ...) {
+  UseMethod(generic = 'RunGraphLaplacian', object = object)
+}
+
 
 #' Run Independent Component Analysis on gene expression
 #'
