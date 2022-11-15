@@ -302,28 +302,39 @@ IntegrateEmbeddings <- function(anchorset, ...) {
   UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
 }
 
-
-#' Calculate Leverage score for all cells
-#'
-#' Leverage score can be used to sample representative cells from scRNA data.
-#' The more abundant population will be assigned less leverage score.
-#' Leverage-score can guarantee that both abundant and rare populations will
-#' be sampled. We used variable features in the data slot to calculate leverage
-#' score for all cells.
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#' @return Returns a seurat object with additional column storing leverage score
-#'
-#' @export LeverageScore
-#'
-#' @references Clarkson KL, Woodruff DP.
-#' Low Rank Approximation and Regression in Input Sparsity Time.
-#' Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45.
-#' \url{https://https://arxiv.org/abs/1207.6365};
+#' @export
 #'
 LeverageScore <- function(object, ...) {
   UseMethod(generic = 'LeverageScore', object = object)
+}
+
+#' Normalize Raw Data
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the data; default is \code{1e4}
+#' @param verbose Print progress
+#'
+#' @return A matrix with the normalized and log-transformed data
+#'
+#' @template param-dotsm
+#'
+#' @export
+#' @concept preprocessing
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- LogNormalize(data = mat)
+#' mat_norm
+#'
+LogNormalize <- function(
+  data,
+  scale.factor = 1e4,
+  # margin = 2L,
+  verbose = TRUE,
+  ...
+) {
+  UseMethod(generic = 'LogNormalize', object = data)
 }
 
 
@@ -652,6 +663,17 @@ ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
+#' Perform sctransform-based normalization
+#' @param object An object
+#' @param ... Arguments passed to other methods (not used)
+#'
+#' @rdname SCTransform
+#' @export SCTransform
+#'
+SCTransform <- function(object, ...) {
+  UseMethod(generic = 'SCTransform', object = object)
+}
+
 #' Get SCT results from an Assay
 #'
 #' Pull the \code{\link{SCTResults}} information from an \code{\link{SCTAssay}}
@@ -675,4 +697,47 @@ SCTResults <- function(object, ...) {
 #'
 "SCTResults<-" <- function(object, ..., value) {
   UseMethod(generic = 'SCTResults<-', object = object)
+}
+
+#' Variance Stabilizing Transformation
+#'
+#' Apply variance stabilizing transformation for selection of variable features
+#'
+#' @inheritParams stats::loess
+#' @param data A matrix-like object
+#' @param margin Unused
+#' @param nselect Number of of features to select
+#' @param clip Upper bound for values post-standardization; defaults to the
+#' square root of the number of cells
+#' @param verbose ...
+#'
+#' @template param-dotsm
+#'
+#' @return A data frame with the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{mean}}: ...
+#'  \item \dQuote{\code{variance}}: ...
+#'  \item \dQuote{\code{variance.expected}}: ...
+#'  \item \dQuote{\code{variance.standardized}}: ...
+#'  \item \dQuote{\code{variable}}: \code{TRUE} if the feature selected as
+#'   variable, otherwise \code{FALSE}
+#'  \item \dQuote{\code{rank}}: If the feature is selected as variable, then how
+#'   it compares to other variable features with lower ranks as more variable;
+#'   otherwise, \code{NA}
+#' }
+#'
+#' @rdname VST
+#' @export VST
+#'
+#' @keywords internal
+#'
+VST <- function(
+  data,
+  margin = 1L,
+  nselect = 2000L,
+  span = 0.3,
+  clip = NULL,
+  ...
+) {
+  UseMethod(generic = 'VST', object = data)
 }

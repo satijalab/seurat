@@ -1339,18 +1339,11 @@ PseudobulkExpression <- function(
     if (slot[1] == 'scale.data') {
       na.matrix <- as.matrix(x = as.madata.return[[1]])
       na.matrix[1:length(x = na.matrix)] <- NA
-      # TODO: restore once check.matrix is in SeuratObject
-      # toRet <- CreateSeuratObject(
-      #   counts = na.matrix,
-      #   project = if (pb.method == "average") "Average" else "Aggregate",
-      #   assay = names(x = data.return)[1],
-      #   check.matrix = FALSE,
-      #   ...
-      # )
       toRet <- CreateSeuratObject(
         counts = na.matrix,
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1372,18 +1365,11 @@ PseudobulkExpression <- function(
         new.data = data.return[[1]]
       )
     } else {
-      # TODO: restore once check.matrix is in SeuratObject
-      # toRet <- CreateSeuratObject(
-      #   counts = data.return[[1]],
-      #   project = if (pb.method == "average") "Average" else "Aggregate",
-      #   assay = names(x = data.return)[1],
-      #   check.matrix = FALSE,
-      #   ...
-      # )
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
         project = if (pb.method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
+        check.matrix = FALSE,
         ...
       )
       toRet <- SetAssayData(
@@ -1399,9 +1385,7 @@ PseudobulkExpression <- function(
         if (slot[i] == 'scale.data') {
           na.matrix <- as.matrix(x = data.return[[i]])
           na.matrix[1:length(x = na.matrix)] <- NA
-          # TODO: restore once check.matrix is in SeuratObject
-          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix)
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1421,9 +1405,7 @@ PseudobulkExpression <- function(
             new.data = as.matrix(x = data.return[[i]])
           )
         } else {
-          # TODO: restore once check.matrix is in SeuratObject
-          # toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
@@ -1626,40 +1608,33 @@ as.data.frame.Matrix <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Set a default value if an object is null
-#
-# @param lhs An object to set if it's null
-# @param rhs The value to provide if x is null
-#
-# @return rhs if lhs is null, else lhs
-#
-# @author Hadley Wickham
-# @references https://adv-r.hadley.nz/functions.html#missing-arguments
-#
-`%||%` <- function(lhs, rhs) {
-  if (!is.null(x = lhs)) {
-    return(lhs)
-  } else {
-    return(rhs)
-  }
-}
-
-# Set a default value if an object is NOT null
-#
-# @param lhs An object to set if it's NOT null
-# @param rhs The value to provide if x is NOT null
-#
-# @return lhs if lhs is null, else rhs
-#
-# @author Hadley Wickham
-# @references https://adv-r.hadley.nz/functions.html#missing-arguments
-#
-`%iff%` <- function(lhs, rhs) {
-  if (!is.null(x = lhs)) {
-    return(rhs)
-  } else {
-    return(lhs)
-  }
+#' Create Abbreviations
+#'
+#' @param x A character vector
+#' @param digits Include digits in the abbreviation
+#'
+#' @return Abbreviated versions of \code{x}
+#'
+#' @keywords internal
+#'
+#' @examples
+#' .Abbrv(c('HelloWorld, 'LetsGo3', 'tomato'))
+#' .Abbrv(c('HelloWorld, 'LetsGo3', 'tomato'), digits = FALSE)
+#' .Abbrv('Wow3', digits = FALSE)
+#'
+#' @noRd
+#'
+.Abbrv <- function(x, digits = TRUE) {
+  pattern <- ifelse(test = isTRUE(x = digits), yes = '[A-Z0-9]+', no = '[A-Z]+')
+  y <- vapply(
+    X = regmatches(x = x, m = gregexec(pattern = pattern, text = x)),
+    FUN = paste,
+    FUN.VALUE = character(length = 1L),
+    collapse = ''
+  )
+  na <- nchar(x = y) <= 1L
+  y[na] <- x[na]
+  return(tolower(x = y))
 }
 
 # Generate chunk points
@@ -1895,16 +1870,12 @@ CreateDummyAssay <- function(assay) {
     j = {},
     dims = c(nrow(x = assay), ncol(x = assay))
   )
-  cm <- as(object = cm, Class = "dgCMatrix")
+  cm <- as.sparse(x = cm)
   rownames(x = cm) <- rownames(x = assay)
   colnames(x = cm) <- colnames(x = assay)
-  # TODO: restore once check.matrix is in SeuratObject
-  # return(CreateAssayObject(
-  #   counts = cm,
-  #   check.matrix = FALSE
-  # ))
   return(CreateAssayObject(
-    counts = cm
+    counts = cm,
+    check.matrix = FALSE
   ))
 }
 
@@ -2337,7 +2308,7 @@ RowSumSparse <- function(mat) {
   names(x = output) <- rownames(x = mat)
   return(output)
 }
- 
+
 # Calculate row variance of a sparse matrix
 #
 # @param mat sparse matrix
@@ -2363,7 +2334,7 @@ RowVarSparse <- function(mat) {
 RowSparseCheck <- function(mat) {
   if (!inherits(x = mat, what = "sparseMatrix")) {
     stop("Input should be sparse matrix")
-  } else if (class(x = mat) != "dgCMatrix") {
+  } else if (!is(object = mat, class2 = "dgCMatrix")) {
     warning("Input matrix is converted to dgCMatrix.")
     mat <- as.sparse(x = mat)
   }
@@ -2467,15 +2438,146 @@ ToNumeric <- function(x){
 }
 
 
+
+# cross product from delayed array
+#
+crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  product.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    product.list[[i]] <- as.matrix(t(x) %*% block)
+  }
+  product.mat <- matrix(data = unlist(product.list), nrow = ncol(x) , ncol = ncol(y))
+  colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- rownames(x)
+  return(product.mat)
+}
+
+# cross product row norm from delayed array
+#
+crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  norm.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    norm.list[[i]] <- colSums(x = as.matrix(t(x) %*% block) ^ 2)
+  }
+  norm.vector <- unlist(norm.list)
+  return(norm.vector)
+  
+}
+
+# row mean from delayed array
+#
+RowMeanDelayedAssay <- function(x, block.size = 1e8) {
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('input x should a DelayedMatrix')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  if (sparse ) {
+    row.sum.function <- RowSumSparse
+  } else {
+    row.sum.function <- rowSums2
+  }
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  sum.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    sum.list[[i]] <- row.sum.function(mat = block)
+  }
+  mean.mat <- Reduce('+', sum.list)
+  mean.mat <- mean.mat/ncol(x)
+  return(mean.mat)
+}
+
+# row variance from delayed array
+#
+RowVarDelayedAssay <- function(x, block.size = 1e8) {
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('input x should a DelayedMatrix')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  if (sparse ) {
+    row.sum.function <- RowSumSparse
+  } else {
+    row.sum.function <- rowSums2
+  }
+  
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  sum2.list <- list()
+  sum.list <- list()
+  
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    sum2.list[[i]] <- row.sum.function(mat = block**2)
+    sum.list[[i]] <- row.sum.function(mat = block)
+  }
+  sum.mat <- Reduce('+', sum.list)
+  sum2.mat <- Reduce('+', sum2.list)
+  var.mat <- sum2.mat/ncol(x) - (sum.mat/ncol(x))**2 
+  var.mat <- var.mat * ncol(counts) / (ncol(counts) - 1)
+  return(var.mat)
+}
+
+
+
 # sparse version of sweep
 SweepSparse <- function(
-  x,
-  MARGIN,
-  STATS,
-  FUN = "/"
-  ) {
+    x,
+    MARGIN,
+    STATS,
+    FUN = "/"
+) {
   if (!inherits(x = x, what = 'dgCMatrix')) {
     stop('input should be dgCMatrix. eg: x <- as(x, "CsparseMatrix")')
+  }
+  if (dim(x = x)[MARGIN] != length(STATS)){
+    warning("Length of STATS is not equal to dim(x)[MARGIN]")
   }
   fun <- match.fun(FUN)
   if (MARGIN == 1) {
@@ -2489,3 +2591,4 @@ SweepSparse <- function(
   }
   return(x)
 }
+

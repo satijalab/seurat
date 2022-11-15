@@ -189,6 +189,7 @@ DimHeatmap <- function(
 #' @param label Label the cell identies above the color bar
 #' @param size Size of text above color bar
 #' @param hjust Horizontal justification of text above color bar
+#' @param vjust Vertical justification of text above color bar
 #' @param angle Angle of text above color bar
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
@@ -229,6 +230,7 @@ DoHeatmap <- function(
   label = TRUE,
   size = 5.5,
   hjust = 0,
+  vjust = 0,
   angle = 45,
   raster = TRUE,
   draw.lines = TRUE,
@@ -387,7 +389,7 @@ DoHeatmap <- function(
           stat = "identity",
           data = label.x.pos,
           aes_string(label = 'group', x = 'label.x.pos'),
-          y = y.max + y.max * 0.03 * 0.5,
+          y = y.max + y.max * 0.03 * 0.5 + vjust,
           angle = angle,
           hjust = hjust,
           size = size
@@ -553,12 +555,14 @@ RidgePlot <- function(
 #' scores, etc.)
 #'
 #' @inheritParams RidgePlot
-#' @param pt.size Point size for geom_violin
+#' @param pt.size Point size for points
+#' @param alpha Alpha value for points
 #' @param split.by A variable to split the violin plots by,
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
 #' @param flip flip plot orientation (identities on x-axis)
+#' @param add.noise determine if adding a small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 # default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 # number of points exceed 100,000.
@@ -581,6 +585,7 @@ VlnPlot <- function(
   features,
   cols = NULL,
   pt.size = NULL,
+  alpha = 1,
   idents = NULL,
   sort = FALSE,
   assay = NULL,
@@ -597,6 +602,7 @@ VlnPlot <- function(
   combine = TRUE,
   fill.by = 'feature',
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
   if (
@@ -624,6 +630,7 @@ VlnPlot <- function(
     same.y.lims = same.y.lims,
     adjust = adjust,
     pt.size = pt.size,
+    alpha = alpha,
     cols = cols,
     group.by = group.by,
     split.by = split.by,
@@ -633,6 +640,7 @@ VlnPlot <- function(
     combine = combine,
     fill.by = fill.by,
     flip = flip,
+    add.noise = add.noise,
     raster = raster
   ))
 }
@@ -747,6 +755,7 @@ ColorDimSplit <- function(
 #' @param label.color Sets the color of the label text
 #' @param label.box Whether to put a box around the label text (geom_text vs
 #' geom_label)
+#' @param alpha Alpha value for plotting (default is 1)
 #' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
@@ -806,6 +815,7 @@ DimPlot <- function(
   label.color = 'black',
   label.box = FALSE,
   repel = FALSE,
+  alpha = 1,
   cells.highlight = NULL,
   cols.highlight = '#DE2D26',
   sizes.highlight = 1,
@@ -819,8 +829,14 @@ DimPlot <- function(
     stop("'dims' must be a two-length vector")
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
-  cells <- cells %||% colnames(x = object)
-
+  # cells <- cells %||% colnames(x = object)
+  
+  ##### Cells for all cells in the assay.
+  #### Cells function should not only get default layer
+  cells <- cells %||% Cells(
+    x = object,
+    assay = DefaultAssay(object = object[[reduction]])
+  )
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -855,6 +871,7 @@ DimPlot <- function(
         pt.size = pt.size,
         shape.by = shape.by,
         order = order,
+        alpha = alpha,
         label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
@@ -983,6 +1000,7 @@ FeaturePlot <- function(
     c('lightgrey', 'blue')
   },
   pt.size = NULL,
+  alpha = 1,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -1119,7 +1137,7 @@ FeaturePlot <- function(
   } else if (!all(dims %in% colnames(x = data))) {
     stop("The dimensions requested were not found", call. = FALSE)
   }
-  features <- colnames(x = data)[4:ncol(x = data)]
+  features <- setdiff(x = names(x = data), y = c(dims, 'ident'))
   # Determine cutoffs
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
@@ -1151,37 +1169,32 @@ FeaturePlot <- function(
   if (length(x = check.lengths) != 1) {
     stop("There must be the same number of minimum and maximum cuttoffs as there are features")
   }
+  names(x = min.cutoff) <- names(x = max.cutoff) <- features
   brewer.gran <- ifelse(
     test = length(x = cols) == 1,
     yes = brewer.pal.info[cols, ]$maxcolors,
     no = length(x = cols)
   )
   # Apply cutoffs
-  data[, 4:ncol(x = data)] <- sapply(
-    X = 4:ncol(x = data),
-    FUN = function(index) {
-      data.feature <- as.vector(x = data[, index])
-      min.use <- SetQuantile(cutoff = min.cutoff[index - 3], data.feature)
-      max.use <- SetQuantile(cutoff = max.cutoff[index - 3], data.feature)
-      data.feature[data.feature < min.use] <- min.use
-      data.feature[data.feature > max.use] <- max.use
-      if (brewer.gran == 2) {
-        return(data.feature)
-      }
-      data.cut <- if (all(data.feature == 0)) {
-        0
-      }
-      else {
+  for (i in seq_along(along.with = features)) {
+    f <- features[i]
+    data.feature <- data[[f]]
+    min.use <- SetQuantile(cutoff = min.cutoff[f], data = data.feature)
+    max.use <- SetQuantile(cutoff = max.cutoff[f], data = data.feature)
+    data.feature[data.feature < min.use] <- min.use
+    data.feature[data.feature > max.use] <- max.use
+    if (brewer.gran != 2) {
+      data.feature <- if (all(data.feature == 0)) {
+        rep_len(x = 0, length.out = length(x = data.feature))
+      } else {
         as.numeric(x = as.factor(x = cut(
           x = as.numeric(x = data.feature),
-          breaks = brewer.gran
+          breaks = 2
         )))
       }
-      return(data.cut)
     }
-  )
-  colnames(x = data)[4:ncol(x = data)] <- features
-  rownames(x = data) <- cells
+    data[[f]] <- data.feature
+  }
   # Figure out splits (FeatureHeatmap)
   data$split <- if (is.null(x = split.by)) {
     RandomName()
@@ -1263,6 +1276,7 @@ FeaturePlot <- function(
         col.by = feature,
         order = order,
         pt.size = pt.size,
+        alpha = alpha,
         cols = cols.use,
         shape.by = shape.by,
         label = FALSE,
@@ -2243,9 +2257,9 @@ PolyFeaturePlot <- function(
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
 #'
-#' @inheritParams DimPlot
-#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @inheritParams FeaturePlot
+#' @inheritParams DimPlot
 #' @param feature Feature to visualize
 #' @param image Name of the image to use in the plot
 #'
@@ -2602,8 +2616,8 @@ LinkedFeaturePlot <- function(
 
 #' Visualize clusters spatially and interactively
 #'
-#' @inheritParams DimPlot
 #' @inheritParams SpatialPlot
+#' @inheritParams DimPlot
 #' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
@@ -2728,8 +2742,8 @@ ISpatialDimPlot <- function(
 
 #' Visualize features spatially and interactively
 #'
-#' @inheritParams FeaturePlot
 #' @inheritParams SpatialPlot
+#' @inheritParams FeaturePlot
 #' @inheritParams LinkedPlots
 #'
 #' @return Returns final plot as a ggplot object
@@ -5549,7 +5563,8 @@ Col2Hex <- function(...) {
 # @param y.max Maximum y axis value
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param adjust Adjust parameter for geom_violin
-# @param pt.size Point size for geom_violin
+# @param pt.size Point size for points
+# @param alpha Alpha value for points
 # @param cols Colors to use for plotting
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param split.by A variable to split the plot by
@@ -5560,6 +5575,7 @@ Col2Hex <- function(...) {
 # ggplot object. If \code{FALSE}, return a list of ggplot objects
 # @param fill.by Color violins/ridges based on either 'feature' or 'ident'
 # @param flip flip plot orientation (identities on x-axis)
+# @param add.noise determine if adding a small noise for plotting
 # @param raster Convert points to raster format, default is \code{NULL} which
 # automatically rasterizes if plotting more than 100,000 cells
 #
@@ -5583,6 +5599,7 @@ ExIPlot <- function(
   adjust = 1,
   cols = NULL,
   pt.size = 0,
+  alpha = 1,
   group.by = NULL,
   split.by = NULL,
   log = FALSE,
@@ -5591,10 +5608,12 @@ ExIPlot <- function(
   combine = TRUE,
   fill.by = NULL,
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
+  cells <- Cells(x = object, assay = NULL)
   if (isTRUE(x = stack)) {
     if (!is.null(x = ncol)) {
       warning(
@@ -5617,14 +5636,15 @@ ExIPlot <- function(
       no = min(length(x = features), 3)
     )
   }
-  data <- FetchData(object = object, vars = features, slot = slot)
+  if (!is.null(x = idents)) {
+    cells <- intersect(
+      x = names(x = Idents(object = object)[Idents(object = object) %in% idents]),
+      y = cells
+    )
+  }
+  data <- FetchData(object = object, vars = features, slot = slot, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
-  if (is.null(x = idents)) {
-    cells <- colnames(x = object)
-  } else {
-    cells <- names(x = Idents(object = object)[Idents(object = object) %in% idents])
-  }
   data <- data[cells, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
     Idents(object = object)[cells]
@@ -5676,6 +5696,7 @@ ExIPlot <- function(
       pt.size = pt.size,
       log = log,
       fill.by = fill.by,
+      add.noise = add.noise,
       flip = flip
     ))
   }
@@ -5692,7 +5713,9 @@ ExIPlot <- function(
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
+        alpha = alpha,
         log = log,
+        add.noise = add.noise,
         raster = raster
       ))
     }
@@ -6384,6 +6407,7 @@ MultiExIPlot <- function(
   seed.use = 42,
   log = FALSE,
   fill.by = NULL,
+  add.noise = TRUE,
   flip = NULL
 ) {
   if (!(fill.by %in% c("feature", "ident"))) {
@@ -6450,6 +6474,9 @@ MultiExIPlot <- function(
     data$expression <- data$expression + 1
   } else {
     noise <- rnorm(n = nrow(x = data)) / 100000
+  }
+  if (!add.noise) {
+    noise <- noise*0
   }
   for (f in unique(x = data$feature)) {
     if (all(data$expression[(data$feature == f)] == data$expression[(data$feature == f)][1])) {
@@ -7011,6 +7038,7 @@ SingleCorPlot <- function(
 #' @param shape.by If NULL, all points are circles (default). You can specify
 #' any cell attribute (that can be pulled with \code{\link{FetchData}})
 #' allowing for both different colors and different shapes on cells.
+#' @param alpha Alpha value for plotting (default is 1)
 #' @param alpha.by Mapping variable for the point alpha value
 #' @param order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
@@ -7052,6 +7080,7 @@ SingleDimPlot <- function(
   cols = NULL,
   pt.size = NULL,
   shape.by = NULL,
+  alpha = 1,
   alpha.by = NULL,
   order = NULL,
   label = FALSE,
@@ -7158,6 +7187,7 @@ SingleDimPlot <- function(
         alpha = alpha.by
       ),
       pointsize = pt.size,
+      alpha = alpha,
       pixels = raster.dpi
     )
   } else {
@@ -7169,7 +7199,8 @@ SingleDimPlot <- function(
         shape = shape.by,
         alpha = alpha.by
       ),
-      size = pt.size
+      size = pt.size,
+      alpha = alpha
     )
   }
   plot <- plot +
@@ -7210,9 +7241,11 @@ SingleDimPlot <- function(
 #' @param y.max Maximum Y value to plot
 #' @param adjust Adjust parameter for geom_violin
 #' @param pt.size Size of points for violin plots
+#' @param alpha Alpha vlaue for violin plots
 #' @param cols Colors to use for plotting
 #' @param seed.use Random seed to use. If NULL, don't set a seed
 #' @param log plot Y axis on log10 scale
+#' @param add.noise determine if adding small noise for plotting
 #' @param raster Convert points to raster format. Requires 'ggrastr' to be installed.
 #' default is \code{NULL} which automatically rasterizes if ggrastr is installed and
 #' number of points exceed 100,000.
@@ -7239,9 +7272,11 @@ SingleExIPlot <- function(
   y.max = NULL,
   adjust = 1,
   pt.size = 0,
+  alpha = 1,
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  add.noise = TRUE,
   raster = NULL
 ) {
    if (!is.null(x = raster) && isTRUE(x = raster)){
@@ -7286,6 +7321,9 @@ SingleExIPlot <- function(
   } else {
     noise <- rnorm(n = length(x = data[, feature])) / 100000
   }
+  if (!add.noise) {
+    noise <-  noise * 0
+  }
   if (all(data[, feature] == data[, feature][1])) {
     warning(paste0("All cells have the same value of ", feature, "."))
   } else{
@@ -7319,21 +7357,23 @@ SingleExIPlot <- function(
       )
       if (is.null(x = split)) {
         if (isTRUE(x = raster)) {
-          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, show.legend = FALSE))
+          jitter <- ggrastr::rasterize(geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE))
         } else {
-          jitter <- geom_jitter(height = 0, size = pt.size, show.legend = FALSE)
+          jitter <- geom_jitter(height = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
         }
       } else {
         if (isTRUE(x = raster)) {
           jitter <- ggrastr::rasterize(geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
+            alpha = alpha,
             show.legend = FALSE
           ))
         } else {
           jitter <- geom_jitter(
             position = position_jitterdodge(jitter.width = 0.4, dodge.width = 0.9),
             size = pt.size,
+            alpha = alpha,
             show.legend = FALSE
           )
         }
@@ -7352,7 +7392,7 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)),
         scale_x_continuous(expand = c(0, 0))
       )
-      jitter <- geom_jitter(width = 0, size = pt.size, show.legend = FALSE)
+      jitter <- geom_jitter(width = 0, size = pt.size, alpha = alpha, show.legend = FALSE)
       log.scale <- scale_x_log10()
       axis.scale <- function(...) {
         invisible(x = NULL)
@@ -7682,7 +7722,7 @@ SingleSpatialPlot <- function(
       colors <- DiscretePalette(length(unique(data[[col.by]])), palette = cols)
       scale <- scale_fill_manual(values = colors, na.value = na.value)
     } else {
-      cols <- cols[names(x = cols) %in% data$ident]
+      cols <- cols[names(x = cols) %in% data[[gsub(pattern = '`', replacement = "", x = col.by)]]]
       scale <- scale_fill_manual(values = cols, na.value = na.value)
     }
     plot <- plot + scale

@@ -53,6 +53,7 @@ useful for crowded plots if points of interest are being buried. (default is FAL
     \item{\code{label.color}}{Sets the color of the label text}
     \item{\code{label.box}}{Whether to put a box around the label text (geom_text vs
 geom_label)}
+    \item{\code{alpha}}{Alpha value for plotting (default is 1)}
     \item{\code{repel}}{Repel labels}
     \item{\code{cells.highlight}}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply

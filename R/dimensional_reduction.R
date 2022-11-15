@@ -800,9 +800,8 @@ RunICA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunICA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     nics = nics,
@@ -966,6 +965,45 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @method RunPCA StdAssay
+#' @export
+#'
+RunPCA.StdAssay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  layer = 'scale.data',
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  return(RunPCA(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  ))
+}
+
 #' @param reduction.name dimensional reduction name,  pca by default
 #'
 #' @rdname RunPCA
@@ -989,9 +1027,8 @@ RunPCA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunPCA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     npcs = npcs,
@@ -1006,6 +1043,44 @@ RunPCA.Seurat <- function(
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+#' @method RunPCA Seurat5
+#' @export
+#'
+RunPCA.Seurat5 <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC_",
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  reduction.data <- RunPCA(
+    object = object[[assay]],
+    assay = assay,
+    features = features,
+    npcs = npcs,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  # object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -1379,6 +1454,10 @@ RunUMAP.default <- function(
         object = reduction.model,
         slot = "model"
       )
+      # add num_precomputed_nns to <v0.1.13 uwot models to prevent errors with newer versions of uwot
+      if (!"num_precomputed_nns" %in% names(model)) {
+        model$num_precomputed_nns <- 1
+      }
       if (length(x = model) == 0) {
         stop(
           "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
@@ -1391,7 +1470,7 @@ RunUMAP.default <- function(
       if (is.list(x = object)) {
         if (ncol(object$idx) != model$n_neighbors) {
           warning("Number of neighbors between query and reference ", 
-          "is not equal to the number of neighbros within reference")
+          "is not equal to the number of neighbors within reference")
           model$n_neighbors <- ncol(object$idx)
         }
        umap_transform(
@@ -2313,6 +2392,36 @@ PrepDR <- function(
   return(data.use)
 }
 
+PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
+  layer <- layer[1L]
+  layer <- match.arg(arg = layer, choices = Layers(object = object))
+  features <- features %||% VariableFeatures(object = object, layer = layer)
+  if (!length(x = features)) {
+    stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
+  }
+  data.use <- LayerData(object = object, layer = layer, features = features)
+  features.var <- apply(X = data.use, MARGIN = 1L, FUN = var)
+  features.keep <- features[features.var > 0]
+  if (!length(x = features.keep)) {
+    stop("None of the requested features have any variance", call. = FALSE)
+  } else if (length(x = features.keep) < length(x = features)) {
+    exclude <- setdiff(x = features, y = features.keep)
+    if (isTRUE(x = verbose)) {
+      warning(
+        "The following ",
+        length(x = exclude),
+        " features requested have zero variance; running reduction without them: ",
+        paste(exclude, collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+  # features <- features.keep
+  # features <- features[!is.na(x = features)]
+  return(LayerData(object = object, layer = layer, features = features.keep))
+}
+
 #' @param assay Name of Assay SPCA is being run on
 #' @param npcs Total Number of SPCs to compute and store (50 by default)
 #' @param verbose Print the top genes associated with high/low loadings for
@@ -2419,14 +2528,13 @@ RunSPCA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   if (is.null(x = graph)) {
     stop("Graph is not provided")
   } else if (is.character(x = graph)) {
     graph <- object[[graph]]
   }
   reduction.data <- RunSPCA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     features = features,
     npcs = npcs,

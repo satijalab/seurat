@@ -10,9 +10,14 @@ FeaturePlot(
   features,
   dims = c(1, 2),
   cells = NULL,
-  cols = if (blend) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
-    c("lightgrey", "blue") },
+  cols = if (blend) {
+     c("lightgrey", "#ff0000", "#00ff00")
+ } else {
+    
+    c("lightgrey", "blue")
+ },
   pt.size = NULL,
+  alpha = 1,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -63,6 +68,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 }}
 
 \item{pt.size}{Adjust point size for plotting}
+
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if
 cells expressing given feature are getting buried.}

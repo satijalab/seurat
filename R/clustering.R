@@ -259,9 +259,7 @@ PredictAssay <- function(
   )
   colnames(x = predicted) <- Cells(x = object)
   if (return.assay) {
-    # TODO: restore once check.matrix is implemented in SeuratObject
-    # predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
-    predicted.assay <- CreateAssayObject(data = predicted)
+    predicted.assay <- CreateAssayObject(data = predicted, check.matrix = FALSE)
     return (predicted.assay)
   } else {
     return (predicted)
@@ -774,9 +772,8 @@ FindNeighbors.Seurat <- function(
     )
   } else {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- GetAssay(object = object, assay = assay)
     neighbor.graphs <- FindNeighbors(
-      object = data.use,
+      object = object[[assay]],
       features = features,
       k.param = k.param,
       compute.SNN = compute.SNN,
@@ -1693,7 +1690,7 @@ RunLeiden <- function(
         graph_from_adj_list(adjlist = object)
       } else if (inherits(x = object, what = c('dgCMatrix', 'matrix', 'Matrix'))) {
         if (inherits(x = object, what = 'Graph')) {
-          object <- as(object = object, Class = "dgCMatrix")
+          object <- as.sparse(x = object)
         }
         graph_from_adjacency_matrix(adjmatrix = object, weighted = TRUE)
       } else if (inherits(x = object, what = 'igraph')) {

@@ -13,9 +13,11 @@ SingleExIPlot(
   y.max = NULL,
   adjust = 1,
   pt.size = 0,
+  alpha = 1,
   cols = NULL,
   seed.use = 42,
   log = FALSE,
+  add.noise = TRUE,
   raster = NULL
 )
 }
@@ -37,11 +39,15 @@ expression of the attribute being potted}
 
 \item{pt.size}{Size of points for violin plots}
 
+\item{alpha}{Alpha vlaue for violin plots}
+
 \item{cols}{Colors to use for plotting}
 
 \item{seed.use}{Random seed to use. If NULL, don't set a seed}
 
 \item{log}{plot Y axis on log10 scale}
+
+\item{add.noise}{determine if adding small noise for plotting}
 
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.
 default is \code{NULL} which automatically rasterizes if ggrastr is installed and

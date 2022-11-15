@@ -71,6 +71,7 @@ NULL
 #' \itemize{
 #'   \item{cca: Canonical correlation analysis}
 #'   \item{rpca: Reciprocal PCA}
+#'   \item{jpca: Joint PCA}
 #'   \item{rlsi: Reciprocal LSI}
 #' }
 #' @param l2.norm Perform L2 normalization on the CCA cell embeddings after
@@ -136,7 +137,7 @@ FindIntegrationAnchors <- function(
   scale = TRUE,
   normalization.method = c("LogNormalize", "SCT"),
   sct.clip.range = NULL,
-  reduction = c("cca", "rpca", "rlsi"),
+  reduction = c("cca", "rpca", "jpca", "rlsi"),
   l2.norm = TRUE,
   dims = 1:30,
   k.anchor = 5,
@@ -261,7 +262,11 @@ FindIntegrationAnchors <- function(
   # if using pca or lsi, only need to compute the internal neighborhood structure once
   # for each dataset
   internal.neighbors <- list()
-  if (nn.reduction %in% c("pca", "lsi")) {
+  if (nn.reduction %in% c("pca", "lsi","jpca")) {
+    if (nn.reduction == 'jpca') {
+      nn.reduction <- 'joint.pca'
+      reduction <- 'joint.pca'
+    }
     k.filter <- NA
     if (verbose) {
       message("Computing within dataset neighborhoods")
@@ -401,10 +406,29 @@ FindIntegrationAnchors <- function(
         }
         object.pair
       },
+      'joint.pca' = {
+        object.pair <- merge(x = object.1, y = object.2)
+        reduction.2 <- "joint.pca"
+        object.pair[['joint.pca']] <- CreateDimReducObject(
+          embeddings = rbind(Embeddings(object.1[['joint.pca']]),
+                             Embeddings(object.2[['joint.pca']])),
+          loadings = Loadings(object.1[['joint.pca']]),
+            key = 'Joint_',
+          assay = 'ToIntegrate')
+        if (l2.norm) {
+          object.pair <- L2Dim(object = object.pair,
+                               reduction = 'joint.pca',
+                               new.dr = 'joint.pca.l2',
+                               new.key = 'Jl2_'
+                               )
+          reduction <- paste0(reduction, ".l2")
+          reduction.2 <- paste0(reduction.2, ".l2")
+        }
+        object.pair
+      },
       stop("Invalid reduction parameter. Please choose either cca, rpca, or rlsi")
     )
     internal.neighbors <- internal.neighbors[c(i, j)]
-
     anchors <- FindAnchors(
       object.pair = object.pair,
       assay = c("ToIntegrate", "ToIntegrate"),
@@ -727,6 +751,7 @@ FindTransferAnchors <- function(
   reference.assay = NULL,
   reference.neighbors = NULL,
   query.assay = NULL,
+  query.layers = NULL,
   reduction = "pcaproject",
   reference.reduction = NULL,
   project.query = FALSE,
@@ -755,6 +780,7 @@ FindTransferAnchors <- function(
     reference.assay = reference.assay,
     reference.neighbors = reference.neighbors,
     query.assay = query.assay,
+    query.layers = query.layers,
     reduction = reduction,
     reference.reduction = reference.reduction,
     project.query = project.query,
@@ -1354,6 +1380,7 @@ IntegrateData <- function(
   anchors <- slot(object = anchorset, name = 'anchors')
   ref <- object.list[reference.datasets]
   features <- features %||% slot(object = anchorset, name = "anchor.features")
+
   unintegrated <- suppressWarnings(expr = merge(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
@@ -1381,6 +1408,7 @@ IntegrateData <- function(
           verbose = verbose
         )
       }
+      print(i)
       model.list[[i]] <- slot(object = object.list[[i]][[assay]], name = "SCTModel.list")
       object.list[[i]][[assay]] <- suppressWarnings(expr = CreateSCTAssayObject(
         data = GetAssayData(
@@ -1460,19 +1488,12 @@ IntegrateData <- function(
   } else {
     active.assay <- DefaultAssay(object = ref[[1]])
     reference.integrated[[active.assay]] <- NULL
-    # TODO: restore once check.matrix is in SeuratObject
-    # reference.integrated[[active.assay]] <- CreateAssayObject(
-    #   data = GetAssayData(
-    #     object = reference.integrated[[new.assay.name]],
-    #     slot = 'data'
-    #   ),
-    #   check.matrix = FALSE
-    # )
     reference.integrated[[active.assay]] <- CreateAssayObject(
       data = GetAssayData(
         object = reference.integrated[[new.assay.name]],
         slot = 'data'
-      )
+      ),
+      check.matrix = FALSE
     )
     DefaultAssay(object = reference.integrated) <- active.assay
     reference.integrated[[new.assay.name]] <- NULL
@@ -1495,13 +1516,9 @@ IntegrateData <- function(
     )
 
     # Construct final assay object
-    # TODO: restore once check.matrix is in SeuratObject
-    # integrated.assay <- CreateAssayObject(
-    #   data = integrated.data,
-    #   check.matrix = FALSE
-    # )
     integrated.assay <- CreateAssayObject(
-      data = integrated.data
+      data = integrated.data,
+      check.matrix = FALSE
     )
     if (normalization.method == "SCT") {
       integrated.assay <- CreateSCTAssayObject(
@@ -1597,13 +1614,9 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
-      # TODO: restore once check.matrix is in SeuratObject
-      # expr = CreateAssayObject(
-      #   data = embeddings,
-      #   check.matrix = FALSE
-      # )
       expr = CreateAssayObject(
-        data = embeddings
+        data = embeddings,
+        check.matrix = FALSE
       )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
@@ -1611,6 +1624,8 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   }
   slot(object = anchorset, name = "object.list") <- object.list
   new.reduction.name.safe <- gsub(pattern = "_", replacement = "", x = new.reduction.name)
+  new.reduction.name.safe <- gsub(pattern = "[.]", replacement = "", x = new.reduction.name.safe)
+
   reference.integrated <- PairwiseIntegrateReference(
     anchorset = anchorset,
     new.assay.name = new.reduction.name.safe,
@@ -1642,18 +1657,11 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   }
   active.assay <- DefaultAssay(object = object.list[reference.datasets][[1]])
   reference.integrated[[active.assay]] <- NULL
-  # TODO: restore once check.matrix is in SeuratObject
-  # reference.integrated[[active.assay]] <- CreateAssayObject(
-  #   data = GetAssayData(
-  #     object = reference.integrated[[new.reduction.name.safe]],
-  #     slot = 'data',
-  #     check.matrix = FALSE
-  #   )
-  # )
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data'
+      slot = 'data',
+      check.matrix = FALSE
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1754,13 +1762,9 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
     )[ , dims.to.integrate])
     rownames(x = embeddings) <- dims.names
     fake.assay <- suppressWarnings(
-      # TODO restore once check.matrix is in SeuratObject
-      # expr = CreateAssayObject(
-      #   data = embeddings,
-      #   check.matrix = FALSE
-      # )
       expr = CreateAssayObject(
-        data = embeddings
+        data = embeddings,
+        check.matrix = FALSE
       )
     )
     object.list[[i]][['drtointegrate']] <- fake.assay
@@ -1803,6 +1807,217 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
   )
   query[[reductions[[1]]]] <- NULL
   return(query)
+}
+
+
+#' Integrate embeddings from the integrated atoms
+#'
+#' The main steps of this procedure are outlined below. For a more detailed
+#' description of the methodology, please see Hao,  et al Biorxiv 2022:
+#' \doi{10.1101/2022.02.24.481684}
+#'
+#' First learn a atom dictionary representation to reconstruct each cell.
+#' Then, using this dictionary representation,
+#' reconstruct the embeddings of each cell from the integrated atoms.
+#'
+#' @param object A Seurat object with all cells for one dataset
+#' @param atoms Assay name for sketched-cell expression (default is 'sketch')
+#' @param orig Assay name for original expression (default is 'RNA')
+#' @param features Features used for atomic sketch integration
+#' @param reduction Dimensional reduction name for batch-corrected embeddings
+#' in the sketched object (default is 'integrated_dr')
+#' @param method Methods to construct sketch-cell representation
+#' for all cells (default is 'sketch'). Can be one of:
+#' \itemize{
+#'  \item \dQuote{\code{sketch}}: Use random sketched data slot
+#'  \item \dQuote{\code{data}}: Use data slot
+#' }
+#' @param ratio Sketch ratio of data slot when \code{dictionary.method} is set
+#' to \dQuote{\code{sketch}}; defaults to 0.8
+#' @param reduction.name Name to save new reduction as; defaults to
+#' \code{paste0(reduction, '.orig')}
+#' @param reduction.key Key for new dimensional reduction; defaults to creating
+#' one from \code{reduction.name}
+#' @param layers Names of layers for correction.
+#' @param verbose Print progress and message
+#'
+#' @return Returns a Seurat object with an integrated dimensional reduction
+#'
+#' @importFrom MASS ginv
+#' @importFrom Matrix t
+#'
+#' @export
+#'
+IntegrateSketchEmbeddings <- function(
+  object,
+  atoms = 'sketch', # DefaultAssay(object)
+  atoms.layers = NULL,
+  orig = 'RNA',
+  features = NULL, # VF from object[[atom.assay]]
+  reduction = 'integrated_dr', # harmony; rerun UMAP on this
+  method = c('sketch', 'data'),
+  ratio = 0.8,
+  reduction.name = NULL,
+  reduction.key = NULL,
+  layers = NULL,
+  seed = 123,
+  verbose = TRUE
+) {
+  # Check input and output dimensional reductions
+  atoms.layers <- atoms.layers %||% layers
+  reduction <- match.arg(arg = reduction, choices = Reductions(object = object))
+  reduction.name <- reduction.name %||% paste0(reduction, '.orig')
+  reduction.key <- reduction.key %||% Key(object = reduction.name, quiet = TRUE)
+  if (reduction.name %in% Reductions(object = object)) {
+    warning(
+      "'",
+      reduction.name,
+      "' already exists, overwriting",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
+  # Check the method being used
+  method <- method[1L]
+  method <- match.arg(arg = method)
+  # Check our layers
+  atoms <- match.arg(arg = atoms, choices = Assays(object = object))
+  orig <- match.arg(arg = orig, choices = Assays(object = object))
+  layer.orig <- layers
+  layers <- layers %||% intersect(
+    x = DefaultLayer(object[[atoms]]),
+    y = Layers(object[[orig]])
+  )
+  if (is.null(x = layer.orig)) {
+    atoms.missing <- setdiff(x = layers, DefaultLayer(object = object[[atoms]]))
+    if (length(x = atoms.missing) == length(x = layers)) {
+      stop("None of the requested layers are present in the atoms")
+    } else if (length(x = atoms.missing)) {
+      warning(
+        length(x = atoms.missing),
+        " layers missing from the atoms",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      layers <- intersect(x = layers, y = DefaultLayer(object = object[[atoms]]))
+    }
+  }
+  # check layers
+  layers.missing <- setdiff(layers, Layers(object = object[[orig]]))
+  if (length(x = layers.missing)) {
+    stop('layer ', layers.missing[1L], ' are not present in ', orig, " assay")
+  }
+  # check features
+  features <- features %||% unlist(x = VariableFeatures(
+    object = object[[atoms]],
+    layer = layers
+  ))
+  # TODO: see if we can handle missing features with `union`
+  features.atom <- Reduce(
+    f = intersect,
+    x = lapply(
+      X = atoms.layers,
+      FUN = function(lyr) {
+        return(Features(x = object[[atoms]], layer = lyr))
+      }
+    )
+  )
+  features <- intersect(x = features, y = features.atom)
+  ncells <- c(
+    0,
+    sapply(
+      X = layers,
+      FUN = function(lyr) {
+        return(length(x = Cells(x = object[[orig]], layer = lyr)))
+      }
+    )
+  )
+  if (length(atoms.layers) == 1) {
+    atoms.layers <- rep(atoms.layers, length(layers))
+  }
+  emb.list <- list()
+  cells.list <- list()
+  for (i in seq_along(along.with = layers)) {
+    if (length(unique(atoms.layers)) == length(layers)) {
+      cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
+    } else if (length(unique(atoms.layers)) == 1) {
+      cells.sketch <- intersect(Cells(x = object[[atoms]][[atoms.layers[[1]]]]),
+                                Cells(object[[orig]][[layers[i] ]] ))
+    }
+    if (isTRUE(x = verbose)) {
+      message(
+        length(x = cells.sketch),
+        ' atomic cells identified in the atoms'
+      )
+      message("Correcting embeddings")
+    }
+     if (inherits(x = object[[orig]][[layers[i]]], what = 'DelayedMatrix') ) {
+       matrix.prod.function <- crossprod_DelayedAssay
+       } else {
+         matrix.prod.function <- crossprod
+       }
+
+    emb <- switch(
+      EXPR = method,
+      'data' = {
+        exp.mat <- t(
+          x = as.matrix(
+            LayerData(
+              object = object[[atoms]],
+              layer = layers[i],
+              features = features
+              )
+          )
+        )
+        sketch.transform <- ginv(X = exp.mat) %*%
+          Embeddings(object = object[[reduction]])[cells.sketch ,]
+        emb <- matrix.prod.function(x = sketch.transform,
+                                    y = LayerData(
+                                      object = object[[orig]],
+                                      layer = layers[i],
+                                      features = features
+                                    ))
+        emb
+      },
+      'sketch' = {
+        R <- t(x = CountSketch(
+          nsketch = round(x = ratio * length(x = features)),
+          ncells = length(x = features),
+          seed = seed
+        ))
+        exp.mat <- as.matrix(x = t(x = LayerData(
+          object = object[[atoms]],
+          layer = atoms.layers[i],
+          features = features
+        )[,cells.sketch]) %*% R)
+        sketch.transform <- ginv(X = exp.mat) %*%
+          Embeddings(object = object[[reduction]])[cells.sketch ,]
+         emb <- matrix.prod.function(x = R %*% sketch.transform,
+                             y = LayerData(
+                               object = object[[orig]],
+                               layer = layers[i],
+                               features = features
+                             ))
+        emb
+      }
+    )
+    emb.list[[i]] <- as.matrix(x = emb)
+    cells.list[[i]] <- colnames(x = emb)
+  }
+   emb.all <- t(matrix(data = unlist(emb.list),
+                     nrow = length(x = object[[reduction]]),
+                     ncol = ncol(x = object[[orig]])
+                     ))
+   rownames(emb.all) <- unlist(cells.list)
+   emb.all <- emb.all[colnames(object[[orig]]), ]
+  object[[reduction.name]] <- CreateDimReducObject(
+    embeddings = emb.all,
+    loadings = Loadings(object = object[[reduction]]),
+    key = reduction.key,
+    assay = orig
+  )
+  CheckGC()
+  return(object)
 }
 
 #' Calculate the local structure preservation metric
@@ -2233,7 +2448,7 @@ MappingScore.default <- function(
   ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
   query.cells.projected <- Matrix::crossprod(
-    x = as(object = ref.pca, Class = "dgCMatrix"),
+    x = as.sparse(x = ref.pca),
     y = weights.matrix
   )
   colnames(x = query.cells.projected) <- query.cells
@@ -2272,7 +2487,7 @@ MappingScore.default <- function(
   orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
   query.cells.back.corrected <- Matrix::t(
     x = Matrix::crossprod(
-      x = as(object = orig.pca, Class = "dgCMatrix"),
+      x = as.sparse(x = orig.pca),
       y = weights.matrix)[1:ndim, ]
   )
   query.cells.back.corrected <- as.matrix(x = query.cells.back.corrected)
@@ -2559,7 +2774,7 @@ MixingMetric <- function(
 #'   normalization.method = "SCT",
 #'   anchor.features = features
 #' )
-#' pancreas.integrated <- IntegrateData(anchors)
+#' pancreas.integrated <- IntegrateData(anchors, normalization.method = "SCT")
 #' }
 #'
 PrepSCTIntegration <- function(
@@ -2736,6 +2951,124 @@ SelectIntegrationFeatures <- function(
   tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
   vf.list <- lapply(X = object.list, FUN = VariableFeatures)
+  if (length(x = features) > 0) {
+    feature.ranks <- sapply(X = features, FUN = function(x) {
+      ranks <- sapply(X = vf.list, FUN = function(vf) {
+        if (x %in% vf) {
+          return(which(x = x == vf))
+        }
+        return(NULL)
+      })
+      median(x = unlist(x = ranks))
+    })
+    features <- names(x = sort(x = feature.ranks))
+  }
+  features.tie <- var.features[which(x = var.features == tie.val)]
+  tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
+    ranks <- sapply(X = vf.list, FUN = function(vf) {
+      if (x %in% vf) {
+        return(which(x = x == vf))
+      }
+      return(NULL)
+    })
+    median(x = unlist(x = ranks))
+  })
+  features <- c(
+    features,
+    names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
+  )
+  return(features)
+}
+
+.FeatureRank <- function(features, flist, ranks = FALSE) {
+  franks <- vapply(
+    X = features,
+    FUN = function(x) {
+      return(median(x = unlist(x = lapply(
+        X = flist,
+        FUN = function(fl) {
+          if (x %in% fl) {
+            return(which(x = x == fl))
+          }
+          return(NULL)
+        }
+      ))))
+    },
+    FUN.VALUE = numeric(length = 1L)
+  )
+  franks <- sort(x = franks)
+  if (!isTRUE(x = ranks)) {
+    franks <- names(x = franks)
+  }
+  return(franks)
+}
+
+#' @export
+#'
+SelectIntegrationFeatures5 <- function(
+  object,
+  nfeatures = 2000,
+  assay = NULL,
+  method = NULL,
+  layers = NULL,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  layers <- Layers(object = object[[assay]], search = layers)
+  vf.list <- VariableFeatures(
+    object = object,
+    assay = assay,
+    method = method,
+    layer = layers
+  )
+  var.features <- unlist(x = vf.list, use.names = FALSE)
+  var.features <- sort(x = table(var.features), decreasing = TRUE)
+  # Select only variable features present in all layers
+  fmat <- slot(object = object[[assay]], name = 'features')[, layers]
+  idx <- which(x = apply(
+    X = fmat[names(x = var.features), , drop = FALSE],
+    MARGIN = 1L,
+    FUN = all
+  ))
+  var.features <- var.features[idx]
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  # Select integration features
+  features <- names(x = var.features[which(x = var.features > tie.val)])
+  if (length(x = features)) {
+    features <- .FeatureRank(features = features, flist = vf.list)
+  }
+  features.tie <- .FeatureRank(
+    features = names(x = var.features[which(x = var.features == tie.val)]),
+    flist = vf.list
+  )
+  return(head(x = c(features, features.tie), n = nfeatures))
+}
+
+#' @export
+#'
+SelectSCTIntegrationFeatures <- function(object, nfeatures = 3000, assay = NULL, verbose = TRUE, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!inherits(x = object[[assay]], what = 'SCTAssay')) {
+    abort(message = "'assay' must be an SCTAssay")
+  }
+  models <- levels(x = object[[assay]])
+  vf.list <- VariableFeatures(
+    object = object[[assay]],
+    layer = models,
+    n = nfeatures,
+    simplify = FALSE
+  )
+  var.features <- sort(
+    x = table(unlist(x = vf.list, use.names = FALSE)),
+    decreasing = TRUE
+  )
+  for (i in 1:length(x = models)) {
+    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object[[assay]], name = "SCTModel.list")[[models[[i]]]])
+    var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
+  }
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features) > 0) {
     feature.ranks <- sapply(X = features, FUN = function(x) {
       ranks <- sapply(X = vf.list, FUN = function(vf) {
@@ -3124,9 +3457,9 @@ TransferData <- function(
         stringsAsFactors = FALSE
       )
       if (prediction.assay || !is.null(x = query)) {
-        # TODO: restore once check.matrix is in SeuratObject
-        # predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE)
-        predictions <- CreateAssayObject(data = t(x = as.matrix(x = prediction.scores)))
+        predictions <- CreateAssayObject(
+          data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE
+        )
         Key(object = predictions) <- paste0("predictionscore", rd.name, "_")
       }
       if (is.null(x = query)) {
@@ -3147,16 +3480,12 @@ TransferData <- function(
       rownames(x = new.data) <- rownames(x = refdata[[rd]])
       colnames(x = new.data) <- query.cells
       if (inherits(x = new.data, what = "Matrix")) {
-        new.data <- as(object = new.data, Class = "dgCMatrix")
+        new.data <- as.sparse(x = new.data)
       }
       if (slot == "counts") {
-        # TODO: restore once check.matrix is in SeuratObject
-        # new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
-        new.assay <- CreateAssayObject(counts = new.data)
+        new.assay <- CreateAssayObject(counts = new.data, check.matrix = FALSE)
       } else if (slot == "data") {
-        # TODO: restore once check.matrix is in SeuratObject
-        # new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
-        new.assay <- CreateAssayObject(data = new.data)
+        new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
       }
       Key(object = new.assay) <- paste0(rd.name, "_")
       if (is.null(x = query)) {
@@ -3613,6 +3942,7 @@ FindAnchors <- function(
       max.features = max.features,
       projected = projected
     )
+
     if(length(top.features) == 2){
       top.features <- intersect(top.features[[1]], top.features[[2]])
     } else{
@@ -4140,7 +4470,7 @@ NNtoMatrix <- function(idx, distance, k) {
     x = as.numeric(x = nn[, 3]),
     Dim = as.integer(x = c(nrow(idx), nrow(x = idx)))
   )
-  nn.matrix <- as(object = nn.matrix, Class = 'dgCMatrix')
+  nn.matrix <- as.sparse(x = nn.matrix)
   return(nn.matrix)
 }
 
@@ -4205,13 +4535,9 @@ PairwiseIntegrateReference <- function(
   features.to.integrate <- features.to.integrate %||% features
   if (length(x = reference.objects) == 1) {
     ref.obj <- object.list[[reference.objects]]
-    # TODO: restore once check.matrix is in SeuratObject
-    # ref.obj[[new.assay.name]] <- CreateAssayObject(
-    #   data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
-    #   check.matrix = FALSE
-    # )
     ref.obj[[new.assay.name]] <- CreateAssayObject(
-      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ]
+      data = GetAssayData(ref.obj, slot = 'data')[features.to.integrate, ],
+      check.matrix = FALSE
     )
     DefaultAssay(object = ref.obj) <- new.assay.name
     return(ref.obj)
@@ -4334,9 +4660,7 @@ PairwiseIntegrateReference <- function(
       verbose = verbose
     )
     integrated.matrix <- cbind(integrated.matrix, GetAssayData(object = object.1, slot = 'data')[features.to.integrate, ])
-    # TODO: restore once check.matrix is in SeuratObject
-    # merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
-    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix)
+    merged.obj[[new.assay.name]] <- CreateAssayObject(data = integrated.matrix, check.matrix = FALSE)
     DefaultAssay(object = merged.obj) <- new.assay.name
     object.list[[as.character(x = ii)]] <- merged.obj
     object.list[[merge.pair[[1]]]] <- NULL
@@ -4351,6 +4675,7 @@ PairwiseIntegrateReference <- function(
   integrated.data <- integrated.data[, colnames(x = unintegrated)]
   new.assay <- new(
     Class = 'Assay',
+    key = paste0(new.assay.name, "_"),
     counts =  new(Class = "dgCMatrix"),
     data = integrated.data,
     scale.data = matrix(),
@@ -4462,7 +4787,7 @@ RescaleQuery <- function(
     if (scale) {
       feature.sd <- sqrt(
         x = SparseRowVar2(
-          mat = as(object = reference.data, Class = "dgCMatrix"),
+          mat = as.sparse(x = reference.data),
           mu = feature.mean,
           display_progress = FALSE
         )
@@ -4481,7 +4806,7 @@ RescaleQuery <- function(
   store.names <- dimnames(x = proj.data)
   if (is.numeric(x = feature.mean) && feature.mean[[1]] != "SCT") {
     proj.data <- FastSparseRowScaleWithKnownStats(
-      mat = as(object = proj.data, Class = "dgCMatrix"),
+      mat = as.sparse(x = proj.data),
       mu = feature.mean,
       sigma = feature.sd,
       display_progress = FALSE
@@ -4949,15 +5274,16 @@ TransformDataMatrix <- function(
     slot = "data")[features.to.integrate, nn.cells2]
   )
 
-  integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
-                               weights = as(weights, "dgCMatrix"),
-                               expression_cells2 = as(data.use2, "dgCMatrix"))
+  integrated <- IntegrateDataC(integration_matrix = as.sparse(x = integration.matrix),
+                               weights = as.sparse(x = weights),
+                               expression_cells2 = as.sparse(x = data.use2))
   dimnames(integrated) <- dimnames(data.use2)
 
   new.expression <- t(rbind(data.use1, integrated))
   new.expression <- new.expression[, colnames(object)]
   new.assay <- new(
     Class = 'Assay',
+    key = paste0(new.assay.name,"_"),
     counts = new(Class = "dgCMatrix"),
     data = new.expression,
     scale.data = matrix(),
@@ -4979,6 +5305,7 @@ ValidateParams_FindTransferAnchors <- function(
   reference.assay,
   reference.neighbors,
   query.assay,
+  query.layers,
   reduction,
   reference.reduction,
   project.query,
@@ -6282,273 +6609,6 @@ RunGraphLaplacian.default <- function(object,
   return(lap_dir)
 }
 
-# Generate CountSketch random matrix
-#
-# @param nrow Number of sketching random cells
-# @param ncol Number of cells in the original data
-# @param seed Random seed for sampling
-# @references Clarkson, KL. & Woodruff, DP.
-# Low-rank approximation and regression in input sparsity time.
-# Journal of the ACM (JACM). 2017 Jan 30;63(6):1-45. \url{https://dl.acm.org/doi/abs/10.1145/3019134};
-#' @importFrom Matrix sparseMatrix
-
-CountSketch <- function(nrow, ncol, seed = 123) {
-  set.seed(seed = seed)
-  iv <- xv <- vector(mode = "numeric", length = ncol)
-  jv <- seq_len(length.out = ncol)
-  for (i in jv) {
-    iv[i] <- sample(x = seq_len(length.out = nrow), size = 1L)
-    xv[i] <- sample(x = c(-1L, 1L), size = 1L)
-  }
-  return(sparseMatrix(
-    i = iv,
-    j = jv,
-    x = xv
-  ))
-}
-
-# Generate a very sparse random matrix to improve the computational speed up of
-# random projection.
-#
-# @reference Ping Li, Trevor J. Hastie, and Kenneth W. Church, "Very sparse random projections(2006)".
-#
-LiProj <- function(nrow, ncol, eps = 0.1, seed = NA) {
-  if (!is.na(x = seed)) {
-    set.seed(seed = seed)
-  }
-  s <- ceiling(x = sqrt(x = ncol))
-  prob <- c(
-    1 / (2 * s),
-    1 - (1 / s),
-    1 / (2 * s)
-  )
-  return(matrix(
-    data = sample(
-      x = seq.int(from = -1L, to = 1L),
-      size = nrow * ncol,
-      replace = TRUE,
-      prob = prob
-    ),
-    nrow = nrow
-  ))
-}
-
-
-# Generate JL random projection embeddings
-#
-#
-# @reference Aghila G and Siddharth R (2020).
-# RandPro: Random Projection with Classification. R package version 0.2.2.
-# https://CRAN.R-project.org/package=RandPro
-#
-JLEmbed <- function(nrow, ncol, eps = 0.1, seed = NA, method = "li") {
-  if (!is.na(x = seed)) {
-    set.seed(seed = seed)
-  }
-  method <- method[1L]
-  method <- match.arg(arg = method)
-  if (!is.null(x = eps)) {
-    if (eps > 1 || eps <= 0) {
-      stop("'eps' must be 0 < eps <= 1")
-    }
-    ncol <- floor(x = 4 * log(x = ncol) / ((eps ^ 2) / 2 - (eps ^ 3 / 3)))
-  }
-  m <- switch(
-    EXPR = method,
-    "li" = {
-      s <- ceiling(x = sqrt(x = ncol))
-      prob <- c(
-        1 / (2 * s),
-        1 - (1 / s),
-        1 / (2 * s)
-      )
-      matrix(
-        data = sample(
-          x = seq.int(from = -1L, to = 1L),
-          size = nrow * ncol,
-          replace = TRUE,
-          prob = prob
-        ),
-        nrow = nrow
-      )
-    }
-  )
-  return(m)
-}
-
-#' @param object A Seurat object
-#' @param features Features used to calculate leverage score
-#' @param nsketch Number of rows in the random sketch matrix (default is 5000)
-#' @param ndims Number of dimensions in the Johnson–Lindenstrauss (JL) embeddings (default is all dimensions)
-#' @param sampling.method Sampling method for generating random matrix
-#' \itemize{
-#'   \item{CountSketch: generate a sparsed \code{CountSketch} random matrix}
-#'   \item{Gaussian: generate a gaussian random matrix with mean = 0 and sd = 1 / (ncells ^ 2)}
-#' }
-#' @param eps error tolerance for JL embeddings (default is 0.5)
-#' @param seed Set a random seed (default is 123)
-#' @param verbose Print message and process (default is TRUE)
-#'
-#' @importFrom Matrix qrR
-#' @importFrom Matrix t
-#' @importFrom SeuratObject as.sparse
-#' @rdname LeverageScore
-#' @export
-#' 
-LeverageScore.default <- function(
-  object,
-  features = NULL,
-  nsketch = 5000L,
-  ndims = NULL,
-  sampling.method = c("CountSketch", "Gaussian"),
-  eps = 0.5,
-  seed = 123,
-  verbose = TRUE,
-  ...
-) {
-  features <- features %||% rownames(x = object)
-  if (length(x = features) > 5000) {
-    stop("when the number of feature is larger than 5000, this implementation will be too slow")
-  }
-  if (length(x = features) > ncol(x = object)/1.1) {
-    stop("the number of features is too close to the number cells in the object")
-  }
-  ndims <- ndims %||% ncol(x = object)
-  if (nsketch < 1.1*length(x = features)) {
-    warning("nsketch is too close to the number of features",
-            "nsketch is reset to ", round(1.1*length(x = features)))
-    nsketch <-  1.1*length(x = features)
-  }
-  nsketch <- min(nsketch, ndims)
-  sampling.method <- sampling.method[1L]
-  sampling.method <- match.arg(arg = sampling.method)
-  if (isTRUE(x = verbose)) {
-    message(sampling.method, " sampling ", nsketch, " cells")
-  }
-  ncells <- ncol(x = object)
-  S <- switch(
-    EXPR = sampling.method,
-    "CountSketch" = CountSketch(nrow = nsketch, ncol = ncells, seed = seed),
-    "Gaussian" = {
-      set.seed(seed)
-      matrix(
-        data = rnorm(n = nsketch * ncells, mean = 0L, sd = 1 / (ncells ^ 2)),
-        nrow = nsketch,
-        ncol = ncells
-      )
-    }
-  )
-  if (!is.null(x = features)) {
-    object <- object[features, , drop = FALSE]
-  }
-    object <- t(object)
-  if (verbose) {
-    message("Performing QR decomposition of the sketch matrix")
-  }
-  # row of object is cell, col of matrix is feature
-  sa <- S %*% object
-  qr.sa <- base::qr(x = sa)
-  R <- if (inherits(x = qr.sa, what = "sparseQR")) {
-     qrR(qr = qr.sa)
-  } else {
-    base::qr.R(qr = qr.sa)
-  }
-  # triangular matrix inverse
-   R.inv <-  as.sparse(backsolve(r = R , x = diag(ncol(R))))
-  if (isTRUE(x = verbose)) {
-    message("Random projection")
-  }
-  JL <- as.sparse(x = JLEmbed(
-    nrow = ncol(x = R.inv),
-    ncol = ndims,
-    eps = eps,
-    seed = seed
-  ))
-  Z <- object %*% (R.inv %*% JL)
-  return(rowSums(x = Z ^ 2))
-}
-
-
-#' @rdname LeverageScore
-#' @export
-#' @method LeverageScore Assay
-#'
-#'
-LeverageScore.Assay <- function(object,
-                                features = NULL,
-                                nsketch = 5000L,
-                                ndims = NULL,
-                                sampling.method = c("CountSketch", "Gaussian")[1],
-                                slot = "data",
-                                seed = 123,
-                                eps = 0.5,
-                                verbose = TRUE,
-                                ...
-                                ) {
-  features <- features %||% VariableFeatures(object = object)
-  ndims <- ndims%||%ncol(x = object)
-  data <- GetAssayData(object, slot = slot)[features,]
-  score <- LeverageScore(
-    object = data,
-    features = features,
-    nsketch = nsketch,
-    ndims = ndims,
-    sampling.method = sampling.method,
-    seed = seed,
-    eps = eps,
-    verbose = verbose,
-    ...
-  )
-return(score)
-}
-
-
-
-#' @inheritParams LeverageScoreSampling
-#' @param slot The slot used for leverage score calculation. data slot is used by default
-#'
-#' @rdname LeverageScore
-#' @export
-#' @method LeverageScore Seurat
-#'
-LeverageScore.Seurat <- function(object,
-                                 features = NULL,
-                                 assay = NULL,
-                                 nsketch = 5000L,
-                                 ndims = NULL,
-                                 var.name = "leverage.score",
-                                 sampling.method = c("CountSketch", "Gaussian")[1],
-                                 slot = "data",
-                                 eps = 0.5,
-                                 seed = 123,
-                                 over.write = FALSE,
-                                 verbose = TRUE,
-                                 ...
-) {
-  assay <- assay %||% DefaultAssay(object)
-  features <- features %||% VariableFeatures(object = object[[assay]])
-  ndims <- ndims %||% ncol(x = object)
-
-  if (is.null(features)) {
-    stop("No variable features are set. Please run FindVariableFeatures.")
-  }
-  if (!over.write) {
-    var.name <- CheckMetaVarName(object = object, var.name = var.name)
-  }
-  object[[var.name]] <- LeverageScore(
-    object = GetAssay(object = object, assay = assay),
-    features = features,
-    nsketch = nsketch,
-    ndims = ndims,
-    sampling.method = sampling.method,
-    seed = seed,
-    slot = slot,
-    eps = eps,
-    verbose = verbose,
-    ...
-  )
-  return(object)
-}
 
 # Check if the var.name already existed in the meta.data
 #
@@ -6566,51 +6626,6 @@ CheckMetaVarName <- function(object, var.name) {
   return(var.name)
 }
 
-
-#' Sampling cells from objects based on Leverage score
-#'
-#' @param object A Seurat object
-#' @param num.cells Number of sampled cells (default is 5000)
-#' @param assay Assay used to calculate leverage score
-#' @param features Features used to calculate leverage score
-#' @param var.name Variable name stored leverage score in the meta.data (default is 'leverage.score')
-#' @param over.write Whether to over write the variable with leverage score (default is FALSE)
-#' @param seed Set a random seed (default is 123)
-#' @param ... Arguments passed to LeverageScore
-#'
-#' @return Returns a subset Seurat object with sampled cells
-#' @export
-#'
-LeverageScoreSampling <- function(
-  object,
-  num.cells = 5000,
-  assay = NULL,
-  features = NULL,
-  var.name = "leverage.score",
-  over.write = FALSE,
-  seed = 123,
-  ...) {
-  if (!over.write) {
-    var.name <- CheckMetaVarName(object = object, var.name = var.name)
-  }
-  object <- LeverageScore(
-    object = object,
-    assay = assay,
-    features = features,
-    var.name = var.name,
-    over.write = over.write,
-    seed = seed,
-    ...
-    )
-  num.cells <- min(num.cells, ncol(x = object))
-  set.seed(seed)
-  sampled.cells <- sample(x = Cells(x = object),
-                          size = num.cells,
-                          prob = object[[var.name]][,1]
-                          )
-  object.sampled <- subset(x = object, cells = sampled.cells)
-  return(object.sampled)
-}
 
 
 # Run hnsw to find neighbors
@@ -6667,129 +6682,6 @@ IntegrationReferenceIndex <- function(object) {
     reference.index <- SampleIntegrationOrder(tree = object@tools$Integration@sample.tree)[1]
   }
   return(reference.index)
-}
-
-#' Integrate embeddings from the integrated atoms
-#'
-#' The main steps of this procedure are outlined below. For a more detailed
-#' description of the methodology, please see Hao,  et al Biorxiv 2022:
-#' \doi{10.1101/2022.02.24.481684}
-#'
-#' First learn a atom dictionary representation to reconstruct each cell.
-#' Then, using this dictionary representation,
-#' reconstruct the embeddings of each cell from the integrated atoms.
-#'
-#' @param object A Seurat object with all cells for one dataset
-#' @param atom.sketch.object A sketched Seurat objects with integrated embeddings
-#' @param features Features used for atomic sketch integration
-#' @param assay Assay name for original expression (default is 'RNA')
-#' @param atom.sketch.reduction Dimensional reduction name for batch-corrected embeddings
-#' in the sketched object (default is 'integrated_dr')
-#' @param dictionary.method Methods to construct sketch-cell representation
-#' for all cells (default is 'sketch'). Can be one of:
-#' \itemize{
-#' \item{sketch: Use random sketched data slot}
-#' \item{data: Use data slot}
-#' }
-#' @param sketch.ratio Sketch ratio of data slot when \code{dictionary.method} is set to 'sketch' (default is 0.8)
-#' @param verbose Print progress and message (default is TRUE)
-#'
-#' @return Returns a Seurat object with an integrated dimensional reduction
-#' @importFrom MASS ginv
-#' @importFrom Matrix t
-#' @export
-
-IntegrateSketchEmbeddings <- function(
-  object,
-  atom.sketch.object,
-  features = NULL,
-  assay = 'RNA',
-  atom.sketch.reduction = 'integrated_dr',
-  dictionary.method = c('sketch', 'data'),
-  sketch.ratio = 0.8,
-  verbose = TRUE
-  ) {
-  reduction.name = atom.sketch.reduction
-  reduction.key =  Key(object = atom.sketch.object[[atom.sketch.reduction]])
-  dictionary.method <- match.arg(arg = dictionary.method)
-  # check features
-  features <- features %||% VariableFeatures(object = atom.sketch.object)
-  features <- intersect(features, rownames(object))
-  # check cell names
-  cells.sketch <- intersect(x = Cells(atom.sketch.object), y = Cells(object))
-  if (length(x = cells.sketch) == 0) {
-    stop("Cell names in object are the same with those in atom.sketch.object.")
-  }
-  if (verbose) {
-    message(length(cells.sketch),' atomic cells are identified in the atom.sketch.object')
-  }
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
-  if (verbose) {
-    message("Correcting embeddings")
-  }
-  emb <- switch(
-    EXPR = dictionary.method,
-    'data' = {
-      exp.mat <- t(
-        x = as.matrix(
-          x = GetAssayData(
-            atom.sketch.object[[assay]],
-            slot = 'data'
-          )[features, cells.sketch]
-        )
-      )
-      sketch.transform <- ginv(X = exp.mat) %*%
-        Embeddings(object = atom.sketch.object[[atom.sketch.reduction]])[cells.sketch ,]
-      emb <- as.matrix(
-        x = t(
-          x = GetAssayData(
-            object = object,
-            slot = 'data')[features,]
-        ) %*%
-          sketch.transform
-      )
-      emb
-    },
-    'sketch' = {
-      R <- t(
-        x = CountSketch(
-          nrow = round(sketch.ratio * length(x = features)), ncol = length(x = features)
-        )
-      )
-      exp.mat <- as.matrix(
-        x = t(
-          x = GetAssayData(
-            atom.sketch.object[[assay]],
-            slot = 'data')[features,cells.sketch]
-        ) %*%
-          R
-      )
-      sketch.transform <- ginv(X = exp.mat) %*%
-        Embeddings(object = atom.sketch.object[[atom.sketch.reduction]])[cells.sketch ,]
-      emb <- as.matrix(
-        x = (
-          t(
-            x = GetAssayData(
-              object = object,
-              slot = 'data')[features,]
-          ) %*%
-            R) %*%
-          sketch.transform
-      )
-      emb
-    }
-  )
-  object[[reduction.name]] <- CreateDimReducObject(
-    embeddings = as.matrix(emb),
-    loadings = Loadings(atom.sketch.object[[atom.sketch.reduction]]),
-    key = reduction.key,
-    assay = assay
-  )
-  return(object)
 }
 
 
@@ -7389,6 +7281,59 @@ FindBridgeIntegrationAnchors <- function(
     verbose = verbose
   )
   return(bridge_anchor)
+
+## project delayed array to reference PCA
+
+
+ProjectCellEmbeddings_DelayedAssay <- function(
+  query.data,
+  block.size = 1e9,
+  reference,
+  assay = NULL,
+  reduction,
+  dims = NULL,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+
+  dims <- dims %||% 1:ncol(reference[[reduction]])
+  assay <- assay %||% DefaultAssay(reference)
+  features <- intersect(rownames(query.data),
+                        rownames(reference[[reduction]]@feature.loadings))
+  query.data <- query.data[features,]
+ if (IsSCT(object[[assay]])) {
+# TODO: SCT reiduals projection
+
+ } else {
+   feature.mean <- feature.mean[features] %||%
+     RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
+
+   feature.sd <- feature.sd[features] %||%
+     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
+   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
+
+   suppressMessages(setAutoBlockSize(size = block.size))
+   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
+   emb.list <- list()
+   for (i in seq_len(length.out = length(x = cells.grid))) {
+     vp <- cells.grid[[i]]
+     data.block <- DelayedArray::read_block(x = query.data,
+                                            viewport = vp,
+                                            as.sparse = TRUE)
+     data.block <- apply(data.block, MARGIN = 2, function(x) {
+       x <- (x - feature.mean)/feature.sd
+       return(x)
+     })
+     emb.block <- t(reference[[reduction]]@feature.loadings[features,dims]) %*%  data.block
+     emb.list[[i]] <- emb.block
+   }
+   # list to matrix, column has to be cells
+   emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
+   rownames(emb.mat) <- colnames(query.data)
+   colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
+ }
+
+  return(emb.mat)
 }
 
 
@@ -7443,18 +7388,19 @@ FastRPCAIntegration <- function(
                                       anchor.features = anchor.features
     )
   }
-    if (verbose) {
-      message('Performing PCA for each object')
-    }
-    object.list <- my.lapply(X = object.list,
-                             FUN = function(x) {
-      if (normalization.method != 'SCT') {
-        x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
-      }
-      x <- RunPCA(x, features = anchor.features, verbose = FALSE, npcs = npcs)
-      return(x)
-    }
-    )
+
+  if (verbose) {
+    message('Performing PCA for each object')
+  }
+  object.list <- my.lapply(X = object.list,
+                           FUN = function(x) {
+                             if (normalization.method != 'SCT') {
+                               x <- ScaleData(x, features = anchor.features, do.scale = scale, verbose = FALSE)
+                             }
+                             x <- RunPCA(x, features = anchor.features, verbose = FALSE, npcs = npcs)
+                             return(x)
+                           }
+  )
 
   anchor <- invoke(
     .fn = FindIntegrationAnchors,
@@ -7473,7 +7419,9 @@ FastRPCAIntegration <- function(
   )
   object_merged <- merge(x = object.list[[1]],
                          y = object.list[2:length(object.list)]
-                         )
+
+  )
+  
   anchor.feature <- slot(object = anchor, name = 'anchor.features')
   if (normalization.method != 'SCT') {
     object_merged <- ScaleData(object = object_merged,
@@ -7486,7 +7434,9 @@ FastRPCAIntegration <- function(
                           features = anchor.feature,
                           verbose = FALSE,
                           npcs = npcs
-                          )
+
+  )
+
   temp <- object_merged[["pca"]]
   object_merged <- IntegrateEmbeddings(
     anchorset = anchor,

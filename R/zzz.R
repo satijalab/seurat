@@ -1,3 +1,22 @@
+#' @importFrom methods slot slot<-
+#' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
+#' deprecate_warn is_present
+#' @importFrom rlang abort
+#' arg_match
+#' as_name
+#' caller_env
+#' check_installed
+#' enquo
+#' inform
+#' is_na
+#' is_quosure
+#' is_scalar_integerish
+#' quo_get_env
+#' quo_get_expr
+#' warn
+#'
+NULL
+
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
@@ -35,6 +54,13 @@ seurat_default_options <- list(
   Seurat.Rfast2.msg = TRUE,
   Seurat.warn.vlnplot.split = TRUE
 )
+
+#' @importFrom methods setClassUnion
+#' @importClassesFrom Matrix dgCMatrix
+#'
+NULL
+
+setClassUnion(name = 'V3Matrix', members = c('matrix', 'dgCMatrix'))
 
 AttachDeps <- function(deps) {
   for (d in deps) {
