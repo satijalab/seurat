@@ -7102,24 +7102,13 @@ PrepareBridgeReference <- function (
     laplacian.reduction = laplacian.reduction.name,
     laplacian.dims = laplacian.reduction.dims
   )
-  bridge_reference.set <- new(
-    Class = "BridgeReferenceSet",
-    bridge = bridge,
-    reference = reference.bridge,
-    params = list(
-      reference.reduction = reference.reduction,
-      reference.dims = reference.dims,
-      reference.assay = reference.assay,
-      bridge.ref.assay = bridge.ref.assay,
-      bridge.query.assay = bridge.query.assay,
-      supervised.reduction = supervised.reduction,
-      bridge.ref.reduction = bridge.ref.reduction,
-      bridge.query.reduction = bridge.query.reduction,
-      laplacian.reduction.name = laplacian.reduction.name,
-      laplacian.reduction.dims = laplacian.reduction.dims
-    )
-  )
-  return(bridge_reference.set)
+  reference[['Bridge']] <- reference.bridge[['Bridge']]
+  reference <- merge(x = reference, y = bridge)
+  command <- LogSeuratCommand(object = reference, return.command = TRUE)
+  slot(object = command, name = "params")$bridge.query.features <- NULL
+  command.name <- slot(object = command, name = "name")
+  reference[[command.name]] <- command
+  return(reference)
 }
 
 
@@ -7173,21 +7162,20 @@ FindBridgeTransferAnchors <- function(
   reduction <-  match.arg(arg = reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- slot(object = extended.reference, name = "params")
+  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
   bridge.ref.reduction <- params$bridge.ref.reduction
-  DefaultAssay(extended.reference@bridge) <- bridge.query.assay
-
+  DefaultAssay(extended.reference) <- bridge.query.assay
     query.anchor <- FindTransferAnchors(
-      reference = extended.reference@bridge,
+      reference = extended.reference,
       reference.reduction = bridge.query.reduction,
       dims = dims,
       query = query,
       reduction = reduction,
       scale = scale,
-      features = rownames(extended.reference@bridge[[bridge.query.reduction]]@feature.loadings),
+      features = rownames(Loadings(extended.reference[[bridge.query.reduction]])),
       k.filter = NA,
       verbose = verbose
     )
