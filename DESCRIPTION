@@ -122,4 +122,5 @@ Suggests:
     enrichR,
     mixtools,
     ggrastr,
-    data.table
+    data.table,
+    R.utils
