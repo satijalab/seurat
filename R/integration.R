@@ -6413,10 +6413,10 @@ FindBridgeAnchor <- function(object.list,
       )@misc$bridge.sets <- list(
         bridge.weights =   slot(object = bridge.object,
                                 name = "tools"
-        )$MapQuery$weights.matrix,
+        )$MapQuery_PrepareBridgeReference$weights.matrix,
         bridge.ref_anchor =  slot(object = bridge.object,
                                   name = "tools"
-        )$MapQuery$anchor[,1],
+        )$MapQuery_PrepareBridgeReference$anchor[,1],
         query.weights =  slot(object = object.list[[query]],
                               name = "tools"
         )$MapQuery$weights.matrix,
@@ -7103,7 +7103,8 @@ PrepareBridgeReference <- function (
     laplacian.dims = laplacian.reduction.dims
   )
   reference[['Bridge']] <- reference.bridge[['Bridge']]
-  reference <- merge(x = reference, y = bridge)
+  reference <- merge(x = reference, y = bridge, merge.dr = NA)
+  reference@tools$MapQuery_PrepareBridgeReference <- bridge@tools$MapQuery
   command <- LogSeuratCommand(object = reference, return.command = TRUE)
   slot(object = command, name = "params")$bridge.query.features <- NULL
   command.name <- slot(object = command, name = "name")
@@ -7166,10 +7167,15 @@ FindBridgeTransferAnchors <- function(
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
-  bridge.ref.reduction <- params$bridge.ref.reduction
+  bridge.ref.reduction <-  paste0('ref.', reference.reduction)
   DefaultAssay(extended.reference) <- bridge.query.assay
+  extended.reference.bridge <- DietSeurat(
+    object = extended.reference,
+    assays = bridge.query.assay,
+    dimreducs = c(bridge.ref.reduction, bridge.query.reduction, params$laplacian.reduction.name)
+    )
     query.anchor <- FindTransferAnchors(
-      reference = extended.reference,
+      reference = extended.reference.bridge,
       reference.reduction = bridge.query.reduction,
       dims = dims,
       query = query,
@@ -7181,13 +7187,14 @@ FindBridgeTransferAnchors <- function(
     )
 
   query <- MapQuery(anchorset =  query.anchor,
-                    reference = extended.reference@bridge,
+                    reference = extended.reference.bridge,
                     query = query,
                     store.weights = TRUE
   )
+  DefaultAssay(extended.reference) <- 'Bridge'
   bridge_anchor  <- FindBridgeAnchor(
-    object.list = list(extended.reference@reference, query),
-    bridge.object = extended.reference@bridge,
+    object.list = list(DietSeurat(object = extended.reference, assays = 'Bridge'), query),
+    bridge.object = extended.reference.bridge,
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
     anchor.type = "Transfer",
