@@ -138,8 +138,8 @@ CCAIntegration <- function(
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
   if (normalization.method == 'SCT') {
-    object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
-    object.sct$split <- groups
+    object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
+    object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
    
@@ -205,8 +205,8 @@ RPCAIntegration <- function(
   layers <- layers %||% Layers(object, search = 'data')
 
   if (normalization.method == 'SCT') {
-    object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
-    object.sct$split <- groups
+    object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
+    object.sct$split <- groups[,1]
     
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
@@ -280,10 +280,8 @@ JointPCAIntegration <- function(
   features.diet <- features[1:2]
   assay <- assay %||%  DefaultAssay(object)
   layers <- layers %||% Layers(object, search = 'data')
-
- 
   if (normalization.method == 'SCT') {
-    object.sct <- CreateSeuratObject(counts = object[['SCT']], assay = 'SCT')
+    object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct <- DietSeurat(object = object.sct, features = features.diet)
     object.sct[['joint.pca']] <- CreateDimReducObject(
       embeddings = Embeddings(object = orig),
@@ -291,7 +289,7 @@ JointPCAIntegration <- function(
       loadings = Loadings(orig),
       key = 'J_'
     )
-    object.sct$split <- groups
+    object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features.diet)
     object.list <- lapply(object.list, function(x) {
