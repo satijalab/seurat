@@ -7238,36 +7238,44 @@ FindBridgeIntegrationAnchors <- function(
   integration.reduction = c('direct', 'cca'),
   verbose = TRUE
 ) {
+  browser()
   reduction <-  match.arg(arg = reduction)
   integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- slot(object = extended.reference, name = "params")
+  
+  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
-  bridge.ref.reduction <- params$bridge.ref.reduction
-  DefaultAssay(extended.reference@bridge) <- bridge.query.assay
+  bridge.ref.reduction <- paste0( 'ref.', params$bridge.ref.reduction)
+  DefaultAssay(extended.reference) <- bridge.query.assay
+  extended.reference.bridge <- DietSeurat(
+    object = extended.reference, 
+    assays = bridge.query.assay, 
+    dimreducs = c(bridge.query.reduction, bridge.ref.reduction, params$laplacian.reduction.name)
+    )
   
   query.anchor <- FindTransferAnchors(
-    reference = extended.reference@bridge,
+    reference = extended.reference.bridge,
     reference.reduction = bridge.query.reduction,
     dims = dims,
     query = query,
     reduction = reduction,
     scale = scale,
-    features = rownames(extended.reference@bridge[[bridge.query.reduction]]@feature.loadings),
+    features = rownames(Loadings(extended.reference.bridge[[bridge.query.reduction]])),
     k.filter = NA,
     verbose = verbose
   )
   query <- MapQuery(anchorset =  query.anchor,
-                    reference = extended.reference@bridge,
+                    reference = extended.reference.bridge,
                     query = query,
                     store.weights = TRUE
   )
+  DefaultAssay(extended.reference) <- 'Bridge'
   bridge_anchor  <- FindBridgeAnchor(
-    object.list = list(extended.reference@reference, query),
-    bridge.object = extended.reference@bridge,
+    object.list = list(DietSeurat(object = extended.reference, assays = 'Bridge'), query),
+    bridge.object = extended.reference.bridge,
     reduction = integration.reduction,
     object.reduction = c(reference.reduction, paste0('ref.', bridge.query.reduction)),
     bridge.reduction = c(bridge.ref.reduction, bridge.query.reduction),
