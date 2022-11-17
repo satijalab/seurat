@@ -142,7 +142,7 @@ CCAIntegration <- function(
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
-   
+
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
@@ -207,7 +207,7 @@ RPCAIntegration <- function(
   if (normalization.method == 'SCT') {
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
-    
+
     object.list <- SplitObject(object = object.sct,split.by = 'split')
     object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
     object.list <- lapply(object.list, function(x) {

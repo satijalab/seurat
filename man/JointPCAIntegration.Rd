@@ -12,7 +12,7 @@ JointPCAIntegration(
   new.reduction = "integrated.dr",
   reference = NULL,
   features = NULL,
-  normalization.method = NULL,
+  normalization.method = c("LogNormalize", "SCT"),
   dims = 1:30,
   k.anchor = 20,
   scale.layer = "scale.data",

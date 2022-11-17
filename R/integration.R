@@ -1605,10 +1605,11 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   intdr.assay <- DefaultAssay(object = reductions)
   int.assay <- DefaultAssay(object = object.list[[1]])
   dims.names <- paste0("drtointegrate-", dims.to.integrate)
-  cell.names.map <- Cells(x = unintegrated)
+  # cell.names.map <- Cells(x = unintegrated)
+  cell.names.map <- colnames(x = unintegrated)
   names(x = cell.names.map) <- make.unique(names = unname(obj = do.call(
     what = c,
-    args = lapply(X = object.list, FUN = Cells)))
+    args = lapply(X = object.list, FUN = colnames)))
   )
   for (i in 1:length(x = object.list)) {
     embeddings <- t(x = Embeddings(object = reductions)[cell.names.map[Cells(x = object.list[[i]])], dims.to.integrate])
@@ -5938,8 +5939,8 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
 
 
 #' Convert Neighbor class to an asymmetrical Graph class
-#' 
-#' 
+#'
+#'
 #' @param nn.object A neighbor class object
 #' @param col.cells Cells names of the neighbors, cell names in nn.object is used by default
 #' @param weighted Determine if use distance in the Graph
@@ -7208,7 +7209,7 @@ FindBridgeTransferAnchors <- function(
 
 
 #' Find integration bridge anchors between query and extended bridge-reference
-#' 
+#'
 #' Find a set of anchors between unimodal query and the other unimodal reference
 #' using a pre-computed \code{\link{BridgeReferenceSet}}.
 #' These integration anchors can later be used to integrate query and reference
@@ -7223,7 +7224,7 @@ FindBridgeTransferAnchors <- function(
 #'    \item{cca: perform cca on the on the bridge representation space and then find anchors
 #' }
 #' }
-#' 
+#'
 #' @export
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{IntegrateEmbeddings}}.
@@ -7242,20 +7243,20 @@ FindBridgeIntegrationAnchors <- function(
   integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  
+
   params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
   bridge.ref.reduction <- paste0( 'ref.', params$bridge.ref.reduction)
   DefaultAssay(extended.reference) <- bridge.query.assay
-  
+
   extended.reference.bridge <- DietSeurat(
-    object = extended.reference, 
-    assays = bridge.query.assay, 
+    object = extended.reference,
+    assays = bridge.query.assay,
     dimreducs = c(bridge.query.reduction, bridge.ref.reduction, params$laplacian.reduction.name)
     )
-  
+
   query.anchor <- FindTransferAnchors(
     reference = extended.reference.bridge,
     reference.reduction = bridge.query.reduction,
@@ -7424,7 +7425,7 @@ FastRPCAIntegration <- function(
                          y = object.list[2:length(object.list)]
 
   )
-  
+
   anchor.feature <- slot(object = anchor, name = 'anchor.features')
   if (normalization.method != 'SCT') {
     object_merged <- ScaleData(object = object_merged,
