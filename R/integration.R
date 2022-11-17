@@ -7238,7 +7238,6 @@ FindBridgeIntegrationAnchors <- function(
   integration.reduction = c('direct', 'cca'),
   verbose = TRUE
 ) {
-  browser()
   reduction <-  match.arg(arg = reduction)
   integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
@@ -7250,6 +7249,7 @@ FindBridgeIntegrationAnchors <- function(
   reference.reduction <- params$reference.reduction
   bridge.ref.reduction <- paste0( 'ref.', params$bridge.ref.reduction)
   DefaultAssay(extended.reference) <- bridge.query.assay
+  
   extended.reference.bridge <- DietSeurat(
     object = extended.reference, 
     assays = bridge.query.assay, 
