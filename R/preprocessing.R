@@ -8,7 +8,7 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 globalVariables(
-  names = c('fov', 'cell_ID'),
+  names = c('fov', 'cell_ID', 'qv'),
   package = 'Seurat',
   add = TRUE
 )
@@ -1994,18 +1994,6 @@ ReadNanostring <- function(
 #' @param mols.qv.threshold Remove transcript molecules with
 #' a QV less than this threshold. QV >= 20 is the standard threshold
 #' used to construct the cell x gene count matrix.
-#' @param mols.filter Filter molecules that match provided string
-#' @param genes.filter Filter genes from cell x gene matrix that match
-#' provided string
-
-#' @param subset.counts.matrix If the counts matrix should be built from
-#' molecule coordinates for a specific segmentation; One of:
-#' \itemize{
-#'  \item \dQuote{Nuclear}: nuclear segmentations
-#'  \item \dQuote{Cytoplasm}: cell cytoplasm segmentations
-#'  \item \dQuote{Membrane}: cell membrane segmentations
-#' }
-#' @param cell.mols.only If TRUE, only load molecules within a cell
 #'
 #' @return \code{ReadXenium}: A list with some combination of the
 #' following values:

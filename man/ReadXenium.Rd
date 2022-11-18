@@ -5,7 +5,7 @@
 \alias{ReadXenium}
 \title{Read and Load 10x Genomics Xenium in-situ data}
 \usage{
-LoadXenium(data.dir, fov, assay = "Xenium")
+LoadXenium(data.dir, fov = "fov", assay = "Xenium")
 
 ReadXenium(
   data.dir,
@@ -17,6 +17,10 @@ ReadXenium(
 \arguments{
 \item{data.dir}{Directory containing all Xenium output files with
 default filenames}
+
+\item{fov}{FOV name}
+
+\item{assay}{Assay name}
 
 \item{outs}{Types of molecular outputs to read; choose one or more of:
 \itemize{
@@ -34,21 +38,6 @@ or more of:
 \item{mols.qv.threshold}{Remove transcript molecules with
 a QV less than this threshold. QV >= 20 is the standard threshold
 used to construct the cell x gene count matrix.}
-
-\item{mols.filter}{Filter molecules that match provided string}
-
-\item{genes.filter}{Filter genes from cell x gene matrix that match
-provided string}
-
-\item{subset.counts.matrix}{If the counts matrix should be built from
-molecule coordinates for a specific segmentation; One of:
-\itemize{
- \item \dQuote{Nuclear}: nuclear segmentations
- \item \dQuote{Cytoplasm}: cell cytoplasm segmentations
- \item \dQuote{Membrane}: cell membrane segmentations
-}}
-
-\item{cell.mols.only}{If TRUE, only load molecules within a cell}
 }
 \value{
 \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object

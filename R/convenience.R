@@ -172,6 +172,10 @@ LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
 
 #' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
 #'
+#' @param data.dir Path to folder containing Nanostring SMI outputs
+#' @param fov FOV name
+#' @param assay Assay name
+#'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
 #' CreateSegmentation CreateSeuratObject
 #'
