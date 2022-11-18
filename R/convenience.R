@@ -7,6 +7,208 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param fov Name to store FOV as
+#' @param assay Name to store expression matrix as
+#' @inheritDotParams ReadAkoya
+#'
+#' @return \code{LoadAkoya}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @importFrom SeuratObject Cells CreateFOV CreateSeuratObject
+#'
+#' @export
+#'
+#' @rdname ReadAkoya
+#'
+LoadAkoya <- function(
+  filename,
+  type = c('inform', 'processor', 'qupath'),
+  fov,
+  assay = 'Akoya',
+  ...
+) {
+  # read in matrix and centroids
+  data <- ReadAkoya(filename = filename, type = type)
+  # convert centroids into coords object
+  coords <- suppressWarnings(expr = CreateFOV(
+    coords = data$centroids,
+    type = 'centroids',
+    key = 'fov',
+    assay = assay
+  ))
+  colnames(x = data$metadata) <- suppressWarnings(
+    expr = make.names(names = colnames(x = data$metadata))
+  )
+  # build Seurat object from matrix
+  obj <- CreateSeuratObject(
+    counts = data$matrix,
+    assay = assay,
+    meta.data = data$metadata
+  )
+  # make sure coords only contain cells in seurat object
+  coords <- subset(x = coords, cells = Cells(x = obj))
+  suppressWarnings(expr = obj[[fov]] <- coords) # add image to seurat object
+  # Add additional assays
+  for (i in setdiff(x = names(x = data), y = c('matrix', 'centroids', 'metadata'))) {
+    suppressWarnings(expr = obj[[i]] <- CreateAssayObject(counts = data[[i]]))
+  }
+  return(obj)
+}
+
+#' @inheritParams ReadAkoya
+#' @param data.dir Path to a directory containing Vitessce cells
+#' and clusters JSONs
+#'
+#' @return \code{LoadHuBMAPCODEX}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @importFrom SeuratObject Cells CreateFOV CreateSeuratObject
+#'
+#' @export
+#'
+#' @rdname ReadVitessce
+#'
+LoadHuBMAPCODEX <- function(data.dir, fov, assay = 'CODEX') {
+  data <- ReadVitessce(
+    counts = file.path(data.dir, "reg1_stitched_expressions.clusters.json"),
+    coords = file.path(data.dir, "reg1_stitched_expressions.cells.json"),
+    type = "segmentations"
+  )
+  # Create spatial and Seurat objects
+  coords <- CreateFOV(
+    coords = data$segmentations,
+    molecules = data$molecules,
+    assay = assay
+  )
+  obj <- CreateSeuratObject(counts = data$counts, assay = assay)
+  # make sure spatial coords only contain cells in seurat object
+  coords <- subset(x = coords, cells = Cells(x = obj))
+  obj[[fov]] <- coords
+  return(obj)
+}
+
+#' @inheritParams ReadAkoya
+#' @param data.dir Path to folder containing Nanostring SMI outputs
+#'
+#' @return \code{LoadNanostring}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @importFrom SeuratObject Cells CreateCentroids CreateFOV
+#' CreateSegmentation CreateSeuratObject
+#'
+#' @export
+#'
+#' @rdname ReadNanostring
+#'
+LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
+  data <- ReadNanostring(
+    data.dir = data.dir,
+    type = c("centroids", "segmentations")
+  )
+  segs <- CreateSegmentation(data$segmentations)
+  cents <- CreateCentroids(data$centroids)
+  segmentations.data <- list(
+    "centroids" = cents,
+    "segmentation" = segs
+  )
+  coords <- CreateFOV(
+    coords = segmentations.data,
+    type = c("segmentation", "centroids"),
+    molecules = data$pixels,
+    assay = assay
+  )
+  obj <- CreateSeuratObject(counts = data$matrix, assay = assay)
+
+  # subset both object and coords based on the cells shared by both
+  cells <- intersect(
+    Cells(x = coords, boundary = "segmentation"),
+    Cells(x = coords, boundary = "centroids")
+  )
+  cells <- intersect(Cells(obj), cells)
+  coords <- subset(x = coords, cells = cells)
+  obj[[fov]] <- coords
+  return(obj)
+}
+
+#' @return \code{LoadVizgen}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @importFrom SeuratObject Cells CreateCentroids CreateFOV
+#' CreateSegmentation CreateSeuratObject
+#'
+#' @export
+#'
+#' @rdname ReadVizgen
+#'
+LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
+  data <- ReadVizgen(
+    data.dir = data.dir,
+    filter = "^Blank-",
+    type = c("centroids", "segmentations"),
+    z = z
+  )
+  segs <- CreateSegmentation(data$segmentations)
+  cents <- CreateCentroids(data$centroids)
+  segmentations.data <- list(
+    "centroids" = cents,
+    "segmentation" = segs
+  )
+  coords <- CreateFOV(
+    coords = segmentations.data,
+    type = c("segmentation", "centroids"),
+    molecules = data$microns,
+    assay = assay
+  )
+  obj <- CreateSeuratObject(counts = data$transcripts, assay = assay)
+  # only consider the cells we have counts and a segmentation for
+  # Cells which don't have a segmentation are probably found in other z slices.
+  coords <- subset(
+    x = coords,
+    cells = intersect(
+      x = Cells(x = coords[["segmentation"]]),
+      y = Cells(x = obj)
+    )
+  )
+  # add coords to seurat object
+  obj[[fov]] <- coords
+  return(obj)
+}
+
+#' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
+#'
+#' @param data.dir Path to folder containing Nanostring SMI outputs
+#' @param fov FOV name
+#' @param assay Assay name
+#'
+#' @importFrom SeuratObject Cells CreateCentroids CreateFOV
+#' CreateSegmentation CreateSeuratObject
+#'
+#' @export
+#'
+#' @rdname ReadXenium
+#'
+LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
+  data <- ReadXenium(
+    data.dir = data.dir,
+    type = c("centroids", "segmentations"),
+  )
+
+  segmentations.data <- list(
+    "centroids" = CreateCentroids(data$centroids),
+    "segmentation" = CreateSegmentation(data$segmentations)
+  )
+  coords <- CreateFOV(
+    coords = segmentations.data,
+    type = c("segmentation", "centroids"),
+    molecules = data$microns,
+    assay = assay
+  )
+
+  xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
+  xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
+  xenium.obj[["ControlCodeword"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
+  xenium.obj[["ControlProbe"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
+
+  xenium.obj[[fov]] <- coords
+  return(xenium.obj)
+}
+
 #' @param ... Extra parameters passed to \code{DimHeatmap}
 #'
 #' @rdname DimHeatmap
