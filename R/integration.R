@@ -4484,7 +4484,8 @@ PairwiseIntegrateReference <- function(
     scale.data = matrix(),
     var.features = vector(),
     meta.features = data.frame(row.names = rownames(x = integrated.data)),
-    misc = NULL
+    misc = NULL,
+    key = paste0(new.assay.name, "_")
   )
   unintegrated[[new.assay.name]] <- new.assay
   # "unintegrated" now contains the integrated assay
@@ -5091,7 +5092,8 @@ TransformDataMatrix <- function(
     scale.data = matrix(),
     var.features = vector(),
     meta.features = data.frame(row.names = rownames(x = new.expression)),
-    misc = NULL
+    misc = NULL,
+    key = paste0(new.assay.name, "_")
   )
   object[[new.assay.name]] <- new.assay
   return(object)
