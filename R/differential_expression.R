@@ -685,6 +685,11 @@ FindMarkers.Assay <- function(
   return(de.results)
 }
 
+#' @method FindMarkers StdAssay
+#' @export
+#'
+FindMarkers.StdAssay <- FindMarkers.Assay
+
 #' @param recorrect_umi Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
@@ -1111,6 +1116,11 @@ FoldChange.Assay <- function(
     fc.name = fc.name
   )
 }
+
+#' @method FoldChange StdAssay
+#' @export
+#'
+FoldChange.StdAssay <- FoldChange.Assay
 
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
