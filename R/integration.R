@@ -3048,7 +3048,13 @@ SelectIntegrationFeatures5 <- function(
 
 #' @export
 #'
-SelectSCTIntegrationFeatures <- function(object, nfeatures = 3000, assay = NULL, verbose = TRUE, ...) {
+SelectSCTIntegrationFeatures <- function(
+  object,
+  nfeatures = 3000,
+  assay = NULL,
+  verbose = TRUE,
+  ...
+) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!inherits(x = object[[assay]], what = 'SCTAssay')) {
     abort(message = "'assay' must be an SCTAssay")
