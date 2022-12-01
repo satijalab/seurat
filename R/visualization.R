@@ -830,7 +830,7 @@ DimPlot <- function(
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   # cells <- cells %||% colnames(x = object)
-  
+
   ##### Cells for all cells in the assay.
   #### Cells function should not only get default layer
   cells <- cells %||% Cells(
@@ -1117,7 +1117,7 @@ FeaturePlot <- function(
   }
   # Name the reductions
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  cells <- cells %||% colnames(x = object)
+  cells <- cells %||% Cells(x = object[[reduction]])
   # Get plotting data
   data <- FetchData(
     object = object,
