@@ -638,17 +638,9 @@ ScaleData.StdAssay <- function(
       message = "'use.umi' is TRUE, please make sure 'layer' specifies raw counts"
     )
   }
-  features <- features %||% Reduce(
-    f = union,
-    x = lapply(
-      X = layer,
-      FUN = function(x) {
-        return(VariableFeatures(object = object, layer = x))
-      }
-    )
-  )
+  features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
-    features <- Reduce(f = union, x = lapply(X = layer, FUN = Features, x = object))
+    features <- Features(x = object, layer = layer)
   }
   if (isTRUE(x = by.layer)) {
     if (length(x = save) != length(x = layer)) {
