@@ -361,7 +361,7 @@ attr(x = JointPCAIntegration, which = 'Seurat.method') <- 'integration'
 IntegrateLayers <- function(
   object,
   method,
-  orig = NULL,
+  orig = 'pca',
   group.by = NULL,
   assay = NULL,
   features = NULL,
@@ -394,10 +394,16 @@ IntegrateLayers <- function(
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
     layers <- Layers(object = object, assay = assay, search = layers)
     scale.layer <- Layers(object = object, search = scale.layer)
-    features <- features %||% SelectIntegrationFeatures5(
+    features <- features %||% VariableFeatures(
       object = object,
-      assay = assay
+      assay = assay,
+      layer = layers,
+      nfeatures = 2000L
     )
+    # features <- features %||% SelectIntegrationFeatures5(
+    #   object = object,
+    #   assay = assay
+    # )
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
   }

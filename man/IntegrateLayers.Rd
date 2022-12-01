@@ -7,7 +7,7 @@
 IntegrateLayers(
   object,
   method,
-  orig = NULL,
+  orig = "pca",
   group.by = NULL,
   assay = NULL,
   features = NULL,
