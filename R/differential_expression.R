@@ -972,6 +972,18 @@ FindMarkers.Seurat <- function(
     ident.2 = ident.2,
     cellnames.use = cellnames.use
   )
+  cells <- sapply(
+    X = cells,
+    FUN = intersect,
+    y = cellnames.use,
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (!all(vapply(X = cells, FUN = length, FUN.VALUE = integer(length = 1L)))) {
+    abort(
+      message = "Cells in one or both identity groups are not present in the data requested"
+    )
+  }
   # fetch latent.vars
   if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
