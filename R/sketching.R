@@ -115,9 +115,13 @@ LeverageScoreSampling <- function(
       if (!is.na(x = seed)) {
         set.seed(seed = seed)
       }
+      lcells <- Cells(x = object[[assay]], layer = vars[i])
+      if (length(x = lcells) < ncells) {
+        return(lcells)
+      }
       return(sample(
-        x = Cells(x = object[[assay]], layer = vars[i]),
-        size = ncells,
+        x = lcells,
+        size = min(ncells),
         prob = object[[names(x = vars)[i], drop = TRUE, na.rm = TRUE]]
       ))
     },
@@ -167,10 +171,14 @@ LeverageScore.default <- function(
 ) {
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
+  if (ncells < nsketch) {
+    warn(message = "Too few cells to sketch, returning score of 1")
+    return(rep_len(x = 1L, length.out = ncells))
+  }
   if (nrow(x = object) > 5000L) {
-    stop("too slow", call. = FALSE)
+    abort(message = "too slow")
   } else if (nrow(x = object) > (ncells / 1.1)) {
-    stop("too square", call. = FALSE)
+    abort(message = "too square")
   }
   ndims <- ndims %||% ncells
   if (nsketch < (1.1 * nrow(x = object))) {
@@ -341,7 +349,7 @@ LeverageScore.StdAssay <- function(
 
 #' @method LeverageScore Assay
 #' @export
-#' 
+#'
 LeverageScore.Assay <- LeverageScore.StdAssay
 
 
@@ -502,9 +510,9 @@ SketchMatrixProd <- function(
     method = CountSketch,
     block.size = 1e9,
     nsketch = 5000L,
-    seed = 123L, 
+    seed = 123L,
     ...) {
-  
+
   if (is_quosure(x = method)) {
     method <- eval(
       expr = quo_get_expr(quo = method),
@@ -522,7 +530,7 @@ SketchMatrixProd <- function(
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
     block <- DelayedArray::read_block(x = object, viewport = vp, as.sparse = sparse)
-    
+
     if (sparse) {
       block <- as(object = block, Class = 'dgCMatrix')
     } else {
