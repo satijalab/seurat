@@ -1219,7 +1219,7 @@ PseudobulkExpression <- function(
   if (!(pb.method %in% c('average', 'aggregate'))) {
     stop("'pb.method' must be either 'average' or 'aggregate'")
   }
-  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
     assays <- assays[assays %in% object.assays]
@@ -1295,6 +1295,8 @@ PseudobulkExpression <- function(
       })
   }
   data.return <- list()
+  
+
   for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
       object = object,
@@ -1332,7 +1334,11 @@ PseudobulkExpression <- function(
         warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
       }
     }
-    data.return[[i]] <- data.use %*% category.matrix
+    if (inherits(x = data.use, what = 'DelayedArray')) {
+      data.return[[i]] <- tcrossprod_DelayedAssay(x = data.use, y = t(category.matrix))
+    } else {
+      data.return[[i]] <- data.use %*% category.matrix
+    }
     names(x = data.return)[i] <- assays[[i]]
   }
   if (return.seurat) {
@@ -2465,6 +2471,37 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
   }
   product.mat <- matrix(data = unlist(product.list), nrow = ncol(x) , ncol = ncol(y))
   colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- rownames(x)
+  return(product.mat)
+}
+ 
+# transpose cross product from delayed array
+#
+tcrossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform  x  %*% t(y) in blocks for x
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (ncol(x) != ncol(y)) {
+    stop('column of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  product.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    vp.range <- vp@ranges[2]@start : (vp@ranges[2]@start + vp@ranges[2]@width - 1)
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    product.list[[i]] <- as.matrix( block %*% t(y[,vp.range]))
+  }
+  product.mat <-  Reduce(f = '+', product.list)
+  colnames(product.mat) <- rownames(y)
   rownames(product.mat) <- rownames(x)
   return(product.mat)
 }
