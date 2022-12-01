@@ -155,6 +155,7 @@ LeverageScoreSampling <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @importFrom Matrix qrR t
+#' @importFrom irlba irlba
 #'
 #' @method LeverageScore default
 #' @export
@@ -172,8 +173,8 @@ LeverageScore.default <- function(
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
   if (ncells < nsketch) {
-    warn(message = "Too few cells to sketch, returning score of 1")
-    return(rep_len(x = 1L, length.out = ncells))
+    Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
+    return(rowSums(x = Z ^ 2))
   }
   if (nrow(x = object) > 5000L) {
     abort(message = "too slow")
