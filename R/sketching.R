@@ -298,16 +298,16 @@ LeverageScore.DelayedMatrix <- function(
 }
 
 
-
 #' @method LeverageScore StdAssay
 #' @export
 #'
 LeverageScore.StdAssay <- function(
   object,
-  features = NULL,
+  # features = NULL,
   nsketch = 5000L,
   ndims = NULL,
   method = CountSketch,
+  vf.method = NULL,
   layer = 'data',
   eps = 0.5,
   seed = 123L,
@@ -331,7 +331,11 @@ LeverageScore.StdAssay <- function(
       object = LayerData(
         object = object,
         layer = l,
-        features = features %||% VariableFeatures(object = object, layer = l),
+        features = VariableFeatures(
+          object = object,
+          method = vf.method,
+          layer = l
+        ),
         fast = TRUE
       ),
       nsketch = nsketch,
@@ -347,13 +351,10 @@ LeverageScore.StdAssay <- function(
   return(scores)
 }
 
-
 #' @method LeverageScore Assay
 #' @export
 #'
 LeverageScore.Assay <- LeverageScore.StdAssay
-
-
 
 #' @method LeverageScore Seurat
 #' @export
@@ -361,10 +362,11 @@ LeverageScore.Assay <- LeverageScore.StdAssay
 LeverageScore.Seurat <- function(
   object,
   assay = NULL,
-  features = NULL,
+  # features = NULL,
   nsketch = 5000L,
   ndims = NULL,
   method = CountSketch,
+  vf.method = NULL,
   layer = 'data',
   eps = 0.5,
   seed = 123L,
@@ -376,10 +378,11 @@ LeverageScore.Seurat <- function(
   method <- enquo(arg = method)
   scores <- LeverageScore(
     object = object[[assay]],
-    features = features,
+    # features = features,
     nsketch = nsketch,
     ndims = ndims,
     method = method,
+    vf.method = vf.method,
     layer = layer,
     eps = eps,
     seed = seed,
