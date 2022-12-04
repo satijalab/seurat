@@ -133,6 +133,7 @@ CCAIntegration <- function(
     scale.layer = 'scale.data',
     verbose = TRUE,
     ...) {
+  op <- options(Seurat.object.assay.version = "v3")
   normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
@@ -174,6 +175,7 @@ CCAIntegration <- function(
                                        )
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
+  on.exit(expr = options(op), add = TRUE)
   return(output.list)
 }
 
@@ -199,6 +201,7 @@ RPCAIntegration <- function(
     groups = NULL,
     verbose = TRUE,
     ...) {
+  op <- options(Seurat.object.assay.version = "v3")
   normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
@@ -249,6 +252,7 @@ RPCAIntegration <- function(
 
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
+  on.exit(expr = options(op), add = TRUE)
   return(output.list)
 }
 
@@ -275,6 +279,7 @@ JointPCAIntegration <- function(
     groups = NULL,
     ...
 ) {
+  op <- options(Seurat.object.assay.version = "v3")
   normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   features.diet <- features[1:2]
@@ -328,6 +333,7 @@ JointPCAIntegration <- function(
                                        verbose = verbose)
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
+  on.exit(expr = options(op), add = TRUE)
   return(output.list)
 }
 
