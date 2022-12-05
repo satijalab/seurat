@@ -1469,7 +1469,7 @@ RunUMAP.default <- function(
       }
       if (is.list(x = object)) {
         if (ncol(object$idx) != model$n_neighbors) {
-          warning("Number of neighbors between query and reference ", 
+          warning("Number of neighbors between query and reference ",
           "is not equal to the number of neighbors within reference")
           model$n_neighbors <- ncol(object$idx)
         }
@@ -1773,7 +1773,7 @@ RunUMAP.Seurat <- function(
   dens.var.shift = 0.1,
   verbose = TRUE,
   reduction.name = 'umap',
-  reduction.key = 'UMAP_',
+  reduction.key = NULL,
   ...
 ) {
   CheckDots(...)
@@ -1857,7 +1857,7 @@ RunUMAP.Seurat <- function(
     dens.lambda = dens.lambda,
     dens.frac = dens.frac,
     dens.var.shift = dens.var.shift,
-    reduction.key = reduction.key,
+    reduction.key = reduction.key %||% Key(object = reduction.name, quiet = TRUE),
     verbose = verbose
   )
   object <- LogSeuratCommand(object = object)
