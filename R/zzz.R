@@ -8,6 +8,7 @@
 #' check_installed
 #' enquo
 #' inform
+#' is_integerish
 #' is_na
 #' is_quosure
 #' is_scalar_integerish

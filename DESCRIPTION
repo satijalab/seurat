@@ -27,7 +27,7 @@ BugReports: https://github.com/satijalab/seurat/issues
 Depends:
     R (>= 4.0.0),
     methods,
-    SeuratObject (>= 4.9.9.9044)
+    SeuratObject (>= 4.9.9.9045)
 Imports:
     cluster,
     cowplot,

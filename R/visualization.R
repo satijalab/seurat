@@ -825,25 +825,33 @@ DimPlot <- function(
   raster = NULL,
   raster.dpi = c(512, 512)
 ) {
-  if (length(x = dims) != 2) {
-    stop("'dims' must be a two-length vector")
+  if (!is_bare_integerish(x = dims, n = 2L, finite = TRUE) || !all(dims > 0L)) {
+    abort(message = "'dims' must be a two-length integer vector")
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
   # cells <- cells %||% colnames(x = object)
-
   ##### Cells for all cells in the assay.
   #### Cells function should not only get default layer
   cells <- cells %||% Cells(
     x = object,
     assay = DefaultAssay(object = object[[reduction]])
   )
-  data <- Embeddings(object = object[[reduction]])[cells, dims]
-  data <- as.data.frame(x = data)
+  # data <- Embeddings(object = object[[reduction]])[cells, dims]
+  # data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  object[['ident']] <- Idents(object = object)
   orig.groups <- group.by
   group.by <- group.by %||% 'ident'
-  data <- cbind(data, object[[group.by]][cells, , drop = FALSE])
+  data <- FetchData(
+    object = object,
+    vars = c(dims, group.by),
+    cells = cells,
+    clean = 'project'
+  )
+  # cells <- rownames(x = object)
+  # object[['ident']] <- Idents(object = object)
+  # orig.groups <- group.by
+  # group.by <- group.by %||% 'ident'
+  # data <- cbind(data, object[[group.by]][cells, , drop = FALSE])
   group.by <- colnames(x = data)[3:ncol(x = data)]
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
