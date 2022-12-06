@@ -2043,9 +2043,12 @@ VariableFeaturePlot <- function(
     selection.method = selection.method,
     status = TRUE
   )
-  var.status <- c('no', 'yes')[unlist(x = hvf.info[, ncol(x = hvf.info)]) + 1]
+  status.col <- colnames(hvf.info)[grepl("variable", colnames(hvf.info))][[1]]
+  var.status <- c('no', 'yes')[unlist(hvf.info[[status.col]]) + 1]
   if (colnames(x = hvf.info)[3] == 'dispersion.scaled') {
     hvf.info <- hvf.info[, c(1, 2)]
+  } else if (colnames(x = hvf.info)[3] == 'variance.expected') {
+    hvf.info <- hvf.info[, c(1, 4)]
   } else {
     hvf.info <- hvf.info[, c(1, 3)]
   }
