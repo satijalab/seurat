@@ -2609,24 +2609,6 @@ Collections <- function(object) {
   return(names(x = collections))
 }
 
-# Calculate nCount and nFeature
-#
-# @param object An Assay object
-#
-# @return A named list with nCount and nFeature
-#
-#' @importFrom Matrix colSums
-#
-CalcN <- function(object) {
-  if (IsMatrixEmpty(x = GetAssayData(object = object, slot = "counts"))) {
-    return(NULL)
-  }
-  return(list(
-    nCount = colSums(x = object, slot = 'counts'),
-    nFeature = colSums(x = GetAssayData(object = object, slot = 'counts') > 0)
-  ))
-}
-
 # Get the default image of an object
 #
 # Attempts to find all images associated with the default assay of the object.
