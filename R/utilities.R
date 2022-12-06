@@ -1159,10 +1159,14 @@ PercentageFeatureSet <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = features) && !is.null(x = pattern)) {
-    warning("Both pattern and features provided. Pattern is being ignored.")
+    warn(message = "Both pattern and features provided. Pattern is being ignored.")
   }
-  features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
-  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE])/
+  features <- features %||% grep(
+    pattern = pattern,
+    x = rownames(x = object[[assay]]),
+    value = TRUE
+  )
+  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE]) /
     object[[paste0("nCount_", assay)]] * 100
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
@@ -1295,7 +1299,7 @@ PseudobulkExpression <- function(
       })
   }
   data.return <- list()
-  
+
 
   for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
@@ -2474,7 +2478,7 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
   rownames(product.mat) <- rownames(x)
   return(product.mat)
 }
- 
+
 # transpose cross product from delayed array
 #
 tcrossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
@@ -2532,7 +2536,7 @@ crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e8) {
   }
   norm.vector <- unlist(norm.list)
   return(norm.vector)
-  
+
 }
 
 # row mean from delayed array
@@ -2577,12 +2581,12 @@ RowVarDelayedAssay <- function(x, block.size = 1e8) {
   } else {
     row.sum.function <- rowSums2
   }
-  
+
   suppressMessages(setAutoBlockSize(size = block.size))
   cells.grid <- DelayedArray::colAutoGrid(x = x)
   sum2.list <- list()
   sum.list <- list()
-  
+
   for (i in seq_len(length.out = length(x = cells.grid))) {
     vp <- cells.grid[[i]]
     block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
@@ -2596,7 +2600,7 @@ RowVarDelayedAssay <- function(x, block.size = 1e8) {
   }
   sum.mat <- Reduce('+', sum.list)
   sum2.mat <- Reduce('+', sum2.list)
-  var.mat <- sum2.mat/ncol(x) - (sum.mat/ncol(x))**2 
+  var.mat <- sum2.mat/ncol(x) - (sum.mat/ncol(x))**2
   var.mat <- var.mat * ncol(counts) / (ncol(counts) - 1)
   return(var.mat)
 }
