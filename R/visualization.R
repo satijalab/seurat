@@ -1951,7 +1951,6 @@ FeatureScatter <- function(
     set.seed(seed = seed)
     cells <- sample(x = cells)
   }
-  object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data <-  FetchData(
     object = object,
@@ -1959,15 +1958,15 @@ FeatureScatter <- function(
     cells = cells,
     slot = slot
   )
-  if (!grepl(pattern = feature1, x = colnames(x = data)[1])) {
-    stop("Feature 1 (", feature1, ") not found.", call. = FALSE)
+  if (!grepl(pattern = feature1, x = names(x = data)[1])) {
+    abort(message = paste("Feature 1", sQuote(x = feature1), "not found"))
   }
-  if (!grepl(pattern = feature2, x = colnames(x = data)[2])) {
-    stop("Feature 2 (", feature2, ") not found.", call. = FALSE)
+  if (!grepl(pattern = feature2, x = names(x = data)[2])) {
+    abort(message = paste("Feature 2", sQuote(x = feature2), "not found"))
   }
-  data <- as.data.frame(x = data)
-  feature1 <-  colnames(x = data)[1]
-  feature2 <-  colnames(x = data)[2]
+  feature1 <-  names(x = data)[1]
+  feature2 <-  names(x = data)[2]
+  group.by <- intersect(x = group.by, y = names(x = data)[3:ncol(x = data)])
   for (group in group.by) {
     if (!is.factor(x = data[, group])) {
       data[, group] <- factor(x = data[, group])
