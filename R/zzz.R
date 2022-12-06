@@ -3,6 +3,7 @@
 #' deprecate_warn is_present
 #' @importFrom rlang abort
 #' arg_match
+#' arg_match0
 #' as_name
 #' caller_env
 #' check_installed

@@ -825,7 +825,7 @@ DimPlot <- function(
   raster = NULL,
   raster.dpi = c(512, 512)
 ) {
-  if (!is_bare_integerish(x = dims, n = 2L, finite = TRUE) || !all(dims > 0L)) {
+  if (!is_integerish(x = dims, n = 2L, finite = TRUE) || !all(dims > 0L)) {
     abort(message = "'dims' must be a two-length integer vector")
   }
   reduction <- reduction %||% DefaultDimReduc(object = object)
@@ -1026,25 +1026,21 @@ FeaturePlot <- function(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = NULL,
+  sort.cell = deprecated(),
   interactive = FALSE,
   combine = TRUE,
   raster = NULL,
   raster.dpi = c(512, 512)
 ) {
   # TODO: deprecate fully on 3.2.0
-  if (!is.null(x = sort.cell)) {
-    warning(
-      "The sort.cell parameter is being deprecated. Please use the order ",
-      "parameter instead for equivalent functionality.",
-      call. = FALSE,
-      immediate. = TRUE
+  if (is_present(arg = sort.cell)) {
+    deprecate_stop(
+      when = '4.9.0',
+      what = 'FeaturePlot(sort.cell = )',
+      with = 'FeaturePlot(order = )'
     )
-    if (isTRUE(x = sort.cell)) {
-      order <- sort.cell
-    }
   }
-  if (interactive) {
+  if (isTRUE(x = interactive)) {
     return(IFeaturePlot(
       object = object,
       feature = features[1],
@@ -1054,8 +1050,8 @@ FeaturePlot <- function(
     ))
   }
   # Check keep.scale param for valid entries
-  if (!(is.null(x = keep.scale)) && !(keep.scale %in% c("feature", "all"))) {
-    stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
+  if (!is.null(x = keep.scale)) {
+    keep.scale <- arg_match0(arg = keep.scale, values = c('feature', 'all'))
   }
   # Set a theme to remove right-hand Y axis lines
   # Also sets right-hand Y axis text label formatting
@@ -1071,57 +1067,47 @@ FeaturePlot <- function(
   )
   # Get the DimReduc to use
   reduction <- reduction %||% DefaultDimReduc(object = object)
-  if (length(x = dims) != 2 || !is.numeric(x = dims)) {
-    stop("'dims' must be a two-length integer vector")
+  if (!is_integerish(x = dims, n = 2L, finite = TRUE) && !all(dims > 0L)) {
+    abort(message = "'dims' must be a two-length integer vector")
   }
   # Figure out blending stuff
-  if (blend && length(x = features) != 2) {
-    stop("Blending feature plots only works with two features")
+  if (isTRUE(x = blend) && length(x = features) != 2) {
+    abort(message = "Blending feature plots only works with two features")
   }
   # Set color scheme for blended FeaturePlots
-  if (blend) {
+  if (isTRUE(x = blend)) {
     default.colors <- eval(expr = formals(fun = FeaturePlot)$cols)
     cols <- switch(
       EXPR = as.character(x = length(x = cols)),
       '0' = {
-        warning(
-          "No colors provided, using default colors",
-          call. = FALSE,
-          immediate. = TRUE
-        )
+        warn(message = "No colors provided, using default colors")
         default.colors
       },
       '1' = {
-        warning(
-          "Only one color provided, assuming specified is double-negative and augmenting with default colors",
-          call. = FALSE,
-          immediate. = TRUE
-        )
+        warn(message = paste(
+          "Only one color provided, assuming",
+          sQuote(x = cols),
+          "is double-negative and augmenting with default colors"
+        ))
         c(cols, default.colors[2:3])
       },
       '2' = {
-        warning(
-          "Only two colors provided, assuming specified are for features and agumenting with '",
-          default.colors[1],
-          "' for double-negatives",
-          call. = FALSE,
-          immediate. = TRUE
-        )
+        warn(message = paste(
+          "Only two colors provided, assuming specified are for features and agumenting with",
+          sQuote(default.colors[1]),
+          "for double-negatives",
+        ))
         c(default.colors[1], cols)
       },
       '3' = cols,
       {
-        warning(
-          "More than three colors provided, using only first three",
-          call. = FALSE,
-          immediate. = TRUE
-        )
+        warn(message = "More than three colors provided, using only first three")
         cols[1:3]
       }
     )
   }
-  if (blend && length(x = cols) != 3) {
-    stop("Blending feature plots only works with three colors; first one for negative cells")
+  if (isTRUE(x = blend) && length(x = cols) != 3) {
+    abort("Blending feature plots only works with three colors; first one for negative cells")
   }
   # Name the reductions
   dims <- paste0(Key(object = object[[reduction]]), dims)
@@ -1135,15 +1121,14 @@ FeaturePlot <- function(
   )
   # Check presence of features/dimensions
   if (ncol(x = data) < 4) {
-    stop(
-      "None of the requested features were found: ",
+    abort(message = paste(
+      "None of the requested features were found:",
       paste(features, collapse = ', '),
-      " in slot ",
-      slot,
-      call. = FALSE
-    )
+      "in slot ",
+      slot
+    ))
   } else if (!all(dims %in% colnames(x = data))) {
-    stop("The dimensions requested were not found", call. = FALSE)
+    abort(message = "The dimensions requested were not found")
   }
   features <- setdiff(x = names(x = data), y = c(dims, 'ident'))
   # Determine cutoffs
@@ -1175,7 +1160,9 @@ FeaturePlot <- function(
     FUN.VALUE = numeric(length = 1)
   ))
   if (length(x = check.lengths) != 1) {
-    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+    abort(
+      message = "There must be the same number of minimum and maximum cuttoffs as there are features"
+    )
   }
   names(x = min.cutoff) <- names(x = max.cutoff) <- features
   brewer.gran <- ifelse(
@@ -1253,15 +1240,14 @@ FeaturePlot <- function(
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     # Blend expression values
-    if (blend) {
+    if (isTRUE(x = blend)) {
       features <- features[1:2]
       no.expression <- features[colMeans(x = data.plot[, features]) == 0]
       if (length(x = no.expression) != 0) {
-        stop(
-          "The following features have no value: ",
-          paste(no.expression, collapse = ', '),
-          call. = FALSE
-        )
+        abort(message = paste(
+          "The following features have no value:",
+          paste(no.expression, collapse = ', ')
+        ))
       }
       data.plot <- cbind(data.plot[, c(dims, 'ident')], BlendExpression(data = data.plot[, features[1:2]]))
       features <- colnames(x = data.plot)[4:ncol(x = data.plot)]
@@ -1270,7 +1256,7 @@ FeaturePlot <- function(
     for (j in 1:length(x = features)) {
       feature <- features[j]
       # Get blended colors
-      if (blend) {
+      if (isTRUE(x = blend)) {
         cols.use <- as.numeric(x = as.character(x = data.plot[, feature])) + 1
         cols.use <- colors[[j]][sort(x = unique(x = cols.use))]
       } else {
@@ -1297,7 +1283,7 @@ FeaturePlot <- function(
         CenterTitle()
         # theme(plot.title = element_text(hjust = 0.5))
       # Add labels
-      if (label) {
+      if (isTRUE(x = label)) {
         plot <- LabelClusters(
           plot = plot,
           id = 'ident',
@@ -1356,7 +1342,12 @@ FeaturePlot <- function(
         } else if (length(x = cols) > 1) {
           unique.feature.exp <- unique(data.plot[, feature])
           if (length(unique.feature.exp) == 1) {
-            warning("All cells have the same value (", unique.feature.exp, ") of ", feature, ".")
+            warn(message = paste0(
+              "All cells have the same value (",
+              unique.feature.exp,
+              ") of ",
+              dQuote(x = feature)
+            ))
             if (unique.feature.exp == 0) {
               cols.grad <- cols[1]
             } else{
@@ -1388,7 +1379,7 @@ FeaturePlot <- function(
     }
   }
   # Add blended color key
-  if (blend) {
+  if (isTRUE(x = blend)) {
     blend.legend <- BlendMap(color.matrix = color.matrix)
     for (ii in 1:length(x = levels(x = data$split))) {
       suppressMessages(expr = plots <- append(
@@ -1434,17 +1425,17 @@ FeaturePlot <- function(
     }
   }
   ncol <- ifelse(
-    test = is.null(x = split.by) || blend,
+    test = is.null(x = split.by) || isTRUE(x = blend),
     yes = ncol,
     no = length(x = features)
   )
-  legend <- if (blend) {
+  legend <- if (isTRUE(x = blend)) {
     'none'
   } else {
     split.by %iff% 'none'
   }
   # Transpose the FeatureHeatmap matrix (not applicable for blended FeaturePlots)
-  if (combine) {
+  if (isTRUE(x = combine)) {
     if (by.col && !is.null(x = split.by) && !blend) {
       plots <- lapply(
         X = plots,
@@ -1493,7 +1484,10 @@ FeaturePlot <- function(
       }
       plots <- plots[c(do.call(
         what = rbind,
-        args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots)) / length(x = features)))
+        args = split(
+          x = 1:length(x = plots),
+          f = ceiling(x = seq_along(along.with = 1:length(x = plots)) / length(x = features))
+        )
       ))]
       # Set ncol to number of splits (nrow) and nrow to number of features (ncol)
       plots <- wrap_plots(plots, ncol = nrow, nrow = ncol)

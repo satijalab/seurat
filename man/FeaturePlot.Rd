@@ -35,7 +35,7 @@ FeaturePlot(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = NULL,
+  sort.cell = deprecated(),
   interactive = FALSE,
   combine = TRUE,
   raster = NULL,
