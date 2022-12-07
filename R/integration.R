@@ -3467,7 +3467,7 @@ TransferData <- function(
         predictions <- CreateAssayObject(
           data = t(x = as.matrix(x = prediction.scores)), check.matrix = FALSE
         )
-        Key(object = predictions) <- paste0("predictionscore", rd.name, "_")
+        Key(object = predictions) <- paste0("predictionscore", gsub("[._-]", "", rd.name), "_")
       }
       if (is.null(x = query)) {
         transfer.results[[rd]] <- predictions
@@ -3494,7 +3494,7 @@ TransferData <- function(
       } else if (slot == "data") {
         new.assay <- CreateAssayObject(data = new.data, check.matrix = FALSE)
       }
-      Key(object = new.assay) <- paste0(rd.name, "_")
+      Key(object = new.assay) <- paste0(gsub("[._-]", "", rd.name), "_")
       if (is.null(x = query)) {
         transfer.results[[rd]] <- new.assay
       } else {
