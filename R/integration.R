@@ -5291,14 +5291,15 @@ TransformDataMatrix <- function(
   new.expression <- new.expression[, colnames(object)]
   new.assay <- new(
     Class = 'Assay',
-    key = paste0(new.assay.name,"_"),
+    # key = paste0(new.assay.name,"_"),
     counts = new(Class = "dgCMatrix"),
     data = new.expression,
     scale.data = matrix(),
     var.features = vector(),
     meta.features = data.frame(row.names = rownames(x = new.expression)),
     misc = NULL,
-    key = paste0(new.assay.name, "_")
+    # key = paste0(new.assay.name, "_")
+    key = Key(object = new.assay.name, quiet = TRUE)
   )
   object[[new.assay.name]] <- new.assay
   return(object)
