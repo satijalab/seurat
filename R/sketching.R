@@ -213,6 +213,9 @@ LeverageScore.default <- function(
     message("Performing QR decomposition")
   }
   sa <- S %*% object
+  if (!inherits(x = sa, what = 'dgCMatrix')) {
+    sa <- as(object = sa, Class = 'dgCMatrix')
+  }
   qr.sa <- base::qr(x = sa)
   R <- if (inherits(x = qr.sa, what = 'sparseQR')) {
     qrR(qr = qr.sa)
@@ -230,7 +233,12 @@ LeverageScore.default <- function(
     seed = seed
   ))
   Z <- object %*% (R.inv %*% JL)
-  return(rowSums(x = Z ^ 2))
+  if (inherits(x = Z, what = 'MatrixMultiply')) {
+    Z.score <- matrix_stats(matrix = Z, row_stats = 'variance')$row_stats['variance',]*ncol(Z)
+    } else {
+    Z.score <- rowSums(x = Z ^ 2)
+  }
+  return(Z.score)
 }
 
 #' @importFrom Matrix qrR t
