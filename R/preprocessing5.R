@@ -781,6 +781,55 @@ VST.default <- function(
   .NotYetImplemented()
 }
 
+#' @rdname VST
+#' @method VST BPcells
+#' @export
+#' 
+VST.BPCells <-function(
+    data,
+    nselect = 2000L,
+    span = 0.3,
+    clip = NULL,
+    verbose = TRUE,
+    ...
+) {
+  nfeatures <- nrow(x = data)
+  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  # Calculate feature means
+  hvf.info$mean <- matrix_stats(
+    matrix = data,
+    row_stats = 'mean')$row_stats['mean',]
+  # Calculate feature variance
+  hvf.info$variance <- matrix_stats(
+    matrix = data,
+    row_stats = 'variance')$row_stats['variance',]
+  hvf.info$variance.expected <- 0L
+  not.const <- hvf.info$variance > 0
+  fit <- loess(
+    formula = log10(x = variance) ~ log10(x = mean),
+    data = hvf.info[not.const, , drop = TRUE],
+    span = span
+  )
+  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  data.standard <- (data - hvf.info$mean) / sqrt(x = hvf.info$variance.expected)
+  data.standard <- min_scalar(
+    mat = data.standard,
+    val = clip %||% sqrt(x = ncol(x = data))
+  )
+  hvf.info$variance.standardized <- matrix_stats(matrix = data.standard, row_stats = 'variance')$row_stats['variance',]
+  # Set variable features
+  hvf.info$variable <- FALSE
+  hvf.info$rank <- NA
+  vf <- head(
+    x = order(hvf.info$variance.standardized, decreasing = TRUE),
+    n = nselect
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  rownames(x = hvf.info) <- rownames(x = data)
+  return(hvf.info)
+}
+
 #' @method VST DelayedMatrix
 #' @export
 #'
