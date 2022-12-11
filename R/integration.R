@@ -1936,6 +1936,26 @@ IntegrateSketchEmbeddings <- function(
   if (length(atoms.layers) == 1) {
     atoms.layers <- rep(atoms.layers, length(layers))
   }
+  sketch.matrix <- switch(
+    EXPR = method,
+    data = {
+      R = as.sparse(
+        x = diag(
+          x = length(
+            x = features)
+          )
+        )
+      R
+      },
+    sketch = {
+      R <- t(x = CountSketch(
+        nsketch = round(x = ratio *  length(x = features)),
+        ncells = length(x = features),
+        seed = seed)
+      )
+      R
+    }
+  )
   emb.list <- list()
   cells.list <- list()
   for (i in seq_along(along.with = layers)) {
@@ -1951,63 +1971,28 @@ IntegrateSketchEmbeddings <- function(
         ' atomic cells identified in the atoms'
       )
       message("Correcting embeddings")
-    }
-     if (inherits(x = object[[orig]][[layers[i]]], what = 'DelayedMatrix') ) {
-       matrix.prod.function <- crossprod_DelayedAssay
-       } else {
-         matrix.prod.function <- crossprod
-       }
-
-    emb <- switch(
-      EXPR = method,
-      'data' = {
-        exp.mat <- t(
-          x = as.matrix(
-            LayerData(
-              object = object[[atoms]],
-              layer = layers[i],
-              features = features
-              )
-          )
-        )
-        sketch.transform <- ginv(X = exp.mat) %*%
-          Embeddings(object = object[[reduction]])[cells.sketch ,]
-        emb <- matrix.prod.function(x = sketch.transform,
-                                    y = LayerData(
-                                      object = object[[orig]],
-                                      layer = layers[i],
-                                      features = features
-                                    ))
-        emb
-      },
-      'sketch' = {
-        R <- t(x = CountSketch(
-          nsketch = round(x = ratio * length(x = features)),
-          ncells = length(x = features),
-          seed = seed
-        ))
-        exp.mat <- as.matrix(x = t(x = LayerData(
-          object = object[[atoms]],
-          layer = atoms.layers[i],
-          features = features
-        )[,cells.sketch]) %*% R)
-        sketch.transform <- ginv(X = exp.mat) %*%
-          Embeddings(object = object[[reduction]])[cells.sketch ,]
-         emb <- matrix.prod.function(x = R %*% sketch.transform,
-                             y = LayerData(
-                               object = object[[orig]],
-                               layer = layers[i],
-                               features = features
-                             ))
-        emb
-      }
+    } 
+    emb <- UnSketchEmbeddings(
+      atom.data = LayerData(
+      object = object[[atoms]],
+      layer = layers[i],
+      features = features
+    ), 
+    atom.cells = cells.sketch,
+    orig.data = LayerData(
+      object = object[[orig]],
+      layer = layers[i],
+      features = features
+    ), 
+    embeddings = Embeddings(object = object[[reduction]]),
+    sketch.matrix = sketch.matrix
     )
-    emb.list[[i]] <- as.matrix(x = emb)
+    emb.list[[i]] <- emb
     cells.list[[i]] <- colnames(x = emb)
   }
    emb.all <- t(matrix(data = unlist(emb.list),
                      nrow = length(x = object[[reduction]]),
-                     ncol = ncol(x = object[[orig]])
+                     ncol = length(unlist(cells.list))
                      ))
    rownames(emb.all) <- unlist(cells.list)
    emb.all <- emb.all[colnames(object[[orig]]), ]
@@ -7461,3 +7446,42 @@ FastRPCAIntegration <- function(
   return(object_merged)
 
 }
+
+
+#' Transfer embeddings from sketched cells to the full data
+#' 
+#' @importFrom MASS ginv
+#' @importFrom Matrix t
+#' 
+#' @export
+#' 
+UnSketchEmbeddings <- function(atom.data,
+                               atom.cells,
+                               orig.data,
+                               embeddings,
+                               sketch.matrix = NULL
+) {
+  if(!all(rownames(atom.data) == rownames(orig.data))) {
+    stop('fetures in atom.data and orig.data are not identical')
+  } else {
+    features = rownames(atom.data)
+  }
+  if (inherits(x = orig.data, what = 'DelayedMatrix') ) {
+    matrix.prod.function <- crossprod_DelayedAssay
+  } else {
+    matrix.prod.function <- crossprod
+  }
+  sketch.matrix <- sketch.matrix %||% as.sparse(diag(length(features)))
+  atom.data <- atom.data[, atom.cells]
+  orig.data <- orig.data[features,]
+  embeddings <- embeddings[,atom.cells]
+  exp.mat <- as.matrix(x = t(x = atom.data) %*% sketch.matrix)
+  sketch.transform <- ginv(X = exp.mat) %*% embeddings
+  emb <- matrix.prod.function(x = sketch.matrix %*% sketch.transform,
+                              y = orig.data
+  )
+  emb <- as.matrix(x = emb)
+  return(emb)
+}
+
+
