@@ -2475,7 +2475,18 @@ crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
   }
   product.mat <- matrix(data = unlist(product.list), nrow = ncol(x) , ncol = ncol(y))
   colnames(product.mat) <- colnames(y)
-  rownames(product.mat) <- rownames(x)
+  rownames(product.mat) <- colnames(x)
+  return(product.mat)
+}
+
+
+# cross product from BPCells
+#
+crossprod_BPCells <- function(x, y) {
+  # perform t(x) %*% y, y is from BPCells
+  product.mat <- t(x) %*% y
+  colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- colnames(x)
   return(product.mat)
 }
 

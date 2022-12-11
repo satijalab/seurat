@@ -7467,17 +7467,19 @@ UnSketchEmbeddings <- function(atom.data,
   }
   if (inherits(x = orig.data, what = 'DelayedMatrix') ) {
     matrix.prod.function <- crossprod_DelayedAssay
+  } else if(inherits(x = orig.data, what = 'TransformLog1p')) {
+    matrix.prod.function <- crossprod_BPCells
   } else {
     matrix.prod.function <- crossprod
   }
   sketch.matrix <- sketch.matrix %||% as.sparse(diag(length(features)))
   atom.data <- atom.data[, atom.cells]
-  orig.data <- orig.data[features,]
-  embeddings <- embeddings[,atom.cells]
+  embeddings <- embeddings[atom.cells,]
   exp.mat <- as.matrix(x = t(x = atom.data) %*% sketch.matrix)
   sketch.transform <- ginv(X = exp.mat) %*% embeddings
-  emb <- matrix.prod.function(x = sketch.matrix %*% sketch.transform,
-                              y = orig.data
+  emb <- matrix.prod.function(
+    x = as.matrix(sketch.matrix %*% sketch.transform),
+    y = orig.data
   )
   emb <- as.matrix(x = emb)
   return(emb)
