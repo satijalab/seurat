@@ -1948,11 +1948,10 @@ IntegrateSketchEmbeddings <- function(
       R
       },
     sketch = {
-      R <- t(x = CountSketch(
-        nsketch = round(x = ratio *  length(x = features)),
-        ncells = length(x = features),
-        seed = seed)
-      )
+      R <- FeatureSketch(features = features,
+                         ratio = ratio,
+                         seed = seed
+                         )
       R
     }
   )
@@ -7485,3 +7484,11 @@ UnSketchEmbeddings <- function(atom.data,
 }
 
 
+FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
+  sketch.R <- t(x = CountSketch(
+    nsketch = round(x = ratio *  length(x = features)),
+    ncells = length(x = features),
+    seed = seed)
+  )
+  return(sketch.R)
+}
