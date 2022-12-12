@@ -1990,7 +1990,7 @@ IntegrateSketchEmbeddings <- function(
     cells.list[[i]] <- colnames(x = emb)
   }
    emb.all <- t(matrix(data = unlist(emb.list),
-                     nrow = length(x = object[[reduction]]),
+                     nrow = ncol(x = object[[reduction]]),
                      ncol = length(unlist(cells.list))
                      ))
    rownames(emb.all) <- unlist(cells.list)
@@ -7455,7 +7455,7 @@ FastRPCAIntegration <- function(
 #' @export
 #' 
 UnSketchEmbeddings <- function(atom.data,
-                               atom.cells,
+                               atom.cells = NULL,
                                orig.data,
                                embeddings,
                                sketch.matrix = NULL
@@ -7465,6 +7465,7 @@ UnSketchEmbeddings <- function(atom.data,
   } else {
     features = rownames(atom.data)
   }
+  atom.cells <- atom.cells %||% colnames(x = atom.data)
   if (inherits(x = orig.data, what = 'DelayedMatrix') ) {
     matrix.prod.function <- crossprod_DelayedAssay
   } else if(inherits(x = orig.data, what = 'TransformLog1p')) {
