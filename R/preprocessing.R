@@ -2915,6 +2915,44 @@ ScaleData.default <- function(
 #' @rdname ScaleData
 #' @concept preprocessing
 #' @export
+#' @method ScaleData IterableMatrix
+#'
+ScaleData.IterableMatrix <- function(
+    object,
+    features = NULL,
+    do.scale = TRUE,
+    do.center = TRUE,
+    scale.max = 10,
+    ...
+) {
+  features <- features %||% rownames(x = object)
+  features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
+  object <- object[features, , drop = FALSE]
+  if (do.center) {
+    features.mean <- BPCells::matrix_stats(
+      matrix = object,
+      row_stats = 'mean')$row_stats['mean',]
+  } else {
+    features.mean <- 0
+  }
+  if (do.scale) {
+    features.sd <- sqrt(BPCells::matrix_stats(
+      matrix = object,
+      row_stats = 'variance')$row_stats['variance',])
+  } else {
+    features.sd <- 1
+  }
+  scaled.data <- (object - features.mean) / features.sd
+  if (scale.max != Inf) {
+    scaled.data <- BPCells::min_scalar(mat = scaled.data, val = scale.max)
+  }
+return(scaled.data)
+}
+
+
+#' @rdname ScaleData
+#' @concept preprocessing
+#' @export
 #' @method ScaleData Assay
 #'
 ScaleData.Assay <- function(
