@@ -24,6 +24,12 @@
         Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Nanostring SMI, and CODEX.
       image: spatial_vignette_2.png
 
+    - title: Analysis of Xenium datasets (Imaging-based)
+      name: xenium_vignette
+      summary: |
+        Learn to explore spatially-resolved single-cell data produced by the Xenium platform.
+      image: xenium_vignette.png
+
 - category: Data Integration
   vignettes:
     - title: Introduction to scRNA-seq integration

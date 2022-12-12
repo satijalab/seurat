@@ -1,0 +1,168 @@
+---
+title: "Xenium Analysis Vignette"
+author: "10x Genomics"
+output:
+  html_document:
+    theme: simplex
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+## Xenium Data Overview
+
+In this vignette we'll visualize the spatially-resolved, single cell RNA-seq profiles produced by the Xenium platform. The vignette demonstrates how to load the per-transcript location data, cell x gene matrix, cell segmentation, and cell centroid information available in the Xenium outputs. The resulting Seurat object will contain the gene expression profile of each cell, the centroid and boundary of each cell, and the location of each individual detected transcript. The per-cell gene expression profiles are similar to standard single-cell RNA-seq and can be analyzed using the same tools.
+
+## Setup
+
+This vignette requires a work-in-progress version of Seurat. First, you must install in-development versions of Seurat and SeuratObject that have Xenium support. It is recommended to update your package version at this step, as the required versions may not be fully captured in the dependencies yet.
+```{r init, message=FALSE, warning=FALSE, error=FALSE, results="hide"}
+library(remotes)
+#remotes::install_github("satijalab/seurat", "feat/imaging")
+library(Seurat)
+library(SeuratObject)
+```
+
+## Mouse Brain: Load Data
+
+This vignette is based on the `mBrain_ff_partial_coronal_section` pre-release dataset from 10x Genomics provided in the [Mouse Brain Dataset download](https://www.10xgenomics.com/xenium-preview-data). These analysis steps are also compatible with the larger `mBrain_ff_full_coronal_section`, but will take longer to execute.  First we read in the dataset and create a Seurat object.  Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take ~30 seconds for this partial coronal section.
+
+```{r load, results='hide'}
+path <- "mBrain_ff_partial_coronal_section/"
+
+# Load the Xenium data
+xenium.obj <- LoadXenium(path, fov = "fov")
+
+# remove cells with 0 counts -- these cause problems for SCTransform
+xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
+```
+Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named "fov", by convention in this vignette. Later, we will make a cropped FOV that zooms into a region of interest. Here is a summary of the spatial information stored in the fov slot of the resulting Seurat object:
+
+<details>
+  <summary>**Cell Centroids: The spatial coordinates marking the centroid for each cell being profiled**</summary>
+
+```{r}
+# Get the center position of each centroid. There is one row per cell in this dataframe.
+head(GetTissueCoordinates(xenium.obj[["fov"]][["centroids"]]))
+```
+</details>
+<details>
+  <summary>**Cell Segmentation Boundaries: The spatial coordinates that describe the polygon segmentation of each single cell**</summary>
+
+```{r}
+# Get the coordinates for each segmentation vertice. Each cell will have a variable number of vertices describing its shape.
+head(GetTissueCoordinates(xenium.obj[["fov"]][["segmentation"]]))
+```
+</details>
+<details>
+  <summary>**Molecule positions: The spatial coordinates for each individual molecule that was detected by the assay**</summary>
+
+```{r}
+# Fetch molecules positions for Chrm1
+head(FetchData(xenium.obj[["fov"]][["molecules"]], vars="Gad1"))
+```
+</details>
+
+
+## Standard QC plots
+Standard QC plots provided by Seurat are available via the `Xenium` assay. Here are violin plots of genes per cell (`nFeature_Xenium`) and transcript counts per cell (`nCount_Xenium`)
+```{r}
+VlnPlot(xenium.obj, features = c("nFeature_Xenium", "nCount_Xenium"), ncol = 2, pt.size = 0)
+```
+
+Check that the cell and molecule information is loaded correctly by plotting the transcript locations of a few marker genes over the cell centroids. `ImageDimPlot()` can display cell positions and overlay the location of individual molecules via the `molecules` argument. The `nmols` argument is used to downsample the number of transcript locations displayed to control overplotting.
+
+```{r p1, fig.width=10, fig.height=8}
+ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Cux2", "Foxp2"), nmols = 20000, mols.cols = c("blue", "green"), axes = TRUE)
+```
+Here's a similar plot, including the pan-inhibitory neuron marker Gad1, inhibitory neuron sub-type markers Pvalb, and Sst, and astrocyte marker Gfap.
+```{r p2, fig.width=10, fig.height=8}
+ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
+```
+
+Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile of it's count distribution to improve contrast.
+
+```{r mat, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
+ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
+```
+
+## Cropped Images and Cell Boundaries
+
+We can zoom in on a chosen area with the `Crop()` function. Once zoomed-in, we can visualize cell segmentation boundaries along with individual molecules.
+```{r cropping, message=FALSE, warning=FALSE, fig.width=10, fig.height=8}
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1400, 2800), y = c(2100, 2900), coords = "plot")
+
+xenium.obj[["zoom"]] <- cropped.coords
+
+# visualize cropped area with cell segmentations & selected molecules
+DefaultBoundary(xenium.obj[["zoom"]]) <- "segmentation"
+ImageDimPlot(xenium.obj, fov = "zoom", 
+             axes = TRUE, border.color = "white", border.size = 0.1,
+             cols = "polychrome", coord.fixed = FALSE,
+             molecules = c("Gad1", "Sst", "Npy2r", "Pvalb", "Nrn1"), nmols = 10000)
+```
+
+
+
+## Preprocessing and unsupervised analysis
+We start by performing a standard unsupervised clustering analysis, essentially first treating the dataset as a scRNA-seq experiment. We use SCTransform-based normalization followed by standard dimensionality reduction and clustering.
+
+```{r ana, results='hide'}
+xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
+xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
+xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
+xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
+xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
+```
+
+We can then visualize the results of the clustering by coloring each cell according to its cluster either in UMAP space with `DimPlot()` or overlaid on the image with `ImageDimPlot()`.
+
+```{r umap, fig.width=10, fig.height=7}
+DimPlot(xenium.obj, reduction = "umap")
+```
+
+We can visualize the expression level of the markers we looked at earlier on the UMAP coordinates.
+```{r features, fig.width=8, fig.height=10}
+FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "Gfap"))
+```
+
+
+We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
+```{r clusters, fig.width=13, fig.height=13}
+ImageDimPlot(xenium.obj, cols = "polychrome", axes = TRUE, size = 0.75)
+```
+
+This vignette and the analysis methods for in-situ data are a work in progress. Please contact patrick@10xgenomics.com if you have questions or requests for additional examples.
+If you have any issues with the code working, please report the results of `sessionInfo()`. 
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+
+
+
+
