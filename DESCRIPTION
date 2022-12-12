@@ -24,6 +24,8 @@ Authors@R: c(
   )
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Remotes: 
+    bnprks/BPCells
 Depends:
     R (>= 4.0.0),
     methods,
@@ -128,4 +130,5 @@ Suggests:
     metap,
     enrichR,
     mixtools,
-    ggrastr
+    ggrastr,
+    BPCells (>= 0.0.0.9000)
