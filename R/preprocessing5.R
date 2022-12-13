@@ -351,6 +351,22 @@ LogNormalize.HDF5Matrix <- function(
   ))
 }
 
+
+#' @method LogNormalize IterableMatrix
+#' @export
+#'
+LogNormalize.IterableMatrix <- function(
+    data,
+    scale.factor = 1e4,
+    margin = 2L,
+    verbose = TRUE,
+    ...
+) {
+  data <- BPCells::t(BPCells::t(data) / colSums(data))
+  # Log normalization
+  data <- log1p(data * scale.factor)
+  return(data) 
+}
 #' @method LogNormalize TileDBMatrix
 #' @export
 #'
@@ -782,10 +798,10 @@ VST.default <- function(
 }
 
 #' @rdname VST
-#' @method VST BPcells
+#' @method VST IterableMatrix
 #' @export
 #' 
-VST.BPCells <-function(
+VST.IterableMatrix <-function(
     data,
     nselect = 2000L,
     span = 0.3,

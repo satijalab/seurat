@@ -860,10 +860,22 @@ RunPCA.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
+ if (inherits(x = object, what = 'matrix')) {
+   RowVar.function <- RowVar
+ } else if (inherits(x = object, what = 'dgCMatrix')) {
+   RowVar.function <- RowVarSparse
+ } else if (inherits(x = object, what = 'IterableMatrix')) {
+   RowVar.function <- function(x) {
+     return(BPCells::matrix_stats(
+       matrix = x,
+       row_stats = 'variance'
+     )$row_stats['variance',])
+     }
+ }
   if (rev.pca) {
     npcs <- min(npcs, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = npcs, ...)
-    total.variance <- sum(RowVar(x = t(x = object)))
+    total.variance <- sum(RowVar.function(x = t(x = object)))
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -873,7 +885,7 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    total.variance <- sum(RowVar(x = object))
+    total.variance <- sum(RowVar.function(x = object))
     if (approx) {
       npcs <- min(npcs, nrow(x = object) - 1)
       pca.results <- irlba(A = t(x = object), nv = npcs, ...)

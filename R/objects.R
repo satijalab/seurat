@@ -1386,6 +1386,22 @@ as.sparse.H5Group <- function(x, ...) {
   ))
 }
 
+
+#' @method as.sparse IterableMatrix
+#' @export
+#' 
+as.sparse.IterableMatrix <- function(x, ...) {
+  return(as(object = x, Class = 'dgCMatrix'))
+}
+
+
+#' @method as.matrix IterableMatrix
+#' @export
+#' 
+as.matrix.IterableMatrix <- function(x, ...) {
+  return(as.matrix(x = as.sparse(x = x)))
+}
+
 #' Get Cell Names
 #'
 #' @inheritParams SeuratObject::Cells
