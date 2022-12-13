@@ -7334,7 +7334,8 @@ ProjectCellEmbeddings_DelayedAssay <- function(
 }
 
 
-
+#' @export
+#' 
 ProjectCellEmbeddings_IterableMatrix <- function(
     query.data,
     reference,
