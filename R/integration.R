@@ -7334,6 +7334,33 @@ ProjectCellEmbeddings_DelayedAssay <- function(
 }
 
 
+
+ProjectCellEmbeddings_IterableMatrix <- function(
+    query.data,
+    reference,
+    assay = NULL,
+    reduction,
+    dims = NULL,
+    feature.mean = NULL,
+    feature.sd = NULL
+) {
+  dims <- dims %||% 1:ncol(reference[[reduction]])
+  assay <- assay %||% DefaultAssay(reference)
+  features <- intersect(rownames(query.data),
+                        rownames(reference[[reduction]]@feature.loadings))
+  query.data <- query.data[features,]
+    feature.mean <- feature.mean[features] %||%
+      RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
+    feature.sd <- feature.sd[features] %||%
+      sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
+    feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
+    query.scale <- (query.data - feature.mean)/feature.sd
+    emb.mat <- t(query.scale) %*%    Loadings(object = reference[[reduction]])[features,dims]
+    rownames(emb.mat) <- colnames(query.data)
+    colnames(emb.mat) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
+  return(emb.mat)
+}
+
 #' Perform integration on the joint PCA cell embeddings.
 #'
 #' This is a convenience wrapper function around the following three functions
@@ -7468,7 +7495,7 @@ UnSketchEmbeddings <- function(atom.data,
   atom.cells <- atom.cells %||% colnames(x = atom.data)
   if (inherits(x = orig.data, what = 'DelayedMatrix') ) {
     matrix.prod.function <- crossprod_DelayedAssay
-  } else if(inherits(x = orig.data, what = 'TransformLog1p')) {
+  } else if(inherits(x = orig.data, what = 'IterableMatrix')) {
     matrix.prod.function <- crossprod_BPCells
   } else {
     matrix.prod.function <- crossprod
