@@ -452,9 +452,16 @@ FindClusters.Seurat <- function(
     verbose = verbose,
     ...
   )
-  colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
-  object <- AddMetaData(object = object, metadata = clustering.results)
-  Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+  names(x = clustering.results) <- paste(
+    graph.name,
+    names(x = clustering.results),
+    sep = '_'
+  )
+  # object <- AddMetaData(object = object, metadata = clustering.results)
+  # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+  idents.use <- names(x = clustering.results)[ncol(x = clustering.results)]
+  object[[]] <- clustering.results
+  Idents(object = object, replace = TRUE) <- object[[idents.use, drop = TRUE]]
   levels <- levels(x = object)
   levels <- tryCatch(
     expr = as.numeric(x = levels),
@@ -1610,7 +1617,7 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
       "hnsw" = {
         args <- args[intersect(x = names(x = args), y = names(x = formals(fun = HnswNN)))]
         do.call(what = 'HnswNN', args = args)
-      }, 
+      },
       stop("Invalid method. Please choose one of 'rann', 'annoy'")
     )
   )
