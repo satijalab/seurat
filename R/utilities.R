@@ -2645,3 +2645,44 @@ SweepNonzero <- function(
   return(x)
 }
 
+
+#' Create one hot matrix for a given label
+#' @export
+
+CreateCategoryMatrix <- function(
+  labels,
+  method = c('sum', 'average')
+  ) {
+  method <- match.arg(arg = method)
+  data <- cbind(labels = labels)
+  group.by <- colnames(x = data)
+  category.matrix <- sparse.model.matrix(object = as.formula(
+    object = paste0(
+      '~0+',
+      paste0(
+        "data[,",
+        1:length(x = group.by),
+        "]",
+        collapse = ":"
+      )
+    )
+  ))
+  colsums <- colSums(x = category.matrix)
+  category.matrix <- category.matrix[, colsums > 0]
+  colsums <- colsums[colsums > 0]
+  
+  if (method =='average') {
+    category.matrix <- Seurat:::SweepNonzero(
+      x = category.matrix,
+      MARGIN = 2,
+      STATS = colsums,
+      FUN = "/")
+  }
+  colnames(x = category.matrix) <- sapply(
+    X = colnames(x = category.matrix),
+    FUN = function(name) {
+      name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+    })
+  return(category.matrix)
+}

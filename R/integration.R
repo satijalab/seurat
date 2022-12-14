@@ -4307,6 +4307,34 @@ FindWeights <- function(
 }
 
 
+# Find weight matrix between query and reference cells from a neighbor object
+#
+#
+FindWeightsNN <- function(
+  nn.obj,
+  query.cells,
+  reference.cells,
+  verbose = TRUE
+) {
+  distances <- Distances(object = nn.obj)
+  distances <- 1 - (distances / distances[, ncol(x = distances)])
+  cell.index <- Indices(object = nn.obj)
+  weights <- Seurat:::FindWeightsC(
+    cells2 = 0:(length(query.cells) - 1),
+    distances = as.matrix(x = distances),
+    anchor_cells2 = reference.cells,
+    integration_matrix_rownames = reference.cells,
+    cell_index = cell.index,
+    anchor_score = rep(1, length(reference.cells)),
+    min_dist = 0,
+    sd = 1,
+    display_progress = verbose
+  )
+  colnames(weights) <- query.cells
+  return(weights)
+}
+
+
 # Work out the anchor cell offsets for given set of cells in anchor list
 #
 # @param anchors A dataframe of anchors, from AnchorSet object
@@ -6467,16 +6495,8 @@ TransferLablesNN <- function(
   } else {
     stop('wrong weights matrix input')
   }
-  reference.labels.matrix <- as.sparse(
-    x = dummy_cols(
-      reference.object[[group.by]]
-    )[, -1]
-  )
-  colnames(reference.labels.matrix) <- gsub(
-    pattern = paste0(group.by, "_"),
-    replacement = "",
-    x = colnames(reference.labels.matrix)
-    )
+  
+  reference.labels.matrix <- CreateCategoryMatrix(labels = reference.object[[group.by]])
   query.label.mat <- nn.matrix %*% reference.labels.matrix
   query.label.mat <- query.label.mat/k.nn
   rownames(x = query.label.mat) <- Cells(nn.object)
