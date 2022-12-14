@@ -6467,7 +6467,6 @@ TransferLablesNN <- function(
   } else {
     stop('wrong weights matrix input')
   }
-
   reference.labels.matrix <- as.sparse(
     x = dummy_cols(
       reference.object[[group.by]]
@@ -6478,7 +6477,6 @@ TransferLablesNN <- function(
     replacement = "",
     x = colnames(reference.labels.matrix)
     )
-
   query.label.mat <- nn.matrix %*% reference.labels.matrix
   query.label.mat <- query.label.mat/k.nn
   rownames(x = query.label.mat) <- Cells(nn.object)

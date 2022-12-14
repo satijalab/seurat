@@ -1285,7 +1285,7 @@ PseudobulkExpression <- function(
     category.matrix <- category.matrix[, colsums > 0]
     colsums <- colsums[colsums > 0]
     if (pb.method == 'average') {
-      category.matrix <- SweepSparse(
+      category.matrix <- SweepNonzero(
         x = category.matrix,
         MARGIN = 2,
         STATS = colsums,
@@ -2618,8 +2618,9 @@ RowVarDelayedAssay <- function(x, block.size = 1e8) {
 
 
 
-# sparse version of sweep
-SweepSparse <- function(
+# nonzero element version of sweep
+#
+SweepNonzero <- function(
     x,
     MARGIN,
     STATS,
