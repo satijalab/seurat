@@ -3523,11 +3523,15 @@ TransferSketchLabels <- function(
   refdata,
   k = 50,
   reduction.model = NULL,
-  neighbors = NULL
+  neighbors = NULL,
+  verbose = TRUE
 ){
-  full_sketch.nn <- neighbors %||% Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.nn
   
+  full_sketch.nn <- neighbors %||% Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.nn
   if (is.null(full_sketch.nn)) {
+    if (verbose) {
+      message("Finding sketch neighbors")
+    }
     full_sketch.nn <- Seurat:::NNHelper(
       query = Embeddings(object[[reduction]])[, dims], 
       data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims], 
@@ -3537,6 +3541,9 @@ TransferSketchLabels <- function(
   }
   full_sketch.weight <- Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.weight
   if(is.null(full_sketch.weight)) {
+    if (verbose) {
+      message("Finding sketch weight matrix")
+    }
     full_sketch.weight <- FindWeightsNN(nn.obj = full_sketch.nn,
                                         query.cells = Cells(object[[reduction]]),
                                         reference = colnames(object[[atoms]]),
@@ -3549,7 +3556,9 @@ TransferSketchLabels <- function(
     refdata <- list(refdata)
     names(refdata) <- unlist(refdata)
   }
-  
+  if (verbose) {
+    message("Transfering refdata from sketch")
+  }
   for (rd in 1:length(x = refdata)) {
     if (isFALSE(x = refdata[[rd]])) {
       transfer.results[[rd]] <- NULL
@@ -3567,9 +3576,12 @@ TransferSketchLabels <- function(
     object[[paste0('predicted.', label.rd, '.score')]] <- predicted.labels.list$scores
   }
   if (!is.null(reduction.model)) {
-    if (is.nul(object[[reduction.model]]@misc$model)) {
+    if (is.null(object[[reduction.model]]@misc$model)) {
       warning(reduction.model, ' does not have a stored umap model')
       return(object)
+    }
+    if (verbose) {
+      message("Projection to sketch umap")
     }
     if (ncol(full_sketch.nn) > object[[reduction.model]]@misc$model$n_neighbors) {
       full_sketch.nn@nn.idx <- full_sketch.nn@nn.idx[, 1:object[[reduction.model]]@misc$model$n_neighbors]
