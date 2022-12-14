@@ -3509,6 +3509,79 @@ TransferData <- function(
   }
 }
 
+
+
+
+#' Transfer data from sketch data to full data
+#' @export
+#' 
+TransferSketchLabels <- function(
+  object,
+  atoms = 'sketch',
+  reduction,
+  dims,
+  refdata,
+  k = 50,
+  reduction.model = NULL,
+  neighbors = NULL
+){
+  full_sketch.nn <- neighbors %||% Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.nn
+  
+  if (is.null(full_sketch.nn)) {
+    full_sketch.nn <- Seurat:::NNHelper(
+      query = Embeddings(object[[reduction]])[, dims], 
+      data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims], 
+      k = k,  
+      method = "annoy"
+    )
+  }
+  full_sketch.weight <- Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.weight
+  if(is.null(full_sketch.weight)) {
+    full_sketch.weight <- FindWeightsNN(nn.obj = full_sketch.nn,
+                                        query.cells = Cells(object[[reduction]]),
+                                        reference = colnames(object[[atoms]]),
+                                        verbose = verbose)
+  }
+  object@tools$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
+  object@tools$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
+  
+  if (length(refdata) == 1  & is.character(refdata)) {
+    refdata <- list(refdata)
+    names(refdata) <- unlist(refdata)
+  }
+  
+  for (rd in 1:length(x = refdata)) {
+    if (isFALSE(x = refdata[[rd]])) {
+      transfer.results[[rd]] <- NULL
+      next
+    }
+    rd.name <- names(x = refdata)[rd]
+    label.rd <- refdata[[rd]]
+    ## FetchData not work
+    reference.labels <- object@meta.data[colnames(object[[atoms]]), label.rd]
+    predicted.labels.list <- TransferLablesNN(
+      reference.labels = reference.labels,
+      weight.matrix = full_sketch.weight)
+    
+    object[[paste0('predicted.', label.rd)]] <- predicted.labels.list$labels
+    object[[paste0('predicted.', label.rd, '.score')]] <- predicted.labels.list$scores
+  }
+  if (!is.null(reduction.model)) {
+    if (is.nul(object[[reduction.model]]@misc$model)) {
+      warning(reduction.model, ' does not have a stored umap model')
+      return(object)
+    }
+    if (ncol(full_sketch.nn) > object[[reduction.model]]@misc$model$n_neighbors) {
+      full_sketch.nn@nn.idx <- full_sketch.nn@nn.idx[, 1:object[[reduction.model]]@misc$model$n_neighbors]
+      full_sketch.nn@nn.dist <- full_sketch.nn@nn.dist[, 1:object[[reduction.model]]@misc$model$n_neighbors]
+    }
+    proj.umap <- RunUMAP(object = full_sketch.nn, reduction.model = object[[reduction.model]], verbose = verbose)
+    proj.umap@assay.used <- object[[reduction]]@assay.used
+    Key(proj.umap) <- paste0('ref', Key(proj.umap))
+    object[[paste0('ref.',reduction.model )]] <- proj.umap
+  }
+  return(object)
+}
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -6468,10 +6541,10 @@ FindBridgeAnchor <- function(object.list,
 #'
 TransferLablesNN <- function(
   nn.object = NULL,
-  reference.object,
-  group.by = NULL,
-  weight.matrix = NULL
+  weight.matrix = NULL,
+  reference.labels
 ){
+  reference.labels.matrix <- CreateCategoryMatrix(labels = as.character(reference.labels))
   if (!is.null(x = weight.matrix) & !is.null(x = nn.object)) {
     warning('both nn.object and weight matrix are set. Only weight matrix is used for label transfer')
   }
@@ -6484,26 +6557,28 @@ TransferLablesNN <- function(
       i = i,
       j = j,
       x = 1,
-      dims = c(nrow(select_nn), ncol(x = reference.object))
+      dims = c(nrow(select_nn), nrow(reference.labels.matrix))
     )
-  } else if (nrow(weight.matrix) == ncol(reference.object)) {
+    rownames(nn.matrix) <- Cells(nn.object)
+  } else if (nrow(weight.matrix) == nrow(reference.labels.matrix)) {
     nn.matrix <- t(weight.matrix)
     k.nn <- 1
-  } else if (ncol(weight.matrix) == ncol(reference.object)) {
+  } else if (ncol(weight.matrix) == nrow(reference.labels.matrix)) {
     nn.matrix <- weight.matrix
     k.nn <- 1
   } else {
     stop('wrong weights matrix input')
   }
-  
-  reference.labels.matrix <- CreateCategoryMatrix(labels = reference.object[[group.by]])
   query.label.mat <- nn.matrix %*% reference.labels.matrix
   query.label.mat <- query.label.mat/k.nn
-  rownames(x = query.label.mat) <- Cells(nn.object)
   prediction.max <- apply(X = query.label.mat, MARGIN = 1, FUN = which.max)
+
   query.label <- colnames(x = query.label.mat)[prediction.max]
   query.label.score <- apply(X = query.label.mat, MARGIN = 1, FUN = max)
-
+  names(query.label) <- names(query.label.score) <- rownames(query.label.mat)
+  if (is.factor(reference.labels)) {
+    levels(query.label) <- levels(reference.labels)
+  }
   output.list <- list(labels = query.label,
                       scores = query.label.score,
                       prediction.mat = query.label.mat
@@ -7541,3 +7616,5 @@ FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
   )
   return(sketch.R)
 }
+
+
