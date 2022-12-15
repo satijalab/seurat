@@ -811,14 +811,13 @@ VST.IterableMatrix <-function(
 ) {
   nfeatures <- nrow(x = data)
   hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.stats <- matrix_stats(
+    matrix = data,
+    row_stats = 'variance')$row_stats
   # Calculate feature means
-  hvf.info$mean <- matrix_stats(
-    matrix = data,
-    row_stats = 'mean')$row_stats['mean',]
+  hvf.info$mean <- hvf.stats['mean',]
   # Calculate feature variance
-  hvf.info$variance <- matrix_stats(
-    matrix = data,
-    row_stats = 'variance')$row_stats['variance',]
+  hvf.info$variance <- hvf.stats['variance',]
   hvf.info$variance.expected <- 0L
   not.const <- hvf.info$variance > 0
   fit <- loess(
