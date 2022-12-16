@@ -1219,6 +1219,24 @@ FoldChange.Seurat <- function(
     ident.2 = ident.2,
     cellnames.use = cellnames.use
   )
+  # check normalization method
+  norm.command <- paste0("NormalizeData.", assay)
+  norm.method <- if (norm.command %in% Command(object = object) && is.null(x = reduction)) {
+    Command(
+      object = object,
+      command = norm.command,
+      value = "normalization.method"
+    )
+  } else if (length(x = intersect(x = c("FindIntegrationAnchors", "FindTransferAnchors"), y = Command(object = object)))) {
+    command <- intersect(x = c("FindIntegrationAnchors", "FindTransferAnchors"), y = Command(object = object))[1]
+    Command(
+      object = object,
+      command = command,
+      value = "normalization.method"
+    )
+  } else {
+    NULL
+  }
   fc.results <- FoldChange(
     object = data.use,
     cells.1 = cells$cells.1,
@@ -1228,7 +1246,8 @@ FoldChange.Seurat <- function(
     pseudocount.use = pseudocount.use,
     mean.fxn = mean.fxn,
     base = base,
-    fc.name = fc.name
+    fc.name = fc.name,
+    norm.method = norm.method
   )
   return(fc.results)
 }
@@ -2071,8 +2090,8 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
 
   }
   model_median_umis <- SCTResults(object = object[[assay]], slot = "median_umi")
-  min_median_umi <- min(unlist(x = observed_median_umis))
-  if (all(unlist(x = model_median_umis) == min_median_umi)){
+  min_median_umi <- min(unlist(x = observed_median_umis), na.rm = TRUE)
+  if (all(unlist(x = model_median_umis) > min_median_umi)){
     if (verbose){
       message("Minimum UMI unchanged. Skipping re-correction.")
     }
