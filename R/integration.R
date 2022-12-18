@@ -4932,7 +4932,27 @@ RescaleQuery <- function(
   return(proj.data)
 }
 
-ProjectCellEmbeddings <- function(
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings Assay
+#' @export
+#'
+#'
+ProjectCellEmbeddings.Assay  <- function()
+
+  
+  
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings StdAssay 
+#' @export
+#'
+ProjectCellEmbeddings.StdAssay  <- function()
+
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings default
+#' @export
+#'
+ProjectCellEmbeddings.default <- function(
   reference,
   query,
   reduction = "pca",
@@ -7395,10 +7415,13 @@ FindBridgeIntegrationAnchors <- function(
   )
   return(bridge_anchor)
 }
-## project delayed array to reference PCA
 
 
-ProjectCellEmbeddings_DelayedAssay <- function(
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings DelayedMatrix
+#' @export
+#'
+ProjectCellEmbeddings.DelayedMatrix <- function(
   query.data,
   block.size = 1e9,
   reference,
@@ -7420,7 +7443,6 @@ ProjectCellEmbeddings_DelayedAssay <- function(
  } else {
    feature.mean <- feature.mean[features] %||%
      RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
-
    feature.sd <- feature.sd[features] %||%
      sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
    feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
@@ -7445,14 +7467,15 @@ ProjectCellEmbeddings_DelayedAssay <- function(
    rownames(emb.mat) <- colnames(query.data)
    colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
  }
-
   return(emb.mat)
 }
 
-
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings IterableMatrix
 #' @export
+#'
 #' 
-ProjectCellEmbeddings_IterableMatrix <- function(
+ProjectCellEmbeddings.IterableMatrix <- function(
     query.data,
     reference,
     assay = NULL,
