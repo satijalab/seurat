@@ -924,15 +924,24 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-      projected.pca <- ProjectCellEmbeddings(
-        reference = reference,
-        reduction = reference.reduction,
-        query = query,
-        scale = scale,
-        dims = dims,
-        feature.mean = feature.mean,
-        verbose = verbose
-      )
+     if (inherits(x = query[[query.assay]]$data, what = 'IterableMatrix')) {
+       projected.pca <- ProjectCellEmbeddings_IterableMatrix(
+         query.data = query[[query.assay]]$data,
+         reference = reference,
+         dims = dims,
+         reduction = reference.reduction)
+     } else {
+       projected.pca <- ProjectCellEmbeddings(
+         reference = reference,
+         reduction = reference.reduction,
+         query = query,
+         scale = scale,
+         dims = dims,
+         feature.mean = feature.mean,
+         verbose = verbose
+       )
+     }
+
       orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
       orig.loadings <- Loadings(object = reference[[reference.reduction]])
     }
@@ -3594,6 +3603,8 @@ TransferSketchLabels <- function(
   }
   return(object)
 }
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
