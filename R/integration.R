@@ -924,13 +924,6 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-     if (inherits(x = query[[query.assay]]$data, what = 'IterableMatrix')) {
-       projected.pca <- ProjectCellEmbeddings_IterableMatrix(
-         query.data = query[[query.assay]]$data,
-         reference = reference,
-         dims = dims,
-         reduction = reference.reduction)
-     } else {
        projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
@@ -940,8 +933,6 @@ FindTransferAnchors <- function(
          feature.mean = feature.mean,
          verbose = verbose
        )
-     }
-
       orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
       orig.loadings <- Loadings(object = reference[[reference.reduction]])
     }
@@ -4867,97 +4858,18 @@ ParseRow <- function(clustering, i){
   return(unlist(datasets))
 }
 
-# Rescale query with mean and sd from reference, or known mean and SD
-#
-# @param reference A reference object
-# @param query A query object
-# @param features Features to scale
-# @param scale Scale data (divide by SD)
-# @return Returns a matrix containing the scaled query data
-RescaleQuery <- function(
-  reference,
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings Seurat
+#' @export
+#'
+#'
+ProjectCellEmbeddings.Seurat <- function(
   query,
-  reference.assay = NULL,
+  reference,
   query.assay = NULL,
-  features = NULL,
-  feature.mean = NULL,
-  feature.sd = NULL,
-  scale = TRUE
-) {
-  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
-  query.assay <- query.assay %||% DefaultAssay(object = query)
-  features <- features %||% intersect(
-    rownames(x = reference[[reference.assay]]),
-    rownames(x = query[[query.assay]])
-  )
-  reference.data <-  GetAssayData(
-    object = reference,
-    assay = reference.assay,
-    slot = "data")[features, ]
-  query.data <- GetAssayData(
-    object = query,
-    assay = query.assay,
-    slot = "data")[features, ]
-  if (is.null(x = feature.mean)) {
-    feature.mean <- rowMeans(x = reference.data)
-    if (scale) {
-      feature.sd <- sqrt(
-        x = SparseRowVar2(
-          mat = as.sparse(x = reference.data),
-          mu = feature.mean,
-          display_progress = FALSE
-        )
-      )
-      feature.sd[is.na(x = feature.sd)] <- 1
-    } else {
-      feature.sd <- rep(x = 1, nrow( reference.data))
-    }
-    feature.mean[is.na(x = feature.mean)] <- 1
-  }
-  proj.data <- GetAssayData(
-    object = query,
-    assay = query.assay,
-    slot = "data"
-  )[features, ]
-  store.names <- dimnames(x = proj.data)
-  if (is.numeric(x = feature.mean) && feature.mean[[1]] != "SCT") {
-    proj.data <- FastSparseRowScaleWithKnownStats(
-      mat = as.sparse(x = proj.data),
-      mu = feature.mean,
-      sigma = feature.sd,
-      display_progress = FALSE
-    )
-  }
-  dimnames(x = proj.data) <- store.names
-  return(proj.data)
-}
-
-#' @rdname ProjectCellEmbeddings
-#' @method ProjectCellEmbeddings Assay
-#' @export
-#'
-#'
-ProjectCellEmbeddings.Assay  <- function()
-
-  
-  
-#' @rdname ProjectCellEmbeddings
-#' @method ProjectCellEmbeddings StdAssay 
-#' @export
-#'
-ProjectCellEmbeddings.StdAssay  <- function()
-
-
-#' @rdname ProjectCellEmbeddings
-#' @method ProjectCellEmbeddings default
-#' @export
-#'
-ProjectCellEmbeddings.default <- function(
-  reference,
-  query,
+  reference.assay = NULL,
   reduction = "pca",
-  reference.assay = NULL,
-  query.assay = NULL,
   dims = 1:50,
   scale = TRUE,
   verbose = TRUE,
@@ -4967,22 +4879,295 @@ ProjectCellEmbeddings.default <- function(
   if (verbose) {
     message("Projecting cell embeddings")
   }
-  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   query.assay <- query.assay %||% DefaultAssay(object = query)
-  features <- rownames(x = Loadings(object = reference[[reduction]]))
-  features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-  proj.data <- RescaleQuery(
+  proj.pca <- ProjectCellEmbeddings(
+    query = query[[query.assay]],
     reference = reference,
-    query = query,
-    features = features,
+    reference.assay = reference.assay,
+    reduction = reduction,
+    dims = dims,
     scale = scale,
+    verbose = verbose,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
-  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
-  proj.pca <- t(crossprod(x = ref.feature.loadings, y = proj.data))
   return(proj.pca)
 }
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings Assay
+#' @export
+#'
+ProjectCellEmbeddings.Assay <- function(
+  query,
+  reference,
+  reference.assay = NULL,
+  reduction = "pca",
+  dims = 1:50,
+  scale = TRUE,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
+  features <- Reduce(
+    f = intersect,
+    x = list(
+      rownames(x = Loadings(object = reference[[reduction]])),
+    rownames(x = reference[[reference.assay]]),
+    rownames(x = query)
+  )
+  )
+  proj.pca <- ProjectCellEmbeddings(
+    query = GetAssayData(
+      object = query,
+      slot = "data")[features,],
+    reference = reference,
+    reference.assay = reference.assay,
+    reduction = reduction,
+    dims = dims,
+    scale = scale,
+    verbose = verbose,
+    feature.mean = feature.mean,
+    feature.sd = feature.sd
+  )
+  return(proj.pca)
+}
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings SCTAssay
+#' @export
+#'
+ProjectCellEmbeddings.SCTAssay <- function(
+  query,
+  reference,
+  reference.assay = NULL,
+  reduction = "pca",
+  dims = 1:50,
+  scale = TRUE,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  features <- Reduce(
+    f = intersect,
+    x = list(
+      rownames(x = Loadings(object = reference[[reduction]])),
+      rownames(x = reference[[reference.assay]]),
+      rownames(x = query)
+    )
+  )
+  query.data <- GetAssayData(
+    object = query,
+    slot = "data")[features,]
+  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
+  proj.pca <- t(crossprod(x = ref.feature.loadings, y = query.data))
+  return(proj.pca)
+}
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings StdAssay
+#' @export
+#'
+ProjectCellEmbeddings.StdAssay <- function(
+  query,
+  reference,
+  reference.assay = NULL,
+  reduction = "pca",
+  dims = 1:50,
+  scale = TRUE,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
+  features <- Reduce(
+    f = intersect,
+    x = list(
+      rownames(x = Loadings(object = reference[[reduction]])),
+      rownames(x = reference[[reference.assay]]),
+      rownames(x = query)
+    )
+  )
+  layers.set <- Layers(object = query, search = 'data')
+  proj.pca.list <- list()
+  cell.list <- list()
+  for (i in seq_along(layers.set)) {
+    proj.pca.list[[i]] <- t(ProjectCellEmbeddings(
+      query = LayerData(object = query, layer = layers.set[i], features = features),
+      reference = reference,
+      reference.assay = reference.assay,
+      reduction = reduction,
+      dims = dims,
+      scale = scale,
+      verbose = verbose,
+      feature.mean = feature.mean,
+      feature.sd = feature.sd
+    ))
+    cell.list[[i]] <- colnames(proj.pca.list[[i]])
+  }
+  proj.pca <- matrix(
+    data = unlist(proj.pca.list),
+    nrow = nrow(proj.pca.list[[1]]),
+    ncol = ncol(query)
+    )
+  rownames(proj.pca) <- rownames(proj.pca.list[[1]])
+  colnames(proj.pca) <- unlist(cell.list)
+  proj.pca <- t(proj.pca)
+  proj.pca <- proj.pca[colnames(query),]
+  return(proj.pca)
+}
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings default
+#' @export
+#'
+ProjectCellEmbeddings.default <- function(
+  query,
+  reference,
+  reference.assay = NULL,
+  reduction = "pca",
+  dims = 1:50,
+  scale = TRUE,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+){
+  features <- rownames(query)
+  reference.data <-  GetAssayData(
+    object = reference,
+    assay = reference.assay,
+    slot = "data")[features, ]
+if (is.null(x = feature.mean)) {
+ if (inherits(x = reference.data, what = 'dgCMatrix')) {
+   feature.mean <- RowMeanSparse(mat = reference.data)
+ } else {
+   feature.mean <- rowMeans(mat = reference.data)
+ }
+    if (scale) {
+   feature.sd <- sqrt(
+        x = RowVarSparse(
+          mat = as.sparse(reference.data)
+        )
+      )
+      feature.sd[is.na(x = feature.sd)] <- 1
+    } else {
+      feature.sd <- rep(x = 1, nrow(x = reference.data))
+    }
+    feature.mean[is.na(x = feature.mean)] <- 1
+  }
+  store.names <- dimnames(x = query)
+  if (is.numeric(x = feature.mean)) {
+    query <- FastSparseRowScaleWithKnownStats(
+      mat = as.sparse(x = query),
+      mu = feature.mean,
+      sigma = feature.sd,
+      display_progress = FALSE
+    )
+  }
+
+  dimnames(x = query) <- store.names
+  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
+  proj.pca <- t(crossprod(x = ref.feature.loadings, y = query))
+  return(proj.pca)
+}
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings IterableMatrix
+#' @export
+#'
+#' 
+ProjectCellEmbeddings.IterableMatrix <- function(
+  query,
+  reference,
+  reference.assay = NULL,
+  reduction = "pca",
+  dims = 1:50,
+  scale = TRUE,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  features <- rownames(query)
+  reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features,]
+  if (is.null(x = feature.mean)) {
+    if (inherits(x = reference.data, what = 'dgCMatrix')) {
+      feature.mean <- RowMeanSparse(mat = reference.data)
+    } else {
+      feature.mean <- rowMeans(mat = reference.data)
+    }
+    if (scale) {
+      feature.sd <- sqrt(
+        x = RowVarSparse(
+          mat = as.sparse(reference.data)
+        )
+      )
+      feature.sd[is.na(x = feature.sd)] <- 1
+    } else {
+      feature.sd <- rep(x = 1, nrow(x = reference.data))
+    }
+    feature.mean[is.na(x = feature.mean)] <- 1
+  }
+  query.scale <- (query - feature.mean)/feature.sd
+  query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
+  proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
+  rownames(proj.pca) <- colnames(query)
+  colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
+  return(proj.pca)
+}
+
+#' @rdname ProjectCellEmbeddings
+#' @method ProjectCellEmbeddings DelayedMatrix
+#' @export
+#'
+ProjectCellEmbeddings.DelayedMatrix <- function(
+  query.data,
+  block.size = 1e9,
+  reference,
+  assay = NULL,
+  reduction,
+  dims = NULL,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  dims <- dims %||% 1:ncol(reference[[reduction]])
+  assay <- assay %||% DefaultAssay(reference)
+  features <- intersect(rownames(query.data),
+                        rownames(reference[[reduction]]@feature.loadings))
+  query.data <- query.data[features,]
+  if (IsSCT(object[[assay]])) {
+    # TODO: SCT reiduals projection
+  } else {
+    feature.mean <- feature.mean[features] %||%
+      RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
+    feature.sd <- feature.sd[features] %||%
+      sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
+    feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
+    suppressMessages(setAutoBlockSize(size = block.size))
+    cells.grid <- DelayedArray::colAutoGrid(x = query.data)
+    emb.list <- list()
+    for (i in seq_len(length.out = length(x = cells.grid))) {
+      vp <- cells.grid[[i]]
+      data.block <- DelayedArray::read_block(x = query.data,
+                                             viewport = vp,
+                                             as.sparse = TRUE)
+      data.block <- apply(data.block, MARGIN = 2, function(x) {
+        x <- (x - feature.mean)/feature.sd
+        return(x)
+      })
+      emb.block <- t(reference[[reduction]]@feature.loadings[features,dims]) %*%  data.block
+      emb.list[[i]] <- emb.block
+    }
+    # list to matrix, column has to be cells
+    emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
+    rownames(emb.mat) <- colnames(query.data)
+    colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
+  }
+  return(emb.mat)
+}
+
+
+
 
 # Project new data onto SVD (LSI or PCA)
 #
@@ -6815,63 +7000,6 @@ IntegrationReferenceIndex <- function(object) {
 }
 
 
-# Project data slot to the dimensional reduction
-#
-ProjectDataEmbeddings <- function(object,
-                                  assay = 'RNA',
-                                  feature.loadings,
-                                  ref.mean,
-                                  ref.sd,
-                                  block.size = NULL,
-                                  scale.max = 10,
-                                  verbose = TRUE ){
-  features <- Reduce(f = intersect,
-                     x = list(names(ref.mean),
-                              rownames(object[[assay]]),
-                              rownames(feature.loadings)
-                     )
-  )
-  feature.loadings <- feature.loadings[features,]
-  if (verbose) {
-    message( paste0(length(features)," features are used"))
-  }
-  mat <- GetAssayData(object = object[[assay]], slot = 'data')[features,]
-  ref.mean <- ref.mean[features]
-  ref.sd <- ref.sd[features]
-  if (verbose) {
-    message("ScaleData and Project to feature loadings")
-  }
-  my.lapply <- ifelse(
-    test = verbose && nbrOfWorkers() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
-  if (!is.null(block.size)) {
-    block.size = min(block.size, ncol(object))
-    cell.index <- rep(x = 1:ceiling(ncol(mat)/block.size),
-                      each = block.size )[1:ncol(mat)]
-    cells.list <- split(x = 1:ncol(mat), f = cell.index)
-    emb.list <- my.lapply(X = cells.list,
-                       FUN =  function(x) {
-                         mat.x <- as.matrix(mat[,x])
-                         mat.x <- (mat.x - ref.mean) / ref.sd
-                         mat.x[mat.x > scale.max] <- scale.max
-                         cell.emb.x <- t(mat.x ) %*% feature.loadings
-                         return (cell.emb.x)
-                       }
-                       )
-    all.emb <-  Reduce(rbind, emb.list)
-  } else {
-    if (inherits(x = mat, what = "dgCMatrix")) {
-      mat <- as.matrix(mat)
-    }
-    mat <- (mat - ref.mean) / ref.sd
-    mat[mat > scale.max] <- scale.max
-    all.emb <- t(mat) %*% feature.loadings
-  }
-  return(all.emb)
-}
-
 # Calculate mean and sd
 #
 SparseMeanSd <- function(object,
@@ -7416,90 +7544,6 @@ FindBridgeIntegrationAnchors <- function(
   return(bridge_anchor)
 }
 
-
-#' @rdname ProjectCellEmbeddings
-#' @method ProjectCellEmbeddings DelayedMatrix
-#' @export
-#'
-ProjectCellEmbeddings.DelayedMatrix <- function(
-  query.data,
-  block.size = 1e9,
-  reference,
-  assay = NULL,
-  reduction,
-  dims = NULL,
-  feature.mean = NULL,
-  feature.sd = NULL
-) {
-
-  dims <- dims %||% 1:ncol(reference[[reduction]])
-  assay <- assay %||% DefaultAssay(reference)
-  features <- intersect(rownames(query.data),
-                        rownames(reference[[reduction]]@feature.loadings))
-  query.data <- query.data[features,]
- if (IsSCT(object[[assay]])) {
-# TODO: SCT reiduals projection
-
- } else {
-   feature.mean <- feature.mean[features] %||%
-     RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
-   feature.sd <- feature.sd[features] %||%
-     sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
-   feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-
-   suppressMessages(setAutoBlockSize(size = block.size))
-   cells.grid <- DelayedArray::colAutoGrid(x = query.data)
-   emb.list <- list()
-   for (i in seq_len(length.out = length(x = cells.grid))) {
-     vp <- cells.grid[[i]]
-     data.block <- DelayedArray::read_block(x = query.data,
-                                            viewport = vp,
-                                            as.sparse = TRUE)
-     data.block <- apply(data.block, MARGIN = 2, function(x) {
-       x <- (x - feature.mean)/feature.sd
-       return(x)
-     })
-     emb.block <- t(reference[[reduction]]@feature.loadings[features,dims]) %*%  data.block
-     emb.list[[i]] <- emb.block
-   }
-   # list to matrix, column has to be cells
-   emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
-   rownames(emb.mat) <- colnames(query.data)
-   colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
- }
-  return(emb.mat)
-}
-
-#' @rdname ProjectCellEmbeddings
-#' @method ProjectCellEmbeddings IterableMatrix
-#' @export
-#'
-#' 
-ProjectCellEmbeddings.IterableMatrix <- function(
-    query.data,
-    reference,
-    assay = NULL,
-    reduction,
-    dims = NULL,
-    feature.mean = NULL,
-    feature.sd = NULL
-) {
-  dims <- dims %||% 1:ncol(reference[[reduction]])
-  assay <- assay %||% DefaultAssay(reference)
-  features <- intersect(rownames(query.data),
-                        rownames(reference[[reduction]]@feature.loadings))
-  query.data <- query.data[features,]
-    feature.mean <- feature.mean[features] %||%
-      RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
-    feature.sd <- feature.sd[features] %||%
-      sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
-    feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-    query.scale <- (query.data - feature.mean)/feature.sd
-    emb.mat <- t(query.scale) %*%    Loadings(object = reference[[reduction]])[features,dims]
-    rownames(emb.mat) <- colnames(query.data)
-    colnames(emb.mat) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
-  return(emb.mat)
-}
 
 #' Perform integration on the joint PCA cell embeddings.
 #'

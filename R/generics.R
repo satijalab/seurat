@@ -399,15 +399,6 @@ NormalizeData <- function(object, ...) {
 #'
 ProjectCellEmbeddings <- function(
   query,
-  reference,
-  query.assay = NULL,
-  reference.assay = NULL,
-  reduction = "pca",
-  dims = 1:50,
-  scale = TRUE,
-  verbose = TRUE,
-  feature.mean = NULL,
-  feature.sd = NULL
   ...
 ) {
   UseMethod(generic = 'ProjectCellEmbeddings', object = query)
