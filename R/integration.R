@@ -3524,11 +3524,30 @@ TransferSketchLabels <- function(
   k = 50,
   reduction.model = NULL,
   neighbors = NULL,
+  recompute.neighbors = FALSE,
+  recompute.weights = FALSE,
   verbose = TRUE
 ){
+
+  full_sketch.nn <- neighbors %||% Tool(
+    object = object,
+    slot = 'TransferSketchLabels'
+    )$full_sketch.nn
+  full_sketch.weight <- Tool(
+    object = object,
+    slot = 'TransferSketchLabels'
+  )$full_sketch.weight
+
+  compute.neighbors <- is.null(x = full_sketch.nn) ||
+    !all(Cells(full_sketch.nn) == Cells(object[[reduction]])) ||
+    max(Indices(full_sketch.nn)) >  ncol(object[[atoms]]) ||
+    recompute.neighbors
+  compute.weights <- is.null(x = full_sketch.weight) ||
+    !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
+    !all(rownames(full_sketch.weight) == colnames(object[[atoms]]))  ||
+    recompute.weights
   
-  full_sketch.nn <- neighbors %||% Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.nn
-  if (is.null(full_sketch.nn)) {
+  if (compute.neighbors) {
     if (verbose) {
       message("Finding sketch neighbors")
     }
@@ -3539,8 +3558,7 @@ TransferSketchLabels <- function(
       method = "annoy"
     )
   }
-  full_sketch.weight <- Tool(object = object, slot = 'TransferSketchLabels')$full_sketch.weight
-  if(is.null(full_sketch.weight)) {
+  if (compute.weights) {
     if (verbose) {
       message("Finding sketch weight matrix")
     }
@@ -3548,6 +3566,8 @@ TransferSketchLabels <- function(
                                         query.cells = Cells(object[[reduction]]),
                                         reference = colnames(object[[atoms]]),
                                         verbose = verbose)
+    rownames(full_sketch.weight) <- colnames(object[[atoms]])
+    colnames(full_sketch.weight) <- Cells(object[[reduction]])
   }
   object@tools$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
   object@tools$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
@@ -3571,24 +3591,28 @@ TransferSketchLabels <- function(
     predicted.labels.list <- TransferLablesNN(
       reference.labels = reference.labels,
       weight.matrix = full_sketch.weight)
-    
     object[[paste0('predicted.', label.rd)]] <- predicted.labels.list$labels
     object[[paste0('predicted.', label.rd, '.score')]] <- predicted.labels.list$scores
   }
   if (!is.null(reduction.model)) {
-    if (is.null(object[[reduction.model]]@misc$model)) {
+    umap.model <- Misc(object = object[[reduction.model]], slot = 'model')
+    if (is.null(umap.model)) {
       warning(reduction.model, ' does not have a stored umap model')
       return(object)
     }
     if (verbose) {
       message("Projection to sketch umap")
     }
-    if (ncol(full_sketch.nn) > object[[reduction.model]]@misc$model$n_neighbors) {
-      full_sketch.nn@nn.idx <- full_sketch.nn@nn.idx[, 1:object[[reduction.model]]@misc$model$n_neighbors]
-      full_sketch.nn@nn.dist <- full_sketch.nn@nn.dist[, 1:object[[reduction.model]]@misc$model$n_neighbors]
+    if (ncol(full_sketch.nn) > umap.model$n_neighbors) {
+      full_sketch.nn@nn.idx <- full_sketch.nn@nn.idx[, 1:umap.model$n_neighbors]
+      full_sketch.nn@nn.dist <- full_sketch.nn@nn.dist[, 1:umap.model$n_neighbors]
     }
-    proj.umap <- RunUMAP(object = full_sketch.nn, reduction.model = object[[reduction.model]], verbose = verbose)
-    proj.umap@assay.used <- object[[reduction]]@assay.used
+    proj.umap <- RunUMAP(
+      object = full_sketch.nn,
+      reduction.model = object[[reduction.model]],
+      verbose = verbose,
+      assay =  slot(object = object[[reduction]], name = 'assay.used')
+      )
     Key(proj.umap) <- paste0('ref', Key(proj.umap))
     object[[paste0('ref.',reduction.model )]] <- proj.umap
   }
