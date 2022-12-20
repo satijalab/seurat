@@ -1006,6 +1006,7 @@ VST.matrix <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @method .CalcN IterableMatrix
+#' @export
 #'
 .CalcN.IterableMatrix <- function(object) {
   col_stat <- BPCells::matrix_stats(matrix = object, col_stats = 'mean')$col_stats
