@@ -376,6 +376,34 @@ NormalizeData <- function(object, ...) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
+#' Project query data to the reference dimensional reduction
+#'
+#'
+#' @param query An object for query cells
+#' @param reference An object for reference cells
+#' @param query.assay Assay name for query object
+#' @param reference.assay Assay name for reference object
+#' @param reduction Name of dimensional reduction from reference object
+#' @param dims Dimensions used for reference dimensional reduction
+#' @param scale Determine if scale query data based on reference data variance
+#' @param verbose Print progress
+#' @param feature.mean Mean of features in reference
+#' @param feature.sd Standard variance of features in reference
+#'
+#' @return A matrix with projected cell embeddings
+#'
+#' @rdname ProjectCellEmbeddings
+#' @export ProjectCellEmbeddings
+#'
+#' @keywords internal
+#'
+ProjectCellEmbeddings <- function(
+  query,
+  ...
+) {
+  UseMethod(generic = 'ProjectCellEmbeddings', object = query)
+}
+
 #' Project query into UMAP coordinates of a reference
 #'
 #' This function will take a query dataset and project it into the coordinates

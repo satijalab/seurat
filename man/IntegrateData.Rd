@@ -64,12 +64,10 @@ should be encoded in a matrix, where each row represents one of the pairwise
 integration steps. Negative numbers specify a dataset, positive numbers
 specify the integration results from a given row (the format of the merge
 matrix included in the \code{\link{hclust}} function output). For example:
-\code{matrix(c(-2, 1, -3, -1), ncol = 2)} gives:
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{            [,1]  [,2]
+\code{matrix(c(-2, 1, -3, -1), ncol = 2)} gives:\preformatted{            [,1]  [,2]
        [1,]   -2   -3
        [2,]    1   -1
-}\if{html}{\out{</div>}}
+}
 
 Which would cause dataset 2 and 3 to be integrated first, then the resulting
 object integrated with dataset 1.
