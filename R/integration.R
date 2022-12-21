@@ -4805,7 +4805,6 @@ PairwiseIntegrateReference <- function(
   integrated.data <- integrated.data[, colnames(x = unintegrated)]
   new.assay <- new(
     Class = 'Assay',
-    key = paste0(new.assay.name, "_"),
     counts =  new(Class = "dgCMatrix"),
     data = integrated.data,
     scale.data = matrix(),
