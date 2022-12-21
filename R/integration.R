@@ -4904,6 +4904,7 @@ ProjectCellEmbeddings.Seurat <- function(
     message("Projecting cell embeddings")
   }
   query.assay <- query.assay %||% DefaultAssay(object = query)
+  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   proj.pca <- ProjectCellEmbeddings(
     query = query[[query.assay]],
     reference = reference,
@@ -4933,7 +4934,6 @@ ProjectCellEmbeddings.Assay <- function(
   feature.mean = NULL,
   feature.sd = NULL
 ) {
-  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   features <- Reduce(
     f = intersect,
     x = list(
