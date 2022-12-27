@@ -1650,7 +1650,6 @@ NNHelper <- function(data, query = data, k, method, cache.index = FALSE, ...) {
 #
 # @keywords graph network igraph mvtnorm simulation
 #
-#' @importFrom leiden leiden
 #' @importFrom reticulate py_module_available
 #' @importFrom igraph graph_from_adjacency_matrix graph_from_adj_list
 #
