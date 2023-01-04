@@ -2338,7 +2338,7 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (presto.check[1] && overflow.check) {
+  if (FALSE) {
     data.use <- data.use[, names(x = group.info), drop = FALSE]
     res <- presto::wilcoxauc(X = data.use, y = group.info)
     res <- res[1:(nrow(x = res)/2),]
