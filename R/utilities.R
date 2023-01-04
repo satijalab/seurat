@@ -1413,36 +1413,49 @@ PseudobulkExpression.StdAssay <- function(
   if (slot == 'data') {
     message("Assay5 will use arithmetic mean for data slot.")
   }
-  browser()
   layers.set <- Layers(object = object, search = slot)
-  data.use <- GetAssayData(
-    object = object, 
-    slot = slot
-  )
-  features.to.avg <- features %||% rownames(x = data.use)
-  if (IsMatrixEmpty(x = data.use)) {
-    warning(
-      "The ", slot, " slot for the ", assay,
-      " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
-    return(NULL)
-  }
-  bad.features <- setdiff(x = features.to.avg, y = rownames(x = data.use))
+  features.to.avg <- features %||% rownames(x = object)
+  bad.features <- setdiff(x = features.to.avg, y = rownames(x = object))
   if (length(x = bad.features) > 0) {
     warning(
       "The following ", length(x = bad.features),
       " features were not found in the ", assay, " assay: ",
       paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
   }
-  features.assay <- intersect(x = features.to.avg, y = rownames(x = data.use))
-  if (length(x = features.assay) > 0) {
-    data.use <- data.use[features.assay, ]
-  } else {
+  features.assay <- Reduce(
+    f = intersect,
+    x =  c(list(features.to.avg),
+           lapply(X = layers.set, FUN = function(l) rownames(object[[l]]))
+                )
+         )
+  if (length(x = features.assay) == 0) {
     warning("None of the features specified were found in the ", assay,
             " assay.", call. = FALSE, immediate. = TRUE)
     return(NULL)
   }
-
-  data.return <- data.use %*% category.matrix
+  data.return <- as.sparse(
+    x = matrix(
+      data = 0,
+      nrow = length(x = features.assay),
+      ncol = ncol(x = category.matrix)
+      )
+    )
+  for (i in seq_along(layers.set)) {
+    data.i <- LayerData(object = object,
+                        layer = layers.set[i],
+                        features = features.assay
+                        )
+    category.matrix.i <- category.matrix[colnames(x = data.i),]
+    if (inherits(x = data.i, what = 'DelayedArray')) {
+      data.return.i<- tcrossprod_DelayedAssay(x = data.i, y = t(category.matrix.i))
+    } else {
+      data.return.i <- as.sparse(x = data.i %*% category.matrix.i)
+    }
+    data.return <- data.return + data.return.i
+  }
+  if (slot == 'data') {
+    data.return <- expm1(x = data.return)
+  }
   return(data.return)
 }
 
