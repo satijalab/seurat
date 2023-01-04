@@ -1,8 +1,21 @@
 #' @importFrom utils globalVariables
-#' @importFrom ggplot2 ggproto GeomViolin
+#' @importFrom ggplot2 fortify GeomViolin ggproto
 #' @importFrom SeuratObject DefaultDimReduc
 #'
 NULL
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom methods setGeneric
+#'
+setGeneric(
+  name = '.PrepImageData',
+  def = function(data, cells, ...) {
+    standardGeneric(f = '.PrepImageData')
+  }
+)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Heatmaps
@@ -2147,7 +2160,8 @@ PolyDimPlot <- function(
 
 #' Polygon FeaturePlot
 #'
-#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
+#' Plot cells as polygons, rather than single points. Color cells by any value
+#' accessible by \code{\link{FetchData}}.
 #'
 #' @inheritParams FeaturePlot
 #' @param poly.data Name of the polygon dataframe in the misc slot
@@ -2257,6 +2271,778 @@ PolyFeaturePlot <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Spatial Plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Spatial Cluster Plots
+#'
+#' Visualize clusters or other categorical groupings in a spatial context
+#'
+#' @inheritParams DimPlot
+#' @inheritParams SingleImagePlot
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param fov Name of FOV to plot
+#' @param boundaries A vector of segmentation boundaries per image to plot;
+#' can be a character vector, a named character vector, or a named list.
+#' Names should be the names of FOVs and values should be the names of
+#' segmentation boundaries
+#' @param molecules A vector of molecules to plot
+#' @param nmols Max number of each molecule specified in `molecules` to plot
+#' @param dark.background Set plot background to black
+#' @param crop Crop the plots to area with cells only
+#' @param overlap Overlay boundaries from a single image to create a single
+#' plot; if \code{TRUE}, then boundaries are stacked in the order they're
+#' given (first is lowest)
+#' @param axes Keep axes and panel background
+#' @param combine Combine plots into a single
+#' \code{patchwork} ggplot object.If \code{FALSE},
+#' return a list of ggplot objects
+#' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
+#'
+#' @return If \code{combine = TRUE}, a \code{patchwork}
+#' ggplot object; otherwise, a list of ggplot objects
+#'
+#' @importFrom rlang !! is_na sym
+#' @importFrom patchwork wrap_plots
+#' @importFrom ggplot2 element_blank facet_wrap vars
+#' @importFrom SeuratObject DefaultFOV Cells
+#' DefaultBoundary FetchData Images Overlay
+#'
+#' @export
+#'
+ImageDimPlot <- function(
+  object,
+  fov = NULL,
+  boundaries = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  cols = NULL,
+  shuffle.cols = FALSE,
+  size = 0.5,
+  molecules = NULL,
+  mols.size = 0.1,
+  mols.cols = NULL,
+  mols.alpha = 1.0,
+  nmols = 1000,
+  alpha = 1.0,
+  border.color = 'white',
+  border.size = NULL,
+  na.value = 'grey50',
+  dark.background = TRUE,
+  crop = FALSE,
+  cells = NULL,
+  overlap = FALSE,
+  axes = FALSE,
+  combine = TRUE,
+  coord.fixed = TRUE
+) {
+  cells <- cells %||% Cells(x = object)
+  # Determine FOV to use
+  fov <- fov %||% DefaultFOV(object = object)
+  fov <- Filter(
+    f = function(x) {
+      return(
+        x %in% Images(object = object) &&
+          inherits(x = object[[x]], what = 'FOV')
+      )
+    },
+    x = fov
+  )
+  if (!length(x = fov)) {
+    stop("No compatible spatial coordinates present")
+  }
+  # Identify boundaries to use
+  boundaries <- boundaries %||% sapply(
+    X = fov,
+    FUN = function(x) {
+      return(DefaultBoundary(object = object[[x]]))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  boundaries <- .BoundariesByImage(
+    object = object,
+    fov = fov,
+    boundaries = boundaries
+  )
+  fov <- names(x = boundaries)
+  overlap <- rep_len(x = overlap, length.out = length(x = fov))
+  crop <- rep_len(x = crop, length.out = length(x = fov))
+  names(x = crop) <- fov
+  # Prepare plotting data
+  group.by <- boundaries %!NA% group.by %||% 'ident'
+  vars <- c(group.by, split.by)
+  md <- if (!is_na(x = vars)) {
+    FetchData(
+      object = object,
+      vars = vars[!is.na(x = vars)],
+      cells = cells
+    )
+  } else {
+    NULL
+  }
+  pnames <- unlist(x = lapply(
+    X = seq_along(along.with = fov),
+    FUN = function(i) {
+      return(if (isTRUE(x = overlap[i])) {
+        fov[i]
+      } else {
+        paste(fov[i], boundaries[[i]], sep = '_')
+      })
+    }
+  ))
+  pdata <- vector(mode = 'list', length = length(x = pnames))
+  names(x = pdata) <- pnames
+  for (i in names(x = pdata)) {
+    ul <- unlist(x = strsplit(x = i, split = '_'))
+    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    # Apply overlap
+    lyr <- ul[length(ul)]
+    if (is.na(x = lyr)) {
+      lyr <- boundaries[[img]]
+    }
+    # TODO: Apply crop
+    pdata[[i]] <- lapply(
+      X = lyr,
+      FUN = function(l) {
+        if (l == 'NA') {
+          return(NA)
+        }
+        df <- fortify(model = object[[img]][[l]])
+        df <- df[df$cell %in% cells, , drop = FALSE]
+        if (!is.null(x = md)) {
+          df <- merge(x = df, y = md, by.x = 'cell', by.y = 0, all.x = TRUE)
+        }
+        df$cell <- paste(l, df$cell, sep = '_')
+        df$boundary <- l
+        return(df)
+      }
+    )
+    pdata[[i]] <- if (!is_na(x = pdata[[i]])) {
+      do.call(what = 'rbind', args = pdata[[i]])
+    } else {
+      unlist(x = pdata[[i]])
+    }
+  }
+  # Fetch molecule information
+  if (!is.null(x = molecules)) {
+    molecules <- .MolsByFOV(
+      object = object,
+      fov = fov,
+      molecules = molecules
+    )
+    mdata <- vector(mode = 'list', length = length(x = fov))
+    names(x = mdata) <- fov
+    for (img in names(x = mdata)) {
+      idata <- object[[img]]
+      if (!img %in% names(x = molecules)) {
+        mdata[[img]] <- NULL
+        next
+      }
+      if (isTRUE(x = crop[img])) {
+        idata <- Overlay(x = idata, y = idata)
+      }
+      imols <- gsub(
+        pattern = paste0('^', Key(object = idata)),
+        replacement = '',
+        x = molecules[[img]]
+      )
+      mdata[[img]] <- FetchData(
+        object = idata,
+        vars = imols,
+        nmols = nmols
+      )
+    }
+  } else {
+    mdata <- NULL
+  }
+  # Build the plots
+  plots <- vector(
+    mode = 'list',
+    length = length(x = pdata) * ifelse(
+      test = length(x = group.by),
+      yes = length(x = group.by),
+      no = 1L
+    )
+  )
+  idx <- 1L
+  for (group in group.by) {
+    for (i in seq_along(along.with = pdata)) {
+      img <- unlist(x = strsplit(x = names(x = pdata)[i], split = '_'))[1L]
+      p <- SingleImagePlot(
+        data = pdata[[i]],
+        col.by = pdata[[i]] %!NA% group,
+        molecules = mdata[[img]],
+        cols = cols,
+        shuffle.cols = shuffle.cols,
+        size = size,
+        alpha = alpha,
+        mols.size = mols.size,
+        mols.cols = mols.cols,
+        mols.alpha = mols.alpha,
+        border.color = border.color,
+        border.size = border.size,
+        na.value = na.value,
+        dark.background = dark.background
+      )
+      if (!is.null(x = split.by)) {
+        p <- p + facet_wrap(
+          facets = vars(!!sym(x = split.by))
+        )
+      }
+      if (!isTRUE(x = axes)) {
+        p <- p + NoAxes(panel.background = element_blank())
+      }
+      if (!anyDuplicated(x = pdata[[i]]$cell)) {
+        p <- p + guides(fill = guide_legend(override.aes = list(size=4L, alpha=1)))
+      }
+      if (isTRUE(coord.fixed)) {
+        p <- p + coord_fixed()
+      }
+      plots[[idx]] <- p
+      idx <- idx + 1L
+    }
+  }
+  if (isTRUE(x = combine)) {
+    plots <- wrap_plots(plots)
+  }
+  return(plots)
+}
+
+#' Spatial Feature Plots
+#'
+#' Visualize expression in a spatial context
+#'
+#' @inheritParams FeaturePlot
+#' @inheritParams ImageDimPlot
+#' @param scale Set color scaling across multiple plots; choose from:
+#' \itemize{
+#'  \item \dQuote{\code{feature}}: Plots per-feature are scaled across splits
+#'  \item \dQuote{\code{all}}: Plots per-feature are scaled across all features
+#'  \item \dQuote{\code{none}}: Plots are not scaled; \strong{note}: setting
+#'   \code{scale} to \dQuote{\code{none}} will result in color scales that are
+#'   \emph{not} comparable between plots
+#' }
+#' Ignored if \code{blend = TRUE}
+#'
+#' @inherit ImageDimPlot return
+#'
+#' @importFrom patchwork wrap_plots
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 dup_axis element_blank element_text facet_wrap guides
+#' labs margin vars scale_y_continuous theme
+#' @importFrom SeuratObject DefaultFOV Cells DefaultBoundary
+#' FetchData Images Overlay
+#'
+#' @export
+#'
+ImageFeaturePlot <- function(
+  object,
+  features,
+  fov = NULL,
+  boundaries = NULL,
+  cols = if (isTRUE(x = blend)) {
+    c("lightgrey", "#ff0000", "#00ff00")
+  } else {
+    c("lightgrey", "firebrick1")
+  },
+  size = 0.5,
+  min.cutoff = NA,
+  max.cutoff = NA,
+  split.by = NULL,
+  molecules = NULL,
+  mols.size = 0.1,
+  mols.cols = NULL,
+  nmols = 1000,
+  alpha = 1.0,
+  border.color = 'white',
+  border.size = NULL,
+  dark.background = TRUE,
+  blend = FALSE,
+  blend.threshold = 0.5,
+  crop = FALSE,
+  cells = NULL,
+  scale = c('feature', 'all', 'none'),
+  overlap = FALSE,
+  axes = FALSE,
+  combine = TRUE,
+  coord.fixed = TRUE
+) {
+  cells <- cells %||% Cells(x = object)
+  scale <- scale[[1L]]
+  scale <- match.arg(arg = scale)
+  # Set a theme to remove right-hand Y axis lines
+  # Also sets right-hand Y axis text label formatting
+  no.right <- theme(
+    axis.line.y.right = element_blank(),
+    axis.ticks.y.right = element_blank(),
+    axis.text.y.right = element_blank(),
+    axis.title.y.right = element_text(
+      face = "bold",
+      size = 14,
+      margin = margin(r = 7)
+    )
+  )
+  # Determine fov to use
+  fov <- fov %||% DefaultFOV(object = object)
+  fov <- Filter(
+    f = function(x) {
+      return(
+        x %in% Images(object = object) &&
+          inherits(x = object[[x]], what = 'FOV')
+      )
+    },
+    x = fov
+  )
+  if (!length(x = fov)) {
+    stop("No compatible spatial coordinates present")
+  }
+  # Identify boundaries to use
+  boundaries <- boundaries %||% sapply(
+    X = fov,
+    FUN = function(x) {
+      return(DefaultBoundary(object = object[[x]]))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  boundaries <- .BoundariesByImage(
+    object = object,
+    fov = fov,
+    boundaries = boundaries
+  )
+  fov <- names(x = boundaries)
+  # Check overlaps/crops
+  if (isTRUE(x = blend) || !is.null(x = split.by)) {
+    type <- ifelse(test = isTRUE(x = 'blend'), yes = 'Blended', no = 'Split')
+    if (length(x = fov) != 1L) {
+      fov <- fov[1L]
+      warning(
+        type,
+        ' image feature plots can only be done on a single image, using "',
+        fov,
+        '"',
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (any(!overlap) && length(x = boundaries[[fov]]) > 1L) {
+      warning(
+        type,
+        " image feature plots require overlapped segmentations",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    overlap <- TRUE
+  }
+  overlap <- rep_len(x = overlap, length.out = length(x = fov))
+  crop <- rep_len(x = crop, length.out = length(x = fov))
+  names(x = crop) <- names(x = overlap) <- fov
+  # Checks for blending
+  if (isTRUE(x = blend)) {
+    if (length(x = features) != 2L) {
+      stop("Blended feature plots only works with two features")
+    }
+    default.colors <- eval(expr = formals(fun = ImageFeaturePlot)$cols)
+    cols <- switch(
+      EXPR = as.character(x = length(x = cols)),
+      '0' = {
+        warning("No colors provided, using default colors", immediate. = TRUE)
+        default.colors
+      },
+      '1' = {
+        warning(
+          "Only one color provided, assuming specified is double-negative and augmenting with default colors",
+          immediate. = TRUE
+        )
+        c(cols, default.colors[2:3])
+      },
+      '2' = {
+        warning(
+          "Only two colors provided, assuming specified are for features and augmenting with '",
+          default.colors[1],
+          "' for double-negatives",
+          immediate. = TRUE
+        )
+        c(default.colors[1], cols)
+      },
+      '3' = cols,
+      {
+        warning(
+          "More than three colors provided, using only first three",
+          immediate. = TRUE
+        )
+        cols[1:3]
+      }
+    )
+  }
+  # Get feature, splitting data
+  md <- FetchData(
+    object = object,
+    vars = c(features, split.by[1L]),
+    cells = cells
+  )
+  split.by <- intersect(x = split.by, y = colnames(x = md))
+  if (!length(x = split.by)) {
+    split.by <- NULL
+  }
+  imax <- ifelse(
+    test = is.null(x = split.by),
+    yes = ncol(x = md),
+    no = ncol(x = md) - length(x = split.by)
+  )
+  features <- colnames(x = md)[1:imax]
+  # Determine cutoffs
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = min(md[[feature]]),
+        no = cutoff
+      ))
+    },
+    cutoff = min.cutoff,
+    feature = features
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = max(md[[feature]]),
+        no = cutoff
+      ))
+    },
+    cutoff = max.cutoff,
+    feature = features
+  )
+  check.lengths <- unique(x = vapply(
+    X = list(features, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check.lengths) != 1) {
+    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+  }
+  brewer.gran <- ifelse(
+    test = length(x = cols) == 1,
+    yes = brewer.pal.info[cols, ]$maxcolors,
+    no = length(x = cols)
+  )
+  # Apply cutoffs
+  for (i in seq_along(along.with = features)) {
+    f <- features[[i]]
+    data.feature <- md[[f]]
+    min.use <- SetQuantile(cutoff = min.cutoff[i], data = data.feature)
+    max.use <- SetQuantile(cutoff = max.cutoff[i], data = data.feature)
+    data.feature[data.feature < min.use] <- min.use
+    data.feature[data.feature > max.use] <- max.use
+    if (brewer.gran != 2) {
+      data.feature <- if (all(data.feature == 0)) {
+        rep_len(x = 0, length.out = length(x = data.feature))
+      } else {
+        as.numeric(x = as.factor(x = cut(
+          x = as.numeric(x = data.feature),
+          breaks = brewer.gran
+        )))
+      }
+    }
+    md[[f]] <- data.feature
+  }
+  # Figure out splits
+  if (is.null(x = split.by)) {
+    split.by <- RandomName()
+    md[[split.by]] <- factor(x = split.by)
+  }
+  if (!is.factor(x = md[[split.by]])) {
+    md[[split.by]] <- factor(x = md[[split.by]])
+  }
+  # Apply blends
+  if (isTRUE(x = blend)) {
+    md <- lapply(
+      X = levels(x = md[[split.by]]),
+      FUN = function(x) {
+        df <- md[as.character(x = md[[split.by]]) == x, , drop = FALSE]
+        no.expression <- features[colMeans(x = df[, features]) == 0]
+        if (length(x = no.expression)) {
+          stop(
+            "The following features have no value: ",
+            paste(no.expression, collapse = ', ')
+          )
+        }
+        return(cbind(
+          df[, split.by, drop = FALSE],
+          BlendExpression(data = df[, features])
+        ))
+      }
+    )
+    md <- do.call(what = 'rbind', args = md)
+    features <- setdiff(x = colnames(x = md), y = split.by)
+  }
+  # Prepare plotting data
+  pnames <- unlist(x = lapply(
+    X = seq_along(along.with = fov),
+    FUN = function(i) {
+      return(if (isTRUE(x = overlap[i])) {
+        fov[i]
+      } else {
+        paste(fov[i], boundaries[[i]], sep = '_')
+      })
+    }
+  ))
+  pdata <- vector(mode = 'list', length = length(x = pnames))
+  names(x = pdata) <- pnames
+  for (i in names(x = pdata)) {
+    ul <- unlist(x = strsplit(x = i, split = '_'))
+    img <- paste(ul[1:length(ul)-1], collapse = '_')
+    # Apply overlap
+    lyr <- ul[length(ul)]
+    if (is.na(x = lyr)) {
+      lyr <- boundaries[[img]]
+    }
+    pdata[[i]] <- lapply(
+      X = lyr,
+      FUN = function(l) {
+        df <- fortify(model = object[[img]][[l]])
+        df <- df[df$cell %in% cells, , drop = FALSE]
+        if (!is.null(x = md)) {
+          df <- merge(x = df, y = md, by.x = 'cell', by.y = 0, all.x = TRUE)
+        }
+        df$cell <- paste(l, df$cell, sep = '_')
+        df$boundary <- l
+        return(df)
+      }
+    )
+    pdata[[i]] <- if (!is_na(x = pdata[[i]])) {
+      do.call(what = 'rbind', args = pdata[[i]])
+    } else {
+      unlist(x = pdata[[i]])
+    }
+  }
+  # Fetch molecule information
+  if (!is.null(x = molecules)) {
+    molecules <- .MolsByFOV(
+      object = object,
+      fov = fov,
+      molecules = molecules
+    )
+    mdata <- vector(mode = 'list', length = length(x = fov))
+    names(x = mdata) <- fov
+    for (img in names(x = mdata)) {
+      idata <- object[[img]]
+      if (!img %in% names(x = molecules)) {
+        mdata[[img]] <- NULL
+        next
+      }
+      if (isTRUE(x = crop[img])) {
+        idata <- Overlay(x = idata, y = idata)
+      }
+      imols <- gsub(
+        pattern = paste0('^', Key(object = idata)),
+        replacement = '',
+        x = molecules[[img]]
+      )
+      mdata[[img]] <- FetchData(
+        object = idata,
+        vars = imols,
+        nmols = nmols
+      )
+    }
+  } else {
+    mdata <- NULL
+  }
+  # Set blended colors
+  if (isTRUE(x = blend)) {
+    ncol <- 4
+    color.matrix <- BlendMatrix(
+      two.colors = cols[2:3],
+      col.threshold = blend.threshold,
+      negative.color = cols[1]
+    )
+    cols <- cols[2:3]
+    colors <- list(
+      color.matrix[, 1],
+      color.matrix[1, ],
+      as.vector(x = color.matrix)
+    )
+    blend.legend <- BlendMap(color.matrix = color.matrix)
+  }
+  limits <- switch(
+    EXPR = scale,
+    'all' = range(unlist(x = md[, features])),
+    NULL
+  )
+  # Build the plots
+  plots <- vector(
+    mode = 'list',
+    length = length(x = levels(x = md[[split.by]]))
+  )
+  names(x = plots) <- levels(x = md[[split.by]])
+  for (i in seq_along(along.with = levels(x = md[[split.by]]))) {
+    ident <- levels(x = md[[split.by]])[i]
+    plots[[ident]] <- vector(mode = 'list', length = length(x = pdata))
+    names(x = plots[[ident]]) <- names(x = pdata)
+    if (isTRUE(x = blend)) {
+      blend.key <- suppressMessages(
+        expr = blend.legend +
+          scale_y_continuous(
+            sec.axis = dup_axis(name = ifelse(
+              test = length(x = levels(x = md[[split.by]])) > 1,
+              yes = ident,
+              no = ''
+            )),
+            expand = c(0, 0)
+          ) +
+          labs(
+            x = features[1L],
+            y = features[2L],
+            title = if (i == 1L) {
+              paste('Color threshold:', blend.threshold)
+            } else {
+              NULL
+            }
+          ) +
+          no.right
+      )
+    }
+    for (j in seq_along(along.with = pdata)) {
+      key <- names(x = pdata)[j]
+      img <- unlist(x = strsplit(x = key, split = '_'))[1L]
+      plots[[ident]][[key]] <- vector(
+        mode = 'list',
+        length = length(x = features) + ifelse(
+          test = isTRUE(x = blend),
+          yes = 1L,
+          no = 0L
+        )
+      )
+      data.plot <- pdata[[j]][as.character(x = pdata[[j]][[split.by]]) == ident, , drop = FALSE]
+      for (y in seq_along(along.with = features)) {
+        feature <- features[y]
+        # Get blended colors
+        cols.use <- if (isTRUE(x = blend)) {
+          cc <- as.numeric(x = as.character(x = data.plot[, feature])) + 1
+          colors[[y]][sort(unique(x = cc))]
+        } else {
+          NULL
+        }
+        colnames(data.plot) <- gsub("-", "_", colnames(data.plot))
+        p <- SingleImagePlot(
+          data = data.plot,
+          col.by = gsub("-", "_", feature),
+          size = size,
+          col.factor = blend,
+          cols = cols.use,
+          molecules = mdata[[img]],
+          mols.size = mols.size,
+          mols.cols = mols.cols,
+          alpha = alpha,
+          border.color = border.color,
+          border.size = border.size,
+          dark.background = dark.background
+        ) +
+          CenterTitle() + labs(fill=feature)
+        # Remove fill guides for blended plots
+        if (isTRUE(x = blend)) {
+          p <- p + guides(fill = 'none')
+        }
+        if (isTRUE(coord.fixed)) {
+          p <- p + coord_fixed()
+        }
+        # Remove axes
+        if (!isTRUE(x = axes)) {
+          p <- p + NoAxes(panel.background = element_blank())
+        } else if (isTRUE(x = blend) || length(x = levels(x = md[[split.by]])) > 1L) {
+          if (y != 1L) {
+            p <- p + theme(
+              axis.line.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              axis.text.y = element_blank(),
+              axis.title.y.left = element_blank()
+            )
+          }
+          if (i != length(x = levels(x = md[[split.by]]))) {
+            p <- p + theme(
+              axis.line.x = element_blank(),
+              axis.ticks.x = element_blank(),
+              axis.text.x = element_blank(),
+              axis.title.x = element_blank()
+            )
+          }
+        }
+        # Add colors for unblended plots
+        if (!isTRUE(x = blend)) {
+          if (length(x = cols) == 1L) {
+            p <- p + scale_fill_brewer(palette = cols)
+          } else {
+            cols.grad <- cols
+            fexp <- data.plot[data.plot[[split.by]] == ident, feature, drop = TRUE]
+            fexp <- unique(x = fexp)
+            if (length(x = fexp) == 1L) {
+              warning(
+                "All cells have the same value (",
+                fexp,
+                ") of ",
+                feature,
+                call. = FALSE,
+                immediate. = TRUE
+              )
+              if (fexp == 0) {
+                cols.grad <- cols.grad[1L]
+              }
+            }
+            # Check if we're scaling the colorbar across splits
+            if (scale == 'feature') {
+              limits <- range(pdata[[j]][[feature]])
+            }
+            p <- p + ggplot2::scale_fill_gradientn(
+              colors = cols.grad,
+              guide = 'colorbar',
+              limits = limits
+            )
+          }
+        }
+        # Add some labels
+        p <- p + if (i == 1L) {
+          ggplot2::labs(title = feature)
+        } else {
+          ggplot2::labs(title = NULL)
+        }
+        plots[[ident]][[key]][[y]] <- p
+      }
+      if (isTRUE(x = blend)) {
+        plots[[ident]][[key]][[length(x = plots[[ident]][[key]])]] <- blend.key
+      } else if (length(x = levels(x = md[[split.by]])) > 1L) {
+        plots[[ident]][[key]][[y]] <- suppressMessages(
+          expr = plots[[ident]][[key]][[y]] +
+            scale_y_continuous(sec.axis = dup_axis(name = ident)) +
+            no.right
+        )
+      }
+    }
+    plots[[ident]] <- unlist(
+      x = plots[[ident]],
+      recursive = FALSE,
+      use.names = FALSE
+    )
+  }
+  plots <- unlist(x = plots, recursive = FALSE, use.names = FALSE)
+  if (isTRUE(x = combine)) {
+    if (isTRUE(x = blend) || length(x = levels(x = md[[split.by]])) > 1L) {
+      plots <- wrap_plots(
+        plots,
+        ncol = ifelse(
+          test = isTRUE(x = blend),
+          yes = 4L,
+          no = length(x = features)
+        ),
+        nrow = length(x = levels(x = md[[split.by]])),
+        guides = 'collect'
+      )
+    } else {
+      plots <- wrap_plots(plots)
+    }
+  }
+  return(plots)
+}
 
 #' Visualize spatial and clustering (dimensional reduction) data in a linked,
 #' interactive framework
@@ -2962,7 +3748,7 @@ ISpatialFeaturePlot <- function(
 #' default, ggplot2 assigns colors
 #' @param image.alpha Adjust the opacity of the background images. Set to 0 to
 #' remove.
-#' @param crop Crop the plot in to focus on points plotted. Set to FALSE to show
+#' @param crop Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
 #' data, or scale.data)
@@ -3910,10 +4696,10 @@ PlotClusterTree <- function(object, direction = "downwards", ...) {
 #' @param balanced Return an equal number of genes with + and - scores. If
 #' FALSE (default), returns the top genes ranked by the scores absolute values
 #' @param ncol Number of columns to display
-#' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+#' @param combine Combine plots into a single \code{patchwork}
 #' ggplot object. If \code{FALSE}, return a list of ggplot objects
 #'
-#' @return A \code{\link[patchwork]{patchwork}ed} ggplot object if
+#' @return A \code{patchwork} ggplot object if
 #' \code{combine = TRUE}; otherwise, a list of ggplot objects
 #'
 #' @importFrom patchwork wrap_plots
@@ -4487,7 +5273,7 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#' Discrete colour palettes from the pals package
+#' Discrete colour palettes from pals
 #'
 #' These are included here because pals depends on a number of compiled
 #' packages, and this can lead to increases in run time for Travis,
@@ -4500,8 +5286,9 @@ CustomPalette <- function(
 #'
 #' @param n Number of colours to be generated.
 #' @param palette Options are
-#' "alphabet", "alphabet2", "glasbey", "polychrome", and "stepped".
+#' "alphabet", "alphabet2", "glasbey", "polychrome", "stepped", and "parade".
 #' Can be omitted and the function will use the one based on the requested n.
+#' @param shuffle Shuffle the colors in the selected palette.
 #'
 #' @return A vector of colors
 #'
@@ -4513,7 +5300,7 @@ CustomPalette <- function(
 #' @export
 #' @concept visualization
 #'
-DiscretePalette <- function(n, palette = NULL) {
+DiscretePalette <- function(n, palette = NULL, shuffle = FALSE) {
   palettes <- list(
     alphabet = c(
       "#F0A0FF", "#0075DC", "#993F00", "#4C005C", "#191919", "#005C31",
@@ -4550,8 +5337,26 @@ DiscretePalette <- function(n, palette = NULL) {
       "#CCAA7A", "#E6D2B8", "#54990F", "#78B33E", "#A3CC7A", "#CFE6B8",
       "#0F8299", "#3E9FB3", "#7ABECC", "#B8DEE6", "#3D0F99", "#653EB3",
       "#967ACC", "#C7B8E6", "#333333", "#666666", "#999999", "#CCCCCC"
+    ),
+    parade = c(
+      '#ff6969', '#9b37ff', '#cd3737', '#69cdff', '#ffff69', '#69cdcd',
+      '#9b379b', '#3737cd', '#ffff9b', '#cdff69', '#ff9b37', '#37ffff',
+      '#9b69ff', '#37cd69', '#ff3769', '#ff3737', '#37ff9b', '#cdcd37',
+      '#3769cd', '#37cdff', '#9b3737', '#ff699b', '#9b9bff', '#cd9b37',
+      '#69ff37', '#cd3769', '#cd69cd', '#cd6937', '#3737ff', '#cdcd69',
+      '#ff9b69', '#cd37cd', '#9bff37', '#cd379b', '#cd6969', '#69ff9b',
+      '#ff379b', '#9bff9b', '#6937ff', '#69cd37', '#cdff37', '#9bff69',
+      '#9b37cd', '#ff37ff', '#ff37cd', '#ffff37', '#37cd9b', '#379bff',
+      '#ffcd37', '#379b37', '#ff9bff', '#379b9b', '#69ffcd', '#379bcd',
+      '#ff69ff', '#ff9b9b', '#37ff69', '#ff6937', '#6969ff', '#699bff',
+      '#ffcd69', '#69ffff', '#37ff37', '#6937cd', '#37cd37', '#3769ff',
+      '#cd69ff', '#6969cd', '#9bcd37', '#69ff69', '#37cdcd', '#cd37ff',
+      '#37379b', '#37ffcd', '#69cd69', '#ff69cd', '#9bffff', '#9b9b37'
     )
   )
+  if (is.null(x = n)) {
+    return(names(x = palettes))
+  }
   if (is.null(x = palette)) {
     if (n <= 26) {
       palette <- "alphabet"
@@ -4565,7 +5370,11 @@ DiscretePalette <- function(n, palette = NULL) {
   if (n > length(x = palette.vec)) {
     warning("Not enough colours in specified palette")
   }
-  palette.vec[seq_len(length.out = n)]
+  if (isTRUE(shuffle)) {
+    palette.vec <- sample(palette.vec)
+  }
+  palette <- palette.vec[seq_len(length.out = n)]
+  return(palette)
 }
 
 #' @rdname CellSelector
@@ -5337,8 +6146,143 @@ WhiteBackground <- function(...) {
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Fortify Methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Prepare Coordinates for Spatial Plots
+#'
+#' @inheritParams SeuratObject::GetTissueCoordinates
+#' @param model A \code{\linkS4class{Segmentation}},
+#' \code{\linkS4class{Centroids}},
+#' or \code{\linkS4class{Molecules}} object
+#' @param data Extra data to be used for annotating the cell segmentations; the
+#' easiest way to pass data is a one-column
+#' \code{\link[base:data.frame]{data frame}} with the values to color by and
+#' the cell names are rownames
+#' @param ... Arguments passed to other methods
+#'
+#' @name fortify-Spatial
+#' @rdname fortify-Spatial
+#'
+#' @importFrom SeuratObject GetTissueCoordinates
+#'
+#' @keywords internal
+#'
+#' @method fortify Centroids
+#' @export
+#'
+#' @aliases fortify
+#'
+fortify.Centroids <- function(model, data, ...) {
+  df <- GetTissueCoordinates(object = model, full = FALSE)
+  if (missing(x = data)) {
+    data <- NULL
+  }
+  data <- .PrepImageData(data = data, cells = lengths(x = model), ...)
+  df <- cbind(df, data)
+  return(df)
+}
+
+#' @rdname fortify-Spatial
+#' @method fortify Molecules
+#'
+#' @importFrom SeuratObject FetchData
+#'
+#' @export
+#'
+fortify.Molecules <- function(
+  model,
+  data,
+  nmols = NULL,
+  seed = NA_integer_,
+  ...
+) {
+  return(FetchData(object = model, vars = data, nmols = nmols, seed = seed, ...))
+}
+
+#' @rdname fortify-Spatial
+#' @method fortify Segmentation
+#' @export
+#'
+fortify.Segmentation <- function(model, data, ...) {
+  df <- GetTissueCoordinates(object = model, full = TRUE)
+  if (missing(x = data)) {
+    data <- NULL
+  }
+  data <- .PrepImageData(data = data, cells = lengths(x = model), ...)
+  df <- cbind(df, data)
+  return(df)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom SeuratObject Features Key Keys Molecules
+#'
+.MolsByFOV <- function(object, fov, molecules) {
+  keys <- Key(object = object)[fov]
+  keyed.mols <- sapply(
+    X = names(x = keys),
+    FUN = function(img) {
+      if (is.null(x = Molecules(object = object[[img]]))) {
+        return(NULL)
+      }
+      key <- keys[img]
+      mols <- grep(pattern = paste0('^', key), x = molecules, value = TRUE)
+      names(x = mols) <- mols
+      mols <- gsub(pattern = paste0('^', key), replacement = '', x = mols)
+      keyed <- sapply(
+        X = SeuratObject::Keys(object = object[[img]]),
+        FUN = function(x) {
+          return(grep(pattern = paste0('^', x), x = mols, value = TRUE))
+        }
+      )
+      keyed <- unlist(x = keyed)
+      names(x = keyed) <- gsub(
+        pattern = '^.*\\.',
+        replacement = '',
+        x = names(x = keyed)
+      )
+      missing <- mols[!mols %in% keyed]
+      missing <- missing[missing %in% Features(x = object[[img]])]
+      if (length(x = missing)) {
+        # TODO: replace with default molecules
+        default <- Molecules(object = object[[img]])[1L]
+        mn <- names(x = missing)
+        missing <- paste0(
+          SeuratObject::Key(object = object[[img]][[default]]),
+          missing
+        )
+        names(x = missing) <- mn
+      }
+      return(c(missing, keyed))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  found <- names(x = unlist(x = keyed.mols))
+  found <- gsub(pattern = '^.*\\.', replacement = '', x = found)
+  missing <- setdiff(x = molecules, y = found)
+  names(x = missing) <- missing
+  for (img in fov) {
+    imissing <- missing
+    for (i in seq_along(along.with = imissing)) {
+      for (lkey in Keys(object = object[[img]])) {
+        imissing[[i]] <- gsub(
+          pattern = paste0('^', lkey),
+          replacement = '',
+          x = imissing[[i]]
+        )
+      }
+    }
+    imissing <- names(x = imissing[imissing %in% Features(x = object[[img]])])
+    keyed.mols[[img]] <- c(keyed.mols[[img]], imissing)
+  }
+  keyed.mols <- Filter(f = length, x = keyed.mols)
+  keyed.mols <- sapply(X = keyed.mols, FUN = unname, simplify = FALSE)
+  return(keyed.mols)
+}
 
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
 #
@@ -7119,6 +8063,10 @@ SingleDimPlot <- function(
     dims <- colnames(x = data)[dims]
   }
   if (!is.null(x = cells.highlight)) {
+    if (inherits(x = cells.highlight, what = "data.frame")) {
+      stop("cells.highlight cannot be a dataframe. ",
+           "Please supply a vector or list")
+    }
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
       cells.all = rownames(x = data),
@@ -7493,6 +8441,246 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
   title(main = title)
 }
 
+#' Single Spatial Plot
+#'
+#' @param data A data frame with at least the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
+#'   plotted on the \emph{y}-axis
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
+#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{cell}}: Cell name
+#'  \item \dQuote{\code{boundary}}: Segmentation boundary label; when plotting
+#'   multiple segmentation layers, the order of boundary transparency is set by
+#'   factor levels for this column
+#' }
+#' Can pass \code{NA} to \code{data} suppress segmentation visualization
+#' @param col.by Name of column in \code{data} to color cell segmentations by;
+#' pass \code{NA} to suppress coloring
+#' @param col.factor Are the colors a factor or discrete?
+#' @param cols Colors for cell segmentations; can be one of the
+#' following:
+#' \itemize{
+#'  \item \code{NULL} for default ggplot2 colors
+#'  \item A numeric value or name of a
+#'   \link[RColorBrewer:RColorBrewer]{color brewer palette}
+#'  \item Name of a palette for \code{\link{DiscretePalette}}
+#'  \item A vector of colors equal to the length of unique levels of
+#'   \code{data$col.by}
+#' }
+#' @param shuffle.cols Randomly shuffle colors when a palette or
+#' vector of colors is provided to \code{cols}
+#' @param size Point size for cells when plotting centroids
+#' @param molecules A data frame with spatially-resolved molecule coordinates;
+#' should have the following columns:
+#' \itemize{
+#'  \item \dQuote{\code{x}}: Spatial-resolved \emph{x} coordinates, will be
+#'   plotted on the \emph{y}-axis
+#'  \item \dQuote{\code{y}}: Spatially-resolved \emph{y} coordinates, will be
+#'   plotted on the \emph{x}-axis
+#'  \item \dQuote{\code{molecule}}: Molecule name
+#' }
+#' @param mols.size Point size for molecules
+#' @param mols.cols A vector of color for molecules. The "Set1" palette from
+#' RColorBrewer is used by default.
+#' @param mols.alpha Alpha value for molecules, should be between 0 and 1
+#' @param alpha Alpha value, should be between 0 and 1; when plotting multiple
+#' boundaries, \code{alpha} is equivalent to max alpha
+#' @param border.color Color of cell segmentation border; pass \code{NA}
+#' to suppress borders for segmentation-based plots
+#' @param border.size Thickness of cell segmentation borders; pass \code{NA}
+#' to suppress borders for centroid-based plots
+#' @param na.value Color value for \code{NA} segmentations when
+#' using custom scale
+#' @param ... Ignored
+#'
+#' @return A ggplot object
+#'
+#' @importFrom rlang is_na
+#' @importFrom SeuratObject %NA% %!NA%
+#' @importFrom RColorBrewer brewer.pal.info
+#' @importFrom ggplot2 aes_string geom_point geom_polygon ggplot guides
+#' guide_legend scale_alpha_manual scale_color_manual scale_fill_brewer
+#' scale_fill_manual
+#'
+#' @keywords internal
+#'
+#' @export
+#'
+SingleImagePlot <- function(
+  data,
+  col.by = NA,
+  col.factor = TRUE,
+  cols = NULL,
+  shuffle.cols = FALSE,
+  size = 0.1,
+  molecules = NULL,
+  mols.size = 0.1,
+  mols.cols = NULL,
+  mols.alpha = 1.0,
+  alpha = molecules %iff% 0.3 %||% 0.6,
+  border.color = 'white',
+  border.size = NULL,
+  na.value = 'grey50',
+  dark.background = TRUE,
+  ...
+) {
+  # Check input data
+  if (!is_na(x = data)) {
+    if (!all(c('x', 'y', 'cell', 'boundary') %in% colnames(x = data))) {
+      stop("Invalid data coordinates")
+    }
+    if (!is_na(x = col.by)) {
+      if (!col.by  %in% colnames(x = data)) {
+        warning(
+          "Cannot find 'col.by' ('",
+          col.by,
+          "') in data coordinates",
+          immediate. = TRUE
+        )
+        col.by <- NA
+      } else if (isTRUE(x = col.factor) && !is.factor(x = data[[col.by]])) {
+        data[[col.by]] <- factor(
+          x = data[[col.by]],
+          levels = unique(x = data[[col.by]])
+        )
+      } else if (isFALSE(x = col.factor) && is.factor(x = data[[col.by]])) {
+        data[[col.by]] <- as.vector(x = data[[col.by]])
+      }
+    }
+    if (is_na(x = col.by) && !is.null(x = cols)) {
+      col.by <- RandomName(length = 7L)
+      data[[col.by]] <- TRUE
+    }
+    if (!is.factor(x = data$boundary)) {
+      data$boundary <- factor(
+        x = data$boundary,
+        levels = unique(x = data$boundary)
+      )
+    }
+    # Determine alphas
+    if (is.na(x = alpha)) {
+      alpha <- 1L
+    }
+    alpha.min <- ifelse(
+      test = alpha < 1L,
+      yes = 1 * (10 ^ .FindE(x = alpha)),
+      no = 0.1
+    )
+    if (alpha.min == alpha) {
+      alpha.min <- 1 * (10 ^ (.FindE(x = alpha) - 1))
+    }
+    alphas <- .Cut(
+      min = alpha.min,
+      max = alpha,
+      n = length(x = levels(x = data$boundary))
+    )
+  }
+  # Assemble plot
+  plot <- ggplot(
+    data = data %NA% NULL,
+    mapping = aes_string(
+      x = 'y',
+      y = 'x',
+      alpha = 'boundary',
+      fill = col.by %NA% NULL
+    )
+  )
+  if (!is_na(x = data)) {
+    plot <- plot +
+      scale_alpha_manual(values = alphas) +
+      if (anyDuplicated(x = data$cell)) {
+        if (is.null(border.size)) {
+          border.size <- 0.3
+        }
+        geom_polygon(
+          mapping = aes_string(group = 'cell'),
+          color = border.color,
+          size = border.size
+        )
+      } else {
+        # Default to no borders when plotting centroids
+        if (is.null(border.size)) {
+          border.size <- 0.0
+        }
+        geom_point(
+          shape = 21,
+          color = border.color,
+          stroke = border.size,
+          size = size
+        )
+      }
+    if (!is.null(x = cols)) {
+      plot <- plot + if (is.numeric(x = cols) || cols[1L] %in% rownames(x = brewer.pal.info)) {
+        palette <- brewer.pal(n = length(x = levels(x = data[[col.by]])), cols)
+        if (length(palette) < length(x = levels(x = data[[col.by]]))) {
+          num.blank <- length(x = levels(x = data[[col.by]])) - length(palette)
+          palette <- c(palette, rep(na.value, num.blank))
+        }
+        if (isTRUE(shuffle.cols)) {
+          palette <- sample(palette)
+        }
+        scale_fill_manual(values = palette, na.value = na.value)
+      } else if (cols[1] %in% DiscretePalette(n = NULL)) {
+        scale_fill_manual(
+          values = DiscretePalette(
+            n = length(x = levels(x = data[[col.by]])),
+            palette = cols,
+            shuffle = shuffle.cols
+          ),
+          na.value = na.value
+        )
+      } else {
+        if (isTRUE(shuffle.cols)) {
+          cols <- sample(cols)
+        }
+        scale_fill_manual(values = cols, na.value = na.value)
+      }
+    }
+    if (length(x = levels(x = data$boundary)) == 1L) {
+      plot <- plot + guides(alpha = 'none')
+    }
+    # Adjust guides
+    if (isTRUE(x = col.factor) && length(x = levels(x = data[[col.by]])) <= 1L) {
+      plot <- plot + guides(fill = 'none')
+    }
+  }
+  # Add molecule sets
+  if (is.data.frame(x = molecules)) {
+    if (all(c('x', 'y', 'molecule') %in% colnames(x = molecules))) {
+      if (!is.factor(x = molecules$molecule)) {
+        molecules$molecule <- factor(
+          x = molecules$molecule,
+          levels = unique(x = molecules$molecule)
+        )
+      }
+      plot <- plot + geom_point(
+        mapping = aes_string(fill = NULL, alpha = NULL, color = "molecule"),
+        data = molecules,
+        size = mols.size,
+        alpha = mols.alpha,
+        show.legend = c(color = TRUE, fill = FALSE, alpha = FALSE)
+      ) +
+        guides(color = guide_legend(override.aes = list(size = 3L))) +
+        scale_color_manual(
+          name = 'Molecules',
+          values = mols.cols %||% brewer.pal(
+            n = length(x = levels(x = molecules$molecule)),
+            name = "Set1"
+          ),
+          guide = guide_legend()
+        )
+    } else {
+      warning("Invalid molecule coordinates", immediate. = TRUE)
+    }
+  }
+
+  if (isTRUE(dark.background)) {
+    plot <- plot + DarkTheme()
+  }
+  return(plot)
+}
+
 # A single polygon plot
 #
 # @param data Data to plot
@@ -7775,3 +8963,98 @@ Transform <- function(data, xlim = c(-Inf, Inf), ylim = c(-Inf, Inf)) {
   colnames(x = data) <- df.names
   return(data)
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# S4 Methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'data.frame', cells = 'rle'),
+  definition = function(data, cells, ...) {
+    data <- sapply(
+      X = colnames(x = data),
+      FUN = function(x) {
+        j <- data[[x]]
+        names(x = j) <- rownames(x = data)
+        return(.PrepImageData(data = j, cells = cells, name = x))
+      },
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+    return(do.call(what = 'cbind', args = data))
+  }
+)
+
+#' @importFrom methods getMethod
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'factor', cells = 'rle'),
+  definition = function(data, cells, name, ...) {
+    f <- getMethod(
+      f = '.PrepImageData',
+      signature = c(data = 'vector', cells = 'rle')
+    )
+    return(f(data = data, cells = cells, name = name, ...))
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'list', cells = 'rle'),
+  definition = function(data, cells, ...) {
+    .NotYetImplemented()
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'NULL', cells = 'rle'),
+  definition = function(data, cells, ...) {
+    return(SeuratObject::EmptyDF(n = sum(cells$lengths)))
+  }
+)
+
+setMethod(
+  f = '.PrepImageData',
+  signature = c(data = 'vector', cells = 'rle'),
+  definition = function(data, cells, name, ...) {
+    name <- as.character(x = name)
+    if (name %in% c('x', 'y', 'cell')) {
+      stop("'name' cannot be 'x', 'y', or 'cell'", call. = FALSE)
+    }
+    cnames <- cells$values
+    if (is.null(x = names(x = data))) {
+      mlen <- min(sapply(X = list(data, cnames), FUN = length))
+      names(x = data)[1:mlen] <- cnames[1:mlen]
+    }
+    if (anyDuplicated(x = names(x = data))) {
+      dup <- duplicated(x = names(x = data))
+      warning(
+        sum(dup),
+        ifelse(test = sum(dup) == 1, yes = ' cell', no = ' cells'),
+        ' duplicated, using only the first occurance',
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    if (length(x = data) < length(x = cnames)) {
+      mcells <- setdiff(x = cnames, y = names(x = data))
+      warning(
+        "Missing data for some cells, filling with NA",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      data[mcells] <- NA
+    } else if (length(x = data) > length(x = cnames)) {
+      warning(
+        "More cells provided than present",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    data <- data.frame(rep.int(x = data[cnames], times = cells$lengths))
+    colnames(x = data) <- name
+    return(data)
+  }
+)

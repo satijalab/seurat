@@ -757,6 +757,12 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
+  if (is.null(x = mean.fxn)){
+    mean.fxn <- function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+
+    }
+  }
   fc.results <- FoldChange(
     object = object,
     slot = data.slot,
@@ -767,7 +773,7 @@ FindMarkers.SCTAssay <- function(
     mean.fxn = mean.fxn,
     fc.name = fc.name,
     base = base
-  )
+    )
   de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
@@ -1000,9 +1006,16 @@ FindMarkers.Seurat <- function(
       command = norm.command,
       value = "normalization.method"
     )
-  } else {
+  } else if (length(x = intersect(x = c("FindIntegrationAnchors", "FindTransferAnchors"), y = Command(object = object)))) {
+    command <- intersect(x = c("FindIntegrationAnchors", "FindTransferAnchors"), y = Command(object = object))[1]
+    Command(
+      object = object,
+      command = command,
+      value = "normalization.method"
+      )
+    } else {
     NULL
-  }
+    }
   de.results <- FindMarkers(
     object = data.use,
     slot = slot,
