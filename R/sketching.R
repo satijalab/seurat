@@ -84,6 +84,7 @@ LeverageScoreSampling <- function(
   default = TRUE,
   seed = NA_integer_,
   cast = NULL,
+  layers = c('counts', 'data'),
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
@@ -98,13 +99,7 @@ LeverageScoreSampling <- function(
     }
     object[[save]] <- NULL
   }
-  vars <- grep(
-    pattern = '^seurat_leverage_score_',
-    x = names(x = object[[]]),
-    value = TRUE
-  )
-  names(x = vars) <- vars
-  vars <- gsub(pattern = '^seurat_leverage_score_', replacement = '', x = vars)
+  vars <- layers
   vars <- vars[vars %in% Layers(object = object[[assay]])]
   if (!length(x = vars)) {
     stop("No leverage scores found for assay ", assay, call. = FALSE)
