@@ -483,7 +483,7 @@ AverageExpression <- function(
     } else {
       features.i <- features
     }
-    data.return[[assays[i]]] <- PseudobulkExpression.Assay(
+    data.return[[assays[i]]] <- PseudobulkExpression(
       object = object[[assays[i]]],
       assay = assays[i],
       category.matrix = category.matrix,
@@ -493,7 +493,6 @@ AverageExpression <- function(
       ...
     )
   }
-
   if (return.seurat) {
     op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
     on.exit(expr = options(op), add = TRUE)
@@ -1347,14 +1346,9 @@ PercentageFeatureSet <- function(
 #
 # @return Returns a matrix with genes as rows, identity classes as columns.
 # If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#' @method PseudobulkExpression Assay
+#' @export
 #
-#' @importFrom Matrix rowMeans sparse.model.matrix
-#' @importFrom stats as.formula
-# @export
-#
-# @examples
-# data("pbmc_small")
-# head(PseudobulkExpression(object = pbmc_small))
 #
 PseudobulkExpression.Assay <- function(
   object,
@@ -1403,6 +1397,54 @@ PseudobulkExpression.Assay <- function(
  
 }
 
+#' @method PseudobulkExpression StdAssay
+#' @export
+#
+#
+PseudobulkExpression.StdAssay <- function(
+  object,
+  assay,
+  category.matrix,
+  features = NULL,
+  slot = 'data',
+  verbose = TRUE,
+  ...
+) {
+  if (slot == 'data') {
+    message("Assay5 will use arithmetic mean for data slot.")
+  }
+  browser()
+  layers.set <- Layers(object = object, search = slot)
+  data.use <- GetAssayData(
+    object = object, 
+    slot = slot
+  )
+  features.to.avg <- features %||% rownames(x = data.use)
+  if (IsMatrixEmpty(x = data.use)) {
+    warning(
+      "The ", slot, " slot for the ", assay,
+      " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
+    return(NULL)
+  }
+  bad.features <- setdiff(x = features.to.avg, y = rownames(x = data.use))
+  if (length(x = bad.features) > 0) {
+    warning(
+      "The following ", length(x = bad.features),
+      " features were not found in the ", assay, " assay: ",
+      paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
+  }
+  features.assay <- intersect(x = features.to.avg, y = rownames(x = data.use))
+  if (length(x = features.assay) > 0) {
+    data.use <- data.use[features.assay, ]
+  } else {
+    warning("None of the features specified were found in the ", assay,
+            " assay.", call. = FALSE, immediate. = TRUE)
+    return(NULL)
+  }
+
+  data.return <- data.use %*% category.matrix
+  return(data.return)
+}
 
 #' Regroup idents based on meta.data info
 #'
@@ -2605,6 +2647,8 @@ SweepNonzero <- function(
 
 
 #' Create one hot matrix for a given label
+#' @importFrom Matrix colSums sparse.model.matrix
+#' @importFrom stats as.formula
 #' @export
 
 CreateCategoryMatrix <- function(
@@ -2655,7 +2699,7 @@ CreateCategoryMatrix <- function(
   colsums <- colsums[colsums > 0]
   
   if (method =='average') {
-    category.matrix <- Seurat:::SweepNonzero(
+    category.matrix <- SweepNonzero(
       x = category.matrix,
       MARGIN = 2,
       STATS = colsums,
