@@ -1005,16 +1005,16 @@ VST.matrix <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @method .CalcN IterableMatrix
-#' @export
-#'
-.CalcN.IterableMatrix <- function(object) {
-  col_stat <- BPCells::matrix_stats(matrix = object, col_stats = 'mean')$col_stats
-  return(list(
-    nCount = round(col_stat['mean',] *nrow(object)),
-    nFeature = col_stat['nonzero',]
-  ))
-}
+# #' @method .CalcN IterableMatrix
+# #' @export
+# #'
+# .CalcN.IterableMatrix <- function(object) {
+#   col_stat <- BPCells::matrix_stats(matrix = object, col_stats = 'mean')$col_stats
+#   return(list(
+#     nCount = round(col_stat['mean',] *nrow(object)),
+#     nFeature = col_stat['nonzero',]
+#   ))
+# }
 
 .FeatureVar <- function(
   data,
