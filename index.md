@@ -1,5 +1,9 @@
 ![](articles/assets/seurat_banner.jpg)
 
+# Pre-release of Seurat 5.0
+
+This is some text about Seurat v5.0
+
 # Official release of Seurat 4.0
 
 We are excited to release Seurat v4.0! This update brings the following new features and functionality:

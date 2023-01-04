@@ -2319,8 +2319,18 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
+  presto.check <- PackageCheck("presto", error = FALSE)
   limma.check <- PackageCheck("limma", error = FALSE)
-  if (limma.check[1] && overflow.check) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  if (presto.check[1] && overflow.check) {
+    data.use <- data.use[, names(x = group.info), drop = FALSE]
+    res <- presto::wilcoxauc(X = data.use, y = group.info)
+    res <- res[1:(nrow(x = res)/2),]
+    p_val <- res$pval
+  } else if (limma.check[1] && overflow.check) {
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),
       FUN = function(x) {
@@ -2342,10 +2352,6 @@ WilcoxDETest <- function(
       )
       options(Seurat.limma.wilcox.msg = FALSE)
     }
-    group.info <- data.frame(row.names = c(cells.1, cells.2))
-    group.info[cells.1, "group"] <- "Group1"
-    group.info[cells.2, "group"] <- "Group2"
-    group.info[, "group"] <- factor(x = group.info[, "group"])
     data.use <- data.use[, rownames(x = group.info), drop = FALSE]
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),

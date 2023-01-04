@@ -8,7 +8,7 @@ date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 ***
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
   now <- NULL
@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -38,9 +39,10 @@ We start by reading in the data. The `Read10X()` function reads in the output of
 
 We next use the count matrix to create a `Seurat` object. The object serves as a container that contains both data (like the count matrix) and analysis (like PCA, or clustering results) for a single-cell dataset. For a technical discussion of the `Seurat` object structure, check out our [GitHub Wiki](https://github.com/satijalab/seurat/wiki). For example, the count matrix is stored in `pbmc[["RNA"]]@counts`.
 
-```{r init}
+```{r init, error=TRUE}
 library(dplyr)
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 library(patchwork)
 
 # Load the PBMC dataset
@@ -52,14 +54,14 @@ pbmc
 <details>
   <summary>**What does data in a count matrix look like?**</summary>
 
-```{r}
+```{r, error=TRUE}
 # Lets examine a few genes in the first thirty cells
-pbmc.data[c("CD3D","TCL1A","MS4A1"), 1:30]
+pbmc.data[c("CD3D", "TCL1A", "MS4A1"), 1:30]
 ```
 
 The `.` values in the matrix represent 0s (no molecules detected). Since most values in an scRNA-seq matrix are 0,  Seurat uses a sparse-matrix representation whenever possible. This results in significant memory and speed savings for Drop-seq/inDrop/10x data.
 
-```{r}
+```{r, error=TRUE}
 dense.size <- object.size(as.matrix(pbmc.data))
 dense.size
 sparse.size <- object.size(pbmc.data)
@@ -86,7 +88,7 @@ Seurat allows you to easily explore QC metrics and filter cells based on any use
     + We calculate mitochondrial QC metrics with the `PercentageFeatureSet()` function, which calculates the percentage of counts originating from a set of features
     + We use the set of all genes starting with `MT-` as a set of mitochondrial genes
 
-```{r mito, fig.height=7, fig.width=13}
+```{r mito, fig.height=7, fig.width=13, error=TRUE}
 # The [[ operator can add columns to object metadata. This is a great place to stash QC stats
 pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 ```
@@ -96,7 +98,7 @@ pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 
 * The number of unique genes and total molecules are automatically calculated during `CreateSeuratObject()`
     + You can find them stored in the object meta data
-```{r qc, fig.height=7, fig.width=13}
+```{r qc, fig.height=7, fig.width=13, error=TRUE}
 # Show QC metrics for the first 5 cells
 head(pbmc@meta.data, 5)
 ```
@@ -108,14 +110,14 @@ In the example below, we visualize QC metrics, and use these to filter cells.
 * We filter cells that have unique feature counts over 2,500 or less than 200
 * We filter cells that have >5% mitochondrial counts
     
-```{r qc2, fig.height=7, fig.width=13}
+```{r qc2, fig.height=7, fig.width=13, error=TRUE}
 
 #Visualize QC metrics as a violin plot
 VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 
 # FeatureScatter is typically used to visualize feature-feature relationships, but can be used for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
 
-plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
 plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA") 
 plot1 + plot2
 
@@ -128,7 +130,7 @@ pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent
 
 After removing unwanted cells from the dataset, the next step is to normalize the data. By default, we employ a global-scaling normalization method "LogNormalize" that normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and log-transforms the result. Normalized values are stored in `pbmc[["RNA"]]@data`.
 
-```{r normalize}
+```{r normalize, error=TRUE}
 pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 1e4)
 ```
 For clarity, in this previous line of code (and in future commands), we provide the default values for certain parameters in the function call. However, this isn't required and the same behavior can be achieved with:
@@ -144,6 +146,7 @@ We next calculate a subset of features that exhibit high cell-to-cell variation 
 Our procedure in Seurat is described in detail [here](https://doi.org/10.1016/j.cell.2019.05.031), and improves on previous versions by directly modeling the mean-variance relationship inherent in single-cell data, and is implemented in the `FindVariableFeatures()` function. By default, we return 2,000 features per dataset. These will be used in downstream analysis, like PCA.
 
 ```{r var_features, fig.height=5, fig.width=11}
+DefaultLayer(pbmc[["RNA"]]) <- "counts"
 pbmc <- FindVariableFeatures(pbmc, selection.method = 'vst', nfeatures = 2000)
 
 # Identify the 10 most highly variable genes
@@ -167,6 +170,7 @@ Next, we apply a linear transformation ('scaling') that is a standard pre-proces
 * The results of this are stored in `pbmc[["RNA"]]@scale.data`
 
 ```{r regress, fig.height=7, fig.width=11, results='hide'}
+DefaultLayer(pbmc[["RNA"]]) <- "data"
 all.genes <- rownames(pbmc)
 pbmc <- ScaleData(pbmc, features = all.genes)
 ```
@@ -174,7 +178,7 @@ pbmc <- ScaleData(pbmc, features = all.genes)
   <summary>**This step takes too long! Can I make it faster?**</summary>
 
 Scaling is an essential step in the Seurat workflow, but only on genes that will be used as input to PCA. Therefore, the default in `ScaleData()` is only to perform scaling on the previously identified variable features (2,000 by default). To do this, omit the `features` argument in the previous function call, i.e.
-```{r regressvar, fig.height=7, fig.width=11, results='hide',eval = FALSE}
+```{r regressvar, fig.height=7, fig.width=11, results='hide', eval = FALSE}
 pbmc <- ScaleData(pbmc)
 ```
 Your PCA and clustering results will be unaffected. However, Seurat heatmaps (produced as shown below with `DoHeatmap()`) require genes in the heatmap to be scaled, to make sure highly-expressed genes don't dominate the heatmap. To make sure we don't leave any genes out of the heatmap later, we are scaling all genes in this tutorial. 
@@ -184,7 +188,7 @@ Your PCA and clustering results will be unaffected. However, Seurat heatmaps (pr
   <summary>**How can I remove unwanted sources of variation, as in Seurat v2?**</summary>
 
 In `Seurat v2` we also use the `ScaleData()` function to remove unwanted sources of variation from a single-cell dataset. For example, we could 'regress out' heterogeneity associated with (for example) cell cycle stage, or mitochondrial contamination. These features are still supported in `ScaleData()` in `Seurat v3`, i.e.: 
-```{r regressvarmt, fig.height=7, fig.width=11, results='hide',eval = FALSE}
+```{r regressvarmt, fig.height=7, fig.width=11, results='hide', eval = FALSE}
 pbmc <- ScaleData(pbmc, vars.to.regress = 'percent.mt')
 ```
 However, particularly for advanced users who would like to use this functionality, we strongly recommend the use of our new normalization workflow, `SCTransform()`. The method is described in our [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), with a separate vignette using Seurat v3 [here](sctransform_vignette.html). As with `ScaleData()`, the function `SCTransform()` also includes a `vars.to.regress` parameter.
@@ -197,7 +201,7 @@ However, particularly for advanced users who would like to use this functionalit
 
 Next we perform PCA on the scaled data. By default, only the previously determined variable features are used as input, but can be defined using `features` argument if you wish to choose a different subset.
 
-```{r pca,results='hide'}
+```{r pca}
 pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
 ```
 
@@ -332,6 +336,9 @@ FeaturePlot(pbmc, features = c("MS4A1", "GNLY", "CD3E", "CD14", "FCER1A", "FCGR3
 
 ```{r clusterHeatmap, fig.height=8, fig.width=15}
 pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_log2FC) -> top10
+
+# DoHeatmap doesn't automatically use the correct slot/layer anymore. need to figure out to make this occur automatically.
+DefaultLayer(pbmc[["RNA"]]) <- "scale.data"
 DoHeatmap(pbmc, features = top10$gene) + NoLegend()
 ```
 
@@ -360,7 +367,7 @@ pbmc <- RenameIdents(pbmc, new.cluster.ids)
 DimPlot(pbmc, reduction = 'umap', label = TRUE, pt.size = 0.5) + NoLegend()
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- DimPlot(pbmc, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
@@ -372,11 +379,11 @@ ggsave(filename = "../output/images/pbmc3k_umap.jpg", height = 7, width = 12, pl
 saveRDS(pbmc, file = "../output/pbmc3k_final.rds")
 ```
 
-```{r save2, include = FALSE}
+```{r save2, include=TRUE}
 saveRDS(pbmc, file = "../data/pbmc3k_final.rds")
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include=TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/pbmc3k_tutorial_times.csv")
 ```
 
