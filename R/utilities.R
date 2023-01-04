@@ -367,9 +367,9 @@ AggregateExpression <- function(
   ...
 ) {
   return(
-    PseudobulkExpression(
+    AverageExpression(
       object = object,
-      pb.method = 'aggregate',
+      method = 'aggregate',
       assays = assays,
       features = features,
       return.seurat = return.seurat,
@@ -478,26 +478,31 @@ AverageExpression <- function(
   category.matrix <- CreateCategoryMatrix(labels = data, method = method)
   data.return <- list()
   for (i in 1:length(x = assays)) {
-    data.return[[i]] <- PseudobulkExpression(
-      object = object,
-      method = 'average',
-      assays = assays[i],
-      features = features,
-      group.by = group.by,
-      add.ident = add.ident,
-      slot = slot,
+    if (inherits(x = features, what = "list")) {
+      features.i <- features[[i]]
+    } else {
+      features.i <- features
+    }
+    data.return[[assays[i]]] <- PseudobulkExpression.Assay(
+      object = object[[assays[i]]],
+      assay = assays[i],
+      category.matrix = category.matrix,
+      features = features.i,
+      slot = slot[i],
       verbose = verbose,
       ...
     )
   }
 
   if (return.seurat) {
+    op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
+    on.exit(expr = options(op), add = TRUE)
     if (slot[1] == 'scale.data') {
-      na.matrix <- as.matrix(x = as.madata.return[[1]])
+      na.matrix <- as.matrix(x = data.return[[1]])
       na.matrix[1:length(x = na.matrix)] <- NA
       toRet <- CreateSeuratObject(
         counts = na.matrix,
-        project = if (pb.method == "average") "Average" else "Aggregate",
+        project = if (method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
         check.matrix = FALSE,
         ...
@@ -523,7 +528,7 @@ AverageExpression <- function(
     } else {
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
-        project = if (pb.method == "average") "Average" else "Aggregate",
+        project = if (method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
         check.matrix = FALSE,
         ...
@@ -584,7 +589,9 @@ AverageExpression <- function(
                               return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
                             }
       )
-      Idents(object = toRet) <- Idents(object = object)[first.cells]
+      Idents(object = toRet,
+             cells = colnames(x = toRet)
+             ) <- Idents(object = object)[first.cells]
     }
     return(toRet)
   } else {
@@ -1326,7 +1333,7 @@ PercentageFeatureSet <- function(
 # Returns a representative expression value for each identity class
 #
 # @param object Seurat object
-# @param pb.method Whether to 'average' (default) or 'aggregate' expression levels
+# @param method Whether to 'average' (default) or 'aggregate' expression levels
 # @param assays Which assays to use. Default is all assays
 # @param features Features to analyze. Default is all features in the assay
 # @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
@@ -1349,68 +1356,53 @@ PercentageFeatureSet <- function(
 # data("pbmc_small")
 # head(PseudobulkExpression(object = pbmc_small))
 #
-PseudobulkExpression <- function(
+PseudobulkExpression.Assay <- function(
   object,
-  pb.method = 'average',
-  assays = NULL,
+  assay,
+  category.matrix,
   features = NULL,
-  return.seurat = FALSE,
-  group.by = 'ident',
-  add.ident = NULL,
   slot = 'data',
   verbose = TRUE,
   ...
 ) {
-
-
-
-  for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
-      object = object,
-      assay = assays[i],
-      slot = slot[i]
+      object = object, 
+      slot = slot
     )
     features.to.avg <- features %||% rownames(x = data.use)
-    if (inherits(x = features, what = "list")) {
-      features.to.avg <- features[i]
-    }
     if (IsMatrixEmpty(x = data.use)) {
       warning(
-        "The ", slot[i], " slot for the ", assays[i],
+        "The ", slot, " slot for the ", assay,
         " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
-      next
+      return(NULL)
     }
     bad.features <- setdiff(x = features.to.avg, y = rownames(x = data.use))
     if (length(x = bad.features) > 0) {
       warning(
         "The following ", length(x = bad.features),
-        " features were not found in the ", assays[i], " assay: ",
+        " features were not found in the ", assay, " assay: ",
         paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
     }
     features.assay <- intersect(x = features.to.avg, y = rownames(x = data.use))
     if (length(x = features.assay) > 0) {
       data.use <- data.use[features.assay, ]
     } else {
-      warning("None of the features specified were found in the ", assays[i],
+      warning("None of the features specified were found in the ", assay,
               " assay.", call. = FALSE, immediate. = TRUE)
-      next
+      return(NULL)
     }
-    if (slot[i] == 'data') {
+    if (slot == 'data') {
       data.use <- expm1(x = data.use)
       if (any(data.use == Inf)) {
         warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
       }
     }
-    if (inherits(x = data.use, what = 'DelayedArray')) {
-      data.return[[i]] <- tcrossprod_DelayedAssay(x = data.use, y = t(category.matrix))
-    } else {
-      browser()
-      data.return[[i]] <- data.use %*% category.matrix
-    }
-    names(x = data.return)[i] <- assays[[i]]
-  }
+    data.return <- data.use %*% category.matrix
+   return(data.return)
+ 
  
 }
+
 
 #' Regroup idents based on meta.data info
 #'
@@ -2617,7 +2609,7 @@ SweepNonzero <- function(
 
 CreateCategoryMatrix <- function(
   labels,
-  method = c('sum', 'average'),
+  method = c('aggregate', 'average'),
   cells.name = NULL
   ) {
   method <- match.arg(arg = method)
