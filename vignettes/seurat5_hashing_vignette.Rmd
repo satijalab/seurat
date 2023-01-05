@@ -280,7 +280,7 @@ DimPlot(hto12) + NoLegend()
 ```
 
 ```{r save.times, include = TRUE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/hashing_vignette_times.csv")
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_hashing_vignette_times.csv")
 ```
 
 <details>

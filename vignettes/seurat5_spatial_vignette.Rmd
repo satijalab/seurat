@@ -463,7 +463,7 @@ SpatialFeaturePlot(slide.seq, features = head(SpatiallyVariableFeatures(slide.se
 ```
 
 ```{r save.times, include=TRUE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_times.csv")
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_spatial_vignette_times.csv")
 ```
 
 <details>

@@ -132,7 +132,7 @@ head(FindMarkers(pbmc, ident.1 = "CD14+ Mono", ident.2 = "FCGR3A+ Mono", test.us
 We thank the authors of the MAST and DESeq2 packages for their kind assistance and advice. We also point users to the following [study](https://www.nature.com/articles/nmeth.4612) by Charlotte Soneson and Mark Robinson, which performs careful and extensive evaluation of methods for single cell differential expression testing.
 
 ```{r save.times, include = FALSE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/de_vignette_times.csv")
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_de_vignette_times.csv")
 ```
 
 <details>

@@ -258,7 +258,7 @@ p1 + p2
 Now that the datasets have been integrated, you can follow the previous steps in this vignette identify cell types and cell type-specific responses.
 
 ```{r save.times, include=TRUE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/integration_introduction.csv")
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_integration_introduction.csv")
 ```
 
 <details>

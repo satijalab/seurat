@@ -224,7 +224,7 @@ DimPlot(coembed, group.by = c("orig.ident","seurat_annotations"))
 ```
 
 ```{r save.times, include = TRUE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/atacseq_integration_vignette.csv")
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_atacseq_integration_vignette.csv")
 ```
 
 <details>
