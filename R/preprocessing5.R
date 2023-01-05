@@ -2044,8 +2044,23 @@ FetchResidualSCTModel <- function(object,
       new_residuals[[i]] <- new_residual
     }
     new_residual <- do.call(what = cbind, args = new_residuals)
-    # centered data
-    new_residual <- new_residual - rowMeans(x = new_residual)
+    # centered data if no reference model is provided
+    if (is.null(x = reference.SCT.model)){
+      new_residual <- new_residual - rowMeans(x = new_residual)
+    } else {
+      # subtract residual mean from reference model
+      if (verbose){
+        message("Using residual mean from reference for centering")
+      }
+      vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+      ref.residuals.mean <- vst_out$gene_attr[rownames(x = new_residual),"residual_mean"]
+      new_residual <- sweep(
+        x = new_residual,
+        MARGIN = 1,
+        STATS = ref.residuals.mean,
+        FUN = "-"
+      )
+    }
     # return (new_residuals)
   } else {
     #  Some features do not exist
