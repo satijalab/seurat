@@ -1868,7 +1868,7 @@ FetchResidualSCTModel <- function(object,
                                   replace.value = FALSE,
                                   verbose = FALSE) {
   model.cells <- character()
-  model.features <- Features(x = obj.query, layer = layer)
+  model.features <- Features(x = object, layer = layer)
   if (is.null(x = reference.SCT.model)){
     clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
     model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
@@ -2086,4 +2086,67 @@ FetchResidualSCTModel <- function(object,
   return(new_residual)
 }
 
+#' temporal function to get residuals from reference
+#' @importFrom sctransform get_residuals
+#' @importFrom Matrix colSums
+#' 
 
+FetchResiduals_reference <- function(object,
+                                     reference.SCT.model = NULL,
+                                     features = NULL,
+                                     verbose = FALSE) {
+  features_to_compute <- features
+  vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+  
+  # override clip.range
+  clip.range <- vst_out$arguments$sct.clip.range
+  # get rid of the cell attributes
+  vst_out$cell_attr <- NULL
+  all.features <- intersect(
+    x = rownames(x = vst_out$gene_attr),
+    y = features_to_compute
+  )
+  vst_out$gene_attr <- vst_out$gene_attr[all.features, , drop = FALSE]
+  vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
+  
+  clip.max <- max(clip.range)
+  clip.min <- min(clip.range)
+  
+  
+  umi <- object[features_to_compute, , drop = FALSE]
+  
+  ## Add cell_attr for missing cells
+  cell_attr <- data.frame(
+    umi = colSums(object),
+    log_umi = log10(x = colSums(object))
+  )
+  rownames(cell_attr) <- colnames(object)
+  vst_out$cell_attr <- cell_attr
+  
+  if (verbose) {
+    message("using reference sct model")
+  }
+  
+  if (vst_out$arguments$min_variance == "umi_median"){
+    min_var <- min_var_custom
+  } else {
+    min_var <- vst_out$arguments$min_variance
+  }
+  new_residual <- get_residuals(
+    vst_out = vst_out,
+    umi = umi,
+    residual_type = "pearson",
+    min_variance = min_var,
+    res_clip_range = c(clip.min, clip.max),
+    verbosity = as.numeric(x = verbose) * 2
+  )
+  
+  ref.residuals.mean <- vst_out$gene_attr[rownames(x = new_residual),"residual_mean"]
+  new_residual <- sweep(
+    x = new_residual,
+    MARGIN = 1,
+    STATS = ref.residuals.mean,
+    FUN = "-"
+  )
+  return(new_residual)
+}
