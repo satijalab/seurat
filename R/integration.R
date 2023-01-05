@@ -4894,6 +4894,7 @@ ProjectCellEmbeddings.Seurat <- function(
   reference.assay = NULL,
   reduction = "pca",
   dims = 1:50,
+  normalization.method = c("LogNormalize", "SCT"),
   scale = TRUE,
   verbose = TRUE,
   feature.mean = NULL,
@@ -4902,8 +4903,23 @@ ProjectCellEmbeddings.Seurat <- function(
   if (verbose) {
     message("Projecting cell embeddings")
   }
+  normalization.method <- match.arg(arg = normalization.method)
   query.assay <- query.assay %||% DefaultAssay(object = query)
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
+  if (normalization.method == 'SCT') {
+    if (!IsSCT(assay = reference[[reference.assay]])) {
+      stop('reference in ', reference.assay, ' assay does not have a SCT model' )
+    }
+    reference.model.num <- length(slot(object = reference[[reference.assay]], name = "SCTModel.list"))
+    if (reference.model.num > 1) {
+      stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
+           " reference sct models. Please provide a reference assay with a ",
+           " single reference sct model.", call. = FALSE)
+    } else if (reference.model.num == 0) {
+        stop("Given reference assay (", reference.assay,
+             ") doesn't contain a reference SCT model.")
+    }
+  }
   proj.pca <- ProjectCellEmbeddings(
     query = query[[query.assay]],
     reference = reference,
@@ -4911,6 +4927,7 @@ ProjectCellEmbeddings.Seurat <- function(
     reduction = reduction,
     dims = dims,
     scale = scale,
+    normalization.method = normalization.method,
     verbose = verbose,
     feature.mean = feature.mean,
     feature.sd = feature.sd
@@ -4929,6 +4946,7 @@ ProjectCellEmbeddings.Assay <- function(
   reduction = "pca",
   dims = 1:50,
   scale = TRUE,
+  normalization.method = NULL,
   verbose = TRUE,
   feature.mean = NULL,
   feature.sd = NULL
@@ -4944,13 +4962,15 @@ ProjectCellEmbeddings.Assay <- function(
   proj.pca <- ProjectCellEmbeddings(
     query = GetAssayData(
       object = query,
-      slot = "data")[features,],
+      slot = "data"),
     reference = reference,
     reference.assay = reference.assay,
     reduction = reduction,
     dims = dims,
     scale = scale,
+    normalization.method = normalization.method,
     verbose = verbose,
+    features = features,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -4968,10 +4988,14 @@ ProjectCellEmbeddings.SCTAssay <- function(
   reduction = "pca",
   dims = 1:50,
   scale = TRUE,
+  normalization.method = NULL,
   verbose = TRUE,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
+  if (normalization.method != 'SCT') {
+    warning('Query data is SCT normalized, but normalization.method is set to LogNormalize')
+  }
   features <- Reduce(
     f = intersect,
     x = list(
@@ -4999,6 +5023,7 @@ ProjectCellEmbeddings.StdAssay <- function(
   reduction = "pca",
   dims = 1:50,
   scale = TRUE,
+  normalization.method = NULL,
   verbose = TRUE,
   feature.mean = NULL,
   feature.sd = NULL
@@ -5012,18 +5037,24 @@ ProjectCellEmbeddings.StdAssay <- function(
       rownames(x = query)
     )
   )
-  layers.set <- Layers(object = query, search = 'data')
+  if (normalization.method == 'SCT') {
+    layers.set <- Layers(object = query, search = 'counts')
+  } else {
+    layers.set <- Layers(object = query, search = 'data')
+  }
   proj.pca.list <- list()
   cell.list <- list()
   for (i in seq_along(layers.set)) {
     proj.pca.list[[i]] <- t(ProjectCellEmbeddings(
-      query = LayerData(object = query, layer = layers.set[i], features = features),
+      query = LayerData(object = query, layer = layers.set[i]),
       reference = reference,
       reference.assay = reference.assay,
       reduction = reduction,
       dims = dims,
       scale = scale,
+      normalization.method = normalization.method,
       verbose = verbose,
+      features = features,
       feature.mean = feature.mean,
       feature.sd = feature.sd
     ))
@@ -5052,23 +5083,32 @@ ProjectCellEmbeddings.default <- function(
   reduction = "pca",
   dims = 1:50,
   scale = TRUE,
+  normalization.method = NULL,
   verbose = TRUE,
+  features = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ){
-  features <- rownames(query)
+  features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
+if (normalization.method == 'SCT') {
+  reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
+  query <- FetchResiduals_reference(
+    object = query,
+    reference.SCT.model = reference.SCT.model,
+    features = features)
+} else {
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
     slot = "data")[features, ]
-if (is.null(x = feature.mean)) {
- if (inherits(x = reference.data, what = 'dgCMatrix')) {
-   feature.mean <- RowMeanSparse(mat = reference.data)
- } else {
-   feature.mean <- rowMeans(mat = reference.data)
- }
+  if (is.null(x = feature.mean)) {
+    if (inherits(x = reference.data, what = 'dgCMatrix')) {
+      feature.mean <- RowMeanSparse(mat = reference.data)
+    } else {
+      feature.mean <- rowMeans(mat = reference.data)
+    }
     if (scale) {
-   feature.sd <- sqrt(
+      feature.sd <- sqrt(
         x = RowVarSparse(
           mat = as.sparse(reference.data)
         )
@@ -5088,8 +5128,8 @@ if (is.null(x = feature.mean)) {
       display_progress = FALSE
     )
   }
-
   dimnames(x = query) <- store.names
+}
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query))
   return(proj.pca)
@@ -5107,35 +5147,63 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   reduction = "pca",
   dims = 1:50,
   scale = TRUE,
+  normalization.method = NULL,
   verbose = TRUE,
+  features = features,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  block.size = 10000
 ) {
-  features <- rownames(query)
-  reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features,]
-  if (is.null(x = feature.mean)) {
-    if (inherits(x = reference.data, what = 'dgCMatrix')) {
-      feature.mean <- RowMeanSparse(mat = reference.data)
-    } else {
-      feature.mean <- rowMeans(mat = reference.data)
-    }
-    if (scale) {
-      feature.sd <- sqrt(
-        x = RowVarSparse(
-          mat = as.sparse(reference.data)
-        )
+  features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
+
+  if (normalization.method == 'SCT') {
+    reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
+    cells.grid <- split(
+      x = 1:ncol(query),
+      f = ceiling(seq_along(along.with = 1:ncol(query))/block.size)
       )
-      feature.sd[is.na(x = feature.sd)] <- 1
-    } else {
-      feature.sd <- rep(x = 1, nrow(x = reference.data))
+    proj.list <- list()
+    for (i in seq_along(cells.grid)) {
+      query.i <- FetchResiduals_reference(
+        object = as.sparse(query[,cells.grid[[i]]]),
+        reference.SCT.model = reference.SCT.model,
+        features = features)
+      proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
     }
-    feature.mean[is.na(x = feature.mean)] <- 1
+    proj.pca <- t(matrix(
+      data = unlist(proj.list),
+      nrow = length(dims),
+      ncol = ncol(query),
+      dimnames = list(
+        colnames(Embeddings(object = reference[[reduction]]))[dims],
+        colnames(query))
+      ))
+  } else {
+    reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features,]
+    if (is.null(x = feature.mean)) {
+      if (inherits(x = reference.data, what = 'dgCMatrix')) {
+        feature.mean <- RowMeanSparse(mat = reference.data)
+      } else {
+        feature.mean <- rowMeans(mat = reference.data)
+      }
+      if (scale) {
+        feature.sd <- sqrt(
+          x = RowVarSparse(
+            mat = as.sparse(reference.data)
+          )
+        )
+        feature.sd[is.na(x = feature.sd)] <- 1
+      } else {
+        feature.sd <- rep(x = 1, nrow(x = reference.data))
+      }
+      feature.mean[is.na(x = feature.mean)] <- 1
+    }
+    query.scale <- (query - feature.mean)/feature.sd
+    query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
+    proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
+    rownames(proj.pca) <- colnames(query)
+    colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
   }
-  query.scale <- (query - feature.mean)/feature.sd
-  query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
-  proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
-  rownames(proj.pca) <- colnames(query)
-  colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
   return(proj.pca)
 }
 
@@ -5149,6 +5217,7 @@ ProjectCellEmbeddings.DelayedMatrix <- function(
   reference,
   assay = NULL,
   reduction,
+  normalization.method = NULL,
   dims = NULL,
   feature.mean = NULL,
   feature.sd = NULL
