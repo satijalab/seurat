@@ -365,7 +365,7 @@ LogNormalize.IterableMatrix <- function(
   data <- BPCells::t(BPCells::t(data) / colSums(data))
   # Log normalization
   data <- log1p(data * scale.factor)
-  return(data) 
+  return(data)
 }
 #' @method LogNormalize TileDBMatrix
 #' @export
@@ -800,7 +800,7 @@ VST.default <- function(
 #' @rdname VST
 #' @method VST IterableMatrix
 #' @export
-#' 
+#'
 VST.IterableMatrix <-function(
     data,
     nselect = 2000L,
@@ -1700,7 +1700,7 @@ SCTransform.StdAssay <- function(
 #'
 FetchResiduals <- function(object,
                            features,
-                           assay = "SCT",
+                           assay = NULL,
                            umi.assay = "RNA",
                            layer = "counts",
                            clip.range = NULL,
@@ -1867,17 +1867,24 @@ FetchResidualSCTModel <- function(object,
                                   clip.range = NULL,
                                   replace.value = FALSE,
                                   verbose = FALSE) {
-  clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
+  model.cells <- character()
+  model.features <- Features(x = obj.query, layer = layer)
+  if (is.null(x = reference.SCT.model)){
+    clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
+    model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
+    model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
+    sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
+  }
 
-  model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
-  model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
-  sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
   layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
   if (!is.null(reference.SCT.model)) {
     # use reference SCT model
     sct.method <- "reference"
   }
-  existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  existing.scale.data <- NULL
+  if (is.null(x=reference.SCT.model)){
+    existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  }
   scale.data.cells <- colnames(x = existing.scale.data)
   scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
@@ -1904,7 +1911,7 @@ FetchResidualSCTModel <- function(object,
     return (existing.scale.data[intersect(x = rownames(x = scale.data.cells), y = new_features),,drop=FALSE])
   }
 
-  if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
+  if (is.null(x = reference.SCT.model) & length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
       X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
       MARGIN = 1,
