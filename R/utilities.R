@@ -2680,7 +2680,7 @@ CreateCategoryMatrix <- function(
     data <- labels 
   }
   cells.name <- cells.name %||% rownames(data)
-  if (length(cells.name) != nrow(data)) {
+  if (!is.null(cells.name) & length(cells.name) != nrow(data)) {
     stop('length of cells name should be equal to the length of input labels')
   }
   if (ncol(x = data) == 0) {
