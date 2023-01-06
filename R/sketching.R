@@ -99,7 +99,11 @@ LeverageScoreSampling <- function(
     }
     object[[save]] <- NULL
   }
-  vars <- layers
+  vars <- grep(pattern = "^seurat_leverage_score_", x = names(x = object[[]]), 
+               value = TRUE)
+  names(x = vars) <- vars
+  vars <- gsub(pattern = "^seurat_leverage_score_", replacement = "", 
+               x = vars)
   vars <- vars[vars %in% Layers(object = object[[assay]])]
   if (!length(x = vars)) {
     stop("No leverage scores found for assay ", assay, call. = FALSE)
@@ -125,7 +129,7 @@ LeverageScoreSampling <- function(
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = Reduce(f = union, x = cells),
-    layers = vars
+    layers = Layers(object = object[[assay]], search = layers)
   ))
   for (lyr in vars) {
     try(
@@ -228,7 +232,7 @@ LeverageScore.default <- function(
     seed = seed
   ))
   Z <- object %*% (R.inv %*% JL)
-  if (inherits(x = Z, what = 'MatrixMultiply')) {
+  if (inherits(x = Z, what = 'IterableMatrix')) {
     Z.score <- matrix_stats(matrix = Z, row_stats = 'variance')$row_stats['variance',]*ncol(Z)
     } else {
     Z.score <- rowSums(x = Z ^ 2)
