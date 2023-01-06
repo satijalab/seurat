@@ -1005,6 +1005,13 @@ VST.matrix <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+#' @importFrom SeuratObject .CalcN
+#' 
+CalcN <- function(object) {
+  return(.CalcN(object))
+}
+
 #' @method .CalcN IterableMatrix
 #' @export
 #'
