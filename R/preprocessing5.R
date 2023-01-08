@@ -147,6 +147,11 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
+  VariableFeatures(object = object) <- VariableFeatures(
+    object = object,
+    nfeatures = nselect,
+    simplify = TRUE
+    )
   return(object)
 }
 
