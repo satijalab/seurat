@@ -4535,9 +4535,10 @@ GroupCorrelationPlot <- function(
   cor = "nCount_RNA_cor"
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  data <- object[[assay]][[c(feature.group, cor)]]
+  data <- object[[assay]][c(feature.group, cor)]
   data <- data[complete.cases(data), ]
   colnames(x = data) <- c('grp', 'cor')
+  data$grp <- as.character(data$grp)
   plot <- ggplot(data = data, aes_string(x = "grp", y = "cor", fill = "grp")) +
     geom_boxplot() +
     theme_cowplot() +

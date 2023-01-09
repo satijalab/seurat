@@ -971,9 +971,8 @@ GroupCorrelation <- function(
   grp.cors <- grp.cors[names(x = gene.grp)]
   grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
   grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
-  colnames(x = grp.cors) <- c("cor", "feature_grp")
-  object[[assay]]["feature.grp"] <- grp.cors[, "feature_grp", drop = FALSE]
-  object[[assay]][paste0(var, "_cor")] <- grp.cors[, "cor", drop = FALSE]
+  colnames(x = grp.cors) <- c(paste0(var, "_cor"), "feature.grp")
+  object[[assay]][] <- grp.cors
   if (isTRUE(x = do.plot)) {
     print(GroupCorrelationPlot(
       object = object,
