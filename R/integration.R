@@ -3001,33 +3001,14 @@ SelectIntegrationFeatures5 <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   layers <- Layers(object = object[[assay]], search = layers)
-  vf.list <- VariableFeatures(
+  var.features <- VariableFeatures(
     object = object,
     assay = assay,
     method = method,
-    layer = layers
+    layer = layers,
+    simplify = TRUE
   )
-  var.features <- unlist(x = vf.list, use.names = FALSE)
-  var.features <- sort(x = table(var.features), decreasing = TRUE)
-  # Select only variable features present in all layers
-  fmat <- slot(object = object[[assay]], name = 'features')[, layers]
-  idx <- which(x = apply(
-    X = fmat[names(x = var.features), , drop = FALSE],
-    MARGIN = 1L,
-    FUN = all
-  ))
-  var.features <- var.features[idx]
-  tie.val <- var.features[min(nfeatures, length(x = var.features))]
-  # Select integration features
-  features <- names(x = var.features[which(x = var.features > tie.val)])
-  if (length(x = features)) {
-    features <- .FeatureRank(features = features, flist = vf.list)
-  }
-  features.tie <- .FeatureRank(
-    features = names(x = var.features[which(x = var.features == tie.val)]),
-    flist = vf.list
-  )
-  return(head(x = c(features, features.tie), n = nfeatures))
+  return(var.features)
 }
 
 #' @export
