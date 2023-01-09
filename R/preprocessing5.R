@@ -147,6 +147,11 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
+  VariableFeatures(object = object) <- VariableFeatures(
+    object = object,
+    nfeatures = nselect,
+    simplify = TRUE
+    )
   return(object)
 }
 
@@ -365,7 +370,7 @@ LogNormalize.IterableMatrix <- function(
   data <- BPCells::t(BPCells::t(data) / colSums(data))
   # Log normalization
   data <- log1p(data * scale.factor)
-  return(data) 
+  return(data)
 }
 #' @method LogNormalize TileDBMatrix
 #' @export
@@ -800,7 +805,7 @@ VST.default <- function(
 #' @rdname VST
 #' @method VST IterableMatrix
 #' @export
-#' 
+#'
 VST.IterableMatrix <-function(
     data,
     nselect = 2000L,
@@ -1004,6 +1009,13 @@ VST.matrix <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+#' @importFrom SeuratObject .CalcN
+#' 
+CalcN <- function(object) {
+  return(.CalcN(object))
+}
 
 #' @method .CalcN IterableMatrix
 #' @export
@@ -1700,7 +1712,7 @@ SCTransform.StdAssay <- function(
 #'
 FetchResiduals <- function(object,
                            features,
-                           assay = "SCT",
+                           assay = NULL,
                            umi.assay = "RNA",
                            layer = "counts",
                            clip.range = NULL,
@@ -1867,17 +1879,24 @@ FetchResidualSCTModel <- function(object,
                                   clip.range = NULL,
                                   replace.value = FALSE,
                                   verbose = FALSE) {
-  clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
+  model.cells <- character()
+  model.features <- Features(x = object, layer = layer)
+  if (is.null(x = reference.SCT.model)){
+    clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
+    model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
+    model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
+    sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
+  }
 
-  model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
-  model.cells <- Cells(x = slot(object = object[[assay]], name = "SCTModel.list")[[SCTModel]])
-  sct.method <- SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
   layer.cells <- layer.cells %||% Cells(x = object[[umi.assay]], layer = layer)
   if (!is.null(reference.SCT.model)) {
     # use reference SCT model
     sct.method <- "reference"
   }
-  existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  existing.scale.data <- NULL
+  if (is.null(x=reference.SCT.model)){
+    existing.scale.data <- suppressWarnings(GetAssayData(object = object, assay = assay, slot = "scale.data"))
+  }
   scale.data.cells <- colnames(x = existing.scale.data)
   scale.data.cells.common <- intersect(scale.data.cells, layer.cells)
   scale.data.cells <- intersect(x = scale.data.cells, y = scale.data.cells.common)
@@ -1904,7 +1923,7 @@ FetchResidualSCTModel <- function(object,
     return (existing.scale.data[intersect(x = rownames(x = scale.data.cells), y = new_features),,drop=FALSE])
   }
 
-  if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
+  if (is.null(x = reference.SCT.model) & length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
     existing_features <- names(x = which(x = ! apply(
       X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
       MARGIN = 1,
@@ -2037,8 +2056,23 @@ FetchResidualSCTModel <- function(object,
       new_residuals[[i]] <- new_residual
     }
     new_residual <- do.call(what = cbind, args = new_residuals)
-    # centered data
-    new_residual <- new_residual - rowMeans(x = new_residual)
+    # centered data if no reference model is provided
+    if (is.null(x = reference.SCT.model)){
+      new_residual <- new_residual - rowMeans(x = new_residual)
+    } else {
+      # subtract residual mean from reference model
+      if (verbose){
+        message("Using residual mean from reference for centering")
+      }
+      vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+      ref.residuals.mean <- vst_out$gene_attr[rownames(x = new_residual),"residual_mean"]
+      new_residual <- sweep(
+        x = new_residual,
+        MARGIN = 1,
+        STATS = ref.residuals.mean,
+        FUN = "-"
+      )
+    }
     # return (new_residuals)
   } else {
     #  Some features do not exist
@@ -2064,4 +2098,67 @@ FetchResidualSCTModel <- function(object,
   return(new_residual)
 }
 
+#' temporal function to get residuals from reference
+#' @importFrom sctransform get_residuals
+#' @importFrom Matrix colSums
+#' 
 
+FetchResiduals_reference <- function(object,
+                                     reference.SCT.model = NULL,
+                                     features = NULL,
+                                     verbose = FALSE) {
+  features_to_compute <- features
+  vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
+  
+  # override clip.range
+  clip.range <- vst_out$arguments$sct.clip.range
+  # get rid of the cell attributes
+  vst_out$cell_attr <- NULL
+  all.features <- intersect(
+    x = rownames(x = vst_out$gene_attr),
+    y = features_to_compute
+  )
+  vst_out$gene_attr <- vst_out$gene_attr[all.features, , drop = FALSE]
+  vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
+  
+  clip.max <- max(clip.range)
+  clip.min <- min(clip.range)
+  
+  
+  umi <- object[features_to_compute, , drop = FALSE]
+  
+  ## Add cell_attr for missing cells
+  cell_attr <- data.frame(
+    umi = colSums(object),
+    log_umi = log10(x = colSums(object))
+  )
+  rownames(cell_attr) <- colnames(object)
+  vst_out$cell_attr <- cell_attr
+  
+  if (verbose) {
+    message("using reference sct model")
+  }
+  
+  if (vst_out$arguments$min_variance == "umi_median"){
+    min_var <- min_var_custom
+  } else {
+    min_var <- vst_out$arguments$min_variance
+  }
+  new_residual <- get_residuals(
+    vst_out = vst_out,
+    umi = umi,
+    residual_type = "pearson",
+    min_variance = min_var,
+    res_clip_range = c(clip.min, clip.max),
+    verbosity = as.numeric(x = verbose) * 2
+  )
+  
+  ref.residuals.mean <- vst_out$gene_attr[rownames(x = new_residual),"residual_mean"]
+  new_residual <- sweep(
+    x = new_residual,
+    MARGIN = 1,
+    STATS = ref.residuals.mean,
+    FUN = "-"
+  )
+  return(new_residual)
+}

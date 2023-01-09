@@ -424,6 +424,22 @@ ProjectUMAP <- function(query, ...) {
   UseMethod(generic = "ProjectUMAP", object = query)
 }
 
+#' Pseudobulk Expression
+#'
+#' Normalize the count data present in a given assay.
+#'
+#' @param object An assay
+#' @param ... Arguments passed to other methods
+#'
+#' @return Returns object after normalization
+#'
+#' @rdname PseudobulkExpression
+#' @export PseudobulkExpression
+#'
+PseudobulkExpression <- function(object, ...) {
+  UseMethod(generic = "PseudobulkExpression", object = object)
+}
+
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
