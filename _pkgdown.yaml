@@ -76,7 +76,7 @@ navbar:
           href: articles/interaction_vignette.html
         - text: "Merging Seurat objects"
           href: articles/merge_vignette.html
-    - text: "Seurat 5 Vignettes"
+    - text: "Vignettes v5"
       menu:
         - text: Introductory Vignettes
         - text: "PBMC 3K guided tutorial"

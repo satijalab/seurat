@@ -537,11 +537,20 @@ RidgePlot <- function(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   stack = FALSE,
   combine = TRUE,
   fill.by = 'feature'
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.0.0',
+      what = 'RidgePlot(slot = )',
+      with = 'RidgePlot(layer = )'
+    )
+    layer <- layer %||% slot
+  }
   return(ExIPlot(
     object = object,
     type = 'ridge',
@@ -555,7 +564,7 @@ RidgePlot <- function(
     cols = cols,
     group.by = group.by,
     log = log,
-    slot = slot,
+    layer = layer,
     stack = stack,
     combine = combine,
     fill.by = fill.by
@@ -609,7 +618,8 @@ VlnPlot <- function(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   split.plot = FALSE,
   stack = FALSE,
   combine = TRUE,
@@ -618,6 +628,14 @@ VlnPlot <- function(
   add.noise = TRUE,
   raster = NULL
 ) {
+  if (is_present(arg = slot)) {
+    deprecate_soft(
+      when = '5.0.0',
+      what = 'VlnPlot(slot = )',
+      with = 'VlnPlot(layer = )'
+    )
+    layer <- layer %||% slot
+  }
   if (
     !is.null(x = split.by) &
     getOption(x = 'Seurat.warn.vlnplot.split', default = TRUE)
@@ -648,7 +666,7 @@ VlnPlot <- function(
     group.by = group.by,
     split.by = split.by,
     log = log,
-    slot = slot,
+    layer = layer,
     stack = stack,
     combine = combine,
     fill.by = fill.by,
@@ -6552,7 +6570,8 @@ ExIPlot <- function(
   group.by = NULL,
   split.by = NULL,
   log = FALSE,
-  slot = 'data',
+  slot = deprecated(),
+  layer = 'data',
   stack = FALSE,
   combine = TRUE,
   fill.by = NULL,
@@ -6560,6 +6579,9 @@ ExIPlot <- function(
   add.noise = TRUE,
   raster = NULL
 ) {
+  if (is_present(arg = slot)) {
+    layer <- layer %||% slot
+  }
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
   cells <- Cells(x = object, assay = NULL)
@@ -6591,7 +6613,7 @@ ExIPlot <- function(
       y = cells
     )
   }
-  data <- FetchData(object = object, vars = features, slot = slot, cells = cells)
+  data <- FetchData(object = object, vars = features, slot = layer, cells = cells)
   pt.size <- pt.size %||% AutoPointSize(data = object)
   features <- colnames(x = data)
   data <- data[cells, , drop = FALSE]

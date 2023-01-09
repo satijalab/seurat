@@ -70,14 +70,14 @@ FindVariableFeatures.StdAssay <- function(
   object,
   method = VST,
   nselect = 2000L,
-  layer = NULL,
+  layer = 'counts',
   span = 0.3,
   clip = NULL,
   key = NULL,
   verbose = TRUE,
   ...
 ) {
-  layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (is.null(x = key)) {
     false <- function(...) {
@@ -549,13 +549,13 @@ NormalizeData.StdAssay <- function(
   method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
-  layer = NULL, # TODO: set to counts
+  layer = 'counts',
   save = 'data',
   default = TRUE,
   verbose = TRUE,
   ...
 ) {
-  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (save %in% olayer) {
     default <- FALSE
@@ -635,7 +635,7 @@ NormalizeData.Seurat5 <- function(
 ScaleData.StdAssay <- function(
   object,
   features = NULL,
-  layer = NULL,
+  layer = 'data',
   vars.to.regress = NULL,
   latent.data = NULL,
   by.layer = FALSE,
@@ -652,7 +652,7 @@ ScaleData.StdAssay <- function(
   ...
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
-  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
     inform(
@@ -1349,7 +1349,7 @@ SCTransform.StdAssay <- function(
     do.correct.umi <- FALSE
     do.center <- FALSE
   }
-  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer)
   layers <- Layers(object = object, search = layer)
   dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
   sct.assay.list <- list()
