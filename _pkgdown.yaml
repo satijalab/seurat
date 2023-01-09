@@ -17,6 +17,8 @@ navbar:
       href: articles/install.html
     - text: "Get started"
       href: articles/get_started.html
+    - text: "Get started v5"
+      href: articles/get_started_v5.html
     - text: "Vignettes"
       menu:
         - text: Introductory Vignettes
