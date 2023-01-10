@@ -1970,19 +1970,19 @@ IntegrateSketchEmbeddings <- function(
         ' atomic cells identified in the atoms'
       )
       message("Correcting embeddings")
-    } 
+    }
     emb <- UnSketchEmbeddings(
       atom.data = LayerData(
       object = object[[atoms]],
       layer = layers[i],
       features = features
-    ), 
+    ),
     atom.cells = cells.sketch,
     orig.data = LayerData(
       object = object[[orig]],
       layer = layers[i],
       features = features
-    ), 
+    ),
     embeddings = Embeddings(object = object[[reduction]]),
     sketch.matrix = sketch.matrix
     )
@@ -3029,7 +3029,7 @@ SelectSCTIntegrationFeatures <- function(
   vf.list <- VariableFeatures(
     object = object[[assay]],
     layer = models,
-    n = nfeatures,
+    nfeatures = nfeatures,
     simplify = FALSE
   )
   var.features <- sort(
@@ -3496,7 +3496,7 @@ TransferData <- function(
 
 #' Transfer data from sketch data to full data
 #' @export
-#' 
+#'
 TransferSketchLabels <- function(
   object,
   atoms = 'sketch',
@@ -3528,15 +3528,15 @@ TransferSketchLabels <- function(
     !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
     !all(rownames(full_sketch.weight) == colnames(object[[atoms]]))  ||
     recompute.weights
-  
+
   if (compute.neighbors) {
     if (verbose) {
       message("Finding sketch neighbors")
     }
     full_sketch.nn <- Seurat:::NNHelper(
-      query = Embeddings(object[[reduction]])[, dims], 
-      data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims], 
-      k = k,  
+      query = Embeddings(object[[reduction]])[, dims],
+      data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims],
+      k = k,
       method = "annoy"
     )
   }
@@ -3553,7 +3553,7 @@ TransferSketchLabels <- function(
   }
   object@tools$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
   object@tools$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
-  
+
   if (length(refdata) == 1  & is.character(refdata)) {
     refdata <- list(refdata)
     names(refdata) <- unlist(refdata)
@@ -5122,7 +5122,7 @@ if (normalization.method == 'SCT') {
 #' @method ProjectCellEmbeddings IterableMatrix
 #' @export
 #'
-#' 
+#'
 ProjectCellEmbeddings.IterableMatrix <- function(
   query,
   reference,
@@ -7735,12 +7735,12 @@ FastRPCAIntegration <- function(
 
 
 #' Transfer embeddings from sketched cells to the full data
-#' 
+#'
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
-#' 
+#'
 #' @export
-#' 
+#'
 UnSketchEmbeddings <- function(atom.data,
                                atom.cells = NULL,
                                orig.data,

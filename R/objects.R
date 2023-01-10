@@ -1389,7 +1389,7 @@ as.sparse.H5Group <- function(x, ...) {
 
 #' @method as.sparse IterableMatrix
 #' @export
-#' 
+#'
 as.sparse.IterableMatrix <- function(x, ...) {
   return(as(object = x, Class = 'dgCMatrix'))
 }
@@ -1904,60 +1904,101 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
   return(SCTResults(object = object[[assay]], slot = slot, model = model, ...))
 }
 
+#' @importFrom utils head
 #' @method VariableFeatures SCTModel
 #' @export
 #'
-VariableFeatures.SCTModel <- function(object, n = 3000, ...) {
-  if (!is_scalar_integerish(x = n) || (!is_na(x = n < 1L) && n < 1L)) {
-    abort(message = "'n' must be a single positive integer")
+VariableFeatures.SCTModel <- function(object, nfeatures = 3000, ...) {
+  if (!is_scalar_integerish(x = nfeatures) || (!is_na(x = nfeatures < 1L) && nfeatures < 1L)) {
+    abort(message = "'nfeatures' must be a single positive integer")
   }
   feature.attr <- SCTResults(object = object, slot = 'feature.attributes')
   feature.variance <- feature.attr[, 'residual_variance']
   names(x = feature.variance) <- row.names(x = feature.attr)
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (is_na(x = n)) {
+  if (is_na(x = nfeatures)) {
     return(names(x = feature.variance))
   }
-  return(head(x = names(x = feature.variance), n = n))
+  return(head(x = names(x = feature.variance), n = nfeatures))
 }
 
+#' @importFrom utils head
 #' @method VariableFeatures SCTAssay
 #' @export
 #'
 VariableFeatures.SCTAssay <- function(
   object,
   layer = NULL,
-  n = 3000,
+  nfeatures = 3000,
   simplify = TRUE,
+  use.var.features = TRUE,
   ...
 ) {
-  layer <- layer %||% levels(x = object)[1L]
-  if (is_na(x = layer)) {
+  nfeatures <- nfeatures %||% 3000
+  if (is.null(x = layer)) {
     layer <- levels(x = object)
   }
+  # Is the information already in var.features?
+  var.features.existing <- object@var.features
+  if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing)>=nfeatures){
+     return (head(x = var.features.existing, n = nfeatures))
+  }
+
   layer <- match.arg(arg = layer, choices = levels(x = object), several.ok = TRUE)
-  variable.features <- sapply(
+  # run variable features on each model
+
+  vf.list <- sapply(
     X = layer,
     FUN = function(lyr) {
       return(VariableFeatures(
         object = components(object = object, model = lyr),
-        n = n,
+        nfeatures = nfeatures,
         ...
       ))
     },
     simplify = FALSE,
     USE.NAMES = TRUE
   )
-  if (length(x = variable.features) == 1L) {
-    if (isFALSE(x = simplify)) {
-      return(variable.features)
-    }
-    return(variable.features[[1L]])
+  if (isFALSE(x = simplify)){
+    return (vf.list)
   }
-  if (isTRUE(x = simplify)) {
-    return(Reduce(f = union, x = variable.features))
+  var.features <- sort(
+    x = table(unlist(x = vf.list, use.names = FALSE)),
+    decreasing = TRUE
+  )
+  for (i in 1:length(x = layer)) {
+    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[layer[[i]]]])
+    var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
   }
-  return(variable.features)
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  features <- names(x = var.features[which(x = var.features > tie.val)])
+  if (length(x = features) > 0) {
+    feature.ranks <- sapply(X = features, FUN = function(x) {
+      ranks <- sapply(X = vf.list, FUN = function(vf) {
+        if (x %in% vf) {
+          return(which(x = x == vf))
+        }
+        return(NULL)
+      })
+      median(x = unlist(x = ranks))
+    })
+    features <- names(x = sort(x = feature.ranks))
+  }
+  features.tie <- var.features[which(x = var.features == tie.val)]
+  tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
+    ranks <- sapply(X = vf.list, FUN = function(vf) {
+      if (x %in% vf) {
+        return(which(x = x == vf))
+      }
+      return(NULL)
+    })
+    median(x = unlist(x = ranks))
+  })
+  features <- c(
+    features,
+    names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
+  )
+  return(features)
 }
 
 #' @rdname ScaleFactors
