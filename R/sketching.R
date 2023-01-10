@@ -233,7 +233,7 @@ LeverageScore.default <- function(
   ))
   Z <- object %*% (R.inv %*% JL)
   if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- matrix_stats(matrix = Z, row_stats = 'variance')$row_stats['variance',]*ncol(Z)
+    Z.score <- matrix_stats(matrix = Z^2, row_stats = 'mean')$row_stats['mean',]*ncol(x = Z)
     } else {
     Z.score <- rowSums(x = Z ^ 2)
   }

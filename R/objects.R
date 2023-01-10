@@ -1395,13 +1395,6 @@ as.sparse.IterableMatrix <- function(x, ...) {
 }
 
 
-#' @method as.matrix IterableMatrix
-#' @export
-#' 
-as.matrix.IterableMatrix <- function(x, ...) {
-  return(as.matrix(x = as.sparse(x = x)))
-}
-
 #' Get Cell Names
 #'
 #' @inheritParams SeuratObject::Cells
