@@ -5079,6 +5079,7 @@ if (normalization.method == 'SCT') {
     reference.SCT.model = reference.SCT.model,
     features = features)
 } else {
+  query <- query[features,]
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
@@ -5161,6 +5162,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
         colnames(query))
       ))
   } else {
+    query <- query[features,]
     reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features,]
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
@@ -5181,7 +5183,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       feature.mean[is.na(x = feature.mean)] <- 1
     }
     query.scale <- (query - feature.mean)/feature.sd
-    query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
+    #query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
     proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
     rownames(proj.pca) <- colnames(query)
     colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
