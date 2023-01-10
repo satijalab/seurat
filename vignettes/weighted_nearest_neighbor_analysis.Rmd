@@ -215,7 +215,7 @@ pbmc[["ATAC"]] <- chrom_assay
 We perform basic QC based on the number of detected molecules for each modality as well as mitochondrial percentage.
 
 ```{r QCObject, fig.width=10}
-VlnPlot(pbmc, features = c("nCount_ATAC", "nCount_RNA","percent.mt"), ncol = 3,
+VlnPlot(pbmc, features = c("nCount_ATAC", "nCount_RNA", "percent.mt"), ncol = 3,
   log = TRUE, pt.size = 0) + NoLegend()
 
 pbmc <- subset(

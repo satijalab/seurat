@@ -1978,6 +1978,28 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
 }
 
+#' @rdname FetchData
+#' @method FetchData VisiumV1
+#' @export
+#' @concept spatial
+#'
+FetchData.VisiumV1 <- function(
+  object,
+  vars,
+  cells = NULL,
+  ...
+) {
+  if (is.numeric(x = cells)) {
+    cells <- Cells(x = object)[cells]
+  } else if (is.null(x = cells)) {
+    cells <- Cells(x = object)
+  }
+  vars.unkeyed <- gsub(pattern = paste0('^', Key(object)), replacement = '', x = vars)
+  coords <- GetTissueCoordinates(object = object)[cells, vars.unkeyed, drop = FALSE]
+  colnames(x = coords) <- vars
+  return(coords)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

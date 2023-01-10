@@ -1123,9 +1123,8 @@ GroupCorrelation <- function(
   grp.cors <- grp.cors[names(x = gene.grp)]
   grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
   grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
-  colnames(x = grp.cors) <- c("cor", "feature_grp")
-  object[[assay]]["feature.grp"] <- grp.cors[, "feature_grp", drop = FALSE]
-  object[[assay]][paste0(var, "_cor")] <- grp.cors[, "cor", drop = FALSE]
+  colnames(x = grp.cors) <- c(paste0(var, "_cor"), "feature.grp")
+  object[[assay]][] <- grp.cors
   if (isTRUE(x = do.plot)) {
     print(GroupCorrelationPlot(
       object = object,
@@ -1658,6 +1657,88 @@ as.data.frame.Matrix <- function(
   na <- nchar(x = y) <= 1L
   y[na] <- x[na]
   return(tolower(x = y))
+}
+
+.AsList <- function(x) {
+  x <- as.list(x = x)
+  return(sapply(
+    X = unique(x = names(x = x)),
+    FUN = function(i) {
+      return(unlist(
+        x = x[which(x = names(x = x) == i)],
+        recursive = FALSE,
+        use.names = FALSE
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  ))
+}
+
+#' @importFrom ggplot2 cut_number
+#'
+.Cut <- function(min, max, n) {
+  breaks <- levels(x = cut_number(x = c(min, max), n = n))
+  breaks <- gsub(pattern = '.*,', replacement = '', x = breaks)
+  breaks <- gsub(pattern = ']$', replacement = '', x = breaks)
+  as.numeric(x = breaks)
+}
+
+.FindE <- function(x) {
+  x <- as.character(x = x)
+  if (grepl(pattern = 'e', x = x)) {
+    return(as.integer(x = gsub(pattern = '.*e', replacement = '', x = x)))
+  } else if (grepl(pattern = '^0\\.', x = x)) {
+    x <- unlist(x = strsplit(
+      x = gsub(pattern = '.*\\.', replacement = '', x = x),
+      split = ''
+    ))
+    idx <- which(x = x != '0')
+    return(-idx)
+  }
+  stop("Invalid format")
+}
+
+#' @importFrom SeuratObject Boundaries
+#'
+.BoundariesByImage <- function(object, fov, boundaries) {
+  if (!is.list(x = boundaries)) {
+    if (is.null(x = names(x = boundaries))) {
+      boundaries <- rep_len(x = list(boundaries), length.out = length(x = fov))
+      names(x = boundaries) <- fov
+    } else {
+      boundaries <- .AsList(x = boundaries)
+    }
+  }
+  if (any(!nchar(x = names(x = boundaries)))) {
+    missing <- setdiff(x = fov, y = names(x = boundaries))
+    idx <- which(x = !nchar(x = names(x = boundaries)))
+    boundaries <- c(
+      boundaries[intersect(x = names(x = boundaries), y = fov)],
+      rep_len(x = boundaries[idx], length.out = length(x = missing))
+    )
+    names(x = boundaries)[!nchar(x = names(x = boundaries))] <- missing
+  }
+  if (any(!fov %in% names(x = boundaries))) {
+    for (i in setdiff(x = fov, y = names(x = boundaries))) {
+      boundaries[[i]] <- Boundaries(object = object[[i]])[1L]
+    }
+  }
+  fov <- union(x = fov, y = names(x = boundaries))
+  if (length(x = boundaries) != length(x = fov)) {
+    fov <- intersect(x = fov, y = names(x = boundaries))
+  }
+  boundaries <- boundaries[fov]
+  for (i in fov) {
+    boundaries[[i]] <- Filter(
+      f = function(x) {
+        return(x %in% Boundaries(object = object[[i]]) || is_na(x = x))
+      },
+      x = boundaries[[i]]
+    )
+  }
+  boundaries <- Filter(f = length, x = boundaries)
+  return(boundaries)
 }
 
 # Generate chunk points

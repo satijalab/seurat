@@ -35,11 +35,11 @@ FALSE (default), returns the top genes ranked by the scores absolute values}
 
 \item{ncol}{Number of columns to display}
 
-\item{combine}{Combine plots into a single \code{\link[patchwork]{patchwork}ed}
+\item{combine}{Combine plots into a single \code{patchwork}
 ggplot object. If \code{FALSE}, return a list of ggplot objects}
 }
 \value{
-A \code{\link[patchwork]{patchwork}ed} ggplot object if
+A \code{patchwork} ggplot object if
 \code{combine = TRUE}; otherwise, a list of ggplot objects
 }
 \description{

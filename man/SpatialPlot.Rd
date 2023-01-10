@@ -97,7 +97,7 @@ default, ggplot2 assigns colors}
 \item{image.alpha}{Adjust the opacity of the background images. Set to 0 to
 remove.}
 
-\item{crop}{Crop the plot in to focus on points plotted. Set to FALSE to show
+\item{crop}{Crop the plot in to focus on points plotted. Set to \code{FALSE} to show
 entire background image.}
 
 \item{slot}{If plotting a feature, which data slot to pull from (counts,

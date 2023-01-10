@@ -1,0 +1,159 @@
+---
+title: "Getting Started with Seurat"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+---
+
+```{r fxns, include = FALSE}
+library('htmlTable')
+make_list <- function(items) {
+  paste0("<ul>", sprintf('<li>%s</li>', items), '</ul>', collapse = '')
+}
+make_href <- function(url, text){
+  paste0("<div style='text-align:center; font-size:large; font-weight:bold'><a href=", url ,">", text, "</a></div>")
+}
+make_href2 <- function(url, text){
+  paste0("<a href=", url ,">", text, "</a>")
+}
+process_entry <- function(dat) {
+  if (grepl(pattern = "https://satijalab.org/img/vignette_images", x = dat$image)) {
+    img <- paste0('![](', dat$image, '){width=3000px}')
+  } else if (grepl(pattern = "assets/", x= dat$image)) {
+    img <- paste0('![](', dat$image, '){width=3000px}') 
+  } else {
+    img <- paste0('![](', '../output/images/', dat$image, '){width=3000px}')
+  }
+  if (grepl(pattern = "https://satijalab.org/", x = dat$name)) {
+    link <- dat$name
+  } else {
+    link <- paste0(dat$name, ".html")
+  }
+  go.button <- paste0('<a class="btn btn-primary" href="', link, '" role="button" style="width:100%">GO</a>')
+  data.frame(
+    title = make_href(url = link, text = dat$title),
+    img = img,
+    desc = dat$summary,
+    btn = go.button
+  )
+}
+process_wrapper_entry <- function(dat) {
+  data.frame(
+    Package = dat$name,
+    Vignette = make_href2(url = dat$link, text = dat$title),
+    Reference = make_href2(url = dat$reference, text = dat$citation),
+    Source = make_href2(url = dat$source, text = dat$source)
+  )
+}
+make_vignette_card_section <- function(vdat, cat) {
+  vignettes <- vdat[[cat]]$vignettes
+  dat <- data.frame(title = character(), img = character(), desc = character())
+  for (v in 1:length(x = vignettes)) {
+    dat <- rbind(dat, process_entry(vignettes[[v]]))
+    if(nrow(x = dat) == 3 | v == length(x = vignettes)){
+      colnames(dat) <- NULL
+      dat <- t(dat)
+      if (ncol(x = dat) == 2) {
+        print(htmlTable(
+          dat, 
+          align = '|l|l|', 
+          css.cell = "padding-left: .75em; width: 50%", 
+          css.class = "two-column-htmltable"
+        ))
+      } else if (ncol(x = dat) == 1){
+        print(htmlTable(
+          dat, 
+          align = '|l|', 
+          css.cell = "padding-left: .75em; width: 100%", 
+          css.class = "one-column-htmltable"
+        ))
+      } else {
+        print(htmlTable(
+          dat, 
+          align = '|l|l|l|', 
+          css.cell = "padding-left: .75em; width: 30%"
+        ))
+      }
+      dat <- data.frame(title = character(), img = character(), desc = character())
+    }
+  }
+}
+```
+
+```{r yaml, include = TRUE}
+library(yaml)
+vdat <- read_yaml(file = "vignettes.yaml")
+```
+
+```{=html}
+<style>
+.two-column-htmltable {
+  width: 66.666%;
+}
+.one-column-htmltable {
+  width: 33.333%;
+}
+
+</style>
+```
+
+We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat. You can also check out our [Reference page](../reference/index.html) which contains a full list of functions available to users.
+
+# Introductory Vignettes
+
+For new users of Seurat, we suggest starting with a guided walk through of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics. This tutorial implements the major components of a standard unsupervised clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
+
+We provide additional introductory vignettes for users who are interested in analyzing multimodal single-cell datasets (e.g. from CITE-seq, or the 10x mulitome kit), or spatial datasets (e.g. from 10x visium or SLIDE-seq).
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 1)
+```
+
+# Data Integration
+
+Recently, we have developed [computational methods](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8) for integrated analysis of single-cell datasets generated across different conditions, technologies, or species. As an example, we provide a guided walk through for integrating and comparing PBMC datasets generated under different stimulation conditions. We provide additional vignettes demonstrating how to leverage an annotated scRNA-seq reference to map and label cells from a query, and to efficiently integrate large datasets.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 2)
+```
+
+# Additional New Methods
+
+Seurat also offers additional novel statistical methods for analyzing single-cell data. These include:
+
+* Weighted-nearest neighbor (WNN) analysis: to define cell state based on multiple modalities [[paper](https://doi.org/10.1016/j.cell.2021.04.048)]
+* Mixscape: to analyze data from pooled single-cell CRISPR screens [[paper](https://doi.org/10.1038/s41588-021-00778-2)]
+* SCTransform: Improved normalization for single-cell RNA-seq data [[paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1)]]
+* SCTransform, v2 regularization [[paper](https://www.biorxiv.org/content/10.1101/2021.07.07.451498v1.full)]]
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 3)
+```
+
+# Other 
+
+Here we provide a series of short vignettes to demonstrate a number of features that are commonly used in Seurat. We’ve focused the vignettes around questions that we frequently receive from users. Click on a vignette to get started.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 4)
+```
+
+# SeuratWrappers
+
+In order to facilitate the use of community tools with Seurat, we provide the Seurat Wrappers package, which contains code to run other analysis tools on Seurat objects. For the initial release, we provide wrappers for a few packages in the table below but would encourage other package developers interested in interfacing with Seurat to check out our contributor guide [here](https://github.com/satijalab/seurat.wrappers/wiki/Submission-Process).
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+library(knitr)
+library(kableExtra)
+cat <- 5
+vignettes <- vdat[[cat]]$vignettes
+dat <- data.frame(Package = character(),  Vignette = character(), Reference = character(), Source = character())
+for (v in 1:length(x = vignettes)) {
+  dat <- rbind(dat, process_wrapper_entry(vignettes[[v]]))
+}
+dat %>%
+  kable(format = "html", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```

@@ -59,7 +59,7 @@ pbmc.data[c("CD3D","TCL1A","MS4A1"), 1:30]
 
 The `.` values in the matrix represent 0s (no molecules detected). Since most values in an scRNA-seq matrix are 0,  Seurat uses a sparse-matrix representation whenever possible. This results in significant memory and speed savings for Drop-seq/inDrop/10x data.
 
-````{r}
+```{r}
 dense.size <- object.size(as.matrix(pbmc.data))
 dense.size
 sparse.size <- object.size(pbmc.data)

@@ -757,6 +757,12 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
+  if (is.null(x = mean.fxn)){
+    mean.fxn <- function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+
+    }
+  }
   fc.results <- FoldChange(
     object = object,
     slot = data.slot,
@@ -767,7 +773,7 @@ FindMarkers.SCTAssay <- function(
     mean.fxn = mean.fxn,
     fc.name = fc.name,
     base = base
-  )
+    )
   de.results <- FindMarkers(
     object = data.use,
     slot = data.slot,
@@ -1000,9 +1006,16 @@ FindMarkers.Seurat <- function(
       command = norm.command,
       value = "normalization.method"
     )
-  } else {
+  } else if (length(x = intersect(x = c("FindIntegrationAnchors", "FindTransferAnchors"), y = Command(object = object)))) {
+    command <- intersect(x = c("FindIntegrationAnchors", "FindTransferAnchors"), y = Command(object = object))[1]
+    Command(
+      object = object,
+      command = command,
+      value = "normalization.method"
+      )
+    } else {
     NULL
-  }
+    }
   de.results <- FindMarkers(
     object = data.use,
     slot = slot,
@@ -2319,8 +2332,18 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
+  presto.check <- PackageCheck("presto", error = FALSE)
   limma.check <- PackageCheck("limma", error = FALSE)
-  if (limma.check[1] && overflow.check) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  if (FALSE) {
+    data.use <- data.use[, names(x = group.info), drop = FALSE]
+    res <- presto::wilcoxauc(X = data.use, y = group.info)
+    res <- res[1:(nrow(x = res)/2),]
+    p_val <- res$pval
+  } else if (limma.check[1] && overflow.check) {
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),
       FUN = function(x) {
@@ -2342,10 +2365,6 @@ WilcoxDETest <- function(
       )
       options(Seurat.limma.wilcox.msg = FALSE)
     }
-    group.info <- data.frame(row.names = c(cells.1, cells.2))
-    group.info[cells.1, "group"] <- "Group1"
-    group.info[cells.2, "group"] <- "Group2"
-    group.info[, "group"] <- factor(x = group.info[, "group"])
     data.use <- data.use[, rownames(x = group.info), drop = FALSE]
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),
