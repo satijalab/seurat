@@ -3004,6 +3004,7 @@ SelectIntegrationFeatures5 <- function(
   var.features <- VariableFeatures(
     object = object,
     assay = assay,
+    nfeatures = nfeatures,
     method = method,
     layer = layers,
     simplify = TRUE
