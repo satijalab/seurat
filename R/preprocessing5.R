@@ -1012,7 +1012,7 @@ VST.matrix <- function(
 
 
 #' @importFrom SeuratObject .CalcN
-#' 
+#'
 CalcN <- function(object) {
   return(.CalcN(object))
 }
@@ -1662,7 +1662,8 @@ SCTransform.StdAssay <- function(
     }
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
 
-    VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
+    #VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
+    VariableFeatures(object = merged.assay) <- VariableFeatures(object = merged.assay, use.var.features = FALSE)
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
@@ -2101,7 +2102,7 @@ FetchResidualSCTModel <- function(object,
 #' temporal function to get residuals from reference
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
-#' 
+#'
 
 FetchResiduals_reference <- function(object,
                                      reference.SCT.model = NULL,
@@ -2109,7 +2110,7 @@ FetchResiduals_reference <- function(object,
                                      verbose = FALSE) {
   features_to_compute <- features
   vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
-  
+
   # override clip.range
   clip.range <- vst_out$arguments$sct.clip.range
   # get rid of the cell attributes
@@ -2120,13 +2121,13 @@ FetchResiduals_reference <- function(object,
   )
   vst_out$gene_attr <- vst_out$gene_attr[all.features, , drop = FALSE]
   vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
-  
+
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
-  
-  
+
+
   umi <- object[features_to_compute, , drop = FALSE]
-  
+
   ## Add cell_attr for missing cells
   cell_attr <- data.frame(
     umi = colSums(object),
@@ -2134,11 +2135,11 @@ FetchResiduals_reference <- function(object,
   )
   rownames(cell_attr) <- colnames(object)
   vst_out$cell_attr <- cell_attr
-  
+
   if (verbose) {
     message("using reference sct model")
   }
-  
+
   if (vst_out$arguments$min_variance == "umi_median"){
     min_var <- min_var_custom
   } else {
@@ -2152,7 +2153,7 @@ FetchResiduals_reference <- function(object,
     res_clip_range = c(clip.min, clip.max),
     verbosity = as.numeric(x = verbose) * 2
   )
-  
+
   ref.residuals.mean <- vst_out$gene_attr[rownames(x = new_residual),"residual_mean"]
   new_residual <- sweep(
     x = new_residual,
