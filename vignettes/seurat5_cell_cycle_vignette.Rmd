@@ -57,7 +57,7 @@ marrow <- ScaleData(marrow, features = rownames(marrow))
 If we run a PCA on our object, using the variable genes we found in `FindVariableFeatures()` above, we see that while most of the variance can be explained by lineage, PC8 and PC10 are split on cell-cycle genes including *TOP2A* and *MKI67*. We will attempt to regress this signal from the data, so that cell-cycle heterogeneity does not contribute to PCA or downstream analysis.
 
 ```{r justification, message=TRUE}
-marrow <- RunPCA(marrow, features = VariableFeatures(marrow), ndims.print = 6:10, 
+marrow <- RunPCA(marrow, features = VariableFeatures(marrow, layer = 'counts'), ndims.print = 6:10, 
                  nfeatures.print = 10)
 DimHeatmap(marrow, dims = c(8, 10))
 ```
@@ -104,7 +104,7 @@ marrow <- ScaleData(marrow, vars.to.regress = c('S.Score', 'G2M.Score'), feature
 
 ```{r pca2, message=TRUE}
 # Now, a PCA on the variable genes no longer returns components associated with cell cycle
-marrow <- RunPCA(marrow, features = VariableFeatures(marrow), nfeatures.print = 10)
+marrow <- RunPCA(marrow, features = VariableFeatures(marrow, layer = 'counts'), nfeatures.print = 10)
 ```
 
 ```{r pca3}
@@ -128,7 +128,7 @@ marrow <- ScaleData(marrow, vars.to.regress = 'CC.Difference', features = rownam
 
 ```{r pca4, message=TRUE}
 #cell cycle effects strongly mitigated in PCA
-marrow <- RunPCA(marrow, features = VariableFeatures(marrow), nfeatures.print = 10)
+marrow <- RunPCA(marrow, features = VariableFeatures(marrow, layer = 'counts'), nfeatures.print = 10)
 ```
 
 ```{r pca5}
