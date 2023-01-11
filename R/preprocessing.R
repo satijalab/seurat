@@ -3861,7 +3861,7 @@ FindSpatiallyVariableFeatures.Assay <- function(
   svf.info[[var.name]] <- FALSE
   svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
   svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
-  object[[names(x = svf.info)]] <- svf.info
+  object[names(x = svf.info)] <- svf.info
   return(object)
 }
 

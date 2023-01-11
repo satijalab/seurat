@@ -48,7 +48,7 @@ s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
 
 # Create our Seurat object and complete the initalization steps
-marrow <- CreateSeuratObject(counts = exp.mat)
+marrow <- CreateSeuratObject(counts = as.matrix(exp.mat))
 marrow <- NormalizeData(marrow)
 marrow <- FindVariableFeatures(marrow, selection.method = 'vst')
 marrow <- ScaleData(marrow, features = rownames(marrow))

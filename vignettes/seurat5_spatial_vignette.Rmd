@@ -58,7 +58,7 @@ library(dplyr)
 
 ```{r libraries.for.rmd, echo = FALSE}
 library("htmltools")
-#library("vembedr")
+library("vembedr")
 ```
 
 
