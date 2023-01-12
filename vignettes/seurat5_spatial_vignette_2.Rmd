@@ -45,6 +45,7 @@ First, we load the packages necessary for this vignette.
 
 ```{r init, message=FALSE, warning=FALSE}
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 library(future)
 plan("multisession", workers = 10)
 ```
@@ -96,7 +97,7 @@ head(FetchData(vizgen.obj[["s2r1"]][["molecules"]], vars="Chrm1"))
 We start by performing a standard unsupervised clustering analysis, essentially first treating the dataset as an scRNA-seq experiment. We use SCTransform-based normalization, though we slightly modify the default clipping parameters to mitigate the effect of outliers that we occasionally observe in smFISH experiments. After normalization, we can run dimensional reduction and clustering.
 
 ```{r analysis, results='hide'}
-vizgen.obj <- SCTransform(vizgen.obj, assay = "Vizgen", clip.range = c(-10,10),)
+vizgen.obj <- SCTransform(vizgen.obj, assay = "Vizgen", clip.range = c(-10,10))
 vizgen.obj <- RunPCA(vizgen.obj, npcs = 30, features = rownames(vizgen.obj))
 vizgen.obj <- RunUMAP(vizgen.obj, dims = 1:30)
 vizgen.obj <- FindNeighbors(vizgen.obj, reduction = "pca", dims = 1:30)
@@ -214,6 +215,7 @@ nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/spatial_vignette_data/na
 # add in precomputed Azimuth annotations
 azimuth.data <- readRDS("/brahms/hartmana/spatial_vignette_data/nanostring_data.Rds")
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
+azimuth.data$umap@assay.used <- "Nanostring"
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
 
@@ -248,7 +250,7 @@ ImageDimPlot(nano.obj, fov = "lung5.rep1", cells = WhichCells(nano.obj, idents=c
 We can also visualize gene expression markers a few different ways:
 
 ```{r, fig.width=10, fig.height=5}
-VlnPlot(nano.obj, features = "KRT17", slot = "counts", pt.size = 0.1, y.max = 30) + NoLegend()
+VlnPlot(nano.obj, features = "KRT17", layer = "counts", pt.size = 0.1, y.max = 30) + NoLegend()
 ```
 
 ```{r, fig.width=5, fig.height=4}
@@ -338,3 +340,7 @@ Each of these datasets represents an opportunity to learn organizing principles 
 sessionInfo()
 ```
 </details>
+
+```{r save.times, include=TRUE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_spatial_vignette_2.csv")
+```
