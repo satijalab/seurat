@@ -841,10 +841,13 @@ FindTransferAnchors <- function(
     )
     feature.mean <- "SCT"
   }
+  # make new query assay w same name as reference assay
+  query[[reference.assay]] <- query[[query.assay]]
+  DefaultAssay(query) <- reference.assay
   # only keep necessary info from objects
   query <- DietSeurat(
     object = query,
-    assays = query.assay,
+    assays = reference.assay,
     dimreducs = reference.reduction,
     features = features,
     scale.data = TRUE
@@ -1077,7 +1080,7 @@ FindTransferAnchors <- function(
     } else {
       projected.lsi <- ProjectSVD(
         reduction = reference[[reference.reduction]],
-        data = GetAssayData(object = query, assay = query.assay, slot = "data"),
+        data = GetAssayData(object = query, assay = reference.assay, slot = "data"),
         mode = "lsi",
         do.center = FALSE,
         do.scale = FALSE,
@@ -1137,7 +1140,7 @@ FindTransferAnchors <- function(
   }
   anchors <- FindAnchors(
     object.pair = combined.ob,
-    assay = c(reference.assay, query.assay),
+    assay = reference.assay,
     slot = "data",
     cells1 = colnames(x = reference),
     cells2 = colnames(x = query),
@@ -1158,7 +1161,7 @@ FindTransferAnchors <- function(
     verbose = verbose
   )
   reductions <- slot(object = combined.ob, name = "reductions")
-  for (i in unique(x = c(reference.assay, query.assay))) {
+  for (i in unique(x = c(reference.assay))) {
     dummy.assay <- paste0(i, "DUMMY")
     suppressWarnings(
       expr = combined.ob[[dummy.assay]] <- CreateDummyAssay(assay = combined.ob[[i]])
