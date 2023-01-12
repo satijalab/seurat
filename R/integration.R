@@ -804,7 +804,7 @@ FindTransferAnchors <- function(
   reduction.2 <- character()
   feature.mean <- NULL
   reference.reduction.init <- reference.reduction
-  if (normalization.method == "SCT") {
+  if (normalization.method == "SCT" && !inherits(x = query[[query.assay]]$counts, what = 'IterableMatrix')) {
       # ensure all residuals required are computed
       query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
       if (is.null(x = reference.reduction)) {
@@ -842,7 +842,7 @@ FindTransferAnchors <- function(
     feature.mean <- "SCT"
   }
   # make new query assay w same name as reference assay
-  query[[reference.assay]] <- query[[query.assay]]
+  suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
   DefaultAssay(query) <- reference.assay
   # only keep necessary info from objects
   query <- DietSeurat(
@@ -858,7 +858,6 @@ FindTransferAnchors <- function(
     warnings("reference assay is diffrent from the assay.used in", reference.reduction)
     slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
   }
-
   reference <- DietSeurat(
     object = reference,
     assays = reference.assay,
@@ -930,6 +929,7 @@ FindTransferAnchors <- function(
        projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
+         normalization.method = normalization.method,
          query = query,
          scale = scale,
          dims = dims,
@@ -5842,16 +5842,20 @@ ValidateParams_FindTransferAnchors <- function(
              "you can set recompute.residuals to FALSE", call. = FALSE)
       }
     }
-    query <- SCTransform(
-      object = query,
-      reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
-      residual.features = features,
-      assay = query.umi.assay,
-      new.assay.name = new.sct.assay,
-      verbose = FALSE
-    )
-    ModifyParam(param = "query.assay", value = new.sct.assay)
-    ModifyParam(param = "query", value = query)
+    if (inherits(x = query[[query.umi.assay]]$counts, what = 'IterableMatrix')) {
+      query[[query.umi.assay]]$scale.data <- query[[query.umi.assay]]$counts
+    } else {
+      query <- SCTransform(
+        object = query,
+        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
+        residual.features = features,
+        assay = query.umi.assay,
+        new.assay.name = new.sct.assay,
+        verbose = FALSE
+      )
+      ModifyParam(param = "query.assay", value = new.sct.assay)
+      ModifyParam(param = "query", value = query)
+    }
     ModifyParam(param = "reference", value = reference)
   }
   if (IsSCT(assay = reference[[reference.assay]]) && normalization.method == "LogNormalize") {
