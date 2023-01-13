@@ -751,7 +751,6 @@ FindTransferAnchors <- function(
   reference.assay = NULL,
   reference.neighbors = NULL,
   query.assay = NULL,
-  query.layers = NULL,
   reduction = "pcaproject",
   reference.reduction = NULL,
   project.query = FALSE,
@@ -780,7 +779,6 @@ FindTransferAnchors <- function(
     reference.assay = reference.assay,
     reference.neighbors = reference.neighbors,
     query.assay = query.assay,
-    query.layers = query.layers,
     reduction = reduction,
     reference.reduction = reference.reduction,
     project.query = project.query,
@@ -804,42 +802,34 @@ FindTransferAnchors <- function(
   reduction.2 <- character()
   feature.mean <- NULL
   reference.reduction.init <- reference.reduction
-  if (normalization.method == "SCT" && !inherits(x = query[[query.assay]]$counts, what = 'IterableMatrix')) {
-      # ensure all residuals required are computed
-      query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
+    if (normalization.method == "SCT") {
       if (is.null(x = reference.reduction)) {
-        reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        reference <- suppressWarnings(expr = GetResidual(
+          object = reference,
+          assay = reference.assay,
+          features = features,
+          verbose = FALSE
+          ))
+        reference <- ScaleData(
+          object = reference,
+          features = features,
+          do.scale = FALSE,
+          verbose = FALSE
+          )
         features <- intersect(
           x = features,
-          y = intersect(
-            x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
-            y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
-          )
+          y = rownames(reference[[reference.assay]]$scale.data)
         )
-        reference[[reference.assay]] <- as(
-          object = CreateAssayObject(
-            data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
-          Class = "SCTAssay"
-        )
-        reference <- SetAssayData(
-          object = reference,
-          slot = "scale.data",
-          assay = reference.assay,
-          new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
-      )
-    }
-    query[[query.assay]] <- as(
-      object = CreateAssayObject(
-        data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
-      Class = "SCTAssay"
-    )
-    query <- SetAssayData(
-      object = query,
-      slot = "scale.data",
-      assay = query.assay,
-      new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "data"))
-    )
-    feature.mean <- "SCT"
+        VariableFeatures(reference) <- features
+      }
+      if (IsSCT(assay = query[[query.assay]])) {
+        query <- suppressWarnings(expr = GetResidual(
+          object = query,
+          assay = query.assay,
+          features = features,
+          verbose = FALSE
+          ))
+      }
   }
   # make new query assay w same name as reference assay
   suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
@@ -5707,7 +5697,6 @@ ValidateParams_FindTransferAnchors <- function(
   reference.assay,
   reference.neighbors,
   query.assay,
-  query.layers,
   reduction,
   reference.reduction,
   project.query,
@@ -5780,6 +5769,10 @@ ValidateParams_FindTransferAnchors <- function(
     stop("The project.query workflow is not compatible with reduction = 'cca'",
          call. = FALSE)
   }
+  if (normalization.method == "SCT" && isTRUE(x = project.query) && !IsSCT(query[[query.assay]])) {
+    stop("In the project.query workflow, normalization is SCT, but query is not SCT normalized",
+         call. = FALSE)
+  }
   if (IsSCT(assay = query[[query.assay]]) && IsSCT(assay = reference[[reference.assay]]) &&
       normalization.method != "SCT") {
     warning("Both reference and query assays have been processed with SCTransform.",
@@ -5804,6 +5797,8 @@ ValidateParams_FindTransferAnchors <- function(
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
   }
   if (recompute.residuals) {
+    # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
+    ModifyParam(param = "k.filter", value = NA)
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
       stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
@@ -5842,20 +5837,9 @@ ValidateParams_FindTransferAnchors <- function(
              "you can set recompute.residuals to FALSE", call. = FALSE)
       }
     }
-    if (inherits(x = query[[query.umi.assay]]$counts, what = 'IterableMatrix')) {
-      query[[query.umi.assay]]$scale.data <- query[[query.umi.assay]]$counts
-    } else {
-      query <- SCTransform(
-        object = query,
-        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
-        residual.features = features,
-        assay = query.umi.assay,
-        new.assay.name = new.sct.assay,
-        verbose = FALSE
-      )
-      ModifyParam(param = "query.assay", value = new.sct.assay)
-      ModifyParam(param = "query", value = query)
-    }
+    DefaultAssay(query) <- query.umi.assay
+    ModifyParam(param = "query.assay", value = query.umi.assay)
+    ModifyParam(param = "query", value = query)
     ModifyParam(param = "reference", value = reference)
   }
   if (IsSCT(assay = reference[[reference.assay]]) && normalization.method == "LogNormalize") {
@@ -5868,7 +5852,7 @@ ValidateParams_FindTransferAnchors <- function(
          call. = FALSE)
   }
   # features must be in both reference and query
-  feature.slot <- ifelse(test = normalization.method == "SCT", yes = "scale.data", no = "data")
+  feature.slot <- 'data'
   query.assay.check <- query.assay
   reference.assay.check <- reference.assay
   ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay.check]], slot = feature.slot))
