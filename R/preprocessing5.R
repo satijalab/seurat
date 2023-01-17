@@ -70,14 +70,14 @@ FindVariableFeatures.StdAssay <- function(
   object,
   method = VST,
   nselect = 2000L,
-  layer = NULL,
+  layer = 'counts',
   span = 0.3,
   clip = NULL,
   key = NULL,
   verbose = TRUE,
   ...
 ) {
-  layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (is.null(x = key)) {
     false <- function(...) {
@@ -147,6 +147,78 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
+  VariableFeatures(object = object) <- VariableFeatures(
+    object = object,
+    nfeatures = nselect,
+    simplify = TRUE
+    )
+  return(object)
+}
+
+#' @param layer Layer in the Assay5 to pull data from
+#' @param features If provided, only compute on given features. Otherwise,
+#' compute for all features.
+#' @param nfeatures Number of features to mark as the top spatially variable.
+#'
+#' @method FindSpatiallyVariableFeatures StdAssay
+#' @rdname FindSpatiallyVariableFeatures
+#' @concept preprocessing
+#' @concept spatial
+#' @export
+#'
+FindSpatiallyVariableFeatures.StdAssay <- function(
+  object,
+  layer = "scale.data",
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  features = NULL,
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = nfeatures,
+  verbose = TRUE,
+  ...
+) {
+  features <- features %||% rownames(x = object)
+  if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
+    features.computed <- names(x = Misc(object = object, slot = "markvariogram"))
+    features <- features[! features %in% features.computed]
+  }
+  data <- GetAssayData(object = object, layer = layer)
+  data <- as.matrix(x = data[features, ])
+  data <- data[RowVar(x = data) > 0, ]
+  if (nrow(x = data) != 0) {
+    svf.info <- FindSpatiallyVariableFeatures(
+      object = data,
+      spatial.location = spatial.location,
+      selection.method = selection.method,
+      r.metric = r.metric,
+      x.cuts = x.cuts,
+      y.cuts = y.cuts,
+      verbose = verbose,
+      ...
+    )
+  } else {
+    svf.info <- c()
+  }
+  if (selection.method == "markvariogram") {
+    if ("markvariogram" %in% names(x = Misc(object = object))) {
+      svf.info <- c(svf.info, Misc(object = object, slot = "markvariogram"))
+    }
+    suppressWarnings(expr = Misc(object = object, slot = "markvariogram") <- svf.info)
+    svf.info <- ComputeRMetric(mv = svf.info, r.metric)
+    svf.info <- svf.info[order(svf.info[, 1]), , drop = FALSE]
+  }
+  if (selection.method == "moransi") {
+    colnames(x = svf.info) <- paste0("MoransI_", colnames(x = svf.info))
+    svf.info <- svf.info[order(svf.info[, 2], -abs(svf.info[, 1])), , drop = FALSE]
+  }
+  var.name <- paste0(selection.method, ".spatially.variable")
+  var.name.rank <- paste0(var.name, ".rank")
+  svf.info[[var.name]] <- FALSE
+  svf.info[[var.name]][1:(min(nrow(x = svf.info), nfeatures))] <- TRUE
+  svf.info[[var.name.rank]] <- 1:nrow(x = svf.info)
+  object[names(x = svf.info)] <- svf.info
   return(object)
 }
 
@@ -544,13 +616,13 @@ NormalizeData.StdAssay <- function(
   method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
-  layer = NULL, # TODO: set to counts
+  layer = 'counts',
   save = 'data',
   default = TRUE,
   verbose = TRUE,
   ...
 ) {
-  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (save %in% olayer) {
     default <- FALSE
@@ -630,7 +702,7 @@ NormalizeData.Seurat5 <- function(
 ScaleData.StdAssay <- function(
   object,
   features = NULL,
-  layer = NULL,
+  layer = 'data',
   vars.to.regress = NULL,
   latent.data = NULL,
   by.layer = FALSE,
@@ -647,7 +719,7 @@ ScaleData.StdAssay <- function(
   ...
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
-  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
     inform(
@@ -1007,7 +1079,7 @@ VST.matrix <- function(
 
 
 #' @importFrom SeuratObject .CalcN
-#' 
+#'
 CalcN <- function(object) {
   return(.CalcN(object))
 }
@@ -1344,7 +1416,7 @@ SCTransform.StdAssay <- function(
     do.correct.umi <- FALSE
     do.center <- FALSE
   }
-  olayer <- layer <- unique(x = layer) %||% DefaultLayer(object = object)
+  olayer <- layer <- unique(x = layer)
   layers <- Layers(object = object, search = layer)
   dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
   sct.assay.list <- list()
@@ -1657,7 +1729,8 @@ SCTransform.StdAssay <- function(
     }
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
 
-    VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
+    #VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
+    VariableFeatures(object = merged.assay) <- VariableFeatures(object = merged.assay, use.var.features = FALSE)
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
@@ -2096,7 +2169,7 @@ FetchResidualSCTModel <- function(object,
 #' temporal function to get residuals from reference
 #' @importFrom sctransform get_residuals
 #' @importFrom Matrix colSums
-#' 
+#'
 
 FetchResiduals_reference <- function(object,
                                      reference.SCT.model = NULL,
@@ -2104,7 +2177,7 @@ FetchResiduals_reference <- function(object,
                                      verbose = FALSE) {
   features_to_compute <- features
   vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
-  
+
   # override clip.range
   clip.range <- vst_out$arguments$sct.clip.range
   # get rid of the cell attributes
@@ -2115,13 +2188,13 @@ FetchResiduals_reference <- function(object,
   )
   vst_out$gene_attr <- vst_out$gene_attr[all.features, , drop = FALSE]
   vst_out$model_pars_fit <- vst_out$model_pars_fit[all.features, , drop = FALSE]
-  
+
   clip.max <- max(clip.range)
   clip.min <- min(clip.range)
-  
-  
+
+
   umi <- object[features_to_compute, , drop = FALSE]
-  
+
   ## Add cell_attr for missing cells
   cell_attr <- data.frame(
     umi = colSums(object),
@@ -2129,11 +2202,11 @@ FetchResiduals_reference <- function(object,
   )
   rownames(cell_attr) <- colnames(object)
   vst_out$cell_attr <- cell_attr
-  
+
   if (verbose) {
     message("using reference sct model")
   }
-  
+
   if (vst_out$arguments$min_variance == "umi_median"){
     min_var <- min_var_custom
   } else {
@@ -2147,7 +2220,7 @@ FetchResiduals_reference <- function(object,
     res_clip_range = c(clip.min, clip.max),
     verbosity = as.numeric(x = verbose) * 2
   )
-  
+
   ref.residuals.mean <- vst_out$gene_attr[rownames(x = new_residual),"residual_mean"]
   new_residual <- sweep(
     x = new_residual,

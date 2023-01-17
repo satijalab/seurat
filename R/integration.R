@@ -804,7 +804,7 @@ FindTransferAnchors <- function(
   reduction.2 <- character()
   feature.mean <- NULL
   reference.reduction.init <- reference.reduction
-  if (normalization.method == "SCT") {
+  if (normalization.method == "SCT" && !inherits(x = query[[query.assay]]$counts, what = 'IterableMatrix')) {
       # ensure all residuals required are computed
       query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
       if (is.null(x = reference.reduction)) {
@@ -842,7 +842,7 @@ FindTransferAnchors <- function(
     feature.mean <- "SCT"
   }
   # make new query assay w same name as reference assay
-  query[[reference.assay]] <- query[[query.assay]]
+  suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
   DefaultAssay(query) <- reference.assay
   # only keep necessary info from objects
   query <- DietSeurat(
@@ -858,7 +858,6 @@ FindTransferAnchors <- function(
     warnings("reference assay is diffrent from the assay.used in", reference.reduction)
     slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
   }
-
   reference <- DietSeurat(
     object = reference,
     assays = reference.assay,
@@ -930,6 +929,7 @@ FindTransferAnchors <- function(
        projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
+         normalization.method = normalization.method,
          query = query,
          scale = scale,
          dims = dims,
@@ -1973,19 +1973,19 @@ IntegrateSketchEmbeddings <- function(
         ' atomic cells identified in the atoms'
       )
       message("Correcting embeddings")
-    } 
+    }
     emb <- UnSketchEmbeddings(
       atom.data = LayerData(
       object = object[[atoms]],
       layer = layers[i],
       features = features
-    ), 
+    ),
     atom.cells = cells.sketch,
     orig.data = LayerData(
       object = object[[orig]],
       layer = layers[i],
       features = features
-    ), 
+    ),
     embeddings = Embeddings(object = object[[reduction]]),
     sketch.matrix = sketch.matrix
     )
@@ -3004,33 +3004,15 @@ SelectIntegrationFeatures5 <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   layers <- Layers(object = object[[assay]], search = layers)
-  vf.list <- VariableFeatures(
+  var.features <- VariableFeatures(
     object = object,
     assay = assay,
+    nfeatures = nfeatures,
     method = method,
-    layer = layers
+    layer = layers,
+    simplify = TRUE
   )
-  var.features <- unlist(x = vf.list, use.names = FALSE)
-  var.features <- sort(x = table(var.features), decreasing = TRUE)
-  # Select only variable features present in all layers
-  fmat <- slot(object = object[[assay]], name = 'features')[, layers]
-  idx <- which(x = apply(
-    X = fmat[names(x = var.features), , drop = FALSE],
-    MARGIN = 1L,
-    FUN = all
-  ))
-  var.features <- var.features[idx]
-  tie.val <- var.features[min(nfeatures, length(x = var.features))]
-  # Select integration features
-  features <- names(x = var.features[which(x = var.features > tie.val)])
-  if (length(x = features)) {
-    features <- .FeatureRank(features = features, flist = vf.list)
-  }
-  features.tie <- .FeatureRank(
-    features = names(x = var.features[which(x = var.features == tie.val)]),
-    flist = vf.list
-  )
-  return(head(x = c(features, features.tie), n = nfeatures))
+  return(var.features)
 }
 
 #' @export
@@ -3050,7 +3032,7 @@ SelectSCTIntegrationFeatures <- function(
   vf.list <- VariableFeatures(
     object = object[[assay]],
     layer = models,
-    n = nfeatures,
+    nfeatures = nfeatures,
     simplify = FALSE
   )
   var.features <- sort(
@@ -3517,7 +3499,7 @@ TransferData <- function(
 
 #' Transfer data from sketch data to full data
 #' @export
-#' 
+#'
 TransferSketchLabels <- function(
   object,
   atoms = 'sketch',
@@ -3549,15 +3531,15 @@ TransferSketchLabels <- function(
     !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
     !all(rownames(full_sketch.weight) == colnames(object[[atoms]]))  ||
     recompute.weights
-  
+
   if (compute.neighbors) {
     if (verbose) {
       message("Finding sketch neighbors")
     }
     full_sketch.nn <- Seurat:::NNHelper(
-      query = Embeddings(object[[reduction]])[, dims], 
-      data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims], 
-      k = k,  
+      query = Embeddings(object[[reduction]])[, dims],
+      data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims],
+      k = k,
       method = "annoy"
     )
   }
@@ -3574,7 +3556,7 @@ TransferSketchLabels <- function(
   }
   object@tools$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
   object@tools$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
-  
+
   if (length(refdata) == 1  & is.character(refdata)) {
     refdata <- list(refdata)
     names(refdata) <- unlist(refdata)
@@ -5100,6 +5082,7 @@ if (normalization.method == 'SCT') {
     reference.SCT.model = reference.SCT.model,
     features = features)
 } else {
+  query <- query[features,]
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
@@ -5142,7 +5125,7 @@ if (normalization.method == 'SCT') {
 #' @method ProjectCellEmbeddings IterableMatrix
 #' @export
 #'
-#' 
+#'
 ProjectCellEmbeddings.IterableMatrix <- function(
   query,
   reference,
@@ -5182,6 +5165,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
         colnames(query))
       ))
   } else {
+    query <- query[features,]
     reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features,]
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
@@ -5202,7 +5186,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       feature.mean[is.na(x = feature.mean)] <- 1
     }
     query.scale <- (query - feature.mean)/feature.sd
-    query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
+    #query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
     proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
     rownames(proj.pca) <- colnames(query)
     colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
@@ -5858,16 +5842,20 @@ ValidateParams_FindTransferAnchors <- function(
              "you can set recompute.residuals to FALSE", call. = FALSE)
       }
     }
-    query <- SCTransform(
-      object = query,
-      reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
-      residual.features = features,
-      assay = query.umi.assay,
-      new.assay.name = new.sct.assay,
-      verbose = FALSE
-    )
-    ModifyParam(param = "query.assay", value = new.sct.assay)
-    ModifyParam(param = "query", value = query)
+    if (inherits(x = query[[query.umi.assay]]$counts, what = 'IterableMatrix')) {
+      query[[query.umi.assay]]$scale.data <- query[[query.umi.assay]]$counts
+    } else {
+      query <- SCTransform(
+        object = query,
+        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
+        residual.features = features,
+        assay = query.umi.assay,
+        new.assay.name = new.sct.assay,
+        verbose = FALSE
+      )
+      ModifyParam(param = "query.assay", value = new.sct.assay)
+      ModifyParam(param = "query", value = query)
+    }
     ModifyParam(param = "reference", value = reference)
   }
   if (IsSCT(assay = reference[[reference.assay]]) && normalization.method == "LogNormalize") {
@@ -7754,12 +7742,12 @@ FastRPCAIntegration <- function(
 
 
 #' Transfer embeddings from sketched cells to the full data
-#' 
+#'
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
-#' 
+#'
 #' @export
-#' 
+#'
 UnSketchEmbeddings <- function(atom.data,
                                atom.cells = NULL,
                                orig.data,

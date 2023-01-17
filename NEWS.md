@@ -1,3 +1,17 @@
+# Seurat 4.3.0 (2022-11-18)
+
+## Added
+- Add support for imaging-based spatial datasets
+
+## Changes
+- Fix bug in `FindMarkers()` when run post Integration/Transfer ([#6856](https://github.com/satijalab/seurat/issues/6586))
+
+# Seurat 4.2.1 (2022-11-08)
+
+## Changes
+- Replaced import from `spatstat.core` with `spatstat.explore`
+- Fix bug in `FindMarkers()` when using `SCT` assay ([#6856](https://github.com/satijalab/seurat/issues/6586))
+
 # Seurat 4.2.0 (2022-09-21)
 
 ## Changes

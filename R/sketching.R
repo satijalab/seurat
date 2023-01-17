@@ -171,7 +171,7 @@ LeverageScore.default <- function(
 ) {
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
-  if (ncells < nsketch) {
+  if (ncells < nsketch*1.5) {
     Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
@@ -233,7 +233,8 @@ LeverageScore.default <- function(
   ))
   Z <- object %*% (R.inv %*% JL)
   if (inherits(x = Z, what = 'IterableMatrix')) {
-    Z.score <- matrix_stats(matrix = Z, row_stats = 'variance')$row_stats['variance',]*ncol(Z)
+    Z.score <- matrix_stats(matrix = Z ^ 2, row_stats = 'mean'
+                            )$row_stats['mean',]*ncol(x = Z)
     } else {
     Z.score <- rowSums(x = Z ^ 2)
   }

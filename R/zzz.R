@@ -1,3 +1,4 @@
+#' @importFrom progressr progressor
 #' @importFrom methods slot slot<-
 #' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
 #' deprecate_warn is_present
@@ -48,6 +49,10 @@ NULL
 #'
 "_PACKAGE"
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Options
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
@@ -56,6 +61,7 @@ seurat_default_options <- list(
   Seurat.Rfast2.msg = TRUE,
   Seurat.warn.vlnplot.split = TRUE
 )
+
 
 #' @importFrom methods setClassUnion
 #' @importClassesFrom Matrix dgCMatrix
@@ -73,13 +79,24 @@ AttachDeps <- function(deps) {
   }
 }
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Hooks
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom SeuratObject AttachDeps
+#'
 .onAttach <- function(libname, pkgname) {
-  AttachDeps(deps = 'SeuratObject')
+  AttachDeps(deps = c('SeuratObject'))
+  return(invisible(x = NULL))
 }
 
 .onLoad <- function(libname, pkgname) {
-  op <- options()
-  toset <- !(names(x = seurat_default_options) %in% names(x = op))
-  if (any(toset)) options(seurat_default_options[toset])
-  invisible(x = NULL)
+  toset <- setdiff(
+    x = names(x = seurat_default_options),
+    y = names(x = options())
+  )
+  if (length(x = toset)) {
+    options(seurat_default_options[toset])
+  }
+  return(invisible(x = NULL))
 }
