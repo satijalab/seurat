@@ -3957,7 +3957,9 @@ FilterAnchors <- function(
   return(object)
 }
 
-FindAnchors <- function(
+
+
+FindAnchors_v3 <- function(
   object.pair,
   assay,
   slot,
@@ -4052,6 +4054,135 @@ FindAnchors <- function(
     object = object.pair,
     integration.name = 'integrated',
     slot = 'anchors'
+  )
+  return(anchors)
+}
+
+
+FindAnchors_v5 <- function(
+  object.pair,
+  assay,
+  slot,
+  cells1,
+  cells2,
+  internal.neighbors,
+  reduction,
+  reduction.2 = character(),
+  nn.reduction = reduction,
+  dims = 1:10,
+  k.anchor = 5,
+  k.filter = 200,
+  k.score = 30,
+  max.features = 200,
+  nn.method = "annoy",
+  n.trees = 50,
+  nn.idx1 = NULL,
+  nn.idx2 = NULL,
+  eps = 0,
+  projected = FALSE,
+  verbose = TRUE
+) {
+  reference.layers <- Layers(object.pair[[assay]], search = 'data')[1]
+  query.layers <- setdiff(Layers(object.pair[[assay]], search = 'data'), reference.layers)
+  query.ncell <- sapply(X = query.layers, FUN = function(x) ncol(object.pair[[assay]][[x]]))
+  query.offsets <- as.vector(x = cumsum(x = c(0, query.ncell)))[1:length(x = query.layers)]
+  anchor.list <- list()
+  for (i in seq_along(query.layers)) {
+    cells2.i <- Cells(
+      x = object.pair[[assay]],
+      layer = query.layers[i]
+    )
+    object.pair.i <- subset(
+      x = object.pair,
+      cells = c(cells1, cells2.i)
+    )
+    anchor.list[[i]] <- FindAnchors_v3(
+      object.pair = object.pair.i,
+      assay = assay,
+      slot = slot,
+      cells1 = cells1,
+      cells2 = cells2.i,
+      internal.neighbors = internal.neighbors,
+      reduction = reduction,
+      reduction.2 = reduction.2,
+      nn.reduction = nn.reduction,
+      dims = dims,
+      k.anchor = k.anchor,
+      k.filter = k.filter,
+      k.score = k.score,
+      max.features = max.features,
+      nn.method = nn.method,
+      n.trees = n.trees,
+      nn.idx1 = nn.idx1,
+      nn.idx2 = nn.idx2,
+      eps = eps,
+      projected = projected,
+      verbose = verbose
+    )
+    anchor.list[[i]][,2] <-   anchor.list[[i]][,2] + query.offsets[i]
+    anchor.list[[i]] <- t(anchor.list[[i]])
+  }
+  anchors <- t(x = matrix(
+    data = unlist(x = anchor.list),
+    nrow = 3,
+    ncol = sum(
+      sapply(X = anchor.list, FUN = function(x) ncol(x))
+    )
+  )
+  )
+  return(anchors)
+}
+
+FindAnchors <- function(
+  object.pair,
+  assay,
+  slot,
+  cells1,
+  cells2,
+  internal.neighbors,
+  reduction,
+  reduction.2 = character(),
+  nn.reduction = reduction,
+  dims = 1:10,
+  k.anchor = 5,
+  k.filter = 200,
+  k.score = 30,
+  max.features = 200,
+  nn.method = "annoy",
+  n.trees = 50,
+  nn.idx1 = NULL,
+  nn.idx2 = NULL,
+  eps = 0,
+  projected = FALSE,
+  verbose = TRUE
+) {
+  if (inherits(x = object.pair[[assay]], what = 'Assay')) {
+    FindAnchor.function <- FindAnchors_v3
+  } else if (inherits(x = object.pair[[assay]], what = 'Assay5')) {
+    FindAnchor.function <- FindAnchors_v5
+  }
+  anchors <- FindAnchor.function(
+    object.pair = object.pair,
+    assay = assay,
+    slot = slot,
+    cells1 = cells1,
+    cells2 = cells2,
+    internal.neighbors = internal.neighbors,
+    reduction = reduction,
+    reduction.2 = reduction.2,
+    nn.reduction = nn.reduction,
+    dims = dims,
+    k.anchor = k.anchor,
+    k.filter = k.filter,
+    k.score = k.score,
+    max.features = max.features,
+    nn.method = nn.method,
+    n.trees = n.trees,
+    nn.idx1 = nn.idx1,
+    nn.idx2 = nn.idx2,
+    eps = eps,
+    projected = projected,
+    verbose = verbose
   )
   return(anchors)
 }
