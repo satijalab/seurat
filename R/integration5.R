@@ -445,10 +445,10 @@ IntegrateLayers <- function(
     df
   } else if (is.null(x = group.by) && length(x = layers) > 1L) {
     cmap <- slot(object = object[[assay]], name = 'cells')[, layers]
-    as.data.frame(x = labels(
-      object = cmap,
-      values = Cells(x = object[[assay]], layer = scale.layer)
-    ))
+    data.frame(x = Cells(object[[assay]], 
+                         layer = scale.layer), 
+               y = rep(scale.layer, length(Cells(object[[assay]], 
+                                                  layer = scale.layer))))
   } else if (is_scalar_character(x = group.by) && group.by %in% names(x = object[[]])) {
     FetchData(
       object = object,

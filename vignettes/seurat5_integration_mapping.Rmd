@@ -58,7 +58,6 @@ panc8 <- UpdateSeuratObject(panc8)
 panc8[["RNA"]] <- CreateAssay5Object(panc8[["RNA"]]@counts)
 # split the dataset into layers by technology
 panc8[["RNA"]] <- split(panc8[["RNA"]], f = panc8$tech)
-panc8 <- DietSeurat(panc8, layers = c("celseq", "celseq2", "fluidigmc1", "smartseq2"))
 ```
 
 Prior to finding anchors, we perform standard preprocessing (log-normalization), and identify variable features individually for each. Note that Seurat implements an improved method for variable feature selection based on a variance stabilizing transformation (`"vst"`)
