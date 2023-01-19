@@ -65,7 +65,7 @@ After acquiring the data, we first perform standard normalization and variable f
 
 ```{r hca.full.1}
 
-bm280k.data <- Read10X_h5("/brahms/haoy/HCA_BoneMarrow/ica_bone_marrow_h5.h5")
+bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
 #bm280k.data <- Read10X("/brahms/mollag/seurat_v5/data/e7448a34-b33d-41de-b422-4c09bfeba96b.mtx/")
 #colnames(bm280k.data) <- make.unique(c(colnames(bm280k.data)), sep="_")
 #bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
@@ -95,17 +95,7 @@ bm280k <- IntegrateLayers(object = bm280k,
                         dims = 1:50,
                         verbose = F)
 
-# this seems to be issue: as.data.frame(x = labels(object = cmap, values = Cells(x = object[[assay]], 
-    #layer = scale.layer))) # this takes a super long time
 
-
-
-# speicifcially getting the labels call is really slow 
-# as.data.frame(labels(object = cmap, values = head(Cells(x = bm280k[["RNA"]], layer = "scale.data"))))
-# as.data.frame(labels(object = cmap_small, values = Cells(x = bm280k[["RNA"]], layer = "scale.data")))
-# bboth of these smaller versions are fast
-
-data.frame(x = Cells(x = bm280k[["RNA"]], layer = "scale.data"), y = rep("scale.data", length(Cells(x = bm280k[["RNA"]], layer = "scale.data"))))
 ```
 
 
