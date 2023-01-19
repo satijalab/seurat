@@ -4084,8 +4084,6 @@ FindAnchors_v5 <- function(
 ) {
   reference.layers <- Layers(object.pair[[assay]], search = 'data')[1]
   query.layers <- setdiff(Layers(object.pair[[assay]], search = 'data'), reference.layers)
-  query.ncell <- sapply(X = query.layers, FUN = function(x) ncol(object.pair[[assay]][[x]]))
-  query.offsets <- as.vector(x = cumsum(x = c(0, query.ncell)))[1:length(x = query.layers)]
   anchor.list <- list()
   for (i in seq_along(query.layers)) {
     cells2.i <- Cells(
@@ -4119,7 +4117,7 @@ FindAnchors_v5 <- function(
       projected = projected,
       verbose = verbose
     )
-    anchor.list[[i]][,2] <-   anchor.list[[i]][,2] + query.offsets[i]
+    anchor.list[[i]][,2] <- match(x = cells2.i, table = cells2)[anchor.list[[i]][,2]]
     anchor.list[[i]] <- t(anchor.list[[i]])
   }
   anchors <- t(x = matrix(
@@ -4130,6 +4128,7 @@ FindAnchors_v5 <- function(
     )
   )
   )
+  colnames(anchors) <- c('cell1', 'cell2', 'score')
   return(anchors)
 }
 
@@ -6230,7 +6229,7 @@ ValidateParams_TransferData <- function(
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(
       target = gsub(pattern = "_query", replacement = "", x = query.cells),
-      current = Cells(x = query),
+      current = colnames(x = query),
       check.attributes = FALSE)
       )) {
       stop("Query object provided contains a different set of cells from the ",
@@ -6362,7 +6361,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   query.cells <- slot(object = anchorset, name = "query.cells")
   query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  if (!isTRUE(x = all.equal(target = query.cells, current = Cells(x = query), check.attributes = FALSE))) {
+  if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query), check.attributes = FALSE))) {
     stop("The set of cells used as a query in the AnchorSet does not match ",
          "the set of cells provided in the query object.")
   }
