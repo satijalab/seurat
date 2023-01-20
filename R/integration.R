@@ -802,6 +802,7 @@ FindTransferAnchors <- function(
   reduction.2 <- character()
   feature.mean <- NULL
   reference.reduction.init <- reference.reduction
+  reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], search = "data", new = "data") 
     if (normalization.method == "SCT") {
       if (is.null(x = reference.reduction)) {
         reference <- suppressWarnings(expr = GetResidual(
@@ -4102,7 +4103,7 @@ FindAnchors_v5 <- function(
     )
     object.pair.i <- subset(
       x = object.pair,
-      cells = unique(cells1, cells2.i)
+      cells = c(cells1, cells2.i)
     )
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
