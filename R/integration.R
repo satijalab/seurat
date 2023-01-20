@@ -1108,7 +1108,7 @@ FindTransferAnchors <- function(
     }
     k.nn <- max(k.score, k.anchor)
     query.neighbors <- NNHelper(
-      data = Embeddings(object = combined.ob[[reduction]])[Cells(x = query), ],
+      data = Embeddings(object = combined.ob[[reduction]])[colnames(x = query), ],
       k = max(mapping.score.k, k.nn + 1),
       method = nn.method,
       n.trees = n.trees,
@@ -1126,8 +1126,18 @@ FindTransferAnchors <- function(
   }
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
-    nn.idx1 <- Index(object = reference[[reference.neighbors]])
+  } else {
+    precomputed.neighbors[["ref.neighbors"]] <- NNHelper(
+      data = Embeddings(combined.ob[[reduction]])[
+        colnames(x = reference),
+        1:length(x = dims)
+        ],
+      k = max(k.score, k.anchor),
+      method = nn.method,
+      cache.index = TRUE
+      )
   }
+  nn.idx1 <- Index(object = precomputed.neighbors[["ref.neighbors"]])
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = reference.assay,
@@ -5138,8 +5148,7 @@ ProjectCellEmbeddings.StdAssay <- function(
     f = intersect,
     x = list(
       rownames(x = Loadings(object = reference[[reduction]])),
-      rownames(x = reference[[reference.assay]]),
-      rownames(x = query)
+      rownames(x = reference[[reference.assay]])
     )
   )
   if (normalization.method == 'SCT') {
@@ -5261,7 +5270,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   block.size = 10000
 ) {
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
-
+  features <- intersect(features, rownames(query))
   if (normalization.method == 'SCT') {
     reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
     cells.grid <- split(
