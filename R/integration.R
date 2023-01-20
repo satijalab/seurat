@@ -802,8 +802,12 @@ FindTransferAnchors <- function(
   reduction.2 <- character()
   feature.mean <- NULL
   reference.reduction.init <- reference.reduction
-  reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], 
-                                             search = "data", new = "data") 
+  if (inherits(x = reference[[reference.assay]], what = 'Assay5')) {
+    if (length(Layers(reference, search = "data")) > 1) {
+      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], 
+                                                 search = "data", new = "data") 
+    }
+  }
     if (normalization.method == "SCT") {
       if (is.null(x = reference.reduction)) {
         reference <- suppressWarnings(expr = GetResidual(
