@@ -4165,9 +4165,9 @@ FindAnchors <- function(
   projected = FALSE,
   verbose = TRUE
 ) {
-  if (inherits(x = object.pair[[assay]], what = 'Assay')) {
+  if (inherits(x = object.pair[[assay[1]]], what = 'Assay')) {
     FindAnchor.function <- FindAnchors_v3
-  } else if (inherits(x = object.pair[[assay]], what = 'Assay5')) {
+  } else if (inherits(x = object.pair[[assay[1]]], what = 'Assay5')) {
     FindAnchor.function <- FindAnchors_v5
   }
   anchors <- FindAnchor.function(
