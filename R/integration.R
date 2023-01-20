@@ -4102,7 +4102,7 @@ FindAnchors_v5 <- function(
     )
     object.pair.i <- subset(
       x = object.pair,
-      cells = c(cells1, cells2.i)
+      cells = unique(cells1, cells2.i)
     )
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
