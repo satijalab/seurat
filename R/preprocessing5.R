@@ -2176,6 +2176,7 @@ FetchResiduals_reference <- function(object,
                                      features = NULL,
                                      verbose = FALSE) {
   features_to_compute <- features
+  features_to_compute <- intersect(features_to_compute, rownames(object))
   vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
 
   # override clip.range
@@ -2217,7 +2218,6 @@ FetchResiduals_reference <- function(object,
     umi = umi,
     residual_type = "pearson",
     min_variance = min_var,
-    res_clip_range = c(clip.min, clip.max),
     verbosity = as.numeric(x = verbose) * 2
   )
 
@@ -2228,5 +2228,6 @@ FetchResiduals_reference <- function(object,
     STATS = ref.residuals.mean,
     FUN = "-"
   )
+  new_residual <- MinMax(data = new_residual, min = clip.min, max = clip.max)
   return(new_residual)
 }

@@ -5080,10 +5080,15 @@ ProjectCellEmbeddings.Assay <- function(
     rownames(x = query)
   )
   )
+ if (normalization.method == 'SCT') {
+   slot <- 'counts'
+ } else {
+   slot <- 'data'
+ }
   proj.pca <- ProjectCellEmbeddings(
     query = GetAssayData(
       object = query,
-      slot = "data"),
+      slot = slot),
     reference = reference,
     reference.assay = reference.assay,
     reduction = reduction,
@@ -5127,7 +5132,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   )
   query.data <- GetAssayData(
     object = query,
-    slot = "data")[features,]
+    slot = "scale.data")[features,]
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query.data))
   return(proj.pca)
