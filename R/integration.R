@@ -4365,6 +4365,7 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
+      cache.index = TRUE,
       index = nn.idx1
     )
     nn.idx1 <- Index(object = nnaa)
