@@ -1141,7 +1141,7 @@ FindTransferAnchors <- function(
         colnames(x = reference),
         1:length(x = dims)
         ],
-      k = max(k.score, k.anchor) + 5,
+      k = max(k.score, k.anchor) + 1,
       method = nn.method,
       cache.index = TRUE
       )
@@ -4367,6 +4367,7 @@ FindNN <- function(
       eps = eps,
       index = nn.idx1
     )
+    nn.idx1 <- Index(object = nnaa)
   }
   if (!is.null(x = internal.neighbors[[2]])) {
     nnbb <- internal.neighbors[[2]]
@@ -4378,8 +4379,9 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx1
+      cache.index = TRUE
     )
+    nn.idx2 <- Index(object = nnbb)
   }
   if (length(x = reduction.2) > 0) {
     nnab <- NNHelper(
