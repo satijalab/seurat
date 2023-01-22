@@ -2174,7 +2174,14 @@ FetchResidualSCTModel <- function(object,
 FetchResiduals_reference <- function(object,
                                      reference.SCT.model = NULL,
                                      features = NULL,
+                                     nCount_UMI = NULL,
                                      verbose = FALSE) {
+  ## Add cell_attr for missing cells
+  nCount_UMI <- nCount_UMI %||% colSums(object)
+  cell_attr <- data.frame(
+    umi = nCount_UMI,
+    log_umi = log10(x = nCount_UMI)
+  )
   features_to_compute <- features
   features_to_compute <- intersect(features_to_compute, rownames(object))
   vst_out <- SCTModel_to_vst(SCTModel = reference.SCT.model)
@@ -2196,11 +2203,7 @@ FetchResiduals_reference <- function(object,
 
   umi <- object[features_to_compute, , drop = FALSE]
 
-  ## Add cell_attr for missing cells
-  cell_attr <- data.frame(
-    umi = colSums(object),
-    log_umi = log10(x = colSums(object))
-  )
+
   rownames(cell_attr) <- colnames(object)
   vst_out$cell_attr <- cell_attr
 

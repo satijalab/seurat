@@ -3097,7 +3097,6 @@ SCTransform.default <- function(
   } else {
     sct.method <- "default"
   }
-
   # set vst model
   vst.out <- switch(
     EXPR = sct.method,

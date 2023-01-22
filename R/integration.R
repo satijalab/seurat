@@ -770,6 +770,8 @@ FindTransferAnchors <- function(
   mapping.score.k = NULL,
   verbose = TRUE
 ) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -929,6 +931,7 @@ FindTransferAnchors <- function(
          query = query,
          scale = scale,
          dims = dims,
+         nCount_UMI = query[[]][, paste0("nCount_", query.assay)],
          feature.mean = feature.mean,
          verbose = verbose
        )
@@ -1138,7 +1141,7 @@ FindTransferAnchors <- function(
         colnames(x = reference),
         1:length(x = dims)
         ],
-      k = max(k.score, k.anchor),
+      k = max(k.score, k.anchor) + 5,
       method = nn.method,
       cache.index = TRUE
       )
@@ -5018,6 +5021,7 @@ ProjectCellEmbeddings.Seurat <- function(
   normalization.method = c("LogNormalize", "SCT"),
   scale = TRUE,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5050,6 +5054,7 @@ ProjectCellEmbeddings.Seurat <- function(
     scale = scale,
     normalization.method = normalization.method,
     verbose = verbose,
+    nCount_UMI = nCount_UMI,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -5069,6 +5074,7 @@ ProjectCellEmbeddings.Assay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5097,6 +5103,7 @@ ProjectCellEmbeddings.Assay <- function(
     normalization.method = normalization.method,
     verbose = verbose,
     features = features,
+    nCount_UMI = nCount_UMI,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -5116,6 +5123,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5151,6 +5159,7 @@ ProjectCellEmbeddings.StdAssay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5180,6 +5189,7 @@ ProjectCellEmbeddings.StdAssay <- function(
       normalization.method = normalization.method,
       verbose = verbose,
       features = features,
+      nCount_UMI = nCount_UMI_i,
       feature.mean = feature.mean,
       feature.sd = feature.sd
     ))
@@ -5211,6 +5221,7 @@ ProjectCellEmbeddings.default <- function(
   normalization.method = NULL,
   verbose = TRUE,
   features = NULL,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ){
@@ -5220,7 +5231,8 @@ if (normalization.method == 'SCT') {
   query <- FetchResiduals_reference(
     object = query,
     reference.SCT.model = reference.SCT.model,
-    features = features)
+    features = features,
+    nCount_UMI = nCount_UMI)
 } else {
   query <- query[features,]
   reference.data <-  GetAssayData(
@@ -5276,6 +5288,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   normalization.method = NULL,
   verbose = TRUE,
   features = features,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL,
   block.size = 10000
@@ -5293,7 +5306,8 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       query.i <- FetchResiduals_reference(
         object = as.sparse(query[,cells.grid[[i]]]),
         reference.SCT.model = reference.SCT.model,
-        features = features)
+        features = features,
+        nCount_UMI = nCount_UMI)
       proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
     }
     proj.pca <- t(matrix(
