@@ -1,0 +1,112 @@
+---
+title: "Seurat 5: Large dataset analysis"
+output: html_notebook
+---
+
+## load package
+
+```{r, warning=F, message=F}
+library(Seurat)
+library(BPCells)
+```
+
+## load matrix
+```{r, warning=F, message=F}
+time0_loadMatrix <- system.time({ 
+  #mat <- open_matrix_dir('/brahms/haoy/test/pbmc_150k_sparse/')
+  #meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta_100K.rds')
+  mat <- open_matrix_dir('/brahms/haoy/test/pbmc_ParseBio_sparse//')
+  meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta.rds')
+})
+```
+
+## sketch object
+```{r,warning=F, message=F}
+options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
+time1_normalize <- system.time({
+  object <- CreateSeuratObject(counts = mat, meta.data = meta)
+  object <- NormalizeData(object)
+})
+ 
+time2_split.mat  <- system.time({
+  options(Seurat.object.assay.calcn = FALSE) 
+  object[['RNA']] <- split(object[['RNA']], f =  meta$sample)
+})
+
+
+time3_FindVariable  <- system.time({
+  object <- FindVariableFeatures(object, layer = 'counts')
+})
+
+time4_LeverageScoreSampling  <- system.time({
+  object <- LeverageScore(object)
+  object <- LeverageScoreSampling(object = object, ncells = 5000, cast = 'dgCMatrix')
+})
+```
+
+## integrate sketched assay
+```{r}
+
+time5_SketchIntegration  <- system.time({
+  DefaultAssay(object) <- 'sketch'
+  object <- FindVariableFeatures(object)
+  features <- SelectIntegrationFeatures5(object)
+  object <- ScaleData(object, features =  features)
+  object <- RunPCA(object, features =  features)
+  DefaultAssay(object) <- 'sketch'
+  object <- IntegrateLayers(object, 
+                            method = RPCAIntegration,
+                            orig = 'pca',
+                            new.reduction = 'integrated.rpca',
+                            dims = 1:30, 
+                            k.anchor = 20,
+                            reference = which(Layers(object, search = 'data') == 'data.H_3060'))
+})
+object <- RunUMAP(object,  reduction = 'integrated.rpca', dims = 1:30, return.model = T)
+plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap') + NoLegend()
+plot.s2 <- DimPlot(object, group.by = 'celltype.weight', reduction = 'umap') + NoLegend()
+
+plot.s1 + plot.s2
+
+```
+
+
+## proporgate embeddings to full data
+```{r}
+time6_UnSketch <- system.time({
+  object <- IntegrateSketchEmbeddings(object = object,
+                                       atoms = 'sketch',
+                                       orig = 'RNA',
+                                       reduction = 'integrated.rpca' ,
+                                       layers = Layers(object = object[['RNA']], search = 'data'),
+                                      features = features  )
+ 
+})
+ 
+object <- RunUMAP(object,  reduction = 'integrated.rpca.orig', dims = 1:30 , reduction.name = 'umap.orig', reduction.key = 'Uorig_')
+
+```
+
+```{r}
+p1<- DimPlot(object, reduction = 'umap.orig', group.by = 'sample',alpha = 0.1) + NoLegend()
+p2<- DimPlot(object, reduction = 'umap.orig', group.by = 'celltype.weight', label = T, alpha = 0.1) + NoLegend()
+p1+p2
+```
+
+## computing time summary
+```{r}
+all_T  <- ls(pattern = 'time')
+overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
+
+
+for (i in 1:length(all_T)) {
+  time.i <- get(all_T[i])['elapsed']
+  if (time.i > 60) {
+     print(paste(all_T[i], round(time.i/60, digits = 1), 'mins'))
+  } else {
+     print(paste(all_T[i], round(time.i, digits = 1), 'secs'))
+  }
+}
+print(paste('Total time ', round(overall, digits = 3), 'mins' ))
+```
+

@@ -24,7 +24,8 @@ knitr::knit_hooks$set(time_it = local({
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 

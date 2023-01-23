@@ -1,0 +1,79 @@
+- category: Introduction to v5
+  vignettes:
+    - title: Guided tutorial --- 2,700 PBMCs
+      name: seurat5_pbmc3k_tutorial
+      summary: |
+        A basic overview of Seurat that includes an introduction to common analytical workflows.
+      image: pbmc3k_umap.jpg
+
+    - title: Multimodal analysis
+      name: seurat5_multimodal_vignette
+      summary: |
+        An introduction to working with multi-modal datasets in Seurat.
+      image: citeseq_plot.jpg
+
+    - title: Analysis of spatial datasets (Sequencing-based)
+      name: seurat5_spatial_vignette
+      summary: |
+        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
+      image: spatial_vignette_ttr.jpg
+
+    - title: Analysis of spatial datasets (Imaging-based)
+      name: seurat5_spatial_vignette_2
+      summary: |
+        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Nanostring SMI, and CODEX.
+      image: spatial_vignette_2.png
+
+    - title: SCTransform
+      name: seurat5_sctransform_vignette
+      summary: |
+        Examples of how to use the SCTransform wrapper in Seurat.
+      image: assets/sctransform.png
+
+    - title: Visualization
+      name: seurat5_visualization_vignette
+      summary: |
+        An overview of the major visualization functionality within Seurat.
+      image: visualization_vignette.jpg
+
+    - title: Cell Cycle Regression
+      name: seurat5_cell_cycle_vignette
+      summary: |
+        Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes.
+      image: cell_cycle_vignette.jpg
+
+    - title: BPCells Sketch Clustering (Log)
+      name: BPCells_sketch_clustering_mouse_brain.nb
+      summary: |
+        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat5.
+      image: BPCells_sketch_clustering_mouse_brain.png
+
+    - title: BPCells Sketch Clustering (SCTransform)
+      name: BPCells_sketch_clustering_mouse_brain_SCT.nb
+      summary: |
+        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat5.
+      image: BPCells_sketch_clustering_mouse_brain.png
+
+    - title: BPCells Sketch integration (Log)
+      name: BPCells_sketch_integration_1M.nb
+      summary: |
+        Perform sketch integration on a large dataset from Parse Biosciences.
+      image: BPCells_sketch_inte_1M.png
+  
+    - title: BPCells Sketch integration (SCTransform)
+      name: BPCells_sketch_integration_1M_SCT.nb
+      summary: |
+        Perform sketch integration on a large dataset from Parse Biosciences.
+      image: BPCells_sketch_inte_1M.png
+
+    - title: Chunked mapping (Log)
+      name: BPCells_COVID_logMapping.nb
+      summary: |
+        Iteratively map large COVID datasets onto a reference for cell type annotation.
+      image: BPCells_COVID.png
+
+    - title: Chunked mapping (SCTransform)
+      name: BPCells_COVID_SCTMapping.nb
+      summary: |
+        Iteratively map large COVID datasets onto a reference for cell type annotation.
+      image: BPCells_COVID.png

@@ -58,45 +58,53 @@ For this example, we will be using the "Immune Cell Atlas" data from the Human C
 
 ```{r libs}
 library(Seurat)
+options(Seurat.object.assay.version = "v5")
 ```
 
 After acquiring the data, we first perform standard normalization and variable feature selection. 
 
 ```{r hca.full.1}
+
 bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
+#bm280k.data <- Read10X("/brahms/mollag/seurat_v5/data/e7448a34-b33d-41de-b422-4c09bfeba96b.mtx/")
+#colnames(bm280k.data) <- make.unique(c(colnames(bm280k.data)), sep="_")
+#bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
 bm280k <- CreateSeuratObject(counts = bm280k.data, min.cells = 100, min.features = 500)
-bm280k.list <- SplitObject(bm280k, split.by = "orig.ident")
-bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
-  x <- NormalizeData(x, verbose = FALSE)
-  x <- FindVariableFeatures(x, verbose = FALSE)
-})
+bm280k[["RNA"]] <- split(bm280k[["RNA"]], f = bm280k$orig.ident)
+
+# Preprocessing
+bm280k <-  NormalizeData(bm280k, verbose = FALSE)
+bm280k <-  FindVariableFeatures(bm280k, verbose = FALSE)
 ```
 
 Next, select features for downstream integration, and run PCA on each object in the list, which is required for running the alternative reciprocal PCA workflow.
 
 ```{r hca.full.2}
-features <- SelectIntegrationFeatures(object.list = bm280k.list)
-bm280k.list <- lapply(X = bm280k.list, FUN = function(x) {
-  x <- ScaleData(x, features = features, verbose = FALSE)
-  x <- RunPCA(x, features = features, verbose = FALSE)
-})
+features <- VariableFeatures(bm280k)
+bm280k <- ScaleData(bm280k, features = features, verbose = FALSE)
+bm280k <- RunPCA(bm280k, features = features, verbose = FALSE)
+
 ```
 
 Since this dataset contains both men and women, we will chose one male and one female (BM1 and BM2) to use in a reference-based workflow. We determined donor sex by examining the expression of the XIST gene. 
 
 ```{r integration.hca.full}
-anchors <- FindIntegrationAnchors(object.list = bm280k.list, reference = c(1, 2), reduction = "rpca", dims = 1:50)
-bm280k.integrated <- IntegrateData(anchorset = anchors, dims = 1:50)
+bm280k <- IntegrateLayers(object = bm280k, 
+                        method = RPCAIntegration,
+                        reference = c(1, 2),
+                        dims = 1:50,
+                        verbose = F)
+
+
 ```
 
+
 ```{r downstream.hca.full}
-bm280k.integrated <- ScaleData(bm280k.integrated, verbose = FALSE)
-bm280k.integrated <- RunPCA(bm280k.integrated, verbose = FALSE)
-bm280k.integrated <- RunUMAP(bm280k.integrated, dims = 1:50)
+bm280k <- RunUMAP(bm280k, dims = 1:50)
 ```
 
 ```{r viz.hca.full, fig.height = 9, fig.width = 16}
-DimPlot(bm280k.integrated, group.by = "orig.ident")
+DimPlot(bm280k, group.by = "orig.ident")
 ```
 
 ```{r save.img, include=TRUE}

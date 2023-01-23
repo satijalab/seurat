@@ -25,11 +25,12 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
-```{r, include = FALSE}
+```{r, include = TRUE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
@@ -42,6 +43,7 @@ library(Seurat)
 library(SeuratData)
 InstallData("pbmc3k")
 pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
+pbmc <- UpdateSeuratObject(pbmc)
 
 # pretend that cells were originally assigned to one of two replicates (we assign randomly here)
 # if your cells do belong to multiple replicates, and you want to add this info to the Seurat object
@@ -136,7 +138,7 @@ CellScatter(cluster.averages, cell1 = "CD8_T_rep1", cell2 = "CD8_T_rep2")
 DoHeatmap(cluster.averages, features = unlist(TopFeatures(pbmc[['pca']], balanced = TRUE)), size = 3, draw.lines = FALSE)
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/interaction_vignette_times.csv")
 ```
 

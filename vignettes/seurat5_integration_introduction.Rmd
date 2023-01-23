@@ -68,35 +68,34 @@ InstallData('ifnb')
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
-LoadData('ifnb')
+data('ifnb') 
 ifnb <- UpdateSeuratObject(ifnb)
 ifnb[["RNA"]] <- CreateAssay5Object(ifnb[["RNA"]]@counts)
 
-# split the dataset into a list of two seurat objects (stim and CTRL)
-ifnb.list <- SplitObject(ifnb, split.by = "stim")
+# split the dataset into layers (stim and CTRL)
+ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
 
 # normalize and identify variable features for each dataset independently
-ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
-  x <- NormalizeData(x)
-  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
-})
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb, selection.method = "vst", nfeatures = 2000)
 
-# select features that are repeatedly variable across datasets for integration
-features <- SelectIntegrationFeatures(object.list = ifnb.list)
+# these two now are run before 
+ifnb <- ScaleData(ifnb)
+ifnb <- RunPCA(ifnb)
+# # select features that are repeatedly variable across datasets for integration
+# features <- SelectIntegrationFeatures(object.list = ifnb.list)
+ifnb
 ```
 
 ## Perform integration
 
-We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
-
-```{r find.anchors}
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features)
+We then identify anchors using the `FindIntegrationAnchors()` function (not any more), which takes a list of Seurat objects as input, and use these anchors to integrate the two layers together with `IntegrateLayers()`.
+```{r}
+ifnb <- IntegrateLayers(object = ifnb, 
+                        method = CCAIntegration,
+                        verbose = F)
 ```
 
-```{r integrate.data}
-# this command creates an 'integrated' data assay
-immune.combined <- IntegrateData(anchorset = immune.anchors)
-```
 
 ## Perform an integrated analysis
 
@@ -105,27 +104,25 @@ Now we can run a single integrated analysis on all cells!
 ```{r clustering, results='hide', message=FALSE}
 # specify that we will perform downstream analysis on the corrected data
 # note that the original unmodified data still resides in the 'RNA' assay
-DefaultAssay(immune.combined) <- "integrated"
 
 # Run the standard workflow for visualization and clustering
-immune.combined <- ScaleData(immune.combined, verbose = FALSE)
-immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+# use integrated.dr here instead of pca
+ifnb <- RunUMAP(ifnb, reduction = "integrated.dr", dims = 1:30)
+ifnb <- FindNeighbors(ifnb, reduction = "integrated.dr", dims = 1:30)
+ifnb <- FindClusters(ifnb, resolution = 0.5)
 ```
 
 ```{r viz, results='hide', message=FALSE}
 # Visualization
-p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "stim")
-p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
+p1 <- DimPlot(ifnb, reduction = "umap", group.by = "stim")
+p2 <- DimPlot(ifnb, reduction = "umap", label = TRUE, repel = TRUE)
 p1 + p2
 ```
 
 To visualize the two conditions side-by-side, we can use the `split.by` argument to show each condition colored by cluster. 
 
 ```{r split.dim}
-DimPlot(immune.combined, reduction = "umap", split.by = "stim")
+DimPlot(ifnb, reduction = "umap", split.by = "stim")
 ```
 
 ## Identify conserved cell type markers
@@ -134,35 +131,39 @@ To identify canonical cell type marker genes that are conserved across condition
 
 ```{r conserved.markers, warning=FALSE}
 # For performing differential expression after integration, we switch back to the original data
-DefaultAssay(immune.combined) <- "RNA"
-nk.markers <- FindConservedMarkers(immune.combined, ident.1 = 6, grouping.var = "stim", verbose = FALSE)
+DefaultAssay(ifnb) <- "RNA"
+# Join Data Layers across stimualtions 
+ifnb[['RNA']] <- JoinLayers(ifnb[["RNA"]], search = "data", new = "data") 
+nk.markers <- FindConservedMarkers(ifnb, ident.1 = 6, grouping.var = "stim", verbose = FALSE)
 head(nk.markers)
 ```
 
 We can explore these marker genes for each cluster and use them to annotate our clusters as specific cell types.
 
 ```{r annotate, results = 'hide', message=FALSE, fig.height = 8}
-FeaturePlot(immune.combined, features = c("CD3D", "SELL", "CREM", "CD8A", "GNLY", "CD79A", "FCGR3A", "CCL2", "PPBP"), min.cutoff = "q9")
-immune.combined <- RenameIdents(immune.combined, "0" = "CD14 Mono", "1" = "CD4 Naive T", "2" = "CD4 Memory T", "3" = "CD16 Mono", "4" = "B", "5" = "CD8 T", "6" = "NK" , "7" = "T activated", "8" = "DC", "9" = "B Activated", "10" = "Mk", "11" = "pDC", "12" = "Eryth", "13" = "Mono/Mk Doublets", "14" = "HSPC")
-DimPlot(immune.combined, label = TRUE)
+FeaturePlot(ifnb, features = c("CD3D", "SELL", "CREM", "CD8A", "GNLY", "CD79A", "FCGR3A", "CCL2", "PPBP"), min.cutoff = "q9")
+ifnb <- RenameIdents(ifnb, `0` = "CD14 Mono", `1` = "CD4 Naive T", `2` = "CD4 Memory T",
+    `3` = "CD16 Mono", `4` = "B", `5` = "CD8 T", `6` = "NK", `7` = "T activated", `8` = "DC", `9` = "B Activated",
+    `10` = "Mk", `11` = "pDC", `12` = "Eryth", `13` = "Mono/Mk Doublets", `14` = "HSPC")
+DimPlot(ifnb, label = TRUE)
 ```
 
 The `DotPlot()` function with the `split.by` parameter can be useful for viewing conserved cell type markers across conditions, showing both the expression level and the percentage of cells in a cluster expressing any given gene. Here we plot 2-3 strong marker genes for each of our 14 clusters.
 
 
 ```{r splitdotplot, fig.height = 10}
-Idents(immune.combined) <- factor(
-  Idents(immune.combined),
+Idents(ifnb) <- factor(
+  Idents(ifnb),
   levels = c("HSPC", "Mono/Mk Doublets", "pDC", "Eryth","Mk", "DC", "CD14 Mono", "CD16 Mono", "B Activated", "B", "CD8 T", "NK", "T activated", "CD4 Naive T", "CD4 Memory T"))
 markers.to.plot <- c("CD3D","CREM","HSPH1","SELL","GIMAP5","CACYBP","GNLY","NKG7","CCL5","CD8A","MS4A1","CD79A","MIR155HG","NME1","FCGR3A","VMO1","CCL2","S100A9","HLA-DQA1","GPR183","PPBP","GNG11","HBA2","HBB","TSPAN13","IL3RA","IGJ","PRSS57")
-DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'), dot.scale = 8, split.by = "stim") + RotatedAxis()
+DotPlot(ifnb, features = markers.to.plot, cols = c('blue', 'red'), dot.scale = 8, split.by = "stim") + RotatedAxis()
 ```
 
 ```{r save.img, include=TRUE}
 library(ggplot2)
-plot <- DotPlot(immune.combined, features = markers.to.plot, cols = c('blue', 'red'),
+plot <- DotPlot(ifnb, features = markers.to.plot, cols = c('blue', 'red'),
                       dot.scale = 6, split.by = "stim") + RotatedAxis() 
-ggsave(filename = "../output/images/pbmc_alignment.jpg", height = 7, width = 12, plot = plot, quality = 50)
+#ggsave(filename = "../output/images/pbmc_alignment.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
 ### Identify differential expressed genes across conditions
@@ -173,12 +174,12 @@ Now that we've aligned the stimulated and control cells, we can start to do comp
 library(ggplot2)
 library(cowplot)
 theme_set(theme_cowplot())
-t.cells <- subset(immune.combined, idents = "CD4 Naive T")
+t.cells <- subset(ifnb, idents = "CD4 Naive T")
 Idents(t.cells) <- "stim"
 avg.t.cells <- as.data.frame(log1p(AverageExpression(t.cells, verbose = FALSE)$RNA))
 avg.t.cells$gene <- rownames(avg.t.cells)
 
-cd14.mono <- subset(immune.combined, idents = "CD14 Mono")
+cd14.mono <- subset(ifnb, idents = "CD14 Mono")
 Idents(cd14.mono) <- "stim"
 avg.cd14.mono <- as.data.frame(log1p(AverageExpression(cd14.mono, verbose = FALSE)$RNA))
 avg.cd14.mono$gene <- rownames(avg.cd14.mono)
@@ -196,26 +197,26 @@ As you can see, many of the same genes are upregulated in both of these cell typ
 Because we are confident in having identified common cell types across condition, we can ask what genes change in different conditions for cells of the same type. First, we create a column in the meta.data slot to hold both the cell type and stimulation information and switch the current ident to that column. Then we use `FindMarkers()` to find the genes that are different between stimulated and control B cells. Notice that many of the top genes that show up here are the same as the ones we plotted earlier as core interferon response genes. Additionally, genes like CXCL10 which we saw were specific to monocyte and B cell interferon response show up as highly significant in this list as well. 
 
 ```{r de.genes}
-immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$stim, sep = "_")
-immune.combined$celltype <- Idents(immune.combined)
-Idents(immune.combined) <- "celltype.stim"
-b.interferon.response <- FindMarkers(immune.combined, ident.1 = "B_STIM", ident.2 = "B_CTRL", verbose = FALSE)
+ifnb$celltype.stim <- paste(Idents(ifnb), ifnb$stim, sep = "_")
+ifnb$celltype <- Idents(ifnb)
+Idents(ifnb) <- "celltype.stim"
+b.interferon.response <- FindMarkers(ifnb, ident.1 = "B_STIM", ident.2 = "B_CTRL", verbose = FALSE)
 head(b.interferon.response, n = 15)
 ```
 
 Another useful way to visualize these changes in gene expression is with the `split.by` option to the `FeaturePlot()` or `VlnPlot()` function. This will display FeaturePlots of the list of given genes, split by a grouping variable (stimulation condition here). Genes such as CD3D and GNLY are canonical cell type markers (for T cells and NK/CD8 T cells) that are virtually unaffected by interferon stimulation and display similar gene expression patterns in the control and stimulated group. IFI6 and ISG15, on the other hand, are core interferon response genes and are upregulated accordingly in all cell types. Finally, CD14 and CXCL10 are genes that show a cell type specific interferon response. CD14 expression decreases after stimulation in CD14 monocytes, which could lead to misclassification in a supervised analysis framework, underscoring the value of integrated analysis. CXCL10 shows a distinct upregulation in monocytes and B cells after interferon stimulation but not in other cell types. 
 
 ```{r feature.heatmaps, fig.height = 14}
-FeaturePlot(immune.combined, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3, cols = c("grey", "red"))
+FeaturePlot(ifnb, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3, cols = c("grey", "red"))
 ```
 
 ```{r splitvln, fig.height = 12}
-plots <- VlnPlot(immune.combined, features = c("LYZ", "ISG15", "CXCL10"), split.by = "stim", group.by = "celltype", pt.size = 0, combine = FALSE)
+plots <- VlnPlot(ifnb, features = c("LYZ", "ISG15", "CXCL10"), split.by = "stim", group.by = "celltype", pt.size = 0, combine = FALSE)
 wrap_plots(plots = plots, ncol = 1)
 ```
 
 ```{r save, include=TRUE}
-saveRDS(immune.combined, file = "../output/immune.combined.rds")
+#saveRDS(ifnb, file = "../output/ifnb.rds")
 ```
 
 # Performing integration on datasets normalized with SCTransform
@@ -233,32 +234,35 @@ Below, we demonstrate how to modify the Seurat integration workflow for datasets
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
 LoadData('ifnb')
-ifnb.list <- SplitObject(ifnb, split.by = "stim")
-ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform) 
-features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)
-ifnb.list <- PrepSCTIntegration(object.list = ifnb.list, anchor.features = features)
+ifnb <- UpdateSeuratObject(ifnb)
+ifnb[["RNA"]] <- CreateAssay5Object(ifnb[["RNA"]]@counts)
+ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim) 
+
+ifnb <- SCTransform(ifnb)
+ifnb <- RunPCA(ifnb)
 ```
 
 ```{r ifnb.cca.sct.anchors}
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, normalization.method = 'SCT', anchor.features = features)
-immune.combined.sct <- IntegrateData(anchorset = immune.anchors, normalization.method = 'SCT')
+ifnb <- IntegrateLayers(object = ifnb, 
+                        method = CCAIntegration,
+                        normalization.method = "SCT",
+                        verbose = F)
 ```
 
 ```{r ifnb.cca.sct.clustering, results='hide', message=FALSE}
-immune.combined.sct <- RunPCA(immune.combined.sct, verbose = FALSE)
-immune.combined.sct <- RunUMAP(immune.combined.sct, reduction = "pca", dims = 1:30)
+ifnb <- RunUMAP(ifnb, reduction = "integrated.dr", dims = 1:30)
 ```
 
 ```{r immunesca.cca.sct.split.dims}
-p1 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = "stim")
-p2 <- DimPlot(immune.combined.sct, reduction = "umap", group.by = 'seurat_annotations',label = TRUE, repel = TRUE)
+p1 <- DimPlot(ifnb, reduction = "umap", group.by = "stim")
+p2 <- DimPlot(ifnb, reduction = "umap", group.by = 'seurat_annotations',label = TRUE, repel = TRUE)
 p1 + p2
 ```
 
 Now that the datasets have been integrated, you can follow the previous steps in this vignette identify cell types and cell type-specific responses.
 
 ```{r save.times, include=TRUE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_integration_introduction.csv")
+#write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_integration_introduction.csv")
 ```
 
 <details>
