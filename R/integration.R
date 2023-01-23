@@ -924,14 +924,16 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-       projected.pca <- ProjectCellEmbeddings(
+      query_nCount_UMI <- query[[]][, paste0("nCount_", query.assay)]
+      names(query_nCount_UMI) <- colnames(query)
+      projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
          normalization.method = normalization.method,
          query = query,
          scale = scale,
          dims = dims,
-         nCount_UMI = query[[]][, paste0("nCount_", query.assay)],
+         nCount_UMI = query_nCount_UMI,
          feature.mean = feature.mean,
          verbose = verbose
        )
@@ -5192,7 +5194,7 @@ ProjectCellEmbeddings.StdAssay <- function(
       normalization.method = normalization.method,
       verbose = verbose,
       features = features,
-      nCount_UMI = nCount_UMI_i,
+      nCount_UMI = nCount_UMI[Cells(x = query, layer = layers.set[i])],
       feature.mean = feature.mean,
       feature.sd = feature.sd
     ))
