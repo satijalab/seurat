@@ -25,7 +25,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -37,6 +38,7 @@ This vignette demonstrates how to store and interact with dimensional reduction 
 library(Seurat)
 library(SeuratData)
 pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
+pbmc <- UpdateSeuratObject(pbmc)
 ```
 
 # Explore the new dimensional reduction structure
@@ -96,7 +98,7 @@ FeatureScatter(pbmc, feature1 = "MDS_1", feature2 = "PC_1")
 ```
 
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- DimPlot(pbmc, reduction = "mds", pt.size = 0.5)
 ggsave(filename = "../output/images/pbmc_mds.jpg", height = 7, width = 12, plot = plot, quality = 50)

@@ -27,7 +27,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -233,12 +234,12 @@ An alternative approach, implemented in `FindSpatiallyVariables()`, is to search
 We note that there are multiple methods in the literature to accomplish this task, including [SpatialDE](https://www.nature.com/articles/nmeth.4636), and [Splotch](https://www.biorxiv.org/content/10.1101/757096v1.article-metrics). We encourage interested users to explore these methods, and hope to add support for them in the near future.
 
 ```{r spatial.vf}
-brain <- FindSpatiallyVariableFeatures(brain, assay = 'SCT', features = VariableFeatures(brain)[1:1000], selection.method = 'markvariogram')
+brain <- FindSpatiallyVariableFeatures(brain, assay = 'SCT', features = VariableFeatures(brain)[1:1000], selection.method = 'moransi')
 ```
 
 Now we visualize the expression of the top 6 features identified by this measure. 
 ```{r spatial.vf.plot, fig.height=8}
-top.features <- head(SpatiallyVariableFeatures(brain, selection.method = 'markvariogram'),6)
+top.features <- head(SpatiallyVariableFeatures(brain, selection.method = 'moransi'),6)
 SpatialFeaturePlot(brain, features = top.features, ncol = 3, alpha = c(0.1, 1))
 ```
 
@@ -302,7 +303,7 @@ SpatialFeaturePlot(cortex, features = c("L2/3 IT", "L4"), pt.size.factor = 1.6, 
 Based on these prediction scores, we can also predict *cell types* whose location is spatially restricted. We use the same methods based on marked point processes to define spatially variable features, but use the cell type prediction scores as the "marks" rather than gene expression.
 
 ```{r sc.data8, fig.height = 10}
-cortex <- FindSpatiallyVariableFeatures(cortex, assay = "predictions", selection.method = "markvariogram", features = rownames(cortex), r.metric = 5, slot = "data")
+cortex <- FindSpatiallyVariableFeatures(cortex, assay = "predictions", selection.method = "moransi", features = rownames(cortex), r.metric = 5, slot = "data")
 top.clusters <- head(SpatiallyVariableFeatures(cortex), 4)
 SpatialPlot(object = cortex, features = top.clusters, ncol = 2)
 ```
@@ -450,6 +451,47 @@ Now we visualize the expression of the top 6 features identified by Moran's I.
 
 ```{r spatial.vf.plot.ss, fig.height = 8} 
 SpatialFeaturePlot(slide.seq, features = head(SpatiallyVariableFeatures(slide.seq, selection.method = "moransi"), 6), ncol = 3, alpha = c(0.1, 1), max.cutoff = "q95")
+```
+
+Install RCTD
+
+```{r, eval=FALSE}
+devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+```
+
+Annotation using RCTD
+
+```{r rctd}
+library(spacexr)
+
+# allen cortex reference
+allen.cortex <- readRDS("/brahms/hartmana/seurat_site_builder/seurat5/seurat-private/data/allen_cortex.rds")
+Idents(allen.cortex) <- "subclass"
+
+# need to drop the cell types which there are <25 of
+drop.cells <- WhichCells(allen.cortex, idents = "CR")
+allen.cortex <- subset(allen.cortex, cells = drop.cells, invert = TRUE)
+
+counts <- LayerData(allen.cortex, layer = "counts")
+cluster <- as.factor(allen.cortex$subclass)
+levels(cluster)[3] <- "L2 3 IT"
+names(cluster) <- colnames(allen.cortex)
+nUMI <- allen.cortex$nCount_RNA
+names(nUMI) <- colnames(allen.cortex)
+reference <- Reference(counts, cluster, nUMI)
+
+counts <- LayerData(cortex, layer = "counts")
+coords <- GetTissueCoordinates(cortex)
+colnames(coords) <- c("x", "y")
+puck <- SpatialRNA(coords, counts, colSums(counts))
+
+RCTD <- create.RCTD(puck, reference, max_cores = 1)
+RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
+
+cortex <- AddMetaData(cortex, metadata = myRCTD@results$results_df)
+p1 <- SpatialDimPlot(cortex, group.by = "first_type")
+p2 <- SpatialDimPlot(cortex, group.by = "second_type")
+p1 + p2
 ```
 
 ```{r save.times, include = FALSE}
