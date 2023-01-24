@@ -770,6 +770,8 @@ FindTransferAnchors <- function(
   mapping.score.k = NULL,
   verbose = TRUE
 ) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -926,13 +928,16 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-       projected.pca <- ProjectCellEmbeddings(
+      query_nCount_UMI <- query[[]][, paste0("nCount_", query.assay)]
+      names(query_nCount_UMI) <- colnames(query)
+      projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
          normalization.method = normalization.method,
          query = query,
          scale = scale,
          dims = dims,
+         nCount_UMI = query_nCount_UMI,
          feature.mean = feature.mean,
          verbose = verbose
        )
@@ -1142,7 +1147,7 @@ FindTransferAnchors <- function(
         colnames(x = reference),
         1:length(x = dims)
         ],
-      k = max(k.score, k.anchor),
+      k = max(k.score, k.anchor) + 1,
       method = nn.method,
       cache.index = TRUE
       )
@@ -4372,8 +4377,10 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
+      cache.index = TRUE,
       index = nn.idx1
     )
+    nn.idx1 <- Index(object = nnaa)
   }
   if (!is.null(x = internal.neighbors[[2]])) {
     nnbb <- internal.neighbors[[2]]
@@ -4385,8 +4392,9 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx1
+      cache.index = TRUE
     )
+    nn.idx2 <- Index(object = nnbb)
   }
   if (length(x = reduction.2) > 0) {
     nnab <- NNHelper(
@@ -5028,6 +5036,7 @@ ProjectCellEmbeddings.Seurat <- function(
   normalization.method = c("LogNormalize", "SCT"),
   scale = TRUE,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5060,6 +5069,7 @@ ProjectCellEmbeddings.Seurat <- function(
     scale = scale,
     normalization.method = normalization.method,
     verbose = verbose,
+    nCount_UMI = nCount_UMI,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -5079,6 +5089,7 @@ ProjectCellEmbeddings.Assay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5090,10 +5101,15 @@ ProjectCellEmbeddings.Assay <- function(
     rownames(x = query)
   )
   )
+ if (normalization.method == 'SCT') {
+   slot <- 'counts'
+ } else {
+   slot <- 'data'
+ }
   proj.pca <- ProjectCellEmbeddings(
     query = GetAssayData(
       object = query,
-      slot = "data"),
+      slot = slot),
     reference = reference,
     reference.assay = reference.assay,
     reduction = reduction,
@@ -5102,6 +5118,7 @@ ProjectCellEmbeddings.Assay <- function(
     normalization.method = normalization.method,
     verbose = verbose,
     features = features,
+    nCount_UMI = nCount_UMI,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -5121,6 +5138,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5137,7 +5155,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   )
   query.data <- GetAssayData(
     object = query,
-    slot = "data")[features,]
+    slot = "scale.data")[features,]
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query.data))
   return(proj.pca)
@@ -5156,6 +5174,7 @@ ProjectCellEmbeddings.StdAssay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5185,6 +5204,7 @@ ProjectCellEmbeddings.StdAssay <- function(
       normalization.method = normalization.method,
       verbose = verbose,
       features = features,
+      nCount_UMI = nCount_UMI[Cells(x = query, layer = layers.set[i])],
       feature.mean = feature.mean,
       feature.sd = feature.sd
     ))
@@ -5216,6 +5236,7 @@ ProjectCellEmbeddings.default <- function(
   normalization.method = NULL,
   verbose = TRUE,
   features = NULL,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ){
@@ -5225,7 +5246,8 @@ if (normalization.method == 'SCT') {
   query <- FetchResiduals_reference(
     object = query,
     reference.SCT.model = reference.SCT.model,
-    features = features)
+    features = features,
+    nCount_UMI = nCount_UMI)
 } else {
   query <- query[features,]
   reference.data <-  GetAssayData(
@@ -5281,6 +5303,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   normalization.method = NULL,
   verbose = TRUE,
   features = features,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL,
   block.size = 10000
@@ -5298,7 +5321,8 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       query.i <- FetchResiduals_reference(
         object = as.sparse(query[,cells.grid[[i]]]),
         reference.SCT.model = reference.SCT.model,
-        features = features)
+        features = features,
+        nCount_UMI = nCount_UMI)
       proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
     }
     proj.pca <- t(matrix(
