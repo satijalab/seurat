@@ -840,8 +840,10 @@ FindTransferAnchors <- function(
       }
   }
   # make new query assay w same name as reference assay
-  suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
-  DefaultAssay(query) <- reference.assay
+  if (query.assay != reference.assay) {
+    suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
+    DefaultAssay(query) <- reference.assay
+  }
   # only keep necessary info from objects
   query <- DietSeurat(
     object = query,
@@ -2168,6 +2170,12 @@ MapQuery <- function(
   verbose = TRUE
 ) {
   transfer.reduction <- slot(object = anchorset, name = "command")$reduction
+  if (DefaultAssay(anchorset@object.list[[1]]) %in% Assays(reference)) {
+    DefaultAssay(reference) <- DefaultAssay(anchorset@object.list[[1]])
+  } else {
+    stop('The assay used to create the anchorset does not match any', 
+         'of the assays in the reference object.')
+  }
   # determine anchor type
   if (grepl(pattern = "pca", x = transfer.reduction)) {
     anchor.reduction <- "pcaproject"
@@ -6021,11 +6029,10 @@ ValidateParams_FindTransferAnchors <- function(
          call. = FALSE)
   }
   # features must be in both reference and query
-  feature.slot <- 'data'
   query.assay.check <- query.assay
   reference.assay.check <- reference.assay
-  ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay.check]], slot = feature.slot))
-  query.features <- rownames(x = GetAssayData(object = query[[query.assay.check]], slot = feature.slot))
+  ref.features <- rownames(x = reference[[reference.assay.check]])
+  query.features <- rownames(x = query[[query.assay.check]])
   if (normalization.method == "SCT") {
     query.model.features <- rownames(x = Misc(object = query[[query.assay]])$vst.out$gene_attr)
     query.features <- unique(c(query.features, query.model.features))
