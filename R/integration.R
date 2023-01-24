@@ -751,7 +751,6 @@ FindTransferAnchors <- function(
   reference.assay = NULL,
   reference.neighbors = NULL,
   query.assay = NULL,
-  query.layers = NULL,
   reduction = "pcaproject",
   reference.reduction = NULL,
   project.query = FALSE,
@@ -771,6 +770,8 @@ FindTransferAnchors <- function(
   mapping.score.k = NULL,
   verbose = TRUE
 ) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   # input validation
   ValidateParams_FindTransferAnchors(
     reference = reference,
@@ -780,7 +781,6 @@ FindTransferAnchors <- function(
     reference.assay = reference.assay,
     reference.neighbors = reference.neighbors,
     query.assay = query.assay,
-    query.layers = query.layers,
     reduction = reduction,
     reference.reduction = reference.reduction,
     project.query = project.query,
@@ -804,46 +804,46 @@ FindTransferAnchors <- function(
   reduction.2 <- character()
   feature.mean <- NULL
   reference.reduction.init <- reference.reduction
-  if (normalization.method == "SCT" && !inherits(x = query[[query.assay]]$counts, what = 'IterableMatrix')) {
-      # ensure all residuals required are computed
-      query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
+  if (inherits(x = reference[[reference.assay]], what = 'Assay5')) {
+    if (length(Layers(reference, search = "data")) > 1) {
+      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], 
+                                                 search = "data", new = "data") 
+    }
+  }
+    if (normalization.method == "SCT") {
       if (is.null(x = reference.reduction)) {
-        reference <- suppressWarnings(expr = GetResidual(object = reference, assay = reference.assay, features = features, verbose = FALSE))
+        reference <- suppressWarnings(expr = GetResidual(
+          object = reference,
+          assay = reference.assay,
+          features = features,
+          verbose = FALSE
+          ))
+        reference <- ScaleData(
+          object = reference,
+          features = features,
+          do.scale = FALSE,
+          verbose = FALSE
+          )
         features <- intersect(
           x = features,
-          y = intersect(
-            x = rownames(x = GetAssayData(object = query[[query.assay]], slot = "scale.data")),
-            y = rownames(x = GetAssayData(object = reference[[reference.assay]], slot = "scale.data"))
-          )
+          y = rownames(reference[[reference.assay]]$scale.data)
         )
-        reference[[reference.assay]] <- as(
-          object = CreateAssayObject(
-            data = GetAssayData(object = reference[[reference.assay]], slot = "scale.data")[features, ]),
-          Class = "SCTAssay"
-        )
-        reference <- SetAssayData(
-          object = reference,
-          slot = "scale.data",
-          assay = reference.assay,
-          new.data =  as.matrix(x = GetAssayData(object = reference[[reference.assay]], slot = "data"))
-      )
-    }
-    query[[query.assay]] <- as(
-      object = CreateAssayObject(
-        data = GetAssayData(object = query[[query.assay]], slot = "scale.data")[features, ]),
-      Class = "SCTAssay"
-    )
-    query <- SetAssayData(
-      object = query,
-      slot = "scale.data",
-      assay = query.assay,
-      new.data = as.matrix(x = GetAssayData(object = query[[query.assay]], slot = "data"))
-    )
-    feature.mean <- "SCT"
+        VariableFeatures(reference) <- features
+      }
+      if (IsSCT(assay = query[[query.assay]])) {
+        query <- suppressWarnings(expr = GetResidual(
+          object = query,
+          assay = query.assay,
+          features = features,
+          verbose = FALSE
+          ))
+      }
   }
   # make new query assay w same name as reference assay
-  suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
-  DefaultAssay(query) <- reference.assay
+  if (query.assay != reference.assay) {
+    suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
+    DefaultAssay(query) <- reference.assay
+  }
   # only keep necessary info from objects
   query <- DietSeurat(
     object = query,
@@ -926,13 +926,16 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-       projected.pca <- ProjectCellEmbeddings(
+      query_nCount_UMI <- query[[]][, paste0("nCount_", query.assay)]
+      names(query_nCount_UMI) <- colnames(query)
+      projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
          normalization.method = normalization.method,
          query = query,
          scale = scale,
          dims = dims,
+         nCount_UMI = query_nCount_UMI,
          feature.mean = feature.mean,
          verbose = verbose
        )
@@ -1118,7 +1121,7 @@ FindTransferAnchors <- function(
     }
     k.nn <- max(k.score, k.anchor)
     query.neighbors <- NNHelper(
-      data = Embeddings(object = combined.ob[[reduction]])[Cells(x = query), ],
+      data = Embeddings(object = combined.ob[[reduction]])[colnames(x = query), ],
       k = max(mapping.score.k, k.nn + 1),
       method = nn.method,
       n.trees = n.trees,
@@ -1136,8 +1139,18 @@ FindTransferAnchors <- function(
   }
   if (!is.null(x = reference.neighbors)) {
     precomputed.neighbors[["ref.neighbors"]] <- reference[[reference.neighbors]]
-    nn.idx1 <- Index(object = reference[[reference.neighbors]])
+  } else {
+    precomputed.neighbors[["ref.neighbors"]] <- NNHelper(
+      data = Embeddings(combined.ob[[reduction]])[
+        colnames(x = reference),
+        1:length(x = dims)
+        ],
+      k = max(k.score, k.anchor) + 1,
+      method = nn.method,
+      cache.index = TRUE
+      )
   }
+  nn.idx1 <- Index(object = precomputed.neighbors[["ref.neighbors"]])
   anchors <- FindAnchors(
     object.pair = combined.ob,
     assay = reference.assay,
@@ -2157,6 +2170,12 @@ MapQuery <- function(
   verbose = TRUE
 ) {
   transfer.reduction <- slot(object = anchorset, name = "command")$reduction
+  if (DefaultAssay(anchorset@object.list[[1]]) %in% Assays(reference)) {
+    DefaultAssay(reference) <- DefaultAssay(anchorset@object.list[[1]])
+  } else {
+    stop('The assay used to create the anchorset does not match any', 
+         'of the assays in the reference object.')
+  }
   # determine anchor type
   if (grepl(pattern = "pca", x = transfer.reduction)) {
     anchor.reduction <- "pcaproject"
@@ -3967,7 +3986,9 @@ FilterAnchors <- function(
   return(object)
 }
 
-FindAnchors <- function(
+
+
+FindAnchors_v3 <- function(
   object.pair,
   assay,
   slot,
@@ -4062,6 +4083,134 @@ FindAnchors <- function(
     object = object.pair,
     integration.name = 'integrated',
     slot = 'anchors'
+  )
+  return(anchors)
+}
+
+
+FindAnchors_v5 <- function(
+  object.pair,
+  assay,
+  slot,
+  cells1,
+  cells2,
+  internal.neighbors,
+  reduction,
+  reduction.2 = character(),
+  nn.reduction = reduction,
+  dims = 1:10,
+  k.anchor = 5,
+  k.filter = 200,
+  k.score = 30,
+  max.features = 200,
+  nn.method = "annoy",
+  n.trees = 50,
+  nn.idx1 = NULL,
+  nn.idx2 = NULL,
+  eps = 0,
+  projected = FALSE,
+  verbose = TRUE
+) {
+  reference.layers <- Layers(object.pair[[assay]], search = 'data')[1]
+  query.layers <- setdiff(Layers(object.pair[[assay]], search = 'data'), reference.layers)
+  anchor.list <- list()
+  for (i in seq_along(query.layers)) {
+    cells2.i <- Cells(
+      x = object.pair[[assay]],
+      layer = query.layers[i]
+    )
+    object.pair.i <- subset(
+      x = object.pair,
+      cells = c(cells1, cells2.i)
+    )
+    anchor.list[[i]] <- FindAnchors_v3(
+      object.pair = object.pair.i,
+      assay = assay,
+      slot = slot,
+      cells1 = cells1,
+      cells2 = cells2.i,
+      internal.neighbors = internal.neighbors,
+      reduction = reduction,
+      reduction.2 = reduction.2,
+      nn.reduction = nn.reduction,
+      dims = dims,
+      k.anchor = k.anchor,
+      k.filter = k.filter,
+      k.score = k.score,
+      max.features = max.features,
+      nn.method = nn.method,
+      n.trees = n.trees,
+      nn.idx1 = nn.idx1,
+      nn.idx2 = nn.idx2,
+      eps = eps,
+      projected = projected,
+      verbose = verbose
+    )
+    anchor.list[[i]][,2] <- match(x = cells2.i, table = cells2)[anchor.list[[i]][,2]]
+    anchor.list[[i]] <- t(anchor.list[[i]])
+  }
+  anchors <- t(x = matrix(
+    data = unlist(x = anchor.list),
+    nrow = 3,
+    ncol = sum(
+      sapply(X = anchor.list, FUN = function(x) ncol(x))
+    )
+  )
+  )
+  colnames(anchors) <- c('cell1', 'cell2', 'score')
+  return(anchors)
+}
+
+FindAnchors <- function(
+  object.pair,
+  assay,
+  slot,
+  cells1,
+  cells2,
+  internal.neighbors,
+  reduction,
+  reduction.2 = character(),
+  nn.reduction = reduction,
+  dims = 1:10,
+  k.anchor = 5,
+  k.filter = 200,
+  k.score = 30,
+  max.features = 200,
+  nn.method = "annoy",
+  n.trees = 50,
+  nn.idx1 = NULL,
+  nn.idx2 = NULL,
+  eps = 0,
+  projected = FALSE,
+  verbose = TRUE
+) {
+  if (inherits(x = object.pair[[assay[1]]], what = 'Assay')) {
+    FindAnchor.function <- FindAnchors_v3
+  } else if (inherits(x = object.pair[[assay[1]]], what = 'Assay5')) {
+    FindAnchor.function <- FindAnchors_v5
+  }
+  anchors <- FindAnchor.function(
+    object.pair = object.pair,
+    assay = assay,
+    slot = slot,
+    cells1 = cells1,
+    cells2 = cells2,
+    internal.neighbors = internal.neighbors,
+    reduction = reduction,
+    reduction.2 = reduction.2,
+    nn.reduction = nn.reduction,
+    dims = dims,
+    k.anchor = k.anchor,
+    k.filter = k.filter,
+    k.score = k.score,
+    max.features = max.features,
+    nn.method = nn.method,
+    n.trees = n.trees,
+    nn.idx1 = nn.idx1,
+    nn.idx2 = nn.idx2,
+    eps = eps,
+    projected = projected,
+    verbose = verbose
   )
   return(anchors)
 }
@@ -4226,8 +4375,10 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
+      cache.index = TRUE,
       index = nn.idx1
     )
+    nn.idx1 <- Index(object = nnaa)
   }
   if (!is.null(x = internal.neighbors[[2]])) {
     nnbb <- internal.neighbors[[2]]
@@ -4239,8 +4390,9 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx1
+      cache.index = TRUE
     )
+    nn.idx2 <- Index(object = nnbb)
   }
   if (length(x = reduction.2) > 0) {
     nnab <- NNHelper(
@@ -4882,6 +5034,7 @@ ProjectCellEmbeddings.Seurat <- function(
   normalization.method = c("LogNormalize", "SCT"),
   scale = TRUE,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -4914,6 +5067,7 @@ ProjectCellEmbeddings.Seurat <- function(
     scale = scale,
     normalization.method = normalization.method,
     verbose = verbose,
+    nCount_UMI = nCount_UMI,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -4933,6 +5087,7 @@ ProjectCellEmbeddings.Assay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -4944,10 +5099,15 @@ ProjectCellEmbeddings.Assay <- function(
     rownames(x = query)
   )
   )
+ if (normalization.method == 'SCT') {
+   slot <- 'counts'
+ } else {
+   slot <- 'data'
+ }
   proj.pca <- ProjectCellEmbeddings(
     query = GetAssayData(
       object = query,
-      slot = "data"),
+      slot = slot),
     reference = reference,
     reference.assay = reference.assay,
     reduction = reduction,
@@ -4956,6 +5116,7 @@ ProjectCellEmbeddings.Assay <- function(
     normalization.method = normalization.method,
     verbose = verbose,
     features = features,
+    nCount_UMI = nCount_UMI,
     feature.mean = feature.mean,
     feature.sd = feature.sd
   )
@@ -4975,6 +5136,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -4991,7 +5153,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
   )
   query.data <- GetAssayData(
     object = query,
-    slot = "data")[features,]
+    slot = "scale.data")[features,]
   ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
   proj.pca <- t(crossprod(x = ref.feature.loadings, y = query.data))
   return(proj.pca)
@@ -5010,6 +5172,7 @@ ProjectCellEmbeddings.StdAssay <- function(
   scale = TRUE,
   normalization.method = NULL,
   verbose = TRUE,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ) {
@@ -5018,8 +5181,7 @@ ProjectCellEmbeddings.StdAssay <- function(
     f = intersect,
     x = list(
       rownames(x = Loadings(object = reference[[reduction]])),
-      rownames(x = reference[[reference.assay]]),
-      rownames(x = query)
+      rownames(x = reference[[reference.assay]])
     )
   )
   if (normalization.method == 'SCT') {
@@ -5040,6 +5202,7 @@ ProjectCellEmbeddings.StdAssay <- function(
       normalization.method = normalization.method,
       verbose = verbose,
       features = features,
+      nCount_UMI = nCount_UMI[Cells(x = query, layer = layers.set[i])],
       feature.mean = feature.mean,
       feature.sd = feature.sd
     ))
@@ -5071,6 +5234,7 @@ ProjectCellEmbeddings.default <- function(
   normalization.method = NULL,
   verbose = TRUE,
   features = NULL,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL
 ){
@@ -5080,7 +5244,8 @@ if (normalization.method == 'SCT') {
   query <- FetchResiduals_reference(
     object = query,
     reference.SCT.model = reference.SCT.model,
-    features = features)
+    features = features,
+    nCount_UMI = nCount_UMI)
 } else {
   query <- query[features,]
   reference.data <-  GetAssayData(
@@ -5136,12 +5301,13 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   normalization.method = NULL,
   verbose = TRUE,
   features = features,
+  nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL,
   block.size = 10000
 ) {
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
-
+  features <- intersect(features, rownames(query))
   if (normalization.method == 'SCT') {
     reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
     cells.grid <- split(
@@ -5153,7 +5319,8 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       query.i <- FetchResiduals_reference(
         object = as.sparse(query[,cells.grid[[i]]]),
         reference.SCT.model = reference.SCT.model,
-        features = features)
+        features = features,
+        nCount_UMI = nCount_UMI)
       proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
     }
     proj.pca <- t(matrix(
@@ -5707,7 +5874,6 @@ ValidateParams_FindTransferAnchors <- function(
   reference.assay,
   reference.neighbors,
   query.assay,
-  query.layers,
   reduction,
   reference.reduction,
   project.query,
@@ -5780,6 +5946,10 @@ ValidateParams_FindTransferAnchors <- function(
     stop("The project.query workflow is not compatible with reduction = 'cca'",
          call. = FALSE)
   }
+  if (normalization.method == "SCT" && isTRUE(x = project.query) && !IsSCT(query[[query.assay]])) {
+    stop("In the project.query workflow, normalization is SCT, but query is not SCT normalized",
+         call. = FALSE)
+  }
   if (IsSCT(assay = query[[query.assay]]) && IsSCT(assay = reference[[reference.assay]]) &&
       normalization.method != "SCT") {
     warning("Both reference and query assays have been processed with SCTransform.",
@@ -5804,6 +5974,8 @@ ValidateParams_FindTransferAnchors <- function(
     ModifyParam(param = "recompute.residuals", value = recompute.residuals)
   }
   if (recompute.residuals) {
+    # recompute.residuals only happens in ProjectCellEmbeddings, so k.filter set to NA.
+    ModifyParam(param = "k.filter", value = NA)
     reference.model.num <- length(x = slot(object = reference[[reference.assay]], name = "SCTModel.list"))
     if (reference.model.num > 1) {
       stop("Given reference assay (", reference.assay, ") has ", reference.model.num ,
@@ -5842,20 +6014,9 @@ ValidateParams_FindTransferAnchors <- function(
              "you can set recompute.residuals to FALSE", call. = FALSE)
       }
     }
-    if (inherits(x = query[[query.umi.assay]]$counts, what = 'IterableMatrix')) {
-      query[[query.umi.assay]]$scale.data <- query[[query.umi.assay]]$counts
-    } else {
-      query <- SCTransform(
-        object = query,
-        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
-        residual.features = features,
-        assay = query.umi.assay,
-        new.assay.name = new.sct.assay,
-        verbose = FALSE
-      )
-      ModifyParam(param = "query.assay", value = new.sct.assay)
-      ModifyParam(param = "query", value = query)
-    }
+    DefaultAssay(query) <- query.umi.assay
+    ModifyParam(param = "query.assay", value = query.umi.assay)
+    ModifyParam(param = "query", value = query)
     ModifyParam(param = "reference", value = reference)
   }
   if (IsSCT(assay = reference[[reference.assay]]) && normalization.method == "LogNormalize") {
@@ -5868,11 +6029,10 @@ ValidateParams_FindTransferAnchors <- function(
          call. = FALSE)
   }
   # features must be in both reference and query
-  feature.slot <- ifelse(test = normalization.method == "SCT", yes = "scale.data", no = "data")
   query.assay.check <- query.assay
   reference.assay.check <- reference.assay
-  ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay.check]], slot = feature.slot))
-  query.features <- rownames(x = GetAssayData(object = query[[query.assay.check]], slot = feature.slot))
+  ref.features <- rownames(x = reference[[reference.assay.check]])
+  query.features <- rownames(x = query[[query.assay.check]])
   if (normalization.method == "SCT") {
     query.model.features <- rownames(x = Misc(object = query[[query.assay]])$vst.out$gene_attr)
     query.features <- unique(c(query.features, query.model.features))
@@ -6115,7 +6275,7 @@ ValidateParams_TransferData <- function(
   if (!is.null(x = query)) {
     if (!isTRUE(x = all.equal(
       target = gsub(pattern = "_query", replacement = "", x = query.cells),
-      current = Cells(x = query),
+      current = colnames(x = query),
       check.attributes = FALSE)
       )) {
       stop("Query object provided contains a different set of cells from the ",
@@ -6247,7 +6407,7 @@ ValidateParams_IntegrateEmbeddings_TransferAnchors <- function(
   }
   query.cells <- slot(object = anchorset, name = "query.cells")
   query.cells <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  if (!isTRUE(x = all.equal(target = query.cells, current = Cells(x = query), check.attributes = FALSE))) {
+  if (!isTRUE(x = all.equal(target = query.cells, current = colnames(x = query), check.attributes = FALSE))) {
     stop("The set of cells used as a query in the AnchorSet does not match ",
          "the set of cells provided in the query object.")
   }

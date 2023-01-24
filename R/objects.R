@@ -1966,6 +1966,9 @@ VariableFeatures.SCTAssay <- function(
     x = table(unlist(x = vf.list, use.names = FALSE)),
     decreasing = TRUE
   )
+  if (length(x = var.features) == 0) {
+    return(NULL)
+  }
   for (i in 1:length(x = layer)) {
     vst_out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[layer[[i]]]])
     var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
