@@ -1140,7 +1140,7 @@ FindTransferAnchors <- function(
   }
   anchors <- FindAnchors(
     object.pair = combined.ob,
-    assay = reference.assay,
+    assay = c(reference.assay, reference.assay),
     slot = "data",
     cells1 = colnames(x = reference),
     cells2 = colnames(x = query),
@@ -6434,7 +6434,7 @@ FindAssayAnchor <- function(
       message("Finding ",  anchor.type," anchors from assay ", assay)
     }
     anchors <- FindAnchors(object.pair = object.both,
-                           assay =  DefaultAssay(object.both),
+                           assay = c(DefaultAssay(object.both), DefaultAssay(object.both)),
                            slot = 'data',
                            cells1 = colnames(object.list[[1]]),
                            cells2 = colnames(object.list[[2]]),
