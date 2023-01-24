@@ -840,9 +840,7 @@ FindTransferAnchors <- function(
       }
   }
   # make new query assay w same name as reference assay
-  if (reference.assay %in% Assays(query)) {
-    DefaultAssay(query) <- reference.assay
-  } else {
+  if (query.assay != reference.assay) {
     suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
     DefaultAssay(query) <- reference.assay
   }
@@ -6031,11 +6029,10 @@ ValidateParams_FindTransferAnchors <- function(
          call. = FALSE)
   }
   # features must be in both reference and query
-  feature.slot <- 'data'
   query.assay.check <- query.assay
   reference.assay.check <- reference.assay
-  ref.features <- rownames(x = GetAssayData(object = reference[[reference.assay.check]], slot = feature.slot))
-  query.features <- rownames(x = query)
+  ref.features <- rownames(x = reference[[reference.assay.check]])
+  query.features <- rownames(x = query[[query.assay.check]])
   if (normalization.method == "SCT") {
     query.model.features <- rownames(x = Misc(object = query[[query.assay]])$vst.out$gene_attr)
     query.features <- unique(c(query.features, query.model.features))
