@@ -36,20 +36,22 @@ In this vignette we'll visualize the spatially-resolved, single cell RNA-seq pro
 
 ## Setup
 
-This vignette requires a work-in-progress version of Seurat. First, you must install in-development versions of Seurat and SeuratObject that have Xenium support. It is recommended to update your package version at this step, as the required versions may not be fully captured in the dependencies yet.
+This vignette requires the latest version of Seurat on Github. First, you must install in-development versions of Seurat and SeuratObject that have Xenium support. It is recommended to update your package version at this step, as the required versions may not be fully captured in the dependencies yet.
 ```{r init, message=FALSE, warning=FALSE, error=FALSE, results="hide"}
 library(remotes)
-#remotes::install_github("satijalab/seurat", "feat/imaging")
+#remotes::install_github("satijalab/seurat")
 library(Seurat)
 library(SeuratObject)
 ```
 
 ## Mouse Brain: Load Data
 
-This vignette is based on the `mBrain_ff_partial_coronal_section` pre-release dataset from 10x Genomics provided in the [Mouse Brain Dataset download](https://www.10xgenomics.com/xenium-preview-data). These analysis steps are also compatible with the larger `mBrain_ff_full_coronal_section`, but will take longer to execute.  First we read in the dataset and create a Seurat object.  Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take ~30 seconds for this partial coronal section.
+This vignette is based on the `Tiny subset` dataset from 10x Genomics provided in the [Fresh Frozen Mouse Brain for Xenium Explorer Demo](https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard). These analysis steps are also compatible with the larger `Full coronal section`, but will take longer to execute.
+
+First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
 
 ```{r load, results='hide'}
-path <- "mBrain_ff_partial_coronal_section/"
+path <- "Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX+HP/"
 
 # Load the Xenium data
 xenium.obj <- LoadXenium(path, fov = "fov")
@@ -57,7 +59,7 @@ xenium.obj <- LoadXenium(path, fov = "fov")
 # remove cells with 0 counts -- these cause problems for SCTransform
 xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
 ```
-Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named "fov", by convention in this vignette. Later, we will make a cropped FOV that zooms into a region of interest. Here is a summary of the spatial information stored in the fov slot of the resulting Seurat object:
+Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named `fov`, by convention in this vignette. Later, we will make a cropped FOV that zooms into a region of interest. Here is a summary of the spatial information stored in the fov slot of the resulting Seurat object:
 
 <details>
   <summary>**Cell Centroids: The spatial coordinates marking the centroid for each cell being profiled**</summary>
@@ -71,7 +73,7 @@ head(GetTissueCoordinates(xenium.obj[["fov"]][["centroids"]]))
   <summary>**Cell Segmentation Boundaries: The spatial coordinates that describe the polygon segmentation of each single cell**</summary>
 
 ```{r}
-# Get the coordinates for each segmentation vertice. Each cell will have a variable number of vertices describing its shape.
+# Get the coordinates for each segmentation vertex. Each cell will have a variable number of vertices describing its shape.
 head(GetTissueCoordinates(xenium.obj[["fov"]][["segmentation"]]))
 ```
 </details>
@@ -79,11 +81,10 @@ head(GetTissueCoordinates(xenium.obj[["fov"]][["segmentation"]]))
   <summary>**Molecule positions: The spatial coordinates for each individual molecule that was detected by the assay**</summary>
 
 ```{r}
-# Fetch molecules positions for Chrm1
+# Fetch molecules positions for Gad1
 head(FetchData(xenium.obj[["fov"]][["molecules"]], vars="Gad1"))
 ```
 </details>
-
 
 ## Standard QC plots
 Standard QC plots provided by Seurat are available via the `Xenium` assay. Here are violin plots of genes per cell (`nFeature_Xenium`) and transcript counts per cell (`nCount_Xenium`)
@@ -111,7 +112,7 @@ ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), ma
 
 We can zoom in on a chosen area with the `Crop()` function. Once zoomed-in, we can visualize cell segmentation boundaries along with individual molecules.
 ```{r cropping, message=FALSE, warning=FALSE, fig.width=10, fig.height=8}
-cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1400, 2800), y = c(2100, 2900), coords = "plot")
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1200, 2900), y = c(3750, 4550), coords = "plot")
 
 xenium.obj[["zoom"]] <- cropped.coords
 
@@ -123,10 +124,8 @@ ImageDimPlot(xenium.obj, fov = "zoom",
              molecules = c("Gad1", "Sst", "Npy2r", "Pvalb", "Nrn1"), nmols = 10000)
 ```
 
-
-
 ## Preprocessing and unsupervised analysis
-We start by performing a standard unsupervised clustering analysis, essentially first treating the dataset as a scRNA-seq experiment. We use SCTransform-based normalization followed by standard dimensionality reduction and clustering.
+We start by performing a standard unsupervised clustering analysis, essentially first treating the dataset as a scRNA-seq experiment. We use SCTransform-based normalization followed by standard dimensionality reduction and clustering. This step takes about 5 minutes from start to finish.
 
 ```{r ana, results='hide'}
 xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
@@ -139,7 +138,7 @@ xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
 We can then visualize the results of the clustering by coloring each cell according to its cluster either in UMAP space with `DimPlot()` or overlaid on the image with `ImageDimPlot()`.
 
 ```{r umap, fig.width=10, fig.height=7}
-DimPlot(xenium.obj, reduction = "umap")
+UMAPPlot(xenium.obj)
 ```
 
 We can visualize the expression level of the markers we looked at earlier on the UMAP coordinates.
@@ -147,14 +146,12 @@ We can visualize the expression level of the markers we looked at earlier on the
 FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "Gfap"))
 ```
 
-
 We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
 ```{r clusters, fig.width=13, fig.height=13}
 ImageDimPlot(xenium.obj, cols = "polychrome", axes = TRUE, size = 0.75)
 ```
 
-This vignette and the analysis methods for in-situ data are a work in progress. Please contact patrick@10xgenomics.com if you have questions or requests for additional examples.
-If you have any issues with the code working, please report the results of `sessionInfo()`. 
+This vignette and the analysis methods for in-situ data are a work in progress. Please contact patrick@10xgenomics.com if you have questions or requests for additional examples. If you have any issues with the code working, please report the results of `sessionInfo()`. 
 
 <details>
   <summary>**Session Info**</summary>
@@ -162,7 +159,3 @@ If you have any issues with the code working, please report the results of `sess
 sessionInfo()
 ```
 </details>
-
-
-
-
