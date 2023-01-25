@@ -4111,12 +4111,14 @@ FindAnchors_v5 <- function(
   projected = FALSE,
   verbose = TRUE
 ) {
-  reference.layers <- Layers(object.pair[[assay]], search = 'data')[1]
-  query.layers <- setdiff(Layers(object.pair[[assay]], search = 'data'), reference.layers)
+  ref.assay <- assay[1]
+  query.assay <- assay[2]
+  reference.layers <- Layers(object.pair[[ref.assay]], search = 'data')[1]
+  query.layers <- setdiff(Layers(object.pair[[query.assay]], search = 'data'), reference.layers)
   anchor.list <- list()
   for (i in seq_along(query.layers)) {
     cells2.i <- Cells(
-      x = object.pair[[assay]],
+      x = object.pair[[query.assay]],
       layer = query.layers[i]
     )
     object.pair.i <- subset(
@@ -4185,11 +4187,11 @@ FindAnchors <- function(
   verbose = TRUE
 ) {
   if (inherits(x = object.pair[[assay[1]]], what = 'Assay')) {
-    FindAnchor.function <- FindAnchors_v3
+    FindAnchors.function <- FindAnchors_v3
   } else if (inherits(x = object.pair[[assay[1]]], what = 'Assay5')) {
-    FindAnchor.function <- FindAnchors_v5
+    FindAnchors.function <- FindAnchors_v5
   }
-  anchors <- FindAnchor.function(
+  anchors <- FindAnchors.function(
     object.pair = object.pair,
     assay = assay,
     slot = slot,
