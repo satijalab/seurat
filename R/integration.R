@@ -5258,7 +5258,7 @@ if (normalization.method == 'SCT') {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
     } else {
-      feature.mean <- rowMeans(mat = reference.data)
+      feature.mean <- rowMeans2(x = reference.data)
     }
     if (scale) {
       feature.sd <- sqrt(
