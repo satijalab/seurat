@@ -57,6 +57,7 @@ library(patchwork)
 # Use PBMC3K from SeuratData
 InstallData("pbmc3k")
 pbmc <- LoadData(ds = "pbmc3k", type = "pbmc3k.final")
+pbmc <- UpdateSeuratObject(pbmc)
 pbmc.sce <- as.SingleCellExperiment(pbmc)
 p1 <- plotExpression(pbmc.sce, features = 'MS4A1', x = 'ident') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 p2 <- plotPCA(pbmc.sce, colour_by = 'ident')
