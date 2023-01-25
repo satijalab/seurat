@@ -43,37 +43,37 @@
       image: cell_cycle_vignette.jpg
 
     - title: BPCells Sketch Clustering (Log)
-      name: BPCells_sketch_clustering_mouse_brain.nb
+      name: BPCells_sketch_clustering_mouse_brain
       summary: |
         Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat5.
       image: BPCells_sketch_clustering_mouse_brain.png
 
     - title: BPCells Sketch Clustering (SCTransform)
-      name: BPCells_sketch_clustering_mouse_brain_SCT.nb
+      name: BPCells_sketch_clustering_mouse_brain_SCT
       summary: |
         Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat5.
       image: BPCells_sketch_clustering_mouse_brain.png
 
     - title: BPCells Sketch integration (Log)
-      name: BPCells_sketch_integration_1M.nb
+      name: BPCells_sketch_integration_1M
       summary: |
         Perform sketch integration on a large dataset from Parse Biosciences.
       image: BPCells_sketch_inte_1M.png
   
     - title: BPCells Sketch integration (SCTransform)
-      name: BPCells_sketch_integration_1M_SCT.nb
+      name: BPCells_sketch_integration_1M_SCT
       summary: |
         Perform sketch integration on a large dataset from Parse Biosciences.
       image: BPCells_sketch_inte_1M.png
 
     - title: Chunked mapping (Log)
-      name: BPCells_COVID_logMapping.nb
+      name: BPCells_COVID_logMapping
       summary: |
         Iteratively map large COVID datasets onto a reference for cell type annotation.
       image: BPCells_COVID.png
 
     - title: Chunked mapping (SCTransform)
-      name: BPCells_COVID_SCTMapping.nb
+      name: BPCells_COVID_SCTMapping
       summary: |
         Iteratively map large COVID datasets onto a reference for cell type annotation.
       image: BPCells_COVID.png
