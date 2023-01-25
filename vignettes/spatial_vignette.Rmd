@@ -399,8 +399,8 @@ slide.seq <- FindClusters(slide.seq, resolution = 0.3, verbose = FALSE)
 We can then visualize the results of the clustering either in UMAP space (with `DimPlot()`) or in the bead coordinate space with `SpatialDimPlot()`. 
 
 ```{r dim.plots.ss,fig.height=5}
-plot1 <- DimPlot(slide.seq, reduction = "umap", label = TRUE) 
-plot2 <- SpatialDimPlot(slide.seq, stroke = 0) 
+plot1 <- DimPlot(slide.seq, reduction = "umap", label = TRUE)
+plot2 <- SpatialDimPlot(slide.seq, stroke = 0)
 plot1 + plot2
 SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq, idents = c(1, 6, 13)), facet.highlight = TRUE)
 ```
@@ -411,6 +411,7 @@ To facilitate cell-type annotation of the Slide-seq dataset, we are leveraging a
 
 ```{r ref.saunders}
 ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- UpdateSeuratObject(ref)
 ```
 
 The original annotations from the paper are provided in the cell metadata of the Seurat object. These annotations are provided at several "resolutions", from broad classes (`ref$class`) to subclusters within celltypes (`ref$subcluster`). For the purposes of this vignette, we'll work off of a modification of the celltype annotations (`ref$celltype`) which we felt struck a good balance. 
