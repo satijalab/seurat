@@ -2407,7 +2407,7 @@ PrepDR <- function(
 PrepDR5 <- function(object, features = NULL, layer = 'scale.data', verbose = TRUE) {
   layer <- layer[1L]
   layer <- match.arg(arg = layer, choices = Layers(object = object))
-  features <- features %||% VariableFeatures(object = object, layer = layer)
+  features <- features %||% VariableFeatures(object = object)
   if (!length(x = features)) {
     stop("No variable features, run FindVariableFeatures() or provide a vector of features", call. = FALSE)
   }
