@@ -12,7 +12,6 @@ FindTransferAnchors(
   reference.assay = NULL,
   reference.neighbors = NULL,
   query.assay = NULL,
-  query.layers = NULL,
   reduction = "pcaproject",
   reference.reduction = NULL,
   project.query = FALSE,
