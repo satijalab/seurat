@@ -53,6 +53,7 @@ Imports:
     jsonlite,
     KernSmooth,
     leiden (>= 0.3.1),
+    lifecycle,
     lmtest,
     MASS,
     Matrix (>= 1.5-0),
