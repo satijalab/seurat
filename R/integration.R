@@ -1677,8 +1677,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data',
-      check.matrix = FALSE
+      slot = 'data'
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1699,12 +1698,12 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     preserve.order = preserve.order,
     verbose = verbose
   )
-  unintegrated[[new.reduction.name]] <- CreateDimReducObject(
+  suppressWarnings(expr = unintegrated[[new.reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(x = t(x = integrated.data)),
     assay = intdr.assay,
     loadings = Loadings(object = reductions),
     key = paste0(new.reduction.name.safe, "_")
-  )
+  ))
   unintegrated <- SetIntegrationData(
     object = unintegrated,
     integration.name = "Integration",
