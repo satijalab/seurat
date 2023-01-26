@@ -151,7 +151,7 @@ We can now use `ImageDimPlot()` to color the cell positions colored by the clust
 ImageDimPlot(xenium.obj, cols = "polychrome", axes = TRUE, size = 0.75)
 ```
 
-This vignette and the analysis methods for in-situ data are a work in progress. Please contact patrick@10xgenomics.com if you have questions or requests for additional examples. If you have any issues with the code working, please report the results of `sessionInfo()`. 
+This vignette and the analysis methods for in-situ data are a work in progress. Please contact jordan.sicherman@10xgenomics.com if you have questions or requests for additional examples. If you have any issues with the code working, please report the results of `sessionInfo()`. 
 
 <details>
   <summary>**Session Info**</summary>
