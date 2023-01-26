@@ -56,10 +56,6 @@ FindVariableFeatures.default <- function(
   return(var.gene.ouput)
 }
 
-g <- function(x, method = VST) {
-  method <- enquo(arg = method)
-  FindVariableFeatures(object = x, method = method, layer = 'counts')
-}
 
 #' @importFrom SeuratObject DefaultLayer Features Key Layers
 #'
@@ -75,9 +71,13 @@ FindVariableFeatures.StdAssay <- function(
   clip = NULL,
   key = NULL,
   verbose = TRUE,
+  selection.method = 'vst',
   ...
 ) {
-  layer <- unique(x = layer)
+  if (selection.method != 'vst') {
+    warning('Only VST is supported for Assay5. ', 
+            'The method is changed to VST')
+  }
   layer <- Layers(object = object, search = layer)
   if (is.null(x = key)) {
     false <- function(...) {
