@@ -496,18 +496,18 @@ LogNormalize.TENxMatrix <- function(
 #'
 NormalizeData.default <- function(
   object,
-  method = c('LogNormalize'),
+  normalization.method = c('LogNormalize', 'CLR', 'RC'),
   scale.factor = 1e4,
   cmargin = 2L,
   margin = 1L,
   verbose = TRUE,
   ...
 ) {
-  method <- method[1L]
-  method <- match.arg(arg = method)
+  normalization.method <- normalization.method[1L]
+  normalization.method <- match.arg(arg = normalization.method)
   # TODO: enable parallelization via future
   normalized <- switch(
-    EXPR = method,
+    EXPR = normalization.method,
     'LogNormalize' = {
       if (IsSparse(x = object) && .MARGIN(object = object) == cmargin) {
         .SparseNormalize(
@@ -524,6 +524,29 @@ NormalizeData.default <- function(
           ...
         )
       }
+    }, 
+    'CLR' = {
+      if (!inherits(x = object, what = 'dgCMatrix') &&
+          !inherits(x = object, what = 'matrix')) {
+        stop('CLR normalization only supports for dense and dgCMatrix')
+      }
+      CustomNormalize(
+        data = object,
+        custom_function = function(x) {
+          return(log1p(x = x/(exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE)/length(x = x)))))
+        },
+        margin = margin,
+        verbose = verbose
+      )
+    },
+    'RC' = {
+      if (!inherits(x = object, what = 'dgCMatrix') &&
+          !inherits(x = object, what = 'matrix')) {
+        stop('RC normalization only supports for dense and dgCMatrix')
+      }
+      RelativeCounts(data = object, 
+                     scale.factor = scale.factor,
+                     verbose = verbose)
     }
   )
   return(normalized)
@@ -581,7 +604,7 @@ NormalizeData.default <- function(
 #'
 NormalizeData.StdAssay <- function(
   object,
-  method = 'LogNormalize',
+  normalization.method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
   layer = 'counts',
@@ -614,7 +637,7 @@ NormalizeData.StdAssay <- function(
       cells = Cells(x = object, layer = l)
     ) <- NormalizeData(
       object = LayerData(object = object, layer = l, fast = NA),
-      method = method,
+      normalization.method = normalization.method,
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
