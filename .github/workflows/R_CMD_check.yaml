@@ -13,7 +13,7 @@ jobs:
         name: R CMD check
         container:
             image: satijalab/seurat:develop
-        runs-on: self-hosted 
+        runs-on: [self-hosted, satijalab05]
         
         steps:
             - uses: actions/checkout@v2
