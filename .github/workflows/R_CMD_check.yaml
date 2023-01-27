@@ -27,7 +27,6 @@ jobs:
             - name: Install additional dependencies
               run: |
                   Rscript -e "remotes::install_github('mojaveazure/seurat-object', ref = 'feat/CalN_generic')"
-                  Rscript -e "remotes::install_github('stuart-lab/signac', ref = 'seurat5')"
                   Rscript -e "remotes::install_github('bnprks/BPCells')"
 
             - name: Check
