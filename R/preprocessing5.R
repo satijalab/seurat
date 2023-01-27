@@ -64,9 +64,9 @@ FindVariableFeatures.default <- function(
 #'
 FindVariableFeatures.StdAssay <- function(
   object,
-  method = VST,
+  method = NULL,
   nselect = 2000L,
-  layer = 'counts',
+  layer = NULL,
   span = 0.3,
   clip = NULL,
   key = NULL,
@@ -74,9 +74,22 @@ FindVariableFeatures.StdAssay <- function(
   selection.method = 'vst',
   ...
 ) {
-  if (selection.method != 'vst') {
-    warning('Only VST is supported for Assay5. ', 
-            'The method is changed to VST')
+  if (selection.method == 'vst') {
+    layer <- layer%||%'counts'
+    method <- VST
+    key <- 'vst'
+  } else if (selection.method %in% c('mean.var.plot', 'mvp')) {
+    layer <- layer%||%'data'
+    method <- MVP
+    key <- 'mvp'
+  } else if (selection.method %in% c('dispersion', 'disp')) {
+    layer <- layer%||%'data'
+    method <- DISP
+    key <- 'disp'
+  } else if (is.null(x = method) || is.null(x = layer)){
+    stop('Custome functions and layers are both required')
+  } else {
+    key <- NULL
   }
   layer <- Layers(object = object, search = layer)
   if (is.null(x = key)) {
@@ -147,11 +160,14 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
-  VariableFeatures(object = object) <- VariableFeatures(
-    object = object,
-    nfeatures = nselect,
-    simplify = TRUE
-    )
+  var.name <- paste(
+    'vf',
+    key,
+    layer[i],
+    'variable',
+    sep = '_'
+  )
+  VariableFeatures(object = object) <- rownames(hvf.info)[hvf.info[,var.name]]
   return(object)
 }
 
@@ -993,7 +1009,8 @@ CalcDispersion <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (!inherits(x = object, what = c('dgCMatrix', 'matrix'))) {
     stop('mean.var.plot and dispersion methods only support dense and sparse matrix input')
