@@ -5,6 +5,9 @@ on:
             - develop
     pull_request:
 
+env:
+  GITHUB_PAT: ${{ secrets.PAT }}
+
 jobs:
     r-cmd-check:
 
@@ -20,6 +23,12 @@ jobs:
             - name: Remove vignettes dir
               run: rm -rf 'vignettes/'
               shell: bash
+
+            - name: Install additional dependencies
+              run: |
+                  Rscript -e "remotes::install_github('mojaveazure/seurat-object', ref = 'feat/CalN_generic')"
+                  Rscript -e "remotes::install_github('stuart-lab/signac', ref = 'seurat5')"
+                  Rscript -e "remotes::install_github('bnprks/BPCells')"
 
             - name: Check
               run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check", force_suggests = FALSE)
