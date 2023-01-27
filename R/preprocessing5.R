@@ -102,12 +102,12 @@ FindVariableFeatures.StdAssay <- function(
       message("Finding variable features for layer ", layer[i])
     }
     data <- LayerData(object = object, layer = layer[i], fast = TRUE)
-    f <- if (inherits(x = data, what = 'V3Matrix')) {
+    hvf.function <- if (inherits(x = data, what = 'V3Matrix')) {
       FindVariableFeatures.default
     } else {
       FindVariableFeatures
     }
-    hvf.info <- f(
+    hvf.info <- hvf.function(
       object = data,
       method = method,
       nselect = nselect,
@@ -984,6 +984,55 @@ VST.matrix <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+#' Calculate dispersion of features
+#'
+#'
+CalcDispersion <- function(
+  object,
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  verbose = TRUE
+) {
+  if (!inherits(x = object, what = c('dgCMatrix', 'matrix'))) {
+    stop('mean.var.plot and dispersion methods only support dense and sparse matrix input')
+  }
+  if (inherits(x = object, what =  'matrix')) {
+    object <- as.sparse(x = object)
+  }
+  feature.mean <- mean.function(object, verbose)
+  feature.dispersion <- dispersion.function(object, verbose)
+  
+  names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
+  feature.dispersion[is.na(x = feature.dispersion)] <- 0
+  feature.mean[is.na(x = feature.mean)] <- 0
+  data.x.breaks <- switch(
+    EXPR = binning.method,
+    'equal_width' = num.bin,
+    'equal_frequency' = c(
+      quantile(
+        x = feature.mean[feature.mean > 0],
+        probs = seq.int(from = 0, to = 1, length.out = num.bin)
+      )
+    ),
+    stop("Unknown binning method: ", binning.method)
+  )
+  data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks,
+                    include.lowest = TRUE)
+  names(x = data.x.bin) <- names(x = feature.mean)
+  mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
+  sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
+  feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
+    sd.y[as.numeric(x = data.x.bin)]
+  names(x = feature.dispersion.scaled) <- names(x = feature.mean)
+  hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
+  rownames(x = hvf.info) <- rownames(x = object)
+  colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
+  return(hvf.info)
+}
+
+
 #' @importFrom SeuratObject .CalcN
 #'
 CalcN <- function(object) {
@@ -999,6 +1048,26 @@ CalcN <- function(object) {
     nCount = round(col_stat['mean',] *nrow(object)),
     nFeature = col_stat['nonzero',]
   ))
+}
+
+#' Find variable features based on dispersion
+#' 
+DISP <- function(
+  data,
+  nselect = 2000L,
+  verbose = TRUE,
+  ...
+) {
+  hvf.info <- CalcDispersion(object = data, verbose = verbose, ...)
+  hvf.info$variable <- FALSE
+  hvf.info$rank <- NA
+  vf <- head(
+    x = order(hvf.info$mvp.dispersion, decreasing = TRUE),
+    n = nselect
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  return(hvf.info)
 }
 
 .FeatureVar <- function(
@@ -2139,4 +2208,24 @@ FetchResiduals_reference <- function(object,
   )
   new_residual <- MinMax(data = new_residual, min = clip.min, max = clip.max)
   return(new_residual)
+}
+
+#' Find variable features based on mean.var.plot
+#'
+MVP <- function(
+  data,
+  verbose = TRUE,
+  nselect = 2000L,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  ...
+) {
+  hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
+  hvf.info$variable <- FALSE
+  means.use <- (hvf.info[, 1] > mean.cutoff[1]) & (hvf.info[, 1] < mean.cutoff[2])
+  dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
+  hvf.info[which(x = means.use & dispersions.use), 'variable'] <- TRUE
+  hvf.info[hvf.info$variable,'rank'] <- rank(x = hvf.info[hvf.info$variable,'rank'])
+  hvf.info[!hvf.info$variable,'rank'] <- NA
+  return(hvf.info)
 }
