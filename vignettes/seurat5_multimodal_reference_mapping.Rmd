@@ -65,8 +65,7 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
 
 ```{r pbmc.ref}
-reference <- LoadH5Seurat("../data/pbmc_multimodal.h5seurat")
-reference <- UpdateSeuratObject(reference)
+reference <- readRDS("/brahms/haoy/seurat4_pbmc/pbmc_multimodal_2023.rds")
 ```
 
 ```{r ref.dimplot}
