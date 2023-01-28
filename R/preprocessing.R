@@ -418,7 +418,11 @@ GetResidual <- function(
       "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
     )
   }
-  if ((!umi.assay %in% Assays(object = object)) || class(x = object[[umi.assay]])[1] == "Assay"){
+  if (!umi.assay %in% Assays(object = object) || 
+      length(x = Layers(object = object[[umi.assay]], search = 'counts')) == 0) {
+    return(object)
+  }
+  if (inherits(x = object[[umi.assay]], what = 'Assay')) {
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
@@ -433,7 +437,7 @@ GetResidual <- function(
         )
       }
     )
-  } else if (class(x = object[[umi.assay]])[1] == "Assay5"){
+  } else if (inherits(x = object[[umi.assay]], what = 'Assay5')) {
     new.residuals <- lapply(
       X = sct.models,
       FUN = function(x) {
@@ -447,7 +451,6 @@ GetResidual <- function(
       }
     )
   }
-
   existing.data <- GetAssayData(object = object, slot = 'scale.data', assay = assay)
   all.features <- union(x = rownames(x = existing.data), y = features)
    new.scale <- matrix(
