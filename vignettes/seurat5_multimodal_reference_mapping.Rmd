@@ -80,6 +80,7 @@ To demonstrate mapping to this multimodal reference, we will use a dataset of 2,
 library(SeuratData)
 InstallData('pbmc3k')
 pbmc3k <- UpdateSeuratObject(pbmc3k)
+pbmc3k[['RNA']] <- as(pbmc3k[['RNA']], Class = 'Assay5')
 ```
 
 The reference was normalized using `SCTransform()`, so we use the same approach to normalize the query here.
