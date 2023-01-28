@@ -63,8 +63,8 @@ library(dplyr)
 InstallData("bmcite")
 bm <- LoadData(ds = "bmcite")
 bm <- UpdateSeuratObject(bm)
-bm[["ADT"]] <- CreateAssay5Object(bm[["ADT"]]@counts)
-bm[["RNA"]] <- CreateAssay5Object(bm[["RNA"]]@counts)
+bm[["ADT"]] <- CreateAssay5Object(bm[["ADT"]]$counts)
+bm[["RNA"]] <- CreateAssay5Object(bm[["RNA"]]$counts)
 ```
 
 We first perform pre-processing and dimensional reduction on both assays independently. We use standard normalization, but you can also use SCTransform or any alternative method.
@@ -72,9 +72,7 @@ We first perform pre-processing and dimensional reduction on both assays indepen
 ```{r pp.rna}
 DefaultAssay(bm) <- 'RNA'
 bm <- NormalizeData(bm)
-DefaultLayer(bm[["RNA"]]) <- "counts"
 bm <- FindVariableFeatures(bm)
-DefaultLayer(bm[["RNA"]]) <- "data"
 bm <- ScaleData(bm)
 bm <- RunPCA(bm)
 

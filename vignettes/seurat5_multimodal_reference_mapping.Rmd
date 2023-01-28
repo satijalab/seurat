@@ -239,6 +239,7 @@ bm <- UpdateSeuratObject(bm)
 InstallData('hcabm40k')
 hcabm40k <- LoadData(ds = "hcabm40k")
 hcabm40k <- UpdateSeuratObject(hcabm40k)
+hcabm40k[['RNA']] <- as(hcabm40k[['RNA']],  Class = 'Assay5')
 ```
 
 The reference dataset contains a [WNN graph](weighted_nearest_neighbor_analysis.html), reflecting a weighted combination of the RNA and protein data in this CITE-seq experiment. 

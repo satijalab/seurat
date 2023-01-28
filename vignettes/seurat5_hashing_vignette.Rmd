@@ -146,7 +146,7 @@ RidgePlot(pbmc.hashtag, assay = 'HTO', features = rownames(pbmc.hashtag[['HTO']]
 Visualize pairs of HTO signals to confirm mutual exclusivity in singlets
 
 ```{r hashtag_scatter1, fig.height=8, fig.width=9}
-FeatureScatter(pbmc.hashtag, feature1 = 'hto_HTO_A', feature2 = 'hto_HTO_B')
+FeatureScatter(pbmc.hashtag, feature1 = 'hto_HTO-A', feature2 = 'hto_HTO-B')
 ```
 
 Compare number of UMIs for singlets, doublets and negative cells

@@ -130,7 +130,7 @@ After finding anchors, we use the `TransferData()` function to classify the quer
 # do we want a different query and reference object or just have different layers??
 pancreas.query <- DietSeurat(panc8, layers = "fluidigmc1", assays = "RNA", )
 pancreas.query <- as(object = pancreas.query[['RNA']], Class = 'Assay5')
-pancreas.query <- CreateSeuratObject(pancreas.query, meta.data = panc8@meta.data)
+pancreas.query <- CreateSeuratObject(pancreas.query, meta.data = panc8[[]])
 
 pancreas.anchors <- FindTransferAnchors(reference = pancreas.ref, query = pancreas.query, dims = 1:30, reference.reduction = "integrated.dr", k.filter = NA)
 
