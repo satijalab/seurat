@@ -841,7 +841,7 @@ FindTransferAnchors <- function(
   }
   # Rename query assay w same name as reference assay
   if (query.assay != reference.assay) {
-    suppressWarnings(expr = query <- RenameAssays(query, old.assay.name = query.assay, new.assay.name = reference.assay))
+    suppressWarnings(expr = query <- RenameAssays(query, assay.name = query.assay, new.assay.name = reference.assay))
     DefaultAssay(query) <- reference.assay
   }
   # only keep necessary info from objects
