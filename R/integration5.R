@@ -206,15 +206,13 @@ RPCAIntegration <- function(
   normalization.method <- match.arg(arg = normalization.method)
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
-  layers <- layers %||% Layers(object, search = 'data')
-
+  layers <- layers %||% Layers(object = object, search = 'data')
   if (normalization.method == 'SCT') {
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
-
-    object.list <- SplitObject(object = object.sct,split.by = 'split')
-    object.list  <- PrepSCTIntegration(object.list, anchor.features = features)
-    object.list <- lapply(object.list, function(x) {
+    object.list <- SplitObject(object = object.sct, split.by = 'split')
+    object.list <- PrepSCTIntegration(object.list = object.list, anchor.features = features)
+    object.list <- lapply(X = object.list, FUN = function(x) {
       x <- RunPCA(object = x, features = features, verbose = FALSE)
       return(x)
     }
@@ -229,7 +227,6 @@ RPCAIntegration <- function(
       object.list[[i]][['RNA']]$counts <- NULL
     }
   }
-
   anchor <- FindIntegrationAnchors(object.list = object.list,
                                    anchor.features = features,
                                    scale = FALSE,
@@ -241,8 +238,12 @@ RPCAIntegration <- function(
                                    verbose = verbose,
                                    ...
   )
-  anchor@object.list <- lapply(anchor@object.list, function(x) {
-    x <- DietSeurat(x, features = features[1:2])
+  slot(object = anchor, name = "object.list") <- lapply(
+      X = slot(
+        object = anchor,
+        name = "object.list"),
+      FUN = function(x) {
+      suppressWarnings(expr = x <- DietSeurat(x, features = features[1:2]))
     return(x)
   })
   object_merged <- IntegrateEmbeddings(anchorset = anchor,

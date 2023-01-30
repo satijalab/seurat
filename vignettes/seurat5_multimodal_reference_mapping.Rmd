@@ -65,8 +65,7 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
 
 ```{r pbmc.ref}
-reference <- LoadH5Seurat("../data/pbmc_multimodal.h5seurat")
-reference <- UpdateSeuratObject(reference)
+reference <- readRDS("/brahms/haoy/seurat4_pbmc/pbmc_multimodal_2023.rds")
 ```
 
 ```{r ref.dimplot}
@@ -81,6 +80,7 @@ To demonstrate mapping to this multimodal reference, we will use a dataset of 2,
 library(SeuratData)
 InstallData('pbmc3k')
 pbmc3k <- UpdateSeuratObject(pbmc3k)
+pbmc3k[['RNA']] <- as(pbmc3k[['RNA']], Class = 'Assay5')
 ```
 
 The reference was normalized using `SCTransform()`, so we use the same approach to normalize the query here.
@@ -239,6 +239,7 @@ bm <- UpdateSeuratObject(bm)
 InstallData('hcabm40k')
 hcabm40k <- LoadData(ds = "hcabm40k")
 hcabm40k <- UpdateSeuratObject(hcabm40k)
+hcabm40k[['RNA']] <- as(hcabm40k[['RNA']],  Class = 'Assay5')
 ```
 
 The reference dataset contains a [WNN graph](weighted_nearest_neighbor_analysis.html), reflecting a weighted combination of the RNA and protein data in this CITE-seq experiment. 

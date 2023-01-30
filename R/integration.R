@@ -849,12 +849,14 @@ FindTransferAnchors <- function(
     DefaultAssay(query) <- reference.assay
   }
   # only keep necessary info from objects
+  suppressWarnings(
   query <- DietSeurat(
     object = query,
     assays = reference.assay,
     dimreducs = reference.reduction,
     features = features,
     scale.data = TRUE
+  )
   )
   # check assay in the reference.reduction
   if (!is.null(reference.reduction) &&
@@ -931,7 +933,7 @@ FindTransferAnchors <- function(
         )
       }
       query_nCount_UMI <- query[[]][, paste0("nCount_", query.assay)]
-      names(query_nCount_UMI) <- colnames(query)
+      names(x = query_nCount_UMI) <- colnames(x = query)
       projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
@@ -1682,8 +1684,7 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
   reference.integrated[[active.assay]] <- CreateAssayObject(
     data = GetAssayData(
       object = reference.integrated[[new.reduction.name.safe]],
-      slot = 'data',
-      check.matrix = FALSE
+      slot = 'data'
     )
   )
   DefaultAssay(object = reference.integrated) <- active.assay
@@ -1704,12 +1705,12 @@ IntegrateEmbeddings.IntegrationAnchorSet <- function(
     preserve.order = preserve.order,
     verbose = verbose
   )
-  unintegrated[[new.reduction.name]] <- CreateDimReducObject(
+  suppressWarnings(expr = unintegrated[[new.reduction.name]] <- CreateDimReducObject(
     embeddings = as.matrix(x = t(x = integrated.data)),
     assay = intdr.assay,
     loadings = Loadings(object = reductions),
     key = paste0(new.reduction.name.safe, "_")
-  )
+  ))
   unintegrated <- SetIntegrationData(
     object = unintegrated,
     integration.name = "Integration",
@@ -5263,7 +5264,7 @@ if (normalization.method == 'SCT') {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
     } else {
-      feature.mean <- rowMeans(mat = reference.data)
+      feature.mean <- rowMeans2(x = reference.data)
     }
     if (scale) {
       feature.sd <- sqrt(
@@ -5327,7 +5328,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
         object = as.sparse(query[,cells.grid[[i]]]),
         reference.SCT.model = reference.SCT.model,
         features = features,
-        nCount_UMI = nCount_UMI)
+        nCount_UMI = nCount_UMI[colnames(query)[cells.grid[[i]]]])
       proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
     }
     proj.pca <- t(matrix(

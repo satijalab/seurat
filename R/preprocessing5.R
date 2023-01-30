@@ -56,10 +56,6 @@ FindVariableFeatures.default <- function(
   return(var.gene.ouput)
 }
 
-g <- function(x, method = VST) {
-  method <- enquo(arg = method)
-  FindVariableFeatures(object = x, method = method, layer = 'counts')
-}
 
 #' @importFrom SeuratObject DefaultLayer Features Key Layers
 #'
@@ -68,16 +64,33 @@ g <- function(x, method = VST) {
 #'
 FindVariableFeatures.StdAssay <- function(
   object,
-  method = VST,
+  method = NULL,
   nselect = 2000L,
-  layer = 'counts',
+  layer = NULL,
   span = 0.3,
   clip = NULL,
   key = NULL,
   verbose = TRUE,
+  selection.method = 'vst',
   ...
 ) {
-  layer <- unique(x = layer)
+  if (selection.method == 'vst') {
+    layer <- layer%||%'counts'
+    method <- VST
+    key <- 'vst'
+  } else if (selection.method %in% c('mean.var.plot', 'mvp')) {
+    layer <- layer%||%'data'
+    method <- MVP
+    key <- 'mvp'
+  } else if (selection.method %in% c('dispersion', 'disp')) {
+    layer <- layer%||%'data'
+    method <- DISP
+    key <- 'disp'
+  } else if (is.null(x = method) || is.null(x = layer)){
+    stop('Custome functions and layers are both required')
+  } else {
+    key <- NULL
+  }
   layer <- Layers(object = object, search = layer)
   if (is.null(x = key)) {
     false <- function(...) {
@@ -102,12 +115,12 @@ FindVariableFeatures.StdAssay <- function(
       message("Finding variable features for layer ", layer[i])
     }
     data <- LayerData(object = object, layer = layer[i], fast = TRUE)
-    f <- if (inherits(x = data, what = 'V3Matrix')) {
+    hvf.function <- if (inherits(x = data, what = 'V3Matrix')) {
       FindVariableFeatures.default
     } else {
       FindVariableFeatures
     }
-    hvf.info <- f(
+    hvf.info <- hvf.function(
       object = data,
       method = method,
       nselect = nselect,
@@ -147,11 +160,14 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
-  VariableFeatures(object = object) <- VariableFeatures(
-    object = object,
-    nfeatures = nselect,
-    simplify = TRUE
-    )
+  var.name <- paste(
+    'vf',
+    key,
+    layer[i],
+    'variable',
+    sep = '_'
+  )
+  VariableFeatures(object = object) <- rownames(hvf.info)[hvf.info[,var.name]]
   return(object)
 }
 
@@ -222,38 +238,6 @@ FindSpatiallyVariableFeatures.StdAssay <- function(
   return(object)
 }
 
-#' @importFrom rlang enquo
-#' @method FindVariableFeatures Seurat5
-#' @export
-#'
-FindVariableFeatures.Seurat5 <- function(
-  object,
-  assay = NULL,
-  method = VST,
-  nselect = 2000L,
-  layer = NULL,
-  span = 0.3,
-  clip = NULL,
-  key = NULL,
-  verbose = TRUE,
-  ...
-) {
-  assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = Assays(object = object))
-  method <- enquo(arg = method)
-  object[[assay]] <- FindVariableFeatures(
-    object = object[[assay]],
-    method = method,
-    nselect = nselect,
-    layer = layer,
-    span = span,
-    clip = clip,
-    key = key,
-    verbose = verbose,
-    ...
-  )
-  return(object)
-}
 
 #' @rdname LogNormalize
 #' @method LogNormalize default
@@ -528,18 +512,18 @@ LogNormalize.TENxMatrix <- function(
 #'
 NormalizeData.default <- function(
   object,
-  method = c('LogNormalize'),
+  normalization.method = c('LogNormalize', 'CLR', 'RC'),
   scale.factor = 1e4,
   cmargin = 2L,
   margin = 1L,
   verbose = TRUE,
   ...
 ) {
-  method <- method[1L]
-  method <- match.arg(arg = method)
+  normalization.method <- normalization.method[1L]
+  normalization.method <- match.arg(arg = normalization.method)
   # TODO: enable parallelization via future
   normalized <- switch(
-    EXPR = method,
+    EXPR = normalization.method,
     'LogNormalize' = {
       if (IsSparse(x = object) && .MARGIN(object = object) == cmargin) {
         .SparseNormalize(
@@ -556,6 +540,29 @@ NormalizeData.default <- function(
           ...
         )
       }
+    }, 
+    'CLR' = {
+      if (!inherits(x = object, what = 'dgCMatrix') &&
+          !inherits(x = object, what = 'matrix')) {
+        stop('CLR normalization only supports for dense and dgCMatrix')
+      }
+      CustomNormalize(
+        data = object,
+        custom_function = function(x) {
+          return(log1p(x = x/(exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE)/length(x = x)))))
+        },
+        margin = margin,
+        verbose = verbose
+      )
+    },
+    'RC' = {
+      if (!inherits(x = object, what = 'dgCMatrix') &&
+          !inherits(x = object, what = 'matrix')) {
+        stop('RC normalization only supports for dense and dgCMatrix')
+      }
+      RelativeCounts(data = object, 
+                     scale.factor = scale.factor,
+                     verbose = verbose)
     }
   )
   return(normalized)
@@ -613,7 +620,7 @@ NormalizeData.default <- function(
 #'
 NormalizeData.StdAssay <- function(
   object,
-  method = 'LogNormalize',
+  normalization.method = 'LogNormalize',
   scale.factor = 1e4,
   margin = 1L,
   layer = 'counts',
@@ -646,7 +653,7 @@ NormalizeData.StdAssay <- function(
       cells = Cells(x = object, layer = l)
     ) <- NormalizeData(
       object = LayerData(object = object, layer = l, fast = NA),
-      method = method,
+      normalization.method = normalization.method,
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
@@ -661,38 +668,6 @@ NormalizeData.StdAssay <- function(
   return(object)
 }
 
-#' @importFrom SeuratObject DefaultAssay
-#'
-#' @method NormalizeData Seurat5
-#' @export
-#'
-NormalizeData.Seurat5 <- function(
-  object,
-  assay = NULL,
-  method = 'LogNormalize',
-  scale.factor = 1e4,
-  margin = 1L,
-  layer = NULL,
-  save = 'data',
-  default = TRUE,
-  verbose = TRUE,
-  ...
-) {
-  assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = Assays(object = object))
-  object[[assay]] <- NormalizeData(
-    object = object[[assay]],
-    method = method,
-    scale.factor = scale.factor,
-    margin = margin,
-    layer = layer,
-    save = save,
-    default = default,
-    verbose = verbose,
-    ...
-  )
-  return(object)
-}
 
 #' @importFrom SeuratObject StitchMatrix
 #'
@@ -798,59 +773,6 @@ ScaleData.StdAssay <- function(
       ...
     )
   }
-  return(object)
-}
-
-#' @importFrom rlang is_scalar_character
-#'
-#' @method ScaleData Seurat5
-#' @export
-#'
-ScaleData.Seurat5 <- function(
-  object,
-  features = NULL,
-  assay = NULL,
-  layer = NULL,
-  vars.to.regress = NULL,
-  split.by = NULL,
-  model.use = 'linear',
-  use.umi = FALSE,
-  do.scale = TRUE,
-  do.center = TRUE,
-  scale.max = 10,
-  block.size = 1000,
-  min.cells.to.block = 3000,
-  verbose = TRUE,
-  ...
-) {
-  assay <- assay %||% DefaultAssay(object = object)
-  if (!is.null(x = vars.to.regress)) {
-    vars.to.regress <- intersect(x = vars.to.regress, y = names(x = object[[]]))
-  }
-  latent.data <- if (length(x = vars.to.regress)) {
-    object[[vars.to.regress]]
-  } else {
-    NULL
-  }
-  if (is_scalar_character(x = split.by)) {
-    split.by <- object[[split.by]]
-  }
-  object[[assay]] <- ScaleData(
-    object = object[[assay]],
-    features = features,
-    layer = layer,
-    vars.to.regress = vars.to.regress,
-    latent.data = latent.data,
-    split.by = split.by,
-    model.use = model.use,
-    use.umi = use.umi,
-    do.scale = do.scale,
-    do.center = do.center,
-    scale.max = scale.max,
-    min.cells.to.block = min.cells.to.block,
-    verbose = verbose,
-    ...
-  )
   return(object)
 }
 
@@ -1078,6 +1000,56 @@ VST.matrix <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+#' Calculate dispersion of features
+#'
+#'
+CalcDispersion <- function(
+  object,
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  verbose = TRUE,
+  ...
+) {
+  if (!inherits(x = object, what = c('dgCMatrix', 'matrix'))) {
+    stop('mean.var.plot and dispersion methods only support dense and sparse matrix input')
+  }
+  if (inherits(x = object, what =  'matrix')) {
+    object <- as.sparse(x = object)
+  }
+  feature.mean <- mean.function(object, verbose)
+  feature.dispersion <- dispersion.function(object, verbose)
+  
+  names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
+  feature.dispersion[is.na(x = feature.dispersion)] <- 0
+  feature.mean[is.na(x = feature.mean)] <- 0
+  data.x.breaks <- switch(
+    EXPR = binning.method,
+    'equal_width' = num.bin,
+    'equal_frequency' = c(
+      quantile(
+        x = feature.mean[feature.mean > 0],
+        probs = seq.int(from = 0, to = 1, length.out = num.bin)
+      )
+    ),
+    stop("Unknown binning method: ", binning.method)
+  )
+  data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks,
+                    include.lowest = TRUE)
+  names(x = data.x.bin) <- names(x = feature.mean)
+  mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
+  sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
+  feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
+    sd.y[as.numeric(x = data.x.bin)]
+  names(x = feature.dispersion.scaled) <- names(x = feature.mean)
+  hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
+  rownames(x = hvf.info) <- rownames(x = object)
+  colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
+  return(hvf.info)
+}
+
+
 #' @importFrom SeuratObject .CalcN
 #'
 CalcN <- function(object) {
@@ -1093,6 +1065,26 @@ CalcN <- function(object) {
     nCount = round(col_stat['mean',] *nrow(object)),
     nFeature = col_stat['nonzero',]
   ))
+}
+
+#' Find variable features based on dispersion
+#' 
+DISP <- function(
+  data,
+  nselect = 2000L,
+  verbose = TRUE,
+  ...
+) {
+  hvf.info <- CalcDispersion(object = data, verbose = verbose, ...)
+  hvf.info$variable <- FALSE
+  hvf.info$rank <- NA
+  vf <- head(
+    x = order(hvf.info$mvp.dispersion, decreasing = TRUE),
+    n = nselect
+  )
+  hvf.info$variable[vf] <- TRUE
+  hvf.info$rank[vf] <- seq_along(along.with = vf)
+  return(hvf.info)
 }
 
 .FeatureVar <- function(
@@ -2233,4 +2225,24 @@ FetchResiduals_reference <- function(object,
   )
   new_residual <- MinMax(data = new_residual, min = clip.min, max = clip.max)
   return(new_residual)
+}
+
+#' Find variable features based on mean.var.plot
+#'
+MVP <- function(
+  data,
+  verbose = TRUE,
+  nselect = 2000L,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  ...
+) {
+  hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
+  hvf.info$variable <- FALSE
+  means.use <- (hvf.info[, 1] > mean.cutoff[1]) & (hvf.info[, 1] < mean.cutoff[2])
+  dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
+  hvf.info[which(x = means.use & dispersions.use), 'variable'] <- TRUE
+  hvf.info[hvf.info$variable,'rank'] <- rank(x = hvf.info[hvf.info$variable,'rank'])
+  hvf.info[!hvf.info$variable,'rank'] <- NA
+  return(hvf.info)
 }

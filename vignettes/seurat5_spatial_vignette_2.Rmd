@@ -215,7 +215,6 @@ nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/spatial_vignette_data/na
 # add in precomputed Azimuth annotations
 azimuth.data <- readRDS("/brahms/hartmana/spatial_vignette_data/nanostring_data.Rds")
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
-azimuth.data$umap@assay.used <- "Nanostring"
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
 
