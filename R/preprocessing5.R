@@ -625,15 +625,11 @@ NormalizeData.StdAssay <- function(
   margin = 1L,
   layer = 'counts',
   save = 'data',
-  default = TRUE,
   verbose = TRUE,
   ...
 ) {
   olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
-  if (save %in% olayer) {
-    default <- FALSE
-  }
   if (length(x = save) != length(x = layer)) {
     save <- make.unique(names = gsub(
       pattern = olayer,
@@ -660,9 +656,6 @@ NormalizeData.StdAssay <- function(
       layer = save,
       ...
     )
-  }
-  if (isTRUE(x = default)) {
-    DefaultLayer(object = object) <- save
   }
   gc(verbose = FALSE)
   return(object)
