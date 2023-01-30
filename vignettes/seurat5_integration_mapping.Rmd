@@ -47,15 +47,15 @@ library(SeuratData)
 ```
 
 ```{r install.data, eval=FALSE}
-InstallData('panc8')
+InstallData("panc8")
 ```
 
 To construct a reference, we will identify 'anchors' between the individual datasets. First, we split the combined object into a list, with each dataset as an element (this is only necessary because the data was bundled together for easy distribution).
 
 ```{r preprocessing1}
-data('panc8')
-panc8 <- UpdateSeuratObject(panc8)
-panc8[["RNA"]] <- CreateAssay5Object(panc8[["RNA"]]@counts)
+panc8 <- LoadData("panc8")
+panc8[["RNA"]] <- as(panc8[["RNA"]], Class = "Assay5")
+
 # split the dataset into layers by technology
 panc8[["RNA"]] <- split(panc8[["RNA"]], f = panc8$tech)
 ```
@@ -76,7 +76,7 @@ Next, we identify anchors using the `FindIntegrationAnchors()` function, which t
 
 ```{r integration.anchors, warning = FALSE, message = FALSE}
 pancreas.ref <- DietSeurat(panc8, layers = c("celseq", "celseq2", "smartseq2"))
-pancreas.ref <- as(object = pancreas.ref[['RNA']], Class = 'Assay5')
+pancreas.ref <- as(object = pancreas.ref[["RNA"]], Class = "Assay5")
 pancreas.ref <- CreateSeuratObject(pancreas.ref, meta.data = panc8@meta.data)
 pancreas.ref <- ScaleData(pancreas.ref)
 pancreas.ref <- RunPCA(pancreas.ref)
@@ -129,7 +129,7 @@ After finding anchors, we use the `TransferData()` function to classify the quer
 ```{r label.transfer, warning = FALSE, message = FALSE}
 # do we want a different query and reference object or just have different layers??
 pancreas.query <- DietSeurat(panc8, layers = "fluidigmc1", assays = "RNA", )
-pancreas.query <- as(object = pancreas.query[['RNA']], Class = 'Assay5')
+pancreas.query <- as(object = pancreas.query[["RNA"]], Class = "Assay5")
 pancreas.query <- CreateSeuratObject(pancreas.query, meta.data = panc8[[]])
 
 pancreas.anchors <- FindTransferAnchors(reference = pancreas.ref, query = pancreas.query, dims = 1:30, reference.reduction = "integrated.dr", k.filter = NA)

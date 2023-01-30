@@ -76,8 +76,7 @@ InstallData("stxBrain")
 
 ```{r data}
 brain <- LoadData('stxBrain', type = 'anterior1')
-brain <- UpdateSeuratObject(brain)
-brain[["Spatial"]] <- CreateAssay5Object(brain[["Spatial"]]@counts)
+brain[['Spatial']] <- as(brain[['Spatial']], class = 'Assay5')
 ```
  
 <details>
@@ -325,9 +324,8 @@ This dataset of the mouse brain contains another slice corresponding to the othe
 
 ```{r brain2data}
 brain2 <- LoadData('stxBrain', type = 'posterior1')
-brain2 <- UpdateSeuratObject(brain2)
-brain2[["Spatial"]] <- CreateAssay5Object(counts = brain2[["Spatial"]]@counts)
-brain2 <- SCTransform(brain2, assay = "Spatial", verbose = FALSE)
+brain2[['Spatial']] <- as(brain2[['Spatial']], class = 'Assay5')
+brain2 <- SCTransform(brain2, assay = 'Spatial', verbose = FALSE)
 ```
 
 In order to work with multiple slices in the same Seurat object, we provide the `merge` function.
@@ -379,8 +377,7 @@ InstallData("ssHippo")
 
 ```{r data.ss}
 slide.seq <- LoadData('ssHippo')
-slide.seq <- UpdateSeuratObject(slide.seq)
-slide.seq[["Spatial"]] <- CreateAssay5Object(counts = slide.seq[["Spatial"]]@counts)
+slide.seq[['Spatial']] <- as(slide.seq[['Spatial']], class = 'Assay5')
 ```
 
 ## Data preprocessing

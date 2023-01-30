@@ -50,14 +50,13 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 library(Seurat)
 library(SeuratData)
 # install dataset
-InstallData('ifnb')
+InstallData("ifnb")
 ```
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
-data('ifnb') # what if I do data here instead
-ifnb <- UpdateSeuratObject(ifnb)
-ifnb[["RNA"]] <- CreateAssay5Object(ifnb[["RNA"]]@counts)
+ifnb <- LoadData("ifnb")
+ifnb[["RNA"]] <- as(ifnb[["RNA"]], Class = "Assay5")
 
 # split the dataset into layers (stim and CTRL)
 ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
@@ -75,9 +74,6 @@ features <- VariableFeatures(ifnb)
 ifnb <- ScaleData(ifnb, features = features, verbose = FALSE)
 ifnb <- RunPCA(ifnb, features = features, verbose = FALSE)
 ifnb
-
-
-
 ```
 
 # Perform integration
@@ -85,7 +81,7 @@ ifnb
 We then identify anchors using the `FindIntegrationAnchors()` function, which takes a list of Seurat objects as input, and use these anchors to integrate the two datasets together with `IntegrateData()`.
 
 ```{r integrate.data}
-ifnb <- IntegrateLayers(object = ifnb, 
+ifnb <- IntegrateLayers(object = ifnb,
                         method = RPCAIntegration,
                         features = features,
                         verbose = F)
@@ -118,7 +114,7 @@ The results show that rpca-based integration is more conservative, and in this c
 #immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features,reduction = 'rpca', k.anchor = 20)
 #ifnb <- IntegrateData(anchorset = immune.anchors)
 
-ifnb <- IntegrateLayers(object = ifnb, 
+ifnb <- IntegrateLayers(object = ifnb,
                         k.anchor = 20,
                         method = RPCAIntegration,
                         features = features,
@@ -139,8 +135,8 @@ p1 + p2
 ```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- DimPlot(ifnb, group.by = "stim") +
-  xlab("UMAP 1") + ylab("UMAP 2") + 
-  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
+  xlab("UMAP 1") + ylab("UMAP 2") +
+  theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) +
   guides(colour = guide_legend(override.aes = list(size = 10)))
 ggsave(filename = "../output/images/rpca_integration.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
@@ -152,10 +148,9 @@ Now that the datasets have been integrated, you can follow the previous steps in
 As an additional example, we repeat the analyses performed above, but normalize the datasets using [SCTransform](sctransform_vignette.html). We may choose to set the `method` parameter to `glmGamPoi` (install [here](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html)) in order to enable faster estimation of regression parameters in `SCTransform()`.  
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
-data('ifnb')
-ifnb <- UpdateSeuratObject(ifnb)
-ifnb[["RNA"]] <- CreateAssay5Object(ifnb[["RNA"]]@counts)
-ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim) 
+ifnb <- LoadData("ifnb")
+ifnb[["RNA"]] <- as(ifnb[["RNA"]], Class = "Assay5")
+ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
 
 ifnb <- SCTransform(ifnb, method = "glmGamPoi")
 features <- VariableFeatures(ifnb)
@@ -163,7 +158,7 @@ ifnb <- RunPCA(ifnb, features = features)
 ```
 
 ```{r ifnb.cca.sct.anchors}
-ifnb <- IntegrateLayers(object = ifnb, 
+ifnb <- IntegrateLayers(object = ifnb,
                         method = RPCAIntegration,
                         normalization.method = "SCT",
                         features = features,
@@ -183,7 +178,7 @@ p1 + p2
 ```
 
 ```{r save.times, include=TRUE}
-#write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_integration_rpca.csv")
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_integration_rpca.csv")
 ```
 
 <details>

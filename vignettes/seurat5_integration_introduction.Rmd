@@ -68,9 +68,8 @@ InstallData('ifnb')
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
-data('ifnb') 
-ifnb <- UpdateSeuratObject(ifnb)
-ifnb[["RNA"]] <- CreateAssay5Object(ifnb[["RNA"]]@counts)
+ifnb <- LoadData("ifnb")
+ifnb[["RNA"]] <- as(ifnb[["RNA"]], Class = "Assay5")
 
 # split the dataset into layers (stim and CTRL)
 ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
@@ -233,10 +232,9 @@ Below, we demonstrate how to modify the Seurat integration workflow for datasets
 
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
-LoadData('ifnb')
-ifnb <- UpdateSeuratObject(ifnb)
-ifnb[["RNA"]] <- CreateAssay5Object(ifnb[["RNA"]]@counts)
-ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim) 
+ifnb <- LoadData("ifnb")
+ifnb[["RNA"]] <- as(ifnb[["RNA"]], Class = "Assay5")
+ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
 
 ifnb <- SCTransform(ifnb)
 ifnb <- RunPCA(ifnb)

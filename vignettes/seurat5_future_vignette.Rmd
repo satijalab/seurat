@@ -61,7 +61,7 @@ For example, to run the parallel version of `FindMarkers()`, you simply need to 
 library(Seurat)
 pbmc <- readRDS("../data/pbmc3k_final.rds")
 pbmc <- UpdateSeuratObject(pbmc)
-pbmc[["RNA"]] <- CreateAssay5Object(pbmc[["RNA"]]@counts)
+pbmc[["RNA"]] <- as(pbmc[["RNA"]], Class = "Assay5")
 
 # Enable parallelization
 plan('multiprocess', workers = 4)

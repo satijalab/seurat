@@ -38,7 +38,7 @@ options(SeuratData.repo.use = 'satijalab04.nygenome.org')
 We'll demonstrate visualization techniques in Seurat using our previously computed Seurat object from the 2,700 PBMC tutorial. You can download this dataset from [SeuratData](https://github.com/satijalab/seurat-data)
 
 ```{r data, eval = FALSE}
-SeuratData::InstallData('pbmc3k')
+SeuratData::InstallData("pbmc3k")
 ```
 
 ```{r seed, include=TRUE}
@@ -51,15 +51,14 @@ options(Seurat.object.assay.version = "v5")
 library(SeuratData)
 library(ggplot2)
 library(patchwork)
+
 data("pbmc3k.final")
 pbmc3k.final <- UpdateSeuratObject(pbmc3k.final)
-pbmc3k.final[["RNA"]] <- CreateAssay5Object(counts=pbmc3k.final[["RNA"]]@counts)
+pbmc3k.final[["RNA"]] <- as(pbmc3k.final, Class = "Assay5")
 pbmc3k.final <- NormalizeData(pbmc3k.final)
-DefaultLayer(pbmc3k.final[["RNA"]]) <- "counts"
 pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
-DefaultLayer(pbmc3k.final[["RNA"]]) <- "data"
 pbmc3k.final <- ScaleData(pbmc3k.final)
-pbmc3k.final$groups <- sample(c('group1', 'group2'), size = ncol(pbmc3k.final), replace = TRUE)
+pbmc3k.final$groups <- sample(c("group1", "group2"), size = ncol(pbmc3k.final), replace = TRUE)
 features <- c("LYZ", "CCL5", "IL32", "PTPRCAP", "FCGR3A", "PF4")
 pbmc3k.final
 ```
@@ -89,23 +88,23 @@ DoHeatmap(subset(pbmc3k.final, downsample = 100), features = features, size = 3)
 
 ```{r featureplot}
 # Plot a legend to map colors to expression levels
-FeaturePlot(pbmc3k.final, features = 'MS4A1')
+FeaturePlot(pbmc3k.final, features = "MS4A1")
 
 # Adjust the contrast in the plot
-FeaturePlot(pbmc3k.final, features = 'MS4A1', min.cutoff = 1, max.cutoff = 3)
+FeaturePlot(pbmc3k.final, features = "MS4A1", min.cutoff = 1, max.cutoff = 3)
 ```
 
 ```{r featureplot2, fig.height = 4}
 # Calculate feature-specific contrast levels based on quantiles of non-zero expression. Particularly useful when plotting multiple markers
-FeaturePlot(pbmc3k.final, features = c('MS4A1', "PTPRCAP"), min.cutoff = "q10", max.cutoff = "q90")
+FeaturePlot(pbmc3k.final, features = c("MS4A1", "PTPRCAP"), min.cutoff = "q10", max.cutoff = "q90")
 
 # Visualize co-expression of two features simultaneously
-FeaturePlot(pbmc3k.final, features = c('MS4A1', 'CD79A'), blend = TRUE)
+FeaturePlot(pbmc3k.final, features = c("MS4A1", "CD79A"), blend = TRUE)
 ```
 
 ```{r featureplot.split}
 # Split visualization to view expression by groups (replaces FeatureHeatmap)
-FeaturePlot(pbmc3k.final, features = c('MS4A1', 'CD79A'), split.by = 'groups')
+FeaturePlot(pbmc3k.final, features = c("MS4A1", "CD79A"), split.by = "groups")
 ```
 
 # Updated and expanded visualization functions
