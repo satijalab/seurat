@@ -839,13 +839,9 @@ FindTransferAnchors <- function(
           ))
       }
   }
-  # make global variables to allow access for RenameAssays
-  query.assay <<- query.assay
-  reference.assay <<- reference.assay
-  # make new query assay w same name as reference assay
+  # Rename query assay w same name as reference assay
   if (query.assay != reference.assay) {
-    suppressWarnings(expr = query[[reference.assay]] <- query[[query.assay]])
-    suppressWarnings(expr = query <- RenameAssays(query, query.assay = reference.assay))
+    suppressWarnings(expr = query <- RenameAssays(query, old.assay.name = query.assay, new.assay.name = reference.assay))
     DefaultAssay(query) <- reference.assay
   }
   # only keep necessary info from objects
@@ -1209,7 +1205,6 @@ FindTransferAnchors <- function(
     slot(object = anchor.set, name = "neighbors") <- list(
       query.neighbors = query.neighbors)
   }
-  rm(query.assay, reference.assay)
   return(anchor.set)
 }
 
