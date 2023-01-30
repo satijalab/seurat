@@ -60,6 +60,7 @@ For example, to run the parallel version of `FindMarkers()`, you simply need to 
 ```{r demo}
 library(Seurat)
 pbmc <- readRDS("../data/pbmc3k_final.rds")
+pbmc <- UpdateSeuratObject(pbmc)
 
 # Enable parallelization
 plan('multiprocess', workers = 4)
