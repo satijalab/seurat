@@ -549,7 +549,7 @@ RidgePlot <- function(
       what = 'RidgePlot(slot = )',
       with = 'RidgePlot(layer = )'
     )
-    layer <- layer %||% slot
+    layer <- slot %||% layer
   }
   return(ExIPlot(
     object = object,
@@ -634,7 +634,7 @@ VlnPlot <- function(
       what = 'VlnPlot(slot = )',
       with = 'VlnPlot(layer = )'
     )
-    layer <- layer %||% slot
+    layer <- slot %||% layer
   }
   if (
     !is.null(x = split.by) &
