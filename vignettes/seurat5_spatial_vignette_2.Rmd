@@ -249,11 +249,11 @@ ImageDimPlot(nano.obj, fov = "lung5.rep1", cells = WhichCells(nano.obj, idents=c
 We can also visualize gene expression markers a few different ways:
 
 ```{r, fig.width=10, fig.height=5}
-VlnPlot(nano.obj, features = "KRT17", layer = "counts", pt.size = 0.1, y.max = 30) + NoLegend()
+VlnPlot(nano.obj, features = "KRT17", assay = "Nanostring", layer = "counts", pt.size = 0.1, y.max = 30) + NoLegend()
 ```
 
 ```{r, fig.width=5, fig.height=4}
-FeaturePlot(nano.obj, features = "KRT17")
+FeaturePlot(nano.obj, features = "KRT17", max.cutoff = "q95")
 ```
 
 ```{r, fig.height=4, fig.width=8}
