@@ -404,31 +404,30 @@ IntegrateLayers <- function(
     features <- features %||% VariableFeatures(
       object = object,
       assay = assay,
-      layer = layers,
       nfeatures = 2000L
     )
-    # features <- features %||% SelectIntegrationFeatures5(
-    #   object = object,
-    #   assay = assay
-    # )
   } else {
     abort(message = "'assay' must be a v5 or SCT assay")
   }
-  features <- intersect(
-    x = features,
-    y = Features(x = object, assay = assay, layer = scale.layer)
-  )
+  if (!is.null(scale.layer)) {
+    features <- intersect(
+      x = features,
+      y = Features(x = object, assay = assay, layer = scale.layer)
+    )
+  }
   if (!length(x = features)) {
     abort(message = "None of the features provided are found in this assay")
   }
-  # Check our dimensional reduction
-  orig <- orig %||% DefaultDimReduc(object = object, assay = assay)
-  if (!orig %in% Reductions(object = object)) {
-    abort(message = paste(sQuote(x = orig), 'is not a dimensional reduction'))
-  }
-  obj.orig <- object[[orig]]
-  if (is.null(x = DefaultAssay(object = obj.orig))) {
-    DefaultAssay(object = obj.orig) <- assay
+  if (!is.null(orig)) {
+    # Check our dimensional reduction
+    orig <- orig %||% DefaultDimReduc(object = object, assay = assay)
+    if (!orig %in% Reductions(object = object)) {
+      abort(message = paste(sQuote(x = orig), 'is not a dimensional reduction'))
+    }
+    obj.orig <- object[[orig]]
+    if (is.null(x = DefaultAssay(object = obj.orig))) {
+      DefaultAssay(object = obj.orig) <- assay
+    }
   }
   # Check our groups
   groups <- if (inherits(x = object[[assay]], what = 'SCTAssay')) {
@@ -450,7 +449,7 @@ IntegrateLayers <- function(
       object = cmap,
       values = Cells(x = object[[assay]], layer = scale.layer)
     ))
-  } else if (is_scalar_character(x = group.by) && group.by %in% names(x = object[[]])) {
+  } else if (rlang::is_scalar_character(x = group.by) && group.by %in% names(x = object[[]])) {
     FetchData(
       object = object,
       vars = group.by,
