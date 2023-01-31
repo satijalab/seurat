@@ -132,7 +132,7 @@ To identify canonical cell type marker genes that are conserved across condition
 # For performing differential expression after integration, we switch back to the original data
 DefaultAssay(ifnb) <- "RNA"
 # Join Data Layers across stimualtions 
-ifnb[['RNA']] <- JoinLayers(ifnb[["RNA"]], search = "data", new = "data") 
+ifnb[['RNA']] <- JoinLayers(ifnb[["RNA"]], layers = "data", new = "data") 
 nk.markers <- FindConservedMarkers(ifnb, ident.1 = 6, grouping.var = "stim", verbose = FALSE)
 head(nk.markers)
 ```

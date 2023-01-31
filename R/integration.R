@@ -807,7 +807,7 @@ FindTransferAnchors <- function(
   if (inherits(x = reference[[reference.assay]], what = 'Assay5')) {
     if (length(Layers(reference, search = "data")) > 1) {
       reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], 
-                                                 search = "data", new = "data") 
+                                                 layers = "data", new = "data") 
     }
   }
     if (normalization.method == "SCT") {
