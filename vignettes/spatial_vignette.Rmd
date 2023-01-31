@@ -141,7 +141,7 @@ SpatialFeaturePlot(brain, features = c("Hpca", "Ttr"))
 ```
 
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- SpatialFeaturePlot(brain, features = c("Ttr")) + 
   theme(legend.text = element_text(size = 0), legend.title = element_text(size = 20), legend.key.size = unit(1, "cm")) 
@@ -481,17 +481,18 @@ nUMI <- allen.cortex$nCount_RNA
 names(nUMI) <- colnames(allen.cortex)
 reference <- Reference(counts, cluster, nUMI)
 
-counts <- LayerData(cortex, layer = "counts")
-coords <- GetTissueCoordinates(cortex)
+counts <- LayerData(slide.seq, layer = "counts")
+coords <- GetTissueCoordinates(slide.seq)
 colnames(coords) <- c("x", "y")
+coords[is.na(colnames(coords))] <- NULL
 puck <- SpatialRNA(coords, counts, colSums(counts))
 
 RCTD <- create.RCTD(puck, reference, max_cores = 1)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 
-cortex <- AddMetaData(cortex, metadata = myRCTD@results$results_df)
-p1 <- SpatialDimPlot(cortex, group.by = "first_type")
-p2 <- SpatialDimPlot(cortex, group.by = "second_type")
+slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
+p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
+p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
 p1 + p2
 ```
 
