@@ -78,8 +78,7 @@ To demonstrate mapping to this multimodal reference, we will use a dataset of 2,
 
 ```{r 3k.load}
 library(SeuratData)
-InstallData('pbmc3k')
-pbmc3k <- UpdateSeuratObject(pbmc3k)
+pbmc3k <- LoadData('pbmc3k')
 pbmc3k[['RNA']] <- as(pbmc3k[['RNA']], Class = 'Assay5')
 ```
 
@@ -231,14 +230,15 @@ This vignette exhibits the same reference-mapping functionality as the PBMC exam
 ```{r bmref.seuratdata}
 # Both datasets are available through SeuratData
 library(SeuratData)
+
 #load reference data
 InstallData("bmcite")
-bm <- LoadData(ds = "bmcite")
-bm <- UpdateSeuratObject(bm)
+bm <- LoadData("bmcite")
+bm[['RNA']] <- as(bm[['RNA']],  Class = 'Assay5')
+
 #load query data
 InstallData('hcabm40k')
-hcabm40k <- LoadData(ds = "hcabm40k")
-hcabm40k <- UpdateSeuratObject(hcabm40k)
+hcabm40k <- LoadData("hcabm40k")
 hcabm40k[['RNA']] <- as(hcabm40k[['RNA']],  Class = 'Assay5')
 ```
 
@@ -301,7 +301,8 @@ Here we will demonstrate mapping multiple donor bone marrow samples to the multi
 ```{r bm40k.load}
 library(dplyr)
 library(SeuratData)
-InstallData('hcabm40k')
+hcabm40k <- LoadData('hcabm40k')
+hcabm40k[['RNA']] <- as(hcabm40k[['RNA']],  Class = 'Assay5')
 hcabm40k.batches <- SplitObject(hcabm40k, split.by = "orig.ident")
 ```
 

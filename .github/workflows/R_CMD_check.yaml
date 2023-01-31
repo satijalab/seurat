@@ -19,7 +19,7 @@ jobs:
         runs-on: [self-hosted, satijalab05]
         
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - name: Remove vignettes dir
               run: rm -rf 'vignettes/'
               shell: bash
@@ -33,9 +33,9 @@ jobs:
               run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check", force_suggests = FALSE)
               shell: Rscript {0}
 
-            - name: Upload check results
-              if: failure()
-              uses: actions/upload-artifact@master
-              with:
-                  name: results
-                  path: check
+#            - name: Upload check results
+#              if: failure()
+#              uses: actions/upload-artifact@master
+#              with:
+#                  name: results
+#                  path: check
