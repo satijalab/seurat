@@ -5258,7 +5258,7 @@ if (normalization.method == 'SCT') {
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
-    } else if (inherits(x = reference.data, what = "MatrixSubset")) {
+    } else if (inherits(x = reference.data, what = "IterableMatrix")) {
       bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
                                         row_stats = "variance")
       bp.stats <- t(bp.stats$row_stats)
@@ -5267,7 +5267,7 @@ if (normalization.method == 'SCT') {
       feature.mean <- rowMeans2(x = reference.data)
     }
     if (scale) {
-      if (inherits(x = reference.data, what = "MatrixSubset")) {
+      if (inherits(x = reference.data, what = "IterableMatrix")) {
         feature.sd <- sqrt(bp.stats[,"variance"])
       } else {
         feature.sd <- sqrt(x = RowVarSparse(mat = as.sparse(reference.data)))
@@ -5345,7 +5345,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
-      } else if (inherits(x = reference.data, what = "MatrixSubset")) {
+      } else if (inherits(x = reference.data, what = "IterableMatrix")) {
         bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
                                           row_stats = "variance")
         bp.stats <- t(bp.stats$row_stats)
@@ -5354,7 +5354,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
         feature.mean <- rowMeans(mat = reference.data)
       }
       if (scale) {
-        if (inherits(x = reference.data, what = "MatrixSubset")) {
+        if (inherits(x = reference.data, what = "IterableMatrix")) {
           feature.sd <- sqrt(bp.stats[,"variance"])
         } else {
           feature.sd <- sqrt(
