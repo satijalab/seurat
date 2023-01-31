@@ -465,29 +465,26 @@ Annotation using RCTD
 ```{r rctd}
 library(spacexr)
 
-# allen cortex reference
-allen.cortex <- readRDS("/brahms/hartmana/seurat_site_builder/seurat5/seurat-private/data/allen_cortex.rds")
-Idents(allen.cortex) <- "subclass"
-
-# need to drop the cell types which there are <25 of
-drop.cells <- WhichCells(allen.cortex, idents = "CR")
-allen.cortex <- subset(allen.cortex, cells = drop.cells, invert = TRUE)
-
-counts <- LayerData(allen.cortex, layer = "counts")
-cluster <- as.factor(allen.cortex$subclass)
-levels(cluster)[3] <- "L2 3 IT"
-names(cluster) <- colnames(allen.cortex)
-nUMI <- allen.cortex$nCount_RNA
-names(nUMI) <- colnames(allen.cortex)
+# set up reference
+ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- UpdateSeuratObject(ref)
+Idents(ref) <- "celltype"
+counts <- LayerData(ref, assay = "RNA", layer = "counts")
+cluster <- as.factor(ref$celltype)
+names(cluster) <- colnames(ref)
+nUMI <- ref$nCount_RNA
+names(nUMI) <- colnames(ref)
 reference <- Reference(counts, cluster, nUMI)
 
-counts <- LayerData(slide.seq, layer = "counts")
+# set up query
+slide.seq <- LodaData("ssHippo")
+counts <- LayerData(slide.seq, assay = "Spatial", layer = "counts")
 coords <- GetTissueCoordinates(slide.seq)
 colnames(coords) <- c("x", "y")
 coords[is.na(colnames(coords))] <- NULL
-puck <- SpatialRNA(coords, counts, colSums(counts))
+query <- SpatialRNA(coords, counts, colSums(counts))
 
-RCTD <- create.RCTD(puck, reference, max_cores = 1)
+RCTD <- create.RCTD(query, reference, max_cores = 1)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
