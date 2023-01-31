@@ -76,7 +76,7 @@ InstallData("stxBrain")
 
 ```{r data}
 brain <- LoadData('stxBrain', type = 'anterior1')
-brain[['Spatial']] <- as(brain[['Spatial']], class = 'Assay5')
+brain[['Spatial']] <- as(brain[['Spatial']], Class = 'Assay5')
 ```
  
 <details>
@@ -324,7 +324,7 @@ This dataset of the mouse brain contains another slice corresponding to the othe
 
 ```{r brain2data}
 brain2 <- LoadData('stxBrain', type = 'posterior1')
-brain2[['Spatial']] <- as(brain2[['Spatial']], class = 'Assay5')
+brain2[['Spatial']] <- as(brain2[['Spatial']], Class = 'Assay5')
 brain2 <- SCTransform(brain2, assay = 'Spatial', verbose = FALSE)
 ```
 
@@ -377,7 +377,7 @@ InstallData("ssHippo")
 
 ```{r data.ss}
 slide.seq <- LoadData('ssHippo')
-slide.seq[['Spatial']] <- as(slide.seq[['Spatial']], class = 'Assay5')
+slide.seq[['Spatial']] <- as(slide.seq[['Spatial']], Class = 'Assay5')
 ```
 
 ## Data preprocessing
