@@ -1933,7 +1933,7 @@ FetchResidualSCTModel <- function(object,
                                   replace.value = FALSE,
                                   verbose = FALSE) {
   model.cells <- character()
-  model.features <- Features(x = object, layer = layer)
+  model.features <- Features(x = object, assay = assay)
   if (is.null(x = reference.SCT.model)){
     clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
     model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
