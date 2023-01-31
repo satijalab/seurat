@@ -5258,15 +5258,20 @@ if (normalization.method == 'SCT') {
   if (is.null(x = feature.mean)) {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
+    } else if (inherits(x = reference.data, what = "MatrixSubset")) {
+      bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
+                                        row_stats = "variance")
+      bp.stats <- t(bp.stats$row_stats)
+      feature.mean <- bp.stats[,"mean"]
     } else {
       feature.mean <- rowMeans2(x = reference.data)
     }
     if (scale) {
-      feature.sd <- sqrt(
-        x = RowVarSparse(
-          mat = as.sparse(reference.data)
-        )
-      )
+      if (inherits(x = reference.data, what = "MatrixSubset")) {
+        feature.sd <- sqrt(bp.stats[,"variance"])
+      } else {
+        feature.sd <- sqrt(x = RowVarSparse(mat = as.sparse(reference.data)))
+      }
       feature.sd[is.na(x = feature.sd)] <- 1
     } else {
       feature.sd <- rep(x = 1, nrow(x = reference.data))
@@ -5340,15 +5345,24 @@ ProjectCellEmbeddings.IterableMatrix <- function(
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
+      } else if (inherits(x = reference.data, what = "MatrixSubset")) {
+        bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
+                                          row_stats = "variance")
+        bp.stats <- t(bp.stats$row_stats)
+        feature.mean <- bp.stats[,"mean"]
       } else {
         feature.mean <- rowMeans(mat = reference.data)
       }
       if (scale) {
-        feature.sd <- sqrt(
-          x = RowVarSparse(
-            mat = as.sparse(reference.data)
+        if (inherits(x = reference.data, what = "MatrixSubset")) {
+          feature.sd <- sqrt(bp.stats[,"variance"])
+        } else {
+          feature.sd <- sqrt(
+            x = RowVarSparse(
+              mat = as.sparse(reference.data)
+            )
           )
-        )
+        }
         feature.sd[is.na(x = feature.sd)] <- 1
       } else {
         feature.sd <- rep(x = 1, nrow(x = reference.data))
