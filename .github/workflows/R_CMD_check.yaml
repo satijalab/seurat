@@ -33,9 +33,9 @@ jobs:
               run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check", force_suggests = FALSE)
               shell: Rscript {0}
 
-            - name: Upload check results
-              if: failure()
-              uses: actions/upload-artifact@master
-              with:
-                  name: results
-                  path: check
+#            - name: Upload check results
+#              if: failure()
+#              uses: actions/upload-artifact@master
+#              with:
+#                  name: results
+#                  path: check
