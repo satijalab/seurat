@@ -5261,14 +5261,13 @@ if (normalization.method == 'SCT') {
     } else if (inherits(x = reference.data, what = "IterableMatrix")) {
       bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
                                         row_stats = "variance")
-      bp.stats <- bp.stats$row_stats
-      feature.mean <- bp.stats["mean",]
+      feature.mean <- bp.stats$row_stats["mean",]
     } else {
       feature.mean <- rowMeans2(x = reference.data)
     }
     if (scale) {
       if (inherits(x = reference.data, what = "IterableMatrix")) {
-        feature.sd <- sqrt(bp.stats["variance",])
+        feature.sd <- sqrt(bp.stats$row_stats["variance",])
       } else {
         feature.sd <- sqrt(x = RowVarSparse(mat = as.sparse(reference.data)))
       }
@@ -5348,14 +5347,13 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       } else if (inherits(x = reference.data, what = "IterableMatrix")) {
         bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
                                           row_stats = "variance")
-        bp.stats <- bp.stats$row_stats
-        feature.mean <- bp.stats["mean",]
+        feature.mean <- bp.stats$row_stats["mean",]
       } else {
         feature.mean <- rowMeans(mat = reference.data)
       }
       if (scale) {
         if (inherits(x = reference.data, what = "IterableMatrix")) {
-          feature.sd <- sqrt(bp.stats["variance",])
+          feature.sd <- sqrt(bp.stats$row_stats["variance",])
         } else {
           feature.sd <- sqrt(
             x = RowVarSparse(
@@ -5369,8 +5367,8 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       }
       feature.mean[is.na(x = feature.mean)] <- 1
     }
-    query.scale <- (query - feature.mean)/feature.sd
-    query.scale <- BPCells::min_scalar(mat = query.scale, val = 10)
+    query.scale <- BPCells::min_by_row(query, 10*feature.sd + feature.mean)
+    query.scale <- (query.scale - feature.mean)/feature.sd
     proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
     rownames(proj.pca) <- colnames(query)
     colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
