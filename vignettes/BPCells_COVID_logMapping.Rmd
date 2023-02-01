@@ -38,9 +38,9 @@ library(dplyr)
 ```{r, warning=F, message=F}
 
 time0_loadMatrix <- system.time({ 
-meta.list <- readRDS('/brahms/haoy/vignette_data/PBMCVignette/PBMC_meta.list')
+meta.list <- readRDS('../data/PBMCVignette/PBMC_meta.list')
 
-file.dir <- "/brahms/haoy/vignette_data/PBMCVignette/"
+file.dir <- "../data/PBMCVignette/"
 files.set <- c("arunachalam_2020_processed.BPCells", "combes_2021_processed.BPCells", "lee_2020_processed.BPCells",
                "wilk_2020_processed.BPCells", "yao_2021_processed.BPCells")
 input.list <- list()

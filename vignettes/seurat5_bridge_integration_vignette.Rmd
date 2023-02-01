@@ -62,7 +62,7 @@ We start by loading a 10x multiome dataset, consisting of ~12,000 PBMC from a he
 
 ```{r}
 # the 10x hdf5 file contains both data types. 
-inputdata.10x <- Read10X_h5("/brahms/haoy/vignette_data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
+inputdata.10x <- Read10X_h5("../data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
 # extract RNA and ATAC data
 rna_counts <- inputdata.10x$`Gene Expression`
 atac_counts <- inputdata.10x$Peaks
@@ -83,7 +83,7 @@ seqlevelsStyle(annotations) <- 'UCSC'
 genome(annotations) <- "hg38"
 
 # File with ATAC per fragment information file 
-frag.file <- "/brahms/haoy/vignette_data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
+frag.file <- "../data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
 
 # Add in ATAC-seq data as ChromatinAssay object
 chrom_assay <- CreateChromatinAssay(
@@ -123,8 +123,8 @@ We note that it is important to quantify the same set of genomic features in the
   
 ```{r, message=FALSE, warning=FALSE}
 # Load ATAC dataset
-atac_pbmc_data <- Read10X_h5(filename = "/brahms/haoy/vignette_data/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5") 
-fragpath <- "/brahms/haoy/vignette_data/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz"
+atac_pbmc_data <- Read10X_h5(filename = "../data/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5") 
+fragpath <- "../data/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz"
 
 # Get gene annotations
 annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
@@ -166,7 +166,7 @@ obj.atac <- subset(obj.atac, subset = nCount_ATAC < 7e4 & nCount_ATAC > 2000)
 We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048). This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
 
 ```{r pbmc.ref}
-obj.rna <- LoadH5Seurat("/brahms/haoy/seurat4_pbmc/pbmc_multimodal.h5seurat")
+obj.rna <- LoadH5Seurat("../data/pbmc_multimodal.h5seurat")
 ```
 <details>
   <summary>**What if I want to use my own reference dataset?**</summary>

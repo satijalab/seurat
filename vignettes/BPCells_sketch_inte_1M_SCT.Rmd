@@ -36,13 +36,9 @@ library(dplyr)
 
 ## load matrix
 ```{r, warning=F, message=F}
- 
-time0_loadMatrix <- system.time({ 
-  #mat <- open_matrix_dir('/brahms/haoy/test/pbmc_150k_sparse/')
-  #meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta_100K.rds')
-  mat <- open_matrix_dir('/brahms/haoy/test/pbmc_ParseBio_sparse//')
-  meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta.rds')
-  
+time0_loadMatrix <- system.time({
+  mat <- open_matrix_dir('../data/pbmc_ParseBio_sparse/')
+  meta <- readRDS('../data/ParseBio_PBMC_meta.rds')
 })
 ```
 
@@ -53,11 +49,6 @@ options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
 time1_normalize <- system.time({
   object <- CreateSeuratObject(counts = mat, meta.data = meta)
   object <- NormalizeData(object)
-  # object[['RNA']]$data <- write_matrix_dir(
-  #   mat = object[['RNA']]$data,
-  #   dir = '/brahms/haoy/test/pbmc_ParseBio_sparse_data'
-  #   )
-  #object[['RNA']]$data <- open_matrix_dir(dir = '/brahms/haoy/test/pbmc_ParseBio_sparse_data')
 })
  
 
@@ -130,11 +121,6 @@ time6_UnSketch <- system.time({
  object <- RunUMAP(object,  reduction = 'integrated.rpca.orig', dims = 1:30 , reduction.name = 'umap.orig', reduction.key = 'Uorig_')
 ```
 
-## save object
-```{r}
-#time7_saveRDS <- system.time(saveRDS(object, "/brahms/haoy/test/pbmc_ParseBio_seurat_SCT.rds"))
-```
-
 ## pseudo-bulk
 ```{r}
 time8_bulk <- system.time( bulk <- AverageExpression(object,
@@ -184,5 +170,4 @@ p1+p2 + p3
 ```
 ```{r,fig.height = 20, fig.width = 15}
 DoHeatmap(bulk, features = top5$gene) + NoLegend()
-
 ```

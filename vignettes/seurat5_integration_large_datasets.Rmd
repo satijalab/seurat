@@ -67,9 +67,6 @@ After acquiring the data, we first perform standard normalization and variable f
 ```{r hca.full.1}
 
 bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
-#bm280k.data <- Read10X("/brahms/mollag/seurat_v5/data/e7448a34-b33d-41de-b422-4c09bfeba96b.mtx/")
-#colnames(bm280k.data) <- make.unique(c(colnames(bm280k.data)), sep="_")
-#bm280k.data <- Read10X_h5("../data/ica_bone_marrow_h5.h5")
 bm280k <- CreateSeuratObject(counts = bm280k.data, min.cells = 100, min.features = 500)
 bm280k[["RNA"]] <- split(bm280k[["RNA"]], f = bm280k$orig.ident)
 

@@ -37,7 +37,7 @@ library(Azimuth)
 ```{r, warning=FALSE, message=FALSE}
 t0_CreateObject <- system.time({
 
-mat <- open_matrix_dir("/brahms/haoy/test/mouse_1M_neurons_counts") 
+mat <- open_matrix_dir("../data/mouse_1M_neurons_counts") 
 # devtools::load_all("~/share/package/MetricPatch/")
 devtools::load_all("/home/haoy/share/package/MetricPatch/")
 mat <- ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
@@ -160,20 +160,15 @@ print(paste('Total time ', round(overall, digits = 3), 'mins' ))
 
 
 ```{r}
-
 obj[['pca.nn']] <- Seurat:::NNHelper(data = obj[['pca.orig']]@cell.embeddings[,1:50], 
                             k = 30, 
                             method = "hnsw", 
                             metric = "cosine", 
                             n_threads = 10)
 obj <- RunUMAP(obj, nn.name = "pca.nn", reduction.name = 'umap.orig', reduction.key = 'Uo_')
- 
 ```
 
 ```{r}
-DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_full', alpha = 0.1) + NoLegend()  
-DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()  
- 
-#saveRDS(obj, file = "/brahms/haoy/test/mouse_1M_neurons_seurat_SCT.rds")
-
+DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_full', alpha = 0.1) + NoLegend()
+DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()
 ```

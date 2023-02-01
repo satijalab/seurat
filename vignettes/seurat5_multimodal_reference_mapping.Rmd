@@ -65,7 +65,7 @@ options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048), and visualize the pre-computed UMAP. This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
 
 ```{r pbmc.ref}
-reference <- readRDS("/brahms/haoy/seurat4_pbmc/pbmc_multimodal_2023.rds")
+reference <- readRDS("../data/pbmc_multimodal_2023.rds")
 ```
 
 ```{r ref.dimplot}
@@ -274,7 +274,7 @@ bm <- FindNeighbors(
   object = bm,
   reduction = "spca",
   dims = 1:50,
-  graph.name = "spca.annoy.neighbors", 
+  graph.name = "spca.annoy.neighbors",
   k.param = 50,
   cache.index = TRUE,
   return.neighbor = TRUE,
@@ -323,8 +323,8 @@ for (i in 1:length(hcabm40k.batches)) {
     reference = bm,
     query = hcabm40k.batches[[i]],
     k.filter = NA,
-    reference.reduction = "spca", 
-    reference.neighbors = "spca.annoy.neighbors", 
+    reference.reduction = "spca",
+    reference.neighbors = "spca.annoy.neighbors",
     dims = 1:50
   )
 }

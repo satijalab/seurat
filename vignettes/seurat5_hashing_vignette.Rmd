@@ -224,10 +224,10 @@ library(Seurat)
 options(Seurat.object.assay.version = "v5")
 
 # Read in UMI count matrix for RNA
-hto12.umis <- readRDS("/brahms/hartmana/seurat_site_builder/seurat/data/hto12_umi_mtx.rds")
+hto12.umis <- readRDS("../data/hto12_umi_mtx.rds")
 
 # Read in HTO count matrix
-hto12.htos <- readRDS("/brahms/hartmana/seurat_site_builder/seurat/data/hto12_hto_mtx.rds")
+hto12.htos <- readRDS("../data/hto12_hto_mtx.rds")
 
 # Select cell barcodes detected in both RNA and HTO
 cells.use <- intersect(rownames(hto12.htos), colnames(hto12.umis))

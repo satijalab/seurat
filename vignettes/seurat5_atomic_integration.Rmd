@@ -65,7 +65,7 @@ We load each object separately, perform basic preprocessing (normalization and v
 
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 
-file.dir <- '/brahms/haoy/vignette_data/PBMCVignette/'
+file.dir <- '../data/PBMCVignette/'
 files.set <- c("arunachalam_2020_processed.HDF5", "combes_2021_processed.HDF5","lee_2020_processed.HDF5","wilk_2020_processed.HDF5","yao_2021_processed.HDF5")
 
 atoms.list <- list()
@@ -175,7 +175,7 @@ obj.merge <- RunUMAP(obj.merge, reduction = 'integrated_dr', dims = 1:30)
 Now we can visualize the results, plotting the scRNA-seq cells based on dataset batches and pre-annotated labels annotations on the UMAP embedding. We also add pre-computed cell annotations to this object (you can download the cell annotation metadata at [this link](https://seurat.nygenome.org/vignette_data/atomic_integration/pbmc_annotations.txt)).
 
 ```{r split.dim}
-annotation_data <- read.table("/brahms/haoy/vignette_data/PBMCVignette/pbmc_annotations.txt")
+annotation_data <- read.table("../data/PBMCVignette/pbmc_annotations.txt")
 obj.merge <- AddMetaData(obj.merge, metadata = annotation_data)
 DimPlot(obj.merge, reduction = "umap", group.by = "dataset", shuffle = TRUE, raster = FALSE)
 DimPlot(obj.merge, reduction = "umap", group.by = "celltype.l2", raster = FALSE)

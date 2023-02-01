@@ -36,7 +36,7 @@ library(BPCells)
 ```{r, warning=FALSE, message=FALSE}
 t0_CreateObject <- system.time({
 
-mat <- open_matrix_dir("/brahms/haoy/test/mouse_1M_neurons_counts") 
+mat <- open_matrix_dir("../data/mouse_1M_neurons_counts") 
 devtools::load_all("~/share/package/MetricPatch/")
 mat <- ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
  
@@ -177,9 +177,6 @@ obj <- RunUMAP(obj, nn.name = "pca.nn", reduction.name = 'umap.orig', reduction.
 ```
 
 ```{r}
-DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()  
-
-DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_anno_full', alpha = 0.1) + NoLegend()  
-#saveRDS(obj, file = "/brahms/haoy/test/mouse_1M_neurons_seurat.rds")
-
+DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()
+DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_anno_full', alpha = 0.1) + NoLegend()
 ```

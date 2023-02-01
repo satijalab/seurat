@@ -61,7 +61,7 @@ We use the `LoadVizgen()` function, which we have written to read in the output 
 
 ```{r, message=FALSE, warning=FALSE}
 # Loading segmentations is a slow process and multi processing with the future pacakge is recommended
-vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/spatial_vignette_data/vizgen/s2r1/", fov = "s2r1")
+vizgen.obj <- LoadVizgen(data.dir = "../data/vizgen/s2r1/", fov = "s2r1")
 ```
 
 The next pieces of information are specific to imaging assays, and is stored in the images slot of the resulting Seurat object:
@@ -207,12 +207,12 @@ In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `Lo
 For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0.  You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
 
 ```{r load}
-nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/spatial_vignette_data/nanostring/lung5_rep1", fov="lung5.rep1")
+nano.obj <- LoadNanostring(data.dir = "../data/nanostring/lung5_rep1", fov="lung5.rep1")
 ```
 
 ```{r integration}
 # add in precomputed Azimuth annotations
-azimuth.data <- readRDS("/brahms/hartmana/spatial_vignette_data/nanostring_data.Rds")
+azimuth.data <- readRDS("../data/nanostring_data.Rds")
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
@@ -294,7 +294,7 @@ First, we load in the data of a HuBMAP dataset using the `LoadAkoya()` function 
 
 ```{r}
 codex.obj <- LoadAkoya(
-  filename = "/brahms/hartmana/spatial_vignette_data/LN7910_20_008_11022020_reg001_compensated.csv",
+  filename = "../data/LN7910_20_008_11022020_reg001_compensated.csv",
   type = "processor",
   fov = "HBM754.WKLP.262"
 )
