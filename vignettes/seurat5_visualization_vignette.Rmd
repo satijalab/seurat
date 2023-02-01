@@ -54,7 +54,7 @@ library(patchwork)
 
 data("pbmc3k.final")
 pbmc3k.final <- UpdateSeuratObject(pbmc3k.final)
-pbmc3k.final[["RNA"]] <- as(pbmc3k.final, Class = "Assay5")
+pbmc3k.final[["RNA"]] <- as(pbmc3k.final[["RNA"]], Class = "Assay5")
 pbmc3k.final <- NormalizeData(pbmc3k.final)
 pbmc3k.final <- FindVariableFeatures(pbmc3k.final)
 pbmc3k.final <- ScaleData(pbmc3k.final)
