@@ -75,12 +75,9 @@ Next, we identify anchors using the `FindIntegrationAnchors()` function, which t
 * We use all default parameters here for identifying anchors, including the 'dimensionality' of the dataset (30; feel free to try varying this parameter over a broad range, for example between 10 and 50).  
 
 ```{r integration.anchors, warning = FALSE, message = FALSE}
-pancreas.ref <- DietSeurat(panc8, layers = c("celseq", "celseq2", "smartseq2"))
-pancreas.ref <- as(object = pancreas.ref[["RNA"]], Class = "Assay5")
-pancreas.ref <- CreateSeuratObject(pancreas.ref, meta.data = panc8@meta.data)
+pancreas.ref <- subset(panc8, subset = tech %in% c("celseq", "celseq2", "smartseq2"))
 pancreas.ref <- ScaleData(pancreas.ref)
 pancreas.ref <- RunPCA(pancreas.ref)
-#pancreas.anchors <- FindIntegrationAnchors(object.list = reference.list, dims = 1:30)
 ```
 
 We then pass these anchors to the `IntegrateData()` function, which returns a Seurat object. 
@@ -90,7 +87,7 @@ We then pass these anchors to the `IntegrateData()` function, which returns a Se
 ```{r data.integration, warning = FALSE, message = FALSE}
 pancreas.ref <- IntegrateLayers(object = pancreas.ref, 
                         method = CCAIntegration,
-                        verbose = F)
+                        verbose = FALSE)
 ```
 
 After running `IntegrateData()`, the `Seurat` object will contain a new `Assay` with the integrated expression matrix. Note that the original (uncorrected values) are still stored in the object in the "RNA" assay, so you can switch back and forth.
@@ -127,11 +124,7 @@ Seurat also supports the projection of reference data (or meta data) onto a quer
 After finding anchors, we use the `TransferData()` function to classify the query cells based on reference data (a vector of reference cell type labels). `TransferData()` returns a matrix with predicted IDs and prediction scores, which we can add to the query metadata.
 
 ```{r label.transfer, warning = FALSE, message = FALSE}
-# do we want a different query and reference object or just have different layers??
-pancreas.query <- DietSeurat(panc8, layers = "fluidigmc1", assays = "RNA", )
-pancreas.query <- as(object = pancreas.query[["RNA"]], Class = "Assay5")
-pancreas.query <- CreateSeuratObject(pancreas.query, meta.data = panc8[[]])
-
+pancreas.query <- subset(panc8, subset = tech == "fluidigmc1")
 pancreas.anchors <- FindTransferAnchors(reference = pancreas.ref, query = pancreas.query, dims = 1:30, reference.reduction = "integrated.dr", k.filter = NA)
 
 predictions <- TransferData(anchorset = pancreas.anchors, refdata = pancreas.ref$celltype, dims = 1:30)
