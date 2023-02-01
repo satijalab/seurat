@@ -44,6 +44,7 @@ Below, we demonstrate the use of reciprocal PCA to align the same stimulated and
 
 ```{r, include=TRUE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+options(future.globals.maxSize = 1e9)
 ```
 
 ```{r installdata}
