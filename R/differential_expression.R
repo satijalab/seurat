@@ -2117,6 +2117,11 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
          paste(umi.assay, collapse = ", ")
     )
   }
+  umi.layers <- Layers(object = object, assay = umi.assay, search = 'counts')
+  if (length(x = umi.layers) > 1) {
+    object[[umi.assay]] <- JoinLayers(object = object[[umi.assay]],
+                                      layers = "counts", new = "counts")
+  }
   raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
   corrected_counts <- Matrix(
     nrow = nrow(x = raw_umi),
