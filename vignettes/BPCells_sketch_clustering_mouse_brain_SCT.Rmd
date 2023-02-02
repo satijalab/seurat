@@ -36,16 +36,10 @@ library(Azimuth)
 ## load data from h5ad 
 ```{r, warning=FALSE, message=FALSE}
 t0_CreateObject <- system.time({
-
-mat <- open_matrix_dir("../data/mouse_1M_neurons_counts") 
-# devtools::load_all("~/share/package/MetricPatch/")
-devtools::load_all("/home/haoy/share/package/MetricPatch/")
-mat <- ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
- 
- 
-options(Seurat.object.assay.version = "v5",  Seurat.object.assay.calcn = T)
-obj <- CreateSeuratObject(counts = mat )
- 
+  mat <- open_matrix_dir("../data/mouse_1M_neurons_counts") 
+  mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
+  options(Seurat.object.assay.version = "v5",  Seurat.object.assay.calcn = T)
+  obj <- CreateSeuratObject(counts = mat)
 })
 
 ```

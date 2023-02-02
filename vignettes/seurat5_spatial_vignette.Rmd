@@ -467,7 +467,7 @@ devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 
 Annotation using RCTD
 
-```{r rctd}
+```{r rctd, eval=FALSE}
 library(spacexr)
 
 # set up reference
