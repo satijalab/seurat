@@ -169,21 +169,21 @@ pancreas.query <- MapQuery(
 ```{r, eval=FALSE}
 pancreas.query <- TransferData(
   anchorset = pancreas.anchors, 
-  reference = panc8,
+  reference = pancreas.ref,
   query = pancreas.query,
   refdata = list(celltype = "celltype")
 )
 pancreas.query <- IntegrateEmbeddings(
   anchorset = pancreas.anchors,
-  reference = panc8,
+  reference = pancreas.ref,
   query = pancreas.query, 
   new.reduction.name = "ref.pca"
 )
 pancreas.query <- ProjectUMAP(
   query = pancreas.query, 
   query.reduction = "ref.pca", 
-  reference = panc8, 
-  reference.reduction = "pca", 
+  reference = pancreas.ref,
+  reference.reduction = "integrated.dr",
   reduction.model = "umap"
 )
 ```

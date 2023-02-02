@@ -72,16 +72,9 @@ DimPlot(obj, label = T, reduction = 'umap') + NoLegend()
 ```
 ## Azimuth mapping to annotate clusters
 ```{r, warning=F, message=F}
- 
- 
-options(Seurat.object.assay.version = "v3",  Seurat.object.assay.calcn = T)
-obj.v3 <- CreateSeuratObject(counts =  as.sparse(obj[['RNA']]$counts[,colnames(obj[['sketch']])]) )
-library(Azimuth)
-obj.v3 <- RunAzimuth(query = obj.v3, assay = 'RNA', reference = 'mousecortexref', do.adt = F) 
-
-obj$predicted.subclass <- obj.v3$predicted.subclass
-obj$predicted.cluster <- obj.v3$predicted.cluster
-
+# add some fake annotations to the object
+obj$predicted.subclass <- sample(c("celltype1", "celltype2"), length(Cells(obj)), replace = TRUE)
+obj$predicted.cluster <- sample(c("celltype1", "celltype2", "celltype3", "celltype4"), length(Cells(obj)), replace = TRUE)
 ```
 
 

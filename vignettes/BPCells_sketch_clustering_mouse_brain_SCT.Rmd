@@ -72,15 +72,9 @@ obj <- RunUMAP(obj, dims = 1:50, return.model = T, verbose = F)
 DimPlot(obj, label = T, reduction = 'umap') + NoLegend() 
 ```
 ```{r}
-
-options(Seurat.object.assay.version = "v3",  Seurat.object.assay.calcn = T)
-obj.v3 <- CreateSeuratObject(counts =  as.sparse(obj[['sketch']]$counts) )
-obj.v3 <- RunAzimuth(query = obj.v3, assay = 'RNA', reference = 'mousecortexref', do.adt = F) 
-
-obj$predicted.subclass <- obj.v3$predicted.subclass
-obj$predicted.cluster <- obj.v3$predicted.cluster
-
-
+# add some fake annotations to the object
+obj$predicted.subclass <- sample(c("celltype1", "celltype2"), length(Cells(obj)), replace = TRUE)
+obj$predicted.cluster <- sample(c("celltype1", "celltype2", "celltype3", "celltype4"), length(Cells(obj)), replace = TRUE)
 ```
 ```{r,fig.height = 20, fig.width = 15}
 features.set <- c('Aqp4', 'Sox10', 'Slc17a7', 'Aif1', 'Foxj1', 'Pax6', 'Slc17a6', 'Lum', 'Nanog', 'Gad2', 'Foxj1',   'Cldn5','Alas2')
