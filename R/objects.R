@@ -2180,14 +2180,26 @@ merge.SCTAssay <- function(
   ...
 ) {
   assays <- c(x, y)
+  if (any(sapply(
+    X = assays,
+    FUN = function(assay.i) inherits(x = assay.i, what = "Assay5")
+  ))) {
+    return(merge(x = as(x, "Assay5"), y, ...))
+  }
   parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
   if (length(x = parent.call) > 0) {
     # Try and fill in missing residuals if called in the context of merge.Seurat
-    all.features <- unique(x = unlist(x = lapply(X = assays, FUN = function(assay) {
-      if (inherits(x = x, what = "SCTAssay")) {
+    all.features <- unique(
+      x = unlist(
+        x = lapply(
+          X = assays,
+          FUN = function(assay) {
+      if (inherits(x = assay, what = "SCTAssay")) {
         return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
       }
-    })))
+    })
+    )
+    )
     if (!is.null(all.features)) {
       assays <- lapply(X = 1:length(x = assays), FUN = function(assay) {
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {

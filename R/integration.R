@@ -818,12 +818,6 @@ FindTransferAnchors <- function(
           features = features,
           verbose = FALSE
           ))
-        reference <- ScaleData(
-          object = reference,
-          features = features,
-          do.scale = FALSE,
-          verbose = FALSE
-          )
         features <- intersect(
           x = features,
           y = rownames(reference[[reference.assay]]$scale.data)
