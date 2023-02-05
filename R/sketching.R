@@ -307,11 +307,11 @@ LeverageScore.DelayedMatrix <- function(
 
 
 #' @method LeverageScore StdAssay
+#' 
 #' @export
 #'
 LeverageScore.StdAssay <- function(
   object,
-  # features = NULL,
   nsketch = 5000L,
   ndims = NULL,
   method = CountSketch,
@@ -329,13 +329,13 @@ LeverageScore.StdAssay <- function(
   }
   scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
   row.names(x = scores) <- colnames(x = object)
-  scores[, layer] <- NA_real_
+  scores[, 1] <- NA_real_
   for (i in seq_along(along.with = layer)) {
     l <- layer[i]
     if (isTRUE(x = verbose)) {
       message("Running LeverageScore for layer ", l)
     }
-    scores[Cells(x = object, layer = l), l] <- LeverageScore(
+    scores[Cells(x = object, layer = l), 1] <- LeverageScore(
       object = LayerData(
         object = object,
         layer = l,
@@ -355,7 +355,6 @@ LeverageScore.StdAssay <- function(
       ...
     )
   }
-  names(x = scores) <- paste0('leverage_score_', names(x = scores))
   return(scores)
 }
 
@@ -370,9 +369,10 @@ LeverageScore.Assay <- LeverageScore.StdAssay
 LeverageScore.Seurat <- function(
   object,
   assay = NULL,
-  # features = NULL,
   nsketch = 5000L,
   ndims = NULL,
+  var.name = 'leverage.score',
+  over.write = FALSE,
   method = CountSketch,
   vf.method = NULL,
   layer = 'data',
@@ -381,12 +381,14 @@ LeverageScore.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  if (!over.write) {
+    var.name <- CheckMetaVarName(object = object, var.name = var.name)
+  }
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
   method <- enquo(arg = method)
   scores <- LeverageScore(
     object = object[[assay]],
-    # features = features,
     nsketch = nsketch,
     ndims = ndims,
     method = method,
@@ -397,7 +399,7 @@ LeverageScore.Seurat <- function(
     verbose = verbose,
     ...
   )
-  names(x = scores) <- paste0("seurat_", names(x = scores))
+  names(x = scores) <- var.name
   object[[]] <- scores
   return(object)
 }
