@@ -81,15 +81,17 @@ LeverageScoreSampling <- function(
   assay = NULL,
   ncells = 5000L,
   save = 'sketch',
+  var.name = "leverage.score",
+  over.write = FALSE,
   default = TRUE,
-  seed = NA_integer_,
+  seed = 123L,
   cast = NULL,
   layers = c('counts', 'data'),
+  verbose = TRUE,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
-  # TODO: fix this in [[<-,Seurat5
   if (save == assay) {
     abort(message = "Cannot overwrite existing assays")
   }
@@ -99,39 +101,45 @@ LeverageScoreSampling <- function(
     }
     object[[save]] <- NULL
   }
-  vars <- grep(pattern = "^seurat_leverage_score_", x = names(x = object[[]]), 
-               value = TRUE)
-  names(x = vars) <- vars
-  vars <- gsub(pattern = "^seurat_leverage_score_", replacement = "", 
-               x = vars)
-  vars <- vars[vars %in% Layers(object = object[[assay]])]
-  if (!length(x = vars)) {
-    stop("No leverage scores found for assay ", assay, call. = FALSE)
+  if (!over.write) {
+    var.name <- CheckMetaVarName(object = object, var.name = var.name)
   }
+  if (verbose) {
+    message("Calcuating Leverage Score")
+  }
+  object <- LeverageScore(
+    object = object,
+    assay = assay,
+    var.name = var.name,
+    over.write = over.write,
+    seed = seed,
+    verbose = verbose,
+    ...
+  )
+  leverage.score <- object[[var.name]]
+  layers.data <- Layers(object = object[[assay]], search = 'data')
   cells <- lapply(
-    X = seq_along(along.with = vars),
+    X = seq_along(along.with = layers.data),
     FUN = function(i, seed) {
-      if (!is.na(x = seed)) {
-        set.seed(seed = seed)
-      }
-      lcells <- Cells(x = object[[assay]], layer = vars[i])
+      set.seed(seed = seed)
+      lcells <- Cells(x = object[[assay]], layer = layers.data[i])
       if (length(x = lcells) < ncells) {
         return(lcells)
       }
       return(sample(
         x = lcells,
-        size = min(ncells),
-        prob = object[[names(x = vars)[i], drop = TRUE, na.rm = TRUE]]
+        size = ncells,
+        prob = leverage.score[lcells,]
       ))
     },
     seed = seed
   )
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
-    cells = Reduce(f = union, x = cells),
+    cells = unlist(cells),
     layers = Layers(object = object[[assay]], search = layers)
   ))
-  for (lyr in vars) {
+  for (lyr in layers.data) {
     try(
       expr = VariableFeatures(object = sketched, method = "sketch", layer = lyr) <-
         VariableFeatures(object = object[[assay]], layer = lyr),
