@@ -842,8 +842,9 @@ FindTransferAnchors <- function(
           )
     ) {
       LayerData(object = query[[query.assay]], layer = "data") <- matrix(,
-                                                                nrow = nrow(query[[query.assay]]), 
-                                                                ncol = ncol(query[[query.assay]]))
+                                                                         nrow = nrow(query[[query.assay]]),
+                                                                         ncol = ncol(query[[query.assay]])
+                                                                         )
     }
   }
   # Rename query assay w same name as reference assay
