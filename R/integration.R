@@ -833,20 +833,6 @@ FindTransferAnchors <- function(
           ))
       }
   }
-  # Make data slot if DNE
-  if (inherits(x = query[[query.assay]], what = "Assay5")){
-    if (is.null(
-          tryCatch(expr = slot(object = query[[query.assay]], 
-                               name = "data"), 
-                   error = function (e) return(NULL))
-          )
-    ) {
-      LayerData(object = query[[query.assay]], layer = "data") <- matrix(,
-                                                                         nrow = nrow(query[[query.assay]]),
-                                                                         ncol = ncol(query[[query.assay]])
-                                                                         )
-    }
-  }
   # Rename query assay w same name as reference assay
   if (query.assay != reference.assay) {
     suppressWarnings(expr = query <- RenameAssays(query, assay.name = query.assay, new.assay.name = reference.assay))
@@ -6050,6 +6036,21 @@ ValidateParams_FindTransferAnchors <- function(
     stop("Given reference.assay (", reference.assay, ") has not been processed with ",
          "SCTransform. Please either run SCTransform or set normalization.method = 'LogNormalize'.",
          call. = FALSE)
+  }
+  # Make data slot if DNE
+  if (inherits(x = query[[query.assay]], what = "Assay5")){
+    if (is.null(
+      tryCatch(expr = slot(object = query[[query.assay]], 
+                           name = "data"), 
+               error = function (e) return(NULL))
+        )
+    ) {
+      LayerData(object = query[[query.assay]], layer = "data") <- matrix(,
+                                                                         nrow = nrow(query[[query.assay]]),
+                                                                         ncol = ncol(query[[query.assay]])
+                                                                        )
+      ModifyParam(param = "query", value = query)
+    }
   }
   # features must be in both reference and query
   query.assay.check <- query.assay
