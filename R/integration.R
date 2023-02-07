@@ -6045,10 +6045,16 @@ ValidateParams_FindTransferAnchors <- function(
                error = function (e) return(NULL))
         )
     ) {
-      LayerData(object = query[[query.assay]], layer = "data") <- matrix(,
-                                                                         nrow = nrow(query[[query.assay]]),
-                                                                         ncol = ncol(query[[query.assay]])
-                                                                        )
+      LayerData(
+        object = query[[query.assay]],
+        layer = "data") <- sparseMatrix(
+          i = 1,
+          j = 1,
+          x = 1,
+          dims = c(nrow(x = query[[query.assay]]),
+                   ncol(x = query[[query.assay]])
+                   )
+          )
       ModifyParam(param = "query", value = query)
     }
   }
