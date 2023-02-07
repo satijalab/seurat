@@ -835,7 +835,12 @@ FindTransferAnchors <- function(
   }
   # Rename query assay w same name as reference assay
   if (query.assay != reference.assay) {
-    suppressWarnings(expr = query <- RenameAssays(query, assay.name = query.assay, new.assay.name = reference.assay))
+    suppressWarnings(expr = query <- RenameAssays(
+      object = query,
+      assay.name = query.assay,
+      new.assay.name = reference.assay,
+      verbose = FALSE
+      ))
     DefaultAssay(query) <- reference.assay
   }
   # only keep necessary info from objects
@@ -854,12 +859,14 @@ FindTransferAnchors <- function(
     warnings("reference assay is diffrent from the assay.used in", reference.reduction)
     slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
   }
-  reference <- DietSeurat(
-    object = reference,
-    assays = reference.assay,
-    dimreducs = reference.reduction,
-    features = features,
-    scale.data = TRUE
+  suppressWarnings(
+    reference <- DietSeurat(
+      object = reference,
+      assays = reference.assay,
+      dimreducs = reference.reduction,
+      features = features,
+      scale.data = TRUE
+    )
   )
   # append query and reference to cell names - mainly to avoid name conflicts
   query <- RenameCells(
