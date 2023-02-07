@@ -1929,7 +1929,7 @@ VariableFeatures.SCTModel <- function(object, nfeatures = 3000, ...) {
 VariableFeatures.SCTAssay <- function(
   object,
   layer = NULL,
-  nfeatures = 3000,
+  nfeatures = NULL,
   simplify = TRUE,
   use.var.features = TRUE,
   ...
