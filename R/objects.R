@@ -1934,12 +1934,12 @@ VariableFeatures.SCTAssay <- function(
   use.var.features = TRUE,
   ...
 ) {
-  nfeatures <- nfeatures %||% 3000
+  # Is the information already in var.features?
+  var.features.existing <- slot(object = object, name = "var.features")
+  nfeatures <- nfeatures %||% length(x = var.features.existing) %||% 3000
   if (is.null(x = layer)) {
     layer <- levels(x = object)
   }
-  # Is the information already in var.features?
-  var.features.existing <- object@var.features
   if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing)>=nfeatures){
      return (head(x = var.features.existing, n = nfeatures))
   }
