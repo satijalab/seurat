@@ -835,7 +835,12 @@ FindTransferAnchors <- function(
   }
   # Rename query assay w same name as reference assay
   if (query.assay != reference.assay) {
-    suppressWarnings(expr = query <- RenameAssays(query, assay.name = query.assay, new.assay.name = reference.assay))
+    suppressWarnings(expr = query <- RenameAssays(
+      object = query,
+      assay.name = query.assay,
+      new.assay.name = reference.assay,
+      verbose = FALSE
+      ))
     DefaultAssay(query) <- reference.assay
   }
   # only keep necessary info from objects
@@ -854,12 +859,14 @@ FindTransferAnchors <- function(
     warnings("reference assay is diffrent from the assay.used in", reference.reduction)
     slot(object = reference[[reference.reduction]], name = "assay.used") <- reference.assay
   }
-  reference <- DietSeurat(
-    object = reference,
-    assays = reference.assay,
-    dimreducs = reference.reduction,
-    features = features,
-    scale.data = TRUE
+  suppressWarnings(
+    reference <- DietSeurat(
+      object = reference,
+      assays = reference.assay,
+      dimreducs = reference.reduction,
+      features = features,
+      scale.data = TRUE
+    )
   )
   # append query and reference to cell names - mainly to avoid name conflicts
   query <- RenameCells(
@@ -6036,6 +6043,27 @@ ValidateParams_FindTransferAnchors <- function(
     stop("Given reference.assay (", reference.assay, ") has not been processed with ",
          "SCTransform. Please either run SCTransform or set normalization.method = 'LogNormalize'.",
          call. = FALSE)
+  }
+  # Make data slot if DNE
+  if (inherits(x = query[[query.assay]], what = "Assay5")){
+    if (is.null(
+      tryCatch(expr = slot(object = query[[query.assay]], 
+                           name = "data"), 
+               error = function (e) return(NULL))
+        )
+    ) {
+      LayerData(
+        object = query[[query.assay]],
+        layer = "data") <- sparseMatrix(
+          i = 1,
+          j = 1,
+          x = 1,
+          dims = c(nrow(x = query[[query.assay]]),
+                   ncol(x = query[[query.assay]])
+                   )
+          )
+      ModifyParam(param = "query", value = query)
+    }
   }
   # features must be in both reference and query
   query.assay.check <- query.assay
