@@ -1020,13 +1020,13 @@ FindTransferAnchors <- function(
       reduction = reference.reduction,
       query = query,
       scale = scale,
+      normalization.method = normalization.method,
       dims = dims,
       feature.mean = feature.mean,
       verbose = verbose
     )
     orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
     orig.loadings <- Loadings(object = reference[[reference.reduction]])
-
   combined.pca <- CreateDimReducObject(
     embeddings = as.matrix(x = rbind(orig.embeddings, projected.pca)),
     key = "ProjectPC_",
@@ -4406,8 +4406,9 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx2
+      index = if (reduction.2 == nn.reduction) nn.idx2 else NULL
     )
+    
     nnba <- NNHelper(
       data = Embeddings(object = object[[reduction]])[cells1, nn.dims],
       query = Embeddings(object = object[[reduction]])[cells2, nn.dims],
@@ -4415,7 +4416,7 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx1
+      index = if (reduction == nn.reduction) nn.idx1 else NULL
     )
   } else {
     dim.data.opposite <- Embeddings(object = object[[reduction]])[ ,dims]
@@ -4428,7 +4429,7 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx2
+      index =  if (reduction == nn.reduction) nn.idx2 else NULL
     )
     nnba <- NNHelper(
       data = dims.cells1.opposite,
@@ -4437,7 +4438,7 @@ FindNN <- function(
       method = nn.method,
       n.trees = n.trees,
       eps = eps,
-      index = nn.idx1
+      index =  if (reduction == nn.reduction) nn.idx1 else NULL
     )
   }
   object <- SetIntegrationData(
@@ -5152,7 +5153,7 @@ ProjectCellEmbeddings.SCTAssay <- function(
     x = list(
       rownames(x = Loadings(object = reference[[reduction]])),
       rownames(x = reference[[reference.assay]]),
-      rownames(x = query)
+      rownames(x = query$scale.data)
     )
   )
   query.data <- GetAssayData(
@@ -6030,8 +6031,22 @@ ValidateParams_FindTransferAnchors <- function(
              "you can set recompute.residuals to FALSE", call. = FALSE)
       }
     }
-    DefaultAssay(query) <- query.umi.assay
-    ModifyParam(param = "query.assay", value = query.umi.assay)
+    if (reduction %in% c('cca', 'rpca')) {
+      query <- SCTransform(
+        object = query,
+        reference.SCT.model = slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]],
+        residual.features = features,
+        assay = query.umi.assay,
+        new.assay.name = new.sct.assay,
+        verbose = FALSE
+      )
+    } else {
+      new.sct.assay <- query.umi.assay
+    }
+    
+    
+    DefaultAssay(query) <- new.sct.assay
+    ModifyParam(param = "query.assay", value = new.sct.assay)
     ModifyParam(param = "query", value = query)
     ModifyParam(param = "reference", value = reference)
   }
@@ -6071,6 +6086,9 @@ ValidateParams_FindTransferAnchors <- function(
   ref.features <- rownames(x = reference[[reference.assay.check]])
   query.features <- rownames(x = query[[query.assay.check]])
   if (normalization.method == "SCT") {
+    if (IsSCT(query[[query.assay.check]])) {
+      query.features <- rownames(x = query[[query.assay.check]]$scale.data)
+    }
     query.model.features <- rownames(x = Misc(object = query[[query.assay]])$vst.out$gene_attr)
     query.features <- unique(c(query.features, query.model.features))
     ref.model.features <- rownames(x = Misc(object = reference[[reference.assay]])$vst.out$gene_attr)
