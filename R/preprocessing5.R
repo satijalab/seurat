@@ -1663,9 +1663,9 @@ SCTransform.StdAssay <- function(
       variable.feature.list[[dataset.names[dataset.index]]] <- rownames(assay.out)
     }
   }
-  # Return array by merging everythin
+# Return array by merging everythin
   if (length(x = sct.assay.list) > 1){
-    vf.list <- lapply(X  = sct.assay.list, FUN = function(object) VariableFeatures(object = object))
+    vf.list <- lapply(X  = sct.assay.list, FUN = function(object.i) VariableFeatures(object = object.i))
     variable.features.union <- Reduce(f = union, x = vf.list)
     var.features.sorted <- sort(
       x = table(unlist(x = vf.list, use.names = FALSE)),
@@ -1678,7 +1678,6 @@ SCTransform.StdAssay <- function(
     var.features <- variable.features.union
     for (layer.name in names(sct.assay.list)){
       vst_out <- SCTModel_to_vst(SCTModel = slot(object = sct.assay.list[[layer.name]], name = "SCTModel.list")[[1]])
-
       all_cells <-  Cells(x = object, layer = paste0(layer, ".", layer.name))
       all_features <- Features(x = object, layer = paste0(layer, ".", layer.name))
       variable.features.target <- intersect(x = rownames(x = vst_out$model_pars_fit), y = var.features)
@@ -1718,9 +1717,11 @@ SCTransform.StdAssay <- function(
       VariableFeatures(sct.assay.list[[layer.name]]) <- rownames(x = merged_residual)
     }
     merged.assay <- merge(x = sct.assay.list[[1]], y = sct.assay.list[2:length(sct.assay.list)])
-
-    #VariableFeatures(object = merged.assay) <- intersect(x = var.features, y = rownames(x = GetAssayData(object = merged.assay, slot='scale.data')))
-    VariableFeatures(object = merged.assay) <- VariableFeatures(object = merged.assay, use.var.features = FALSE)
+    VariableFeatures(object = merged.assay) <- VariableFeatures(
+      object = merged.assay,
+      use.var.features = FALSE,
+      nfeatures = variable.features.n
+      )
     # set the names of SCTmodels to be layer names
     models <- slot(object = merged.assay, name="SCTModel.list")
     names(models) <- names(x = sct.assay.list)
