@@ -6062,8 +6062,7 @@ ValidateParams_FindTransferAnchors <- function(
   # Make data slot if DNE
   if (inherits(x = query[[query.assay]], what = "Assay5")){
     if (is.null(
-      tryCatch(expr = slot(object = query[[query.assay]], 
-                           name = "data"), 
+      tryCatch(expr = Layers(object = query[[query.assay]], search = 'data'),
                error = function (e) return(NULL))
         )
     ) {
