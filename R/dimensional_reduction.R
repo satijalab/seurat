@@ -2521,6 +2521,45 @@ RunSPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
+#' using the variable features for the Assay.
+#'
+#' @rdname RunSPCA
+#' @concept dimensional_reduction
+#' @export
+#' @method RunSPCA Assay5
+#'
+RunSPCA.Assay5 <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  layer = 'scale.data',
+  ...
+) {
+  data.use <- PrepDR5(
+    object = object,
+    features = features,
+    layer = layer,
+    verbose = verbose
+  )
+  reduction.data <- RunSPCA(
+    object = data.use,
+    assay = assay,
+    npcs = npcs,
+    reduction.key = reduction.key,
+    graph = graph,
+    verbose = verbose,
+    seed.use = seed.use,
+    ...
+  )
+  return(reduction.data)
+}
+
 #' @param reduction.name dimensional reduction name, spca by default
 #' @rdname RunSPCA
 #' @concept dimensional_reduction
