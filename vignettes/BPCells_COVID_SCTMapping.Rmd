@@ -130,11 +130,11 @@ bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
 ## computing time summary
 ```{r}
 all_T  <- ls(pattern = 'time')
-overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
+overall <- sum(sapply(all_T, function(x) round(as.numeric(get(x)['elapsed']), digits = 3)))/60
 
 
 for (i in 1:length(all_T)) {
-  T_i <- get(all_T[i])['elapsed']
+  T_i <- as.numeric(get(all_T[i])['elapsed'])
   if (T_i > 60) {
      print(paste(all_T[i], round(T_i/60, digits = 1), 'mins'))
   } else {
@@ -181,4 +181,11 @@ VlnPlot(bulk, features = 'IFI44L', group.by = 'celltype', split.by = 'disease')
 
 VlnPlot(object, features = 'IFI44L', group.by = 'predicted.celltype.l2', split.by = 'Status')
 ```
- 
+
+```{r print_times}
+as.data.frame(all_times)
+```
+
+```{r session_info}
+sessionInfo()
+```

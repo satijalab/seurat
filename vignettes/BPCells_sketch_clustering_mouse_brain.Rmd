@@ -138,11 +138,11 @@ DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.cluster_an
 
 ```{r}
 all_T  <- ls(pattern = '^t')
-overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
+overall <- sum(sapply(all_T, function(x) round(as.numeric(get(x)['elapsed']), digits = 3)))/60
 
 
 for (i in 1:length(all_T)) {
-  time.i <- get(all_T[i])['elapsed']
+  time.i <- as.numeric(get(all_T[i])['elapsed'])
   if (time.i > 60) {
      print(paste(all_T[i], round(time.i/60, digits = 1), 'mins'))
   } else {
@@ -158,8 +158,8 @@ print(paste('Total time ', round(overall, digits = 3), 'mins' ))
 
 obj[['pca.nn']] <- Seurat:::NNHelper(data = obj[['pca.orig']]@cell.embeddings[,1:50], 
                             k = 30, 
-                            method = "hnsw", 
-                            metric = "cosine", 
+                            method = "hnsw",
+                            metric = "cosine",
                             n_threads = 10)
 obj <- RunUMAP(obj, nn.name = "pca.nn", reduction.name = 'umap.orig', reduction.key = 'Uo_')
  
@@ -168,4 +168,12 @@ obj <- RunUMAP(obj, nn.name = "pca.nn", reduction.name = 'umap.orig', reduction.
 ```{r}
 DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()
 DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_anno_full', alpha = 0.1) + NoLegend()
+```
+
+```{r print_times}
+as.data.frame(all_times)
+```
+
+```{r session_info}
+sessionInfo()
 ```
