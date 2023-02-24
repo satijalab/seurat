@@ -1,30 +1,7 @@
 ---
-title: "Sketch integration"
+title: "R Notebook"
 output: html_notebook
 ---
-
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
-knitr::knit_hooks$set(time_it = local({
-  now <- NULL
-  function(before, options) {
-    if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
-    }
-  }
-}))
-knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
-  message = FALSE,
-  warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
-)
-```
 
 ## load package
 
@@ -36,10 +13,14 @@ library(dplyr)
 
 ## load matrix
 ```{r, warning=F, message=F}
-
+ 
 time0_loadMatrix <- system.time({ 
- mat <- open_matrix_dir('../data/pbmc_ParseBio_sparse//')
-  meta <- readRDS('../data/ParseBio_PBMC_meta.rds')
+  mat <- open_matrix_dir('/brahms/haoy/test/pbmc_150k_sparse/')
+  meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta_100K.rds')
+  meta$disease <- sample(c('H','D'), nrow(meta), replace = T)
+  #mat <- open_matrix_dir('/brahms/haoy/test/pbmc_ParseBio_sparse//')
+  #meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta.rds')
+  
 })
 ```
 
@@ -50,6 +31,12 @@ options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
 time1_normalize <- system.time({
   object <- CreateSeuratObject(counts = mat, meta.data = meta)
   object <- NormalizeData(object, verbose = FALSE)
+
+  # object[['RNA']]$data <- write_matrix_dir(
+  #   mat = object[['RNA']]$data,
+  #   dir = '/brahms/haoy/test/pbmc_ParseBio_sparse_data'
+  #   )
+  #object[['RNA']]$data <- open_matrix_dir(dir = '/brahms/haoy/test/pbmc_ParseBio_sparse_data')
 })
  
 
@@ -65,7 +52,6 @@ time3_FindVariable  <- system.time({
 )
 
 time4_LeverageScoreSampling  <- system.time({
-  object <- LeverageScore(object, verbose = FALSE)
   object <- LeverageScoreSampling(object = object, ncells = 5000, cast = 'dgCMatrix', verbose = FALSE)
 })
 
@@ -82,7 +68,7 @@ time5_SketchIntegration  <- system.time({
   object <- RunPCA(object, features =  features, verbose = F)
   DefaultAssay(object) <- 'sketch'
   options(future.globals.maxSize = 3e9)
-  object <- IntegrateLayers(object, 
+  object <- IntegrateLayers(object,
                             method = RPCAIntegration,
                             orig = 'pca',
                             new.reduction = 'integrated.rpca',
@@ -110,7 +96,7 @@ time6_UnSketch <- system.time({
                                        orig = 'RNA',
                                        reduction = 'integrated.rpca' ,
                                        layers = Layers(object = object[['RNA']], search = 'data'),
-                                      features = features  )
+                                      features = features)
  
 })
  
@@ -120,22 +106,60 @@ time6_UnSketch <- system.time({
 ```{r}
 object <- RunUMAP(object,  reduction = 'integrated.rpca.orig', dims = 1:30 , reduction.name = 'umap.orig', reduction.key = 'Uorig_')
 ```
+```{r}
+p1<- DimPlot(object, reduction = 'umap.orig', group.by = 'sample',alpha = 0.5) + NoLegend()
+p2<- DimPlot(object, reduction = 'umap.orig', group.by = 'celltype.weight', label = T, alpha = 0.5) + NoLegend()
+p1+p2
+
+```
+## save object
+```{r}
+#time7_saveRDS <- system.time(saveRDS(object, "/brahms/haoy/test/pbmc_ParseBio_seurat.rds"))
+```
 
 ## pseudo-bulk
 ```{r}
-time8_bulk <- system.time( bulk <- AverageExpression(object,
+
+time8_bulk <- system.time( bulk <- AggregateExpression(object,
                                                         return.seurat = T,
                                                         slot = 'counts',
                                                         assays  = 'RNA',
-                                                        group.by = c("celltype.weight","sample")
+                                                        group.by = c("celltype.weight","sample","disease")
                                                         )
 )
-marker <- FindAllMarkers(object = bulk, only.pos = TRUE, verbose = FALSE)
-marker %>%
-    group_by(cluster) %>%
-    top_n(n = -5, wt = p_val) -> top5
-bulk <- ScaleData(bulk, features = top5$gene)
 
+bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
+bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
+bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
+
+marker.list <- list()
+celltype.set <- unique(bulk$celltype )
+for (i in seq_along(celltype.set)) {
+  bulk.i <- subset(bulk, subset = celltype == celltype.set[i])
+  Idents(bulk.i) <- 'disease'
+ if (any(table(bulk.i$disease) < 3)) {
+    marker.list[[i]]  <- EmptyDF(n = 0)
+ } else {
+    marker.list[[i]] <- FindMarkers(bulk.i, ident.1 = 'D',ident.2 = 'H', slot = 'counts', test.use = 'DESeq2', verbose = F )
+ }
+}
+names(marker.list) <- celltype.set
+```
+
+```{r}
+marker.list.filter <- lapply(marker.list, function(x) {
+  if(nrow(x) > 0) {
+    x <- x[x$p_val_adj < 0.01 & !is.na(x$p_val_adj ),]
+  } 
+  if (nrow(x) > 0) {
+    return(x)
+  }
+})
+
+```
+
+```{r}
+VlnPlot(bulk, features = 'FOXO3', group.by = 'celltype', split.by = 'disease')
 ```
 
 ## computing time summary
@@ -155,12 +179,17 @@ for (i in 1:length(all_T)) {
 print(paste('Total time ', round(overall, digits = 1), 'mins' ))
 ```
 
-```{r}
-p1<- DimPlot(object, reduction = 'umap.orig', group.by = 'sample',alpha = 0.1) + NoLegend()
-p2<- DimPlot(object, reduction = 'umap.orig', group.by = 'celltype.weight', label = T, alpha = 0.1) + NoLegend()
-p1+p2
 
-```
+
+
 ```{r,fig.height = 20, fig.width = 15}
+
+Idents(bulk) <- 'celltype'
+marker <- FindAllMarkers(object = bulk, only.pos = TRUE, verbose = FALSE)
+marker %>%
+    group_by(cluster) %>%
+    top_n(n = -5, wt = p_val) -> top5
+bulk <- ScaleData(bulk, features = top5$gene)
 DoHeatmap(bulk, features = top5$gene) + NoLegend()
+
 ```

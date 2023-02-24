@@ -1,30 +1,7 @@
 ---
-title: "COVID Log Normalization Mapping"
+title: "R Notebook"
 output: html_notebook
 ---
-
-```{r setup, include=FALSE}
-all_times <- list()  # store the time for each chunk
-knitr::knit_hooks$set(time_it = local({
-  now <- NULL
-  function(before, options) {
-    if (before) {
-      now <<- Sys.time()
-    } else {
-      res <- difftime(Sys.time(), now, units = "secs")
-      all_times[[options$label]] <<- res
-    }
-  }
-}))
-knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
-  message = FALSE,
-  warning = FALSE,
-  time_it = TRUE,
-  error = TRUE
-)
-```
 
 ## load package
 
@@ -38,16 +15,28 @@ library(dplyr)
 ```{r, warning=F, message=F}
 
 time0_loadMatrix <- system.time({ 
-meta.list <- readRDS('../data/PBMCVignette/PBMC_meta.list')
-
-file.dir <- "../data/PBMCVignette/"
+  
+file.dir <- "/brahms/haoy/vignette_data/PBMCVignette/"
 files.set <- c("arunachalam_2020_processed.BPCells", "combes_2021_processed.BPCells", "lee_2020_processed.BPCells",
                "wilk_2020_processed.BPCells", "yao_2021_processed.BPCells")
+meta.list <- readRDS('/brahms/haoy/vignette_data/PBMCVignette/PBMC_meta.list')
+names(meta.list) <- gsub('_processed.BPCells','',files.set)
+
 input.list <- list()
 for (i in 1:length(files.set)) {
   input.list[[i]] <- open_matrix_dir(dir = paste0(file.dir, files.set[i]) )
+  colnames(input.list[[i]]) <- paste0(names(meta.list)[i], "_",    colnames(input.list[[i]]))
+  rownames(meta.list[[i]]) <-paste0(names(meta.list)[i], "_",  rownames(meta.list[[i]]))
+  meta.list[[i]]$batch <- names(meta.list)[i]
+  meta.list[[i]]$celltype <-   meta.list[[i]]$predicted.celltype.l2
+  
 }
  names(input.list) <- paste0('counts.',gsub('_processed.BPCells','',files.set))
+  meta_data <- lapply(meta.list, function(x) {
+    x <- x[,c('batch', 'celltype', 'patient', 'disease_status_standard' )]
+    return(x)
+  })
+  meta_data <- Reduce(rbind, meta_data)
 })
 ```
 
@@ -56,8 +45,8 @@ for (i in 1:length(files.set)) {
 
 options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
 time1_normalize <- system.time({
- i = 4
-  object <- CreateSeuratObject(counts = input.list[[i]], meta.data = meta.list[[i]] )
+ 
+  object <- CreateSeuratObject(counts = input.list[1:2], meta.data = meta_data)
   object <- NormalizeData(object, verbose = FALSE)
 })
 
@@ -65,30 +54,29 @@ time1_normalize <- system.time({
 
 ## load reference
 ```{r}
-library(SeuratData)
-data("pbmc3k")
-obj.ref <- pbmc3k
-obj.ref <- UpdateSeuratObject(obj.ref)
-obj.ref$seurat_annotations <- as.character(obj.ref$seurat_annotations)
-obj.ref$seurat_annotations[is.na(obj.ref$seurat_annotations)] <- 'other'
-obj.ref$celltype.l1 <- obj.ref$celltype.l2 <- obj.ref$seurat_annotations
-obj.ref <- NormalizeData(obj.ref) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA()
-obj.ref <- RunUMAP(obj.ref, dims = 1:30, return.model = T, reduction.name = 'wnn.umap', reduction.key = 'W_')
+ 
+obj.ref <- readRDS("/brahms/haoy/seurat4_pbmc/pbmc_multimodal_2023.rds")
+
+obj.ref 
 ```
 ## mapping
 ```{r}
 
+
 time2_anchoring <- system.time({
 anchor <- FindTransferAnchors(reference = obj.ref,
                               query = object, 
-                              reference.reduction = 'pca', 
+                              reference.reduction = 'spca', 
+                              normalization.method = 'SCT',
+                              dims = 1:50,
                               k.filter = NA, 
                               k.anchor = 5,
-                              features = rownames(obj.ref[['pca']]@feature.loadings))
+                              features = rownames(obj.ref[['spca']]@feature.loadings))
 })
 
 time3_MapQuery <- system.time({
-object <- MapQuery(
+
+  object <- MapQuery(
   anchorset = anchor,
   query = object,
   reference = obj.ref,
@@ -97,7 +85,8 @@ object <- MapQuery(
     l2.s5 = "celltype.l2"
   ),
   reduction.model = "wnn.umap"
-)})
+)
+})
 
 ```
 ```{r}
@@ -106,10 +95,15 @@ anchor
  
 
 ```{r}
- p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.l2.s5',alpha = 0.9, label = T) + NoLegend()
- 
- p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'cell.type.fine',alpha = 0.9, label = T) + NoLegend()
+ p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.l2.s5',alpha = 0.8, label = T) + NoLegend()
+ p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T) + NoLegend()
+
  p1+p2
+
+```
+```{r, fig.width=10, fig.height=10}
+p3 <-DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T, split.by = 'batch', ncol = 3) + NoLegend()
+p3
 ```
  
 ## pseudo-bulk
@@ -120,25 +114,25 @@ time4_bulk <- system.time( bulk <- AverageExpression(object,
                                                         return.seurat = T,
                                                         slot = 'counts',
                                                         assays  = 'RNA',
-                                                        group.by = c("predicted.celltype.l2","Donor","Status")
+                                                        group.by = c("predicted.l2.s5","patient","disease_status_standard")
                                                         )
 )
 
 bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
 bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
 bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
-
+bulk <- subset(bulk, subset = disease != 'other')
 
 ```
 
 ## computing time summary
 ```{r}
 all_T  <- ls(pattern = 'time')
-overall <- sum(sapply(all_T, function(x) round(as.numeric(get(x)['elapsed']), digits = 3)))/60
+overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
 
 
 for (i in 1:length(all_T)) {
-  T_i <- as.numeric(get(all_T[i]))['elapsed']
+  T_i <- get(all_T[i])['elapsed']
   if (T_i > 60) {
      print(paste(all_T[i], round(T_i/60, digits = 1), 'mins'))
   } else {
@@ -156,7 +150,7 @@ for (i in seq_along(celltype.set)) {
  if (any(table(bulk.i$disease) < 3)) {
     marker.list[[i]]  <- EmptyDF(n = 0)
  } else {
-    marker.list[[i]] <- FindMarkers(bulk.i, ident.1 = 'COVID',ident.2 = 'Healthy', slot = 'counts', test.use = 'DESeq2', verbose = F )
+    marker.list[[i]] <- FindMarkers(bulk.i, ident.1 = 'COVID-19',ident.2 = 'healthy', slot = 'counts', test.use = 'DESeq2', verbose = F )
  }
      
 }
@@ -175,21 +169,12 @@ marker.list.filter <- lapply(marker.list, function(x) {
 
 
 ```
-```{r}
-object$Status <- factor(object$Status, levels = c('Healthy', 'COVID'))
-bulk$disease <- factor(bulk$disease, levels = c('Healthy', 'COVID'))
+```{r} 
+bulk$disease <- factor(bulk$disease, levels = c('healthy', 'COVID-19'))
 
 ```
-```{r}
-VlnPlot(bulk, features = 'IFI44L', group.by = 'celltype', split.by = 'disease')
-
-VlnPlot(object, features = 'IFI44L', group.by = 'predicted.celltype.l2', split.by = 'Status')
+```{r, fig.width=10, fig.height=5}
+VlnPlot(bulk, features = 'MX1', group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+ 
 ```
-
-```{r print_times}
-as.data.frame(all_times)
-```
-
-```{r session_info}
-sessionInfo()
-```
+ 
