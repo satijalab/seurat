@@ -88,18 +88,6 @@
         Examples of how to perform normalization, feature selection, integration, and differential expression with an updated version of sctransform.
       image: assets/sctransform_v2.png
 
-    - title: Cross-modality Bridge Integration
-      name: bridge_integration_vignette
-      summary: |
-        Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
-      image: bridge_integration.png
-
-    - title: Atomic sketch integration for scRNA-seq
-      name: atomic_integration
-      summary: |
-        Perform community-scale integration of scRNA-seq datasets by atomic sketch integration.
-      image: atomic_integration.png
-
 - category: Other
   vignettes:
     - title: Visualization

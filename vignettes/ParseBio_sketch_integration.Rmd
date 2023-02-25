@@ -1,7 +1,36 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Sketch integration using a 1 million cell dataset from Parse Biosciences"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
 ---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  time_it = TRUE,
+  error = TRUE
+)
+```
 
 ## load package
 
@@ -12,15 +41,12 @@ library(dplyr)
 ```
 
 ## load matrix
+
 ```{r, warning=F, message=F}
- 
 time0_loadMatrix <- system.time({ 
-  mat <- open_matrix_dir('/brahms/haoy/test/pbmc_150k_sparse/')
-  meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta_100K.rds')
+  mat <- open_matrix_dir('../data/pbmc_150k_sparse/')
+  meta <- readRDS('../data/ParseBio_PBMC_meta_100K.rds')
   meta$disease <- sample(c('H','D'), nrow(meta), replace = T)
-  #mat <- open_matrix_dir('/brahms/haoy/test/pbmc_ParseBio_sparse//')
-  #meta <- readRDS('/brahms/haoy/seurat5/S5_object/ParseBio_PBMC_meta.rds')
-  
 })
 ```
 
@@ -31,12 +57,6 @@ options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
 time1_normalize <- system.time({
   object <- CreateSeuratObject(counts = mat, meta.data = meta)
   object <- NormalizeData(object, verbose = FALSE)
-
-  # object[['RNA']]$data <- write_matrix_dir(
-  #   mat = object[['RNA']]$data,
-  #   dir = '/brahms/haoy/test/pbmc_ParseBio_sparse_data'
-  #   )
-  #object[['RNA']]$data <- open_matrix_dir(dir = '/brahms/haoy/test/pbmc_ParseBio_sparse_data')
 })
  
 
@@ -112,10 +132,6 @@ p2<- DimPlot(object, reduction = 'umap.orig', group.by = 'celltype.weight', labe
 p1+p2
 
 ```
-## save object
-```{r}
-#time7_saveRDS <- system.time(saveRDS(object, "/brahms/haoy/test/pbmc_ParseBio_seurat.rds"))
-```
 
 ## pseudo-bulk
 ```{r}
@@ -179,11 +195,7 @@ for (i in 1:length(all_T)) {
 print(paste('Total time ', round(overall, digits = 1), 'mins' ))
 ```
 
-
-
-
 ```{r,fig.height = 20, fig.width = 15}
-
 Idents(bulk) <- 'celltype'
 marker <- FindAllMarkers(object = bulk, only.pos = TRUE, verbose = FALSE)
 marker %>%
@@ -191,5 +203,22 @@ marker %>%
     top_n(n = -5, wt = p_val) -> top5
 bulk <- ScaleData(bulk, features = top5$gene)
 DoHeatmap(bulk, features = top5$gene) + NoLegend()
-
 ```
+
+```{r save.img, include=TRUE}
+library(ggplot2)
+plot <- DoHeatmap(bulk, features = top5$gene) + NoLegend()
+ggsave(filename = "../output/images/ParseBio_sketch_integration.jpg", height = 10, width = 7, plot = plot, quality = 50)
+```
+
+```{r save.times, include=TRUE}
+print(as.data.frame(all_times))
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/ParseBio_sketch_integration.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

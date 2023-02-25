@@ -42,38 +42,20 @@
         Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes.
       image: cell_cycle_vignette.jpg
 
-    - title: BPCells Sketch Clustering (Log)
-      name: BPCells_sketch_clustering_mouse_brain
+    - title: Sketch Clustering (BPCells)
+      name: MouseBrain_sketch_clustering
       summary: |
-        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat5.
-      image: BPCells_sketch_clustering_mouse_brain.png
+        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat v5.
+      image: MouseBrain_sketch_clustering.jpg
 
-    - title: BPCells Sketch Clustering (SCTransform)
-      name: BPCells_sketch_clustering_mouse_brain_SCT
+    - title: COVID Mapping (BPCells)
+      name: COVID_SCTMapping
       summary: |
-        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat5.
-      image: BPCells_sketch_clustering_mouse_brain.png
+        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
+      image: COVID_SCTMapping.jpg
 
-    - title: BPCells Sketch integration (Log)
-      name: BPCells_sketch_integration_1M
+    - title: Sketch Integration (BPCells)
+      name: ParseBio_sketch_integration
       summary: |
         Perform sketch integration on a large dataset from Parse Biosciences.
-      image: BPCells_sketch_inte_1M.png
-  
-    - title: BPCells Sketch integration (SCTransform)
-      name: BPCells_sketch_integration_1M_SCT
-      summary: |
-        Perform sketch integration on a large dataset from Parse Biosciences.
-      image: BPCells_sketch_inte_1M.png
-
-    - title: Chunked mapping (Log)
-      name: BPCells_COVID_logMapping
-      summary: |
-        Iteratively map large COVID datasets onto a reference for cell type annotation.
-      image: BPCells_COVID.png
-
-    - title: Chunked mapping (SCTransform)
-      name: BPCells_COVID_SCTMapping
-      summary: |
-        Iteratively map large COVID datasets onto a reference for cell type annotation.
-      image: BPCells_COVID.png
+      image: ParseBio_sketch_integration.jpg

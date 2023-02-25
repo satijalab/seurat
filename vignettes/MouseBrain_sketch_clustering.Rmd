@@ -1,7 +1,36 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Mouse brain sketch clustering"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
 ---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  time_it = TRUE,
+  error = TRUE
+)
+```
  
 ## load library
 ```{r, warning=FALSE, message=FALSE}
@@ -13,10 +42,9 @@ library(BPCells)
 ```{r, warning=FALSE, message=FALSE}
 t0_CreateObject <- system.time({
 
-mat <- open_matrix_dir("/brahms/haoy/test/mouse_1M_neurons_counts")[,1:1e5]
+mat <- open_matrix_dir("../data/mouse_1M_neurons_counts")[,1:1e5]
  
-devtools::load_all("/brahms/haoy//package/MetricPatch/")
-mat <- ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
+mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
  
 options(Seurat.object.assay.version = "v5",  Seurat.object.assay.calcn = T)
 obj <- CreateSeuratObject(counts = mat )
@@ -152,6 +180,23 @@ obj.sub <- FindClusters(obj.sub)
 ```
 
 ```{r}
-DimPlot(obj.sub, label = T) + NoLegend()
-
+p <- DimPlot(obj.sub, label = T) + NoLegend()
+p
 ```
+
+```{r save.img, include=TRUE}
+library(ggplot2)
+ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 10, width = 7, plot = p, quality = 50)
+```
+
+```{r save.times, include=TRUE}
+print(as.data.frame(all_times))
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/MouseBrain_sketch_clustering.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
