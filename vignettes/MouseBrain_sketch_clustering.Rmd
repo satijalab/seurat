@@ -1,9 +1,14 @@
 ---
-title: "Sketch clustering in mouse brain"
-output: html_notebook
+title: "Mouse brain sketch clustering"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
 ---
- 
-```{r setup, include=FALSE}
+
+```{r setup, include=TRUE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
   now <- NULL
@@ -21,11 +26,12 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
+  fig.width = 10,
   time_it = TRUE,
   error = TRUE
 )
 ```
-
+ 
 ## load library
 ```{r, warning=FALSE, message=FALSE}
 library(Seurat)
@@ -35,10 +41,14 @@ library(BPCells)
 ## load data from h5ad 
 ```{r, warning=FALSE, message=FALSE}
 t0_CreateObject <- system.time({
-  mat <- open_matrix_dir("../data/mouse_1M_neurons_counts")
-  mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
-  options(Seurat.object.assay.version = "v5",  Seurat.object.assay.calcn = T)
-  obj <- CreateSeuratObject(counts = mat)
+
+mat <- open_matrix_dir("../data/mouse_1M_neurons_counts")[,1:1e5]
+ 
+mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = 'mouse')
+ 
+options(Seurat.object.assay.version = "v5",  Seurat.object.assay.calcn = T)
+obj <- CreateSeuratObject(counts = mat )
+ 
 })
 
 ```
@@ -48,8 +58,7 @@ t0_CreateObject <- system.time({
 t1_CreateSketchAssay <- system.time({
 obj <- NormalizeData(obj)
 obj <- FindVariableFeatures(obj, layer = 'counts')
-obj <- LeverageScore(obj)
-obj <- LeverageScoreSampling(object = obj, ncells = 50000, cast = 'dgCMatrix')
+obj <- LeverageScoreSampling(object = obj, ncells = 5000, cast = 'dgCMatrix')
  
 })
 
@@ -70,20 +79,11 @@ obj <- RunUMAP(obj, dims = 1:50, return.model = T)
 ```{r}
 DimPlot(obj, label = T, reduction = 'umap') + NoLegend() 
 ```
-## Azimuth mapping to annotate clusters
-```{r, warning=F, message=F}
-# add some fake annotations to the object
-obj$predicted.subclass <- sample(c("celltype1", "celltype2"), length(Cells(obj)), replace = TRUE)
-obj$predicted.cluster <- sample(c("celltype1", "celltype2", "celltype3", "celltype4"), length(Cells(obj)), replace = TRUE)
-```
-
 
 
 ```{r}
 DimPlot(obj, reduction = 'umap', label = T) + NoLegend()
-DimPlot(obj, reduction = 'umap', group.by = 'predicted.subclass',label = T) + NoLegend()
-DimPlot(obj, reduction = 'umap', group.by = 'predicted.cluster',label = T) + NoLegend()
- 
+
 ```
 ```{r,fig.height = 20, fig.width = 15}
 features.set <- c('Aqp4', 'Sox10', 'Slc17a7', 'Aif1', 'Foxj1', 'Pax6', 'Slc17a6', 'Lum', 'Nanog', 'Gad2', 'Foxj1',   'Cldn5','Alas2')
@@ -118,9 +118,7 @@ t4_transferLabel <- system.time({
                             atoms = 'sketch',
                             reduction = 'pca.orig',
                             dims = 1:50,
-                            refdata = list(cluster_full = 'sketch_snn_res.0.8',
-                                        subclass_full ='predicted.subclass',
-                                       cluster_anno_full  = 'predicted.cluster'),
+                            refdata = list(cluster_full = 'sketch_snn_res.0.8'),
                             reduction.model = 'umap'
                             )
 })
@@ -130,19 +128,17 @@ t4_transferLabel <- system.time({
 
 ```{r}
 library(ggplot2)
-DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()  
-
-DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.cluster_anno_full', alpha = 0.1) + NoLegend()  
+DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.cluster_full', alpha = 0.1) + NoLegend()  
 
 ```
 
 ```{r}
 all_T  <- ls(pattern = '^t')
-overall <- sum(sapply(all_T, function(x) round(as.numeric(get(x)['elapsed']), digits = 3)))/60
+overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
 
 
 for (i in 1:length(all_T)) {
-  time.i <- as.numeric(get(all_T[i])['elapsed'])
+  time.i <- get(all_T[i])['elapsed']
   if (time.i > 60) {
      print(paste(all_T[i], round(time.i/60, digits = 1), 'mins'))
   } else {
@@ -158,22 +154,49 @@ print(paste('Total time ', round(overall, digits = 3), 'mins' ))
 
 obj[['pca.nn']] <- Seurat:::NNHelper(data = obj[['pca.orig']]@cell.embeddings[,1:50], 
                             k = 30, 
-                            method = "hnsw",
-                            metric = "cosine",
+                            method = "hnsw", 
+                            metric = "cosine", 
                             n_threads = 10)
 obj <- RunUMAP(obj, nn.name = "pca.nn", reduction.name = 'umap.orig', reduction.key = 'Uo_')
  
 ```
 
 ```{r}
-DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.subclass_full', alpha = 0.1) + NoLegend()
-DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_anno_full', alpha = 0.1) + NoLegend()
+DimPlot(obj, label = T, reduction = 'umap.orig', group.by = 'predicted.cluster_full', alpha = 0.1) + NoLegend()  
+
 ```
 
-```{r print_times}
-as.data.frame(all_times)
+## sub type clustering
+```{r}
+obj.sub <- subset(obj, subset = predicted.cluster_full %in% c(5, 12))
+obj.sub[['sketch']] <- NULL
+obj.sub[['RNA']] <- CastAssay(object = obj.sub[['RNA']], to = "dgCMatrix" )
+obj.sub <- FindVariableFeatures(obj.sub, layer = 'counts')
+obj.sub <- ScaleData(obj.sub)
+obj.sub <- RunPCA(obj.sub)
+obj.sub <- RunUMAP(obj.sub, dims = 1:30)
+obj.sub <- FindNeighbors(obj.sub, dims = 1:30)
+obj.sub <- FindClusters(obj.sub)
 ```
 
-```{r session_info}
+```{r}
+p <- DimPlot(obj.sub, label = T) + NoLegend()
+p
+```
+
+```{r save.img, include=TRUE}
+library(ggplot2)
+ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 10, width = 7, plot = p, quality = 50)
+```
+
+```{r save.times, include=TRUE}
+print(as.data.frame(all_times))
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/MouseBrain_sketch_clustering.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
 sessionInfo()
 ```
+</details>
