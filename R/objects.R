@@ -567,7 +567,21 @@ DietSeurat <- function(
         abort(message = "Cannot remove both 'counts' and 'data' from v3 Assays")
       }
       for (lyr in layers.rm) {
-        object[[assay]][[lyr]] <- NULL
+        object <- tryCatch(expr = {
+          object[[assay]][[lyr]] <- NULL
+          object
+        }, error = function(e) {
+          if (lyr == "data"){
+            object[[assay]][[lyr]] <- sparseMatrix(i = 1, j = 1, x = 1,
+                         dims = dim(object[[assay]][[lyr]]), 
+                         dimnames = dimnames(object[[assay]][[lyr]]))
+          } else{
+            slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
+          }
+          message("Converting layer ", lyr, " in assay ", 
+                  assay, " to empty dgCMatrix")
+          object
+        })
       }
     }
     if (!is.null(x = features)) {
