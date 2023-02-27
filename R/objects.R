@@ -571,7 +571,13 @@ DietSeurat <- function(
           object[[assay]][[lyr]] <- NULL
           object
         }, error = function(e) {
-          slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
+          if (lyr == "data"){
+            object[[assay]][[lyr]] <- sparseMatrix(i = 1, j = 1, x = 1,
+                         dims = dim(object[[assay]][[lyr]]), 
+                         dimnames = dimnames(object[[assay]][[lyr]]))
+          } else{
+            slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
+          }
           message("Converting layer ", lyr, " in assay ", 
                   assay, " to empty dgCMatrix")
           object
