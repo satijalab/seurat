@@ -178,23 +178,6 @@ marker.list.filter <- lapply(marker.list, function(x) {
 VlnPlot(bulk, features = 'FOXO3', group.by = 'celltype', split.by = 'disease')
 ```
 
-## computing time summary
-```{r}
-all_T  <- ls(pattern = 'time')
-overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
-
-
-for (i in 1:length(all_T)) {
-  T_i <- get(all_T[i])['elapsed']
-  if (T_i > 60) {
-     print(paste(all_T[i], round(T_i/60, digits = 1), 'mins'))
-  } else {
-     print(paste(all_T[i], round(T_i, digits = 1), 'secs'))
-  }
-}
-print(paste('Total time ', round(overall, digits = 1), 'mins' ))
-```
-
 ```{r,fig.height = 20, fig.width = 15}
 Idents(bulk) <- 'celltype'
 marker <- FindAllMarkers(object = bulk, only.pos = TRUE, verbose = FALSE)

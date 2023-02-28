@@ -133,24 +133,6 @@ DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.cluster_fu
 ```
 
 ```{r}
-all_T  <- ls(pattern = '^t')
-overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
-
-
-for (i in 1:length(all_T)) {
-  time.i <- get(all_T[i])['elapsed']
-  if (time.i > 60) {
-     print(paste(all_T[i], round(time.i/60, digits = 1), 'mins'))
-  } else {
-     print(paste(all_T[i], round(time.i, digits = 1), 'secs'))
-  }
-}
-print(paste('Total time ', round(overall, digits = 3), 'mins' ))
- 
-```
-
-
-```{r}
 
 obj[['pca.nn']] <- Seurat:::NNHelper(data = obj[['pca.orig']]@cell.embeddings[,1:50], 
                             k = 30, 
