@@ -21,8 +21,8 @@
     - title: Analysis of spatial datasets (Imaging-based)
       name: seurat5_spatial_vignette_2
       summary: |
-        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Nanostring SMI, and CODEX.
-      image: spatial_vignette_2.png
+        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Xenium, CosMx SMI, and CODEX.
+      image: spatial_vignette_2.jpg
 
     - title: SCTransform
       name: seurat5_sctransform_vignette

@@ -199,6 +199,87 @@ We can visualize individual molecules plotted at higher resolution after zooming
 ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], cols = "polychrome", mols.size = 1, alpha = 0.5, mols.cols = c("red", "blue", "yellow", "green"))
 ```
 
+# Mouse Brain: 10x Genomics Xenium In Situ
+
+In this section we'll analyze data produced by the Xenium platform. The vignette demonstrates how to load the per-transcript location data, cell x gene matrix, cell segmentation, and cell centroid information available in the Xenium outputs. The resulting Seurat object will contain the gene expression profile of each cell, the centroid and boundary of each cell, and the location of each individual detected transcript. The per-cell gene expression profiles are similar to standard single-cell RNA-seq and can be analyzed using the same tools.
+
+This uses the `Tiny subset` dataset from 10x Genomics provided in the [Fresh Frozen Mouse Brain for Xenium Explorer Demo](https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard) which can be downloaded as described below. These analysis steps are also compatible with the larger `Full coronal section`, but will take longer to execute.
+
+```{bash, eval=FALSE}
+wget https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+```
+
+First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
+
+```{r load.xenium, results='hide'}
+path <- "../data/xenium_tiny_subset"
+# Load the Xenium data
+xenium.obj <- LoadXenium(path, fov = "fov")
+# remove cells with 0 counts
+xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
+```
+
+Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named `fov`. Later, we will make a cropped FOV that zooms into a region of interest.
+
+Standard QC plots provided by Seurat are available via the `Xenium` assay. Here are violin plots of genes per cell (`nFeature_Xenium`) and transcript counts per cell (`nCount_Xenium`)
+```{r vlnplot.xenium}
+VlnPlot(xenium.obj, features = c("nFeature_Xenium", "nCount_Xenium"), ncol = 2, pt.size = 0)
+```
+
+Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory neuron sub-type markers Pvalb, and Sst, and astrocyte marker Gfap on the tissue using `ImageDimPlot()`.
+```{r p2.xenium, fig.width=10, fig.height=8}
+ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
+```
+
+```{r save.img, include=FALSE}
+library(ggplot2)
+plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
+ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
+Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.
+```{r mat.xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
+ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
+```
+
+We can zoom in on a chosen area with the `Crop()` function. Once zoomed-in, we can visualize cell segmentation boundaries along with individual molecules.
+```{r cropping.xenium, message=FALSE, warning=FALSE, fig.width=10, fig.height=8}
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1200, 2900), y = c(3750, 4550), coords = "plot")
+xenium.obj[["zoom"]] <- cropped.coords
+# visualize cropped area with cell segmentations & selected molecules
+DefaultBoundary(xenium.obj[["zoom"]]) <- "segmentation"
+ImageDimPlot(xenium.obj, fov = "zoom", 
+             axes = TRUE, border.color = "white", border.size = 0.1,
+             cols = "polychrome", coord.fixed = FALSE,
+             molecules = c("Gad1", "Sst", "Npy2r", "Pvalb", "Nrn1"), nmols = 10000)
+```
+
+Next, we use SCTransform for normalization followed by standard dimensionality reduction and clustering. This step takes about 5 minutes from start to finish.
+```{r unsupervised.xenium, results='hide'}
+xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
+xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
+xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
+xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
+xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
+```
+
+We can then visualize the results of the clustering by coloring each cell according to its cluster either in UMAP space with `DimPlot()` or overlaid on the image with `ImageDimPlot()`.
+```{r umap.xenium, fig.width=10, fig.height=7}
+DimPlot(xenium.obj)
+```
+
+We can visualize the expression level of the markers we looked at earlier on the UMAP coordinates.
+```{r features.xenium, fig.width=8, fig.height=10}
+FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "Gfap"))
+```
+
+We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
+```{r clusters.xenium, fig.width=13, fig.height=13}
+ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
+```
+
+
 # Human Lung: Nanostring CosMx Spatial Molecular Imager
 
 This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI). The CosMX SMI performs multiplexed single molecule profiling, can profile both RNA and protein targets, and can be applied directly to FFPE tissues. The dataset represents 8 FFPE samples taken from 5 non-small-cell lung cancer (NSCLC) tissues, and is available for [public download](https://www.nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/). The gene panel consists of 960 transcripts. 
