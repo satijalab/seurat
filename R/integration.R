@@ -5943,6 +5943,11 @@ ValidateParams_FindTransferAnchors <- function(
   if (reduction == "lsiproject") {
     ModifyParam(param = "k.filter", value = NA)
   }
+  if (inherits(x = reference[[reference.assay]], what = 'Assay5') ||
+      inherits(x = query[[query.assay]], what = 'Assay5')) {
+    # current filter anchors not support for v5 assay
+    ModifyParam(param = "k.filter", value = NA)
+  }
   if (!is.na(x = k.filter) && k.filter > ncol(x = query)) {
     warning("k.filter is larger than the number of cells present in the query.\n",
             "Continuing without anchor filtering.",
