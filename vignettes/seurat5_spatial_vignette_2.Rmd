@@ -62,7 +62,7 @@ We use the `LoadVizgen()` function, which we have written to read in the output 
 
 ```{r, message=FALSE, warning=FALSE}
 # Loading segmentations is a slow process and multi processing with the future pacakge is recommended
-vizgen.obj <- LoadVizgen(data.dir = "../data/vizgen/s2r1/", fov = "s2r1")
+vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/vignette_data/vizgen/s2r1/", fov = "s2r1")
 ```
 
 The next pieces of information are specific to imaging assays, and is stored in the images slot of the resulting Seurat object:
@@ -213,7 +213,7 @@ unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
 First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
 
 ```{r load.xenium, results='hide'}
-path <- "../data/xenium_tiny_subset"
+path <- "/brahms/hartmana/vignette_data/xenium_tiny_subset"
 # Load the Xenium data
 xenium.obj <- LoadXenium(path, fov = "fov")
 # remove cells with 0 counts
@@ -235,7 +235,7 @@ ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfa
 ```{r save.img, include=FALSE}
 library(ggplot2)
 plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
-ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 7, width = 12, plot = plot, quality = 50)
+ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
 ```
 
 Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.
@@ -289,12 +289,12 @@ In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `Lo
 For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0.  You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
 
 ```{r load}
-nano.obj <- LoadNanostring(data.dir = "../data/nanostring/lung5_rep1", fov="lung5.rep1")
+nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/vignette_data/nanostring/lung5_rep1", fov="lung5.rep1")
 ```
 
 ```{r integration}
 # add in precomputed Azimuth annotations
-azimuth.data <- readRDS("../data/nanostring_data.Rds")
+azimuth.data <- readRDS("/brahms/hartmana/vignette_data/nanostring_data.Rds")
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
@@ -376,7 +376,7 @@ First, we load in the data of a HuBMAP dataset using the `LoadAkoya()` function 
 
 ```{r}
 codex.obj <- LoadAkoya(
-  filename = "../data/LN7910_20_008_11022020_reg001_compensated.csv",
+  filename = "/brahms/hartmana/vignette_data/LN7910_20_008_11022020_reg001_compensated.csv",
   type = "processor",
   fov = "HBM754.WKLP.262"
 )

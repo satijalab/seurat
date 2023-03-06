@@ -190,8 +190,8 @@ DoHeatmap(bulk, features = top5$gene) + NoLegend()
 
 ```{r save.img, include=TRUE}
 library(ggplot2)
-plot <- DoHeatmap(bulk, features = top5$gene) + NoLegend()
-ggsave(filename = "../output/images/ParseBio_sketch_integration.jpg", height = 10, width = 7, plot = plot, quality = 50)
+plot <- DoHeatmap(bulk, features = top5$gene) + NoLegend() + theme(axis.text.y = element_blank())
+ggsave(filename = "../output/images/ParseBio_sketch_integration.jpg", height = 7, width = 7, plot = plot, quality = 50)
 ```
 
 ```{r save.times, include=TRUE}

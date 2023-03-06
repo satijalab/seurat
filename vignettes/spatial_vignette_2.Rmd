@@ -234,7 +234,7 @@ ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfa
 ```{r save.img, include=FALSE}
 library(ggplot2)
 plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
-ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 7, width = 12, plot = plot, quality = 50)
+ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
 ```
 
 Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.

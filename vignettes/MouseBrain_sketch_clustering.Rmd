@@ -168,7 +168,8 @@ p
 
 ```{r save.img, include=TRUE}
 library(ggplot2)
-ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 10, width = 7, plot = p, quality = 50)
+p <- DimPlot(obj, label = T, label.size=8, reduction = "ref.umap", group.by = "predicted.cluster_full", alpha = 0.1) + NoLegend()
+ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
 
 ```{r save.times, include=TRUE}

@@ -190,7 +190,7 @@ VlnPlot(bulk, features = 'MX1', group.by = 'celltype', split.by = 'disease', col
  
 ```{r save.img, include=TRUE}
 library(ggplot2)
-ggsave(filename = "../output/images/COVID_SCTMapping.jpg", height = 10, width = 7, plot = p3, quality = 50)
+ggsave(filename = "../output/images/COVID_SCTMapping.jpg", height = 7, width = 8, plot = p3, quality = 50)
 ```
 
 ```{r save.times, include=TRUE}
