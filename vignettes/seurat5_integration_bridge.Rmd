@@ -1,0 +1,272 @@
+---
+title: "Dictionary Learning for cross-modality integration"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  warning = FALSE,
+  error = TRUE,
+  message = FALSE,
+  fig.width = 8,
+  time_it = TRUE
+)
+```
+
+In the same way that read mapping tools have transformed genome sequence analysis, the ability to map new datasets to established references represents an exciting opportunity for the field of single-cell genomics. Along with others in the community, we have developed [tools to map and interpret query datasets](https://satijalab.org/seurat/articles/multimodal_reference_mapping.html), and have also constructed a [set of scRNA-seq datasets for diverse mammalian tissues](http://azimuth.hubmapconsortium.org).
+
+A key challenge is to extend this reference mapping framework to technologies that do not measure gene expression, even if the underlying reference is based on scRNA-seq. In [Hao et al, bioRxiv 2022](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1), we introduce 'bridge integration', which enables the mapping of complementary technologies (like scATAC-seq, scDNAme, CyTOF), onto scRNA-seq references, using a 'multi-omic' dataset as a molecular bridge. In this vignette, we demonstrate how to map an scATAC-seq dataset of human PBMC, onto our previously constructed [PBMC reference](https://azimuth.hubmapconsortium.org/references/human_pbmc/). We use a publicly available 10x multiome dataset, which simultaneously measures gene expression and chromatin accessibility in the same cell, as a bridge dataset.
+
+In this vignette we demonstrate:
+
+* Loading in and pre-processing the scATAC-seq, multiome, and scRNA-seq reference datasets
+* Mapping the scATAC-seq dataset via bridge integration
+* Exploring and assessing the resulting annotations 
+
+First, we install the updated version of Seurat that supports this infrastructure, as well as other packages necessary for this vignette.
+
+```{r, message=FALSE, warning=FALSE}
+library(remotes)
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+library(SeuratDisk)
+library(Signac)
+library(EnsDb.Hsapiens.v86)
+library(dplyr)
+library(ggplot2)
+```
+
+## Load the bridge, query, and reference datasets
+
+We start by loading a 10x multiome dataset, consisting of ~12,000 PBMC from a healthy donor. The dataset measures RNA-seq and ATAC-seq in the same cell, and is available for download from 10x Genomics [here](https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-2-0-0). We follow the loading instructions from the [Signac package vignettes](https://satijalab.org/signac/articles/pbmc_multiomic.html). Note that when using Signac, please make sure you are using the [latest version of Bioconductor]([http://www.bioconductor.org/news/bioc_3_14_release/]), as [users have reported errors](https://github.com/timoast/signac/issues/687) when using older BioC versions. 
+
+<details>
+  <summary>**Load and setup the 10x multiome object**</summary>
+
+```{r}
+# the 10x hdf5 file contains both data types. 
+inputdata.10x <- Read10X_h5("/brahms/haoy/vignette_data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
+# extract RNA and ATAC data
+rna_counts <- inputdata.10x$`Gene Expression`
+atac_counts <- inputdata.10x$Peaks
+# Create Seurat object
+obj.multi <- CreateSeuratObject(counts = rna_counts)
+# Get % of mitochondrial genes
+obj.multi[["percent.mt"]] <- PercentageFeatureSet(obj.multi, pattern = "^MT-")
+
+# add the ATAC-seq assay
+options(Seurat.object.assay.version = "v3")
+grange.counts <- StringToGRanges(rownames(atac_counts), sep = c(":", "-"))
+grange.use <- seqnames(grange.counts) %in% standardChromosomes(grange.counts)
+atac_counts <- atac_counts[as.vector(grange.use), ]
+# Get gene annotations
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+# Change style to UCSC 
+seqlevelsStyle(annotations) <- 'UCSC'
+genome(annotations) <- "hg38"
+# File with ATAC per fragment information file 
+frag.file <- "/brahms/haoy/vignette_data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
+# Add in ATAC-seq data as ChromatinAssay object
+chrom_assay <- CreateChromatinAssay(
+  counts = atac_counts,
+  sep = c(":", "-"),
+  genome = 'hg38',
+  fragments = frag.file,
+  min.cells = 10,
+  annotation = annotations
+)
+# Add the ATAC assay to the multiome object 
+obj.multi[["ATAC"]] <- chrom_assay
+# Filter ATAC data based on QC metrics
+obj.multi <- subset(
+  x = obj.multi,
+  subset = nCount_ATAC < 7e4 &
+    nCount_ATAC > 5e3 &
+    nCount_RNA < 25000 &
+    nCount_RNA > 1000 &
+    percent.mt < 20
+)
+```
+</details>
+
+---
+
+The scATAC-seq query dataset represents ~10,000 PBMC from a healthy donor, and is available for download [here](https://www.10xgenomics.com/resources/datasets/10-k-human-pbm-cs-atac-v-1-1-chromium-x-1-1-standard-2-0-0). We load in the peak/cell matrix, store the path to the fragments file, and add gene annotations to the object, following the steps as with the ATAC data in the multiome experiment.
+
+We note that it is important to quantify the same set of genomic features in the query dataset as are quantified in the multi-omic bridge. We therefore requantify the set of scATAC-seq peaks using the `FeatureMatrix` command. This is also described in the [Signac vignettes](https://satijalab.org/signac/articles/integrate_atac.html) and shown below.
+
+<details>
+  <summary>**Load and setup the 10x scATAC-seq query**</summary>
+  
+```{r, message=FALSE, warning=FALSE}
+# Load ATAC dataset
+atac_pbmc_data <- Read10X_h5(filename = "/brahms/haoy/vignette_data/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5") 
+fragpath <- "/brahms/haoy/vignette_data/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz"
+# Get gene annotations
+annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+# Change to UCSC style 
+seqlevelsStyle(annotation) <- 'UCSC'
+# Create ChromatinAssay for ATAC data
+atac_pbmc_assay <- CreateChromatinAssay(
+  counts = atac_pbmc_data,
+  sep = c(":", "-"),
+  fragments = fragpath,
+  annotation = annotation
+)
+# Requantify query ATAC to have same features as multiome ATAC dataset
+requant_multiome_ATAC <- FeatureMatrix(
+  fragments = Fragments(atac_pbmc_assay),
+  features = granges(obj.multi[['ATAC']]),
+  cells = Cells(atac_pbmc_assay)
+)
+# Create assay with requantified ATAC data
+ATAC_assay <- CreateChromatinAssay(
+  counts = requant_multiome_ATAC,
+  fragments = fragpath,
+  annotation = annotation
+)
+# Create Seurat sbject
+obj.atac  <- CreateSeuratObject(counts = ATAC_assay,assay = 'ATAC')
+obj.atac[['peak.orig']] <- atac_pbmc_assay
+obj.atac <- subset(obj.atac, subset = nCount_ATAC < 7e4 & nCount_ATAC > 2000)
+```
+</details>
+
+---
+
+We load the reference (download [here](https://atlas.fredhutch.org/data/nygc/multimodal/pbmc_multimodal.h5seurat)) from our recent [paper](https://doi.org/10.1016/j.cell.2021.04.048). This reference is stored as an h5Seurat file, a format that enables on-disk storage of multimodal Seurat objects (more details on h5Seurat and `SeuratDisk` can be found [here](https://mojaveazure.github.io/seurat-disk/index.html)).
+
+```{r pbmc.ref}
+obj.rna <- LoadH5Seurat("/brahms/haoy/seurat4_pbmc/pbmc_multimodal.h5seurat")
+```
+<details>
+  <summary>**What if I want to use my own reference dataset?**</summary>
+
+As an alternative to using a pre-built reference, you can also use your own reference. To demonstrate, you can download a scRNA-seq dataset of 23,837 human PBMC [here](https://www.dropbox.com/s/x8mu9ye2w3a63hf/20k_PBMC_scRNA.rds?dl=0), which we have already annotated.
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+obj.rna = readRDS("/path/to/reference.rds")
+obj.rna = SCTransform(object = obj.rna) %>% RunPCA() %>% RunUMAP(dims = 1:50, return.model = TRUE) 
+```
+When using your own reference, set `reference.reduction = "pca"` in the `PrepareBridgeReference` function.
+ 
+</details>
+
+---
+
+# Preprocessing/normalization for all datasets
+
+Prior to performing bridge integration, we normalize and pre-process each of the datasets (note that the reference has already been normalized). We normalize gene expression data using [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1), and ATAC data using TF-IDF.
+
+```{r, message=FALSE, warning=FALSE}
+# normalize multiome RNA
+DefaultAssay(obj.multi) <- "RNA"
+obj.multi <- SCTransform(obj.multi, verbose = FALSE) 
+# normalize multiome ATAC
+DefaultAssay(obj.multi) <- "ATAC"
+obj.multi <- RunTFIDF(obj.multi)
+obj.multi <- FindTopFeatures(obj.multi, min.cutoff = "q0")
+# normalize query
+obj.atac <- RunTFIDF(obj.atac)
+```
+
+## Map scATAC-seq dataset using bridge integration
+
+Now that we have the reference, query, and bridge datasets set up, we can begin integration. The bridge dataset enables translation between the scRNA-seq reference and the scATAC-seq query, effectively augmenting the reference so that it can map a new data type. We call this an extended reference, and first set it up.  Note that you can save the results of this function and map multiple scATAC-seq datasets without having to rerun.
+
+
+```{r, message=FALSE, warning=FALSE}
+# Drop first dimension for ATAC reduction
+dims.atac <- 2:50
+dims.rna <- 1:50
+DefaultAssay(obj.multi) <-  "RNA"
+DefaultAssay(obj.rna) <- "SCT"
+obj.rna.ext <- PrepareBridgeReference(reference = obj.rna,
+                                      bridge = obj.multi, 
+                                      reference.reduction = "spca",
+                                      reference.dims = dims.rna,
+                                      normalization.method = "SCT"
+)
+```
+
+Now, we can directly find anchors between the extended reference and query objects. We use the `FindBridgeTransferAnchors` function, which translates the query dataset using the same dictionary as was used to translate the reference, and then identifies anchors in this space. The function is meant to mimic our `FindTransferAnchors` function, but to identify correspondences across modalities.
+
+```{r, message=FALSE, warning=FALSE}
+bridge.anchor <- FindBridgeTransferAnchors(extended.reference = obj.rna.ext, 
+                                           query = obj.atac,
+                                           reduction = "lsiproject",
+                                           dims = dims.atac
+)
+```
+
+
+Once we have identified anchors, we can map the query dataset onto the reference. The `MapQuery` function is the same as we have [previously introduced for reference mapping](https://satijalab.org/seurat/articles/multimodal_reference_mapping.html) . It transfers cell annotations from the reference dataset, and also visualizes the query dataset on a previously computed UMAP embedding. Since our reference dataset contains cell type annotations at three levels of resolution (l1 - l3), we can transfer each level to the query dataset.
+
+
+```{r, message=FALSE, warning=FALSE}
+obj.atac <- MapQuery(anchorset = bridge.anchor, 
+                       reference = obj.rna.ext, 
+                       query = obj.atac, 
+                       refdata = list(
+                         l1 = "celltype.l1",
+                         l2 = "celltype.l2",
+                         l3 = "celltype.l3"),
+                       reduction.model = "wnn.umap" 
+)
+```
+
+Now we can visualize the results, plotting the scATAC-seq cells based on their predicted annotations, on the reference UMAP embedding. You can see that each scATAC-seq cell has been assigned a cell name based on the scRNA-seq defined cell ontology.
+
+```{r, message=FALSE, warning=FALSE}
+DimPlot(obj.atac, group.by = "predicted.l2", reduction = "ref.umap", label = TRUE) + ggtitle("ATAC") + NoLegend()
+```
+
+## Assessing the mapping
+
+To assess the mapping and cell type predictions, we will first see if the predicted cell type labels are concordant with an unsupervised analysis of the scATAC-seq dataset. We follow the standard unsupervised processing workflow for scATAC-seq data:
+
+```{r, message=FALSE, warning=FALSE}
+obj.atac <- FindTopFeatures(obj.atac, min.cutoff = "q0")
+obj.atac <- RunSVD(obj.atac)
+obj.atac <- RunUMAP(obj.atac, reduction = "lsi", dims = 2:50)
+```
+
+Now, we visualize the predicted cluster labels on the unsupervised UMAP emebdding. We can see that predicted cluster labels (from the scRNA-seq reference) are concordant with the structure of the scATAC-seq data. However, there are some cell types (i.e. Treg),  that do not appear to separate in unsupervised analysis. These may be prediction errors, or cases where the reference mapping provides additional resolution.
+
+```{r, pbmcdimplots,  message=FALSE, warning=FALSE}
+DimPlot(obj.atac, group.by = "predicted.l2", reduction = "umap", label = FALSE) 
+```
+
+Lastly, we validate the predicted cell types for the scATAC-seq data by examining their chromatin accessibility profiles at canonical loci. We use the `CoveragePlot` function to visualize accessibility patterns at the CD8A, FOXP3, and RORC, after grouping cells by their predicted labels. We see expected patterns in each case. For example, the PAX5 locus exhibits peaks that are accessible exclusively in B cells, and the CD8A locus shows the same in CD8 T cell subsets. Similarly, the accessibility of FOXP3, a canonical marker of regulatory T cells (Tregs), in predicted Tregs provides strong support for the accuracy of our prediction.
+
+```{r, message=FALSE, warning=FALSE}
+CoveragePlot(obj.atac, region  = "PAX5", group.by = "predicted.l1", idents = c("B", "CD4 T", "Mono", "NK"), window = 200, extend.upstream = -150000)
+CoveragePlot(obj.atac, region = "CD8A", group.by = "predicted.l2", idents = c("CD8 Naive", "CD4 Naive", "CD4 TCM", "CD8 TCM"), extend.downstream = 5000, extend.upstream = 5000)
+CoveragePlot(obj.atac, region = "FOXP3", group.by = "predicted.l2", idents = c( "CD4 Naive", "CD4 TCM", "CD4 TEM", "Treg"), extend.downstream = 0, extend.upstream = 0)
+CoveragePlot(obj.atac, region = "RORC", group.by = "predicted.l2", idents = c("CD8 Naive", "CD8 TEM", "CD8 TCM", "MAIT"), extend.downstream = 5000, extend.upstream = 5000)
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
