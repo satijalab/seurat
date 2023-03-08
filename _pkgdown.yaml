@@ -133,6 +133,14 @@ navbar:
           href: articles/seurat5_interaction_vignette.html
         - text: "Merging Seurat objects"
           href: articles/seurat5_merge_vignette.html
+        - text: "Bridge Integration"
+          href: articles/seurat5_integration_bridge.html
+        - text: "Sketch Clustering (BPCells)"
+          href: articles/MouseBrain_sketch_clustering.html
+        - text: "COVID Mapping (BPCells)"
+          href: articles/COVID_SCTMapping.html
+        - text: "Sketch Integration (BPCells)"
+          href: articles/ParseBio_sketch_integration.html
     - text: Extensions
       href: articles/extensions.html
     - text: FAQ

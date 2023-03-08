@@ -42,6 +42,12 @@
         Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes.
       image: cell_cycle_vignette.jpg
 
+    - title: Bridge Integration
+      name: seurat5_integration_bridge
+      summary: |
+        Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
+      image: bridge_integration.png
+
     - title: Sketch Clustering (BPCells)
       name: MouseBrain_sketch_clustering
       summary: |
