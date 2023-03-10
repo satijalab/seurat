@@ -270,7 +270,7 @@ We consistently found superior performance using integration methods (as opposed
 We first load the data (download available [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1)), pre-process the scRNA-seq reference, and then perform label transfer. The procedure outputs, for each spot, a probabilistic classification for each of the scRNA-seq derived classes. We add these predictions as a new assay in the Seurat object.
 
 ```{r sc.data}
-allen_reference <- readRDS("../data/allen_cortex.rds")
+allen_reference <- readRDS("/home/hartmana/github/seurat-private/data/allen_cortex.rds")
 ```
 
 ```{r sc.data2}
@@ -410,7 +410,7 @@ SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq
 To facilitate cell-type annotation of the Slide-seq dataset, we are leveraging an existing mouse single-cell RNA-seq hippocampus dataset, produced in [Saunders\*, Macosko\*, et al. 2018](https://doi.org/10.1016/j.cell.2018.07.028). The data is available for download as a processed Seurat object [here](https://www.dropbox.com/s/cs6pii5my4p3ke3/mouse_hippocampus_reference.rds?dl=0), with the raw count matrices available on the [DropViz website](http://dropviz.org/). 
 
 ```{r ref.saunders}
-ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- readRDS("/home/hartmana/github/seurat-private/data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 ```
 
@@ -462,11 +462,11 @@ devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 
 Annotation using RCTD
 
-```{r rctd, eval=FALSE}
+```{r rctd, warning=FALSE, results=FALSE}
 library(spacexr)
 
 # set up reference
-ref <- readRDS("../data/mouse_hippocampus_reference.rds")
+ref <- readRDS("/home/hartmana/github/seurat-private/data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 Idents(ref) <- "celltype"
 counts <- LayerData(ref, assay = "RNA", layer = "counts")
@@ -477,23 +477,27 @@ names(nUMI) <- colnames(ref)
 reference <- Reference(counts, cluster, nUMI)
 
 # set up query
-slide.seq <- LodaData("ssHippo")
+slide.seq <- SeuratData::LoadData("ssHippo")
 counts <- LayerData(slide.seq, assay = "Spatial", layer = "counts")
 coords <- GetTissueCoordinates(slide.seq)
 colnames(coords) <- c("x", "y")
 coords[is.na(colnames(coords))] <- NULL
 query <- SpatialRNA(coords, counts, colSums(counts))
 
-RCTD <- create.RCTD(query, reference, max_cores = 1)
+RCTD <- create.RCTD(query, reference, max_cores = 8)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
+```
 
+Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot
+
+```{r rctd_results, fig.height=8, fig.width=14}
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
 p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
-p1 + p2
+p1 | p2
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_times.csv")
 ```
 
