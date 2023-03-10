@@ -272,7 +272,7 @@ We consistently found superior performance using integration methods (as opposed
 We first load the data (download available [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1)), pre-process the scRNA-seq reference, and then perform label transfer. The procedure outputs, for each spot, a probabilistic classification for each of the scRNA-seq derived classes. We add these predictions as a new assay in the Seurat object.
 
 ```{r sc.data}
-allen_reference <- readRDS("/home/hartmana/github/seurat-private/data/allen_cortex.rds")
+allen_reference <- readRDS("../data/allen_cortex.rds")
 allen_reference <- UpdateSeuratObject(allen_reference)
 ```
 
@@ -415,7 +415,7 @@ SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq
 To facilitate cell-type annotation of the Slide-seq dataset, we are leveraging an existing mouse single-cell RNA-seq hippocampus dataset, produced in [Saunders\*, Macosko\*, et al. 2018](https://doi.org/10.1016/j.cell.2018.07.028). The data is available for download as a processed Seurat object [here](https://www.dropbox.com/s/cs6pii5my4p3ke3/mouse_hippocampus_reference.rds?dl=0), with the raw count matrices available on the [DropViz website](http://dropviz.org/). 
 
 ```{r ref.saunders}
-ref <- readRDS("/home/hartmana/github/seurat-private/data/mouse_hippocampus_reference.rds")
+ref <- readRDS("../data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 ```
 
@@ -471,7 +471,7 @@ Annotation using RCTD
 library(spacexr)
 
 # set up reference
-ref <- readRDS("/home/hartmana/github/seurat-private/data/mouse_hippocampus_reference.rds")
+ref <- readRDS("../data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 Idents(ref) <- "celltype"
 counts <- LayerData(ref, assay = "RNA", layer = "counts")
