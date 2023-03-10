@@ -540,7 +540,7 @@ NormalizeData.default <- function(
           ...
         )
       }
-    }, 
+    },
     'CLR' = {
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
@@ -560,7 +560,7 @@ NormalizeData.default <- function(
           !inherits(x = object, what = 'matrix')) {
         stop('RC normalization only supports for dense and dgCMatrix')
       }
-      RelativeCounts(data = object, 
+      RelativeCounts(data = object,
                      scale.factor = scale.factor,
                      verbose = verbose)
     }
@@ -1013,7 +1013,7 @@ CalcDispersion <- function(
   }
   feature.mean <- mean.function(object, verbose)
   feature.dispersion <- dispersion.function(object, verbose)
-  
+
   names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
   feature.dispersion[is.na(x = feature.dispersion)] <- 0
   feature.mean[is.na(x = feature.mean)] <- 0
@@ -1061,7 +1061,7 @@ CalcN <- function(object) {
 }
 
 #' Find variable features based on dispersion
-#' 
+#'
 DISP <- function(
   data,
   nselect = 2000L,
@@ -1452,7 +1452,6 @@ SCTransform.StdAssay <- function(
                              seed.use = seed.use,
                              verbose = FALSE,
                              ...)
-
       residual.type <- vst.out[['residual_type']] %||% 'pearson'
       sct.method <- vst.out[['sct.method']]
       # create output assay and put (corrected) umi counts in count slot
@@ -1499,7 +1498,13 @@ SCTransform.StdAssay <- function(
         message("Using block ", selected.block, " from ", dataset.names[[dataset.index]], " to learn model.")
       }
       vp <- cells.grid[[selected.block]]
-      assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = FALSE)
+
+      do.correct.umi.chunk <- FALSE
+      # correct umi if only single chunk
+      if (length(x = cells.grid) == 1) {
+        do.correct.umi.chunk <- TRUE
+      }
+      assay.out <- GetSCT.Chunked(vp = vp, do.correct.umi = do.correct.umi.chunk)
       local.reference.SCT.model <- assay.out@SCTModel.list[[1]]
       variable.features <- VariableFeatures(assay.out)
       # once we have the model, just calculate residuals for all
@@ -1518,7 +1523,7 @@ SCTransform.StdAssay <- function(
       residuals <- list()
       corrected_counts <- list()
       cell_attrs <- list()
-      if (length(cells.grid)==1){
+      if (length(x = cells.grid) == 1){
         merged.assay <- assay.out
         corrected_counts[[1]] <- GetAssayData(object = assay.out, slot="data")
         residuals[[1]] <- GetAssayData(object = assay.out, slot="scale.data")
