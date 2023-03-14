@@ -5206,7 +5206,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   block.size = 10000
 ) {
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
-  features <- intersect(features, rownames(query))
+  features <- intersect(x = features, y = rownames(query))
   if (normalization.method == 'SCT') {
     reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
     cells.grid <- split(
@@ -5214,7 +5214,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       f = ceiling(seq_along(along.with = 1:ncol(query))/block.size)
       )
     proj.list <- list()
-    for (i in seq_along(cells.grid)) {
+    for (i in seq_along(along.with = cells.grid)) {
       query.i <- FetchResiduals_reference(
         object = as.sparse(query[,cells.grid[[i]]]),
         reference.SCT.model = reference.SCT.model,
@@ -5223,12 +5223,12 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
     }
     proj.pca <- t(matrix(
-      data = unlist(proj.list),
-      nrow = length(dims),
-      ncol = ncol(query),
+      data = unlist(x = proj.list),
+      nrow = length(x = dims),
+      ncol = ncol(x = query),
       dimnames = list(
-        colnames(Embeddings(object = reference[[reduction]]))[dims],
-        colnames(query))
+        colnames(x = Embeddings(object = reference[[reduction]]))[dims],
+        colnames(x = query))
       ))
   } else {
     query <- query[features,]
@@ -5245,11 +5245,11 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       }
       if (scale) {
         if (inherits(x = reference.data, what = "IterableMatrix")) {
-          feature.sd <- sqrt(bp.stats$row_stats["variance",])
+          feature.sd <- sqrt(x = bp.stats$row_stats["variance",])
         } else {
           feature.sd <- sqrt(
             x = RowVarSparse(
-              mat = as.sparse(reference.data)
+              mat = as.sparse(x = reference.data)
             )
           )
         }
@@ -5259,11 +5259,11 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       }
       feature.mean[is.na(x = feature.mean)] <- 1
     }
-    query.scale <- BPCells::min_by_row(query, 10*feature.sd + feature.mean)
+    query.scale <- BPCells::min_by_row(mat = query, vals = 10*feature.sd + feature.mean)
     query.scale <- (query.scale - feature.mean)/feature.sd
     proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
-    rownames(proj.pca) <- colnames(query)
-    colnames(proj.pca) <- colnames(Embeddings(object = reference[[reduction]]))[dims]
+    rownames(x = proj.pca) <- colnames(x = query)
+    colnames(x = proj.pca) <- colnames(x = Embeddings(object = reference[[reduction]]))[dims]
   }
   return(proj.pca)
 }
