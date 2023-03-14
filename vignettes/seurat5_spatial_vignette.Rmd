@@ -395,7 +395,7 @@ We then normalize the data using [sctransform](https://genomebiology.biomedcentr
 
 ```{r preprocess.ss}
 slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000, verbose = FALSE)
-slide.seq <- RunPCA(slide.seq)
+slide.seq <- RunPCA(slide.seq, assay = "SCT")
 slide.seq <- RunUMAP(slide.seq, dims = 1:30)
 slide.seq <- FindNeighbors(slide.seq, dims = 1:30)
 slide.seq <- FindClusters(slide.seq, resolution = 0.3, verbose = FALSE)
@@ -467,7 +467,7 @@ devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 
 Annotation using RCTD
 
-```{r rctd, eval=FALSE}
+```{r rctd, warning=FALSE, results=FALSE}
 library(spacexr)
 
 # set up reference
@@ -482,20 +482,25 @@ names(nUMI) <- colnames(ref)
 reference <- Reference(counts, cluster, nUMI)
 
 # set up query
-slide.seq <- LodaData("ssHippo")
+slide.seq <- SeuratData::LoadData("ssHippo")
+slide.seq[['Spatial']] <- as(slide.seq[['Spatial']], Class = 'Assay5')
 counts <- LayerData(slide.seq, assay = "Spatial", layer = "counts")
 coords <- GetTissueCoordinates(slide.seq)
 colnames(coords) <- c("x", "y")
 coords[is.na(colnames(coords))] <- NULL
 query <- SpatialRNA(coords, counts, colSums(counts))
 
-RCTD <- create.RCTD(query, reference, max_cores = 1)
+RCTD <- create.RCTD(query, reference, max_cores = 8)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
+```
 
+Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot
+
+```{r rctd_results, fig.height=8, fig.width=14}
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
 p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
-p1 + p2
+p1 | p2
 ```
 
 ```{r save.times, include=TRUE}
