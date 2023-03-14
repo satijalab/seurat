@@ -12,65 +12,6 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-DelayedLeverageScore <- function(
-  object,
-  assay = NULL,
-  nsketch = 5000L,
-  ncells = 5000L,
-  layer = 'data',
-  save = 'sketch',
-  method = CountSketch,
-  eps = 0.5,
-  default = TRUE,
-  seed = NA_integer_,
-  # cast = NULL,
-  verbose = TRUE,
-  ...
-) {
-  .NotYetImplemented()
-  check_installed(
-    pkg = 'DelayedArray',
-    reason = 'for working with delayed matrices'
-  )
-  assay <- assay[1L] %||% DefaultAssay(object = object)
-  assay <- match.arg(arg = assay, choices = Assays(object = object))
-  # TODO: fix this in [[<-,Seurat5
-  if (save == assay) {
-    abort(message = "Cannot overwrite existing assays")
-  }
-  if (save %in% Assays(object = object)) {
-    if (save == DefaultAssay(object = object)) {
-      DefaultAssay(object = object) <- assay
-    }
-    object[[save]] <- NULL
-  }
-  layer <- unique(x = layer) %||% DefaultLayer(object = object)
-  layer <- Layers(object = object, assay = assay, search = layer)
-  scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
-  row.names(x = scores) <- colnames(x = object)
-  scores[, layer] <- NA_real_
-  for (i in seq_along(along.with = layer)) {
-    l <- layer[i]
-    if (isTRUE(x = verbose)) {
-      message("Running LeverageScore for layer ", l)
-    }
-    # scores[Cells(x = object, layer = l), l] <- LeverageScore(
-    #   object = LayerData(
-    #     object = object,
-    #     layer = l,
-    #     features = features %||% VariableFeatures(object = object, layer = l),
-    #     fast = TRUE
-    #   ),
-    #   nsketch = nsketch,
-    #   ndims = ndims %||% ncol(x = object),
-    #   method = method,
-    #   eps = eps,
-    #   seed = seed,
-    #   verbose = verbose,
-    #   ...
-    # )
-  }
-}
 
 #' @importFrom SeuratObject CastAssay Key Key<- Layers
 #'
@@ -162,6 +103,178 @@ SketchData <- function(
   Key(object = sketched) <- Key(object = sketched.assay, quiet = TRUE)
   object[[sketched.assay]] <- sketched
   DefaultAssay(object = object) <- sketched.assay
+  return(object)
+}
+
+
+#' Project full data to the sketch assay
+#'
+#' @export
+#'
+ProjectData <- function(
+  object,
+  assay = 'RNA',
+  sketched.assay = 'sketch',
+  sketched.reduction,
+  full.reduction,
+  dims,
+  normalization.method = c("LogNormalize", "SCT"),
+  refdata = NULL,
+  k.weight = 50,
+  umap.model = NULL,
+  recompute.neighbors = FALSE,
+  recompute.weights = FALSE,
+  verbose = TRUE
+) {
+  if (!full.reduction %in% Reductions(object)) {
+    if (verbose) {
+      message(full.reduction, ' is not in the object.'
+              ,' Data from all cells will be projected to ', sketched.reduction)
+    }
+    proj.emb <- ProjectCellEmbeddings(query = object,
+                                      reference = object,
+                                      query.assay = assay,
+                                      dims = dims,
+                                      normalization.method = normalization.method,
+                                      reference.assay = sketched.assay,
+                                      reduction = sketched.reduction,
+                                      verbose = verbose)
+    object[[full.reduction]] <- CreateDimReducObject(
+      embeddings = proj.emb,
+      assay = assay,
+      key = Key(object = full.reduction, quiet = TRUE)
+    )
+  }
+  
+  object <- TransferSketchLabels(object = object,
+                                 atoms = sketched.assay,
+                                 reduction = full.reduction,
+                                 dims = dims,
+                                 k = k.weight,
+                                 refdata = refdata,
+                                 reduction.model = umap.model,
+                                 recompute.neighbors = recompute.neighbors,
+                                 recompute.weights = recompute.weights,
+                                 verbose = verbose
+  )
+  return(object)
+}
+
+
+#' Transfer data from sketch data to full data
+#' @export
+#'
+TransferSketchLabels <- function(
+  object,
+  atoms = 'sketch',
+  reduction,
+  dims,
+  refdata = NULL,
+  k = 50,
+  reduction.model = NULL,
+  neighbors = NULL,
+  recompute.neighbors = FALSE,
+  recompute.weights = FALSE,
+  verbose = TRUE
+){
+  full_sketch.nn <- neighbors %||% Tool(
+    object = object,
+    slot = 'TransferSketchLabels'
+  )$full_sketch.nn
+  full_sketch.weight <- Tool(
+    object = object,
+    slot = 'TransferSketchLabels'
+  )$full_sketch.weight
+  
+  compute.neighbors <- is.null(x = full_sketch.nn) ||
+    !all(Cells(full_sketch.nn) == Cells(object[[reduction]])) ||
+    max(Indices(full_sketch.nn)) >  ncol(object[[atoms]]) ||
+    !identical(x = full_sketch.nn@alg.info$dims, y =  dims) ||
+    !identical(x = full_sketch.nn@alg.info$reduction, y =  reduction) ||
+    recompute.neighbors
+  
+  compute.weights <- is.null(x = full_sketch.weight) ||
+    !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
+    !all(rownames(full_sketch.weight) == colnames(object[[atoms]]))  ||
+    recompute.weights || 
+    recompute.neighbors
+  
+  if (compute.neighbors) {
+    if (verbose) {
+      message("Finding sketch neighbors")
+    }
+    full_sketch.nn <- NNHelper(
+      query = Embeddings(object[[reduction]])[, dims],
+      data = Embeddings(object[[reduction]])[colnames(object[[atoms]]), dims],
+      k = k,
+      method = "annoy"
+    )
+    slot(object = full_sketch.nn, name = 'alg.info')$dims <- dims
+    slot(object = full_sketch.nn, name = 'alg.info')$reduction <- reduction
+  }
+  if (compute.weights) {
+    if (verbose) {
+      message("Finding sketch weight matrix")
+    }
+    full_sketch.weight <- FindWeightsNN(nn.obj = full_sketch.nn,
+                                        query.cells = Cells(object[[reduction]]),
+                                        reference = colnames(object[[atoms]]),
+                                        verbose = verbose)
+    rownames(full_sketch.weight) <- colnames(object[[atoms]])
+    colnames(full_sketch.weight) <- Cells(object[[reduction]])
+  }
+  slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
+  slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
+  
+  if (!is.null(refdata)) {
+    if (length(refdata) == 1  & is.character(refdata)) {
+      refdata <- list(refdata)
+      names(refdata) <- unlist(refdata)
+    }
+    if (verbose) {
+      message("Transfering refdata from sketch")
+    }
+    for (rd in 1:length(x = refdata)) {
+      if (isFALSE(x = refdata[[rd]])) {
+        transfer.results[[rd]] <- NULL
+        next
+      }
+      rd.name <- names(x = refdata)[rd]
+      label.rd <- refdata[[rd]]
+      ## FetchData not work
+      if (!label.rd %in% colnames( object[[]])) {
+        stop(label.rd, ' is not in the meta.data')
+      }
+      reference.labels <- object[[]][colnames(object[[atoms]]), label.rd]
+      predicted.labels.list <- TransferLablesNN(
+        reference.labels = reference.labels,
+        weight.matrix = full_sketch.weight)
+      object[[paste0('predicted.', rd.name)]] <- predicted.labels.list$labels
+      object[[paste0('predicted.', rd.name, '.score')]] <- predicted.labels.list$scores
+    }
+  }
+  if (!is.null(reduction.model)) {
+    umap.model <- Misc(object = object[[reduction.model]], slot = 'model')
+    if (is.null(umap.model)) {
+      warning(reduction.model, ' does not have a stored umap model')
+      return(object)
+    }
+    if (verbose) {
+      message("Projection to sketch umap")
+    }
+    if (ncol(full_sketch.nn) > umap.model$n_neighbors) {
+      full_sketch.nn@nn.idx <- full_sketch.nn@nn.idx[, 1:umap.model$n_neighbors]
+      full_sketch.nn@nn.dist <- full_sketch.nn@nn.dist[, 1:umap.model$n_neighbors]
+    }
+    proj.umap <- RunUMAP(
+      object = full_sketch.nn,
+      reduction.model = object[[reduction.model]],
+      verbose = verbose,
+      assay =  slot(object = object[[reduction]], name = 'assay.used')
+    )
+    Key(proj.umap) <- paste0('ref', Key(proj.umap))
+    object[[paste0('ref.',reduction.model )]] <- proj.umap
+  }
   return(object)
 }
 
