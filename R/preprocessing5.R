@@ -798,7 +798,7 @@ VST.IterableMatrix <-function(
 ) {
   nfeatures <- nrow(x = data)
   hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
-  hvf.stats <- matrix_stats(
+  hvf.stats <- BPCells::matrix_stats(
     matrix = data,
     row_stats = 'variance')$row_stats
   # Calculate feature means
