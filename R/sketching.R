@@ -76,46 +76,56 @@ DelayedLeverageScore <- function(
 #'
 #' @export
 #'
-LeverageScoreSampling <- function(
+#'
+#'
+SketchData <- function(
   object,
   assay = NULL,
   ncells = 5000L,
-  save = 'sketch',
+  sketched.assay = 'sketch',
+  method = c('LeverageScore', 'Uniform'),
   var.name = "leverage.score",
   over.write = FALSE,
-  default = TRUE,
   seed = 123L,
-  cast = NULL,
-  layers = c('counts', 'data'),
+  cast = 'dgCMatrix',
   verbose = TRUE,
   ...
 ) {
   assay <- assay[1L] %||% DefaultAssay(object = object)
   assay <- match.arg(arg = assay, choices = Assays(object = object))
-  if (save == assay) {
+  method <- match.arg(arg = method)
+  if (sketched.assay == assay) {
     abort(message = "Cannot overwrite existing assays")
   }
-  if (save %in% Assays(object = object)) {
-    if (save == DefaultAssay(object = object)) {
+  if (sketched.assay %in% Assays(object = object)) {
+    if (sketched.assay == DefaultAssay(object = object)) {
       DefaultAssay(object = object) <- assay
     }
-    object[[save]] <- NULL
+    object[[sketched.assay]] <- NULL
   }
   if (!over.write) {
     var.name <- CheckMetaVarName(object = object, var.name = var.name)
   }
-  if (verbose) {
-    message("Calcuating Leverage Score")
+
+  if (method == 'LeverageScore') {
+    if (verbose) {
+      message("Calcuating Leverage Score")
+    }
+    object <- LeverageScore(
+      object = object,
+      assay = assay,
+      var.name = var.name,
+      over.write = over.write,
+      seed = seed,
+      verbose = verbose,
+      ...
+    )
+  } else if (method == 'Uniform') {
+    if (verbose) {
+      message("Uniformly sampling")
+    }
+    object[[var.name]] <- 1
   }
-  object <- LeverageScore(
-    object = object,
-    assay = assay,
-    var.name = var.name,
-    over.write = over.write,
-    seed = seed,
-    verbose = verbose,
-    ...
-  )
   leverage.score <- object[[var.name]]
   layers.data <- Layers(object = object[[assay]], search = 'data')
   cells <- lapply(
@@ -137,7 +147,7 @@ LeverageScoreSampling <- function(
   sketched <- suppressWarnings(expr = subset(
     x = object[[assay]],
     cells = unlist(cells),
-    layers = Layers(object = object[[assay]], search = layers)
+    layers = Layers(object = object[[assay]], search = c('counts', 'data'))
   ))
   for (lyr in layers.data) {
     try(
@@ -149,11 +159,9 @@ LeverageScoreSampling <- function(
   if (!is.null(x = cast)) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }
-  Key(object = sketched) <- Key(object = save, quiet = TRUE)
-  object[[save]] <- sketched
-  if (isTRUE(x = default)) {
-    DefaultAssay(object = object) <- save
-  }
+  Key(object = sketched) <- Key(object = sketched.assay, quiet = TRUE)
+  object[[sketched.assay]] <- sketched
+  DefaultAssay(object = object) <- sketched.assay
   return(object)
 }
 
