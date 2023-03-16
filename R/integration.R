@@ -1829,7 +1829,7 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 }
 
 
-#' Integrate embeddings from the integrated atoms
+#' Integrate embeddings from the integrated sketched.assay
 #'
 #' The main steps of this procedure are outlined below. For a more detailed
 #' description of the methodology, please see Hao,  et al Biorxiv 2022:
@@ -1840,8 +1840,8 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' reconstruct the embeddings of each cell from the integrated atoms.
 #'
 #' @param object A Seurat object with all cells for one dataset
-#' @param atoms Assay name for sketched-cell expression (default is 'sketch')
-#' @param orig Assay name for original expression (default is 'RNA')
+#' @param sketched.assay Assay name for sketched-cell expression (default is 'sketch')
+#' @param assay Assay name for original expression (default is 'RNA')
 #' @param features Features used for atomic sketch integration
 #' @param reduction Dimensional reduction name for batch-corrected embeddings
 #' in the sketched object (default is 'integrated_dr')
@@ -1867,25 +1867,27 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #'
 #' @export
 #'
-IntegrateSketchEmbeddings <- function(
+ProjectIntegration <- function(
   object,
-  atoms = 'sketch', # DefaultAssay(object)
-  atoms.layers = NULL,
-  orig = 'RNA',
-  features = NULL, # VF from object[[atom.assay]]
+  sketched.assay = 'sketch', # DefaultAssay(object)
+  assay = 'RNA',
   reduction = 'integrated_dr', # harmony; rerun UMAP on this
-  method = c('sketch', 'data'),
-  ratio = 0.8,
+  features = NULL, # VF from object[[atom.assay]]
+  layers = 'data',
   reduction.name = NULL,
   reduction.key = NULL,
-  layers = NULL,
+  method = c('sketch', 'data'),
+  ratio = 0.8,
+  sketched.layers = NULL,
   seed = 123,
   verbose = TRUE
 ) {
+  
+  layers <- Layers(object = object[[assay]], search = layers)
   # Check input and output dimensional reductions
-  atoms.layers <- atoms.layers %||% layers
+  sketched.layers <- sketched.layers %||% layers
   reduction <- match.arg(arg = reduction, choices = Reductions(object = object))
-  reduction.name <- reduction.name %||% paste0(reduction, '.orig')
+  reduction.name <- reduction.name %||% paste0(reduction, '.full')
   reduction.key <- reduction.key %||% Key(object = reduction.name, quiet = TRUE)
   if (reduction.name %in% Reductions(object = object)) {
     warning(
@@ -1900,44 +1902,41 @@ IntegrateSketchEmbeddings <- function(
   method <- method[1L]
   method <- match.arg(arg = method)
   # Check our layers
-  atoms <- match.arg(arg = atoms, choices = Assays(object = object))
-  orig <- match.arg(arg = orig, choices = Assays(object = object))
-  layer.orig <- layers
+  sketched.assay <- match.arg(arg = sketched.assay, choices = Assays(object = object))
+  assay <- match.arg(arg = assay, choices = Assays(object = object))
+  layer.full <- layers
   layers <- layers %||% intersect(
-    x = DefaultLayer(object[[atoms]]),
-    y = Layers(object[[orig]])
+    x = DefaultLayer(object[[sketched.assay]]),
+    y = Layers(object[[assay]])
   )
-  if (is.null(x = layer.orig)) {
-    atoms.missing <- setdiff(x = layers, DefaultLayer(object = object[[atoms]]))
-    if (length(x = atoms.missing) == length(x = layers)) {
-      stop("None of the requested layers are present in the atoms")
-    } else if (length(x = atoms.missing)) {
+  if (is.null(x = layer.full)) {
+    sketched.assay.missing <- setdiff(x = layers, DefaultLayer(object = object[[sketched.assay]]))
+    if (length(x = sketched.assay.missing) == length(x = layers)) {
+      stop("None of the requested layers are present in the sketched.assay")
+    } else if (length(x = sketched.assay.missing)) {
       warning(
-        length(x = atoms.missing),
-        " layers missing from the atoms",
+        length(x = sketched.assay.missing),
+        " layers missing from the sketched.assay",
         call. = FALSE,
         immediate. = TRUE
       )
-      layers <- intersect(x = layers, y = DefaultLayer(object = object[[atoms]]))
+      layers <- intersect(x = layers, y = DefaultLayer(object = object[[sketched.assay]]))
     }
   }
   # check layers
-  layers.missing <- setdiff(layers, Layers(object = object[[orig]]))
+  layers.missing <- setdiff(layers, Layers(object = object[[assay]]))
   if (length(x = layers.missing)) {
-    stop('layer ', layers.missing[1L], ' are not present in ', orig, " assay")
+    stop('layer ', layers.missing[1L], ' are not present in ', assay, " assay")
   }
   # check features
-  features <- features %||% unlist(x = VariableFeatures(
-    object = object[[atoms]],
-    layer = layers
-  ))
+  features <- features %||% VariableFeatures(object = object[[sketched.assay]])
   # TODO: see if we can handle missing features with `union`
   features.atom <- Reduce(
     f = intersect,
     x = lapply(
-      X = atoms.layers,
+      X = sketched.layers,
       FUN = function(lyr) {
-        return(Features(x = object[[atoms]], layer = lyr))
+        return(Features(x = object[[sketched.assay]], layer = lyr))
       }
     )
   )
@@ -1947,12 +1946,12 @@ IntegrateSketchEmbeddings <- function(
     sapply(
       X = layers,
       FUN = function(lyr) {
-        return(length(x = Cells(x = object[[orig]], layer = lyr)))
+        return(length(x = Cells(x = object[[assay]], layer = lyr)))
       }
     )
   )
-  if (length(atoms.layers) == 1) {
-    atoms.layers <- rep(atoms.layers, length(layers))
+  if (length(sketched.layers) == 1) {
+    sketched.layers <- rep(sketched.layers, length(layers))
   }
   sketch.matrix <- switch(
     EXPR = method,
@@ -1976,28 +1975,28 @@ IntegrateSketchEmbeddings <- function(
   emb.list <- list()
   cells.list <- list()
   for (i in seq_along(along.with = layers)) {
-    if (length(unique(atoms.layers)) == length(layers)) {
-      cells.sketch <- Cells(x = object[[atoms]], layer = atoms.layers[i])
-    } else if (length(unique(atoms.layers)) == 1) {
-      cells.sketch <- intersect(Cells(x = object[[atoms]][[atoms.layers[[1]]]]),
-                                Cells(object[[orig]][[layers[i] ]] ))
+    if (length(unique(sketched.layers)) == length(layers)) {
+      cells.sketch <- Cells(x = object[[sketched.assay]], layer = sketched.layers[i])
+    } else if (length(unique(sketched.layers)) == 1) {
+      cells.sketch <- intersect(Cells(x = object[[sketched.assay]][[sketched.layers[[1]]]]),
+                                Cells(object[[assay]][[layers[i] ]] ))
     }
     if (isTRUE(x = verbose)) {
       message(
         length(x = cells.sketch),
-        ' atomic cells identified in the atoms'
+        ' atomic cells identified in the sketched.assay'
       )
       message("Correcting embeddings")
     }
     emb <- UnSketchEmbeddings(
       atom.data = LayerData(
-      object = object[[atoms]],
+      object = object[[sketched.assay]],
       layer = layers[i],
       features = features
     ),
     atom.cells = cells.sketch,
     orig.data = LayerData(
-      object = object[[orig]],
+      object = object[[assay]],
       layer = layers[i],
       features = features
     ),
@@ -2012,12 +2011,12 @@ IntegrateSketchEmbeddings <- function(
                      ncol = length(unlist(cells.list))
                      ))
    rownames(emb.all) <- unlist(cells.list)
-   emb.all <- emb.all[colnames(object[[orig]]), ]
+   emb.all <- emb.all[colnames(object[[assay]]), ]
   object[[reduction.name]] <- CreateDimReducObject(
     embeddings = emb.all,
     loadings = Loadings(object = object[[reduction]]),
     key = reduction.key,
-    assay = orig
+    assay = assay
   )
   CheckGC()
   return(object)
