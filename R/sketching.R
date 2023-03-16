@@ -249,8 +249,8 @@ TransferSketchLabels <- function(
       predicted.labels.list <- TransferLablesNN(
         reference.labels = reference.labels,
         weight.matrix = full_sketch.weight)
-      object[[paste0('predicted.', rd.name)]] <- predicted.labels.list$labels
-      object[[paste0('predicted.', rd.name, '.score')]] <- predicted.labels.list$scores
+      object[[paste0(rd.name)]] <- predicted.labels.list$labels
+      object[[paste0(rd.name, '.score')]] <- predicted.labels.list$scores
     }
   }
   if (!is.null(reduction.model)) {
