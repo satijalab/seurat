@@ -65,3 +65,15 @@
       summary: |
         Perform sketch integration on a large dataset from Parse Biosciences.
       image: ParseBio_sketch_integration.jpg
+
+    - title: Sketch Clustering Updated
+      name: seurat5_sketch_analysis
+      summary: |
+        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat v5.
+      image: tbd
+
+    - title: BPCells interation
+      name: seurat5_bpcells_interaction_vignette
+      summary: |
+        Load and save large on-disk matrices
+      image: tbd
