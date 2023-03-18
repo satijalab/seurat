@@ -36,12 +36,14 @@ knitr::opts_chunk$set(
 As single-cell sequencing technologies continue to improve in scalability in throughput, the generation of datasets spanning a million or more cells is becoming increasingly routine. In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore these exciting datasets. 
 In this vignette, we introduce a sketch-based analysis workflow to analyze a 1.3 million cell dataset of the developing mouse brain, freely available from 10x Genomics. Analyzing datasets of this size with standard workflows can be challenging, slow, and memory-intensive. Here we introduce an alternative workflow that is highly scalable, even to datasets ranging beyond 10 million cells in size.
 Our 'sketch-based' workflow involves three new features in Seurat v5
+
 * Infrastructure for on-disk storage of large single-cell datasets
 Storing expression matrices in memory can be challenging for extremely large scRNA-seq datasets. In Seurat v5, we introduce support for multiple on-disk storage formats. 
 * 'Sketching' methods to subsample cells from large datasets while preserving rare populations
 As introduced in [Hie et al, 2019](https://www.sciencedirect.com/science/article/pii/S2405471219301528), cell sketching methods aim to compactly summarize large single-cell datasets in a small number of cells, while preserving the presence of both abundant and rare cell types. In Seurat v5, we leverage this idea to select subsamples ('sketches') of cells from large datasets that are stored on-disk. However, after sketching, the subsampled cells can be stored in-memory, allowing for interactive and rapid visualization and exploration.
 We store sketched cells (in-memory) and the full dataset (on-disk) as two assays in the same Seurat object. Users can then easily switch between the two versions, providing the flexibiltiy to perform quick analyses on a subset of cells in-memory, while retaining access to the full dataset on-disk.
 * Support for 'bit-packing' compression and infrastructure
+
 We demonstrate the on-disk capabilities in Seurat v5 using the [BPCells package](https://github.com/bnprks/BPCells) developed by Ben Parks in the Greenleaf Lab. This package utilizes bit-packing compression and optimized, streaming-compatible C++ code to substantially improve I/O and computational performance when working with on-disk data.
 To run this vignette please install Seurat v5, using the installation instructions found [here](LINK). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](LINK).
 ```{r, warning=FALSE, message=FALSE}
