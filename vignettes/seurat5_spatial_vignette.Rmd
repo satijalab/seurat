@@ -8,7 +8,7 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
-```{r setup, include=TRUE}
+```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
   now <- NULL
@@ -459,15 +459,17 @@ Now we visualize the expression of the top 6 features identified by Moran's I.
 SpatialFeaturePlot(slide.seq, features = head(SpatiallyVariableFeatures(slide.seq, selection.method = "moransi"), 6), ncol = 3, alpha = c(0.1, 1), max.cutoff = "q95")
 ```
 
-Install RCTD
+We can also use RCTD for annotation which is published [here](https://doi.org/10.1038/s41587-021-00830-w). RCTD is able to decompose cell mixtures to accurately annotate spatial datasets.
+
+First, we install the `spacexr` package from GitHub which implements RCTD.
 
 ```{r, eval=FALSE}
 devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 ```
 
-Annotation using RCTD
+Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
 
-```{r rctd, warning=FALSE, results=FALSE}
+```{r rctd.setup, warning=FALSE, results=FALSE}
 library(spacexr)
 
 # set up reference
@@ -483,21 +485,24 @@ reference <- Reference(counts, cluster, nUMI)
 
 # set up query
 slide.seq <- SeuratData::LoadData("ssHippo")
-slide.seq[['Spatial']] <- as(slide.seq[['Spatial']], Class = 'Assay5')
 counts <- LayerData(slide.seq, assay = "Spatial", layer = "counts")
 coords <- GetTissueCoordinates(slide.seq)
 colnames(coords) <- c("x", "y")
 coords[is.na(colnames(coords))] <- NULL
 query <- SpatialRNA(coords, counts, colSums(counts))
+```
 
+Using the `reference` and `query` object, we annotate the dataset and add the cell type labels to the query Seurat object. RCTD parallelizes well, so multiple cores can be specified for faster performance.
+
+```{r run.rctd, warning=FALSE, results=FALSE}
 RCTD <- create.RCTD(query, reference, max_cores = 8)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
+slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 ```
 
 Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot
 
 ```{r rctd_results, fig.height=8, fig.width=14}
-slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
 p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
 p1 | p2

@@ -1,0 +1,173 @@
+---
+title: "Sketch-based analysis in Seurat v5"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+ 
+## Intro: Sketch-based analysis in Seurat v5
+As single-cell sequencing technologies continue to improve in scalability in throughput, the generation of datasets spanning a million or more cells is becoming increasingly routine. In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore these exciting datasets. 
+In this vignette, we introduce a sketch-based analysis workflow to analyze a 1.3 million cell dataset of the developing mouse brain, freely available from 10x Genomics. Analyzing datasets of this size with standard workflows can be challenging, slow, and memory-intensive. Here we introduce an alternative workflow that is highly scalable, even to datasets ranging beyond 10 million cells in size.
+Our 'sketch-based' workflow involves three new features in Seurat v5
+
+* Infrastructure for on-disk storage of large single-cell datasets
+Storing expression matrices in memory can be challenging for extremely large scRNA-seq datasets. In Seurat v5, we introduce support for multiple on-disk storage formats. 
+* 'Sketching' methods to subsample cells from large datasets while preserving rare populations
+As introduced in [Hie et al, 2019](https://www.sciencedirect.com/science/article/pii/S2405471219301528), cell sketching methods aim to compactly summarize large single-cell datasets in a small number of cells, while preserving the presence of both abundant and rare cell types. In Seurat v5, we leverage this idea to select subsamples ('sketches') of cells from large datasets that are stored on-disk. However, after sketching, the subsampled cells can be stored in-memory, allowing for interactive and rapid visualization and exploration.
+We store sketched cells (in-memory) and the full dataset (on-disk) as two assays in the same Seurat object. Users can then easily switch between the two versions, providing the flexibiltiy to perform quick analyses on a subset of cells in-memory, while retaining access to the full dataset on-disk.
+* Support for 'bit-packing' compression and infrastructure
+
+We demonstrate the on-disk capabilities in Seurat v5 using the [BPCells package](https://github.com/bnprks/BPCells) developed by Ben Parks in the Greenleaf Lab. This package utilizes bit-packing compression and optimized, streaming-compatible C++ code to substantially improve I/O and computational performance when working with on-disk data.
+To run this vignette please install Seurat v5, using the installation instructions found [here](LINK). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](LINK).
+```{r, warning=FALSE, message=FALSE}
+library(Seurat)
+library(BPCells)
+library(ggplot2)
+# needs to be set for large dataset analysis
+options(future.globals.maxSize = 1e9)
+```
+## Create a Seurat object with a v5 assay for on-disk storage
+ 
+We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](link), we demonstrate how to create this on-disk representation.
+```{r}
+# note to Yuhan- this directory should already contain the ensembl-modified names. we can show how to do the ensembl mods in the interaction vignette
+# Connect to the counts matrix stored on-disk
+ondisk_matrix <- open_matrix_dir('../data/mouse_1M_neurons_counts')
+
+# specify that you would like to create a Seurat v5 assay
+# note that we require setting this option to ensure that existing pipelines are not affected
+options(Seurat.object.assay.version = 'v5')
+# Create the Seurat object, which contains 1.3M cells stored on-disk as part of the 'RNA' assay
+obj <- CreateSeuratObject(counts = ondisk_matrix)
+obj
+# Note that since the data is stored on-disk, the object size easily fits in-memory (<1GB)
+format(object.size(obj), units = 'Mb')
+```
+## 'Sketch' a subset of cells, and load these into memory
+We select a subset ('sketch') of 50,000 cells (out of 1.3M). Rather than sampling all cells with uniform probability, we compute and sample based off a 'leverage score' for each cell, which reflects the magnitude of its contribution to the gene-covariance matrix, and its importance to the overall dataset. In [Hao et al, 2022](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1.full), we demonstrate that the leverage score is highest for rare populations in a dataset. Therefore, our sketched set of 50,000 cells will oversample rare populations, retaining the biological complexity of the sample while drastically compressing the dataset.  
+The function `SketchData` takes a normalized single-cell dataset (stored either on-disk or in-memory), and a set of variable features. It returns a Seurat object with a new assay (`sketch`), consisting of 50,000 cells, but these cells are now stored in-memory. Users can now easily switch between the in-memory and on-desk representation just by changing the default assay. 
+```{r, warning=FALSE, message=FALSE}
+obj <- NormalizeData(obj)
+obj <- FindVariableFeatures(obj)
+obj <- SketchData(object = obj, ncells = 50000, method = 'LeverageScore', sketched.assay = 'sketch')
+obj
+# switch to analyzing the full dataset (on-disk)
+DefaultAssay(obj) <- 'RNA'
+# switch to analyzing the sketched dataset (in-memory)
+DefaultAssay(obj) <- 'sketch'
+```
+
+## Perform clustering on the sketched dataset
+Now that we have compressed the dataset, we can perform standard clustering and visualization of a 50,000 cell dataset.
+After clustering, we can see groups of cells that clearly correspond to precursors of distinct lineages, including endothelial cells (Igfbp7), Excitatory (Neurod6) and Inhibitory (Dlx2) neurons, Intermediate Progenitors (Eomes), Radial Glia (Vim), Cajal-Retzius cells (Reln), Oligodendroytes (Olig1), and extremely rare populations of macrophages (C1qa) that were oversampled in our sketched data.
+```{r, warning=FALSE, message=FALSE}
+DefaultAssay(obj) <- 'sketch'
+obj <- FindVariableFeatures(obj)
+obj <- ScaleData(obj)
+obj <- RunPCA(obj)
+obj <- FindNeighbors(obj, dims = 1:50)
+obj <- FindClusters(obj, resolution = 2)
+obj <- RunUMAP(obj, dims = 1:50, return.model = T)
+DimPlot(obj, label = T, reduction = 'umap') + NoLegend() 
+```
+
+```{r,fig.height = 15, fig.width = 15}
+FeaturePlot(obj, c('Igfbp7', 'Neurod6', 'Dlx2', 'Eomes', 'Vim', 'Reln', 'Olig1', 'C1qa'), ncol = 4)
+```
+## Extend results to the full datasets
+We can now extend the cluster labels and dimensional reductions learned on the sketched cells to the full dataset. The `ProjectData` function projects the on-disk data, onto the `sketch` assay. It returns a Seurat object that includes a
+* Dimensional reduction (PCA): The `pca.full` dimensional reduction extends the `pca` reduction on the sketched cells to all cells in the dataset
+* Dimensional reduction (UMAP): The `umap.full` dimensional reduction extends the `full` reduction on the sketched cells to all cells in the dataset
+* Cluster labels: The `cluster_full` column in the object metadata now labels all cells in the dataset with one of the cluster labels derived from the sketched cells
+NOTE GET RID OF THE predicted_ IN THE METADATA COLUMN NAME
+```{r, warning=FALSE, message=FALSE}
+obj <- ProjectData(object = obj,
+                   assay = 'RNA',
+                   full.reduction = 'pca.full',
+                   sketched.assay = 'sketch',
+                   sketched.reduction = 'pca',
+                   umap.model = 'umap',
+                   dims = 1:50,
+                  refdata = list(cluster_full = 'seurat_clusters')
+                   )
+# now that we have projected the full dataset, switch back to analyzing all cells
+DefaultAssay(obj) <- 'RNA'
+```
+
+```{r}
+DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.cluster_full', alpha = 0.1) + NoLegend()  
+# visualize gene expression on the sketched cells (fast) and the full dataset (slower)
+DefaultAssay(obj) <- 'sketch'
+x1 <- FeaturePlot(obj, 'C1qa')
+DefaultAssay(obj) <- 'RNA'
+x2 <- FeaturePlot(obj, 'C1qa')
+x1 | x2
+```
+
+## Perform iterative sub-clustering
+NOTE THAT THE CLUSTER IDS WILL CHANGE
+Now that we have performed an initial analysis of the dataset, we can iteratively 'zoom-in' on a cell subtype of interest, extract all cells of this type, and perform iterative sub-clustering. For example, we can see that Dlx2+ interneuron precursors are defined by clusters 7, 9, 16, and 29
+```{r}
+DefaultAssay(obj) <- 'sketch'
+VlnPlot(obj, 'Dlx2')
+```
+
+We therefore extract all cells from the full on-disk dataset that are present in these clusters. There are XX,XXX of them. Since this is a manageable number, we can convert these data from on-disk storage into in-memory storage. We can then proceed with standard clustering.
+```{r}
+# subset cells in these clusters. Note that the data remains on-disk after subsetting
+obj.sub <- subset(obj, subset = predicted.cluster_full %in% c(7, 9, 15, 29))
+# now convert the RNA assay (previously on-disk) into an in-memory representation (sparse Matrix)
+obj.sub[['RNA']] <- CastAssay(object = obj.sub[['RNA']], to = 'dgCMatrix')
+# recluster the cells
+obj.sub <- FindVariableFeatures(obj.sub)
+obj.sub <- ScaleData(obj.sub)
+obj.sub <- RunPCA(obj.sub)
+obj.sub <- RunUMAP(obj.sub, dims = 1:30)
+obj.sub <- FindNeighbors(obj.sub, dims = 1:30)
+obj.sub <- FindClusters(obj.sub)
+```
+
+```{r}
+DimPlot(obj.sub, label = T) + NoLegend()
+```
+Note that we can start to see distinct interneuron lineages emerging in this dataset. We can see a clear separation of interneuron precursors that originated from the medial ganglionic eminence (Lhx6) or caudal ganglionic eminence (Nr2f2). We can further see the emergence of Sst (Sst) and Pvalb (Mef2c)-committed interneurons, and a CGE-derived Meis2-expressing progenitor population. 
+These results closely mirror our findings from [Mayer*, Hafemeister*, Bandler* et al, Nature 2018](https://www.nature.com/articles/nature25999), where we enriched for interneuron precursors using a Dlx6a-cre fate-mapping strategy. Here, we obtain similar results using only computational enrichment, enabled by the large size of the original dataset.
+
+```{r save.times, include=FALSE}
+print(as.data.frame(all_times))
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_sketch_analysis.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
