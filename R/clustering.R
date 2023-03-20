@@ -403,6 +403,7 @@ FindClusters.default <- function(
 #' @importFrom methods is
 #'
 #' @param graph.name Name of graph to use for the clustering algorithm
+#' @param cluster.name Name of output clusters
 #'
 #' @rdname FindClusters
 #' @export
@@ -412,6 +413,7 @@ FindClusters.default <- function(
 FindClusters.Seurat <- function(
   object,
   graph.name = NULL,
+  cluster.name = NULL,
   modularity.fxn = 1,
   initial.membership = NULL,
   node.sizes = NULL,
@@ -452,11 +454,13 @@ FindClusters.Seurat <- function(
     verbose = verbose,
     ...
   )
-  names(x = clustering.results) <- paste(
-    graph.name,
-    names(x = clustering.results),
-    sep = '_'
-  )
+  cluster.name <- cluster.name %||%
+    paste(
+      graph.name,
+      names(x = clustering.results),
+      sep = '_'
+    )
+  names(x = clustering.results) <- cluster.name
   # object <- AddMetaData(object = object, metadata = clustering.results)
   # Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
   idents.use <- names(x = clustering.results)[ncol(x = clustering.results)]
