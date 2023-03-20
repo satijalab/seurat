@@ -3,10 +3,33 @@ title: "Install Seurat v5"
 output:
   html_document:
     theme: united
-    df_print: kable
+  pdf_document: default
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
-***
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  fig.width = 10,
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+```
 
 Copy the code below to install Seurat v5.
 
