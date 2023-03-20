@@ -369,7 +369,7 @@ xenium.obj <- BuildNicheAssay(
 ```
 
 ```{r load.niche.results, eval=TRUE, include=FALSE}
-xenium.obj <- readRDS("/brahms/hartmana/xenium_niches_presaved.rds")
+xenium.obj <- readRDS("../data/xenium_niches_presaved.rds")
 ```
 
 After clustering the cell type composition nearby each cell, the neuronal layers in the cortex are visually demarcated.
