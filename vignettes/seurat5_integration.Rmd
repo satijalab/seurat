@@ -34,6 +34,7 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(Seurat)
 library(SeuratData)
+library(SeuratWrappers)
 library(Azimuth)
 options(future.globals.maxSize = 1e9)
 ```
