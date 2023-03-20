@@ -31,7 +31,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+```{r init}
 library(Seurat)
 library(SeuratData)
 library(Azimuth)
