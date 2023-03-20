@@ -1,0 +1,19 @@
+---
+title: "Install Seurat v5"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+
+Copy the code below to install Seurat v5.
+
+```{r, eval=FALSE}
+remotes::install_github("mojaveazure/seurat-object", "seurat5", quiet = TRUE)
+remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)
+remotes::install_github("satijalab/seurat-data", "seurat5", quiet = TRUE)
+remotes::install_github("stuart-lab/signac", "seurat5", quiet = TRUE)
+remotes::install_github("bnprks/BPCells") # for on-disk capabilities
+```

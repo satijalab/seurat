@@ -70,10 +70,22 @@
       name: seurat5_sketch_analysis
       summary: |
         Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat v5.
-      image: tbd
+      image: tbd.jpg
+
+    - title: Integration Updated
+      name: seurat5_integration
+      summary: |
+        Integrate datesets in Seurat 5 using a variety of methods
+      image: tbd.jpg
 
     - title: BPCells interation
       name: seurat5_bpcells_interaction_vignette
       summary: |
         Load and save large on-disk matrices
-      image: tbd
+      image: tbd.jpg
+
+    - title: Install Seurat v5
+      name: install_seurat5
+      summary: |
+        Install Seurat 5 and required dependencies
+      image: seurat_logo.jpg
