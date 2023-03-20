@@ -34,6 +34,7 @@ knitr::opts_chunk$set(
 ```{r init}
 library(Seurat)
 library(SeuratData)
+library(SeuratWrappers)
 library(Azimuth)
 options(future.globals.maxSize = 1e9)
 ```
@@ -76,7 +77,7 @@ Seurat v5 enables streamlined integrative analysis using the `IntegrateLayers` f
 * Anchor-based CCA integration (`method=CCAIntegration`)
 * Anchor-based RPCA integration (`method=RPCAIntegration`)
 * Harmony (`method=HarmonyIntegration`)
-* mnnCorrect (`method= mnnCorrectIntegration`)
+* FastMNN (`method= FastMNNIntegration`)
 * scVI (`method=scVIIntegration`)
 Note that scVI integration requires INSERT DESCRIPTIVE TEXT FOR REQUIREMENTS
 ```{r}
@@ -87,6 +88,7 @@ obj <- IntegrateLayers(object = obj, method = RPCAIntegration, verbose = F, new.
 # add results for Harmony
 obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, verbose = F, new.reduction = 'harmony')
 # add results for Anchor-based (scI)
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, verbose = F, new.reduction = 'integrated.mnn')
 obj <- IntegrateLayers(object = obj, method = scVIIntegration, verbose = F, new.reduction = 'integrated.scvi',
     conda_env = '/home/haoy/miniconda3/envs/scvi-env')
                      
