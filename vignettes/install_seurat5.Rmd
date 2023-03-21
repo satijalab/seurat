@@ -42,7 +42,7 @@ The following packages are not required but used in many Seurat 5 vignettes.
 ```{r additional, eval=FALSE}
 remotes::install_github("satijalab/seurat-data", "seurat5", quiet = TRUE)
 remotes::install_github("satijalab/azimuth", "seurat5", quiet = TRUE)
-remotes::install_github("mojaveazure/seurat-wrappers", "seurat5", quiet = TRUE)
+remotes::install_github("satijalab/seurat-wrappers", "seurat5", quiet = TRUE)
 remotes::install_github("stuart-lab/signac", "seurat5", quiet = TRUE)
-remotes::install_github("bnprks/BPCells") # for on-disk capabilities
+remotes::install_github("bnprks/BPCells", quiet = TRUE) # for on-disk capabilities
 ```
