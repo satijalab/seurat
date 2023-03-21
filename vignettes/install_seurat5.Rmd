@@ -1,5 +1,5 @@
 ---
-title: "Install Seurat v5"
+title: "Install Seurat 5"
 output:
   html_document:
     theme: united
@@ -31,12 +31,18 @@ knitr::opts_chunk$set(
 )
 ```
 
-Copy the code below to install Seurat v5.
+Copy the code below to install Seurat 5.
 
-```{r, eval=FALSE}
+```{r required, eval=FALSE}
 remotes::install_github("mojaveazure/seurat-object", "seurat5", quiet = TRUE)
 remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)
+```
+
+The following packages are not required but used in many Seurat 5 vignettes.
+```{r additional, eval=FALSE}
 remotes::install_github("satijalab/seurat-data", "seurat5", quiet = TRUE)
+remotes::install_github("satijalab/azimuth", "seurat5", quiet = TRUE)
+remotes::install_github("mojaveazure/seurat-wrappers", "seurat5", quiet = TRUE)
 remotes::install_github("stuart-lab/signac", "seurat5", quiet = TRUE)
 remotes::install_github("bnprks/BPCells") # for on-disk capabilities
 ```
