@@ -52,7 +52,6 @@ Seurat v5 assays store data in layers. These layers can store raw, un-normalized
 ```{r}
 # load in the pbmc systematic comparative analysis dataset
 obj <- LoadData("pbmcsca")
-obj <- UpdateSeuratObject(obj)
 obj  <- subset(obj, nFeature_RNA > 1000)
 obj <- RunAzimuth(obj, reference = "pbmcref")
 # currently, the object has two layers in the RNA assay: counts, and data

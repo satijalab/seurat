@@ -79,7 +79,6 @@ To demonstrate mapping to this multimodal reference, we will use a dataset of 2,
 ```{r 3k.load}
 library(SeuratData)
 InstallData('pbmc3k')
-pbmc3k <- UpdateSeuratObject(pbmc3k)
 ```
 
 The reference was normalized using `SCTransform()`, so we use the same approach to normalize the query here.
@@ -236,10 +235,6 @@ bm <- LoadData(ds = "bmcite")
 #load query data
 InstallData('hcabm40k')
 hcabm40k <- LoadData(ds = "hcabm40k")
-
-bm <- UpdateSeuratObject(bm)
-hcabm40k <- UpdateSeuratObject(hcabm40k)
-
 ```
 
 The reference dataset contains a [WNN graph](weighted_nearest_neighbor_analysis.html), reflecting a weighted combination of the RNA and protein data in this CITE-seq experiment. 

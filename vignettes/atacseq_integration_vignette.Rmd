@@ -67,9 +67,6 @@ library(cowplot)
 pbmc.rna <- LoadData("pbmcMultiome", "pbmc.rna")
 pbmc.atac <- LoadData("pbmcMultiome", "pbmc.atac")
 
-pbmc.rna <- UpdateSeuratObject(pbmc.rna)
-pbmc.atac <- UpdateSeuratObject(pbmc.atac)
-
 # repeat QC steps performed in the WNN vignette
 pbmc.rna <- subset(pbmc.rna, seurat_annotations != 'filtered')
 pbmc.atac <- subset(pbmc.atac, seurat_annotations != 'filtered')

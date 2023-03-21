@@ -43,7 +43,6 @@ library(Seurat)
 library(SeuratData)
 InstallData("pbmc3k")
 pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
-pbmc <- UpdateSeuratObject(pbmc)
 
 # pretend that cells were originally assigned to one of two replicates (we assign randomly here)
 # if your cells do belong to multiple replicates, and you want to add this info to the Seurat object
