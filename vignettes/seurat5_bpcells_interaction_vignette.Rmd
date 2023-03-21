@@ -123,7 +123,7 @@ for (i in 1:length(files.set)) {
   mat <- open_matrix_dir(dir = paste0(file.dir, name, "_BP"))
   mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = "human")
   # Get metadata
-  metadata.list[[i]] <- LoadH5ADobs(file = path)
+  metadata.list[[i]] <- LoadH5ADobs(path = path)
   data.list[[i]] <- mat
   names(data.list[i]) <- name
 }
