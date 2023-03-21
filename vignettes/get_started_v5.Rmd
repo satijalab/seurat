@@ -1,5 +1,5 @@
 ---
-title: "Getting Started with Seurat 5"
+title: "Introduction to Seurat 5"
 output:
   html_document:
     theme: united
@@ -99,13 +99,7 @@ vdat <- read_yaml(file = "vignettes_v5.yaml")
 </style>
 ```
 
-We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat. You can also check out our [Reference page](../reference/index.html) which contains a full list of functions available to users.
-
-# Seurat 5 Vignettes
-
-For new users of Seurat, we suggest starting with a guided walk through of a dataset of 2,700 Peripheral Blood Mononuclear Cells (PBMCs) made publicly available by 10X Genomics. This tutorial implements the major components of a standard unsupervised clustering workflow including QC and data filtration, calculation of high-variance genes, dimensional reduction, graph-based clustering, and the identification of cluster markers.
-
-We provide additional introductory vignettes for users who are interested in analyzing multimodal single-cell datasets (e.g. from CITE-seq, or the 10x multiome kit), or spatial datasets (e.g. 10x Visium or Vizgen MERFISH).
+Seurat 5 placeholder text.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 1)

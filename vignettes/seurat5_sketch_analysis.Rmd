@@ -59,7 +59,8 @@ We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_di
 ```{r}
 # note to Yuhan- this directory should already contain the ensembl-modified names. we can show how to do the ensembl mods in the interaction vignette
 # Connect to the counts matrix stored on-disk
-ondisk_matrix <- open_matrix_dir('../data/mouse_1M_neurons_counts')
+ondisk_matrix <- open_matrix_dir('/brahms/hartmana/vignette_data/mouse_1M_neurons_counts')
+ondisk_matrix <- Azimuth::ConvertEnsembleToSymbol(mat = ondisk_matrix, species = "mouse")
 
 # specify that you would like to create a Seurat v5 assay
 # note that we require setting this option to ensure that existing pipelines are not affected
@@ -119,6 +120,12 @@ obj <- ProjectData(object = obj,
                    )
 # now that we have projected the full dataset, switch back to analyzing all cells
 DefaultAssay(obj) <- 'RNA'
+```
+
+```{r save.img}
+library(ggplot2)
+p <- DimPlot(obj, label = T, label.size=8, reduction = "ref.umap", group.by = "predicted.cluster_full", alpha = 0.1) + NoLegend()
+ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
 
 ```{r}
