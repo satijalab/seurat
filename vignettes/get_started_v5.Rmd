@@ -1,5 +1,5 @@
 ---
-title: "Introduction to Seurat 5"
+title: "Getting started with Seurat 5"
 output:
   html_document:
     theme: united
@@ -26,7 +26,10 @@ process_entry <- function(dat) {
   } else {
     img <- paste0('![](', '../output/images/', dat$image, '){width=3000px}')
   }
-  if (grepl(pattern = "https://satijalab.org/", x = dat$name)) {
+
+  if (dat$name == "seurat5_run_azimuth") {
+    link <- "https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html"
+  } else if (grepl(pattern = "https://satijalab.org/", x = dat$name)) {
     link <- dat$name
   } else {
     link <- paste0(dat$name, ".html")
@@ -99,8 +102,20 @@ vdat <- read_yaml(file = "vignettes_v5.yaml")
 </style>
 ```
 
+Some text.
+
+# Introduction to Seurat 5
+
 Seurat 5 placeholder text.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 1)
+```
+
+# Analysis in Seurat 5
+
+Some more text about these vignettes.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 2)
 ```

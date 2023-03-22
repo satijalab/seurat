@@ -120,14 +120,14 @@ anchor
 ```
  
 
-```{r}
+```{r, fig.width=10, fig.height=6}
  p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.l2.s5',alpha = 0.8, label = T) + NoLegend()
  p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T) + NoLegend()
 
  p1+p2
 
 ```
-```{r, fig.width=10, fig.height=10}
+```{r, fig.width=10, fig.height=6}
 p3 <-DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T, split.by = 'batch', ncol = 3) + NoLegend()
 p3
 ```
