@@ -40,49 +40,15 @@ library(BPCells)
 library(dplyr)
 ```
 
-## load matrix
-```{r, warning=F, message=F}
-time0_loadMatrix <- system.time({ 
-  
-file.dir <- "../data/PBMCVignette/"
-files.set <- c("arunachalam_2020_processed.BPCells", "combes_2021_processed.BPCells", "lee_2020_processed.BPCells",
-               "wilk_2020_processed.BPCells", "yao_2021_processed.BPCells")
-meta.list <- readRDS('../data/PBMCVignette/PBMC_meta.list')
-names(meta.list) <- gsub('_processed.BPCells','',files.set)
-
-input.list <- list()
-for (i in 1:length(files.set)) {
-  input.list[[i]] <- open_matrix_dir(dir = paste0(file.dir, files.set[i]) )
-  colnames(input.list[[i]]) <- paste0(names(meta.list)[i], "_",    colnames(input.list[[i]]))
-  rownames(meta.list[[i]]) <-paste0(names(meta.list)[i], "_",  rownames(meta.list[[i]]))
-  meta.list[[i]]$batch <- names(meta.list)[i]
-  meta.list[[i]]$celltype <-   meta.list[[i]]$predicted.celltype.l2
-  
-}
- names(input.list) <- paste0('counts.',gsub('_processed.BPCells','',files.set))
-  meta_data <- lapply(meta.list, function(x) {
-    x <- x[,c('batch', 'celltype', 'patient', 'disease_status_standard' )]
-    return(x)
-  })
-  meta_data <- Reduce(rbind, meta_data)
-})
-```
-
 ## load query
 ```{r,warning=F, message=F}
-
-options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
-time1_normalize <- system.time({
- 
-  object <- CreateSeuratObject(counts = input.list[1:2], meta.data = meta_data)
-  object <- NormalizeData(object, verbose = FALSE)
-})
-
+object <- readRDS("/brahms/hartmana/vignette_data/covid_mapping_merged_object.rds")
+object <- NormalizeData(object, verbose = FALSE)
 ```
 
 ## load reference
 ```{r}
-obj.ref <- readRDS("../data/pbmc_multimodal_2023.rds")
+obj.ref <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
 obj.ref 
 ```
 ## mapping
