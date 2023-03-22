@@ -1,46 +1,54 @@
-- category: Introduction to v5
+- category: Introduction to Seurat 5
   vignettes:
-    - title: Guided tutorial --- 2,700 PBMCs
-      name: seurat5_pbmc3k_tutorial
+    - title: Install Seurat 5
+      name: install_seurat5
       summary: |
-        A basic overview of Seurat that includes an introduction to common analytical workflows.
-      image: pbmc3k_umap.jpg
+        Install Seurat 5 and required dependencies.
+      image: SeuratV5.png
+  
+    - title: Seurat 5 Assay
+      name: seurat5_assay
+      summary: |
+        Explore the new assay structure introduced in Seurat 5.
+      image: assay.png
 
-    - title: Multimodal analysis
-      name: seurat5_multimodal_vignette
+    - title: BPCells Interaction
+      name: seurat5_bpcells_interaction_vignette
       summary: |
-        An introduction to working with multi-modal datasets in Seurat.
-      image: citeseq_plot.jpg
+        Load and save large on-disk matrices using BPCells.
+      image: bpcells.png
 
-    - title: Analysis of spatial datasets (Sequencing-based)
-      name: seurat5_spatial_vignette
+- category: Analysis in Seurat 5
+  vignettes:
+    - title: Integration
+      name: seurat5_integration
       summary: |
-        Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
-      image: spatial_vignette_ttr.jpg
+        Integrate datesets in Seurat 5 using a variety of methods.
+      image: integration_seurat5.jpg
+
+    - title: COVID Mapping
+      name: COVID_SCTMapping
+      summary: |
+        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
+      image: COVID_SCTMapping.jpg
 
     - title: Analysis of spatial datasets (Imaging-based)
       name: seurat5_spatial_vignette_2
       summary: |
-        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Xenium, CosMx SMI, and CODEX.
+        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERSCOPE, Xenium, CosMx SMI, and CODEX.
       image: spatial_vignette_2.jpg
 
-    - title: SCTransform
-      name: seurat5_sctransform_vignette
+    - title: Sketch Clustering
+      name: seurat5_sketch_analysis
       summary: |
-        Examples of how to use the SCTransform wrapper in Seurat.
-      image: assets/sctransform.png
+        Analyze a 1.3 million cell mouse brain dataset using the on-disk capabilities introduced in Seurat 5.
+      image: sketch.png
 
-    - title: Visualization
-      name: seurat5_visualization_vignette
+    - title: Sketch Integration
+      name: ParseBio_sketch_integration
       summary: |
-        An overview of the major visualization functionality within Seurat.
-      image: visualization_vignette.jpg
-
-    - title: Cell Cycle Regression
-      name: seurat5_cell_cycle_vignette
-      summary: |
-        Mitigate the effects of cell cycle heterogeneity by computing cell cycle phase scores based on marker genes.
-      image: cell_cycle_vignette.jpg
+        Perform sketch integration on a large dataset from Parse Biosciences.
+      image: sketch.png
 
     - title: Bridge Integration
       name: seurat5_integration_bridge
@@ -48,32 +56,8 @@
         Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
       image: bridge_integration.png
 
-    - title: Sketch Clustering (BPCells)
-      name: MouseBrain_sketch_clustering
+    - title: RunAzimuth
+      name: seurat5_run_azimuth
       summary: |
-        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat v5.
-      image: MouseBrain_sketch_clustering.jpg
-
-    - title: COVID Mapping (BPCells)
-      name: COVID_SCTMapping
-      summary: |
-        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
-      image: COVID_SCTMapping.jpg
-
-    - title: Sketch Integration (BPCells)
-      name: ParseBio_sketch_integration
-      summary: |
-        Perform sketch integration on a large dataset from Parse Biosciences.
-      image: ParseBio_sketch_integration.jpg
-
-    - title: Sketch Clustering Updated
-      name: seurat5_sketch_analysis
-      summary: |
-        Analyze a large mouse brain dataset using the on-disk capabilities introduced in Seurat v5.
-      image: tbd
-
-    - title: BPCells interation
-      name: seurat5_bpcells_interaction_vignette
-      summary: |
-        Load and save large on-disk matrices
-      image: tbd
+        Annotate cells locally using Azimuth.
+      image: azimuth.png

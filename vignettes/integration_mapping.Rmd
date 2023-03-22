@@ -54,7 +54,6 @@ To construct a reference, we will identify 'anchors' between the individual data
 
 ```{r preprocessing1}
 panc8 <- LoadData('panc8')
-panc8 <- UpdateSeuratObject(panc8)
 pancreas.list <- SplitObject(panc8, split.by = "tech")
 pancreas.list <- pancreas.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
 ```

@@ -27,7 +27,8 @@ Authors@R: c(
 URL: https://satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Remotes: 
-    bnprks/BPCells
+    bnprks/BPCells,
+    mojaveazure/seurat-object@seurat5
 Depends:
     R (>= 4.0.0),
     methods,

@@ -43,38 +43,12 @@ library(dplyr)
 ## load matrix
 
 ```{r, warning=F, message=F}
-time0_loadMatrix <- system.time({ 
-  mat <- open_matrix_dir('../data/pbmc_150k_sparse/')
-  meta <- readRDS('../data/ParseBio_PBMC_meta_100K.rds')
-  meta$disease <- sample(c('H','D'), nrow(meta), replace = T)
-})
-```
-
-## sketch object
-```{r,warning=F, message=F}
-
-options(Seurat.object.assay.version = "v5",   Seurat.object.assay.calcn = T)
-time1_normalize <- system.time({
-  object <- CreateSeuratObject(counts = mat, meta.data = meta)
-  object <- NormalizeData(object, verbose = FALSE)
-})
- 
-
-time2_split.mat  <- system.time({
-  options(Seurat.object.assay.calcn = FALSE) 
-  object[['RNA']] <- split(object[['RNA']], f =  object$sample)
-})
-
-
-time3_FindVariable  <- system.time({
-  object <- FindVariableFeatures(object, layer = 'counts',  verbose = FALSE)
-}
-)
-
-time4_LeverageScoreSampling  <- system.time({
-  object <- LeverageScoreSampling(object = object, ncells = 5000, cast = 'dgCMatrix', verbose = FALSE)
-})
-
+object <- readRDS("/brahms/hartmana/vignette_data/parse_1m_pbmc.rds")
+object <- NormalizeData(object, verbose = FALSE)
+options(Seurat.object.assay.calcn = FALSE) 
+object[['RNA']] <- split(object[['RNA']], f =  object$sample)
+object <- FindVariableFeatures(object, layer = 'counts',  verbose = FALSE)
+object <- LeverageScoreSampling(object = object, ncells = 5000, cast = 'dgCMatrix', verbose = FALSE)
 ```
 
 ## integrate sketched assay

@@ -278,6 +278,145 @@ We can now use `ImageDimPlot()` to color the cell positions colored by the clust
 ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
+Using the positional information of each cell, we compute spatial niches.
+We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex.
+Below, we use Slc17a7 expression to help determine the cortical region.
+
+```{r, fig.width=5, fig.height=5, warning=FALSE}
+xenium.obj <- LoadXenium("../data/xenium_tiny_subset")
+p1 <- ImageFeaturePlot(xenium.obj, features = "Slc17a7", axes = TRUE, max.cutoff = "q90")
+p1
+```
+
+```{r resolve.crop, fig.width=5, fig.height=7, warning=FALSE}
+crop <- Crop(xenium.obj[["fov"]], x=c(600, 2100), y=c(900, 4700))
+xenium.obj[["crop"]] <- crop
+p2 <- ImageFeaturePlot(
+  xenium.obj,
+  fov = "crop",
+  features = "Slc17a7",
+  size = 1,
+  axes = TRUE,
+  max.cutoff = "q90")
+p2
+```
+
+Annotation of spatial datasets can be tricky, and single cell methods are not always effective. Here, we use RCTD, which directly accounts for cell type mixing at each spot or segmentation, to annotate cells. For more details on RCTD, please see the [paper](https://doi.org/10.1038/s41587-021-00830-w).
+
+First, we install the `spacexr` package from GitHub which implements RCTD.
+
+```{r, rctd.install, eval=FALSE}
+devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+```
+
+Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
+
+```{r rctd.qeury, warning=FALSE}
+library(spacexr)
+
+query.counts <- GetAssayData(xenium.obj, assay = "Xenium", slot = "counts")[, Cells(xenium.obj[["crop"]])]
+coords <- GetTissueCoordinates(xenium.obj[["crop"]], which = "centroids")
+rownames(coords) <- coords$cell
+coords$cell <- NULL
+query <- SpatialRNA(coords, query.counts, colSums(query.counts))
+```
+
+```{r rctd.reference, eval=FALSE}
+allen.cortex.ref <- readRDS("/home/hartmana/github/seurat-private/data/allen_cortex.rds")
+allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
+
+Idents(allen.cortex.ref) <- "subclass"
+# remove CR cells because there aren't enough of them for annotation
+allen.cortex.ref <- subset(allen.cortex.ref, subset = subclass != "CR")
+counts <- GetAssayData(allen.cortex.ref, assay = "RNA", slot = "counts")
+cluster <- as.factor(allen.cortex.ref$subclass)
+names(cluster) <- colnames(allen.cortex.ref)
+nUMI <- allen.cortex.ref$nCount_RNA
+names(nUMI) <- colnames(allen.cortex.ref)
+nUMI <- colSums(counts)
+levels(cluster) <- gsub("/", "-", levels(cluster))
+reference <- Reference(counts, cluster, nUMI)
+```
+
+```{r niche.run.rctd, warning=FALSE, results=FALSE, eval=FALSE}
+# run RCTD with many cores
+RCTD <- create.RCTD(query, reference, max_cores = 8)
+RCTD <- run.RCTD(RCTD, doublet_mode = "doublet")
+```
+
+Many spot annotations contain multiple cell type markers, so we filter only to singlets and add the annotations to the Seurat object for downstream analysis.
+
+```{r niche.add.annotations, eval=FALSE}
+annotations.df <- RCTD@results$results_df
+annotations.df <- annotations.df[annotations.df$spot_class == "singlet", ]
+annotations <- annotations.df$first_type
+names(annotations) <- rownames(annotations.df)
+xenium.obj$predicted.celltype <- annotations
+keep.cells <- Cells(xenium.obj)[!is.na(xenium.obj$predicted.celltype)]
+xenium.obj <- subset(xenium.obj, cells = keep.cells)
+```
+
+We call the `BuildNicheAssay` function from within Seurat to construct a new assay called `niche` containing the cell type composition spatially neighboring each cell. A metadata column called `niches` is also returned, which contains cluster assignments based on the niche assay.
+
+```{r build.niche.assay, eval=FALSE}
+xenium.obj <- BuildNicheAssay(
+  object = xenium.obj,
+  fov = "crop",
+  group.by = "predicted.celltype",
+  niches.k = 5,
+  neighbors.k = 30
+)
+```
+
+```{r load.niche.results, eval=TRUE, include=FALSE}
+xenium.obj <- readRDS("../data/xenium_niches_presaved.rds")
+```
+
+After clustering the cell type composition nearby each cell, the neuronal layers in the cortex are visually demarcated.
+
+```{r, niche.dimplots, fig.width=8, fig.height=6, warning=FALSE}
+celltype.plot <- ImageDimPlot(
+  xenium.obj,
+  group.by = "predicted.celltype",
+  size = 1.5,
+  cols = "polychrome",
+  dark.background = F) +
+  ggtitle("Cell type")
+niche.plot <- ImageDimPlot(
+  xenium.obj,
+  group.by = "niches",
+  size = 1.5,
+  dark.background = F) + 
+  ggtitle("Niches") +
+  scale_fill_manual(
+    values = c("#442288", "#6CA2EA", "#B5D33D", "#FED23F", "#EB7D5B"))
+celltype.plot | niche.plot
+```
+
+Further, we observe that the composition of each niche is enriched for distinct cell types.
+
+```{r niche.composition}
+table(xenium.obj$predicted.celltype, xenium.obj$niches)
+```
+
+Next, we perform DE between atrocytes from two of the niches.
+
+Note: I think this style of analysis is very risky - most of the DEGs comparing a cell type across niches are cell type markers of the other cell types enriched in one of the niches likely due to incorrect molecular assignment to cells.
+
+```{r niche.de}
+xenium.obj$celltype.niches <- paste0(xenium.obj$predicted.celltype, "_", xenium.obj$niches)
+Idents(xenium.obj) <- "celltype.niches"
+niche.markers <- FindMarkers(xenium.obj, assay = "Xenium", ident.1 = "Astro_1", ident.2 = "Astro_5")
+```
+
+```{r niche.vln}
+VlnPlot(
+  xenium.obj,
+  idents = c("Astro_1", "Astro_5"),
+  assay = "Xenium",
+  features = rownames(niche.markers)[1:6])
+```
+
 # Human Lung: Nanostring CosMx Spatial Molecular Imager
 
 This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI). The CosMX SMI performs multiplexed single molecule profiling, can profile both RNA and protein targets, and can be applied directly to FFPE tissues. The dataset represents 8 FFPE samples taken from 5 non-small-cell lung cancer (NSCLC) tissues, and is available for [public download](https://www.nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/). The gene panel consists of 960 transcripts. 

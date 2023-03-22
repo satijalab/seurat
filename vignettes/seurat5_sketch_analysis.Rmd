@@ -55,18 +55,16 @@ options(future.globals.maxSize = 1e9)
 ```
 ## Create a Seurat object with a v5 assay for on-disk storage
  
-We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](link), we demonstrate how to create this on-disk representation.
+We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html), we demonstrate how to create this on-disk representation.
 ```{r}
-# note to Yuhan- this directory should already contain the ensembl-modified names. we can show how to do the ensembl mods in the interaction vignette
-# Connect to the counts matrix stored on-disk
-ondisk_matrix <- open_matrix_dir('../data/mouse_1M_neurons_counts')
-
 # specify that you would like to create a Seurat v5 assay
 # note that we require setting this option to ensure that existing pipelines are not affected
 options(Seurat.object.assay.version = 'v5')
-# Create the Seurat object, which contains 1.3M cells stored on-disk as part of the 'RNA' assay
-obj <- CreateSeuratObject(counts = ondisk_matrix)
+
+# Read the Seurat object, which contains 1.3M cells stored on-disk as part of the 'RNA' assay
+obj <- readRDS("/brahms/hartmana/vignette_data/1p3_million_mouse_brain.rds")
 obj
+
 # Note that since the data is stored on-disk, the object size easily fits in-memory (<1GB)
 format(object.size(obj), units = 'Mb')
 ```
@@ -119,6 +117,12 @@ obj <- ProjectData(object = obj,
                    )
 # now that we have projected the full dataset, switch back to analyzing all cells
 DefaultAssay(obj) <- 'RNA'
+```
+
+```{r save.img}
+library(ggplot2)
+p <- DimPlot(obj, label = T, label.size=8, reduction = "ref.umap", group.by = "predicted.cluster_full", alpha = 0.1) + NoLegend()
+ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
 
 ```{r}

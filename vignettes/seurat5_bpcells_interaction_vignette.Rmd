@@ -55,7 +55,7 @@ We use BPCells functionality to both load in our data and write the counts layer
 # Load Data
 
 ### Load Data from one h5 file 
-In this section, we will load  a dataset of mouse brain cells freely available from 10X Genomics. This includes 1.3 Million single cells that were sequenced on the Illumina NovaSeq 6000. The raw data can be found [here](https://www.10xgenomics.com/resources/datasets/10k-human-brains-3-ht-v3-1-chromium-x-3-1-high). 
+In this section, we will load  a dataset of mouse brain cells freely available from 10X Genomics. This includes 1.3 Million single cells that were sequenced on the Illumina NovaSeq 6000. The raw data can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/1M_neurons?).
 
 To read in the file, we will use open_matrix_10x_hdf5, a BPCells function written to read in feature matrices from 10x. We then write a matrix directory, load the matrix, and create a Seurat object. 
 
@@ -107,7 +107,7 @@ You can also download data from multiple matrices. In this section, we create a 
 
 
 ```{r, warning=FALSE}
-file.dir <- "../data/h5ad_files/"
+file.dir <- "/brahms/hartmana/vignette_data/h5ad_files/"
 files.set <- c("ahern_pbmc.h5ad", "jin_pbmc.h5ad", "yoshida_pbmc.h5ad")
 
 # Loop through h5ad files and output BPCells matrices on-disk
@@ -118,12 +118,12 @@ for (i in 1:length(files.set)) {
   name <- gsub(".h5ad", "", files.set[i])
   path <- paste0(file.dir, files.set[i])
   data <- open_matrix_anndata_hdf5(path)
-  write_matrix_dir(mat = data, dir = paste0(file.dir, name, "_BP"))
+  write_matrix_dir(mat = data, dir = paste0(file.dir, name, "_BP"), overwrite = TRUE)
   # Load in BP matrices
   mat <- open_matrix_dir(dir = paste0(file.dir, name, "_BP"))
   mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = "human")
   # Get metadata
-  metadata.list[[i]] <- readH5AD_obs(file = path)
+  metadata.list[[i]] <- LoadH5ADobs(path = path)
   data.list[[i]] <- mat
   names(data.list[i]) <- name
 }

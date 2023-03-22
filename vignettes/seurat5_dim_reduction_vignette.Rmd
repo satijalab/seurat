@@ -38,7 +38,6 @@ This vignette demonstrates how to store and interact with dimensional reduction 
 library(Seurat)
 library(SeuratData)
 pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
-pbmc <- UpdateSeuratObject(pbmc)
 ```
 
 # Explore the new dimensional reduction structure

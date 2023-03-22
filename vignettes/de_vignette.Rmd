@@ -43,7 +43,6 @@ This vignette highlights some example workflows for performing differential expr
 library(Seurat)
 library(SeuratData)
 pbmc <- LoadData("pbmc3k", type = "pbmc3k.final")
-pbmc <- UpdateSeuratObject(pbmc)
 ```
 
 # Perform default differential expression tests

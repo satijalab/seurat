@@ -66,7 +66,6 @@ We use a 111 gRNA ECCITE-seq dataset generated from stimulated THP-1 cells that 
 ```{r eccite.load}
 # Load object.
 eccite <- LoadData(ds = "thp1.eccite")
-eccite <- UpdateSeuratObject(eccite)
 
 # Normalize protein.
 eccite <- NormalizeData(

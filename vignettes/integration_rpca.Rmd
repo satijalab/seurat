@@ -57,7 +57,6 @@ InstallData('ifnb')
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
 ifnb <- LoadData('ifnb')
-ifnb <- UpdateSeuratObject(ifnb)
 
 # split the dataset into a list of two seurat objects (stim and CTRL)
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
@@ -151,7 +150,6 @@ As an additional example, we repeat the analyses performed above, but normalize 
 
 ```{r panc8.cca.sct.init, results='hide', message=FALSE, fig.keep='none'}
 ifnb <- LoadData('ifnb')
-ifnb <- UpdateSeuratObject(ifnb)
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
 ifnb.list <- lapply(X = ifnb.list, FUN = SCTransform, method = "glmGamPoi")
 features <- SelectIntegrationFeatures(object.list = ifnb.list, nfeatures = 3000)

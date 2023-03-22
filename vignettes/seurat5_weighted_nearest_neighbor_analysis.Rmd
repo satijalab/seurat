@@ -62,7 +62,6 @@ library(dplyr)
 ```{r}
 InstallData("bmcite")
 bm <- LoadData(ds = "bmcite")
-bm <- UpdateSeuratObject(bm)
 bm[["ADT"]] <- CreateAssay5Object(bm[["ADT"]]$counts)
 bm[["RNA"]] <- CreateAssay5Object(bm[["RNA"]]$counts)
 ```

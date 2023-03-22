@@ -442,6 +442,7 @@ GetResidual <- function(
       X = sct.models,
       FUN = function(x) {
         FetchResidualSCTModel(object = object,
+                              assay = assay,
                               umi.assay = umi.assay,
                               SCTModel = x,
                               new_features = features,

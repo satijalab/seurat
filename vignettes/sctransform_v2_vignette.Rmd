@@ -87,7 +87,6 @@ InstallData("ifnb")
 ```{r init, results='hide', message=FALSE, fig.keep='none'}
 # load dataset
 ifnb <- LoadData("ifnb")
-ifnb <- UpdateSeuratObject(ifnb)
 
 # split the dataset into a list of two seurat objects (stim and CTRL)
 ifnb.list <- SplitObject(ifnb, split.by = "stim")
