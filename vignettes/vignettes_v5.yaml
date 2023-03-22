@@ -1,10 +1,36 @@
-- category: Introduction to v5
+- category: Introduction to Seurat 5
   vignettes:
-    - title: Bridge Integration
-      name: seurat5_integration_bridge
+    - title: Install Seurat 5
+      name: install_seurat5
       summary: |
-        Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
-      image: bridge_integration.png
+        Install Seurat 5 and required dependencies.
+      image: SeuratV5.png
+  
+    - title: Seurat 5 Assay
+      name: seurat5_assay
+      summary: |
+        Explore the new assay structure introduced in Seurat 5.
+      image: assay.png
+
+    - title: BPCells Interaction
+      name: seurat5_bpcells_interaction_vignette
+      summary: |
+        Load and save large on-disk matrices using BPCells.
+      image: bpcells.png
+
+- category: Analysis in Seurat 5
+  vignettes:
+    - title: Integration
+      name: seurat5_integration
+      summary: |
+        Integrate datesets in Seurat 5 using a variety of methods.
+      image: integration_seurat5.jpg
+
+    - title: COVID Mapping
+      name: COVID_SCTMapping
+      summary: |
+        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
+      image: COVID_SCTMapping.jpg
 
     - title: Analysis of spatial datasets (Imaging-based)
       name: seurat5_spatial_vignette_2
@@ -16,34 +42,22 @@
       name: seurat5_sketch_analysis
       summary: |
         Analyze a 1.3 million cell mouse brain dataset using the on-disk capabilities introduced in Seurat 5.
-      image: MouseBrain_sketch_clustering.jpg
-
-    - title: Integration
-      name: seurat5_integration
-      summary: |
-        Integrate datesets in Seurat 5 using a variety of methods.
-      image: tbd.jpg
-
-    - title: BPCells Interaction
-      name: seurat5_bpcells_interaction_vignette
-      summary: |
-        Load and save large on-disk matrices using BPCells.
-      image: tbd.jpg
-
-    - title: Install Seurat 5
-      name: install_seurat5
-      summary: |
-        Install Seurat 5 and required dependencies.
-      image: SeuratV5.png
-
-    - title: COVID Mapping
-      name: COVID_SCTMapping
-      summary: |
-        Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
-      image: COVID_SCTMapping.jpg
+      image: sketch.png
 
     - title: Sketch Integration
       name: ParseBio_sketch_integration
       summary: |
         Perform sketch integration on a large dataset from Parse Biosciences.
-      image: ParseBio_sketch_integration.jpg
+      image: sketch.png
+
+    - title: Bridge Integration
+      name: seurat5_integration_bridge
+      summary: |
+        Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
+      image: bridge_integration.png
+
+    - title: RunAzimuth
+      name: seurat5_run_azimuth
+      summary: |
+        Annotate cells locally using Azimuth.
+      image: azimuth.png

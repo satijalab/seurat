@@ -107,7 +107,7 @@ You can also download data from multiple matrices. In this section, we create a 
 
 
 ```{r, warning=FALSE}
-file.dir <- "../data/h5ad_files/"
+file.dir <- "/brahms/hartmana/vignette_data/h5ad_files/"
 files.set <- c("ahern_pbmc.h5ad", "jin_pbmc.h5ad", "yoshida_pbmc.h5ad")
 
 # Loop through h5ad files and output BPCells matrices on-disk
@@ -118,7 +118,7 @@ for (i in 1:length(files.set)) {
   name <- gsub(".h5ad", "", files.set[i])
   path <- paste0(file.dir, files.set[i])
   data <- open_matrix_anndata_hdf5(path)
-  write_matrix_dir(mat = data, dir = paste0(file.dir, name, "_BP"))
+  write_matrix_dir(mat = data, dir = paste0(file.dir, name, "_BP"), overwrite = TRUE)
   # Load in BP matrices
   mat <- open_matrix_dir(dir = paste0(file.dir, name, "_BP"))
   mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = "human")
