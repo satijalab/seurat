@@ -3,9 +3,9 @@
     - title: Install Seurat 5
       name: install_seurat5
       summary: |
-        Install Seurat 5 and required dependencies.
+        Install Seurat 5 and suggested dependencies.
       image: SeuratV5.png
-  
+
     - title: Seurat 5 Assay
       name: seurat5_assay
       summary: |
@@ -23,14 +23,14 @@
     - title: Integration
       name: seurat5_integration
       summary: |
-        Integrate datesets in Seurat 5 using a variety of methods.
+        Integrate datasets in Seurat 5 using a variety of methods.
       image: integration_seurat5.jpg
 
     - title: COVID Mapping
       name: COVID_SCTMapping
       summary: |
         Map PBMC datasets from COVID-19 patients to a healthy PBMC reference.
-      image: COVID_SCTMapping.jpg
+      image: COVID_SCTMapping.png
 
     - title: Analysis of spatial datasets (Imaging-based)
       name: seurat5_spatial_vignette_2
@@ -41,7 +41,7 @@
     - title: Sketch Clustering
       name: seurat5_sketch_analysis
       summary: |
-        Analyze a 1.3 million cell mouse brain dataset using the on-disk capabilities introduced in Seurat 5.
+        Analyze a 1.3 million cell mouse brain dataset using on-disk capabilities powered by BPCells.
       image: sketch.png
 
     - title: Sketch Integration
@@ -56,7 +56,7 @@
         Map scATAC-seq onto an scRNA-seq reference using a multi-omic bridge dataset.
       image: bridge_integration.png
 
-    - title: RunAzimuth
+    - title: Run Azimuth
       name: seurat5_run_azimuth
       summary: |
         Annotate cells locally using Azimuth.

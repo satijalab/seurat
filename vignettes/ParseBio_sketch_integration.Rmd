@@ -48,7 +48,7 @@ object <- NormalizeData(object, verbose = FALSE)
 options(Seurat.object.assay.calcn = FALSE) 
 object[['RNA']] <- split(object[['RNA']], f =  object$sample)
 object <- FindVariableFeatures(object, layer = 'counts',  verbose = FALSE)
-object <- LeverageScoreSampling(object = object, ncells = 5000, cast = 'dgCMatrix', verbose = FALSE)
+object <- SketchData(object = object, ncells = 50000, method = 'LeverageScore', sketched.assay = 'sketch')
 ```
 
 ## integrate sketched assay

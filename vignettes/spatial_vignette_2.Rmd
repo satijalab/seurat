@@ -322,7 +322,7 @@ query <- SpatialRNA(coords, query.counts, colSums(query.counts))
 ```
 
 ```{r rctd.reference, eval=FALSE}
-allen.cortex.ref <- readRDS("/home/hartmana/github/seurat-private/data/allen_cortex.rds")
+allen.cortex.ref <- readRDS("../data/allen_cortex.rds")
 allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
 
 Idents(allen.cortex.ref) <- "subclass"

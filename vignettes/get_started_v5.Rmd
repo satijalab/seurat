@@ -102,11 +102,9 @@ vdat <- read_yaml(file = "vignettes_v5.yaml")
 </style>
 ```
 
-Some text.
-
 # Introduction to Seurat 5
 
-Seurat 5 placeholder text.
+The following vignettes outline how to install, create, and interact with Seurat 5 objects.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 1)
@@ -114,7 +112,12 @@ make_vignette_card_section(vdat = vdat, cat = 1)
 
 # Analysis in Seurat 5
 
-Some more text about these vignettes.
+Below we demonstrate new functionality introduced in Seurat 5 including:
+
+* Sketch-based workflows to efficiently process large datasets while preserving rare and abundant cell types
+* Bridge integration to annotate cells from complementary technologies with a scRNA-seq reference
+* Spatial infrastructure to analyze public datasets from multiple technologies
+* Integration using CCA, RPCA, scVI, and Harmony in a common framework
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 2)

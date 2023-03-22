@@ -63,7 +63,7 @@ We use the `LoadVizgen()` function, which we have written to read in the output 
 
 ```{r, message=FALSE, warning=FALSE}
 # Loading segmentations is a slow process and multi processing with the future pacakge is recommended
-vizgen.obj <- LoadVizgen(data.dir = "../data/vizgen/s2r1/", fov = "s2r1")
+vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/vignette_data/vizgen/s2r1/", fov = "s2r1")
 ```
 
 The next pieces of information are specific to imaging assays, and is stored in the images slot of the resulting Seurat object:
@@ -135,7 +135,7 @@ The `ImageDimPlot()` and `ImageFeaturePlot()` functions have a few parameters wh
 Since it can be difficult to visualize the spatial localization patterns of an individual cluster when viewing them all together, we can highlight all cells that belong to a particular cluster:
 
 ```{r, fig.height=8, fig.width=12}
-p1 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vizgen.obj, idents = 14))
+p1 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vizgen.obj, idents = 1))
 p2 <- ImageDimPlot(vizgen.obj, fov = "s2r1", cols = "red", cells = WhichCells(vizgen.obj, idents = 15))
 p1 + p2
 ```
@@ -214,7 +214,7 @@ unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
 First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
 
 ```{r load.xenium, results='hide'}
-path <- "../data/xenium_tiny_subset"
+path <- "/brahms/hartmana/vignette_data/xenium_tiny_subset"
 # Load the Xenium data
 xenium.obj <- LoadXenium(path, fov = "fov")
 # remove cells with 0 counts
@@ -284,7 +284,7 @@ We use a cortex reference from the the Allen Brain Institute to annotate cells, 
 Below, we use Slc17a7 expression to help determine the cortical region.
 
 ```{r, fig.width=5, fig.height=5, warning=FALSE}
-xenium.obj <- LoadXenium("../data/xenium_tiny_subset")
+xenium.obj <- LoadXenium("/brahms/hartmana/vignette_data/xenium_tiny_subset")
 p1 <- ImageFeaturePlot(xenium.obj, features = "Slc17a7", axes = TRUE, max.cutoff = "q90")
 p1
 ```
@@ -370,7 +370,7 @@ xenium.obj <- BuildNicheAssay(
 ```
 
 ```{r load.niche.results, eval=TRUE, include=FALSE}
-xenium.obj <- readRDS("../data/xenium_niches_presaved.rds")
+xenium.obj <- readRDS("/brahms/hartmana/vignette_data/xenium_niches_presaved.rds")
 ```
 
 After clustering the cell type composition nearby each cell, the neuronal layers in the cortex are visually demarcated.
@@ -400,24 +400,6 @@ Further, we observe that the composition of each niche is enriched for distinct 
 table(xenium.obj$predicted.celltype, xenium.obj$niches)
 ```
 
-Next, we perform DE between atrocytes from two of the niches.
-
-Note: I think this style of analysis is very risky - most of the DEGs comparing a cell type across niches are cell type markers of the other cell types enriched in one of the niches likely due to incorrect molecular assignment to cells.
-
-```{r niche.de}
-xenium.obj$celltype.niches <- paste0(xenium.obj$predicted.celltype, "_", xenium.obj$niches)
-Idents(xenium.obj) <- "celltype.niches"
-niche.markers <- FindMarkers(xenium.obj, assay = "Xenium", ident.1 = "Astro_1", ident.2 = "Astro_5")
-```
-
-```{r niche.vln}
-VlnPlot(
-  xenium.obj,
-  idents = c("Astro_1", "Astro_5"),
-  assay = "Xenium",
-  features = rownames(niche.markers)[1:6])
-```
-
 # Human Lung: Nanostring CosMx Spatial Molecular Imager
 
 This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI). The CosMX SMI performs multiplexed single molecule profiling, can profile both RNA and protein targets, and can be applied directly to FFPE tissues. The dataset represents 8 FFPE samples taken from 5 non-small-cell lung cancer (NSCLC) tissues, and is available for [public download](https://www.nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/). The gene panel consists of 960 transcripts. 
@@ -427,12 +409,12 @@ In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `Lo
 For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0.  You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
 
 ```{r load}
-nano.obj <- LoadNanostring(data.dir = "../data/nanostring/lung5_rep1", fov="lung5.rep1")
+nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/vignette_data/nanostring/lung5_rep1", fov="lung5.rep1")
 ```
 
 ```{r integration}
 # add in precomputed Azimuth annotations
-azimuth.data <- readRDS("../data/nanostring_data.Rds")
+azimuth.data <- readRDS("/brahms/hartmana/vignette_data/nanostring_data.Rds")
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
@@ -514,7 +496,7 @@ First, we load in the data of a HuBMAP dataset using the `LoadAkoya()` function 
 
 ```{r}
 codex.obj <- LoadAkoya(
-  filename = "../data/LN7910_20_008_11022020_reg001_compensated.csv",
+  filename = "/brahms/hartmana/vignette_data/LN7910_20_008_11022020_reg001_compensated.csv",
   type = "processor",
   fov = "HBM754.WKLP.262"
 )

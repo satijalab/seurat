@@ -60,12 +60,12 @@ In this section, we will load  a dataset of mouse brain cells freely available f
 To read in the file, we will use open_matrix_10x_hdf5, a BPCells function written to read in feature matrices from 10x. We then write a matrix directory, load the matrix, and create a Seurat object. 
 
 ```{r}
-brain.data <- open_matrix_10x_hdf5(path = "../data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
+brain.data <- open_matrix_10x_hdf5(path = "/brahms/hartmana/vignette_data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
 # Write the matrix to a directory
-write_matrix_dir(mat = brain.data, dir = '../data/brain_counts')
+write_matrix_dir(mat = brain.data, dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts', overwrite = TRUE)
 # Now that we have the matrix on disk, we can load it
-brain.mat <- open_matrix_dir(dir = "../data/brain_counts")
-brain.mat <- Azimuth::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
+brain.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
+brain.mat <- Azimuth:::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
 
 # Create Seurat Object
 brain <- CreateSeuratObject(counts = brain.mat)
@@ -79,9 +79,9 @@ You can use BPCells to convert the matrices in your already created Seurat objec
 ```{r, message=FALSE, warning=FALSE, eval=FALSE}
 obj <- readRDS("/path/to/reference.rds")
 
-# Write the counts layer to a directory 
-write_matrix_dir(mat = obj[["RNA"]]$counts, dir = '../data/brain_counts')
-counts.mat <- open_matrix_dir(dir = "../data/brain_counts")
+# Write the counts layer to a directory
+write_matrix_dir(mat = obj[["RNA"]]$counts, dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts')
+counts.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
 
 obj[["RNA"]]$counts <- counts.mat
 ```
@@ -121,7 +121,7 @@ for (i in 1:length(files.set)) {
   write_matrix_dir(mat = data, dir = paste0(file.dir, name, "_BP"), overwrite = TRUE)
   # Load in BP matrices
   mat <- open_matrix_dir(dir = paste0(file.dir, name, "_BP"))
-  mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = "human")
+  mat <- Azimuth:::ConvertEnsembleToSymbol(mat = mat, species = "human")
   # Get metadata
   metadata.list[[i]] <- LoadH5ADobs(path = path)
   data.list[[i]] <- mat
@@ -141,7 +141,7 @@ When we create the Seurat object with the list of , we can then see that multipl
 
 ```{r}
 options(Seurat.object.assay.version = "v5")
-merged.object <- CreateSeuratObject(counts = data.list[1:2], meta.data = metadata) 
+merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata) 
 merged.object
 ```
 
@@ -150,11 +150,11 @@ merged.object
 Here, we show how to load a 1 million cell data set from Parse Biosciences and create a Seurat Object. The data is available for download [here](https://support.parsebiosciences.com/hc/en-us/articles/7704577188500-How-to-analyze-a-1-million-cell-data-set-using-Scanpy-and-Harmony)
 
 ```{r}
-parse.data <- open_matrix_anndata_hdf5("../data/h5ad_files/ParseBio_PBMC.h5ad")
-write_matrix_dir(mat = parse.data, dir = "../data/parse_counts")
-parse.mat <- open_matrix_dir(dir = "../data/parse_counts")
+parse.data <- open_matrix_anndata_hdf5("/brahms/hartmana/vignette_data/h5ad_files/ParseBio_PBMC.h5ad")
+write_matrix_dir(mat = parse.data, dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
 
-metadata <- readRDS("../data/ParseBio_PBMC_meta.rds")
+metadata <- readRDS("/brahms/hartmana/vignette_data/ParseBio_PBMC_meta.rds")
 metadata$disease <- sapply(strsplit(x = metadata$sample, split = "_"), "[", 1)
 
 parse.object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
@@ -168,7 +168,7 @@ If you save your object and load it in in the future, Seurat will access the on-
 This also makes it easy to share your Seurat objects with BPCells matrices by sharing a folder that contains both the object and the BPCells directory.
 
 ```{r}
-saveRDS(brain, file = "obj.Rds", destdir = "../data/brain_object")
+saveRDS(brain, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/brain_object")
 ```
 
 

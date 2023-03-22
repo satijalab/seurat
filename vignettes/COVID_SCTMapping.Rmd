@@ -38,6 +38,7 @@ knitr::opts_chunk$set(
 library(Seurat)
 library(BPCells)
 library(dplyr)
+options(future.globals.maxSize = 1e9)
 ```
 
 ## load query
@@ -58,10 +59,10 @@ obj.ref
 time2_anchoring <- system.time({
 anchor <- FindTransferAnchors(reference = obj.ref,
                               query = object, 
-                              reference.reduction = 'spca', 
+                              reference.reduction = 'spca',
                               normalization.method = 'SCT',
                               dims = 1:50,
-                              k.filter = NA, 
+                              k.filter = NA,
                               k.anchor = 5,
                               features = rownames(obj.ref[['spca']]@feature.loadings))
 })
@@ -87,11 +88,9 @@ anchor
  
 
 ```{r, fig.width=10, fig.height=6}
- p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.l2.s5',alpha = 0.8, label = T) + NoLegend()
- p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T) + NoLegend()
-
- p1+p2
-
+p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.l2.s5',alpha = 0.8, label = T) + NoLegend()
+p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T) + NoLegend()
+p1 + p2
 ```
 ```{r, fig.width=10, fig.height=6}
 p3 <-DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T, split.by = 'batch', ncol = 3) + NoLegend()
@@ -100,24 +99,21 @@ p3
  
 ## pseudo-bulk
 ```{r}
-
-time4_bulk <- system.time( bulk <- AverageExpression(object,
-                                                     method = 'aggregate',
-                                                        return.seurat = T,
-                                                        slot = 'counts',
-                                                        assays  = 'RNA',
-                                                        group.by = c("predicted.l2.s5","patient","disease_status_standard")
-                                                        )
+bulk <- AverageExpression(object,
+  method = 'aggregate',
+  return.seurat = T,
+  slot = 'counts',
+  assays  = 'RNA',
+  group.by = c("predicted.l2.s5", "patient", "disease_status_standard")
 )
 
 bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
 bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
 bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
 bulk <- subset(bulk, subset = disease != 'other')
-
 ```
 
-```{R}
+```{r}
 marker.list <- list()
 celltype.set <- unique(bulk$celltype )
 for (i in seq_along(celltype.set)) {
@@ -131,7 +127,6 @@ for (i in seq_along(celltype.set)) {
      
 }
 names(marker.list) <- celltype.set
-
 ```
 ```{r}
 marker.list.filter <- lapply(marker.list, function(x) {

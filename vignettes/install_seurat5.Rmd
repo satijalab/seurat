@@ -31,18 +31,30 @@ knitr::opts_chunk$set(
 )
 ```
 
-Copy the code below to install Seurat 5.
+Copy the code below to install Seurat 5:
 
 ```{r required, eval=FALSE}
-remotes::install_github("mojaveazure/seurat-object", "seurat5", quiet = TRUE)
 remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)
 ```
 
-The following packages are not required but used in many Seurat 5 vignettes.
+The following packages are not required but are used in many Seurat 5 vignettes:
+
+* SeuratData: automatically load datasets pre-packaged as Seurat objects
+* Azimuth: local annotation of scRNA-seq and scATAC-seq queries across multiple organs and tissues
+* SeuratWrappers: enables use of additional integration and differential expression methods
+* Signac: analysis of single-cell chromatin data
+
 ```{r additional, eval=FALSE}
 remotes::install_github("satijalab/seurat-data", "seurat5", quiet = TRUE)
 remotes::install_github("satijalab/azimuth", "seurat5", quiet = TRUE)
 remotes::install_github("satijalab/seurat-wrappers", "seurat5", quiet = TRUE)
 remotes::install_github("stuart-lab/signac", "seurat5", quiet = TRUE)
-remotes::install_github("bnprks/BPCells", quiet = TRUE) # for on-disk capabilities
 ```
+
+Seurat 5 utilizes BPCells to support analysis of extremely large datasets:
+
+```{r bpcells, eval=FALSE}
+remotes::install_github("bnprks/BPCells", quiet = TRUE)
+```
+
+For more information on BPCells installation, please see the [installation instructions](https://bnprks.github.io/BPCells/#installation). For macOS users, the following GitHub issues concerning [M1 chip installation](https://github.com/bnprks/BPCells/issues/6) and [compiler compatibility](https://github.com/bnprks/BPCells/issues/3) may be of use.
