@@ -127,12 +127,10 @@ metadata.list <- c()
 for (i in 1:length(files.set)) {
   path <- paste0(file.dir, files.set[i])
   data <- open_matrix_anndata_hdf5(path)
-  write_matrix_dir(mat = data, dir = paste0(file.dir, 
-                                            gsub(".h5ad", "", path), 
+  write_matrix_dir(mat = data, dir = paste0(gsub(".h5ad", "", path), 
                                             "_BP"), overwrite = TRUE)
   # Load in BP matrices
-  mat <- open_matrix_dir(dir = paste0(file.dir, 
-                                            gsub(".h5ad", "", path), "_BP"))
+  mat <- open_matrix_dir(dir = paste0(gsub(".h5ad", "", path), "_BP"))
   mat <- Azimuth:::ConvertEnsembleToSymbol(mat = mat, species = "human")
   # Get metadata
   metadata.list[[i]] <- LoadH5ADobs(path = path)
@@ -140,9 +138,13 @@ for (i in 1:length(files.set)) {
 }
 # Name layers
 names(data.list) <- c("ahern", "jin", "yoshida")
-# Only pull out needed metadata files
+
+# Add Metadata
+for (i in 1:length(metadata.list)){
+  metadata.list[[i]]$publication <- names(data.list)[i]
+}
 metadata.list <- lapply(metadata.list, function(x) {
-    x <- x[, c("sex", "cell_type", "donor_id", "disease")]
+    x <- x[, c("publication", "sex", "cell_type", "donor_id", "disease")]
     return(x)
 })
 metadata <- Reduce(rbind, metadata.list)
