@@ -42,7 +42,9 @@ In this vignette we demonstrate:
 * Mapping the scATAC-seq dataset via bridge integration
 * Exploring and assessing the resulting annotations 
 
-First, we install the updated version of Seurat that supports this infrastructure, as well as other packages necessary for this vignette.
+### Azimuth ATAC for Bridge Integration 
+Users can now automatically run bridge integration for PBMC and Bone Marrow scATAC-seq queries with the newly released Azimuth ATAC workflow. For more details, see the section on ATAC data in this [vignette](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html). 
+
 
 ```{r, message=FALSE, warning=FALSE}
 library(remotes)
@@ -73,7 +75,6 @@ obj.multi <- CreateSeuratObject(counts = rna_counts)
 obj.multi[["percent.mt"]] <- PercentageFeatureSet(obj.multi, pattern = "^MT-")
 
 # add the ATAC-seq assay
-options(Seurat.object.assay.version = "v3")
 grange.counts <- StringToGRanges(rownames(atac_counts), sep = c(":", "-"))
 grange.use <- seqnames(grange.counts) %in% standardChromosomes(grange.counts)
 atac_counts <- atac_counts[as.vector(grange.use), ]
