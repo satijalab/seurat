@@ -8,6 +8,7 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
+
 ```{r setup, include=TRUE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
@@ -32,8 +33,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-## load package
-
 ```{r, warning=F, message=F}
 library(Seurat)
 library(BPCells)
@@ -41,67 +40,78 @@ library(dplyr)
 options(future.globals.maxSize = 1e9)
 ```
 
-## load query
-```{r,warning=F, message=F}
+
+## Introduction: Reference mapping analysis in Seurat v5
+In numerous studies profiling multiple tissues across hundreds of individuals and millions of cells, the single-cell reference mapping approach offers a robust and consistent method for annotating all those publicly available single-cell datasets. This vignette demonstrates the process of mapping multiple query scRNA PBMC datasets onto [our annotated CITE-seq reference of 162,000 PBMC measured with 228 antibodies](https://doi.org/10.1016/j.cell.2021.04.048)
+
+We download three datasets from [CZI cellxgene collections](https://cellxgene.cziscience.com/collections):[Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). We demonstrate how to create a Seurat object with BPCells matrix in our BPCells interaction vignette. 
+
+We have previously demonstrated the use of the reference-mapping approach for annotating cell labels in a single query dataset. With Seurat v5, we have substantially improved the speed, memory efficiency, and user-friendliness for mapping a large number of query datasets to the same reference.
+
+In this vignette, we demonstrate how to use a previously established reference to interpret three scRNA-seq query datasets:
+
+* Annotate all query cells from multiple studies based on a set of reference-defined cell states
+* Aggregate the annotated cells into individuals for performing Pseudo-bulk differential analysis
+
+To run this vignette please install Seurat v5.
+
+
+
+## Load the Multimodal PBMC Reference Dataset and Query Datasets
+We load the CITE-seq reference (download [here]()) from our Seurat v4 [paper](https://doi.org/10.1016/j.cell.2021.04.048). We will use the query datasets prepared in BPCells interaction vignette containing scRNA-seq data from three different studies.
+
+```{r load.data}
+reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
 object <- readRDS("/brahms/hartmana/vignette_data/covid_mapping_merged_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
 ```
 
-## load reference
-```{r}
-obj.ref <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
-obj.ref 
-```
-## mapping
-```{r}
+
+## Mapping
+Using the same code from in our v4 reference mapping vignette, we find anchors between reference and query in the reference precomputed supervised PCA (spca) space. We recommend the use of supervised PCA for CITE-seq reference dataset, and demonstrate how to compute this transformation in [v4 mapping vignette]().
+
+We then transfer cell type labels from the reference to all three queries. Additionally, we project the query data onto the UMAP structure of the reference.
 
 
-time2_anchoring <- system.time({
-anchor <- FindTransferAnchors(reference = obj.ref,
+
+```{r}
+anchor <- FindTransferAnchors(reference = reference,
                               query = object, 
                               reference.reduction = 'spca',
                               normalization.method = 'SCT',
-                              dims = 1:50,
-                              k.filter = NA,
-                              k.anchor = 5,
-                              features = rownames(obj.ref[['spca']]@feature.loadings))
-})
-
-time3_MapQuery <- system.time({
-
-  object <- MapQuery(
+                              dims = 1:50)
+object <- MapQuery(
   anchorset = anchor,
   query = object,
-  reference = obj.ref,
+  reference = reference,
   refdata = list(
-    l1.s5 = "celltype.l1",
-    l2.s5 = "celltype.l2"
-  ),
-  reduction.model = "wnn.umap"
+    celltype.l1 = "celltype.l1",
+    celltype.l2 = "celltype.l2"
+    ), 
+  reduction.model = 'wnn.umap'
 )
-})
+```
 
-```
-```{r}
-anchor
-```
- 
+## Explore the mapping results
+We can now visualize the 2,700 query cells. They have been projected into a UMAP visualization defined by the reference, and each has received annotations at two levels of granularity (level 1, and level 2).
+
 
 ```{r, fig.width=10, fig.height=6}
-p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.l2.s5',alpha = 0.8, label = T) + NoLegend()
-p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T) + NoLegend()
+p1<- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha = 0.8, label = T) + NoLegend()
+p2<- DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.8, label = T) + NoLegend()
 p1 + p2
 ```
 ```{r, fig.width=10, fig.height=6}
-p3 <-DimPlot(object, reduction = 'ref.umap', group.by = 'celltype',alpha = 0.8, label = T, split.by = 'batch', ncol = 3) + NoLegend()
+p3 <- DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.8, label = T, split.by = 'batch', ncol = 3) + NoLegend()
+p3 <- DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha = 0.8, label = T, split.by = 'batch', ncol = 3) + NoLegend()
 p3
 ```
  
-## pseudo-bulk
+## Differential analysis
 ```{r}
 bulk <- AverageExpression(object,
   method = 'aggregate',
-  return.seurat = T,
+  return.seurat = TRUE,
   slot = 'counts',
   assays  = 'RNA',
   group.by = c("predicted.l2.s5", "patient", "disease_status_standard")
