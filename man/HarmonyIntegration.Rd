@@ -94,6 +94,22 @@ This function requires the
 \href{https://cran.r-project.org/package=harmony}{\pkg{harmony}} package
 to be installed
 }
+\examples{
+\dontrun{
+# Preprocessing
+obj <- LoadData("pbmcsca")
+obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+obj <- NormalizeData(obj)
+obj <- FindVariableFeatures(obj)
+obj <- ScaleData(obj)
+obj <- RunPCA(obj)
+
+# After preprocessing, we integrate layers with added parameters specific to Harmony: 
+obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, 
+  new.reduction = 'integrated.', verbose = FALSE, theta = 2, labmbda = 1, sigma = 0.1)
+}
+
+}
 \seealso{
 \code{\link[harmony:HarmonyMatrix]{harmony::HarmonyMatrix}()}
 }

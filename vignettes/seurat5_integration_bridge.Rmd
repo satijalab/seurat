@@ -43,7 +43,7 @@ In this vignette we demonstrate:
 * Exploring and assessing the resulting annotations 
 
 ### Azimuth ATAC for Bridge Integration 
-Users can now automatically run bridge integration for PBMC and Bone Marrow scATAC-seq queries with the newly released Azimuth ATAC workflow. For more details, see the section on ATAC data in this [vignette](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html). 
+Users can now automatically run bridge integration for PBMC and Bone Marrow scATAC-seq queries with the newly released Azimuth ATAC workflow on the [Azimuth website](https://azimuth.hubmapconsortium.org/) or in R. For more details on running locally in R, see the section on ATAC data in this [vignette](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html). 
 
 
 ```{r, message=FALSE, warning=FALSE}

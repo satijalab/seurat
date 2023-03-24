@@ -33,6 +33,21 @@ NULL
 # @templateVar pkg harmony
 # @template note-reqdpkg
 #'
+#' @examples 
+#' \dontrun{
+#' # Preprocessing
+#' obj <- LoadData("pbmcsca")
+#' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+#' obj <- NormalizeData(obj)
+#' obj <- FindVariableFeatures(obj)
+#' obj <- ScaleData(obj)
+#' obj <- RunPCA(obj)
+#' 
+#' # After preprocessing, we integrate layers with added parameters specific to Harmony: 
+#' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, 
+#'   new.reduction = 'integrated.', verbose = FALSE, theta = 2, labmbda = 1, sigma = 0.1)
+#' }
+#' 
 #' @export
 #'
 #' @concept integration
@@ -117,6 +132,23 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams FindIntegrationAnchors
 #' @export
+#' 
+#' @examples
+#' \dontrun{
+#' # Preprocessing
+#' obj <- LoadData("pbmcsca")
+#' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+#' obj <- NormalizeData(obj)
+#' obj <- FindVariableFeatures(obj)
+#' obj <- ScaleData(obj)
+#' obj <- RunPCA(obj)
+#' 
+#' # After preprocessing, we integrate layers. 
+#' # We can also modify parameters specific to CCAIntegration, such as k.anchor: 
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
+#'   orig.reduction = "pca", new.reduction = 'integrated.', 
+#'   k.anchor = 6, verbose = FALSE)
+#' }
 #'
 CCAIntegration <- function(
     object = NULL,
@@ -183,6 +215,31 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-RPCA Integration
 #'
+#' @examples 
+#' \dontrun{
+#' # Preprocessing
+#' obj <- LoadData("pbmcsca")
+#' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+#' obj <- NormalizeData(obj)
+#' obj <- FindVariableFeatures(obj)
+#' obj <- ScaleData(obj)
+#' obj <- RunPCA(obj)
+#' 
+#' # After preprocessing, we run integration
+#' 
+#' # Reference-based Integration
+#' # Here, we use the first layer as a reference and modify the k.anchor parameter.
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#'   reference = 'data.Smart-seq2', k.anchor = 7, verbose = FALSE)
+#'
+#' # Alternatively, we can integrate SCTransformed data 
+#' obj <- SCTransform(object = obj)
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#'   assay = "SCT", verbose = FALSE)
+#' }
+#'   
 #' @inheritParams FindIntegrationAnchors
 #' @export
 #'

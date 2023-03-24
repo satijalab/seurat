@@ -47,3 +47,29 @@ search space}
 \description{
 Seurat-RPCA Integration
 }
+\examples{
+\dontrun{
+# Preprocessing
+obj <- LoadData("pbmcsca")
+obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+obj <- NormalizeData(obj)
+obj <- FindVariableFeatures(obj)
+obj <- ScaleData(obj)
+obj <- RunPCA(obj)
+
+# After preprocessing, we run integration
+
+# Reference-based Integration
+# Here, we use the first layer as a reference and modify the k.anchor parameter.
+obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
+  orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+  reference = 'data.Smart-seq2', k.anchor = 7, verbose = FALSE)
+
+# Alternatively, we can integrate SCTransformed data 
+obj <- SCTransform(object = obj)
+obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
+  orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+  assay = "SCT", verbose = FALSE)
+}
+  
+}
