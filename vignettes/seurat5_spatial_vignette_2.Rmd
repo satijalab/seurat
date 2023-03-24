@@ -280,7 +280,7 @@ ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
 Using the positional information of each cell, we compute spatial niches.
-We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1)).
+We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1).
 
 Below, we use Slc17a7 expression to help determine the cortical region.
 
