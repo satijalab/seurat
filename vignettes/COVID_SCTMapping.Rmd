@@ -70,9 +70,7 @@ object <- NormalizeData(object, verbose = FALSE)
 
 
 ## Mapping
-Using the same code from in our v4 reference mapping vignette, we find anchors between reference and query in the reference precomputed supervised PCA (spca) space. We recommend the use of supervised PCA for CITE-seq reference dataset, and demonstrate how to compute this transformation in [v4 mapping vignette](). The difference from v4 reference mapping vignette is that we map three dataset together 
-
-
+Using the same code from in our v4 reference mapping vignette, we find anchors between reference and query in the reference precomputed supervised PCA (spca) space. We recommend the use of supervised PCA for CITE-seq reference dataset, and demonstrate how to compute this transformation in [v4 mapping vignette](). The distinction between the v4 reference mapping vignette and this method is that we simultaneously map three datasets calling of `FindTransferAnchors` and `MapQuery` once.
 
 ```{r}
 anchor <- FindTransferAnchors(reference = reference,
@@ -93,7 +91,8 @@ object <- MapQuery(
 ```
 
 ## Explore the mapping results
-We can now visualize the 2,700 query cells. They have been projected into a UMAP visualization defined by the reference, and each has received annotations at two levels of granularity (level 1, and level 2).
+
+We can now visualize the 1.5 million query cells from three studies, which have been projected into a UMAP visualization defined by the reference. Each cell has received consistent annotations at two levels of granularity (level 1 and level 2). The incoherence of their original annotations (cell_type) prevents us from directly performing integrative analysis across these studies. However, our mapping results annotate the various datasets using a single set of curated annotations (predicted.celltype.l1 and predicted.celltype.l2), enabling cross-study differential compositional and transcriptome analyses.
 
 
 ```{r, fig.width=10, fig.height=6}
@@ -104,6 +103,8 @@ DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha
 ```
 
 ## Differential composition analysis
+
+
 ```{r}
 df_comp <- as.data.frame.matrix(table(object$donor_id, object$predicted.celltype.l2))
 df_comp <- df_comp[rowSums(df_comp)> 50,]
@@ -123,6 +124,7 @@ VlnPlot(obj.comp, features =  c("MAIT",'Plasmablast'), group.by = 'disease', slo
 
 ```
 ## Differential expression analysis
+
 ```{r}
 bulk <- AverageExpression(object,
   method = 'aggregate',
