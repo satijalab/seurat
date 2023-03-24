@@ -8,7 +8,7 @@ output:
 date: 'Compiled: `r Sys.Date()`'
 ---
 
-```{r setup, include=TRUE}
+```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
   now <- NULL
@@ -32,84 +32,91 @@ knitr::opts_chunk$set(
 )
 ```
 
-## load package
-
+The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2022](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1) proposed a dictionary learning based method, atomic sketch integration, could also enable efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory. In [our manuscript](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1) we use atomic sketch integration to integrate millions of scRNA-seq from human lung and human PBMC.
+ 
+In this vignette, we demonstrate how to use atomic sketch integration to harmonize scRNA-seq experiments 1M cells, though we have used this procedure to integrate datasets of 10M+ cells as well. We analyze a dataset from Parse Biosciences, in which PBMC from 24 human samples (12 healthy donors, 12 Type-1 diabetes donors), which is available [here](https://resources.parsebiosciences.com/dataset-wt-mega-one-million-pbmc-type-1-diabetes).   
+* Sample a representative subset of cells ('atoms') from each dataset
+* Integrate the atoms from each dataset, and define a set of cell states
+* Reconstruct (integrate) the full datasets, based on the atoms
+* Annotate all cells in the full datasets
+* Identify cell-type specific differences between healthy and diabetic patients
+Prior to running this vignette, please [install Seurat v5](https://satijalab.org/seurat/articles/install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html). We also recommend reading the [Sketch-based analysis in Seurat v5](https://satijalab.org/seurat/articles/seurat5_sketch_analysis.html) vignette, which introduces the concept of on-disk and in-memory storage in Seurat v5.
 ```{r, warning=F, message=F}
 library(Seurat)
 library(BPCells)
 library(dplyr)
+library(ggplot2)
+# set this option when analyzing large datasets
+options(future.globals.maxSize = 3e9)
+options(Seurat.object.assay.version = "v5")
 ```
-
-## load matrix
-
+## Create a Seurat object containing data from 24 patients
+We downloaded the original dataset and donor metadata from [Parse Biosciences](https://resources.parsebiosciences.com/dataset-wt-mega-one-million-pbmc-type-1-diabetes), as an h5ad file. While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](LINKCONVERSIONVIGNETTE).
+We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](LINKTOVIGNETTE), one for each sample (i.e. patient), to facilitate integration.
 ```{r, warning=F, message=F}
 object <- readRDS("/brahms/hartmana/vignette_data/parse_1m_pbmc.rds")
-object <- NormalizeData(object, verbose = FALSE)
-options(Seurat.object.assay.calcn = FALSE) 
-object[['RNA']] <- split(object[['RNA']], f =  object$sample)
-object <- FindVariableFeatures(object, layer = 'counts',  verbose = FALSE)
-object <- LeverageScoreSampling(object = object, ncells = 5000, cast = 'dgCMatrix', verbose = FALSE)
+object <- NormalizeData(object)
+# split assay into 24 layers
+object[['RNA']] <- split(object[['RNA']], f = object$sample)
+object <- FindVariableFeatures(object, verbose = FALSE)
+```
+## Sample representative cells from each dataset
+Inspired by pioneering work aiming to identify ['sketches'](https://www.sciencedirect.com/science/article/pii/S2405471219301528) of scRNA-seq data, our first step is to sample a representative set of cells from each dataset. We compute a leverage score (estimate of ['statistical leverage'](https://arxiv.org/abs/1109.3843)) for each cell, which helps to identify cells that are likely to be member of rare subpopulations and ensure that these are included in our representative sample. Importantly, the estimation of leverage scores only requires data normalization, can be computed efficiently for sparse datasets, and does not require any intensive computation or dimensional reduction steps.
+We load each object separately, perform basic preprocessing (normalization and variable feature selection), and select and store 5,000 representative cells from each dataset. Since there are 24 datasets, the sketched dataset now contains 120,000 cells. These cells are stored in a new `sketch` assay, and are loaded in-memory.
+```{r, warning=F, message=F}
+object <- SketchData(object = object, ncells = 5000, method = 'LeverageScore', sketched.assay = 'sketch')
+object
 ```
 
-## integrate sketched assay
+## Perform integration on the sketched cells across samples
+Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we perform integration using the streamlined [Seurat v5 integration worfklow](https://satijalab.org/seurat/articles/seurat5_integration.html), and utilize the reference-based `RPCAIntegration` method. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated.rpca`). 
+However, we emphasize that you can perform integration here using any analysis technique that places cells across datasets into a shared space. This includes CCA Integration, Harmony, and scVI. We demonstrate how to use these tools in Seurat v5 [here](https://satijalab.org/seurat/articles/seurat5_integration.html).
 ```{r}
-
-time5_SketchIntegration  <- system.time({
-  DefaultAssay(object) <- 'sketch'
-  object <- FindVariableFeatures(object, verbose = F, nfeatures = 2000)
-  features <- VariableFeatures(object)
-  object <- ScaleData(object, features =  features, verbose = F)
-  object <- RunPCA(object, features =  features, verbose = F)
-  DefaultAssay(object) <- 'sketch'
-  options(future.globals.maxSize = 3e9)
-  object <- IntegrateLayers(object,
-                            method = RPCAIntegration,
-                            orig = 'pca',
-                            new.reduction = 'integrated.rpca',
-                            dims = 1:30, 
-                            k.anchor = 20,
+DefaultAssay(object) <- 'sketch'
+object <- FindVariableFeatures(object, verbose = F)
+object <- ScaleData(object, verbose = F)
+object <- RunPCA(object, verbose = F)
+# integrate the datasets
+object <- IntegrateLayers(object, method = RPCAIntegration, orig = 'pca',
+                            new.reduction = 'integrated.rpca', dims = 1:30, k.anchor = 20,
                             reference = which(Layers(object, search = 'data') %in% c( 'data.H_3060')), 
                             verbose = F)
- 
-})
+# cluster the integrated data
+object <- FindNeighbors(object, reduction = 'integrated.rpca', dims = 1:30)
+object <- FindClusters(object, resolution = 2)
 object <- RunUMAP(object,  reduction = 'integrated.rpca', dims = 1:30, return.model = T, verbose = F)
+# You can now annotate clusters using marker genes. 
+# We performed this step, and include the results in the 'sketch.celltype' metadata column
+# NOTE change celltype.weight -> sketch.celltype in metadata
 plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap') + NoLegend()
 plot.s2 <- DimPlot(object, group.by = 'celltype.weight', reduction = 'umap') + NoLegend()
 ```
+
 ```{r}
 plot.s1 + plot.s2
-
 ```
 
-
-## proporgate embeddings to full data
+## Integrate the full datasets
+Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `ProjectIntegration` function to integrate all cells. After this function is run, the `integrated.rpca.full` space now embeds all cells in the dataset.Even though all cells in the dataset have been integrated together, the non-sketched cells are not loaded into memory. Users can still switch between the `sketch` (sketched cells, in-memory) and `RNA` (full dataset, on disk) for analysis.
 ```{r}
-time6_UnSketch <- system.time({
-  object <- IntegrateSketchEmbeddings(object = object,
-                                       atoms = 'sketch',
-                                       orig = 'RNA',
-                                       reduction = 'integrated.rpca' ,
-                                       layers = Layers(object = object[['RNA']], search = 'data'),
-                                      features = features)
- 
-})
- 
-
+object <- ProjectIntegration(object = object,
+                                    sketched.assay =  'sketch',
+                                    assay = 'RNA',
+                                    reduction = 'integrated.rpca')
 ```
 
 ```{r}
-object <- RunUMAP(object,  reduction = 'integrated.rpca.orig', dims = 1:30 , reduction.name = 'umap.orig', reduction.key = 'Uorig_')
+object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
 ```
-```{r}
-p1<- DimPlot(object, reduction = 'umap.orig', group.by = 'sample',alpha = 0.5) + NoLegend()
-p2<- DimPlot(object, reduction = 'umap.orig', group.by = 'celltype.weight', label = T, alpha = 0.5) + NoLegend()
-p1+p2
 
+```{r}
+p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.5) + NoLegend()
+p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.weight', label = T, alpha = 0.5) + NoLegend()
+p1 + p2
 ```
 
 ## pseudo-bulk
 ```{r}
-
 time8_bulk <- system.time( bulk <- AggregateExpression(object,
                                                         return.seurat = T,
                                                         slot = 'counts',
@@ -117,11 +124,9 @@ time8_bulk <- system.time( bulk <- AggregateExpression(object,
                                                         group.by = c("celltype.weight","sample","disease")
                                                         )
 )
-
 bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
 bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
 bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
-
 marker.list <- list()
 celltype.set <- unique(bulk$celltype )
 for (i in seq_along(celltype.set)) {
@@ -135,7 +140,6 @@ for (i in seq_along(celltype.set)) {
 }
 names(marker.list) <- celltype.set
 ```
-
 ```{r}
 marker.list.filter <- lapply(marker.list, function(x) {
   if(nrow(x) > 0) {
@@ -145,13 +149,25 @@ marker.list.filter <- lapply(marker.list, function(x) {
     return(x)
   }
 })
-
 ```
-
 ```{r}
 VlnPlot(bulk, features = 'FOXO3', group.by = 'celltype', split.by = 'disease')
 ```
 
+## computing time summary
+```{r}
+all_T  <- ls(pattern = 'time')
+overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
+for (i in 1:length(all_T)) {
+  T_i <- get(all_T[i])['elapsed']
+  if (T_i > 60) {
+     print(paste(all_T[i], round(T_i/60, digits = 1), 'mins'))
+  } else {
+     print(paste(all_T[i], round(T_i, digits = 1), 'secs'))
+  }
+}
+print(paste('Total time ', round(overall, digits = 1), 'mins' ))
+```
 ```{r,fig.height = 20, fig.width = 15}
 Idents(bulk) <- 'celltype'
 marker <- FindAllMarkers(object = bulk, only.pos = TRUE, verbose = FALSE)
@@ -160,12 +176,6 @@ marker %>%
     top_n(n = -5, wt = p_val) -> top5
 bulk <- ScaleData(bulk, features = top5$gene)
 DoHeatmap(bulk, features = top5$gene) + NoLegend()
-```
-
-```{r save.img, include=TRUE}
-library(ggplot2)
-plot <- DoHeatmap(bulk, features = top5$gene) + NoLegend() + theme(axis.text.y = element_blank())
-ggsave(filename = "../output/images/ParseBio_sketch_integration.jpg", height = 7, width = 7, plot = plot, quality = 50)
 ```
 
 ```{r save.times, include=TRUE}

@@ -45,7 +45,7 @@ We store sketched cells (in-memory) and the full dataset (on-disk) as two assays
 * Support for 'bit-packing' compression and infrastructure
 
 We demonstrate the on-disk capabilities in Seurat v5 using the [BPCells package](https://github.com/bnprks/BPCells) developed by Ben Parks in the Greenleaf Lab. This package utilizes bit-packing compression and optimized, streaming-compatible C++ code to substantially improve I/O and computational performance when working with on-disk data.
-To run this vignette please install Seurat v5, using the installation instructions found [here](LINK). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](LINK).
+To run this vignette please install Seurat v5, using the installation instructions found [here](https://satijalab.org/seurat/articles/install.html). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](https://bnprks.github.io/BPCells/#installation).
 ```{r, warning=FALSE, message=FALSE}
 library(Seurat)
 library(BPCells)
@@ -85,7 +85,7 @@ DefaultAssay(obj) <- 'sketch'
 ## Perform clustering on the sketched dataset
 Now that we have compressed the dataset, we can perform standard clustering and visualization of a 50,000 cell dataset.
 After clustering, we can see groups of cells that clearly correspond to precursors of distinct lineages, including endothelial cells (Igfbp7), Excitatory (Neurod6) and Inhibitory (Dlx2) neurons, Intermediate Progenitors (Eomes), Radial Glia (Vim), Cajal-Retzius cells (Reln), Oligodendroytes (Olig1), and extremely rare populations of macrophages (C1qa) that were oversampled in our sketched data.
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, fig.width=5, fig.height=5}
 DefaultAssay(obj) <- 'sketch'
 obj <- FindVariableFeatures(obj)
 obj <- ScaleData(obj)
@@ -93,18 +93,20 @@ obj <- RunPCA(obj)
 obj <- FindNeighbors(obj, dims = 1:50)
 obj <- FindClusters(obj, resolution = 2)
 obj <- RunUMAP(obj, dims = 1:50, return.model = T)
-DimPlot(obj, label = T, reduction = 'umap') + NoLegend() 
+DimPlot(obj, label = T, reduction = 'umap') + NoLegend()
 ```
 
-```{r,fig.height = 15, fig.width = 15}
+```{r,fig.height = 7, fig.width = 15}
 FeaturePlot(obj, c('Igfbp7', 'Neurod6', 'Dlx2', 'Eomes', 'Vim', 'Reln', 'Olig1', 'C1qa'), ncol = 4)
 ```
+
 ## Extend results to the full datasets
 We can now extend the cluster labels and dimensional reductions learned on the sketched cells to the full dataset. The `ProjectData` function projects the on-disk data, onto the `sketch` assay. It returns a Seurat object that includes a
+
 * Dimensional reduction (PCA): The `pca.full` dimensional reduction extends the `pca` reduction on the sketched cells to all cells in the dataset
 * Dimensional reduction (UMAP): The `umap.full` dimensional reduction extends the `full` reduction on the sketched cells to all cells in the dataset
 * Cluster labels: The `cluster_full` column in the object metadata now labels all cells in the dataset with one of the cluster labels derived from the sketched cells
-NOTE GET RID OF THE predicted_ IN THE METADATA COLUMN NAME
+
 ```{r, warning=FALSE, message=FALSE}
 obj <- ProjectData(object = obj,
                    assay = 'RNA',
@@ -113,20 +115,22 @@ obj <- ProjectData(object = obj,
                    sketched.reduction = 'pca',
                    umap.model = 'umap',
                    dims = 1:50,
-                  refdata = list(cluster_full = 'seurat_clusters')
-                   )
+                  refdata = list(cluster_full = 'seurat_clusters'))
 # now that we have projected the full dataset, switch back to analyzing all cells
 DefaultAssay(obj) <- 'RNA'
 ```
 
-```{r save.img}
+```{r save.img, include = FALSE, eval=TRUE}
 library(ggplot2)
-p <- DimPlot(obj, label = T, label.size=8, reduction = "ref.umap", group.by = "predicted.cluster_full", alpha = 0.1) + NoLegend()
+p <- DimPlot(obj, label = T, label.size=8, reduction = "ref.umap", group.by = "cluster_full", alpha = 0.1) + NoLegend()
 ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
 
-```{r}
-DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'predicted.cluster_full', alpha = 0.1) + NoLegend()  
+```{r, fig.width=5, fig.height=5}
+DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'cluster_full', alpha = 0.1) + NoLegend()
+```
+
+```{r, fig.width=10, fig.height=5}
 # visualize gene expression on the sketched cells (fast) and the full dataset (slower)
 DefaultAssay(obj) <- 'sketch'
 x1 <- FeaturePlot(obj, 'C1qa')
@@ -136,17 +140,19 @@ x1 | x2
 ```
 
 ## Perform iterative sub-clustering
-NOTE THAT THE CLUSTER IDS WILL CHANGE
-Now that we have performed an initial analysis of the dataset, we can iteratively 'zoom-in' on a cell subtype of interest, extract all cells of this type, and perform iterative sub-clustering. For example, we can see that Dlx2+ interneuron precursors are defined by clusters 7, 9, 16, and 29
+
+Now that we have performed an initial analysis of the dataset, we can iteratively 'zoom-in' on a cell subtype of interest, extract all cells of this type, and perform iterative sub-clustering. For example, we can see that Dlx2+ interneuron precursors are defined by clusters 2, 15, 18, 28 and 40.
+
 ```{r}
 DefaultAssay(obj) <- 'sketch'
 VlnPlot(obj, 'Dlx2')
 ```
 
-We therefore extract all cells from the full on-disk dataset that are present in these clusters. There are XX,XXX of them. Since this is a manageable number, we can convert these data from on-disk storage into in-memory storage. We can then proceed with standard clustering.
+We therefore extract all cells from the full on-disk dataset that are present in these clusters. There are 200,892 of them. Since this is a manageable number, we can convert these data from on-disk storage into in-memory storage. We can then proceed with standard clustering.
+
 ```{r}
 # subset cells in these clusters. Note that the data remains on-disk after subsetting
-obj.sub <- subset(obj, subset = predicted.cluster_full %in% c(7, 9, 15, 29))
+obj.sub <- subset(obj, subset = cluster_full %in% c(2, 15, 18, 28, 40))
 # now convert the RNA assay (previously on-disk) into an in-memory representation (sparse Matrix)
 obj.sub[['RNA']] <- CastAssay(object = obj.sub[['RNA']], to = 'dgCMatrix')
 # recluster the cells
@@ -158,13 +164,14 @@ obj.sub <- FindNeighbors(obj.sub, dims = 1:30)
 obj.sub <- FindClusters(obj.sub)
 ```
 
-```{r}
+```{r, fig.width=5, fig.height=5}
 DimPlot(obj.sub, label = T) + NoLegend()
 ```
+
 Note that we can start to see distinct interneuron lineages emerging in this dataset. We can see a clear separation of interneuron precursors that originated from the medial ganglionic eminence (Lhx6) or caudal ganglionic eminence (Nr2f2). We can further see the emergence of Sst (Sst) and Pvalb (Mef2c)-committed interneurons, and a CGE-derived Meis2-expressing progenitor population. 
 These results closely mirror our findings from [Mayer*, Hafemeister*, Bandler* et al, Nature 2018](https://www.nature.com/articles/nature25999), where we enriched for interneuron precursors using a Dlx6a-cre fate-mapping strategy. Here, we obtain similar results using only computational enrichment, enabled by the large size of the original dataset.
 
-```{r save.times, include=FALSE}
+```{r save.times, include=FALSE, eval=FALSE}
 print(as.data.frame(all_times))
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_sketch_analysis.csv")
 ```

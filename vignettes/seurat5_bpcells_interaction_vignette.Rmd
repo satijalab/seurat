@@ -54,18 +54,18 @@ We use BPCells functionality to both load in our data and write the counts layer
 
 # Load Data
 
-### Load Data from one h5 file 
+## Load Data from one h5 file 
 In this section, we will load  a dataset of mouse brain cells freely available from 10X Genomics. This includes 1.3 Million single cells that were sequenced on the Illumina NovaSeq 6000. The raw data can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/1M_neurons?).
 
 To read in the file, we will use open_matrix_10x_hdf5, a BPCells function written to read in feature matrices from 10x. We then write a matrix directory, load the matrix, and create a Seurat object. 
 
 ```{r}
-brain.data <- open_matrix_10x_hdf5(path = "../data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
+brain.data <- open_matrix_10x_hdf5(path = "/brahms/hartmana/vignette_data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
 # Write the matrix to a directory
-write_matrix_dir(mat = brain.data, dir = '../data/brain_counts')
+write_matrix_dir(mat = brain.data, dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts', overwrite = TRUE)
 # Now that we have the matrix on disk, we can load it
-brain.mat <- open_matrix_dir(dir = "../data/brain_counts")
-brain.mat <- Azimuth::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
+brain.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
+brain.mat <- Azimuth:::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
 
 # Create Seurat Object
 brain <- CreateSeuratObject(counts = brain.mat)
@@ -79,9 +79,9 @@ You can use BPCells to convert the matrices in your already created Seurat objec
 ```{r, message=FALSE, warning=FALSE, eval=FALSE}
 obj <- readRDS("/path/to/reference.rds")
 
-# Write the counts layer to a directory 
-write_matrix_dir(mat = obj[["RNA"]]$counts, dir = '../data/brain_counts')
-counts.mat <- open_matrix_dir(dir = "../data/brain_counts")
+# Write the counts layer to a directory
+write_matrix_dir(mat = obj[["RNA"]]$counts, dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts')
+counts.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
 
 obj[["RNA"]]$counts <- counts.mat
 ```
@@ -93,15 +93,25 @@ obj[["RNA"]]$counts <- counts.mat
 Once this conversion is done, you can perform typical Seurat functions on the object. For example, we can normalize data and visualize features by automatically accessing the on-disk counts. 
 
 ```{r}
-VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "counts")
+VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "counts", alpha = 0.1)
 
 # We then normalize and visualize again
 brain <- NormalizeData(brain, normalization.method = "LogNormalize")
-VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "data")
+VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "data", alpha = 0.1)
+```
+
+### Saving Seurat objects with on-disk layers
+
+If you save your object and load it in in the future, Seurat will access the on-disk matrices by their path, which is stored in the assay level data. To make it easy to ensure these are saved in the same place, we provide new functionality to the saveRDS function. In this function, you specify your filename and the destination directory. The pointer to the path in the Seurat object will change to the destination directory. 
+
+This also makes it easy to share your Seurat objects with BPCells matrices by sharing a folder that contains both the object and the BPCells directory.
+
+```{r}
+saveRDS(brain, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/brain_object")
 ```
 
 
-### Load data from multiple h5ad files 
+## Load data from multiple h5ad files 
 
 You can also download data from multiple matrices. In this section, we create a Seurat object using multiple peripheral blood mononuclear cell (PBMC) samples that are freely available for downlaod from CZI [here](https://cellxgene.cziscience.com/collections). We download data from [Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). We use the BPCells function to read h5ad files. 
 
@@ -115,60 +125,66 @@ data.list <- c()
 metadata.list <- c()
 
 for (i in 1:length(files.set)) {
-  name <- gsub(".h5ad", "", files.set[i])
   path <- paste0(file.dir, files.set[i])
   data <- open_matrix_anndata_hdf5(path)
-  write_matrix_dir(mat = data, dir = paste0(file.dir, name, "_BP"), overwrite = TRUE)
+  write_matrix_dir(mat = data, dir = paste0(gsub(".h5ad", "", path), 
+                                            "_BP"), overwrite = TRUE)
   # Load in BP matrices
-  mat <- open_matrix_dir(dir = paste0(file.dir, name, "_BP"))
-  mat <- Azimuth::ConvertEnsembleToSymbol(mat = mat, species = "human")
+  mat <- open_matrix_dir(dir = paste0(gsub(".h5ad", "", path), "_BP"))
+  mat <- Azimuth:::ConvertEnsembleToSymbol(mat = mat, species = "human")
   # Get metadata
   metadata.list[[i]] <- LoadH5ADobs(path = path)
   data.list[[i]] <- mat
-  names(data.list[i]) <- name
 }
+# Name layers
+names(data.list) <- c("ahern", "jin", "yoshida")
 
-# Only pull out needed metadata files
-#Reduce(intersect,lapply(metadata.list, colnames)) # all in common
+# Add Metadata
+for (i in 1:length(metadata.list)){
+  metadata.list[[i]]$publication <- names(data.list)[i]
+}
 metadata.list <- lapply(metadata.list, function(x) {
-    x <- x[, c("sex", "cell_type", "donor_id", "disease")]
+    x <- x[, c("publication", "sex", "cell_type", "donor_id", "disease")]
     return(x)
 })
 metadata <- Reduce(rbind, metadata.list)
 ```
 
-When we create the Seurat object with the list of , we can then see that multiple counts layers exist that represent each dataset. This object contains over a million cells, yet only takes up minimal space in memory! 
+When we create the Seurat object with the list of matrices from each publication, we can then see that multiple counts layers exist that represent each dataset. This object contains over a million cells, yet only takes up minimal space in memory! 
 
 ```{r}
 options(Seurat.object.assay.version = "v5")
-merged.object <- CreateSeuratObject(counts = data.list[1:2], meta.data = metadata) 
+merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata) 
 merged.object
 ```
 
-### Parse Biosciences
+```{r save_merged, eval=FALSE}
+saveRDS(merged.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/merged_object")
+```
+
+## Parse Biosciences
 
 Here, we show how to load a 1 million cell data set from Parse Biosciences and create a Seurat Object. The data is available for download [here](https://support.parsebiosciences.com/hc/en-us/articles/7704577188500-How-to-analyze-a-1-million-cell-data-set-using-Scanpy-and-Harmony)
 
 ```{r}
-parse.data <- open_matrix_anndata_hdf5("../data/h5ad_files/ParseBio_PBMC.h5ad")
-write_matrix_dir(mat = parse.data, dir = "../data/parse_counts")
-parse.mat <- open_matrix_dir(dir = "../data/parse_counts")
+parse.data <- open_matrix_anndata_hdf5("/brahms/hartmana/vignette_data/h5ad_files/ParseBio_PBMC.h5ad")
+```
 
-metadata <- readRDS("../data/ParseBio_PBMC_meta.rds")
+```{r, eval=FALSE}
+write_matrix_dir(mat = parse.data, dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+```
+
+```{r}
+parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+
+metadata <- readRDS("/brahms/hartmana/vignette_data/ParseBio_PBMC_meta.rds")
 metadata$disease <- sapply(strsplit(x = metadata$sample, split = "_"), "[", 1)
 
 parse.object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
 ```
 
-
-## Saving Seurat objects with on-disk layers
-
-If you save your object and load it in in the future, Seurat will access the on-disk matrices by their path, which is stored in the assay level data. To make it easy to ensure these are saved in the same place, we provide new functionality to the saveRDS function. In this function, you specify your filename and the destination directory. The pointer to the path in the Seurat object will change to the destination directory. 
-
-This also makes it easy to share your Seurat objects with BPCells matrices by sharing a folder that contains both the object and the BPCells directory.
-
-```{r}
-saveRDS(brain, file = "obj.Rds", destdir = "../data/brain_object")
+```{r save_parse, eval=FALSE}
+saveRDS(parse.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/parse_object")
 ```
 
 
