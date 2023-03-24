@@ -7,7 +7,7 @@
 IntegrateLayers(
   object,
   method,
-  orig = "pca",
+  orig.reduction = "pca",
   group.by = NULL,
   assay = NULL,
   features = NULL,
@@ -21,7 +21,7 @@ IntegrateLayers(
 
 \item{method}{Integration method function}
 
-\item{orig}{Name of dimensional reduction for correction}
+\item{orig.reduction}{Name of dimensional reduction for correction}
 
 \item{group.by}{Name of meta data to group cells by; defaults to splits
 assay layers}
