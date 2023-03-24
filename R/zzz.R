@@ -87,6 +87,11 @@ AttachDeps <- function(deps) {
 #'
 .onAttach <- function(libname, pkgname) {
   AttachDeps(deps = c('SeuratObject'))
+  message("Loading Seurat v5 beta version \n",
+          "To maintain compatibility with previous workflows, new Seurat objects ",
+          "will use the previous object structure by default\n",
+          "To use new Seurat v5 assays: Please run: ",
+          "options(Seurat.object.assay.version = 'v5')")
   return(invisible(x = NULL))
 }
 
