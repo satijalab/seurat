@@ -97,24 +97,24 @@ Note that you can find more detail on each method, and any installation prerequi
 Each of the following lines perform a new integration using a single line of code:
 
 ```{r integratelayerscca}
-obj <- IntegrateLayers(object = obj, method = CCAIntegration, verbose = F, new.reduction = 'integrated.cca')
+obj <- IntegrateLayers(object = obj, method = CCAIntegration, orig.reduction = "pca", new.reduction = 'integrated.cca', verbose = FALSE)
 ```
 
 ```{r integratelayersrpca}
-obj <- IntegrateLayers(object = obj, method = RPCAIntegration, verbose = F, new.reduction = 'integrated.rpca')
+obj <- IntegrateLayers(object = obj, method = RPCAIntegration, orig.reduction = "pca", new.reduction = 'integrated.rpca', verbose = FALSE)
 ```
 
 ```{r integratelayersharmony}
-obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, verbose = F, new.reduction = 'harmony')
+obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca", new.reduction = 'harmony', verbose = FALSE)
 ```
 
 ```{r integratelayersfastmnn}
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, verbose = F, new.reduction = 'integrated.mnn')
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, new.reduction = 'integrated.mnn', verbose = FALSE)
 ```
 
 ```{r integratelayersscvi, eval=FALSE}
-obj <- IntegrateLayers(object = obj, method = scVIIntegration, verbose = F, new.reduction = 'integrated.scvi',
-    conda_env = '../miniconda3/envs/scvi-env')
+obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = 'integrated.scvi',
+    conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
 ```
 
 ```{r addscvi, include=FALSE}
