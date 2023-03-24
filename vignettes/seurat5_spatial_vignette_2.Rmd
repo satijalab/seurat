@@ -280,7 +280,8 @@ ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
 Using the positional information of each cell, we compute spatial niches.
-We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex.
+We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex. The Allen Brain reference can be installed [here](https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1)).
+
 Below, we use Slc17a7 expression to help determine the cortical region.
 
 ```{r, fig.width=5, fig.height=5, warning=FALSE}
@@ -290,7 +291,7 @@ p1
 ```
 
 ```{r resolve.crop, fig.width=5, fig.height=7, warning=FALSE}
-crop <- Crop(xenium.obj[["fov"]], x=c(600, 2100), y=c(900, 4700))
+crop <- Crop(xenium.obj[["fov"]], x = c(600, 2100), y = c(900, 4700))
 xenium.obj[["crop"]] <- crop
 p2 <- ImageFeaturePlot(
   xenium.obj,
@@ -302,15 +303,15 @@ p2 <- ImageFeaturePlot(
 p2
 ```
 
-Annotation of spatial datasets can be tricky, and single cell methods are not always effective. Here, we use RCTD, which directly accounts for cell type mixing at each spot or segmentation, to annotate cells. For more details on RCTD, please see the [paper](https://doi.org/10.1038/s41587-021-00830-w).
+While `FindTransferAnchors` can be used to integrate spot-level data from spatial transcriptomic datasets, Seurat v5 also includes support for the [Robust Cell Type Decomposition](https://www.nature.com/articles/s41587-021-00830-w), a computational approach to deconvolve spot-level data from spatial datasets, when provided with an scRNA-seq reference. RCTD has been shown to accurately annotate spatial data from a variety of technologies, including SLIDE-seq, Visium, and the 10x Xenium in-situ spatial platform.
 
-First, we install the `spacexr` package from GitHub which implements RCTD.
+To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD.
 
 ```{r, rctd.install, eval=FALSE}
 devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 ```
 
-Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
+Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation. The output of the annotation is then added to the Seurat object.
 
 ```{r rctd.qeury, warning=FALSE}
 library(spacexr)
@@ -323,6 +324,7 @@ query <- SpatialRNA(coords, query.counts, colSums(query.counts))
 ```
 
 ```{r rctd.reference, eval=FALSE}
+# allen.corted.ref can be downloaded here: https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1
 allen.cortex.ref <- readRDS("/home/hartmana/github/seurat-private/data/allen_cortex.rds")
 allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
 
@@ -345,17 +347,16 @@ RCTD <- create.RCTD(query, reference, max_cores = 8)
 RCTD <- run.RCTD(RCTD, doublet_mode = "doublet")
 ```
 
-Many spot annotations contain multiple cell type markers, so we filter only to singlets and add the annotations to the Seurat object for downstream analysis.
-
 ```{r niche.add.annotations, eval=FALSE}
 annotations.df <- RCTD@results$results_df
-annotations.df <- annotations.df[annotations.df$spot_class == "singlet", ]
 annotations <- annotations.df$first_type
 names(annotations) <- rownames(annotations.df)
 xenium.obj$predicted.celltype <- annotations
 keep.cells <- Cells(xenium.obj)[!is.na(xenium.obj$predicted.celltype)]
 xenium.obj <- subset(xenium.obj, cells = keep.cells)
 ```
+
+While the previous analyses consider each cell independently, spatial data enables cells to be defined not just by their neighborhood, but also by their broader spatial context. In Seurat v5, we introduce support for 'niche' analysis of spatial data, which demarcates regions of tissue ('niches'), each of which is defined by a different composition of spatially adjacent cell types. Inspired by the method in [He et al, NBT 2022](https://www.nature.com/articles/s41587-022-01483-z), we consider the 'local neighborhood' for each cell - consisting of its `k.neighbor` spatially closest neighbors, and count the occurrences of each cell type present in this neighborhood. We then use k-means clustering to group cells that have similar neighborhoods together, into spatial niches. 
 
 We call the `BuildNicheAssay` function from within Seurat to construct a new assay called `niche` containing the cell type composition spatially neighboring each cell. A metadata column called `niches` is also returned, which contains cluster assignments based on the niche assay.
 
@@ -373,7 +374,7 @@ xenium.obj <- BuildNicheAssay(
 xenium.obj <- readRDS("/brahms/hartmana/vignette_data/xenium_niches_presaved.rds")
 ```
 
-After clustering the cell type composition nearby each cell, the neuronal layers in the cortex are visually demarcated.
+We can then group cells either by their cell type identity, or their niche identity. The niches identified clearly demarcate the neuronal layers in the cortex.
 
 ```{r, niche.dimplots, fig.width=8, fig.height=6, warning=FALSE}
 celltype.plot <- ImageDimPlot(
@@ -387,7 +388,7 @@ niche.plot <- ImageDimPlot(
   xenium.obj,
   group.by = "niches",
   size = 1.5,
-  dark.background = F) + 
+  dark.background = F) +
   ggtitle("Niches") +
   scale_fill_manual(
     values = c("#442288", "#6CA2EA", "#B5D33D", "#FED23F", "#EB7D5B"))

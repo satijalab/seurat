@@ -37,6 +37,7 @@ library(SeuratData)
 library(SeuratWrappers)
 library(Azimuth)
 library(ggplot2)
+library(patchwork)
 options(future.globals.maxSize = 1e9)
 options(Seurat.object.assay.version = "v5")
 ```
@@ -117,18 +118,18 @@ obj[["integrated.scvi"]] <- CreateDimReducObject(embeddings = scvi.reduc)
 ```
 
 For any of the methods, we can now visualize and cluster the datasets. We show this for CCA integration and scVI, but you can do this for any method
-```{r integratedprojections, fig.height=7, fig.width=16}
+```{r integratedprojections, fig.height=16, fig.width=16}
 obj <- FindNeighbors(obj, reduction = 'integrated.cca', dims = 1:30)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'cca_clusters')
 obj <- RunUMAP(obj, reduction = "integrated.cca", dims = 1:30, reduction.name = 'umap.cca')
-p1 <- DimPlot(obj, reduction="umap.cca", group.by=c("Method", "predicted.celltype.l2", "cca_clusters"))
+p1 <- DimPlot(obj, reduction="umap.cca", group.by=c("Method", "predicted.celltype.l2", "cca_clusters"), combine=FALSE)
 
 obj <- FindNeighbors(obj, reduction = 'integrated.scvi', dims = 1:10)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'scvi_clusters')
 obj <- RunUMAP(obj, reduction = "integrated.scvi", dims = 1:10, reduction.name = 'umap.scvi')
-p2 <- DimPlot(obj, reduction="umap.scvi", group.by=c("Method", "predicted.celltype.l2", "scvi_clusters"))
+p2 <- DimPlot(obj, reduction="umap.scvi", group.by=c("Method", "predicted.celltype.l2", "scvi_clusters"), combine = FALSE)
 
-p1 / p2
+wrap_plots(c(p1, p2), ncol=2)
 ```
 We hope that by simplifying the process of performing integrative analysis, users can more carefully evaluate the biological information retained in the integrated dataset. For example, users can compare the expression of biological markers based on different clustering solutions, or visualize one method's clustering solution on different UMAP visualizations.
 ```{r vlnplots, fig.height=5, fig.width=16, warning=FALSE}

@@ -47,7 +47,6 @@ Users can now automatically run bridge integration for PBMC and Bone Marrow scAT
 
 
 ```{r, message=FALSE, warning=FALSE}
-library(remotes)
 library(Seurat)
 options(Seurat.object.assay.version = "v5")
 library(Signac)
