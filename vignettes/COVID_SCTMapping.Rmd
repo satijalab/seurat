@@ -9,7 +9,7 @@ date: 'Compiled: `r Sys.Date()`'
 ---
 
 
-```{r setup, include=TRUE}
+```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
   now <- NULL
@@ -53,7 +53,7 @@ In this vignette, we demonstrate how to use a previously established reference t
 * Annotate all query cells from multiple studies based on a set of reference-defined cell states
 * Aggregate the annotated cells into individuals for performing Pseudo-bulk differential analysis
 
-To run this vignette please install Seurat v5.
+To run this vignette please install Seurat v5 as shown [here](articles/install.html).
 
 
 
@@ -62,7 +62,7 @@ We load the CITE-seq reference (download [here]()) from our Seurat v4 [paper](ht
 
 ```{r load.data}
 reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
-object <- readRDS("/brahms/hartmana/vignette_data/covid_mapping_merged_object.rds")
+object <- readRDS("/brahms/hartmana/vignette_data/merged_covid_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
 ```
 
@@ -87,7 +87,7 @@ object <- MapQuery(
   refdata = list(
     celltype.l1 = "celltype.l1",
     celltype.l2 = "celltype.l2"
-    ), 
+    ),
   reduction.model = 'wnn.umap'
 )
 ```

@@ -158,7 +158,7 @@ merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata)
 merged.object
 ```
 
-```{r save_merged}
+```{r save_merged, eval=FALSE}
 saveRDS(merged.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/merged_object")
 ```
 
@@ -168,7 +168,13 @@ Here, we show how to load a 1 million cell data set from Parse Biosciences and c
 
 ```{r}
 parse.data <- open_matrix_anndata_hdf5("/brahms/hartmana/vignette_data/h5ad_files/ParseBio_PBMC.h5ad")
+```
+
+```{r, eval=FALSE}
 write_matrix_dir(mat = parse.data, dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+```
+
+```{r}
 parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
 
 metadata <- readRDS("/brahms/hartmana/vignette_data/ParseBio_PBMC_meta.rds")
@@ -177,7 +183,7 @@ metadata$disease <- sapply(strsplit(x = metadata$sample, split = "_"), "[", 1)
 parse.object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
 ```
 
-```{r save_parse}
+```{r save_parse, eval=FALSE}
 saveRDS(parse.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/parse_object")
 ```
 

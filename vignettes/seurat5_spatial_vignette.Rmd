@@ -377,7 +377,6 @@ InstallData("ssHippo")
 
 ```{r data.ss}
 slide.seq <- LoadData('ssHippo')
-slide.seq[['Spatial']] <- as(slide.seq[['Spatial']], Class = 'Assay5')
 ```
 
 ## Data preprocessing
@@ -394,7 +393,7 @@ wrap_plots(plot1, plot2)
 We then normalize the data using [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) and perform a standard scRNA-seq dimensionality reduction and clustering workflow.
 
 ```{r preprocess.ss}
-slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000, verbose = FALSE)
+slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000, n_genes=nrow(slide.seq[["Spatial"]]), verbose = FALSE)
 slide.seq <- RunPCA(slide.seq, assay = "SCT")
 slide.seq <- RunUMAP(slide.seq, dims = 1:30)
 slide.seq <- FindNeighbors(slide.seq, dims = 1:30)
@@ -459,9 +458,12 @@ Now we visualize the expression of the top 6 features identified by Moran's I.
 SpatialFeaturePlot(slide.seq, features = head(SpatiallyVariableFeatures(slide.seq, selection.method = "moransi"), 6), ncol = 3, alpha = c(0.1, 1), max.cutoff = "q95")
 ```
 
-We can also use RCTD for annotation which is published [here](https://doi.org/10.1038/s41587-021-00830-w). RCTD is able to decompose cell mixtures to accurately annotate spatial datasets.
 
-First, we install the `spacexr` package from GitHub which implements RCTD.
+## Spatial deconvolution using RCTD
+
+While `FindTransferAnchors` can be used to integrate spot-level data from spatial transcriptomic datasets, Seurat v5 also includes support for the [Robust Cell Type Decomposition](https://www.nature.com/articles/s41587-021-00830-w), a computational approach to deconvolve spot-level data from spatial datasets, when provided with an scRNA-seq reference. RCTD has been shown to accurately annotate spatial data from a variety of technologies, including SLIDE-seq, Visium, and the 10x Xenium in-situ spatial platform. 
+
+To run RCTD, we first install the `spacexr` package from GitHub which implements RCTD.
 
 ```{r, eval=FALSE}
 devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
@@ -476,16 +478,18 @@ library(spacexr)
 ref <- readRDS("../data/mouse_hippocampus_reference.rds")
 ref <- UpdateSeuratObject(ref)
 Idents(ref) <- "celltype"
-counts <- LayerData(ref, assay = "RNA", layer = "counts")
+
+# extract information to pass to the RCTD Reference function
+counts <- ref[["RNA"]]$counts
 cluster <- as.factor(ref$celltype)
 names(cluster) <- colnames(ref)
 nUMI <- ref$nCount_RNA
 names(nUMI) <- colnames(ref)
 reference <- Reference(counts, cluster, nUMI)
 
-# set up query
+# set up query with the RCTD function SpatialRNA
 slide.seq <- SeuratData::LoadData("ssHippo")
-counts <- LayerData(slide.seq, assay = "Spatial", layer = "counts")
+counts <- slide.seq[["Spatial"]]$counts
 coords <- GetTissueCoordinates(slide.seq)
 colnames(coords) <- c("x", "y")
 coords[is.na(colnames(coords))] <- NULL
@@ -500,7 +504,7 @@ RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 ```
 
-Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot
+Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the algorithm assigns a `first_type` and `second_type` for each barcode or spot.
 
 ```{r rctd_results, fig.height=8, fig.width=14}
 p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")

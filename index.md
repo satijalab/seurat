@@ -14,7 +14,7 @@ We are excited to release an initial beta version of Seurat v5! This update brin
 
     - Paper: [Dictionary learning for integrative, multimodal, and scalable single-cell analysis](https://doi.org/10.1101/2022.02.24.481684)
     - Vignette: [Cross-modality Bridge Integration](articles/seurat5_integration_bridge.html)
-    - Website: [Azimuth-ATAC, reference-mapping for scATAC-seq datasets](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html)\
+    - Website: [Azimuth-ATAC, reference-mapping for scATAC-seq datasets](https://azimuth.hubmapconsortium.org/references/)\
 
 * **Flexible, interactive, and highly scalable analsyis.** The size and scale of single-cell sequencing datasets is rapidly increasing, outpacing even Moore's law. In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore exciting datasets spanning millions of cells, even if they cannot be fully loaded into memory. We introduce support for 'sketch'-based analysis, where representative subsamples of a large dataset are stored in-memory to enable rapid and iterative analysis - while the full dataset remains accessible via on-disk storage.\
 &emsp;We enable high-performance via the BPCells package, developed by Ben Parks in the Greenleaf Lab. The BPCells package enables high-performance analysis via innovative bit-packing compression techniques, optimized C++ code, and use of streamlined and lazy operations.
