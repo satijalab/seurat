@@ -2986,6 +2986,9 @@ SampleUMI <- function(
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 #' where n is the number of cells
+#' @param vst.flavor When set to 'v2' sets method = glmGamPoi_offset, n_cells=2000,
+#' and exclude_poisson = TRUE which causes the model to learn theta and intercept
+#' only besides excluding poisson genes from learning and regularization
 #' @param conserve.memory If set to TRUE the residual matrix for all genes is never
 #' created in full; useful for large data sets, but will take longer to run;
 #' this will also set return.only.var.genes to TRUE; default is FALSE
@@ -3024,6 +3027,7 @@ SCTransform.default <- function(
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = umi) / 30), sqrt(x = ncol(x = umi) / 30)),
+  vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
@@ -3082,6 +3086,8 @@ SCTransform.default <- function(
       immediate. = TRUE
     )
   }
+  
+  vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
   vst.args[['verbosity']] <- as.numeric(x = verbose) * 2
@@ -3279,6 +3285,7 @@ SCTransform.Assay <- function(
     do.scale = FALSE,
     do.center = TRUE,
     clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
+    vst.flavor = 'v2',
     conserve.memory = FALSE,
     return.only.var.genes = TRUE,
     seed.use = 1448145,
@@ -3305,6 +3312,7 @@ SCTransform.Assay <- function(
                          do.scale = do.scale,
                          do.center = do.center,
                          clip.range = clip.range,
+                         vst.flavor = vst.flavor,
                          conserve.memory = conserve.memory,
                          return.only.var.genes = return.only.var.genes,
                          seed.use = seed.use,
@@ -3369,6 +3377,7 @@ SCTransform.Seurat <- function(
     do.scale = FALSE,
     do.center = TRUE,
     clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
+    vst.flavor = "v2",
     conserve.memory = FALSE,
     return.only.var.genes = TRUE,
     seed.use = 1448145,
@@ -3393,6 +3402,7 @@ SCTransform.Seurat <- function(
                             do.scale = do.scale,
                             do.center = do.center,
                             clip.range = clip.range,
+                            vst.flavor = vst.flavor,
                             conserve.memory = conserve.memory,
                             return.only.var.genes = return.only.var.genes,
                             seed.use = seed.use,
