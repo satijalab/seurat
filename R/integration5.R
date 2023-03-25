@@ -36,7 +36,7 @@ NULL
 #' @examples 
 #' \dontrun{
 #' # Preprocessing
-#' obj <- LoadData("pbmcsca")
+#' obj <- SeuratData::LoadData("pbmcsca")
 #' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 #' obj <- NormalizeData(obj)
 #' obj <- FindVariableFeatures(obj)
@@ -148,7 +148,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #' @examples
 #' \dontrun{
 #' # Preprocessing
-#' obj <- LoadData("pbmcsca")
+#' obj <- SeuratData::LoadData("pbmcsca")
 #' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 #' obj <- NormalizeData(obj)
 #' obj <- FindVariableFeatures(obj)
@@ -240,7 +240,7 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' @examples 
 #' \dontrun{
 #' # Preprocessing
-#' obj <- LoadData("pbmcsca")
+#' obj <- SeuratData::LoadData("pbmcsca")
 #' obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
 #' obj <- NormalizeData(obj)
 #' obj <- FindVariableFeatures(obj)
