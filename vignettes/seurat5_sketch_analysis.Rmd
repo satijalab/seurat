@@ -105,8 +105,8 @@ obj <- RunUMAP(obj, dims = 1:50, return.model = T)
 DimPlot(obj, label = T, reduction = 'umap') + NoLegend()
 ```
 
-```{r,fig.height = 7, fig.width = 15}
-FeaturePlot(obj, c('Igfbp7', 'Neurod6', 'Dlx2', 'Eomes', 'Vim', 'Reln', 'Olig1', 'C1qa'), ncol = 4)
+```{r,fig.height = 7, fig.width = 10}
+FeaturePlot(obj, c('Igfbp7', 'Neurod6', 'Dlx2','Gad2', 'Eomes', 'Vim', 'Reln', 'Olig1', 'C1qa'), ncol = 3)
 ```
 
 ## Extend results to the full datasets
@@ -184,8 +184,8 @@ DimPlot(obj.sub, label = T) + NoLegend()
 Note that we can start to see distinct interneuron lineages emerging in this dataset. We can see a clear separation of interneuron precursors that originated from the medial ganglionic eminence (Lhx6) or caudal ganglionic eminence (Nr2f2). We can further see the emergence of Sst (Sst) and Pvalb (Mef2c)-committed interneurons, and a CGE-derived Meis2-expressing progenitor population. 
 These results closely mirror our findings from [Mayer*, Hafemeister*, Bandler* et al, Nature 2018](https://www.nature.com/articles/nature25999), where we enriched for interneuron precursors using a Dlx6a-cre fate-mapping strategy. Here, we obtain similar results using only computational enrichment, enabled by the large size of the original dataset.
 
-```{r,fig.height = 7, fig.width = 15}
-FeaturePlot(obj.sub, c('Dlx2', 'Lhx6', 'Nr2f2', 'Sst', 'Pvalb', 'Meis2', 'Vip', 'Dlx6os1'), ncol = 4)
+```{r,fig.height = 7, fig.width = 10}
+FeaturePlot(obj.sub, c('Dlx2', 'Gad2', 'Lhx6', 'Nr2f2', 'Sst', 'Pvalb', 'Meis2', 'Vip', 'Dlx6os1'), ncol = 3)
 ```
 
 ```{r save.times, include=FALSE, eval=FALSE}
