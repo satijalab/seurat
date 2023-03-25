@@ -505,12 +505,11 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.results = NULL,
   densify = FALSE,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   ValidateCellGroups(
     object = object,
     cells.1 = cells.1,
@@ -627,7 +626,7 @@ FindMarkers.Assay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -635,7 +634,6 @@ FindMarkers.Assay <- function(
   norm.method = NULL,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -717,7 +715,7 @@ FindMarkers.SCTAssay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -725,7 +723,6 @@ FindMarkers.SCTAssay <- function(
   recorrect_umi = TRUE,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -826,14 +823,13 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
   ...
 
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   if (test.use %in% DEmethods_counts()) {
     stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
          paste(DEmethods_counts(), collapse=", "))
@@ -1100,14 +1096,13 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
   norm.method = NULL,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
   default.mean.fxn <- function(x) {
     return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
@@ -1161,12 +1156,11 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   mean.fxn <- mean.fxn %||% rowMeans
   fc.name <- fc.name %||% "avg_diff"
   data <- t(x = Embeddings(object = object))
@@ -1214,7 +1208,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
