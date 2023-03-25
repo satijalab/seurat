@@ -46,6 +46,7 @@ library(Seurat)
 library(BPCells)
 library(dplyr)
 library(ggplot2)
+library(ggrepel)
 # set this option when analyzing large datasets
 options(future.globals.maxSize = 3e9)
 options(Seurat.object.assay.version = "v5")
@@ -161,7 +162,7 @@ ggplot(de_markers, aes(avg_log2FC, -log10(p_val_adj))) + geom_point(size=0.5, al
 
 We do not necessarily expect to see a strong transcriptomic signature of diabetes in the blood, but our analyses reveals multiple genes that are up-regulated in diabetic patients, and are consistent across multiple individuals. Some of these genes, including the complement subcomponent C1R, have been [previously associated with diabetes](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6927818/). Others, including the transcription factor SPDEF and the receptor RAPSN, are also diabetic biomarkers in multiple cell types, including CD14 monocytes.
 
-```{r,height = 15, width=6}
+```{r,height = 25, width=6}
 # each dot represents a pseudobulk average from an individual
 
 p1 <- VlnPlot(bulk, features = c("C1R"),group.by = 'celltype', split.by = 'disease')
