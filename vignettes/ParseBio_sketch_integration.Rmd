@@ -89,10 +89,12 @@ object <- IntegrateLayers(object, method = RPCAIntegration, orig = 'pca',
 object <- FindNeighbors(object, reduction = 'integrated.rpca', dims = 1:30)
 object <- FindClusters(object, resolution = 2)
 object <- RunUMAP(object,  reduction = 'integrated.rpca', dims = 1:30, return.model = T, verbose = F)
+```
 
+```{r}
 # you can now rejoin the layers in the sketched assay
 # this is required to perform differential expression
-object <- JoinLayers(object)
+object[['sketch']] <- JoinLayers(object[['sketch']])
 c10_markers <- FindMarkers(object = object, 10, max.cells.per.ident = 500, only.pos = TRUE)
 head(c10_markers)
 
@@ -103,7 +105,7 @@ plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap') + NoLegend()
 plot.s2 <- DimPlot(object, group.by = 'celltype.manual', reduction = 'umap') + NoLegend()
 ```
 
-```{r}
+```{r, fig.width=10, fig.height=5}
 plot.s1 + plot.s2
 ```
 
@@ -126,7 +128,7 @@ object <- ProjectIntegration(object = object,
 object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
 ```
 
-```{r}
+```{r,fig.width=10, fig.height=5}
 p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.5) + NoLegend()
 p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.manual', label = T, alpha = 0.5) + NoLegend()
 p1 + p2
