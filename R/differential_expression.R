@@ -474,7 +474,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
+#' calculating logFC. 0.1 by default.
 #' @param fc.results data.frame from FoldChange
 #' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
@@ -934,6 +934,7 @@ FindMarkers.Seurat <- function(
   reduction = NULL,
   features = NULL,
   logfc.threshold = 0.25,
+  pseudocount.use = 0.1,
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
@@ -1022,6 +1023,7 @@ FindMarkers.Seurat <- function(
     cells.2 = cells$cells.2,
     features = features,
     logfc.threshold = logfc.threshold,
+    pseudocount.use = pseudocount.use,
     test.use = test.use,
     min.pct = min.pct,
     min.diff.pct = min.diff.pct,
