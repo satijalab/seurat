@@ -641,6 +641,9 @@ FindMarkers.Assay <- function(
     yes = 'counts',
     no = slot
   )
+  if (length(x = Layers(object = object, search = slot)) > 1) {
+    stop(slot, ' layers are not joined. Please run JoinLayers')
+  }
   data.use <-  GetAssayData(object = object, slot = data.slot)
   counts <- switch(
     EXPR = data.slot,
