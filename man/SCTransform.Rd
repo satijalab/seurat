@@ -22,6 +22,7 @@ SCTransform(object, ...)
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = umi)/30), sqrt(x = ncol(x = umi)/30)),
+  vst.flavor = "v2",
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
@@ -42,6 +43,7 @@ SCTransform(object, ...)
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object)/30), sqrt(x = ncol(x = object)/30)),
+  vst.flavor = "v2",
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
@@ -64,6 +66,7 @@ SCTransform(object, ...)
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object[[assay]])/30), sqrt(x = ncol(x =
     object[[assay]])/30)),
+  vst.flavor = "v2",
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
@@ -108,6 +111,10 @@ regression. For example, percent.mito. Default is NULL}
 
 \item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 where n is the number of cells}
+
+\item{vst.flavor}{When set to 'v2' sets method = glmGamPoi_offset, n_cells=2000,
+and exclude_poisson = TRUE which causes the model to learn theta and intercept
+only besides excluding poisson genes from learning and regularization}
 
 \item{conserve.memory}{If set to TRUE the residual matrix for all genes is never
 created in full; useful for large data sets, but will take longer to run;
