@@ -81,6 +81,9 @@ obj <- RunUMAP(obj, dims = 1:30, reduction = 'pca', reduction.name = 'umap.unint
 # cell type annotations were previously added by Azimuth
 DimPlot(obj, reduction = 'umap.unintegrated', group.by=c('Method','predicted.celltype.l2'))
 ```
+
+## Perform streamlined (one-line) integrative analysis
+
 Seurat v5 enables streamlined integrative analysis using the `IntegrateLayers` function. The method currently supports five integration methods. Each of these methods performs integration in low-dimensional space, and returns a dimensional reduction (i.e. `integrated.rpca`) that aims to co-embed shared cell types across batches:
 
 * Anchor-based CCA integration (`method=CCAIntegration`)
@@ -89,26 +92,29 @@ Seurat v5 enables streamlined integrative analysis using the `IntegrateLayers` f
 * FastMNN (`method= FastMNNIntegration`)
 * scVI (`method=scVIIntegration`)
 
-Note that scVI integration requires `reticulate` which can be installed from CRAN (`install.packages("reticulate")`) as well as `scvi-tools` and its dependencies installed in a conda environment. Please see scVI installation instructions [here](https://docs.scvi-tools.org/en/stable/installation.html).
+Note that you can find more detail on each method, and any installation prerequisites, in Seurat's documentation (for example, `?scVIIntegration`). For example, scVI integration requires `reticulate` which can be installed from CRAN (`install.packages("reticulate")`) as well as `scvi-tools` and its dependencies installed in a conda environment. Please see scVI installation instructions [here](https://docs.scvi-tools.org/en/stable/installation.html).
+
+Each of the following lines perform a new integration using a single line of code:
+
 ```{r integratelayerscca}
-obj <- IntegrateLayers(object = obj, method = CCAIntegration, verbose = F, new.reduction = 'integrated.cca')
+obj <- IntegrateLayers(object = obj, method = CCAIntegration, orig.reduction = "pca", new.reduction = 'integrated.cca', verbose = FALSE)
 ```
 
 ```{r integratelayersrpca}
-obj <- IntegrateLayers(object = obj, method = RPCAIntegration, verbose = F, new.reduction = 'integrated.rpca')
+obj <- IntegrateLayers(object = obj, method = RPCAIntegration, orig.reduction = "pca", new.reduction = 'integrated.rpca', verbose = FALSE)
 ```
 
 ```{r integratelayersharmony}
-obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, verbose = F, new.reduction = 'harmony')
+obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca", new.reduction = 'harmony', verbose = FALSE)
 ```
 
 ```{r integratelayersfastmnn}
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, verbose = F, new.reduction = 'integrated.mnn')
+obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, new.reduction = 'integrated.mnn', verbose = FALSE)
 ```
 
 ```{r integratelayersscvi, eval=FALSE}
-obj <- IntegrateLayers(object = obj, method = scVIIntegration, verbose = F, new.reduction = 'integrated.scvi',
-    conda_env = '../miniconda3/envs/scvi-env')
+obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = 'integrated.scvi',
+    conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
 ```
 
 ```{r addscvi, include=FALSE}
@@ -118,6 +124,7 @@ obj[["integrated.scvi"]] <- CreateDimReducObject(embeddings = scvi.reduc)
 ```
 
 For any of the methods, we can now visualize and cluster the datasets. We show this for CCA integration and scVI, but you can do this for any method
+
 ```{r integratedprojections, fig.height=16, fig.width=16}
 obj <- FindNeighbors(obj, reduction = 'integrated.cca', dims = 1:30)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'cca_clusters')
@@ -131,7 +138,9 @@ p2 <- DimPlot(obj, reduction="umap.scvi", group.by=c("Method", "predicted.cellty
 
 wrap_plots(c(p1, p2), ncol=2)
 ```
+
 We hope that by simplifying the process of performing integrative analysis, users can more carefully evaluate the biological information retained in the integrated dataset. For example, users can compare the expression of biological markers based on different clustering solutions, or visualize one method's clustering solution on different UMAP visualizations.
+
 ```{r vlnplots, fig.height=5, fig.width=16, warning=FALSE}
 p1 <- VlnPlot(obj, features = "rna_CD8A", group.by = 'cca_clusters') + NoLegend() + ggtitle("CD8A - Unintegrated Clusters")
 p2 <- VlnPlot(obj, "rna_CD8A", group.by = 'cca_clusters') + NoLegend() + ggtitle("CD8A - CCA Clusters")
@@ -145,4 +154,11 @@ p4 <- DimPlot(obj, reduction="umap.unintegrated", group.by=c("cca_clusters"))
 p5 <- DimPlot(obj, reduction="umap.rpca", group.by=c("cca_clusters"))
 p6 <- DimPlot(obj, reduction="umap.scvi", group.by=c("cca_clusters"))
 p4 | p5 | p6
+```
+
+Once integrative analysis is complete, you can rejoin the layers - which collapses the individual datasets together and recreates the original `counts` and `data` layers. You will need to do this before performing any differential expression analysis. However, you can always resplit the layers in case you would like to reperform integrative analysis.
+
+```{r joinlayers}
+obj <- JoinLayers(obj)
+obj
 ```

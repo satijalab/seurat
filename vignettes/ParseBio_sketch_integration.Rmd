@@ -54,7 +54,11 @@ options(Seurat.object.assay.version = "v5")
 We downloaded the original dataset and donor metadata from [Parse Biosciences](https://resources.parsebiosciences.com/dataset-wt-mega-one-million-pbmc-type-1-diabetes), as an h5ad file. While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](LINKCONVERSIONVIGNETTE).
 We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](LINKTOVIGNETTE), one for each sample (i.e. patient), to facilitate integration.
 ```{r, warning=F, message=F}
-object <- readRDS("/brahms/hartmana/vignette_data/parse_1m_pbmc.rds")
+parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+# need to move
+metadata <- readRDS("/brahms/haoy/vignette_data/ParseBio_PBMC_meta.rds")
+object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
+
 object <- NormalizeData(object)
 # split assay into 24 layers
 object[['RNA']] <- split(object[['RNA']], f = object$sample)
@@ -85,20 +89,35 @@ object <- IntegrateLayers(object, method = RPCAIntegration, orig = 'pca',
 object <- FindNeighbors(object, reduction = 'integrated.rpca', dims = 1:30)
 object <- FindClusters(object, resolution = 2)
 object <- RunUMAP(object,  reduction = 'integrated.rpca', dims = 1:30, return.model = T, verbose = F)
-# You can now annotate clusters using marker genes. 
-# We performed this step, and include the results in the 'sketch.celltype' metadata column
-# NOTE change celltype.weight -> sketch.celltype in metadata
-plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap') + NoLegend()
-plot.s2 <- DimPlot(object, group.by = 'celltype.weight', reduction = 'umap') + NoLegend()
 ```
 
 ```{r}
+# you can now rejoin the layers in the sketched assay
+# this is required to perform differential expression
+object[['sketch']] <- JoinLayers(object[['sketch']])
+c10_markers <- FindMarkers(object = object, 10, max.cells.per.ident = 500, only.pos = TRUE)
+head(c10_markers)
+
+# You can now annotate clusters using marker genes. 
+# We performed this step, and include the results in the 'sketch.celltype' metadata column
+
+plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap') + NoLegend()
+plot.s2 <- DimPlot(object, group.by = 'celltype.manual', reduction = 'umap') + NoLegend()
+```
+
+```{r, fig.width=10, fig.height=5}
 plot.s1 + plot.s2
 ```
 
 ## Integrate the full datasets
 Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `ProjectIntegration` function to integrate all cells. After this function is run, the `integrated.rpca.full` space now embeds all cells in the dataset.Even though all cells in the dataset have been integrated together, the non-sketched cells are not loaded into memory. Users can still switch between the `sketch` (sketched cells, in-memory) and `RNA` (full dataset, on disk) for analysis.
+
 ```{r}
+
+# resplit the sketched cell assay into layers
+# this is required to project the integration onto all cells
+object[['sketch']] <- split(object[['sketch']], f = object$sample)
+
 object <- ProjectIntegration(object = object,
                                     sketched.assay =  'sketch',
                                     assay = 'RNA',
@@ -109,79 +128,49 @@ object <- ProjectIntegration(object = object,
 object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
 ```
 
-```{r}
+```{r,fig.width=10, fig.height=5}
 p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.5) + NoLegend()
-p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.weight', label = T, alpha = 0.5) + NoLegend()
+p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.manual', label = T, alpha = 0.5) + NoLegend()
 p1 + p2
 ```
 
-## pseudo-bulk
+## Compare healthy and diabetic samples
+
+By integrating all samples together, we can now compare healthy and diabetic cells in matched cell states. To maximize statistical power, we want to use all cells - not just the sketched cells - to perform this analysis. As recommended by [Soneson et al.](https://www.nature.com/articles/s41467-020-19894-4), we use an aggregation-based (pseudobulk) workflow. We aggregate all cells within the same cell type and sample using the `AggregateExpression` function. This returns a Seurat object where each 'cell' represents the pseudobulk profile of one cell type in one individual.
+
+After we aggregate cells, we can perform celltype-specific differential expression between healthy and diabetic samples using DESeq2. We demonstrate this for CD14 monocytes.
+
 ```{r}
-time8_bulk <- system.time( bulk <- AggregateExpression(object,
-                                                        return.seurat = T,
-                                                        slot = 'counts',
-                                                        assays  = 'RNA',
-                                                        group.by = c("celltype.weight","sample","disease")
-                                                        )
-)
+bulk <- AggregateExpression(object, return.seurat = T, slot = 'counts',
+            assays  = 'RNA', group.by = c("celltype.manual","sample"))
+
+# each sample is an individual-specific celltype-specific pseudobulk profile
+tail(Cells(bulk))
+
 bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
 bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
-bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
-marker.list <- list()
-celltype.set <- unique(bulk$celltype )
-for (i in seq_along(celltype.set)) {
-  bulk.i <- subset(bulk, subset = celltype == celltype.set[i])
-  Idents(bulk.i) <- 'disease'
- if (any(table(bulk.i$disease) < 3)) {
-    marker.list[[i]]  <- EmptyDF(n = 0)
- } else {
-    marker.list[[i]] <- FindMarkers(bulk.i, ident.1 = 'D',ident.2 = 'H', slot = 'counts', test.use = 'DESeq2', verbose = F )
- }
-}
-names(marker.list) <- celltype.set
-```
-```{r}
-marker.list.filter <- lapply(marker.list, function(x) {
-  if(nrow(x) > 0) {
-    x <- x[x$p_val_adj < 0.01 & !is.na(x$p_val_adj ),]
-  } 
-  if (nrow(x) > 0) {
-    return(x)
-  }
-})
-```
-```{r}
-VlnPlot(bulk, features = 'FOXO3', group.by = 'celltype', split.by = 'disease')
+bulk$disease <- sapply(strsplit(bulk$donor, split = "-"), '[', 1)
+
+cd14.bulk <- subset(bulk,celltype == "CD14 Mono")
+Idents(cd14.bulk) <- 'disease'
+de_markers <- FindMarkers(cd14.bulk, ident.1 = 'D',ident.2 = 'H', slot = 'counts', test.use = 'DESeq2', verbose = F )
+de_markers$gene <- rownames(de_markers)    
+ggplot(de_markers, aes(avg_log2FC, -log10(p_val_adj))) + geom_point(size=0.5, alpha=0.5)   + theme_bw() + ylab("-log10(p-value)")+geom_text_repel(aes(label = ifelse(p_val_adj<0.01, gene, "")),colour = 'red', size = 3)
+
 ```
 
-## computing time summary
-```{r}
-all_T  <- ls(pattern = 'time')
-overall <- sum(sapply(all_T, function(x) round(get(x)['elapsed'], digits = 3)))/60
-for (i in 1:length(all_T)) {
-  T_i <- get(all_T[i])['elapsed']
-  if (T_i > 60) {
-     print(paste(all_T[i], round(T_i/60, digits = 1), 'mins'))
-  } else {
-     print(paste(all_T[i], round(T_i, digits = 1), 'secs'))
-  }
-}
-print(paste('Total time ', round(overall, digits = 1), 'mins' ))
-```
-```{r,fig.height = 20, fig.width = 15}
-Idents(bulk) <- 'celltype'
-marker <- FindAllMarkers(object = bulk, only.pos = TRUE, verbose = FALSE)
-marker %>%
-    group_by(cluster) %>%
-    top_n(n = -5, wt = p_val) -> top5
-bulk <- ScaleData(bulk, features = top5$gene)
-DoHeatmap(bulk, features = top5$gene) + NoLegend()
+We do not necessarily expect to see a strong transcriptomic signature of diabetes in the blood, but our analyses reveals multiple genes that are up-regulated in diabetic patients, and are consistent across multiple individuals. Some of these genes, including the complement subcomponent C1R, have been [previously associated with diabetes](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6927818/). Others, including the transcription factor SPDEF and the receptor RAPSN, are also diabetic biomarkers in multiple cell types, including CD14 monocytes.
+
+```{r,height = 15, width=6}
+# each dot represents a pseudobulk average from an individual
+
+p1 <- VlnPlot(bulk, features = c("C1R"),group.by = 'celltype', split.by = 'disease')
+p2 <- VlnPlot(bulk, features = c("C1R"),group.by = 'celltype', split.by = 'disease')
+p3 <- VlnPlot(bulk, features = c("C1R"),group.by = 'celltype', split.by = 'disease')
+p1+p2+p3
+
 ```
 
-```{r save.times, include=TRUE}
-print(as.data.frame(all_times))
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/ParseBio_sketch_integration.csv")
-```
 
 <details>
   <summary>**Session Info**</summary>

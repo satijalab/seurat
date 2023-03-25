@@ -3,6 +3,7 @@
 NULL
 
 #' @importFrom utils lsf.str
+#' @importFrom rlang is_scalar_character
 #'
 #' @export
 #'

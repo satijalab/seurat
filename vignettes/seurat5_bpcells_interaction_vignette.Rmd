@@ -111,6 +111,13 @@ saveRDS(brain, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcel
 ```
 
 
+If needed, a layer with an on-disk matrix can be converted to an in-memory matrix using the `as()` function. For the purposes of this demo, we'll subset the object so that it takes up less space in memory. 
+```{r}
+brain <- subset(brain, downsample = 1000)
+brain[["RNA"]]$counts <- as(object = brain[["RNA"]]$counts, Class = "dgCMatrix")
+```
+
+
 ## Load data from multiple h5ad files 
 
 You can also download data from multiple matrices. In this section, we create a Seurat object using multiple peripheral blood mononuclear cell (PBMC) samples that are freely available for downlaod from CZI [here](https://cellxgene.cziscience.com/collections). We download data from [Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). We use the BPCells function to read h5ad files. 
