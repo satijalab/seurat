@@ -185,7 +185,7 @@ Note that we can start to see distinct interneuron lineages emerging in this dat
 These results closely mirror our findings from [Mayer*, Hafemeister*, Bandler* et al, Nature 2018](https://www.nature.com/articles/nature25999), where we enriched for interneuron precursors using a Dlx6a-cre fate-mapping strategy. Here, we obtain similar results using only computational enrichment, enabled by the large size of the original dataset.
 
 ```{r,fig.height = 7, fig.width = 10}
-FeaturePlot(obj.sub, c('Dlx2', 'Gad2', 'Lhx6', 'Nr2f2', 'Sst', 'Pvalb', 'Meis2', 'Vip', 'Dlx6os1'), ncol = 3)
+FeaturePlot(obj.sub, c('Dlx2', 'Gad2', 'Lhx6', 'Nr2f2', 'Sst', 'Mef2c', 'Meis2', 'Id2', 'Dlx6os1'), ncol = 3)
 ```
 
 ```{r save.times, include=FALSE, eval=FALSE}
