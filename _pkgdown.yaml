@@ -15,10 +15,10 @@ navbar:
   left:
     - text: "Install"
       href: articles/install.html
-    - text: "Get started"
-      href: articles/get_started.html
     - text: "Seurat v5"
       href: articles/get_started_v5.html
+    - text: "Get started"
+      href: articles/get_started.html
     - text: "Vignettes"
       menu:
         - text: Introductory Vignettes

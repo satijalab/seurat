@@ -1,5 +1,5 @@
 ---
-title: "Getting started with Seurat 5"
+title: "Introduction to Seurat v5"
 output:
   html_document:
     theme: united
@@ -102,41 +102,38 @@ vdat <- read_yaml(file = "vignettes_v5.yaml")
 </style>
 ```
 
-# Introduction to Seurat 5
+We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat v5. These vignettes are meant to highlight new functions and features supported by Seurat v5. Seurat v5 is backwards compatible with previous versions, so existing user workflows (as well as [previously released Seurat vignettes](get_started.html)) will continue to work even when using Seurat v5.
 
-The following vignettes outline how to install, create, and interact with Seurat 5 objects.
+# Spatial analysis
+
+These vignettes will help introduce users to the analysis of spatial datasets in Seurat v5, including technologies that leverage sequencing-based readouts, as well as technologies that leverage in-situ imaging-based readouts. The vignettes introduce data from multiple platforms including 10x Visium, SLIDE-seq, Vizgen MERSCOPE, 10x Xenium, Nanostring CosMx, and Akoya CODEX. 
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 1)
 ```
 
-# Analysis in Seurat 5
+# Streamlined and multimodal integration
 
-Below we demonstrate new functionality introduced in Seurat 5 including:
-
-* Sketch-based workflows to efficiently process large datasets while preserving rare and abundant cell types
-* Bridge integration to annotate cells from complementary technologies with a scRNA-seq reference
-* Spatial infrastructure to analyze public datasets from multiple technologies
-* Integration using CCA, RPCA, scVI, and Harmony in a common framework
-
-## Large Dataset Analysis
-
+Performing integrative analysis in order to identify shared cell types across multiple datasets is an increasingly important analytical step in single-cell workflows. These vignettes demonstrate new methods and infrastructure for integrative analysis in Seurat v5. They include a streamlined analytical workflow to integrate scRNA-seq datasets, and the use of 'bridge integration' for harmonizing datasets across modalities.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 2)
 ```
 
-## Integration
+# Flexible analysis of massively scalable datasets
 
-Perform integration across conditions using Seurat-based and community methods.
+In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore datasets that extend to millions of cells. We introduce support for 'sketch-based' techniques, where a subset of representative cells are stored in memory to enable rapid and iterative exploration, while the remaining cells are stored on-disk. Users can flexibly switch between both data representations, and we leverage the [BPCells package](https://bnprks.github.io/BPCells/) from Ben Parks in the Greenleaf lab to enable high-performance analysis of disk-backed data.
+\
+\
+The vignettes below demonstrate three scalable analyses in Seurat v5: Unsupervised clustering analysis of a large dataset (1.3M neurons), Unsupervised integration and comparison of 1M PBMC from healthy and diabetic patients, and Supervised mapping of 1.5M immune cells from healthy and COVID donors. In all cases, the vignettes perform these analyses without ever loading the full datasets into memory.
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 3)
 ```
 
-## Spatial Analysis
+# References and additional documentation
 
-Use Seurat to analyze data from imaging-based and sequencing-based spatial technologies.
+We include brief vignettes describing install instructions, a 'cheat sheet' of commands for interacting with Seurat v5 assays, and additional documentation for using the BPCells package together with Seurat. 
 
 ```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
 make_vignette_card_section(vdat = vdat, cat = 4)
