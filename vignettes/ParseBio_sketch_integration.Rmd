@@ -96,14 +96,14 @@ object <- RunUMAP(object,  reduction = 'integrated.rpca', dims = 1:30, return.mo
 # you can now rejoin the layers in the sketched assay
 # this is required to perform differential expression
 object[['sketch']] <- JoinLayers(object[['sketch']])
-c10_markers <- FindMarkers(object = object, 10, max.cells.per.ident = 500, only.pos = TRUE)
+c10_markers <- FindMarkers(object = object, ident.1 = 10, max.cells.per.ident = 500, only.pos = TRUE)
 head(c10_markers)
 
 # You can now annotate clusters using marker genes. 
 # We performed this step, and include the results in the 'sketch.celltype' metadata column
 
-plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap') + NoLegend()
-plot.s2 <- DimPlot(object, group.by = 'celltype.manual', reduction = 'umap') + NoLegend()
+plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap')
+plot.s2 <- DimPlot(object, group.by = 'celltype.manual', reduction = 'umap')
 ```
 
 ```{r, fig.width=10, fig.height=5}
@@ -130,8 +130,8 @@ object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , red
 ```
 
 ```{r,fig.width=10, fig.height=5}
-p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.5) + NoLegend()
-p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.manual', label = T, alpha = 0.5) + NoLegend()
+p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.1) + NoLegend()
+p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.manual', label = T, alpha = 0.1) + NoLegend()
 p1 + p2
 ```
 
@@ -166,7 +166,7 @@ We do not necessarily expect to see a strong transcriptomic signature of diabete
 
 ```{r,height = 12, width=6}
 # each dot represents a pseudobulk average from an individual
-VlnPlot(bulk, features = c("NAMPTP1"),group.by = 'celltype', split.by = 'disease', cols = c('#377eb8','#e41a1c'))
+VlnPlot(bulk, features = c("C1R"),group.by = 'celltype', split.by = 'disease', cols = c('#377eb8','#e41a1c'))
 
 
 ```
