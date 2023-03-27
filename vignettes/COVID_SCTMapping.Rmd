@@ -96,14 +96,14 @@ We can now visualize the 1.5 million query cells from three studies, which have 
 
 
 ```{r, fig.width=10, fig.height=6}
-DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3) + NoLegend()
+DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3,  label.size = 3) + NoLegend()
 ```
 ```{r, fig.width=10, fig.height=6}
-DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3) + NoLegend()
+DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3,  label.size = 3) + NoLegend()
 ```
 
 ## Differential composition analysis
-
+We now have annotations for all cells from this object. This enables us to determine the proportion of different cell types for each donor and explore variations in cell type composition between healthy individuals and COVID-19 patients. For example, we noticed a reduction in MAIT cells and an increase in plasmablasts among COVID-19 patients.
 
 ```{r}
 df_comp <- as.data.frame.matrix(table(object$donor_id, object$predicted.celltype.l2))
@@ -124,6 +124,8 @@ VlnPlot(obj.comp, features =  c("MAIT",'Plasmablast'), group.by = 'disease', slo
 
 ```
 ## Differential expression analysis
+Except for the composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy and COVID donors. We aggregate all cells within the same cell type and sample using the AggregateExpression function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
+
 
 ```{r}
 bulk <- AverageExpression(object,
@@ -145,6 +147,8 @@ bulk <- subset(bulk, subset = celltype !=  c('Doublet') )
 bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
 
 ```
+
+Once cells are aggregated into individuals, we can execute cell type-specific differential expression analysis between healthy and COVID-19 samples. Here we only visualize certain interferon-stimulated genes across all cell types when comparing healthy and COVID-19 donors.
 
 ```{r, fig.width=10, fig.height=8}
 VlnPlot(bulk, features = c('IFI6','ISG15', 'IFIT5'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"), ncol = 1)
