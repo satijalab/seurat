@@ -4456,7 +4456,7 @@ ScaleData.IterableMatrix <- function(
     features.sd <- 1
   }
   if (scale.max != Inf) {
-    scaled.data <- BPCells::min_by_row(mat = scaled.data, vals = scale.max*feature.sd + feature.mean)
+    object <- BPCells::min_by_row(mat = object, vals = scale.max*feature.sd + feature.mean)
   }
   scaled.data <- (object - features.mean) / features.sd
 return(scaled.data)
