@@ -28,6 +28,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
+   cache = TRUE,
+  cache.lazy = FALSE,
   time_it = TRUE,
   error = TRUE
 )
@@ -37,6 +39,7 @@ knitr::opts_chunk$set(
 library(Seurat)
 library(BPCells)
 library(dplyr)
+library(patchwork)
 library(ggplot2)
 options(future.globals.maxSize = 1e9)
 ```
@@ -120,8 +123,9 @@ obj.comp <- CreateSeuratObject(counts = t(df_comp_ratio), meta.data = df_disease
 obj.comp <- subset(obj.comp, subset = disease %in%  c('normal','COVID-19'))
 ```
 ```{r, fig.width=10, fig.height=6}
-VlnPlot(obj.comp, features =  c("MAIT",'Plasmablast'), group.by = 'disease', slot = 'counts', cols = c("#377eb8", "#e41a1c")) + ylab('relative abundance')
-
+p1 <- VlnPlot(obj.comp, features =  "MAIT", group.by = 'disease', slot = 'counts', cols = c("#377eb8", "#e41a1c")) + ylab('relative abundance')
+p2 <- VlnPlot(obj.comp, features = 'Plasmablast', group.by = 'disease', slot = 'counts', cols = c("#377eb8", "#e41a1c")) + ylab('relative abundance')
+p1 + p2 + plot_layout(ncol = 2)
 ```
 
 ## Differential expression analysis
@@ -153,11 +157,6 @@ Once cells are aggregated into individuals, we can execute cell type-specific di
 
 ```{r, fig.width=10, fig.height=15}
 VlnPlot(bulk, features = c('IFI6','ISG15', 'IFIT5'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"), ncol = 1)
-```
-
-
-```{r save.times, include=TRUE}
-write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/COVID_SCTMapping.csv")
 ```
 
 <details>
