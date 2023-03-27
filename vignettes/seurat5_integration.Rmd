@@ -75,7 +75,7 @@ obj <- RunPCA(obj)
 We can now visualize the results of a standard analysis without integration. Note that cells are grouping both by cell type and by underlying method. While a UMAP analysis is just a visualization of this, clustering this dataset would return predominantly batch-specific clusters. Especially if previous cell-type annotations were not available, this would make downstream analysis extremely challenging.  
 ```{r unintegratedUMAP, fig.height=5, fig.width=14}
 obj <- FindNeighbors(obj, dims=1:30, reduction = 'pca')
-obj <- FindNeighbors(obj, resolution = 2, cluster.name = "unintegrated_clusters")
+obj <- FindClusters(obj, resolution = 2, cluster.name = "unintegrated_clusters")
 obj <- RunUMAP(obj, dims = 1:30, reduction = 'pca', reduction.name = 'umap.unintegrated')
 # visualize by batch and cell type annotation
 # cell type annotations were previously added by Azimuth
@@ -142,7 +142,7 @@ wrap_plots(c(p1, p2), ncol=2)
 We hope that by simplifying the process of performing integrative analysis, users can more carefully evaluate the biological information retained in the integrated dataset. For example, users can compare the expression of biological markers based on different clustering solutions, or visualize one method's clustering solution on different UMAP visualizations.
 
 ```{r vlnplots, fig.height=5, fig.width=16, warning=FALSE}
-p1 <- VlnPlot(obj, features = "rna_CD8A", group.by = 'cca_clusters') + NoLegend() + ggtitle("CD8A - Unintegrated Clusters")
+p1 <- VlnPlot(obj, features = "rna_CD8A", group.by = 'unintegrated_clusters') + NoLegend() + ggtitle("CD8A - Unintegrated Clusters")
 p2 <- VlnPlot(obj, "rna_CD8A", group.by = 'cca_clusters') + NoLegend() + ggtitle("CD8A - CCA Clusters")
 p3 <- VlnPlot(obj, "rna_CD8A", group.by = 'scvi_clusters') + NoLegend() + ggtitle("CD8A - scVI Clusters")
 p1 | p2 | p3
