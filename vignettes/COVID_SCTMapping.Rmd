@@ -58,7 +58,7 @@ To run this vignette please install Seurat v5 as shown [here](articles/install.h
 
 
 
-## Load the Multimodal PBMC Reference Dataset and Query Datasets
+## Load the PBMC Reference Dataset and Query Datasets
 We load the CITE-seq reference (download [here]()) from our Seurat v4 [paper](https://doi.org/10.1016/j.cell.2021.04.048). We will use the query datasets prepared in BPCells interaction vignette containing scRNA-seq data from three different studies.
 
 ```{r load.data}
@@ -123,6 +123,7 @@ obj.comp <- subset(obj.comp, subset = disease %in%  c('normal','COVID-19'))
 VlnPlot(obj.comp, features =  c("MAIT",'Plasmablast'), group.by = 'disease', slot = 'counts', cols = c("#377eb8", "#e41a1c")) + ylab('relative abundance')
 
 ```
+
 ## Differential expression analysis
 Except for the composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy and COVID donors. We aggregate all cells within the same cell type and sample using the AggregateExpression function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
 
@@ -150,17 +151,12 @@ bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
 
 Once cells are aggregated into individuals, we can execute cell type-specific differential expression analysis between healthy and COVID-19 samples. Here we only visualize certain interferon-stimulated genes across all cell types when comparing healthy and COVID-19 donors.
 
-```{r, fig.width=10, fig.height=8}
+```{r, fig.width=10, fig.height=15}
 VlnPlot(bulk, features = c('IFI6','ISG15', 'IFIT5'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"), ncol = 1)
 ```
- 
-```{r save.img, include=TRUE}
-library(ggplot2)
-ggsave(filename = "../output/images/COVID_SCTMapping.jpg", height = 7, width = 8, plot = p3, quality = 50)
-```
+
 
 ```{r save.times, include=TRUE}
-print(as.data.frame(all_times))
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/COVID_SCTMapping.csv")
 ```
 
