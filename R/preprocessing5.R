@@ -816,9 +816,13 @@ VST.IterableMatrix <-function(
   feature.mean <- hvf.info$mean
   feature.sd <-  sqrt(x = hvf.info$variance.expected)
   standard.max <- clip %||% sqrt(x = ncol(x = data))
+  feature.mean[feature.mean == 0] <- 0.1
   data <- BPCells::min_by_row(mat = data, vals = standard.max*feature.sd + feature.mean)
-  data.standard <- (data - feature.mean) /feature.sd
-  hvf.info$variance.standardized <- matrix_stats(matrix = data.standard, row_stats = 'variance')$row_stats['variance',]
+  data.standard <- (data - feature.mean)/feature.sd
+  hvf.info$variance.standardized <- BPCells::matrix_stats(
+    matrix = data.standard,
+    row_stats = 'variance'
+    )$row_stats['variance',]
   # Set variable features
   hvf.info$variable <- FALSE
   hvf.info$rank <- NA
