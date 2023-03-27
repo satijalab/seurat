@@ -38,6 +38,7 @@ Here, we describe important commands and functions to store, access, and process
 library(Seurat)
 library(SeuratData)
 library(BPCells)
+library(dplyr)
 options(Seurat.object.assay.version = "v5")
 ```
 
@@ -46,36 +47,54 @@ The Assay5 object is able to support different matrix data structures to best su
 ```{r matrix}
 pbmc3k <- LoadData("pbmc3k")
 mousebrain1m <- readRDS("/brahms/hartmana/vignette_data/1p3_million_mouse_brain.rds")
-
+ 
 # Both are Assay5's
 print(class(pbmc3k[["RNA"]]))
 print(class(mousebrain1m[["RNA"]]))
 
-# But different underlying data structures storing counts
-print(class(LayerData(pbmc3k[["RNA"]], layer = "counts")))
-print(class(LayerData(mousebrain1m[["RNA"]], layer = "counts")))
-```
+# Get counts layer by "$" or "[[" symbols.
+pbmc3k[["RNA"]]$counts
+pbmc3k[["RNA"]][["counts"]]
 
+# New layers can be added or deleted to assays with the "$" or "[[" symbols.
+pbmc3k[["RNA"]]$data <- log1p(pbmc3k[["RNA"]]$counts)
+pbmc3k[["RNA"]]$data <- NULL
+ 
+ 
+# But different underlying data structures storing counts
+
+print(class(pbmc3k[["RNA"]]$counts))
+print(class(mousebrain1m[["RNA"]]$counts))
+```
 Despite the drastic difference in dataset size, the 1.3M cell dataset occupies a small memory footprint thanks to on-disk storage.
 
 ```{r}
-print(paste("PBMC 3k contains", length(Cells(pbmc3k)), "cells"))
-print(paste("Mouse brain 1.3M contains", length(Cells(mousebrain1m)), "cells"))
+print(paste("PBMC 3k contains", length(colnames(pbmc3k)), "cells"))
+print(paste("Mouse brain 1.3M contains", length(colnames(mousebrain1m)), "cells"))
 
 # Despite the mouse brain dataset containing 1.3 million cells, the assay is under 350Mbs in size due to on-disk storage
 print(paste("PBMC 3k assay size:", format(object.size(pbmc3k[["RNA"]]), units = "Mb")))
 print(paste("Mouse brain 1.3M assay size:", format(object.size(mousebrain1m[["RNA"]]), units = "Mb")))
 ```
 
+Get cell names. Since Seurat v5 object doesn't require all assays have the same cells, `Cells()` is designed to get cell names of the default assay and `colnames()` is deigned to get cell names of the entire object
+```{r}
+pbmc3k[["RNAsub"]] <- subset(pbmc3k[["RNA"]], cells = colnames(pbmc3k)[1:100])
+DefaultAssay(pbmc3k) <- 'RNAsub'
+print(length(Cells(pbmc3k)))
+print(length(colnames(pbmc3k)))
+
+```
+
+
 We can also cast between `Assay` and `Assay5` objects with `as()`. Note that the `RNA` assay is an `Assay5` object.
 
 ```{r}
 pbmc3k[["RNA3"]] <- as(object = pbmc3k[["RNA"]], Class = "Assay")
-
 pbmc3k[["RNA5"]] <- as(object = pbmc3k[["RNA3"]], Class = "Assay5")
 ```
 
-The `Seurat.object.assay.version` option can also be set to create `Assay5` or `Assay` objects when new Assays or Seurat objects are created. 
+The `Seurat.object.assay.version` option can also be set to create `Assay5` or `Assay` objects when new Assays or Seurat objects are created.
 
 ```{r}
 # create v3 assays
@@ -88,17 +107,35 @@ print(class(pbmc[["RNA"]]))
 options(Seurat.object.assay.version = "v5")
 pbmc.data <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
 pbmc <- CreateSeuratObject(counts = pbmc.data)
+pbmc <- NormalizeData(pbmc)
 print(class(pbmc[["RNA"]]))
 ```
 
-Layers can be split based on metadata.
+`CreateAssayObject()` and `CreateAssay5Object()` can be used to create v3 and v5 assay regardless of the setting in `Seurat.object.assay.version`
+```{r}
+assay.v3 <- CreateAssayObject(counts = pbmc.data)
+assay.v5 <- CreateAssay5Object(counts = pbmc.data)
+print(class(assay.v3))
+print(class(assay.v5))
+```
 
+Layers can be split based on metadata.
 ```{r}
 pbmc$split.data <- sample(c("A", "B", "C"), size = ncol(pbmc), replace = TRUE)
 pbmc[["RNA"]] <- split(x = pbmc[["RNA"]], f = pbmc$split.data)
 Layers(pbmc[["RNA"]])
 ```
+Search and get Layers name
+```{r}
+Layers(object = pbmc[['RNA']], search = 'counts')
+Layers(object = pbmc[['RNA']], search = 'counts.B')
 
+# it will return the exact match first. If no exact match, it will return layer names start with search input
+pbmc[['RNA']]$counts <- pbmc[['RNA']]$counts.A
+Layers(object = pbmc[['RNA']], search = 'counts')
+
+pbmc[['RNA']]$counts <- NULL
+```
 And then joined back together in a single layer.
 
 ```{r}
@@ -106,27 +143,12 @@ pbmc[["RNA"]] <- JoinLayers(pbmc[["RNA"]])
 Layers(pbmc[["RNA"]])
 ```
 
-New layers can be added to assays with the `$` symbol.
+Assay data can be accessed with `FetchData` depending on the use case.
 
 ```{r}
-Layers(pbmc[["RNA"]])
-# create a new layer with a subset of cells and normalize
-data.ss <- NormalizeData(pbmc[["RNA"]]$counts[, Cells(pbmc)[1:10]])
-pbmc[["RNA"]]$data.subset <- data.ss
-Layers(pbmc[["RNA"]])
-```
-
-Assay data can be accessed with `LayerData` or `FetchData` depending on the use case.
-
-```{r}
-# returns information in whichever format the layer is stored
-# in this example, the counts layer is stored as a dgCMatrix
-b.marker.counts <- LayerData(object = pbmc, layer = "counts")[c("MS4A1", "CD79A"), ]
-b.marker.counts[, 1:30]
-
-# returns information as a data.frame
-b.marker.counts.df <- FetchData(object = pbmc, layer = "counts", vars = c("rna_MS4A1", "rna_CD79A"))
-head(b.marker.counts.df)
+# returns information from both assay and meta.data as a data.frame
+fetch_df <- FetchData(object = pbmc, layer = "counts", vars = c("rna_MS4A1", "rna_CD79A", 'split.data'))
+head(fetch_df)
 ```
 
 
