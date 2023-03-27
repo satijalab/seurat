@@ -28,8 +28,6 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
-   cache = TRUE,
-  cache.lazy = FALSE,
   time_it = TRUE,
   error = TRUE
 )
