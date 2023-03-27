@@ -102,7 +102,7 @@ obj <- RunPCA(obj)
 obj <- FindNeighbors(obj, dims = 1:50)
 obj <- FindClusters(obj, resolution = 2)
 obj <- RunUMAP(obj, dims = 1:50, return.model = T)
-DimPlot(obj, label = T, reduction = 'umap') + NoLegend()
+DimPlot(obj, label = T, label.size = 3, reduction = 'umap') + NoLegend()
 ```
 
 ```{r,fig.height = 7, fig.width = 10}
@@ -130,13 +130,12 @@ DefaultAssay(obj) <- 'RNA'
 ```
 
 ```{r save.img, include = FALSE, eval=TRUE}
-library(ggplot2)
-p <- DimPlot(obj, label = T, label.size=8, reduction = "ref.umap", group.by = "cluster_full", alpha = 0.1) + NoLegend()
+p <- DimPlot(obj, label = T, label.size = 3, reduction = "ref.umap", group.by = "cluster_full", alpha = 0.1) + NoLegend()
 ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
 
 ```{r, fig.width=5, fig.height=5}
-DimPlot(obj, label = T, reduction = 'ref.umap', group.by = 'cluster_full', alpha = 0.1) + NoLegend()
+DimPlot(obj, label = T, label.size = 3, reduction = 'ref.umap', group.by = 'cluster_full', alpha = 0.1) + NoLegend()
 ```
 
 ```{r, fig.width=10, fig.height=5}
@@ -178,7 +177,7 @@ obj.sub <- FindClusters(obj.sub)
 ```
 
 ```{r, fig.width=5, fig.height=5}
-DimPlot(obj.sub, label = T) + NoLegend()
+DimPlot(obj.sub, label = T, label.size = 3) + NoLegend()
 ```
 
 Note that we can start to see distinct interneuron lineages emerging in this dataset. We can see a clear separation of interneuron precursors that originated from the medial ganglionic eminence (Lhx6) or caudal ganglionic eminence (Nr2f2). We can further see the emergence of Sst (Sst) and Pvalb (Mef2c)-committed interneurons, and a CGE-derived Meis2-expressing progenitor population. 
