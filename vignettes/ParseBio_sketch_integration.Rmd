@@ -171,7 +171,7 @@ cd14.bulk <- subset(bulk,celltype == "CD14 Mono")
 Idents(cd14.bulk) <- 'disease'
 de_markers <- FindMarkers(cd14.bulk, ident.1 = 'D',ident.2 = 'H', slot = 'counts', test.use = 'DESeq2', verbose = F )
 de_markers$gene <- rownames(de_markers)    
-ggplot(de_markers, aes(avg_log2FC, -log10(p_val_adj))) + geom_point(size=0.5, alpha=0.5)   + theme_bw() + ylab("-log10(p-value)")+geom_text_repel(aes(label = ifelse(p_val_adj<0.01, gene, "")),colour = 'red', size = 3)
+ggplot(de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size=0.5, alpha=0.5)   + theme_bw() + ylab("-log10(unadjusted p-value)")+geom_text_repel(aes(label = ifelse(p_val_adj<0.01, gene, "")),colour = 'red', size = 3)
 
 ```
 
