@@ -23,8 +23,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = 'styler',
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
@@ -46,7 +45,7 @@ options(future.globals.maxSize = 1e9)
 ## Introduction: Reference mapping analysis in Seurat v5
 In numerous studies profiling multiple tissues across hundreds of individuals and millions of cells, the single-cell reference mapping approach offers a robust and consistent method for annotating all those publicly available single-cell datasets. This vignette demonstrates the process of mapping multiple query scRNA PBMC datasets onto [our annotated CITE-seq reference of 162,000 PBMC measured with 228 antibodies](https://doi.org/10.1016/j.cell.2021.04.048)
 
-We download three datasets (1,498,064 cells and 277 donors) from [CZI cellxgene collections](https://cellxgene.cziscience.com/collections):[Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). We demonstrate how to create a Seurat object with BPCells matrix in our BPCells interaction vignette. 
+We download three datasets (1,498,064 cells and 277 donors) from [CZI cellxgene collections](https://cellxgene.cziscience.com/collections):[Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). Prior to running this vignette, please [install Seurat v5](https://satijalab.org/seurat/articles/install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html).
 
 We have previously demonstrated the use of the reference-mapping approach for annotating cell labels in a single query dataset. With Seurat v5, we have substantially improved the speed, memory efficiency, and user-friendliness for mapping a large number of query datasets to the same reference.
 
@@ -57,10 +56,8 @@ In this vignette, we demonstrate how to use a previously established reference t
 
 To run this vignette please install Seurat v5 as shown [here](articles/install.html).
 
-
-
 ## Load the PBMC Reference Dataset and Query Datasets
-We load the CITE-seq reference (download [here]()) from our Seurat v4 [paper](https://doi.org/10.1016/j.cell.2021.04.048). We will use the query datasets prepared in BPCells interaction vignette containing scRNA-seq data from three different studies.
+We load the CITE-seq reference (download [here]()) from our Seurat v4 [paper](https://doi.org/10.1016/j.cell.2021.04.048). We will use the query Seurat object prepared in [BPCells interaction vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html). This query Seurat object is generated for datasets from three different studies by utilizing the `CreateSeuratObject` function, which also accepts a list of BPCells matrices as input. As a result, the three datasets are created as three layers and stored on disk.
 
 ```{r load.data}
 reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
@@ -68,7 +65,6 @@ object <- readRDS("/brahms/hartmana/vignette_data/merged_covid_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
 
 ```
-
 
 ## Mapping
 Using the same code from in our v4 reference mapping vignette, we find anchors between reference and query in the reference precomputed supervised PCA (spca) space. We recommend the use of supervised PCA for CITE-seq reference dataset, and demonstrate how to compute this transformation in [v4 mapping vignette](). The distinction between the v4 reference mapping vignette and this method is that we simultaneously map three datasets calling of `FindTransferAnchors` and `MapQuery` once.
