@@ -83,7 +83,7 @@ object <- MapQuery(
 ```
 
 ## Explore the mapping results
-Next, we visualize all cells from the three studies which have been projected into a UMAP-space defined by the reference. Each cell is annotated at two levels of granularity (`predicted.celltype.l1` and `predicted.celltype.l2`). We can compare the the differing ontologies used in the original annotations (`cell_type`) to a level of the now harmonized annotations (`predicted.celltype.l2`) that were predicted from reference-mapping. Previously, the lack of standardization prevented us from directly performing integrative analysis across studies, but now we can easily compare.
+Next, we visualize all cells from the three studies which have been projected into a UMAP-space defined by the reference. Each cell is annotated at two levels of granularity (`predicted.celltype.l1` and `predicted.celltype.l2`). We can compare the differing ontologies used in the original annotations (`cell_type`) to the now harmonized annotations (`predicted.celltype.l2`, for example) that were predicted from reference-mapping. Previously, the lack of standardization prevented us from directly performing integrative analysis across studies, but now we can easily compare.
 
 ```{r, fig.width=10, fig.height=6}
 DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3,  label.size = 3) + NoLegend()
