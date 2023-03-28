@@ -22,8 +22,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = 'styler',
   warning = FALSE,
   error = TRUE,
   message = FALSE,
@@ -99,29 +98,50 @@ The `Seurat.object.assay.version` option can also be set to create `Assay5` or `
 ```{r}
 # create v3 assays
 options(Seurat.object.assay.version = "v3")
-pbmc.data <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
-pbmc <- CreateSeuratObject(counts = pbmc.data)
+pbmc.counts <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc <- CreateSeuratObject(counts = pbmc.counts)
 print(class(pbmc[["RNA"]]))
 
 # create v5 assays
 options(Seurat.object.assay.version = "v5")
-pbmc.data <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
-pbmc <- CreateSeuratObject(counts = pbmc.data)
+pbmc.counts <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc <- CreateSeuratObject(counts = pbmc.counts)
 pbmc <- NormalizeData(pbmc)
 print(class(pbmc[["RNA"]]))
 ```
 
 `CreateAssayObject()` and `CreateAssay5Object()` can be used to create v3 and v5 assay regardless of the setting in `Seurat.object.assay.version`
 ```{r}
-assay.v3 <- CreateAssayObject(counts = pbmc.data)
-assay.v5 <- CreateAssay5Object(counts = pbmc.data)
+assay.v3 <- CreateAssayObject(counts = pbmc.counts)
+assay.v5 <- CreateAssay5Object(counts = pbmc.counts)
 print(class(assay.v3))
 print(class(assay.v5))
+
+# Normalized data can also be used to create Assay5
+assay.v5 <- CreateAssay5Object(data = log1p(pbmc.counts))
+Layers(assay.v5)
+
+# Simultaneous setting of counts and normalized data is possible,
+# but the cells need to be the same.
+assay.v5 <- CreateAssay5Object(counts = pbmc.counts, data = log1p(pbmc.counts))
+Layers(assay.v5)
+
+
+# A list of matrices can be used to generate multi-layer assay
+split.data <- sample(c("A", "B", "C"), size = ncol(pbmc), replace = TRUE)
+cells.split <- split(x = colnames(pbmc.counts), f = split.data)
+pbmc.counts.list <- lapply(X = cells.split,FUN =  function(x) pbmc.counts[,x])
+
+assay.v5 <- CreateAssay5Object(counts = pbmc.counts.list)
+Layers(assay.v5)
+
 ```
 
-Layers can be split based on metadata.
+Counts Layers can be split based on metadata in the assay level
 ```{r}
-pbmc$split.data <- sample(c("A", "B", "C"), size = ncol(pbmc), replace = TRUE)
+pbmc <- CreateSeuratObject(counts = pbmc.counts)
+pbmc <- NormalizeData(pbmc)
+pbmc$split.data <- split.data
 pbmc[["RNA"]] <- split(x = pbmc[["RNA"]], f = pbmc$split.data)
 Layers(pbmc[["RNA"]])
 ```
@@ -141,14 +161,29 @@ And then joined back together in a single layer.
 ```{r}
 pbmc[["RNA"]] <- JoinLayers(pbmc[["RNA"]])
 Layers(pbmc[["RNA"]])
+
 ```
 
-Assay data can be accessed with `FetchData` depending on the use case.
-
+Dimensionality reduction data and metadata can be retrieved through the use of `FetchData`, `[[`, or  V4 functions, depending on the use case.
 ```{r}
-# returns information from both assay and meta.data as a data.frame
-fetch_df <- FetchData(object = pbmc, layer = "counts", vars = c("rna_MS4A1", "rna_CD79A", 'split.data'))
+pbmc <- FindVariableFeatures(pbmc)
+pbmc <- ScaleData(pbmc)
+pbmc <- RunPCA(pbmc)
+
+# returns information from both assay, cell embeddings and meta.data as a data.frame
+fetch_df <- FetchData(object = pbmc, layer = "counts", vars = c("rna_MS4A1", "PC_1", "nCount_RNA"))
 head(fetch_df)
+
+# get cell embeddings
+head(Embeddings(object = pbmc[['pca']])[,1:5])
+head(pbmc[['pca']][[]][,1:5])
+
+# get feature loadings
+head(Loadings(object  = pbmc[['pca']])[,1:5])
+head(pbmc[['pca']][][,1:5])
+
+# get meta.data
+head(pbmc[[]])
+
+
 ```
-
-
