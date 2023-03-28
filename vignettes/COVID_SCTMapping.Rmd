@@ -104,21 +104,45 @@ We now have annotations for all cells from this object. This enables us to deter
 
 ```{r}
 df_comp <- as.data.frame.matrix(table(object$donor_id, object$predicted.celltype.l2))
-df_comp <- df_comp[rowSums(df_comp)> 50,]
-df_comp_ratio <- sweep(x = df_comp, MARGIN = 1, STATS = rowSums(df_comp), FUN = '/')
+select.donors <- rownames(df_comp)[rowSums(df_comp)> 50]
+df_comp <- df_comp[select.donors, ]
+df_comp_relative <- sweep(x = df_comp, MARGIN = 1, STATS = rowSums(df_comp), FUN = '/')
 
-df_disease <-  as.data.frame.matrix(table(object$donor_id, object$disease))
-df_disease$disease <- 'other'
-df_disease$disease[df_disease$normal!=0] <- 'normal'
-df_disease$disease[df_disease$`COVID-19`!=0] <- 'COVID-19'
-df_disease$disease <- factor(df_disease$disease, levels = c('normal','COVID-19','other'))
+df_disease <-  as.data.frame.matrix(table(object$donor_id, object$disease))[select.donors, ]
 
-obj.comp <- CreateSeuratObject(counts = t(df_comp_ratio), meta.data = df_disease)
-obj.comp <- subset(obj.comp, subset = disease %in%  c('normal','COVID-19'))
+df_comp_relative$disease <- 'other'
+df_comp_relative$disease[df_disease$normal!=0] <- 'normal'
+df_comp_relative$disease[df_disease$`COVID-19`!=0] <- 'COVID-19'
+df_comp_relative$disease <- factor(df_comp_relative$disease, levels = c('normal','COVID-19','other'))
+df_comp_relative <- df_comp_relative[df_comp_relative$disease %in% c('normal','COVID-19'),]
 ```
-```{r, fig.width=10, fig.height=6}
-p1 <- VlnPlot(obj.comp, features =  "MAIT", group.by = 'disease', slot = 'counts', cols = c("#377eb8", "#e41a1c")) + ylab('relative abundance')
-p2 <- VlnPlot(obj.comp, features = 'Plasmablast', group.by = 'disease', slot = 'counts', cols = c("#377eb8", "#e41a1c")) + ylab('relative abundance')
+
+```{r, fig.width=10, fig.height=4}
+p1 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = MAIT, fill = disease)) +  
+  geom_boxplot(outlier.shape  = NA) +
+  scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
+  xlab("") + ylab('relative abundance') + 
+  ggtitle('MAIT') + 
+  geom_jitter(color="black", size=0.4, alpha=0.9 ) +
+  theme_bw() +
+  theme( axis.title = element_text(size = 12),
+         axis.text = element_text(size = 12), 
+         plot.title = element_text(size = 15, hjust = 0.5, face = "bold")
+  )  
+
+p2 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = Plasmablast, fill = disease)) +  
+  geom_boxplot(outlier.shape  = NA) +
+  scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
+  xlab("") + ylab('relative abundance') +
+    ggtitle('Plasmablast') + 
+  geom_jitter(color="black", size=0.4, alpha=0.9 ) +
+  theme_bw() +
+  theme( axis.title = element_text(size = 12),
+         axis.text = element_text(size = 12), 
+         plot.title = element_text(size = 15, hjust = 0.5, face = "bold")
+  )  
+ 
+  
 p1 + p2 + plot_layout(ncol = 2)
 ```
 
@@ -149,8 +173,11 @@ bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
 
 Once cells are aggregated into individuals, we can execute cell type-specific differential expression analysis between healthy and COVID-19 samples. Here we only visualize certain interferon-stimulated genes across all cell types when comparing healthy and COVID-19 donors.
 
-```{r, fig.width=10, fig.height=15}
-VlnPlot(bulk, features = c('IFI6','ISG15', 'IFIT5'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"), ncol = 1)
+```{r, fig.width=10, fig.height=12}
+p1 <- VlnPlot(bulk, features = c('IFI6'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p2 <- VlnPlot(bulk, features = c('ISG15'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p3 <- VlnPlot(bulk, features = c('IFIT5'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p1 + p2 + p3 + plot_layout(ncol = 1)
 ```
 
 <details>
