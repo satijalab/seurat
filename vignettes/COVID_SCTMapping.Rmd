@@ -43,38 +43,32 @@ options(future.globals.maxSize = 1e9)
 
 
 ## Introduction: Reference mapping analysis in Seurat v5
-In numerous studies profiling multiple tissues across hundreds of individuals and millions of cells, the single-cell reference mapping approach offers a robust and consistent method for annotating all those publicly available single-cell datasets. This vignette demonstrates the process of mapping multiple query scRNA PBMC datasets onto [our annotated CITE-seq reference of 162,000 PBMC measured with 228 antibodies](https://doi.org/10.1016/j.cell.2021.04.048)
 
-We download three datasets (1,498,064 cells and 277 donors) from [CZI cellxgene collections](https://cellxgene.cziscience.com/collections):[Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). Prior to running this vignette, please [install Seurat v5](https://satijalab.org/seurat/articles/install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html).
+In Seurat v5, we introduce a scalable approach for reference mapping datasets from separate studies or individuals. Reference mapping is a powerful approach to identify consistent labels across studies and perform cross-dataset analysis. We emphasize that while individual datasets are manageable in size, the aggregate of many datasets often amounts to millions of cell which do not fit in-memory. Importantly, we never simultaneously load all of the cells in-memory to maintain low memory usage. Cross-dataset analysis is often challenged by disparate or unique cell type labels. Thus, reference mapping annotates cells using a common reference for consistent cell type labels.
+ 
+In this vignette, we reference map three publicly available datasets totaling 1,498,064 cells and 277 donors which are available through [CZI cellxgene collections](https://cellxgene.cziscience.com/collections):[Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). Each dataset consists of PBMCs from healthy and COVID-19 donors. Using the harmonized annotations, we demonstrate how to perform differential expression across disease within cell types using pseudobulk expression.
 
-We have previously demonstrated the use of the reference-mapping approach for annotating cell labels in a single query dataset. With Seurat v5, we have substantially improved the speed, memory efficiency, and user-friendliness for mapping a large number of query datasets to the same reference.
-
-In this vignette, we demonstrate how to use a previously established reference to interpret three scRNA-seq query datasets:
-
-* Annotate all query cells from multiple studies based on a set of reference-defined cell states
-* Aggregate the annotated cells into individuals for performing Pseudo-bulk differential analysis
-
-To run this vignette please install Seurat v5 as shown [here](articles/install.html).
+Prior to running this vignette, please [install Seurat v5](articles/install.html) and see the [BPCells vignette](articles/seurat5_bpcells_interaction_vignette.html) to construct the on-disk object used in this vignette. Additionally, we map to our annotated CITE-seq reference containing 162,000 cells and 228 antibodies ([Hao*, Hao*, et al., Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)) which is available for download [here](https://zenodo.org/record/7779017#.ZCMojezMJqs).
 
 ## Load the PBMC Reference Dataset and Query Datasets
-We load the CITE-seq reference (download [here]()) from our Seurat v4 [paper](https://doi.org/10.1016/j.cell.2021.04.048). We will use the query Seurat object prepared in [BPCells interaction vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html). This query Seurat object is generated for datasets from three different studies by utilizing the `CreateSeuratObject` function, which also accepts a list of BPCells matrices as input. As a result, the three datasets are created as three layers and stored on disk.
+We first load the reference (available [here](https://zenodo.org/record/7779017#.ZCMojezMJqs)) and normalize the query Seurat object prepared in the [BPCells interaction vignette](articles/seurat5_bpcells_interaction_vignette.html). The query object is generated for datasets from three different studies using the `CreateSeuratObject` function, which accepts a list of BPCells matrices as input. As a result, the three datasets reside in three separate `layers` stored on-disk.
 
 ```{r load.data}
 reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
 object <- readRDS("/brahms/hartmana/vignette_data/merged_covid_object.rds")
 object <- NormalizeData(object, verbose = FALSE)
-
 ```
 
 ## Mapping
-Using the same code from in our v4 reference mapping vignette, we find anchors between reference and query in the reference precomputed supervised PCA (spca) space. We recommend the use of supervised PCA for CITE-seq reference dataset, and demonstrate how to compute this transformation in [v4 mapping vignette](). The distinction between the v4 reference mapping vignette and this method is that we simultaneously map three datasets calling of `FindTransferAnchors` and `MapQuery` once.
+Using the same code from the [v4 reference mapping vignette](articles/multimodal_reference_mapping.html), we find anchors between reference and query in the precomputed supervised PCA. We recommend the use of supervised PCA for CITE-seq reference datasets, and demonstrate how to compute this transformation in [v4 reference mapping vignette](articles/multimodal_reference_mapping.html). In Seurat v5, all three datasets are mapped by calling `FindTransferAnchors` and `MapQuery` once.
 
 ```{r}
-anchor <- FindTransferAnchors(reference = reference,
-                              query = object, 
-                              reference.reduction = 'spca',
-                              normalization.method = 'SCT',
-                              dims = 1:50)
+anchor <- FindTransferAnchors(
+  reference = reference,
+  query = object,
+  reference.reduction = 'spca',
+  normalization.method = 'SCT',
+  dims = 1:50)
 object <- MapQuery(
   anchorset = anchor,
   query = object,
@@ -88,9 +82,7 @@ object <- MapQuery(
 ```
 
 ## Explore the mapping results
-
-We can now visualize the 1.5 million query cells from three studies, which have been projected into a UMAP visualization defined by the reference. Each cell has received consistent annotations at two levels of granularity (level 1 and level 2). The incoherence of their original annotations (cell_type) prevents us from directly performing integrative analysis across these studies. However, our mapping results annotate the various datasets using a single set of curated annotations (predicted.celltype.l1 and predicted.celltype.l2), enabling cross-study differential compositional and transcriptome analyses.
-
+Next, we visualize all cells from the three studies which have been projected into a UMAP-space defined by the reference. Each cell is annotated at two levels of granularity (`predicted.celltype.l1` and `predicted.celltype.l2`). The differing ontologies used in the original annotations (`cell_type`) prevent us from directly performing integrative analysis across studies.
 
 ```{r, fig.width=10, fig.height=6}
 DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type',alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3,  label.size = 3) + NoLegend()
@@ -100,7 +92,7 @@ DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2',alpha
 ```
 
 ## Differential composition analysis
-We now have annotations for all cells from this object. This enables us to determine the proportion of different cell types for each donor and explore variations in cell type composition between healthy individuals and COVID-19 patients. For example, we noticed a reduction in MAIT cells and an increase in plasmablasts among COVID-19 patients.
+We utilize our annotations to identify differences in the proportion of different cell types between healthy individuals and COVID-19 patients. For example, we noticed a reduction in MAIT cells as well as an increase in plasmablasts among COVID-19 patients.
 
 ```{r}
 df_comp <- as.data.frame.matrix(table(object$donor_id, object$predicted.celltype.l2))
@@ -121,34 +113,32 @@ df_comp_relative <- df_comp_relative[df_comp_relative$disease %in% c('normal','C
 p1 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = MAIT, fill = disease)) +  
   geom_boxplot(outlier.shape  = NA) +
   scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
-  xlab("") + ylab('relative abundance') + 
-  ggtitle('MAIT') + 
+  xlab("") + ylab('relative abundance') +
+  ggtitle('MAIT') +
   geom_jitter(color="black", size=0.4, alpha=0.9 ) +
   theme_bw() +
   theme( axis.title = element_text(size = 12),
-         axis.text = element_text(size = 12), 
+         axis.text = element_text(size = 12),
          plot.title = element_text(size = 15, hjust = 0.5, face = "bold")
-  )  
+  )
 
 p2 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = Plasmablast, fill = disease)) +  
   geom_boxplot(outlier.shape  = NA) +
   scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
   xlab("") + ylab('relative abundance') +
-    ggtitle('Plasmablast') + 
+    ggtitle('Plasmablast') +
   geom_jitter(color="black", size=0.4, alpha=0.9 ) +
   theme_bw() +
   theme( axis.title = element_text(size = 12),
-         axis.text = element_text(size = 12), 
+         axis.text = element_text(size = 12),
          plot.title = element_text(size = 15, hjust = 0.5, face = "bold")
-  )  
- 
-  
+  )
+
 p1 + p2 + plot_layout(ncol = 2)
 ```
 
 ## Differential expression analysis
-Except for the composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy and COVID donors. We aggregate all cells within the same cell type and sample using the AggregateExpression function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
-
+In addition to composition analysis, we use an aggregation-based (pseudobulk) workflow to explore differential genes between healthy individuals and COVID-19 donors. We aggregate all cells within the same cell type and donor using the `AggregateExpression` function. This returns a Seurat object where each ‘cell’ represents the pseudobulk profile of one cell type in one individual.
 
 ```{r}
 bulk <- AverageExpression(object,
@@ -168,15 +158,20 @@ bulk$disease <- sapply(strsplit(Cells(bulk), split = "_"), '[', 3)
 bulk <- subset(bulk, subset = disease %in% c('normal', 'COVID-19') )
 bulk <- subset(bulk, subset = celltype !=  c('Doublet') )
 bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
-
 ```
 
-Once cells are aggregated into individuals, we can execute cell type-specific differential expression analysis between healthy and COVID-19 samples. Here we only visualize certain interferon-stimulated genes across all cell types when comparing healthy and COVID-19 donors.
+Once a pseudobulk object is created, we can perform cell type-specific differential expression analysis between healthy individuals and COVID-19 donors. Here, we only visualize certain interferon-stimulated genes which are often upregulated during viral infection.
 
 ```{r, fig.width=10, fig.height=12}
-p1 <- VlnPlot(bulk, features = c('IFI6'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
-p2 <- VlnPlot(bulk, features = c('ISG15'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
-p3 <- VlnPlot(bulk, features = c('IFIT5'), group.by = 'celltype', split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p1 <- VlnPlot(
+  object = bulk, features = 'IFI6', group.by = 'celltype',
+  split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p2 <- VlnPlot(
+  object = bulk, features = c('ISG15'), group.by = 'celltype',
+  split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p3 <- VlnPlot(
+  object = bulk, features = c('IFIT5'), group.by = 'celltype',
+  split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
 p1 + p2 + p3 + plot_layout(ncol = 1)
 ```
 

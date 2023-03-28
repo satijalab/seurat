@@ -21,8 +21,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = 'styler',
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
@@ -97,24 +96,38 @@ Note that you can find more detail on each method, and any installation prerequi
 Each of the following lines perform a new integration using a single line of code:
 
 ```{r integratelayerscca}
-obj <- IntegrateLayers(object = obj, method = CCAIntegration, orig.reduction = "pca", new.reduction = 'integrated.cca', verbose = FALSE)
+obj <- IntegrateLayers(
+  object = obj, method = CCAIntegration,
+  orig.reduction = "pca", new.reduction = 'integrated.cca',
+  verbose = FALSE)
 ```
 
 ```{r integratelayersrpca}
-obj <- IntegrateLayers(object = obj, method = RPCAIntegration, orig.reduction = "pca", new.reduction = 'integrated.rpca', verbose = FALSE)
+obj <- IntegrateLayers(
+  object = obj, method = RPCAIntegration,
+  orig.reduction = "pca", new.reduction = 'integrated.rpca',
+  verbose = FALSE)
 ```
 
 ```{r integratelayersharmony}
-obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca", new.reduction = 'harmony', verbose = FALSE)
+obj <- IntegrateLayers(
+  object = obj, method = HarmonyIntegration,
+  orig.reduction = "pca", new.reduction = 'harmony',
+  verbose = FALSE)
 ```
 
 ```{r integratelayersfastmnn}
-obj <- IntegrateLayers(object = obj, method = FastMNNIntegration, new.reduction = 'integrated.mnn', verbose = FALSE)
+obj <- IntegrateLayers(
+  object = obj, method = FastMNNIntegration,
+  new.reduction = 'integrated.mnn',
+  verbose = FALSE)
 ```
 
 ```{r integratelayersscvi, eval=FALSE}
-obj <- IntegrateLayers(object = obj, method = scVIIntegration, new.reduction = 'integrated.scvi',
-    conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
+obj <- IntegrateLayers(
+  object = obj, method = scVIIntegration,
+  new.reduction = 'integrated.scvi',
+  conda_env = '../miniconda3/envs/scvi-env', verbose = FALSE)
 ```
 
 ```{r addscvi, include=FALSE}
@@ -129,22 +142,34 @@ For any of the methods, we can now visualize and cluster the datasets. We show t
 obj <- FindNeighbors(obj, reduction = 'integrated.cca', dims = 1:30)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'cca_clusters')
 obj <- RunUMAP(obj, reduction = "integrated.cca", dims = 1:30, reduction.name = 'umap.cca')
-p1 <- DimPlot(obj, reduction="umap.cca", group.by=c("Method", "predicted.celltype.l2", "cca_clusters"), combine=FALSE)
+p1 <- DimPlot(
+  obj, reduction = "umap.cca",
+  group.by = c("Method", "predicted.celltype.l2", "cca_clusters"),
+  combine = FALSE)
 
 obj <- FindNeighbors(obj, reduction = 'integrated.scvi', dims = 1:10)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'scvi_clusters')
 obj <- RunUMAP(obj, reduction = "integrated.scvi", dims = 1:10, reduction.name = 'umap.scvi')
-p2 <- DimPlot(obj, reduction="umap.scvi", group.by=c("Method", "predicted.celltype.l2", "scvi_clusters"), combine = FALSE)
+p2 <- DimPlot(
+  obj, reduction = "umap.scvi",
+  group.by = c("Method", "predicted.celltype.l2", "scvi_clusters"),
+  combine = FALSE)
 
-wrap_plots(c(p1, p2), ncol=2)
+wrap_plots(c(p1, p2), ncol = 2)
 ```
 
 We hope that by simplifying the process of performing integrative analysis, users can more carefully evaluate the biological information retained in the integrated dataset. For example, users can compare the expression of biological markers based on different clustering solutions, or visualize one method's clustering solution on different UMAP visualizations.
 
 ```{r vlnplots, fig.height=5, fig.width=16, warning=FALSE}
-p1 <- VlnPlot(obj, features = "rna_CD8A", group.by = 'unintegrated_clusters') + NoLegend() + ggtitle("CD8A - Unintegrated Clusters")
-p2 <- VlnPlot(obj, "rna_CD8A", group.by = 'cca_clusters') + NoLegend() + ggtitle("CD8A - CCA Clusters")
-p3 <- VlnPlot(obj, "rna_CD8A", group.by = 'scvi_clusters') + NoLegend() + ggtitle("CD8A - scVI Clusters")
+p1 <- VlnPlot(
+  obj, features = "rna_CD8A", group.by = 'unintegrated_clusters'
+) + NoLegend() + ggtitle("CD8A - Unintegrated Clusters")
+p2 <- VlnPlot(
+  obj, "rna_CD8A", group.by = 'cca_clusters'
+) + NoLegend() + ggtitle("CD8A - CCA Clusters")
+p3 <- VlnPlot(
+  obj, "rna_CD8A", group.by = 'scvi_clusters'
+) + NoLegend() + ggtitle("CD8A - scVI Clusters")
 p1 | p2 | p3
 ```
 
@@ -162,3 +187,10 @@ Once integrative analysis is complete, you can rejoin the layers - which collaps
 obj <- JoinLayers(obj)
 obj
 ```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

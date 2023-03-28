@@ -22,8 +22,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = 'styler',
   message = FALSE,
   warning = FALSE,
   fig.width = 10,
@@ -76,12 +75,16 @@ format(object.size(obj), units = 'Mb')
 ## 'Sketch' a subset of cells, and load these into memory
 We select a subset ('sketch') of 50,000 cells (out of 1.3M). Rather than sampling all cells with uniform probability, we compute and sample based off a 'leverage score' for each cell, which reflects the magnitude of its contribution to the gene-covariance matrix, and its importance to the overall dataset. In [Hao et al, 2022](https://www.biorxiv.org/content/10.1101/2022.02.24.481684v1.full), we demonstrate that the leverage score is highest for rare populations in a dataset. Therefore, our sketched set of 50,000 cells will oversample rare populations, retaining the biological complexity of the sample while drastically compressing the dataset.  
 
-The function `SketchData` takes a normalized single-cell dataset (stored either on-disk or in-memory), and a set of variable features. It returns a Seurat object with a new assay (`sketch`), consisting of 50,000 cells, but these cells are now stored in-memory. Users can now easily switch between the in-memory and on-desk representation just by changing the default assay. 
+The function `SketchData` takes a normalized single-cell dataset (stored either on-disk or in-memory), and a set of variable features. It returns a Seurat object with a new assay (`sketch`), consisting of 50,000 cells, but these cells are now stored in-memory. Users can now easily switch between the in-memory and on-disk representation just by changing the default assay.
 
 ```{r, warning=FALSE, message=FALSE}
 obj <- NormalizeData(obj)
 obj <- FindVariableFeatures(obj)
-obj <- SketchData(object = obj, ncells = 50000, method = 'LeverageScore', sketched.assay = 'sketch')
+obj <- SketchData(
+  object = obj,
+  ncells = 50000,
+  method = 'LeverageScore',
+  sketched.assay = 'sketch')
 obj
 # switch to analyzing the full dataset (on-disk)
 DefaultAssay(obj) <- 'RNA'
@@ -106,7 +109,12 @@ DimPlot(obj, label = T, label.size = 3, reduction = 'umap') + NoLegend()
 ```
 
 ```{r,fig.height = 7, fig.width = 10}
-FeaturePlot(obj, c('Igfbp7', 'Neurod6', 'Dlx2','Gad2', 'Eomes', 'Vim', 'Reln', 'Olig1', 'C1qa'), ncol = 3)
+FeaturePlot(
+  object = obj,
+  features = c(
+    'Igfbp7', 'Neurod6', 'Dlx2', 'Gad2',
+    'Eomes', 'Vim', 'Reln', 'Olig1', 'C1qa'),
+  ncol = 3)
 ```
 
 ## Extend results to the full datasets
@@ -117,19 +125,20 @@ We can now extend the cluster labels and dimensional reductions learned on the s
 * Cluster labels: The `cluster_full` column in the object metadata now labels all cells in the dataset with one of the cluster labels derived from the sketched cells
 
 ```{r, warning=FALSE, message=FALSE}
-obj <- ProjectData(object = obj,
-                   assay = 'RNA',
-                   full.reduction = 'pca.full',
-                   sketched.assay = 'sketch',
-                   sketched.reduction = 'pca',
-                   umap.model = 'umap',
-                   dims = 1:50,
-                  refdata = list(cluster_full = 'seurat_clusters'))
+obj <- ProjectData(
+  object = obj,
+  assay = 'RNA',
+  full.reduction = 'pca.full',
+  sketched.assay = 'sketch',
+  sketched.reduction = 'pca',
+  umap.model = 'umap',
+  dims = 1:50,
+  refdata = list(cluster_full = 'seurat_clusters'))
 # now that we have projected the full dataset, switch back to analyzing all cells
 DefaultAssay(obj) <- 'RNA'
 ```
 
-```{r save.img, include = FALSE, eval=TRUE}
+```{r save.img, include = FALSE, eval = FALSE}
 p <- DimPlot(obj, label = T, label.size = 3, reduction = "ref.umap", group.by = "cluster_full", alpha = 0.1) + NoLegend()
 ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
@@ -184,7 +193,12 @@ Note that we can start to see distinct interneuron lineages emerging in this dat
 These results closely mirror our findings from [Mayer*, Hafemeister*, Bandler* et al, Nature 2018](https://www.nature.com/articles/nature25999), where we enriched for interneuron precursors using a Dlx6a-cre fate-mapping strategy. Here, we obtain similar results using only computational enrichment, enabled by the large size of the original dataset.
 
 ```{r,fig.height = 7, fig.width = 10}
-FeaturePlot(obj.sub, c('Dlx2', 'Gad2', 'Lhx6', 'Nr2f2', 'Sst', 'Mef2c', 'Meis2', 'Id2', 'Dlx6os1'), ncol = 3)
+FeaturePlot(
+  object = obj.sub,
+  features = c(
+    'Dlx2', 'Gad2', 'Lhx6', 'Nr2f2', 'Sst',
+    'Mef2c', 'Meis2', 'Id2', 'Dlx6os1'),
+  ncol = 3)
 ```
 
 ```{r save.times, include=FALSE, eval=FALSE}

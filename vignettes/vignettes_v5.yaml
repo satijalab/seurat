@@ -48,7 +48,7 @@
 
 - category: References and additional documentation
   vignettes:
-    - title: Seurat 5 Essential Commands
+    - title: Seurat v5 Essential Commands
       name: seurat5_essential_commands
       summary: |
         Explore the new assay structure introduced in Seurat v5.
