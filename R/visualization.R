@@ -8179,7 +8179,7 @@ SingleDimPlot <- function(
     )
   }
   plot <- plot +
-    guides(color = guide_legend(override.aes = list(size = 3))) +
+    guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
     labs(color = NULL, title = col.by) +
     CenterTitle()
   if (label && !is.null(x = col.by)) {

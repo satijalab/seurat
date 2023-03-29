@@ -22,7 +22,7 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
+  tidy = "styler",
   tidy.opts = list(width.cutoff = 95),
   warning = FALSE,
   error = TRUE,
@@ -163,7 +163,9 @@ obj.rna <- readRDS("/brahms/haoy/seurat4_pbmc/pbmc_multimodal_2023.rds")
 As an alternative to using a pre-built reference, you can also use your own reference. To demonstrate, you can download a scRNA-seq dataset of 23,837 human PBMC [here](https://www.dropbox.com/s/x8mu9ye2w3a63hf/20k_PBMC_scRNA.rds?dl=0), which we have already annotated.
 ```{r, message=FALSE, warning=FALSE, eval=FALSE}
 obj.rna = readRDS("/path/to/reference.rds")
-obj.rna = SCTransform(object = obj.rna) %>% RunPCA() %>% RunUMAP(dims = 1:50, return.model = TRUE) 
+obj.rna = SCTransform(object = obj.rna) %>%
+  RunPCA() %>%
+  RunUMAP(dims = 1:50, return.model = TRUE)
 ```
 When using your own reference, set `reference.reduction = "pca"` in the `PrepareBridgeReference` function.
  
@@ -178,7 +180,7 @@ Prior to performing bridge integration, we normalize and pre-process each of the
 ```{r, message=FALSE, warning=FALSE}
 # normalize multiome RNA
 DefaultAssay(obj.multi) <- "RNA"
-obj.multi <- SCTransform(obj.multi, verbose = FALSE) 
+obj.multi <- SCTransform(obj.multi, verbose = FALSE)
 # normalize multiome ATAC
 DefaultAssay(obj.multi) <- "ATAC"
 obj.multi <- RunTFIDF(obj.multi)
@@ -198,22 +200,18 @@ dims.atac <- 2:50
 dims.rna <- 1:50
 DefaultAssay(obj.multi) <-  "RNA"
 DefaultAssay(obj.rna) <- "SCT"
-obj.rna.ext <- PrepareBridgeReference(reference = obj.rna,
-                                      bridge = obj.multi, 
-                                      reference.reduction = "spca",
-                                      reference.dims = dims.rna,
-                                      normalization.method = "SCT"
-)
+obj.rna.ext <- PrepareBridgeReference(
+  reference = obj.rna, bridge = obj.multi,
+  reference.reduction = "spca", reference.dims = dims.rna,
+  normalization.method = "SCT")
 ```
 
 Now, we can directly find anchors between the extended reference and query objects. We use the `FindBridgeTransferAnchors` function, which translates the query dataset using the same dictionary as was used to translate the reference, and then identifies anchors in this space. The function is meant to mimic our `FindTransferAnchors` function, but to identify correspondences across modalities.
 
 ```{r, message=FALSE, warning=FALSE}
-bridge.anchor <- FindBridgeTransferAnchors(extended.reference = obj.rna.ext, 
-                                           query = obj.atac,
-                                           reduction = "lsiproject",
-                                           dims = dims.atac
-)
+bridge.anchor <- FindBridgeTransferAnchors(
+  extended.reference = obj.rna.ext, query = obj.atac,
+  reduction = "lsiproject", dims = dims.atac)
 ```
 
 
@@ -221,21 +219,23 @@ Once we have identified anchors, we can map the query dataset onto the reference
 
 
 ```{r, message=FALSE, warning=FALSE}
-obj.atac <- MapQuery(anchorset = bridge.anchor, 
-                       reference = obj.rna.ext, 
-                       query = obj.atac, 
-                       refdata = list(
-                         l1 = "celltype.l1",
-                         l2 = "celltype.l2",
-                         l3 = "celltype.l3"),
-                       reduction.model = "wnn.umap" 
-)
+obj.atac <- MapQuery(
+  anchorset = bridge.anchor, reference = obj.rna.ext,
+  query = obj.atac,
+  refdata = list(
+    l1 = "celltype.l1",
+    l2 = "celltype.l2",
+    l3 = "celltype.l3"),
+  reduction.model = "wnn.umap")
 ```
 
 Now we can visualize the results, plotting the scATAC-seq cells based on their predicted annotations, on the reference UMAP embedding. You can see that each scATAC-seq cell has been assigned a cell name based on the scRNA-seq defined cell ontology.
 
 ```{r, message=FALSE, warning=FALSE}
-DimPlot(obj.atac, group.by = "predicted.l2", reduction = "ref.umap", label = TRUE) + ggtitle("ATAC") + NoLegend()
+DimPlot(
+  obj.atac, group.by = "predicted.l2",
+  reduction = "ref.umap", label = TRUE
+) + ggtitle("ATAC") + NoLegend()
 ```
 
 ## Assessing the mapping
@@ -251,16 +251,28 @@ obj.atac <- RunUMAP(obj.atac, reduction = "lsi", dims = 2:50)
 Now, we visualize the predicted cluster labels on the unsupervised UMAP emebdding. We can see that predicted cluster labels (from the scRNA-seq reference) are concordant with the structure of the scATAC-seq data. However, there are some cell types (i.e. Treg),  that do not appear to separate in unsupervised analysis. These may be prediction errors, or cases where the reference mapping provides additional resolution.
 
 ```{r, pbmcdimplots,  message=FALSE, warning=FALSE}
-DimPlot(obj.atac, group.by = "predicted.l2", reduction = "umap", label = FALSE) 
+DimPlot(obj.atac, group.by = "predicted.l2", reduction = "umap", label = FALSE)
 ```
 
 Lastly, we validate the predicted cell types for the scATAC-seq data by examining their chromatin accessibility profiles at canonical loci. We use the `CoveragePlot` function to visualize accessibility patterns at the CD8A, FOXP3, and RORC, after grouping cells by their predicted labels. We see expected patterns in each case. For example, the PAX5 locus exhibits peaks that are accessible exclusively in B cells, and the CD8A locus shows the same in CD8 T cell subsets. Similarly, the accessibility of FOXP3, a canonical marker of regulatory T cells (Tregs), in predicted Tregs provides strong support for the accuracy of our prediction.
 
 ```{r, message=FALSE, warning=FALSE}
-CoveragePlot(obj.atac, region  = "PAX5", group.by = "predicted.l1", idents = c("B", "CD4 T", "Mono", "NK"), window = 200, extend.upstream = -150000)
-CoveragePlot(obj.atac, region = "CD8A", group.by = "predicted.l2", idents = c("CD8 Naive", "CD4 Naive", "CD4 TCM", "CD8 TCM"), extend.downstream = 5000, extend.upstream = 5000)
-CoveragePlot(obj.atac, region = "FOXP3", group.by = "predicted.l2", idents = c( "CD4 Naive", "CD4 TCM", "CD4 TEM", "Treg"), extend.downstream = 0, extend.upstream = 0)
-CoveragePlot(obj.atac, region = "RORC", group.by = "predicted.l2", idents = c("CD8 Naive", "CD8 TEM", "CD8 TCM", "MAIT"), extend.downstream = 5000, extend.upstream = 5000)
+CoveragePlot(
+  obj.atac, region  = "PAX5", group.by = "predicted.l1",
+  idents = c("B", "CD4 T", "Mono", "NK"), window = 200,
+  extend.upstream = -150000)
+CoveragePlot(
+  obj.atac, region = "CD8A", group.by = "predicted.l2",
+  idents = c("CD8 Naive", "CD4 Naive", "CD4 TCM", "CD8 TCM"),
+  extend.downstream = 5000, extend.upstream = 5000)
+CoveragePlot(
+  obj.atac, region = "FOXP3", group.by = "predicted.l2",
+  idents = c( "CD4 Naive", "CD4 TCM", "CD4 TEM", "Treg"),
+  extend.downstream = 0, extend.upstream = 0)
+CoveragePlot(
+  obj.atac, region = "RORC", group.by = "predicted.l2",
+  idents = c("CD8 Naive", "CD8 TEM", "CD8 TCM", "MAIT"),
+  extend.downstream = 5000, extend.upstream = 5000)
 ```
 
 <details>

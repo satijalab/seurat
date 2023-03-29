@@ -22,13 +22,13 @@ knitr::knit_hooks$set(time_it = local({
   }
 }))
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 95),
+  tidy = 'styler',
   warning = FALSE,
   error = TRUE,
   message = FALSE,
   fig.width = 8,
-  time_it = TRUE
+  time_it = TRUE,
+  cache = TRUE
 )
 ```
 
@@ -55,14 +55,18 @@ We use BPCells functionality to both load in our data and write the counts layer
 # Load Data
 
 ## Load Data from one h5 file 
-In this section, we will load  a dataset of mouse brain cells freely available from 10X Genomics. This includes 1.3 Million single cells that were sequenced on the Illumina NovaSeq 6000. The raw data can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/1M_neurons?).
+In this section, we will load  a dataset of mouse brain cells freely available from 10x Genomics. This includes 1.3 Million single cells that were sequenced on the Illumina NovaSeq 6000. The raw data can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/1M_neurons?).
 
 To read in the file, we will use open_matrix_10x_hdf5, a BPCells function written to read in feature matrices from 10x. We then write a matrix directory, load the matrix, and create a Seurat object. 
 
 ```{r}
-brain.data <- open_matrix_10x_hdf5(path = "/brahms/hartmana/vignette_data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
+brain.data <- open_matrix_10x_hdf5(
+  path = "/brahms/hartmana/vignette_data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
 # Write the matrix to a directory
-write_matrix_dir(mat = brain.data, dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts', overwrite = TRUE)
+write_matrix_dir(
+  mat = brain.data,
+  dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts',
+  overwrite = TRUE)
 # Now that we have the matrix on disk, we can load it
 brain.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
 brain.mat <- Azimuth:::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
@@ -107,7 +111,10 @@ If you save your object and load it in in the future, Seurat will access the on-
 This also makes it easy to share your Seurat objects with BPCells matrices by sharing a folder that contains both the object and the BPCells directory.
 
 ```{r}
-saveRDS(brain, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/brain_object")
+saveRDS(
+  object = brain,
+  file = "obj.Rds",
+  destdir = "/brahms/hartmana/vignette_data/bpcells/brain_object")
 ```
 
 
@@ -134,8 +141,11 @@ metadata.list <- c()
 for (i in 1:length(files.set)) {
   path <- paste0(file.dir, files.set[i])
   data <- open_matrix_anndata_hdf5(path)
-  write_matrix_dir(mat = data, dir = paste0(gsub(".h5ad", "", path), 
-                                            "_BP"), overwrite = TRUE)
+  write_matrix_dir(
+    mat = data,
+    dir = paste0(gsub(".h5ad", "", path), "_BP"),
+    overwrite = TRUE
+  )
   # Load in BP matrices
   mat <- open_matrix_dir(dir = paste0(gsub(".h5ad", "", path), "_BP"))
   mat <- Azimuth:::ConvertEnsembleToSymbol(mat = mat, species = "human")
@@ -161,12 +171,15 @@ When we create the Seurat object with the list of matrices from each publication
 
 ```{r}
 options(Seurat.object.assay.version = "v5")
-merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata) 
+merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata)
 merged.object
 ```
 
 ```{r save_merged, eval=FALSE}
-saveRDS(merged.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/merged_object")
+saveRDS(
+  object = merged.object,
+  file = "obj.Rds",
+  destdir = "/brahms/hartmana/vignette_data/bpcells/merged_object")
 ```
 
 ## Parse Biosciences
@@ -174,7 +187,8 @@ saveRDS(merged.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_da
 Here, we show how to load a 1 million cell data set from Parse Biosciences and create a Seurat Object. The data is available for download [here](https://support.parsebiosciences.com/hc/en-us/articles/7704577188500-How-to-analyze-a-1-million-cell-data-set-using-Scanpy-and-Harmony)
 
 ```{r}
-parse.data <- open_matrix_anndata_hdf5("/brahms/hartmana/vignette_data/h5ad_files/ParseBio_PBMC.h5ad")
+parse.data <- open_matrix_anndata_hdf5(
+  "/brahms/hartmana/vignette_data/h5ad_files/ParseBio_PBMC.h5ad")
 ```
 
 ```{r, eval=FALSE}
@@ -183,15 +197,16 @@ write_matrix_dir(mat = parse.data, dir = "/brahms/hartmana/vignette_data/bpcells
 
 ```{r}
 parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
-
 metadata <- readRDS("/brahms/hartmana/vignette_data/ParseBio_PBMC_meta.rds")
 metadata$disease <- sapply(strsplit(x = metadata$sample, split = "_"), "[", 1)
-
 parse.object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
 ```
 
 ```{r save_parse, eval=FALSE}
-saveRDS(parse.object, file = "obj.Rds", destdir = "/brahms/hartmana/vignette_data/bpcells/parse_object")
+saveRDS(
+  object = parse.object,
+  file = "obj.Rds",
+  destdir = "/brahms/hartmana/vignette_data/bpcells/parse_object")
 ```
 
 

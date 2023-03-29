@@ -558,7 +558,7 @@ sessionInfo()
 ```
 </details>
 
-```{r save.times, include=TRUE}
+```{r save.times, include=FALSE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_2.csv")
 ```
 
