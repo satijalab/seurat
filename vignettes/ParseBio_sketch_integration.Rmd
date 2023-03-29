@@ -152,7 +152,7 @@ p1 + p2 + plot_layout(ncol = 1)
 
 ## Compare healthy and diabetic samples
 
-By integrating all samples together, we can now compare healthy and diabetic cells in matched cell states. To maximize statistical power, we want to use all cells - not just the sketched cells - to perform this analysis. As recommended by [Soneson et al.](https://www.nature.com/articles/s41467-020-19894-4), we use an aggregation-based (pseudobulk) workflow. We aggregate all cells within the same cell type and sample using the `AggregateExpression` function. This returns a Seurat object where each 'cell' represents the pseudobulk profile of one cell type in one individual.
+By integrating all samples together, we can now compare healthy and diabetic cells in matched cell states. To maximize statistical power, we want to use all cells - not just the sketched cells - to perform this analysis. As recommended by [Soneson et all.](https://www.nature.com/articles/nmeth.4612) and [Crowell et al.](https://www.nature.com/articles/s41467-020-19894-4), we use an aggregation-based (pseudobulk) workflow. We aggregate all cells within the same cell type and sample using the `AggregateExpression` function. This returns a Seurat object where each 'cell' represents the pseudobulk profile of one cell type in one individual.
 
 After we aggregate cells, we can perform celltype-specific differential expression between healthy and diabetic samples using DESeq2. We demonstrate this for CD14 monocytes.
 
