@@ -1,5 +1,5 @@
 ---
-title: "Seurat 5 Essential Commands"
+title: "Seurat v5 Essential Commands"
 output:
   html_document:
     theme: united
@@ -41,48 +41,45 @@ library(dplyr)
 options(Seurat.object.assay.version = "v5")
 ```
 
-The Assay5 object is able to support different matrix data structures to best suit particular analyses. The PBMC 3k dataset contains ~3,000 cells, which can easily be stored in-memory as a sparse `dgCMatrix`. On the other hand, it can be impractical in terms of memory and computation to store and concomitantly analyze millions of cells in-memory. Thus, the mouse brain dataset stores counts on-disk in an Assay5 object.
+The Assay5 object is able to support different matrix data structures to best suit particular analyses. The PBMC 3k dataset contains ~3,000 cells, which can easily be stored in-memory as a sparse `dgCMatrix`. On the other hand, it can be impractical in terms of memory and computation to store and concomitantly analyze millions of cells in-memory. Thus, the mouse brain dataset stores counts on-disk in an Assay5 object. The mouse brain 1 million cell object is constructed as described in the [BPCells vignette](seurat5_bpcells_interaction_vignette.html).
 
 ```{r matrix}
 pbmc3k <- LoadData("pbmc3k")
 mousebrain1m <- readRDS("/brahms/hartmana/vignette_data/1p3_million_mouse_brain.rds")
- 
+
 # Both are Assay5's
-print(class(pbmc3k[["RNA"]]))
-print(class(mousebrain1m[["RNA"]]))
+class(pbmc3k[["RNA"]])
+class(mousebrain1m[["RNA"]])
 
 # Get counts layer by "$" or "[[" symbols.
-pbmc3k[["RNA"]]$counts
-pbmc3k[["RNA"]][["counts"]]
+head(pbmc3k[["RNA"]]$counts[, Cells(pbmc3k)[1:20]])
+head(pbmc3k[["RNA"]][["counts"]][, Cells(pbmc3k)[1:20]])
 
 # New layers can be added or deleted to assays with the "$" or "[[" symbols.
 pbmc3k[["RNA"]]$data <- log1p(pbmc3k[["RNA"]]$counts)
 pbmc3k[["RNA"]]$data <- NULL
- 
- 
-# But different underlying data structures storing counts
 
-print(class(pbmc3k[["RNA"]]$counts))
-print(class(mousebrain1m[["RNA"]]$counts))
+# But different underlying data structures storing counts
+class(pbmc3k[["RNA"]]$counts)
+class(mousebrain1m[["RNA"]]$counts)
 ```
 Despite the drastic difference in dataset size, the 1.3M cell dataset occupies a small memory footprint thanks to on-disk storage.
 
 ```{r}
-print(paste("PBMC 3k contains", length(colnames(pbmc3k)), "cells"))
-print(paste("Mouse brain 1.3M contains", length(colnames(mousebrain1m)), "cells"))
+paste("PBMC 3k contains", length(colnames(pbmc3k)), "cells")
+paste("Mouse brain 1.3M contains", length(colnames(mousebrain1m)), "cells")
 
 # Despite the mouse brain dataset containing 1.3 million cells, the assay is under 350Mbs in size due to on-disk storage
-print(paste("PBMC 3k assay size:", format(object.size(pbmc3k[["RNA"]]), units = "Mb")))
-print(paste("Mouse brain 1.3M assay size:", format(object.size(mousebrain1m[["RNA"]]), units = "Mb")))
+paste("PBMC 3k assay size:", format(object.size(pbmc3k[["RNA"]]), units = "Mb"))
+paste("Mouse brain 1.3M assay size:", format(object.size(mousebrain1m[["RNA"]]), units = "Mb"))
 ```
 
 Get cell names. Since Seurat v5 object doesn't require all assays have the same cells, `Cells()` is designed to get cell names of the default assay and `colnames()` is deigned to get cell names of the entire object
 ```{r}
 pbmc3k[["RNAsub"]] <- subset(pbmc3k[["RNA"]], cells = colnames(pbmc3k)[1:100])
 DefaultAssay(pbmc3k) <- 'RNAsub'
-print(length(Cells(pbmc3k)))
-print(length(colnames(pbmc3k)))
-
+length(Cells(pbmc3k))
+length(colnames(pbmc3k))
 ```
 
 
@@ -100,22 +97,22 @@ The `Seurat.object.assay.version` option can also be set to create `Assay5` or `
 options(Seurat.object.assay.version = "v3")
 pbmc.counts <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
 pbmc <- CreateSeuratObject(counts = pbmc.counts)
-print(class(pbmc[["RNA"]]))
+class(pbmc[["RNA"]])
 
 # create v5 assays
 options(Seurat.object.assay.version = "v5")
 pbmc.counts <- Read10X(data.dir = "/brahms/hartmana/vignette_data/pbmc3k/filtered_gene_bc_matrices/hg19/")
 pbmc <- CreateSeuratObject(counts = pbmc.counts)
 pbmc <- NormalizeData(pbmc)
-print(class(pbmc[["RNA"]]))
+class(pbmc[["RNA"]])
 ```
 
 `CreateAssayObject()` and `CreateAssay5Object()` can be used to create v3 and v5 assay regardless of the setting in `Seurat.object.assay.version`
 ```{r}
 assay.v3 <- CreateAssayObject(counts = pbmc.counts)
 assay.v5 <- CreateAssay5Object(counts = pbmc.counts)
-print(class(assay.v3))
-print(class(assay.v5))
+class(assay.v3)
+class(assay.v5)
 
 # Normalized data can also be used to create Assay5
 assay.v5 <- CreateAssay5Object(data = log1p(pbmc.counts))
@@ -126,15 +123,13 @@ Layers(assay.v5)
 assay.v5 <- CreateAssay5Object(counts = pbmc.counts, data = log1p(pbmc.counts))
 Layers(assay.v5)
 
-
 # A list of matrices can be used to generate multi-layer assay
 split.data <- sample(c("A", "B", "C"), size = ncol(pbmc), replace = TRUE)
 cells.split <- split(x = colnames(pbmc.counts), f = split.data)
-pbmc.counts.list <- lapply(X = cells.split,FUN =  function(x) pbmc.counts[,x])
+pbmc.counts.list <- lapply(X = cells.split, FUN =  function(x) pbmc.counts[, x])
 
 assay.v5 <- CreateAssay5Object(counts = pbmc.counts.list)
 Layers(assay.v5)
-
 ```
 
 Counts Layers can be split based on metadata in the assay level
@@ -161,7 +156,6 @@ And then joined back together in a single layer.
 ```{r}
 pbmc[["RNA"]] <- JoinLayers(pbmc[["RNA"]])
 Layers(pbmc[["RNA"]])
-
 ```
 
 Dimensionality reduction data and metadata can be retrieved through the use of `FetchData`, `[[`, or  V4 functions, depending on the use case.
@@ -175,15 +169,13 @@ fetch_df <- FetchData(object = pbmc, layer = "counts", vars = c("rna_MS4A1", "PC
 head(fetch_df)
 
 # get cell embeddings
-head(Embeddings(object = pbmc[['pca']])[,1:5])
-head(pbmc[['pca']][[]][,1:5])
+head(Embeddings(object = pbmc[['pca']])[, 1:5])
+head(pbmc[['pca']][[]][, 1:5])
 
 # get feature loadings
-head(Loadings(object  = pbmc[['pca']])[,1:5])
-head(pbmc[['pca']][][,1:5])
+head(Loadings(object  = pbmc[['pca']])[, 1:5])
+head(pbmc[['pca']][][, 1:5])
 
 # get meta.data
 head(pbmc[[]])
-
-
 ```

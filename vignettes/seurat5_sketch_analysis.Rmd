@@ -45,7 +45,7 @@ We store sketched cells (in-memory) and the full dataset (on-disk) as two assays
 * Support for 'bit-packing' compression and infrastructure
 
 We demonstrate the on-disk capabilities in Seurat v5 using the [BPCells package](https://github.com/bnprks/BPCells) developed by Ben Parks in the Greenleaf Lab. This package utilizes bit-packing compression and optimized, streaming-compatible C++ code to substantially improve I/O and computational performance when working with on-disk data.
-To run this vignette please install Seurat v5, using the installation instructions found [here](https://satijalab.org/seurat/articles/install.html). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](https://bnprks.github.io/BPCells/#installation).
+To run this vignette please install Seurat v5, using the installation instructions found [here](install.html). Additionally, you will need to install the `BPcells` package, using the installation instructions found [here](https://bnprks.github.io/BPCells/#installation).
 
 ```{r, warning=FALSE, message=FALSE}
 library(Seurat)
@@ -57,7 +57,7 @@ options(future.globals.maxSize = 1e9)
 
 ## Create a Seurat object with a v5 assay for on-disk storage
  
-We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html), we demonstrate how to create this on-disk representation.
+We start by loading the 1.3M dataset from 10x Genomics using the `open_matrix_dir` function from `BPCells`. Note that this function does not load the dataset into memory, but instead, creates a connection to the data stored on-disk. We then store this on-disk representation in the Seurat object. Note that in our [Introduction to on-disk storage vignette](seurat5_bpcells_interaction_vignette.html), we demonstrate how to create this on-disk representation.
 
 ```{r}
 # specify that you would like to create a Seurat v5 assay

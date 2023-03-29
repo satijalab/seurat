@@ -40,7 +40,7 @@ In this vignette, we demonstrate how to use atomic sketch integration to harmoni
 * Reconstruct (integrate) the full datasets, based on the atoms
 * Annotate all cells in the full datasets
 * Identify cell-type specific differences between healthy and diabetic patients
-Prior to running this vignette, please [install Seurat v5](https://satijalab.org/seurat/articles/install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette.html). We also recommend reading the [Sketch-based analysis in Seurat v5](https://satijalab.org/seurat/articles/seurat5_sketch_analysis.html) vignette, which introduces the concept of on-disk and in-memory storage in Seurat v5.
+Prior to running this vignette, please [install Seurat v5](install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](seurat5_bpcells_interaction_vignette.html). We also recommend reading the [Sketch-based analysis in Seurat v5](seurat5_sketch_analysis.html) vignette, which introduces the concept of on-disk and in-memory storage in Seurat v5.
 ```{r, warning=F, message=F}
 library(Seurat)
 library(BPCells)
@@ -53,8 +53,8 @@ options(future.globals.maxSize = 3e9)
 options(Seurat.object.assay.version = "v5")
 ```
 ## Create a Seurat object containing data from 24 patients
-We downloaded the original dataset and donor metadata from [Parse Biosciences](https://resources.parsebiosciences.com/dataset-wt-mega-one-million-pbmc-type-1-diabetes), as an h5ad file. While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](LINKCONVERSIONVIGNETTE).
-We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](LINKTOVIGNETTE), one for each sample (i.e. patient), to facilitate integration.
+We downloaded the original dataset and donor metadata from [Parse Biosciences](https://resources.parsebiosciences.com/dataset-wt-mega-one-million-pbmc-type-1-diabetes), as an h5ad file. While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](seurat5_bpcells_interaction_vignette.html).
+We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](seurat5_essential_commands.html), one for each sample (i.e. patient), to facilitate integration.
 ```{r, warning=F, message=F}
 parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
 # need to move
@@ -75,8 +75,8 @@ object
 ```
 
 ## Perform integration on the sketched cells across samples
-Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we perform integration using the streamlined [Seurat v5 integration worfklow](https://satijalab.org/seurat/articles/seurat5_integration.html), and utilize the reference-based `RPCAIntegration` method. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated.rpca`). 
-However, we emphasize that you can perform integration here using any analysis technique that places cells across datasets into a shared space. This includes CCA Integration, Harmony, and scVI. We demonstrate how to use these tools in Seurat v5 [here](https://satijalab.org/seurat/articles/seurat5_integration.html).
+Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we perform integration using the streamlined [Seurat v5 integration worfklow](seurat5_integration.html), and utilize the reference-based `RPCAIntegration` method. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated.rpca`). 
+However, we emphasize that you can perform integration here using any analysis technique that places cells across datasets into a shared space. This includes CCA Integration, Harmony, and scVI. We demonstrate how to use these tools in Seurat v5 [here](seurat5_integration.html).
 ```{r}
 DefaultAssay(object) <- 'sketch'
 object <- FindVariableFeatures(object, verbose = F)
