@@ -1312,13 +1312,32 @@ PercentageFeatureSet <- function(
   if (!is.null(x = features) && !is.null(x = pattern)) {
     warn(message = "Both pattern and features provided. Pattern is being ignored.")
   }
-  features <- features %||% grep(
-    pattern = pattern,
-    x = rownames(x = object[[assay]]),
-    value = TRUE
-  )
-  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE]) /
-    object[[paste0("nCount_", assay)]] * 100
+  if (length(x = Layers(object = object, pattern = "counts")) > 
+      1) {
+    percent.featureset <- c()
+    for (layer in Layers(object = object, pattern = "counts")) {
+      features.layer <- features %||% grep(
+        pattern = pattern, 
+        x = rownames(x = object[[assay]][[layer]]), 
+        value = TRUE)
+      layer.data <- LayerData(object = object, 
+                              assay = assay, 
+                              layer = layer)
+      layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
+      layer.perc <- layer.sums / object@meta.data[colnames(layer.data), paste0("nCount_", assay)] * 100
+      percent.featureset <- c(percent.featureset, layer.perc)
+    }
+  }
+  else {
+    features <- features %||% grep(
+      pattern = pattern,
+      x = rownames(x = object[[assay]]),
+      value = TRUE
+    )
+    percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE]) /
+      object[[paste0("nCount_", assay)]] * 100
+  }
+  
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
     return(object)
