@@ -752,12 +752,17 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
-  if (is.null(x = mean.fxn)){
-    mean.fxn <- function(x) {
-      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-
-    }
+  default.mean.fxn <- function(x) {
+	return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
+  mean.fxn <- mean.fxn %||% switch(
+    EXPR = slot,
+    'counts' = function(x) {
+        return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+      },
+    'scale.data' = rowMeans,
+    default.mean.fxn
+  )
   fc.results <- FoldChange(
     object = object,
     slot = data.slot,
