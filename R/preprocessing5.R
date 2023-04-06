@@ -2212,7 +2212,7 @@ FetchResiduals_reference <- function(object,
   }
 
   if (vst_out$arguments$min_variance == "umi_median"){
-    nz_median <- median(umi@x)
+    nz_median <- 1
     min_var_custom <- (nz_median / 5)^2
     min_var <- min_var_custom
   } else {
