@@ -91,7 +91,7 @@ test_that("Fast implementation of row scaling returns expected values", {
   expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 
-mat <- as(object = matrix(rnorm(100), nrow = 10, ncol = 10), Class = "dgCMatrix")
+mat <- as.sparse(x = matrix(rnorm(100), nrow = 10, ncol = 10))
 
 test_that("Row scaling with known stats works", {
   mat.rowmeans <- rowMeans(x = mat)
@@ -147,7 +147,7 @@ test_that("Fast implementation of rbind returns expected values", {
   expect_equal(fcv[10,10], merged.mat[20,10])
 })
 
-mat <- as(mat, "dgCMatrix")
+mat <- as.sparse(mat)
 test_that("Fast implementation of ExpMean returns expected values",{
   expect_equal(ExpMean(mat[1,]), FastExpMean(mat, display_progress = F)[1])
   expect_equal(ExpMean(mat[5,]), FastExpMean(mat, display_progress = F)[5])
@@ -173,7 +173,7 @@ test_that("Fast implementation of LogVMR returns expected values", {
 
 test_that("Row variance calculations for sparse matrices work", {
   expect_equal(apply(X = mat, MARGIN = 1, FUN = var), SparseRowVar(mat = mat, display_progress = FALSE), tolerance = 1e-6)
-  expect_equal(apply(X = mat2, MARGIN = 1, FUN = var), SparseRowVar(mat = as(object = mat2, Class = "dgCMatrix"), display_progress = FALSE), tolerance = 1e-6)
+  expect_equal(apply(X = mat2, MARGIN = 1, FUN = var), SparseRowVar(mat = as.sparse(x = mat2), display_progress = FALSE), tolerance = 1e-6)
 })
 
 # Tests for data structure manipulations

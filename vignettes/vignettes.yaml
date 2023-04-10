@@ -12,11 +12,17 @@
         An introduction to working with multi-modal datasets in Seurat.
       image: citeseq_plot.jpg
 
-    - title: Analysis of spatial datasets
+    - title: Analysis of spatial datasets (Sequencing-based)
       name: spatial_vignette
       summary: |
         Learn to explore spatially-resolved transcriptomic data with examples from 10x Visium and Slide-seq v2.
       image: spatial_vignette_ttr.jpg
+
+    - title: Analysis of spatial datasets (Imaging-based)
+      name: spatial_vignette_2
+      summary: |
+        Learn to explore spatially-resolved data from multiplexed imaging technologies, including MERFISH, Xenium, CosMx SMI, and CODEX.
+      image: spatial_vignette_2.jpg
 
 - category: Data Integration
   vignettes:

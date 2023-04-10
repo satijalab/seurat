@@ -2,16 +2,18 @@
 % Please edit documentation in R/visualization.R
 \name{DiscretePalette}
 \alias{DiscretePalette}
-\title{Discrete colour palettes from the pals package}
+\title{Discrete colour palettes from pals}
 \usage{
-DiscretePalette(n, palette = NULL)
+DiscretePalette(n, palette = NULL, shuffle = FALSE)
 }
 \arguments{
 \item{n}{Number of colours to be generated.}
 
 \item{palette}{Options are
-"alphabet", "alphabet2", "glasbey", "polychrome", and "stepped".
+"alphabet", "alphabet2", "glasbey", "polychrome", "stepped", and "parade".
 Can be omitted and the function will use the one based on the requested n.}
+
+\item{shuffle}{Shuffle the colors in the selected palette.}
 }
 \value{
 A vector of colors

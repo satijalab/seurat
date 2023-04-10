@@ -25,6 +25,7 @@ VlnPlot(
   combine = TRUE,
   fill.by = "feature",
   flip = FALSE,
+  add.noise = TRUE,
   raster = NULL
 )
 }
@@ -72,6 +73,8 @@ ggplot object. If \code{FALSE}, return a list of ggplot}
 \item{fill.by}{Color violins/ridges based on either 'feature' or 'ident'}
 
 \item{flip}{flip plot orientation (identities on x-axis)}
+
+\item{add.noise}{determine if adding a small noise for plotting}
 
 \item{raster}{Convert points to raster format. Requires 'ggrastr' to be installed.}
 }

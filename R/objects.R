@@ -1138,6 +1138,8 @@ as.Seurat.SingleCellExperiment <- function(
         embeddings <- as.matrix(x = SingleCellExperiment::reducedDim(x = x, type = dr))
         if (is.null(x = rownames(x = embeddings))) {
           rownames(x = embeddings)  <- cell.names
+        } else {
+          rownames(x = embeddings) <- make.unique(names = rownames(x = embeddings))
         }
         if (isTRUE(x = !grepl('_$',
         gsub(pattern = "[[:digit:]]",
@@ -1905,6 +1907,7 @@ levels.SCTAssay <- function(x) {
 #' Merge SCTAssay objects
 #'
 #' @inheritParams SeuratObject::merge
+#' @param x A \code{\link[SeuratObject]{Seurat}} object
 #' @param na.rm If na.rm = TRUE, this will only preserve residuals that are
 #' present in all SCTAssays being merged. Otherwise, missing residuals will be
 #' populated with NAs.
@@ -2696,10 +2699,10 @@ UpdateAssay <- function(old.assay, assay){
   counts <- old.assay@raw.data
   data <- old.assay@data
   if (!inherits(x = counts, what = 'dgCMatrix')) {
-    counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    counts <- as.sparse(x = as.matrix(x = counts))
   }
   if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as(object = as.matrix(x = data), Class = 'dgCMatrix')
+    data <- as.sparse(x = as.matrix(x = data))
   }
   new.assay <- new(
     Class = 'Assay',
@@ -2881,7 +2884,7 @@ ValidateDataForMerge <- function(assay, slot) {
       ncol = data.dims[2],
       dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
     )
-    mat <- as(object = mat, Class = "dgCMatrix")
+    mat <- as.sparse(x = mat)
   }
   return(mat)
 }

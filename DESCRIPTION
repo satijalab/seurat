@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 4.1.1.9002
-Date: 2022-06-17
+Version: 4.3.0.9002
+Date: 2023-02-01
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, Stuart T, Butler A, et al (2019) <doi:10.1016/j.cell.2019.05.031>, and Hao, Hao, et al (2020) <doi:10.1101/2020.10.12.335331> for more details.
 Authors@R: c(
@@ -10,8 +10,10 @@ Authors@R: c(
   person(given = "Jeff", family = "Farrell", email = "jfarrell@g.harvard.edu", role = "ctb"),
   person(given = "Christoph", family = "Hafemeister", email = "chafemeister@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-6365-8254")),
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-1810-0822")),
+  person(given = "Austin", family = "Hartman", email = "ahartman@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-7278-1852")),
   person(given = "Paul", family = "Hoffman", email = "seurat@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
   person(given = "Jaison", family = "Jain", email = "jjain@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-9478-5018")),
+  person(given = "Madeline", family = "Kowalski", email = "mkowalski@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0002-5655-7620")),
   person(given = "Efthymia", family = "Papalexi", email = "epapalexi@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-5898-694X")),
   person(given = "Patrick", family = "Roelli", email = "proelli@nygenome.org", role = "ctb"),
   person(given = "Rahul", family = "Satija", email = "rsatija@nygenome.org", role = "ctb", comment = c(ORCID = "0000-0001-9448-8833")),
@@ -48,13 +50,14 @@ Imports:
     leiden (>= 0.3.1),
     lmtest,
     MASS,
-    Matrix (>= 1.2-14),
+    Matrix (>= 1.5-0),
     matrixStats,
     miniUI,
     patchwork,
     pbapply,
     plotly (>= 4.9.0),
     png,
+    progressr,
     RANN,
     RColorBrewer,
     Rcpp (>= 1.0.7),
@@ -65,16 +68,16 @@ Imports:
     Rtsne,
     scales,
     scattermore (>= 0.7),
-    sctransform (>= 0.3.3),
-    SeuratObject (>= 4.1.0),
+    sctransform (>= 0.3.5),
+    SeuratObject (>= 4.1.3),
     shiny,
-    spatstat.core,
+    spatstat.explore,
     spatstat.geom,
     stats,
     tibble,
     tools,
     utils,
-    uwot (>= 0.1.9)
+    uwot (>= 0.1.14)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: MIT + file LICENSE
 LazyData: true
@@ -95,7 +98,7 @@ Collate:
     'tree.R'
     'utilities.R'
     'zzz.R'
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.2
 Encoding: UTF-8
 Suggests:
     ape,
@@ -120,4 +123,6 @@ Suggests:
     metap,
     enrichR,
     mixtools,
-    ggrastr
+    ggrastr,
+    data.table,
+    R.utils

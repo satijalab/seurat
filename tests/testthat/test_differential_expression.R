@@ -2,12 +2,17 @@
 suppressWarnings(RNGversion(vstr = "3.5.3"))
 set.seed(seed = 42)
 
-# Tests for FindMarkers default parameters
+# Tests for FindMarkers
 # --------------------------------------------------------------------------------
 context("FindMarkers")
 
+clr.obj <- suppressWarnings(NormalizeData(pbmc_small, normalization.method = "CLR"))
+sct.obj <- suppressWarnings(suppressMessages(SCTransform(pbmc_small)))
+
 markers.0 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, verbose = FALSE, base = exp(1)))
 markers.01 <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1)))
+results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1)))
+results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1)))
 
 test_that("Default settings work as expected", {
   expect_error(FindMarkers(object = pbmc_small))
@@ -29,6 +34,24 @@ test_that("Default settings work as expected", {
   expect_equal(markers.01[1, "p_val_adj"], 3.916481e-09)
   expect_equal(nrow(x = markers.01), 201)
   expect_equal(rownames(x = markers.01)[1], "TYMP")
+
+  # CLR normalization
+  expect_equal(results.clr[1, "p_val"], 1.209462e-11)
+  expect_equal(results.clr[1, "avg_logFC"], -0.8290693, tolerance = 1e-6)
+  expect_equal(results.clr[1, "pct.1"], 0.111)
+  expect_equal(results.clr[1, "pct.2"], 0.96)
+  expect_equal(results.clr[1, "p_val_adj"], 2.781762e-09)
+  expect_equal(nrow(x = results.clr), 85)
+  expect_equal(rownames(x = results.clr)[1], "S100A8")
+
+  # SCT normalization
+  expect_equal(results.sct[1, "p_val"], 6.225491e-11)
+  expect_equal(results.sct[1, "avg_logFC"], -1.081321, tolerance = 1e-6)
+  expect_equal(results.sct[1, "pct.1"], 0.111)
+  expect_equal(results.sct[1, "pct.2"], 0.96)
+  expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08)
+  expect_equal(nrow(x = results.sct), 158)
+  expect_equal(rownames(x = results.sct)[1], "TYMP")
 })
 
 
@@ -63,6 +86,28 @@ test_that("passing cell names works", {
   expect_equal(results[1, "pct.2"], 0.450)
   expect_equal(results[1, "p_val_adj"], 0.03889028)
   expect_equal(rownames(x = results)[1], "IFI30")
+})
+
+results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
+results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
+results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), pseudocount.use = 0.1))
+test_that("setting pseudocount.use works", {
+  expect_equal(nrow(x = results), 202)
+  expect_equal(results[1, "avg_logFC"], -2.630395, tolerance = 1e-6)
+  expect_equal(nrow(x = results.clr), 182)
+  expect_equal(results.clr[1, "avg_logFC"], -2.317338, tolerance = 1e-6)
+  expect_equal(nrow(results.sct), 194)
+  expect_equal(results.sct[1, "avg_logFC"], -2.253920, tolerance = 1e-6)
+})
+
+results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), mean.fxn = rowMeans))
+results.clr <- suppressWarnings(FindMarkers(object = clr.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), mean.fxn = rowMeans))
+results.sct <- suppressWarnings(FindMarkers(object = sct.obj, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), mean.fxn = rowMeans))
+test_that("setting mean.fxn works", {
+  expect_equal(nrow(x = results), 191)
+  expect_equal(results[1, "avg_logFC"], -4.204346, tolerance = 1e-6)
+  expect_equal(results.clr[1, "avg_logFC"], -1.353025, tolerance = 1e-6)
+  expect_equal(results.sct[1, "avg_logFC"], -1.064042, tolerance = 1e-6)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, logfc.threshold = 2, verbose = FALSE, base = exp(1)))
@@ -234,6 +279,79 @@ test_that("LR test works", {
   expect_equal(results["CST3", "pct.2"], 1.00)
   expect_equal(results["CST3", "p_val_adj"], 9.178625e-14)
   expect_equal(rownames(x = results)[1], "LYZ")
+})
+
+# Tests for FindAllMarkers
+# -------------------------------------------------------------------------------
+results <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small)))
+results.clr <- suppressMessages(suppressWarnings(FindAllMarkers(object = clr.obj)))
+results.sct <- suppressMessages(suppressWarnings(FindAllMarkers(object = sct.obj)))
+results.pseudo <- suppressMessages(suppressWarnings(FindAllMarkers(object = pbmc_small, pseudocount.use = 0.1)))
+
+test_that("FindAllMarkers works as expected", {
+  expect_equal(colnames(x = results), c("p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "cluster", "gene"))
+  expect_equal(results[1, "p_val"], 9.572778e-13)
+  expect_equal(results[1, "avg_log2FC"], -5.820829, tolerance = 1e-6)
+  expect_equal(results[1, "pct.1"], 0.083)
+  expect_equal(results[1, "pct.2"], 0.909)
+  expect_equal(results[1, "p_val_adj"], 2.201739e-10)
+  expect_equal(nrow(x = results), 222)
+  expect_equal(rownames(results)[1], "HLA-DPB1")
+
+  # CLR normalization
+  expect_equal(results.clr[1, "p_val"], 1.209462e-11)
+  expect_equal(results.clr[1, "avg_log2FC"], -1.079924, tolerance = 1e-6)
+  expect_equal(results.clr[1, "pct.1"], 0.083)
+  expect_equal(results.clr[1, "pct.2"], 0.909)
+  expect_equal(results.clr[1, "p_val_adj"], 3.079373e-10)
+  expect_equal(nrow(x = results.clr), 200)
+  expect_equal(rownames(x = results.clr)[1], "HLA-DPB1")
+
+  # SCT normalization
+  expect_equal(results.sct[1, "p_val"], 4.25861e-12)
+  expect_equal(results.sct[1, "avg_log2FC"], -2.70188, tolerance = 1e-6)
+  expect_equal(results.sct[1, "pct.1"], 0.167)
+  expect_equal(results.sct[1, "pct.2"], 0.909)
+  expect_equal(results.sct[1, "p_val_adj"], 9.368941e-10)
+  expect_equal(nrow(x = results.sct), 210)
+  expect_equal(rownames(x = results.sct)[1], "HLA-DPB1")
+
+  # pseudocount.use = 0.1
+  expect_equal(results.pseudo[1, "p_val"], 9.572778e-13)
+  expect_equal(results.pseudo[1, "avg_log2FC"], -6.013818, tolerance = 1e-6)
+  expect_equal(results.pseudo[1, "pct.1"], 0.083)
+  expect_equal(results.pseudo[1, "pct.2"], 0.909)
+  expect_equal(results.pseudo[1, "p_val_adj"], 2.201739e-10)
+  expect_equal(nrow(x = results.pseudo), 222)
+  expect_equal(rownames(results.pseudo)[1], "HLA-DPB1")
+})
+
+
+# Tests for running FindMarkers post integration/transfer
+ref <- pbmc_small
+ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
+query <- CreateSeuratObject(
+  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1)
+)
+query2 <- CreateSeuratObject(
+  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1)
+)
+query.list <- list(query, query2)
+query.list <- lapply(X = query.list, FUN = NormalizeData, verbose = FALSE)
+query.list <- lapply(X = query.list, FUN = FindVariableFeatures, verbose = FALSE, nfeatures = 100)
+query.list <- lapply(X = query.list, FUN = ScaleData, verbose = FALSE)
+query.list <- suppressWarnings(lapply(X = query.list, FUN = RunPCA, verbose = FALSE, npcs = 20))
+
+anchors <- suppressMessages(suppressWarnings(FindIntegrationAnchors(object.list = c(ref, query.list), k.filter = NA, verbose = FALSE)))
+object <- suppressMessages(IntegrateData(anchorset = anchors,  k.weight = 25, verbose = FALSE))
+object <- suppressMessages(ScaleData(object, verbose = FALSE))
+object <- suppressMessages(RunPCA(object, verbose = FALSE))
+object <- suppressMessages(FindNeighbors(object = object, verbose = FALSE))
+object <- suppressMessages(FindClusters(object, verbose = FALSE))
+markers <- FindMarkers(object = object, ident.1="0", ident.2="1")
+test_that("FindMarkers recognizes log normalizatio", {
+  expect_equal(markers[1, "p_val"], 1.598053e-14)
+  expect_equal(markers[1, "avg_log2FC"], -2.614686, tolerance = 1e-6)
 })
 
 # Tests for FindConservedMarkers

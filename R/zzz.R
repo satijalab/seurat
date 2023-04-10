@@ -1,3 +1,7 @@
+#' @importFrom progressr progressor
+#'
+NULL
+
 #' @section Package options:
 #'
 #' Seurat uses the following [options()] to configure behaviour:
@@ -27,6 +31,10 @@
 #'
 "_PACKAGE"
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Options
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 seurat_default_options <- list(
   Seurat.memsafe = FALSE,
   Seurat.warn.umap.uwot = TRUE,
@@ -36,22 +44,24 @@ seurat_default_options <- list(
   Seurat.warn.vlnplot.split = TRUE
 )
 
-AttachDeps <- function(deps) {
-  for (d in deps) {
-    if (!paste0('package:', d) %in% search()) {
-      packageStartupMessage("Attaching ", d)
-      attachNamespace(ns = d)
-    }
-  }
-}
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Hooks
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom SeuratObject AttachDeps
+#'
 .onAttach <- function(libname, pkgname) {
-  AttachDeps(deps = 'SeuratObject')
+  AttachDeps(deps = c('SeuratObject'))
+  return(invisible(x = NULL))
 }
 
 .onLoad <- function(libname, pkgname) {
-  op <- options()
-  toset <- !(names(x = seurat_default_options) %in% names(x = op))
-  if (any(toset)) options(seurat_default_options[toset])
-  invisible(x = NULL)
+  toset <- setdiff(
+    x = names(x = seurat_default_options),
+    y = names(x = options())
+  )
+  if (length(x = toset)) {
+    options(seurat_default_options[toset])
+  }
+  return(invisible(x = NULL))
 }

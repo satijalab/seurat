@@ -1379,6 +1379,10 @@ RunUMAP.default <- function(
         object = reduction.model,
         slot = "model"
       )
+      # add num_precomputed_nns to <v0.1.13 uwot models to prevent errors with newer versions of uwot
+      if (!"num_precomputed_nns" %in% names(model)) {
+        model$num_precomputed_nns <- 1
+      }
       if (length(x = model) == 0) {
         stop(
           "The provided reduction.model does not have a model stored. Please try running umot-learn on the object first",
@@ -1388,7 +1392,7 @@ RunUMAP.default <- function(
       if (is.list(x = object)) {
         if (ncol(object$idx) != model$n_neighbors) {
           warning("Number of neighbors between query and reference ", 
-          "is not equal to the number of neighbros within reference")
+          "is not equal to the number of neighbors within reference")
           model$n_neighbors <- ncol(object$idx)
         }
        umap_transform(

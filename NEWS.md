@@ -1,9 +1,33 @@
 # Unreleased
+## Changes
+- Fix bug in `as.Seurat.SingleCellExperiment()` ([#6692](https://github.com/satijalab/seurat/issues/6692))
+
+# Seurat 4.3.0 (2022-11-18)
+
+## Added
+- Add support for imaging-based spatial datasets
+
+## Changes
+- Fix bug in `FindMarkers()` when run post Integration/Transfer ([#6856](https://github.com/satijalab/seurat/issues/6586))
+
+# Seurat 4.2.1 (2022-11-08)
+
+## Changes
+- Replaced import from `spatstat.core` with `spatstat.explore`
+- Fix bug in `FindMarkers()` when using `SCT` assay ([#6856](https://github.com/satijalab/seurat/issues/6586))
+
+# Seurat 4.2.0 (2022-09-21)
 
 ## Changes
 - Fix legend color in `DoHeatmap()` ([#5783](https://github.com/satijalab/seurat/issues/5783))
 - Fix bug in `ScaleData()` when regressing out one gene ([#5970](https://github.com/satijalab/seurat/pull/5970))
 - Fix name pulling in `PlotPerturbScore()` ([#6081](https://github.com/satijalab/seurat/pull/6081))
+- Support spaceranger 2.0 ([#6208](https://github.com/satijalab/seurat/pull/6208))
+- Fix bug in `SpatialDimPlot()` when using `group.by` ([#6179](https://github.com/satijalab/seurat/issues/6179))
+- Add `add.noise` parameter in `VlnPlot()`
+([#5756](https://github.com/satijalab/seurat/issues/5756))
+- Fix uwot model backwards compatibility ([#6345](https://github.com/satijalab/seurat/issues/6345))
+- Allow `pseudocount.use` in differential expression functions to be set at the `Assay` level
 
 # Seurat 4.1.1 (2022-05-01)
 
