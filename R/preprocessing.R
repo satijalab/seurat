@@ -527,8 +527,8 @@ Load10X_Spatial <- function(
     object <- CreateSeuratObject(counts = data, assay = assay)
   }
   if (is.null(x = image)) {
-    image <- Read10X_Image(image.dir = file.path(data.dir,
-                                                 "spatial"), filter.matrix = filter.matrix)
+    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
+                           filter.matrix = filter.matrix)
   }
   else {
     if (!inherits(x = image, what = "VisiumV1"))
