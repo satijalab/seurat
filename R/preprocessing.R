@@ -561,17 +561,7 @@ Load10X_Spatial <- function(
 #' @param data.dir The directory where the file is located.
 #' @param filename The name of the file containing the raw probe barcode matrix in HDF5 format. The default filename is 'raw_probe_bc_matrix.h5'.
 #'
-#' @return Returns a vector containing the probe metadata.
-#' @export
-#'
-#' @examples
-#' data_dir <- "~/data"
-#' filename <- "raw_probe_bc_matrix.h5"
-#' metadata <- Read10x_probe_metadata(data_dir, filename)
-#' print(metadata)
-#'
-#' @importFrom hdf5r H5File list.objects
-#'
+#' @return Returns a data.frame containing the probe metadata.
 #'
 #' @export
 Read10x_probe_metadata <- function(data.dir,

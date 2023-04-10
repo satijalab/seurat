@@ -12,15 +12,8 @@ Read10x_probe_metadata(data.dir, filename = "raw_probe_bc_matrix.h5")
 \item{filename}{The name of the file containing the raw probe barcode matrix in HDF5 format. The default filename is 'raw_probe_bc_matrix.h5'.}
 }
 \value{
-Returns a vector containing the probe metadata.
+Returns a data.frame containing the probe metadata.
 }
 \description{
 This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
-}
-\examples{
-data_dir <- "~/data"
-filename <- "raw_probe_bc_matrix.h5"
-metadata <- Read10x_probe_metadata(data_dir, filename)
-print(metadata)
-
 }
