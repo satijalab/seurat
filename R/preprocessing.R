@@ -500,30 +500,43 @@ GetResidual <- function(
 #' }
 #'
 Load10X_Spatial <- function(
-  data.dir,
-  filename = 'filtered_feature_bc_matrix.h5',
-  assay = 'Spatial',
-  slice = 'slice1',
-  filter.matrix = TRUE,
-  to.upper = FALSE,
-  image = NULL,
-  ...
+    data.dir,
+    filename = 'filtered_feature_bc_matrix.h5',
+    assay = 'Spatial',
+    slice = 'slice1',
+    filter.matrix = TRUE,
+    to.upper = FALSE,
+    image = NULL,
+    ...
 ) {
   if (length(x = data.dir) > 1) {
-    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    warning("'Load10X_Spatial' accepts only one 'data.dir'",
+            immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+  data <- Read10X_h5(filename = file.path(data.dir, filename),
+                     ...)
   if (to.upper) {
-    rownames(x = data) <- toupper(x = rownames(x = data))
+    data <- imap(data, ~{
+      rownames(.x) <- toupper(rownames(.x))
+      .x
+    })
   }
-  object <- CreateSeuratObject(counts = data, assay = assay)
+  if (is.list(data) & "Antibody Capture" %in% names(data)) {
+    matrix_gex <- data$`Gene Expression`
+    matrix_protein <- data$`Antibody Capture`
+    object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
+    object_protein <- CreateAssayObject(counts = matrix_protein)
+    object[["Protein"]] <- object_protein
+  }
+  else {
+    object <- CreateSeuratObject(counts = data, assay = assay)
+  }
   if (is.null(x = image)) {
-    image <- Read10X_Image(
-	    image.dir = file.path(data.dir, 'spatial'),
-	    filter.matrix = filter.matrix
-  	)
-  } else {
+    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
+                           filter.matrix = filter.matrix)
+  }
+  else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
   }
