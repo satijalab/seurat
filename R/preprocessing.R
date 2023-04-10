@@ -516,6 +516,7 @@ Load10X_Spatial <- function(
   }
   data <- Read10X_h5(filename = file.path(data.dir, filename),
                      ...)
+
   if (to.upper) {
     data <- imap(data, ~{
       rownames(.x) <- toupper(rownames(.x))
@@ -543,9 +544,54 @@ Load10X_Spatial <- function(
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
+
+  # if using the raw_probe_bc_matrix.h5 add probe meta-data to @misc slot
+  if(filename == "raw_probe_bc_matrix.h5"){
+    probe_metadata <- Read10x_probe_metadata(data.dir)
+    Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe_metadata
+  }
   return(object)
 }
 
+
+#' Read10x Probe Metadata
+#'
+#' This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+#'
+#' @param data.dir The directory where the file is located.
+#' @param filename The name of the file containing the raw probe barcode matrix in HDF5 format. The default filename is 'raw_probe_bc_matrix.h5'.
+#'
+#' @return Returns a vector containing the probe metadata.
+#' @export
+#'
+#' @examples
+#' data_dir <- "~/data"
+#' filename <- "raw_probe_bc_matrix.h5"
+#' metadata <- Read10x_probe_metadata(data_dir, filename)
+#' print(metadata)
+#'
+#' @importFrom hdf5r H5File list.objects
+#'
+#'
+#' @export
+Read10x_probe_metadata <- function(data.dir,
+                                   filename = 'raw_probe_bc_matrix.h5') {
+
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+    stop("Please install hdf5r to read HDF5 files")
+  }
+  file_path = paste0(data.dir,"/", filename)
+  if (!file.exists(file_path)) {
+    stop("File not found")
+  }
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe_name <- infile[['matrix/features/name']][]
+    probe_region<- infile[['matrix/features/probe_region']][]
+    meta_data <- data.frame(probe_name, probe_region)
+    return(meta_data)
+  }
+}
 
 #' Load STARmap data
 #'
