@@ -545,8 +545,10 @@ Load10X_Spatial <- function(
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
 
-  # if using the raw_probe_bc_matrix.h5 add probe meta-data to @misc slot
-  if(filename == "raw_probe_bc_matrix.h5"){
+  # if using the meta-data available for probes add to @misc slot
+  file_path <- file.path(data.dir, filename)
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
     probe_metadata <- Read10x_probe_metadata(data.dir)
     Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe_metadata
   }
