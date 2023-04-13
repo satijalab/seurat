@@ -137,37 +137,70 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
 #'
 #' @rdname ReadVizgen
 #'
-LoadVizgen <- function(data.dir, fov, assay = 'Vizgen', z = 3L) {
-  data <- ReadVizgen(
-    data.dir = data.dir,
-    filter = "^Blank-",
-    type = c("centroids", "segmentations"),
-    z = z
-  )
-  segs <- CreateSegmentation(data$segmentations)
-  cents <- CreateCentroids(data$centroids)
-  segmentations.data <- list(
-    "centroids" = cents,
-    "segmentation" = segs
-  )
-  coords <- CreateFOV(
-    coords = segmentations.data,
-    type = c("segmentation", "centroids"),
-    molecules = data$microns,
-    assay = assay
-  )
-  obj <- CreateSeuratObject(counts = data$transcripts, assay = assay)
-  # only consider the cells we have counts and a segmentation for
-  # Cells which don't have a segmentation are probably found in other z slices.
-  coords <- subset(
-    x = coords,
-    cells = intersect(
-      x = Cells(x = coords[["segmentation"]]),
-      y = Cells(x = obj)
-    )
-  )
+LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
+                       add.zIndex = TRUE, update.object = TRUE,
+                       ...) {
+  data <- ReadVizgen(data.dir = data.dir, ...)
+  
+  # if "segmentations" are not present, use cell bounding boxes instead
+  if (!"segmentations" %in% names(data)) { 
+    bound.boxes <- CreateSegmentation(data[["boxes"]])
+    cents <- CreateCentroids(data[["centroids"]])
+    bound.boxes.data <- list(centroids = cents, boxes = bound.boxes)
+    message("Creating FOVs", "\n",
+            "..using box coordinates instead of segmentations")  
+    coords <- CreateFOV(coords = bound.boxes.data, type = c("boxes",
+                                                            "centroids"), molecules = data[[mol.type]], assay = assay)
+    message("Creating Seurat object")  
+    obj <- CreateSeuratObject(counts = data[["transcripts"]], assay = assay)
+    # only consider the cells we have counts and a segmentation for
+    # Cells which don't have a segmentation are probably found in other z slices.
+    coords <- subset(x = coords, 
+                     cells = intersect(x = Cells(x = coords[["boxes"]]),
+                                       y = Cells(x = obj)))
+  } else {
+    segs <- CreateSegmentation(data[["segmentations"]])
+    cents <- CreateCentroids(data[["centroids"]])
+    segmentations.data <- list(centroids = cents, segmentation = segs)
+    message("Creating FOVs", "\n", 
+            "..using segmentations")    
+    coords <- CreateFOV(coords = segmentations.data, type = c("segmentation",
+                                                              "centroids"), molecules = data[[mol.type]], assay = assay)
+    message("Creating Seurat object..")  
+    obj <- CreateSeuratObject(counts = data[["transcripts"]], assay = assay)
+    # only consider the cells we have counts and a segmentation for
+    # Cells which don't have a segmentation are probably found in other z slices.
+    coords <- subset(x = coords,
+                     cells = intersect(x = Cells(x = coords[["segmentation"]]),
+                                       y = Cells(x = obj)))    
+  }
+  
+  # add z-stack index for cells
+  if (add.zIndex) { obj$z <- data$zIndex$z }
+  
+  # add metadata vars
+  message("..adding metadata infos")  
+  if (c("metadata" %in% names(data))) {
+    metadata <- match.arg(arg = "metadata", choices = names(data), several.ok = TRUE)
+    meta.vars <- names(data[[metadata]])
+    for (i in meta.vars %>% seq) {
+      obj %<>% AddMetaData(metadata = data[[metadata]][[meta.vars[i]]], 
+                           col.name = meta.vars[i])
+    }
+  }
+  
+  # sanity on fov name
+  fov %<>% gsub("_|-", ".", .) 
+  
+  #message("..adding FOV")
   # add coords to seurat object
   obj[[fov]] <- coords
+  
+  if (update.object) { 
+    message("Updating object..")
+    obj %<>% UpdateSeuratObject() } 
+  
+  #message("Object is ready!")    
   return(obj)
 }
 
