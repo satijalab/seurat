@@ -130,6 +130,10 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
 
 #' @return \code{LoadVizgen}: A \code{\link[SeuratObject]{Seurat}} object
 #'
+#' @param add.zIndex If to add \code{z} slice index to a cell
+#' @param update.object If to update final object, default to TRUE.
+#' @param ... Arguments passed to \code{ReadVizgen}
+#'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
 #' CreateSegmentation CreateSeuratObject
 #'
