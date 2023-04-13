@@ -2458,7 +2458,6 @@ ReadVizgen <- function(
     use.BiocParallel = TRUE, 
     workers.total = 12, 
     DTthreads.pct = NULL,
-    metadata = NULL,
     filter = NA_character_,
     z = 3L
 ) {
