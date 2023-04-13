@@ -1,5 +1,7 @@
 #' @include generics.R
 #' @importFrom progressr progressor
+#' @import dplyr
+#' @importFrom magrittr %>% %<>%
 #'
 NULL
 
@@ -2393,6 +2395,21 @@ ReadVitessce <- function(
 #'  \item \dQuote{fov}: cell's fov
 #' }
 #' @param z Z-index to load; must be between 0 and 6, inclusive
+#' @param use.BiocParallel If to use \code{BiocParallel::bplapply()}, 
+#' default is \code{TRUE}, if \code{FALSE}, uses \code{future} library
+#' @param workers.total Number of cores to use for \code{BiocParallel::bplapply()}
+#' @param DTthreads.pct Set percentage eg \code{50} of total threads to use for \code{data.table::fread}, 
+#' if set to \code{NULL} will use default setting as in \code{data.table::getDTthreads(verbose = T)}
+#' @param coord.space;
+#' choose one or more of:
+#' \itemize{
+#'  \item \dQuote{pixel}: molecule coordinates in pixel space
+#'  \item \dQuote{micron}: molecule coordinates in micron space
+#' }
+#' @param use.cellpose.out If TRUE, and ./Cellpose folder exists, will load results from current MERSCOPE Instrument output. Default to TRUE. Set to FALSE if to use previous outputs (ie. non-Cellpose).
+#' @param add.zIndex If to add \code{z} slice index to a cell
+#' @param update.object If to update final object, default to TRUE.
+#' @param ... Arguments passed to \code{ReadVizgen()}
 #'
 #' @return \code{ReadVizgen}: A list with some combination of the
 #' following values:
@@ -2435,6 +2452,12 @@ ReadVizgen <- function(
   molecules = NULL,
   type = 'segmentations',
   mol.type = 'microns',
+  use.cellpose.out = TRUE,
+  coord.space = "micron", 
+  metadata = NULL, 
+  use.BiocParallel = TRUE, 
+  workers.total = 12, 
+  DTthreads.pct = NULL,
   metadata = NULL,
   filter = NA_character_,
   z = 3L
@@ -2443,7 +2466,22 @@ ReadVizgen <- function(
   if (!requireNamespace("data.table", quietly = TRUE)) {
     stop("Please install 'data.table' for this function")
   }
-  # hdf5r is only used for loading polygon boundaries
+  if (!requireNamespace("BiocParallel", quietly = TRUE)) {
+      stop("Please install 'BiocParallel' for parallelization", call. = FALSE)
+    }
+    
+    if (!requireNamespace("sfarrow", quietly = TRUE)) {
+      stop("Please install 'sfarrow' for reading cell boundaries from `.parquet` files ",
+		   call. = FALSE)
+    }
+	
+	
+	
+	
+	
+	
+	
+	# hdf5r is only used for loading polygon boundaries
   # Not needed for all Vizgen input
   hdf5 <- requireNamespace("hdf5r", quietly = TRUE)
   # Argument checking
