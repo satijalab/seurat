@@ -2395,21 +2395,20 @@ ReadVitessce <- function(
 #'  \item \dQuote{fov}: cell's fov
 #' }
 #' @param z Z-index to load; must be between 0 and 6, inclusive
-#' @param use.BiocParallel If to use \code{BiocParallel::bplapply()}, 
+#' @param use.BiocParallel If to use \code{BiocParallel::bplapply}, 
 #' default is \code{TRUE}, if \code{FALSE}, uses \code{future} library
-#' @param workers.total Number of cores to use for \code{BiocParallel::bplapply()}
+#' @param workers.total Number of cores to use for \code{BiocParallel::bplapply}
 #' @param DTthreads.pct Set percentage eg \code{50} of total threads to use for \code{data.table::fread}, 
 #' if set to \code{NULL} will use default setting as in \code{data.table::getDTthreads(verbose = T)}
-#' @param coord.space;
+#' @param coord.space Type of molecule spatial coordinate space to use;
 #' choose one or more of:
 #' \itemize{
 #'  \item \dQuote{pixel}: molecule coordinates in pixel space
 #'  \item \dQuote{micron}: molecule coordinates in micron space
 #' }
-#' @param use.cellpose.out If TRUE, and ./Cellpose folder exists, will load results from current MERSCOPE Instrument output. Default to TRUE. Set to FALSE if to use previous outputs (ie. non-Cellpose).
-#' @param add.zIndex If to add \code{z} slice index to a cell
-#' @param update.object If to update final object, default to TRUE.
-#' @param ... Arguments passed to \code{ReadVizgen()}
+#' @param use.cellpose.out If \code{TRUE}, and \code{./Cellpose} folder exists, 
+#' will load results from current MERSCOPE Instrument output. Default to \code{TRUE}; 
+#' set it to \code{FALSE} if to use previous outputs (ie. non-Cellpose).
 #'
 #' @return \code{ReadVizgen}: A list with some combination of the
 #' following values:
@@ -2452,14 +2451,14 @@ ReadVizgen <- function(
     molecules = NULL,
     type = 'segmentations',
     mol.type = 'microns',
-    use.cellpose.out = TRUE,
-    coord.space = "micron", 
-    metadata = NULL, 
-    use.BiocParallel = TRUE, 
-    workers.total = 12, 
+    metadata = NULL,
+    filter = NA_character_,	
+    z = 3L,
+    use.BiocParallel = TRUE,
+    workers.total = 12,
     DTthreads.pct = NULL,
-    filter = NA_character_,
-    z = 3L
+    coord.space = "micron", 
+    use.cellpose.out = TRUE
 ) {
   
   # TODO: handle multiple segmentations per z-plane
