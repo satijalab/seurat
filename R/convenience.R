@@ -1,5 +1,6 @@
 #' @include generics.R
 #' @include visualization.R
+#' @importFrom magrittr %>% %<>%
 #'
 NULL
 
