@@ -340,7 +340,14 @@ LeverageScore.default <- function(
   if (isTRUE(x = verbose)) {
     message("Performing QR decomposition")
   }
-  sa <- S %*% object
+  if (inherits(x = object, what = 'IterableMatrix')) {
+    temp <- tempdir()
+    object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
+    sa <- as(object = S %*% object, Class = 'dgCMatrix')
+    unlink(x = temp, recursive = TRUE)
+  } else {
+    sa <- S %*% object
+  }
   if (!inherits(x = sa, what = 'dgCMatrix')) {
     sa <- as(object = sa, Class = 'dgCMatrix')
   }
