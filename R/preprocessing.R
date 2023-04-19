@@ -2729,7 +2729,7 @@ ReadVizgen <- function(
                      grep(".parquet$", ., value = TRUE)
                  }
                  
-                 # read .parquet file..
+                 # read .parquet file ----
                  parq <- sfarrow::st_read_parquet(file2read)
                  
                  # get all cell segmentations
@@ -2766,7 +2766,7 @@ ReadVizgen <- function(
                                             function(i) {
                                               segs[[i]][[1]] %>% 
                                                 data.table::as.data.table(x = .) %>%
-                                                as.data.frame %>%
+                                                #as.data.frame %>%
                                                 mutate(cell = names(segs)[i]) },
                                             BPPARAM = BiocParallel::MulticoreParam(workers.total, tasks = 100L, 
                                                                                    force.GC = FALSE, 
@@ -2776,14 +2776,14 @@ ReadVizgen <- function(
                    # extract cell boundaries per cells
                    message("Extracting of cell boundaries..")    
                    segs_list <-
-                     lapply(segs %>% seq,
-                            function(i) {
-                              segs[[i]][[1]] %>%
-                                data.table::as.data.table(x = .) %>%
-                                as.data.frame %>% 
-                                mutate(cell = names(segs)[i])
-                            }
-                     )
+                     future.apply::future_lapply(segs %>% seq,
+                                                 function(i) {
+                                                   segs[[i]][[1]] %>%
+                                                     data.table::as.data.table(x = .) %>%
+                                                     #as.data.frame %>% 
+                                                     mutate(cell = names(segs)[i])
+                                                   }
+                                                 )
                  }
                  
                  #segs_list %>% length
