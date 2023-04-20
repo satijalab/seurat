@@ -351,7 +351,8 @@ LeverageScore.default <- function(
   if (inherits(x = object, what = 'IterableMatrix')) {
     temp <- tempdir()
     object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
-    sa <- as(object = S %*% object, Class = 'dgCMatrix')
+    sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
+    rm(object.gene_index)
     unlink(x = temp, recursive = TRUE)
   } else {
     sa <- S %*% object
