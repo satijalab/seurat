@@ -121,7 +121,7 @@ FeaturePlot(
 We can now extend the cluster labels and dimensional reductions learned on the sketched cells to the full dataset. The `ProjectData` function projects the on-disk data, onto the `sketch` assay. It returns a Seurat object that includes a
 
 * Dimensional reduction (PCA): The `pca.full` dimensional reduction extends the `pca` reduction on the sketched cells to all cells in the dataset
-* Dimensional reduction (UMAP): The `full.umap` dimensional reduction extends the `full` reduction on the sketched cells to all cells in the dataset
+* Dimensional reduction (UMAP): The `full.umap` dimensional reduction extends the `umap` reduction on the sketched cells to all cells in the dataset
 * Cluster labels: The `cluster_full` column in the object metadata now labels all cells in the dataset with one of the cluster labels derived from the sketched cells
 
 ```{r, warning=FALSE, message=FALSE}
