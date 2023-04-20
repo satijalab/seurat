@@ -272,8 +272,16 @@ TransferSketchLabels <- function(
       verbose = verbose,
       assay =  slot(object = object[[reduction]], name = 'assay.used')
     )
-    Key(proj.umap) <- paste0('ref', Key(proj.umap))
-    object[[paste0('ref.',reduction.model )]] <- proj.umap
+    full.umap.reduction <- rev(
+      x = make.unique(
+        names = c(
+          Reductions(object = object),
+          paste0(reduction.model, '.full' )
+          )
+        )
+      )[1]
+    Key(proj.umap) <- Key(full.umap.reduction)
+    object[[full.umap.reduction ]] <- proj.umap
   }
   return(object)
 }
