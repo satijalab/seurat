@@ -131,7 +131,7 @@ obj <- IntegrateLayers(
 ```
 
 ```{r addscvi, include=FALSE}
-scvi.reduc <- readRDS("/brahms/haoy/test/pbmcsca_scvi.dr.rds")@cell.embeddings
+scvi.reduc <- readRDS("/brahms/haoy/seurat5/object/pbmcsca_scvi.dr.rds")@cell.embeddings
 scvi.reduc <- scvi.reduc[Cells(obj),]
 obj[["integrated.scvi"]] <- CreateDimReducObject(embeddings = scvi.reduc)
 ```
@@ -147,9 +147,9 @@ p1 <- DimPlot(
   group.by = c("Method", "predicted.celltype.l2", "cca_clusters"),
   combine = FALSE)
 
-obj <- FindNeighbors(obj, reduction = 'integrated.scvi', dims = 1:10)
+obj <- FindNeighbors(obj, reduction = 'integrated.scvi', dims = 1:30)
 obj <- FindClusters(obj,resolution = 2, cluster.name = 'scvi_clusters')
-obj <- RunUMAP(obj, reduction = "integrated.scvi", dims = 1:10, reduction.name = 'umap.scvi')
+obj <- RunUMAP(obj, reduction = "integrated.scvi", dims = 1:30, reduction.name = 'umap.scvi')
 p2 <- DimPlot(
   obj, reduction = "umap.scvi",
   group.by = c("Method", "predicted.celltype.l2", "scvi_clusters"),
