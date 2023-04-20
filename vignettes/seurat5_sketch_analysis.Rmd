@@ -139,12 +139,12 @@ DefaultAssay(obj) <- 'RNA'
 ```
 
 ```{r save.img, include = FALSE, eval = FALSE}
-p <- DimPlot(obj, label = T, label.size = 3, reduction = "ref.umap", group.by = "cluster_full", alpha = 0.1) + NoLegend()
+p <- DimPlot(obj, label = T, label.size = 3, reduction = "full.umap", group.by = "cluster_full", alpha = 0.1) + NoLegend()
 ggsave(filename = "../output/images/MouseBrain_sketch_clustering.jpg", height = 7, width = 7, plot = p, quality = 50)
 ```
 
 ```{r, fig.width=5, fig.height=5}
-DimPlot(obj, label = T, label.size = 3, reduction = 'ref.umap', group.by = 'cluster_full', alpha = 0.1) + NoLegend()
+DimPlot(obj, label = T, label.size = 3, reduction = 'full.umap', group.by = 'cluster_full', alpha = 0.1) + NoLegend()
 ```
 
 ```{r, fig.width=10, fig.height=5}

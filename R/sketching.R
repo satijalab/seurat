@@ -276,7 +276,7 @@ TransferSketchLabels <- function(
       x = make.unique(
         names = c(
           Reductions(object = object),
-          paste0(reduction.model, '.full' )
+          paste0('full.',reduction.model)
           )
         )
       )[1]
