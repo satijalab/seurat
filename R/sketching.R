@@ -280,7 +280,7 @@ TransferSketchLabels <- function(
           )
         )
       )[1]
-    Key(proj.umap) <- Key(full.umap.reduction)
+    Key(object = proj.umap) <- Key(object = full.umap.reduction)
     object[[full.umap.reduction ]] <- proj.umap
   }
   return(object)
