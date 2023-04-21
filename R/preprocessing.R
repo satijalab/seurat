@@ -523,7 +523,7 @@ Load10X_Spatial <- function(
       .x
     })
   }
-  if (is.list(data) & "Antibody Capture" %in% names(data)) {
+  if (is.list(data) && "Antibody Capture" %in% names(data)) {
     matrix_gex <- data$`Gene Expression`
     matrix_protein <- data$`Antibody Capture`
     object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
