@@ -1502,7 +1502,7 @@ Features.SCTModel <- function(x, ...) {
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
   CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
-  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   if (!assay %in% object.assays) {
     stop(paste0(
       assay,

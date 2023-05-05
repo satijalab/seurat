@@ -272,8 +272,16 @@ TransferSketchLabels <- function(
       verbose = verbose,
       assay =  slot(object = object[[reduction]], name = 'assay.used')
     )
-    Key(proj.umap) <- paste0('ref', Key(proj.umap))
-    object[[paste0('ref.',reduction.model )]] <- proj.umap
+    full.umap.reduction <- rev(
+      x = make.unique(
+        names = c(
+          Reductions(object = object),
+          paste0('full.',reduction.model)
+          )
+        )
+      )[1]
+    Key(object = proj.umap) <- Key(object = full.umap.reduction)
+    object[[full.umap.reduction ]] <- proj.umap
   }
   return(object)
 }
@@ -343,7 +351,8 @@ LeverageScore.default <- function(
   if (inherits(x = object, what = 'IterableMatrix')) {
     temp <- tempdir()
     object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
-    sa <- as(object = S %*% object, Class = 'dgCMatrix')
+    sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
+    rm(object.gene_index)
     unlink(x = temp, recursive = TRUE)
   } else {
     sa <- S %*% object
