@@ -4453,6 +4453,7 @@ ScaleData.IterableMatrix <- function(
     features.sd <- sqrt(BPCells::matrix_stats(
       matrix = object,
       row_stats = 'variance')$row_stats['variance',])
+    features.sd[features.sd == 0] <- 0.01
   } else {
     features.sd <- 1
   }
