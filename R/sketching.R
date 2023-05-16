@@ -97,7 +97,7 @@ SketchData <- function(
       silent = TRUE
     )
   }
-  if (!is.null(x = cast)) {
+  if (!is.null(x = cast) && inherits(x = sketched, what = 'Assay5')) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }
   Key(object = sketched) <- Key(object = sketched.assay, quiet = TRUE)
