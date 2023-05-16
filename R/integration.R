@@ -929,8 +929,12 @@ FindTransferAnchors <- function(
           approx = approx.pca
         )
       }
-      query_nCount_UMI <- query[[]][, paste0("nCount_", query.assay)]
-      names(x = query_nCount_UMI) <- colnames(x = query)
+      if (paste0("nCount_", query.assay) %in% colnames(query[[]])) {
+        query_nCount_UMI <- query[[]][, paste0("nCount_", query.assay)]
+        names(x = query_nCount_UMI) <- colnames(x = query)
+      } else {
+        query_nCount_UMI <- NULL
+      }
       projected.pca <- ProjectCellEmbeddings(
          reference = reference,
          reduction = reference.reduction,
