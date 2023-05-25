@@ -2,7 +2,8 @@
 ## Changes
 - Fix bug in `as.Seurat.SingleCellExperiment()` ([#6692](https://github.com/satijalab/seurat/issues/6692))
 - Support for Visium probe information introduced in Spaceranger 2.1 ([#7141](https://github.com/satijalab/seurat/pull/7141))
-- Add `LoadCurioSeeker` to load sequencing-based spatial datasets generated using the Curio Seeker
+- Add `LoadCurioSeeker` to load sequencing-based spatial datasets generated using the Curio Seeker ([#744](https://github.com/satijalab/seurat-private/pull/744))
+- Fix fold change calculation for assays ([#739](https://github.com/satijalab/seurat-private/pull/739))
 
 # Seurat 4.3.0 (2022-11-18)
 
