@@ -368,14 +368,14 @@ HTODemux <- function(
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
 #'
 GetResidual <- function(
-  object,
-  features,
-  assay = NULL,
-  umi.assay = NULL,
-  clip.range = NULL,
-  replace.value = FALSE,
-  na.rm = TRUE,
-  verbose = TRUE
+    object,
+    features,
+    assay = NULL,
+    umi.assay = NULL,
+    clip.range = NULL,
+    replace.value = FALSE,
+    na.rm = TRUE,
+    verbose = TRUE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (IsSCT(assay = object[[assay]])) {
@@ -500,37 +500,117 @@ GetResidual <- function(
 #' }
 #'
 Load10X_Spatial <- function(
-  data.dir,
-  filename = 'filtered_feature_bc_matrix.h5',
-  assay = 'Spatial',
-  slice = 'slice1',
-  filter.matrix = TRUE,
-  to.upper = FALSE,
-  image = NULL,
-  ...
+    data.dir,
+    filename = 'filtered_feature_bc_matrix.h5',
+    assay = 'Spatial',
+    slice = 'slice1',
+    filter.matrix = TRUE,
+    to.upper = FALSE,
+    image = NULL,
+    ...
 ) {
   if (length(x = data.dir) > 1) {
-    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    warning("'Load10X_Spatial' accepts only one 'data.dir'",
+            immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+  data <- Read10X_h5(filename = file.path(data.dir, filename),
+                     ...)
+
   if (to.upper) {
-    rownames(x = data) <- toupper(x = rownames(x = data))
+    data <- imap(data, ~{
+      rownames(.x) <- toupper(rownames(.x))
+      .x
+    })
   }
-  object <- CreateSeuratObject(counts = data, assay = assay)
+  if (is.list(data) & "Antibody Capture" %in% names(data)) {
+    matrix_gex <- data$`Gene Expression`
+    matrix_protein <- data$`Antibody Capture`
+    object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
+    object_protein <- CreateAssayObject(counts = matrix_protein)
+    object[["Protein"]] <- object_protein
+  }
+  else {
+    object <- CreateSeuratObject(counts = data, assay = assay)
+  }
   if (is.null(x = image)) {
-    image <- Read10X_Image(
-	    image.dir = file.path(data.dir, 'spatial'),
-	    filter.matrix = filter.matrix
-  	)
-  } else {
+    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
+                           filter.matrix = filter.matrix)
+  }
+  else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
   }
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
+
+  # if using the meta-data available for probes add to @misc slot
+  file_path <- file.path(data.dir, filename)
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe_metadata <- Read10x_probe_metadata(data.dir, filename)
+    Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe_metadata
+  }
   return(object)
+}
+
+
+#' Read10x Probe Metadata
+#'
+#' This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+#'
+#' @param data.dir The directory where the file is located.
+#' @param filename The name of the file containing the raw probe barcode matrix in HDF5 format. Currently the only file that contains meta-data is 'raw_probe_bc_matrix.h5'.
+#'
+#' @return Returns a data.frame containing the probe metadata.
+#'
+#' @export
+Read10x_probe_metadata <- function(data.dir, filename) {
+
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+    stop("Please install hdf5r to read HDF5 files")
+  }
+  file_path = paste0(data.dir,"/", filename)
+  if (!file.exists(file_path)) {
+    stop("File not found")
+  }
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe_name <- infile[['matrix/features/name']][]
+    probe_region<- infile[['matrix/features/probe_region']][]
+    meta_data <- data.frame(probe_name, probe_region)
+    return(meta_data)
+  }
+}
+
+#' Read10x Probe Metadata
+#'
+#' This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+#'
+#' @param data.dir The directory where the file is located.
+#' @param filename The name of the file containing the raw probe barcode matrix in HDF5 format. The default filename is 'raw_probe_bc_matrix.h5'.
+#'
+#' @return Returns a data.frame containing the probe metadata.
+#'
+#' @export
+Read10x_probe_metadata <- function(data.dir,
+                                   filename = 'raw_probe_bc_matrix.h5') {
+
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+    stop("Please install hdf5r to read HDF5 files")
+  }
+  file_path = paste0(data.dir,"/", filename)
+  if (!file.exists(file_path)) {
+    stop("File not found")
+  }
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe_name <- infile[['matrix/features/name']][]
+    probe_region<- infile[['matrix/features/probe_region']][]
+    meta_data <- data.frame(probe_name, probe_region)
+    return(meta_data)
+  }
 }
 
 #' Load STARmap data
