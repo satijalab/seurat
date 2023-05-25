@@ -656,6 +656,91 @@ LoadSTARmap <- function(
   return(starmap)
 }
 
+#' Load Curio Seeker data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene names, barcodes/beads, and barcodes/bead location files.
+#' @param assay Name of assay to associate spatial data to
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom Matrix readMM
+#'
+#' @export
+#' @concept preprocessing
+#'
+LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
+  # check and find input files
+  if (length(x = data.dir) > 1) {
+    warning("'LoadCurioSeeker' accepts only one 'data.dir'",
+            immediate. = TRUE)
+    data.dir <- data.dir[1]
+  }
+  mtx.file <- list.files(
+    data.dir,
+    pattern = "*MoleculesPerMatchedBead.mtx",
+    full.names = TRUE)
+  if (length(x = mtx.file) > 1) {
+    warning("Multiple files matched the pattern '*MoleculesPerMatchedBead.mtx'",
+            immediate. = TRUE)
+  } else if (length(x = mtx.file) == 0) {
+    stop("No file matched the pattern '*MoleculesPerMatchedBead.mtx'", call. = FALSE)
+  }
+  mtx.file <- mtx.file[1]
+  barcodes.file <- list.files(
+    data.dir,
+    pattern = "*barcodes.tsv",
+    full.names = TRUE)
+  if (length(x = barcodes.file) > 1) {
+    warning("Multiple files matched the pattern '*barcodes.tsv'",
+            immediate. = TRUE)
+  } else if (length(x = barcodes.file) == 0) {
+    stop("No file matched the pattern '*barcodes.tsv'", call. = FALSE)
+  }
+  barcodes.file <- barcodes.file[1]
+  genes.file <- list.files(
+    data.dir,
+    pattern = "*genes.tsv",
+    full.names = TRUE)
+  if (length(x = genes.file) > 1) {
+    warning("Multiple files matched the pattern '*genes.tsv'",
+            immediate. = TRUE)
+  } else if (length(x = genes.file) == 0) {
+    stop("No file matched the pattern '*genes.tsv'", call. = FALSE)
+  }
+  genes.file <- genes.file[1]
+  coordinates.file <- list.files(
+    data.dir,
+    pattern = "*MatchedBeadLocation.csv",
+    full.names = TRUE)
+  if (length(x = coordinates.file) > 1) {
+    warning("Multiple files matched the pattern '*MatchedBeadLocation.csv'",
+            immediate. = TRUE)
+  } else if (length(x = coordinates.file) == 0) {
+    stop("No file matched the pattern '*MatchedBeadLocation.csv'", call. = FALSE)
+  }
+  coordinates.file <- coordinates.file[1]
+
+  # load counts matrix and create seurat object
+  mtx <- readMM(mtx.file)
+  mtx <- as.sparse(mtx)
+  barcodes <- read.csv(barcodes.file, header = FALSE)
+  genes <- read.csv(genes.file, header = FALSE)
+  colnames(mtx) <- barcodes$V1
+  rownames(mtx) <- genes$V1
+  object <- CreateSeuratObject(counts = mtx, assay = assay)
+
+  # load positions of each bead and store in a SlideSeq object in images slot
+  coords <- read.csv(coordinates.file)
+  colnames(coords) <- c("cell", "x", "y")
+  coords$y <- -coords$y
+  rownames(coords) <- coords$cell
+  coords$cell <- NULL
+  image <- new(Class = 'SlideSeq', assay = assay, coordinates = coords)
+  object[["Slice"]] <- image
+  return(object)
+}
+
 #' Normalize raw data
 #'
 #' Normalize count data per cell and transform to log scale
