@@ -5,6 +5,8 @@
 \title{Read10x Probe Metadata}
 \usage{
 Read10x_probe_metadata(data.dir, filename = "raw_probe_bc_matrix.h5")
+
+Read10x_probe_metadata(data.dir, filename = "raw_probe_bc_matrix.h5")
 }
 \arguments{
 \item{data.dir}{The directory where the file is located.}
@@ -13,7 +15,11 @@ Read10x_probe_metadata(data.dir, filename = "raw_probe_bc_matrix.h5")
 }
 \value{
 Returns a data.frame containing the probe metadata.
+
+Returns a data.frame containing the probe metadata.
 }
 \description{
+This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+
 This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
 }
