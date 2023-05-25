@@ -3737,6 +3737,12 @@ ISpatialFeaturePlot <- function(
 #' entire background image.
 #' @param slot If plotting a feature, which data slot to pull from (counts,
 #' data, or scale.data)
+#' @param keep.scale How to handle the color scale across multiple plots. Options are:
+#' \itemize{
+#'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
+#'   \item{"all" (universal scaling):}{ The plots for all features and conditions are scaled to the maximum expression value for the feature with the highest overall expression.}
+#'   \item{NULL (no scaling):}{ Each individual plot is scaled to the maximum expression value of the feature in the condition provided to 'split.by'. Be aware setting NULL will result in color scales that are not comparable between plots.}
+#' }
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff
 #' values for each feature, may specify quantile in the form of 'q##' where '##'
 #' is the quantile (eg, 'q1', 'q10')
@@ -3800,6 +3806,7 @@ SpatialPlot <- function(
   image.alpha = 1,
   crop = TRUE,
   slot = 'data',
+  keep.scale = "feature",
   min.cutoff = NA,
   max.cutoff = NA,
   cells.highlight = NULL,
@@ -3839,6 +3846,12 @@ SpatialPlot <- function(
   if (length(x = images) < 1) {
     stop("Could not find any spatial image information")
   }
+
+  # Check keep.scale param for valid entries
+  if (!(is.null(x = keep.scale)) && !(keep.scale %in% c("feature", "all"))) {
+    stop("`keep.scale` must be set to either `feature`, `all`, or NULL")
+  }
+
   if (is.null(x = features)) {
     if (interactive) {
       return(ISpatialDimPlot(
@@ -3971,6 +3984,13 @@ SpatialPlot <- function(
     mode = "list",
     length = length(x = features) * ncols
   )
+
+  # Get max across all features
+  if (!(is.null(x = keep.scale)) && keep.scale == "all") {
+    max.feature.value <- max(apply(data, 2, function(x) max(x, na.rm = TRUE)))
+  }
+
+
   for (i in 1:ncols) {
     plot.idx <- i
     image.idx <- ifelse(test = facet.highlight, yes = 1, no = i)
@@ -3987,6 +4007,12 @@ SpatialPlot <- function(
         cols <- hue_pal()(n = length(x = levels(x = data[, features[j]])))
         names(x = cols) <- levels(x = data[, features[j]])
       }
+
+      # Get feature max for individual feature
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature") {
+        max.feature.value <- max(data[, features[j]])
+      }
+
       plot <- SingleSpatialPlot(
         data = cbind(
           coordinates,
@@ -4057,6 +4083,12 @@ SpatialPlot <- function(
           theme(plot.title = element_text(hjust = 0.5)) +
           NoLegend()
       }
+
+      # Plot multiple images depending on keep.scale
+      if (!(is.null(x = keep.scale))) {
+        plot <- suppressMessages(plot & scale_fill_gradientn(colors = SpatialColors(n = 100), limits = c(NA, max.feature.value)))
+      }
+
       plots[[plot.idx]] <- plot
       plot.idx <- plot.idx + ncols
       if (cols.unset) {

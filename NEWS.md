@@ -1,3 +1,8 @@
+# Unreleased
+## Changes
+- Fix bug in `as.Seurat.SingleCellExperiment()` ([#6692](https://github.com/satijalab/seurat/issues/6692))
+- Support for Visium probe information introduced in Spaceranger 2.1 ([#7141](https://github.com/satijalab/seurat/pull/7141))
+
 # Seurat 4.3.0 (2022-11-18)
 
 ## Added
