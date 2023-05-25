@@ -1239,6 +1239,8 @@ as.Seurat.SingleCellExperiment <- function(
         embeddings <- as.matrix(x = SingleCellExperiment::reducedDim(x = x, type = dr))
         if (is.null(x = rownames(x = embeddings))) {
           rownames(x = embeddings)  <- cell.names
+        } else {
+          rownames(x = embeddings) <- make.unique(names = rownames(x = embeddings))
         }
         if (isTRUE(x = !grepl('_$',
         gsub(pattern = "[[:digit:]]",
