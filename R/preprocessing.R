@@ -1,7 +1,5 @@
 #' @include generics.R
 #' @importFrom progressr progressor
-#' @import dplyr
-#' @importFrom magrittr %>% %<>%
 #'
 NULL
 
@@ -2397,8 +2395,8 @@ ReadVitessce <- function(
 #' @param z Z-index to load; must be between 0 and 6, inclusive
 #' @param use.BiocParallel If to use \code{BiocParallel::bplapply}, 
 #' default is \code{TRUE}, if \code{FALSE}, uses \code{future} library
-#' @param workers.total Number of cores to use for \code{BiocParallel::bplapply}
-#' @param DTthreads.pct Set percentage eg \code{50} of total threads to use for \code{data.table::fread}, 
+#' @param workers.MulticoreParam Number of cores to use for \code{BiocParallel::bplapply}
+#' @param DTthreads.pct Optional, set percentage eg \code{50} of total threads to use for \code{data.table::fread}, 
 #' if set to \code{NULL} will use default setting as in \code{data.table::getDTthreads(verbose = T)}
 #' @param coord.space Type of molecule spatial coordinate space to use;
 #' choose one or more of:
@@ -2406,6 +2404,8 @@ ReadVitessce <- function(
 #'  \item \dQuote{pixel}: molecule coordinates in pixel space
 #'  \item \dQuote{micron}: molecule coordinates in micron space
 #' }
+#' @param use.furrr When working with lists, use \code{furrr} with \code{future} parallelization;
+#'  if \conde{FALSE} standard \code{purrr} will be used
 #' @param use.cellpose.out If \code{TRUE}, and \code{./Cellpose} folder exists, 
 #' will load results from current MERSCOPE Instrument output. Default to \code{TRUE}; 
 #' set it to \code{FALSE} if to use previous outputs (ie. non-Cellpose).
@@ -2431,6 +2431,13 @@ ReadVitessce <- function(
 #' }
 #'
 #' @importFrom future.apply future_lapply
+#' @import dplyr
+#' @import tibble
+#' @import purrr
+#' @import furrr
+#' @import magrittr
+#' @importFrom spatstat.geom is.empty
+#' @importFrom progressr progressor
 #'
 #' @export
 #'
@@ -2449,38 +2456,38 @@ ReadVizgen <- function(
     transcripts = NULL,
     spatial = NULL,
     molecules = NULL,
-    type = 'segmentations',
+    type = c('segmentations', 'centroids'),
     mol.type = 'microns',
     metadata = NULL,
     filter = NA_character_,	
     z = 3L,
     use.BiocParallel = TRUE,
-    workers.total = 12,
+    workers.MulticoreParam = 12,
     DTthreads.pct = NULL,
-    coord.space = "micron", 
+    coord.space = 'micron',
+    use.furrr = TRUE,
     use.cellpose.out = TRUE
 ) {
-  
   # TODO: handle multiple segmentations per z-plane
   
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Please install 'data.table' for this function")
-  }
-  if (!requireNamespace("BiocParallel", quietly = TRUE)) {
-    stop("Please install 'BiocParallel' for parallelization")
-  }
-  
-  if (!requireNamespace("sfarrow", quietly = TRUE)) {
-    stop("Please install 'sfarrow' for reading cell boundaries from `.parquet` files")
-  }
+  # packages that needs to be installed a priori
+  pkgs <- c("data.table", "arrow", "sfarrow",
+            "tidyverse", "furrr", "BiocParallel")
+  lapply(pkgs %>% length %>% seq, function(i) 
+  { !requireNamespace(pkgs[i], quietly = TRUE) } ) %>% 
+    unlist %>% 
+    { if (c(which(.) > 0) %>% any()) 
+    { c("Please install ->", "\n",
+        paste0("'", pkgs[which(.)], "'", collapse = ", "), " for this function") %>% 
+        stop(., call. = FALSE) } }
   
   # setting workers to use for parallel computing - `parallel` ----
   if (use.BiocParallel) {
     message("Using parallelization with: `BiocParallel`")
-    if (is.null(workers.total)) { 
-      workers.total <- quantile(BiocParallel::multicoreWorkers() %>% seq)[4] %>% ceiling
-      message(workers.total, " of total workers available will be used")
-    } else { message("Setting total workers to: ", workers.total) }   
+    if (is.null(workers.MulticoreParam)) { 
+      workers.MulticoreParam <- quantile(BiocParallel::multicoreWorkers() %>% seq)[4] %>% ceiling
+      message(workers.MulticoreParam, " of total workers available will be used")
+    } else { message("Setting total workers to: ", workers.MulticoreParam) }   
   } else { message("Using parallelization with: `future`", "\n",
                    "NOTE: set workers for parallelization, eg: `future::plan('multisession', workers = 10)`")
   }
@@ -2529,7 +2536,13 @@ ReadVizgen <- function(
   ))
   if (use.dir && !dir.exists(paths = data.dir)) {
     stop("Cannot find Vizgen directory ", data.dir)
+  } else { 
+    message("Reading data from:" , "\n", data.dir)
   }
+  
+  # TODO:
+  # - optimize to find and read only ".parquet$" files
+  # - else read .hdf5 file from ./cell_boundaries dir
   
   # use Cellpose output ----
   if (use.cellpose.out && grep("Cellpose", list.files(data.dir)) %>% any) {
@@ -2537,11 +2550,11 @@ ReadVizgen <- function(
     # Identify input files
     files <- c(transcripts = transcripts %||% paste0(data.dir, 
                                                      paste0("/", list.files(data.dir, pattern = "Cellpose"), 
-                                                            "/cellpose_cell_by_gene.csv")),
+                                                            "/*cell_by_gene.csv")),
                
                spatial = spatial %||% paste0(data.dir, 
                                              paste0("/", list.files(data.dir, pattern = "Cellpose"), 
-                                                    "/cellpose_cell_metadata.csv")),
+                                                    "/*cell_metadata.csv")),
                
                molecules = molecules %||% "detected_transcripts[_a-zA-Z0-9]*.csv")
   } else { 
@@ -2610,9 +2623,6 @@ ReadVizgen <- function(
           immediate. = TRUE
         )
         FALSE
-      } else if (!dir.exists(paths = h5dir) && !use.cellpose.out) {
-        warning("Cannot find cell boundary H5 files", immediate. = TRUE)
-        FALSE
       } else if (use.cellpose.out) { # added for Cellpose output ----
         files2scan <-
           list.files(data.dir, pattern = ".parquet$", 
@@ -2621,7 +2631,7 @@ ReadVizgen <- function(
                      recursive = TRUE)
         if (length(files2scan)) { 
           message("Cell segmentations are found in `.parquet` file(s)", "\n", 
-                  "..using ", coord.space, " space coordinates")
+                  ">>> using ", coord.space, " space coordinates")
         }
         TRUE
       }
@@ -2733,70 +2743,151 @@ ReadVizgen <- function(
                          grep(".parquet$", ., value = TRUE)
                      } else { (.) } }
                  }
-                 # read .parquet file ----
+                 
+                 # Read .parquet file
                  parq <- sfarrow::st_read_parquet(file2read)
                  
                  # get all cell segmentations
-                 segs <- filter(parq, ZIndex == z) %>% pull(Geometry)
+                 segs <- filter(parq, ZIndex == z) %>% 
+                   pull(Geometry) %>%
+                   # add cell ID
+                   set_names(filter(parq, ZIndex == z) %>% 
+                               pull(EntityID) %>% as.character)
+                 
+                 ## Sanity checks on segmentation polygons - part 1 ----
+                 test.segs <- lapply(segs %>% seq, 
+                                     function(i) segs[[i]] %>% length) %>% unlist()
+                 if (any(test.segs > 1)) {
+                   segs.art.index <- which(test.segs > 1)
+                   segs.empty.index <- which(test.segs < 1)
+                   message("Sanity checks on cell segmentation polygons:", "\n", 
+                           ">>> found ", segs.art.index %>% length,
+                           " cells with > 1 (nested) polygon lists:", "\n",
+                           ">>> flattening polygon lists", "\n",
+                           ">>> removing ", segs.empty.index %>% length, 
+                           " empty polygon lists")
+                   
+                   # step 1 - find polygon nested lists with > 1 length
+                   # (if exists) get originally planned future session
+                   if (is(future::plan(), "multisession")) {
+                     orig.plan <- future::plan()
+                   }
+                   segs.1 <- segs %>% 
+                     purrr::keep(., c(purrr::map(., length) %>% unlist > 1)) %>%
+                     # flatten each list
+                     { 
+                       if (use.furrr) {
+                         # set temporary workers
+                         f.plan <- future::plan("multisession", workers = 4L, gc = TRUE)
+                         #on.exit(f.plan %>% future::plan()) # exiting doesn't to work with furrr
+                         # using furrr (ie, faster purrr with future) 
+                         furrr::future_map(., purrr::flatten)
+                       } else {
+                         purrr::map(., purrr::flatten)
+                       }
+                       # since furrr loads future, hide startup messages
+                     } %>% suppressPackageStartupMessages()
+                   # set back originally plannned session
+                   if (exists("orig.plan")) { 
+                     future::plan(orig.plan)
+                   } else { 
+                     #..or plan sequential
+                     future::plan("sequential")
+                   }
+                   
+                   # step 2 - apply multiple filtering  
+                   segs.2 <- 
+                     segs %>%
+                     # remove empty elements               
+                     purrr::keep(., !c(purrr::map(., length) %>% unlist < 1)) %>%
+                     # keep lists with length == 1 polygon information      
+                     purrr::keep(., c(purrr::map(., length) %>% unlist == 1)) %>%
+                     # collapse to a list
+                     purrr::flatten(.)
+                   
+                   # step 3 - combine segmentaion lists     
+                   segs <- c(segs.1, segs.2) 
+                 }
+                 
+                 ## Sanity checks on segmentation polygons - part 2 ----
                  # check if any cells have > 1 segmentation boundary
-                 test.segs <- 
-                   lapply(segs %>% seq, function(i) segs[[i]][[1]] %>% length)
-                 if (which(unlist(test.segs) > 1) %>% any) {
-                   segs.art.index <- which(unlist(test.segs) > 1)
-                   message(segs.art.index %>% length, 
-                           " Cells have > 1 segmentaion boundary artifacts", "\n",
-                           "..removing artifacts", "\n",
-                           "..keeping cell boundaries with maximum coords")
+                 test.segs <- lapply(segs %>% seq, function(i) segs[[i]] %>% length) %>% unlist()
+                 if (any(test.segs %>% unlist > 1)) {
+                   segs.art.index <- which(test.segs %>% unlist > 1)
+                   message("Found ", segs.art.index %>% length,
+                           c(" cells with > 1 polygon artifacts:",
+                             ">>> removing artifacts",
+                             ">>> keeping cell boundary with maximum coords") %>% 
+                             paste0(., "\n"))
                    # usually artifacts have small boundaries/coords
                    # find cell boundaries with maximum coords
+                   
+                   # TODO: (optionally)
+                   # - calculate geometric properties: 
+                   # eg, use sphericity to keep single polygon with high sphericity values
+                   
                    for (i in segs.art.index %>% seq) { 
-                     dims <- lapply(segs[[segs.art.index[i]]][[1]] %>% seq(), 
-                                    function(d) { dim(segs[[segs.art.index[i]]][[1]][[d]])[1] } )
+                     dims <- lapply(segs[[segs.art.index[i]]] %>% seq(), 
+                                    function(d) { dim(segs[[segs.art.index[i]]][[d]])[1] } )
                      # get & keep boundaries with maximum coords
-                     maxs.segs <- which(unlist(dims) == max(unlist(dims)))  
-                     segs[[segs.art.index[i]]][[1]] <- segs[[segs.art.index[i]]][[1]][maxs.segs]
+                     maxs.segs <- which(unlist(dims) == max(unlist(dims)))
+                     segs[[segs.art.index[i]]] <- segs[[segs.art.index[i]]][maxs.segs]
                    }
-                 } else { message("All cells have 1 segmentaion boundary (no artifacts)") }
-                 # add cell names 
-                 names(segs) <- filter(parq, ZIndex == z) %>% pull(EntityID) %>% as.character       
+                 } else { message("All cells have single polygon boundary (no artifacts)") }                 
                  
+                 # some cells might have > 1 polygon boundary with identical lenght
+                 #..in this case, keep only the 1st polygon boundary
+                 test.segs <- lapply(segs %>% seq, function(i) segs[[i]] %>% length) %>% unlist()                
+                 if (any(test.segs > 1)) {
+                   segs.art.index <- which(test.segs > 1)
+                   message("Additionally found ", segs.art.index %>% length,
+                           c(" cells with > 1 polygons (identical length):",
+                             ">>> only the 1st polygon boundary will be kept") %>% 
+                             paste0(., "\n"))
+                   for (i in segs.art.index %>% seq) { 
+                     # TODO: (optionally)
+                     # - calculate geometric properties: 
+                     # here too, use sphericity to keep single polygon with high sphericity values
+                     segs[[segs.art.index[i]]] <- segs[[segs.art.index[i]]][1]
+                   }
+                 }              
+                 
+                 ## Extract cell boundaries per cells
                  # TODO: (optionally) resample & make cell boundaries equidistant!  
+
                  if (use.BiocParallel) {
-                   # extract cell boundaries per cells (faster)
                    gc() %>% invisible() # free up memory
-                   message("Using fast extraction of cell boundaries..")  
+                   message("Extracting cell segmentations - using `BiocParallel`")  
                    segs_list <-
                      BiocParallel::bplapply(segs %>% seq,
                                             function(i) {
                                               segs[[i]][[1]] %>% 
-                                                data.table::as.data.table(x = .) %>%
+                                                data.table::as.data.table(.) %>%
                                                 #as.data.frame %>%
                                                 mutate(cell = names(segs)[i]) },
-                                            BPPARAM = BiocParallel::MulticoreParam(workers.total, tasks = 100L, 
+                                            BPPARAM = BiocParallel::MulticoreParam(workers.MulticoreParam, 
+                                                                                   tasks = 50L, 
                                                                                    force.GC = FALSE, 
                                                                                    progressbar = TRUE)
                      )
                  } else {
-                   # extract cell boundaries per cells
-                   message("Extracting of cell boundaries..")    
+                   message("Extracting cell segmentations - using `future`")    
                    segs_list <-
                      future.apply::future_lapply(segs %>% seq,
                                                  function(i) {
-                                                   segs[[i]][[1]] %>%
-                                                     data.table::as.data.table(x = .) %>%
+                                                   segs[[i]] %>%
+                                                     data.table::as.data.table(.) %>%
                                                      #as.data.frame %>% 
                                                      mutate(cell = names(segs)[i])
-                                                   }
-                                                 )
+                                                 }
+                     )
                  }
                  
-                 #segs_list %>% length
                  # df of all cell segmentations
-                 gc() %>% invisible() # free up memory
-                 #segs <- do.call("rbind", segs_list)
-                 segs <- data.table::rbindlist(segs_list)
-                 names(segs)[1:2] <- c("x", "y") 
-                 message("All cell boundaries (with no artifacts) are loaded..")        
+                 segs <- 
+                   data.table::rbindlist(segs_list) %>% 
+                   data.table::setnames(c("x", "y", "cell"))
+                 message("All cell segmentations are loaded..")        
                  segs
                } else { # use non-Cellpose segmentations
                  ppoly <- progressor(steps = length(x = unique(x = sp$fov)))
@@ -2827,12 +2918,12 @@ ReadVizgen <- function(
                        }, error = function(...) {
                          return(NULL)
                        }))
-                     }, BPPARAM = BiocParallel::MulticoreParam(workers.total, tasks = 100L, 
+                     }, BPPARAM = BiocParallel::MulticoreParam(workers.MulticoreParam, tasks = 50L, 
                                                                force.GC = FALSE, 
                                                                progressbar = TRUE))   
                      ppoly()
                      return(do.call(what = "rbind", args = df))
-                   }, BPPARAM = BiocParallel::MulticoreParam(workers.total, tasks = 100L, 
+                   }, BPPARAM = BiocParallel::MulticoreParam(workers.MulticoreParam, tasks = 50L, 
                                                              force.GC = FALSE, 
                                                              progressbar = TRUE))
                  } else { 
@@ -2891,7 +2982,7 @@ ReadVizgen <- function(
                    df <- df[c(1, 3, 4, 2), , drop = FALSE]
                    pbox()
                    return(df)
-                 }, BPPARAM = BiocParallel::MulticoreParam(workers.total, tasks = 100L, 
+                 }, BPPARAM = BiocParallel::MulticoreParam(workers.MulticoreParam, tasks = 50L, 
                                                            force.GC = FALSE, progressbar = TRUE)
                  )
                } else {
@@ -2933,7 +3024,9 @@ ReadVizgen <- function(
   }
   
   # add z-slice index for cells ----
-  outs$zIndex <- data.frame(z = rep_len(z, length.out = outs$centroids$cell %>% length), cell = outs$centroids$cell)
+  outs$zIndex <- 
+    data.frame(z = rep_len(z, length.out = outs$centroids %>% pull(cell) %>% length), 
+               cell = outs$centroids %>% pull(cell))
   
   return(outs)
 }
