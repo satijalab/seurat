@@ -1,6 +1,5 @@
 #' @include generics.R
 #' @include visualization.R
-#' @importFrom magrittr %>% %<>%
 #'
 NULL
 
@@ -21,11 +20,11 @@ NULL
 #' @rdname ReadAkoya
 #'
 LoadAkoya <- function(
-  filename,
-  type = c('inform', 'processor', 'qupath'),
-  fov,
-  assay = 'Akoya',
-  ...
+    filename,
+    type = c('inform', 'processor', 'qupath'),
+    fov,
+    assay = 'Akoya',
+    ...
 ) {
   # read in matrix and centroids
   data <- ReadAkoya(filename = filename, type = type)
@@ -116,7 +115,7 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
     assay = assay
   )
   obj <- CreateSeuratObject(counts = data$matrix, assay = assay)
-
+  
   # subset both object and coords based on the cells shared by both
   cells <- intersect(
     Cells(x = coords, boundary = "segmentation"),
@@ -136,6 +135,7 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
 #'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
 #' CreateSegmentation CreateSeuratObject
+#' @import dplyr
 #'
 #' @export
 #'
@@ -146,17 +146,32 @@ LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
                        ...) {
   data <- ReadVizgen(data.dir = data.dir, ...)
   
-  # if "segmentations" are not present, use cell bounding boxes instead
-  if (!"segmentations" %in% names(data)) { 
-    bound.boxes <- CreateSegmentation(data[["boxes"]])
-    cents <- CreateCentroids(data[["centroids"]])
-    bound.boxes.data <- list(centroids = cents, boxes = bound.boxes)
-    message("Creating FOVs", "\n",
-            "..using box coordinates instead of segmentations")  
-    coords <- CreateFOV(coords = bound.boxes.data, type = c("boxes",
-                                                            "centroids"), molecules = data[[mol.type]], assay = assay)
-    message("Creating Seurat object")  
-    obj <- CreateSeuratObject(counts = data[["transcripts"]], assay = assay)
+  #gc() %>% invisible()
+  message("Creating Seurat object..")  
+  obj <- CreateSeuratObject(counts = data[["transcripts"]], assay = assay)
+  
+  # in case no segmentation is present, use boxes
+  if (!"segmentations" %in% names(data)) {
+    if ("boxes" %in% names(data)) {
+      bound.boxes <- CreateSegmentation(data[["boxes"]])
+      cents <- CreateCentroids(data[["centroids"]])
+      bound.boxes.data <- list(centroids = cents, 
+                               boxes = bound.boxes)
+      message("Creating FOVs..", "\n",
+              ">>> using box coordinates instead of segmentations")
+      coords <- CreateFOV(coords = bound.boxes.data, 
+                          type = c("boxes", "centroids"), 
+                          molecules = data[[mol.type]], 
+                          assay = assay)
+    } else { # in case no segmentation & no boxes are present, use centroids only
+      cents <- CreateCentroids(data[["centroids"]])
+      message("Creating FOVs..", "\n",
+              ">>> using only centroids")
+      coords <- CreateFOV(coords = list(centroids = cents), 
+                          type = c("centroids"),
+                          molecules = data[[mol.type]], 
+                          assay = assay)
+    }
     # only consider the cells we have counts and a segmentation for
     # Cells which don't have a segmentation are probably found in other z slices.
     coords <- subset(x = coords, 
@@ -166,24 +181,22 @@ LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
     segs <- CreateSegmentation(data[["segmentations"]])
     cents <- CreateCentroids(data[["centroids"]])
     segmentations.data <- list(centroids = cents, segmentation = segs)
-    message("Creating FOVs", "\n", 
-            "..using segmentations")    
-    coords <- CreateFOV(coords = segmentations.data, type = c("segmentation",
-                                                              "centroids"), molecules = data[[mol.type]], assay = assay)
-    message("Creating Seurat object..")  
-    obj <- CreateSeuratObject(counts = data[["transcripts"]], assay = assay)
-    # only consider the cells we have counts and a segmentation for
-    # Cells which don't have a segmentation are probably found in other z slices.
+    message("Creating FOVs..", "\n", 
+            ">>> using segmentations")    
+    coords <- CreateFOV(coords = segmentations.data, 
+                        type = c("segmentation", "centroids"), 
+                        molecules = data[[mol.type]], 
+                        assay = assay)
     coords <- subset(x = coords,
                      cells = intersect(x = Cells(x = coords[["segmentation"]]),
                                        y = Cells(x = obj)))    
   }
   
   # add z-stack index for cells
-  if (add.zIndex) { obj$z <- data$zIndex$z }
+  if (add.zIndex) { obj$z <- data$zIndex %>% pull(z) }
   
   # add metadata vars
-  message("..adding metadata infos")  
+  message(">>> adding metadata infos")  
   if (c("metadata" %in% names(data))) {
     metadata <- match.arg(arg = "metadata", choices = names(data), several.ok = TRUE)
     meta.vars <- names(data[[metadata]])
@@ -196,16 +209,26 @@ LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
   # sanity on fov name
   fov %<>% gsub("_|-", ".", .) 
   
-  #message("..adding FOV")
-  # add coords to seurat object
+  message(">>> adding FOV")
   obj[[fov]] <- coords
+  
+  ## filter - keep cells with counts > 0
+  # small helper function to return metadata
+  callmeta <- function (object = NULL) { return(object@meta.data) }
+  nCount <- grep("nCount", callmeta(obj) %>% names, value = TRUE)
+  if (any(obj[[nCount]] > 0)) {
+    message(">>> filtering object - keep cells with counts > 0")
+    obj %<>% subset(subset = !!base::as.symbol(nCount) > 0)
+  }
   
   if (update.object) { 
     message("Updating object..")
     obj %<>% UpdateSeuratObject() } 
   
-  #message("Object is ready!")    
+  message("Object is ready!")    
   return(obj)
+  
+  gc() %>% invisible()
 }
 
 #' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
@@ -226,7 +249,7 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
     data.dir = data.dir,
     type = c("centroids", "segmentations"),
   )
-
+  
   segmentations.data <- list(
     "centroids" = CreateCentroids(data$centroids),
     "segmentation" = CreateSegmentation(data$segmentations)
@@ -237,7 +260,7 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
     molecules = data$microns,
     assay = assay
   )
-
+  
   xenium.obj <- CreateSeuratObject(counts = data$matrix[["Gene Expression"]], assay = assay)
   if("Blank Codeword" %in% names(data$matrix))
     xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Blank Codeword"]])
@@ -245,7 +268,7 @@ LoadXenium <- function(data.dir, fov = 'fov', assay = 'Xenium') {
     xenium.obj[["BlankCodeword"]] <- CreateAssayObject(counts = data$matrix[["Unassigned Codeword"]])
   xenium.obj[["ControlCodeword"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Codeword"]])
   xenium.obj[["ControlProbe"]] <- CreateAssayObject(counts = data$matrix[["Negative Control Probe"]])
-
+  
   xenium.obj[[fov]] <- coords
   return(xenium.obj)
 }
@@ -279,27 +302,27 @@ PCAPlot <- function(object, ...) {
 #' @export
 #'
 SpatialDimPlot <- function(
-  object,
-  group.by = NULL,
-  images = NULL,
-  cols = NULL,
-  crop = TRUE,
-  cells.highlight = NULL,
-  cols.highlight = c('#DE2D26', 'grey50'),
-  facet.highlight = FALSE,
-  label = FALSE,
-  label.size = 7,
-  label.color = 'white',
-  repel = FALSE,
-  ncol = NULL,
-  combine = TRUE,
-  pt.size.factor = 1.6,
-  alpha = c(1, 1),
-  image.alpha = 1,
-  stroke = 0.25,
-  label.box = TRUE,
-  interactive = FALSE,
-  information = NULL
+    object,
+    group.by = NULL,
+    images = NULL,
+    cols = NULL,
+    crop = TRUE,
+    cells.highlight = NULL,
+    cols.highlight = c('#DE2D26', 'grey50'),
+    facet.highlight = FALSE,
+    label = FALSE,
+    label.size = 7,
+    label.color = 'white',
+    repel = FALSE,
+    ncol = NULL,
+    combine = TRUE,
+    pt.size.factor = 1.6,
+    alpha = c(1, 1),
+    image.alpha = 1,
+    stroke = 0.25,
+    label.box = TRUE,
+    interactive = FALSE,
+    information = NULL
 ) {
   return(SpatialPlot(
     object = object,
@@ -332,22 +355,22 @@ SpatialDimPlot <- function(
 #' @export
 #'
 SpatialFeaturePlot <- function(
-  object,
-  features,
-  images = NULL,
-  crop = TRUE,
-  slot = 'data',
-  keep.scale = "feature",
-  min.cutoff = NA,
-  max.cutoff = NA,
-  ncol = NULL,
-  combine = TRUE,
-  pt.size.factor = 1.6,
-  alpha = c(1, 1),
-  image.alpha = 1,
-  stroke = 0.25,
-  interactive = FALSE,
-  information = NULL
+    object,
+    features,
+    images = NULL,
+    crop = TRUE,
+    slot = 'data',
+    keep.scale = "feature",
+    min.cutoff = NA,
+    max.cutoff = NA,
+    ncol = NULL,
+    combine = TRUE,
+    pt.size.factor = 1.6,
+    alpha = c(1, 1),
+    image.alpha = 1,
+    stroke = 0.25,
+    interactive = FALSE,
+    information = NULL
 ) {
   return(SpatialPlot(
     object = object,
