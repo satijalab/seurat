@@ -4009,7 +4009,7 @@ SpatialPlot <- function(
       }
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature") {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && typeof(x = data[, features[j]]) != "factor") {
         max.feature.value <- max(data[, features[j]])
       }
 
