@@ -4009,7 +4009,7 @@ SpatialPlot <- function(
       }
 
       # Get feature max for individual feature
-      if (!(is.null(x = keep.scale)) && keep.scale == "feature") {
+      if (!(is.null(x = keep.scale)) && keep.scale == "feature" && class(x = data[, features[j]]) != "factor") {
         max.feature.value <- max(data[, features[j]])
       }
 
@@ -4085,7 +4085,7 @@ SpatialPlot <- function(
       }
 
       # Plot multiple images depending on keep.scale
-      if (!(is.null(x = keep.scale))) {
+      if (!(is.null(x = keep.scale)) && class(x = data[, features[j]]) != "factor") {
         plot <- suppressMessages(plot & scale_fill_gradientn(colors = SpatialColors(n = 100), limits = c(NA, max.feature.value)))
       }
 
