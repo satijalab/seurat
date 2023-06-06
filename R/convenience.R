@@ -129,8 +129,10 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
 
 #' @return \code{LoadVizgen}: A \code{\link[SeuratObject]{Seurat}} object
 #'
+#' @param fov Name to store FOV as
+#' @param assay Name to store expression matrix as
 #' @param add.zIndex If to add \code{z} slice index to a cell
-#' @param update.object If to update final object, default to TRUE.
+#' @param update.object If to update final object, default to TRUE
 #' @param ... Arguments passed to \code{ReadVizgen}
 #'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
@@ -141,13 +143,27 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
 #'
 #' @rdname ReadVizgen
 #'
-LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
-                       add.zIndex = TRUE, update.object = TRUE,
-                       ...) {
-  data <- ReadVizgen(data.dir = data.dir, ...)
+LoadVizgen <- function(
+    data.dir, 
+    fov = 'vz', 
+    assay = 'Vizgen',
+    mol.type = 'microns',
+    filter = '^Blank-',
+    z = 3L,
+    add.zIndex = TRUE, 
+    update.object = TRUE,
+    verbose,
+    ...)
+{
+  # reading data..
+  data <- ReadVizgen(data.dir = data.dir,
+                     mol.type = mol.type,
+                     filter = filter,
+                     z = z,
+                     verbose = verbose,
+                     ...)
   
-  #gc() %>% invisible()
-  message("Creating Seurat object..")  
+  if (verbose) { message("Creating Seurat object..") }  
   obj <- CreateSeuratObject(counts = data[["transcripts"]], assay = assay)
   
   # in case no segmentation is present, use boxes
@@ -157,46 +173,53 @@ LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
       cents <- CreateCentroids(data[["centroids"]])
       bound.boxes.data <- list(centroids = cents, 
                                boxes = bound.boxes)
-      message("Creating FOVs..", "\n",
-              ">>> using box coordinates instead of segmentations")
+      if (verbose) { 
+        message("Creating FOVs..", "\n",
+                ">>> using box coordinates instead of segmentations") 
+      }
       coords <- CreateFOV(coords = bound.boxes.data, 
-                          type = c("boxes", "centroids"), 
+                          type = c("boxes", "centroids"),
                           molecules = data[[mol.type]], 
                           assay = assay)
-    } else { # in case no segmentation & no boxes are present, use centroids only
+    } else { 
+      # in case no segmentation & no boxes are present, use centroids only
       cents <- CreateCentroids(data[["centroids"]])
-      message("Creating FOVs..", "\n",
-              ">>> using only centroids")
+      if (verbose) { 
+        message("Creating FOVs..", "\n",
+                ">>> using only centroids") 
+      }
       coords <- CreateFOV(coords = list(centroids = cents), 
                           type = c("centroids"),
                           molecules = data[[mol.type]], 
                           assay = assay)
+      coords <- subset(x = coords, 
+                       cells = intersect(x = Cells(x = coords[["centroids"]]),
+                                         y = Cells(x = obj))) 
     }
-    # only consider the cells we have counts and a segmentation for
-    # Cells which don't have a segmentation are probably found in other z slices.
-    coords <- subset(x = coords, 
-                     cells = intersect(x = Cells(x = coords[["boxes"]]),
-                                       y = Cells(x = obj)))
-  } else {
+  } else if ("segmentations" %in% names(data)) {
     segs <- CreateSegmentation(data[["segmentations"]])
     cents <- CreateCentroids(data[["centroids"]])
     segmentations.data <- list(centroids = cents, segmentation = segs)
-    message("Creating FOVs..", "\n", 
-            ">>> using segmentations")    
+    if (verbose) { 
+      message("Creating FOVs..", "\n", 
+              ">>> using segmentations") 
+    }
     coords <- CreateFOV(coords = segmentations.data, 
                         type = c("segmentation", "centroids"), 
                         molecules = data[[mol.type]], 
                         assay = assay)
+    # only consider the cells we have counts and a segmentation.
+    # Cells which don't have a segmentation are probably found in other z slices.
     coords <- subset(x = coords,
                      cells = intersect(x = Cells(x = coords[["segmentation"]]),
-                                       y = Cells(x = obj)))    
+                                       y = Cells(x = obj)))
   }
   
   # add z-stack index for cells
   if (add.zIndex) { obj$z <- data$zIndex %>% pull(z) }
   
   # add metadata vars
-  message(">>> adding metadata infos")  
+  if (verbose) { message(">>> adding metadata infos") }
   if (c("metadata" %in% names(data))) {
     metadata <- match.arg(arg = "metadata", choices = names(data), several.ok = TRUE)
     meta.vars <- names(data[[metadata]])
@@ -207,28 +230,31 @@ LoadVizgen <- function(data.dir, fov = "vz", assay = 'Vizgen',
   }
   
   # sanity on fov name
-  fov %<>% gsub("_|-", ".", .) 
+  fov %<>% gsub("_|-", ".", .)
   
-  message(">>> adding FOV")
+  if (verbose) { message(">>> adding FOV") }
   obj[[fov]] <- coords
   
   ## filter - keep cells with counts > 0
-  # small helper function to return metadata
+  # helper function to return metadata
   callmeta <- function (object = NULL) { return(object@meta.data) }
   nCount <- grep("nCount", callmeta(obj) %>% names, value = TRUE)
-  if (any(obj[[nCount]] > 0)) {
-    message(">>> filtering object - keep cells with counts > 0")
+  if (any(obj[[nCount]] == 0)) {
+    if (verbose) { message(">>> filtering object - keeping cells with counts > 0") }
     obj %<>% subset(subset = !!base::as.symbol(nCount) > 0)
-  }
+  } else { if (verbose) { message(">>> all counts are > 0") } }
   
   if (update.object) { 
-    message("Updating object..")
-    obj %<>% UpdateSeuratObject() } 
+    if (verbose) { message("Updating object:") 
+      obj %<>% UpdateSeuratObject()
+    } else { 
+      obj %<>% 
+        UpdateSeuratObject() %>% 
+        suppressMessages() } }
   
-  message("Object is ready!")    
+  if (verbose) { message("Object is ready!") } 
   return(obj)
   
-  gc() %>% invisible()
 }
 
 #' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
