@@ -353,7 +353,7 @@ LeverageScore.default <- function(
     object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
     sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
     rm(object.gene_index)
-    unlink(x = temp, recursive = TRUE)
+    unlink(list.files(path = temp, full.names = TRUE))
   } else {
     sa <- S %*% object
   }
