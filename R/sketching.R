@@ -97,7 +97,7 @@ SketchData <- function(
       silent = TRUE
     )
   }
-  if (!is.null(x = cast)) {
+  if (!is.null(x = cast) && inherits(x = sketched, what = 'Assay5')) {
     sketched <- CastAssay(object = sketched, to = cast, ...)
   }
   Key(object = sketched) <- Key(object = sketched.assay, quiet = TRUE)
@@ -353,7 +353,7 @@ LeverageScore.default <- function(
     object.gene_index <- transpose_storage_order(matrix = object, tmpdir = temp)
     sa <- as(object = S %*% object.gene_index, Class = 'dgCMatrix')
     rm(object.gene_index)
-    unlink(x = temp, recursive = TRUE)
+    unlink(list.files(path = temp, full.names = TRUE))
   } else {
     sa <- S %*% object
   }
