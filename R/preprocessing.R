@@ -757,44 +757,6 @@ LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
   return(object)
 }
 
-#' Normalize raw data
-#'
-#' Normalize count data per cell and transform to log scale
-#'
-#' @param data Matrix with the raw count data
-#' @param scale.factor Scale the data. Default is 1e4
-#' @param verbose Print progress
-#'
-#' @return Returns a matrix with the normalize and log transformed data
-#'
-#' @importFrom methods as
-#'
-#' @export
-#' @concept preprocessing
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
-#' mat
-#' mat_norm <- LogNormalize(data = mat)
-#' mat_norm
-#'
-LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
-  if (is.data.frame(x = data)) {
-    data <- as.matrix(x = data)
-  }
-  if (!inherits(x = data, what = 'dgCMatrix')) {
-    data <- as.sparse(x = data)
-  }
-  # call Rcpp function to normalize
-  if (verbose) {
-    cat("Performing log-normalization\n", file = stderr())
-  }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
-  colnames(x = norm.data) <- colnames(x = data)
-  rownames(x = norm.data) <- rownames(x = data)
-  return(norm.data)
-}
-
 #' Demultiplex samples based on classification method from MULTI-seq (McGinnis et al., bioRxiv 2018)
 #'
 #' Identify singlets, doublets and negative cells from multiplexing experiments. Annotate singlets by tags.
