@@ -8051,12 +8051,12 @@ SingleDimPlot <- function(
   raster = NULL,
   raster.dpi = NULL
 ) {
-  pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if ((nrow(x = data) > 1e5) & !isFALSE(raster)){
     message("Rasterizing points since number of points exceeds 100,000.",
             "\nTo disable this behavior set `raster=FALSE`")
   }
   raster <- raster %||% (nrow(x = data) > 1e5)
+  pt.size <- pt.size %||% AutoPointSize(data = data, raster = raster)
   if (!is.null(x = raster.dpi)) {
     if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2)
       stop("'raster.dpi' must be a two-length numeric vector")
