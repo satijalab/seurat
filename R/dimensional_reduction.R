@@ -2016,6 +2016,11 @@ CheckFeatures <- function(
   if (inherits(x = data.use, what = 'dgCMatrix')) {
     features.var <- SparseRowVar(mat = data.use[features, ], display_progress = F)
   }
+  else if (inherits(x = data.use,  what = "IterableMatrix")) {
+    bp.stats <- BPCells::matrix_stats(matrix = data.use, 
+                                      row_stats = "variance")
+    features.var <- bp.stats$row_stats["variance",][features]
+  }
   else {
     features.var <- RowVar(x = data.use[features, ])
   }
