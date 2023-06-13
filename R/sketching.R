@@ -29,6 +29,7 @@ SketchData <- function(
   over.write = FALSE,
   seed = 123L,
   cast = 'dgCMatrix',
+  prop.ncells = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -76,6 +77,13 @@ SketchData <- function(
       lcells <- Cells(x = object[[assay]], layer = layers.data[i])
       if (length(x = lcells) < ncells) {
         return(lcells)
+      }
+      if (length(prop.ncells) > 0){
+        return(sample(
+          x = lcells,
+          size = length(lcells)*prop.ncells,
+          prob = leverage.score[lcells,]
+        ))
       }
       return(sample(
         x = lcells,
@@ -145,7 +153,7 @@ ProjectData <- function(
       key = Key(object = full.reduction, quiet = TRUE)
     )
   }
-  
+
   object <- TransferSketchLabels(object = object,
                                  atoms = sketched.assay,
                                  reduction = full.reduction,
@@ -185,20 +193,20 @@ TransferSketchLabels <- function(
     object = object,
     slot = 'TransferSketchLabels'
   )$full_sketch.weight
-  
+
   compute.neighbors <- is.null(x = full_sketch.nn) ||
     !all(Cells(full_sketch.nn) == Cells(object[[reduction]])) ||
     max(Indices(full_sketch.nn)) >  ncol(object[[atoms]]) ||
     !identical(x = full_sketch.nn@alg.info$dims, y =  dims) ||
     !identical(x = full_sketch.nn@alg.info$reduction, y =  reduction) ||
     recompute.neighbors
-  
+
   compute.weights <- is.null(x = full_sketch.weight) ||
     !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
     !all(rownames(full_sketch.weight) == colnames(object[[atoms]]))  ||
-    recompute.weights || 
+    recompute.weights ||
     recompute.neighbors
-  
+
   if (compute.neighbors) {
     if (verbose) {
       message("Finding sketch neighbors")
@@ -225,7 +233,7 @@ TransferSketchLabels <- function(
   }
   slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
   slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
-  
+
   if (!is.null(refdata)) {
     if (length(refdata) == 1  & is.character(refdata)) {
       refdata <- list(refdata)
@@ -452,7 +460,7 @@ LeverageScore.DelayedMatrix <- function(
 
 
 #' @method LeverageScore StdAssay
-#' 
+#'
 #' @export
 #'
 LeverageScore.StdAssay <- function(
