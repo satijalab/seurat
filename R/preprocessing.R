@@ -789,7 +789,8 @@ Read10X <- function(
   gene.column = 2,
   cell.column = 1,
   unique.features = TRUE,
-  strip.suffix = FALSE
+  strip.suffix = FALSE,
+  prefix = ''
 ) {
   full.data <- list()
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
@@ -798,10 +799,16 @@ Read10X <- function(
     if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    barcode.loc <- file.path(run, 'barcodes.tsv')
-    gene.loc <- file.path(run, 'genes.tsv')
+    if (prefix == '')) {
+      barcode.loc <- file.path(run, 'barcodes.tsv')
+      gene.loc <- file.path(run, 'genes.tsv')
+      matrix.loc <- file.path(run, 'matrix.mtx')
+    } else {
+      barcode.loc <- file.path(run, paste0(prefix,'_barcodes.tsv'))
+      gene.loc <- file.path(run, paste0(prefix,'_genes.tsv'))
+      matrix.loc <- file.path(run, paste0(prefix,'_matrix.mtx'))
+    }
     features.loc <- file.path(run, 'features.tsv.gz')
-    matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
     if (!pre_ver_3) {

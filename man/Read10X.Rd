@@ -9,7 +9,8 @@ Read10X(
   gene.column = 2,
   cell.column = 1,
   unique.features = TRUE,
-  strip.suffix = FALSE
+  strip.suffix = FALSE,
+  prefix = ''
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ will be prefixed with the name.}
 \item{unique.features}{Make feature names unique (default TRUE)}
 
 \item{strip.suffix}{Remove trailing "-1" if present in all cell barcodes.}
+
+\item{prefix}{Any prefix before matrix.mtx, genes.tsv and barcodes.tsv. For instance, if the files are named patientA_matrix.mtx, patientA_genes.tsv and patientA_barcodes.tsv the prefix is patientA_. (Default: no prefix)}
 }
 \value{
 If features.csv indicates the data has multiple data types, a list
