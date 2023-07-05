@@ -13,6 +13,26 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+#' Sketch Data
+#'
+#' This function uses sketching methods to downsample high-dimensional single-cell RNA expression data, 
+#' which can help with scalability for large datasets.
+#'
+#' @param object A Seurat object.
+#' @param assay Assay name. Default is NULL, in which case the default assay of the object is used.
+#' @param ncells A positive integer indicating the number of cells to sample for the sketching. Default is 5000.
+#' @param sketched.assay Sketched assay name. A  sketch assay is created or overwrite with the sketch data. Default is 'sketch'.
+#' @param method  Sketching method to use. Can be 'LeverageScore' or 'Uniform'. 
+#'               Default is 'LeverageScore'.
+#' @param var.name A metadata column name to store the leverage scores. Default is 'leverage.score'.
+#' @param over.write whether to overwrite existing column in the metadata. Default is FALSE.
+#' @param seed A positive integer for the seed of the random number generator. Default is 123.
+#' @param cast The type to cast the resulting assay to. Default is 'dgCMatrix'.
+#' @param verbose Print progress and diagnostic messages
+#' @param ... Arguments passed to other methods
+#'
+#' @return A Seurat object with the sketched data added as a new assay.
+#'
 #' @importFrom SeuratObject CastAssay Key Key<- Layers
 #'
 #' @export
@@ -290,9 +310,19 @@ TransferSketchLabels <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param nsketch A positive integer. The number of sketches to be used in the approximation. 
+#'                Default is 5000.
+#' @param ndims A positive integer or NULL. The number of dimensions to use. If NULL, the number 
+#'              of dimensions will default to the number of columns in the object.
+#' @param method The sketching method to use, defaults to CountSketch.
+#' @param eps A numeric. The error tolerance for the approximation in Johnson–Lindenstrauss embeddings, 
+#'            defaults to 0.5.
+#' @param seed A positive integer. The seed for the random number generator, defaults to 123.
+#' @param verbose Print progress and diagnostic messages
 #' @importFrom Matrix qrR t
 #' @importFrom irlba irlba
-#'
+#' 
+#' @rdname LeverageScore
 #' @method LeverageScore default
 #' @export
 #'
@@ -386,6 +416,7 @@ LeverageScore.default <- function(
   return(Z.score)
 }
 
+#' @rdname LeverageScore
 #' @importFrom Matrix qrR t
 #' @method LeverageScore DelayedMatrix
 #' @export
@@ -450,7 +481,7 @@ LeverageScore.DelayedMatrix <- function(
   return(scores)
 }
 
-
+#' @rdname LeverageScore
 #' @method LeverageScore StdAssay
 #' 
 #' @export
@@ -503,11 +534,13 @@ LeverageScore.StdAssay <- function(
   return(scores)
 }
 
+#' @rdname LeverageScore
 #' @method LeverageScore Assay
 #' @export
 #'
 LeverageScore.Assay <- LeverageScore.StdAssay
 
+#' @rdname LeverageScore
 #' @method LeverageScore Seurat
 #' @export
 #'
