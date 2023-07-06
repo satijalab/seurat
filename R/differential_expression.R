@@ -723,6 +723,13 @@ FindMarkers.SCTAssay <- function(
     yes = 'counts',
     no = slot
   )
+  if (test.use %in% DEmethods_counts()){
+    # set slot to counts
+    if (slot !="counts") {
+      message(paste0("Setting slot to counts for ", test.use, " (counts based test: "))
+      slot <- "counts"
+    }
+  }
   if (recorrect_umi && length(x = levels(x = object)) > 1) {
     cell_attributes <- SCTResults(object = object, slot = "cell.attributes")
     observed_median_umis <- lapply(
