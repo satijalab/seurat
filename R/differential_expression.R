@@ -1095,24 +1095,37 @@ FoldChange.Assay <- function(
 ) {
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
-  default.mean.fxn <- function(x) {
+  # By default run as if LogNormalize is done
+  log1pdata.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+  }
+  scaledata.mean.fxn <- rowMeans
+  counts.mean.fxn <- function(x) {
     return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
   }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'data' = switch(
-      EXPR = norm.method %||% '',
-      'LogNormalize' = function(x) {
-        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-      },
-      default.mean.fxn
-    ),
-    'scale.data' = rowMeans,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    default.mean.fxn
-  )
+  if (!is.null(x = norm.method)) {
+    # For anything apart from log normalization set to rowMeans
+    if (norm.method!="LogNormalize") {
+      new.mean.fxn <- counts.mean.fxn
+    } else {
+      new.mean.fxn <- counts.mean.fxn
+      if (slot == "data") {
+        new.mean.fxn <- log1pdata.mean.fxn
+      }  else if (slot == "scale.data") {
+        new.mean.fxn <- scaledata.mean.fxn
+      }
+    }
+  } else {
+    # If no normalization method is passed use slots to decide mean function
+    new.mean.fxn <- switch(
+      EXPR = slot,
+      'data' = log1pdata.mean.fxn,
+      'scale.data' = scaledata.mean.fxn,
+      'counts' = counts.mean.fxn,
+      log1pdata.mean.fxn
+    )
+  }
+  mean.fxn <- mean.fxn %||% new.mean.fxn
   # Omit the decimal value of e from the column name if base == exp(1)
   base.text <- ifelse(
     test = base == exp(1),
