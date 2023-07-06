@@ -7616,7 +7616,10 @@ FindBridgeTransferAnchors <- function(
   reduction <-  match.arg(arg = reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
+  command.name <- grep(pattern = 'PrepareBridgeReference',
+       x = names(slot(object = extended.reference, name = 'commands')),
+       value = TRUE)
+  params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
@@ -7695,8 +7698,10 @@ FindBridgeIntegrationAnchors <- function(
   integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-
-  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
+  command.name <- grep(pattern = 'PrepareBridgeReference',
+                       x = names(slot(object = extended.reference, name = 'commands')),
+                       value = TRUE)
+  params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
