@@ -712,6 +712,7 @@ ReciprocalProject <- function(
 #'
 #' @export
 #' @importFrom methods slot slot<-
+#' @importFrom SeuratObject JoinLayers RenameAssays
 #' @concept integration
 #' @examples
 #' \dontrun{
@@ -806,8 +807,8 @@ FindTransferAnchors <- function(
   reference.reduction.init <- reference.reduction
   if (inherits(x = reference[[reference.assay]], what = 'Assay5')) {
     if (length(Layers(reference, search = "data")) > 1) {
-      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], 
-                                                 layers = "data", new = "data") 
+      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]],
+                                                 layers = "data", new = "data")
     }
   }
     if (normalization.method == "SCT") {
@@ -1994,26 +1995,25 @@ ProjectIntegration <- function(
     }
     emb <- UnSketchEmbeddings(
       atom.data = LayerData(
-      object = object[[sketched.assay]],
-      layer = layers[i],
-      features = features
-    ),
-    atom.cells = cells.sketch,
-    orig.data = LayerData(
-      object = object[[assay]],
-      layer = layers[i],
-      features = features
-    ),
-    embeddings = Embeddings(object = object[[reduction]]),
-    sketch.matrix = sketch.matrix
-    )
+        object = object[[sketched.assay]],
+        layer = layers[i],
+        features = features
+      ),
+      atom.cells = cells.sketch,
+      orig.data = LayerData(
+        object = object[[assay]],
+        layer = layers[i],
+        features = features
+      ),
+      embeddings = Embeddings(object = object[[reduction]]),
+      sketch.matrix = sketch.matrix)
     emb.list[[i]] <- emb
     cells.list[[i]] <- colnames(x = emb)
   }
-   emb.all <- t(matrix(data = unlist(emb.list),
-                     nrow = ncol(x = object[[reduction]]),
-                     ncol = length(unlist(cells.list))
-                     ))
+   emb.all <- t(x = matrix(
+      data = unlist(emb.list),
+      nrow = ncol(x = object[[reduction]]),
+      ncol = length(unlist(cells.list))))
    rownames(emb.all) <- unlist(cells.list)
    emb.all <- emb.all[colnames(object[[assay]]), ]
   object[[reduction.name]] <- CreateDimReducObject(
@@ -4465,7 +4465,7 @@ FindWeightsNN <- function(
   distances <- Distances(object = nn.obj)
   distances <- 1 - (distances / distances[, ncol(x = distances)])
   cell.index <- Indices(object = nn.obj)
-  weights <- Seurat:::FindWeightsC(
+  weights <- FindWeightsC(
     cells2 = 0:(length(query.cells) - 1),
     distances = as.matrix(x = distances),
     anchor_cells2 = reference.cells,
@@ -5276,7 +5276,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
 #' @export
 #'
 ProjectCellEmbeddings.DelayedMatrix <- function(
-  query.data,
+  query,
   block.size = 1e9,
   reference,
   assay = NULL,
@@ -5288,11 +5288,11 @@ ProjectCellEmbeddings.DelayedMatrix <- function(
 ) {
   dims <- dims %||% 1:ncol(reference[[reduction]])
   assay <- assay %||% DefaultAssay(reference)
-  features <- intersect(rownames(query.data),
+  features <- intersect(rownames(query),
                         rownames(reference[[reduction]]@feature.loadings))
-  query.data <- query.data[features,]
+  query <- query[features,]
   if (IsSCT(object[[assay]])) {
-    # TODO: SCT reiduals projection
+    # TODO: SCT residuals projection
   } else {
     feature.mean <- feature.mean[features] %||%
       RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
@@ -5300,11 +5300,11 @@ ProjectCellEmbeddings.DelayedMatrix <- function(
       sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
     feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
     suppressMessages(setAutoBlockSize(size = block.size))
-    cells.grid <- DelayedArray::colAutoGrid(x = query.data)
+    cells.grid <- DelayedArray::colAutoGrid(x = query)
     emb.list <- list()
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
-      data.block <- DelayedArray::read_block(x = query.data,
+      data.block <- DelayedArray::read_block(x = query,
                                              viewport = vp,
                                              as.sparse = TRUE)
       data.block <- apply(data.block, MARGIN = 2, function(x) {
@@ -5315,8 +5315,8 @@ ProjectCellEmbeddings.DelayedMatrix <- function(
       emb.list[[i]] <- emb.block
     }
     # list to matrix, column has to be cells
-    emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
-    rownames(emb.mat) <- colnames(query.data)
+    emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query)))
+    rownames(emb.mat) <- colnames(query)
     colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
   }
   return(emb.mat)
@@ -7595,6 +7595,12 @@ PrepareBridgeReference <- function (
 #'    and query.
 #' }
 #' }
+#' @param bridge.reduction Dimensional reduction to perform when finding anchors. Can
+#' be one of:
+#' \itemize{
+#'   \item{cca: Canonical correlation analysis}
+#'   \item{direct: Use assay data as a dimensional reduction}
+#' }
 #' @param verbose Print messages and progress
 #'
 #' @export
@@ -7855,19 +7861,26 @@ FastRPCAIntegration <- function(
 
 #' Transfer embeddings from sketched cells to the full data
 #'
+#' @param atom.data Atom data
+#' @param atom.cells Atom cells
+#' @param orig.data Original data
+#' @param embeddings Embeddings of atom cells
+#' @param sketch.matrix Sketch matrix
+#'
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
 #'
 #' @export
 #'
-UnSketchEmbeddings <- function(atom.data,
-                               atom.cells = NULL,
-                               orig.data,
-                               embeddings,
-                               sketch.matrix = NULL
+UnSketchEmbeddings <- function(
+  atom.data,
+  atom.cells = NULL,
+  orig.data,
+  embeddings,
+  sketch.matrix = NULL
 ) {
   if(!all(rownames(atom.data) == rownames(orig.data))) {
-    stop('fetures in atom.data and orig.data are not identical')
+    stop('features in atom.data and orig.data are not identical')
   } else {
     features = rownames(atom.data)
   }
@@ -7892,7 +7905,6 @@ UnSketchEmbeddings <- function(atom.data,
   return(emb)
 }
 
-
 FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
   sketch.R <- t(x = CountSketch(
     nsketch = round(x = ratio *  length(x = features)),
@@ -7901,5 +7913,3 @@ FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
   )
   return(sketch.R)
 }
-
-

@@ -530,14 +530,11 @@ Load10X_Spatial <- function(
             immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename),
-                     ...)
-
+  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
-    data <- imap(data, ~{
-      rownames(.x) <- toupper(rownames(.x))
-      .x
-    })
+    for(i in seq_along(data)) {
+      rownames(data[[i]]) <- toupper(rownames(data[[i]]))
+    }
   }
   if (is.list(data) & "Antibody Capture" %in% names(data)) {
     matrix_gex <- data$`Gene Expression`
@@ -1503,8 +1500,11 @@ ReadAkoya <- function(
 #' @param features Name or remote URL of the features/genes file
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
 #' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
+#' @param cell.sep Specify the delimiter in the cell name file
+#' @param feature.sep Specify the delimiter in the feature name file
 #' @param skip.cell Number of lines to skip in the cells file before beginning to read cell names
 #' @param skip.feature Number of lines to skip in the features file before beginning to gene names
+#' @param mtx.transpose Transpose the matrix after reading in
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -1543,8 +1543,11 @@ ReadMtx <- function(
   features,
   cell.column = 1,
   feature.column = 2,
+  cell.sep = "\t",
+  feature.sep = "\t",
   skip.cell = 0,
   skip.feature = 0,
+  mtx.transpose = FALSE,
   unique.features = TRUE,
   strip.suffix = FALSE
 ) {
@@ -1585,14 +1588,14 @@ ReadMtx <- function(
   cell.barcodes <- read.table(
     file = all.files[['barcode list']],
     header = FALSE,
-    sep = '\t',
+    sep = cell.sep,
     row.names = NULL,
     skip = skip.cell
   )
   feature.names <- read.table(
     file = all.files[['feature list']],
     header = FALSE,
-    sep = '\t',
+    sep = feature.sep,
     row.names = NULL,
     skip = skip.feature
   )
@@ -1663,6 +1666,9 @@ ReadMtx <- function(
     feature.names <- make.unique(names = feature.names)
   }
   data <- readMM(file = all.files[['expression matrix']])
+  if (mtx.transpose) {
+    data <- t(x = data)
+  }
   if (length(x = cell.names) != ncol(x = data)) {
     stop(
       "Matrix has ",

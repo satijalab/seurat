@@ -43,6 +43,8 @@ should be called \code{group}}
 
 \item{npcs}{If doing PCA on input matrix, number of PCs to compute.}
 
+\item{key}{Key for Harmony dimensional reduction}
+
 \item{theta}{Diversity clustering penalty parameter. Specify for each
 variable in vars_use Default theta=2. theta=0 does not encourage any 
 diversity. Larger values of theta result in more diverse clusters.}
@@ -116,10 +118,10 @@ obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction
 
 # Integrating SCTransformed data
 obj <- SCTransform(object = obj)
-obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, 
-  orig.reduction = "pca", new.reduction = 'harmony', 
+obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
+  orig.reduction = "pca", new.reduction = 'harmony',
   assay = "SCT", verbose = FALSE)
-  
+
 
 }
 \seealso{

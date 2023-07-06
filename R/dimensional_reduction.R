@@ -2523,6 +2523,7 @@ RunSPCA.Assay <- function(
 
 #' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
 #' using the variable features for the Assay.
+#' @param layer Layer to run SPCA on
 #'
 #' @rdname RunSPCA
 #' @concept dimensional_reduction

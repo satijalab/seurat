@@ -40,6 +40,13 @@ Options are:
 }
 }}
 
+\item{bridge.reduction}{Dimensional reduction to perform when finding anchors. Can
+be one of:
+\itemize{
+  \item{cca: Canonical correlation analysis}
+  \item{direct: Use assay data as a dimensional reduction}
+}}
+
 \item{verbose}{Print messages and progress}
 }
 \value{

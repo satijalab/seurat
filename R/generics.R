@@ -326,6 +326,7 @@ LeverageScore <- function(object, ...) {
 #'
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the data; default is \code{1e4}
+#' @param margin Margin to normalize over
 #' @param verbose Print progress
 #'
 #' @return A matrix with the normalized and log-transformed data
@@ -344,7 +345,7 @@ LeverageScore <- function(object, ...) {
 LogNormalize <- function(
   data,
   scale.factor = 1e4,
-  # margin = 2L,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {

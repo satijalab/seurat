@@ -66,6 +66,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{slot}{Slot to pull expression data from (e.g. "counts" or "data")}
 
+\item{layer}{Layer to pull expression data from (e.g. "counts" or "data")}
+
 \item{split.plot}{plot each group of the split violin plots by multiple or
 single violin shapes.}
 

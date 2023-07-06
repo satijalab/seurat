@@ -174,32 +174,32 @@ ProjectData <- function(
       message(full.reduction, ' is not in the object.'
               ,' Data from all cells will be projected to ', sketched.reduction)
     }
-    proj.emb <- ProjectCellEmbeddings(query = object,
-                                      reference = object,
-                                      query.assay = assay,
-                                      dims = dims,
-                                      normalization.method = normalization.method,
-                                      reference.assay = sketched.assay,
-                                      reduction = sketched.reduction,
-                                      verbose = verbose)
+    proj.emb <- ProjectCellEmbeddings(
+      query = object,
+      reference = object,
+      query.assay = assay,
+      dims = dims,
+      normalization.method = normalization.method,
+      reference.assay = sketched.assay,
+      reduction = sketched.reduction,
+      verbose = verbose)
     object[[full.reduction]] <- CreateDimReducObject(
       embeddings = proj.emb,
       assay = assay,
       key = Key(object = full.reduction, quiet = TRUE)
     )
   }
-  
-  object <- TransferSketchLabels(object = object,
-                                 sketched.assay = sketched.assay,
-                                 reduction = full.reduction,
-                                 dims = dims,
-                                 k = k.weight,
-                                 refdata = refdata,
-                                 reduction.model = umap.model,
-                                 recompute.neighbors = recompute.neighbors,
-                                 recompute.weights = recompute.weights,
-                                 verbose = verbose
-  )
+  object <- TransferSketchLabels(
+    object = object,
+    sketched.assay = sketched.assay,
+    reduction = full.reduction,
+    dims = dims,
+    k = k.weight,
+    refdata = refdata,
+    reduction.model = umap.model,
+    recompute.neighbors = recompute.neighbors,
+    recompute.weights = recompute.weights,
+    verbose = verbose)
   return(object)
 }
 
@@ -249,20 +249,20 @@ TransferSketchLabels <- function(
     object = object,
     slot = 'TransferSketchLabels'
   )$full_sketch.weight
-  
+
   compute.neighbors <- is.null(x = full_sketch.nn) ||
     !all(Cells(full_sketch.nn) == Cells(object[[reduction]])) ||
     max(Indices(full_sketch.nn)) >  ncol(object[[sketched.assay]]) ||
     !identical(x = full_sketch.nn@alg.info$dims, y =  dims) ||
     !identical(x = full_sketch.nn@alg.info$reduction, y =  reduction) ||
     recompute.neighbors
-  
+
   compute.weights <- is.null(x = full_sketch.weight) ||
     !all(colnames(full_sketch.weight) == Cells(object[[reduction]])) ||
     !all(rownames(full_sketch.weight) == colnames(object[[sketched.assay]]))  ||
     recompute.weights || 
     recompute.neighbors
-  
+
   if (compute.neighbors) {
     if (verbose) {
       message("Finding sketch neighbors")
@@ -280,16 +280,21 @@ TransferSketchLabels <- function(
     if (verbose) {
       message("Finding sketch weight matrix")
     }
-    full_sketch.weight <- FindWeightsNN(nn.obj = full_sketch.nn,
-                                        query.cells = Cells(object[[reduction]]),
-                                        reference = colnames(object[[sketched.assay]]),
-                                        verbose = verbose)
+    full_sketch.weight <- FindWeightsNN(
+      nn.obj = full_sketch.nn,
+      query.cells = Cells(object[[reduction]]),
+      reference.cells = colnames(object[[sketched.assay]]),
+      verbose = verbose)
     rownames(full_sketch.weight) <- colnames(object[[sketched.assay]])
     colnames(full_sketch.weight) <- Cells(object[[reduction]])
   }
-  slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
-  slot(object = object, name = 'tools')$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
-  
+  slot(
+    object = object, name = 'tools'
+    )$TransferSketchLabels$full_sketch.nn <- full_sketch.nn
+  slot(
+    object = object, name = 'tools'
+    )$TransferSketchLabels$full_sketch.weight <- full_sketch.weight
+
   if (!is.null(refdata)) {
     if (length(refdata) == 1  & is.character(refdata)) {
       refdata <- list(refdata)
@@ -365,7 +370,8 @@ TransferSketchLabels <- function(
 #' @param verbose Print progress and diagnostic messages
 #' @importFrom Matrix qrR t
 #' @importFrom irlba irlba
-#' 
+#' @importFrom BPCells transpose_storage_order matrix_stats
+#'
 #' @rdname LeverageScore
 #' @method LeverageScore default
 #' @export
@@ -382,7 +388,7 @@ LeverageScore.default <- function(
 ) {
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
-  if (ncells < nsketch*1.5) {
+  if (ncells < nsketch * 1.5) {
     Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
@@ -462,6 +468,7 @@ LeverageScore.default <- function(
 
 #' @rdname LeverageScore
 #' @importFrom Matrix qrR t
+#' @importFrom DelayedArray setAutoBlockSize
 #' @method LeverageScore DelayedMatrix
 #' @export
 #'
@@ -547,7 +554,7 @@ LeverageScore.StdAssay <- function(
   if (!is_quosure(x = method)) {
     method <- enquo(arg = method)
   }
-  scores <- SeuratObject:::EmptyDF(n = ncol(x = object))
+  scores <- SeuratObject::EmptyDF(n = ncol(x = object))
   row.names(x = scores) <- colnames(x = object)
   scores[, 1] <- NA_real_
   for (i in seq_along(along.with = layer)) {

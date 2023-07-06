@@ -241,6 +241,9 @@ FindSpatiallyVariableFeatures.StdAssay <- function(
 
 #' @rdname LogNormalize
 #' @method LogNormalize default
+#' 
+#' @param margin Margin to normalize over
+#' 
 #' @export
 #'
 LogNormalize.default <- function(
@@ -369,6 +372,9 @@ LogNormalize.H5ADMatrix <- function(
 }
 
 #' @method LogNormalize HDF5Matrix
+#' @importFrom rhdf5 h5delete
+#' @importFrom DelayedArray path is_sparse
+#' @importFrom HDF5Array HDF5RealizationSink
 #' @export
 #'
 LogNormalize.HDF5Matrix <- function(
@@ -380,20 +386,20 @@ LogNormalize.HDF5Matrix <- function(
   ...
 ) {
   check_installed(pkg = 'HDF5Array', reason = 'for working with HDF5 matrices')
-  fpath <- DelayedArray::path(object = data)
+  fpath <- path(object = data)
   if (.DelayedH5DExists(object = data, path = layer)) {
-    rhdf5::h5delete(file = fpath, name = layer)
+    h5delete(file = fpath, name = layer)
     dpath <- file.path(
       dirname(path = layer),
       paste0('.', basename(layer), '_dimnames'),
       fsep = '/'
     )
-    rhdf5::h5delete(file = fpath, name = dpath)
+    h5delete(file = fpath, name = dpath)
   }
-  sink <- HDF5Array::HDF5RealizationSink(
+  sink <- HDF5RealizationSink(
     dim = dim(x = data),
     dimnames = dimnames(x = data),
-    as.sparse = DelayedArray::is_sparse(x = data),
+    as.sparse = is_sparse(x = data),
     filepath = fpath,
     name = layer
   )
@@ -423,7 +429,9 @@ LogNormalize.IterableMatrix <- function(
   data <- log1p(data * scale.factor)
   return(data)
 }
+
 #' @method LogNormalize TileDBMatrix
+#' @importFrom TileDBArray TileDBRealizationSink
 #' @export
 #'
 LogNormalize.TileDBMatrix <- function(
@@ -435,8 +443,8 @@ LogNormalize.TileDBMatrix <- function(
   ...
 ) {
   check_installed(
-    pkg = 'TileDBArray',
-    reason = 'for working with TileDB matrices'
+    pkg = "TileDBArray",
+    reason = "for working with TileDB matrices"
   )
   odir <- c(
     dirname(path = DelayedArray::path(object = data)),
@@ -446,14 +454,15 @@ LogNormalize.TileDBMatrix <- function(
   # file.access returns 0 (FALSE) for true and -1 (TRUE) for false
   idx <- which(x = !file.access(names = odir, mode = 2L))[1L]
   if (rlang::is_na(x = idx)) {
-    abort(message = "Unable to find a directory to write normalized TileDB matrix")
+    abort(
+      message = "Unable to find a directory to write normalized TileDB matrix")
   }
   out <- file.path(odir[idx], layer)
   if (!file.access(names = out, mode = 0L)) {
     warn(message = paste(sQuote(x = out), "exists, overwriting"))
     unlink(x = out, recursive = TRUE, force = TRUE)
   }
-  sink <- TileDBArray::TileDBRealizationSink(
+  sink <- TileDBRealizationSink(
     dim = dim(x = data),
     dimnames = dimnames(x = data),
     type = BiocGenerics::type(x = data),
@@ -474,12 +483,15 @@ LogNormalize.TileDBMatrix <- function(
 
 #' @method LogNormalize TENxMatrix
 #' @export
+#' @importFrom HDF5Array TENxRealizationSink
+#' @importFrom rhdf5 h5delete
+#' @importFrom DelayedArray path
 #'
 LogNormalize.TENxMatrix <- function(
   data,
   scale.factor = 1e4,
   margin = 2L,
-  verbose= TRUE,
+  verbose = TRUE,
   layer = 'data',
   ...
 ) {
@@ -786,10 +798,12 @@ VST.default <- function(
 
 #' @rdname VST
 #' @method VST IterableMatrix
+#' @importFrom SeuratObject EmptyDF
 #' @export
 #'
-VST.IterableMatrix <-function(
+VST.IterableMatrix <- function(
     data,
+    margin = 1L,
     nselect = 2000L,
     span = 0.3,
     clip = NULL,
@@ -797,14 +811,14 @@ VST.IterableMatrix <-function(
     ...
 ) {
   nfeatures <- nrow(x = data)
-  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
   hvf.stats <- BPCells::matrix_stats(
     matrix = data,
     row_stats = 'variance')$row_stats
   # Calculate feature means
-  hvf.info$mean <- hvf.stats['mean',]
+  hvf.info$mean <- hvf.stats['mean' ]
   # Calculate feature variance
-  hvf.info$variance <- hvf.stats['variance',]
+  hvf.info$variance <- hvf.stats['variance', ]
   hvf.info$variance.expected <- 0L
   not.const <- hvf.info$variance > 0
   fit <- loess(
@@ -818,11 +832,11 @@ VST.IterableMatrix <-function(
   standard.max <- clip %||% sqrt(x = ncol(x = data))
   feature.mean[feature.mean == 0] <- 0.1
   data <- BPCells::min_by_row(mat = data, vals = standard.max*feature.sd + feature.mean)
-  data.standard <- (data - feature.mean)/feature.sd
+  data.standard <- (data - feature.mean) / feature.sd
   hvf.info$variance.standardized <- BPCells::matrix_stats(
     matrix = data.standard,
     row_stats = 'variance'
-    )$row_stats['variance',]
+    )$row_stats['variance', ]
   # Set variable features
   hvf.info$variable <- FALSE
   hvf.info$rank <- NA
@@ -930,7 +944,7 @@ VST.dgCMatrix <- function(
   ...
 ) {
   nfeatures <- nrow(x = data)
-  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
   # Calculate feature means
   hvf.info$mean <- Matrix::rowMeans(x = data)
   # Calculate feature variance
@@ -1065,6 +1079,11 @@ CalcN <- function(object) {
 }
 
 #' Find variable features based on dispersion
+#'
+#' @param data Data matrix
+#' @param nselect Number of top features to select based on dispersion values
+#' @param verbose Display progress
+#' @keywords internal
 #'
 DISP <- function(
   data,
@@ -1322,7 +1341,7 @@ DISP <- function(
     mean.func <- .Mean
     var.func <- .FeatureVar
   }
-  hvf.info <- SeuratObject:::EmptyDF(n = nfeatures)
+  hvf.info <- SeuratObject::EmptyDF(n = nfeatures)
   # hvf.info$mean <- mean.func(data = data, margin = fmargin)
   hvf.info$mean <- rowMeans(x = data)
   hvf.info$variance <- var.func(
@@ -2239,13 +2258,20 @@ FetchResiduals_reference <- function(object,
 
 #' Find variable features based on mean.var.plot
 #'
+#' @param data Data matrix
+#' @param nselect Number of features to select based on dispersion values
+#' @param verbose Whether to print messages and progress bars
+#' @param mean.cutoff Numeric of length two specifying the min and max values
+#' @param dispersion.cutoff Numeric of length two specifying the min and max values
+#'
+#' @keywords internal
+#'
 MVP <- function(
   data,
   verbose = TRUE,
   nselect = 2000L,
   mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf),
-  ...
+  dispersion.cutoff = c(1, Inf)
 ) {
   hvf.info <- DISP(data = data, nselect = nselect, verbose = verbose)
   hvf.info$variable <- FALSE

@@ -510,6 +510,7 @@ HTOHeatmap <- function(
 #' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param slot Slot to pull expression data from (e.g. "counts" or "data")
+#' @param layer Layer to pull expression data from (e.g. "counts" or "data")
 #' @param stack Horizontally stack plots for each feature
 #' @param combine Combine plots into a single \code{\link[patchwork]{patchwork}ed}
 #' ggplot object. If \code{FALSE}, return a list of ggplot
@@ -826,7 +827,7 @@ ColorDimSplit <- function(
 #' @examples
 #' data("pbmc_small")
 #' DimPlot(object = pbmc_small)
-#' DimPlot(object = pbmc_small, split.by = 'ident')
+#' DimPlot(object = pbmc_small, split.by = 'letter.idents')
 #'
 DimPlot <- function(
   object,

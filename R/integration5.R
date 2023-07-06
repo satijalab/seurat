@@ -22,6 +22,7 @@ NULL
 #' @param features Ignored
 #' @param scale.layer Ignored
 #' @param layers Ignored
+#' @param key Key for Harmony dimensional reduction
 #' @param ... Ignored
 #'
 #' @return ...
@@ -33,7 +34,9 @@ NULL
 # @templateVar pkg harmony
 # @template note-reqdpkg
 #'
-#' @examples 
+#' @importFrom harmony HarmonyMatrix
+#' 
+#' @examples
 #' \dontrun{
 #' # Preprocessing
 #' obj <- SeuratData::LoadData("pbmcsca")
@@ -42,24 +45,24 @@ NULL
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
+#'
 #' # After preprocessing, we integrate layers with added parameters specific to Harmony:
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
 #'   new.reduction = 'harmony', verbose = FALSE)
-#' 
+#'
 #' # Modifying Parameters
 #' # We can also add arguments specific to Harmony such as theta, to give more diverse clusters 
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
 #'   new.reduction = 'harmony', verbose = FALSE, theta = 3)
 #' }
-#' 
+#'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
-#' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'harmony', 
+#' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
+#'   orig.reduction = "pca", new.reduction = 'harmony',
 #'   assay = "SCT", verbose = FALSE)
-#'   
-#' 
+#'
+#'
 #' @export
 #'
 #' @concept integration
@@ -108,7 +111,7 @@ HarmonyIntegration <- function(
   #   verbose = verbose
   # )
   # Run Harmony
-  harmony.embed <- harmony::HarmonyMatrix(
+  harmony.embed <- HarmonyMatrix(
     data_mat = Embeddings(object = orig),
     meta_data = groups,
     vars_use = 'group',
@@ -144,7 +147,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams FindIntegrationAnchors
 #' @export
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' # Preprocessing
@@ -154,24 +157,25 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
-#' # After preprocessing, we integrate layers. 
-#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.cca', 
+#'
+#' # After preprocessing, we integrate layers.
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+#'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   verbose = FALSE)
-#'   
+#'
 #' # Modifying parameters
-#' # We can also specify parameters such as `k.anchor` to increase the strength of integration 
-#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.cca', 
+#' # We can also specify parameters such as `k.anchor` to increase the strength of integration
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+#'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   k.anchor = 20, verbose = FALSE)
 #'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
-#' obj <- IntegrateLayers(object = obj, method = CCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.cca', 
+#' obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+#'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   assay = "SCT", verbose = FALSE)
-#'
+#' }
+#' 
 CCAIntegration <- function(
     object = NULL,
     assay = NULL,
@@ -246,32 +250,32 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' obj <- FindVariableFeatures(obj)
 #' obj <- ScaleData(obj)
 #' obj <- RunPCA(obj)
-#' 
+#'
 #' # After preprocessing, we run integration
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   verbose = FALSE)
-#'   
+#'
 #' # Reference-based Integration
 #' # Here, we use the first layer as a reference for integraion
 #' # Thus, we only identify anchors between the reference and the rest of the datasets, saving computational resources
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   reference = 1, verbose = FALSE)
 #'
 #' # Modifying parameters
 #' # We can also specify parameters such as `k.anchor` to increase the strength of integration 
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   k.anchor = 20, verbose = FALSE)
 #'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
-#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration, 
-#'   orig.reduction = "pca", new.reduction = 'integrated.rpca', 
+#' obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
+#'   orig.reduction = "pca", new.reduction = 'integrated.rpca',
 #'   assay = "SCT", verbose = FALSE)
 #' }
-#'   
+#'
 #' @inheritParams FindIntegrationAnchors
 #' @export
 #'

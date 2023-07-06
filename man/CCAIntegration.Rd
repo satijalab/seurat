@@ -47,3 +47,32 @@ search space}
 \description{
 Seurat-CCA Integration
 }
+\examples{
+\dontrun{
+# Preprocessing
+obj <- SeuratData::LoadData("pbmcsca")
+obj[["RNA"]] <- split(obj[["RNA"]], f = obj$Method)
+obj <- NormalizeData(obj)
+obj <- FindVariableFeatures(obj)
+obj <- ScaleData(obj)
+obj <- RunPCA(obj)
+
+# After preprocessing, we integrate layers.
+obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+  orig.reduction = "pca", new.reduction = "integrated.cca",
+  verbose = FALSE)
+
+# Modifying parameters
+# We can also specify parameters such as `k.anchor` to increase the strength of integration
+obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+  orig.reduction = "pca", new.reduction = "integrated.cca",
+  k.anchor = 20, verbose = FALSE)
+
+# Integrating SCTransformed data
+obj <- SCTransform(object = obj)
+obj <- IntegrateLayers(object = obj, method = CCAIntegration,
+  orig.reduction = "pca", new.reduction = "integrated.cca",
+  assay = "SCT", verbose = FALSE)
+}
+
+}

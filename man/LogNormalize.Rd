@@ -24,6 +24,8 @@ LogNormalize(data, scale.factor = 10000, verbose = TRUE, ...)
 \item{verbose}{Print progress}
 
 \item{...}{Arguments passed to other methods}
+
+\item{margin}{Margin to normalize over}
 }
 \value{
 A matrix with the normalized and log-transformed data
