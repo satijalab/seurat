@@ -5373,7 +5373,7 @@ ProjectSVD <- function(
   if (verbose) {
     message("Projecting new data onto SVD")
   }
-  projected.u <- as.matrix(t(vt), data)
+  projected.u <- as.matrix(t(vt) %*% data)
   if (mode == "lsi") {
     components <- slot(object = reduction, name = 'misc')
     sigma <- components$d
