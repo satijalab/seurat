@@ -59,7 +59,6 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -102,18 +101,6 @@ FindAllMarkers <- function(
     new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
-  # Default mean function assumes data has been log transformed (such as post NormalizeData or SCT data slot)
-  default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-  }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    'scale.data' = rowMeans,
-    default.mean.fxn
-  )
   genes.de <- list()
   messages <- list()
   for (i in 1:length(x = idents.all)) {
@@ -765,18 +752,12 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
-  # Default assumes FindMarkers was invoked with log2(corrected counts) - SCT data slot
-  default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+  if (is.null(x = mean.fxn)){
+    mean.fxn <- function(x) {
+      return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+
+    }
   }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    'scale.data' = rowMeans,
-    default.mean.fxn
-  )
   fc.results <- FoldChange(
     object = object,
     slot = data.slot,
@@ -1108,30 +1089,21 @@ FoldChange.Assay <- function(
 ) {
   pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
-  # Default assumes FoldChange was invoked with log2(corrected counts) - SCT data slot
   default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
   }
   mean.fxn <- mean.fxn %||% switch(
     EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
+    'data' = switch(
+      EXPR = norm.method %||% '',
+      'LogNormalize' = function(x) {
+        return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+      },
+      default.mean.fxn
+    ),
     'scale.data' = rowMeans,
     default.mean.fxn
   )
-  # mean.fxn <- mean.fxn %||% switch(
-  #   EXPR = slot,
-  #   'data' = switch(
-  #     EXPR = norm.method %||% '',
-  #     'LogNormalize' = function(x) {
-  #       return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-  #     },
-  #     default.mean.fxn
-  #   ),
-  #   'scale.data' = rowMeans,
-  #   default.mean.fxn
-  # )
   # Omit the decimal value of e from the column name if base == exp(1)
   base.text <- ifelse(
     test = base == exp(1),
