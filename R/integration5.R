@@ -186,6 +186,12 @@ CCAIntegration <- function(
     k.filter = NA,
     scale.layer = 'scale.data',
     verbose = TRUE,
+    dims.to.integrate = NULL,
+    k.weight = 100,
+    weight.reduction = NULL,
+    sd.weight = 1,
+    sample.tree = NULL,
+    preserve.order = FALSE,
     ...) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
@@ -226,8 +232,15 @@ CCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
-                                       verbose = verbose
-                                       )
+                                       dims.to.integrate = NULL,
+                                       k.weight = 100,
+                                       weight.reduction = NULL,
+                                       sd.weight = 1,
+                                       sample.tree = NULL,
+                                       preserve.order = FALSE,
+                                       verbose = verbose,
+                                       ...
+  )
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
   return(output.list)
@@ -288,6 +301,12 @@ RPCAIntegration <- function(
     k.filter = NA,
     scale.layer = 'scale.data',
     groups = NULL,
+    dims.to.integrate = NULL,
+    k.weight = 100,
+    weight.reduction = NULL,
+    sd.weight = 1,
+    sample.tree = NULL,
+    preserve.order = FALSE,
     verbose = TRUE,
     ...) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
@@ -325,7 +344,6 @@ RPCAIntegration <- function(
                                    k.filter = k.filter,
                                    reference = reference,
                                    verbose = verbose,
-                                   ...
   )
   slot(object = anchor, name = "object.list") <- lapply(
       X = slot(
@@ -338,6 +356,12 @@ RPCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
+                                       dims.to.integrate = NULL,
+                                       k.weight = 100,
+                                       weight.reduction = NULL,
+                                       sd.weight = 1,
+                                       sample.tree = NULL,
+                                       preserve.order = FALSE,
                                        verbose = verbose
                                        )
 
@@ -365,6 +389,12 @@ JointPCAIntegration <- function(
     dims = 1:30,
     k.anchor = 20,
     scale.layer = 'scale.data',
+    dims.to.integrate = NULL,
+    k.weight = 100,
+    weight.reduction = NULL,
+    sd.weight = 1,
+    sample.tree = NULL,
+    preserve.order = FALSE,
     verbose = TRUE,
     groups = NULL,
     ...
@@ -421,6 +451,12 @@ JointPCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
+                                       dims.to.integrate = NULL,
+                                       k.weight = 100,
+                                       weight.reduction = NULL,
+                                       sd.weight = 1,
+                                       sample.tree = NULL,
+                                       preserve.order = FALSE,
                                        verbose = verbose)
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
