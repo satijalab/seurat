@@ -1965,6 +1965,7 @@ FeatureScatter <- function(
   shuffle = FALSE,
   seed = 1,
   group.by = NULL,
+  split.by = NULL,
   cols = NULL,
   pt.size = 1,
   shape.by = NULL,
@@ -1973,6 +1974,7 @@ FeatureScatter <- function(
   combine = TRUE,
   slot = 'data',
   plot.cor = TRUE,
+  ncol = NULL,
   raster = NULL,
   raster.dpi = c(512, 512),
   jitter = FALSE
@@ -2003,11 +2005,14 @@ FeatureScatter <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
+  if (!is.null(x = split.by)) {
+    data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
   plots <- lapply(
     X = group.by,
     FUN = function(x) {
-      SingleCorPlot(
-        data = data[,c(feature1, feature2)],
+      plot <- SingleCorPlot(
+        data = data[,c(feature1, feature2,split.by)],
         col.by = data[, x],
         cols = cols,
         pt.size = pt.size,
@@ -2019,6 +2024,18 @@ FeatureScatter <- function(
         raster.dpi = raster.dpi,
         jitter = jitter
       )
+      if (!is.null(x = split.by)) {
+        plot <- plot + FacetTheme() +
+          facet_wrap(
+            facets = vars(!!sym(x = split.by)),
+            ncol = if (length(x = group.by) > 1 || is.null(x = ncol)) {
+              length(x = unique(x = data[, split.by]))
+            } else {
+              ncol
+            }
+          )
+      }
+      plot
     }
   )
   if (isTRUE(x = length(x = plots) == 1)) {
