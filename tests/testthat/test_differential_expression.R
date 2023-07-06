@@ -300,6 +300,7 @@ test_that("FindAllMarkers works as expected", {
 
   # CLR normalization
   expect_equal(results.clr[1, "p_val"], 1.209462e-11)
+
   expect_equal(results.clr[1, "avg_log2FC"], -1.079924, tolerance = 1e-6)
   expect_equal(results.clr[1, "pct.1"], 0.083)
   expect_equal(results.clr[1, "pct.2"], 0.909)
