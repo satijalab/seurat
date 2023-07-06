@@ -4,6 +4,7 @@
 - Support for Visium probe information introduced in Spaceranger 2.1 ([#7141](https://github.com/satijalab/seurat/pull/7141))
 - Add `LoadCurioSeeker` to load sequencing-based spatial datasets generated using the Curio Seeker ([#744](https://github.com/satijalab/seurat-private/pull/744))
 - Fix fold change calculation for assays ([#739](https://github.com/satijalab/seurat-private/pull/739))
+- Fix `pt.size` bug when rasterization is set to true ([#7379](https://github.com/satijalab/seurat/issues/7379)) 
 
 # Seurat 4.3.0 (2022-11-18)
 
