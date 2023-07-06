@@ -202,8 +202,23 @@ CCAIntegration <- function(
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
-    object.list[[i]][['RNA']]$scale.data <- object[[scale.layer]][features, Cells(object.list[[i]])]
+    if (inherits(x = object[[layers[i]]], what = "IterableMatrix")) {
+      counts <- as(object = object[[layers[i]]][features, ], 
+                   Class = "dgCMatrix")
+    }
+    else {
+      counts <- object[[layers[i]]][features, ]
+    }
+    object.list[[i]] <- CreateSeuratObject(counts = counts)
+    if (inherits(x = object[[scale.layer]], what = "IterableMatrix")) {
+      scale.data.layer <- as.matrix(object[[scale.layer]][features, 
+                                                          Cells(object.list[[i]])])
+      object.list[[i]][["RNA"]]$scale.data <- scale.data.layer
+    }
+    else {
+      object.list[[i]][["RNA"]]$scale.data <- object[[scale.layer]][features, 
+                                                                    Cells(object.list[[i]])]
+    }
     object.list[[i]][['RNA']]$counts <- NULL
   }
   }
