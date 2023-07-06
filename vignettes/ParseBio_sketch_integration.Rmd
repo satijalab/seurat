@@ -55,7 +55,7 @@ options(future.globals.maxSize = 3e9)
 options(Seurat.object.assay.version = "v5")
 ```
 ## Create a Seurat object containing data from 24 patients
-We downloaded the original dataset and donor metadata from [Parse Biosciences](https://resources.parsebiosciences.com/dataset-wt-mega-one-million-pbmc-type-1-diabetes), as an h5ad file. While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](seurat5_bpcells_interaction_vignette.html).
+We downloaded the original dataset and donor metadata from [Parse Biosciences](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip). While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](seurat5_bpcells_interaction_vignette.html).
 We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](seurat5_essential_commands.html), one for each sample (i.e. patient), to facilitate integration.
 ```{r, warning=F, message=F}
 parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
