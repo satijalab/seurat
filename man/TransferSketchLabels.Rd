@@ -6,7 +6,7 @@
 \usage{
 TransferSketchLabels(
   object,
-  atoms = "sketch",
+  sketched.assay = "sketch",
   reduction,
   dims,
   refdata = NULL,
@@ -18,6 +18,35 @@ TransferSketchLabels(
   verbose = TRUE
 )
 }
+\arguments{
+\item{object}{A Seurat object.}
+
+\item{sketched.assay}{Sketched assay name. Default is 'sketch'.}
+
+\item{reduction}{Dimensional reduction name to use for label transfer.}
+
+\item{dims}{An integer vector indicating which dimensions to use for label transfer.}
+
+\item{refdata}{A list of character strings indicating the metadata columns containing labels to transfer. Default is NULL.
+Similar to refdata in `MapQuery`}
+
+\item{k}{Number of neighbors to use for label transfer. Default is 50.}
+
+\item{reduction.model}{Dimensional reduction model to use for label transfer. Default is NULL.}
+
+\item{neighbors}{An object storing the neighbors found during the sketching process. Default is NULL.}
+
+\item{recompute.neighbors}{Whether to recompute the neighbors for label transfer. Default is FALSE.}
+
+\item{recompute.weights}{Whether to recompute the weights for label transfer. Default is FALSE.}
+
+\item{verbose}{Print progress and diagnostic messages}
+}
+\value{
+A Seurat object with transferred labels stored in the metadata. If a UMAP model is provided, 
+the full data are also projected onto the UMAP space, with the results stored in a new reduction, full.`reduction.model`
+}
 \description{
-Transfer data from sketch data to full data
+This function transfers cell type labels from a sketched dataset to a full dataset 
+based on the similarities in the lower dimensional space.
 }

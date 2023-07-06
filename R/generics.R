@@ -302,7 +302,21 @@ IntegrateEmbeddings <- function(anchorset, ...) {
   UseMethod(generic = "IntegrateEmbeddings", object = anchorset)
 }
 
+#' Leverage Score Calculation
+#'
+#' This function computes the leverage scores for a given object
+#' It uses the concept of sketching and random projections. The function provides an approximation 
+#' to the leverage scores using a scalable method suitable for large matrices.
+#'
+#' @param object A matrix-like object
+#' @param ... Arguments passed to other methods
+#' 
+#' @references Clarkson, K. L. & Woodruff, D. P.
+#' Low-rank approximation and regression in input sparsity time.
+#' JACM 63, 1–45 (2017). \url{https://dl.acm.org/doi/10.1145/3019134};
+#'
 #' @export
+#'
 #'
 LeverageScore <- function(object, ...) {
   UseMethod(generic = 'LeverageScore', object = object)
