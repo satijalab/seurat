@@ -893,7 +893,7 @@ DimPlot <- function(
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
   if (!is.null(x = split.by)) {
-    data[, split.by] <- object[[split.by, drop = TRUE]]
+    data[, split.by] <- FetchData(object,split.by)[split.by]
   }
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
@@ -2006,7 +2006,7 @@ FeatureScatter <- function(
     }
   }
   if (!is.null(x = split.by)) {
-    data[, split.by] <- object[[split.by, drop = TRUE]]
+    data[, split.by] <- FetchData(object,split.by)[split.by]
   }
   plots <- lapply(
     X = group.by,
@@ -4315,8 +4315,8 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 DotPlot <- function(
   object,
-  assay = NULL,
   features,
+  assay = NULL,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
   col.max = 2.5,
@@ -4372,10 +4372,10 @@ DotPlot <- function(
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
+    splits <- FetchData(object,split.by)[cells,split.by]
     if (split.colors) {
       if (length(x = unique(x = splits)) > length(x = cols)) {
-        stop("Not enough colors for the number of groups")
+        stop(paste0("Need to specify at least ", length(x = unique(x = splits)), " colors using the cols parameter"))
       }
       cols <- cols[1:length(x = unique(x = splits))]
       names(x = cols) <- unique(x = splits)
@@ -4441,7 +4441,7 @@ DotPlot <- function(
     FUN = function(x) {
       data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
       if (scale) {
-        data.use <- scale(x = data.use)
+        data.use <- scale(x = log1p(data.use))
         data.use <- MinMax(data = data.use, min = col.min, max = col.max)
       } else {
         data.use <- log1p(x = data.use)
@@ -4461,18 +4461,8 @@ DotPlot <- function(
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (split.colors) {
-    splits.use <- vapply(
-      X = as.character(x = data.plot$id),
-      FUN = gsub,
-      FUN.VALUE = character(length = 1L),
-      pattern =  paste0(
-        '^((',
-        paste(sort(x = levels(x = object), decreasing = TRUE), collapse = '|'),
-        ')_)'
-      ),
-      replacement = '',
-      USE.NAMES = FALSE
-    )
+    splits.use <- unlist(lapply(data.plot$id, function(x) 
+      sub(paste0(".*_(",paste(sort(unique(splits),decreasing = TRUE), collapse = '|'),")$"), "\\1", x) ))
     data.plot$colors <- mapply(
       FUN = function(color, value) {
         return(colorRampPalette(colors = c('grey', color))(20)[value])
@@ -6677,7 +6667,7 @@ ExIPlot <- function(
   if (is.null(x = split.by)) {
     split <- NULL
   } else {
-    split <- object[[split.by, drop = TRUE]][cells]
+    split <- FetchData(object,split.by)[cells,split.by]
     if (!is.factor(x = split)) {
       split <- factor(x = split)
     }
