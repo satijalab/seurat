@@ -144,7 +144,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams FindIntegrationAnchors
 #' @inheritParams IntegrateEmbeddings
-#' @param ... Arguments passed on to \code{FindTransferAnchors}
+#' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #' 
 #' @examples
@@ -241,8 +241,7 @@ CCAIntegration <- function(
                                        sd.weight = sd.weight,
                                        sample.tree = sample.tree,
                                        preserve.order = preserve.order,
-                                       verbose = verbose,
-                                       ...
+                                       verbose = verbose
   )
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
@@ -290,7 +289,7 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #'   
 #' @inheritParams FindIntegrationAnchors
 #' @inheritParams IntegrateEmbeddings
-#' @param ... Arguments passed on to \code{FindTransferAnchors}
+#' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #'
 RPCAIntegration <- function(
@@ -350,6 +349,7 @@ RPCAIntegration <- function(
                                    k.filter = k.filter,
                                    reference = reference,
                                    verbose = verbose,
+                                   ...
   )
   slot(object = anchor, name = "object.list") <- lapply(
       X = slot(
@@ -368,9 +368,8 @@ RPCAIntegration <- function(
                                        sd.weight = sd.weight,
                                        sample.tree = sample.tree,
                                        preserve.order = preserve.order,
-                                       verbose = verbose,
-                                       ...
-                                       )
+                                       verbose = verbose
+  )
 
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
@@ -383,7 +382,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 #'
 #' @inheritParams FindIntegrationAnchors
 #' @inheritParams IntegrateEmbeddings
-#' @param ... Arguments passed on to \code{FindTransferAnchors}
+#' @param ... Arguments passed on to \code{FindIntegrationAnchors}
 #' @export
 #'
 JointPCAIntegration <- function(
@@ -466,7 +465,8 @@ JointPCAIntegration <- function(
                                        sd.weight = sd.weight,
                                        sample.tree = sample.tree,
                                        preserve.order = preserve.order,
-                                       verbose = verbose)
+                                       verbose = verbose
+  )
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
   return(output.list)
