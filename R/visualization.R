@@ -579,7 +579,8 @@ RidgePlot <- function(
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for points
 #' @param alpha Alpha value for points
-#' @param split.by A variable to split the violin plots by,
+#' @param split.by A factor in object metadata to split the plot by, pass 'ident'
+#'  to split by cell identity'
 #' @param split.plot  plot each group of the split violin plots by multiple or
 #' single violin shapes.
 #' @param adjust Adjust parameter for geom_violin
@@ -770,8 +771,8 @@ ColorDimSplit <- function(
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
-#' @param split.by Name of a metadata column to split plot by;
-#' see \code{\link{FetchData}} for more details
+#' @param split.by A factor in object metadata to split the plot by, pass 'ident'
+#'  to split by cell identity'
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.
@@ -893,7 +894,7 @@ DimPlot <- function(
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
   if (!is.null(x = split.by)) {
-    data[, split.by] <- object[[split.by, drop = TRUE]]
+    data[, split.by] <- FetchData(object = object, vars = split.by)[split.by]
   }
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
@@ -983,8 +984,8 @@ DimPlot <- function(
 #' }
 #' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
 #'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
-#' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
-#'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
+#' @param split.by A factor in object metadata to split the plot by, pass 'ident'
+#'  to split by cell identity'
 #' @param keep.scale How to handle the color scale across multiple plots. Options are:
 #' \itemize{
 #'   \item{"feature" (default; by row/feature scaling):}{ The plots for each individual feature are scaled to the maximum expression of the feature across the conditions provided to 'split.by'.}
@@ -1931,6 +1932,8 @@ CellScatter <- function(
 #' @param cols Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
+#' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
+#'  to split by cell identity'
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
 #' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
@@ -1945,7 +1948,7 @@ CellScatter <- function(
 #'
 #' @return A ggplot object
 #'
-#' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom ggplot2 geom_smooth aes_string facet_wrap vars sym labs
 #' @importFrom patchwork wrap_plots
 #'
 #' @export
@@ -1965,6 +1968,7 @@ FeatureScatter <- function(
   shuffle = FALSE,
   seed = 1,
   group.by = NULL,
+  split.by = NULL,
   cols = NULL,
   pt.size = 1,
   shape.by = NULL,
@@ -1973,6 +1977,7 @@ FeatureScatter <- function(
   combine = TRUE,
   slot = 'data',
   plot.cor = TRUE,
+  ncol = NULL,
   raster = NULL,
   raster.dpi = c(512, 512),
   jitter = FALSE
@@ -2003,11 +2008,14 @@ FeatureScatter <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
+  if (!is.null(x = split.by)) {
+    data[, split.by] <- FetchData(object = object, vars = split.by)[split.by]
+  }
   plots <- lapply(
     X = group.by,
     FUN = function(x) {
-      SingleCorPlot(
-        data = data[,c(feature1, feature2)],
+      plot <- SingleCorPlot(
+        data = data[,c(feature1, feature2, split.by)],
         col.by = data[, x],
         cols = cols,
         pt.size = pt.size,
@@ -2019,6 +2027,18 @@ FeatureScatter <- function(
         raster.dpi = raster.dpi,
         jitter = jitter
       )
+      if (!is.null(x = split.by)) {
+        plot <- plot + FacetTheme() +
+          facet_wrap(
+            facets = vars(!!sym(x = split.by)),
+            ncol = if (length(x = group.by) > 1 || is.null(x = ncol)) {
+              length(x = unique(x = data[, split.by]))
+            } else {
+              ncol
+            }
+          )
+      }
+      plot
     }
   )
   if (isTRUE(x = length(x = plots) == 1)) {
@@ -4261,8 +4281,8 @@ BarcodeInflectionsPlot <- function(object) {
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param idents Identity classes to include in plot (default is all)
 #' @param group.by Factor to group the cells by
-#' @param split.by Factor to split the groups by (replicates the functionality
-#' of the old SplitDotPlotGG);
+#' @param split.by A factor in object metadata to split the plot by, pass 'ident'
+#'  to split by cell identity'
 #' see \code{\link{FetchData}} for more details
 #' @param cluster.idents Whether to order identities by hierarchical clusters
 #' based on given features, default is FALSE
@@ -4298,8 +4318,8 @@ BarcodeInflectionsPlot <- function(object) {
 #'
 DotPlot <- function(
   object,
-  assay = NULL,
   features,
+  assay = NULL,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
   col.max = 2.5,
@@ -4355,10 +4375,10 @@ DotPlot <- function(
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- object[[split.by, drop = TRUE]][cells, drop = TRUE]
+    splits <- FetchData(object = object, vars = split.by)[cells, split.by]
     if (split.colors) {
       if (length(x = unique(x = splits)) > length(x = cols)) {
-        stop("Not enough colors for the number of groups")
+        stop(paste0("Need to specify at least ", length(x = unique(x = splits)), " colors using the cols parameter"))
       }
       cols <- cols[1:length(x = unique(x = splits))]
       names(x = cols) <- unique(x = splits)
@@ -4424,7 +4444,7 @@ DotPlot <- function(
     FUN = function(x) {
       data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
       if (scale) {
-        data.use <- scale(x = data.use)
+        data.use <- scale(x = log1p(data.use))
         data.use <- MinMax(data = data.use, min = col.min, max = col.max)
       } else {
         data.use <- log1p(x = data.use)
@@ -4444,18 +4464,19 @@ DotPlot <- function(
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (split.colors) {
-    splits.use <- vapply(
-      X = as.character(x = data.plot$id),
-      FUN = gsub,
-      FUN.VALUE = character(length = 1L),
-      pattern =  paste0(
-        '^((',
-        paste(sort(x = levels(x = object), decreasing = TRUE), collapse = '|'),
-        ')_)'
-      ),
-      replacement = '',
-      USE.NAMES = FALSE
-    )
+    splits.use <- unlist(x = lapply(
+      X = data.plot$id,
+      FUN = function(x)
+      sub(
+        paste0(".*_(",
+               paste(sort(unique(x = splits), decreasing = TRUE),
+                     collapse = '|'
+                     ),")$"),
+        "\\1",
+        x
+        )
+      )
+      )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
         return(colorRampPalette(colors = c('grey', color))(20)[value])
@@ -6660,7 +6681,7 @@ ExIPlot <- function(
   if (is.null(x = split.by)) {
     split <- NULL
   } else {
-    split <- object[[split.by, drop = TRUE]][cells]
+    split <- FetchData(object,split.by)[cells,split.by]
     if (!is.factor(x = split)) {
       split <- factor(x = split)
     }
