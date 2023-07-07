@@ -203,6 +203,8 @@ CCAIntegration <- function(
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
     if (inherits(x = object[[layers[i]]], what = "IterableMatrix")) {
+      warning("Converting BPCells matrix to dgCMatrix for integration", 
+        "as on-disk CCA Integration is not currently supported", call. = FALSE, immediate. = TRUE)
       counts <- as(object = object[[layers[i]]][features, ], 
                    Class = "dgCMatrix")
     }
