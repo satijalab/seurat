@@ -211,8 +211,25 @@ CCAIntegration <- function(
   } else {
   object.list <- list()
   for (i in seq_along(along.with = layers)) {
-    object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,] )
-    object.list[[i]][['RNA']]$scale.data <- object[[scale.layer]][features, Cells(object.list[[i]])]
+    if (inherits(x = object[[layers[i]]], what = "IterableMatrix")) {
+      warning("Converting BPCells matrix to dgCMatrix for integration ", 
+        "as on-disk CCA Integration is not currently supported", call. = FALSE, immediate. = TRUE)
+      counts <- as(object = object[[layers[i]]][features, ], 
+                   Class = "dgCMatrix")
+    }
+    else {
+      counts <- object[[layers[i]]][features, ]
+    }
+    object.list[[i]] <- CreateSeuratObject(counts = counts)
+    if (inherits(x = object[[scale.layer]], what = "IterableMatrix")) {
+      scale.data.layer <- as.matrix(object[[scale.layer]][features, 
+                                                          Cells(object.list[[i]])])
+      object.list[[i]][["RNA"]]$scale.data <- scale.data.layer
+    }
+    else {
+      object.list[[i]][["RNA"]]$scale.data <- object[[scale.layer]][features, 
+                                                                    Cells(object.list[[i]])]
+    }
     object.list[[i]][['RNA']]$counts <- NULL
   }
   }
@@ -333,11 +350,11 @@ RPCAIntegration <- function(
   } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
+      object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[[layers[i]]][features,])))
       VariableFeatures(object =  object.list[[i]]) <- features
-      object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
+      object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
       object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
-      object.list[[i]][['RNA']]$counts <- NULL
+      suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
     }
   }
   anchor <- FindIntegrationAnchors(object.list = object.list,
