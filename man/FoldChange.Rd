@@ -4,6 +4,7 @@
 \alias{FoldChange}
 \alias{FoldChange.default}
 \alias{FoldChange.Assay}
+\alias{FoldChange.SCTAssay}
 \alias{FoldChange.DimReduc}
 \alias{FoldChange.Seurat}
 \title{Fold Change}
@@ -23,6 +24,19 @@ FoldChange(object, ...)
   mean.fxn = NULL,
   base = 2,
   norm.method = NULL,
+  ...
+)
+
+\method{FoldChange}{SCTAssay}(
+  object,
+  cells.1,
+  cells.2,
+  features = NULL,
+  slot = "data",
+  pseudocount.use = 1,
+  fc.name = NULL,
+  mean.fxn = NULL,
+  base = 2,
   ...
 )
 

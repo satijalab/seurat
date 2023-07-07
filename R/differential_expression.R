@@ -59,7 +59,6 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -102,18 +101,6 @@ FindAllMarkers <- function(
     new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
-  # Default mean function assumes data has been log transformed (such as post NormalizeData or SCT data slot)
-  default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-  }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    'scale.data' = rowMeans,
-    default.mean.fxn
-  )
   genes.de <- list()
   messages <- list()
   for (i in 1:length(x = idents.all)) {
@@ -741,6 +728,13 @@ FindMarkers.SCTAssay <- function(
     yes = 'counts',
     no = slot
   )
+  if (test.use %in% DEmethods_counts()){
+    # set slot to counts
+    if (slot !="counts") {
+      message(paste0("Setting slot to counts for ", test.use, " (counts based test: "))
+      slot <- "counts"
+    }
+  }
   if (recorrect_umi && length(x = levels(x = object)) > 1) {
     cell_attributes <- SCTResults(object = object, slot = "cell.attributes")
     observed_median_umis <- lapply(
@@ -770,7 +764,7 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
-  # Default assumes FindMarkers was invoked with log2(corrected counts) - SCT data slot
+  # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
     return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
@@ -1125,30 +1119,37 @@ FoldChange.Assay <- function(
   ...
 ) {
   data <- GetAssayData(object = object, slot = slot)
-  # Default assumes FoldChange was invoked with log2(corrected counts) - SCT data slot
-  default.mean.fxn <- function(x) {
+  # By default run as if LogNormalize is done
+  log1pdata.mean.fxn <- function(x) {
     return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    'scale.data' = rowMeans,
-    default.mean.fxn
-  )
-  # mean.fxn <- mean.fxn %||% switch(
-  #   EXPR = slot,
-  #   'data' = switch(
-  #     EXPR = norm.method %||% '',
-  #     'LogNormalize' = function(x) {
-  #       return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-  #     },
-  #     default.mean.fxn
-  #   ),
-  #   'scale.data' = rowMeans,
-  #   default.mean.fxn
-  # )
+  scaledata.mean.fxn <- rowMeans
+  counts.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+  }
+  if (!is.null(x = norm.method)) {
+    # For anything apart from log normalization set to rowMeans
+    if (norm.method!="LogNormalize") {
+      new.mean.fxn <- counts.mean.fxn
+    } else {
+      new.mean.fxn <- counts.mean.fxn
+      if (slot == "data") {
+        new.mean.fxn <- log1pdata.mean.fxn
+      }  else if (slot == "scale.data") {
+        new.mean.fxn <- scaledata.mean.fxn
+      }
+    }
+  } else {
+    # If no normalization method is passed use slots to decide mean function
+    new.mean.fxn <- switch(
+      EXPR = slot,
+      'data' = log1pdata.mean.fxn,
+      'scale.data' = scaledata.mean.fxn,
+      'counts' = counts.mean.fxn,
+      log1pdata.mean.fxn
+    )
+  }
+  mean.fxn <- mean.fxn %||% new.mean.fxn
   # Omit the decimal value of e from the column name if base == exp(1)
   base.text <- ifelse(
     test = base == exp(1),
@@ -1174,6 +1175,59 @@ FoldChange.Assay <- function(
 #' @export
 #'
 FoldChange.StdAssay <- FoldChange.Assay
+
+#' @importFrom Matrix rowMeans
+#' @rdname FoldChange
+#' @concept differential_expression
+#' @export
+#' @method FoldChange SCTAssay
+FoldChange.SCTAssay <- function(
+    object,
+    cells.1,
+    cells.2,
+    features = NULL,
+    slot = "data",
+    pseudocount.use = 1,
+    fc.name = NULL,
+    mean.fxn = NULL,
+    base = 2,
+    ...
+) {
+  pseudocount.use <- pseudocount.use %||% 1
+  data <- GetAssayData(object = object, slot = slot)
+  default.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+  }
+  mean.fxn <- mean.fxn %||% switch(
+    EXPR = slot,
+    'data' = default.mean.fxn,
+    'scale.data' = rowMeans,
+    'counts' = function(x) {
+      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    },
+    default.mean.fxn
+  )
+  # Omit the decimal value of e from the column name if base == exp(1)
+  base.text <- ifelse(
+    test = base == exp(1),
+    yes = "",
+    no = base
+  )
+  fc.name <- fc.name %||% ifelse(
+    test = slot == "scale.data",
+    yes = "avg_diff",
+    no = paste0("avg_log", base.text, "FC")
+  )
+  FoldChange(
+    object = data,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name
+  )
+}
+
 
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
