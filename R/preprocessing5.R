@@ -160,14 +160,8 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
-  var.name <- paste(
-    'vf',
-    key,
-    layer[i],
-    'variable',
-    sep = '_'
-  )
-  VariableFeatures(object = object) <- rownames(hvf.info)[hvf.info[,var.name]]
+  object@meta.data$var.features <- NULL
+  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nselect)
   return(object)
 }
 
@@ -542,6 +536,10 @@ NormalizeData.default <- function(
       }
     },
     'CLR' = {
+      if (inherits(x = object, what = 'dgTMatrix')) {
+        warning('Convert input dgTMatrix into dgCMatrix')
+        object <- as(object = object, Class = 'dgCMatrix')
+      }
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
         stop('CLR normalization only supports for dense and dgCMatrix')
