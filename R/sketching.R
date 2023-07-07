@@ -78,7 +78,7 @@ SketchData <- function(
       var.name = var.name,
       over.write = over.write,
       seed = seed,
-      verbose = verbose,
+      verbose = FALSE,
       ...
     )
   } else if (method == 'Uniform') {
@@ -415,7 +415,7 @@ LeverageScore.default <- function(
   stopifnot(is.function(x = method))
   # Run the sketching
   if (isTRUE(x = verbose)) {
-    message("sampling ", nsketch, " cells")
+    message("sampling ", nsketch, " cells for random sketching")
   }
   S <- method(nsketch = nsketch, ncells = ncells, seed = seed, ...)
   object <- t(x = object)
