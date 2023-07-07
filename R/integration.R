@@ -4385,7 +4385,7 @@ FindWeights <- function(
     anchors.cells1 <- anchors.cells1[to.keep]
     anchors.cells2 <- anchors.cells2[to.keep]
     if (length(anchors.cells1) < k || length(anchors.cells2) < k) {
-      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than", min(length(anchors.cells1), length(anchors.cells2)), "or adjusting anchor finding parameters in FindIntegrationAnchors.")
+      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", min(length(anchors.cells1), length(anchors.cells2)), " or increase k.anchor.")
     }
     if (is.null(x = features)) {
       data.use <- Embeddings(object = reduction)[nn.cells1, dims]
@@ -4413,7 +4413,7 @@ FindWeights <- function(
   } else {
     anchors.cells2 <- unique(x = nn.cells2[anchors[, "cell2"]])
     if (length(anchors.cells2) < k) {
-      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", length(anchors.cells2),  "or adjusting anchor finding parameters in FindIntegrationAnchors.")
+      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", length(anchors.cells2),  " or increase k.anchor.")
     }
     if (is.null(x = features)) {
       data.use <- Embeddings(reduction)[nn.cells2, dims]
