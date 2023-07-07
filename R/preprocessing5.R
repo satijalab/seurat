@@ -536,6 +536,10 @@ NormalizeData.default <- function(
       }
     },
     'CLR' = {
+      if (inherits(x = object, what = 'dgTMatrix')) {
+        warning('Convert input dgTMatrix into dgCMatrix')
+        object <- as(object = object, Class = 'dgCMatrix')
+      }
       if (!inherits(x = object, what = 'dgCMatrix') &&
           !inherits(x = object, what = 'matrix')) {
         stop('CLR normalization only supports for dense and dgCMatrix')
