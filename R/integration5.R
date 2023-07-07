@@ -326,7 +326,7 @@ RPCAIntegration <- function(
   } else {
     object.list <- list()
     for (i in seq_along(along.with = layers)) {
-      object.list[[i]] <- CreateSeuratObject(counts = object[[layers[i]]][features,])
+      object.list[[i]] <- supressWarnings(CreateSeuratObject(counts = object[[layers[i]]][features,]))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- ScaleData(object = object.list[[i]], verbose = FALSE)
       object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
