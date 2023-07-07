@@ -15,6 +15,13 @@
 
 \method{RenameCells}{VisiumV1}(object, new.names = NULL, ...)
 }
+\arguments{
+\item{object}{An object}
+
+\item{new.names}{vector of new cell names}
+
+\item{...}{Arguments passed to other methods}
+}
 \description{
 Rename Cells in an Object
 }

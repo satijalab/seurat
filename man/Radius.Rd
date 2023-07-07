@@ -12,6 +12,9 @@
 
 \method{Radius}{VisiumV1}(object)
 }
+\arguments{
+\item{object}{An image object}
+}
 \description{
 Get Spot Radius
 }

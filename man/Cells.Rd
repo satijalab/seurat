@@ -15,6 +15,11 @@
 
 \method{Cells}{VisiumV1}(x, ...)
 }
+\arguments{
+\item{x}{An object}
+
+\item{...}{Arguments passed to other methods}
+}
 \description{
 Get Cell Names
 }

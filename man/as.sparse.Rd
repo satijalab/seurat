@@ -16,12 +16,12 @@
 )
 }
 \arguments{
-\item{x}{any \R object.}
+\item{x}{An object}
 
-\item{...}{additional arguments to be passed to or from methods.}
+\item{...}{Arguments passed to other methods}
 
-\item{row.names}{\code{NULL} or a character vector giving the row
-    names for the data frame.  Missing values are not allowed.}
+\item{row.names}{\code{NULL} or a character vector giving the row names for
+the data; missing values are not allowed}
 
 \item{optional}{logical. If \code{TRUE}, setting row names and
     converting column names (to syntactic names: see

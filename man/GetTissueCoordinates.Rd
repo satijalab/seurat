@@ -18,6 +18,10 @@
 )
 }
 \arguments{
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
+
 \item{qhulls}{return qhulls instead of centroids}
 
 \item{scale}{A factor to scale the coordinates by; choose from: 'tissue',

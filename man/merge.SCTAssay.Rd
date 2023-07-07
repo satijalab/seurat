@@ -16,9 +16,20 @@
 \arguments{
 \item{x}{A \code{\link[SeuratObject]{Seurat}} object}
 
+\item{y}{A single \code{Seurat} object or a list of \code{Seurat} objects}
+
+\item{add.cell.ids}{A character vector of \code{length(x = c(x, y))};
+appends the corresponding values to the start of each objects' cell names}
+
+\item{merge.data}{Merge the data slots instead of just merging the counts
+(which requires renormalization); this is recommended if the same
+normalization approach was applied to all objects}
+
 \item{na.rm}{If na.rm = TRUE, this will only preserve residuals that are
 present in all SCTAssays being merged. Otherwise, missing residuals will be
 populated with NAs.}
+
+\item{...}{Arguments passed to other methods}
 }
 \description{
 Merge SCTAssay objects

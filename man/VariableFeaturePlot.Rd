@@ -26,6 +26,21 @@ VariableFeaturePlot(
 
 \item{log}{Plot the x-axis in log scale}
 
+\item{selection.method}{Which method to pull. For \code{HVFInfo} and
+\code{VariableFeatures}, choose one from one of the
+following:
+\itemize{
+ \item \dQuote{vst}
+ \item \dQuote{sctransform} or \dQuote{sct}
+ \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
+  \dQuote{disp}
+}
+For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
+\itemize{
+ \item \dQuote{markvariogram}
+ \item \dQuote{moransi}
+}}
+
 \item{assay}{Assay to pull variable features from}
 
 \item{raster}{Convert points to raster format, default is \code{NULL}

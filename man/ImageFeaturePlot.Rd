@@ -9,8 +9,12 @@ ImageFeaturePlot(
   features,
   fov = NULL,
   boundaries = NULL,
-  cols = if (isTRUE(x = blend)) {     c("lightgrey", "#ff0000", "#00ff00") } else {    
-    c("lightgrey", "firebrick1") },
+  cols = if (isTRUE(x = blend)) {
+     c("lightgrey", "#ff0000", "#00ff00")
+ } else {
+   
+     c("lightgrey", "firebrick1")
+ },
   size = 0.5,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -64,10 +68,7 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 
 \item{size}{Point size for cells when plotting centroids}
 
-\item{min.cutoff}{Vector of minimum and maximum cutoff values for each feature,
-may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
-
-\item{max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
+\item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
 \item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
