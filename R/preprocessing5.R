@@ -160,14 +160,8 @@ FindVariableFeatures.StdAssay <- function(
     rownames(x = hvf.info) <- Features(x = object, layer = layer[i])
     object[colnames(x = hvf.info)] <- hvf.info
   }
-  var.name <- paste(
-    'vf',
-    key,
-    layer[i],
-    'variable',
-    sep = '_'
-  )
-  VariableFeatures(object = object) <- rownames(hvf.info)[hvf.info[,var.name]]
+  object@meta.data$var.features <- NULL
+  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nselect)
   return(object)
 }
 
