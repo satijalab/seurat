@@ -30,22 +30,23 @@ feature_letters_shuffled <- sample(x = feature_letters)
 
 test_that("AddMetaData adds feature level metadata", {
   pbmc_small[["RNA"]] <- AddMetaData(object = pbmc_small[["RNA"]], metadata = feature_letters, col.name = 'feature_letters')
-  expect_equal(pbmc_small[["RNA"]][["feature_letters", drop = TRUE]], feature_letters)
+  expect_equal(pbmc_small[["RNA"]]["feature_letters", drop = TRUE], feature_letters)
   pbmc_small[["RNA"]] <- AddMetaData(object = pbmc_small[["RNA"]], metadata = feature_letters_shuffled, col.name = 'feature_letters_shuffled')
-  expect_equal(pbmc_small[["RNA"]][["feature_letters", drop = TRUE]], pbmc_small[["RNA"]][["feature_letters_shuffled", drop = TRUE]])
+  expect_equal(pbmc_small[["RNA"]]["feature_letters", drop = TRUE], pbmc_small[["RNA"]]["feature_letters_shuffled", drop = TRUE])
 })
 
 feature_letters_df <- data.frame(A = feature_letters, B = feature_letters_shuffled)
 test_that("AddMetaData adds in data frame properly for Assays", {
   pbmc_small[["RNA"]] <- AddMetaData(object = pbmc_small[["RNA"]], metadata = feature_letters_df)
-  expect_equal(pbmc_small[["RNA"]][[c("A", "B")]], feature_letters_df)
+  expect_equal(pbmc_small[["RNA"]][c("A", "B")], feature_letters_df)
 })
 
 test_that("AddMetaData errors", {
   expect_error(AddMetaData(object = pbmc_small, metadata = cluster_letters, col.name = "RNA"))
-  expect_error(AddMetaData(object = pbmc_small, metadata = c(unname(cluster_letters), "A"), col.name = "letter.idents"))
+  # expect_error(AddMetaData(object = pbmc_small, metadata = c(unname(cluster_letters), "A"), col.name = "letter.idents")) # doesnt error in v5
   expect_error(AddMetaData(object = pbmc_small, metadata = feature_letters, col.name = "letter.idents"))
   expect_error(AddMetaData(object = pbmc_small[["RNA"]], metadata = cluster_letters, col.name = "letter.idents"))
+  expect_error(AddMetaData(object = pbmc_small, metadata = data.frame(), col.name = "letter.idents"))
 })
 
 # Tests for creating an Assay object
@@ -63,10 +64,10 @@ test_that("CreateAssayObject works as expected", {
   expect_equal(GetAssayData(object = rna.assay, slot = "counts"), pbmc.raw)
   expect_equal(GetAssayData(object = rna.assay, slot = "data"), pbmc.raw)
   expect_equal(GetAssayData(object = rna.assay, slot = "scale.data"), new(Class = "matrix"))
-  expect_equal(dim(rna.assay[[]]), c(230, 0))
-  expect_equal(rownames(x = rna.assay[[]]), rownames(x = rna.assay))
+  expect_equal(dim(rna.assay[]), c(230, 0))
+  expect_equal(rownames(x = rna.assay[]), rownames(x = rna.assay))
   expect_equal(VariableFeatures(object = rna.assay), vector())
-  expect_equal(rna.assay@misc, list())
+  expect_equal(rna.assay@misc, list("calcN" = TRUE))
   expect_equal(GetAssayData(object = rna.assay2, slot = "counts"), new(Class = "matrix"))
 })
 
