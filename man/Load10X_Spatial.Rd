@@ -20,8 +20,6 @@ and the image data in a subdirectory called \code{spatial}}
 
 \item{filename}{Name of H5 file containing the feature barcode matrix}
 
-\item{assay}{Name of the initial assay}
-
 \item{slice}{Name for the stored image of the tissue slice}
 
 \item{filter.matrix}{Only keep spots that have been determined to be over

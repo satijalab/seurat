@@ -125,6 +125,7 @@ AddAzimuthScores <- function(object, filename) {
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names
 #' database; see \code{\link{UpdateSymbolList}} for more details
+#' @param slot Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
 #' @return Returns a Seurat object with module scores added to object meta data;
@@ -179,6 +180,7 @@ AddModuleScore <- function(
   name = 'Cluster',
   seed = 1,
   search = FALSE,
+  slot = 'data',
   ...
 ) {
   if (!is.null(x = seed)) {
@@ -187,7 +189,7 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object)
+  assay.data <- GetAssayData(object = object,assay = assay, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')

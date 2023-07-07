@@ -6,28 +6,6 @@
 \usage{
 \method{HVFInfo}{SCTAssay}(object, selection.method, status = FALSE, ...)
 }
-\arguments{
-\item{object}{An object}
-
-\item{selection.method}{Which method to pull. For \code{HVFInfo} and
-\code{VariableFeatures}, choose one from one of the
-following:
-\itemize{
- \item \dQuote{vst}
- \item \dQuote{sctransform} or \dQuote{sct}
- \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
-  \dQuote{disp}
-}
-For \code{SVFInfo} and \code{SpatiallyVariableFeatures}, choose from:
-\itemize{
- \item \dQuote{markvariogram}
- \item \dQuote{moransi}
-}}
-
-\item{status}{Add variable status to the resulting data frame}
-
-\item{...}{Arguments passed to other methods}
-}
 \description{
 Get variable feature information from \code{\link{SCTAssay}} objects
 }

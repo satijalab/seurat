@@ -17,15 +17,11 @@
 )
 }
 \arguments{
-\item{x}{An object to convert to class \code{Seurat}}
-
 \item{slot}{Slot to store expression data as}
 
 \item{assay}{Name of assays to convert; set to \code{NULL} for all assays to be converted}
 
 \item{verbose}{Show progress updates}
-
-\item{...}{Arguments passed to other methods}
 
 \item{counts}{name of the SingleCellExperiment assay to store as \code{counts};
 set to \code{NULL} if only normalized data are present}
