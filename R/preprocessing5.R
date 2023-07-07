@@ -1272,23 +1272,23 @@ SCTransform.StdAssay <- function(
               residual_type = "pearson",
               min_variance = min_var,
               res_clip_range = res_clip_range,
-              verbosity =  FALSE # as.numeric(x = verbose) * 2
+              verbosity =  FALSE
               )
           } else {
             new_residual <- get_residuals(
               vst_out = vst_out,
-              umi = counts.vp[all.features, ],
+              umi = counts.vp,
               residual_type = "pearson",
               min_variance = min_var,
               res_clip_range = res_clip_range,
-              verbosity =  FALSE # as.numeric(x = verbose) * 2
+              verbosity =  FALSE
             )
           }
           vst_out$y <- new_residual
           corrected_counts[[i]] <- correct_counts(
             x = vst_out,
-            umi = counts.vp[all_features,],
-            verbosity = FALSE # as.numeric(x = verbose) * 2
+            umi = counts.vp[all_features, ],
+            verbosity = FALSE
           )
           residuals[[i]] <- new_residual
           cell_attrs[[i]] <- cell_attr

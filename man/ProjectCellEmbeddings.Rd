@@ -8,7 +8,6 @@
 \alias{ProjectCellEmbeddings.StdAssay}
 \alias{ProjectCellEmbeddings.default}
 \alias{ProjectCellEmbeddings.IterableMatrix}
-\alias{ProjectCellEmbeddings.DelayedMatrix}
 \title{Project query data to the reference dimensional reduction}
 \usage{
 ProjectCellEmbeddings(query, ...)
@@ -25,7 +24,8 @@ ProjectCellEmbeddings(query, ...)
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 )
 
 \method{ProjectCellEmbeddings}{Assay}(
@@ -39,7 +39,8 @@ ProjectCellEmbeddings(query, ...)
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 )
 
 \method{ProjectCellEmbeddings}{SCTAssay}(
@@ -53,7 +54,8 @@ ProjectCellEmbeddings(query, ...)
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 )
 
 \method{ProjectCellEmbeddings}{StdAssay}(
@@ -67,7 +69,8 @@ ProjectCellEmbeddings(query, ...)
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 )
 
 \method{ProjectCellEmbeddings}{default}(
@@ -82,7 +85,8 @@ ProjectCellEmbeddings(query, ...)
   features = NULL,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 )
 
 \method{ProjectCellEmbeddings}{IterableMatrix}(
@@ -98,19 +102,8 @@ ProjectCellEmbeddings(query, ...)
   nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL,
-  block.size = 10000
-)
-
-\method{ProjectCellEmbeddings}{DelayedMatrix}(
-  query.data,
-  block.size = 1e+09,
-  reference,
-  assay = NULL,
-  reduction,
-  normalization.method = NULL,
-  dims = NULL,
-  feature.mean = NULL,
-  feature.sd = NULL
+  block.size = 10000,
+  ...
 )
 }
 \arguments{

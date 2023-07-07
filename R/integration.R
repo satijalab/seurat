@@ -3019,6 +3019,23 @@ SelectIntegrationFeatures <- function(
   return(franks)
 }
 
+#' Select integration features
+#' 
+#' @param object Seurat object
+#' @param nfeatures Number of features to return for integration
+#' @param assay Name of assay to use for integration feature selection
+#' @param method Which method to pull. For \code{HVFInfo} and
+#' \code{VariableFeatures}, choose one from one of the
+#' following:
+#' \itemize{
+#'  \item \dQuote{vst}
+#'  \item \dQuote{sctransform} or \dQuote{sct}
+#'  \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
+#'   \dQuote{disp}
+#' }
+#' @param layers Name of layers to use for integration feature selection
+#' @param verbose Print messages
+#' 
 #' @export
 #'
 SelectIntegrationFeatures5 <- function(
@@ -3043,6 +3060,13 @@ SelectIntegrationFeatures5 <- function(
   return(var.features)
 }
 
+#' Select SCT integration features
+#' 
+#' @param object Seurat object
+#' @param nfeatures Number of features to return for integration
+#' @param assay Name of assay to use for integration feature selection
+#' @param verbose Print messages
+#' 
 #' @export
 #'
 SelectSCTIntegrationFeatures <- function(

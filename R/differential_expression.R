@@ -2356,7 +2356,6 @@ ValidateCellGroups <- function(
 #' @importFrom stats wilcox.test
 #' @importFrom future.apply future_sapply
 #' @importFrom future nbrOfWorkers
-#' @importFrom presto wilcoxauc
 #
 # @export
 #

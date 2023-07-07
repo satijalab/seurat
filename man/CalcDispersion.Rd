@@ -14,6 +14,20 @@ CalcDispersion(
   ...
 )
 }
+\arguments{
+\item{object}{Data matrix}
+
+\item{mean.function}{Function to calculate mean}
+
+\item{dispersion.function}{Function to calculate dispersion}
+
+\item{num.bin}{Number of bins to use}
+
+\item{binning.method}{Method to use for binning. Options are 'equal_width' or 'equal_frequency'}
+
+\item{verbose}{Display progress}
+}
 \description{
 Calculate dispersion of features
 }
+\keyword{internal}

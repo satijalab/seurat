@@ -10,6 +10,13 @@ CreateCategoryMatrix(
   cells.name = NULL
 )
 }
+\arguments{
+\item{labels}{A vector of labels}
+
+\item{method}{Method to aggregate cells with the same label. Either 'aggregate' or 'average'}
+
+\item{cells.name}{A vector of cell names}
+}
 \description{
 Create one hot matrix for a given label
 }

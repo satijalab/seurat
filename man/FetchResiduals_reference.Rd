@@ -2,7 +2,7 @@
 % Please edit documentation in R/preprocessing5.R
 \name{FetchResiduals_reference}
 \alias{FetchResiduals_reference}
-\title{temporal function to get residuals from reference}
+\title{Calculate pearson residuals of features not in the scale.data}
 \usage{
 FetchResiduals_reference(
   object,
@@ -12,6 +12,23 @@ FetchResiduals_reference(
   verbose = FALSE
 )
 }
-\description{
+\arguments{
+\item{object}{A seurat object}
+
+\item{reference.SCT.model}{SCTModel object to use for calculating residuals}
+
+\item{features}{Name of features to add into the scale.data}
+
+\item{nCount_UMI}{UMI Counts per cell provided to vst}
+
+\item{verbose}{Whether to print messages and progress bars}
+}
+\value{
+Returns a Seurat object containing Pearson residuals of added
+features in its scale.data
+
 temporal function to get residuals from reference
+}
+\description{
+This function calls sctransform::get_residuals.
 }
