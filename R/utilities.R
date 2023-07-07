@@ -189,7 +189,7 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object,assay = assay, slot = slot)
+  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
