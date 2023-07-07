@@ -1792,6 +1792,12 @@ RunUMAP.Seurat <- function(
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
+  if (sum(!is.null(x = dims), !is.null(x = nn.name),
+          !is.null(x = graph), !is.null(x = features)) != 1) {
+    stop("Only one parameter among 'dims', 'nn.name', 'graph', or 'features' ",
+         "should be used at a time to run UMAP")
+  }
+  
   if (!is.null(x = features)) {
     data.use <- as.matrix(x = t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
