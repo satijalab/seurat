@@ -894,7 +894,7 @@ DimPlot <- function(
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
   if (!is.null(x = split.by)) {
-    data[, split.by] <- FetchData(object,split.by)[split.by]
+    data[, split.by] <- FetchData(object = object, vars = split.by)[split.by]
   }
   if (isTRUE(x = shuffle)) {
     set.seed(seed = seed)
@@ -2009,13 +2009,13 @@ FeatureScatter <- function(
     }
   }
   if (!is.null(x = split.by)) {
-    data[, split.by] <- FetchData(object,split.by)[split.by]
+    data[, split.by] <- FetchData(object = object, vars = split.by)[split.by]
   }
   plots <- lapply(
     X = group.by,
     FUN = function(x) {
       plot <- SingleCorPlot(
-        data = data[,c(feature1, feature2,split.by)],
+        data = data[,c(feature1, feature2, split.by)],
         col.by = data[, x],
         cols = cols,
         pt.size = pt.size,
@@ -4375,7 +4375,7 @@ DotPlot <- function(
   id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- FetchData(object,split.by)[cells,split.by]
+    splits <- FetchData(object = object, vars = split.by)[cells, split.by]
     if (split.colors) {
       if (length(x = unique(x = splits)) > length(x = cols)) {
         stop(paste0("Need to specify at least ", length(x = unique(x = splits)), " colors using the cols parameter"))
@@ -4464,8 +4464,19 @@ DotPlot <- function(
   data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (split.colors) {
-    splits.use <- unlist(lapply(data.plot$id, function(x) 
-      sub(paste0(".*_(",paste(sort(unique(splits),decreasing = TRUE), collapse = '|'),")$"), "\\1", x) ))
+    splits.use <- unlist(x = lapply(
+      X = data.plot$id,
+      FUN = function(x)
+      sub(
+        paste0(".*_(",
+               paste(sort(unique(x = splits), decreasing = TRUE),
+                     collapse = '|'
+                     ),")$"),
+        "\\1",
+        x
+        )
+      )
+      )
     data.plot$colors <- mapply(
       FUN = function(color, value) {
         return(colorRampPalette(colors = c('grey', color))(20)[value])
