@@ -13,7 +13,6 @@ NULL
 
 #' Harmony Integration
 #'
-#' @inheritParams harmony::HarmonyMatrix
 #' @param object An \code{\link[SeuratObject]{Assay5}} object
 # @param assay Name of \code{object} in the containing \code{Seurat} object
 #' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
@@ -34,8 +33,6 @@ NULL
 # @templateVar pkg harmony
 # @template note-reqdpkg
 #'
-#' @importFrom harmony HarmonyMatrix
-#' 
 #' @examples
 #' \dontrun{
 #' # Preprocessing
@@ -51,17 +48,16 @@ NULL
 #'   new.reduction = 'harmony', verbose = FALSE)
 #'
 #' # Modifying Parameters
-#' # We can also add arguments specific to Harmony such as theta, to give more diverse clusters 
+#' # We can also add arguments specific to Harmony such as theta, to give more diverse clusters
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration, orig.reduction = "pca",
 #'   new.reduction = 'harmony', verbose = FALSE, theta = 3)
-#' }
 #'
 #' # Integrating SCTransformed data
 #' obj <- SCTransform(object = obj)
 #' obj <- IntegrateLayers(object = obj, method = HarmonyIntegration,
 #'   orig.reduction = "pca", new.reduction = 'harmony',
 #'   assay = "SCT", verbose = FALSE)
-#'
+#' }
 #'
 #' @export
 #'
@@ -111,7 +107,7 @@ HarmonyIntegration <- function(
   #   verbose = verbose
   # )
   # Run Harmony
-  harmony.embed <- HarmonyMatrix(
+  harmony.embed <- harmony::HarmonyMatrix(
     data_mat = Embeddings(object = orig),
     meta_data = groups,
     vars_use = 'group',
@@ -145,7 +141,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-CCA Integration
 #'
-#' @inheritParams FindIntegrationAnchors
+#' @inheritParams RPCAIntegration
 #' @export
 #'
 #' @examples
@@ -175,7 +171,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #'   orig.reduction = "pca", new.reduction = "integrated.cca",
 #'   assay = "SCT", verbose = FALSE)
 #' }
-#' 
+#'
 CCAIntegration <- function(
     object = NULL,
     assay = NULL,
@@ -241,7 +237,23 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-RPCA Integration
 #'
-#' @examples 
+#' @param object A \code{Seurat} object
+#' @param assay Name of \code{Assay} in the \code{Seurat} object
+#' @param layers Names of layers in \code{assay}
+#' @param orig A \link[SeuratObject:DimReduc]{dimensional reduction} to correct
+#' @param new.reduction Name of new integrated dimensional reduction
+#' @param reference A reference \code{Seurat} object
+#' @param features A vector of features to use for integration
+#' @param normalization.method Name of normalization method used: LogNormalize
+#' or SCT
+#' @param dims Dimensions of dimensional reduction to use for integration
+#' @param k.filter Number of anchors to filter
+#' @param scale.layer Name of scaled layer in \code{Assay}
+#' @param groups A one-column data frame with grouping information
+#' @param verbose Print progress
+#' @param ... Additional arguments passed to \code{FindIntegrationAnchors}
+#'
+#' @examples
 #' \dontrun{
 #' # Preprocessing
 #' obj <- SeuratData::LoadData("pbmcsca")
@@ -276,7 +288,6 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #'   assay = "SCT", verbose = FALSE)
 #' }
 #'
-#' @inheritParams FindIntegrationAnchors
 #' @export
 #'
 RPCAIntegration <- function(
@@ -354,6 +365,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 
 #' Seurat-Joint PCA Integration
 #'
+#' @inheritParams RPCAIntegration
 #' @inheritParams FindIntegrationAnchors
 #' @export
 #'

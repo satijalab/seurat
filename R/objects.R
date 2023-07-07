@@ -227,9 +227,11 @@ SCTModel <- setClass(
 #' @concept objects
 #'
 #' @examples
+#' \dontrun{
 #' # SCTAssay objects are generated from SCTransform
 #' pbmc_small <- SCTransform(pbmc_small)
 #' pbmc_small[["SCT"]]
+#' }
 #'
 SCTAssay <- setClass(
   Class = 'SCTAssay',
@@ -480,6 +482,9 @@ CreateSCTAssayObject <- function(
 #' @param graphs Only keep a subset of Graphs specified here (if \code{NULL},
 #' remove all Graphs)
 #' @param misc Preserve the \code{misc} slot; default is \code{TRUE}
+#' @param counts Preserve the count matrices for the assays specified
+#' @param data Preserve the data matrices for the assays specified
+#' @param scale.data Preserve the scale data matrices for the assays specified
 #' @param ... Ignored
 #'
 #' @return \code{object} with only the sub-object specified retained
@@ -1427,7 +1432,7 @@ Cells.SCTModel <- function(x, ...) {
 #' @method Cells SCTAssay
 #' @export
 #'
-Cells.SCTAssay <- function(x, layer = NA) {
+Cells.SCTAssay <- function(x, layer = NA, ...) {
   layer <- layer %||% levels(x = x)[1L]
   if (rlang::is_na(x = layer)) {
     return(colnames(x = x))
@@ -1471,12 +1476,13 @@ Cells.VisiumV1 <- function(x, ...) {
 #' @method Features SCTAssay
 #' @export
 #'
-Features.SCTAssay <- function(x, layer = NA) {
+Features.SCTAssay <- function(x, layer = NA, ...) {
   layer <- layer %||% DefaultLayer(object = x)
   if (rlang::is_na(x = layer)) {
     return(rownames(x = x))
   }
-  layer <- rlang::arg_match(arg = layer, values = c(Layers(object = x), levels(x = x)))
+  layer <- rlang::arg_match(
+    arg = layer, values = c(Layers(object = x), levels(x = x)))
   if (layer %in% levels(x = x)) {
     return(Features(x = components(object = x, model = layer)))
   }
@@ -1504,7 +1510,8 @@ Features.SCTModel <- function(x, ...) {
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
   CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
-  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
+  object.assays <- FilterObjects(
+    object = object, classes.keep = c('Assay', 'Assay5'))
   if (!assay %in% object.assays) {
     stop(paste0(
       assay,
@@ -1648,8 +1655,10 @@ GetTissueCoordinates.VisiumV1 <- function(
 ) {
   cols <- cols %||% colnames(x = slot(object = object, name = 'coordinates'))
   if (!is.null(x = scale)) {
-    coordinates <- slot(object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
-    scale <- match.arg(arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
+    coordinates <- slot(
+      object = object, name = 'coordinates')[, c('imagerow', 'imagecol')]
+    scale <- match.arg(
+      arg = scale, choices = c('spot', 'fiducial', 'hires', 'lowres'))
     scale.use <- ScaleFactors(object = object)[[scale]]
     coordinates <- coordinates * scale.use
   } else {
@@ -1670,20 +1679,22 @@ GetTissueCoordinates.VisiumV1 <- function(
 #' @seealso \code{\link[SeuratObject]{HVFInfo}}
 #'
 #' @examples
+#' \dontrun{
 #' # Get the HVF info directly from an SCTAssay object
 #' pbmc_small <- SCTransform(pbmc_small)
-#' HVFInfo(pbmc_small[["SCT"]], selection.method = 'sct')[1:5, ]
+#' HVFInfo(pbmc_small[["SCT"]], method = 'sct')[1:5, ]
+#' }
 #'
-HVFInfo.SCTAssay <- function(object, selection.method, status = FALSE, ...) {
+HVFInfo.SCTAssay <- function(object, method, status = FALSE, ...) {
   CheckDots(...)
   disp.methods <- c('mean.var.plot', 'dispersion', 'disp')
-  if (tolower(x = selection.method) %in% disp.methods) {
-    selection.method <- 'mvp'
+  if (tolower(x = method) %in% disp.methods) {
+    method <- 'mvp'
   }
-  selection.method <- switch(
-    EXPR = tolower(x = selection.method),
+  method <- switch(
+    EXPR = tolower(x = method),
     'sctransform' = 'sct',
-    selection.method
+    method
   )
   vars <- c('gmean', 'variance', 'residual_variance')
   hvf.info <- SCTResults(object = object, slot = "feature.attributes")[,vars]
@@ -1924,7 +1935,7 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
 #' @method VariableFeatures SCTModel
 #' @export
 #'
-VariableFeatures.SCTModel <- function(object, nfeatures = 3000, ...) {
+VariableFeatures.SCTModel <- function(object, selection.method = NULL, nfeatures = 3000, ...) {
   if (!is_scalar_integerish(x = nfeatures) || (!is_na(x = nfeatures < 1L) && nfeatures < 1L)) {
     abort(message = "'nfeatures' must be a single positive integer")
   }
@@ -1944,6 +1955,7 @@ VariableFeatures.SCTModel <- function(object, nfeatures = 3000, ...) {
 #'
 VariableFeatures.SCTAssay <- function(
   object,
+  selection.method = NULL,
   layer = NULL,
   nfeatures = NULL,
   simplify = TRUE,
@@ -1956,8 +1968,8 @@ VariableFeatures.SCTAssay <- function(
   if (is.null(x = layer)) {
     layer <- levels(x = object)
   }
-  if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing)>=nfeatures){
-     return (head(x = var.features.existing, n = nfeatures))
+  if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing) >= nfeatures){
+     return(head(x = var.features.existing, n = nfeatures))
   }
 
   layer <- match.arg(arg = layer, choices = levels(x = object), several.ok = TRUE)
@@ -1976,7 +1988,7 @@ VariableFeatures.SCTAssay <- function(
     USE.NAMES = TRUE
   )
   if (isFALSE(x = simplify)){
-    return (vf.list)
+    return(vf.list)
   }
   var.features <- sort(
     x = table(unlist(x = vf.list, use.names = FALSE)),
@@ -2038,7 +2050,6 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
 }
 
-#' @rdname FetchData
 #' @method FetchData VisiumV1
 #' @export
 #' @concept spatial
@@ -2082,7 +2093,7 @@ FetchData.VisiumV1 <- function(
 #' @method components SCTAssay
 #' @export
 #'
-components.SCTAssay <- function(object, model) {
+components.SCTAssay <- function(object, model, ...) {
   model <- rlang::arg_match(arg = model, values = levels(x = object))
   return(slot(object = object, name = 'SCTModel.list')[[model]])
 }

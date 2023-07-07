@@ -363,9 +363,11 @@ HTODemux <- function(
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
+#' }
 #'
 GetResidual <- function(
   object,
@@ -4079,6 +4081,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 LogNormalize.data.frame <- function(
   data,
   scale.factor = 1e4,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {
@@ -4097,6 +4100,7 @@ LogNormalize.data.frame <- function(
 LogNormalize.V3Matrix <- function(
   data,
   scale.factor = 1e4,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {

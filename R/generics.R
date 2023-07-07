@@ -116,6 +116,7 @@ FindClusters <- function(object, ...) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' # Find markers for cluster 2
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
@@ -133,7 +134,8 @@ FindClusters <- function(object, ...) {
 #'   markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
 #'   head(x = markers)
 #' }
-#'
+#' }
+#' 
 #' @rdname FindMarkers
 #' @export FindMarkers
 #'
@@ -230,9 +232,11 @@ FindSpatiallyVariableFeatures <- function(object, ...) {
 #' Otherwise, log2 fold change is returned with column named "avg_log2_FC".
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' FoldChange(pbmc_small, ident.1 = 1)
-#'
+#' }
+#' 
 #' @param object A Seurat object
 #' @param ... Arguments passed to other methods
 #' @rdname FoldChange
@@ -469,6 +473,7 @@ PseudobulkExpression <- function(object, ...) {
 #' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
@@ -479,7 +484,8 @@ PseudobulkExpression <- function(object, ...) {
 #' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 #' # Print results
 #' print(x = pbmc_cca[["cca"]])
-#'
+#' }
+#' 
 #' @rdname RunCCA
 #' @export RunCCA
 #'

@@ -87,12 +87,6 @@ Imports:
     tools,
     utils,
     uwot (>= 0.1.10),
-    DelayedArray,
-    TileDBArray,
-    harmony,
-    presto,
-    rhdf5,
-    HDF5Array,
     BPCells (>= 0.0.0.9000)
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: MIT + file LICENSE
@@ -145,4 +139,7 @@ Suggests:
     mixtools,
     ggrastr,
     data.table,
-    R.utils
+    R.utils,
+    presto,
+    DelayedArray,
+    harmony

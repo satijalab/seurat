@@ -701,11 +701,13 @@ VlnPlot <- function(
 #' @seealso \code{\link{DimPlot}}
 #'
 #' @examples
+#' \dontrun{
 #' if (requireNamespace("ape", quietly = TRUE)) {
 #'   data("pbmc_small")
 #'   pbmc_small <- BuildClusterTree(object = pbmc_small, verbose = FALSE)
 #'   PlotClusterTree(pbmc_small)
 #'   ColorDimSplit(pbmc_small, node = 5)
+#' }
 #' }
 #'
 ColorDimSplit <- function(
@@ -4717,10 +4719,12 @@ JackStrawPlot <- function(
 #' @concept visualization
 #'
 #' @examples
+#' \dontrun{
 #' if (requireNamespace("ape", quietly = TRUE)) {
 #'   data("pbmc_small")
 #'   pbmc_small <- BuildClusterTree(object = pbmc_small)
 #'   PlotClusterTree(object = pbmc_small)
+#' }
 #' }
 PlotClusterTree <- function(object, direction = "downwards", ...) {
   if (!PackageCheck('ape', error = FALSE)) {
