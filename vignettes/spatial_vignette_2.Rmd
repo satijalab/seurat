@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -41,7 +42,7 @@ We update the Seurat infrastructure to enable the analysis, visualization, and e
 * Nanostring CosMx Spatial Molecular Imager (FFPE Human Lung)
 * Akoya CODEX (Human Lymph Node)
 
-First, we install the updated versions of Seurat and SeuratObject that support this infrastructure, as well as other packages necessary for this vignette.
+First, we load the packages necessary for this vignette.
 
 ```{r init, message=FALSE, warning=FALSE}
 library(Seurat)
@@ -61,7 +62,7 @@ We use the `LoadVizgen()` function, which we have written to read in the output 
 
 ```{r, message=FALSE, warning=FALSE}
 # Loading segmentations is a slow process and multi processing with the future pacakge is recommended
-vizgen.obj <- LoadVizgen(data.dir = "/brahms/hartmana/spatial_vignette_data/vizgen/s2r1/", fov = "s2r1")
+vizgen.obj <- LoadVizgen(data.dir = "../data/vizgen/s2r1/", fov = "s2r1")
 ```
 
 The next pieces of information are specific to imaging assays, and is stored in the images slot of the resulting Seurat object:
@@ -282,6 +283,309 @@ We can now use `ImageDimPlot()` to color the cell positions colored by the clust
 ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
 ```
 
+# Mouse Brain: 10x Genomics Xenium In Situ
+
+In this section we'll analyze data produced by the Xenium platform. The vignette demonstrates how to load the per-transcript location data, cell x gene matrix, cell segmentation, and cell centroid information available in the Xenium outputs. The resulting Seurat object will contain the gene expression profile of each cell, the centroid and boundary of each cell, and the location of each individual detected transcript. The per-cell gene expression profiles are similar to standard single-cell RNA-seq and can be analyzed using the same tools.
+
+This uses the `Tiny subset` dataset from 10x Genomics provided in the [Fresh Frozen Mouse Brain for Xenium Explorer Demo](https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard) which can be downloaded as described below. These analysis steps are also compatible with the larger `Full coronal section`, but will take longer to execute.
+
+```{bash, eval=FALSE}
+wget https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+```
+
+First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
+
+```{r load.xenium, results='hide'}
+path <- "/brahms/hartmana/spatial_sensitivity_comparison/10x_xenium/xenium_tiny_subset"
+
+# Load the Xenium data
+xenium.obj <- LoadXenium(path, fov = "fov")
+
+# remove cells with 0 counts
+xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
+```
+
+Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named `fov`. Later, we will make a cropped FOV that zooms into a region of interest.
+
+Standard QC plots provided by Seurat are available via the `Xenium` assay. Here are violin plots of genes per cell (`nFeature_Xenium`) and transcript counts per cell (`nCount_Xenium`)
+```{r vlnplot.xenium}
+VlnPlot(xenium.obj, features = c("nFeature_Xenium", "nCount_Xenium"), ncol = 2, pt.size = 0)
+```
+
+Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory neuron sub-type markers Pvalb, and Sst, and astrocyte marker Gfap on the tissue using `ImageDimPlot()`.
+```{r p2.xenium, fig.width=10, fig.height=8}
+ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
+```
+
+```{r save.img, include=FALSE}
+library(ggplot2)
+plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
+ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
+Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.
+```{r mat.xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
+ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
+```
+
+We can zoom in on a chosen area with the `Crop()` function. Once zoomed-in, we can visualize cell segmentation boundaries along with individual molecules.
+```{r cropping.xenium, message=FALSE, warning=FALSE, fig.width=10, fig.height=8}
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1200, 2900), y = c(3750, 4550), coords = "plot")
+
+xenium.obj[["zoom"]] <- cropped.coords
+
+# visualize cropped area with cell segmentations & selected molecules
+DefaultBoundary(xenium.obj[["zoom"]]) <- "segmentation"
+ImageDimPlot(xenium.obj, fov = "zoom", 
+             axes = TRUE, border.color = "white", border.size = 0.1,
+             cols = "polychrome", coord.fixed = FALSE,
+             molecules = c("Gad1", "Sst", "Npy2r", "Pvalb", "Nrn1"), nmols = 10000)
+```
+
+Next, we use SCTransform for normalization followed by standard dimensionality reduction and clustering. This step takes about 5 minutes from start to finish.
+```{r unsupervised.xenium, results='hide'}
+xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
+xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
+xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
+xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
+xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
+```
+
+We can then visualize the results of the clustering by coloring each cell according to its cluster either in UMAP space with `DimPlot()` or overlaid on the image with `ImageDimPlot()`.
+```{r umap.xenium, fig.width=10, fig.height=7}
+DimPlot(xenium.obj)
+```
+
+We can visualize the expression level of the markers we looked at earlier on the UMAP coordinates.
+```{r features.xenium, fig.width=8, fig.height=10}
+FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "Gfap"))
+```
+
+We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
+```{r clusters.xenium, fig.width=13, fig.height=13}
+ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
+```
+
+# Mouse Brain: 10x Genomics Xenium In Situ
+
+In this section we'll analyze data produced by the Xenium platform. The vignette demonstrates how to load the per-transcript location data, cell x gene matrix, cell segmentation, and cell centroid information available in the Xenium outputs. The resulting Seurat object will contain the gene expression profile of each cell, the centroid and boundary of each cell, and the location of each individual detected transcript. The per-cell gene expression profiles are similar to standard single-cell RNA-seq and can be analyzed using the same tools.
+
+This uses the `Tiny subset` dataset from 10x Genomics provided in the [Fresh Frozen Mouse Brain for Xenium Explorer Demo](https://www.10xgenomics.com/resources/datasets/fresh-frozen-mouse-brain-for-xenium-explorer-demo-1-standard) which can be downloaded as described below. These analysis steps are also compatible with the larger `Full coronal section`, but will take longer to execute.
+
+```{bash, eval=FALSE}
+wget https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+unzip Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+```
+
+First we read in the dataset and create a Seurat object. Provide the path to the data folder for a Xenium run as the input path. The RNA data is stored in the `Xenium` assay of the Seurat object. This step should take about a minute.
+
+```{r load.xenium, results='hide'}
+path <- "../data/xenium_tiny_subset"
+# Load the Xenium data
+xenium.obj <- LoadXenium(path, fov = "fov")
+# remove cells with 0 counts
+xenium.obj <- subset(xenium.obj, subset = nCount_Xenium > 0)
+```
+
+Spatial information is loaded into slots of the Seurat object, labelled by the name of "field of view" (FOV) being loaded. Initially all the data is loaded into the FOV named `fov`. Later, we will make a cropped FOV that zooms into a region of interest.
+
+Standard QC plots provided by Seurat are available via the `Xenium` assay. Here are violin plots of genes per cell (`nFeature_Xenium`) and transcript counts per cell (`nCount_Xenium`)
+```{r vlnplot.xenium}
+VlnPlot(xenium.obj, features = c("nFeature_Xenium", "nCount_Xenium"), ncol = 2, pt.size = 0)
+```
+
+Next, we plot the positions of the pan-inhibitory neuron marker Gad1, inhibitory neuron sub-type markers Pvalb, and Sst, and astrocyte marker Gfap on the tissue using `ImageDimPlot()`.
+```{r p2.xenium, fig.width=10, fig.height=8}
+ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Sst", "Pvalb", "Gfap"), nmols = 20000)
+```
+
+```{r save.img, include=FALSE}
+library(ggplot2)
+plot <- ImageDimPlot(xenium.obj, fov = "fov", molecules = c("Gad1", "Gfap"), nmols = 40000, alpha=0.01, dark.background = F, mols.alpha = 0.6) + coord_flip() + scale_x_reverse() + NoLegend()
+ggsave(filename = "../output/images/spatial_vignette_2.jpg", height = 5, width = 9, plot = plot)
+```
+
+Here we visualize the expression level of some key layer marker genes at the per-cell level using `ImageFeaturePlot()` which is analogous to the `FeaturePlot()` function for visualizing expression on a 2D embedding. We manually adjust the `max.cutoff` for each gene to roughly the 90th percentile (which can be specified with `max.cutoff='q90'`) of it's count distribution to improve contrast.
+```{r mat.xenium, message=FALSE, warning=FALSE, fig.width=12, fig.height=12}
+ImageFeaturePlot(xenium.obj, features = c("Cux2", "Rorb", "Bcl11b", "Foxp2"), max.cutoff = c(25, 35, 12, 10), size = 0.75, cols = c("white", "red"))
+```
+
+We can zoom in on a chosen area with the `Crop()` function. Once zoomed-in, we can visualize cell segmentation boundaries along with individual molecules.
+```{r cropping.xenium, message=FALSE, warning=FALSE, fig.width=10, fig.height=8}
+cropped.coords <- Crop(xenium.obj[["fov"]], x = c(1200, 2900), y = c(3750, 4550), coords = "plot")
+xenium.obj[["zoom"]] <- cropped.coords
+# visualize cropped area with cell segmentations & selected molecules
+DefaultBoundary(xenium.obj[["zoom"]]) <- "segmentation"
+ImageDimPlot(xenium.obj, fov = "zoom", 
+             axes = TRUE, border.color = "white", border.size = 0.1,
+             cols = "polychrome", coord.fixed = FALSE,
+             molecules = c("Gad1", "Sst", "Npy2r", "Pvalb", "Nrn1"), nmols = 10000)
+```
+
+Next, we use SCTransform for normalization followed by standard dimensionality reduction and clustering. This step takes about 5 minutes from start to finish.
+```{r unsupervised.xenium, results='hide'}
+xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
+xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
+xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
+xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
+xenium.obj <- FindClusters(xenium.obj, resolution = 0.3)
+```
+
+We can then visualize the results of the clustering by coloring each cell according to its cluster either in UMAP space with `DimPlot()` or overlaid on the image with `ImageDimPlot()`.
+```{r umap.xenium, fig.width=10, fig.height=7}
+DimPlot(xenium.obj)
+```
+
+We can visualize the expression level of the markers we looked at earlier on the UMAP coordinates.
+```{r features.xenium, fig.width=8, fig.height=10}
+FeaturePlot(xenium.obj, features = c("Cux2", "Bcl11b", "Foxp2", "Gad1", "Sst", "Gfap"))
+```
+
+We can now use `ImageDimPlot()` to color the cell positions colored by the cluster labels determined in the previous step.
+```{r clusters.xenium, fig.width=13, fig.height=13}
+ImageDimPlot(xenium.obj, cols = "polychrome", size = 0.75)
+```
+
+Using the positional information of each cell, we compute spatial niches.
+We use a cortex reference from the the Allen Brain Institute to annotate cells, so we first crop the dataset to the cortex.
+Below, we use Slc17a7 expression to help determine the cortical region.
+
+```{r, fig.width=5, fig.height=5, warning=FALSE}
+xenium.obj <- LoadXenium("../data/xenium_tiny_subset")
+p1 <- ImageFeaturePlot(xenium.obj, features = "Slc17a7", axes = TRUE, max.cutoff = "q90")
+p1
+```
+
+```{r resolve.crop, fig.width=5, fig.height=7, warning=FALSE}
+crop <- Crop(xenium.obj[["fov"]], x=c(600, 2100), y=c(900, 4700))
+xenium.obj[["crop"]] <- crop
+p2 <- ImageFeaturePlot(
+  xenium.obj,
+  fov = "crop",
+  features = "Slc17a7",
+  size = 1,
+  axes = TRUE,
+  max.cutoff = "q90")
+p2
+```
+
+Annotation of spatial datasets can be tricky, and single cell methods are not always effective. Here, we use RCTD, which directly accounts for cell type mixing at each spot or segmentation, to annotate cells. For more details on RCTD, please see the [paper](https://doi.org/10.1038/s41587-021-00830-w).
+
+First, we install the `spacexr` package from GitHub which implements RCTD.
+
+```{r, rctd.install, eval=FALSE}
+devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+```
+
+Counts, cluster, and spot information is extracted from the Seurat query and reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD for annotation.
+
+```{r rctd.qeury, warning=FALSE}
+library(spacexr)
+
+query.counts <- GetAssayData(xenium.obj, assay = "Xenium", slot = "counts")[, Cells(xenium.obj[["crop"]])]
+coords <- GetTissueCoordinates(xenium.obj[["crop"]], which = "centroids")
+rownames(coords) <- coords$cell
+coords$cell <- NULL
+query <- SpatialRNA(coords, query.counts, colSums(query.counts))
+```
+
+```{r rctd.reference, eval=FALSE}
+allen.cortex.ref <- readRDS("../data/allen_cortex.rds")
+allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
+
+Idents(allen.cortex.ref) <- "subclass"
+# remove CR cells because there aren't enough of them for annotation
+allen.cortex.ref <- subset(allen.cortex.ref, subset = subclass != "CR")
+counts <- GetAssayData(allen.cortex.ref, assay = "RNA", slot = "counts")
+cluster <- as.factor(allen.cortex.ref$subclass)
+names(cluster) <- colnames(allen.cortex.ref)
+nUMI <- allen.cortex.ref$nCount_RNA
+names(nUMI) <- colnames(allen.cortex.ref)
+nUMI <- colSums(counts)
+levels(cluster) <- gsub("/", "-", levels(cluster))
+reference <- Reference(counts, cluster, nUMI)
+```
+
+```{r niche.run.rctd, warning=FALSE, results=FALSE, eval=FALSE}
+# run RCTD with many cores
+RCTD <- create.RCTD(query, reference, max_cores = 8)
+RCTD <- run.RCTD(RCTD, doublet_mode = "doublet")
+```
+
+Many spot annotations contain multiple cell type markers, so we filter only to singlets and add the annotations to the Seurat object for downstream analysis.
+
+```{r niche.add.annotations, eval=FALSE}
+annotations.df <- RCTD@results$results_df
+annotations.df <- annotations.df[annotations.df$spot_class == "singlet", ]
+annotations <- annotations.df$first_type
+names(annotations) <- rownames(annotations.df)
+xenium.obj$predicted.celltype <- annotations
+keep.cells <- Cells(xenium.obj)[!is.na(xenium.obj$predicted.celltype)]
+xenium.obj <- subset(xenium.obj, cells = keep.cells)
+```
+
+We call the `BuildNicheAssay` function from within Seurat to construct a new assay called `niche` containing the cell type composition spatially neighboring each cell. A metadata column called `niches` is also returned, which contains cluster assignments based on the niche assay.
+
+```{r build.niche.assay, eval=FALSE}
+xenium.obj <- BuildNicheAssay(
+  object = xenium.obj,
+  fov = "crop",
+  group.by = "predicted.celltype",
+  niches.k = 5,
+  neighbors.k = 30
+)
+```
+
+```{r load.niche.results, eval=TRUE, include=FALSE}
+xenium.obj <- readRDS("../data/xenium_niches_presaved.rds")
+```
+
+After clustering the cell type composition nearby each cell, the neuronal layers in the cortex are visually demarcated.
+
+```{r, niche.dimplots, fig.width=8, fig.height=6, warning=FALSE}
+celltype.plot <- ImageDimPlot(
+  xenium.obj,
+  group.by = "predicted.celltype",
+  size = 1.5,
+  cols = "polychrome",
+  dark.background = F) +
+  ggtitle("Cell type")
+niche.plot <- ImageDimPlot(
+  xenium.obj,
+  group.by = "niches",
+  size = 1.5,
+  dark.background = F) + 
+  ggtitle("Niches") +
+  scale_fill_manual(
+    values = c("#442288", "#6CA2EA", "#B5D33D", "#FED23F", "#EB7D5B"))
+celltype.plot | niche.plot
+```
+
+Further, we observe that the composition of each niche is enriched for distinct cell types.
+
+```{r niche.composition}
+table(xenium.obj$predicted.celltype, xenium.obj$niches)
+```
+
+Next, we perform DE between atrocytes from two of the niches.
+
+Note: I think this style of analysis is very risky - most of the DEGs comparing a cell type across niches are cell type markers of the other cell types enriched in one of the niches likely due to incorrect molecular assignment to cells.
+
+```{r niche.de}
+xenium.obj$celltype.niches <- paste0(xenium.obj$predicted.celltype, "_", xenium.obj$niches)
+Idents(xenium.obj) <- "celltype.niches"
+niche.markers <- FindMarkers(xenium.obj, assay = "Xenium", ident.1 = "Astro_1", ident.2 = "Astro_5")
+```
+
+```{r niche.vln}
+VlnPlot(
+  xenium.obj,
+  idents = c("Astro_1", "Astro_5"),
+  assay = "Xenium",
+  features = rownames(niche.markers)[1:6])
+```
+
 # Human Lung: Nanostring CosMx Spatial Molecular Imager
 
 This dataset was produced using Nanostring CosMx Spatial Molecular Imager (SMI). The CosMX SMI performs multiplexed single molecule profiling, can profile both RNA and protein targets, and can be applied directly to FFPE tissues. The dataset represents 8 FFPE samples taken from 5 non-small-cell lung cancer (NSCLC) tissues, and is available for [public download](https://www.nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/). The gene panel consists of 960 transcripts. 
@@ -291,12 +595,12 @@ In this vignette, we load one of 8 samples (lung 5, replicate 1). We use the `Lo
 For this dataset, instead of performing unsupervised analysis, we map the Nanostring profiles to our Azimuth Healthy Human Lung reference, which was defined by scRNA-seq. We used Azimuth version 0.4.3 with the [human lung](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Lung%20v1) reference version 1.0.0.  You can download the precomputed results [here](https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds), which include annotations, prediction scores, and a UMAP visualization. The median number of detected transcripts/cell is 249, which does create uncertainty for the annotation process.
 
 ```{r load}
-nano.obj <- LoadNanostring(data.dir = "/brahms/hartmana/spatial_vignette_data/nanostring/lung5_rep1", fov="lung5.rep1")
+nano.obj <- LoadNanostring(data.dir = "../data/nanostring/lung5_rep1", fov="lung5.rep1")
 ```
 
 ```{r integration}
 # add in precomputed Azimuth annotations
-azimuth.data <- readRDS("/brahms/hartmana/spatial_vignette_data/nanostring_data.Rds")
+azimuth.data <- readRDS("../data/nanostring_data.Rds")
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
@@ -332,7 +636,7 @@ ImageDimPlot(nano.obj, fov = "lung5.rep1", cells = WhichCells(nano.obj, idents=c
 We can also visualize gene expression markers a few different ways:
 
 ```{r, fig.width=10, fig.height=5}
-VlnPlot(nano.obj, features = "KRT17", slot = "counts", pt.size = 0.1, y.max = 30) + NoLegend()
+VlnPlot(nano.obj, features = "KRT17", layer = "counts", pt.size = 0.1, y.max = 30) + NoLegend()
 ```
 
 ```{r, fig.width=5, fig.height=4}
@@ -378,7 +682,7 @@ First, we load in the data of a HuBMAP dataset using the `LoadAkoya()` function 
 
 ```{r}
 codex.obj <- LoadAkoya(
-  filename = "/brahms/hartmana/spatial_vignette_data/LN7910_20_008_11022020_reg001_compensated.csv",
+  filename = "../data/LN7910_20_008_11022020_reg001_compensated.csv",
   type = "processor",
   fov = "HBM754.WKLP.262"
 )
@@ -422,3 +726,9 @@ Each of these datasets represents an opportunity to learn organizing principles 
 sessionInfo()
 ```
 </details>
+
+```{r save.times, include=FALSE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/spatial_vignette_2.csv")
+```
+
+

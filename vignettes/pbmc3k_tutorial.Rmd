@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -59,7 +60,7 @@ pbmc.data[c("CD3D","TCL1A","MS4A1"), 1:30]
 
 The `.` values in the matrix represent 0s (no molecules detected). Since most values in an scRNA-seq matrix are 0,  Seurat uses a sparse-matrix representation whenever possible. This results in significant memory and speed savings for Drop-seq/inDrop/10x data.
 
-````{r}
+```{r}
 dense.size <- object.size(as.matrix(pbmc.data))
 dense.size
 sparse.size <- object.size(pbmc.data)
@@ -360,7 +361,7 @@ pbmc <- RenameIdents(pbmc, new.cluster.ids)
 DimPlot(pbmc, reduction = 'umap', label = TRUE, pt.size = 0.5) + NoLegend()
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- DimPlot(pbmc, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
@@ -372,11 +373,11 @@ ggsave(filename = "../output/images/pbmc3k_umap.jpg", height = 7, width = 12, pl
 saveRDS(pbmc, file = "../output/pbmc3k_final.rds")
 ```
 
-```{r save2, include = FALSE}
+```{r save2, include = TRUE}
 saveRDS(pbmc, file = "../data/pbmc3k_final.rds")
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/pbmc3k_tutorial_times.csv")
 ```
 

@@ -30,6 +30,7 @@ setOldClass(Classes = 'package_version')
 #' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
 #' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
+#' @slot weight.reduction The weight dimensional reduction used to calculate weight matrix
 #' @slot anchor.features The features used when performing anchor finding.
 #' @slot neighbors List containing Neighbor objects for reuse later (e.g. mapping)
 #' @slot command Store log of parameters that were used
@@ -49,6 +50,7 @@ AnchorSet <- setClass(
     query.cells = "vector",
     anchors = "ANY",
     offsets = "ANY",
+    weight.reduction = "DimReduc",
     anchor.features = "ANY",
     neighbors = "list",
     command = "ANY"
@@ -110,6 +112,31 @@ ModalityWeights <- setClass(
     modality.assay = "vector",
     params = "list",
     score.matrix = "list",
+    command = "ANY"
+  )
+)
+
+
+
+
+#' The BridgeReferenceSet Class
+#' The BridgeReferenceSet is an output from PrepareBridgeReference
+#' @slot bridge The multi-omic object
+#' @slot reference The Reference object only containing bridge representation assay
+#' @slot params A list of parameters used in the PrepareBridgeReference
+#' @slot command Store log of parameters that were used
+#'
+#' @name BridgeReferenceSet-class
+#' @rdname BridgeReferenceSet-class
+#' @concept objects
+#' @exportClass BridgeReferenceSet
+#'
+BridgeReferenceSet <- setClass(
+  Class = "BridgeReferenceSet",
+  slots = list(
+    bridge = "ANY",
+    reference = "ANY",
+    params = "list",
     command = "ANY"
   )
 )
@@ -441,85 +468,159 @@ CreateSCTAssayObject <- function(
 
 #' Slim down a Seurat object
 #'
-#' Keep only certain aspects of the Seurat object. Can be useful in functions that utilize merge as
-#' it reduces the amount of data in the merge.
+#' Keep only certain aspects of the Seurat object. Can be useful in functions
+#' that utilize merge as it reduces the amount of data in the merge
 #'
-#' @param object Seurat object
-#' @param counts Preserve the count matrices for the assays specified
-#' @param data Preserve the data slot for the assays specified
-#' @param scale.data Preserve the scale.data slot for the assays specified
+#' @param object A \code{\link[SeuratObject]{Seurat}} object
+#' @param layers A vector or named list of layers to keep
 #' @param features Only keep a subset of features, defaults to all features
 #' @param assays Only keep a subset of assays specified here
-#' @param dimreducs Only keep a subset of DimReducs specified here (if NULL,
-#' remove all DimReducs)
-#' @param graphs Only keep a subset of Graphs specified here (if NULL, remove
-#' all Graphs)
+#' @param dimreducs Only keep a subset of DimReducs specified here (if
+#' \code{NULL}, remove all DimReducs)
+#' @param graphs Only keep a subset of Graphs specified here (if \code{NULL},
+#' remove all Graphs)
 #' @param misc Preserve the \code{misc} slot; default is \code{TRUE}
+#' @param ... Ignored
+#'
+#' @return \code{object} with only the sub-object specified retained
+#'
+#' @importFrom SeuratObject .FilterObjects .PropagateList Assays
+#' Layers UpdateSlots
 #'
 #' @export
+#'
 #' @concept objects
 #'
 DietSeurat <- function(
   object,
-  counts = TRUE,
-  data = TRUE,
-  scale.data = FALSE,
+  layers = NULL,
   features = NULL,
   assays = NULL,
   dimreducs = NULL,
   graphs = NULL,
-  misc = TRUE
+  misc = TRUE,
+  counts = deprecated(),
+  data = deprecated(),
+  scale.data = deprecated(),
+  ...
 ) {
+  CheckDots(...)
+  dep.args <- c(counts = counts, data = data, scale.data = scale.data)
+  for (lyr in names(x = dep.args)) {
+    if (is_present(arg = dep.args[[lyr]])) {
+      if (is.null(x = layers)) {
+        layers <- unique(x = unlist(x = lapply(
+          X = Assays(object = object),
+          FUN = function(x) {
+            return(Layers(object = object[[x]]))
+          }
+        )))
+      }
+      deprecate_soft(
+        when = '5.0.0',
+        what = paste0('DietSeurat(', lyr, ' = )'),
+        with = 'DietSeurat(layers = )'
+      )
+      layers <- if (isTRUE(x = dep.args[[lyr]])) {
+        c(layers, lyr)
+      } else {
+        Filter(f = \(x) x != lyr, x = layers)
+      }
+    }
+  }
   object <- UpdateSlots(object = object)
-  assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
-  assays <- assays[assays %in% FilterObjects(object = object, classes.keep = 'Assay')]
-  if (length(x = assays) == 0) {
-    stop("No assays provided were found in the Seurat object")
+  assays <- assays %||% Assays(object = object)
+  assays <- intersect(x = assays, y = Assays(object = object))
+  if (!length(x = assays)) {
+    abort(message = "No assays provided were found in the Seurat object")
   }
   if (!DefaultAssay(object = object) %in% assays) {
-    stop("The default assay is slated to be removed, please change the default assay")
+    abort(
+      message = "The default assay is slated to be removed, please change the default assay"
+    )
   }
-  if (!counts && !data) {
-    stop("Either one or both of 'counts' and 'data' must be kept")
+  layers <- layers %||% assays
+  layers <- .PropagateList(x = layers, names = assays)
+  for (assay in names(x = layers)) {
+    layers[[assay]] <- tryCatch(
+      expr = Layers(object = object[[assay]], search = layers[[assay]]),
+      error = function(...) {
+        return(character(length = 0L))
+      }
+    )
   }
-  for (assay in FilterObjects(object = object, classes.keep = 'Assay')) {
+  layers <- Filter(f = length, x = layers)
+  if (!length(x = layers)) {
+    abort(message = "None of the requested layers found")
+  }
+  for (assay in Assays(object = object)) {
     if (!(assay %in% assays)) {
       object[[assay]] <- NULL
-    } else {
-      if (!is.null(x = features)) {
-        features.assay <- intersect(x = features, y = rownames(x = object[[assay]]))
-        if (length(x = features.assay) == 0) {
-          if (assay == DefaultAssay(object = object)) {
-            stop("The default assay is slated to be removed, please change the default assay")
-          } else {
-            warning("No features found in assay '", assay, "', removing...")
-            object[[assay]] <- NULL
+      next
+    }
+    layers.rm <- setdiff(
+      x = Layers(object = object[[assay]]),
+      y = layers[[assay]]
+    )
+    if (length(x = layers.rm)) {
+      if (inherits(x = object[[assay]], what = 'Assay') && all(c('counts', 'data') %in% layers.rm)) {
+        abort(message = "Cannot remove both 'counts' and 'data' from v3 Assays")
+      }
+      for (lyr in layers.rm) {
+        object <- tryCatch(expr = {
+          object[[assay]][[lyr]] <- NULL
+          object
+        }, error = function(e) {
+          if (lyr == "data"){
+            object[[assay]][[lyr]] <- sparseMatrix(i = 1, j = 1, x = 1,
+                         dims = dim(object[[assay]][[lyr]]), 
+                         dimnames = dimnames(object[[assay]][[lyr]]))
+          } else{
+            slot(object = object[[assay]], name = lyr) <- new(Class = "dgCMatrix")
           }
-        } else {
-          object[[assay]] <- subset(x = object[[assay]], features = features.assay)
-        }
+          message("Converting layer ", lyr, " in assay ", 
+                  assay, " to empty dgCMatrix")
+          object
+        })
       }
-      if (!counts) {
-        slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+    }
+    if (!is.null(x = features)) {
+      features.assay <- intersect(
+        x = features,
+        y = rownames(x = object[[assay]])
+      )
+      if (!length(x = features.assay)) {
+        warn(message = paste0(
+          'No features found in assay ',
+          sQuote(x = assay),
+          ', removing...'
+        ))
+        object[[assay]] <- NULL
+        next
       }
-      if (!data) {
-        stop('data = FALSE currently not supported')
-      }
-      if (!scale.data) {
-        slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
-      }
+      object[[assay]] <- subset(x = object[[assay]], features = features.assay)
     }
   }
   # remove misc when desired
   if (!isTRUE(x = misc)) {
     slot(object = object, name = "misc") <- list()
   }
-
   # remove unspecified DimReducs and Graphs
-  all.objects <- FilterObjects(object = object, classes.keep = c('DimReduc', 'Graph'))
+  all.objects <- .FilterObjects(
+    object = object,
+    classes.keep = c('DimReduc', 'Graph')
+  )
   objects.to.remove <- all.objects[!all.objects %in% c(dimreducs, graphs)]
   for (ob in objects.to.remove) {
     object[[ob]] <- NULL
+  }
+  cells.keep <- list()
+  for (assay in  Assays(object = object)) {
+    cells.keep[[assay]] <- colnames(x = object[[assay]] )
+  }
+  cells.keep <- intersect(colnames(x = object), unlist(cells.keep))
+  if (length(cells.keep) <- ncol(x = object)) {
+    object <- subset(object, cells = cells.keep)
   }
   return(object)
 }
@@ -1301,6 +1402,15 @@ as.sparse.H5Group <- function(x, ...) {
   ))
 }
 
+
+#' @method as.sparse IterableMatrix
+#' @export
+#'
+as.sparse.IterableMatrix <- function(x, ...) {
+  return(as(object = x, Class = 'dgCMatrix'))
+}
+
+
 #' Get Cell Names
 #'
 #' @inheritParams SeuratObject::Cells
@@ -1312,6 +1422,17 @@ as.sparse.H5Group <- function(x, ...) {
 #'
 Cells.SCTModel <- function(x, ...) {
   return(rownames(x = slot(object = x, name = "cell.attributes")))
+}
+
+#' @method Cells SCTAssay
+#' @export
+#'
+Cells.SCTAssay <- function(x, layer = NA) {
+  layer <- layer %||% levels(x = x)[1L]
+  if (rlang::is_na(x = layer)) {
+    return(colnames(x = x))
+  }
+  return(Cells(x = components(object = x, model = layer)))
 }
 
 #' @rdname Cells
@@ -1345,6 +1466,29 @@ Cells.VisiumV1 <- function(x, ...) {
   return(rownames(x = GetTissueCoordinates(object = x, scale = NULL)))
 }
 
+#' @importFrom SeuratObject DefaultLayer Layers
+#'
+#' @method Features SCTAssay
+#' @export
+#'
+Features.SCTAssay <- function(x, layer = NA) {
+  layer <- layer %||% DefaultLayer(object = x)
+  if (rlang::is_na(x = layer)) {
+    return(rownames(x = x))
+  }
+  layer <- rlang::arg_match(arg = layer, values = c(Layers(object = x), levels(x = x)))
+  if (layer %in% levels(x = x)) {
+    return(Features(x = components(object = x, model = layer)))
+  }
+  return(NextMethod())
+}
+
+#' @method Features SCTModel
+#' @export
+#'
+Features.SCTModel <- function(x, ...) {
+  return(rownames(x = SCTResults(object = x, slot = 'feature.attributes')))
+}
 
 #' @param assay Assay to get
 #'
@@ -1360,7 +1504,7 @@ Cells.VisiumV1 <- function(x, ...) {
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
   CheckDots(...)
   assay <- assay %||% DefaultAssay(object = object)
-  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   if (!assay %in% object.assays) {
     stop(paste0(
       assay,
@@ -1370,7 +1514,6 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   }
   return(slot(object = object, name = 'assays')[[assay]])
 }
-
 
 #' Get Image Data
 #'
@@ -1777,6 +1920,106 @@ SCTResults.Seurat <- function(object, assay = "SCT", slot, model = NULL, ...) {
   return(SCTResults(object = object[[assay]], slot = slot, model = model, ...))
 }
 
+#' @importFrom utils head
+#' @method VariableFeatures SCTModel
+#' @export
+#'
+VariableFeatures.SCTModel <- function(object, nfeatures = 3000, ...) {
+  if (!is_scalar_integerish(x = nfeatures) || (!is_na(x = nfeatures < 1L) && nfeatures < 1L)) {
+    abort(message = "'nfeatures' must be a single positive integer")
+  }
+  feature.attr <- SCTResults(object = object, slot = 'feature.attributes')
+  feature.variance <- feature.attr[, 'residual_variance']
+  names(x = feature.variance) <- row.names(x = feature.attr)
+  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+  if (is_na(x = nfeatures)) {
+    return(names(x = feature.variance))
+  }
+  return(head(x = names(x = feature.variance), n = nfeatures))
+}
+
+#' @importFrom utils head
+#' @method VariableFeatures SCTAssay
+#' @export
+#'
+VariableFeatures.SCTAssay <- function(
+  object,
+  layer = NULL,
+  nfeatures = NULL,
+  simplify = TRUE,
+  use.var.features = TRUE,
+  ...
+) {
+  # Is the information already in var.features?
+  var.features.existing <- slot(object = object, name = "var.features")
+  nfeatures <- nfeatures %||% length(x = var.features.existing) %||% 3000
+  if (is.null(x = layer)) {
+    layer <- levels(x = object)
+  }
+  if (simplify == TRUE & use.var.features == TRUE & length(var.features.existing)>=nfeatures){
+     return (head(x = var.features.existing, n = nfeatures))
+  }
+
+  layer <- match.arg(arg = layer, choices = levels(x = object), several.ok = TRUE)
+  # run variable features on each model
+
+  vf.list <- sapply(
+    X = layer,
+    FUN = function(lyr) {
+      return(VariableFeatures(
+        object = components(object = object, model = lyr),
+        nfeatures = nfeatures,
+        ...
+      ))
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (isFALSE(x = simplify)){
+    return (vf.list)
+  }
+  var.features <- sort(
+    x = table(unlist(x = vf.list, use.names = FALSE)),
+    decreasing = TRUE
+  )
+  if (length(x = var.features) == 0) {
+    return(NULL)
+  }
+  for (i in 1:length(x = layer)) {
+    vst_out <- SCTModel_to_vst(SCTModel = slot(object = object, name = "SCTModel.list")[[layer[[i]]]])
+    var.features <- var.features[names(x = var.features) %in% rownames(x = vst_out$gene_attr)]
+  }
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  features <- names(x = var.features[which(x = var.features > tie.val)])
+  if (length(x = features) > 0) {
+    feature.ranks <- sapply(X = features, FUN = function(x) {
+      ranks <- sapply(X = vf.list, FUN = function(vf) {
+        if (x %in% vf) {
+          return(which(x = x == vf))
+        }
+        return(NULL)
+      })
+      median(x = unlist(x = ranks))
+    })
+    features <- names(x = sort(x = feature.ranks))
+  }
+  features.tie <- var.features[which(x = var.features == tie.val)]
+  tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
+    ranks <- sapply(X = vf.list, FUN = function(vf) {
+      if (x %in% vf) {
+        return(which(x = x == vf))
+      }
+      return(NULL)
+    })
+    median(x = unlist(x = ranks))
+  })
+  features <- c(
+    features,
+    names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features)))
+  )
+  return(features)
+}
+
 #' @rdname ScaleFactors
 #' @method ScaleFactors VisiumV1
 #' @export
@@ -1793,6 +2036,28 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #'
 ScaleFactors.VisiumV1 <- function(object, ...) {
   return(slot(object = object, name = 'scale.factors'))
+}
+
+#' @rdname FetchData
+#' @method FetchData VisiumV1
+#' @export
+#' @concept spatial
+#'
+FetchData.VisiumV1 <- function(
+  object,
+  vars,
+  cells = NULL,
+  ...
+) {
+  if (is.numeric(x = cells)) {
+    cells <- Cells(x = object)[cells]
+  } else if (is.null(x = cells)) {
+    cells <- Cells(x = object)
+  }
+  vars.unkeyed <- gsub(pattern = paste0('^', Key(object)), replacement = '', x = vars)
+  coords <- GetTissueCoordinates(object = object)[cells, vars.unkeyed, drop = FALSE]
+  colnames(x = coords) <- vars
+  return(coords)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1812,6 +2077,14 @@ ScaleFactors.VisiumV1 <- function(object, ...) {
 #'
 "[.VisiumV1" <- function(x, i, ...) {
   return(subset(x = x, cells = i))
+}
+
+#' @method components SCTAssay
+#' @export
+#'
+components.SCTAssay <- function(object, model) {
+  model <- rlang::arg_match(arg = model, values = levels(x = object))
+  return(slot(object = object, name = 'SCTModel.list')[[model]])
 }
 
 #' @method dim SlideSeq
@@ -1842,7 +2115,6 @@ dim.STARmap <- function(x) {
 dim.VisiumV1 <- function(x) {
   return(dim(x = GetImage(object = x)$raster))
 }
-
 
 #' @rdname SCTAssay-class
 #' @name SCTAssay-class
@@ -1924,20 +2196,33 @@ merge.SCTAssay <- function(
   ...
 ) {
   assays <- c(x, y)
+  if (any(sapply(
+    X = assays,
+    FUN = function(assay.i) inherits(x = assay.i, what = "Assay5")
+  ))) {
+    return(merge(x = as(x, "Assay5"), y, ...))
+  }
   parent.call <- grep(pattern = "merge.Seurat", x = sys.calls())
   if (length(x = parent.call) > 0) {
     # Try and fill in missing residuals if called in the context of merge.Seurat
-    all.features <- unique(x = unlist(x = lapply(X = assays, FUN = function(assay) {
-      if (inherits(x = x, what = "SCTAssay")) {
+    all.features <- unique(
+      x = unlist(
+        x = lapply(
+          X = assays,
+          FUN = function(assay) {
+      if (inherits(x = assay, what = "SCTAssay")) {
         return(rownames(x = GetAssayData(object = assay, slot = "scale.data")))
       }
-    })))
+    })
+    )
+    )
     if (!is.null(all.features)) {
       assays <- lapply(X = 1:length(x = assays), FUN = function(assay) {
         if (inherits(x = assays[[assay]], what = "SCTAssay")) {
           parent.environ <- sys.frame(which = parent.call[1])
           seurat.object <- parent.environ$objects[[assay]]
-          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features, assay = parent.environ$assay, verbose = FALSE))
+          seurat.object <- suppressWarnings(expr = GetResidual(object = seurat.object, features = all.features,
+                                                               assay = parent.environ$assay, verbose = FALSE))
           return(seurat.object[[parent.environ$assay]])
         }
         return(assays[[assay]])
@@ -2025,6 +2310,8 @@ merge.SCTAssay <- function(
     combined.assay,
     SCTModel.list = model.list
   )
+  features <- VariableFeatures(object = combined.assay)
+  VariableFeatures(object = combined.assay) <- features
   return(combined.assay)
 }
 
@@ -2164,7 +2451,10 @@ subset.SCTAssay <- function(x, cells = NULL, features = NULL, ...) {
     attr <- SCTResults(object = x, slot = "cell.attributes", model = m)
     attr <- attr[intersect(x = rownames(x = attr), y = Cells(x = x)), , drop = FALSE]
     SCTResults(object = x, slot = "cell.attributes", model = m) <- attr
-  }
+   if (nrow(x = attr) == 0) {
+     slot(object = x, name = 'SCTModel.list')[[m]] <- NULL
+   }
+    }
   return(x)
 }
 
@@ -2311,6 +2601,22 @@ setMethod(
 
 setMethod(
   f = 'show',
+  signature = 'BridgeReferenceSet',
+  definition = function(object) {
+    cat(
+      'A BridgeReferenceSet object has a bridge object with ',
+      ncol(slot(object = object, name = 'bridge')),
+      'cells and a reference object with ',
+      ncol(slot(object = object, name = 'reference')),
+      'cells. \n','The bridge query reduction is ',
+      slot(object = object, name = 'params')$bridge.query.reduction %||%
+        slot(object = object, name = 'params')$supervised.reduction,
+   "\n This can be used as input to FindBridgeTransferAnchors and FindBridgeIntegrationAnchors")
+  }
+)
+
+setMethod(
+  f = 'show',
   signature = 'SCTModel',
   definition = function(object) {
     cat(
@@ -2404,24 +2710,6 @@ Collections <- function(object) {
   )
   collections <- Filter(f = isTRUE, x = collections)
   return(names(x = collections))
-}
-
-# Calculate nCount and nFeature
-#
-# @param object An Assay object
-#
-# @return A named list with nCount and nFeature
-#
-#' @importFrom Matrix colSums
-#
-CalcN <- function(object) {
-  if (IsMatrixEmpty(x = GetAssayData(object = object, slot = "counts"))) {
-    return(NULL)
-  }
-  return(list(
-    nCount = colSums(x = object, slot = 'counts'),
-    nFeature = colSums(x = GetAssayData(object = object, slot = 'counts') > 0)
-  ))
 }
 
 # Get the default image of an object
@@ -2843,7 +3131,10 @@ UpdateSlots <- function(object) {
   )
   object.list <- Filter(f = Negate(f = is.null), x = object.list)
   object.list <- c('Class' = class(x = object)[1], object.list)
-  object <- do.call(what = 'new', args = object.list)
+  object <- rlang::invoke(
+     .fn = new,
+     .args  = object.list
+   )
   for (x in setdiff(x = slotNames(x = object), y = names(x = object.list))) {
     xobj <- slot(object = object, name = x)
     if (is.vector(x = xobj) && !is.list(x = xobj) && length(x = xobj) == 0) {

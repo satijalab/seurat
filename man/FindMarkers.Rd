@@ -30,7 +30,7 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.results = NULL,
   densify = FALSE,
   ...
@@ -53,7 +53,7 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -79,7 +79,7 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -104,7 +104,7 @@ FindMarkers(object, ...)
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
@@ -122,6 +122,7 @@ FindMarkers(object, ...)
   reduction = NULL,
   features = NULL,
   logfc.threshold = 0.25,
+  pseudocount.use = 0.1,
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
@@ -227,7 +228,7 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
-calculating logFC. 1 by default.}
+calculating logFC. 0.1 by default.}
 
 \item{fc.results}{data.frame from FoldChange}
 

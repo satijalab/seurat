@@ -1,0 +1,291 @@
+---
+title: "Demultiplexing with hashtag oligos (HTOs)"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+
+Developed in collaboration with the Technology Innovation Group at NYGC, Cell Hashing uses oligo-tagged antibodies against ubiquitously expressed surface proteins to place a "sample barcode" on each single cell, enabling different samples to be multiplexed together and run in a single experiment. For more information, please refer to this [paper](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1603-1).
+
+This vignette will give a brief demonstration on how to work with data produced with Cell Hashing in Seurat. Applied to two datasets, we can successfully demultiplex cells to their the original sample-of-origin, and identify cross-sample doublets.
+
+<div class="panel panel-primary">
+  <div class="panel-heading">The demultiplexing function `HTODemux()` implements the following procedure: </div/
+  <div class="panel-body"> <ul>
+  <li> We perform a k-medoid clustering on the normalized HTO values, which initially separates cells into K(# of samples)+1 clusters. </li>
+  <li> We calculate a 'negative' distribution for HTO. For each HTO, we use the cluster with the lowest average value as the negative group. </li>
+  <li> For each HTO, we fit a negative binomial distribution to the negative cluster. We use the 0.99 quantile of this distribution as a threshold. </li>
+  <li> Based on these thresholds, each cell is classified as positive or negative for each HTO. </li>
+  <li> Cells that are positive for more than one HTOs are annotated as doublets. </li>
+</div>
+
+
+# 8-HTO dataset from human PBMCs
+
+<div class="panel panel-info">
+
+  <div class="panel-heading"> Dataset description: </div>
+  <div class="panel-body"> <ul>
+  <li> Data represent peripheral blood mononuclear cells (PBMCs) from eight different donors. </li>
+  <li> Cells from each donor are uniquely labeled, using CD45 as a hashing antibody.</li>
+  <li> Samples were subsequently pooled, and run on a single lane of the the 10X Chromium v2 system.
+  <li> You can download the count matrices for RNA and HTO [here](https://www.dropbox.com/sh/ntc33ium7cg1za1/AAD_8XIDmu4F7lJ-5sp-rGFYa?dl=0), or the FASTQ files from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE108313)</li>
+  </ul></div>
+
+</div>
+
+## Basic setup
+
+Load packages
+
+```{r load_pacakges}
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+```
+
+Read in data
+
+```{r read_Data}
+# Load in the UMI matrix
+pbmc.umis <- readRDS("../data/pbmc_umi_mtx.rds")
+
+# For generating a hashtag count matrix from FASTQ files, please refer to https://github.com/Hoohm/CITE-seq-Count.
+# Load in the HTO count matrix
+pbmc.htos <- readRDS("../data/pbmc_hto_mtx.rds")
+
+# Select cell barcodes detected by both RNA and HTO
+# In the example datasets we have already filtered the cells for you, but perform this step for clarity.
+joint.bcs <- intersect(colnames(pbmc.umis), colnames(pbmc.htos))
+
+# Subset RNA and HTO counts by joint cell barcodes
+pbmc.umis <- pbmc.umis[, joint.bcs]
+pbmc.htos <- as.matrix(pbmc.htos[, joint.bcs])
+
+# Confirm that the HTO have the correct names
+rownames(pbmc.htos)
+```
+
+Setup Seurat object and add in the HTO data
+
+```{r hashtag_setup}
+# Setup Seurat object
+pbmc.hashtag <- CreateSeuratObject(counts = pbmc.umis)
+
+# Normalize RNA data with log normalization
+pbmc.hashtag <- NormalizeData(pbmc.hashtag)
+# Find and scale variable features
+pbmc.hashtag <- FindVariableFeatures(pbmc.hashtag, selection.method = 'mean.var.plot')
+pbmc.hashtag <- ScaleData(pbmc.hashtag, features = VariableFeatures(pbmc.hashtag))
+```
+
+## Adding HTO data as an independent assay
+
+You can read more about working with multi-modal data [here](multimodal_vignette.html)
+
+```{r hto_assay}
+# Add HTO data as a new assay independent from RNA
+pbmc.hashtag[['HTO']] <- CreateAssay5Object(counts = pbmc.htos)
+# Normalize HTO data, here we use centered log-ratio (CLR) transformation
+pbmc.hashtag <- NormalizeData(pbmc.hashtag, assay = 'HTO', normalization.method = 'CLR')
+```
+
+## Demultiplex cells based on HTO enrichment
+
+Here we use the Seurat function `HTODemux()` to assign single cells back to their sample origins.
+
+```{r hashtag_demux, results = FALSE}
+# If you have a very large dataset we suggest using k_function = "clara". This is a k-medoid clustering function for large applications
+# You can also play with additional parameters (see documentation for HTODemux()) to adjust the threshold for classification
+# Here we are using the default settings
+pbmc.hashtag <- HTODemux(pbmc.hashtag, assay = "HTO", positive.quantile = 0.99)
+```
+
+## Visualize demultiplexing results
+
+Output from running `HTODemux()` is saved in the object metadata. We can visualize how many cells are classified as singlets, doublets and negative/ambiguous cells.
+
+```{r demux_summary}
+# Global classification results
+table(pbmc.hashtag$HTO_classification.global)
+```
+
+Visualize enrichment for selected HTOs with ridge plots
+
+```{r hashtag_ridge, fig.width=9}
+# Group cells based on the max HTO signal
+Idents(pbmc.hashtag) <- 'HTO_maxID'
+RidgePlot(pbmc.hashtag, assay = 'HTO', features = rownames(pbmc.hashtag[['HTO']])[1:2], ncol = 2)
+```
+
+Visualize pairs of HTO signals to confirm mutual exclusivity in singlets
+
+```{r hashtag_scatter1, fig.height=8, fig.width=9}
+FeatureScatter(pbmc.hashtag, feature1 = 'hto_HTO-A', feature2 = 'hto_HTO-B')
+```
+
+Compare number of UMIs for singlets, doublets and negative cells
+```{r hashtag_vln, fig.width=10}
+Idents(pbmc.hashtag) <- 'HTO_classification.global'
+VlnPlot(pbmc.hashtag, features = 'nCount_RNA', pt.size = 0.1, log = TRUE)
+```
+
+Generate a two dimensional tSNE embedding for HTOs.Here we are grouping cells by singlets and doublets for simplicity.
+
+```{r hashtag_sub_tsne, fig.width=9}
+#First, we will remove negative cells from the object
+pbmc.hashtag.subset <- subset(pbmc.hashtag, idents = 'Negative', invert = TRUE)
+
+# Calculate a tSNE embedding of the HTO data
+DefaultAssay(pbmc.hashtag.subset) <- "HTO"
+pbmc.hashtag.subset <- ScaleData(pbmc.hashtag.subset, features = rownames(pbmc.hashtag.subset), verbose = FALSE)
+pbmc.hashtag.subset <- RunPCA(pbmc.hashtag.subset, features = rownames(pbmc.hashtag.subset), approx = FALSE)
+pbmc.hashtag.subset <- RunTSNE(pbmc.hashtag.subset, dims = 1:8, perplexity = 100)
+DimPlot(pbmc.hashtag.subset)
+#You can also visualize the more detailed classification result by running Idents(object) <- 'HTO_classification' before plotting. Here, you can see that each of the small clouds on the tSNE plot corresponds to one of the 28 possible doublet combinations.
+```
+
+Create an HTO heatmap, based on Figure 1C in the Cell Hashing paper. 
+
+```{r hashtag_heatmap, fig.width=12}
+# To increase the efficiency of plotting, you can subsample cells using the num.cells argument
+HTOHeatmap(pbmc.hashtag, assay = 'HTO', ncells = 5000)
+```
+
+Cluster and visualize cells using the usual scRNA-seq workflow, and examine for the potential presence of batch effects.
+
+```{r hastag_cluster}
+# Extract the singlets
+pbmc.singlet <- subset(pbmc.hashtag, idents = 'Singlet')
+
+# Select the top 1000 most variable features
+pbmc.singlet <- FindVariableFeatures(pbmc.singlet, selection.method = 'mean.var.plot')
+
+# Scaling RNA data, we only scale the variable features here for efficiency
+pbmc.singlet <- ScaleData(pbmc.singlet, features = VariableFeatures(pbmc.singlet))
+
+# Run PCA
+pbmc.singlet <- RunPCA(pbmc.singlet, features = VariableFeatures(pbmc.singlet))
+```
+
+```{r hashtag_tsne, fig.width=9}
+# We select the top 10 PCs for clustering and tSNE based on PCElbowPlot
+pbmc.singlet <- FindNeighbors(pbmc.singlet, reduction = 'pca', dims = 1:10)
+pbmc.singlet <- FindClusters(pbmc.singlet, resolution = 0.6, verbose = FALSE)
+pbmc.singlet <- RunTSNE(pbmc.singlet, reduction = 'pca', dims = 1:10)
+
+# Projecting singlet identities on TSNE visualization
+DimPlot(pbmc.singlet, group.by = "HTO_classification")
+```
+
+# 12-HTO dataset from four human cell lines
+
+<div class="panel panel-info">
+
+<div class="panel-heading"> Dataset description: </div>
+  <div class="panel-body"> <ul>
+  <li> Data represent single cells collected from four cell lines: HEK, K562, KG1 and THP1 </li>
+  <li> Each cell line was further split into three samples (12 samples in total). </li>
+  <li> Each sample was labeled with a hashing antibody mixture (CD29 and CD45), pooled, and run on a single lane of 10X. </li>
+  <li> Based on this design, we should be able to detect doublets both across and within cell types</li>
+  <li> You can download the count matrices for RNA and HTO [here](https://www.dropbox.com/sh/c5gcjm35nglmvcv/AABGz9VO6gX9bVr5R2qahTZha?dl=0), and are available on GEO [here](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE108313)</li>
+  </ul></div>
+</div>
+
+## Create Seurat object, add HTO data and perform normalization
+
+```{r hto_setup}
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+
+# Read in UMI count matrix for RNA
+hto12.umis <- readRDS("../data/hto12_umi_mtx.rds")
+
+# Read in HTO count matrix
+hto12.htos <- readRDS("../data/hto12_hto_mtx.rds")
+
+# Select cell barcodes detected in both RNA and HTO
+cells.use <- intersect(rownames(hto12.htos), colnames(hto12.umis))
+
+# Create Seurat object and add HTO data
+hto12 <- CreateSeuratObject(counts = as(hto12.umis[, cells.use], "dgCMatrix"), min.features = 300)
+hto12[['HTO']] <- CreateAssay5Object(counts = t(x = hto12.htos[colnames(hto12), 1:12]))
+
+# Normalize data
+hto12 <- NormalizeData(hto12)
+hto12 <- NormalizeData(hto12, assay = "HTO", normalization.method = "CLR")
+```
+
+## Demultiplex data
+
+```{r demux, results = FALSE}
+hto12 <- HTODemux(hto12, assay = "HTO", positive.quantile = 0.99)
+```
+
+## Visualize demultiplexing results
+
+Distribution of selected HTOs grouped by classification, displayed by ridge plots
+
+```{r ridgeplot, fig.height=10, fig.width=9}
+RidgePlot(hto12, assay = 'HTO', features = c("HEK-A","K562-B","KG1-A","THP1-C"), ncol = 2)
+```
+
+Visualize HTO signals in a heatmap
+
+```{r heatmap, fig.width=12}
+HTOHeatmap(hto12, assay = "HTO")
+```
+
+## Visualize RNA clustering 
+
+  <li> Below, we cluster the cells using our standard scRNA-seq workflow. As expected we see four major clusters, corresponding to the cell lines</li>
+  <li> In addition, we see small clusters in between, representing mixed transcriptomes that are correctly annotated as doublets. </li>
+  <li> We also see within-cell type doublets, that are (perhaps unsurprisingly) intermixed with singlets of the same cell type </li>
+
+```{r hto_sub_tsne, fig.width=9}
+# Remove the negative cells
+hto12 <- subset(hto12, idents = 'Negative', invert = TRUE)
+
+# Run PCA on most variable features
+hto12 <- FindVariableFeatures(hto12, selection.method = 'mean.var.plot')
+hto12 <- ScaleData(hto12, features = VariableFeatures(hto12))
+hto12 <- RunPCA(hto12)
+hto12 <- RunTSNE(hto12, dims = 1:5, perplexity = 100)
+DimPlot(hto12) + NoLegend()
+```
+
+```{r save.times, include = TRUE}
+write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_hashing_vignette_times.csv")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

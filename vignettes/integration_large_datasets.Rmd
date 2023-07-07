@@ -27,7 +27,8 @@ knitr::opts_chunk$set(
   fig.width = 10,
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -98,7 +99,7 @@ bm280k.integrated <- RunUMAP(bm280k.integrated, dims = 1:50)
 DimPlot(bm280k.integrated, group.by = "orig.ident")
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- DimPlot(bm280k.integrated, group.by = "orig.ident") + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 

@@ -586,9 +586,8 @@ RunLDA.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunLDA(
-    object = assay.data,
+    object = object[[assay]],
     assay = assay,
     labels = labels,
     features = features,

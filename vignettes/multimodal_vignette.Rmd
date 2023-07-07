@@ -28,7 +28,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   time_it = TRUE,
-  fig.width = 10
+  fig.width = 10,
+  error = TRUE
 )
 ```
 
@@ -204,13 +205,13 @@ plot3 <- FeatureScatter(pbmc10k, feature1 = 'adt_CD3', feature2 = 'CD3E', pt.siz
 (plot1 + plot2 + plot3) & NoLegend()
 ```
 
-```{r save.img, include = FALSE}
+```{r save.img, include = TRUE}
 plot <- FeatureScatter(cbmc, feature1 = "adt_CD19", feature2 = "adt_CD3") + NoLegend() +
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18))
 ggsave(filename = "../output/images/citeseq_plot.jpg", height = 7, width = 12, plot = plot, quality = 50)
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/multimodal_vignette_times.csv")
 ```
 

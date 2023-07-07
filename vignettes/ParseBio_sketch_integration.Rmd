@@ -1,0 +1,195 @@
+---
+title: "Sketch integration using a 1 million cell dataset from Parse Biosciences"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+
+The recent increase in publicly available single-cell datasets poses a significant challenge for integrative analysis. For example, multiple tissues have now been profiled across dozens of studies, representing hundreds of individuals and millions of cells. In [Hao et al, 2023](https://www.nature.com/articles/s41587-023-01767-y) proposed a dictionary learning based method, atomic sketch integration, could also enable efficient and large-scale integrative analysis. Our procedure enables the integration of large compendiums of datasets without ever needing to load the full scale of data into memory. In [our manuscript](https://www.nature.com/articles/s41587-023-01767-y) we use atomic sketch integration to integrate millions of scRNA-seq from human lung and human PBMC.
+ 
+In this vignette, we demonstrate how to use atomic sketch integration to harmonize scRNA-seq experiments 1M cells, though we have used this procedure to integrate datasets of 10M+ cells as well. We analyze a dataset from Parse Biosciences, in which PBMC from 24 human samples (12 healthy donors, 12 Type-1 diabetes donors), which is available [here](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip).
+
+* Sample a representative subset of cells ('atoms') from each dataset
+* Integrate the atoms from each dataset, and define a set of cell states
+* Reconstruct (integrate) the full datasets, based on the atoms
+* Annotate all cells in the full datasets
+* Identify cell-type specific differences between healthy and diabetic patients
+
+Prior to running this vignette, please [install Seurat v5](install.html), as well as the [BPCells](https://github.com/bnprks/BPCells) package, which we use for on-disk storage. You can read more about using BPCells in Seurat v5 [here](seurat5_bpcells_interaction_vignette.html). We also recommend reading the [Sketch-based analysis in Seurat v5](seurat5_sketch_analysis.html) vignette, which introduces the concept of on-disk and in-memory storage in Seurat v5.
+```{r, warning=F, message=F}
+library(Seurat)
+library(BPCells)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(patchwork)
+# set this option when analyzing large datasets
+options(future.globals.maxSize = 3e9)
+options(Seurat.object.assay.version = "v5")
+```
+## Create a Seurat object containing data from 24 patients
+We downloaded the original dataset and donor metadata from [Parse Biosciences](https://cdn.parsebiosciences.com/1M_PBMC_T1D_Parse.zip). While the BPCells package can work directly with h5ad files, for optimal performance, we converted the dataset to the compressed sparse format used by BPCells, as described [here](seurat5_bpcells_interaction_vignette.html).
+We create a Seurat object for this dataset. Since the input to `CreateSeuratObject` is a BPCells matrix, the data remains on-disk and is not loaded into memory. After creating the object, we split the dataset into 24 [layers](seurat5_essential_commands.html), one for each sample (i.e. patient), to facilitate integration.
+```{r, warning=F, message=F}
+parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+# need to move
+metadata <- readRDS("/brahms/haoy/vignette_data/ParseBio_PBMC_meta.rds")
+object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
+
+object <- NormalizeData(object)
+# split assay into 24 layers
+object[['RNA']] <- split(object[['RNA']], f = object$sample)
+object <- FindVariableFeatures(object, verbose = FALSE)
+```
+## Sample representative cells from each dataset
+Inspired by pioneering work aiming to identify ['sketches'](https://www.sciencedirect.com/science/article/pii/S2405471219301528) of scRNA-seq data, our first step is to sample a representative set of cells from each dataset. We compute a leverage score (estimate of ['statistical leverage'](https://arxiv.org/abs/1109.3843)) for each cell, which helps to identify cells that are likely to be member of rare subpopulations and ensure that these are included in our representative sample. Importantly, the estimation of leverage scores only requires data normalization, can be computed efficiently for sparse datasets, and does not require any intensive computation or dimensional reduction steps.
+We load each object separately, perform basic preprocessing (normalization and variable feature selection), and select and store 5,000 representative cells from each dataset. Since there are 24 datasets, the sketched dataset now contains 120,000 cells. These cells are stored in a new `sketch` assay, and are loaded in-memory.
+```{r, warning=F, message=F}
+object <- SketchData(object = object, ncells = 5000, method = 'LeverageScore', sketched.assay = 'sketch')
+object
+```
+
+## Perform integration on the sketched cells across samples
+Next we perform integrative analysis on the 'atoms' from each of the datasets. Here, we perform integration using the streamlined [Seurat v5 integration worfklow](seurat5_integration.html), and utilize the reference-based `RPCAIntegration` method. The function performs all corrections in low-dimensional space (rather than on the expression values themselves) to further improve speed and memory usage, and outputs a merged Seurat object where all cells have been placed in an integrated low-dimensional space (stored as `integrated.rpca`). 
+However, we emphasize that you can perform integration here using any analysis technique that places cells across datasets into a shared space. This includes CCA Integration, Harmony, and scVI. We demonstrate how to use these tools in Seurat v5 [here](seurat5_integration.html).
+```{r}
+DefaultAssay(object) <- 'sketch'
+object <- FindVariableFeatures(object, verbose = F)
+object <- ScaleData(object, verbose = F)
+object <- RunPCA(object, verbose = F)
+# integrate the datasets
+object <- IntegrateLayers(object, method = RPCAIntegration, orig = 'pca',
+                            new.reduction = 'integrated.rpca', dims = 1:30, k.anchor = 20,
+                            reference = which(Layers(object, search = 'data') %in% c( 'data.H_3060')), 
+                            verbose = F)
+# cluster the integrated data
+object <- FindNeighbors(object, reduction = 'integrated.rpca', dims = 1:30)
+object <- FindClusters(object, resolution = 2)
+object <- RunUMAP(object,  reduction = 'integrated.rpca', dims = 1:30, return.model = T, verbose = F)
+```
+
+```{r}
+# you can now rejoin the layers in the sketched assay
+# this is required to perform differential expression
+object[['sketch']] <- JoinLayers(object[['sketch']])
+c10_markers <- FindMarkers(object = object, ident.1 = 10, max.cells.per.ident = 500, only.pos = TRUE)
+head(c10_markers)
+
+# You can now annotate clusters using marker genes. 
+# We performed this step, and include the results in the 'sketch.celltype' metadata column
+
+plot.s1 <- DimPlot(object, group.by = 'sample', reduction = 'umap')
+plot.s2 <- DimPlot(object, group.by = 'celltype.manual', reduction = 'umap')
+```
+
+```{r, fig.width=10, fig.height=10}
+plot.s1 + plot.s2 + plot_layout(ncol = 1)
+```
+
+## Integrate the full datasets
+Now that we have integrated the subset of atoms of each dataset, placing them each in an integrated low-dimensional space, we can now place each cell from each dataset in this space as well. We load the full datasets back in individually, and use the `ProjectIntegration` function to integrate all cells. After this function is run, the `integrated.rpca.full` space now embeds all cells in the dataset.Even though all cells in the dataset have been integrated together, the non-sketched cells are not loaded into memory. Users can still switch between the `sketch` (sketched cells, in-memory) and `RNA` (full dataset, on disk) for analysis. After integration, we can also project cell type labels from the sketched cells onto the full dataset using `ProjectData`.
+
+```{r}
+
+# resplit the sketched cell assay into layers
+# this is required to project the integration onto all cells
+object[['sketch']] <- split(object[['sketch']], f = object$sample)
+
+object <- ProjectIntegration(object = object,
+                                    sketched.assay =  'sketch',
+                                    assay = 'RNA',
+                                    reduction = 'integrated.rpca'
+                             )
+
+
+object <- ProjectData(object = object,
+                      sketched.assay =  'sketch',
+                      assay = 'RNA',
+                      sketched.reduction = 'integrated.rpca.full',
+                      full.reduction = 'integrated.rpca.full',
+                      dims = 1:30,
+                      refdata = list(celltype.full = 'celltype.manual')
+                      )
+
+```
+
+```{r}
+object <- RunUMAP(object,  reduction = 'integrated.rpca.full', dims = 1:30 , reduction.name = 'umap.full', reduction.key = 'UMAP_full_')
+```
+
+```{r, fig.width=10, fig.height=10}
+p1 <- DimPlot(object, reduction = 'umap.full', group.by = 'sample',alpha = 0.1)
+p2 <- DimPlot(object, reduction = 'umap.full', group.by = 'celltype.full', alpha = 0.1)
+p1 + p2 + plot_layout(ncol = 1)
+```
+
+## Compare healthy and diabetic samples
+
+By integrating all samples together, we can now compare healthy and diabetic cells in matched cell states. To maximize statistical power, we want to use all cells - not just the sketched cells - to perform this analysis. As recommended by [Soneson et all.](https://www.nature.com/articles/nmeth.4612) and [Crowell et al.](https://www.nature.com/articles/s41467-020-19894-4), we use an aggregation-based (pseudobulk) workflow. We aggregate all cells within the same cell type and sample using the `AggregateExpression` function. This returns a Seurat object where each 'cell' represents the pseudobulk profile of one cell type in one individual.
+
+After we aggregate cells, we can perform celltype-specific differential expression between healthy and diabetic samples using DESeq2. We demonstrate this for CD14 monocytes.
+
+```{r}
+bulk <- AggregateExpression(object, return.seurat = T, slot = 'counts',
+            assays  = 'RNA', group.by = c("celltype.full","sample", 'disease'))
+
+# each sample is an individual-specific celltype-specific pseudobulk profile
+tail(Cells(bulk))
+
+bulk$celltype <- sapply(strsplit(Cells(bulk), split = "_"), '[', 1)
+bulk$donor <- sapply(strsplit(Cells(bulk), split = "_"), '[', 2)
+bulk$disease <- sapply(strsplit(bulk$donor, split = "-"), '[', 1)
+bulk$disease <- factor(x = bulk$disease, levels = c('H', 'D'))
+
+
+cd14.bulk <- subset(bulk,celltype == "CD14 Mono")
+Idents(cd14.bulk) <- 'disease'
+de_markers <- FindMarkers(cd14.bulk, ident.1 = 'D',ident.2 = 'H', slot = 'counts', test.use = 'DESeq2', verbose = F )
+de_markers$gene <- rownames(de_markers)    
+ggplot(de_markers, aes(avg_log2FC, -log10(p_val))) + geom_point(size=0.5, alpha=0.5)   + theme_bw() + ylab("-log10(unadjusted p-value)")+geom_text_repel(aes(label = ifelse(p_val_adj<0.01, gene, "")),colour = 'red', size = 3)
+
+```
+
+We do not necessarily expect to see a strong transcriptomic signature of diabetes in the blood, but our analyses reveals multiple genes that are up-regulated in diabetic patients, and are consistent across multiple individuals. Some of these genes, including the complement subcomponent C1R, have been [previously associated with diabetes](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6927818/). Others, including the transcription factor SPDEF and the receptor RAPSN, are also diabetic biomarkers in multiple cell types, including CD14 monocytes.
+
+```{r,height = 12, width=6}
+# each dot represents a pseudobulk average from an individual
+VlnPlot(bulk, features = c("C1R"),group.by = 'celltype', split.by = 'disease', cols = c('#377eb8','#e41a1c'))
+
+
+```
+
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

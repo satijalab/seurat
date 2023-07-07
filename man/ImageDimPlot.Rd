@@ -44,8 +44,8 @@ segmentation boundaries}
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
 
-\item{split.by}{Name of a metadata column to split plot by;
-see \code{\link{FetchData}} for more details}
+\item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
+to split by cell identity'}
 
 \item{cols}{Vector of colors, each color corresponds to an identity class. This may also be a single character
 or numeric value corresponding to a palette as specified by \code{\link[RColorBrewer]{brewer.pal.info}}.
@@ -68,8 +68,7 @@ RColorBrewer is used by default.}
 
 \item{nmols}{Max number of each molecule specified in `molecules` to plot}
 
-\item{alpha}{Alpha value, should be between 0 and 1; when plotting multiple
-boundaries, \code{alpha} is equivalent to max alpha}
+\item{alpha}{Alpha value for plotting (default is 1)}
 
 \item{border.color}{Color of cell segmentation border; pass \code{NA}
 to suppress borders for segmentation-based plots}

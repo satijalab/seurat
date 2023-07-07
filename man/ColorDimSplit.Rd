@@ -37,8 +37,8 @@ See \code{\link{DiscretePalette}} for details.}
     \item{\code{reduction}}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
     \item{\code{group.by}}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
-    \item{\code{split.by}}{Name of a metadata column to split plot by;
-see \code{\link{FetchData}} for more details}
+    \item{\code{split.by}}{A factor in object metadata to split the plot by, pass 'ident'
+to split by cell identity'}
     \item{\code{shape.by}}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells.  Only applicable if \code{raster = FALSE}.}
@@ -53,6 +53,7 @@ useful for crowded plots if points of interest are being buried. (default is FAL
     \item{\code{label.color}}{Sets the color of the label text}
     \item{\code{label.box}}{Whether to put a box around the label text (geom_text vs
 geom_label)}
+    \item{\code{alpha}}{Alpha value for plotting (default is 1)}
     \item{\code{repel}}{Repel labels}
     \item{\code{cells.highlight}}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply

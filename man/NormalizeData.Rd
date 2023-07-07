@@ -2,14 +2,14 @@
 % Please edit documentation in R/generics.R, R/preprocessing.R
 \name{NormalizeData}
 \alias{NormalizeData}
-\alias{NormalizeData.default}
+\alias{NormalizeData.V3Matrix}
 \alias{NormalizeData.Assay}
 \alias{NormalizeData.Seurat}
 \title{Normalize Data}
 \usage{
 NormalizeData(object, ...)
 
-\method{NormalizeData}{default}(
+\method{NormalizeData}{V3Matrix}(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 10000,

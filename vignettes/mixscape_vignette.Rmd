@@ -23,7 +23,8 @@ knitr::knit_hooks$set(time_it = local({
 knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 options(SeuratData.repo.use = 'satijalab04.nygenome.org')
 ```
@@ -301,7 +302,7 @@ VlnPlot(
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5), plot.title = element_text(size = 20), axis.text = element_text(size = 16))
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 p <- VlnPlot(object = eccite, features = "adt_PDL1", idents = c("NT","JAK2","STAT1","IFNGR1","IFNGR2", "IRF1"), group.by = "gene", pt.size = 0.2, sort = T, split.by = "mixscape_class.global", cols = c("coral3","grey79","grey39")) +ggtitle("PD-L1 protein") +theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
 ggsave(filename = "../output/images/mixscape_vignette.jpg", height = 7, width = 12, plot = p, quality = 50)
 ```
@@ -360,7 +361,7 @@ p2 <- p+
 p2
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/mixscape_vignette_times.csv")
 ```
 

@@ -6,39 +6,42 @@
 \usage{
 DietSeurat(
   object,
-  counts = TRUE,
-  data = TRUE,
-  scale.data = FALSE,
+  layers = NULL,
   features = NULL,
   assays = NULL,
   dimreducs = NULL,
   graphs = NULL,
-  misc = TRUE
+  misc = TRUE,
+  counts = deprecated(),
+  data = deprecated(),
+  scale.data = deprecated(),
+  ...
 )
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{A \code{\link[SeuratObject]{Seurat}} object}
 
-\item{counts}{Preserve the count matrices for the assays specified}
-
-\item{data}{Preserve the data slot for the assays specified}
-
-\item{scale.data}{Preserve the scale.data slot for the assays specified}
+\item{layers}{A vector or named list of layers to keep}
 
 \item{features}{Only keep a subset of features, defaults to all features}
 
 \item{assays}{Only keep a subset of assays specified here}
 
-\item{dimreducs}{Only keep a subset of DimReducs specified here (if NULL,
-remove all DimReducs)}
+\item{dimreducs}{Only keep a subset of DimReducs specified here (if
+\code{NULL}, remove all DimReducs)}
 
-\item{graphs}{Only keep a subset of Graphs specified here (if NULL, remove
-all Graphs)}
+\item{graphs}{Only keep a subset of Graphs specified here (if \code{NULL},
+remove all Graphs)}
 
 \item{misc}{Preserve the \code{misc} slot; default is \code{TRUE}}
+
+\item{...}{Ignored}
+}
+\value{
+\code{object} with only the sub-object specified retained
 }
 \description{
-Keep only certain aspects of the Seurat object. Can be useful in functions that utilize merge as
-it reduces the amount of data in the merge.
+Keep only certain aspects of the Seurat object. Can be useful in functions
+that utilize merge as it reduces the amount of data in the merge
 }
 \concept{objects}

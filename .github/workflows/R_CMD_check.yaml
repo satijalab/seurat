@@ -5,6 +5,9 @@ on:
             - develop
     pull_request:
 
+env:
+  GITHUB_PAT: ${{ secrets.PAT }}
+
 jobs:
     r-cmd-check:
 
@@ -13,21 +16,26 @@ jobs:
         name: R CMD check
         container:
             image: satijalab/seurat:develop
-        runs-on: self-hosted 
+        runs-on: [ self-hosted ]
         
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - name: Remove vignettes dir
               run: rm -rf 'vignettes/'
               shell: bash
+
+            - name: Install additional dependencies
+              run: |
+                  Rscript -e "remotes::install_github('mojaveazure/seurat-object', ref = 'feat/CalN_generic')"
+                  Rscript -e "remotes::install_github('bnprks/BPCells')"
 
             - name: Check
               run:  devtools::check(args = "--no-manual", error_on = "warning", check_dir = "check", force_suggests = FALSE)
               shell: Rscript {0}
 
-            - name: Upload check results
-              if: failure()
-              uses: actions/upload-artifact@master
-              with:
-                  name: results
-                  path: check
+#            - name: Upload check results
+#              if: failure()
+#              uses: actions/upload-artifact@master
+#              with:
+#                  name: results
+#                  path: check
