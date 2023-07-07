@@ -143,6 +143,8 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 #' Seurat-CCA Integration
 #'
 #' @inheritParams FindIntegrationAnchors
+#' @inheritParams IntegrateEmbeddings
+#' @param ... Arguments passed on to \code{FindTransferAnchors}
 #' @export
 #' 
 #' @examples
@@ -185,14 +187,15 @@ CCAIntegration <- function(
     groups = NULL,
     k.filter = NA,
     scale.layer = 'scale.data',
-    verbose = TRUE,
     dims.to.integrate = NULL,
     k.weight = 100,
     weight.reduction = NULL,
     sd.weight = 1,
     sample.tree = NULL,
     preserve.order = FALSE,
-    ...) {
+    verbose = TRUE,
+    ...
+) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
   normalization.method <- match.arg(arg = normalization.method)
@@ -232,12 +235,12 @@ CCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
-                                       dims.to.integrate = NULL,
-                                       k.weight = 100,
-                                       weight.reduction = NULL,
-                                       sd.weight = 1,
-                                       sample.tree = NULL,
-                                       preserve.order = FALSE,
+                                       dims.to.integrate = dims.to.integrate,
+                                       k.weight = k.weight,
+                                       weight.reduction = weight.reduction,
+                                       sd.weight = sd.weight,
+                                       sample.tree = sample.tree,
+                                       preserve.order = preserve.order,
                                        verbose = verbose,
                                        ...
   )
@@ -286,6 +289,8 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 #' }
 #'   
 #' @inheritParams FindIntegrationAnchors
+#' @inheritParams IntegrateEmbeddings
+#' @param ... Arguments passed on to \code{FindTransferAnchors}
 #' @export
 #'
 RPCAIntegration <- function(
@@ -308,7 +313,8 @@ RPCAIntegration <- function(
     sample.tree = NULL,
     preserve.order = FALSE,
     verbose = TRUE,
-    ...) {
+    ...
+) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
   on.exit(expr = options(op), add = TRUE)
   normalization.method <- match.arg(arg = normalization.method)
@@ -356,13 +362,14 @@ RPCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
-                                       dims.to.integrate = NULL,
-                                       k.weight = 100,
-                                       weight.reduction = NULL,
-                                       sd.weight = 1,
-                                       sample.tree = NULL,
-                                       preserve.order = FALSE,
-                                       verbose = verbose
+                                       dims.to.integrate = dims.to.integrate,
+                                       k.weight = k.weight,
+                                       weight.reduction = weight.reduction,
+                                       sd.weight = sd.weight,
+                                       sample.tree = sample.tree,
+                                       preserve.order = preserve.order,
+                                       verbose = verbose,
+                                       ...
                                        )
 
   output.list <- list(object_merged[[new.reduction]])
@@ -375,6 +382,8 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 #' Seurat-Joint PCA Integration
 #'
 #' @inheritParams FindIntegrationAnchors
+#' @inheritParams IntegrateEmbeddings
+#' @param ... Arguments passed on to \code{FindTransferAnchors}
 #' @export
 #'
 JointPCAIntegration <- function(
@@ -395,8 +404,8 @@ JointPCAIntegration <- function(
     sd.weight = 1,
     sample.tree = NULL,
     preserve.order = FALSE,
-    verbose = TRUE,
     groups = NULL,
+    verbose = TRUE,
     ...
 ) {
   op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
@@ -451,12 +460,12 @@ JointPCAIntegration <- function(
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
-                                       dims.to.integrate = NULL,
-                                       k.weight = 100,
-                                       weight.reduction = NULL,
-                                       sd.weight = 1,
-                                       sample.tree = NULL,
-                                       preserve.order = FALSE,
+                                       dims.to.integrate = dims.to.integrate,
+                                       k.weight = k.weight,
+                                       weight.reduction = weight.reduction,
+                                       sd.weight = sd.weight,
+                                       sample.tree = sample.tree,
+                                       preserve.order = preserve.order,
                                        verbose = verbose)
   output.list <- list(object_merged[[new.reduction]])
   names(output.list) <- c(new.reduction)
