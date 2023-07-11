@@ -1945,6 +1945,10 @@ ProjectIntegration <- function(
     )
   )
   features <- intersect(x = features, y = features.atom)
+  if (length(x = features) == 0) {
+    stop('Features are not found. Please check VariableFeatures(object[[sketched.assay]]) ',
+    'or set features in ProjectIntegration')
+  }
   ncells <- c(
     0,
     sapply(
