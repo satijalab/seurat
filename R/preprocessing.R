@@ -1870,7 +1870,7 @@ ReadNanostring <- function(
           tx <- subset(tx, select = -c(fov, cell_ID))
         }
 
-        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+        tx <- as.data.frame(t(x = as.matrix(x = tx)))
         if (!is.na(x = genes.filter)) {
           ptx(
             message = paste("Filtering genes with pattern", genes.filter),
