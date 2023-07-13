@@ -28,7 +28,8 @@ knitr::opts_chunk$set(
   error = FALSE,
   message = FALSE,
   fig.width = 8,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -52,7 +53,7 @@ InstallData('panc8')
 To construct a reference, we will identify 'anchors' between the individual datasets. First, we split the combined object into a list, with each dataset as an element (this is only necessary because the data was bundled together for easy distribution).
 
 ```{r preprocessing1}
-data('panc8')
+panc8 <- LoadData('panc8')
 pancreas.list <- SplitObject(panc8, split.by = "tech")
 pancreas.list <- pancreas.list[c("celseq", "celseq2", "fluidigmc1", "smartseq2")]
 ```
@@ -108,7 +109,7 @@ p2 <- DimPlot(pancreas.integrated, reduction = "umap", group.by = "celltype",
 p1 + p2
 ```
 
-```{r save.img, include = FALSE}
+```{r save.img, include = TRUE}
 plot <- DimPlot(pancreas.integrated, reduction = "umap", label = TRUE, label.size = 4.5) + xlab("UMAP 1") + ylab("UMAP 2") + 
   theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 
   guides(colour = guide_legend(override.aes = list(size = 10)))

@@ -19,6 +19,7 @@ TransferData(
   verbose = TRUE,
   slot = "data",
   prediction.assay = FALSE,
+  only.weights = FALSE,
   store.weights = TRUE
 )
 }
@@ -77,6 +78,8 @@ or "counts"}
 
 \item{prediction.assay}{Return an \code{Assay} object with the prediction
 scores for each class stored in the \code{data} slot.}
+
+\item{only.weights}{Only return weights matrix}
 
 \item{store.weights}{Optionally store the weights matrix used for predictions
 in the returned query object.}

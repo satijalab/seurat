@@ -474,7 +474,7 @@ FindConservedMarkers <- function(
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
+#' calculating logFC. 0.1 by default.
 #' @param fc.results data.frame from FoldChange
 #' @param densify Convert the sparse matrix to a dense form before running the DE test. This can provide speedups but might require higher memory; default is FALSE
 #'
@@ -505,12 +505,11 @@ FindMarkers.default <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.results = NULL,
   densify = FALSE,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   ValidateCellGroups(
     object = object,
     cells.1 = cells.1,
@@ -627,7 +626,7 @@ FindMarkers.Assay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -635,12 +634,14 @@ FindMarkers.Assay <- function(
   norm.method = NULL,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
     no = slot
   )
+  if (length(x = Layers(object = object, search = slot)) > 1) {
+    stop(slot, ' layers are not joined. Please run JoinLayers')
+  }
   data.use <-  GetAssayData(object = object, slot = data.slot)
   counts <- switch(
     EXPR = data.slot,
@@ -685,6 +686,11 @@ FindMarkers.Assay <- function(
   return(de.results)
 }
 
+#' @method FindMarkers StdAssay
+#' @export
+#'
+FindMarkers.StdAssay <- FindMarkers.Assay
+
 #' @param recorrect_umi Recalculate corrected UMI counts using minimum of the median UMIs when performing DE using multiple SCT objects; default is TRUE
 #'
 #' @rdname FindMarkers
@@ -709,7 +715,7 @@ FindMarkers.SCTAssay <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -717,7 +723,6 @@ FindMarkers.SCTAssay <- function(
   recorrect_umi = TRUE,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   data.slot <- ifelse(
     test = test.use %in% DEmethods_counts(),
     yes = 'counts',
@@ -831,14 +836,13 @@ FindMarkers.DimReduc <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   mean.fxn = rowMeans,
   fc.name = NULL,
   densify = FALSE,
   ...
 
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   if (test.use %in% DEmethods_counts()) {
     stop("The following tests cannot be used for differential expression on a reduction as they assume a count model: ",
          paste(DEmethods_counts(), collapse=", "))
@@ -943,6 +947,7 @@ FindMarkers.Seurat <- function(
   reduction = NULL,
   features = NULL,
   logfc.threshold = 0.25,
+  pseudocount.use = 0.1,
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
@@ -986,6 +991,18 @@ FindMarkers.Seurat <- function(
     ident.2 = ident.2,
     cellnames.use = cellnames.use
   )
+  cells <- sapply(
+    X = cells,
+    FUN = intersect,
+    y = cellnames.use,
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  if (!all(vapply(X = cells, FUN = length, FUN.VALUE = integer(length = 1L)))) {
+    abort(
+      message = "Cells in one or both identity groups are not present in the data requested"
+    )
+  }
   # fetch latent.vars
   if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
@@ -1019,6 +1036,7 @@ FindMarkers.Seurat <- function(
     cells.2 = cells$cells.2,
     features = features,
     logfc.threshold = logfc.threshold,
+    pseudocount.use = pseudocount.use,
     test.use = test.use,
     min.pct = min.pct,
     min.diff.pct = min.diff.pct,
@@ -1093,14 +1111,13 @@ FoldChange.Assay <- function(
   cells.2,
   features = NULL,
   slot = "data",
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.name = NULL,
   mean.fxn = NULL,
   base = 2,
   norm.method = NULL,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   data <- GetAssayData(object = object, slot = slot)
   # By default run as if LogNormalize is done
   log1pdata.mean.fxn <- function(x) {
@@ -1153,6 +1170,11 @@ FoldChange.Assay <- function(
     fc.name = fc.name
   )
 }
+
+#' @method FoldChange StdAssay
+#' @export
+#'
+FoldChange.StdAssay <- FoldChange.Assay
 
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
@@ -1218,12 +1240,11 @@ FoldChange.DimReduc <- function(
   cells.2,
   features = NULL,
   slot = NULL,
-  pseudocount.use = 1,
+  pseudocount.use = 0.1,
   fc.name = NULL,
   mean.fxn = NULL,
   ...
 ) {
-  pseudocount.use <- pseudocount.use %||% 1
   mean.fxn <- mean.fxn %||% rowMeans
   fc.name <- fc.name %||% "avg_diff"
   data <- t(x = Embeddings(object = object))
@@ -1271,7 +1292,7 @@ FoldChange.Seurat <- function(
   slot = 'data',
   reduction = NULL,
   features = NULL,
-  pseudocount.use = NULL,
+  pseudocount.use = 0.1,
   mean.fxn = NULL,
   base = 2,
   fc.name = NULL,
@@ -2210,6 +2231,11 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
          paste(umi.assay, collapse = ", ")
     )
   }
+  umi.layers <- Layers(object = object, assay = umi.assay, search = 'counts')
+  if (length(x = umi.layers) > 1) {
+    object[[umi.assay]] <- JoinLayers(object = object[[umi.assay]],
+                                      layers = "counts", new = "counts")
+  }
   raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
   corrected_counts <- Matrix(
     nrow = nrow(x = raw_umi),
@@ -2281,6 +2307,20 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
                                            new.data = corrected_data)})
   SCTResults(object = object[[assay]], slot = "median_umi") <- set_median_umi
   return(object)
+}
+
+PrepSCTFindMarkers.V5 <- function(object, assay = "SCT", umi.assay = "RNA", layer = "counts", verbose = TRUE) {
+
+  layers <- Layers(object = object[[umi.assay]], search = layer)
+  dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
+  for (i in seq_along(along.with = layers)) {
+    l <- layers[i]
+    counts <- LayerData(
+      object = object[[umi.assay]],
+      layer = l
+      )
+  }
+  cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
 }
 
 # given a UMI count matrix, estimate NB theta parameter for each gene
@@ -2432,8 +2472,18 @@ WilcoxDETest <- function(
     yes = FALSE,
     no = TRUE
   )
+  presto.check <- PackageCheck("presto", error = FALSE)
   limma.check <- PackageCheck("limma", error = FALSE)
-  if (limma.check[1] && overflow.check) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  if (FALSE) {
+    data.use <- data.use[, names(x = group.info), drop = FALSE]
+    res <- presto::wilcoxauc(X = data.use, y = group.info)
+    res <- res[1:(nrow(x = res)/2),]
+    p_val <- res$pval
+  } else if (limma.check[1] && overflow.check) {
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),
       FUN = function(x) {
@@ -2455,10 +2505,6 @@ WilcoxDETest <- function(
       )
       options(Seurat.limma.wilcox.msg = FALSE)
     }
-    group.info <- data.frame(row.names = c(cells.1, cells.2))
-    group.info[cells.1, "group"] <- "Group1"
-    group.info[cells.2, "group"] <- "Group2"
-    group.info[, "group"] <- factor(x = group.info[, "group"])
     data.use <- data.use[, rownames(x = group.info), drop = FALSE]
     p_val <- my.sapply(
       X = 1:nrow(x = data.use),

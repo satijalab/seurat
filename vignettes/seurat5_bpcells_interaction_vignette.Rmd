@@ -1,0 +1,218 @@
+---
+title: "Using BPCells with Seurat Objects"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = 'styler',
+  warning = FALSE,
+  error = TRUE,
+  message = FALSE,
+  fig.width = 8,
+  time_it = TRUE,
+  cache = TRUE
+)
+```
+
+BPCells is an [R package](https://github.com/bnprks/BPCells) that allows for computationally efficient single-cell analysis. It utilizes bit-packing compression to store counts matrices on disk and C++ code to cache operations. 
+
+We leverage the high performance capabilities of BPCells to work with Seurat objects in memory while accessing the counts on disk. In this vignette, we show how to use BPCells to load data, work with a Seurat objects in a more memory-efficient way, and write out Seurat objects with BPCells matrices.
+
+We will show the methods for interacting with both a single dataset in one file or multiple datasets across multiple files using BPCells. BPCells allows us to easily analyze these large datasets in memory, and we encourage users to check out some of our other vignettes [here]() and [here]() to see further applications. 
+
+
+```{r install, message = FALSE, warning = FALSE}
+devtools::install_github("bnprks/BPCells")
+library(BPCells)
+library(Seurat)
+library(SeuratObject)
+library(SeuratDisk)
+library(Azimuth)
+
+options(Seurat.object.assay.version = "v5")
+```
+
+We use BPCells functionality to both load in our data and write the counts layers to bitpacked compressed binary files on disk to improve computation speeds. BPCells has multiple functions for reading in files. 
+
+# Load Data
+
+## Load Data from one h5 file 
+In this section, we will load  a dataset of mouse brain cells freely available from 10x Genomics. This includes 1.3 Million single cells that were sequenced on the Illumina NovaSeq 6000. The raw data can be found [here](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/1M_neurons?).
+
+To read in the file, we will use open_matrix_10x_hdf5, a BPCells function written to read in feature matrices from 10x. We then write a matrix directory, load the matrix, and create a Seurat object. 
+
+```{r}
+brain.data <- open_matrix_10x_hdf5(
+  path = "/brahms/hartmana/vignette_data/1M_neurons_filtered_gene_bc_matrices_h5.h5")
+# Write the matrix to a directory
+write_matrix_dir(
+  mat = brain.data,
+  dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts',
+  overwrite = TRUE)
+# Now that we have the matrix on disk, we can load it
+brain.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
+brain.mat <- Azimuth:::ConvertEnsembleToSymbol(mat = brain.mat, species = "mouse")
+
+# Create Seurat Object
+brain <- CreateSeuratObject(counts = brain.mat)
+```
+
+<details>
+  <summary>**What if I already have a Seurat Object?**</summary>
+
+You can use BPCells to convert the matrices in your already created Seurat objects to on-disk matrices. Note, that this is only possible for V5 assays. As an example, if you'd like to convert the counts matrix of your RNA assay to a BPCells matrix, you can use the following: 
+
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+obj <- readRDS("/path/to/reference.rds")
+
+# Write the counts layer to a directory
+write_matrix_dir(mat = obj[["RNA"]]$counts, dir = '/brahms/hartmana/vignette_data/bpcells/brain_counts')
+counts.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/brain_counts")
+
+obj[["RNA"]]$counts <- counts.mat
+```
+
+</details>
+
+### Example Analsyis 
+
+Once this conversion is done, you can perform typical Seurat functions on the object. For example, we can normalize data and visualize features by automatically accessing the on-disk counts. 
+
+```{r}
+VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "counts", alpha = 0.1)
+
+# We then normalize and visualize again
+brain <- NormalizeData(brain, normalization.method = "LogNormalize")
+VlnPlot(brain, features = c("Sox10", "Slc17a7", "Aif1"), ncol = 3, layer = "data", alpha = 0.1)
+```
+
+### Saving Seurat objects with on-disk layers
+
+If you save your object and load it in in the future, Seurat will access the on-disk matrices by their path, which is stored in the assay level data. To make it easy to ensure these are saved in the same place, we provide new functionality to the saveRDS function. In this function, you specify your filename and the destination directory. The pointer to the path in the Seurat object will change to the destination directory. 
+
+This also makes it easy to share your Seurat objects with BPCells matrices by sharing a folder that contains both the object and the BPCells directory.
+
+```{r}
+saveRDS(
+  object = brain,
+  file = "obj.Rds",
+  destdir = "/brahms/hartmana/vignette_data/bpcells/brain_object")
+```
+
+
+If needed, a layer with an on-disk matrix can be converted to an in-memory matrix using the `as()` function. For the purposes of this demo, we'll subset the object so that it takes up less space in memory. 
+```{r}
+brain <- subset(brain, downsample = 1000)
+brain[["RNA"]]$counts <- as(object = brain[["RNA"]]$counts, Class = "dgCMatrix")
+```
+
+
+## Load data from multiple h5ad files 
+
+You can also download data from multiple matrices. In this section, we create a Seurat object using multiple peripheral blood mononuclear cell (PBMC) samples that are freely available for downlaod from CZI [here](https://cellxgene.cziscience.com/collections). We download data from [Ahern et al. (2022) Nature](https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82), [Jin et al. (2021) Science](https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc), and [Yoshida et al. (2022) Nature](https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7). We use the BPCells function to read h5ad files. 
+
+
+```{r, warning=FALSE}
+file.dir <- "/brahms/hartmana/vignette_data/h5ad_files/"
+files.set <- c("ahern_pbmc.h5ad", "jin_pbmc.h5ad", "yoshida_pbmc.h5ad")
+
+# Loop through h5ad files and output BPCells matrices on-disk
+data.list <- c()
+metadata.list <- c()
+
+for (i in 1:length(files.set)) {
+  path <- paste0(file.dir, files.set[i])
+  data <- open_matrix_anndata_hdf5(path)
+  write_matrix_dir(
+    mat = data,
+    dir = paste0(gsub(".h5ad", "", path), "_BP"),
+    overwrite = TRUE
+  )
+  # Load in BP matrices
+  mat <- open_matrix_dir(dir = paste0(gsub(".h5ad", "", path), "_BP"))
+  mat <- Azimuth:::ConvertEnsembleToSymbol(mat = mat, species = "human")
+  # Get metadata
+  metadata.list[[i]] <- LoadH5ADobs(path = path)
+  data.list[[i]] <- mat
+}
+# Name layers
+names(data.list) <- c("ahern", "jin", "yoshida")
+
+# Add Metadata
+for (i in 1:length(metadata.list)){
+  metadata.list[[i]]$publication <- names(data.list)[i]
+}
+metadata.list <- lapply(metadata.list, function(x) {
+    x <- x[, c("publication", "sex", "cell_type", "donor_id", "disease")]
+    return(x)
+})
+metadata <- Reduce(rbind, metadata.list)
+```
+
+When we create the Seurat object with the list of matrices from each publication, we can then see that multiple counts layers exist that represent each dataset. This object contains over a million cells, yet only takes up minimal space in memory! 
+
+```{r}
+options(Seurat.object.assay.version = "v5")
+merged.object <- CreateSeuratObject(counts = data.list, meta.data = metadata)
+merged.object
+```
+
+```{r save_merged, eval=FALSE}
+saveRDS(
+  object = merged.object,
+  file = "obj.Rds",
+  destdir = "/brahms/hartmana/vignette_data/bpcells/merged_object")
+```
+
+## Parse Biosciences
+
+Here, we show how to load a 1 million cell data set from Parse Biosciences and create a Seurat Object. The data is available for download [here](https://support.parsebiosciences.com/hc/en-us/articles/7704577188500-How-to-analyze-a-1-million-cell-data-set-using-Scanpy-and-Harmony)
+
+```{r}
+parse.data <- open_matrix_anndata_hdf5(
+  "/brahms/hartmana/vignette_data/h5ad_files/ParseBio_PBMC.h5ad")
+```
+
+```{r, eval=FALSE}
+write_matrix_dir(mat = parse.data, dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+```
+
+```{r}
+parse.mat <- open_matrix_dir(dir = "/brahms/hartmana/vignette_data/bpcells/parse_1m_pbmc")
+metadata <- readRDS("/brahms/hartmana/vignette_data/ParseBio_PBMC_meta.rds")
+metadata$disease <- sapply(strsplit(x = metadata$sample, split = "_"), "[", 1)
+parse.object <- CreateSeuratObject(counts = parse.mat, meta.data = metadata)
+```
+
+```{r save_parse, eval=FALSE}
+saveRDS(
+  object = parse.object,
+  file = "obj.Rds",
+  destdir = "/brahms/hartmana/vignette_data/bpcells/parse_object")
+```
+
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

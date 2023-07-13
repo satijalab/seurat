@@ -16,7 +16,8 @@ RidgePlot(
   same.y.lims = FALSE,
   log = FALSE,
   ncol = NULL,
-  slot = "data",
+  slot = deprecated(),
+  layer = "data",
   stack = FALSE,
   combine = TRUE,
   fill.by = "feature"

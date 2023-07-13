@@ -1,0 +1,35 @@
+---
+title: "Seurat Extension Packages"
+output: html_document
+---
+
+In addition to the core Seurat package, we provide several extensions that enhance the functionality and utility of Seurat. A brief description of each is listed below with links to more complete documentation and examples.
+
+# Signac
+
+Signac is an R toolkit that extends Seurat for the analysis, interpretation, and exploration of single-cell chromatin datasets. The software supports the following features:
+
+* Calculating single-cell QC metrics
+* Dimensional reduction, visualization, and clustering
+* Identifying cell type-specific peaks
+* Visualizing ‘pseudo-bulk’ coverage tracks
+* Integration with single-cell RNA-seq datasets
+
+For documentation and vignettes, click [here](https://satijalab.org/signac/).
+
+# SeuratData
+
+SeuratData is a mechanism for distributing datasets in the form of Seurat objects using R’s internal package and data management systems. It represents an easy way for users to get access to datasets that are used in the Seurat vignettes. For more information, click [here](https://github.com/satijalab/seurat-data).
+
+# SeuratWrappers
+
+In order to facilitate the use of community tools with Seurat, we provide the SeuratWrappers package, which contains code to run other analysis tools on Seurat objects. For a full list of supported packages and vignettes, please see our vignettes page.
+
+# SeuratDisk
+
+The SeuratDisk package introduces the h5Seurat file format for the storage and analysis of multimodal single-cell and spatially-resolved expression experiments. The SeuratDisk package provides functions to save Seurat objects as h5Seurat files, and functions for rapid on-disk conversion between h5Seurat and AnnData formats with the goal of enhancing interoperability between Seurat and Scanpy. For more information, click [here](https://mojaveazure.github.io/seurat-disk/)
+
+# Azimuth
+
+Azimuth is a web application that uses an annotated reference dataset to automate the processing, analysis, and interpretation of a new single-cell RNA-seq experiment. Azimuth leverages a 'reference-based mapping' pipeline that inputs a counts matrix of gene expression in single cells, and performs normalization, visualization, cell annotation, and differential expression (biomarker discovery). All results can be explored within the app, and easily downloaded for additional downstream analysis. To use the Azimuth web app, visit the Azimuth website [here](https://azimuth.hubmapconsortium.org/).
+

@@ -1,0 +1,440 @@
+---
+title: "Weighted Nearest Neighbor Analysis"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+
+```{r setup, include=TRUE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now)
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE,
+  error = TRUE
+)
+```
+The simultaneous measurement of multiple modalities, known as multimodal analysis, represents an exciting frontier for single-cell genomics and necessitates new computational methods that can define cellular states based on multiple data types. The varying information content of each modality, even across cells in the same dataset, represents a pressing challenge for the analysis and integration of multimodal datasets. In ([Hao\*, Hao\* et al, Cell 2021](https://doi.org/10.1016/j.cell.2021.04.048)), we introduce 'weighted-nearest neighbor' (WNN) analysis, an unsupervised framework to learn the relative utility of each data type in each cell, enabling an integrative analysis of multiple modalities.  
+
+This vignette introduces the WNN workflow for the analysis of multimodal single-cell datasets. The workflow consists of three steps
+
+* Independent preprocessing and dimensional reduction of each modality individually 
+* Learning cell-specific modality 'weights', and constructing a WNN graph that integrates the modalities 
+* Downstream analysis (i.e. visualization, clustering, etc.) of the WNN graph
+
+We demonstrate the use of WNN analysis to two single-cell multimodal technologies: CITE-seq and 10x multiome. We define the cellular states based on both modalities, instead of either individual modality.  
+
+
+# WNN analysis of CITE-seq, RNA + ADT
+We use the CITE-seq dataset from ([Stuart\*, Butler\* et al, Cell 2019](https://www.cell.com/cell/fulltext/S0092-8674(19)30559-8)), which consists of 30,672 scRNA-seq profiles measured alongside a panel of 25 antibodies from bone marrow. The object contains two assays, RNA and antibody-derived tags (ADT).  
+
+To run this vignette please install Seurat v4, available on [CRAN](https://cran.r-project.org/web/packages/Seurat/index.html), and SeuratData, available on [GitHub](https://github.com/satijalab/seurat-data).
+
+```{r install, eval = FALSE}
+install.packages("Seurat")
+```
+
+```{r, include=TRUE, cache=FALSE}
+options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
+```
+
+```{r packages, cache=FALSE}
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+library(SeuratData)
+library(cowplot)
+library(dplyr)
+```
+
+```{r}
+InstallData("bmcite")
+bm <- LoadData(ds = "bmcite")
+bm[["ADT"]] <- CreateAssay5Object(bm[["ADT"]]$counts)
+bm[["RNA"]] <- CreateAssay5Object(bm[["RNA"]]$counts)
+```
+
+We first perform pre-processing and dimensional reduction on both assays independently. We use standard normalization, but you can also use SCTransform or any alternative method.
+
+```{r pp.rna}
+DefaultAssay(bm) <- 'RNA'
+bm <- NormalizeData(bm)
+bm <- FindVariableFeatures(bm)
+bm <- ScaleData(bm)
+bm <- RunPCA(bm)
+
+DefaultAssay(bm) <- 'ADT'
+# we will use all ADT features for dimensional reduction
+# we set a dimensional reduction name to avoid overwriting the 
+VariableFeatures(bm) <- rownames(bm[["ADT"]])
+bm <- NormalizeData(bm, normalization.method = 'CLR', margin = 2) %>% 
+  ScaleData() %>% RunPCA(reduction.name = 'apca')
+```
+For each cell, we calculate its closest neighbors in the dataset based on a weighted combination of RNA and protein similarities. The cell-specific modality weights and multimodal neighbors are calculated in a single function, which takes ~2 minutes to run on this dataset. We specify the dimensionality of each modality (similar to specifying the number of PCs to include in scRNA-seq clustering), but you can vary these settings to see that small changes have minimal effect on the overall results.
+
+```{r jc}
+# Identify multimodal neighbors. These will be stored in the neighbors slot, 
+# and can be accessed using bm[['weighted.nn']]
+# The WNN graph can be accessed at bm[["wknn"]], 
+# and the SNN graph used for clustering at bm[["wsnn"]]
+# Cell-specific modality weights can be accessed at bm$RNA.weight
+bm <- FindMultiModalNeighbors(
+  bm, reduction.list = list("pca", "apca"), 
+  dims.list = list(1:30, 1:18), modality.weight.name = "RNA.weight"
+)
+```
+
+We can now use these results for downstream analysis, such as visualization and clustering. For example, we can create a UMAP visualization of the data based on a weighted combination of RNA and protein data We can also perform graph-based clustering and visualize these results on the UMAP, alongside a set of cell annotations.
+
+```{r wumap, fig.width=10}
+bm <- RunUMAP(bm, nn.name = "weighted.nn", reduction.name = "wnn.umap", reduction.key = "wnnUMAP_")
+bm <- FindClusters(bm, graph.name = "wsnn", algorithm = 3, resolution = 2, verbose = FALSE)
+```
+
+```{r wumap.plot, fig.width = 10}
+p1 <- DimPlot(bm, reduction = 'wnn.umap', label = TRUE, repel = TRUE, label.size = 2.5) + NoLegend()
+p2 <- DimPlot(bm, reduction = 'wnn.umap', group.by = 'celltype.l2', label = TRUE, repel = TRUE, label.size = 2.5) + NoLegend()
+p1 + p2
+```
+
+We can also compute UMAP visualization based on only the RNA and protein data and compare. We find that the RNA analysis is more informative than the ADT analysis in identifying progenitor states (the ADT panel contains markers for differentiated cells), while the converse is true of T cell states (where the ADT analysis outperforms RNA). 
+
+```{r compumap}
+bm <- RunUMAP(bm, reduction = 'pca', dims = 1:30, assay = 'RNA', 
+              reduction.name = 'rna.umap', reduction.key = 'rnaUMAP_')
+bm <- RunUMAP(bm, reduction = 'apca', dims = 1:18, assay = 'ADT', 
+              reduction.name = 'adt.umap', reduction.key = 'adtUMAP_')
+```
+
+```{r umapplot2, fig.width=10}
+p3 <- DimPlot(bm, reduction = 'rna.umap', group.by = 'celltype.l2', label = TRUE, 
+              repel = TRUE, label.size = 2.5) + NoLegend()
+p4 <- DimPlot(bm, reduction = 'adt.umap', group.by = 'celltype.l2', label = TRUE, 
+              repel = TRUE, label.size = 2.5) + NoLegend()
+p3 + p4
+```
+
+We can visualize the expression of canonical marker genes and proteins on the multimodal UMAP, which can assist in verifying the provided annotations:
+```{r ftplot, fig.width = 10, fig.height = 7}
+p5 <- FeaturePlot(bm, features = c("adt_CD45RA","adt_CD16","adt_CD161"),
+                  reduction = 'wnn.umap', max.cutoff = 2, 
+                  cols = c("lightgrey","darkgreen"), ncol = 3)
+p6 <- FeaturePlot(bm, features = c("rna_TRDC","rna_MPO","rna_AVP"), 
+                  reduction = 'wnn.umap', max.cutoff = 3, ncol = 3)
+p5 / p6
+```
+
+Finally, we can visualize the modality weights that were learned for each cell. Each of the populations with the highest RNA weights represent progenitor cells, while the populations with the highest protein weights represent T cells. This is in line with our biological expectations, as the antibody panel does not contain markers that can distinguish between different progenitor populations.
+
+```{r plotwts, fig.width=10}
+ VlnPlot(bm, features = "RNA.weight", group.by = 'celltype.l2', sort = TRUE, pt.size = 0.1) +
+  NoLegend()
+```
+
+```{r save.img, include=TRUE}
+library(ggplot2)
+plot <-  VlnPlot(bm, features = "RNA.weight", group.by = 'celltype.l2', sort = TRUE, pt.size = 0.1) +
+  NoLegend() + xlab("") + ggtitle("RNA Modality Weights") + theme(plot.title = element_text(hjust = 0.5, size = 30), axis.text = element_text(size = 20))
+ 
+ggsave(filename = "../output/images/weighted_nearest_neighbor_analysis.jpg", height = 7, width = 12, plot = plot, quality = 50)
+```
+
+# WNN analysis of 10x Multiome, RNA + ATAC
+
+Here, we demonstrate the use of WNN analysis to a second multimodal technology, the 10x multiome RNA+ATAC kit. We use a dataset that is publicly available on the 10x website, where paired transcriptomes and ATAC-seq profiles are measured in 10,412 PBMCs.
+
+We use the same WNN methods as we use in the previous tab, where we apply integrated multimodal analysis to a CITE-seq dataset. In this example we will demonstrate how to:
+
+* Create a multimodal Seurat object with paired transcriptome and ATAC-seq profiles
+* Perform weighted neighbor clustering on RNA+ATAC data in single cells
+* Leverage both modalities to identify putative regulators of different cell types and states
+
+You can download the dataset from the 10x Genomics website [here](https://support.10xgenomics.com/single-cell-multiome-atac-gex/datasets/1.0.0/pbmc_granulocyte_sorted_10k). Please make sure to download the following files:
+
+* Filtered feature barcode matrix (HDF5)
+* ATAC Per fragment information file (TSV.GZ)
+* ATAC Per fragment information index (TSV.GZ index)
+
+Finally, in order to run the vignette, make sure the following packages are installed:
+
+* [Seurat v4](install.html)
+* [Signac](https://satijalab.org/signac/) for the analysis of single-cell chromatin datasets
+* [EnsDb.Hsapiens.v86](https://bioconductor.org/packages/release/data/annotation/html/EnsDb.Hsapiens.v86.html) for a set of annotations for hg38
+* [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html) to help manipulate data tables
+
+```{r pkgs}
+library(Seurat)
+library(Signac)
+library(EnsDb.Hsapiens.v86)
+library(dplyr)
+library(ggplot2)
+```
+
+<!-- # Create multimodal PBMC object -->
+
+We'll create a Seurat object based on the gene expression data, and then add in the ATAC-seq data as a second assay. You can explore the [Signac getting started vignette](https://satijalab.org/signac/articles/pbmc_vignette.html) for more information on the creation and processing of a ChromatinAssay object.
+
+```{r CreateObject}
+# the 10x hdf5 file contains both data types. 
+inputdata.10x <- Read10X_h5("../data/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5")
+
+# extract RNA and ATAC data
+rna_counts <- inputdata.10x$`Gene Expression`
+atac_counts <- inputdata.10x$Peaks
+
+# Create Seurat object
+pbmc <- CreateSeuratObject(counts = rna_counts)
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")$nCount_RNA
+pbmc@meta.data[["percent.mt"]] <- as.numeric(pbmc@meta.data[["percent.mt"]])
+
+# Now add in the ATAC-seq data
+# we'll only use peaks in standard chromosomes
+grange.counts <- StringToGRanges(rownames(atac_counts), sep = c(":", "-"))
+grange.use <- seqnames(grange.counts) %in% standardChromosomes(grange.counts)
+atac_counts <- atac_counts[as.vector(grange.use), ]
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
+seqlevelsStyle(annotations) <- 'UCSC'
+genome(annotations) <- "hg38"
+
+frag.file <- "../data/pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz"
+chrom_assay <- CreateChromatinAssay(
+   counts = atac_counts,
+   sep = c(":", "-"),
+   genome = 'hg38',
+   fragments = frag.file,
+   min.cells = 10,
+   annotation = annotations
+ )
+pbmc[["ATAC"]] <- chrom_assay
+```
+
+We perform basic QC based on the number of detected molecules for each modality as well as mitochondrial percentage.
+
+```{r QCObject, fig.width=10}
+VlnPlot(pbmc, features = c("nCount_ATAC", "nCount_RNA","percent.mt"), ncol = 3,
+  log = TRUE, pt.size = 0) + NoLegend()
+
+pbmc <- subset(
+  x = pbmc,
+  subset = nCount_ATAC < 7e4 &
+    nCount_ATAC > 5e3 &
+    nCount_RNA < 25000 &
+    nCount_RNA > 1000 &
+    percent.mt < 20
+)
+```
+
+We next perform pre-processing and dimensional reduction on both assays independently, using standard approaches for RNA and ATAC-seq data.
+
+```{r IndependentAnalysis}
+# RNA analysis
+DefaultAssay(pbmc) <- "RNA"
+pbmc <- SCTransform(pbmc, verbose = FALSE) %>% RunPCA() %>% RunUMAP(dims = 1:50, reduction.name = 'umap.rna', reduction.key = 'rnaUMAP_')
+
+# ATAC analysis
+# We exclude the first dimension as this is typically correlated with sequencing depth
+DefaultAssay(pbmc) <- "ATAC"
+pbmc <- RunTFIDF(pbmc)
+pbmc <- FindTopFeatures(pbmc, min.cutoff = 'q0')
+pbmc <- RunSVD(pbmc)
+pbmc <- RunUMAP(pbmc, reduction = 'lsi', dims = 2:50, reduction.name = "umap.atac", reduction.key = "atacUMAP_")
+```
+
+We calculate a WNN graph, representing a weighted combination of RNA and ATAC-seq modalities. We use this graph for UMAP visualization and clustering
+
+```{r MultiModalAnalysis}
+pbmc <- FindMultiModalNeighbors(pbmc, reduction.list = list("pca", "lsi"), dims.list = list(1:50, 2:50))
+pbmc <- RunUMAP(pbmc, nn.name = "weighted.nn", reduction.name = "wnn.umap", reduction.key = "wnnUMAP_")
+pbmc <- FindClusters(pbmc, graph.name = "wsnn", algorithm = 3, verbose = FALSE)
+```
+
+We annotate the clusters below. Note that you could also annotate the dataset using our supervised mapping pipelines, using either our [vignette](multimodal_reference_mapping.html), or [automated web tool, Azimuth](www.satijalab.org/azimuth).
+
+```{r Annotate, results = 'hide'}
+# perform sub-clustering on cluster 6 to find additional structure
+pbmc <- FindSubCluster(pbmc, cluster = 6, graph.name = "wsnn", algorithm = 3)
+Idents(pbmc) <- "sub.cluster"
+```
+
+```{r Annotate2}
+# add annotations
+pbmc <- RenameIdents(pbmc, '19' = 'pDC','20' = 'HSPC','15' = 'cDC')
+pbmc <- RenameIdents(pbmc, '0' = 'CD14 Mono', '9' ='CD14 Mono', '5' = 'CD16 Mono')
+pbmc <- RenameIdents(pbmc, '10' = 'Naive B', '11' = 'Intermediate B', '17' = 'Memory B', '21' = 'Plasma')
+pbmc <- RenameIdents(pbmc, '7' = 'NK')
+pbmc <- RenameIdents(pbmc, '4' = 'CD4 TCM', '13'= "CD4 TEM", '3' = "CD4 TCM", '16' ="Treg", '1' ="CD4 Naive", '14' = "CD4 Naive")
+pbmc <- RenameIdents(pbmc, '2' = 'CD8 Naive', '8'= "CD8 Naive", '12' = 'CD8 TEM_1', '6_0' = 'CD8 TEM_2', '6_1' ='CD8 TEM_2', '6_4' ='CD8 TEM_2')
+pbmc <- RenameIdents(pbmc, '18' = 'MAIT')
+pbmc <- RenameIdents(pbmc, '6_2' ='gdT', '6_3' = 'gdT')
+pbmc$celltype <- Idents(pbmc)
+```
+
+We can visualize clustering based on gene expression, ATAC-seq, or WNN analysis. The differences are more subtle than in the previous analysis (you can explore the weights, which are more evenly split than in our CITE-seq example), but we find that WNN provides the clearest separation of cell states. 
+
+```{r UMAPs, fig.width=10}
+p1 <- DimPlot(pbmc, reduction = "umap.rna", group.by = "celltype", label = TRUE, label.size = 2.5, repel = TRUE) + ggtitle("RNA")
+p2 <- DimPlot(pbmc, reduction = "umap.atac", group.by = "celltype", label = TRUE, label.size = 2.5, repel = TRUE) + ggtitle("ATAC")
+p3 <- DimPlot(pbmc, reduction = "wnn.umap", group.by = "celltype", label = TRUE, label.size = 2.5, repel = TRUE) + ggtitle("WNN")
+p1 + p2 + p3 & NoLegend() & theme(plot.title = element_text(hjust = 0.5))
+```
+
+For example, the ATAC-seq data assists in the separation of CD4 and CD8 T cell states. This is due to the presence of multiple loci that exhibit differential accessibility between different T cell subtypes. For example, we can visualize 'pseudobulk' tracks of the CD8A locus alongside violin plots of gene expression levels, using tools in the [Signac visualization vignette](https://satijalab.org/signac/articles/visualization.html).
+
+```{r coverageplotcd8, fig.width=10}
+## to make the visualization easier, subset T cell clusters
+celltype.names <- levels(pbmc)
+tcell.names <- grep("CD4|CD8|Treg", celltype.names,value = TRUE)
+tcells <- subset(pbmc, idents = tcell.names)
+CoveragePlot(tcells, region = 'CD8A', features = 'CD8A', assay = 'ATAC', expression.assay = 'SCT', peaks = FALSE)
+```
+
+Next, we will examine the accessible regions of each cell to determine enriched motifs. As described in the [Signac motifs vignette](https://satijalab.org/signac/articles/motif_vignette.html), there are a few ways to do this, but we will use the [chromVAR](https://www.nature.com/articles/nmeth.4401) package from the Greenleaf lab. This calculates a per-cell accessibility score for known motifs, and adds these scores as a third assay (`chromvar`) in the Seurat object.
+
+To continue, please make sure you have the following packages installed. 
+
+* [chromVAR](https://bioconductor.org/packages/release/bioc/html/chromVAR.html) for the analysis of motif accessibility in scATAC-seq
+* [presto](https://github.com/immunogenomics/presto) for fast differential expression analyses.
+* [TFBSTools](http://www.bioconductor.org/packages/release/bioc/html/TFBSTools.html) for TFBS analysis
+* [JASPAR2020](https://bioconductor.org/packages/release/data/annotation/html/JASPAR2020.html) for JASPAR motif models
+* [motifmatchr](https://www.bioconductor.org/packages/release/bioc/html/motifmatchr.html) for motif matching
+* [BSgenome.Hsapiens.UCSC.hg38](https://bioconductor.org/packages/release/data/annotation/html/BSgenome.Hsapiens.UCSC.hg38.html) for chromVAR
+
+<details>
+  <summary>**Install command for all dependencies**</summary>
+
+```{r install.deps, eval=FALSE} 
+remotes::install_github("immunogenomics/presto")
+BiocManager::install(c("chromVAR", "TFBSTools", "JASPAR2020", "motifmatchr", "BSgenome.Hsapiens.UCSC.hg38"))  
+```
+  
+</details>
+
+```{r chromVar}
+library(chromVAR)
+library(JASPAR2020)
+library(TFBSTools)
+library(motifmatchr)
+library(BSgenome.Hsapiens.UCSC.hg38)
+
+# Scan the DNA sequence of each peak for the presence of each motif, and create a Motif object
+DefaultAssay(pbmc) <- "ATAC"
+pwm_set <- getMatrixSet(x = JASPAR2020, opts = list(species = 9606, all_versions = FALSE))
+motif.matrix <- CreateMotifMatrix(features = granges(pbmc), pwm = pwm_set, genome = 'hg38', use.counts = FALSE)
+motif.object <- CreateMotifObject(data = motif.matrix, pwm = pwm_set)
+pbmc <- SetAssayData(pbmc, assay = 'ATAC', slot = 'motifs', new.data = motif.object)
+
+# Note that this step can take 30-60 minutes 
+pbmc <- RunChromVAR(
+  object = pbmc,
+  genome = BSgenome.Hsapiens.UCSC.hg38
+)
+```
+
+Finally, we explore the multimodal dataset to identify key regulators of each cell state. Paired data provides a unique opportunity to identify transcription factors (TFs) that satisfy multiple criteria, helping to narrow down the list of putative regulators to the most likely candidates. We aim to identify TFs whose expression is enriched in multiple cell types in the RNA measurements, but *also* have enriched accessibility for their motifs in the ATAC measurements. 
+
+As an example and positive control, the  CCAAT Enhancer Binding Protein (CEBP) family of proteins, including the TF CEBPB, have been repeatedly shown to play important roles in the differentiation and function of myeloid cells including monocytes and dendritic cells. We can see that both the expression of the CEBPB, and the accessibility of the MA0466.2.4 motif (which encodes the binding site for CEBPB), are both enriched in monocytes.
+
+```{r CEBPB, fig.width=10}
+#returns MA0466.2
+motif.name <- ConvertMotifID(pbmc, name = 'CEBPB')
+gene_plot <- FeaturePlot(pbmc, features = "sct_CEBPB", reduction = 'wnn.umap')
+motif_plot <- FeaturePlot(pbmc, features = motif.name, min.cutoff = 0, cols = c("lightgrey", "darkred"), reduction = 'wnn.umap')
+gene_plot | motif_plot
+```
+
+We'd like to quantify this relationship, and search across all cell types to find similar examples. To do so, we will use the `presto` package to perform fast differential expression. We run two tests: one using gene expression data, and the other using chromVAR motif accessibilities. `presto` calculates a p-value based on the Wilcox rank sum test, which is also the default test in Seurat, and we restrict our search to TFs that return significant results in both tests. 
+
+`presto` also calculates an "AUC" statistic, which reflects the power of each gene (or motif) to serve as a marker of cell type. A maximum AUC value of 1 indicates a perfect marker. Since the AUC statistic is on the same scale for both genes and motifs, we take the average of the AUC values from the two tests, and use this to rank TFs for each cell type:
+
+```{r presto}
+markers_rna <- presto:::wilcoxauc.Seurat(X = pbmc, group_by = 'celltype', assay = 'data', seurat_assay = 'SCT')
+markers_motifs <- presto:::wilcoxauc.Seurat(X = pbmc, group_by = 'celltype', assay = 'data', seurat_assay = 'chromvar')
+motif.names <- markers_motifs$feature
+colnames(markers_rna) <- paste0("RNA.", colnames(markers_rna))
+colnames(markers_motifs) <- paste0("motif.", colnames(markers_motifs))
+markers_rna$gene <- markers_rna$RNA.feature
+markers_motifs$gene <- ConvertMotifID(pbmc, id = motif.names)
+```
+
+```{r defineTests}
+# a simple function to implement the procedure above
+topTFs <- function(celltype, padj.cutoff = 1e-2) {
+  ctmarkers_rna <- dplyr::filter(
+    markers_rna, RNA.group == celltype, RNA.padj < padj.cutoff, RNA.logFC > 0) %>% 
+    arrange(-RNA.auc)
+  ctmarkers_motif <- dplyr::filter(
+    markers_motifs, motif.group == celltype, motif.padj < padj.cutoff, motif.logFC > 0) %>% 
+    arrange(-motif.auc)
+  top_tfs <- inner_join(
+    x = ctmarkers_rna[, c(2, 11, 6, 7)], 
+    y = ctmarkers_motif[, c(2, 1, 11, 6, 7)], by = "gene"
+  )
+  top_tfs$avg_auc <- (top_tfs$RNA.auc + top_tfs$motif.auc) / 2
+  top_tfs <- arrange(top_tfs, -avg_auc)
+  return(top_tfs)
+}
+```
+
+We can now compute, and visualize, putative regulators for any cell type. We recover well-established regulators, including [TBX21 for NK cells](https://www.sciencedirect.com/science/article/pii/S1074761304000767), [IRF4 for plasma cells](https://pubmed.ncbi.nlm.nih.gov/16767092/), [SOX4 for hematopoietic progenitors](https://ashpublications.org/blood/article/124/21/1577/88774/Sox4-Is-Required-for-the-Formation-and-Maintenance), [EBF1 and PAX5 for B cells](https://www.nature.com/articles/ni.2641), [IRF8 and TCF4 for pDC](https://www.nature.com/articles/s41590-018-0136-9). We believe that similar strategies can be used to help focus on a set of putative regulators in diverse systems.
+
+```{r NK, fig.width=10}
+# identify top markers in NK and visualize
+head(topTFs("NK"), 3)
+
+motif.name <- ConvertMotifID(pbmc, name = 'TBX21')
+gene_plot <- FeaturePlot(pbmc, features = "sct_TBX21", reduction = 'wnn.umap')
+motif_plot <- FeaturePlot(pbmc, features = motif.name, min.cutoff = 0, cols = c("lightgrey", "darkred"), reduction = 'wnn.umap')
+gene_plot | motif_plot
+```
+
+```{r pDC, fig.width=10}
+# identify top markers in pDC and visualize
+head(topTFs("pDC"), 3)
+
+motif.name <- ConvertMotifID(pbmc, name = 'TCF4')
+gene_plot <- FeaturePlot(pbmc, features = "sct_TCF4", reduction = 'wnn.umap')
+motif_plot <- FeaturePlot(pbmc, features = motif.name, min.cutoff = 0, cols = c("lightgrey", "darkred"), reduction = 'wnn.umap')
+gene_plot | motif_plot
+```
+
+```{r CD16Mono, fig.width=10}
+# identify top markers in HSPC and visualize
+head(topTFs("CD16 Mono"),3)
+
+motif.name <- ConvertMotifID(pbmc, name = 'SPI1')
+gene_plot <- FeaturePlot(pbmc, features = "sct_SPI1", reduction = 'wnn.umap')
+motif_plot <- FeaturePlot(pbmc, features = motif.name, min.cutoff = 0, cols = c("lightgrey", "darkred"), reduction = 'wnn.umap')
+gene_plot | motif_plot
+```
+
+```{r moreTFS, fig.width=10}
+# identify top markers in other cell types
+head(topTFs("Naive B"), 3)
+head(topTFs("HSPC"), 3)
+head(topTFs("Plasma"), 3)
+```
+
+
+```{r save.times, include=TRUE}
+# write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/seurat5_weighted_nearest_neighbor_analysis_times.csv")
+print("done")
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>

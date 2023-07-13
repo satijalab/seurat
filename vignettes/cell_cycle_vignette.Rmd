@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
   tidy = TRUE,
   tidy.opts = list(width.cutoff = 95),
   warning = FALSE,
-  error = FALSE,
+  error = TRUE,
   message = FALSE,
   fig.width = 8,
   time_it = TRUE
@@ -81,7 +81,7 @@ marrow <- RunPCA(marrow, features = c(s.genes, g2m.genes))
 DimPlot(marrow)
 ```
 
-```{r save.img, include=FALSE}
+```{r save.img, include=TRUE}
 library(ggplot2)
 plot <- DimPlot(marrow) + 
     theme(axis.title = element_text(size = 18), legend.text = element_text(size = 18)) + 

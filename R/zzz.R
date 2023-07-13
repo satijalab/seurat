@@ -1,4 +1,22 @@
 #' @importFrom progressr progressor
+#' @importFrom methods slot slot<-
+#' @importFrom lifecycle deprecated deprecate_soft deprecate_stop
+#' deprecate_warn is_present
+#' @importFrom rlang abort
+#' arg_match
+#' arg_match0
+#' as_name
+#' caller_env
+#' check_installed
+#' enquo
+#' inform
+#' is_integerish
+#' is_na
+#' is_quosure
+#' is_scalar_integerish
+#' quo_get_env
+#' quo_get_expr
+#' warn
 #'
 NULL
 
@@ -44,6 +62,23 @@ seurat_default_options <- list(
   Seurat.warn.vlnplot.split = TRUE
 )
 
+
+#' @importFrom methods setClassUnion
+#' @importClassesFrom Matrix dgCMatrix
+#'
+NULL
+
+setClassUnion(name = 'V3Matrix', members = c('matrix', 'dgCMatrix'))
+
+AttachDeps <- function(deps) {
+  for (d in deps) {
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
+  }
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Hooks
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -52,6 +87,11 @@ seurat_default_options <- list(
 #'
 .onAttach <- function(libname, pkgname) {
   AttachDeps(deps = c('SeuratObject'))
+  message("Loading Seurat v5 beta version \n",
+          "To maintain compatibility with previous workflows, new Seurat objects ",
+          "will use the previous object structure by default\n",
+          "To use new Seurat v5 assays: Please run: ",
+          "options(Seurat.object.assay.version = 'v5')")
   return(invisible(x = NULL))
 }
 

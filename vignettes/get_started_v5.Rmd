@@ -1,0 +1,140 @@
+---
+title: "Introduction to Seurat v5"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+  pdf_document: default
+---
+
+```{r fxns, include = FALSE}
+library('htmlTable')
+make_list <- function(items) {
+  paste0("<ul>", sprintf('<li>%s</li>', items), '</ul>', collapse = '')
+}
+make_href <- function(url, text){
+  paste0("<div style='text-align:center; font-size:large; font-weight:bold'><a href=", url ,">", text, "</a></div>")
+}
+make_href2 <- function(url, text){
+  paste0("<a href=", url ,">", text, "</a>")
+}
+process_entry <- function(dat) {
+  if (grepl(pattern = "https://satijalab.org/img/vignette_images", x = dat$image)) {
+    img <- paste0('![](', dat$image, '){width=3000px}')
+  } else if (grepl(pattern = "assets/", x= dat$image)) {
+    img <- paste0('![](', dat$image, '){width=3000px}') 
+  } else {
+    img <- paste0('![](', '../output/images/', dat$image, '){width=3000px}')
+  }
+
+  if (dat$name == "seurat5_run_azimuth") {
+    link <- "https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html"
+  } else if (grepl(pattern = "https://satijalab.org/", x = dat$name)) {
+    link <- dat$name
+  } else {
+    link <- paste0(dat$name, ".html")
+  }
+  go.button <- paste0('<a class="btn btn-primary" href="', link, '" role="button" style="width:100%">GO</a>')
+  data.frame(
+    title = make_href(url = link, text = dat$title),
+    img = img,
+    desc = dat$summary,
+    btn = go.button
+  )
+}
+process_wrapper_entry <- function(dat) {
+  data.frame(
+    Package = dat$name,
+    Vignette = make_href2(url = dat$link, text = dat$title),
+    Reference = make_href2(url = dat$reference, text = dat$citation),
+    Source = make_href2(url = dat$source, text = dat$source)
+  )
+}
+make_vignette_card_section <- function(vdat, cat) {
+  vignettes <- vdat[[cat]]$vignettes
+  dat <- data.frame(title = character(), img = character(), desc = character())
+  for (v in 1:length(x = vignettes)) {
+    dat <- rbind(dat, process_entry(vignettes[[v]]))
+    if(nrow(x = dat) == 3 | v == length(x = vignettes)){
+      colnames(dat) <- NULL
+      dat <- t(dat)
+      if (ncol(x = dat) == 2) {
+        print(htmlTable(
+          dat, 
+          align = '|l|l|', 
+          css.cell = "padding-left: .75em; width: 50%", 
+          css.class = "two-column-htmltable"
+        ))
+      } else if (ncol(x = dat) == 1){
+        print(htmlTable(
+          dat, 
+          align = '|l|', 
+          css.cell = "padding-left: .75em; width: 100%", 
+          css.class = "one-column-htmltable"
+        ))
+      } else {
+        print(htmlTable(
+          dat, 
+          align = '|l|l|l|', 
+          css.cell = "padding-left: .75em; width: 30%"
+        ))
+      }
+      dat <- data.frame(title = character(), img = character(), desc = character())
+    }
+  }
+}
+```
+
+```{r yaml, include = FALSE}
+library(yaml)
+vdat <- read_yaml(file = "vignettes_v5.yaml")
+```
+
+```{=html}
+<style>
+.two-column-htmltable {
+  width: 66.666%;
+}
+.one-column-htmltable {
+  width: 33.333%;
+}
+
+</style>
+```
+
+We provide a series of vignettes, tutorials, and analysis walkthroughs to help users get started with Seurat v5. These vignettes are meant to highlight new functions and features supported by Seurat v5. Seurat v5 is backwards compatible with previous versions, so existing user workflows (as well as [previously released Seurat vignettes](get_started.html)) will continue to work even when using Seurat v5.
+
+# Spatial analysis
+
+These vignettes will help introduce users to the analysis of spatial datasets in Seurat v5, including technologies that leverage sequencing-based readouts, as well as technologies that leverage in-situ imaging-based readouts. The vignettes introduce data from multiple platforms including 10x Visium, SLIDE-seq, Vizgen MERSCOPE, 10x Xenium, Nanostring CosMx, and Akoya CODEX. 
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 1)
+```
+
+# Streamlined and multimodal integration
+
+Performing integrative analysis in order to identify shared cell types across multiple datasets is an increasingly important analytical step in single-cell workflows. These vignettes demonstrate new methods and infrastructure for integrative analysis in Seurat v5. They include a streamlined analytical workflow to integrate scRNA-seq datasets, and the use of 'bridge integration' for harmonizing datasets across modalities.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 2)
+```
+
+# Flexible analysis of massively scalable datasets
+
+In Seurat v5, we introduce new infrastructure and methods to analyze, interpret, and explore datasets that extend to millions of cells. We introduce support for 'sketch-based' techniques, where a subset of representative cells are stored in memory to enable rapid and iterative exploration, while the remaining cells are stored on-disk. Users can flexibly switch between both data representations, and we leverage the [BPCells package](https://bnprks.github.io/BPCells/) from Ben Parks in the Greenleaf lab to enable high-performance analysis of disk-backed data.
+\
+\
+The vignettes below demonstrate three scalable analyses in Seurat v5: Unsupervised clustering analysis of a large dataset (1.3M neurons), Unsupervised integration and comparison of 1M PBMC from healthy and diabetic patients, and Supervised mapping of 1.5M immune cells from healthy and COVID donors. In all cases, the vignettes perform these analyses without ever loading the full datasets into memory.
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 3)
+```
+
+# References and additional documentation
+
+We include brief vignettes describing install instructions, a 'cheat sheet' of commands for interacting with Seurat v5 assays, and additional documentation for using the BPCells package together with Seurat. 
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+make_vignette_card_section(vdat = vdat, cat = 4)
+```
