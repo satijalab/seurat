@@ -10,8 +10,11 @@ ReadMtx(
   features,
   cell.column = 1,
   feature.column = 2,
+  cell.sep = "\\t",
+  feature.sep = "\\t",
   skip.cell = 0,
   skip.feature = 0,
+  mtx.transpose = FALSE,
   unique.features = TRUE,
   strip.suffix = FALSE
 )

@@ -17,6 +17,12 @@ RPCAIntegration(
   k.filter = NA,
   scale.layer = "scale.data",
   groups = NULL,
+  dims.to.integrate = NULL,
+  k.weight = 100,
+  weight.reduction = NULL,
+  sd.weight = 1,
+  sample.tree = NULL,
+  preserve.order = FALSE,
   verbose = TRUE,
   ...
 )
@@ -42,7 +48,48 @@ search space}
 
 \item{k.filter}{How many neighbors (k) to use when filtering anchors}
 
+\item{dims.to.integrate}{Number of dimensions to return integrated values for}
+
+\item{k.weight}{Number of neighbors to consider when weighting anchors}
+
+\item{weight.reduction}{Dimension reduction to use when calculating anchor
+weights. This can be one of:
+\itemize{
+   \item{A string, specifying the name of a dimension reduction present in
+   all objects to be integrated}
+   \item{A vector of strings, specifying the name of a dimension reduction to
+   use for each object to be integrated}
+   \item{A vector of \code{\link{DimReduc}} objects, specifying the object to
+   use for each object in the integration}
+   \item{NULL, in which case the full corrected space is used for computing
+   anchor weights.}
+}}
+
+\item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}
+
+\item{sample.tree}{Specify the order of integration. Order of integration
+should be encoded in a matrix, where each row represents one of the pairwise
+integration steps. Negative numbers specify a dataset, positive numbers
+specify the integration results from a given row (the format of the merge
+matrix included in the \code{\link{hclust}} function output). For example:
+\code{matrix(c(-2, 1, -3, -1), ncol = 2)} gives:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{            [,1]  [,2]
+       [1,]   -2   -3
+       [2,]    1   -1
+}\if{html}{\out{</div>}}
+
+Which would cause dataset 2 and 3 to be integrated first, then the resulting
+object integrated with dataset 1.
+
+If NULL, the sample tree will be computed automatically.}
+
+\item{preserve.order}{Do not reorder objects based on size for each pairwise
+integration.}
+
 \item{verbose}{Print progress bars and output}
+
+\item{...}{Arguments passed on to \code{FindIntegrationAnchors}}
 }
 \description{
 Seurat-RPCA Integration
