@@ -2124,12 +2124,13 @@ PerformDE <- function(
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #' @importFrom sctransform correct_counts
-#' @importFrom progressr progressor with_progress
 #'
 #' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
 #'
 #' @concept differential_expression
+#' @template section-progressr
+#' @template section-future
 #' @examples
 #' data("pbmc_small")
 #' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
@@ -2152,16 +2153,11 @@ PerformDE <- function(
 #' )
 #'
 PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
-  show_progressr <- FALSE
   if (verbose && nbrOfWorkers() == 1) {
     my.lapply <- pblapply
   } else {
     my.lapply <- future_lapply
   }
-  if (verbose && nbrOfWorkers() > 1) {
-    show_progressr <- TRUE
-  }
-
   if (length(x = levels(x = object[[assay]])) == 1) {
     if (verbose) {
       message("Only one SCT model is stored - skipping recalculating corrected counts")
@@ -2230,7 +2226,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- as.list(set_median_umi)
 
   # correct counts
-  my.correct_counts <- function(model_name, p=NULL){
+  my.correct_counts <- function(model_name){
     model_genes <- rownames(x = model_pars_fit[[model_name]])
       x <- list(
         model_str = model_str[[model_name]],
@@ -2247,26 +2243,11 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
         verbosity = 0,
         scale_factor = min_median_umi
       )
-      if (!is.null(x = p)){
-        p(sprintf("model=%s", model_name))
-      }
       return(umi_corrected)
   }
-
-  if (show_progressr){
-    with_progress({
-      p <- progressor(steps = length(x = levels(x = object[[assay]])))
-      corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
-                                         FUN = my.correct_counts,
-                                         p = p)
-      names(x = corrected_counts.list) <- levels(x = object[[assay]])
-    })
-  } else {
-    corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
-                                       FUN = my.correct_counts)
-    names(x = corrected_counts.list) <- levels(x = object[[assay]])
-  }
-
+  corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
+                                     FUN = my.correct_counts)
+  names(x = corrected_counts.list) <- levels(x = object[[assay]])
   corrected_counts <- do.call(what = MergeSparseMatrices, args = corrected_counts.list)
   corrected_counts.list <- NULL
 
