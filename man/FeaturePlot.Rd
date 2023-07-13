@@ -17,6 +17,7 @@ FeaturePlot(
     c("lightgrey", "blue")
  },
   pt.size = NULL,
+  alpha = 1,
   order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
@@ -34,7 +35,7 @@ FeaturePlot(
   ncol = NULL,
   coord.fixed = FALSE,
   by.col = TRUE,
-  sort.cell = NULL,
+  sort.cell = deprecated(),
   interactive = FALSE,
   combine = TRUE,
   raster = NULL,
@@ -68,6 +69,8 @@ When blend is \code{TRUE}, takes anywhere from 1-3 colors:
 
 \item{pt.size}{Adjust point size for plotting}
 
+\item{alpha}{Alpha value for plotting (default is 1)}
+
 \item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if
 cells expressing given feature are getting buried.}
 
@@ -76,8 +79,8 @@ may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
-\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
-to split by cell identity'; similar to the old \code{FeatureHeatmap}}
+\item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
+to split by cell identity'}
 
 \item{keep.scale}{How to handle the color scale across multiple plots. Options are:
 \itemize{

@@ -13,6 +13,7 @@ SingleExIPlot(
   y.max = NULL,
   adjust = 1,
   pt.size = 0,
+  alpha = 1,
   cols = NULL,
   seed.use = 42,
   log = FALSE,
@@ -37,6 +38,8 @@ expression of the attribute being potted}
 \item{adjust}{Adjust parameter for geom_violin}
 
 \item{pt.size}{Size of points for violin plots}
+
+\item{alpha}{Alpha vlaue for violin plots}
 
 \item{cols}{Colors to use for plotting}
 

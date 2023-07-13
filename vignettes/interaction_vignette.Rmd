@@ -25,11 +25,12 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
-```{r, include = FALSE}
+```{r, include = TRUE}
 options(SeuratData.repo.use = "http://satijalab04.nygenome.org")
 ```
 
@@ -116,27 +117,27 @@ cluster.averages <- AverageExpression(pbmc)
 head(cluster.averages[['RNA']][, 1:5])
 
 # Return this information as a Seurat object (enables downstream plotting and analysis)
-# First, replace spaces with underscores '_' so ggplot2 doesn't fail
+# First, replace spaces with underscores '-' so ggplot2 doesn't fail
 orig.levels <- levels(pbmc)
-Idents(pbmc) <- gsub(pattern = ' ', replacement = '_', x = Idents(pbmc))
-orig.levels <- gsub(pattern = ' ', replacement = '_', x = orig.levels)
+Idents(pbmc) <- gsub(pattern = ' ', replacement = '-', x = Idents(pbmc))
+orig.levels <- gsub(pattern = ' ', replacement = '-', x = orig.levels)
 levels(pbmc) <- orig.levels
 cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE)
 cluster.averages
 
 # How can I plot the average expression of NK cells vs. CD8 T cells?
 # Pass do.hover = T for an interactive plot to identify gene outliers
-CellScatter(cluster.averages, cell1 = "NK", cell2 = "CD8_T")
+CellScatter(cluster.averages, cell1 = "NK", cell2 = "CD8-T")
 
 # How can I calculate expression averages separately for each replicate?
 cluster.averages <- AverageExpression(pbmc, return.seurat = TRUE, add.ident = "replicate")
-CellScatter(cluster.averages, cell1 = "CD8_T_rep1", cell2 = "CD8_T_rep2")
+CellScatter(cluster.averages, cell1 = "CD8-T_rep1", cell2 = "CD8-T_rep2")
 
 # You can also plot heatmaps of these 'in silico' bulk datasets to visualize agreement between replicates
 DoHeatmap(cluster.averages, features = unlist(TopFeatures(pbmc[['pca']], balanced = TRUE)), size = 3, draw.lines = FALSE)
 ```
 
-```{r save.times, include = FALSE}
+```{r save.times, include = TRUE}
 write.csv(x = t(as.data.frame(all_times)), file = "../output/timings/interaction_vignette_times.csv")
 ```
 

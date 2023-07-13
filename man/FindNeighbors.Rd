@@ -23,7 +23,6 @@ FindNeighbors(object, ...)
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
   index = NULL,
@@ -42,7 +41,6 @@ FindNeighbors(object, ...)
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
   ...
@@ -59,7 +57,6 @@ FindNeighbors(object, ...)
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
   ...
@@ -80,7 +77,6 @@ FindNeighbors(object, ...)
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
   l2.norm = FALSE,
@@ -126,8 +122,6 @@ cosine, manhattan, and hamming}
 default of 0.0 implies exact nearest neighbor search}
 
 \item{verbose}{Whether or not to print output to the console}
-
-\item{force.recalc}{Force recalculation of (S)NN.}
 
 \item{l2.norm}{Take L2Norm of the data}
 

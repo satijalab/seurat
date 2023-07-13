@@ -125,6 +125,7 @@ AddAzimuthScores <- function(object, filename) {
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names
 #' database; see \code{\link{UpdateSymbolList}} for more details
+#' @param slot Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
 #' @return Returns a Seurat object with module scores added to object meta data;
@@ -179,6 +180,7 @@ AddModuleScore <- function(
   name = 'Cluster',
   seed = 1,
   search = FALSE,
+  slot = 'data',
   ...
 ) {
   if (!is.null(x = seed)) {
@@ -187,7 +189,7 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object)
+  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
@@ -367,9 +369,9 @@ AggregateExpression <- function(
   ...
 ) {
   return(
-    PseudobulkExpression(
+    AverageExpression(
       object = object,
-      pb.method = 'aggregate',
+      method = 'aggregate',
       assays = assays,
       features = features,
       return.seurat = return.seurat,
@@ -426,24 +428,176 @@ AverageExpression <- function(
   return.seurat = FALSE,
   group.by = 'ident',
   add.ident = NULL,
-  slot = 'data',
+  slot = 'counts',
+  method = 'average',
   verbose = TRUE,
   ...
 ) {
-  return(
-    PseudobulkExpression(
-      object = object,
-      pb.method = 'average',
-      assays = assays,
-      features = features,
-      return.seurat = return.seurat,
-      group.by = group.by,
-      add.ident = add.ident,
-      slot = slot,
+  CheckDots(..., fxns = 'CreateSeuratObject')
+  if (!is.null(x = add.ident)) {
+    .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
+    group.by <- c('ident', add.ident)
+  }
+  if (!(method %in% c('average', 'aggregate'))) {
+    stop("'method' must be either 'average' or 'aggregate'")
+  }
+  object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
+  assays <- assays %||% object.assays
+  if (!all(assays %in% object.assays)) {
+    assays <- assays[assays %in% object.assays]
+    if (length(x = assays) == 0) {
+      stop("None of the requested assays are present in the object")
+    } else {
+      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
+    }
+  }
+  if (length(x = slot) == 1) {
+    slot <- rep_len(x = slot, length.out = length(x = assays))
+  } else if (length(x = slot) != length(x = assays)) {
+    stop("Number of slots provided does not match number of assays")
+  }
+  data <- FetchData(object = object, vars = rev(x = group.by))
+  data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
+  if (nrow(x = data) < ncol(x = object)) {
+    message("Removing cells with NA for 1 or more grouping variables")
+    object <- subset(x = object, cells = rownames(x = data))
+  }
+  for (i in 1:ncol(x = data)) {
+    data[, i] <- as.factor(x = data[, i])
+  }
+  num.levels <- sapply(
+    X = 1:ncol(x = data),
+    FUN = function(i) {
+      length(x = levels(x = data[, i]))
+    }
+  )
+  if (any(num.levels == 1)) {
+    message(paste0("The following grouping variables have 1 value and will be ignored: ",
+                   paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
+    group.by <- colnames(x = data)[which(num.levels > 1)]
+    data <- data[, which(num.levels > 1), drop = F]
+  }
+  category.matrix <- CreateCategoryMatrix(labels = data, method = method)
+  data.return <- list()
+  for (i in 1:length(x = assays)) {
+    if (inherits(x = features, what = "list")) {
+      features.i <- features[[i]]
+    } else {
+      features.i <- features
+    }
+    data.return[[assays[i]]] <- PseudobulkExpression(
+      object = object[[assays[i]]],
+      assay = assays[i],
+      category.matrix = category.matrix,
+      features = features.i,
+      slot = slot[i],
       verbose = verbose,
       ...
     )
-  )
+  }
+  if (return.seurat) {
+    op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
+    on.exit(expr = options(op), add = TRUE)
+    if (slot[1] == 'scale.data') {
+      na.matrix <- as.matrix(x = data.return[[1]])
+      na.matrix[1:length(x = na.matrix)] <- NA
+      toRet <- CreateSeuratObject(
+        counts = na.matrix,
+        project = if (method == "average") "Average" else "Aggregate",
+        assay = names(x = data.return)[1],
+        check.matrix = FALSE,
+        ...
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "counts",
+        new.data = matrix()
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "data",
+        new.data = na.matrix
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "scale.data",
+        new.data = data.return[[1]]
+      )
+    } else {
+      toRet <- CreateSeuratObject(
+        counts = data.return[[1]],
+        project = if (method == "average") "Average" else "Aggregate",
+        assay = names(x = data.return)[1],
+        check.matrix = FALSE,
+        ...
+      )
+      toRet <- SetAssayData(
+        object = toRet,
+        assay = names(x = data.return)[1],
+        slot = "data",
+        new.data = log1p(x = as.matrix(x = data.return[[1]]))
+      )
+    }
+    #for multimodal data
+    if (length(x = data.return) > 1) {
+      for (i in 2:length(x = data.return)) {
+        if (slot[i] == 'scale.data') {
+          na.matrix <- as.matrix(x = data.return[[i]])
+          na.matrix[1:length(x = na.matrix)] <- NA
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "counts",
+            new.data = matrix()
+          )
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "data",
+            new.data = na.matrix
+          )
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "scale.data",
+            new.data = as.matrix(x = data.return[[i]])
+          )
+        } else {
+          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          toRet <- SetAssayData(
+            object = toRet,
+            assay = names(x = data.return)[i],
+            slot = "data",
+            new.data = log1p(x = as.matrix(x = data.return[[i]]))
+          )
+        }
+        
+      }
+    }
+    if (DefaultAssay(object = object) %in% names(x = data.return)) {
+      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
+      if (slot[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
+        toRet <- ScaleData(object = toRet, verbose = verbose)
+      }
+    }
+    if ('ident' %in% group.by) {
+      first.cells <- sapply(X = 1:ncol(x = category.matrix),
+                            FUN = function(x) {
+                              return(category.matrix[,x, drop = FALSE ]@i[1] + 1)
+                            }
+      )
+      Idents(object = toRet,
+             cells = colnames(x = toRet)
+             ) <- Idents(object = object)[first.cells]
+    }
+    return(toRet)
+  } else {
+    return(data.return)
+  }
 }
 
 #' Match the case of character vectors
@@ -971,10 +1125,9 @@ GroupCorrelation <- function(
   grp.cors <- grp.cors[names(x = gene.grp)]
   grp.cors <- as.data.frame(x = grp.cors[which(x = !is.na(x = grp.cors))])
   grp.cors$gene_grp <- gene.grp[rownames(x = grp.cors)]
-  colnames(x = grp.cors) <- c("cor", "feature_grp")
-  object[[assay]][["feature.grp"]] <- grp.cors[, "feature_grp", drop = FALSE]
-  object[[assay]][[paste0(var, "_cor")]] <- grp.cors[, "cor", drop = FALSE]
-  if (do.plot) {
+  colnames(x = grp.cors) <- c(paste0(var, "_cor"), "feature.grp")
+  object[[assay]][] <- grp.cors
+  if (isTRUE(x = do.plot)) {
     print(GroupCorrelationPlot(
       object = object,
       assay = assay,
@@ -1159,11 +1312,24 @@ PercentageFeatureSet <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = features) && !is.null(x = pattern)) {
-    warning("Both pattern and features provided. Pattern is being ignored.")
+    warn(message = "Both pattern and features provided. Pattern is being ignored.")
   }
-  features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
-  percent.featureset <- colSums(x = GetAssayData(object = object, assay = assay, slot = "counts")[features, , drop = FALSE])/
-    object[[paste0("nCount_", assay)]] * 100
+  percent.featureset <- list()
+  layers <- Layers(object = object, pattern = "counts")
+  for (i in seq_along(along.with = layers)) {
+    layer <- layers[i]
+    features.layer <- features %||% grep(
+      pattern = pattern, 
+      x = rownames(x = object[[assay]][[layer]]), 
+      value = TRUE)
+    layer.data <- LayerData(object = object, 
+                            assay = assay, 
+                            layer = layer)
+    layer.sums <- colSums(x = layer.data[features.layer, , drop = FALSE])
+    layer.perc <- layer.sums / object[[]][colnames(layer.data), paste0("nCount_", assay)] * 100
+    percent.featureset[[i]] <- layer.perc
+  }
+  percent.featureset <- unlist(percent.featureset)
   if (!is.null(x = col.name)) {
     object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
     return(object)
@@ -1176,7 +1342,7 @@ PercentageFeatureSet <- function(
 # Returns a representative expression value for each identity class
 #
 # @param object Seurat object
-# @param pb.method Whether to 'average' (default) or 'aggregate' expression levels
+# @param method Whether to 'average' (default) or 'aggregate' expression levels
 # @param assays Which assays to use. Default is all assays
 # @param features Features to analyze. Default is all features in the assay
 # @param return.seurat Whether to return the data as a Seurat object. Default is FALSE
@@ -1190,249 +1356,117 @@ PercentageFeatureSet <- function(
 #
 # @return Returns a matrix with genes as rows, identity classes as columns.
 # If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#' @method PseudobulkExpression Assay
+#' @export
 #
-#' @importFrom Matrix rowMeans sparse.model.matrix
-#' @importFrom stats as.formula
-# @export
 #
-# @examples
-# data("pbmc_small")
-# head(PseudobulkExpression(object = pbmc_small))
-#
-PseudobulkExpression <- function(
+PseudobulkExpression.Assay <- function(
   object,
-  pb.method = 'average',
-  assays = NULL,
+  assay,
+  category.matrix,
   features = NULL,
-  return.seurat = FALSE,
-  group.by = 'ident',
-  add.ident = NULL,
   slot = 'data',
   verbose = TRUE,
   ...
 ) {
-  CheckDots(..., fxns = 'CreateSeuratObject')
-  if (!is.null(x = add.ident)) {
-    .Deprecated(msg = "'add.ident' is a deprecated argument, please use the 'group.by' argument instead")
-    group.by <- c('ident', add.ident)
-  }
-  if (!(pb.method %in% c('average', 'aggregate'))) {
-    stop("'pb.method' must be either 'average' or 'aggregate'")
-  }
-  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
-  assays <- assays %||% object.assays
-  if (!all(assays %in% object.assays)) {
-    assays <- assays[assays %in% object.assays]
-    if (length(x = assays) == 0) {
-      stop("None of the requested assays are present in the object")
-    } else {
-      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
-    }
-  }
-  if (length(x = slot) == 1) {
-    slot <- rep_len(x = slot, length.out = length(x = assays))
-  } else if (length(x = slot) != length(x = assays)) {
-    stop("Number of slots provided does not match number of assays")
-  }
-  data <- FetchData(object = object, vars = rev(x = group.by))
-  data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
-  if (nrow(x = data) < ncol(x = object)) {
-    message("Removing cells with NA for 1 or more grouping variables")
-    object <- subset(x = object, cells = rownames(x = data))
-  }
-  for (i in 1:ncol(x = data)) {
-    data[, i] <- as.factor(x = data[, i])
-  }
-  num.levels <- sapply(
-    X = 1:ncol(x = data),
-    FUN = function(i) {
-      length(x = levels(x = data[, i]))
-    }
-  )
-  if (any(num.levels == 1)) {
-    message(paste0("The following grouping variables have 1 value and will be ignored: ",
-                   paste0(colnames(x = data)[which(num.levels <= 1)], collapse = ", ")))
-    group.by <- colnames(x = data)[which(num.levels > 1)]
-    data <- data[, which(num.levels > 1), drop = F]
-  }
-  if (ncol(x = data) == 0) {
-    message("All grouping variables have 1 value only. Computing across all cells.")
-    category.matrix <- matrix(
-      data = 1,
-      nrow = ncol(x = object),
-      dimnames = list(Cells(x = object), 'all')
-    )
-    if (pb.method == 'average') {
-      category.matrix <- category.matrix / sum(category.matrix)
-    }
-  } else {
-    category.matrix <- sparse.model.matrix(object = as.formula(
-      object = paste0(
-        '~0+',
-        paste0(
-          "data[,",
-          1:length(x = group.by),
-          "]",
-          collapse = ":"
-        )
-      )
-    ))
-    colsums <- colSums(x = category.matrix)
-    category.matrix <- category.matrix[, colsums > 0]
-    colsums <- colsums[colsums > 0]
-    if (pb.method == 'average') {
-      category.matrix <- Sweep(
-        x = category.matrix,
-        MARGIN = 2,
-        STATS = colsums,
-        FUN = "/")
-    }
-    colnames(x = category.matrix) <- sapply(
-      X = colnames(x = category.matrix),
-      FUN = function(name) {
-        name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
-        return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
-      })
-  }
-  data.return <- list()
-  for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
-      object = object,
-      assay = assays[i],
-      slot = slot[i]
+      object = object, 
+      slot = slot
     )
     features.to.avg <- features %||% rownames(x = data.use)
-    if (inherits(x = features, what = "list")) {
-      features.to.avg <- features[i]
-    }
     if (IsMatrixEmpty(x = data.use)) {
       warning(
-        "The ", slot[i], " slot for the ", assays[i],
+        "The ", slot, " slot for the ", assay,
         " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
-      next
+      return(NULL)
     }
     bad.features <- setdiff(x = features.to.avg, y = rownames(x = data.use))
     if (length(x = bad.features) > 0) {
       warning(
         "The following ", length(x = bad.features),
-        " features were not found in the ", assays[i], " assay: ",
+        " features were not found in the ", assay, " assay: ",
         paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
     }
     features.assay <- intersect(x = features.to.avg, y = rownames(x = data.use))
     if (length(x = features.assay) > 0) {
       data.use <- data.use[features.assay, ]
     } else {
-      warning("None of the features specified were found in the ", assays[i],
+      warning("None of the features specified were found in the ", assay,
               " assay.", call. = FALSE, immediate. = TRUE)
-      next
+      return(NULL)
     }
-    if (slot[i] == 'data') {
+    if (slot == 'data') {
       data.use <- expm1(x = data.use)
       if (any(data.use == Inf)) {
         warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
       }
     }
-    data.return[[i]] <- as.matrix(x = (data.use %*% category.matrix))
-    names(x = data.return)[i] <- assays[[i]]
-  }
-  if (return.seurat) {
-    if (slot[1] == 'scale.data') {
-      na.matrix <- data.return[[1]]
-      na.matrix[1:length(x = na.matrix)] <- NA
-      toRet <- CreateSeuratObject(
-        counts = na.matrix,
-        project = if (pb.method == "average") "Average" else "Aggregate",
-        assay = names(x = data.return)[1],
-        check.matrix = FALSE,
-        ...
-      )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "counts",
-        new.data = matrix()
-      )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "data",
-        new.data = na.matrix
-      )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "scale.data",
-        new.data = data.return[[1]]
-      )
-    } else {
-      toRet <- CreateSeuratObject(
-        counts = data.return[[1]],
-        project = if (pb.method == "average") "Average" else "Aggregate",
-        assay = names(x = data.return)[1],
-        check.matrix = FALSE,
-        ...
-      )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "data",
-        new.data = log1p(x = as.matrix(x = data.return[[1]]))
-      )
-    }
-    #for multimodal data
-    if (length(x = data.return) > 1) {
-      for (i in 2:length(x = data.return)) {
-        if (slot[i] == 'scale.data') {
-          na.matrix <- data.return[[i]]
-          na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "counts",
-            new.data = matrix()
-          )
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "data",
-            new.data = na.matrix
-          )
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "scale.data",
-            new.data = as.matrix(x = data.return[[i]])
-          )
-        } else {
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "data",
-            new.data = log1p(x = as.matrix(x = data.return[[i]]))
-          )
-        }
+    data.return <- data.use %*% category.matrix
+   return(data.return)
+ 
+ 
+}
 
-      }
-    }
-    if (DefaultAssay(object = object) %in% names(x = data.return)) {
-      DefaultAssay(object = toRet) <- DefaultAssay(object = object)
-      if (slot[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
-        toRet <- ScaleData(object = toRet, verbose = verbose)
-      }
-    }
-    if ('ident' %in% group.by) {
-      first.cells <- c()
-      for (i in 1:ncol(x = category.matrix)) {
-        first.cells <- c(first.cells, Position(x = category.matrix[,i], f = function(x) {x > 0}))
-      }
-      Idents(object = toRet) <- Idents(object = object)[first.cells]
-    }
-    return(toRet)
-  } else {
-    return(data.return)
+#' @method PseudobulkExpression StdAssay
+#' @export
+#
+#
+PseudobulkExpression.StdAssay <- function(
+  object,
+  assay,
+  category.matrix,
+  features = NULL,
+  slot = 'data',
+  verbose = TRUE,
+  ...
+) {
+  if (slot == 'data') {
+    message("Assay5 will use arithmetic mean for data slot.")
   }
+  layers.set <- Layers(object = object, search = slot)
+  features.to.avg <- features %||% rownames(x = object)
+  bad.features <- setdiff(x = features.to.avg, y = rownames(x = object))
+  if (length(x = bad.features) > 0) {
+    warning(
+      "The following ", length(x = bad.features),
+      " features were not found in the ", assay, " assay: ",
+      paste(bad.features, collapse = ", "), call. = FALSE, immediate. = TRUE)
+  }
+  features.assay <- Reduce(
+    f = intersect,
+    x =  c(list(features.to.avg),
+           lapply(X = layers.set, FUN = function(l) rownames(object[[l]]))
+                )
+         )
+  if (length(x = features.assay) == 0) {
+    warning("None of the features specified were found in the ", assay,
+            " assay.", call. = FALSE, immediate. = TRUE)
+    return(NULL)
+  }
+  data.return <- as.sparse(
+    x = matrix(
+      data = 0,
+      nrow = length(x = features.assay),
+      ncol = ncol(x = category.matrix)
+      )
+    )
+  for (i in seq_along(layers.set)) {
+    data.i <- LayerData(object = object,
+                        layer = layers.set[i],
+                        features = features.assay
+                        )
+    category.matrix.i <- category.matrix[colnames(x = data.i),]
+    if (inherits(x = data.i, what = 'DelayedArray')) {
+      data.return.i<- tcrossprod_DelayedAssay(x = data.i, y = t(category.matrix.i))
+    } else {
+      data.return.i <- as.sparse(x = data.i %*% category.matrix.i)
+    }
+    data.return <- data.return + data.return.i
+  }
+  if (slot == 'data') {
+    data.return <- expm1(x = data.return)
+  }
+  return(data.return)
 }
 
 #' Regroup idents based on meta.data info
@@ -1606,6 +1640,35 @@ as.data.frame.Matrix <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Create Abbreviations
+#'
+#' @param x A character vector
+#' @param digits Include digits in the abbreviation
+#'
+#' @return Abbreviated versions of \code{x}
+#'
+#' @keywords internal
+#'
+#' @examples
+#' .Abbrv(c('HelloWorld, 'LetsGo3', 'tomato'))
+#' .Abbrv(c('HelloWorld, 'LetsGo3', 'tomato'), digits = FALSE)
+#' .Abbrv('Wow3', digits = FALSE)
+#'
+#' @noRd
+#'
+.Abbrv <- function(x, digits = TRUE) {
+  pattern <- ifelse(test = isTRUE(x = digits), yes = '[A-Z0-9]+', no = '[A-Z]+')
+  y <- vapply(
+    X = regmatches(x = x, m = gregexec(pattern = pattern, text = x)),
+    FUN = paste,
+    FUN.VALUE = character(length = 1L),
+    collapse = ''
+  )
+  na <- nchar(x = y) <= 1L
+  y[na] <- x[na]
+  return(tolower(x = y))
+}
 
 .AsList <- function(x) {
   x <- as.list(x = x)
@@ -2489,7 +2552,6 @@ ToNumeric <- function(x){
   return(x)
 }
 
-
 # Merge a list of sparse matrixes
 #' @importFrom Matrix summary sparseMatrix
 MergeSparseMatrices <- function(...) {
@@ -2524,4 +2586,339 @@ MergeSparseMatrices <- function(...) {
                              dims=c(length(rowname.new), length(colname.new)),
                              dimnames=list(rowname.new, colname.new))
   return (merged.mat)
+}
+# cross product from delayed array
+#
+crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  product.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    product.list[[i]] <- as.matrix(t(x) %*% block)
+  }
+  product.mat <- matrix(data = unlist(product.list), nrow = ncol(x) , ncol = ncol(y))
+  colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- colnames(x)
+  return(product.mat)
+}
+
+
+# cross product from BPCells
+#
+crossprod_BPCells <- function(x, y) {
+  # perform t(x) %*% y, y is from BPCells
+  product.mat <- t(x) %*% y
+  colnames(product.mat) <- colnames(y)
+  rownames(product.mat) <- colnames(x)
+  return(product.mat)
+}
+
+# transpose cross product from delayed array
+#
+tcrossprod_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform  x  %*% t(y) in blocks for x
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (ncol(x) != ncol(y)) {
+    stop('column of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  product.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    vp.range <- vp@ranges[2]@start : (vp@ranges[2]@start + vp@ranges[2]@width - 1)
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    product.list[[i]] <- as.matrix( block %*% t(y[,vp.range]))
+  }
+  product.mat <-  Reduce(f = '+', product.list)
+  colnames(product.mat) <- rownames(y)
+  rownames(product.mat) <- rownames(x)
+  return(product.mat)
+}
+
+# cross product row norm from delayed array
+#
+crossprodNorm_DelayedAssay <- function(x, y, block.size = 1e8) {
+  # perform t(x) %*% y in blocks for y
+  if (!inherits(x = y, 'DelayedMatrix')) {
+    stop('y should a DelayedMatrix')
+  }
+  if (nrow(x) != nrow(y)) {
+    stop('row of x and y should be the same')
+  }
+  sparse <- DelayedArray::is_sparse(x = y)
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = y)
+  norm.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = y, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    norm.list[[i]] <- colSums(x = as.matrix(t(x) %*% block) ^ 2)
+  }
+  norm.vector <- unlist(norm.list)
+  return(norm.vector)
+
+}
+
+# row mean from delayed array
+#
+RowMeanDelayedAssay <- function(x, block.size = 1e8) {
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('input x should a DelayedMatrix')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  if (sparse ) {
+    row.sum.function <- RowSumSparse
+  } else {
+    row.sum.function <- rowSums2
+  }
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  sum.list <- list()
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    sum.list[[i]] <- row.sum.function(mat = block)
+  }
+  mean.mat <- Reduce('+', sum.list)
+  mean.mat <- mean.mat/ncol(x)
+  return(mean.mat)
+}
+
+# row variance from delayed array
+#
+RowVarDelayedAssay <- function(x, block.size = 1e8) {
+  if (!inherits(x = x, 'DelayedMatrix')) {
+    stop('input x should a DelayedMatrix')
+  }
+  sparse <- DelayedArray::is_sparse(x = x)
+  if (sparse ) {
+    row.sum.function <- RowSumSparse
+  } else {
+    row.sum.function <- rowSums2
+  }
+
+  suppressMessages(setAutoBlockSize(size = block.size))
+  cells.grid <- DelayedArray::colAutoGrid(x = x)
+  sum2.list <- list()
+  sum.list <- list()
+
+  for (i in seq_len(length.out = length(x = cells.grid))) {
+    vp <- cells.grid[[i]]
+    block <- DelayedArray::read_block(x = x, viewport = vp, as.sparse = sparse)
+    if (sparse) {
+      block <- as(object = block, Class = 'dgCMatrix')
+    } else {
+      block <- as(object = block, Class = 'Matrix')
+    }
+    sum2.list[[i]] <- row.sum.function(mat = block**2)
+    sum.list[[i]] <- row.sum.function(mat = block)
+  }
+  sum.mat <- Reduce('+', sum.list)
+  sum2.mat <- Reduce('+', sum2.list)
+  var.mat <- sum2.mat/ncol(x) - (sum.mat/ncol(x))**2
+  var.mat <- var.mat * ncol(counts) / (ncol(counts) - 1)
+  return(var.mat)
+}
+
+
+
+# nonzero element version of sweep
+#
+SweepNonzero <- function(
+    x,
+    MARGIN,
+    STATS,
+    FUN = "/"
+) {
+  if (!inherits(x = x, what = 'dgCMatrix')) {
+    stop('input should be dgCMatrix. eg: x <- as(x, "CsparseMatrix")')
+  }
+  if (dim(x = x)[MARGIN] != length(STATS)){
+    warning("Length of STATS is not equal to dim(x)[MARGIN]")
+  }
+  fun <- match.fun(FUN)
+  if (MARGIN == 1) {
+    idx <- x@i + 1
+    x@x <- fun(x@x, STATS[idx])
+  } else if (MARGIN == 2) {
+    x <- as(x, "RsparseMatrix")
+    idx <- x@j + 1
+    x@x <- fun(x@x, STATS[idx])
+    x <- as(x, "CsparseMatrix")
+  }
+  return(x)
+}
+
+
+#' Create one hot matrix for a given label
+#' @importFrom Matrix colSums sparse.model.matrix
+#' @importFrom stats as.formula
+#' @export
+
+CreateCategoryMatrix <- function(
+  labels,
+  method = c('aggregate', 'average'),
+  cells.name = NULL
+  ) {
+  method <- match.arg(arg = method)
+  if (is.null(dim(labels))) {
+    if (length(x = unique(x = labels)) == 1) {
+      data <- matrix(nrow = length(x = labels), ncol = 0)
+    } else {
+      data <- cbind(labels = labels)
+    }
+  } else {
+    data <- labels 
+  }
+  cells.name <- cells.name %||% rownames(data)
+  if (!is.null(cells.name) & length(cells.name) != nrow(data)) {
+    stop('length of cells name should be equal to the length of input labels')
+  }
+  if (ncol(x = data) == 0) {
+    message("All grouping variables have 1 value only. Computing across all cells.")
+    category.matrix <- matrix(
+      data = 1,
+      nrow = nrow(x = data),
+      dimnames = list(cells.name, 'all')
+    )
+    if (method == 'average') {
+      category.matrix <- category.matrix / sum(category.matrix)
+    }
+    return(category.matrix)
+  }
+  group.by <- colnames(x = data)
+  category.matrix <- sparse.model.matrix(object = as.formula(
+    object = paste0(
+      '~0+',
+      paste0(
+        "data[,",
+        1:length(x = group.by),
+        "]",
+        collapse = ":"
+      )
+    )
+  ))
+  colsums <- colSums(x = category.matrix)
+  category.matrix <- category.matrix[, colsums > 0]
+  colsums <- colsums[colsums > 0]
+  
+  if (method =='average') {
+    category.matrix <- SweepNonzero(
+      x = category.matrix,
+      MARGIN = 2,
+      STATS = colsums,
+      FUN = "/")
+  }
+  colnames(x = category.matrix) <- gsub(pattern = '_',
+                                        replacement = '-',
+                                        x = colnames(x = category.matrix)
+                                        )
+  colnames(x = category.matrix) <- sapply(
+    X = colnames(x = category.matrix),
+    FUN = function(name) {
+      name <- gsub(pattern = "data\\[, [1-9]*\\]", replacement = "", x = name)
+      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))), collapse = "_"))
+    })
+  rownames(category.matrix) <- cells.name
+  return(category.matrix)
+}
+
+#' Construct an assay for spatial niche analysis
+#'
+#' This function will construct a new assay where each feature is a
+#' cell label The values represents the sum of a particular cell label
+#' neighboring a given cell.
+#'
+#' @param object A Seurat object
+#' @param fov FOV object to gather cell positions from
+#' @param group.by Cell classifications to count in spatial neighborhood
+#' @param assay Name for spatial neighborhoods assay
+#' @param neighbors.k Number of neighbors to consider for each cell
+#' @param niches.k Number of clusters to return based on the niche assay
+#' 
+#' @importFrom stats kmeans
+#' @return Seurat object containing a new assay
+#' @concept clustering
+#' @export
+#'
+BuildNicheAssay <- function(
+  object,
+  fov,
+  group.by,
+  assay = "niche",
+  neighbors.k = 20,
+  niches.k = 4
+) {
+  # find neighbors based on tissue position
+  coords <- GetTissueCoordinates(object[[fov]], which = "centroids")
+  cells <- coords$cell
+  rownames(coords) <- cells
+  coords <- as.matrix(coords[ , c("x", "y")])
+  neighbors <- FindNeighbors(coords, k.param = neighbors.k)
+  neighbors$nn <- neighbors$nn[Cells(object), Cells(object)]
+  
+  # build cell x cell type matrix
+  ct.mtx <- matrix(
+    data = 0,
+    nrow = length(cells),
+    ncol = length(unlist(unique(object[[group.by]])))
+  )
+  rownames(ct.mtx) <- cells
+  colnames(ct.mtx) <- unique(unlist(object[[group.by]]))
+  cts <- object[[group.by]]
+  for (i in 1:length(cells)) {
+    ct <- as.character(cts[cells[[i]], ])
+    ct.mtx[cells[[i]], ct] <- 1
+  }
+  
+  # create niche assay
+  sum.mtx <- as.matrix(neighbors$nn %*% ct.mtx)
+  niche.assay <- CreateAssayObject(counts = t(sum.mtx))
+  object[[assay]] <- niche.assay
+  DefaultAssay(object) <- assay
+  
+  # cluster niches assay
+  object <- ScaleData(object)
+  results <- kmeans(
+    x = t(object[[assay]]@scale.data),
+    centers = niches.k,
+    nstart = 30
+  )
+  object$niches <- results[["cluster"]]
+  
+  return(object)  
 }

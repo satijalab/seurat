@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 options(SeuratData.repo.use = 'satijalab04.nygenome.org')
 ```
@@ -100,7 +101,7 @@ p2 <- DimPlot(pbmc.atac, group.by = 'orig.ident', label = FALSE) + NoLegend() + 
 p1 + p2
 ```
 
-```{r save.img, include = FALSE}
+```{r save.img, include = TRUE}
 plot <- (p1 + p2) &
   xlab("UMAP 1") & ylab("UMAP 2") & 
   theme(axis.title = element_text(size = 18))

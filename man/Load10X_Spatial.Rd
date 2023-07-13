@@ -11,7 +11,6 @@ Load10X_Spatial(
   slice = "slice1",
   filter.matrix = TRUE,
   to.upper = FALSE,
-  image = NULL,
   ...
 )
 }
@@ -28,12 +27,8 @@ and the image data in a subdirectory called \code{spatial}}
 \item{filter.matrix}{Only keep spots that have been determined to be over
 tissue}
 
-\item{to.upper}{Converts all feature names to upper case. This can provide an
-approximate conversion of mouse to human gene names which can be useful in an
-explorative analysis. For cross-species comparisons, orthologous genes should
-be identified across species and used instead.}
-
-\item{image}{An object of class VisiumV1. Typically, an output from \code{\link{Read10X_Image}}}
+\item{to.upper}{Converts all feature names to upper case. Can be useful when
+analyses require comparisons between human and mouse gene names for example.}
 
 \item{...}{Arguments passed to \code{\link{Read10X_h5}}}
 }

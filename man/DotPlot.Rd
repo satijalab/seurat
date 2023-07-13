@@ -7,8 +7,8 @@
 \usage{
 DotPlot(
   object,
-  assay = NULL,
   features,
+  assay = NULL,
   cols = c("lightgrey", "blue"),
   col.min = -2.5,
   col.max = 2.5,
@@ -27,11 +27,11 @@ DotPlot(
 \arguments{
 \item{object}{Seurat object}
 
-\item{assay}{Name of assay to use, defaults to the active assay}
-
 \item{features}{Input vector of features, or named list of feature vectors
 if feature-grouped panels are desired (replicates the functionality of the
 old SplitDotPlotGG)}
+
+\item{assay}{Name of assay to use, defaults to the active assay}
 
 \item{cols}{Colors to plot: the name of a palette from
 \code{RColorBrewer::brewer.pal.info}, a pair of colors defining a gradient,
@@ -53,8 +53,8 @@ gene will have no dot drawn.}
 
 \item{group.by}{Factor to group the cells by}
 
-\item{split.by}{Factor to split the groups by (replicates the functionality
-of the old SplitDotPlotGG);
+\item{split.by}{A factor in object metadata to split the plot by, pass 'ident'
+ to split by cell identity'
 see \code{\link{FetchData}} for more details}
 
 \item{cluster.idents}{Whether to order identities by hierarchical clusters

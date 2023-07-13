@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
   tidy.opts = list(width.cutoff = 95),
   message = FALSE,
   warning = FALSE,
-  time_it = TRUE
+  time_it = TRUE,
+  error = TRUE
 )
 ```
 
@@ -110,7 +111,7 @@ The following differential expression tests are currently supported:
  
 For MAST and DESeq2, please ensure that these packages are installed separately in order to use them as part of Seurat. Once installed, use the `test.use` parameter can be used to specify which DE test to use. 
  
-```{r include = FALSE}
+```{r include = TRUE}
 # necessary to get MAST to work properly
 library(SingleCellExperiment)
 ```

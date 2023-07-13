@@ -11,7 +11,8 @@ AverageExpression(
   return.seurat = FALSE,
   group.by = "ident",
   add.ident = NULL,
-  slot = "data",
+  slot = "counts",
+  method = "average",
   verbose = TRUE,
   ...
 )

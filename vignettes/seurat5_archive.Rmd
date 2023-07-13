@@ -1,0 +1,41 @@
+---
+title: "Documentation Archive"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+---
+
+```{r helper, include = FALSE}
+make_vignette_button <- function(name, title, version) {
+  url <- paste0("../archive/", version, "/", name, ".html")
+  paste0('<a class="btn btn-primary" style="margin-right:1rem" href=', url ,'>', version, '</a>')
+}
+```
+
+```{r yaml, include = FALSE}
+library(yaml)
+vdat <- read_yaml(file = "archive.yaml")
+```
+In version 4, the Seurat documentation was transitioned to pkgdown. Here we provide access to all previous versions of the documentation.
+
+# Version 2-3 tutorials
+
+```{r results='asis', echo=FALSE, warning=FALSE, message = FALSE}
+for (i in 1:length(x = vdat$vignettes)) {
+  vignette <- vdat$vignettes[[i]]
+  cat('<h3>', vignette$title, '</h3>')
+  for(j in 1:length(x = vignette$versions)) {
+    cat(make_vignette_button(name = vignette$name, title = vignette$title, version = vignette$version[j]))
+  }
+}
+```
+
+# Version 1.3-1.4 tutorials
+
+For versions 1.3-1.4, we provide access to the old documentation pages [here](../archive/v1.4/get_started_v1_4.html)
+
+# Version <=1.2 tutorials
+
+For versions <=1.2, we provide access to the old documentation pages [here](../archive/v1.2/get_started_v1_2.html)
+

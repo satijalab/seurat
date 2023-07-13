@@ -4,6 +4,7 @@
 \alias{RunSPCA}
 \alias{RunSPCA.default}
 \alias{RunSPCA.Assay}
+\alias{RunSPCA.Assay5}
 \alias{RunSPCA.Seurat}
 \title{Run Supervised Principal Component Analysis}
 \usage{
@@ -29,6 +30,19 @@ RunSPCA(object, ...)
   graph = NULL,
   verbose = TRUE,
   seed.use = 42,
+  ...
+)
+
+\method{RunSPCA}{Assay5}(
+  object,
+  assay = NULL,
+  features = NULL,
+  npcs = 50,
+  reduction.key = "SPC_",
+  graph = NULL,
+  verbose = TRUE,
+  seed.use = 42,
+  layer = "scale.data",
   ...
 )
 

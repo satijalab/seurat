@@ -13,6 +13,7 @@ FeatureScatter(
   shuffle = FALSE,
   seed = 1,
   group.by = NULL,
+  split.by = NULL,
   cols = NULL,
   pt.size = 1,
   shape.by = NULL,
@@ -21,6 +22,7 @@ FeatureScatter(
   combine = TRUE,
   slot = "data",
   plot.cor = TRUE,
+  ncol = NULL,
   raster = NULL,
   raster.dpi = c(512, 512),
   jitter = FALSE
@@ -43,6 +45,9 @@ useful for crowded plots if points of interest are being buried. (default is FAL
 
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
+
+\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
+to split by cell identity'}
 
 \item{cols}{Colors to use for identity class plotting.}
 

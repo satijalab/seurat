@@ -29,6 +29,7 @@ FindClusters(object, ...)
 \method{FindClusters}{Seurat}(
   object,
   graph.name = NULL,
+  cluster.name = NULL,
   modularity.fxn = 1,
   initial.membership = NULL,
   node.sizes = NULL,
@@ -81,6 +82,8 @@ Specify the ABSOLUTE path.}
 \item{verbose}{Print output}
 
 \item{graph.name}{Name of graph to use for the clustering algorithm}
+
+\item{cluster.name}{Name of output clusters}
 }
 \value{
 Returns a Seurat object where the idents have been updated with new cluster info;
