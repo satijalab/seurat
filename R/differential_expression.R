@@ -2226,7 +2226,7 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- as.list(set_median_umi)
 
   # correct counts
-  my.correct_counts <- function(model_name, p=NULL){
+  my.correct_counts <- function(model_name){
     model_genes <- rownames(x = model_pars_fit[[model_name]])
       x <- list(
         model_str = model_str[[model_name]],
@@ -2243,9 +2243,6 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
         verbosity = 0,
         scale_factor = min_median_umi
       )
-      if (!is.null(x = p)){
-        p(sprintf("model=%s", model_name))
-      }
       return(umi_corrected)
   }
   corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
