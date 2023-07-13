@@ -33,9 +33,9 @@ knitr::opts_chunk$set(
 
 ## TL;DR
 
-We recently introduced [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) to perform normalization and variance stabilization of scRNA-seq datasets. We now release an updated version ('v2'), based on [our broad analysis](https://www.biorxiv.org/content/10.1101/2021.07.07.451498v1) of 59 scRNA-seq datasets spanning a range of technologies, systems, and sequencing depths. This update improves speed and memory consumption, the stability of parameter estimates, the identification of variable features, and the the ability to perform downstream differential expression analyses.
+We recently introduced [sctransform](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1874-1) to perform normalization and variance stabilization of scRNA-seq datasets. We now release an updated version ('v2'), based on [our broad analysis](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02584-9) of 59 scRNA-seq datasets spanning a range of technologies, systems, and sequencing depths. This update improves speed and memory consumption, the stability of parameter estimates, the identification of variable features, and the the ability to perform downstream differential expression analyses.
 
-Users can install sctransform v2 from CRAN (sctransform v0.3.3) and invoke the use of the updated method via the `vst.flavor` argument.
+Users can install sctransform v2 from CRAN (sctransform v0.3.3+) and invoke the use of the updated method via the `vst.flavor` argument.
 
 ```{r tldr, eval=FALSE}
 # install sctransform >= 0.3.3
@@ -56,7 +56,7 @@ In this vignette, we use [sctransform v2](https://github.com/satijalab/sctransfo
 
 ## Install sctransform
 
-We will install sctransform v2 from CRAN (v0.3.3). We will also install the [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
+We will install sctransform v2 from CRAN. We will also install the [glmGamPoi](https://bioconductor.org/packages/release/bioc/html/glmGamPoi.html) package which substantially improves the speed of the learning procedure. 
 
 ```{r results='hide', message=FALSE, warning=FALSE}
 # install glmGamPoi

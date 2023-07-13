@@ -2120,7 +2120,11 @@ PerformDE <- function(
 #' @param assay Assay name where for SCT objects are stored; Default is 'SCT'
 #' @param verbose Print messages and progress
 #' @importFrom Matrix Matrix
+#' @importFrom pbapply pblapply
+#' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #' @importFrom sctransform correct_counts
+#' @importFrom progressr progressor with_progress
 #'
 #' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
@@ -2148,6 +2152,16 @@ PerformDE <- function(
 #' )
 #'
 PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
+  show_progressr <- FALSE
+  if (verbose && nbrOfWorkers() == 1) {
+    my.lapply <- pblapply
+  } else {
+    my.lapply <- future_lapply
+  }
+  if (verbose && nbrOfWorkers() > 1) {
+    show_progressr <- TRUE
+  }
+
   if (length(x = levels(x = object[[assay]])) == 1) {
     if (verbose) {
       message("Only one SCT model is stored - skipping recalculating corrected counts")
@@ -2214,27 +2228,49 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- rep(min_median_umi, length(levels(x = object[[assay]])))
   names(set_median_umi) <- levels(x = object[[assay]])
   set_median_umi <- as.list(set_median_umi)
-  # correct counts
-  for (model_name in levels(x = object[[assay]])) {
-    model_genes <- rownames(x = model_pars_fit[[model_name]])
-    x <- list(
-      model_str = model_str[[model_name]],
-      arguments = arguments[[model_name]],
-      model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
-      cell_attr = cell_attr[[model_name]]
-    )
-    cells <- rownames(x = cell_attr[[model_name]])
-    umi <- raw_umi[model_genes, cells]
 
-    umi_corrected <- correct_counts(
-      x = x,
-      umi = umi,
-      verbosity = 0,
-      scale_factor = min_median_umi
-    )
-    corrected_counts[rownames(umi_corrected), colnames(umi_corrected)] <- umi_corrected
+  # correct counts
+  my.correct_counts <- function(model_name, p=NULL){
+    model_genes <- rownames(x = model_pars_fit[[model_name]])
+      x <- list(
+        model_str = model_str[[model_name]],
+        arguments = arguments[[model_name]],
+        model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
+        cell_attr = cell_attr[[model_name]]
+      )
+      cells <- rownames(x = cell_attr[[model_name]])
+      umi <- raw_umi[model_genes, cells]
+
+      umi_corrected <- correct_counts(
+        x = x,
+        umi = umi,
+        verbosity = 0,
+        scale_factor = min_median_umi
+      )
+      if (!is.null(x = p)){
+        p(sprintf("model=%s", model_name))
+      }
+      return(umi_corrected)
   }
-  corrected_data <- log1p(corrected_counts)
+
+  if (show_progressr){
+    with_progress({
+      p <- progressor(steps = length(x = levels(x = object[[assay]])))
+      corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
+                                         FUN = my.correct_counts,
+                                         p = p)
+      names(x = corrected_counts.list) <- levels(x = object[[assay]])
+    })
+  } else {
+    corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
+                                       FUN = my.correct_counts)
+    names(x = corrected_counts.list) <- levels(x = object[[assay]])
+  }
+
+  corrected_counts <- do.call(what = MergeSparseMatrices, args = corrected_counts.list)
+  corrected_counts.list <- NULL
+
+  corrected_data <- log1p(x = corrected_counts)
   suppressWarnings({object <- SetAssayData(object = object,
                                            assay = assay,
                                            slot = "counts",
@@ -2244,7 +2280,6 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
                                            slot = "data",
                                            new.data = corrected_data)})
   SCTResults(object = object[[assay]], slot = "median_umi") <- set_median_umi
-
   return(object)
 }
 

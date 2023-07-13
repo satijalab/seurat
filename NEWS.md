@@ -1,4 +1,8 @@
 # Unreleased
+
+## Added
+- Added parallelization support with speed improvements for `PrepSCTFindMarkers` 
+
 ## Changes
 - Fix bug in `as.Seurat.SingleCellExperiment()` ([#6692](https://github.com/satijalab/seurat/issues/6692))
 - Support for Visium probe information introduced in Spaceranger 2.1 ([#7141](https://github.com/satijalab/seurat/pull/7141))
