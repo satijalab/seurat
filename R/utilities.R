@@ -125,6 +125,7 @@ AddAzimuthScores <- function(object, filename) {
 #' @param search Search for symbol synonyms for features in \code{features} that
 #' don't match features in \code{object}? Searches the HGNC's gene names
 #' database; see \code{\link{UpdateSymbolList}} for more details
+#' @param slot Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)
 #' @param ... Extra parameters passed to \code{\link{UpdateSymbolList}}
 #'
 #' @return Returns a Seurat object with module scores added to object meta data;
@@ -179,6 +180,7 @@ AddModuleScore <- function(
   name = 'Cluster',
   seed = 1,
   search = FALSE,
+  slot = 'data',
   ...
 ) {
   if (!is.null(x = seed)) {
@@ -187,7 +189,7 @@ AddModuleScore <- function(
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object)
+  assay.data <- GetAssayData(object = object, assay = assay, slot = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = 'k')
@@ -2550,8 +2552,41 @@ ToNumeric <- function(x){
   return(x)
 }
 
+# Merge a list of sparse matrixes
+#' @importFrom Matrix summary sparseMatrix
+MergeSparseMatrices <- function(...) {
 
+  colname.new <- character()
+  rowname.new <- character()
+  x <- vector()
+  i <- numeric()
+  j <- numeric()
 
+  for (mat in list(...)) {
+    colname.old <- colnames(x = mat)
+    rowname.old <- rownames(x = mat)
+
+    # does not check if there are overlapping cells
+    colname.new <- union(x = colname.new, y = colname.old)
+    rowname.new <- union(x = rowname.new, y = rowname.old)
+
+    colindex.new <- match(x = colname.old, table = colname.new)
+    rowindex.new <- match(x = rowname.old, table = rowname.new)
+
+    ind <- summary(object = mat)
+    # Expand the list of indices and x
+    i <- c(i, rowindex.new[ind[,1]])
+    j <- c(j, colindex.new[ind[,2]])
+    x <- c(x, ind[,3])
+  }
+
+  merged.mat <- sparseMatrix(i=i,
+                             j=j,
+                             x=x,
+                             dims=c(length(rowname.new), length(colname.new)),
+                             dimnames=list(rowname.new, colname.new))
+  return (merged.mat)
+}
 # cross product from delayed array
 #
 crossprod_DelayedAssay <- function(x, y, block.size = 1e8) {

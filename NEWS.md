@@ -1,9 +1,16 @@
 # Unreleased
+
+## Added
+- Added parallelization support with speed improvements for `PrepSCTFindMarkers` 
+
 ## Changes
 - Fix bug in `as.Seurat.SingleCellExperiment()` ([#6692](https://github.com/satijalab/seurat/issues/6692))
 - Support for Visium probe information introduced in Spaceranger 2.1 ([#7141](https://github.com/satijalab/seurat/pull/7141))
 - Add `LoadCurioSeeker` to load sequencing-based spatial datasets generated using the Curio Seeker ([#744](https://github.com/satijalab/seurat-private/pull/744))
 - Fix fold change calculation for assays ([#739](https://github.com/satijalab/seurat-private/pull/739))
+- Fix `pt.size` bug when rasterization is set to true ([#7379](https://github.com/satijalab/seurat/issues/7379)) 
+- Fix `FoldChange` and `FindMarkers` to support all normalization approaches ([#7115](https://github.com/satijalab/seurat/pull/7115),[#7110](https://github.com/satijalab/seurat/issues/7110),[#7095](https://github.com/satijalab/seurat/issues/7095),[#6976](https://github.com/satijalab/seurat/issues/6976),[#6654](https://github.com/satijalab/seurat/issues/6654),[#6701](https://github.com/satijalab/seurat/issues/6701),[#6773](https://github.com/satijalab/seurat/issues/6773), [#7107](https://github.com/satijalab/seurat/issues/7107))
+- Fix for handling newer ParseBio formats in `ReadParseBio` ([#7565](https://github.com/satijalab/seurat/pull/7565))
 
 # Seurat 4.3.0 (2022-11-18)
 

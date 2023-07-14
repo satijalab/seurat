@@ -59,7 +59,6 @@ FindAllMarkers <- function(
   latent.vars = NULL,
   min.cells.feature = 3,
   min.cells.group = 3,
-  pseudocount.use = 1,
   mean.fxn = NULL,
   fc.name = NULL,
   base = 2,
@@ -102,18 +101,6 @@ FindAllMarkers <- function(
     new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
-  # Default mean function assumes data has been log transformed (such as post NormalizeData or SCT data slot)
-  default.mean.fxn <- function(x) {
-    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-  }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    'scale.data' = rowMeans,
-    default.mean.fxn
-  )
   genes.de <- list()
   messages <- list()
   for (i in 1:length(x = idents.all)) {
@@ -741,6 +728,13 @@ FindMarkers.SCTAssay <- function(
     yes = 'counts',
     no = slot
   )
+  if (test.use %in% DEmethods_counts()){
+    # set slot to counts
+    if (slot !="counts") {
+      message(paste0("Setting slot to counts for ", test.use, " (counts based test: "))
+      slot <- "counts"
+    }
+  }
   if (recorrect_umi && length(x = levels(x = object)) > 1) {
     cell_attributes <- SCTResults(object = object, slot = "cell.attributes")
     observed_median_umis <- lapply(
@@ -770,7 +764,7 @@ FindMarkers.SCTAssay <- function(
     'scale.data' = GetAssayData(object = object, slot = "counts"),
     numeric()
   )
-  # Default assumes FindMarkers was invoked with log2(corrected counts) - SCT data slot
+  # Default assumes the input is log1p(corrected counts)
   default.mean.fxn <- function(x) {
     return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
@@ -1125,30 +1119,37 @@ FoldChange.Assay <- function(
   ...
 ) {
   data <- GetAssayData(object = object, slot = slot)
-  # Default assumes FoldChange was invoked with log2(corrected counts) - SCT data slot
-  default.mean.fxn <- function(x) {
+  # By default run as if LogNormalize is done
+  log1pdata.mean.fxn <- function(x) {
     return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
   }
-  mean.fxn <- mean.fxn %||% switch(
-    EXPR = slot,
-    'counts' = function(x) {
-      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
-    },
-    'scale.data' = rowMeans,
-    default.mean.fxn
-  )
-  # mean.fxn <- mean.fxn %||% switch(
-  #   EXPR = slot,
-  #   'data' = switch(
-  #     EXPR = norm.method %||% '',
-  #     'LogNormalize' = function(x) {
-  #       return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
-  #     },
-  #     default.mean.fxn
-  #   ),
-  #   'scale.data' = rowMeans,
-  #   default.mean.fxn
-  # )
+  scaledata.mean.fxn <- rowMeans
+  counts.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+  }
+  if (!is.null(x = norm.method)) {
+    # For anything apart from log normalization set to rowMeans
+    if (norm.method!="LogNormalize") {
+      new.mean.fxn <- counts.mean.fxn
+    } else {
+      new.mean.fxn <- counts.mean.fxn
+      if (slot == "data") {
+        new.mean.fxn <- log1pdata.mean.fxn
+      }  else if (slot == "scale.data") {
+        new.mean.fxn <- scaledata.mean.fxn
+      }
+    }
+  } else {
+    # If no normalization method is passed use slots to decide mean function
+    new.mean.fxn <- switch(
+      EXPR = slot,
+      'data' = log1pdata.mean.fxn,
+      'scale.data' = scaledata.mean.fxn,
+      'counts' = counts.mean.fxn,
+      log1pdata.mean.fxn
+    )
+  }
+  mean.fxn <- mean.fxn %||% new.mean.fxn
   # Omit the decimal value of e from the column name if base == exp(1)
   base.text <- ifelse(
     test = base == exp(1),
@@ -1174,6 +1175,59 @@ FoldChange.Assay <- function(
 #' @export
 #'
 FoldChange.StdAssay <- FoldChange.Assay
+
+#' @importFrom Matrix rowMeans
+#' @rdname FoldChange
+#' @concept differential_expression
+#' @export
+#' @method FoldChange SCTAssay
+FoldChange.SCTAssay <- function(
+    object,
+    cells.1,
+    cells.2,
+    features = NULL,
+    slot = "data",
+    pseudocount.use = 1,
+    fc.name = NULL,
+    mean.fxn = NULL,
+    base = 2,
+    ...
+) {
+  pseudocount.use <- pseudocount.use %||% 1
+  data <- GetAssayData(object = object, slot = slot)
+  default.mean.fxn <- function(x) {
+    return(log(x = rowMeans(x = expm1(x = x)) + pseudocount.use, base = base))
+  }
+  mean.fxn <- mean.fxn %||% switch(
+    EXPR = slot,
+    'data' = default.mean.fxn,
+    'scale.data' = rowMeans,
+    'counts' = function(x) {
+      return(log(x = rowMeans(x = x) + pseudocount.use, base = base))
+    },
+    default.mean.fxn
+  )
+  # Omit the decimal value of e from the column name if base == exp(1)
+  base.text <- ifelse(
+    test = base == exp(1),
+    yes = "",
+    no = base
+  )
+  fc.name <- fc.name %||% ifelse(
+    test = slot == "scale.data",
+    yes = "avg_diff",
+    no = paste0("avg_log", base.text, "FC")
+  )
+  FoldChange(
+    object = data,
+    cells.1 = cells.1,
+    cells.2 = cells.2,
+    features = features,
+    mean.fxn = mean.fxn,
+    fc.name = fc.name
+  )
+}
+
 
 #' @importFrom Matrix rowMeans
 #' @rdname FoldChange
@@ -2087,12 +2141,17 @@ PerformDE <- function(
 #' @param assay Assay name where for SCT objects are stored; Default is 'SCT'
 #' @param verbose Print messages and progress
 #' @importFrom Matrix Matrix
+#' @importFrom pbapply pblapply
+#' @importFrom future.apply future_lapply
+#' @importFrom future nbrOfWorkers
 #' @importFrom sctransform correct_counts
 #'
 #' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
 #'
 #' @concept differential_expression
+#' @template section-progressr
+#' @template section-future
 #' @examples
 #' data("pbmc_small")
 #' pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
@@ -2115,6 +2174,11 @@ PerformDE <- function(
 #' )
 #'
 PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
+  if (verbose && nbrOfWorkers() == 1) {
+    my.lapply <- pblapply
+  } else {
+    my.lapply <- future_lapply
+  }
   if (length(x = levels(x = object[[assay]])) == 1) {
     if (verbose) {
       message("Only one SCT model is stored - skipping recalculating corrected counts")
@@ -2186,27 +2250,34 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   set_median_umi <- rep(min_median_umi, length(levels(x = object[[assay]])))
   names(set_median_umi) <- levels(x = object[[assay]])
   set_median_umi <- as.list(set_median_umi)
-  # correct counts
-  for (model_name in levels(x = object[[assay]])) {
-    model_genes <- rownames(x = model_pars_fit[[model_name]])
-    x <- list(
-      model_str = model_str[[model_name]],
-      arguments = arguments[[model_name]],
-      model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
-      cell_attr = cell_attr[[model_name]]
-    )
-    cells <- rownames(x = cell_attr[[model_name]])
-    umi <- raw_umi[model_genes, cells]
 
-    umi_corrected <- correct_counts(
-      x = x,
-      umi = umi,
-      verbosity = 0,
-      scale_factor = min_median_umi
-    )
-    corrected_counts[rownames(umi_corrected), colnames(umi_corrected)] <- umi_corrected
+  # correct counts
+  my.correct_counts <- function(model_name){
+    model_genes <- rownames(x = model_pars_fit[[model_name]])
+      x <- list(
+        model_str = model_str[[model_name]],
+        arguments = arguments[[model_name]],
+        model_pars_fit = as.matrix(x = model_pars_fit[[model_name]]),
+        cell_attr = cell_attr[[model_name]]
+      )
+      cells <- rownames(x = cell_attr[[model_name]])
+      umi <- raw_umi[model_genes, cells]
+
+      umi_corrected <- correct_counts(
+        x = x,
+        umi = umi,
+        verbosity = 0,
+        scale_factor = min_median_umi
+      )
+      return(umi_corrected)
   }
-  corrected_data <- log1p(corrected_counts)
+  corrected_counts.list <- my.lapply(X = levels(x = object[[assay]]),
+                                     FUN = my.correct_counts)
+  names(x = corrected_counts.list) <- levels(x = object[[assay]])
+  corrected_counts <- do.call(what = MergeSparseMatrices, args = corrected_counts.list)
+  corrected_counts.list <- NULL
+
+  corrected_data <- log1p(x = corrected_counts)
   suppressWarnings({object <- SetAssayData(object = object,
                                            assay = assay,
                                            slot = "counts",
@@ -2216,7 +2287,6 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
                                            slot = "data",
                                            new.data = corrected_data)})
   SCTResults(object = object[[assay]], slot = "median_umi") <- set_median_umi
-
   return(object)
 }
 

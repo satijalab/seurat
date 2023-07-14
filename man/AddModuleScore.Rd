@@ -15,6 +15,7 @@ AddModuleScore(
   name = "Cluster",
   seed = 1,
   search = FALSE,
+  slot = "data",
   ...
 )
 }
@@ -47,6 +48,8 @@ programs, the results will be stored as \code{name1}, \code{name2},
 \item{search}{Search for symbol synonyms for features in \code{features} that
 don't match features in \code{object}? Searches the HGNC's gene names
 database; see \code{\link{UpdateSymbolList}} for more details}
+
+\item{slot}{Slot to calculate score values off of. Defaults to data slot (i.e log-normalized counts)}
 
 \item{...}{Extra parameters passed to \code{\link{UpdateSymbolList}}}
 }

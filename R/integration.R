@@ -1945,6 +1945,10 @@ ProjectIntegration <- function(
     )
   )
   features <- intersect(x = features, y = features.atom)
+  if (length(x = features) == 0) {
+    stop('Features are not found. Please check VariableFeatures(object[[sketched.assay]]) ',
+    'or set features in ProjectIntegration')
+  }
   ncells <- c(
     0,
     sapply(
@@ -4384,6 +4388,9 @@ FindWeights <- function(
     to.keep <- !duplicated(x = anchors.cells1)
     anchors.cells1 <- anchors.cells1[to.keep]
     anchors.cells2 <- anchors.cells2[to.keep]
+    if (length(anchors.cells1) < k || length(anchors.cells2) < k) {
+      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", min(length(anchors.cells1), length(anchors.cells2)), " or increase k.anchor.")
+    }
     if (is.null(x = features)) {
       data.use <- Embeddings(object = reduction)[nn.cells1, dims]
       data.use.query <- Embeddings(object = reduction)[nn.cells2, dims]
@@ -4409,6 +4416,9 @@ FindWeights <- function(
     )
   } else {
     anchors.cells2 <- unique(x = nn.cells2[anchors[, "cell2"]])
+    if (length(anchors.cells2) < k) {
+      stop("Number of anchor cells is less than k.weight. Consider lowering k.weight to less than ", length(anchors.cells2),  " or increase k.anchor.")
+    }
     if (is.null(x = features)) {
       data.use <- Embeddings(reduction)[nn.cells2, dims]
     } else {
@@ -5373,7 +5383,7 @@ ProjectSVD <- function(
   if (verbose) {
     message("Projecting new data onto SVD")
   }
-  projected.u <- as.matrix(x = crossprod(x = vt, y = data))
+  projected.u <- as.matrix(t(vt) %*% data)
   if (mode == "lsi") {
     components <- slot(object = reduction, name = 'misc')
     sigma <- components$d
@@ -7616,7 +7626,10 @@ FindBridgeTransferAnchors <- function(
   reduction <-  match.arg(arg = reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
+  command.name <- grep(pattern = 'PrepareBridgeReference',
+       x = names(slot(object = extended.reference, name = 'commands')),
+       value = TRUE)
+  params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction
@@ -7695,8 +7708,10 @@ FindBridgeIntegrationAnchors <- function(
   integration.reduction <-  match.arg(arg = integration.reduction)
   query.assay <- query.assay %||% DefaultAssay(query)
   DefaultAssay(query) <- query.assay
-
-  params <- Command(object = extended.reference, command = 'PrepareBridgeReference')
+  command.name <- grep(pattern = 'PrepareBridgeReference',
+                       x = names(slot(object = extended.reference, name = 'commands')),
+                       value = TRUE)
+  params <- Command(object = extended.reference, command = command.name)
   bridge.query.assay <- params$bridge.query.assay
   bridge.query.reduction <- params$bridge.query.reduction %||% params$supervised.reduction
   reference.reduction <- params$reference.reduction

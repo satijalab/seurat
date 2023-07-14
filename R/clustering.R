@@ -507,7 +507,6 @@ FindClusters.Seurat <- function(
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
-#' @param force.recalc Force recalculation of (S)NN.
 #' @param l2.norm Take L2Norm of the data
 #' @param cache.index Include cached index in returned Neighbor object
 #' (only relevant if return.neighbor = TRUE)
@@ -535,7 +534,6 @@ FindNeighbors.default <- function(
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
   index = NULL,
@@ -645,7 +643,6 @@ FindNeighbors.Assay <- function(
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
   ...
@@ -663,7 +660,6 @@ FindNeighbors.Assay <- function(
     annoy.metric = annoy.metric,
     nn.eps = nn.eps,
     verbose = verbose,
-    force.recalc = force.recalc,
     l2.norm = l2.norm,
     return.neighbor = return.neighbor,
     cache.index = cache.index,
@@ -688,7 +684,6 @@ FindNeighbors.dist <- function(
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   l2.norm = FALSE,
   cache.index = FALSE,
   ...
@@ -705,7 +700,6 @@ FindNeighbors.dist <- function(
     n.trees = n.trees,
     annoy.metric = annoy.metric,
     verbose = verbose,
-    force.recalc = force.recalc,
     l2.norm = l2.norm,
     return.neighbor = return.neighbor,
     cache.index = cache.index,
@@ -750,7 +744,6 @@ FindNeighbors.Seurat <- function(
   annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
   l2.norm = FALSE,
@@ -775,7 +768,6 @@ FindNeighbors.Seurat <- function(
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc,
       l2.norm = l2.norm,
       return.neighbor = return.neighbor,
       cache.index = cache.index,
@@ -794,7 +786,6 @@ FindNeighbors.Seurat <- function(
       annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc,
       l2.norm = l2.norm,
       return.neighbor = return.neighbor,
       cache.index = cache.index,
