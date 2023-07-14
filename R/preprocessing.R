@@ -418,7 +418,7 @@ GetResidual <- function(
       "This SCTAssay contains multiple SCT models. Computing residuals for cells using different models"
     )
   }
-  if (!umi.assay %in% Assays(object = object) || 
+  if (!umi.assay %in% Assays(object = object) ||
       length(x = Layers(object = object[[umi.assay]], search = 'counts')) == 0) {
     return(object)
   }
@@ -1538,15 +1538,18 @@ ReadAkoya <- function(
 #' }
 #'
 ReadMtx <- function(
-  mtx,
-  cells,
-  features,
-  cell.column = 1,
-  feature.column = 2,
-  skip.cell = 0,
-  skip.feature = 0,
-  unique.features = TRUE,
-  strip.suffix = FALSE
+    mtx,
+    cells,
+    features,
+    cell.column = 1,
+    feature.column = 2,
+    cell.sep = "\t",
+    feature.sep = "\t",
+    skip.cell = 0,
+    skip.feature = 0,
+    mtx.transpose = FALSE,
+    unique.features = TRUE,
+    strip.suffix = FALSE
 ) {
   all.files <- list(
     "expression matrix" = mtx,
@@ -1585,14 +1588,14 @@ ReadMtx <- function(
   cell.barcodes <- read.table(
     file = all.files[['barcode list']],
     header = FALSE,
-    sep = '\t',
+    sep = cell.sep,
     row.names = NULL,
     skip = skip.cell
   )
   feature.names <- read.table(
     file = all.files[['feature list']],
     header = FALSE,
-    sep = '\t',
+    sep = feature.sep,
     row.names = NULL,
     skip = skip.feature
   )
@@ -1645,7 +1648,7 @@ ReadMtx <- function(
         feature.column,
         ". Try specifiying a different column.",
         call. = FALSE
-        )
+      )
     } else {
       warning(
         "Some features names are NA in column ",
@@ -1654,7 +1657,7 @@ ReadMtx <- function(
         replacement.column,
         ".",
         call. = FALSE
-        )
+      )
     }
     feature.names[na.features, feature.column] <- feature.names[na.features, replacement.column]
   }
@@ -1663,6 +1666,9 @@ ReadMtx <- function(
     feature.names <- make.unique(names = feature.names)
   }
   data <- readMM(file = all.files[['expression matrix']])
+  if (mtx.transpose) {
+    data <- t(x = data)
+  }
   if (length(x = cell.names) != ncol(x = data)) {
     stop(
       "Matrix has ",
@@ -1675,7 +1681,7 @@ ReadMtx <- function(
         no = ""
       ),
       call. = FALSE
-      )
+    )
   }
   if (length(x = feature.names) != nrow(x = data)) {
     stop(
@@ -1689,7 +1695,7 @@ ReadMtx <- function(
         no = ""
       ),
       call. = FALSE
-      )
+    )
   }
 
   colnames(x = data) <- cell.names
@@ -3228,7 +3234,7 @@ SCTransform.default <- function(
       immediate. = TRUE
     )
   }
-  
+
   vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
