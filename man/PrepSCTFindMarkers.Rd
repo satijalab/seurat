@@ -24,6 +24,31 @@ as the sequencing depth covariate.
 The counts slot of the SCT assay is replaced with recorrected counts and
 the data slot is replaced with log1p of recorrected counts.
 }
+\section{Progress Updates with \pkg{progressr}}{
+
+This function uses
+\href{https://cran.r-project.org/package=progressr}{\pkg{progressr}} to
+render status updates and progress bars. To enable progress updates, wrap
+the function call in \code{\link[progressr]{with_progress}} or run
+\code{\link[progressr:handlers]{handlers(global = TRUE)}} before running
+this function. For more details about \pkg{progressr}, please read
+\href{https://progressr.futureverse.org/articles/progressr-intro.html}{\code{vignette("progressr-intro")}}
+}
+
+\section{Parallelization with \pkg{future}}{
+
+This function uses
+\href{https://cran.r-project.org/package=future}{\pkg{future}} to enable
+parallelization. Parallelization strategies can be set using
+\code{\link[future]{plan}}. Common plans include \dQuote{\code{sequential}}
+for non-parallelized processing or \dQuote{\code{multisession}} for parallel
+evaluation using multiple \R sessions; for other plans, see the
+\dQuote{Implemented evaluation strategies} section of
+\code{\link[future:plan]{?future::plan}}. For a more thorough introduction
+to \pkg{future}, see
+\href{https://future.futureverse.org/articles/future-1-overview.html}{\code{vignette("future-1-overview")}}
+}
+
 \examples{
 data("pbmc_small")
 pbmc_small1 <- SCTransform(object = pbmc_small, variable.features.n = 20)
@@ -47,3 +72,4 @@ markers_subset <- FindMarkers(
 
 }
 \concept{differential_expression}
+\concept{future}
