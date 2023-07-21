@@ -2,6 +2,7 @@
 
 ## Added
 - Added parallelization support with speed improvements for `PrepSCTFindMarkers` 
+- Fix bug in `LoadNanostring`([#7566](https://github.com/satijalab/seurat/pull/7566))
 
 ## Changes
 - Fix bug in `as.Seurat.SingleCellExperiment()` ([#6692](https://github.com/satijalab/seurat/issues/6692))
