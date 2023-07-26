@@ -519,10 +519,8 @@ Load10X_Spatial <- function(
   }
   object <- CreateSeuratObject(counts = data, assay = assay)
   if (is.null(x = image)) {
-    image <- Read10X_Image(
-      image.dir = file.path(data.dir, 'spatial'),
-      filter.matrix = filter.matrix
-    )
+    image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
+                           filter.matrix = filter.matrix)
   } else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
@@ -2464,7 +2462,7 @@ ReadVizgen <- function(
   
   # packages that needs to be installed a priori
   pkgs <- c("data.table", "arrow", "sfarrow",
-            "tidyverse", "furrr", "BiocParallel")
+            "tidyverse", "furrr", "BiocParallel", "Matrix")
   lapply(pkgs %>% length %>% seq, function(i) 
   { !requireNamespace(pkgs[i], quietly = TRUE) } ) %>% 
     unlist %>% 
@@ -2524,7 +2522,7 @@ ReadVizgen <- function(
   if (!is.null(x = metadata)) {
     metadata <- match.arg(
       arg = metadata,
-      choices = c("volume", "fov"),
+      choices = c('volume', 'fov'),
       several.ok = TRUE
     )
   }
@@ -2565,10 +2563,11 @@ ReadVizgen <- function(
   if (use.parquet) {
     if (verbose) { message("Cell segmentations are found in `.parquet` file", "\n", 
                            ">>> using ", gsub("s", "", mol.type), " space coordinates") }}
+  
   # Identify input files..
   # if no files are found in the current directory..
   #..look for them in the sub directory
-  files <- c(transcripts = transcripts %||% 
+  files <- c(transcripts = NULL %||% 
                list.files(data.dir, 
                           pattern = "cell_by_gene",
                           full.names = TRUE) %>%
@@ -2577,9 +2576,15 @@ ReadVizgen <- function(
                             pattern = "cell_by_gene",
                             full.names = TRUE,
                             recursive = TRUE)
+               } else { (.) }} %>% 
+               { if (length(.) > 1) { 
+                 stop("There are > 1 `cell_by_gene` files",
+                      "\n", "make sure only 1 file is read")
+               } else if (!length(.)) {
+                 stop("No `cell_by_gene` file is available")
                } else { (.) }},
              
-             spatial = spatial %||% 
+             spatial = NULL %||% 
                list.files(data.dir, 
                           pattern = "cell_metadata",
                           full.names = TRUE) %>%
@@ -2588,9 +2593,15 @@ ReadVizgen <- function(
                             pattern = "cell_metadata",
                             full.names = TRUE,
                             recursive = TRUE)
+               } else { (.) }} %>% 
+               { if (length(.) > 1) { 
+                 stop("There are > 1 `cell_metadata` files",
+                      "\n", "make sure only 1 file is read")
+               } else if (!length(.)) {
+                 stop("No `cell_metadata` file is available")
                } else { (.) }},
              
-             molecules = molecules %||% 
+             molecules = NULL %||% 
                list.files(data.dir, 
                           pattern = "detected_transcripts",
                           full.names = TRUE) %>%
@@ -2599,6 +2610,12 @@ ReadVizgen <- function(
                             pattern = "detected_transcripts",
                             full.names = TRUE,
                             recursive = TRUE)
+               } else { (.) }} %>%
+               { if(length(.) > 1) { 
+                 stop("There are > 1 `detected_transcripts` files", 
+                      "\n", "make sure only 1 file is read")
+               } else if (!length(.)) {
+                 stop("No `detected_transcripts` file is available")
                } else { (.) }}
   )
   
@@ -2668,7 +2685,7 @@ ReadVizgen <- function(
         )
         FALSE
       } else if (!dir.exists(paths = h5dir) && !use.parquet) {
-        warning("Cannot find cell boundary H5 files", immediate. = TRUE)
+        warning("Cannot find cell boundary H5 or `.parquet` file(s)", immediate. = TRUE)
         FALSE
       } else if (use.parquet) { # for non .hdf5 files
         if (length(parq)) {
@@ -2678,11 +2695,12 @@ ReadVizgen <- function(
       else {
         TRUE
       }
-      if (isFALSE(x = poly)) {
+      if (isFALSE(x = poly) && isFALSE(use.parquet)) {
         type <- setdiff(x = type, y = 'segmentations')
       }
     }
-    spatials <- rep_len(x = files[['spatial']], length.out = length(x = type))
+    spatials <- rep_len(x = files[['spatial']], 
+                        length.out = length(x = type))
     names(x = spatials) <- type
     files <- c(files, spatials)
     files <- files[setdiff(x = names(x = files), y = 'spatial')]
@@ -2701,6 +2719,8 @@ ReadVizgen <- function(
       class = 'sticky',
       amount = 0
     )
+   
+    # load molecules
     mx <- data.table::fread(
       file = files[['molecules']],
       sep = ',',
@@ -2751,7 +2771,10 @@ ReadVizgen <- function(
                      # match cells to filtered data from spatial (cell_metadata)
                      filter(., rownames(.) %in% rownames(sp)) 
                    } else { (.) } } %>% # return filtered count data
-                 t() %>% as.sparse()
+                 # transpose data.frame without converting to dense matrix
+                 #t() %>%
+                 as.sparse() %>% # convert to sparse matrix
+                 Matrix::t() # transpose sparse matrix
                
                # filter cell metadata df
                # match filtered cell IDs from count matrix to cell metadata df
@@ -2798,7 +2821,7 @@ ReadVizgen <- function(
                        # for `cellpose_micron_space.parquet`
                        grep(gsub("s", "", mol.type), ., value = TRUE)
                      }
-                     } %>%
+                   } %>%
                      { if (is.empty(.)) {
                        # only if single ".parquet" file present
                        # eg, `cell_boundaries.parquet`
