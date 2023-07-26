@@ -56,11 +56,11 @@ globalVariables(
 #' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 #'
 CalculateBarcodeInflections <- function(
-    object,
-    barcode.column = "nCount_RNA",
-    group.column = "orig.ident",
-    threshold.low = NULL,
-    threshold.high = NULL
+  object,
+  barcode.column = "nCount_RNA",
+  group.column = "orig.ident",
+  threshold.low = NULL,
+  threshold.high = NULL
 ) {
   ## Check that barcode.column exists in meta.data
   if (!(barcode.column %in% colnames(x = object[[]]))) {
@@ -201,15 +201,15 @@ CalculateBarcodeInflections <- function(
 #' }
 #'
 HTODemux <- function(
-    object,
-    assay = "HTO",
-    positive.quantile = 0.99,
-    init = NULL,
-    nstarts = 100,
-    kfunc = "clara",
-    nsamples = 100,
-    seed = 42,
-    verbose = TRUE
+  object,
+  assay = "HTO",
+  positive.quantile = 0.99,
+  init = NULL,
+  nstarts = 100,
+  kfunc = "clara",
+  nsamples = 100,
+  seed = 42,
+  verbose = TRUE
 ) {
   if (!is.null(x = seed)) {
     set.seed(seed = seed)
@@ -368,14 +368,14 @@ HTODemux <- function(
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
 #'
 GetResidual <- function(
-    object,
-    features,
-    assay = NULL,
-    umi.assay = NULL,
-    clip.range = NULL,
-    replace.value = FALSE,
-    na.rm = TRUE,
-    verbose = TRUE
+  object,
+  features,
+  assay = NULL,
+  umi.assay = NULL,
+  clip.range = NULL,
+  replace.value = FALSE,
+  na.rm = TRUE,
+  verbose = TRUE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (IsSCT(assay = object[[assay]])) {
@@ -500,24 +500,39 @@ GetResidual <- function(
 #' }
 #'
 Load10X_Spatial <- function(
-    data.dir,
-    filename = 'filtered_feature_bc_matrix.h5',
-    assay = 'Spatial',
-    slice = 'slice1',
-    filter.matrix = TRUE,
-    to.upper = FALSE,
-    image = NULL,
-    ...
+  data.dir,
+  filename = 'filtered_feature_bc_matrix.h5',
+  assay = 'Spatial',
+  slice = 'slice1',
+  filter.matrix = TRUE,
+  to.upper = FALSE,
+  image = NULL,
+  ...
 ) {
   if (length(x = data.dir) > 1) {
-    warning("'Load10X_Spatial' accepts only one 'data.dir'", immediate. = TRUE)
+    warning("'Load10X_Spatial' accepts only one 'data.dir'",
+            immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
+  data <- Read10X_h5(filename = file.path(data.dir, filename),
+                     ...)
+
   if (to.upper) {
-    rownames(x = data) <- toupper(x = rownames(x = data))
+    data <- imap(data, ~{
+      rownames(.x) <- toupper(rownames(.x))
+      .x
+    })
   }
-  object <- CreateSeuratObject(counts = data, assay = assay)
+  if (is.list(data) & "Antibody Capture" %in% names(data)) {
+    matrix_gex <- data$`Gene Expression`
+    matrix_protein <- data$`Antibody Capture`
+    object <- CreateSeuratObject(counts = matrix_gex, assay = assay)
+    object_protein <- CreateAssayObject(counts = matrix_protein)
+    object[["Protein"]] <- object_protein
+  }
+  else {
+    object <- CreateSeuratObject(counts = data, assay = assay)
+  }
   if (is.null(x = image)) {
     image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
                            filter.matrix = filter.matrix)
@@ -529,7 +544,45 @@ Load10X_Spatial <- function(
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- assay
   object[[slice]] <- image
+
+  # if using the meta-data available for probes add to @misc slot
+  file_path <- file.path(data.dir, filename)
+  infile <- hdf5r::H5File$new(filename = file_path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe.metadata <- Read10X_probe_metadata(data.dir, filename)
+    Misc(object = object[['Spatial']], slot = "probe_metadata") <- probe.metadata
+  }
   return(object)
+}
+
+#' Read10x Probe Metadata
+#'
+#' This function reads the probe metadata from a 10x Genomics probe barcode matrix file in HDF5 format.
+#'
+#' @param data.dir The directory where the file is located.
+#' @param filename The name of the file containing the raw probe barcode matrix in HDF5 format. The default filename is 'raw_probe_bc_matrix.h5'.
+#'
+#' @return Returns a data.frame containing the probe metadata.
+#'
+#' @export
+Read10X_probe_metadata <- function(
+  data.dir,
+  filename = 'raw_probe_bc_matrix.h5'
+) {
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
+    stop("Please install hdf5r to read HDF5 files")
+  }
+  file.path = paste0(data.dir,"/", filename)
+  if (!file.exists(file.path)) {
+    stop("File not found")
+  }
+  infile <- hdf5r::H5File$new(filename = file.path, mode = 'r')
+  if("matrix/features/probe_region" %in% hdf5r::list.objects(infile)) {
+    probe.name <- infile[['matrix/features/name']][]
+    probe.region<- infile[['matrix/features/probe_region']][]
+    meta.data <- data.frame(probe.name, probe.region)
+    return(meta.data)
+  }
 }
 
 #' Load STARmap data
@@ -554,13 +607,13 @@ Load10X_Spatial <- function(
 #' @concept preprocessing
 #'
 LoadSTARmap <- function(
-    data.dir,
-    counts.file = "cell_barcode_count.csv",
-    gene.file = "genes.csv",
-    qhull.file = "qhulls.tsv",
-    centroid.file = "centroids.tsv",
-    assay = "Spatial",
-    image = "image"
+  data.dir,
+  counts.file = "cell_barcode_count.csv",
+  gene.file = "genes.csv",
+  qhull.file = "qhulls.tsv",
+  centroid.file = "centroids.tsv",
+  assay = "Spatial",
+  image = "image"
 ) {
   if (!dir.exists(paths = data.dir)) {
     stop("Cannot find directory ", data.dir, call. = FALSE)
@@ -601,6 +654,91 @@ LoadSTARmap <- function(
     qhulls = qhulls
   )
   return(starmap)
+}
+
+#' Load Curio Seeker data
+#'
+#' @param data.dir location of data directory that contains the counts matrix,
+#' gene names, barcodes/beads, and barcodes/bead location files.
+#' @param assay Name of assay to associate spatial data to
+#'
+#' @return A \code{\link{Seurat}} object
+#'
+#' @importFrom Matrix readMM
+#'
+#' @export
+#' @concept preprocessing
+#'
+LoadCurioSeeker <- function(data.dir, assay = "Spatial") {
+  # check and find input files
+  if (length(x = data.dir) > 1) {
+    warning("'LoadCurioSeeker' accepts only one 'data.dir'",
+            immediate. = TRUE)
+    data.dir <- data.dir[1]
+  }
+  mtx.file <- list.files(
+    data.dir,
+    pattern = "*MoleculesPerMatchedBead.mtx",
+    full.names = TRUE)
+  if (length(x = mtx.file) > 1) {
+    warning("Multiple files matched the pattern '*MoleculesPerMatchedBead.mtx'",
+            immediate. = TRUE)
+  } else if (length(x = mtx.file) == 0) {
+    stop("No file matched the pattern '*MoleculesPerMatchedBead.mtx'", call. = FALSE)
+  }
+  mtx.file <- mtx.file[1]
+  barcodes.file <- list.files(
+    data.dir,
+    pattern = "*barcodes.tsv",
+    full.names = TRUE)
+  if (length(x = barcodes.file) > 1) {
+    warning("Multiple files matched the pattern '*barcodes.tsv'",
+            immediate. = TRUE)
+  } else if (length(x = barcodes.file) == 0) {
+    stop("No file matched the pattern '*barcodes.tsv'", call. = FALSE)
+  }
+  barcodes.file <- barcodes.file[1]
+  genes.file <- list.files(
+    data.dir,
+    pattern = "*genes.tsv",
+    full.names = TRUE)
+  if (length(x = genes.file) > 1) {
+    warning("Multiple files matched the pattern '*genes.tsv'",
+            immediate. = TRUE)
+  } else if (length(x = genes.file) == 0) {
+    stop("No file matched the pattern '*genes.tsv'", call. = FALSE)
+  }
+  genes.file <- genes.file[1]
+  coordinates.file <- list.files(
+    data.dir,
+    pattern = "*MatchedBeadLocation.csv",
+    full.names = TRUE)
+  if (length(x = coordinates.file) > 1) {
+    warning("Multiple files matched the pattern '*MatchedBeadLocation.csv'",
+            immediate. = TRUE)
+  } else if (length(x = coordinates.file) == 0) {
+    stop("No file matched the pattern '*MatchedBeadLocation.csv'", call. = FALSE)
+  }
+  coordinates.file <- coordinates.file[1]
+
+  # load counts matrix and create seurat object
+  mtx <- readMM(mtx.file)
+  mtx <- as.sparse(mtx)
+  barcodes <- read.csv(barcodes.file, header = FALSE)
+  genes <- read.csv(genes.file, header = FALSE)
+  colnames(mtx) <- barcodes$V1
+  rownames(mtx) <- genes$V1
+  object <- CreateSeuratObject(counts = mtx, assay = assay)
+
+  # load positions of each bead and store in a SlideSeq object in images slot
+  coords <- read.csv(coordinates.file)
+  colnames(coords) <- c("cell", "x", "y")
+  coords$y <- -coords$y
+  rownames(coords) <- coords$cell
+  coords$cell <- NULL
+  image <- new(Class = 'SlideSeq', assay = assay, coordinates = coords)
+  object[["Slice"]] <- image
+  return(object)
 }
 
 #' Normalize raw data
@@ -666,13 +804,13 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' }
 #'
 MULTIseqDemux <- function(
-    object,
-    assay = "HTO",
-    quantile = 0.7,
-    autoThresh = FALSE,
-    maxiter = 5,
-    qrange = seq(from = 0.1, to = 0.9, by = 0.05),
-    verbose = TRUE
+  object,
+  assay = "HTO",
+  quantile = 0.7,
+  autoThresh = FALSE,
+  maxiter = 5,
+  qrange = seq(from = 0.1, to = 0.9, by = 0.05),
+  verbose = TRUE
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   multi_data_norm <- t(x = GetAssayData(
@@ -784,11 +922,11 @@ MULTIseqDemux <- function(
 #' }
 #'
 Read10X <- function(
-    data.dir,
-    gene.column = 2,
-    cell.column = 1,
-    unique.features = TRUE,
-    strip.suffix = FALSE
+  data.dir,
+  gene.column = 2,
+  cell.column = 1,
+  unique.features = TRUE,
+  strip.suffix = FALSE
 ) {
   full.data <- list()
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
@@ -825,7 +963,7 @@ Read10X <- function(
     } else {
       cell.barcodes <- read.table(file = barcode.loc, header = FALSE, sep = '\t', row.names = NULL)
     }
-    
+
     if (ncol(x = cell.barcodes) > 1) {
       cell.names <- cell.barcodes[, cell.column]
     } else {
@@ -848,7 +986,7 @@ Read10X <- function(
     } else {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
-    
+
     if (has_dt) {
       feature.names <- as.data.frame(data.table::fread(ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc), header = FALSE))
     } else {
@@ -858,7 +996,7 @@ Read10X <- function(
         stringsAsFactors = FALSE
       )
     }
-    
+
     if (any(is.na(x = feature.names[, gene.column]))) {
       warning(
         'Some features names are NA. Replacing NA names with ID from the opposite column requested',
@@ -1105,10 +1243,10 @@ Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", fil
 #' @template note-reqdpkg
 #'
 ReadAkoya <- function(
-    filename,
-    type = c('inform', 'processor', 'qupath'),
-    filter = 'DAPI|Blank|Empty',
-    inform.quant = c('mean', 'total', 'min', 'max', 'std')
+  filename,
+  type = c('inform', 'processor', 'qupath'),
+  filter = 'DAPI|Blank|Empty',
+  inform.quant = c('mean', 'total', 'min', 'max', 'std')
 ) {
   if (!requireNamespace("data.table", quietly = TRUE)) {
     stop("Please install 'data.table' for this function")
@@ -1426,18 +1564,18 @@ ReadAkoya <- function(
 #' }
 #'
 ReadMtx <- function(
-    mtx,
-    cells,
-    features,
-    cell.column = 1,
-    feature.column = 2,
-    cell.sep = "\t",
-    feature.sep = "\t",
-    skip.cell = 0,
-    skip.feature = 0,
-    mtx.transpose = FALSE,
-    unique.features = TRUE,
-    strip.suffix = FALSE
+  mtx,
+  cells,
+  features,
+  cell.column = 1,
+  feature.column = 2,
+  cell.sep = "\t",
+  feature.sep = "\t",
+  skip.cell = 0,
+  skip.feature = 0,
+  mtx.transpose = FALSE,
+  unique.features = TRUE,
+  strip.suffix = FALSE
 ) {
   all.files <- list(
     "expression matrix" = mtx,
@@ -1536,7 +1674,7 @@ ReadMtx <- function(
         feature.column,
         ". Try specifiying a different column.",
         call. = FALSE
-      )
+        )
     } else {
       warning(
         "Some features names are NA in column ",
@@ -1545,7 +1683,7 @@ ReadMtx <- function(
         replacement.column,
         ".",
         call. = FALSE
-      )
+        )
     }
     feature.names[na.features, feature.column] <- feature.names[na.features, replacement.column]
   }
@@ -1569,7 +1707,7 @@ ReadMtx <- function(
         no = ""
       ),
       call. = FALSE
-    )
+      )
   }
   if (length(x = feature.names) != nrow(x = data)) {
     stop(
@@ -1583,9 +1721,9 @@ ReadMtx <- function(
         no = ""
       ),
       call. = FALSE
-    )
+      )
   }
-  
+
   colnames(x = data) <- cell.names
   rownames(x = data) <- feature.names
   data <- as.sparse(x = data)
@@ -1669,24 +1807,24 @@ ReadMtx <- function(
 #' @template note-reqdpkg
 #'
 ReadNanostring <- function(
-    data.dir,
-    mtx.file = NULL,
-    metadata.file = NULL,
-    molecules.file = NULL,
-    segmentations.file = NULL,
-    type = 'centroids',
-    mol.type = 'pixels',
-    metadata = NULL,
-    mols.filter = NA_character_,
-    genes.filter = NA_character_,
-    fov.filter = NULL,
-    subset.counts.matrix = NULL,
-    cell.mols.only = TRUE
+  data.dir,
+  mtx.file = NULL,
+  metadata.file = NULL,
+  molecules.file = NULL,
+  segmentations.file = NULL,
+  type = 'centroids',
+  mol.type = 'pixels',
+  metadata = NULL,
+  mols.filter = NA_character_,
+  genes.filter = NA_character_,
+  fov.filter = NULL,
+  subset.counts.matrix = NULL,
+  cell.mols.only = TRUE
 ) {
   if (!requireNamespace("data.table", quietly = TRUE)) {
     stop("Please install 'data.table' for this function")
   }
-  
+
   # Argument checking
   type <- match.arg(
     arg = type,
@@ -1709,7 +1847,7 @@ ReadNanostring <- function(
       several.ok = TRUE
     )
   }
-  
+
   use.dir <- all(vapply(
     X = c(mtx.file, metadata.file, molecules.file),
     FUN = function(x) {
@@ -1717,7 +1855,7 @@ ReadNanostring <- function(
     },
     FUN.VALUE = logical(length = 1L)
   ))
-  
+
   if (use.dir && !dir.exists(paths = data.dir)) {
     stop("Cannot find Nanostring directory ", data.dir)
   }
@@ -1728,7 +1866,7 @@ ReadNanostring <- function(
     molecules.file = molecules.file %||% '[_a-zA-Z0-9]*_tx_file.csv',
     segmentations.file = segmentations.file %||% '[_a-zA-Z0-9]*-polygons.csv'
   )
-  
+
   files <- vapply(
     X = files,
     FUN = function(x) {
@@ -1749,7 +1887,7 @@ ReadNanostring <- function(
     USE.NAMES = TRUE
   )
   files[!file.exists(files)] <- NA_character_
-  
+
   if (all(is.na(x = files))) {
     stop("Cannot find Nanostring input files in ", data.dir)
   }
@@ -1767,7 +1905,7 @@ ReadNanostring <- function(
       data.table = FALSE,
       verbose = FALSE
     )
-    
+
     # filter metadata file by FOVs
     if (!is.null(x = fov.filter)) {
       md <- md[md$fov %in% fov.filter,]
@@ -1787,7 +1925,7 @@ ReadNanostring <- function(
       data.table = FALSE,
       verbose = FALSE
     )
-    
+
     # filter metadata file by FOVs
     if (!is.null(x = fov.filter)) {
       segs <- segs[segs$fov %in% fov.filter,]
@@ -1807,17 +1945,17 @@ ReadNanostring <- function(
       sep = ',',
       verbose = FALSE
     )
-    
+
     # filter molecules file by FOVs
     if (!is.null(x = fov.filter)) {
       mx <- mx[mx$fov %in% fov.filter,]
     }
-    
+
     # Molecules outside of a cell have a cell_ID of 0
     if (cell.mols.only) {
       mx <- mx[mx$cell_ID != 0,]
     }
-    
+
     if (!is.na(x = mols.filter)) {
       ppremol(
         message = paste("Filtering molecules with pattern", mols.filter),
@@ -1833,7 +1971,7 @@ ReadNanostring <- function(
     files <- files[setdiff(x = names(x = files), y = 'molecules.file')]
   }
   files <- files[!is.na(x = files)]
-  
+
   outs <- list("matrix"=NULL, "pixels"=NULL, "centroids"=NULL)
   if (!is.null(metadata)) {
     outs <- append(outs, list("metadata" = NULL))
@@ -1841,7 +1979,7 @@ ReadNanostring <- function(
   if ("segmentations" %in% type) {
     outs <- append(outs, list("segmentations" = NULL))
   }
-  
+
   for (otype in names(x = outs)) {
     outs[[otype]] <- switch(
       EXPR = otype,
@@ -1868,8 +2006,8 @@ ReadNanostring <- function(
           }
           tx <- subset(tx, select = -c(fov, cell_ID))
         }
-        
-        tx <- as.data.frame(t(x = as.matrix(x = tx[, -1, drop = FALSE])))
+
+        tx <- as.data.frame(t(x = as.matrix(x = tx)))
         if (!is.na(x = genes.filter)) {
           ptx(
             message = paste("Filtering genes with pattern", genes.filter),
@@ -1881,7 +2019,7 @@ ReadNanostring <- function(
         # only keep cells with counts greater than 0
         tx <- tx[, which(colSums(tx) != 0)]
         ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
-        
+
         if ((sum(tx == 0) / length(x = tx)) > ratio) {
           ptx(
             message = 'Converting counts to sparse matrix',
@@ -1890,9 +2028,9 @@ ReadNanostring <- function(
           )
           tx <- as.sparse(x = tx)
         }
-        
+
         ptx(type = 'finish')
-        
+
         tx
       },
       'centroids' = {
@@ -2011,10 +2149,10 @@ ReadNanostring <- function(
 #' @concept preprocessing
 #'
 ReadXenium <- function(
-    data.dir,
-    outs = c("matrix", "microns"),
-    type = "centroids",
-    mols.qv.threshold = 20
+  data.dir,
+  outs = c("matrix", "microns"),
+  type = "centroids",
+  mols.qv.threshold = 20
 ) {
   # Argument checking
   type <- match.arg(
@@ -2022,17 +2160,17 @@ ReadXenium <- function(
     choices = c("centroids", "segmentations"),
     several.ok = TRUE
   )
-  
+
   outs <- match.arg(
     arg = outs,
     choices = c("matrix", "microns"),
     several.ok = TRUE
   )
-  
+
   outs <- c(outs, type)
-  
+
   has_dt <- requireNamespace("data.table", quietly = TRUE) && requireNamespace("R.utils", quietly = TRUE)
-  
+
   data <- sapply(outs, function(otype) {
     switch(
       EXPR = otype,
@@ -2071,7 +2209,7 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        
+
         # load cell boundaries
         if (has_dt) {
           cell_boundaries_df <- as.data.frame(data.table::fread(file.path(data.dir, "cell_boundaries.csv.gz")))
@@ -2089,7 +2227,7 @@ ReadXenium <- function(
           class = 'sticky',
           amount = 0
         )
-        
+
         # molecules
         if (has_dt) {
           tx_dt <- as.data.frame(data.table::fread(file.path(data.dir, "transcripts.csv.gz")))
@@ -2098,7 +2236,7 @@ ReadXenium <- function(
           transcripts <- read.csv(file.path(data.dir, "transcripts.csv.gz"))
           transcripts <- subset(transcripts, qv >= mols.qv.threshold)
         }
-        
+
         df <-
           data.frame(
             x = transcripts$x_location,
@@ -2216,11 +2354,11 @@ ReadSlideSeq <- function(coord.file, assay = 'Spatial') {
 #' }
 #'
 ReadVitessce <- function(
-    counts = NULL,
-    coords = NULL,
-    molecules = NULL,
-    type = c('segmentations', 'centroids'),
-    filter = NA_character_
+  counts = NULL,
+  coords = NULL,
+  molecules = NULL,
+  type = c('segmentations', 'centroids'),
+  filter = NA_character_
 ) {
   if (!requireNamespace('jsonlite', quietly = TRUE)) {
     stop("Please install 'jsonlite' for this function")
@@ -3179,9 +3317,9 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
 #' @concept preprocessing
 #'
 RunMarkVario <- function(
-    spatial.location,
-    data,
-    ...
+  spatial.location,
+  data,
+  ...
 ) {
   pp <- ppp(
     x = spatial.location[, 1],
@@ -3297,10 +3435,10 @@ RunMoransI <- function(data, pos, verbose = TRUE) {
 #' head(x = downsampled)
 #'
 SampleUMI <- function(
-    data,
-    max.umi = 1000,
-    upsample = FALSE,
-    verbose = FALSE
+  data,
+  max.umi = 1000,
+  upsample = FALSE,
+  verbose = FALSE
 ) {
   data <- as.sparse(x = data)
   if (length(x = max.umi) == 1) {
@@ -3327,7 +3465,7 @@ SampleUMI <- function(
 #' Use regularized negative binomial regression to normalize UMI count data
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
-#' https://github.com/ChristophH/sctransform.
+#' https://github.com/satijalab/sctransform.
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 #' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
@@ -3385,24 +3523,24 @@ SampleUMI <- function(
 #' SCTransform(object = pbmc_small)
 #'
 SCTransform <- function(
-    object,
-    assay = 'RNA',
-    new.assay.name = 'SCT',
-    reference.SCT.model = NULL,
-    do.correct.umi = TRUE,
-    ncells = 5000,
-    residual.features = NULL,
-    variable.features.n = 3000,
-    variable.features.rv.th = 1.3,
-    vars.to.regress = NULL,
-    do.scale = FALSE,
-    do.center = TRUE,
-    clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
-    conserve.memory = FALSE,
-    return.only.var.genes = TRUE,
-    seed.use = 1448145,
-    verbose = TRUE,
-    ...
+  object,
+  assay = 'RNA',
+  new.assay.name = 'SCT',
+  reference.SCT.model = NULL,
+  do.correct.umi = TRUE,
+  ncells = 5000,
+  residual.features = NULL,
+  variable.features.n = 3000,
+  variable.features.rv.th = 1.3,
+  vars.to.regress = NULL,
+  do.scale = FALSE,
+  do.center = TRUE,
+  clip.range = c(-sqrt(x = ncol(x = object[[assay]]) / 30), sqrt(x = ncol(x = object[[assay]]) / 30)),
+  conserve.memory = FALSE,
+  return.only.var.genes = TRUE,
+  seed.use = 1448145,
+  verbose = TRUE,
+  ...
 ) {
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
@@ -3432,7 +3570,7 @@ SCTransform <- function(
     if (reference.SCT.model$model_str != 'y ~ log_umi') {
       stop('reference.SCT.model must be derived using default SCT regression formula, `y ~ log_umi`')
     }
-    
+
   }
   # check for latent_var in meta data
   if ('latent_var' %in% names(x = vst.args)) {
@@ -3471,7 +3609,7 @@ SCTransform <- function(
   vst.args[['n_cells']] <- min(ncells, ncol(x = umi))
   residual.type <- vst.args[['residual_type']] %||% 'pearson'
   res.clip.range <- vst.args[['res_clip_range']] %||% c(-sqrt(x = ncol(x = umi)), sqrt(x = ncol(x = umi)))
-  # set sct normalization method
+ # set sct normalization method
   if (!is.null( reference.SCT.model)) {
     sct.method <- "reference.model"
   } else if (!is.null(x = residual.features)) {
@@ -3481,7 +3619,7 @@ SCTransform <- function(
   } else {
     sct.method <- "default"
   }
-  
+
   # set vst model
   vst.out <- switch(
     EXPR = sct.method,
@@ -3538,7 +3676,7 @@ SCTransform <- function(
       vst.out <- do.call(what = 'vst', args = vst.args)
       vst.out
     })
-  
+
   feature.variance <- vst.out$gene_attr[,"residual_variance"]
   names(x = feature.variance) <- rownames(x = vst.out$gene_attr)
   if (verbose) {
@@ -3550,7 +3688,7 @@ SCTransform <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  
+
   # get residuals
   vst.out <- switch(
     EXPR = sct.method,
@@ -3760,16 +3898,16 @@ SubsetByBarcodeInflections <- function(object) {
 #' @export
 #'
 FindVariableFeatures.default <- function(
-    object,
-    selection.method = "vst",
-    loess.span = 0.3,
-    clip.max = 'auto',
-    mean.function = FastExpMean,
-    dispersion.function = FastLogVMR,
-    num.bin = 20,
-    binning.method = "equal_width",
-    verbose = TRUE,
-    ...
+  object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  verbose = TRUE,
+  ...
 ) {
   CheckDots(...)
   if (!inherits(x = object, 'Matrix')) {
@@ -3860,19 +3998,19 @@ FindVariableFeatures.default <- function(
 #' @method FindVariableFeatures Assay
 #'
 FindVariableFeatures.Assay <- function(
-    object,
-    selection.method = "vst",
-    loess.span = 0.3,
-    clip.max = 'auto',
-    mean.function = FastExpMean,
-    dispersion.function = FastLogVMR,
-    num.bin = 20,
-    binning.method = "equal_width",
-    nfeatures = 2000,
-    mean.cutoff = c(0.1, 8),
-    dispersion.cutoff = c(1, Inf),
-    verbose = TRUE,
-    ...
+  object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  nfeatures = 2000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  verbose = TRUE,
+  ...
 ) {
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
@@ -3939,9 +4077,9 @@ FindVariableFeatures.Assay <- function(
 #' @method FindVariableFeatures SCTAssay
 #'
 FindVariableFeatures.SCTAssay <- function(
-    object,
-    nfeatures = 2000,
-    ...
+  object,
+  nfeatures = 2000,
+  ...
 ) {
   if (length(x = slot(object = object, name = "SCTModel.list")) > 1) {
     stop("SCT assay is comprised of multiple SCT models. To change the variable features, please set manually with VariableFeatures<-", call. = FALSE)
@@ -3961,20 +4099,20 @@ FindVariableFeatures.SCTAssay <- function(
 #' @method FindVariableFeatures Seurat
 #'
 FindVariableFeatures.Seurat <- function(
-    object,
-    assay = NULL,
-    selection.method = "vst",
-    loess.span = 0.3,
-    clip.max = 'auto',
-    mean.function = FastExpMean,
-    dispersion.function = FastLogVMR,
-    num.bin = 20,
-    binning.method = "equal_width",
-    nfeatures = 2000,
-    mean.cutoff = c(0.1, 8),
-    dispersion.cutoff = c(1, Inf),
-    verbose = TRUE,
-    ...
+  object,
+  assay = NULL,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  nfeatures = 2000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  verbose = TRUE,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
@@ -4030,14 +4168,14 @@ FindVariableFeatures.Seurat <- function(
 #'
 #'
 FindSpatiallyVariableFeatures.default <- function(
-    object,
-    spatial.location,
-    selection.method = c('markvariogram', 'moransi'),
-    r.metric = 5,
-    x.cuts = NULL,
-    y.cuts = NULL,
-    verbose = TRUE,
-    ...
+  object,
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  verbose = TRUE,
+  ...
 ) {
   # error check dimensions
   if (ncol(x = object) != nrow(x = spatial.location)) {
@@ -4082,17 +4220,17 @@ FindSpatiallyVariableFeatures.default <- function(
 #' @export
 #'
 FindSpatiallyVariableFeatures.Assay <- function(
-    object,
-    slot = "scale.data",
-    spatial.location,
-    selection.method = c('markvariogram', 'moransi'),
-    features = NULL,
-    r.metric = 5,
-    x.cuts = NULL,
-    y.cuts = NULL,
-    nfeatures = nfeatures,
-    verbose = TRUE,
-    ...
+  object,
+  slot = "scale.data",
+  spatial.location,
+  selection.method = c('markvariogram', 'moransi'),
+  features = NULL,
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = nfeatures,
+  verbose = TRUE,
+  ...
 ) {
   features <- features %||% rownames(x = object)
   if (selection.method == "markvariogram" && "markvariogram" %in% names(x = Misc(object = object))) {
@@ -4174,18 +4312,18 @@ FindSpatiallyVariableFeatures.Assay <- function(
 #' @export
 #'
 FindSpatiallyVariableFeatures.Seurat <- function(
-    object,
-    assay = NULL,
-    slot = "scale.data",
-    features = NULL,
-    image = NULL,
-    selection.method = c('markvariogram', 'moransi'),
-    r.metric = 5,
-    x.cuts = NULL,
-    y.cuts = NULL,
-    nfeatures = 2000,
-    verbose = TRUE,
-    ...
+  object,
+  assay = NULL,
+  slot = "scale.data",
+  features = NULL,
+  image = NULL,
+  selection.method = c('markvariogram', 'moransi'),
+  r.metric = 5,
+  x.cuts = NULL,
+  y.cuts = NULL,
+  nfeatures = 2000,
+  verbose = TRUE,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   features <- features %||% rownames(x = object[[assay]])
@@ -4233,13 +4371,13 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 #' @export
 #'
 NormalizeData.default <- function(
-    object,
-    normalization.method = "LogNormalize",
-    scale.factor = 1e4,
-    margin = 1,
-    block.size = NULL,
-    verbose = TRUE,
-    ...
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  margin = 1,
+  block.size = NULL,
+  verbose = TRUE,
+  ...
 ) {
   CheckDots(...)
   if (is.null(x = normalization.method)) {
@@ -4340,12 +4478,12 @@ NormalizeData.default <- function(
 #' @method NormalizeData Assay
 #'
 NormalizeData.Assay <- function(
-    object,
-    normalization.method = "LogNormalize",
-    scale.factor = 1e4,
-    margin = 1,
-    verbose = TRUE,
-    ...
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  margin = 1,
+  verbose = TRUE,
+  ...
 ) {
   object <- SetAssayData(
     object = object,
@@ -4377,13 +4515,13 @@ NormalizeData.Assay <- function(
 #' }
 #'
 NormalizeData.Seurat <- function(
-    object,
-    assay = NULL,
-    normalization.method = "LogNormalize",
-    scale.factor = 1e4,
-    margin = 1,
-    verbose = TRUE,
-    ...
+  object,
+  assay = NULL,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  margin = 1,
+  verbose = TRUE,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
@@ -4433,20 +4571,20 @@ NormalizeData.Seurat <- function(
 #' @export
 #'
 ScaleData.default <- function(
-    object,
-    features = NULL,
-    vars.to.regress = NULL,
-    latent.data = NULL,
-    split.by = NULL,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = TRUE,
-    do.center = TRUE,
-    scale.max = 10,
-    block.size = 1000,
-    min.cells.to.block = 3000,
-    verbose = TRUE,
-    ...
+  object,
+  features = NULL,
+  vars.to.regress = NULL,
+  latent.data = NULL,
+  split.by = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
 ) {
   CheckDots(...)
   features <- features %||% rownames(x = object)
@@ -4674,20 +4812,20 @@ ScaleData.default <- function(
 #' @method ScaleData Assay
 #'
 ScaleData.Assay <- function(
-    object,
-    features = NULL,
-    vars.to.regress = NULL,
-    latent.data = NULL,
-    split.by = NULL,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = TRUE,
-    do.center = TRUE,
-    scale.max = 10,
-    block.size = 1000,
-    min.cells.to.block = 3000,
-    verbose = TRUE,
-    ...
+  object,
+  features = NULL,
+  vars.to.regress = NULL,
+  latent.data = NULL,
+  split.by = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
@@ -4732,20 +4870,20 @@ ScaleData.Assay <- function(
 #' @method ScaleData Seurat
 #'
 ScaleData.Seurat <- function(
-    object,
-    features = NULL,
-    assay = NULL,
-    vars.to.regress = NULL,
-    split.by = NULL,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = TRUE,
-    do.center = TRUE,
-    scale.max = 10,
-    block.size = 1000,
-    min.cells.to.block = 3000,
-    verbose = TRUE,
-    ...
+  object,
+  features = NULL,
+  assay = NULL,
+  vars.to.regress = NULL,
+  split.by = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  verbose = TRUE,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
@@ -5145,13 +5283,13 @@ FindThresh <- function(call.list) {
 #' @importFrom sctransform get_residuals
 #
 GetResidualSCTModel <- function(
-    object,
-    assay,
-    SCTModel,
-    new_features,
-    clip.range,
-    replace.value,
-    verbose
+  object,
+  assay,
+  SCTModel,
+  new_features,
+  clip.range,
+  replace.value,
+  verbose
 ) {
   clip.range <- clip.range %||% SCTResults(object = object[[assay]], slot = "clips", model = SCTModel)$sct
   model.features <- rownames(x = SCTResults(object = object[[assay]], slot = "feature.attributes", model = SCTModel))
@@ -5160,14 +5298,14 @@ GetResidualSCTModel <- function(
   sct.method <-  SCTResults(object = object[[assay]], slot = "arguments", model = SCTModel)$sct.method %||% "default"
   scale.data.cells <- colnames(x = GetAssayData(object = object, assay = assay, slot = "scale.data"))
   if (length(x = setdiff(x = model.cells, y =  scale.data.cells)) == 0) {
-    existing_features <- names(x = which(x = ! apply(
-      X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
-      MARGIN = 1,
-      FUN = anyNA)
-    ))
-  } else {
-    existing_features <- character()
-  }
+  existing_features <- names(x = which(x = ! apply(
+    X = GetAssayData(object = object, assay = assay, slot = "scale.data")[, model.cells],
+    MARGIN = 1,
+    FUN = anyNA)
+  ))
+ } else {
+   existing_features <- character()
+ }
   if (replace.value) {
     features_to_compute <- new_features
   } else {
@@ -5181,7 +5319,7 @@ GetResidualSCTModel <- function(
   }
   if (!umi.assay %in% Assays(object = object)) {
     warning("The umi assay (", umi.assay, ") is not present in the object. ",
-            "Cannot compute additional residuals.", call. = FALSE, immediate. = TRUE)
+             "Cannot compute additional residuals.", call. = FALSE, immediate. = TRUE)
     return(NULL)
   }
   diff_features <- setdiff(x = features_to_compute, y = model.features)
@@ -5319,12 +5457,12 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutMatrix <- function(
-    data.expr,
-    latent.data = NULL,
-    features.regress = NULL,
-    model.use = NULL,
-    use.umi = FALSE,
-    verbose = TRUE
+  data.expr,
+  latent.data = NULL,
+  features.regress = NULL,
+  model.use = NULL,
+  use.umi = FALSE,
+  verbose = TRUE
 ) {
   # Do we bypass regression and simply return data.expr?
   bypass <- vapply(
