@@ -133,6 +133,8 @@ LoadNanostring <- function(data.dir, fov, assay = 'Nanostring') {
 #' @param assay Name to store expression matrix as
 #' @param add.zIndex If to add \code{z} slice index to a cell
 #' @param update.object If to update final object, default to TRUE
+#' @param add.molecules If to add \code{molecules} coordinates to FOV of the object, 
+#'  default to TRUE
 #' @param ... Arguments passed to \code{ReadVizgen}
 #'
 #' @importFrom SeuratObject Cells CreateCentroids CreateFOV
@@ -152,6 +154,7 @@ LoadVizgen <- function(
     z = 3L,
     add.zIndex = TRUE, 
     update.object = TRUE,
+    add.molecules = TRUE,
     verbose,
     ...)
 {
@@ -174,27 +177,40 @@ LoadVizgen <- function(
       bound.boxes.data <- list(centroids = cents, 
                                boxes = bound.boxes)
       if (verbose) { 
-        message("Creating FOVs..", "\n",
+        message("Creating FOVs..", "\n", 
+                if (!add.molecules) { ">>> `molecules` coordidates will be skipped" }, 
+                "\n",
                 ">>> using box coordinates instead of segmentations") 
       }
-      coords <- CreateFOV(coords = bound.boxes.data, 
-                          type = c("boxes", "centroids"),
-                          molecules = data[[mol.type]], 
-                          assay = assay)
+      coords <- 
+        CreateFOV(coords = bound.boxes.data,
+                  type = c("boxes", "centroids"),
+                  molecules = 
+                    if (add.molecules) {
+                      data[[mol.type]] } else { NULL }, 
+                  assay = assay) %>%
+        subset(x = .,
+               cells = intersect(x = Cells(x = .[["boxes"]]),
+                                 y = Cells(x = obj)))
     } else { 
       # in case no segmentation & no boxes are present, use centroids only
       cents <- CreateCentroids(data[["centroids"]])
       if (verbose) { 
-        message("Creating FOVs..", "\n",
+        message("Creating FOVs..", "\n", 
+                if (!add.molecules) { ">>> `molecules` coordidates will be skipped" }, 
+                "\n", 
                 ">>> using only centroids") 
       }
-      coords <- CreateFOV(coords = list(centroids = cents), 
-                          type = c("centroids"),
-                          molecules = data[[mol.type]], 
-                          assay = assay)
-      coords <- subset(x = coords, 
-                       cells = intersect(x = Cells(x = coords[["centroids"]]),
-                                         y = Cells(x = obj))) 
+      coords <-
+        CreateFOV(coords = list(centroids = cents),
+                  type = c("centroids"),
+                  molecules = 
+                    if (add.molecules) {
+                      data[[mol.type]] } else { NULL }, 
+                  assay = assay) %>%
+        subset(x = ., 
+               cells = intersect(x = Cells(x = .[["centroids"]]),
+                                 y = Cells(x = obj)))
     }
   } else if ("segmentations" %in% names(data)) {
     segs <- CreateSegmentation(data[["segmentations"]])
@@ -202,17 +218,22 @@ LoadVizgen <- function(
     segmentations.data <- list(centroids = cents, segmentation = segs)
     if (verbose) { 
       message("Creating FOVs..", "\n", 
+              if (!add.molecules) { ">>> `molecules` coordidates will be skipped" }, 
+              "\n", 
               ">>> using segmentations") 
     }
-    coords <- CreateFOV(coords = segmentations.data, 
-                        type = c("segmentation", "centroids"), 
-                        molecules = data[[mol.type]], 
-                        assay = assay)
-    # only consider the cells we have counts and a segmentation.
-    # Cells which don't have a segmentation are probably found in other z slices.
-    coords <- subset(x = coords,
-                     cells = intersect(x = Cells(x = coords[["segmentation"]]),
-                                       y = Cells(x = obj)))
+    coords <-
+      CreateFOV(coords = segmentations.data, 
+                type = c("segmentation", "centroids"), 
+                molecules = 
+                  if (add.molecules) {
+                    data[[mol.type]] } else { NULL }, 
+                assay = assay) %>%
+      # only consider the cells we have counts and a segmentation.
+      # Cells which don't have a segmentation are probably found in other z slices.
+      subset(x = .,
+             cells = intersect(x = Cells(x = .[["segmentation"]]),
+                               y = Cells(x = obj)))
   }
   
   # add z-stack index for cells
