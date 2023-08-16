@@ -12,6 +12,8 @@
 - Fix `FoldChange` and `FindMarkers` to support all normalization approaches ([#7115](https://github.com/satijalab/seurat/pull/7115),[#7110](https://github.com/satijalab/seurat/issues/7110),[#7095](https://github.com/satijalab/seurat/issues/7095),[#6976](https://github.com/satijalab/seurat/issues/6976),[#6654](https://github.com/satijalab/seurat/issues/6654),[#6701](https://github.com/satijalab/seurat/issues/6701),[#6773](https://github.com/satijalab/seurat/issues/6773), [#7107](https://github.com/satijalab/seurat/issues/7107))
 - Fix for handling newer ParseBio formats in `ReadParseBio` ([#7565](https://github.com/satijalab/seurat/pull/7565))
 - Fix bug in `ReadMtx()` to add back missing parameters 
+- Fix `SCTransform()` for V5 assays to retain gene attributes ([#7557](https://github.com/satijalab/seurat/issues/7557))
+- Fix `LeverageScore()` for objects with few features ([#7650](https://github.com/satijalab/seurat/issues/7650)
 
 # Seurat 4.3.0 (2022-11-18)
 

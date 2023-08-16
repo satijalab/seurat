@@ -383,7 +383,8 @@ LeverageScore.default <- function(
   # Check the dimensions of the object, nsketch, and ndims
   ncells <- ncol(x = object)
   if (ncells < nsketch*1.5) {
-    Z <- irlba(A = object, nv = 50, nu = 0, verbose = FALSE)$v
+    nv <- ifelse(nrow(x = object) < 50, nrow(x = object) - 1, 50)
+    Z <- irlba(A = object, nv = nv, nu = 0, verbose = FALSE)$v
     return(rowSums(x = Z ^ 2))
   }
   if (nrow(x = object) > 5000L) {

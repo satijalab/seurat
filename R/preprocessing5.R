@@ -1512,6 +1512,7 @@ SCTransform.StdAssay <- function(
       # once we have the model, just calculate residuals for all
       # cells
       vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
+      vst_out.reference$gene_attr <- local.reference.SCT.model@feature.attributes
       min_var <- vst_out.reference$arguments$min_variance
       if (min_var == "umi_median"){
         block <- DelayedArray::read_block(x = counts,
