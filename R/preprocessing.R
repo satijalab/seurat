@@ -2936,8 +2936,8 @@ ReadVizgen <- function(
                }
                ptx(type = "finish")
                tx
-               
-             }, centroids = {
+             }, 
+             centroids = {
                pcents <- progressor()
                pcents(message = "Creating centroid coordinates",
                       class = "sticky", amount = 0)
@@ -2946,7 +2946,8 @@ ReadVizgen <- function(
                           stringsAsFactors = FALSE)
                
                # use segmentations from ".parquet"
-             }, segmentations = {
+             }, 
+             segmentations = {
                if (use.parquet) {
                  if (length(parq) > 1) {
                    # eg, if two files are present:
@@ -3040,8 +3041,8 @@ ReadVizgen <- function(
                  # check if any cells have > 1 segmentation boundary
                  # TODO: (optionally) optimize sanity code using purrr?
                  test.segs <- lapply(segs %>% seq, function(i) segs[[i]] %>% length) %>% unlist()
-                 if (any(test.segs %>% unlist > 1)) {
-                   segs.art.index <- which(test.segs %>% unlist > 1)
+                 if (any(test.segs > 1)) {
+                   segs.art.index <- which(test.segs > 1)
                    if (verbose) { 
                      message("Found ", segs.art.index %>% length,
                              c(" cells with > 1 polygon artifacts:",
@@ -3192,7 +3193,8 @@ ReadVizgen <- function(
                  }
                  pg # final segmentaions out..
                }
-             }, boxes = {
+             }, 
+             boxes = {
                pbox <- progressor(steps = nrow(x = sp))
                pbox(message = "Creating box coordinates", class = "sticky",
                     amount = 0)
@@ -3229,13 +3231,15 @@ ReadVizgen <- function(
                }
                pbox(type = "finish")
                do.call(what = "rbind", args = bx)
-             }, metadata = {
+             }, 
+             metadata = {
                pmeta <- progressor()
                pmeta(message = "Loading metadata", class = "sticky",
                      amount = 0)
                pmeta(type = "finish")
                sp[, metadata, drop = FALSE]
-             }, pixels = {
+             }, 
+             pixels = {
                ppixels <- progressor()
                ppixels(message = "Creating pixel-level molecule coordinates",
                        class = "sticky", amount = 0)
@@ -3243,7 +3247,8 @@ ReadVizgen <- function(
                                 stringsAsFactors = FALSE)
                ppixels(type = "finish")
                df
-             }, microns = {
+             }, 
+             microns = {
                pmicrons <- progressor()
                pmicrons(message = "Creating micron-level molecule coordinates",
                         class = "sticky", amount = 0)
