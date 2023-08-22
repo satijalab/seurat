@@ -3102,7 +3102,7 @@ ReadVizgen <- function(
                    segs_list <-
                      future.apply::future_lapply(segs %>% seq,
                                                  function(i) {
-                                                   segs[[i]] %>%
+                                                   segs[[i]][[1]] %>%
                                                      data.table::as.data.table(.) %>%
                                                      mutate(cell = names(segs)[i])
                                                  }
