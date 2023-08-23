@@ -179,7 +179,7 @@ CCAIntegration <- function(
     assay = NULL,
     layers = NULL,
     orig = NULL,
-    new.reduction = 'integrated.dr',
+    new.reduction = 'integrated.dr', 
     reference = NULL,
     features = NULL,
     normalization.method = c("LogNormalize", "SCT"),
@@ -234,6 +234,7 @@ CCAIntegration <- function(
   }
   }
 
+  additional_args  <- list(...)
   anchor <- FindIntegrationAnchors(object.list = object.list,
                                    anchor.features = features,
                                    scale = FALSE,
@@ -243,6 +244,7 @@ CCAIntegration <- function(
                                    k.filter = k.filter,
                                    reference = reference,
                                    verbose = verbose,
+                                   object=additional_args$org_object,
                                    ...
   )
   anchor@object.list <- lapply(anchor@object.list, function(x) {
@@ -357,6 +359,7 @@ RPCAIntegration <- function(
       suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
     }
   }
+  additional_args  <- list(...)
   anchor <- FindIntegrationAnchors(object.list = object.list,
                                    anchor.features = features,
                                    scale = FALSE,
@@ -366,6 +369,7 @@ RPCAIntegration <- function(
                                    k.filter = k.filter,
                                    reference = reference,
                                    verbose = verbose,
+                                   object=additional_args$org_object,
                                    ...
   )
   slot(object = anchor, name = "object.list") <- lapply(
@@ -460,7 +464,7 @@ JointPCAIntegration <- function(
       )
     }
   }
-
+  additional_args  <- list(...)
   anchor <- FindIntegrationAnchors(object.list = object.list,
                                    anchor.features = features.diet,
                                    scale = FALSE,
@@ -471,6 +475,7 @@ JointPCAIntegration <- function(
                                    k.filter = NA,
                                    reference = reference,
                                    verbose = verbose,
+                                   object=additional_args$org_object,
                                    ...
   )
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
@@ -619,6 +624,7 @@ IntegrateLayers <- function(
     scale.layer = scale.layer,
     features = features,
     groups = groups,
+    org_object = object,
     ...
   )
   for (i in names(x = value)) {

@@ -147,8 +147,12 @@ FindIntegrationAnchors <- function(
   nn.method = "annoy",
   n.trees = 50,
   eps = 0,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
+  #skylar
+  print("Using skylar's method instead of Seurat package")
+
   normalization.method <- match.arg(arg = normalization.method)
   reduction <- match.arg(arg = reduction)
   if (reduction == "rpca") {
@@ -310,7 +314,7 @@ FindIntegrationAnchors <- function(
     }
   }
   # determine all anchors
-  anchoring.fxn <- function(row) {
+  anchoring.fxn <- function(row, ...) {
     i <- combinations[row, 1]
     j <- combinations[row, 2]
     object.1 <- DietSeurat(
@@ -449,20 +453,76 @@ FindIntegrationAnchors <- function(
       eps = eps,
       verbose = verbose
     )
+
+    anchor.args  <- list(...)
+    if ('supervised.filter' %in% names(anchor.args$cl.args) && anchor.args$cl.args$supervised.filter == TRUE) {
+      if(!'celltype.obj1' %in% names(anchor.args$cl.args) || !'celltype.obj2' %in% names(anchor.args$cl.args)) {
+        stop("Column names for cell type in metadata must be provided when using supervised anchor filtering")
+      }
+
+      processCellTypeName <- function(celltype) {
+        celltype <- tolower(celltype) # Convert to lowercase
+        celltype <- gsub(" ", "", celltype) # Remove spaces
+        celltype <- gsub("cell[s]*", "", celltype) # Remove 'cell' or 'cells'
+        return(celltype)
+      }
+      
+      initial_num_anchors <- nrow(anchors)
+      
+      # Initialize an empty list to store filtered anchors
+      filtered_anchors_list <- list()
+      
+      for (k in 1:nrow(anchors)) {
+        original_idx1  <- anchors[k, 1]
+        original_idx2  <- anchors[k, 2]
+
+        celltype1 <- anchor.args$cl.args$object@meta.data[original_idx1, anchor.args$cl.args$celltype.obj1]
+        celltype2 <- anchor.args$cl.args$object@meta.data[original_idx2, anchor.args$cl.args$celltype.obj2]
+
+        celltype1 <- processCellTypeName(celltype1)
+        celltype2 <- processCellTypeName(celltype2)
+
+        if (celltype1 == celltype2) {
+          # Keep the anchor
+          filtered_anchors_list[[length(filtered_anchors_list) + 1]] <- anchors[k, , drop = FALSE]
+        }
+      }
+      
+      # Convert the list of filtered anchors back to a matrix
+      if (length(filtered_anchors_list) > 0) {
+        filtered_anchors <- do.call(rbind, filtered_anchors_list)
+      } else {
+        stop("No anchors remained after supervised filtering")
+      }
+      
+      # Update anchors with filtered anchors
+      anchors <- filtered_anchors
+
+      final_num_anchors <- nrow(anchors)
+      num_filtered_out <- initial_num_anchors - final_num_anchors
+
+      if (verbose) {
+        message("Filtered out ", num_filtered_out, " anchors, keeping ", final_num_anchors, " anchors")
+      }
+    }
+
     anchors[, 1] <- anchors[, 1] + offsets[i]
     anchors[, 2] <- anchors[, 2] + offsets[j]
     return(anchors)
   }
+  anchor.args <- list(...)
   if (nbrOfWorkers() == 1) {
     all.anchors <- pblapply(
       X = 1:nrow(x = combinations),
-      FUN = anchoring.fxn
+      FUN = anchoring.fxn,
+      cl.args = anchor.args
     )
   } else {
     all.anchors <- future_lapply(
       X = 1:nrow(x = combinations),
       FUN = anchoring.fxn,
-      future.seed = TRUE
+      future.seed = TRUE,
+      cl.args = anchor.args
     )
   }
   all.anchors <- do.call(what = 'rbind', args = all.anchors)
@@ -3908,8 +3968,12 @@ FindAnchors_v3 <- function(
   nn.idx2 = NULL,
   eps = 0,
   projected = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
+  if (verbose) {
+    message("running the V3 find anchors function")
+  }
   # compute local neighborhoods, use max of k.anchor and k.score if also scoring to avoid
   # recomputing neighborhoods
   k.neighbor <- k.anchor
@@ -3983,10 +4047,50 @@ FindAnchors_v3 <- function(
     integration.name = 'integrated',
     slot = 'anchors'
   )
+
+  #skylar main work
+  ## filter pairs of anchors that do not have matching celltype names 
+  # if (verbose) {
+  #   message("time for the big if")
+  # }
+
+  # # Function to clean up the cell type string
+  # clean_celltype <- function(celltype) {
+  #   cleaned <- tolower(celltype)         # Convert to lowercase
+  #   cleaned <- gsub(" ", "", cleaned)    # Remove spaces
+  #   cleaned <- gsub("cell(s)?", "", cleaned) # Remove the word "cell" or "cells"
+  #   return(cleaned)
+  # }
+
+  # if ('supervised.filter' %in% names(anchor.args) && anchor.args$supervised.filter == TRUE) {
+  #   if(verbose){
+  #     message("Filtering anchors based on cell type")
+  #   }
+  #   if('celltype.obj1' %in% names(anchor.args) && 'celltype.obj2' %in% names(anchor.args)) {
+  #     ref_celltypes <- object.pair[[1]]@meta.data[anchors[, 1], celltype.obj1]
+  #     query_celltypes <- object.pair[[2]]@meta.data[anchors[, 2], celltype.obj2]
+
+  #     ref_celltypes <- sapply(ref_celltypes, clean_celltype)
+  #     query_celltypes <- sapply(query_celltypes, clean_celltype)
+      
+  #     matching_pairs <- ref_celltypes == query_celltypes
+  #     anchors <- anchors[matching_pairs, ]
+      
+  #     # This part is retained from your original code but might need adjustment based on your actual needs
+  #     anchors[, 2] <- match(x = cells2, table = object.pair[[2]]@meta.data$orig.ident)[anchors[, 2]]
+  #     anchors <- t(anchors)
+  #   } else {
+  #     stop('Warning: Cell type metadata labels are missing. Please specify the cell type labels in the celltype.obj1 and celltype.obj2 arguments.')
+  #   }
+  # } else {
+  #   if(verbose){
+  #     message("Not filtering")
+  #   }
+  # }
   return(anchors)
 }
 
-
+# cookie
 FindAnchors_v5 <- function(
   object.pair,
   assay,
@@ -4008,8 +4112,12 @@ FindAnchors_v5 <- function(
   nn.idx2 = NULL,
   eps = 0,
   projected = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
+  if (verbose) {
+    message("running the V5 find anchors function")
+  }
   ref.assay <- assay[1]
   query.assay <- assay[2]
   reference.layers <- Layers(object.pair[[ref.assay]], search = 'data')[1]
@@ -4047,9 +4155,6 @@ FindAnchors_v5 <- function(
       projected = projected,
       verbose = verbose
     )
-    anchor.list[[i]][,2] <- match(x = cells2.i, table = cells2)[anchor.list[[i]][,2]]
-    anchor.list[[i]] <- t(anchor.list[[i]])
-  }
   anchors <- t(x = matrix(
     data = unlist(x = anchor.list),
     nrow = 3,
@@ -4060,6 +4165,7 @@ FindAnchors_v5 <- function(
   )
   colnames(anchors) <- c('cell1', 'cell2', 'score')
   return(anchors)
+  }
 }
 
 FindAnchors <- function(
@@ -4083,7 +4189,8 @@ FindAnchors <- function(
   nn.idx2 = NULL,
   eps = 0,
   projected = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (inherits(x = object.pair[[assay[1]]], what = 'Assay')) {
     FindAnchors.function <- FindAnchors_v3
@@ -4111,7 +4218,8 @@ FindAnchors <- function(
     nn.idx2 = nn.idx2,
     eps = eps,
     projected = projected,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   return(anchors)
 }

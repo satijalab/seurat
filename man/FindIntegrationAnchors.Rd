@@ -22,7 +22,8 @@ FindIntegrationAnchors(
   nn.method = "annoy",
   n.trees = 50,
   eps = 0,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 )
 }
 \arguments{

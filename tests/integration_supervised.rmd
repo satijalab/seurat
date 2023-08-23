@@ -1,0 +1,58 @@
+---
+title: "Filtered anchors"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+install.packages("Seurat")
+library(Seurat)
+options(Seurat.object.assay.version = "v5")
+library(SeuratData)
+library(patchwork)
+```
+
+```{r}
+InstallData('ifnb')
+ifnb <- LoadData('ifnb')
+```
+```{r}
+ifnb = UpdateSeuratObject(object = ifnb)
+ifnb[["RNA"]] <- as(ifnb[["RNA"]], Class = "Assay5")
+
+ifnb[["RNA"]] <- split(ifnb[["RNA"]], f = ifnb$stim)
+
+ifnb <- NormalizeData(ifnb)
+ifnb <- FindVariableFeatures(ifnb, selection.method = "vst", nfeatures = 2000)
+
+ifnb <- ScaleData(ifnb)
+ifnb <- RunPCA(ifnb)
+```
+```{r}
+remove.packages("Seurat")
+library(devtools)
+setwd("/Users/skylarli/seurat")
+document()
+options(Seurat.object.assay.version = 'v5')
+```
+```{r}
+ifnb <- IntegrateLayers(object = ifnb, 
+                        method = CCAIntegration,
+                        supervised.filter = TRUE, 
+                        celltype.obj1="seurat_annotations", 
+                        celltype.obj2="seurat_annotations")
+```
+
+```{r}
+# install.packages("Seurat")
+# library(Seurat)
+ifnb <- RunUMAP(ifnb, reduction = "integrated.dr", dims = 1:30)
+```
+```{r}
+ifnb <- FindNeighbors(ifnb, reduction = "integrated.dr", dims = 1:30)
+ifnb <- FindClusters(ifnb, resolution = 0.5)
+```
+```{r}
+p1 <- DimPlot(ifnb, reduction = "umap", group.by = "stim")
+p2 <- DimPlot(ifnb, reduction = "umap", label = TRUE, repel = TRUE)
+p1 + p2
+```
