@@ -456,8 +456,10 @@ FindIntegrationAnchors <- function(
 
     anchor.args  <- list(...)
     if ('supervised.filter' %in% names(anchor.args$cl.args) && anchor.args$cl.args$supervised.filter == TRUE) {
-      if(!'celltype.obj1' %in% names(anchor.args$cl.args) || !'celltype.obj2' %in% names(anchor.args$cl.args)) {
+      if(!'celltype.obj1' %in% names(anchor.args$cl.args) && !'celltype.obj2' %in% names(anchor.args$cl.args)) {
         stop("Column names for cell type in metadata must be provided when using supervised anchor filtering")
+      } else if (!'celltype.obj2' %in% names(anchor.args$cl.args)) {
+        anchor.args$cl.args$celltype.obj2  <- anchor.args$cl.args$celltype.obj1
       }
 
       processCellTypeName <- function(celltype) {
