@@ -1465,6 +1465,9 @@ SCTransform.StdAssay <- function(
 #' and the default is RNA
 #' @param clip.range Numeric of length two specifying the min and max values the
 #' Pearson residual will be clipped to
+#' @param reference.SCT.model reference.SCT.model If a reference SCT model should be used
+#' for calculating the residuals. When set to not NULL, ignores the `SCTModel`
+#' paramater.
 #' @param replace.value Recalculate residuals for all features, even if they are
 #' already present. Useful if you want to change the clip.range.
 #' @param na.rm For features where there is no feature model stored, return NA

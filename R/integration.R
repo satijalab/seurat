@@ -1867,6 +1867,9 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @param reduction.key Key for new dimensional reduction; defaults to creating
 #' one from \code{reduction.name}
 #' @param layers Names of layers for correction.
+#' @param sketched.layers Names of sketched layers, defaults to all 
+#' layers of \dQuote{\code{object[[assay]]}}
+#' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and message
 #'
 #' @return Returns a Seurat object with an integrated dimensional reduction
@@ -3035,6 +3038,7 @@ SelectIntegrationFeatures <- function(
 #' }
 #' @param layers Name of layers to use for integration feature selection
 #' @param verbose Print messages
+#' @param ... Arguments passed on to \code{method}
 #' 
 #' @export
 #'
@@ -3066,6 +3070,7 @@ SelectIntegrationFeatures5 <- function(
 #' @param nfeatures Number of features to return for integration
 #' @param assay Name of assay to use for integration feature selection
 #' @param verbose Print messages
+#' @param ... Arguments passed on to \code{method}
 #' 
 #' @export
 #'

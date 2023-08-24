@@ -22,6 +22,18 @@ NULL
 #' @param scale.layer Ignored
 #' @param layers Ignored
 #' @param key Key for Harmony dimensional reduction
+#' @param npcs If doing PCA on input matrix, number of PCs to compute
+#' @param theta Diversity clustering penalty parameter
+#' @param lambda Ridge regression penalty parameter
+#' @param sigma Width of soft kmeans clusters
+#' @param nclust Number of clusters in model
+#' @param tau Protection against overclustering small datasets with large ones
+#' @param block.size What proportion of cells to update during clustering
+#' @param max.iter.harmony Maximum number of rounds to run Harmony
+#' @param max.iter.cluster Maximum number of rounds to run clustering at each round of Harmony
+#' @param epsilon.cluster Convergence tolerance for clustering round of Harmony
+#' @param epsilon.harmony Convergence tolerance for Harmony
+#' @param verbose Whether to print progress messages. TRUE to print, FALSE to suppress
 #' @param ... Ignored
 #'
 #' @return ...
