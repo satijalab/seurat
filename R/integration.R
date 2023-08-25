@@ -150,8 +150,6 @@ FindIntegrationAnchors <- function(
   verbose = TRUE,
   ...
 ) {
-  #skylar
-  print("Using skylar's method instead of Seurat package")
 
   normalization.method <- match.arg(arg = normalization.method)
   reduction <- match.arg(arg = reduction)
@@ -3973,9 +3971,6 @@ FindAnchors_v3 <- function(
   verbose = TRUE,
   ...
 ) {
-  if (verbose) {
-    message("running the V3 find anchors function")
-  }
   # compute local neighborhoods, use max of k.anchor and k.score if also scoring to avoid
   # recomputing neighborhoods
   k.neighbor <- k.anchor
@@ -4049,50 +4044,9 @@ FindAnchors_v3 <- function(
     integration.name = 'integrated',
     slot = 'anchors'
   )
-
-  #skylar main work
-  ## filter pairs of anchors that do not have matching celltype names 
-  # if (verbose) {
-  #   message("time for the big if")
-  # }
-
-  # # Function to clean up the cell type string
-  # clean_celltype <- function(celltype) {
-  #   cleaned <- tolower(celltype)         # Convert to lowercase
-  #   cleaned <- gsub(" ", "", cleaned)    # Remove spaces
-  #   cleaned <- gsub("cell(s)?", "", cleaned) # Remove the word "cell" or "cells"
-  #   return(cleaned)
-  # }
-
-  # if ('supervised.filter' %in% names(anchor.args) && anchor.args$supervised.filter == TRUE) {
-  #   if(verbose){
-  #     message("Filtering anchors based on cell type")
-  #   }
-  #   if('celltype.obj1' %in% names(anchor.args) && 'celltype.obj2' %in% names(anchor.args)) {
-  #     ref_celltypes <- object.pair[[1]]@meta.data[anchors[, 1], celltype.obj1]
-  #     query_celltypes <- object.pair[[2]]@meta.data[anchors[, 2], celltype.obj2]
-
-  #     ref_celltypes <- sapply(ref_celltypes, clean_celltype)
-  #     query_celltypes <- sapply(query_celltypes, clean_celltype)
-      
-  #     matching_pairs <- ref_celltypes == query_celltypes
-  #     anchors <- anchors[matching_pairs, ]
-      
-  #     # This part is retained from your original code but might need adjustment based on your actual needs
-  #     anchors[, 2] <- match(x = cells2, table = object.pair[[2]]@meta.data$orig.ident)[anchors[, 2]]
-  #     anchors <- t(anchors)
-  #   } else {
-  #     stop('Warning: Cell type metadata labels are missing. Please specify the cell type labels in the celltype.obj1 and celltype.obj2 arguments.')
-  #   }
-  # } else {
-  #   if(verbose){
-  #     message("Not filtering")
-  #   }
-  # }
   return(anchors)
 }
 
-# cookie
 FindAnchors_v5 <- function(
   object.pair,
   assay,
@@ -4117,9 +4071,6 @@ FindAnchors_v5 <- function(
   verbose = TRUE,
   ...
 ) {
-  if (verbose) {
-    message("running the V5 find anchors function")
-  }
   ref.assay <- assay[1]
   query.assay <- assay[2]
   reference.layers <- Layers(object.pair[[ref.assay]], search = 'data')[1]

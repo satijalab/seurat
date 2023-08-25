@@ -1,10 +1,9 @@
 ---
-title: "Filtered anchors"
+title: "Integration with supervised anchor filtering"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
-install.packages("Seurat")
+```{r setup, include=FALSE}library(Seurat)
 library(Seurat)
 options(Seurat.object.assay.version = "v5")
 library(SeuratData)
@@ -28,31 +27,12 @@ ifnb <- ScaleData(ifnb)
 ifnb <- RunPCA(ifnb)
 ```
 ```{r}
-remove.packages("Seurat")
-library(devtools)
-setwd("/Users/skylarli/seurat")
-document()
-options(Seurat.object.assay.version = 'v5')
-```
-```{r}
 ifnb <- IntegrateLayers(object = ifnb, 
                         method = CCAIntegration,
-                        supervised.filter = TRUE, 
+                        supervised.filter = TRUE,
                         celltype.obj1="seurat_annotations", 
                         celltype.obj2="seurat_annotations")
 ```
-
 ```{r}
-# install.packages("Seurat")
-# library(Seurat)
-ifnb <- RunUMAP(ifnb, reduction = "integrated.dr", dims = 1:30)
-```
-```{r}
-ifnb <- FindNeighbors(ifnb, reduction = "integrated.dr", dims = 1:30)
-ifnb <- FindClusters(ifnb, resolution = 0.5)
-```
-```{r}
-p1 <- DimPlot(ifnb, reduction = "umap", group.by = "stim")
-p2 <- DimPlot(ifnb, reduction = "umap", label = TRUE, repel = TRUE)
-p1 + p2
+saveRDS(ifnb, "/User/path_to_document")
 ```
