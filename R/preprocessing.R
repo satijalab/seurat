@@ -2484,6 +2484,85 @@ ReadVitessce <- function(
   return(outs)
 }
 
+#' @import dplyr
+#' @import sf
+#' @import magrittr
+#' Helper function to filter geometryy polygons using \code{sf} package
+#' modified function from \code{SpatialFeatureExperiment:::.filter_polygons}
+.filter_polygons <- 
+  function(polys, # object of class \code{sf} and \code{data.frame}
+           min.area, # minimal polygon area to use as a threshold
+           BPPARAM = BiocParallel::SerialParam(),
+           verbose) {
+    # Sanity check on nested polygon lists
+    test.segs <- lapply(polys %>% st_geometry() %>% seq, function(i) { 
+      polys %>% 
+        st_geometry() %>% .[[i]] %>% length() }) %>% unlist()
+    if (any(test.segs > 1)) {
+      segs.art.index <- which(test.segs > 1)
+      if (verbose) { message("Sanity checks on cell segmentation polygons:", "\n", 
+                             ">>> ..found ", segs.art.index %>% length,
+                             " cells with (nested) polygon lists", "\n",
+                             ">>> ..applying filtering") }
+    }
+    # remove empty elements
+    polys.orig <- polys
+    polys %<>% filter(!st_is_empty(.))
+    empty.inds <- which(!polys.orig$ID %in% polys$ID)
+    if (verbose && length(empty.inds)) { message(">>> ..removing ", 
+                                                 length(empty.inds), " empty polygons") }
+    
+    if (st_geometry_type(polys, by_geometry = FALSE) == "MULTIPOLYGON") {
+      polys_sep <- lapply(st_geometry(polys), function(x) {
+        st_cast(st_sfc(x), "POLYGON")
+      })
+      areas <- lapply(polys_sep, st_area)
+      
+      if (!is.null(min.area)) {
+        which_keep <- lapply(areas, function(x) which(x > min.area))
+        multi_inds <- which(lengths(which_keep) > 1L)
+        if (length(multi_inds)) {
+          if (verbose) { message("There are ", length(multi_inds), " cells with multiple",
+                                 " pieces in cell segmentation larger than min.area,",
+                                 " whose first 10 indices are: ",
+                                 paste(multi_inds %>% head(10), # print only first 10 indices
+                                       collapse = ", "),
+                                 ". The largest piece is kept.") }
+          which_keep[multi_inds] <- lapply(areas[multi_inds], which.max)
+        }
+        inds <- lengths(which_keep) > 0L
+        polys <- polys[inds,]
+        # using parallelization, else can take a while when `which_keep` length is towards 100K
+        which_keep <- unlist(which_keep[inds])
+        geo <- st_geometry(polys)
+        new_geo <- 
+          BiocParallel::bplapply(seq_along(which_keep), function(i) {
+            geo[[i]] <- st_cast(geo[i], "POLYGON")[[which_keep[i]]] %>% 
+              unique() %>% # remove any duplicates
+              st_polygon()
+          }, BPPARAM = BPPARAM) |> st_sfc()
+        st_geometry(polys) <- new_geo
+      } else if (is.null(min.area)) {
+        # use only maximal area, ie the largest polygon
+        if (verbose) { message(">>> ..keeping polygons with the largest area only") }
+        which_keep <- 
+          lapply(areas, function(x) which.max(x)) %>% unlist()
+        geo <- st_geometry(polys)  
+        new_geo <- 
+          BiocParallel::bplapply(seq_along(which_keep), function(i) {
+            geo[[i]] <- st_cast(geo[i], "POLYGON")[[which_keep[i]]] %>% 
+              unique() %>% # remove any duplicates
+              st_polygon()
+          }, BPPARAM = BPPARAM) |> st_sfc()
+        st_geometry(polys) <- new_geo
+      }
+    } else {
+      inds <- st_area(st_geometry(polys)) > min.area
+      polys <- polys[inds,]
+    }         
+    polys
+  }
+                 
 #' Read and Load MERFISH Input from Vizgen
 #'
 #' Read and load in MERFISH data from Vizgen-formatted files
