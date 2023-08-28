@@ -70,7 +70,7 @@ test_that("NormalizeData scales properly", {
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
   expect_equal(
     LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
@@ -238,19 +238,19 @@ object <- FindVariableFeatures(object = object, selection.method = "mean.var.plo
 test_that("mean.var.plot selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PTGDR", "SATB1", "ZNF330", "S100B"))
   expect_equal(length(x = VariableFeatures(object = object)), 20)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
-  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
 })
 
 object <- FindVariableFeatures(object, selection.method = "dispersion", verbose = FALSE)
 test_that("dispersion selection option returns expected values", {
   expect_equal(VariableFeatures(object = object)[1:4], c("PCMT1", "PPBP", "LYAR", "VDAC3"))
   expect_equal(length(x = VariableFeatures(object = object)), 230)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
-  expect_equal(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
-  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
-  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]], selection.method = 'mvp')[VariableFeatures(object = object), "dispersion"])))
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$mean[1:2], c(8.328927, 8.444462), tolerance = 1e-6)
+  expect_equal(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e-6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]], method = 'mvp')$dispersion.scaled[1:2]), c(0.1113214, -0.1332181523), tolerance = 1e-6)
+  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]], method = 'mvp')[VariableFeatures(object = object), "dispersion"])))
 })
 
 object <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)

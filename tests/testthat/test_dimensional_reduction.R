@@ -39,9 +39,10 @@ test_that("pca returns total variance (see #982)", {
   row.names(x = dummyexpMat) <- paste0("gene", seq(nrow(x = dummyexpMat)))
 
   # Create Seurat object for testing
-  obj <- CreateSeuratObject(counts = dummyexpMat)
+  obj <- CreateSeuratObject(counts = as.sparse(dummyexpMat))
 
-  # Scale and compute PCA, using RunPCA
+  # Normalize, scale, and compute PCA, using RunPCA
+  # obj <- NormalizeData(object = obj, verbose = FALSE)
   obj <- ScaleData(object = obj, verbose = FALSE)
   pca_result <- suppressWarnings(expr = RunPCA(
     object = obj,
