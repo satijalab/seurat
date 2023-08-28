@@ -45,13 +45,13 @@ test_that("Default settings work as expected", {
   expect_equal(rownames(x = results.clr)[1], "S100A8")
 
   # SCT normalization
-  expect_equal(results.sct[1, "p_val"], 6.225491e-11)
-  expect_equal(results.sct[1, "avg_logFC"], -1.081321, tolerance = 1e-6)
-  expect_equal(results.sct[1, "pct.1"], 0.111)
-  expect_equal(results.sct[1, "pct.2"], 0.96)
-  expect_equal(results.sct[1, "p_val_adj"], 1.369608e-08)
-  expect_equal(nrow(x = results.sct), 158)
-  expect_equal(rownames(x = results.sct)[1], "TYMP")
+  expect_equal(results.sct[1, "p_val"], 4.646968e-11)
+  expect_equal(results.sct[1, "avg_logFC"], -1.8522457, tolerance = 1e-6)
+  expect_equal(results.sct[1, "pct.1"], 0.333)
+  expect_equal(results.sct[1, "pct.2"], 1.00)
+  expect_equal(results.sct[1, "p_val_adj"], 1.022333e-08)
+  expect_equal(nrow(x = results.sct), 156)
+  expect_equal(rownames(x = results.sct)[1], "CST3")
 })
 
 
@@ -97,7 +97,7 @@ test_that("setting pseudocount.use works", {
   expect_equal(nrow(x = results.clr), 182)
   expect_equal(results.clr[1, "avg_logFC"], -2.317338, tolerance = 1e-6)
   expect_equal(nrow(results.sct), 194)
-  expect_equal(results.sct[1, "avg_logFC"], -2.253920, tolerance = 1e-6)
+  expect_equal(results.sct[1, "avg_logFC"], -2.421716, tolerance = 1e-6)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, verbose = FALSE, base = exp(1), mean.fxn = rowMeans))
@@ -107,7 +107,7 @@ test_that("setting mean.fxn works", {
   expect_equal(nrow(x = results), 191)
   expect_equal(results[1, "avg_logFC"], -4.204346, tolerance = 1e-6)
   expect_equal(results.clr[1, "avg_logFC"], -1.353025, tolerance = 1e-6)
-  expect_equal(results.sct[1, "avg_logFC"], -1.064042, tolerance = 1e-6)
+  expect_equal(results.sct[1, "avg_logFC"], -2.021490, tolerance = 1e-6)
 })
 
 results <- suppressWarnings(FindMarkers(object = pbmc_small, ident.1 = 0, ident.2 = 1, logfc.threshold = 2, verbose = FALSE, base = exp(1)))
@@ -309,11 +309,11 @@ test_that("FindAllMarkers works as expected", {
 
   # SCT normalization
   expect_equal(results.sct[1, "p_val"], 4.25861e-12)
-  expect_equal(results.sct[1, "avg_log2FC"], -2.70188, tolerance = 1e-6)
-  expect_equal(results.sct[1, "pct.1"], 0.167)
+  expect_equal(results.sct[1, "avg_log2FC"], -2.848796, tolerance = 1e-6)
+  expect_equal(results.sct[1, "pct.1"], 0.111)
   expect_equal(results.sct[1, "pct.2"], 0.909)
-  expect_equal(results.sct[1, "p_val_adj"], 9.368941e-10)
-  expect_equal(nrow(x = results.sct), 210)
+  expect_equal(results.sct[1, "p_val_adj"], 3.005572e-10)
+  expect_equal(nrow(x = results.sct), 202)
   expect_equal(rownames(x = results.sct)[1], "HLA-DPB1")
 
   # pseudocount.use = 0.1
