@@ -3054,8 +3054,12 @@ ReadVizgen <- function(
                    .filter_polygons(., 
                                     min.area = min.area, 
                                     BPPARAM = 
-                                      if (exists("BPParam")) 
-                                        { BPParam } else { SerialParam() }, 
+                                      if (BPParam$workers > 2) {
+                                        # use 2 workers less than total workers
+                                        BiocParallel::MulticoreParam(14 - 2, tasks = 50L, 
+                                                                     force.GC = FALSE, progressbar = TRUE)
+                                      } else if (!BPParam$workers > 2)
+                                      { BPParam } else { SerialParam() }, 
                                     verbose = verbose)
                  
                  # Get filtered segmentation geometries/polygons
