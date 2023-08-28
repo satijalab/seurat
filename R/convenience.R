@@ -155,6 +155,7 @@ LoadVizgen <- function(
     add.zIndex = TRUE, 
     update.object = TRUE,
     add.molecules = TRUE,
+    min.area = 5,
     verbose,
     ...)
 {
@@ -163,6 +164,7 @@ LoadVizgen <- function(
                      mol.type = mol.type,
                      filter = filter,
                      z = z,
+                     min.area = min.area,
                      verbose = verbose,
                      ...)
   
@@ -275,7 +277,6 @@ LoadVizgen <- function(
   
   if (verbose) { message("Object is ready!") } 
   return(obj)
-  
 }
 
 #' @return \code{LoadXenium}: A \code{\link[SeuratObject]{Seurat}} object
