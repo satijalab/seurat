@@ -2484,6 +2484,85 @@ ReadVitessce <- function(
   return(outs)
 }
 
+#' @import dplyr
+#' @import sf
+#' @import magrittr
+#' Helper function to filter geometryy polygons using \code{sf} package
+#' modified function from \code{SpatialFeatureExperiment:::.filter_polygons}
+.filter_polygons <- 
+  function(polys, # object of class \code{sf} and \code{data.frame}
+           min.area, # minimal polygon area to use as a threshold
+           BPPARAM = BiocParallel::SerialParam(),
+           verbose) {
+    # Sanity check on nested polygon lists
+    test.segs <- lapply(polys %>% st_geometry() %>% seq, function(i) { 
+      polys %>% 
+        st_geometry() %>% .[[i]] %>% length() }) %>% unlist()
+    if (any(test.segs > 1)) {
+      segs.art.index <- which(test.segs > 1)
+      if (verbose) { message("Sanity checks on cell segmentation polygons:", "\n", 
+                             ">>> ..found ", segs.art.index %>% length,
+                             " cells with (nested) polygon lists", "\n",
+                             ">>> ..applying filtering") }
+    }
+    # remove empty elements
+    polys.orig <- polys
+    polys %<>% filter(!st_is_empty(.))
+    empty.inds <- which(!polys.orig$ID %in% polys$ID)
+    if (verbose && length(empty.inds)) { message(">>> ..removing ", 
+                                                 length(empty.inds), " empty polygons") }
+    
+    if (st_geometry_type(polys, by_geometry = FALSE) == "MULTIPOLYGON") {
+      polys_sep <- lapply(st_geometry(polys), function(x) {
+        st_cast(st_sfc(x), "POLYGON")
+      })
+      areas <- lapply(polys_sep, st_area)
+      
+      if (!is.null(min.area)) {
+        which_keep <- lapply(areas, function(x) which(x > min.area))
+        multi_inds <- which(lengths(which_keep) > 1L)
+        if (length(multi_inds)) {
+          if (verbose) { message("There are ", length(multi_inds), " cells with multiple",
+                                 " pieces in cell segmentation larger than min.area,",
+                                 " whose first 10 indices are: ",
+                                 paste(multi_inds %>% head(10), # print only first 10 indices
+                                       collapse = ", "),
+                                 ". The largest piece is kept.") }
+          which_keep[multi_inds] <- lapply(areas[multi_inds], which.max)
+        }
+        inds <- lengths(which_keep) > 0L
+        polys <- polys[inds,]
+        # using parallelization, else can take a while when `which_keep` length is towards 100K
+        which_keep <- unlist(which_keep[inds])
+        geo <- st_geometry(polys)
+        new_geo <- 
+          BiocParallel::bplapply(seq_along(which_keep), function(i) {
+            geo[[i]] <- st_cast(geo[i], "POLYGON")[[which_keep[i]]] %>% 
+              unique() %>% # remove any duplicates
+              st_polygon()
+          }, BPPARAM = BPPARAM) |> st_sfc()
+        st_geometry(polys) <- new_geo
+      } else if (is.null(min.area)) {
+        # use only maximal area, ie the largest polygon
+        if (verbose) { message(">>> ..keeping polygons with the largest area only") }
+        which_keep <- 
+          lapply(areas, function(x) which.max(x)) %>% unlist()
+        geo <- st_geometry(polys)  
+        new_geo <- 
+          BiocParallel::bplapply(seq_along(which_keep), function(i) {
+            geo[[i]] <- st_cast(geo[i], "POLYGON")[[which_keep[i]]] %>% 
+              unique() %>% # remove any duplicates
+              st_polygon()
+          }, BPPARAM = BPPARAM) |> st_sfc()
+        st_geometry(polys) <- new_geo
+      }
+    } else {
+      inds <- st_area(st_geometry(polys)) > min.area
+      polys <- polys[inds,]
+    }         
+    polys
+  }
+                 
 #' Read and Load MERFISH Input from Vizgen
 #'
 #' Read and load in MERFISH data from Vizgen-formatted files
@@ -2530,6 +2609,14 @@ ReadVitessce <- function(
 #'  \item \dQuote{fov}: cell's fov
 #' }
 #' @param z Z-index to load; must be between 0 and 6, inclusive
+#' @param use.BiocParallel If to use \code{BiocParallel::bplapply}, 
+#' default is \code{TRUE}, if \code{FALSE}, uses \code{future} library
+#' @param workers.MulticoreParam Number of cores to use for \code{BiocParallel::bplapply}
+#' @param DTthreads.pct Optional, set percentage eg \code{50} of total threads to use for \code{data.table::fread}, 
+#' if set to \code{NULL} will use default setting as in \code{data.table::getDTthreads(verbose = T)}
+#' @param min.area Minimal polygon area to use as a threshold for filtering, if set to \code{NULL} 
+#' the maximal area (ie, the largest polygon) will be used instead.
+#' @param verbose If to print processing messages using \code{message}; default is to \code{FALSE}
 #'
 #' @return \code{ReadVizgen}: A list with some combination of the
 #' following values:
@@ -2552,6 +2639,11 @@ ReadVitessce <- function(
 #' }
 #'
 #' @importFrom future.apply future_lapply
+#' @import dplyr
+#' @importFrom purrr lmap
+#' @import sf
+#' @import magrittr
+#' @importFrom progressr progressor
 #'
 #' @export
 #'
@@ -2566,20 +2658,69 @@ ReadVitessce <- function(
 #' @template note-reqdpkg
 #'
 ReadVizgen <- function(
-  data.dir,
-  transcripts = NULL,
-  spatial = NULL,
-  molecules = NULL,
-  type = 'segmentations',
-  mol.type = 'microns',
-  metadata = NULL,
-  filter = NA_character_,
-  z = 3L
+    data.dir,
+    transcripts = NULL,
+    spatial = NULL,
+    molecules = NULL,
+    type = c('centroids', 'segmentations'),
+    mol.type = 'microns',
+    metadata = NULL,
+    filter = NA_character_,	
+    z = 3L,
+    use.BiocParallel = TRUE,
+    workers.MulticoreParam = 12,
+    DTthreads.pct = NULL,
+    min.area = 5,
+    verbose = FALSE
 ) {
   # TODO: handle multiple segmentations per z-plane
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Please install 'data.table' for this function")
+  # NOTE: this is only needed when segmentations differ between z-planes
+  
+  # packages that need to be installed a priori
+  pkgs <- c("data.table", "arrow", "sfarrow",
+            "tidyverse", "sf", "BiocParallel", "Matrix")
+  lapply(pkgs %>% length %>% seq, function(i) 
+  { !requireNamespace(pkgs[i], quietly = TRUE) } ) %>% 
+    unlist %>% 
+    { if (c(which(.) > 0) %>% any()) 
+    { c("Please install ->", "\n",
+        paste0("'", pkgs[which(.)], "'", collapse = ", "), " for this function") %>% 
+        stop(., call. = FALSE) } }
+  
+  # setting workers to use for parallelization - `BiocParallel` ----
+  if (use.BiocParallel) {
+    if (verbose) { message("Using parallelization with: `BiocParallel`") }
+    if (is.null(workers.MulticoreParam)) { 
+      workers.MulticoreParam <- quantile(BiocParallel::multicoreWorkers() %>% seq)[4] %>% ceiling
+      if (verbose) { message(workers.MulticoreParam, " of total workers available will be used") }
+    } else { if (verbose) { message("Setting total workers to: ", workers.MulticoreParam) } }   
+  } else { if (verbose) { message("Using parallelization with: `future`", "\n",
+                                  "NOTE: set workers for parallelization, eg: `future::plan('multisession', workers = 10)`") }
   }
+  # support parallelization on unix and windows
+  # credit to https://github.com/Bioconductor/BiocParallel/issues/98
+  BPParam <-
+    if (.Platform$OS.type == "windows") {
+      if (verbose) { message("Using parallelization for Windows with: `BiocParallel::SerialParam`") }
+      BiocParallel::SerialParam(force.GC = FALSE, progressbar = TRUE)
+    } else {
+      BiocParallel::MulticoreParam(workers.MulticoreParam, tasks = 50L, 
+                                   force.GC = FALSE, progressbar = TRUE)
+    }
+  
+  # (optional) 
+  # setting additional cores to use for parallelization in `data.table`
+  # might allow to read large files faster
+  if (!is.null(DTthreads.pct)) {
+    if (verbose) { message("Using parallelization with: `data.table`", "\n",
+                           "..for `data.table::fread`") }
+    data.table::setDTthreads(threads = 0) # all cores
+    DTthreads <- data.table::getDTthreads() # max cores
+    DTthreads <- c((DTthreads * DTthreads.pct) / 100) %>% ceiling # percentage from total threads
+    if (verbose) { message("Setting DTthreads to: ", DTthreads, " (", paste0(DTthreads.pct, "%"), ")") }
+    data.table::setDTthreads(threads = DTthreads) # set
+  }
+  
   # hdf5r is only used for loading polygon boundaries
   # Not needed for all Vizgen input
   hdf5 <- requireNamespace("hdf5r", quietly = TRUE)
@@ -2597,7 +2738,7 @@ ReadVizgen <- function(
   if (!is.null(x = metadata)) {
     metadata <- match.arg(
       arg = metadata,
-      choices = c("volume", "fov"),
+      choices = c('volume', 'fov'),
       several.ok = TRUE
     )
   }
@@ -2613,13 +2754,87 @@ ReadVizgen <- function(
   ))
   if (use.dir && !dir.exists(paths = data.dir)) {
     stop("Cannot find Vizgen directory ", data.dir)
+  } else { 
+    if (verbose) { message("Reading data from:" , "\n", data.dir) }
   }
-  # Identify input files
-  files <- c(
-    transcripts = transcripts %||% 'cell_by_gene[_a-zA-Z0-9]*.csv',
-    spatial = spatial %||% 'cell_metadata[_a-zA-Z0-9]*.csv',
-    molecules = molecules %||% 'detected_transcripts[_a-zA-Z0-9]*.csv'
+  
+  # Use segmentation output from ".parquet" file ----
+  # check if file exists
+  parq <-
+    # look in the current directory
+    list.files(data.dir, 
+               pattern = ".parquet$",
+               full.names = TRUE) %>%
+    { if (length(.) == 0) { 
+      # look in the sub directory (if nothing is found)
+      list.files(data.dir,
+                 pattern = ".parquet$",
+                 full.names = TRUE,
+                 recursive = TRUE)
+    } else { (.) }}
+  # set to use .parquet" file if present
+  use.parquet <- 
+    parq %>% length() %>% any
+  
+  if (use.parquet) {
+    if (verbose) { message("Cell segmentations are found in `.parquet` file", "\n", 
+                           ">>> using ", gsub("s", "", mol.type), " space coordinates") }}
+  
+  # Identify input files..
+  # if no files are found in the current directory..
+  #..look for them in the sub directory
+  files <- c(transcripts = NULL %||% 
+               list.files(data.dir, 
+                          pattern = "cell_by_gene",
+                          full.names = TRUE) %>%
+               { if (length(.) == 0) { 
+                 list.files(data.dir,
+                            pattern = "cell_by_gene",
+                            full.names = TRUE,
+                            recursive = TRUE)
+               } else { (.) }} %>% 
+               { if (length(.) > 1) { 
+                 stop("There are > 1 `cell_by_gene` files",
+                      "\n", "make sure only 1 file is read")
+               } else if (!length(.)) {
+                 stop("No `cell_by_gene` file is available")
+               } else { (.) }},
+             
+             spatial = NULL %||% 
+               list.files(data.dir, 
+                          pattern = "cell_metadata",
+                          full.names = TRUE) %>%
+               { if (length(.) == 0) { 
+                 list.files(data.dir,
+                            pattern = "cell_metadata",
+                            full.names = TRUE,
+                            recursive = TRUE)
+               } else { (.) }} %>% 
+               { if (length(.) > 1) { 
+                 stop("There are > 1 `cell_metadata` files",
+                      "\n", "make sure only 1 file is read")
+               } else if (!length(.)) {
+                 stop("No `cell_metadata` file is available")
+               } else { (.) }},
+             
+             molecules = NULL %||% 
+               list.files(data.dir, 
+                          pattern = "detected_transcripts",
+                          full.names = TRUE) %>%
+               { if (length(.) == 0) { 
+                 list.files(data.dir,
+                            pattern = "detected_transcripts",
+                            full.names = TRUE,
+                            recursive = TRUE)
+               } else { (.) }} %>%
+               { if(length(.) > 1) { 
+                 stop("There are > 1 `detected_transcripts` files", 
+                      "\n", "make sure only 1 file is read")
+               } else if (!length(.)) {
+                 stop("No `detected_transcripts` file is available")
+               } else { (.) }}
   )
+  
   files[is.na(x = files)] <- NA_character_
   h5dir <- file.path(
     ifelse(
@@ -2671,26 +2886,37 @@ ReadVizgen <- function(
     )
     pprecoord(type = 'finish')
     rownames(x = sp) <- as.character(x = sp[, 1])
-    sp <- sp[, -1, drop = FALSE]
+    #sp <- sp[, -1, drop = FALSE]
+    if ((names(sp) == "transcript_count") %>% any) {
+      if (verbose) { message(">>> filtering `cell_metadata` - keep cells with `transcript_count` > 0") }
+      sp %<>% select(-1) %>% filter(transcript_count > 0)
+    } else { sp %<>% select(-1) }
+    
     # Check to see if we should load segmentations
     if ('segmentations' %in% type) {
-      poly <- if (isFALSE(x = hdf5)) {
+      poly <- if (isFALSE(x = hdf5) && !use.parquet) {
         warning(
           "Cannot find hdf5r; unable to load segmentation vertices",
           immediate. = TRUE
         )
         FALSE
-      } else if (!dir.exists(paths = h5dir)) {
-        warning("Cannot find cell boundary H5 files", immediate. = TRUE)
+      } else if (!dir.exists(paths = h5dir) && !use.parquet) {
+        warning("Cannot find cell boundary H5 or `.parquet` file(s)", immediate. = TRUE)
         FALSE
-      } else {
+      } else if (use.parquet) { # for non .hdf5 files
+        if (length(parq)) {
+        }
         TRUE
       }
-      if (isFALSE(x = poly)) {
+      else {
+        TRUE
+      }
+      if (isFALSE(x = poly) && isFALSE(use.parquet)) {
         type <- setdiff(x = type, y = 'segmentations')
       }
     }
-    spatials <- rep_len(x = files[['spatial']], length.out = length(x = type))
+    spatials <- rep_len(x = files[['spatial']], 
+                        length.out = length(x = type))
     names(x = spatials) <- type
     files <- c(files, spatials)
     files <- files[setdiff(x = names(x = files), y = 'spatial')]
@@ -2709,6 +2935,8 @@ ReadVizgen <- function(
       class = 'sticky',
       amount = 0
     )
+    
+    # optionally - load molecules
     mx <- data.table::fread(
       file = files[['molecules']],
       sep = ',',
@@ -2731,199 +2959,303 @@ ReadVizgen <- function(
     files <- files[setdiff(x = names(x = files), y = 'molecules')]
   }
   files <- files[!is.na(x = files)]
-  # Read input data
+  
+  # Read input data ----
   outs <- vector(mode = 'list', length = length(x = files))
   names(x = outs) <- names(x = files)
   if (!is.null(metadata)) {
     outs <- c(outs, list(metadata = NULL))
   }
   for (otype in names(x = outs)) {
-    outs[[otype]] <- switch(
-      EXPR = otype,
-      'transcripts' = {
-        ptx <- progressor()
-        ptx(message = 'Reading counts matrix', class = 'sticky', amount = 0)
-        tx <- data.table::fread(
-          file = files[[otype]],
-          sep = ',',
-          data.table = FALSE,
-          verbose = FALSE
-        )
-        rownames(x = tx) <- as.character(x = tx[, 1])
-        tx <- t(x = as.matrix(x = tx[, -1, drop = FALSE]))
-        if (!is.na(x = filter)) {
-          ptx(
-            message = paste("Filtering genes with pattern", filter),
-            class = 'sticky',
-            amount = 0
-          )
-          tx <- tx[!grepl(pattern = filter, x = rownames(x = tx)), , drop = FALSE]
-        }
-        ratio <- getOption(x = 'Seurat.input.sparse_ratio', default = 0.4)
-        if ((sum(tx == 0) / length(x = tx)) > ratio) {
-          ptx(
-            message = 'Converting counts to sparse matrix',
-            class = 'sticky',
-            amount = 0
-          )
-          tx <- as.sparse(x = tx)
-        }
-        ptx(type = 'finish')
-        tx
-      },
-      'centroids' = {
-        pcents <- progressor()
-        pcents(
-          message = 'Creating centroid coordinates',
-          class = 'sticky',
-          amount = 0
-        )
-        pcents(type = 'finish')
-        data.frame(
-          x = sp$center_x,
-          y = sp$center_y,
-          cell = rownames(x = sp),
-          stringsAsFactors = FALSE
-        )
-      },
-      'segmentations' = {
-        ppoly <- progressor(steps = length(x = unique(x = sp$fov)))
-        ppoly(
-          message = "Creating polygon coordinates",
-          class = 'sticky',
-          amount = 0
-        )
-        pg <- future_lapply(
-          X = unique(x = sp$fov),
-          FUN = function(f, ...) {
-            fname <- file.path(h5dir, paste0('feature_data_', f, '.hdf5'))
-            if (!file.exists(fname)) {
-              warning(
-                "Cannot find HDF5 file for field of view ",
-                f,
-                immediate. = TRUE
-              )
-              return(NULL)
-            }
-            hfile <- hdf5r::H5File$new(filename = fname, mode = 'r')
-            on.exit(expr = hfile$close_all())
-            cells <- rownames(x = subset(x = sp, subset = fov == f))
-            df <- lapply(
-              X = cells,
-              FUN = function(x) {
-                return(tryCatch(
-                  expr = {
-                    cc <- hfile[['featuredata']][[x]][[zidx]][['p_0']][['coordinates']]$read()
-                    cc <- as.data.frame(x = t(x = cc))
-                    colnames(x = cc) <- c('x', 'y')
-                    cc$cell <- x
-                    cc
-                  },
-                  error = function(...) {
-                    return(NULL)
-                  }
-                ))
-              }
-            )
-            ppoly()
-            return(do.call(what = 'rbind', args = df))
-          }
-        )
-        ppoly(type = 'finish')
-        pg <- do.call(what = 'rbind', args = pg)
-        npg <- length(x = unique(x = pg$cell))
-        if (npg < nrow(x = sp)) {
-          warning(
-            nrow(x = sp) - npg,
-            " cells missing polygon information",
-            immediate. = TRUE
-          )
-        }
-        pg
-      },
-      'boxes' = {
-        pbox <- progressor(steps = nrow(x = sp))
-        pbox(message = "Creating box coordinates", class = 'sticky', amount = 0)
-        bx <- future_lapply(
-          X = rownames(x = sp),
-          FUN = function(cell) {
-            row <- sp[cell, ]
-            df <- expand.grid(
-              x = c(row$min_x, row$max_x),
-              y = c(row$min_y, row$max_y),
-              cell = cell,
-              KEEP.OUT.ATTRS = FALSE,
-              stringsAsFactors = FALSE
-            )
-            df <- df[c(1, 3, 4, 2), , drop = FALSE]
-            pbox()
-            return(df)
-          }
-        )
-        pbox(type = 'finish')
-        do.call(what = 'rbind', args = bx)
-      },
-      'metadata' = {
-        pmeta <- progressor()
-        pmeta(
-          message = 'Loading metadata',
-          class = 'sticky',
-          amount = 0
-        )
-        pmeta(type = 'finish')
-        sp[, metadata, drop = FALSE]
-      },
-      'pixels' = {
-        ppixels <- progressor()
-        ppixels(
-          message = 'Creating pixel-level molecule coordinates',
-          class = 'sticky',
-          amount = 0
-        )
-        df <- data.frame(
-          x = mx$x,
-          y = mx$y,
-          gene = mx$gene,
-          stringsAsFactors = FALSE
-        )
-        # if (!is.na(x = filter)) {
-        #   ppixels(
-        #     message = paste("Filtering molecules with pattern", filter),
-        #     class = 'sticky',
-        #     amount = 0
-        #   )
-        #   df <- df[!grepl(pattern = filter, x = df$gene), , drop = FALSE]
-        # }
-        ppixels(type = 'finish')
-        df
-      },
-      'microns' = {
-        pmicrons <- progressor()
-        pmicrons(
-          message = "Creating micron-level molecule coordinates",
-          class = 'sticky',
-          amount = 0
-        )
-        df <- data.frame(
-          x = mx$global_x,
-          y = mx$global_y,
-          gene = mx$gene,
-          stringsAsFactors = FALSE
-        )
-        # if (!is.na(x = filter)) {
-        #   pmicrons(
-        #     message = paste("Filtering molecules with pattern", filter),
-        #     class = 'sticky',
-        #     amount = 0
-        #   )
-        #   df <- df[!grepl(pattern = filter, x = df$gene), , drop = FALSE]
-        # }
-        pmicrons(type = 'finish')
-        df
-      },
-      stop("Unknown MERFISH input type: ", type)
-    )
+    outs[[otype]] <- 
+      switch(EXPR = otype, 
+             transcripts = {
+               ptx <- progressor()
+               ptx(message = "Reading counts matrix", class = "sticky",
+                   amount = 0)
+               tx <- data.table::fread(file = files[[otype]], sep = ",",
+                                       data.table = FALSE, verbose = FALSE)
+               rownames(x = tx) <- as.character(x = tx[, 1])
+               # keep cells with `transcript_count` > 0
+               if (verbose) { message(">>> filtering `cell_by_gene` - keep cells with counts > 0") }
+               tx %<>% select(-1) %>%
+                 filter_all(any_vars(. > 0)) %>% {
+                   if ((names(sp) == "transcript_count") %>% any) {
+                     # match cells to filtered data from spatial (cell_metadata)
+                     filter(., rownames(.) %in% rownames(sp)) 
+                   } else { (.) } } %>% # return filtered count data
+                 as.sparse() %>% # convert to sparse matrix
+                 Matrix::t() # transpose sparse matrix
+               
+               # filter cell metadata df
+               # match filtered cell IDs from count matrix to cell metadata df
+               if (!(names(sp) == "transcript_count") %>% any) {
+                 sp %<>% filter(rownames(.) %in% colnames(tx))
+               }
+               
+               ratio <- getOption(x = "Seurat.input.sparse_ratio",
+                                  default = 0.4)
+               if ((sum(tx == 0)/length(x = tx)) > ratio) {
+                 ptx(message = "Counts are converted to sparse matrix",
+                     class = "sticky", amount = 0)
+                 #tx <- as.sparse(x = tx)
+               }
+               if (!is.na(x = filter)) {
+                 ptx(message = paste("Filtering genes with pattern",
+                                     filter), class = "sticky", amount = 0)
+                 tx <- tx[!grepl(pattern = filter, x = rownames(x = tx)),
+                          , drop = FALSE]
+               }
+               ptx(type = "finish")
+               tx
+               
+             }, 
+             centroids = {
+               pcents <- progressor()
+               pcents(message = "Creating centroid coordinates",
+                      class = "sticky", amount = 0)
+               pcents(type = "finish")
+               data.frame(x = sp$center_x, y = sp$center_y, cell = rownames(x = sp),
+                          stringsAsFactors = FALSE)
+             }, 
+             segmentations = {
+               # use segmentations from ".parquet"
+               if (use.parquet) {
+                 if (length(parq) > 1) {
+                   # eg, if two files are present:
+                   # `cellpose_micron_space.parquet`
+                   # `cellpose_mosaic_space.parquet`
+                   parq %<>% { 
+                     if (mol.type == "pixels") {
+                       # for `cellpose_mosaic_space.parquet`
+                       grep("mosaic", ., value = TRUE)
+                     } else if (mol.type == "microns") {
+                       # for `cellpose_micron_space.parquet`
+                       grep(gsub("s", "", mol.type), ., value = TRUE)
+                     }
+                   } %>%
+                     { if (length(.) == 0) {
+                       # only if single ".parquet" file present
+                       # eg, `cell_boundaries.parquet`
+                       parq %>%
+                         grep(".parquet$", ., value = TRUE)
+                     } else { (.) } }
+                 }
+                 
+                 # Read .parquet file ----
+                 parq %<>% sfarrow::st_read_parquet(.) %>%
+                   # keep only selected z-plane
+                   filter(., ZIndex == z)
+                 
+                 # Sanity checks on segmentation polygons
+                 # Using `sf` for filtering polygons ----
+                 # keep multiple polygons pieces per single cell id
+                 parq %<>%
+                   .filter_polygons(., 
+                                    min.area = min.area, 
+                                    BPPARAM = 
+                                      if (BPParam$workers > 2) {
+                                        # use 2 workers less than total workers
+                                        BiocParallel::MulticoreParam(14 - 2, tasks = 50L, 
+                                                                     force.GC = FALSE, progressbar = TRUE)
+                                      } else if (!BPParam$workers > 2)
+                                      { BPParam } else { SerialParam() }, 
+                                    verbose = verbose)
+                 
+                 # Get filtered segmentation geometries/polygons
+                 segs <- 
+                   parq %>%
+                   st_geometry() %>%
+                   # add cell ID
+                   set_names(pull(parq, EntityID) %>% as.character)
+                 
+                 # Extract cell boundaries per cell id ----
+                 # TODO: (optionally) resample & make cell boundaries equidistant? 
+                 if (use.BiocParallel) {
+                   gc() %>% invisible() # free up memory
+                   if (verbose) { message("Extracting cell segmentations - using `BiocParallel`") } 
+                   segs_list <-
+                     BiocParallel::bplapply(segs %>% seq,
+                                            function(i) {
+                                              # keep multiple polygons per cell
+                                              segs[[i]] %>% 
+                                                unique() %>% # remove any duplicates
+                                                purrr::lmap(.f = data.table::as.data.table) %>% 
+                                                data.table::rbindlist() %>%
+                                                mutate(cell = names(segs)[i]) },
+                                            BPPARAM = BPParam)
+                 } else {
+                   if (verbose) { message("Extracting cell segmentations - using `future`") }    
+                   segs_list <-
+                     future.apply::future_lapply(segs %>% seq,
+                                                 function(i) {
+                                                   segs[[i]] %>% 
+                                                     unique() %>% # remove any duplicates
+                                                     purrr::lmap(.f = data.table::as.data.table) %>% 
+                                                     data.table::rbindlist() %>%
+                                                     mutate(cell = names(segs)[i])
+                                                 }
+                     )
+                 }
+                 
+                 # df of all cell segmentations
+                 segs <- 
+                   data.table::rbindlist(segs_list) %>% 
+                   data.table::setnames(c("x", "y", "cell"))
+                 if (verbose) { message("All cell segmentations are loaded..") }
+                 npg <- length(x = unique(x = segs$cell))
+                 if (npg < nrow(x = sp)) {
+                   warning(nrow(x = sp) - npg, " cells missing polygon information",
+                           immediate. = TRUE) }
+                 segs  # final segmentaions out..
+               } else {
+                 # else use ".hdf5" files from ./cell_boundaries (older version)
+                 ppoly <- progressor(steps = length(x = unique(x = sp$fov)))
+                 ppoly(message = "Creating polygon coordinates", class = "sticky",
+                       amount = 0)
+                 # use `BiocParallel` or `future`
+                 if (use.BiocParallel) {
+                   if (verbose) { message("Reading '.hdf5' files..") }
+                   pg <- BiocParallel::bplapply(X = unique(x = sp$fov), FUN = function(f, ...) {
+                     fname <- file.path(h5dir, paste0("feature_data_", f, ".hdf5"))
+                     if (!file.exists(fname)) {
+                       warning("Cannot find HDF5 file for field of view ",
+                               f, immediate. = TRUE)
+                       return(NULL)
+                     }
+                     # reading hdf5 files
+                     hfile <- hdf5r::H5File$new(filename = fname, 
+                                                mode = "r")
+                     on.exit(expr = hfile$close_all())
+                     cells <- rownames(x = subset(x = sp, subset = fov == f))     
+                     # creating df for cell boundaries     
+                     df <- lapply(X = cells, FUN = function(x) {
+                       return(tryCatch(expr = {
+                         cc <- hfile[["featuredata"]][[x]][[zidx]][["p_0"]][["coordinates"]]$read()
+                         cc <- as.data.frame(x = t(x = cc))
+                         colnames(x = cc) <- c("x", "y")
+                         cc$cell <- x
+                         cc
+                       }, error = function(...) {
+                         return(NULL)
+                       }))
+                     })   
+                     ppoly()
+                     #return(do.call(what = "rbind", args = df))
+                     return(data.table::rbindlist(df))
+                   }, BPPARAM = BPParam)
+                 } else { 
+                   pg <- 
+                     future.apply::future_lapply(X = unique(x = sp$fov), 
+                                                 FUN = function(f, ...) {
+                                                   fname <- file.path(h5dir, paste0("feature_data_",
+                                                                                    f, ".hdf5"))
+                                                   if (!file.exists(fname)) {
+                                                     warning("Cannot find HDF5 file for field of view ",
+                                                             f, immediate. = TRUE)
+                                                     return(NULL)
+                                                   }
+                                                   hfile <- hdf5r::H5File$new(filename = fname,
+                                                                              mode = "r")
+                                                   on.exit(expr = hfile$close_all())
+                                                   cells <- rownames(x = subset(x = sp, subset = fov == f))
+                                                   df <- lapply(X = cells, FUN = function(x) {
+                                                     return(tryCatch(expr = {
+                                                       cc <- hfile[["featuredata"]][[x]][[zidx]][["p_0"]][["coordinates"]]$read()
+                                                       cc <- as.data.frame(x = t(x = cc))
+                                                       colnames(x = cc) <- c("x", "y")
+                                                       cc$cell <- x
+                                                       cc
+                                                     }, error = function(...) {
+                                                       return(NULL)
+                                                     }))
+                                                   })
+                                                   ppoly()
+                                                   return(do.call(what = "rbind", args = df))
+                                                 }
+                     )
+                 }
+                 ppoly(type = "finish")
+                 # cell polygons
+                 pg <- do.call(what = "rbind", args = pg)
+                 npg <- length(x = unique(x = pg$cell))
+                 if (npg < nrow(x = sp)) {
+                   warning(nrow(x = sp) - npg, " cells missing polygon information",
+                           immediate. = TRUE)
+                 }
+                 pg # final segmentaions out..
+               }
+             }, 
+             boxes = {
+               pbox <- progressor(steps = nrow(x = sp))
+               pbox(message = "Creating box coordinates", class = "sticky",
+                    amount = 0)
+               # use parallel or future
+               if (use.BiocParallel) {
+                 if (verbose) { message("Creating box coordinates..") }
+                 bx <- BiocParallel::bplapply(X = rownames(x = sp), FUN = function(cell) {
+                   row <- sp[cell, ]
+                   # faster version for grid construction
+                   df <- data.table::CJ(x = c(row$min_x, row$max_x),
+                                        y = c(row$min_y, row$max_y), 
+                                        cell = cell) %>% 
+                     slice(c(1, 3, 4, 2))
+                   #df <- expand.grid(x = c(row$min_x, row$max_x),
+                   #                 y = c(row$min_y, row$max_y), cell = cell, KEEP.OUT.ATTRS = FALSE,
+                   #                stringsAsFactors = FALSE)
+                   #df <- df[c(1, 3, 4, 2), , drop = FALSE]
+                   pbox()
+                   return(df)
+                 }, BPPARAM = BPParam)
+               } else {
+                 bx <- future.apply::future_lapply(X = rownames(x = sp), FUN = function(cell) {
+                   row <- sp[cell, ]
+                   df <- data.table::CJ(x = c(row$min_x, row$max_x),
+                                        y = c(row$min_y, row$max_y), cell = cell) %>%
+                     slice(c(1, 3, 4, 2))
+                   #df <- expand.grid(x = c(row$min_x, row$max_x),
+                   #y = c(row$min_y, row$max_y), cell = cell, KEEP.OUT.ATTRS = FALSE,
+                   #stringsAsFactors = FALSE)
+                   #df <- df[c(1, 3, 4, 2), , drop = FALSE]
+                   pbox()
+                   return(df)
+                 })
+               }
+               pbox(type = "finish")
+               do.call(what = "rbind", args = bx)
+             }, 
+             metadata = {
+               pmeta <- progressor()
+               pmeta(message = "Loading metadata", class = "sticky",
+                     amount = 0)
+               pmeta(type = "finish")
+               sp[, metadata, drop = FALSE]
+             }, 
+             pixels = {
+               ppixels <- progressor()
+               ppixels(message = "Creating pixel-level molecule coordinates",
+                       class = "sticky", amount = 0)
+               df <- data.frame(x = mx$x, y = mx$y, gene = mx$gene,
+                                stringsAsFactors = FALSE)
+               ppixels(type = "finish")
+               df
+             }, 
+             microns = {
+               pmicrons <- progressor()
+               pmicrons(message = "Creating micron-level molecule coordinates",
+                        class = "sticky", amount = 0)
+               df <- data.frame(x = mx$global_x, y = mx$global_y,
+                                gene = mx$gene, stringsAsFactors = FALSE)
+               pmicrons(type = "finish")
+               df
+             }, stop("Unknown MERFISH input type: ", type))
   }
+  
+  # add z-slice index for cells ----
+  outs$zIndex <- 
+    data.frame(z = rep_len(z, length.out = outs$centroids %>% pull(cell) %>% length), 
+               cell = outs$centroids %>% pull(cell))
+  
   return(outs)
 }
 
