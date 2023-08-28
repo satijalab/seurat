@@ -2535,8 +2535,8 @@ ReadVitessce <- function(
 #' @param workers.MulticoreParam Number of cores to use for \code{BiocParallel::bplapply}
 #' @param DTthreads.pct Optional, set percentage eg \code{50} of total threads to use for \code{data.table::fread}, 
 #' if set to \code{NULL} will use default setting as in \code{data.table::getDTthreads(verbose = T)}
-#' @param use.furrr When working with lists, use \code{furrr} with \code{future} parallelization;
-#'  if \conde{FALSE} standard \code{purrr} will be used
+#' @param min.area Minimal polygon area to use as a threshold for filtering, if set to \code{NULL} 
+#' the maximal area (ie, the largest polygon) will be used instead.
 #' @param verbose If to print processing messages using \code{message}; default is to \code{FALSE}
 #'
 #' @return \code{ReadVizgen}: A list with some combination of the
@@ -2561,11 +2561,9 @@ ReadVitessce <- function(
 #'
 #' @importFrom future.apply future_lapply
 #' @import dplyr
-#' @import tibble
-#' @import purrr
-#' @import furrr
+#' @importFrom purrr lmap
+#' @import sf
 #' @import magrittr
-#' @importFrom spatstat.geom is.empty
 #' @importFrom progressr progressor
 #'
 #' @export
@@ -2593,15 +2591,15 @@ ReadVizgen <- function(
     use.BiocParallel = TRUE,
     workers.MulticoreParam = 12,
     DTthreads.pct = NULL,
-    use.furrr = TRUE,
+    min.area = 5,
     verbose = FALSE
 ) {
   # TODO: handle multiple segmentations per z-plane
   # NOTE: this is only needed when segmentations differ between z-planes
   
-  # packages that needs to be installed a priori
+  # packages that need to be installed a priori
   pkgs <- c("data.table", "arrow", "sfarrow",
-            "tidyverse", "furrr", "BiocParallel", "Matrix")
+            "tidyverse", "sf", "BiocParallel", "Matrix")
   lapply(pkgs %>% length %>% seq, function(i) 
   { !requireNamespace(pkgs[i], quietly = TRUE) } ) %>% 
     unlist %>% 
@@ -2688,7 +2686,7 @@ ReadVizgen <- function(
     list.files(data.dir, 
                pattern = ".parquet$",
                full.names = TRUE) %>%
-    { if (is.empty(.)) { 
+    { if (length(.) == 0) { 
       # look in the sub directory (if nothing is found)
       list.files(data.dir,
                  pattern = ".parquet$",
@@ -2710,7 +2708,7 @@ ReadVizgen <- function(
                list.files(data.dir, 
                           pattern = "cell_by_gene",
                           full.names = TRUE) %>%
-               { if (is.empty(.)) { 
+               { if (length(.) == 0) { 
                  list.files(data.dir,
                             pattern = "cell_by_gene",
                             full.names = TRUE,
@@ -2727,7 +2725,7 @@ ReadVizgen <- function(
                list.files(data.dir, 
                           pattern = "cell_metadata",
                           full.names = TRUE) %>%
-               { if (is.empty(.)) { 
+               { if (length(.) == 0) { 
                  list.files(data.dir,
                             pattern = "cell_metadata",
                             full.names = TRUE,
@@ -2744,7 +2742,7 @@ ReadVizgen <- function(
                list.files(data.dir, 
                           pattern = "detected_transcripts",
                           full.names = TRUE) %>%
-               { if (is.empty(.)) { 
+               { if (length(.) == 0) { 
                  list.files(data.dir,
                             pattern = "detected_transcripts",
                             full.names = TRUE,
@@ -2858,8 +2856,8 @@ ReadVizgen <- function(
       class = 'sticky',
       amount = 0
     )
-   
-    # load molecules
+    
+    # optionally - load molecules
     mx <- data.table::fread(
       file = files[['molecules']],
       sep = ',',
@@ -2899,9 +2897,6 @@ ReadVizgen <- function(
                tx <- data.table::fread(file = files[[otype]], sep = ",",
                                        data.table = FALSE, verbose = FALSE)
                rownames(x = tx) <- as.character(x = tx[, 1])
-               # avoid converting to dense matrix?
-               #tx <- t(x = as.matrix(x = tx[, -1, drop = FALSE]))
-               
                # keep cells with `transcript_count` > 0
                if (verbose) { message(">>> filtering `cell_by_gene` - keep cells with counts > 0") }
                tx %<>% select(-1) %>%
@@ -2910,8 +2905,6 @@ ReadVizgen <- function(
                      # match cells to filtered data from spatial (cell_metadata)
                      filter(., rownames(.) %in% rownames(sp)) 
                    } else { (.) } } %>% # return filtered count data
-                 # transpose data.frame without converting to dense matrix
-                 #t() %>%
                  as.sparse() %>% # convert to sparse matrix
                  Matrix::t() # transpose sparse matrix
                
@@ -2936,6 +2929,7 @@ ReadVizgen <- function(
                }
                ptx(type = "finish")
                tx
+               
              }, 
              centroids = {
                pcents <- progressor()
@@ -2944,10 +2938,9 @@ ReadVizgen <- function(
                pcents(type = "finish")
                data.frame(x = sp$center_x, y = sp$center_y, cell = rownames(x = sp),
                           stringsAsFactors = FALSE)
-               
-               # use segmentations from ".parquet"
              }, 
              segmentations = {
+               # use segmentations from ".parquet"
                if (use.parquet) {
                  if (length(parq) > 1) {
                    # eg, if two files are present:
@@ -2962,7 +2955,7 @@ ReadVizgen <- function(
                        grep(gsub("s", "", mol.type), ., value = TRUE)
                      }
                    } %>%
-                     { if (is.empty(.)) {
+                     { if (length(.) == 0) {
                        # only if single ".parquet" file present
                        # eg, `cell_boundaries.parquet`
                        parq %>%
@@ -2970,131 +2963,42 @@ ReadVizgen <- function(
                      } else { (.) } }
                  }
                  
-                 # Read .parquet file
-                 parq %<>% sfarrow::st_read_parquet(.)
+                 # Read .parquet file ----
+                 parq %<>% sfarrow::st_read_parquet(.) %>%
+                   # keep only selected z-plane
+                   filter(., ZIndex == z)
                  
-                 # get all cell segmentations
-                 segs <- filter(parq, ZIndex == z) %>% 
-                   pull(Geometry) %>%
+                 # Sanity checks on segmentation polygons
+                 # Using `sf` for filtering polygons ----
+                 # keep multiple polygons pieces per single cell id
+                 parq %<>%
+                   .filter_polygons(., 
+                                    min.area = min.area, 
+                                    BPPARAM = 
+                                      if (exists("BPParam")) 
+                                        { BPParam } else { SerialParam() }, 
+                                    verbose = verbose)
+                 
+                 # Get filtered segmentation geometries/polygons
+                 segs <- 
+                   parq %>%
+                   st_geometry() %>%
                    # add cell ID
-                   set_names(filter(parq, ZIndex == z) %>% 
-                               pull(EntityID) %>% as.character)
+                   set_names(pull(parq, EntityID) %>% as.character)
                  
-                 ## Sanity checks on segmentation polygons - part 1 ----
-                 test.segs <- lapply(segs %>% seq, 
-                                     function(i) segs[[i]] %>% length) %>% unlist()
-                 if (any(test.segs > 1)) {
-                   segs.art.index <- which(test.segs > 1)
-                   segs.empty.index <- which(test.segs < 1)
-                   if (verbose) { message("Sanity checks on cell segmentation polygons:", "\n", 
-                                          ">>> found ", segs.art.index %>% length,
-                                          " cells with > 1 (nested) polygon lists:", "\n",
-                                          ">>> flattening polygon lists", "\n",
-                                          if (c(segs.empty.index %>% length) > 0) {
-                                            paste0(">>> removing ", 
-                                                   segs.empty.index %>% length,
-                                                   " empty polygon lists") }
-                   ) }
-                   
-                   # step 1 - find polygon nested lists with > 1 length
-                   # get original planned session if exists
-                   if (is(future::plan(), "multisession")) {
-                     orig.plan <- future::plan()
-                   }
-                   segs.1 <- segs %>% 
-                     purrr::keep(., c(purrr::map(., length) %>% unlist > 1)) %>%
-                     # flatten each list
-                     { 
-                       if (use.furrr) {
-                         # set temporary workers
-                         f.plan <- future::plan("multisession", workers = 4L, gc = TRUE)
-                         #on.exit(f.plan %>% future::plan()) # exiting doesn't to work with furrr
-                         # using furrr (faster purrr with future) 
-                         furrr::future_map(., purrr::flatten)
-                       } else {
-                         purrr::map(., purrr::flatten)
-                       }
-                     } %>% suppressPackageStartupMessages()
-                   # set originally plannned session back
-                   if (exists("orig.plan")) { 
-                     future::plan(orig.plan)
-                   } else { 
-                     # or plan sequential
-                     future::plan("sequential")
-                   }
-                   
-                   # step 2 - apply multiple filtering  
-                   segs.2 <- 
-                     segs %>%
-                     # remove empty elements               
-                     purrr::keep(., !c(purrr::map(., length) %>% unlist < 1)) %>%
-                     # keep lists with length == 1 polygon information      
-                     purrr::keep(., c(purrr::map(., length) %>% unlist == 1)) %>%
-                     # collapse to a list
-                     purrr::flatten(.)
-                   
-                   # step 3 - combine segmentaion lists     
-                   segs <- c(segs.1, segs.2) 
-                 }
-                 
-                 ## Sanity checks on segmentation polygons - part 2 ----
-                 # check if any cells have > 1 segmentation boundary
-                 # TODO: (optionally) optimize sanity code using purrr?
-                 test.segs <- lapply(segs %>% seq, function(i) segs[[i]] %>% length) %>% unlist()
-                 if (any(test.segs > 1)) {
-                   segs.art.index <- which(test.segs > 1)
-                   if (verbose) { 
-                     message("Found ", segs.art.index %>% length,
-                             c(" cells with > 1 polygon artifacts:",
-                               ">>> removing artifacts",
-                               ">>> keeping cell boundary with maximum coords") %>% 
-                               paste0(., "\n"))
-                   }
-                   # usually artifacts have small boundaries/coords
-                   # find cell boundaries with maximum coords
-                   
-                   # TODO: (optionally)
-                   # - calculate geometric properties, eg circularity:
-                   # - keep single polygon with high circularity values (likely a cell?)
-                   
-                   for (i in segs.art.index %>% seq) { 
-                     dims <- lapply(segs[[segs.art.index[i]]] %>% seq(), 
-                                    function(d) { dim(segs[[segs.art.index[i]]][[d]])[1] } )
-                     # get & keep boundaries with maximum coords
-                     maxs.segs <- which(unlist(dims) == max(unlist(dims)))
-                     segs[[segs.art.index[i]]] <- segs[[segs.art.index[i]]][maxs.segs]
-                   }
-                 } else { if (verbose) { message("All cells have single polygon boundary (no artifacts)") } }                 
-                 
-                 # some cells might have > 1 polygon boundary with identical lenght
-                 #..in this case, keep only the 1st polygon boundary
-                 test.segs <- lapply(segs %>% seq, function(i) segs[[i]] %>% length) %>% unlist()                
-                 if (any(test.segs > 1)) {
-                   segs.art.index <- which(test.segs > 1)
-                   if (verbose) { message("Additionally found ", segs.art.index %>% length,
-                                          c(" cells with > 1 polygons (identical length):",
-                                            ">>> only the 1st polygon boundary will be kept") %>% 
-                                            paste0(., "\n")) }
-                   for (i in segs.art.index %>% seq) { 
-                     # TODO: (optionally)
-                     # - calculate geometric properties, eg circularity:
-                     # - keep single polygon with high circularity values (likely a cell?)
-                     
-                     segs[[segs.art.index[i]]] <- segs[[segs.art.index[i]]][1]
-                   }
-                 }              
-                 
-                 ## Extract cell boundaries per cells
+                 # Extract cell boundaries per cell id ----
                  # TODO: (optionally) resample & make cell boundaries equidistant? 
-                 # TODO: (optionally) optimize with purrr::map to get df per list instance?
                  if (use.BiocParallel) {
                    gc() %>% invisible() # free up memory
                    if (verbose) { message("Extracting cell segmentations - using `BiocParallel`") } 
                    segs_list <-
                      BiocParallel::bplapply(segs %>% seq,
                                             function(i) {
-                                              segs[[i]][[1]] %>% 
-                                                data.table::as.data.table(.) %>%
+                                              # keep multiple polygons per cell
+                                              segs[[i]] %>% 
+                                                unique() %>% # remove any duplicates
+                                                purrr::lmap(.f = data.table::as.data.table) %>% 
+                                                data.table::rbindlist() %>%
                                                 mutate(cell = names(segs)[i]) },
                                             BPPARAM = BPParam)
                  } else {
@@ -3102,8 +3006,10 @@ ReadVizgen <- function(
                    segs_list <-
                      future.apply::future_lapply(segs %>% seq,
                                                  function(i) {
-                                                   segs[[i]][[1]] %>%
-                                                     data.table::as.data.table(.) %>%
+                                                   segs[[i]] %>% 
+                                                     unique() %>% # remove any duplicates
+                                                     purrr::lmap(.f = data.table::as.data.table) %>% 
+                                                     data.table::rbindlist() %>%
                                                      mutate(cell = names(segs)[i])
                                                  }
                      )
@@ -3113,10 +3019,13 @@ ReadVizgen <- function(
                  segs <- 
                    data.table::rbindlist(segs_list) %>% 
                    data.table::setnames(c("x", "y", "cell"))
-                 #names(segs)[1:2] <- c("x", "y")
-                 if (verbose) { message("All cell segmentations are loaded..") }      
-                 segs
-               } else { 
+                 if (verbose) { message("All cell segmentations are loaded..") }
+                 npg <- length(x = unique(x = segs$cell))
+                 if (npg < nrow(x = sp)) {
+                   warning(nrow(x = sp) - npg, " cells missing polygon information",
+                           immediate. = TRUE) }
+                 segs  # final segmentaions out..
+               } else {
                  # else use ".hdf5" files from ./cell_boundaries (older version)
                  ppoly <- progressor(steps = length(x = unique(x = sp$fov)))
                  ppoly(message = "Creating polygon coordinates", class = "sticky",
