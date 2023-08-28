@@ -72,6 +72,7 @@ HarmonyIntegration <- function(
   groups,
   features = NULL,
   scale.layer = 'scale.data',
+  new.reduction = 'harmony',
   layers = NULL,
   npcs = 50L,
   key = 'harmony_',
@@ -135,7 +136,9 @@ HarmonyIntegration <- function(
     # assay = assay
     assay = DefaultAssay(object = orig)
   ))
-  return(list(harmony = dr))
+  output.list <- list(dr)
+  names(output.list) <- c(new.reduction)
+  return(output.list)
 }
 
 attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
