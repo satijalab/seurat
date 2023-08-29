@@ -3411,7 +3411,11 @@ SCTransform.default <- function(
   )
   vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
-
+  if (!do.correct.umi) {
+    vst.out$umi_corrected <- umi
+  }
+  min_var <- vst.out$arguments$min_variance
+  message("min_varxxxx", min_var)
   return(vst.out)
 }
 
