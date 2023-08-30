@@ -1531,27 +1531,29 @@ SCTransform.StdAssay <- function(
       SCTransform.default
     } else {
       SCTransform
-      }
-    if (is.null(x = cell.attr) && is.null(x = reference.SCT.model)){
-      calcn <- CalcN(object = object)
-      cell.attr <-  data.frame(umi = calcn$nCount,
-                               log_umi = log10(x = calcn$nCount))
-      rownames(cell.attr) <- colnames(x = layer.data)
     }
-    if (!"umi" %in% cell.attr && is.null(x = reference.SCT.model)){
-      calcn <- CalcN(object = object)
+    if (is.null(x = cell.attr) && is.null(x = reference.SCT.model)){
+      calcn <- CalcN(object = layer.data)
+      cell.attr.layer <-  data.frame(umi = calcn$nCount,
+                               log_umi = log10(x = calcn$nCount))
+      rownames(cell.attr.layer) <- colnames(x = layer.data)
+    } else {
+      cell.attr.layer <- cell.attr[colnames(x = layer.data),, drop=FALSE]
+    }
+    if (!"umi" %in% cell.attr.layer && is.null(x = reference.SCT.model)){
+      calcn <- CalcN(object = layer.data)
       cell.attr.tmp <-  data.frame(umi = calcn$nCount)
       rownames(cell.attr.tmp) <- colnames(x = layer.data)
-      cell.attr$umi <- NA
-      cell.attr$log_umi <- NA
-      cell.attr[rownames(cell.attr.tmp), "umi"] <- cell.attr.tmp$umi
-      cell.attr[rownames(cell.attr.tmp), "log_umi"] <- log10(x = cell.attr.tmp$umi)
+      cell.attr.layer$umi <- NA
+      cell.attr.layer$log_umi <- NA
+      cell.attr.layer[rownames(cell.attr.tmp), "umi"] <- cell.attr.tmp$umi
+      cell.attr.layer[rownames(cell.attr.tmp), "log_umi"] <- log10(x = cell.attr.tmp$umi)
     }
 
     # Step 1: Learn model
     vst.out <- sct.function(object = layer.data,
                             do.correct.umi = FALSE,
-                            cell.attr = cell.attr,
+                            cell.attr = cell.attr.layer,
                             reference.SCT.model = reference.SCT.model,
                             ncells = ncells,
                             residual.features = residual.features,
@@ -1597,8 +1599,6 @@ SCTransform.StdAssay <- function(
     residuals <- list()
     corrected_counts <- list()
     cell_attrs <- list()
-
-    message("length ", length(cells.grid))
 
     if (length(x = cells.grid) == 1){
       merged.assay <- assay.out
@@ -1713,7 +1713,8 @@ SCTransform.StdAssay <- function(
         vst_out$cell_attr <- vst_out$cell_attr[, c("log_umi"), drop=FALSE]
         vst_out$model_pars_fit <- vst_out$model_pars_fit[variable.features.target,,drop=FALSE]
         new_residual <- GetResidualsChunked(vst_out = vst_out, layer.counts = layer.counts.tmp,
-                                            residual_type = "pearson", min_variance = min_variance, verbose = FALSE)
+                                            residual_type = "pearson", min_variance = min_var, res_clip_range = res_clip_range,
+                                            verbose = FALSE)
         old_residual <- GetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data')
         merged_residual <- rbind(old_residual, new_residual)
         sct.assay.list[[layer.name]] <- SetAssayData(object = sct.assay.list[[layer.name]], slot = 'scale.data', new.data = merged_residual)
