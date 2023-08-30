@@ -73,7 +73,7 @@ HarmonyIntegration <- function(
   features = NULL,
   scale.layer = 'scale.data',
   new.reduction = 'harmony',
-  layers = NULL,
+  layers = 'data',
   npcs = 50L,
   key = 'harmony_',
   theta = NULL,
@@ -180,7 +180,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 CCAIntegration <- function(
     object = NULL,
     assay = NULL,
-    layers = NULL,
+    layers = 'data',
     orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
@@ -315,7 +315,7 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 RPCAIntegration <- function(
     object = NULL,
     assay = NULL,
-    layers = NULL,
+    layers = 'data',
     orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
@@ -408,7 +408,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 JointPCAIntegration <- function(
     object = NULL,
     assay = NULL,
-    layers = NULL,
+    layers = 'data',
     orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
