@@ -73,8 +73,8 @@ test_that("NormalizeData scales properly", {
 normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], layer = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
   expect_equal(
-    LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
-    LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE)
+    as.matrix(LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)),
+    as.matrix(LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE))
   )
 })
 
@@ -289,7 +289,7 @@ test_that("CustomNormalize works as expected", {
 # Tests for SCTransform
 # ------------------------------------------------------------------------------
 context("SCTransform")
-object <- suppressWarnings(SCTransform(object = object, verbose = FALSE))
+object <- suppressWarnings(SCTransform(object = object, verbose = FALSE, vst.flavor=NULL))
 
 test_that("SCTransform wrapper works as expected", {
   expect_true("SCT" %in% names(object))
@@ -309,7 +309,7 @@ test_that("SCTransform wrapper works as expected", {
 })
 
 suppressWarnings(RNGversion(vstr = "3.5.0"))
-object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE, seed.use =  42))
+object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE, seed.use =  42, vst.flavor = NULL))
 test_that("SCTransform ncells param works", {
   expect_true("SCT" %in% names(object))
   expect_equal(as.numeric(colSums(GetAssayData(object = object[["SCT"]], slot = "scale.data"))[1]), 12.02126, tolerance = 1e6)
