@@ -73,7 +73,7 @@ HarmonyIntegration <- function(
   features = NULL,
   scale.layer = 'scale.data',
   new.reduction = 'harmony',
-  layers = 'data',
+  layers = NULL,
   npcs = 50L,
   key = 'harmony_',
   theta = NULL,
@@ -180,7 +180,7 @@ attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
 CCAIntegration <- function(
     object = NULL,
     assay = NULL,
-    layers = 'data',
+    layers = NULL,
     orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
@@ -315,7 +315,7 @@ attr(x = CCAIntegration, which = 'Seurat.method') <- 'integration'
 RPCAIntegration <- function(
     object = NULL,
     assay = NULL,
-    layers = 'data',
+    layers = NULL,
     orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
@@ -408,7 +408,7 @@ attr(x = RPCAIntegration, which = 'Seurat.method') <- 'integration'
 JointPCAIntegration <- function(
     object = NULL,
     assay = NULL,
-    layers = 'data',
+    layers = NULL,
     orig = NULL,
     new.reduction = 'integrated.dr',
     reference = NULL,
@@ -526,7 +526,7 @@ IntegrateLayers <- function(
   group.by = NULL,
   assay = NULL,
   features = NULL,
-  layers = 'data',
+  layers = NULL,
   scale.layer = 'scale.data',
   ...
 ) {
@@ -553,7 +553,7 @@ IntegrateLayers <- function(
       assay = assay
     )
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
-    layers <- Layers(object = object, assay = assay, search = layers)
+    layers <- layers %||% Layers(object, search = 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
     features <- features %||% VariableFeatures(
       object = object,
