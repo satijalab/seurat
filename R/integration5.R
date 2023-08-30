@@ -526,7 +526,7 @@ IntegrateLayers <- function(
   group.by = NULL,
   assay = NULL,
   features = NULL,
-  layers = NULL,
+  layers = 'data',
   scale.layer = 'scale.data',
   ...
 ) {
