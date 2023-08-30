@@ -1493,6 +1493,7 @@ SCTransform.StdAssay <- function(
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(x = ncol(x = object) / 30), sqrt(x = ncol(x = object) / 30)),
+  vst.flavor = 'v2',
   conserve.memory = FALSE,
   return.only.var.genes = TRUE,
   seed.use = 1448145,
@@ -1531,15 +1532,23 @@ SCTransform.StdAssay <- function(
     } else {
       SCTransform
       }
-    if (is.null(x = cell.attr)){
+    if (is.null(x = cell.attr) && is.null(x = reference.SCT.model)){
       calcn <- CalcN(object = object)
-      cell.attr <-  data.frame(umi = calcn$nCount_RNA,
-                               log_umi = log10(x = calcn$nCount_RNA))
+      cell.attr <-  data.frame(umi = calcn$nCount,
+                               log_umi = log10(x = calcn$nCount))
       rownames(cell.attr) <- colnames(x = layer.data)
+    }
+    if (!"umi" %in% cell.attr && is.null(x = reference.SCT.model)){
+      calcn <- CalcN(object = object)
+      cell.attr.tmp <-  data.frame(umi = calcn$nCount)
+      rownames(cell.attr.tmp) <- colnames(x = layer.data)
+      cell.attr$umi <- NA
+      cell.attr$log_umi <- NA
+      cell.attr[rownames(cell.attr.tmp), "umi"] <- cell.attr.tmp$umi
+      cell.attr[rownames(cell.attr.tmp), "log_umi"] <- log10(x = cell.attr.tmp$umi)
     }
 
     # Step 1: Learn model
-    message("layer.data", dim(layer.data))
     vst.out <- sct.function(object = layer.data,
                             do.correct.umi = FALSE,
                             cell.attr = cell.attr,
@@ -1552,12 +1561,12 @@ SCTransform.StdAssay <- function(
                             do.scale = do.scale,
                             do.center = do.center,
                             clip.range = clip.range,
+                            vst.flavor = vst.flavor,
                             conserve.memory = conserve.memory,
                             return.only.var.genes = return.only.var.genes,
                             seed.use = seed.use,
                             verbose = FALSE)
     min_var <- vst.out$arguments$min_variance
-    message("min_var", min_var)
     assay.out <- CreateSCTAssay(vst.out = vst.out, do.correct.umi = do.correct.umi, residual.type = residual.type,
                                 clip.range = clip.range)
 
@@ -1575,7 +1584,6 @@ SCTransform.StdAssay <- function(
     vst_out.reference <- SCTModel_to_vst(SCTModel = local.reference.SCT.model)
     vst_out.reference$gene_attr <- local.reference.SCT.model@feature.attributes
     min_var <- vst_out.reference$arguments$min_variance
-    message("min_var", min_var)
     if (min_var == "umi_median"){
       counts.x <- as.sparse(x = layer.data[, sample.int(n = ncol(x = layer.data), size =  min(ncells, ncol(x = layer.data)) )])
       min_var <- (median(counts.x@x)/5)^2
@@ -1590,7 +1598,8 @@ SCTransform.StdAssay <- function(
     corrected_counts <- list()
     cell_attrs <- list()
 
-    message("cells_length", length(cells.grid))
+    message("length ", length(cells.grid))
+
     if (length(x = cells.grid) == 1){
       merged.assay <- assay.out
       corrected_counts[[1]] <- GetAssayData(object = assay.out, slot = "data")
@@ -1640,7 +1649,7 @@ SCTransform.StdAssay <- function(
           verbosity = FALSE# as.numeric(x = verbose) * 2
         )
         residuals[[i]] <- new_residual
-        cell_attrs[[i]] <- cell_attr
+        cell_attrs[[i]] <- cell.attr.object
       }
       new.residuals <- Reduce(cbind, residuals)
       corrected_counts <- Reduce(cbind, corrected_counts)

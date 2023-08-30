@@ -3415,7 +3415,6 @@ SCTransform.default <- function(
     vst.out$umi_corrected <- umi
   }
   min_var <- vst.out$arguments$min_variance
-  message("min_varxxxx", min_var)
   return(vst.out)
 }
 
