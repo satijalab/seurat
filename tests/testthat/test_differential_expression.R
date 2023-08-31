@@ -352,7 +352,7 @@ object <- suppressMessages(ScaleData(object, verbose = FALSE))
 object <- suppressMessages(RunPCA(object, verbose = FALSE))
 object <- suppressMessages(FindNeighbors(object = object, verbose = FALSE))
 object <- suppressMessages(FindClusters(object, verbose = FALSE))
-markers <- FindMarkers(object = object, ident.1="0", ident.2="1",pseudocount.use = 1)
+markers <- FindMarkers(object = object, ident.1="0", ident.2="1",pseudocount.use = 1, verbose=FALSE)
 test_that("FindMarkers recognizes log normalizatio", {
   expect_equal(markers[1, "p_val"], 1.598053e-14)
   expect_equal(markers[1, "avg_log2FC"], -2.614686, tolerance = 1e-6)
