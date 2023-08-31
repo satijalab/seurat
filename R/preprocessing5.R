@@ -651,7 +651,6 @@ NormalizeData.StdAssay <- function(
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
-      layer = save,
       ...
     )
   }

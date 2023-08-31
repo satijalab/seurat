@@ -16,7 +16,7 @@ object <- CreateSeuratObject(
 )
 object <- SetIdent(object, value = 'a')
 
-#LayerData(object, layer="data") <- pbmc.test
+LayerData(object, layer="data") <- LayerData(object, layer="counts")
 
 test_that("AverageExpression works for different slots", {
   suppressWarnings(average.expression <- AverageExpression(object, layer = 'data')$RNA)
