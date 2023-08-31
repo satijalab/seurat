@@ -312,7 +312,7 @@ test_that("SCTransform wrapper works as expected", {
 })
 
 suppressWarnings(RNGversion(vstr = "3.5.0"))
-object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE, seed.use =  42, vst.flavor = NULL))
+object <- suppressWarnings(SCTransform(object = object, ncells = 40, verbose = FALSE, seed.use =  42, vst.flavor = NULL,assay='RNA'))
 #Saket to fix
 # test_that("SCTransform ncells param works", {
 #   expect_true("SCT" %in% names(object))
