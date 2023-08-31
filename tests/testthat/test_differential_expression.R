@@ -331,11 +331,15 @@ test_that("FindAllMarkers works as expected", {
 ref <- pbmc_small
 ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
 query <- CreateSeuratObject(
-  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1)
+  counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1))
 )
+
 query2 <- CreateSeuratObject(
-  counts = GetAssayData(object = pbmc_small[['RNA']], slot = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1)
+  counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], slot = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1))
 )
+
+
+
 query.list <- list(query, query2)
 query.list <- lapply(X = query.list, FUN = NormalizeData, verbose = FALSE)
 query.list <- lapply(X = query.list, FUN = FindVariableFeatures, verbose = FALSE, nfeatures = 100)
@@ -353,6 +357,8 @@ test_that("FindMarkers recognizes log normalizatio", {
   expect_equal(markers[1, "p_val"], 1.598053e-14)
   expect_equal(markers[1, "avg_log2FC"], -2.614686, tolerance = 1e-6)
 })
+
+
 
 # Tests for FindConservedMarkers
 # -------------------------------------------------------------------------------
