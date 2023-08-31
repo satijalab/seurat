@@ -523,6 +523,7 @@ Load10X_Spatial <- function(
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 ) {
   if (length(x = data.dir) > 1) {
@@ -552,8 +553,7 @@ Load10X_Spatial <- function(
   if (is.null(x = image)) {
     image <- Read10X_Image(image.dir = file.path(data.dir,"spatial"),
                            filter.matrix = filter.matrix)
-  }
-  else {
+  } else {
     if (!inherits(x = image, what = "VisiumV1"))
       stop("Image must be an object of class 'VisiumV1'.")
   }
