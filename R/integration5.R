@@ -553,7 +553,7 @@ IntegrateLayers <- function(
       assay = assay
     )
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
-    layers <- layers %||% Layers(object, search = 'data')
+    layers <- Layers(object, search = layers %||% 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
     features <- features %||% VariableFeatures(
       object = object,
