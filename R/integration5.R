@@ -248,10 +248,12 @@ CCAIntegration <- function(
                                    verbose = verbose,
                                    ...
   )
-  anchor@object.list <- lapply(anchor@object.list, function(x) {
-    x <- DietSeurat(x, features = features[1:2])
-    return(x)
-  })
+  suppressWarnings({
+    anchor@object.list <- lapply(anchor@object.list, function(x) {
+      x <- DietSeurat(x, features = features[1:2])
+      return(x)
+    })
+  }, classes = "dimWarning")
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
