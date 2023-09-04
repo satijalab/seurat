@@ -4024,6 +4024,7 @@ FindAnchors_v5 <- function(
       x = object.pair,
       cells = c(cells1, cells2.i)
     )
+    object.pair.i <- JoinLayers(object.pair.i)
     anchor.list[[i]] <- FindAnchors_v3(
       object.pair = object.pair.i,
       assay = assay,
