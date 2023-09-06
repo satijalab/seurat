@@ -105,11 +105,19 @@ HarmonyIntegration <- function(
   #   npcs = npcs,
   #   verbose = verbose
   # )
+  #create grouping variables
+  groups <- SeuratObject::EmptyDF(n = ncol(x = object))
+  row.names(x = groups) <- colnames(x = object)
+  for (model in levels(x = object)) {
+    cc <- Cells(x = object, layer = model)
+    groups[cc, "group"] <- model
+  }
+  names(x = groups) <- 'group'
   # Run Harmony
   harmony.embed <- harmony::HarmonyMatrix(
     data_mat = Embeddings(object = orig),
-    #meta_data = groups, #can change this later if you want?
-    #vars_use = 'group', #can change this later if you want?
+    meta_data = groups,
+    vars_use = 'group',
     do_pca = FALSE,
     npcs = 0L,
     theta = theta,
