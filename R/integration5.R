@@ -72,6 +72,7 @@ HarmonyIntegration <- function(
   groups,
   features = NULL,
   scale.layer = 'scale.data',
+  new.reduction = 'harmony',
   layers = NULL,
   npcs = 50L,
   key = 'harmony_',
@@ -135,7 +136,9 @@ HarmonyIntegration <- function(
     # assay = assay
     assay = DefaultAssay(object = orig)
   ))
-  return(list(harmony = dr))
+  output.list <- list(dr)
+  names(output.list) <- c(new.reduction)
+  return(output.list)
 }
 
 attr(x = HarmonyIntegration, which = 'Seurat.method') <- 'integration'
@@ -245,10 +248,12 @@ CCAIntegration <- function(
                                    verbose = verbose,
                                    ...
   )
-  anchor@object.list <- lapply(anchor@object.list, function(x) {
-    x <- DietSeurat(x, features = features[1:2])
-    return(x)
-  })
+  suppressWarnings({
+    anchor@object.list <- lapply(anchor@object.list, function(x) {
+      x <- DietSeurat(x, features = features[1:2])
+      return(x)
+    })
+  }, classes = "dimWarning")
   object_merged <- IntegrateEmbeddings(anchorset = anchor,
                                        reductions = orig,
                                        new.reduction.name = new.reduction,
@@ -550,7 +555,7 @@ IntegrateLayers <- function(
       assay = assay
     )
   } else if (inherits(x = object[[assay]], what = 'StdAssay')) {
-    layers <- Layers(object = object, assay = assay, search = layers)
+    layers <- Layers(object = object, assay = assay, search = layers %||% 'data')
     scale.layer <- Layers(object = object, search = scale.layer)
     features <- features %||% VariableFeatures(
       object = object,
