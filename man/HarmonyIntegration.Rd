@@ -41,6 +41,35 @@ should be called \code{group}}
 
 \item{layers}{Ignored}
 
+<<<<<<< Updated upstream
+=======
+\item{npcs}{If doing PCA on input matrix, number of PCs to compute}
+
+\item{key}{Key for Harmony dimensional reduction}
+
+\item{theta}{Diversity clustering penalty parameter}
+
+\item{lambda}{Ridge regression penalty parameter}
+
+\item{sigma}{Width of soft kmeans clusters}
+
+\item{nclust}{Number of clusters in model}
+
+\item{tau}{Protection against overclustering small datasets with large ones}
+
+\item{block.size}{What proportion of cells to update during clustering}
+
+\item{max.iter.harmony}{Maximum number of rounds to run Harmony}
+
+\item{max.iter.cluster}{Maximum number of rounds to run clustering at each round of Harmony}
+
+\item{epsilon.cluster}{Convergence tolerance for clustering round of Harmony}
+
+\item{epsilon.harmony}{Convergence tolerance for Harmony}
+
+\item{verbose}{Whether to print progress messages. TRUE to print, FALSE to suppress}
+
+>>>>>>> Stashed changes
 \item{...}{Ignored}
 }
 \value{
