@@ -27,7 +27,7 @@ hvf.methods <- list()
 FindVariableFeatures.default <- function(
   object,
   method = VST,
-  nselect = 2000L,
+  nfeatures = 2000L,
   verbose = TRUE,
   ...
 ) {
@@ -48,7 +48,7 @@ FindVariableFeatures.default <- function(
   }
   var.gene.ouput <- method(
     data = object,
-    nselect = nselect,
+    nselect = nfeatures,
     verbose = verbose,
     ...
   )
