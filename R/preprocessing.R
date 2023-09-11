@@ -3877,7 +3877,6 @@ FindVariableFeatures.Seurat <- function(
     num.bin = num.bin,
     binning.method = binning.method,
     nfeatures = nfeatures,
-    nselect = nfeatures,
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
