@@ -2038,20 +2038,13 @@ FetchResidualSCTModel <- function(object,
       layer = layer,
       cells = layer.cells
     )
-
-    # iterate over 2k cells at once
-    # cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(2000, length(x = layer.cells)))
-    # cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = length(x = layer.cells))
     cells.vector <- 1:length(x = layer.cells)
     cells.grid <- split(x = cells.vector, f = ceiling(x = seq_along(along.with = cells.vector)/chunk_size))
-
     new_residuals <- list()
 
     for (i in seq_len(length.out = length(x = cells.grid))) {
       vp <- cells.grid[[i]]
-      #block <- DelayedArray::read_block(x = counts, viewport = vp, as.sparse = TRUE)
       block <- counts[,vp, drop=FALSE]
-      ## TODO: Maybe read only interesting genes
       umi.all <- as.sparse(x = block)
 
       # calculate min_variance for get_residuals
