@@ -1499,6 +1499,9 @@ SCTransform.StdAssay <- function(
   seed.use = 1448145,
   verbose = TRUE,
   ...) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   if (!is.null(reference.SCT.model)){
     do.correct.umi <- FALSE
     do.center <- FALSE
