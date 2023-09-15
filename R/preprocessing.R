@@ -3235,6 +3235,12 @@ SCTransform.default <- function(
     )
   }
 
+  if (!is.null(x = vst.flavor) && vst.flavor!="v2"){
+    stop("vst.flavor can be 'v1' or 'v2'. Default is 'v2'")
+  }
+  if (vst.flavor == "v1"){
+    vst.flavor <- NULL
+  }
   vst.args[['vst.flavor']] <- vst.flavor
   vst.args[['umi']] <- umi
   vst.args[['cell_attr']] <- cell.attr
