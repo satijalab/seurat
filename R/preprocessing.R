@@ -1191,7 +1191,7 @@ Read10X_Image <- function(image.dir, image.name = "tissue_lowres_image.png", fil
     Class = 'VisiumV1',
     image = image,
     scale.factors = scalefactors(
-      spot = scale.factors$tissue_hires_scalef,
+      spot = scale.factors$spot_diameter_fullres,
       fiducial = scale.factors$fiducial_diameter_fullres,
       hires = scale.factors$tissue_hires_scalef,
       scale.factors$tissue_lowres_scalef
