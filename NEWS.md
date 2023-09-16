@@ -1,4 +1,4 @@
-# Unreleased
+# Seurat 4.4.0 (2023-09-15)
 
 ## Added
 - Added parallelization support with speed improvements for `PrepSCTFindMarkers` 
