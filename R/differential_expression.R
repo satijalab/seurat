@@ -575,12 +575,12 @@ FindMarkers.default <- function(
   if (inherits(x = object, what = "IterableMatrix")){
     data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
     groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
-    de.results <- suppressMessages(BPCells::marker_features(data.use, group = groups, method = "wilcoxon"))
-    de.results <- as.data.frame(
-      de.results %>% 
-      filter(foreground == "foreground") %>% 
-      select(feature, p_val = p_val_raw)
-    )
+    de.results <- suppressMessages(BPCells::marker_features(data.use, 
+                                                            group = groups, 
+                                                            method = "wilcoxon"))
+    de.results <- subset(de.results, foreground == "foreground")
+    de.results <- data.frame(feature = de.results$feature, 
+                             p_val = de.results$p_val_raw)
     rownames(de.results) <- de.results$feature
     de.results$feature <- NULL
   } else {
