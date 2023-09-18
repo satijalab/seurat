@@ -106,13 +106,7 @@ HarmonyIntegration <- function(
   #   verbose = verbose
   # )
   #create grouping variables
-  groups <- SeuratObject::EmptyDF(n = ncol(x = object))
-  row.names(x = groups) <- colnames(x = object)
-  for (model in levels(x = object)) {
-    cc <- Cells(x = object, layer = model)
-    groups[cc, "group"] <- model
-  }
-  names(x = groups) <- 'group'
+  groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
   # Run Harmony
   harmony.embed <- harmony::HarmonyMatrix(
     data_mat = Embeddings(object = orig),
@@ -210,13 +204,8 @@ CCAIntegration <- function(
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object, search = 'data')
   if (normalization.method == 'SCT') {
-    groups <- SeuratObject::EmptyDF(n = ncol(x = object))
-    row.names(x = groups) <- colnames(x = object)
-    for (model in levels(x = object)) {
-      cc <- Cells(x = object, layer = model)
-      groups[cc, "group"] <- model
-    }
-    names(x = groups) <- 'group'
+    #create grouping variables
+    groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct,split.by = 'split')
@@ -352,13 +341,8 @@ RPCAIntegration <- function(
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
   if (normalization.method == 'SCT') {
-    groups <- SeuratObject::EmptyDF(n = ncol(x = object))
-    row.names(x = groups) <- colnames(x = object)
-    for (model in levels(x = object)) {
-      cc <- Cells(x = object, layer = model)
-      groups[cc, "group"] <- model
-    }
-    names(x = groups) <- 'group'
+    #create grouping variables
+    groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct, split.by = 'split')
@@ -453,13 +437,8 @@ JointPCAIntegration <- function(
   layers <- layers %||% Layers(object, search = 'data')
 
   if (normalization.method == 'SCT') {
-    groups <- SeuratObject::EmptyDF(n = ncol(x = object))
-    row.names(x = groups) <- colnames(x = object)
-    for (model in levels(x = object)) {
-        cc <- Cells(x = object, layer = model)
-        groups[cc, "group"] <- model
-    }
-    names(x = groups) <- 'group'
+    #create grouping variables
+    groups <- CreateGroupVariable(object, layers = layers, scale.layer = scale.layer)
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct <- DietSeurat(object = object.sct, features = features.diet)
     object.sct[['joint.pca']] <- CreateDimReducObject(
@@ -633,6 +612,25 @@ IntegrateLayers <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+CreateGroupVariable <- function(object, layers, scale.layer) {
+    groups <- if (inherits(x = object, what = 'SCTAssay')) {
+        df <- SeuratObject::EmptyDF(n = ncol(x = object))
+        row.names(x = df) <- colnames(x = object)
+        for (model in levels(x = object)) {
+            cc <- Cells(x = object, layer = model)
+            df[cc, "group"] <- model
+        }
+       df
+      } else if (length(x = layers) > 1L) {
+          cmap <- slot(object = object, name = 'cells')[, layers]
+          as.data.frame(x = labels(
+              object = cmap,
+              values = Cells(x = object, layer = scale.layer)
+            ))
+      }
+    names(x = groups) <- 'group'
+    return(groups)
+}
 
 #' Writing Integration Method Functions
 #'
