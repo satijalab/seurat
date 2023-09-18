@@ -175,7 +175,7 @@ int_harmony <- suppressMessages(suppressWarnings(IntegrateLayers(
 test_that("IntegrateLayers returns embeddings with correct dimensions ", {
   expect_equal(dim(int_cca[["integrated.cca"]]), c(80, 50))
   expect_equal(dim(int_rpca[["integrated.rpca"]]), c(80, 50))
-  expect_equal(dim(int_harmony[["integrated.cca"]]), c(80, 50))
+  expect_equal(dim(int_harmony[["harmony"]]), c(80, 50))
   
   int_rpca
   expect_equal(int_cca[["integrated.cca"]]@assay.used, "RNAv5")
@@ -189,15 +189,13 @@ test_that("group.by ", {
 
 
 #Harmony integration
-
-
-int_2 <- IntegrateLayers(object = pbmc_small, method = CCAIntegration, 
-                         group.by = "letter.idents",
-                orig.reduction = "pca", 
-                assay = "RNAv5",
-                k.weight = 20,
-                new.reduction = "integrated.cca")
-
-head(int_2[['integrated.cca']]@cell.embeddings[1:5,1:5])
-head(int_cca[['integrated.cca']]@cell.embeddings[1:5,1:5])
+# int_2 <- IntegrateLayers(object = pbmc_small, method = CCAIntegration, 
+#                          group.by = "letter.idents",
+#                 orig.reduction = "pca", 
+#                 assay = "RNAv5",
+#                 k.weight = 20,
+#                 new.reduction = "integrated.cca")
+# 
+# head(int_2[['integrated.cca']]@cell.embeddings[1:5,1:5])
+# head(int_cca[['integrated.cca']]@cell.embeddings[1:5,1:5])
 

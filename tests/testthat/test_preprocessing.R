@@ -97,6 +97,40 @@ test_that("Relative count normalization returns expected values", {
   expect_equal(rc.counts[2, 1], 14285.71, tolerance = 1e-6)
 })
 
+# Tests for v5 NormalizeData
+# --------------------------------------------------------------------------------
+context("v5 NormalizeData")
+
+if(class(object[['RNA']]) == "Assay5")  {
+  fake.groups <- c(rep(1, floor(ncol(pbmc.test)/2)),
+                   rep(2, ncol(pbmc.test) - (floor(ncol(pbmc.test)/2))) )
+  object$groups <- fake.groups
+  object.split[["RNA"]] <- split(object[["RNA"]], f = object$groups)
+  object.split <-  NormalizeData(object = object.split)
+  
+  group1 <- subset(object, groups==1)
+  group1 <- NormalizeData(group1)
+  
+  test_that("Normalization is performed for each layer", {
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
+  })
+  
+  object.split <- NormalizeData(object = object.split, normalization.method = "CLR", verbose = FALSE)
+  group1 <- NormalizeData(object = group1, normalization.method = "CLR", verbose = FALSE)
+  test_that("CLR normalization works with multiple layers", {
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
+  })        
+  
+  object.split <- NormalizeData(object = object.split, normalization.method = "RC", verbose = FALSE)
+  group1 <- NormalizeData(object = group1, normalization.method = "RC", verbose = FALSE)
+  test_that("RC normalization works with multiple layers", {
+    expect_equal(Layers(object.split),c("counts.1", "counts.2", "data.1", "data.2")) 
+    expect_equal(group1[['RNA']]$data, LayerData(object.split, layer="data.1"))
+  })
+}
+
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
