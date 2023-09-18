@@ -572,18 +572,31 @@ FindMarkers.default <- function(
       latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
     }
   }
-  de.results <- PerformDE(
-    object = object,
-    cells.1 = cells.1,
-    cells.2 = cells.2,
-    features = features,
-    test.use = test.use,
-    verbose = verbose,
-    min.cells.feature = min.cells.feature,
-    latent.vars = latent.vars,
-    densify = densify,
-    ...
-  )
+  if (inherits(x = object, what = "IterableMatrix")){
+    data.use <- object[features, c(cells.1, cells.2), drop = FALSE]
+    groups <- c(rep("foreground", length(cells.1)), rep("background", length(cells.2)))
+    de.results <- suppressMessages(BPCells::marker_features(data.use, group = groups, method = "wilcoxon"))
+    de.results <- as.data.frame(
+      de.results %>% 
+      filter(foreground == "foreground") %>% 
+      select(feature, p_val = p_val_raw)
+    )
+    rownames(de.results) <- de.results$feature
+    de.results$feature <- NULL
+  } else {
+    de.results <- PerformDE(
+      object = object,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      features = features,
+      test.use = test.use,
+      verbose = verbose,
+      min.cells.feature = min.cells.feature,
+      latent.vars = latent.vars,
+      densify = densify,
+      ...
+    )
+  }
   de.results <- cbind(de.results, fc.results[rownames(x = de.results), , drop = FALSE])
   if (only.pos) {
     de.results <- de.results[de.results[, 2] > 0, , drop = FALSE]
