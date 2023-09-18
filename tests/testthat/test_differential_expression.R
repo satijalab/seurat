@@ -330,13 +330,13 @@ test_that("FindAllMarkers works as expected", {
 # Tests for running FindMarkers post integration/transfer
 ref <- pbmc_small
 ref <- FindVariableFeatures(object = ref, verbose = FALSE, nfeatures = 100)
-query <- CreateSeuratObject(
+query <- CreateSeuratObject(CreateAssayObject(
   counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], slot = "counts") + rpois(n = ncol(pbmc_small), lambda = 1))
-)
+))
 
-query2 <- CreateSeuratObject(
+query2 <- CreateSeuratObject(CreateAssayObject(
   counts = as.sparse(GetAssayData(object = pbmc_small[['RNA']], slot = "counts")[, 1:40] + rpois(n = ncol(pbmc_small), lambda = 1))
-)
+))
 
 
 
