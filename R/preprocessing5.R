@@ -687,6 +687,7 @@ ScaleData.StdAssay <- function(
   olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
+    layer <- "counts"
     inform(
       message = "'use.umi' is TRUE, please make sure 'layer' specifies raw counts"
     )
