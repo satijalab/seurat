@@ -78,7 +78,7 @@ Imports:
     Rtsne,
     scales,
     scattermore (>= 0.7),
-    sctransform (>= 0.3.5),
+    sctransform (>= 0.4.0),
     shiny,
     spatstat.explore,
     spatstat.geom,
