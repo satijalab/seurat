@@ -1409,7 +1409,6 @@ SCTransform.IterableMatrix <- function(
   }
   sampled_cells <- sample.int(n = ncol(x = object), size = min(ncells, ncol(x = object)))
   umi <- as.sparse(x = object[, sampled_cells])
-  message("umi", dim(umi))
   cell.attr <- cell.attr[colnames(x = umi),,drop=FALSE]
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
@@ -1617,13 +1616,14 @@ SCTransform.StdAssay <- function(
           message("Getting residuals for block ", i, "(of ", length(cells.grid), ") for ", dataset.names[[dataset.index]], " dataset")
         }
         counts.vp <- as.sparse(x = layer.data[, vp])
-        cell.attr.object <- cell.attr[colnames(x = counts.vp),, drop=FALSE]
+        cell.attr.object <- cell.attr.layer[colnames(x = counts.vp),, drop=FALSE]
         vst_out <- vst_out.reference
         # cell_attr <- data.frame(
         #   umi = colSums(counts.vp),
         #   log_umi = log10(x = colSums(counts.vp))
         # )
         # rownames(cell_attr) <- colnames(counts.vp)
+        #browser()
         vst_out$cell_attr <- cell.attr.object
         vst_out$gene_attr <- vst_out$gene_attr[variable.features,]
         if (return.only.var.genes){
