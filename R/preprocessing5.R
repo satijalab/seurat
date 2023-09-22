@@ -1618,12 +1618,7 @@ SCTransform.StdAssay <- function(
         counts.vp <- as.sparse(x = layer.data[, vp])
         cell.attr.object <- cell.attr.layer[colnames(x = counts.vp),, drop=FALSE]
         vst_out <- vst_out.reference
-        # cell_attr <- data.frame(
-        #   umi = colSums(counts.vp),
-        #   log_umi = log10(x = colSums(counts.vp))
-        # )
-        # rownames(cell_attr) <- colnames(counts.vp)
-        #browser()
+
         vst_out$cell_attr <- cell.attr.object
         vst_out$gene_attr <- vst_out$gene_attr[variable.features,]
         if (return.only.var.genes){
