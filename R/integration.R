@@ -806,8 +806,8 @@ FindTransferAnchors <- function(
   reference.reduction.init <- reference.reduction
   if (inherits(x = reference[[reference.assay]], what = 'Assay5')) {
     if (length(Layers(reference, search = "data")) > 1) {
-      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]], 
-                                                 layers = "data", new = "data") 
+      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]],
+                                                 layers = "data", new = "data")
     }
   }
     if (normalization.method == "SCT") {
@@ -1886,7 +1886,7 @@ ProjectIntegration <- function(
   seed = 123,
   verbose = TRUE
 ) {
-  
+
   layers <- Layers(object = object[[assay]], search = layers)
   # Check input and output dimensional reductions
   sketched.layers <- sketched.layers %||% layers
@@ -2182,7 +2182,7 @@ MapQuery <- function(
   if (DefaultAssay(anchorset@object.list[[1]]) %in% Assays(reference)) {
     DefaultAssay(reference) <- DefaultAssay(anchorset@object.list[[1]])
   } else {
-    stop('The assay used to create the anchorset does not match any', 
+    stop('The assay used to create the anchorset does not match any',
          'of the assays in the reference object.')
   }
   # determine anchor type
@@ -4306,7 +4306,7 @@ FindNN <- function(
       eps = eps,
       index = if (reduction.2 == nn.reduction) nn.idx2 else NULL
     )
-    
+
     nnba <- NNHelper(
       data = Embeddings(object = object[[reduction]])[cells1, nn.dims],
       query = Embeddings(object = object[[reduction]])[cells2, nn.dims],
@@ -5165,7 +5165,7 @@ if (normalization.method == 'SCT') {
     if (inherits(x = reference.data, what = 'dgCMatrix')) {
       feature.mean <- RowMeanSparse(mat = reference.data)
     } else if (inherits(x = reference.data, what = "IterableMatrix")) {
-      bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
+      bp.stats <- BPCells::matrix_stats(matrix = reference.data,
                                         row_stats = "variance")
       feature.mean <- bp.stats$row_stats["mean",]
     } else {
@@ -5251,7 +5251,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
       } else if (inherits(x = reference.data, what = "IterableMatrix")) {
-        bp.stats <- BPCells::matrix_stats(matrix = reference.data, 
+        bp.stats <- BPCells::matrix_stats(matrix = reference.data,
                                           row_stats = "variance")
         feature.mean <- bp.stats$row_stats["mean",]
       } else {
@@ -5952,8 +5952,8 @@ ValidateParams_FindTransferAnchors <- function(
     } else {
       new.sct.assay <- query.umi.assay
     }
-    
-    
+
+
     DefaultAssay(query) <- new.sct.assay
     ModifyParam(param = "query.assay", value = new.sct.assay)
     ModifyParam(param = "query", value = query)

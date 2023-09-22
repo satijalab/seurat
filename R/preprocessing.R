@@ -3182,6 +3182,9 @@ SCTransform.default <- function(
   verbose = TRUE,
   ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   vst.args <- list(...)
   umi <- object
   # check for batch_var in meta data
@@ -3233,6 +3236,13 @@ SCTransform.default <- function(
       call. = FALSE,
       immediate. = TRUE
     )
+  }
+
+  if (!is.null(x = vst.flavor) && !vst.flavor %in% c("v1", "v2")){
+    stop("vst.flavor can be 'v1' or 'v2'. Default is 'v2'")
+  }
+  if (!is.null(x = vst.flavor) && vst.flavor == "v1"){
+    vst.flavor <- NULL
   }
 
   vst.args[['vst.flavor']] <- vst.flavor
@@ -3411,7 +3421,10 @@ SCTransform.default <- function(
   )
   vst.out$y <- scale.data
   vst.out$variable_features <- residual.features %||% top.features
-
+  if (!do.correct.umi) {
+    vst.out$umi_corrected <- umi
+  }
+  min_var <- vst.out$arguments$min_variance
   return(vst.out)
 }
 
@@ -3447,6 +3460,7 @@ SCTransform.Assay <- function(
     do.correct.umi <- FALSE
     do.center <- FALSE
   }
+
   umi <- GetAssayData(object = object, slot = 'counts')
   vst.out <- SCTransform(object = umi,
                          cell.attr = cell.attr,
@@ -3513,7 +3527,7 @@ SCTransform.Assay <- function(
 #'
 SCTransform.Seurat <- function(
     object,
-    assay = NULL,
+    assay = "RNA",
     new.assay.name = 'SCT',
     reference.SCT.model = NULL,
     do.correct.umi = TRUE,
@@ -3532,12 +3546,20 @@ SCTransform.Seurat <- function(
     verbose = TRUE,
     ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   assay <- assay %||% DefaultAssay(object = object)
+  if (assay == "SCT") {
+    # if re-running SCTransform, use the RNA assay
+    assay <- "RNA"
+    warning("Running SCTransform on the RNA assay while default assay is SCT.")
+  }
+
   if (verbose){
     message("Running SCTransform on assay: ", assay)
   }
   cell.attr <- slot(object = object, name = 'meta.data')[colnames(object[[assay]]),]
-
   assay.data <- SCTransform(object = object[[assay]],
                             cell.attr = cell.attr,
                             reference.SCT.model = reference.SCT.model,
