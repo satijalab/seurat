@@ -3758,7 +3758,6 @@ FindVariableFeatures.Assay <- function(
   num.bin = 20,
   binning.method = "equal_width",
   nfeatures = 2000,
-  nselect = 2000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE,
