@@ -428,7 +428,8 @@ AverageExpression <- function(
   return.seurat = FALSE,
   group.by = 'ident',
   add.ident = NULL,
-  slot = 'counts',
+  layer = 'data',
+  slot = deprecated(),
   method = 'average',
   verbose = TRUE,
   ...
@@ -441,6 +442,21 @@ AverageExpression <- function(
   if (!(method %in% c('average', 'aggregate'))) {
     stop("'method' must be either 'average' or 'aggregate'")
   }
+  if (is_present(arg = slot)) {
+    f <- if (.IsFutureSeurat(version = '5.1.0')) {
+      deprecate_stop
+    } else if (.IsFutureSeurat(version = '5.0.0')) {
+      deprecate_warn
+    } else {
+      deprecate_soft
+    }
+    f(
+      when = '5.0.0',
+      what = 'AverageExpression(slot = )',
+      with = 'AverageExpression(layer = )'
+    )
+    layer <- slot
+  }
   object.assays <- FilterObjects(object = object, classes.keep = c('Assay', 'Assay5'))
   assays <- assays %||% object.assays
   if (!all(assays %in% object.assays)) {
@@ -451,10 +467,10 @@ AverageExpression <- function(
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
     }
   }
-  if (length(x = slot) == 1) {
-    slot <- rep_len(x = slot, length.out = length(x = assays))
-  } else if (length(x = slot) != length(x = assays)) {
-    stop("Number of slots provided does not match number of assays")
+  if (length(x = layer) == 1) {
+    layer <- rep_len(x = layer, length.out = length(x = assays))
+  } else if (length(x = layer) != length(x = assays)) {
+    stop("Number of layers provided does not match number of assays")
   }
   data <- FetchData(object = object, vars = rev(x = group.by))
   data <- data[which(rowSums(x = is.na(x = data)) == 0), , drop = F]
@@ -490,88 +506,69 @@ AverageExpression <- function(
       assay = assays[i],
       category.matrix = category.matrix,
       features = features.i,
-      slot = slot[i],
+      layer = layer[i],
       verbose = verbose,
       ...
     )
   }
   if (return.seurat) {
-    op <- options(Seurat.object.assay.version = "v3", Seurat.object.assay.calcn = FALSE)
+    op <- options(Seurat.object.assay.version = "v5", Seurat.object.assay.calcn = FALSE)
     on.exit(expr = options(op), add = TRUE)
-    if (slot[1] == 'scale.data') {
+    if (layer[1] == 'scale.data') {
       na.matrix <- as.matrix(x = data.return[[1]])
       na.matrix[1:length(x = na.matrix)] <- NA
+      #sum up counts to make seurat object
+      summed.counts <- PseudobulkExpression(
+        object = object[[assays[1]]],
+        assay = assays[1],
+        category.matrix = category.matrix,
+        features = features[[1]],
+        slot = "counts"
+      )
       toRet <- CreateSeuratObject(
-        counts = na.matrix,
+        counts = summed.counts,
         project = if (method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
-        check.matrix = FALSE,
         ...
       )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "counts",
-        new.data = matrix()
-      )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "data",
-        new.data = na.matrix
-      )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "scale.data",
-        new.data = data.return[[1]]
-      )
+      LayerData(object = toRet,
+                layer = "scale.data", 
+                assay = names(x = data.return)[1]) <- data.return[[1]]
     } else {
       toRet <- CreateSeuratObject(
         counts = data.return[[1]],
         project = if (method == "average") "Average" else "Aggregate",
         assay = names(x = data.return)[1],
-        check.matrix = FALSE,
         ...
       )
-      toRet <- SetAssayData(
-        object = toRet,
-        assay = names(x = data.return)[1],
-        slot = "data",
-        new.data = log1p(x = as.matrix(x = data.return[[1]]))
-      )
+      LayerData(object = toRet,
+                layer = "data",
+                assay = names(x = data.return)[1]) <- log1p(x = as.matrix(x = data.return[[1]]))
     }
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
-        if (slot[i] == 'scale.data') {
-          na.matrix <- as.matrix(x = data.return[[i]])
-          na.matrix[1:length(x = na.matrix)] <- NA
-          toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = na.matrix, check.matrix = FALSE)
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "counts",
-            new.data = matrix()
+        if (layer[i] == 'scale.data') {
+          summed.counts <- PseudobulkExpression(
+            object = object[[assays[i]]],
+            assay = assays[i],
+            category.matrix = category.matrix,
+            features = features[[i]],
+            slot = "counts"
           )
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "data",
-            new.data = na.matrix
-          )
-          toRet <- SetAssayData(
-            object = toRet,
-            assay = names(x = data.return)[i],
-            slot = "scale.data",
-            new.data = as.matrix(x = data.return[[i]])
-          )
+          toRet[[names(x = data.return)[i]]] <- CreateAssay5Object(counts = summed.counts)
+          LayerData(object = toRet,
+                    layer = "scale.data", 
+                    assay = names(x = data.return)[i]) <- data.return[[i]]
         } else {
           toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]], check.matrix = FALSE)
+          LayerData(object = toRet,
+                    layer = "data",
+                    assay = names(x = data.return)[i]) <- log1p(x = as.matrix(x = data.return[[i]]))
           toRet <- SetAssayData(
             object = toRet,
             assay = names(x = data.return)[i],
-            slot = "data",
+            layer = "data",
             new.data = log1p(x = as.matrix(x = data.return[[i]]))
           )
         }
@@ -580,7 +577,7 @@ AverageExpression <- function(
     }
     if (DefaultAssay(object = object) %in% names(x = data.return)) {
       DefaultAssay(object = toRet) <- DefaultAssay(object = object)
-      if (slot[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
+      if (layer[which(DefaultAssay(object = object) %in% names(x = data.return))[1]] != 'scale.data') {
         toRet <- ScaleData(object = toRet, verbose = verbose)
       }
     }
@@ -1365,18 +1362,34 @@ PseudobulkExpression.Assay <- function(
   assay,
   category.matrix,
   features = NULL,
-  slot = 'data',
+  layer = 'data',
+  slot = deprecated(),
   verbose = TRUE,
   ...
 ) {
+  if (is_present(arg = slot)) {
+    f <- if (.IsFutureSeurat(version = '5.1.0')) {
+      deprecate_stop
+    } else if (.IsFutureSeurat(version = '5.0.0')) {
+      deprecate_warn
+    } else {
+      deprecate_soft
+    }
+    f(
+      when = '5.0.0',
+      what = 'GetAssayData(slot = )',
+      with = 'GetAssayData(layer = )'
+    )
+    layer <- slot
+  }
     data.use <- GetAssayData(
       object = object, 
-      slot = slot
+      layer = layer
     )
     features.to.avg <- features %||% rownames(x = data.use)
     if (IsMatrixEmpty(x = data.use)) {
       warning(
-        "The ", slot, " slot for the ", assay,
+        "The ", layer, " layer for the ", assay,
         " assay is empty. Skipping assay.", immediate. = TRUE, call. = FALSE)
       return(NULL)
     }
@@ -1395,7 +1408,7 @@ PseudobulkExpression.Assay <- function(
               " assay.", call. = FALSE, immediate. = TRUE)
       return(NULL)
     }
-    if (slot == 'data') {
+    if (layer == 'data') {
       data.use <- expm1(x = data.use)
       if (any(data.use == Inf)) {
         warning("Exponentiation yielded infinite values. `data` may not be log-normed.")
@@ -1403,8 +1416,7 @@ PseudobulkExpression.Assay <- function(
     }
     data.return <- data.use %*% category.matrix
    return(data.return)
- 
- 
+
 }
 
 #' @method PseudobulkExpression StdAssay
@@ -1416,14 +1428,30 @@ PseudobulkExpression.StdAssay <- function(
   assay,
   category.matrix,
   features = NULL,
-  slot = 'data',
+  layer = 'data',
+  slot = deprecated(),
   verbose = TRUE,
   ...
 ) {
-  if (slot == 'data') {
+  if (is_present(arg = slot)) {
+    f <- if (.IsFutureSeurat(version = '5.1.0')) {
+      deprecate_stop
+    } else if (.IsFutureSeurat(version = '5.0.0')) {
+      deprecate_warn
+    } else {
+      deprecate_soft
+    }
+    f(
+      when = '5.0.0',
+      what = 'GetAssayData(slot = )',
+      with = 'GetAssayData(layer = )'
+    )
+    layer <- slot
+  }
+  if (layer == 'data') {
     message("Assay5 will use arithmetic mean for data slot.")
   }
-  layers.set <- Layers(object = object, search = slot)
+  layers.set <- Layers(object = object, search = layer)
   features.to.avg <- features %||% rownames(x = object)
   bad.features <- setdiff(x = features.to.avg, y = rownames(x = object))
   if (length(x = bad.features) > 0) {
@@ -1463,7 +1491,7 @@ PseudobulkExpression.StdAssay <- function(
     }
     data.return <- data.return + data.return.i
   }
-  if (slot == 'data') {
+  if (layer == 'data') {
     data.return <- expm1(x = data.return)
   }
   return(data.return)
