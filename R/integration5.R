@@ -342,13 +342,19 @@ RPCAIntegration <- function(
   features <- features %||% SelectIntegrationFeatures5(object = object)
   assay <- assay %||% 'RNA'
   layers <- layers %||% Layers(object = object, search = 'data')
+  #check that there enough cells present 
+  ncells <- sapply(X = layers, FUN = function(x) {ncell <-  dim(object[[x]])[2]
+  return(ncell) })
+  if (min(ncells) < max(dims))  {
+    abort(message = "At least one layer has fewer cells than dimensions specified, please lower 'dims' accordingly.")
+  }
   if (normalization.method == 'SCT') {
     object.sct <- CreateSeuratObject(counts = object, assay = 'SCT')
     object.sct$split <- groups[,1]
     object.list <- SplitObject(object = object.sct, split.by = 'split')
     object.list <- PrepSCTIntegration(object.list = object.list, anchor.features = features)
     object.list <- lapply(X = object.list, FUN = function(x) {
-      x <- RunPCA(object = x, features = features, verbose = FALSE)
+      x <- RunPCA(object = x, features = features, verbose = FALSE, npcs = max(dims))
       return(x)
     }
     )
@@ -358,7 +364,7 @@ RPCAIntegration <- function(
       object.list[[i]] <- suppressMessages(suppressWarnings(CreateSeuratObject(counts = object[[layers[i]]][features,])))
       VariableFeatures(object =  object.list[[i]]) <- features
       object.list[[i]] <- suppressWarnings(ScaleData(object = object.list[[i]], verbose = FALSE))
-      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE)
+      object.list[[i]] <- RunPCA(object = object.list[[i]], verbose = FALSE, npcs=max(dims))
       suppressWarnings(object.list[[i]][['RNA']]$counts <- NULL)
     }
   }

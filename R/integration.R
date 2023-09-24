@@ -908,7 +908,8 @@ FindTransferAnchors <- function(
         query = reference,
         scale = scale,
         dims = dims,
-        verbose = verbose
+        verbose = verbose,
+        normalization.method = normalization.method
       )
       orig.embeddings <- Embeddings(object = query[[reference.reduction]])[, dims]
       orig.loadings <- Loadings(object = query[[reference.reduction]])

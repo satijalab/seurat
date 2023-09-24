@@ -27,7 +27,7 @@ hvf.methods <- list()
 FindVariableFeatures.default <- function(
   object,
   method = VST,
-  nselect = 2000L,
+  nfeatures = 2000L,
   verbose = TRUE,
   ...
 ) {
@@ -48,7 +48,7 @@ FindVariableFeatures.default <- function(
   }
   var.gene.ouput <- method(
     data = object,
-    nselect = nselect,
+    nselect = nfeatures,
     verbose = verbose,
     ...
   )
@@ -65,7 +65,7 @@ FindVariableFeatures.default <- function(
 FindVariableFeatures.StdAssay <- function(
   object,
   method = NULL,
-  nselect = 2000L,
+  nfeatures = 2000L,
   layer = NULL,
   span = 0.3,
   clip = NULL,
@@ -123,7 +123,7 @@ FindVariableFeatures.StdAssay <- function(
     hvf.info <- hvf.function(
       object = data,
       method = method,
-      nselect = nselect,
+      nfeatures = nfeatures,
       span = span,
       clip = clip,
       verbose = verbose,
@@ -161,7 +161,7 @@ FindVariableFeatures.StdAssay <- function(
     object[colnames(x = hvf.info)] <- hvf.info
   }
   object@meta.data$var.features <- NULL
-  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nselect)
+  VariableFeatures(object = object) <- VariableFeatures(object = object, nfeatures = nfeatures)
   return(object)
 }
 
@@ -651,7 +651,6 @@ NormalizeData.StdAssay <- function(
       scale.factor = scale.factor,
       margin = margin,
       verbose = verbose,
-      layer = save,
       ...
     )
   }
@@ -688,6 +687,7 @@ ScaleData.StdAssay <- function(
   olayer <- layer <- unique(x = layer)
   layer <- Layers(object = object, search = layer)
   if (isTRUE(x = use.umi)) {
+    layer <- "counts"
     inform(
       message = "'use.umi' is TRUE, please make sure 'layer' specifies raw counts"
     )
