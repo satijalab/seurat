@@ -1374,12 +1374,10 @@ DISP <- function(
 
 #' @importFrom SeuratObject Cells as.sparse
 #'
-#' @method SCTransform StdAssay
+#' @method SCTransform IterableMatrix
 #' @rdname SCTransform
 #' @concept preprocessing
 #' @export
-#' @method SCTransform Assay
-#'
 SCTransform.IterableMatrix <- function(
     object,
     cell.attr,
@@ -1436,19 +1434,11 @@ SCTransform.IterableMatrix <- function(
 
 
 #' @importFrom SeuratObject CreateAssayObject SetAssayData GetAssayData
-#' Create SCT assay from vst.out output
 CreateSCTAssay <- function(vst.out,  do.correct.umi, residual.type, clip.range){
   residual.type <- vst.out[['residual_type']] %||% 'pearson'
   sct.method <- vst.out[['sct.method']]
   assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
 
-  # create output assay and put (corrected) umi counts in count slot
-  # if (do.correct.umi & residual.type == 'pearson') {
-  #   assay.out <- CreateAssayObject(counts = vst.out$umi_corrected)
-  #   vst.out$umi_corrected <- NULL
-  # } else {
-  #   assay.out <- CreateAssayObject(counts = counts.chunk)
-  # }
   # set the variable genes
   VariableFeatures(object = assay.out) <- vst.out$variable_features
   # put log1p transformed counts in data
@@ -2152,7 +2142,7 @@ FetchResidualSCTModel <- function(object,
   return(new_residual)
 }
 
-#'@importFrom sctransform get_residual
+#' @importFrom sctransform get_residuals
 GetResidualsChunked <- function(vst_out, layer.counts, residual_type, min_variance, res_clip_range, verbose, chunk_size=5000) {
   if (inherits(x = layer.counts, what = 'V3Matrix')) {
     residuals <- get_residuals(

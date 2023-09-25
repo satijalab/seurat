@@ -11,6 +11,7 @@ Load10X_Spatial(
   slice = "slice1",
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 )
 }

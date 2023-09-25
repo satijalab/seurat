@@ -3020,8 +3020,6 @@ SelectIntegrationFeatures <- function(
   return(franks)
 }
 
-#' @export
-#'
 SelectIntegrationFeatures5 <- function(
   object,
   nfeatures = 2000,
@@ -3044,8 +3042,6 @@ SelectIntegrationFeatures5 <- function(
   return(var.features)
 }
 
-#' @export
-#'
 SelectSCTIntegrationFeatures <- function(
   object,
   nfeatures = 3000,
