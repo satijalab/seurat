@@ -6,6 +6,14 @@
 \usage{
 DISP(data, nselect = 2000L, verbose = TRUE, ...)
 }
+\arguments{
+\item{data}{Data matrix}
+
+\item{nselect}{Number of top features to select based on dispersion values}
+
+\item{verbose}{Display progress}
+}
 \description{
 Find variable features based on dispersion
 }
+\keyword{internal}

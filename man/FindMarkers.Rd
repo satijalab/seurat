@@ -287,6 +287,7 @@ should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
 \examples{
+\dontrun{
 data("pbmc_small")
 # Find markers for cluster 2
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
@@ -303,6 +304,7 @@ if (requireNamespace("ape", quietly = TRUE)) {
   pbmc_small <- BuildClusterTree(object = pbmc_small)
   markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
   head(x = markers)
+}
 }
 
 }

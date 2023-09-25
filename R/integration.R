@@ -712,6 +712,7 @@ ReciprocalProject <- function(
 #'
 #' @export
 #' @importFrom methods slot slot<-
+#' @importFrom SeuratObject JoinLayers RenameAssays
 #' @concept integration
 #' @examples
 #' \dontrun{
@@ -806,8 +807,9 @@ FindTransferAnchors <- function(
   reference.reduction.init <- reference.reduction
   if (inherits(x = reference[[reference.assay]], what = 'Assay5')) {
     if (length(Layers(reference, search = "data")) > 1) {
-      reference[[reference.assay]] <- JoinLayers(reference[[reference.assay]],
-                                                 layers = "data", new = "data")
+      reference[[reference.assay]] <- JoinLayers(
+        reference[[reference.assay]],
+        layers = "data", new = "data")
     }
   }
     if (normalization.method == "SCT") {
@@ -883,7 +885,10 @@ FindTransferAnchors <- function(
       if (is.null(x = reference.reduction)) {
         reference.reduction <- "pca"
         if (verbose) {
-          message("Performing PCA on the provided query using ", length(x = features), " features as input.")
+          message(
+            "Performing PCA on the provided query using ",
+            length(x = features),
+            " features as input.")
         }
         if (normalization.method == "LogNormalize") {
           query <- ScaleData(
@@ -1863,6 +1868,9 @@ IntegrateEmbeddings.TransferAnchorSet <- function(
 #' @param reduction.key Key for new dimensional reduction; defaults to creating
 #' one from \code{reduction.name}
 #' @param layers Names of layers for correction.
+#' @param sketched.layers Names of sketched layers, defaults to all 
+#' layers of \dQuote{\code{object[[assay]]}}
+#' @param seed A positive integer. The seed for the random number generator, defaults to 123.
 #' @param verbose Print progress and message
 #'
 #' @return Returns a Seurat object with an integrated dimensional reduction
@@ -1999,26 +2007,25 @@ ProjectIntegration <- function(
     }
     emb <- UnSketchEmbeddings(
       atom.data = LayerData(
-      object = object[[sketched.assay]],
-      layer = layers[i],
-      features = features
-    ),
-    atom.cells = cells.sketch,
-    orig.data = LayerData(
-      object = object[[assay]],
-      layer = layers[i],
-      features = features
-    ),
-    embeddings = Embeddings(object = object[[reduction]]),
-    sketch.matrix = sketch.matrix
-    )
+        object = object[[sketched.assay]],
+        layer = layers[i],
+        features = features
+      ),
+      atom.cells = cells.sketch,
+      orig.data = LayerData(
+        object = object[[assay]],
+        layer = layers[i],
+        features = features
+      ),
+      embeddings = Embeddings(object = object[[reduction]]),
+      sketch.matrix = sketch.matrix)
     emb.list[[i]] <- emb
     cells.list[[i]] <- colnames(x = emb)
   }
-   emb.all <- t(matrix(data = unlist(emb.list),
-                     nrow = ncol(x = object[[reduction]]),
-                     ncol = length(unlist(cells.list))
-                     ))
+   emb.all <- t(x = matrix(
+      data = unlist(emb.list),
+      nrow = ncol(x = object[[reduction]]),
+      ncol = length(unlist(cells.list))))
    rownames(emb.all) <- unlist(cells.list)
    emb.all <- emb.all[colnames(object[[assay]]), ]
   object[[reduction.name]] <- CreateDimReducObject(
@@ -3020,6 +3027,26 @@ SelectIntegrationFeatures <- function(
   return(franks)
 }
 
+#' Select integration features
+#' 
+#' @param object Seurat object
+#' @param nfeatures Number of features to return for integration
+#' @param assay Name of assay to use for integration feature selection
+#' @param method Which method to pull. For \code{HVFInfo} and
+#' \code{VariableFeatures}, choose one from one of the
+#' following:
+#' \itemize{
+#'  \item \dQuote{vst}
+#'  \item \dQuote{sctransform} or \dQuote{sct}
+#'  \item \dQuote{mean.var.plot}, \dQuote{dispersion}, \dQuote{mvp}, or
+#'   \dQuote{disp}
+#' }
+#' @param layers Name of layers to use for integration feature selection
+#' @param verbose Print messages
+#' @param ... Arguments passed on to \code{method}
+#' 
+#' @export
+#'
 SelectIntegrationFeatures5 <- function(
   object,
   nfeatures = 2000,
@@ -3042,6 +3069,16 @@ SelectIntegrationFeatures5 <- function(
   return(var.features)
 }
 
+#' Select SCT integration features
+#' 
+#' @param object Seurat object
+#' @param nfeatures Number of features to return for integration
+#' @param assay Name of assay to use for integration feature selection
+#' @param verbose Print messages
+#' @param ... Arguments passed on to \code{method}
+#' 
+#' @export
+#'
 SelectSCTIntegrationFeatures <- function(
   object,
   nfeatures = 3000,
@@ -4473,7 +4510,7 @@ FindWeightsNN <- function(
   distances <- Distances(object = nn.obj)
   distances <- 1 - (distances / distances[, ncol(x = distances)])
   cell.index <- Indices(object = nn.obj)
-  weights <- Seurat:::FindWeightsC(
+  weights <- FindWeightsC(
     cells2 = 0:(length(query.cells) - 1),
     distances = as.matrix(x = distances),
     anchor_cells2 = reference.cells,
@@ -4942,7 +4979,8 @@ ProjectCellEmbeddings.Seurat <- function(
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 ) {
   if (verbose) {
     message("Projecting cell embeddings")
@@ -4995,7 +5033,8 @@ ProjectCellEmbeddings.Assay <- function(
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 ) {
   features <- Reduce(
     f = intersect,
@@ -5044,7 +5083,8 @@ ProjectCellEmbeddings.SCTAssay <- function(
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 ) {
   if (normalization.method != 'SCT') {
     warning('Query data is SCT normalized, but normalization.method is set to LogNormalize')
@@ -5080,7 +5120,8 @@ ProjectCellEmbeddings.StdAssay <- function(
   verbose = TRUE,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 ) {
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   features <- Reduce(
@@ -5142,7 +5183,8 @@ ProjectCellEmbeddings.default <- function(
   features = NULL,
   nCount_UMI = NULL,
   feature.mean = NULL,
-  feature.sd = NULL
+  feature.sd = NULL,
+  ...
 ){
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
 if (normalization.method == 'SCT') {
@@ -5214,7 +5256,8 @@ ProjectCellEmbeddings.IterableMatrix <- function(
   nCount_UMI = NULL,
   feature.mean = NULL,
   feature.sd = NULL,
-  block.size = 10000
+  block.size = 10000,
+  ...
 ) {
   features <- features %||% rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(query))
@@ -5222,8 +5265,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
     reference.SCT.model <- slot(object = reference[[reference.assay]], name = "SCTModel.list")[[1]]
     cells.grid <- split(
       x = 1:ncol(query),
-      f = ceiling(seq_along(along.with = 1:ncol(query))/block.size)
-      )
+      f = ceiling(seq_along(along.with = 1:ncol(query)) / block.size))
     proj.list <- list()
     for (i in seq_along(along.with = cells.grid)) {
       query.i <- FetchResiduals_reference(
@@ -5231,7 +5273,7 @@ ProjectCellEmbeddings.IterableMatrix <- function(
         reference.SCT.model = reference.SCT.model,
         features = features,
         nCount_UMI = nCount_UMI[colnames(query)[cells.grid[[i]]]])
-      proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features,dims]) %*% query.i
+      proj.list[[i]] <- t(Loadings(object = reference[[reduction]])[features, dims]) %*% query.i
     }
     proj.pca <- t(matrix(
       data = unlist(x = proj.list),
@@ -5243,13 +5285,14 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       ))
   } else {
     query <- query[features,]
-    reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features,]
+    reference.data <- LayerData(object = reference[[reference.assay]], layer = 'data')[features, ]
     if (is.null(x = feature.mean)) {
       if (inherits(x = reference.data, what = 'dgCMatrix')) {
         feature.mean <- RowMeanSparse(mat = reference.data)
       } else if (inherits(x = reference.data, what = "IterableMatrix")) {
-        bp.stats <- BPCells::matrix_stats(matrix = reference.data,
-                                          row_stats = "variance")
+        bp.stats <- BPCells::matrix_stats(
+          matrix = reference.data, 
+          row_stats = "variance")
         feature.mean <- bp.stats$row_stats["mean",]
       } else {
         feature.mean <- rowMeans(mat = reference.data)
@@ -5270,68 +5313,14 @@ ProjectCellEmbeddings.IterableMatrix <- function(
       }
       feature.mean[is.na(x = feature.mean)] <- 1
     }
-    query.scale <- BPCells::min_by_row(mat = query, vals = 10*feature.sd + feature.mean)
-    query.scale <- (query.scale - feature.mean)/feature.sd
+    query.scale <- BPCells::min_by_row(mat = query, vals = 10 * feature.sd + feature.mean)
+    query.scale <- (query.scale - feature.mean) / feature.sd
     proj.pca <- t(query.scale) %*% Loadings(object = reference[[reduction]])[features,dims]
     rownames(x = proj.pca) <- colnames(x = query)
     colnames(x = proj.pca) <- colnames(x = Embeddings(object = reference[[reduction]]))[dims]
   }
   return(proj.pca)
 }
-
-#' @rdname ProjectCellEmbeddings
-#' @method ProjectCellEmbeddings DelayedMatrix
-#' @export
-#'
-ProjectCellEmbeddings.DelayedMatrix <- function(
-  query.data,
-  block.size = 1e9,
-  reference,
-  assay = NULL,
-  reduction,
-  normalization.method = NULL,
-  dims = NULL,
-  feature.mean = NULL,
-  feature.sd = NULL
-) {
-  dims <- dims %||% 1:ncol(reference[[reduction]])
-  assay <- assay %||% DefaultAssay(reference)
-  features <- intersect(rownames(query.data),
-                        rownames(reference[[reduction]]@feature.loadings))
-  query.data <- query.data[features,]
-  if (IsSCT(object[[assay]])) {
-    # TODO: SCT reiduals projection
-  } else {
-    feature.mean <- feature.mean[features] %||%
-      RowMeanSparse(mat =  LayerData(object = reference[[assay]], layer = 'data')[features,])
-    feature.sd <- feature.sd[features] %||%
-      sqrt(RowVarSparse(mat = LayerData(object = reference[[assay]], layer = 'data')[features,]))
-    feature.sd <- MinMax(feature.sd, max = max(feature.sd), min = 0.1)
-    suppressMessages(setAutoBlockSize(size = block.size))
-    cells.grid <- DelayedArray::colAutoGrid(x = query.data)
-    emb.list <- list()
-    for (i in seq_len(length.out = length(x = cells.grid))) {
-      vp <- cells.grid[[i]]
-      data.block <- DelayedArray::read_block(x = query.data,
-                                             viewport = vp,
-                                             as.sparse = TRUE)
-      data.block <- apply(data.block, MARGIN = 2, function(x) {
-        x <- (x - feature.mean)/feature.sd
-        return(x)
-      })
-      emb.block <- t(reference[[reduction]]@feature.loadings[features,dims]) %*%  data.block
-      emb.list[[i]] <- emb.block
-    }
-    # list to matrix, column has to be cells
-    emb.mat <- t(matrix(data = unlist(emb.list), nrow = length(dims) , ncol = ncol(query.data)))
-    rownames(emb.mat) <- colnames(query.data)
-    colnames(emb.mat) <- colnames(reference[[reduction]]@cell.embeddings)[dims]
-  }
-  return(emb.mat)
-}
-
-
-
 
 # Project new data onto SVD (LSI or PCA)
 #
@@ -7603,6 +7592,12 @@ PrepareBridgeReference <- function (
 #'    and query.
 #' }
 #' }
+#' @param bridge.reduction Dimensional reduction to perform when finding anchors. Can
+#' be one of:
+#' \itemize{
+#'   \item{cca: Canonical correlation analysis}
+#'   \item{direct: Use assay data as a dimensional reduction}
+#' }
 #' @param verbose Print messages and progress
 #'
 #' @export
@@ -7868,25 +7863,32 @@ FastRPCAIntegration <- function(
 
 #' Transfer embeddings from sketched cells to the full data
 #'
+#' @param atom.data Atom data
+#' @param atom.cells Atom cells
+#' @param orig.data Original data
+#' @param embeddings Embeddings of atom cells
+#' @param sketch.matrix Sketch matrix
+#'
 #' @importFrom MASS ginv
 #' @importFrom Matrix t
 #'
 #' @export
 #'
-UnSketchEmbeddings <- function(atom.data,
-                               atom.cells = NULL,
-                               orig.data,
-                               embeddings,
-                               sketch.matrix = NULL
+UnSketchEmbeddings <- function(
+  atom.data,
+  atom.cells = NULL,
+  orig.data,
+  embeddings,
+  sketch.matrix = NULL
 ) {
   if(!all(rownames(atom.data) == rownames(orig.data))) {
-    stop('fetures in atom.data and orig.data are not identical')
+    stop('features in atom.data and orig.data are not identical')
   } else {
     features = rownames(atom.data)
   }
   atom.cells <- atom.cells %||% colnames(x = atom.data)
   if (inherits(x = orig.data, what = 'DelayedMatrix') ) {
-    matrix.prod.function <- crossprod_DelayedAssay
+    stop("PseudobulkExpression does not support DelayedMatrix objects")
   } else if(inherits(x = orig.data, what = 'IterableMatrix')) {
     matrix.prod.function <- crossprod_BPCells
   } else {
@@ -7905,7 +7907,6 @@ UnSketchEmbeddings <- function(atom.data,
   return(emb)
 }
 
-
 FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
   sketch.R <- t(x = CountSketch(
     nsketch = round(x = ratio *  length(x = features)),
@@ -7914,5 +7915,3 @@ FeatureSketch <- function(features, ratio = 0.8, seed = 123) {
   )
   return(sketch.R)
 }
-
-

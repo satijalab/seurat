@@ -28,25 +28,30 @@ RPCAIntegration(
 )
 }
 \arguments{
-\item{assay}{A vector of assay names specifying which assay to use when
-constructing anchors. If NULL, the current default assay for each object is
-used.}
+\item{object}{A \code{Seurat} object}
 
-\item{reference}{A vector specifying the object/s to be used as a reference
-during integration. If NULL (default), all pairwise anchors are found (no
-reference/s). If not NULL, the corresponding objects in \code{object.list}
-will be used as references. When using a set of specified references, anchors
-are first found between each query and each reference. The references are
-then integrated through pairwise integration. Each query is then mapped to
-the integrated reference.}
+\item{assay}{Name of \code{Assay} in the \code{Seurat} object}
+
+\item{layers}{Names of layers in \code{assay}}
+
+\item{orig}{A \link[SeuratObject:DimReduc]{dimensional reduction} to correct}
+
+\item{new.reduction}{Name of new integrated dimensional reduction}
+
+\item{reference}{A reference \code{Seurat} object}
+
+\item{features}{A vector of features to use for integration}
 
 \item{normalization.method}{Name of normalization method used: LogNormalize
 or SCT}
 
-\item{dims}{Which dimensions to use from the CCA to specify the neighbor
-search space}
+\item{dims}{Dimensions of dimensional reduction to use for integration}
 
-\item{k.filter}{How many neighbors (k) to use when filtering anchors}
+\item{k.filter}{Number of anchors to filter}
+
+\item{scale.layer}{Name of scaled layer in \code{Assay}}
+
+\item{groups}{A one-column data frame with grouping information}
 
 \item{dims.to.integrate}{Number of dimensions to return integrated values for}
 
@@ -87,7 +92,7 @@ If NULL, the sample tree will be computed automatically.}
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
 
-\item{verbose}{Print progress bars and output}
+\item{verbose}{Print progress}
 
 \item{...}{Arguments passed on to \code{FindIntegrationAnchors}}
 }
@@ -111,13 +116,15 @@ obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
 
 # Reference-based Integration
 # Here, we use the first layer as a reference for integraion
-# Thus, we only identify anchors between the reference and the rest of the datasets, saving computational resources
+# Thus, we only identify anchors between the reference and the rest of the datasets,
+# saving computational resources
 obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
   orig.reduction = "pca", new.reduction = 'integrated.rpca',
   reference = 1, verbose = FALSE)
 
 # Modifying parameters
-# We can also specify parameters such as `k.anchor` to increase the strength of integration
+# We can also specify parameters such as `k.anchor` to increase the strength of
+# integration
 obj <- IntegrateLayers(object = obj, method = RPCAIntegration,
   orig.reduction = "pca", new.reduction = 'integrated.rpca',
   k.anchor = 20, verbose = FALSE)

@@ -363,9 +363,11 @@ HTODemux <- function(
 #' @seealso \code{\link[sctransform]{get_residuals}}
 #'
 #' @examples
+#' \dontrun{
 #' data("pbmc_small")
 #' pbmc_small <- SCTransform(object = pbmc_small, variable.features.n = 20)
 #' pbmc_small <- GetResidual(object = pbmc_small, features = c('MS4A1', 'TCL1A'))
+#' }
 #'
 GetResidual <- function(
   object,
@@ -531,14 +533,11 @@ Load10X_Spatial <- function(
             immediate. = TRUE)
     data.dir <- data.dir[1]
   }
-  data <- Read10X_h5(filename = file.path(data.dir, filename),
-                     ...)
-
+  data <- Read10X_h5(filename = file.path(data.dir, filename), ...)
   if (to.upper) {
-    data <- imap(data, ~{
-      rownames(.x) <- toupper(rownames(.x))
-      .x
-    })
+    for(i in seq_along(data)) {
+      rownames(data[[i]]) <- toupper(rownames(data[[i]]))
+    }
   }
   if (is.list(data) & "Antibody Capture" %in% names(data)) {
     matrix_gex <- data$`Gene Expression`
@@ -1503,8 +1502,11 @@ ReadAkoya <- function(
 #' @param features Name or remote URL of the features/genes file
 #' @param cell.column Specify which column of cells file to use for cell names; default is 1
 #' @param feature.column Specify which column of features files to use for feature/gene names; default is 2
+#' @param cell.sep Specify the delimiter in the cell name file
+#' @param feature.sep Specify the delimiter in the feature name file
 #' @param skip.cell Number of lines to skip in the cells file before beginning to read cell names
 #' @param skip.feature Number of lines to skip in the features file before beginning to gene names
+#' @param mtx.transpose Transpose the matrix after reading in
 #' @param unique.features Make feature names unique (default TRUE)
 #' @param strip.suffix Remove trailing "-1" if present in all cell barcodes.
 #'
@@ -1538,18 +1540,18 @@ ReadAkoya <- function(
 #' }
 #'
 ReadMtx <- function(
-    mtx,
-    cells,
-    features,
-    cell.column = 1,
-    feature.column = 2,
-    cell.sep = "\t",
-    feature.sep = "\t",
-    skip.cell = 0,
-    skip.feature = 0,
-    mtx.transpose = FALSE,
-    unique.features = TRUE,
-    strip.suffix = FALSE
+  mtx,
+  cells,
+  features,
+  cell.column = 1,
+  feature.column = 2,
+  cell.sep = "\t",
+  feature.sep = "\t",
+  skip.cell = 0,
+  skip.feature = 0,
+  mtx.transpose = FALSE,
+  unique.features = TRUE,
+  strip.suffix = FALSE
 ) {
   all.files <- list(
     "expression matrix" = mtx,
@@ -4100,6 +4102,7 @@ FindSpatiallyVariableFeatures.Seurat <- function(
 LogNormalize.data.frame <- function(
   data,
   scale.factor = 1e4,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {
@@ -4118,6 +4121,7 @@ LogNormalize.data.frame <- function(
 LogNormalize.V3Matrix <- function(
   data,
   scale.factor = 1e4,
+  margin = 2L,
   verbose = TRUE,
   ...
 ) {

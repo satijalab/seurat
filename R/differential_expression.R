@@ -2159,6 +2159,7 @@ PerformDE <- function(
 #' @importFrom future.apply future_lapply
 #' @importFrom future nbrOfWorkers
 #' @importFrom sctransform correct_counts
+#' @importFrom SeuratObject JoinLayers
 #'
 #' @return Returns a Seurat object with recorrected counts and data in the SCT assay.
 #' @export
@@ -2243,8 +2244,9 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
   }
   umi.layers <- Layers(object = object, assay = umi.assay, search = 'counts')
   if (length(x = umi.layers) > 1) {
-    object[[umi.assay]] <- JoinLayers(object = object[[umi.assay]],
-                                      layers = "counts", new = "counts")
+    object[[umi.assay]] <- JoinLayers(
+      object = object[[umi.assay]],
+      layers = "counts", new = "counts")
   }
   raw_umi <- GetAssayData(object = object, assay = umi.assay, slot = "counts")
   corrected_counts <- Matrix(
@@ -2314,7 +2316,6 @@ PrepSCTFindMarkers <- function(object, assay = "SCT", verbose = TRUE) {
 }
 
 PrepSCTFindMarkers.V5 <- function(object, assay = "SCT", umi.assay = "RNA", layer = "counts", verbose = TRUE) {
-
   layers <- Layers(object = object[[umi.assay]], search = layer)
   dataset.names <- gsub(pattern = paste0(layer, "."), replacement = "", x = layers)
   for (i in seq_along(along.with = layers)) {
@@ -2324,7 +2325,7 @@ PrepSCTFindMarkers.V5 <- function(object, assay = "SCT", umi.assay = "RNA", laye
       layer = l
       )
   }
-  cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(ncells, ncol(counts)))
+  cells.grid <- DelayedArray::colAutoGrid(x = counts, ncol = min(length(Cells(object)), ncol(counts)))
 }
 
 # given a UMI count matrix, estimate NB theta parameter for each gene

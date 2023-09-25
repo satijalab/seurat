@@ -30,9 +30,15 @@ ReadMtx(
 
 \item{feature.column}{Specify which column of features files to use for feature/gene names; default is 2}
 
+\item{cell.sep}{Specify the delimiter in the cell name file}
+
+\item{feature.sep}{Specify the delimiter in the feature name file}
+
 \item{skip.cell}{Number of lines to skip in the cells file before beginning to read cell names}
 
 \item{skip.feature}{Number of lines to skip in the features file before beginning to gene names}
+
+\item{mtx.transpose}{Transpose the matrix after reading in}
 
 \item{unique.features}{Make feature names unique (default TRUE)}
 

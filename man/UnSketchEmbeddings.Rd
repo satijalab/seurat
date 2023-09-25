@@ -12,6 +12,17 @@ UnSketchEmbeddings(
   sketch.matrix = NULL
 )
 }
+\arguments{
+\item{atom.data}{Atom data}
+
+\item{atom.cells}{Atom cells}
+
+\item{orig.data}{Original data}
+
+\item{embeddings}{Embeddings of atom cells}
+
+\item{sketch.matrix}{Sketch matrix}
+}
 \description{
 Transfer embeddings from sketched cells to the full data
 }

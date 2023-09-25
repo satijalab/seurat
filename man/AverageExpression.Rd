@@ -35,6 +35,8 @@ AverageExpression(
 \item{slot}{Slot(s) to use; if multiple slots are given, assumed to follow
 the order of 'assays' (if specified) or object's assays}
 
+\item{method}{Method of collapsing expression values. Either 'average' or 'aggregate'}
+
 \item{verbose}{Print messages and show progress bar}
 
 \item{...}{Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}}

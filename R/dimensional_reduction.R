@@ -649,8 +649,8 @@ RunCCA.Seurat <- function(
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  # combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, slot = "scale.data")
-  combined.object@assays$ToIntegrate@scale.data <- combined.scale
+  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, slot = "scale.data")
+  ## combined.object@assays$ToIntegrate@scale.data <- combined.scale
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,
@@ -2535,6 +2535,7 @@ RunSPCA.Assay <- function(
 
 #' @param features Features to compute SPCA on. If features=NULL, SPCA will be run
 #' using the variable features for the Assay.
+#' @param layer Layer to run SPCA on
 #'
 #' @rdname RunSPCA
 #' @concept dimensional_reduction
