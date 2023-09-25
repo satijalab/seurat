@@ -53,7 +53,6 @@ or SCT}
 
 \item{scale.layer}{Name of scaled layer in \code{Assay}}
 
-
 \item{dims.to.integrate}{Number of dimensions to return integrated values for}
 
 \item{k.weight}{Number of neighbors to consider when weighting anchors}
@@ -93,7 +92,7 @@ If NULL, the sample tree will be computed automatically.}
 \item{preserve.order}{Do not reorder objects based on size for each pairwise
 integration.}
 
-\item{verbose}{Print progress bars and output}
+\item{verbose}{Print progress}
 
 \item{...}{Arguments passed on to \code{FindIntegrationAnchors}}
 }
@@ -127,4 +126,5 @@ obj <- IntegrateLayers(object = obj, method = CCAIntegration,
   orig.reduction = "pca", new.reduction = "integrated.cca",
   assay = "SCT", verbose = FALSE)
 }
+
 }

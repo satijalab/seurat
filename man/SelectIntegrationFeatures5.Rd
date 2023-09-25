@@ -34,6 +34,8 @@ following:
 \item{layers}{Name of layers to use for integration feature selection}
 
 \item{verbose}{Print messages}
+
+\item{...}{Arguments passed on to \code{method}}
 }
 \description{
 Select integration features

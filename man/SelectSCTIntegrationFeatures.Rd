@@ -20,6 +20,8 @@ SelectSCTIntegrationFeatures(
 \item{assay}{Name of assay to use for integration feature selection}
 
 \item{verbose}{Print messages}
+
+\item{...}{Arguments passed on to \code{method}}
 }
 \description{
 Select SCT integration features
