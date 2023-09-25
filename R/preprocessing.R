@@ -523,6 +523,7 @@ Load10X_Spatial <- function(
   slice = 'slice1',
   filter.matrix = TRUE,
   to.upper = FALSE,
+  image = NULL,
   ...
 ) {
   if (length(x = data.dir) > 1) {
